@@ -434,6 +434,55 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
     }, 90_000)
 
+    // The technical-documentation preset end to end: title block + TOC on
+    // page 1 and the template CSS (hanging section numbers, full-width code)
+    // sanitised at render.
+    async function renderTechDocs(): Promise<{ pdf: string, pageCount: unknown, docId: string }> {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const preset = THEME_PRESETS.find(p => p.id === 'tech-docs')?.theme
+      if (!preset) throw new Error('tech-docs preset missing')
+      expect(preset.customCss).toBeTruthy()
+      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Durable background jobs on PostgreSQL — version 3.4', authors: ['The Ferrule maintainers'], date: '2026-11-04' } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/tech-docs.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      return { pdf, pageCount, docId: doc.docId }
+    }
+
+    it('renders the tech-docs fixture in the tech-docs preset on 8–11 pages', async () => {
+      const { pageCount, docId } = await renderTechDocs()
+      expect(typeof pageCount).toBe('number')
+      // 10 pages in the preview (markoto: 14).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(8)
+      expect(Number(pageCount)).toBeLessThanOrEqual(11)
+      await wipeRendersFor(docId)
+    }, 90_000)
+
+    // GAP: Source Serif 4 and Source Sans 3 are Fontsource VARIABLE fonts,
+    // which Chromium embeds as Type 3 (no BaseFont name). Expected: all
+    // three families embedded as real (TrueType/CID) fonts. Tracked by the
+    // engine fonts PR (fix/engine-fonts-charts); when it lands this test
+    // starts passing, `it.fails` turns red, and the marker is flipped to `it`.
+    it.fails('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
+      const { pdf, docId } = await renderTechDocs()
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      await wipeRendersFor(docId)
+      for (const family of [/SourceSerif/i, /SourceSans/i, /IBMPlexMono/i]) {
+        expect(fonts.some(f => family.test(f.name)), summary).toBe(true)
+      }
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+    }, 90_000)
+
     // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
     // (the renderer allows no CDN host any more). Chromium embeds the font
     // files it actually used, by name: had a web font failed to load, the

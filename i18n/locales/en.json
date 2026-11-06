@@ -1042,6 +1042,10 @@
         "name": "Tech Report",
         "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."
       },
+      "tech-docs": {
+        "name": "Technical documentation",
+        "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
+      },
       "business": {
         "name": "Business Report",
         "description": "Playfair headings over Source Sans body, warm amber accent, brand-colored table headers, centered title."
