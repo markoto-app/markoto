@@ -663,7 +663,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * page the call only moves to the next column of the SAME page, so the
    * note ended up on a later page (often one holding nothing else). After
    * paged.js placed a note, this puts it back on the call's page at full
-   * height; if the call really leaves the page, paged.js's overflow
+   * height (also when paged.js sized the note area too small for it); if the call really leaves the page, paged.js's overflow
    * removal takes the note along and it is placed again with its call.
    * Single-column pages are left exactly as paged.js lays them out.
    */
@@ -715,10 +715,15 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       inner.style.removeProperty('height')
       changed = true
     }
-    if (!changed) return
-    // Same measure as paged.js uses for a note that fits — unless that
-    // would take more than half the page.
-    const full = noteContent.scrollHeight + edges(noteContent, 'margin-top', 'margin-bottom') + edges(noteContent, 'border-top-width', 'border-bottom-width')
+    // Room the notes need: their own height plus the note area's padding,
+    // margins and borders. paged.js's own measure can come out short (seen
+    // in the live preview: one 12px note line, padding and margin left
+    // out); the note then overflows its area and is deferred to a page of
+    // its own.
+    const full = inner.scrollHeight + edges(noteContent, 'padding-top', 'padding-bottom') + edges(noteContent, 'margin-top', 'margin-bottom') + edges(noteContent, 'border-top-width', 'border-bottom-width')
+    const current = Number.parseFloat(pageArea instanceof HTMLElement ? pageArea.style.getPropertyValue('--pagedjs-footnotes-height') : '') || 0
+    if (!changed && full <= current + 1) return
+    // Never more than half the page.
     if (full > pageArea.getBoundingClientRect().height / 2) {
       if (clipped) inner.style.height = clipped
       return
