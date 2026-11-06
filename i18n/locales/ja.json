@@ -784,9 +784,16 @@
       "spacingScaleHelp": "見出しの上の余白の倍率。1.0 = 印刷の標準、1.5 = ゆったり。",
       "scaleOption": "{ratio}（見出し1 = 本文の{h1}倍）",
       "numbering": "番号付け",
-      "numberingHelp": "見出し1〜4と目次の項目に番号（1、1.1、1.1.1）を付けます。冒頭の「概要」セクションには付けません。",
+      "numberingHelp": "見出し1〜4と目次の項目に番号（1、1.1、1.1.1）を付けます。冒頭の「概要」セクションには付けません。ほかの見出しは {code} を付けると番号なしになります（例：「# 参考文献 {code}」）。",
       "numberingNone": "なし",
-      "numberingDecimal": "1、1.1、1.1.1"
+      "numberingDecimal": "1、1.1、1.1.1",
+      "levels": "レベル別",
+      "levelsHelp": "見出しレベルごとにサイズ、太さ、斜体、スモールキャップスを設定します。変更しない項目は上のスケールと太さに従います。",
+      "levelTitle": "見出し{level}",
+      "levelSize": "サイズ（本文の倍率）",
+      "levelItalic": "斜体",
+      "levelSmallCaps": "スモールキャップス",
+      "levelReset": "既定値に戻す"
     },
     "align": {
       "left": "左揃え",
@@ -818,7 +825,10 @@
       "imageHelp": "各本文ページのランニングヘッダーに表示する任意のロゴやマーク（表紙ではヘッダーが自動的に抑制されます）。",
       "imagePosition": "画像の位置",
       "imageHeight": "画像の高さ",
-      "uploadImage": "画像をアップロード"
+      "uploadImage": "画像をアップロード",
+      "ruleHeader": "ヘッダーの下に罫線",
+      "ruleFooter": "フッターの上に罫線",
+      "ruleHelp": "本文の幅いっぱいの細い線です。テキストは線の近くに移動します。"
     },
     "code": {
       "theme": "カラーテーマ",
@@ -929,7 +939,9 @@
       "rules": "タイトルの上下に罫線",
       "rulesHelp": "arXivのプレプリントのような太い横罫線。",
       "smallCaps": "タイトルをスモールキャップスに",
-      "affiliationPlaceholder": "所属（部署、機関、メール。1行に1つ）"
+      "affiliationPlaceholder": "所属（部署、機関、メール。1行に1つ）",
+      "titleWeight": "タイトルの太さ",
+      "titleWeightInherit": "見出しと同じ（{weight}）"
     },
     "brand": {
       "logo": "ブランドロゴ",
@@ -999,6 +1011,10 @@
         "name": "学術論文",
         "description": "2段組みのSource Serif本文、1ページ目に著者と概要のタイトルブロック、番号付きの節、最小限の表罫線 — ジャーナルスタイル。"
       },
+      "arxiv": {
+        "name": "arXivプレプリント",
+        "description": "arXivのLaTeXプレプリントの体裁：USレター、Times 10 ptの両端揃え、番号付きの太字の節、太い罫線に挟まれたスモールキャップスのタイトルブロック、細い罫線の上に「A Preprint」の柱。"
+      },
       "tech": {
         "name": "技術レポート",
         "description": "コンパクトなIBM Plex Sans、シアンのブランドカラー、暗いコードブロック、縞模様のブランドカラー表ヘッダー。"
@@ -1006,6 +1022,10 @@
       "business": {
         "name": "ビジネスレポート",
         "description": "Source Sans本文の上にPlayfair見出し、温かみのある琥珀色のアクセント、ブランドカラーの表ヘッダー、中央揃えのタイトル。"
+      },
+      "business-report": {
+        "name": "コーポレートレポート",
+        "description": "四半期・年次報告書、取締役会向け資料、クライアント向け成果物に。Inter本文にSource Serifの見出し、深いペトロールブルーのアクセント、等幅数字と罫線付き合計行の財務表、引用のプルクオート、細い罫線の上の控えめなフッター。"
       },
       "novel": {
         "name": "小説",

@@ -1,4 +1,4 @@
-import type { CodeBackground, CodeFrame, DocTheme, HeadingNumbering } from '../types/theme'
+import type { CodeBackground, CodeFrame, DocTheme, HeadingLevelKey, HeadingNumbering, HeadingStyle, RunningSlots } from '../types/theme'
 
 /**
  * Defaults for the OPTIONAL theme fields (added after themes were already
@@ -53,8 +53,48 @@ export function resolveTitleBlock(theme: DocTheme): ResolvedTitleBlock {
   }
 }
 
+/** `header.rule` / `footer.rule` — absent = no rule. */
+export function runningRule(slots: RunningSlots): boolean {
+  return slots.rule ?? false
+}
+
 /**
- * Fill every optional field with its default — for UIs that bind each
+ * Cover / title-block title weight. Absent = `headings.weight`: the title
+ * follows the headings until the author picks a weight of its own. That
+ * is an inheritance, not a fixed default, so `withThemeDefaults` leaves
+ * the field absent and presets only set it where it differs (arXiv).
+ */
+export function coverTitleWeight(theme: DocTheme): number {
+  return theme.cover.titleWeight ?? theme.headings.weight
+}
+
+export interface ResolvedHeadingLevel {
+  /** Size as a multiple of the body size, or null = the modular scale. */
+  size: number | null
+  weight: number
+  style: HeadingStyle
+  smallCaps: boolean
+}
+
+/** Look of heading level 1–6: `headings.levels.hN` (h1–h4) over the theme-wide values. */
+export function resolveHeadingLevel(theme: DocTheme, level: number): ResolvedHeadingLevel {
+  const key = `h${level}`
+  const entry = isLevelKey(key) ? theme.headings.levels?.[key] : undefined
+  return {
+    size: entry?.size ?? null,
+    weight: entry?.weight ?? theme.headings.weight,
+    style: entry?.style ?? 'normal',
+    smallCaps: entry?.smallCaps ?? false
+  }
+}
+
+function isLevelKey(key: string): key is HeadingLevelKey {
+  return key === 'h1' || key === 'h2' || key === 'h3' || key === 'h4'
+}
+
+/**
+ * Fill every optional field with its default (except `cover.titleWeight`,
+ * which inherits `headings.weight` while absent) — for UIs that bind each
  * field (theme panel) and for showing a theme in full (`get_theme`).
  * Returns a new object; `theme` is not changed.
  */
@@ -63,7 +103,9 @@ export function withThemeDefaults(theme: DocTheme): DocTheme {
   const tb = resolveTitleBlock(theme)
   return {
     ...theme,
-    headings: { ...theme.headings, numbering: headingNumbering(theme) },
+    headings: { ...theme.headings, numbering: headingNumbering(theme), levels: theme.headings.levels ?? {} },
+    header: { ...theme.header, rule: runningRule(theme.header) },
+    footer: { ...theme.footer, rule: runningRule(theme.footer) },
     code: {
       ...theme.code,
       ...(code.font ? { font: code.font } : {}),

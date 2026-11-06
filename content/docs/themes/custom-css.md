@@ -239,8 +239,12 @@ were already applied stay in place in the meantime.
 
 - Custom CSS is part of the theme. Saving the theme as a preset, or
   setting it as a workspace default, keeps the CSS with it.
-- Applying a built-in preset keeps your custom CSS. Applying a saved
-  theme replaces it with the saved theme's CSS, and new documents in a
+- Applying a built-in preset keeps your custom CSS. A few presets bring
+  CSS of their own (arXiv preprint: the table rules, figure captions and
+  reference list of the LaTeX template). It goes in front of yours, so
+  your rules still win, and switching to another preset takes it out
+  again as long as you haven't edited it. Applying a saved theme
+  replaces your CSS with the saved theme's CSS, and new documents in a
   workspace start with the workspace default's CSS.
 - When you duplicate a document, image addresses in the CSS point at the
   copy's images.

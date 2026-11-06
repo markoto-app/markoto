@@ -1,0 +1,17 @@
+{
+  "cover": {
+    "enabled": true,
+    "layout": "title-block",
+    "showAuthors": true,
+    "authors": ["Jonas Imhof"],
+    "affiliations": ["Department of Geography, University of Arnau\nGEO 3412: Land Use Policy and Planning\nDr. Martina Beck"],
+    "showSubtitle": false,
+    "subtitle": "",
+    "showDate": true,
+    "date": "2026-11-02",
+    "rules": false,
+    "smallCaps": false,
+    "titleSize": 1.4,
+    "subtitleSize": 1
+  }
+}

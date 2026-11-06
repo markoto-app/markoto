@@ -784,9 +784,16 @@
       "spacingScaleHelp": "Multiplicador del espacio sobre los títulos. 1,0 = estándar de impresión, 1,5 = holgado.",
       "scaleOption": "{ratio} (título 1 = {h1}× el texto)",
       "numbering": "Numeración",
-      "numberingHelp": "Numera los títulos 1 a 4 (1, 1.1, 1.1.1) y sus entradas en el índice. Una sección «Resumen» al principio no se numera.",
+      "numberingHelp": "Numera los títulos 1 a 4 (1, 1.1, 1.1.1) y sus entradas en el índice. Una sección «Resumen» al principio no se numera; marca cualquier otro título con {code}, por ejemplo «# Referencias {code}».",
       "numberingNone": "Ninguna",
-      "numberingDecimal": "1, 1.1, 1.1.1"
+      "numberingDecimal": "1, 1.1, 1.1.1",
+      "levels": "Por nivel",
+      "levelsHelp": "Define el tamaño, el grosor, la cursiva o las versalitas de un nivel de título. Lo que no cambies sigue la escala y el grosor de arriba.",
+      "levelTitle": "Título {level}",
+      "levelSize": "Tamaño (× cuerpo)",
+      "levelItalic": "Cursiva",
+      "levelSmallCaps": "Versalitas",
+      "levelReset": "Usar valores predeterminados"
     },
     "align": {
       "left": "Izquierda",
@@ -818,7 +825,10 @@
       "imageHelp": "Logotipo o marca opcional que se muestra en el encabezado en cada página del cuerpo (la portada suprime los encabezados automáticamente).",
       "imagePosition": "Posición de la imagen",
       "imageHeight": "Altura de la imagen",
-      "uploadImage": "Subir imagen"
+      "uploadImage": "Subir imagen",
+      "ruleHeader": "Filete bajo el encabezado",
+      "ruleFooter": "Filete sobre el pie de página",
+      "ruleHelp": "Una línea fina a todo el ancho del texto. El texto se acerca a ella."
     },
     "code": {
       "theme": "Tema de color",
@@ -929,7 +939,9 @@
       "rules": "Líneas sobre y bajo el título",
       "rulesHelp": "Líneas horizontales gruesas, como en un preprint de arXiv.",
       "smallCaps": "Título en versalitas",
-      "affiliationPlaceholder": "Afiliación (departamento, institución, correo; una por línea)"
+      "affiliationPlaceholder": "Afiliación (departamento, institución, correo; una por línea)",
+      "titleWeight": "Grosor del título",
+      "titleWeightInherit": "Igual que los títulos ({weight})"
     },
     "brand": {
       "logo": "Logotipo de marca",
@@ -999,6 +1011,10 @@
         "name": "Artículo académico",
         "description": "Cuerpo Source Serif a dos columnas, bloque de título con autores y resumen en la página 1, secciones numeradas, bordes de tabla mínimos — estilo revista."
       },
+      "arxiv": {
+        "name": "Preprint de arXiv",
+        "description": "El aspecto del preprint LaTeX de arXiv: tamaño US Letter, Times 10 pt justificado, secciones numeradas en negrita, bloque de título entre filetes gruesos en versalitas, encabezado «A Preprint» sobre un filete fino."
+      },
       "tech": {
         "name": "Informe técnico",
         "description": "IBM Plex Sans compacta, color de marca cian, bloques de código oscuros, encabezados de tabla con color de marca y filas cebra."
@@ -1006,6 +1022,10 @@
       "business": {
         "name": "Informe de negocios",
         "description": "Encabezados Playfair sobre cuerpo Source Sans, acento ámbar cálido, encabezados de tabla con color de marca, título centrado."
+      },
+      "business-report": {
+        "name": "Informe corporativo",
+        "description": "Informes trimestrales y anuales, actualizaciones para el consejo, entregables para clientes: títulos en Source Serif sobre Inter, un acento azul petróleo profundo, tablas financieras con cifras tabulares y totales destacados, citas resaltadas, pie de página discreto sobre una línea fina."
       },
       "novel": {
         "name": "Novela",
