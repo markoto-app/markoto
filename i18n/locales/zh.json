@@ -1015,6 +1015,10 @@
         "name": "arXiv 预印本",
         "description": "arXiv LaTeX 预印本的样式：US Letter 纸张，Times 10 pt 两端对齐，编号的粗体章节，夹在粗线之间的小型大写标题区，细线上方的“A Preprint”页眉。"
       },
+      "ieee-conference": {
+        "name": "IEEE 会议论文",
+        "description": "IEEE 会议模板（IEEEtran）的样式：US Letter 纸张，Times 10 pt 双栏，带罗马数字的居中小型大写章节标题，斜体小节标题，24 pt 标题下并排的作者信息块，第一栏开头的粗体摘要。"
+      },
       "tech": {
         "name": "技术报告",
         "description": "紧凑的 IBM Plex Sans、青色品牌色、深色代码块、品牌色表头搭配隔行变色。"

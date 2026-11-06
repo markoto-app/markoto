@@ -33,6 +33,17 @@ so instead of handing you a file that looks different from your preview.
 Prefer your browser's print dialog? **File › Print** (or `Cmd/Ctrl + P`)
 prints the same paged view.
 
+## How pages break
+
+You don't place page breaks by hand (though `<!-- pagebreak -->` forces one).
+markoto keeps a heading with the text it introduces, also at the end of a
+column in two-column themes, and keeps a definition term with its
+description. Short code blocks and tables stay in one piece unless that would
+leave a large empty space at the bottom of a page: then they split, with at
+least three lines or rows on each side. A table that continues on the next
+page repeats its header row. In two-column themes a footnote stays on the
+page of its reference.
+
 ## What's next
 
 - [Pick a theme](/docs/themes/pick-a-theme): nine presets, each one exactly what the PDF will look like.

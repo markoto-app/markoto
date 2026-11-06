@@ -1,0 +1,10 @@
+{
+  "cover": {
+    "authors": ["Michael Shell", "Homer Simpson", "James Kirk\nand Montgomery Scott"],
+    "affiliations": [
+      "School of Electrical and\nComputer Engineering\nGeorgia Institute of Technology\nAtlanta, Georgia 30332–0250\nEmail: http://www.michaelshell.org/contact.html",
+      "Twentieth Century Fox\nSpringfield, USA\nEmail: homer@thesimpsons.com",
+      "Starfleet Academy\nSan Francisco, California 96678–2391\nTelephone: (800) 555–1212\nFax: (888) 555–1212"
+    ]
+  }
+}
