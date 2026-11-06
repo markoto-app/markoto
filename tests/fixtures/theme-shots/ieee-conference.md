@@ -67,5 +67,6 @@ The authors would like to thank...
 1. H. Kopka and P. W. Daly, *A Guide to LaTeX*, 3rd ed. Harlow, England: Addison-Wesley, 1999.
 2. M. Shell, “How to use the IEEEtran LaTeX class,” *J. of LaTeX Class Files*, vol. 14, no. 8, pp. 1–15, Aug. 2015.
 3. L. Lamport, *LaTeX: A Document Preparation System*, 2nd ed. Reading, MA, USA: Addison-Wesley, 1994.
+{.references}
 
 [^1]: A footnote is set in eight-point type at the bottom of the column.

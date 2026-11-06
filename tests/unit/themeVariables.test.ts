@@ -44,9 +44,10 @@ describe('absent fields = the old look', () => {
     expect('titleWeight' in filled.cover).toBe(false)
   })
 
-  test('no preset other than arxiv changes its CSS through the new fields', () => {
+  // Format templates (arXiv, IEEE conference) are built on the new fields.
+  test('no preset other than the format templates changes its CSS through the new fields', () => {
     for (const p of THEME_PRESETS) {
-      if (p.id === 'arxiv') continue
+      if (p.id === 'arxiv' || p.id === 'ieee-conference') continue
       const css = themeToCss(p.theme, runtime)
       const stripped = clone(p.theme)
       delete stripped.headings.levels

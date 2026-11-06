@@ -76,10 +76,10 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 .pagedjs_pages .pagedjs_page { --pagedjs-margin-top: 51pt; --pagedjs-margin-bottom: 69pt; }
 /* \\@maketitle: \\Huge 24/28pt title, 0.5\\baselineskip + 0.2em above, 1em - 0.25em to the author blocks. */
 .paged-doc .markoto-title-block { margin: 0 0 6pt; }
-.paged-doc .markoto-title-block .markoto-cover-title { line-height: 28pt; margin: 8pt 0 7.5pt; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 28pt; margin: -4pt 0 18pt; }
 /* \\and = \\hfill: author blocks share the width; \\IEEEauthorblockN \\sublargesize (11pt) regular, \\IEEEauthorblockA \\normalsize, 2.6ex / 2.75ex lines. */
-.paged-doc .markoto-title-block .markoto-cover-authors { justify-content: space-evenly; gap: 0; margin: 0 0 30pt; }
-.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; font-size: 1.1em; line-height: 12.5pt; white-space: pre-line; }
+.paged-doc .markoto-title-block .markoto-cover-authors { justify-content: space-evenly; gap: 0; margin: 0 0 40pt; }
+.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; font-size: 1.1em; line-height: 11.5pt; white-space: pre-line; }
 .paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 12.5pt; }
 /* Two-column \\abstract + IEEEkeywords open the first column: only title and authors span the page. */
 .paged-doc .markoto-cover { column-span: none; }
@@ -98,29 +98,37 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 .paged-doc h1 { text-align: center; }
 .paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h1, upper-roman) "."; margin-right: 0.5em; }
 .paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h2, upper-alpha) "."; margin-right: 0.5em; }
-/* \\subsubsection: run-in at \\parindent, "1)" and ":" after the heading. */
-.paged-doc h3 { float: left; margin: 0 0.35em 0 1em; }
+/* \\subsubsection: run-in at \\parindent, "1)" and ":" after the heading (inline with its paragraph, so the two never part at a column break). */
+.paged-doc h3 { display: inline; margin: 0 0.35em 0 1em; }
 .paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h3) ")"; margin-right: 0.5em; }
 .paged-doc h3::after { content: ":"; }
-.paged-doc h3 + p { text-indent: 0; }
-/* itemize: \\leftmargini 2em, bullet \\labelsep 0.5em before the text, \\topsep 2pt, no \\itemsep. */
+.paged-doc h3 + p { display: inline; text-indent: 0; }
+/* itemize / enumerate: \\leftmargini 2em, bullet and "1)" labels \\labelsep 0.5em before the text, \\topsep 2pt, no \\itemsep. */
 .paged-doc ul, .paged-doc ol { padding-left: 2em; margin: 2pt 0; }
 .paged-doc li { margin: 0; }
+.paged-doc ul > li:not(.task-list-item) { list-style: none; }
+.paged-doc ul > li:not(.task-list-item)::before { content: "\\2022"; display: inline-block; box-sizing: border-box; width: 2em; margin-left: -2em; padding-right: 0.5em; text-align: right; }
+.paged-doc ol > li::marker { content: counter(list-item) ")\\a0\\a0"; }
+/* \\footnoterule is empty; \\@makefntext: superscript mark, first line indented 1em. */
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_content { background: none; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area .footnote { text-indent: 1em; line-height: 9pt; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area [data-footnote-marker]::marker { content: none; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area [data-footnote-marker]::before { content: counter(footnote-marker); vertical-align: super; font-size: 0.75em; line-height: 0; }
 /* table: \\footnotesize body, caption above: "TABLE I" (\\Roman), then the caption in small caps, centred. */
-.paged-doc p.table-caption { counter-increment: mk-tab; text-align: center; text-indent: 0; font-size: 8pt; line-height: 9pt; font-variant-caps: small-caps; margin: 12pt 0 4.5pt; }
+.paged-doc p.table-caption { counter-increment: mk-tab; text-align: center; text-indent: 0; font-size: 8pt; line-height: 9pt; font-variant-caps: small-caps; text-align-last: center; margin: 12pt 0 9.5pt; }
 .paged-doc p.table-caption::before { content: "TABLE " counter(mk-tab, upper-roman); display: block; font-variant-caps: normal; }
-.paged-doc table { width: auto; margin: 0 auto 12pt; font-size: 8pt; line-height: 9pt; }
+.paged-doc table { width: auto; margin: 0 auto 12pt; font-size: 8pt; line-height: 9pt; border-top: 0.4pt solid; border-bottom: 0.4pt solid; }
 .paged-doc th, .paged-doc td { padding: 0 6pt; font-weight: 400; }
-.paged-doc table thead th { border-top: 0.4pt solid; border-bottom: 0.4pt solid; }
-.paged-doc table tbody tr:last-child td { border-bottom: 0.4pt solid; }
-/* figure: centred, "Fig. 1." + two spaces, \\footnotesize caption below, centred when it fits one line. */
+/* \\hline: 0.4pt above the table (on the table rule), below the header and at the end. */
+.paged-doc thead { border-bottom: 0.4pt solid; }
+/* figure: centred, "Fig. 1." + two spaces, \\footnotesize caption below, centred when it fits one line, else justified. */
 .paged-doc figure { counter-increment: mk-fig; margin: 12pt 0; text-align: center; }
 .paged-doc figure img { display: block; margin: 0 auto; }
-.paged-doc figcaption { font: inherit; font-size: 8pt; line-height: 9pt; font-style: normal; color: inherit; margin-top: 9pt; }
+.paged-doc figcaption { font: inherit; font-size: 8pt; line-height: 9pt; font-style: normal; color: inherit; margin-top: 9pt; text-align: justify; text-align-last: center; }
 .paged-doc figcaption::before { content: "Fig. " counter(mk-fig) ".\\a0\\a0"; }
-/* thebibliography: \\footnotesize, "[1]" labels in a hanging list. */
-.paged-doc #references + ol { list-style: none; padding-left: 2.2em; font-size: 8pt; line-height: 9pt; }
-.paged-doc #references + ol > li::before { content: "[" counter(list-item) "]"; display: inline-block; width: 2.2em; margin-left: -2.2em; }
+/* thebibliography: \\footnotesize, "[1]" labels in a hanging list. The list after "References"; mark it {.references} so a part continued on the next page keeps the look. */
+.paged-doc #references ~ ol, .paged-doc ol.references { padding-left: 1.75em; font-size: 8pt; line-height: 9pt; }
+.paged-doc #references ~ ol > li::marker, .paged-doc ol.references > li::marker { content: "[" counter(list-item) "]\\2002"; }
 /* \\texttt: typewriter, no box. hyperref is not loaded: links print as text. */
 .paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 1em; }
 .paged-doc a { text-decoration: none; color: inherit; }

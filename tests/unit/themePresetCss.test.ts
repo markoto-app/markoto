@@ -18,8 +18,9 @@ function preset(id: string) {
 }
 
 describe('preset template CSS', () => {
-  test('arxiv carries template CSS', () => {
+  test('the format templates carry template CSS', () => {
     expect(withCss.map(p => p.id)).toContain('arxiv')
+    expect(withCss.map(p => p.id)).toContain('ieee-conference')
   })
 
   test('passes the custom-CSS sanitizer without issues and survives it', () => {
