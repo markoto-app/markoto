@@ -1,103 +1,10 @@
-// Scene-to-scene paging of the product page (WP11): pure helpers behind
-// app/composables/useTourPager.ts, unit-tested in tests/unit/tourPaging.test.ts.
-
-/** Scene-to-scene glide duration: a base plus a share per viewport height
- *  travelled, clamped. One scene (1.6 viewports) takes ~1.3 s — the copy
- *  fade, stage slide and cross-fade are spread over the whole crossing
- *  (ProductTour), so this is long enough to follow them and short enough
- *  that the page doesn't feel held back. */
-export const GLIDE_BASE_MS = 600
-export const GLIDE_MS_PER_VIEWPORT = 450
-export const GLIDE_MIN_MS = 1000
-export const GLIDE_MAX_MS = 1800
-
-/** How long a glide over `distance` px takes in a `viewport` px tall window. */
-export function glideDuration(distance: number, viewport: number): number {
-  const viewports = viewport > 0 ? Math.abs(distance) / viewport : 1
-  const ms = GLIDE_BASE_MS + GLIDE_MS_PER_VIEWPORT * viewports
-  return Math.min(GLIDE_MAX_MS, Math.max(GLIDE_MIN_MS, ms))
-}
-
-/** Wheel events closer together than this belong to one gesture (a run
- *  of notches, a trackpad flick and its momentum tail). */
-export const GESTURE_GAP_MS = 300
-
-/** A wheel event smaller than this (px) never starts a step: a fading
- *  momentum tail, or the first trickle of a slow scroll. */
-export const GESTURE_MIN_DELTA = 4
-
-/** A gap shorter than this between smoothly DECREASING deltas is still the
- *  same momentum tail (an input stall mid-tail must not count as a new
- *  flick). Smoothly: a tail decays gradually, so the next delta is at least
- *  `TAIL_MIN_RATIO` of the previous one — a small delta after a big one
- *  (a flick after a mouse notch) starts a new gesture. */
-export const TAIL_STALL_MS = 700
-export const TAIL_MIN_RATIO = 0.4
-
-/** A delta this many times the previous one, and at least `RISE_MIN_PX`
- *  larger, after the gesture had decayed to under half its peak: a NEW
- *  swipe started inside the previous one's momentum tail. */
-export const RISE_RATIO = 1.6
-export const RISE_MIN_PX = 6
-
-/** Per-page state of the wheel gesture currently in progress. */
-export interface WheelGesture {
-  /** Events up to this time belong to the current gesture. */
-  until: number
-  lastAt: number
-  lastDelta: number
-  /** Largest delta of the current gesture. */
-  peak: number
-  /** The current gesture has fallen to under half its peak (a momentum tail). */
-  decayed: boolean
-  /** The current gesture has already produced its step. */
-  fired: boolean
-}
-
-export function newWheelGesture(): WheelGesture {
-  return { until: 0, lastAt: -Infinity, lastDelta: 0, peak: 0, decayed: false, fired: false }
-}
-
-/**
- * Feeds one wheel event (time, deltaY) into the gesture state; true when a
- * NEW gesture has started that should move one scene (the pager steps at
- * once, or queues the step while a glide runs). One step per gesture: a
- * run of notches, a trackpad swipe with its momentum tail — even one whose
- * tail outlasts the glide or stalls for a moment — counts once. A new
- * gesture is either input after a pause (`GESTURE_GAP_MS`, unless it
- * continues a decaying tail) or a swipe that starts inside the previous
- * one's momentum tail: the deltas, having decayed, rise sharply again.
- */
-export function wheelSteps(g: WheelGesture, now: number, deltaY: number): boolean {
-  const d = Math.abs(deltaY)
-  const decayingTail = now - g.lastAt < TAIL_STALL_MS && d < g.lastDelta && d >= g.lastDelta * TAIL_MIN_RATIO
-  const afterPause = now > g.until && !decayingTail
-  const risingAgain = !afterPause && g.decayed && d >= g.lastDelta * RISE_RATIO && d - g.lastDelta >= RISE_MIN_PX
-  if (afterPause || risingAgain) {
-    g.peak = d
-    g.decayed = false
-    g.fired = false
-  } else {
-    g.peak = Math.max(g.peak, d)
-    if (d < g.peak / 2) g.decayed = true
-  }
-  g.until = now + GESTURE_GAP_MS
-  g.lastAt = now
-  g.lastDelta = d
-  if (g.fired || d < GESTURE_MIN_DELTA) return false
-  g.fired = true
-  return true
-}
-
-/**
- * Ease-in-out (sine): soft start, soft arrival, and a mid-glide peak speed
- * of ~1.57× the average (a cubic curve peaks at 3×, which reads as a jump
- * between scenes).
- */
-export function easeInOutSine(t: number): number {
-  const x = Math.min(1, Math.max(0, t))
-  return -(Math.cos(Math.PI * x) - 1) / 2
-}
+// Scene rests of the product page (WP11): pure helpers behind
+// app/composables/useTourScroll.ts, unit-tested in tests/unit/tourPaging.test.ts.
+//
+// The visitor scrolls the page themselves (Lenis smooths wheel and
+// trackpad input on the pinned layout); once the input stops, the page
+// settles on a scene rest. These helpers pick that rest and shape the
+// settle so it continues the motion already under way.
 
 /** Index of the rest position nearest to `y`. */
 export function nearestRest(rests: readonly number[], y: number): number {
@@ -110,10 +17,37 @@ export function nearestRest(rests: readonly number[], y: number): number {
   return best
 }
 
+/** A scroll this far (px) away from the rest the page last settled on
+ *  counts as "go on" even when that rest is still the nearest: a short
+ *  trackpad swipe, a mouse notch or an arrow key (40 px in Chromium) moves
+ *  on to the next scene instead of springing back — no input is ignored. */
+export const SETTLE_ADVANCE_PX = 24
+
 /**
- * The rest one step from `y` in direction `dir`: the first rest beyond `y`
- * (more than `tolerance` px away) — so a step taken between two rests goes
- * to the next one, never back — clamped to the first / last rest.
+ * The rest to settle on once the input has stopped at `y` (where the
+ * scroll is heading, not where it is this frame); `from` is the rest the
+ * page last settled on (or is settling on), `dir` the direction of the
+ * latest input (1 down, -1 up). Normally the nearest rest; but when that is
+ * still `from` and the visitor has moved more than `advancePx` away from
+ * it in the direction of the input, the next rest that way — a short
+ * scroll moves on instead of springing back, and a scroll is never turned
+ * around (a forward swipe short of the rest it heads for stays there).
+ */
+export function settleTarget(rests: readonly number[], y: number, from: number, dir: 1 | -1, advancePx = SETTLE_ADVANCE_PX): number {
+  const near = nearestRest(rests, y)
+  const at = rests[near]
+  if (near !== from || at === undefined) return near
+  const moved = y - at
+  if (Math.abs(moved) <= advancePx || Math.sign(moved) !== dir) return near
+  const next = near + dir
+  return next >= 0 && next < rests.length ? next : near
+}
+
+/**
+ * The rest one step from `y` in direction `dir` (a paging key): the first
+ * rest beyond `y` (more than `tolerance` px away) — so a step taken between
+ * two rests goes to the next one, never back — clamped to the first / last
+ * rest.
  */
 export function stepTarget(rests: readonly number[], y: number, dir: 1 | -1, tolerance = 2): number {
   if (rests.length === 0) return 0
@@ -126,4 +60,39 @@ export function stepTarget(rests: readonly number[], y: number, dir: 1 | -1, tol
     if (r !== undefined && r < y - tolerance) return i
   }
   return 0
+}
+
+/** Settle duration: a base plus a share per viewport travelled, clamped.
+ *  Half a scene (0.8 viewports) takes ~0.75 s; a whole scene ~1.1 s. */
+export const SETTLE_BASE_MS = 380
+export const SETTLE_MS_PER_VIEWPORT = 460
+export const SETTLE_MIN_MS = 350
+export const SETTLE_MAX_MS = 1300
+
+/** How long settling over `distance` px takes in a `viewport` px tall window. */
+export function settleDuration(distance: number, viewport: number): number {
+  const viewports = viewport > 0 ? Math.abs(distance) / viewport : 1
+  const ms = SETTLE_BASE_MS + SETTLE_MS_PER_VIEWPORT * viewports
+  return Math.min(SETTLE_MAX_MS, Math.max(SETTLE_MIN_MS, ms))
+}
+
+/** Start slope cap: a settle may start at most this many times faster
+ *  than its average speed (higher would overshoot the rest). */
+export const SETTLE_MAX_START_SLOPE = 2
+
+/**
+ * Easing for a settle that starts while the page is still moving: a cubic
+ * Hermite curve from the current speed to a stop at the rest, so there is
+ * no jolt where the visitor's own scroll hands over to the settle.
+ * `startSlope` = current speed ÷ the settle's average speed (velocity px/ms
+ * × duration ms ÷ distance px); 0 (from standstill) gives a smoothstep.
+ * Moving away from the rest (negative) or too fast is clamped to [0, 2].
+ */
+export function settleEasing(startSlope: number): (t: number) => number {
+  const m = Number.isFinite(startSlope) ? Math.min(SETTLE_MAX_START_SLOPE, Math.max(0, startSlope)) : 0
+  return (t: number) => {
+    const x = Math.min(1, Math.max(0, t))
+    // h10 · m + h01: p(0) = 0, p'(0) = m, p(1) = 1, p'(1) = 0.
+    return (x * x * x - 2 * x * x + x) * m + (3 * x * x - 2 * x * x * x)
+  }
 }
