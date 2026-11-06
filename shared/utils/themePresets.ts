@@ -64,6 +64,55 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
 `
 
 /**
+ * BUSINESS_REPORT_TEMPLATE_CSS — what the business-report look needs beyond
+ * theme fields: the two-width grid, section-opener bars, finance-style
+ * tables (tabular figures, hairlines, rules on bold total rows), pull
+ * quotes, square callouts and the cover composition. Same rules as the
+ * arXiv template CSS (sanitised, editable by the author).
+ */
+const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width grid: prose in a ~75-character column, tables, charts and callouts across the full text width. */
+.paged-doc > p, .paged-doc > ul, .paged-doc > ol, .paged-doc > dl, .paged-doc > blockquote { max-width: 128mm; }
+/* Section openers: a short accent bar over every h1 gives rhythm without a page break. */
+.paged-doc h1:not(.markoto-cover-title) { padding-top: 9pt; background: linear-gradient(var(--doc-brand), var(--doc-brand)) top left / 12mm 2pt no-repeat; }
+/* The first paragraph of a section is its lead: a step larger, in heading ink. */
+.paged-doc > h1 + p { font-size: 1.1em; line-height: 1.45; color: var(--doc-heading-color); }
+/* A section that opens with a subsection needs no full gap between the two. */
+.paged-doc h1 + h2 { margin-top: 0; }
+/* Contents: a page of their own in the prose column, the title set like a section opener, one group per section between hairlines. */
+.paged-doc .table-of-contents { break-after: page; max-width: 128mm; }
+.paged-doc .table-of-contents::before { font-size: 2em; font-weight: 600; padding-top: 9pt; margin-bottom: 1em; background: linear-gradient(var(--doc-brand), var(--doc-brand)) top left / 12mm 2pt no-repeat; }
+.paged-doc .table-of-contents > ul > li { padding: 0.5em 0; border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 55%, transparent); }
+.paged-doc .table-of-contents > ul > li + li { margin-top: 0; }
+.paged-doc .table-of-contents > ul > li > a { font-weight: 600; color: var(--doc-heading-color); }
+.paged-doc .table-of-contents > ul > li > a::after { color: var(--doc-heading-color); }
+.paged-doc .table-of-contents ul ul a { color: color-mix(in srgb, var(--doc-text) 75%, var(--doc-bg)); }
+/* Finance tables: tabular lining figures, compact rows, hairlines between rows, a firm rule under the header and at the foot, no fills. */
+.paged-doc table { font-variant-numeric: lining-nums; line-height: 1.35; margin: 1.1em 0 1.3em; }
+/* Figures line up in right-aligned (numeric) columns; text columns keep proportional punctuation (Inter's tabular hyphen is wide). */
+.paged-doc td[style*="right"], .paged-doc th[style*="right"] { font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc th { font-size: 0.88em; font-weight: 600; color: var(--doc-heading-color); vertical-align: bottom; }
+.paged-doc tr { border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 55%, transparent); }
+.paged-doc thead tr { border-bottom: 1pt solid var(--doc-heading-color); }
+.paged-doc tbody tr:last-child { border-bottom: 1pt solid var(--doc-heading-color); }
+/* Totals and subtotals: a row whose label is bold, after a plain row, gets a rule above it (a key/value table with bold labels throughout keeps hairlines). */
+.paged-doc tbody tr:not(:has(> td:first-child > strong)) + tr:has(> td:first-child > strong) > td { border-top: 1pt solid var(--doc-heading-color); }
+/* A header row with no labels (key/value tables) is not drawn. */
+.paged-doc thead tr:not(:has(> th:not(:empty))) { display: none; }
+/* Pull quotes: serif italic in heading ink; a last paragraph after the quote is its attribution. */
+.paged-doc blockquote { font-family: "Source Serif 4", Georgia, serif; font-size: 1.18em; line-height: 1.4; color: var(--doc-heading-color); border-left: 2pt solid var(--doc-brand); padding-left: 1.1em; margin: 1.4em 0; }
+.paged-doc blockquote > p:last-child:not(:first-child) { font-family: "Inter", sans-serif; font-style: normal; font-size: 0.72em; color: var(--doc-secondary); margin-top: 0.6em; }
+/* Callouts: square, a thin rule, a lighter tint, a step smaller than the text. */
+.paged-doc .markdown-alert { border-left-width: 2pt; border-radius: 0; padding: 0.8em 1.1em; font-size: 0.92em; }
+/* Cover: aligned with the text block; title in the upper half, organisation and date at the foot over a hairline. */
+.paged-doc .markoto-cover { padding: 30mm 22mm 24mm; }
+.paged-doc .markoto-cover--no-logo { background: linear-gradient(var(--doc-brand), var(--doc-brand)) top left / 5mm 100% no-repeat; }
+.paged-doc .markoto-cover-title { line-height: 1.1; letter-spacing: -0.015em; }
+.paged-doc .markoto-cover-subtitle { font-style: normal; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); margin-top: 0.5em; max-width: 140mm; line-height: 1.4; }
+.paged-doc .markoto-cover-meta { grid-row: 6; align-self: end; min-width: 100%; }
+.paged-doc .markoto-cover-author { font-weight: 600; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -311,6 +360,53 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+    }
+  },
+
+  // — Business report: quarterly / annual reports, board updates, client
+  // deliverables. Source Serif 4 headings over Inter 9.5/1.5 text, one deep
+  // petrol accent used sparingly (cover rule, section bars, links, charts),
+  // finance-style tables, a quiet footer over a thin rule, a left-aligned
+  // cover. Template CSS: BUSINESS_REPORT_TEMPLATE_CSS. Fixtures:
+  // tests/fixtures/theme-shots/business-report.md + proposal.md.
+  {
+    id: 'business-report',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      meta: { font: 'Inter' },
+      body: { font: 'Inter', size: 9.5, lineHeight: 1.5, textAlign: 'left', color: '#1E2329', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.75, hyphenate: false },
+      headings: {
+        font: 'Source Serif 4',
+        scale: 1.25,
+        weight: 600,
+        underline: false,
+        color: '#14202B',
+        letterSpacing: -0.01,
+        lineHeight: 1.2,
+        spacingScale: 1.1,
+        numbering: 'none',
+        // A clear three-step hierarchy: 19 / 13.3 / 10.9 pt over 9.5 pt text.
+        levels: { h1: { size: 2 }, h2: { size: 1.4 }, h3: { size: 1.15 } }
+      },
+      color: { brand: '#155A75', secondary: '#8A949E' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: true },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3 },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      mermaid: { theme: 'document' },
+      alerts: {
+        note: '#155A75',
+        tip: '#3B6E4F',
+        important: '#5B4A7E',
+        warning: '#8F661C',
+        caution: '#9E2A2B'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
+      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35 },
+      customCss: BUSINESS_REPORT_TEMPLATE_CSS
     }
   },
 

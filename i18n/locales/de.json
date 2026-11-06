@@ -1023,6 +1023,10 @@
         "name": "Geschäftsbericht",
         "description": "Playfair-Überschriften über Source-Sans-Fliesstext, warmer Bernstein-Akzent, markengefärbte Tabellenköpfe, zentrierter Titel."
       },
+      "business-report": {
+        "name": "Unternehmensbericht",
+        "description": "Für Quartals- und Jahresberichte, Board-Updates und Kundendokumente: Source-Serif-Überschriften über Inter, ein tiefer Petrol-Akzent, Finanztabellen mit Tabellenziffern und abgesetzten Summenzeilen, Zitate als Pull-Quotes, eine ruhige Fusszeile über einer feinen Linie."
+      },
       "novel": {
         "name": "Roman",
         "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
