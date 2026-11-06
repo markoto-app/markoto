@@ -18,6 +18,12 @@ import { SOURCE_REPO_URL } from '~~/shared/config/links'
 //
 // The colour-mode control is a slot: the product tour swaps in its own
 // page-local toggle (pages/index.vue).
+//
+// A plain <header> of Tailwind utilities + UButton, not UHeader: UHeader
+// is built around its mobile menu (we want none) and, even with
+// `toggle: false`, fetches the menu's modal chunk on idle after mount, on
+// every public page. Its slots would also have to undo its sticky,
+// blurred, fixed-height, max-width frame.
 withDefaults(defineProps<{
   /** Show the "Start writing" button (marketing layout; the home page has its own CTAs). */
   start?: boolean

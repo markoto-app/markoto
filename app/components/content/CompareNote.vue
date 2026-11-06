@@ -19,18 +19,9 @@ const { data } = await useAsyncData(`compare:${props.competitor}`, () => fetchCo
   <!-- A div, not a <p>: the prose styles would recolour a paragraph. -->
   <div
     v-if="data"
-    class="mk-compare-note not-prose"
+    class="not-prose mt-10 text-xs leading-[1.6] text-muted"
     data-testid="marketing-compare-note"
   >
     {{ t('marketing.compare.trademarkNote', { name: data.name }) }}
   </div>
 </template>
-
-<style scoped>
-.mk-compare-note {
-  margin: 40px 0 0;
-  font-size: 12px;
-  line-height: 1.6;
-  color: var(--ui-text-muted);
-}
-</style>

@@ -123,16 +123,18 @@ const updatedLabel = computed(() => {
 
 <template>
   <article
-    class="mk-marketing px-4 sm:px-6 py-10 sm:py-16"
+    class="px-4 sm:px-6 py-10 sm:py-16"
     :lang="target.locale"
     data-testid="marketing-page"
   >
+    <!-- Notice and date: the body text's column (72ch of the body font,
+         not the mono). -->
     <div
       v-if="!indexable"
-      class="mk-marketing__col"
+      class="mx-auto max-w-[72ch]"
     >
       <p
-        class="mk-marketing__notice"
+        class="mb-6 rounded-md border border-default bg-default px-3 py-2 font-mono text-[11px] tracking-[0.04em] text-muted"
         data-testid="marketing-unreviewed"
       >
         {{ t('marketing.page.unreviewed') }}
@@ -144,9 +146,9 @@ const updatedLabel = computed(() => {
     />
     <div
       v-if="updatedLabel"
-      class="mk-marketing__col"
+      class="mx-auto max-w-[72ch]"
     >
-      <p class="mk-marketing__updated">
+      <p class="mt-12 font-mono text-[11px] tracking-[0.04em] text-muted">
         {{ updatedLabel }}
       </p>
     </div>
@@ -154,17 +156,22 @@ const updatedLabel = computed(() => {
 </template>
 
 <style scoped>
-/* Same reading column as the docs (72ch) with opt-in wide blocks
-   (`.mk-wide`: samples, flow strips, tables). */
+/* The rendered Markdown's own elements, which no utility class reaches:
+   same reading column as the docs (72ch) with opt-in wide blocks
+   (`.mk-wide`: samples, flow strips, tables), and the display type of
+   its headings. Everything else on this page is Tailwind utilities. */
 .mk-marketing__body {
   display: grid;
   grid-template-columns: minmax(0, 1fr) min(72ch, 100%) minmax(0, 1fr);
 }
 .mk-marketing__body :deep(> *) {
   grid-column: 2;
-  /* Grid items don't collapse margins: without this, prose paragraphs
-     got their bottom AND the next block's top margin (double gaps). The
-     next block's top margin alone is the gap a collapsed margin gives. */
+}
+/* Grid items don't collapse margins: without this, prose paragraphs
+   got their bottom AND the next block's top margin (double gaps). The
+   next block's top margin alone is the gap a collapsed margin gives.
+   MDC blocks (`.not-prose`) set their own margins with utilities. */
+.mk-marketing__body :deep(> :where(:not(.not-prose))) {
   margin-bottom: 0;
 }
 .mk-marketing__body :deep(> .mk-wide) {
@@ -190,27 +197,5 @@ const updatedLabel = computed(() => {
    prose link underline make them look like links to elsewhere. */
 .mk-marketing__body :deep(:is(h2, h3, h4) > a) {
   text-decoration: none;
-}
-/* Same column as the body text (`ch` of the body font, not the mono). */
-.mk-marketing__col {
-  max-width: 72ch;
-  margin-inline: auto;
-}
-.mk-marketing__notice,
-.mk-marketing__updated {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--ui-text-muted);
-}
-.mk-marketing__notice {
-  margin-bottom: 24px;
-  padding: 8px 12px;
-  border: 1px solid var(--ui-border);
-  border-radius: 6px;
-  background: var(--ui-bg);
-}
-.mk-marketing__updated {
-  margin-top: 48px;
 }
 </style>
