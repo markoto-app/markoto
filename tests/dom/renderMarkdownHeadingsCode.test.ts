@@ -3,7 +3,7 @@
 // jsdom (not happy-dom): DOMPurify's checks only behave like Chromium's
 // under jsdom — see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { clobberSafeId, fenceTitle, renderMarkdown, wrapCodeLines } from '../../app/utils/renderMarkdown'
+import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines } from '../../app/utils/renderMarkdown'
 
 function parse(html: string): DocumentFragment {
   const tpl = document.createElement('template')
@@ -32,6 +32,27 @@ describe('heading ids survive sanitising (TOC page numbers)', () => {
     expect(clobberSafeId('title')).toBe('title-section')
     expect(clobberSafeId('introduction')).toBe('introduction')
     expect(clobberSafeId('')).toBe('')
+  })
+})
+
+describe('heading ids are valid CSS selectors (paged.js)', () => {
+  // Regression: "## 3.4.1 — 2026-10-28" got id="341-2026-10-28"; paged.js
+  // resolves target-counter()/links with querySelector('#…') unescaped,
+  // which threw and left the whole preview blank.
+  it('a heading starting with a digit gets an id that querySelector accepts, and the TOC links to it', async () => {
+    const html = await renderMarkdown('[[toc]]\n\n# 2024 results\n\n## 3.4.1 — 2026-10-28\n')
+    const root = parse(html)
+    const ids = Array.from(root.querySelectorAll('h1, h2')).map(h => h.id)
+    expect(ids).toEqual(['h-2024-results', 'h-341-2026-10-28'])
+    for (const id of ids) expect(() => root.querySelector(`#${id}`)).not.toThrow()
+    const hrefs = Array.from(root.querySelectorAll('.table-of-contents a')).map(a => a.getAttribute('href'))
+    expect(hrefs).toEqual(['#h-2024-results', '#h-341-2026-10-28'])
+  })
+
+  it('only slugs starting with a digit get the prefix', () => {
+    expect(selectorSafeId('2024-results')).toBe('h-2024-results')
+    expect(selectorSafeId('results-2024')).toBe('results-2024')
+    expect(selectorSafeId('')).toBe('')
   })
 })
 
