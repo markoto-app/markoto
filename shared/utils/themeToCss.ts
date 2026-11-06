@@ -359,6 +359,8 @@ function typographyBlock(theme: DocTheme): string {
     `.paged-doc dd { margin: 0.2em 0 0.4em 1.4em; }`,
     `.paged-doc abbr { text-decoration: underline dotted; cursor: help; }`,
     `.paged-doc figure { margin: 1em 0; text-align: center; }`,
+    // An image without alt text gets an empty <figcaption> from the figure plugin.
+    `.paged-doc figcaption:empty { display: none; }`,
     `.paged-doc figcaption { font-family: ${cssFontStack(theme.meta.font)}; font-size: 0.85em; color: var(--doc-secondary); margin-top: 0.4em; font-style: italic; }`,
     hrCss(theme),
     // Footnote support — see `transformFootnotesForPagedMedia` in
@@ -439,7 +441,18 @@ function tableBlock(theme: DocTheme): string {
   padding: ${cellPadding}px ${Math.round(cellPadding * 1.5)}px;
   text-align: left;
   vertical-align: top;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }`,
+    // Wide tables fit the text width instead of running off the page: words
+    // hyphenate, code in a cell (long identifiers, package names) may break
+    // anywhere — that keeps a column's minimum width small without cutting
+    // ordinary words apart — and tables with many columns get a smaller
+    // type size (one selector each — paged.js splits selector lists).
+    `.paged-doc td code { overflow-wrap: anywhere; }`,
+    `.paged-doc th code { overflow-wrap: anywhere; }`,
+    `.paged-doc table:has(tr > :nth-child(8)) { font-size: 0.88em; }`,
+    `.paged-doc table:has(tr > :nth-child(10)) { font-size: 0.8em; }`,
     `.paged-doc th {
   font-weight: 600;
   ${headerBg}
