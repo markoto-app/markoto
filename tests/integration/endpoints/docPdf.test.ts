@@ -384,6 +384,43 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
+    // The business-report preset end to end: cover page, contents on a page
+    // of their own, KPI tables, Mermaid pie + xychart, the template CSS, and
+    // Inter + Source Serif 4 embedded as real fonts (never Type 3).
+    it('renders the business-report fixture with Inter and Source Serif 4 embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const preset = THEME_PRESETS.find(p => p.id === 'business-report')?.theme
+      if (!preset) throw new Error('business-report preset missing')
+      expect(preset.customCss).toBeTruthy()
+      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Quarterly report for the period 1 July to 30 September 2026', authors: ['Halden Outdoor AG, Frauenfeld'], date: '2026-11-05' } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/business-report.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview: 7 pages (cover, contents, five of report).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(6)
+      expect(Number(pageCount)).toBeLessThanOrEqual(8)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // A4 (210 × 297 mm ≈ 595 × 842 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      expect(fonts.some(f => /Inter/.test(f.name)), summary).toBe(true)
+      expect(fonts.some(f => /SourceSerif4/.test(f.name)), summary).toBe(true)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
     // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
     // (the renderer allows no CDN host any more). Chromium embeds the font
     // files it actually used, by name: had a web font failed to load, the
