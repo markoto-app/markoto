@@ -174,6 +174,9 @@ describe('chart geometry', () => {
     expect(g.sectionFontSize).toBe(14)
     // Bars are taller than their label.
     expect(num(g.barHeight)).toBeGreaterThan(14 * 1.4)
+    // The last bar ends at the date axis (drawn 50px above the bottom), not on its labels.
+    expect(num(g.topPadding)).toBeGreaterThanOrEqual(50)
+    expect(num(ganttLayout(300, 11).topPadding)).toBeGreaterThanOrEqual(50)
     // Room right of the chart for a short closing label ("Handover").
     expect(num(g.rightPadding) - num(g.leftPadding) / 2).toBeGreaterThanOrEqual(70)
   })

@@ -847,6 +847,15 @@ function mermaidBlock(theme: DocTheme): string {
 .paged-doc .mermaid-pie > svg {
   max-height: ${Math.min(maxHeightMm, 85)}mm;
 }`,
+    // Sequence diagrams and gantt charts are drawn one text column wide
+    // with their labels at the body size (mermaidConfig.ts); a long one
+    // capped at the general height scaled its text back down to ~6pt.
+    `.paged-doc .mermaid-sequence > img,
+.paged-doc .mermaid-sequence > svg,
+.paged-doc .mermaid-gantt > img,
+.paged-doc .mermaid-gantt > svg {
+  max-height: ${Math.max(maxHeightMm, Math.round(textHeightMm * 0.85))}mm;
+}`,
     `.paged-doc .mermaid-error {
   margin: 1em 0;
   padding: 0.6em 1em;

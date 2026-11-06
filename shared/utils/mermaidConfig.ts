@@ -164,11 +164,15 @@ export function sequenceLayout(colPx: number, px: number): Record<string, unknow
     wrap: true,
     width,
     actorMargin,
-    wrapPadding: 6,
+    // Wrapped text may reach this far past the lifelines on either side.
+    wrapPadding: 2,
     diagramMarginX: SEQUENCE_MARGIN_X,
     diagramMarginY: 8,
     height: Math.round(px * 2.6),
-    boxMargin: 8,
+    // Space between a (wrapped) message and its arrow: Mermaid measures the
+    // text block a little shorter than it draws it, so the last line of a
+    // three-line message sat on the arrow with the default 10px.
+    boxMargin: Math.round(px * 1.3),
     boxTextMargin: 4,
     noteMargin: 8,
     messageMargin: Math.round(px * 2.4),
@@ -196,7 +200,10 @@ export function ganttLayout(colPx: number, px: number): Record<string, unknown> 
     barGap: Math.max(4, Math.round(px * 0.3)),
     leftPadding: Math.round(px * 6),
     rightPadding: Math.round(px * 8),
-    topPadding: Math.round(px * 3),
+    // Mermaid draws the date axis 50px above the bottom and the chart
+    // height is 2 × topPadding + the rows: below 50 the last bar sits on
+    // the axis labels.
+    topPadding: Math.max(50, Math.round(px * 3.6)),
     gridLineStartPadding: Math.round(px * 2.5)
   }
 }

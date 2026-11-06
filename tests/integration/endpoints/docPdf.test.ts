@@ -417,13 +417,11 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // GAP: Inter and Source Serif 4 come from Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name) — the same known
-    // issue as Fraunces / JetBrains Mono. Expected: both embedded as real
-    // (TrueType/CID) fonts. Tracked by the engine fonts PR
-    // (fix/engine-fonts-charts); when it lands this test starts passing,
-    // `it.fails` turns red, and the marker is flipped to `it`.
-    it.fails('embeds Inter and Source Serif 4 as real fonts, never Type 3', async () => {
+    // Inter and Source Serif 4 used to come from Fontsource VARIABLE fonts,
+    // which Chromium embeds as Type 3 (no BaseFont name). Documents now get
+    // the static cuts (themeFonts.ts): both embed as real (TrueType/CID)
+    // fonts, and no Type 3 font is left in the file.
+    it('embeds Inter and Source Serif 4 as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderBusinessReport()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
         .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
@@ -432,6 +430,8 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(fonts.some(f => /Inter/.test(f.name)), summary).toBe(true)
       expect(fonts.some(f => /SourceSerif4/.test(f.name)), summary).toBe(true)
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
     // The technical-documentation preset end to end: title block + TOC on
@@ -466,12 +466,10 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // GAP: Source Serif 4 and Source Sans 3 are Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name). Expected: all
-    // three families embedded as real (TrueType/CID) fonts. Tracked by the
-    // engine fonts PR (fix/engine-fonts-charts); when it lands this test
-    // starts passing, `it.fails` turns red, and the marker is flipped to `it`.
-    it.fails('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
+    // Source Serif 4 and Source Sans 3 used to be Fontsource VARIABLE fonts,
+    // which Chromium embeds as Type 3 (no BaseFont name). With the static
+    // cuts all three families embed as real (TrueType/CID) fonts.
+    it('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderTechDocs()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
         .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
@@ -481,6 +479,8 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
         expect(fonts.some(f => family.test(f.name)), summary).toBe(true)
       }
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
     // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path

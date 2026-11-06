@@ -606,3 +606,14 @@ describe('themeToCss — KaTeX keeps its own alignment and spacing', () => {
     }
   })
 })
+
+describe('themeToCss — column-wide diagrams keep their text size', () => {
+  test('sequence diagrams and gantt charts may run taller than other diagrams', () => {
+    const css = themeToCss(structuredClone(defaultTheme), runtime)
+    const general = Number(/\.paged-doc \.mermaid > svg \{[^}]*max-height: (\d+)mm/.exec(css)?.[1])
+    const tall = Number(/\.paged-doc \.mermaid-gantt > svg \{\s*max-height: (\d+)mm/.exec(css)?.[1])
+    expect(general).toBeGreaterThan(0)
+    expect(tall).toBeGreaterThan(general * 1.5)
+    expect(css).toMatch(/\.paged-doc \.mermaid-sequence > svg,/)
+  })
+})
