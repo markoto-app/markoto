@@ -104,6 +104,40 @@ export const HeadingWeightSchema = z.union([
 ])
 export type HeadingWeight = z.infer<typeof HeadingWeightSchema>
 
+/** Any CSS font weight on the 100-step grid (per-level heading weight, cover title weight). */
+export const FontWeightSchema = z.number().int().min(100).max(900).multipleOf(100)
+export type FontWeight = z.infer<typeof FontWeightSchema>
+
+export const HeadingStyleSchema = z.enum(['normal', 'italic'])
+export type HeadingStyle = z.infer<typeof HeadingStyleSchema>
+
+/**
+ * Look of ONE heading level, overriding the theme-wide heading values
+ * for that level only. Every field optional: absent = the scale /
+ * `headings.weight` / upright / no small caps. Academic formats need it
+ * (arXiv: 12/10/10pt bold sections; IEEE: small-caps h1, italic h2).
+ * Spacing around the heading stays line-based (themeToCss).
+ */
+export const HeadingLevelStyleSchema = z.object({
+  /** Font size as a multiple of the body size (replaces the modular scale for this level). */
+  size: z.number().min(0.5).max(4).optional(),
+  weight: FontWeightSchema.optional(),
+  style: HeadingStyleSchema.optional(),
+  smallCaps: z.boolean().optional()
+}).strict()
+export type HeadingLevelStyle = z.infer<typeof HeadingLevelStyleSchema>
+
+export const HEADING_LEVEL_KEYS = ['h1', 'h2', 'h3', 'h4'] as const
+export type HeadingLevelKey = typeof HEADING_LEVEL_KEYS[number]
+
+export const HeadingLevelsSchema = z.object({
+  h1: HeadingLevelStyleSchema.optional(),
+  h2: HeadingLevelStyleSchema.optional(),
+  h3: HeadingLevelStyleSchema.optional(),
+  h4: HeadingLevelStyleSchema.optional()
+}).strict()
+export type HeadingLevels = z.infer<typeof HeadingLevelsSchema>
+
 /**
  * Pre-curated highlight.js stylesheet. Maps to a single same-origin /vendor/ URL via
  * `shared/utils/hljsAssets.ts`. Adding more is a matter of (a) adding
@@ -222,7 +256,15 @@ export const RunningSlotsSchema = z.object({
    * they line up with the margin-box font sizes elsewhere). 6–24pt
    * keeps it proportionate to typical 9–11pt header text.
    */
-  imageHeight: z.number().int().min(6).max(24)
+  imageHeight: z.number().int().min(6).max(24),
+  /**
+   * A thin rule (0.4pt, text colour) across the full text width, right
+   * under the running header / right above the footer. With the rule
+   * the running text moves next to the text block (the rule sits a
+   * fixed `runningRuleGap` away from it). Optional: absent = no rule.
+   * Never drawn on pages without running text (cover, title-block page 1).
+   */
+  rule: z.boolean().optional()
 }).strict()
 export type RunningSlots = z.infer<typeof RunningSlotsSchema>
 
@@ -312,7 +354,13 @@ export const DocThemeSchema = z.object({
      * Section numbers on h1–h4 (`1`, `1.1`, …), also shown in the TOC.
      * Optional: themes stored before the field existed read as `none`.
      */
-    numbering: HeadingNumberingSchema.optional()
+    numbering: HeadingNumberingSchema.optional(),
+    /**
+     * Per-level overrides (h1–h4): size, weight, italic, small caps.
+     * Optional: absent / empty = every level follows the scale and
+     * `weight` above.
+     */
+    levels: HeadingLevelsSchema.optional()
   }).strict(),
   color: z.object({
     // hex; used for links + accent borders + (optionally) heading underline
@@ -446,6 +494,11 @@ export const DocThemeSchema = z.object({
     rules: z.boolean().optional(),
     /** Title (and subtitle) in small capitals. */
     smallCaps: z.boolean().optional(),
+    /**
+     * Weight of the cover / title-block title (all layouts). Optional:
+     * absent = `headings.weight` (the title follows the headings).
+     */
+    titleWeight: FontWeightSchema.optional(),
     /** Whether to render `theme.brand.logoUrl` on the cover. */
     showLogo: z.boolean(),
     /**

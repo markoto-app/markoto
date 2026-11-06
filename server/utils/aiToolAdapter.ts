@@ -52,7 +52,7 @@ import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/customCss'
 import { customCssAppOrigins, themeCustomCssIssues } from './themeCustomCss'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
 import {
   SAVED_THEMES_PER_USER_MAX,
   SAVED_THEME_DESCRIPTION_MAX,
@@ -300,25 +300,39 @@ export function coerceThemePatch(patch: UpdateThemeInput): Record<string, unknow
 }
 
 /**
- * Deep-merge a partial theme patch over a complete current theme. Only
- * two levels deep (top-level sections like `body`, sub-fields like
- * `body.size`) — the theme shape is flat enough that a generic deep
- * merge isn't worth it.
+ * Deep-merge a partial theme patch over a complete current theme: top-level
+ * sections (`body`), their fields (`body.size`) and — for object-valued
+ * fields like `headings.levels` — one level further, so a patch for
+ * `levels.h1` keeps `levels.h2`. The entry itself (`levels.h1`) is
+ * replaced as a whole (`{}` clears it); arrays are replaced.
  */
 /** @internal exported for unit tests; not part of the public API. */
 export function mergeTheme(current: DocTheme, patch: Record<string, unknown>): DocTheme {
-  const merged: Record<string, unknown> = { ...(current as unknown as Record<string, unknown>) }
+  const base: Record<string, unknown> = { ...current }
+  const merged: Record<string, unknown> = { ...base }
   for (const [key, value] of Object.entries(patch)) {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      merged[key] = {
-        ...(current as unknown as Record<string, Record<string, unknown>>)[key],
-        ...(value as Record<string, unknown>)
-      }
+    if (isPlainRecord(value)) {
+      const section = base[key]
+      merged[key] = mergeSection(isPlainRecord(section) ? section : {}, value)
     } else if (value !== undefined) {
       merged[key] = value
     }
   }
   return merged as unknown as DocTheme
+}
+
+function mergeSection(current: Record<string, unknown>, patch: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = { ...current }
+  for (const [field, value] of Object.entries(patch)) {
+    if (value === undefined) continue
+    const existing = current[field]
+    out[field] = isPlainRecord(value) && isPlainRecord(existing) ? { ...existing, ...value } : value
+  }
+  return out
+}
+
+function isPlainRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null && !Array.isArray(v)
 }
 
 /**
@@ -454,13 +468,10 @@ async function resolveBaseTheme(session: DocToolContext, input: UpdateThemeInput
       // Should be unreachable — Zod enum restricts `preset` to known ids.
       return { ok: false, error: err(`Error: Unknown preset "${input.preset}".`) }
     }
-    // Built-in presets carry no custom CSS, so keep the document's own
-    // (same behaviour as the theme panel).
+    // Keep the document's own custom CSS; a preset's template CSS goes in
+    // front of it (same behaviour as the theme panel).
     const current = await resolveCurrentTheme(session)
-    return {
-      ok: true,
-      theme: current.customCss ? { ...preset.theme, customCss: current.customCss } : preset.theme
-    }
+    return { ok: true, theme: themeFromPreset(preset, current.customCss) }
   }
   if (input.theme_id) {
     const saved = await getThemeById(input.theme_id, session.initiatorUserId)

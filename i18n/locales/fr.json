@@ -784,9 +784,16 @@
       "spacingScaleHelp": "Multiplicateur de l’espace au-dessus des titres. 1,0 = standard d’impression, 1,5 = aéré.",
       "scaleOption": "{ratio} (titre 1 = {h1}× le texte)",
       "numbering": "Numérotation",
-      "numberingHelp": "Numérote les titres 1 à 4 (1, 1.1, 1.1.1) et leurs entrées dans la table des matières. Une section « Résumé » en tête n’est pas numérotée.",
+      "numberingHelp": "Numérote les titres 1 à 4 (1, 1.1, 1.1.1) et leurs entrées dans la table des matières. Une section « Résumé » en tête n’est pas numérotée ; marquez tout autre titre avec {code}, par exemple « # Références {code} ».",
       "numberingNone": "Aucune",
-      "numberingDecimal": "1, 1.1, 1.1.1"
+      "numberingDecimal": "1, 1.1, 1.1.1",
+      "levels": "Par niveau",
+      "levelsHelp": "Définissez la taille, la graisse, l’italique ou les petites capitales d’un niveau de titre. Ce que vous ne modifiez pas suit l’échelle et la graisse ci-dessus.",
+      "levelTitle": "Titre {level}",
+      "levelSize": "Taille (× corps)",
+      "levelItalic": "Italique",
+      "levelSmallCaps": "Petites capitales",
+      "levelReset": "Valeurs par défaut"
     },
     "align": {
       "left": "Gauche",
@@ -818,7 +825,10 @@
       "imageHelp": "Logo ou marque facultatif affiché dans l'en-tête courant de chaque page de contenu (la page de couverture masque automatiquement les en-têtes).",
       "imagePosition": "Position de l'image",
       "imageHeight": "Hauteur de l'image",
-      "uploadImage": "Téléverser une image"
+      "uploadImage": "Téléverser une image",
+      "ruleHeader": "Filet sous l’en-tête",
+      "ruleFooter": "Filet au-dessus du pied de page",
+      "ruleHelp": "Une ligne fine sur toute la largeur du texte. Le texte se rapproche de la ligne."
     },
     "code": {
       "theme": "Thème de couleurs",
@@ -929,7 +939,9 @@
       "rules": "Filets au-dessus et au-dessous du titre",
       "rulesHelp": "Filets horizontaux épais, comme sur une prépublication arXiv.",
       "smallCaps": "Titre en petites capitales",
-      "affiliationPlaceholder": "Affiliation (département, institution, e-mail ; une par ligne)"
+      "affiliationPlaceholder": "Affiliation (département, institution, e-mail ; une par ligne)",
+      "titleWeight": "Graisse du titre",
+      "titleWeightInherit": "Comme les titres ({weight})"
     },
     "brand": {
       "logo": "Logo de marque",
@@ -998,6 +1010,10 @@
       "academic": {
         "name": "Article académique",
         "description": "Corps Source Serif sur deux colonnes, bloc de titre avec auteurs et résumé en page 1, sections numérotées, bordures de tableau minimales — style revue."
+      },
+      "arxiv": {
+        "name": "Prépublication arXiv",
+        "description": "L’apparence de la prépublication LaTeX arXiv : format US Letter, Times 10 pt justifié, sections numérotées en gras, bloc de titre entre deux filets épais en petites capitales, titre courant « A Preprint » au-dessus d’un filet fin."
       },
       "tech": {
         "name": "Rapport technique",

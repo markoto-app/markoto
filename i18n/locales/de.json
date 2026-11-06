@@ -784,9 +784,16 @@
       "spacingScaleHelp": "Faktor für den Abstand über Überschriften. 1,0 = Druckstandard, 1,5 = viel Luft.",
       "scaleOption": "{ratio} (Überschrift 1 = {h1}× Fliesstext)",
       "numbering": "Nummerierung",
-      "numberingHelp": "Nummeriert die Überschriften 1 bis 4 (1, 1.1, 1.1.1) und ihre Einträge im Inhaltsverzeichnis. Ein Abschnitt «Abstract» am Anfang wird nicht nummeriert.",
+      "numberingHelp": "Nummeriert die Überschriften 1 bis 4 (1, 1.1, 1.1.1) und ihre Einträge im Inhaltsverzeichnis. Ein Abschnitt «Abstract» am Anfang wird nicht nummeriert; markieren Sie jede andere Überschrift mit {code}, z. B. «# Literatur {code}».",
       "numberingNone": "Keine",
-      "numberingDecimal": "1, 1.1, 1.1.1"
+      "numberingDecimal": "1, 1.1, 1.1.1",
+      "levels": "Pro Ebene",
+      "levelsHelp": "Legen Sie Grösse, Stärke, Kursivschrift oder Kapitälchen für eine Überschriftenebene fest. Was Sie nicht ändern, folgt der Skala und der Stärke oben.",
+      "levelTitle": "Überschrift {level}",
+      "levelSize": "Grösse (× Fliesstext)",
+      "levelItalic": "Kursiv",
+      "levelSmallCaps": "Kapitälchen",
+      "levelReset": "Standardwerte verwenden"
     },
     "align": {
       "left": "Links",
@@ -818,7 +825,10 @@
       "imageHelp": "Optionales Logo oder Zeichen, das im laufenden Kopf auf jeder Textseite dargestellt wird (die Titelseite unterdrückt Kopfzeilen automatisch).",
       "imagePosition": "Bildposition",
       "imageHeight": "Bildhöhe",
-      "uploadImage": "Bild hochladen"
+      "uploadImage": "Bild hochladen",
+      "ruleHeader": "Linie unter der Kopfzeile",
+      "ruleFooter": "Linie über der Fusszeile",
+      "ruleHelp": "Eine feine Linie über die ganze Satzbreite. Der Text rückt nahe an sie heran."
     },
     "code": {
       "theme": "Farbschema",
@@ -929,7 +939,9 @@
       "rules": "Linien über und unter dem Titel",
       "rulesHelp": "Kräftige waagrechte Linien wie bei einem arXiv-Preprint.",
       "smallCaps": "Titel in Kapitälchen",
-      "affiliationPlaceholder": "Zugehörigkeit (Institut, Hochschule, E-Mail; je eine Zeile)"
+      "affiliationPlaceholder": "Zugehörigkeit (Institut, Hochschule, E-Mail; je eine Zeile)",
+      "titleWeight": "Stärke des Titels",
+      "titleWeightInherit": "Wie die Überschriften ({weight})"
     },
     "brand": {
       "logo": "Markenlogo",
@@ -998,6 +1010,10 @@
       "academic": {
         "name": "Wissenschaftliche Arbeit",
         "description": "Zweispaltiger Source-Serif-Fliesstext, Titelblock mit Autorinnen, Autoren und Abstract auf Seite 1, nummerierte Abschnitte, minimale Tabellenränder — im Journal-Stil."
+      },
+      "arxiv": {
+        "name": "arXiv-Preprint",
+        "description": "Das Erscheinungsbild des arXiv-LaTeX-Preprints: US Letter, Times 10 pt im Blocksatz, nummerierte fette Abschnitte, Titelblock zwischen kräftigen Linien in Kapitälchen, Kolumnentitel «A Preprint» über einer feinen Linie."
       },
       "tech": {
         "name": "Technischer Bericht",

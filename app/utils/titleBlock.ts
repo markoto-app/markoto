@@ -32,6 +32,9 @@ export const ABSTRACT_HEADINGS: ReadonlySet<string> = new Set([
 
 export const ABSTRACT_HEADING_CLASS = 'markoto-abstract-heading'
 export const ABSTRACT_ENTRY_CLASS = 'markoto-abstract-entry'
+/** Pandoc's class for a heading without a number (`# References {.unnumbered}`, or `{-}`). */
+export const UNNUMBERED_CLASS = 'unnumbered'
+export const UNNUMBERED_ENTRY_CLASS = 'markoto-unnumbered-entry'
 
 const HEADING = /^H([1-6])$/
 
@@ -109,5 +112,21 @@ export function markAbstract(bodyHtml: string): string {
   if (!heading) return bodyHtml
   heading.classList.add(ABSTRACT_HEADING_CLASS)
   for (const li of tocEntriesFor(root, heading.id)) li.classList.add(ABSTRACT_ENTRY_CLASS)
+  return serialize(root)
+}
+
+/**
+ * Mark the TOC entries of `{.unnumbered}` headings so the TOC numbers
+ * skip them like the headings do (themeToCss `numberingBlock`). Only the
+ * entry's own `li` — numbered sub-headings under it keep their numbers.
+ */
+export function markUnnumbered(bodyHtml: string): string {
+  if (!bodyHtml.includes(UNNUMBERED_CLASS)) return bodyHtml
+  const root = parse(bodyHtml)
+  const headings = Array.from(root.querySelectorAll(`.${UNNUMBERED_CLASS}`)).filter(el => headingLevel(el) > 0)
+  if (headings.length === 0) return bodyHtml
+  for (const heading of headings) {
+    for (const li of tocEntriesFor(root, heading.id)) li.classList.add(UNNUMBERED_ENTRY_CLASS)
+  }
   return serialize(root)
 }
