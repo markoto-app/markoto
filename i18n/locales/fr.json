@@ -1023,9 +1023,17 @@
         "name": "Rapport technique",
         "description": "IBM Plex Sans compact, couleur de marque cyan, blocs de code sombres, en-têtes de tableau colorés avec lignes zébrées."
       },
+      "tech-docs": {
+        "name": "Documentation technique",
+        "description": "Documentation développeur imprimée : texte courant à empattements et titres sans empattements, sections numérotées aux numéros en marge, blocs de code clairs et encadrés sur toute la largeur, tableaux de référence à filets fins, encadrés d’avertissement discrets, bloc de titre avec sommaire en page 1."
+      },
       "business": {
         "name": "Rapport d'affaires",
         "description": "Titres Playfair sur corps Source Sans, accent ambre chaleureux, en-têtes de tableau colorés, titre centré."
+      },
+      "business-report": {
+        "name": "Rapport d'entreprise",
+        "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
       },
       "novel": {
         "name": "Roman",

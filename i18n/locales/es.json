@@ -1023,9 +1023,17 @@
         "name": "Informe técnico",
         "description": "IBM Plex Sans compacta, color de marca cian, bloques de código oscuros, encabezados de tabla con color de marca y filas cebra."
       },
+      "tech-docs": {
+        "name": "Documentación técnica",
+        "description": "Documentación para desarrolladores impresa: texto con serifa y títulos sin serifa, secciones numeradas con el número en el margen, bloques de código claros y enmarcados a todo el ancho, tablas de referencia con filetes finos, avisos discretos, bloque de título con índice en la página 1."
+      },
       "business": {
         "name": "Informe de negocios",
         "description": "Encabezados Playfair sobre cuerpo Source Sans, acento ámbar cálido, encabezados de tabla con color de marca, título centrado."
+      },
+      "business-report": {
+        "name": "Informe corporativo",
+        "description": "Informes trimestrales y anuales, actualizaciones para el consejo, entregables para clientes: títulos en Source Serif sobre Inter, un acento azul petróleo profundo, tablas financieras con cifras tabulares y totales destacados, citas resaltadas, pie de página discreto sobre una línea fina."
       },
       "novel": {
         "name": "Novela",
