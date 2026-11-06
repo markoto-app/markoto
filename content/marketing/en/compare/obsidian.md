@@ -1,6 +1,6 @@
 ---
 title: 'markoto vs Obsidian: notes app or shared document?'
-description: markoto and Obsidian side by side - local files or the browser, Sync and Publish, live co-editing, PDF export, plugins and prices. Facts with sources.
+description: markoto and Obsidian side by side - local files or the browser, Sync and Publish, live co-editing, PDF export, plugins and prices. Facts checked at the source.
 keywords:
   - markoto vs obsidian
   - obsidian alternative
@@ -82,5 +82,10 @@ items:
 Paste the Markdown into a new document, send the link, and see it as pages. No sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/obsidian.yml), not shown on the page:
 ::compare-sources{competitor="obsidian"}
+::
+-->
+
+::compare-note{competitor="obsidian"}
 ::

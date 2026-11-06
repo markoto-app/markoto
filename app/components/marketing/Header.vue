@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import type { DropdownMenuItem } from '@nuxt/ui'
 import { selfHostPath } from '~~/shared/seo/marketing'
+import { SOURCE_REPO_URL } from '~~/shared/config/links'
 
 // Site header of the public pages: the home page (tour, plain hero and
 // dashboard), /pricing and the marketing pages (layouts/marketing.vue).
 //
-// Links: Pricing (where a pricing page is worth showing,
-// `useBillingMode().pricingVisible`), Use cases + Compare (menus from the
-// marketing content collection, hidden while empty), Templates (a link to
-// the hub), Self-host and Docs.
-// The marketing links exist only on the hosted marketing site and only
-// for visitors who aren't signed in — the dashboard is a work surface.
-// From `lg` the links sit inline; below, one "Menu" dropdown holds them.
+// Deliberately short: Pricing (where a pricing page is worth showing,
+// `useBillingMode().pricingVisible`), Self-host (hosted marketing site,
+// signed-out visitors only) and Docs. The use-case, comparison and
+// template pages exist to bring visitors in from search, not to send them
+// away from the home page, so they are linked from the site footer
+// (CommonLegalFooter) only. No menus: the links fit on a phone, Self-host
+// moves to the footer below `sm`.
+//
+// Plus an icon link to the source repository on GitHub, for everyone
+// (from 400px; narrower phones find it in the footer's Product column).
 //
 // The colour-mode control is a slot: the product tour swaps in its own
 // page-local toggle (pages/index.vue).
@@ -24,54 +27,19 @@ const { t } = useI18n()
 const { loggedIn } = useUserSession()
 const { marketingSite } = useInstanceConfig()
 const { pricingVisible } = useBillingMode()
-const nav = useMarketingNav()
 
-const marketingLinks = computed(() => marketingSite.value && !loggedIn.value)
-
-interface FlatLink { label: string, to: string, testid: string }
-const leading = computed<FlatLink[]>(() => pricingVisible.value
-  ? [{ label: t('marketing.nav.pricing'), to: '/pricing', testid: 'header-pricing-link' }]
-  : [])
-// Templates is one plain link to its hub (the first templates entry), not
-// a third menu: the hub lists and describes every template.
-const trailing = computed<FlatLink[]>(() => {
-  if (!marketingLinks.value) return []
-  const hub = nav.value.templates[0]
-  return [
-    ...(hub ? [{ label: t('marketing.nav.templates'), to: hub.to, testid: 'header-templates-link' }] : []),
-    { label: t('marketing.nav.selfHost'), to: selfHostPath(marketingSite.value), testid: 'header-self-host-link' }
-  ]
-})
-
-interface Menu { label: string, items: DropdownMenuItem[], testid: string }
-const menus = computed<Menu[]>(() => {
-  if (!marketingLinks.value) return []
-  const out: Menu[] = []
-  if (nav.value.useCases.length) {
-    out.push({ label: t('marketing.nav.useCases'), testid: 'header-use-cases', items: nav.value.useCases.map(l => ({ label: l.label, to: l.to })) })
-  }
-  if (nav.value.compare.length) {
-    out.push({ label: t('marketing.nav.compare'), testid: 'header-compare', items: nav.value.compare.map(l => ({ label: l.label, to: l.to })) })
-  }
-  return out
-})
-
-// Everything in one menu for narrow screens, grouped like the inline row.
-const compactItems = computed<DropdownMenuItem[][]>(() => {
-  const groups: DropdownMenuItem[][] = []
-  const top = [...leading.value, ...trailing.value].map(l => ({ label: l.label, to: l.to }))
-  top.push({ label: t('common.docs'), to: '/docs' })
-  groups.push(top)
-  // Group headings at weight 500 like the rest of the chrome (Nuxt UI's label is 600).
-  for (const menu of menus.value) groups.push([{ label: menu.label, type: 'label', class: 'font-medium text-muted' }, ...menu.items])
-  return groups
-})
-const hasCompactMenu = computed(() => compactItems.value.flat().length > 1)
+interface HeaderLink { label: string, to: string, testid: string, class?: string }
+const links = computed<HeaderLink[]>(() => [
+  ...(pricingVisible.value ? [{ label: t('marketing.nav.pricing'), to: '/pricing', testid: 'header-pricing-link' }] : []),
+  ...(marketingSite.value && !loggedIn.value
+    ? [{ label: t('marketing.nav.selfHost'), to: selfHostPath(marketingSite.value), testid: 'header-self-host-link', class: 'hidden sm:inline-flex' }]
+    : [])
+])
 </script>
 
 <template>
   <header class="mk-site-header border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
-    <div class="flex items-center gap-4 min-w-0">
+    <div class="flex items-center gap-2 sm:gap-4 min-w-0">
       <NuxtLink
         to="/"
         class="flex items-center shrink-0"
@@ -80,75 +48,45 @@ const hasCompactMenu = computed(() => compactItems.value.flat().length > 1)
         <CommonWordmark :size="20" />
       </NuxtLink>
       <nav
-        v-if="leading.length || menus.length || trailing.length"
-        class="hidden lg:flex items-center gap-1"
+        class="flex items-center gap-0.5 sm:gap-1 shrink-0"
         :aria-label="t('marketing.nav.label')"
       >
         <UButton
-          v-for="link in leading"
+          v-for="link in links"
           :key="link.to"
           :to="link.to"
           color="neutral"
           variant="ghost"
+          :class="link.class"
           :data-testid="link.testid"
         >
           {{ link.label }}
         </UButton>
-        <UDropdownMenu
-          v-for="menu in menus"
-          :key="menu.label"
-          :items="menu.items"
-        >
-          <UButton
-            color="neutral"
-            variant="ghost"
-            trailing-icon="i-lucide-chevron-down"
-            :data-testid="menu.testid"
-          >
-            {{ menu.label }}
-          </UButton>
-        </UDropdownMenu>
+        <!-- The user documentation, for everyone. -->
         <UButton
-          v-for="link in trailing"
-          :key="link.to"
-          :to="link.to"
+          to="/docs"
           color="neutral"
           variant="ghost"
-          :data-testid="link.testid"
+          data-testid="header-docs-link"
         >
-          {{ link.label }}
+          {{ t('common.docs') }}
         </UButton>
       </nav>
     </div>
     <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-      <!-- The user documentation, for everyone. Icon-only on phones. -->
+      <!-- The source repository (source-available, FSL-1.1). -->
       <UButton
-        to="/docs"
+        :to="SOURCE_REPO_URL"
+        target="_blank"
+        rel="noopener"
         color="neutral"
         variant="ghost"
-        icon="i-lucide-book-open"
-        :aria-label="t('common.documentation')"
-        :class="hasCompactMenu ? 'hidden lg:inline-flex' : ''"
-        data-testid="header-docs-link"
-      >
-        <span class="hidden sm:inline">{{ t('common.docs') }}</span>
-      </UButton>
-      <UDropdownMenu
-        v-if="hasCompactMenu"
-        :items="compactItems"
-        :content="{ align: 'end' }"
-      >
-        <UButton
-          class="lg:hidden"
-          color="neutral"
-          variant="ghost"
-          icon="i-lucide-menu"
-          :aria-label="t('common.menu')"
-          data-testid="header-menu"
-        >
-          <span class="hidden sm:inline">{{ t('common.menu') }}</span>
-        </UButton>
-      </UDropdownMenu>
+        icon="i-simple-icons-github"
+        class="hidden min-[400px]:inline-flex"
+        :aria-label="t('marketing.nav.github')"
+        :title="t('marketing.nav.github')"
+        data-testid="header-github-link"
+      />
       <MarketingStartButton
         v-if="start"
         class="hidden sm:inline-flex"

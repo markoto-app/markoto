@@ -1383,7 +1383,10 @@
       "imprint": "Mentions légales",
       "cookieNote": "Cookies : essentiels uniquement",
       "dpaShort": "DPA",
-      "navLabel": "Documentation et mentions légales"
+      "navLabel": "Documentation et mentions légales",
+      "product": "Produit",
+      "legal": "Mentions légales",
+      "tagline": "Du Markdown à plusieurs, mis en pages."
     },
     "documentPage": {
       "translationNoticeTitle": "Traduction fournie par commodité",
@@ -1767,7 +1770,8 @@
       "useCases": "Cas d'usage",
       "templates": "Modèles",
       "compare": "Comparer",
-      "selfHost": "Auto-héberger"
+      "selfHost": "Auto-héberger",
+      "github": "markoto sur GitHub"
     },
     "sample": {
       "source": "Markdown",
@@ -1786,7 +1790,8 @@
       "caption": "Vérifié le {date}. Les sources sont en fin de page.",
       "sources": "Sources",
       "markotoSources": "markoto (documentation et code)",
-      "trademark": "{name} est une marque de son propriétaire. markoto n'est pas affilié à {name}. Les prix et fonctions changent ; les sources indiquent l'état actuel."
+      "trademark": "{name} est une marque de son propriétaire. markoto n'est pas affilié à {name}. Les prix et fonctions changent ; les sources indiquent l'état actuel.",
+      "trademarkNote": "{name} est une marque de son propriétaire. markoto n'est pas affilié à {name}. Les prix et fonctions changent."
     },
     "page": {
       "updated": "Mis à jour le {date}",

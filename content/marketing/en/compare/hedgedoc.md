@@ -1,6 +1,6 @@
 ---
 title: 'markoto vs HedgeDoc: features, hosting, licence'
-description: markoto and HedgeDoc compared - licence, self-hosting, hosted option, slide mode, PDF export and history. A factual HedgeDoc alternative check, with sources.
+description: markoto and HedgeDoc compared - licence, self-hosting, hosted option, slide mode, PDF export and history. Facts checked at the source.
 keywords:
   - markoto vs hedgedoc
   - hedgedoc alternative
@@ -73,5 +73,10 @@ items:
 Or try markoto.app first: free, no sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/hedgedoc.yml), not shown on the page:
 ::compare-sources{competitor="hedgedoc"}
+::
+-->
+
+::compare-note{competitor="hedgedoc"}
 ::

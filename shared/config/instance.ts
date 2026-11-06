@@ -36,8 +36,8 @@
 //    plain hero + "new document" page. The former name
 //    NUXT_PRODUCT_TOUR_ENABLED is still read as an alias (one release).
 //
-// 4. SEO facts — the public origin (`NUXT_SITE_URL`, for canonical /
-//    og:url), where `/docs/**` canonicals point (`NUXT_DOCS_CANONICAL_BASE`)
+// 4. SEO facts — the public origin for canonical / og:url / JSON-LD
+//    (`NUXT_CANONICAL_SITE_URL`, else `NUXT_SITE_URL`), where `/docs/**` canonicals point (`NUXT_DOCS_CANONICAL_BASE`)
 //    and whether search engines may index the instance at all
 //    (`NUXT_SITE_INDEXABLE`, server-only — staging renders false).
 //
@@ -82,9 +82,12 @@ export interface InstanceConfig {
    */
   marketingSite: boolean
   /**
-   * Public origin (`NUXT_SITE_URL`, e.g. `https://markoto.app`), no
-   * trailing slash. Empty when unset/invalid: no canonical / og:url is
-   * emitted then. Never derived from the request Host.
+   * Public origin the SEO tags name (`resolveCanonicalSiteUrl`:
+   * `NUXT_CANONICAL_SITE_URL`, else `NUXT_SITE_URL`; e.g.
+   * `https://markoto.app` — also on staging), no trailing slash. Empty
+   * when unset/invalid: no canonical / og:url is emitted then. Never
+   * derived from the request Host. Not for links in emails (those use
+   * the runtime config's own site URL).
    */
   siteUrl: string
   /**
@@ -168,6 +171,17 @@ export function resolveSiteUrl(env: Env): string {
 }
 
 /**
+ * Origin the SEO tags name — canonical links, og:url / og:image, the
+ * JSON-LD and the sitemap: `NUXT_CANONICAL_SITE_URL` when set to a valid
+ * origin, otherwise this instance's own `NUXT_SITE_URL`. Staging renders
+ * `https://markoto.app`, so a copy of the site on staging.markoto.app
+ * points search engines at the real one instead of competing with it.
+ */
+export function resolveCanonicalSiteUrl(env: Env): string {
+  return originOf(env.NUXT_CANONICAL_SITE_URL) || resolveSiteUrl(env)
+}
+
+/**
  * Origin for `/docs/**` canonicals; '' = this instance's own site URL.
  * The marketing site is the original, so it is always self-canonical.
  * Elsewhere: `NUXT_DOCS_CANONICAL_BASE` when set (an empty value opts
@@ -207,7 +221,7 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
       ? resolveLegalEntity(env).controllerName
       : (env.NUXT_LEGAL_CONTROLLER_NAME?.trim() ?? ''),
     marketingSite: resolveMarketingSiteEnabled(env),
-    siteUrl: resolveSiteUrl(env),
+    siteUrl: resolveCanonicalSiteUrl(env),
     docsCanonicalBase: resolveDocsCanonicalBase(env),
     anonGate: resolveAnonGateEnabled(env),
     anonDocTtlDays: resolveAnonDocTtlDays(env)

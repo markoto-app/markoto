@@ -1383,7 +1383,10 @@
       "imprint": "Aviso legal",
       "cookieNote": "Cookies: solo esenciales",
       "dpaShort": "DPA",
-      "navLabel": "Documentación y avisos legales"
+      "navLabel": "Documentación y avisos legales",
+      "product": "Producto",
+      "legal": "Legal",
+      "tagline": "Markdown colaborativo, maquetado en páginas."
     },
     "documentPage": {
       "translationNoticeTitle": "Traducción proporcionada por comodidad",
@@ -1767,7 +1770,8 @@
       "useCases": "Casos de uso",
       "templates": "Plantillas",
       "compare": "Comparar",
-      "selfHost": "Autoalojar"
+      "selfHost": "Autoalojar",
+      "github": "markoto en GitHub"
     },
     "sample": {
       "source": "Markdown",
@@ -1786,7 +1790,8 @@
       "caption": "Comprobado el {date}. Las fuentes están al final de la página.",
       "sources": "Fuentes",
       "markotoSources": "markoto (documentación y código)",
-      "trademark": "{name} es una marca de su titular. markoto no está afiliado a {name}. Los precios y las funciones cambian; las fuentes muestran el estado actual."
+      "trademark": "{name} es una marca de su titular. markoto no está afiliado a {name}. Los precios y las funciones cambian; las fuentes muestran el estado actual.",
+      "trademarkNote": "{name} es una marca de su titular. markoto no está afiliado a {name}. Los precios y las funciones cambian."
     },
     "page": {
       "updated": "Actualizado el {date}",

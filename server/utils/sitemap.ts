@@ -8,7 +8,7 @@
 //
 // Pure helpers; the route gathers the docs paths from Nuxt Content.
 
-import { resolveMarketingSiteEnabled, resolveSiteUrl } from '../../shared/config/instance'
+import { resolveCanonicalSiteUrl, resolveMarketingSiteEnabled } from '../../shared/config/instance'
 import {
   DEFAULT_MARKETING_LOCALE,
   indexableMarketingPages,
@@ -118,7 +118,7 @@ function updatedOf(versions: MarketingVersion[], locale: string, slug: string): 
  */
 export function sitemapBaseUrl(env: Env): string | null {
   if (!resolveMarketingSiteEnabled(env)) return null
-  return resolveSiteUrl(env) || null
+  return resolveCanonicalSiteUrl(env) || null
 }
 
 /**

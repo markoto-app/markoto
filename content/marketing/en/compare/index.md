@@ -1,6 +1,6 @@
 ---
 title: Compare markoto with other editors
-description: How markoto compares with HackMD, HedgeDoc, Overleaf, Google Docs, Obsidian, Typora and Typst - a verdict for each and a full comparison with sources.
+description: How markoto compares with HackMD, HedgeDoc, Overleaf, Google Docs, Obsidian, Typora and Typst - a verdict for each and a side-by-side feature table.
 keywords:
   - markoto alternatives
   - markdown editor comparison
@@ -16,7 +16,7 @@ navOrder: 0
 
 # Compare markoto
 
-markoto is a collaborative Markdown editor for documents that end up as pages: the preview shows printed pages as you type, and the PDF matches it. Here is how it compares with tools people often weigh it against. Each page lists where the other tool is better, and every fact links to its source.
+markoto is a collaborative Markdown editor for documents that end up as pages: the preview shows printed pages as you type, and the PDF matches it. Here is how it compares with tools people often weigh it against. Each page lists where the other tool is better, and the feature tables say when the facts were checked.
 
 ## HackMD
 

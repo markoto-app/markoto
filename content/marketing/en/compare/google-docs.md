@@ -1,6 +1,6 @@
 ---
 title: markoto vs Google Docs for Markdown documents
-description: markoto and Google Docs compared - Markdown, suggesting mode, offline use, citations, print layout, AI, self-hosting and where data is stored. With sources.
+description: markoto and Google Docs compared - Markdown, suggesting mode, offline use, citations, print layout, AI, self-hosting and where data is stored. Checked facts.
 keywords:
   - markoto vs google docs
   - google docs alternative
@@ -74,5 +74,10 @@ items:
 Free on markoto.app, no sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/google-docs.yml), not shown on the page:
 ::compare-sources{competitor="google-docs"}
+::
+-->
+
+::compare-note{competitor="google-docs"}
 ::

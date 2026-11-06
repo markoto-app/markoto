@@ -196,6 +196,9 @@ jobs:
           # Only prod may be indexed; staging (and anything else) renders
           # NUXT_SITE_INDEXABLE=false → robots.txt Disallow: / + noindex.
           NUXT_SITE_INDEXABLE: ${{ inputs.environment == 'prod' && 'true' || 'false' }}
+          # Canonicals, og:url, JSON-LD and the sitemap name markoto.app on
+          # every environment but prod (prod = its own NUXT_SITE_URL).
+          NUXT_CANONICAL_SITE_URL: ${{ inputs.environment != 'prod' && 'https://markoto.app' || '' }}
           NUXT_WEB_TOOLS_HOURLY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_HOURLY_LIMIT }}
           NUXT_WEB_TOOLS_DAILY_LIMIT: ${{ vars.NUXT_WEB_TOOLS_DAILY_LIMIT }}
           NUXT_AI_DEFAULT_CHAT_MODEL: ${{ vars.NUXT_AI_DEFAULT_CHAT_MODEL }}
