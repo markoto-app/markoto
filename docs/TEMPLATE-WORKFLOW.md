@@ -54,12 +54,12 @@ for what no theme field covers, and a Markdown fixture that shows it off.
 5. **List the differences** and classify each one:
    - **preset value** — a theme field set wrong (size, spacing, margin);
    - **template CSS** — something only this template does (booktabs table
-     rules, a "Figure N:" caption, a hanging-indent bibliography);
+     rules, a run-in abstract, the label format of a caption);
    - **engine variable** — something CSS can't do cleanly, or several
      templates need (a running-head rule, per-level heading sizes):
      propose a theme field to the owner;
-   - **can't do** — a limit of Markdown or of the medium (floats, table
-     captions, `\thanks` footnotes on authors, microtype font expansion,
+   - **can't do** — a limit of Markdown or of the medium (floats,
+     `\thanks` footnotes on authors, microtype font expansion,
      cross-reference labels).
 6. **Iterate** until only "can't do" remains.
 7. **Bake** it into a preset: values in `THEME_PRESETS`, template CSS as
@@ -103,6 +103,31 @@ generated theme CSS.
   (`.paged-doc ul, .paged-doc ol`) are fine.
 - No `@import`, `@font-face`, external `url()`: the sanitizer refuses them.
   Fonts come from the bundled / self-hosted families (`themeFonts.ts`).
+- **Follow the author's choices: use the variables, not names.** The
+  engine sets these on `.paged-doc` and on every `.pagedjs_page` (so they
+  reach the running heads too): `--doc-body-font`, `--doc-heading-font`,
+  `--doc-meta-font`, `--doc-mono-font` (full font stacks), `--doc-accent`
+  (= `--doc-brand`), `--doc-secondary`, `--doc-text`, plus on `.paged-doc`
+  `--doc-bg` and `--doc-heading-color`. A pull quote in
+  `font-family: var(--doc-heading-font)` changes with the heading font; one
+  in `"Source Serif 4"` does not. `--doc-reference-indent` (default
+  1.5em) sets the hanging indent of the reference list.
+- **Target structure through the engine's markers, not position.**
+  paged.js clones `.paged-doc` (and every parent of split content) onto
+  each page, so `:first-of-type`, `:first-child` and sibling selectors
+  across a page break match once PER PAGE. Use:
+  `.markoto-first-section` (the document's first top-level heading),
+  `.markoto-section-heading` (every top-level heading),
+  `.markoto-references` (lists + paragraphs of the References /
+  Bibliography / Literatur … section; heading
+  `.markoto-references-heading`), `table > caption` (Pandoc `Table: …`),
+  and the counters `mk-h1…mk-h4` (headings), `mk-table`, `mk-figure`
+  (captions, when the theme numbers them). Change a caption label's format
+  through `::before { content: … }` on `table > caption` / `figcaption`.
+- **Engine fields first:** heading numbers (`decimal`, `decimal-dot`,
+  `ieee`), per-level alignment, per-side page margins, caption position +
+  labels, the reference-list style and the `{section}` running-head token
+  are theme fields — don't rebuild them in CSS.
 - Comment every rule with the line of the original it reproduces.
 
 **Variables before CSS.** If a template needs more than about 40 lines of
@@ -110,6 +135,10 @@ CSS, or several templates need the same thing, propose a theme variable
 instead (owner approval). That is how `header.rule` / `footer.rule`,
 `headings.levels`, `cover.titleWeight` and `{.unnumbered}` headings came
 about: the arXiv pilot needed them in CSS, and they were brittle there.
+The IEEE, corporate-report and tech-docs templates added numbering
+styles, heading alignment, per-side margins, table captions, figure and
+table numbers, the reference-list class + style, `{section}` and the font
+variables the same way.
 
 ## Design checklist
 

@@ -28,18 +28,39 @@ A few settings worth knowing:
   1 ends up as, for example *1.25 (heading 1 = 2.0× body)*. Large display
   sizes are for the cover page; set them with the cover's title size.
 - **Numbered sections.** *Numbering* puts 1, 1.1, 1.1.1 in front of
-  headings 1 to 4, and the same numbers in the table of contents. The
-  cover title and a leading *Abstract* section get none. To leave out
-  another heading, such as the references, write `{.unnumbered}` after
-  it: `# References {.unnumbered}`. The sections after it keep counting
-  as if it weren't there.
+  headings 1 to 4, and the same numbers in the table of contents. Pick
+  1., 1.1., 1.1.1. for numbers with a closing dot, or I., A., 1), a) for
+  the IEEE style, where each level shows only its own number. If your
+  sections start at heading 2, the numbers start there: the first is 1,
+  not 0.1. The cover title and a leading *Abstract* section get none. To
+  leave out another heading, such as the references, write
+  `{.unnumbered}` after it: `# References {.unnumbered}`. The sections
+  after it keep counting as if it weren't there.
 - **One heading level at a time.** *Per level*, at the end of the
   Headings section, sets the size (as a multiple of the body text), the
   weight, italics or small capitals for heading 1, 2, 3 or 4 on its own,
   for formats that prescribe them: an arXiv preprint has 12 pt bold
   sections over 10 pt text, an IEEE paper small-capital sections and
-  italic subsections. A level you don't touch follows the scale ratio;
-  *Use defaults* hands a level back to it.
+  italic subsections. *Centred* centres a level, number included. A
+  level you don't touch follows the scale ratio; *Use defaults* hands a
+  level back to it.
+- **Running heads.** The page header and footer take the tokens
+  `{title}`, `{section}`, `{date}`, `{page}` and `{pages}`. `{section}`
+  is the title of the current chapter (your top-level heading): the one
+  that starts on the page, or the one still running from the page
+  before.
+- **Captions and numbers.** Write a table's caption as a paragraph that
+  starts with `Table:` right above or below the table (see
+  [Markdown syntax](/docs/writing/markdown-reference#tables)). In the
+  Tables section, *Caption position* puts captions above or below
+  tables, and *Number table captions* adds "Table 1:" in the document's
+  language. *Number figure captions* in the Images and quotes section
+  does the same for images ("Figure 1:").
+- **Reference list.** A section headed *References* (or Bibliography,
+  Literatur, Références, Referencias …) is your reference list. *Reference
+  list* in the Images and quotes section gives it a hanging indent or
+  numbers in brackets, [1], [2], also where the list continues on the
+  next page.
 - **A rule under the header.** *Rule under the header* in the Page header
   section draws a thin line across the full text width, right under the
   header text, and moves the header close to the text, as in a journal or
@@ -61,7 +82,9 @@ A few settings worth knowing:
 
   Short blocks stay on one page; long ones continue on the next.
 - **Page size.** A4, A5 (books and manuscripts), Letter and Legal, each
-  portrait or landscape.
+  portrait or landscape. *Margins per side*, under the margin, sets the
+  top, right, bottom or left margin on its own, for formats with a deeper
+  bottom margin or a binding edge.
 - **Fonts.** Besides the web fonts, the pickers offer TeX Gyre Termes (a
   Times design), TeX Gyre Heros (a Helvetica design) and Latin Modern
   Roman (the classic LaTeX face), for documents that should look like

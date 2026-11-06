@@ -753,7 +753,14 @@
       "size": "Page size",
       "orientation": "Orientation",
       "margin": "Margin (mm)",
-      "marginHelp": "Uniform margin on all four sides."
+      "marginHelp": "Uniform margin on all four sides.",
+      "sideMargins": "Margins per side",
+      "sideMarginsHelp": "Set a side to override the uniform margin, e.g. a deeper bottom margin.",
+      "sideMarginsReset": "Use the uniform margin",
+      "margin_top": "Top (mm)",
+      "margin_right": "Right (mm)",
+      "margin_bottom": "Bottom (mm)",
+      "margin_left": "Left (mm)"
     },
     "body": {
       "font": "Font",
@@ -793,7 +800,10 @@
       "levelSize": "Size (× body)",
       "levelItalic": "Italic",
       "levelSmallCaps": "Small capitals",
-      "levelReset": "Use defaults"
+      "levelReset": "Use defaults",
+      "numberingDecimalDot": "1., 1.1., 1.1.1.",
+      "numberingIeee": "I., A., 1), a) (IEEE)",
+      "levelCentered": "Centred"
     },
     "align": {
       "left": "Left",
@@ -865,7 +875,13 @@
       "bordersNone": "No borders",
       "zebra": "Alternating row colors",
       "zebraHelp": "Subtle stripes on every other row.",
-      "cellPadding": "Cell padding (px)"
+      "cellPadding": "Cell padding (px)",
+      "captionPosition": "Caption position",
+      "captionPositionHelp": "A paragraph starting with “{code}” right before or after a table becomes its caption.",
+      "captionAbove": "Above the table",
+      "captionBelow": "Below the table",
+      "captionLabel": "Number table captions",
+      "captionLabelHelp": "Adds “Table 1:” in the document language before each caption."
     },
     "blocks": {
       "imageRadius": "Image radius (px)",
@@ -873,7 +889,14 @@
       "blockquoteStyle": "Blockquote style",
       "hrStyle": "Horizontal rule style",
       "hrStyleHelp": "How `---` (Markdown horizontal rule) renders.",
-      "hrThickness": "Rule thickness (px)"
+      "hrThickness": "Rule thickness (px)",
+      "figureLabel": "Number figure captions",
+      "figureLabelHelp": "Adds “Figure 1:” in the document language before each image caption.",
+      "referenceStyle": "Reference list",
+      "referenceStyleHelp": "The section headed “References” (or Bibliography, Literatur, Références …).",
+      "referencePlain": "Like other lists",
+      "referenceHanging": "Hanging indent",
+      "referenceBrackets": "Numbered [1], [2]"
     },
     "blockquote": {
       "border": "Left border",

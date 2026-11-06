@@ -81,6 +81,6 @@ describe('composeFinalHtml', () => {
     t.headings.numbering = 'none'
     const html = composeFinalHtml({ theme: t, title: 'T', date: '6 November 2026', bodyHtml: await renderMarkdown(MD) })
     expect(html).not.toContain('markoto-unnumbered-entry')
-    expect(parse(html).querySelector('h1#references')?.className).toBe('unnumbered')
+    expect(parse(html).querySelector('h1#references')?.classList.contains('unnumbered')).toBe(true)
   })
 })

@@ -288,6 +288,7 @@ export function buildRenderMessage(opts: {
     title: opts.title,
     date: texts.date,
     tocTitle: texts.tocTitle,
+    captionLabels: texts.captionLabels,
     customCss: opts.customCss,
     imageUrl: url => withOwnUploadToken(url, opts.docId, opts.fileToken)
   })

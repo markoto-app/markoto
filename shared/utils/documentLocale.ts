@@ -105,6 +105,38 @@ export function tocTitleFor(locale: string): string {
   return TOC_TITLES[primary(locale)] ?? 'Contents'
 }
 
+/** Caption label words per language: [table, figure]. */
+const CAPTION_LABELS: Record<string, readonly [string, string]> = {
+  en: ['Table', 'Figure'],
+  de: ['Tabelle', 'Abbildung'],
+  fr: ['Tableau', 'Figure'],
+  es: ['Tabla', 'Figura'],
+  it: ['Tabella', 'Figura'],
+  pt: ['Tabela', 'Figura'],
+  nl: ['Tabel', 'Figuur'],
+  pl: ['Tabela', 'Rysunek'],
+  sv: ['Tabell', 'Figur'],
+  da: ['Tabel', 'Figur'],
+  nb: ['Tabell', 'Figur'],
+  no: ['Tabell', 'Figur'],
+  fi: ['Taulukko', 'Kuva'],
+  cs: ['Tabulka', 'Obrázek'],
+  rm: ['Tabella', 'Figura'],
+  ja: ['表', '図'],
+  zh: ['表', '图']
+}
+
+/**
+ * Caption labels in the document language: the word before the number
+ * (`Table` / `Tabelle`) and what follows the number (`: `; French sets a
+ * no-break space before the colon).
+ */
+export function captionLabelsFor(locale: string): { table: string, figure: string, separator: string } {
+  const lang = primary(locale)
+  const [table, figure] = CAPTION_LABELS[lang] ?? ['Table', 'Figure']
+  return { table, figure, separator: lang === 'fr' ? '\u00A0: ' : ': ' }
+}
+
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 /** Is `value` a real calendar date written `YYYY-MM-DD`? */
@@ -151,6 +183,8 @@ export interface DocumentTexts {
   date: string
   /** TOC heading in the document language. */
   tocTitle: string
+  /** Caption labels ("Table" / "Figure" + separator) in the document language. */
+  captionLabels: { table: string, figure: string, separator: string }
 }
 
 /** Everything locale-dependent a render needs, from the theme + document language. */
@@ -158,5 +192,5 @@ export function documentTexts(theme: Pick<DocTheme, 'cover'>, language: string |
   const locale = documentLocale(language)
   const picked = theme.cover.date ?? ''
   const dateIso = picked && isIsoDate(picked) ? picked : todayIso(now)
-  return { locale, dateIso, date: formatDocumentDate(dateIso, locale), tocTitle: tocTitleFor(locale) }
+  return { locale, dateIso, date: formatDocumentDate(dateIso, locale), tocTitle: tocTitleFor(locale), captionLabels: captionLabelsFor(locale) }
 }

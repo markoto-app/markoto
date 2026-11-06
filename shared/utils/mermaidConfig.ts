@@ -1,6 +1,7 @@
 import type { DocTheme } from '../types/theme'
 import { THEME_FONTS } from './themeFonts'
 import { pageWidthMm } from './pageDimensions'
+import { resolvePageMargins } from './themeOptions'
 import { categoricalPalette, mixHex } from './themeColors'
 
 /**
@@ -39,7 +40,8 @@ const SEQUENCE_MARGIN_X = 8
 export function textColumnWidthPx(theme: DocTheme): number {
   const pageMm = pageWidthMm(theme.page.size, theme.page.orientation)
   const cols = theme.layout.columns
-  const contentMm = pageMm - 2 * theme.page.margin - (cols - 1) * theme.layout.columnGap
+  const margins = resolvePageMargins(theme)
+  const contentMm = pageMm - margins.left - margins.right - (cols - 1) * theme.layout.columnGap
   return Math.max(200, Math.round(((contentMm / cols) / 25.4) * 96))
 }
 

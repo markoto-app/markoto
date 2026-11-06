@@ -33,7 +33,7 @@ describe('absent fields = the old look', () => {
     expect(themeToCss(t, runtime)).toBe(themeToCss(withThemeDefaults(t), runtime))
     expect(runningRule(t.header)).toBe(false)
     expect(coverTitleWeight(t)).toBe(t.headings.weight)
-    expect(resolveHeadingLevel(t, 1)).toEqual({ size: null, weight: t.headings.weight, style: 'normal', smallCaps: false })
+    expect(resolveHeadingLevel(t, 1)).toEqual({ size: null, weight: t.headings.weight, style: 'normal', smallCaps: false, align: 'left' })
   })
 
   test('withThemeDefaults spells rule + levels out but leaves titleWeight absent (it follows headings.weight)', () => {
