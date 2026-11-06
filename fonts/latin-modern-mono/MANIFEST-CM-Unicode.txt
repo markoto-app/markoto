@@ -1,0 +1,13 @@
+Greek companion files of this family, cut from CM Unicode (Computer Modern
+Unicode) 0.7.0 by Andrey V. Panov et al., https://ctan.org/pkg/cm-unicode
+Licence: SIL Open Font License 1.1, see LICENSE-CMU.txt.
+
+"Computer Modern Unicode fonts" is a Reserved Font Name, so these modified
+(subset) files are named "markoto Greek Mono". Changes: only Greek + Greek
+Extended (U+0370-03FF, U+1F00-1FFF) kept, CFF outlines converted to TrueType,
+vertical metrics taken from the matching Latin Modern font, WOFF2. Built by
+scripts/build-bundled-fonts.py.
+
+cmu-greek-regular.woff2  <- cm-unicode/fonts/otf/cmuntt.otf (CMU Typewriter Text Regular)
+cmu-greek-italic.woff2   <- cm-unicode/fonts/otf/cmunit.otf (CMU Typewriter Text Italic)
+cmu-greek-bold.woff2     <- cm-unicode/fonts/otf/cmuntb.otf (CMU Typewriter Text Bold)

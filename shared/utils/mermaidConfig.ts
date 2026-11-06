@@ -20,13 +20,20 @@ import { categoricalPalette, mixHex } from './themeColors'
  *    explicit built-in theme (`default`, `neutral`, …) keeps Mermaid's
  *    own colours — the picker still wins.
  *  - Size: label sizes follow the body size (never below 11px ≈ 8pt);
- *    xy-charts are drawn exactly one text column wide so their text is
- *    never scaled down; flowcharts use tighter spacing so org charts fit
- *    the column at a readable size.
+ *    xy-charts and gantt charts are drawn exactly one text column wide
+ *    so their text is never scaled down, and sequence diagrams are laid
+ *    out so four participants fill the column (messages wrap between
+ *    them); flowcharts use tighter spacing so org charts fit the column
+ *    at a readable size.
  */
 
 /** Smallest label size in CSS px (≈ 8.25pt) — the print-legibility floor. */
 const MIN_LABEL_PX = 11
+
+/** Participants a sequence diagram fits in one text column before it is scaled down. */
+const SEQUENCE_ACTORS_PER_COLUMN = 4
+/** Horizontal margin around a sequence diagram (Mermaid's default 50px wastes a tenth of the column). */
+const SEQUENCE_MARGIN_X = 8
 
 /** Column width in CSS px (96 dpi) for the theme's page + layout. */
 export function textColumnWidthPx(theme: DocTheme): number {
@@ -136,6 +143,82 @@ function documentThemeVariables(theme: DocTheme, fontFamily: string, px: number)
   return vars
 }
 
+/**
+ * Sequence diagram geometry: Mermaid sizes the gap between two
+ * participants by the longest message between them, so one long message
+ * made the whole diagram several columns wide and the page scaled it
+ * (with its text) down to ~6pt. With `wrap` on, messages wrap between
+ * the lifelines, and participant box + gap are chosen so four of them
+ * fill the column exactly; three leave space, five or more get scaled.
+ */
+export function sequenceLayout(colPx: number, px: number): Record<string, unknown> {
+  // n boxes + (n - 1) gaps = the column. A wide gap and a narrower box:
+  // a message wraps at the distance between two lifelines, a
+  // participant's name only needs its box.
+  const n = SEQUENCE_ACTORS_PER_COLUMN
+  const available = colPx - 2 * SEQUENCE_MARGIN_X
+  const actorMargin = Math.round((available / n) * 0.4)
+  const width = Math.max(80, Math.floor((available + actorMargin) / n) - actorMargin)
+  return {
+    useMaxWidth: false,
+    wrap: true,
+    width,
+    actorMargin,
+    wrapPadding: 6,
+    diagramMarginX: SEQUENCE_MARGIN_X,
+    diagramMarginY: 8,
+    height: Math.round(px * 2.6),
+    boxMargin: 8,
+    boxTextMargin: 4,
+    noteMargin: 8,
+    messageMargin: Math.round(px * 2.4),
+    actorFontSize: px,
+    messageFontSize: px,
+    noteFontSize: px
+  }
+}
+
+/**
+ * Gantt geometry: drawn one text column wide (Mermaid otherwise takes the
+ * width of whatever element it renders in, and the page scales the chart
+ * down), labels at the body size, bars tall enough for them. A label
+ * longer than its bar goes beside it: to the right when the chart leaves
+ * room there (the right padding is sized for a short closing label such
+ * as "Handover"), else to the left.
+ */
+export function ganttLayout(colPx: number, px: number): Record<string, unknown> {
+  return {
+    useMaxWidth: false,
+    useWidth: colPx,
+    fontSize: px,
+    sectionFontSize: px,
+    barHeight: Math.round(px * 1.7),
+    barGap: Math.max(4, Math.round(px * 0.3)),
+    leftPadding: Math.round(px * 6),
+    rightPadding: Math.round(px * 8),
+    topPadding: Math.round(px * 3),
+    gridLineStartPadding: Math.round(px * 2.5)
+  }
+}
+
+/**
+ * CSS Mermaid adds to every diagram. Gantt: the axis labels are drawn
+ * with a hard-coded `font-size="10"` attribute (CSS wins over it); a
+ * label beside its bar gets the document font (the left one has none of
+ * its own) and a halo in the paper colour so grid lines don't cut through
+ * it; the "today" line is hidden — a printed plan shouldn't change with
+ * the day it was rendered (and outside the plan's range it was drawn in
+ * the page margin).
+ */
+export function mermaidThemeCss(fontFamily: string, px: number, paper: string): string {
+  const axisPx = Math.max(MIN_LABEL_PX, Math.round(px * 0.85))
+  return [
+    `.grid .tick text { font-size: ${axisPx}px; }`,
+    `.taskTextOutsideLeft, .taskTextOutsideRight { font-family: ${fontFamily}; paint-order: stroke; stroke: ${paper}; stroke-width: 3px; stroke-linejoin: round; }`,
+    '.today { display: none; }'
+  ].join('\n')
+}
+
 export function buildMermaidConfig(theme: DocTheme): Record<string, unknown> {
   const fontFamily = mermaidFontFamily(theme)
   // Body size in px, floored at the print-legibility minimum.
@@ -171,6 +254,7 @@ export function buildMermaidConfig(theme: DocTheme): Record<string, unknown> {
     // inlines diagrams into the page.
     htmlLabels: false,
     themeVariables,
+    themeCSS: mermaidThemeCss(fontFamily, px, theme.body.background),
     flowchart: {
       htmlLabels: false,
       padding: 10,
@@ -189,8 +273,8 @@ export function buildMermaidConfig(theme: DocTheme): Record<string, unknown> {
       xAxis: { labelFontSize: px, titleFontSize: px, tickWidth: 1, axisLineWidth: 1 },
       yAxis: { labelFontSize: px, titleFontSize: px, tickWidth: 1, axisLineWidth: 1 }
     },
-    sequence: { useMaxWidth: false },
-    gantt: { useMaxWidth: false, fontSize: px },
+    sequence: { ...sequenceLayout(colPx, px), actorFontFamily: fontFamily, messageFontFamily: fontFamily, noteFontFamily: fontFamily },
+    gantt: ganttLayout(colPx, px),
     journey: { useMaxWidth: false },
     timeline: { useMaxWidth: false },
     mindmap: { useMaxWidth: false },

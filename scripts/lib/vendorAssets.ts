@@ -15,7 +15,7 @@ import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL, PAGEDJS_VERSION } from '../
 import { MERMAID_SRI, MERMAID_URL, MERMAID_VERSION } from '../../shared/utils/mermaidAssets'
 import { KATEX_CSS_SRI, KATEX_CSS_URL, KATEX_VERSION } from '../../shared/utils/katexAssets'
 import { HLJS_STYLES_BASE, HLJS_THEMES, HLJS_VERSION } from '../../shared/utils/hljsAssets'
-import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, type SelfHostedFont } from '../../shared/utils/themeFonts'
+import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/themeFonts'
 import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
 
 /** One file copied from an npm package to `/vendor/…`. */
@@ -97,25 +97,30 @@ export function checkVendorPackages(rootDir: string): string[] {
       problems.push(`${file.package}/${file.from}: SRI is ${actual}, the pinned constant says ${file.sri}`)
     }
   }
-  for (const font of SELF_HOSTED_FONTS) {
-    const source = font.source
-    if (source.kind === 'bundled') {
-      const dir = bundledFontDir(rootDir, font)
-      for (const face of source.faces) {
-        if (!existsSync(join(dir, face.file))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.file} is missing`)
-      }
-      if (!existsSync(join(dir, 'LICENSE.txt'))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/LICENSE.txt is missing`)
-      continue
-    }
+  const checkFontsource = (font: SelfHostedFont, source: FontsourceSource) => {
     if (installedVersion(rootDir, source.package) === null) {
       problems.push(`${font.name}: ${source.package} is not installed`)
-      continue
+      return
     }
     for (const sheet of source.stylesheets) {
       if (!existsSync(join(packageDir(rootDir, source.package), sheet))) {
         problems.push(`${font.name}: ${source.package}/${sheet} is missing`)
       }
     }
+  }
+  for (const font of SELF_HOSTED_FONTS) {
+    const source = font.source
+    if (font.ui) checkFontsource(font, font.ui)
+    if (source.kind === 'bundled') {
+      const dir = bundledFontDir(rootDir, font)
+      for (const face of source.faces) {
+        if (!existsSync(join(dir, face.file))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.file} is missing`)
+        if (face.licence && !existsSync(join(dir, face.licence))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/${face.licence} is missing`)
+      }
+      if (!existsSync(join(dir, 'LICENSE.txt'))) problems.push(`${font.name}: ${BUNDLED_FONTS_DIR}/${font.slug}/LICENSE.txt is missing`)
+      continue
+    }
+    checkFontsource(font, source)
   }
   return problems
 }
@@ -125,9 +130,11 @@ export function bundledFontDir(rootDir: string, font: SelfHostedFont): string {
   return join(rootDir, BUNDLED_FONTS_DIR, font.slug)
 }
 
-/** Version that goes into a family's file URLs: the npm package's, or the bundled files'. */
-function fontVersion(rootDir: string, font: SelfHostedFont): string {
-  return font.source.kind === 'bundled' ? font.source.version : installedVersion(rootDir, font.source.package) ?? ''
+/** Licence files next to a family's files (the bundled families' companion files bring their own). */
+function fontLicences(font: SelfHostedFont, variant: 'document' | 'ui'): string[] {
+  const source = font.source
+  if (variant === 'ui' || source.kind !== 'bundled') return ['LICENSE.txt']
+  return [...new Set(['LICENSE.txt', ...source.faces.flatMap(f => f.licence ? [f.licence] : [])])]
 }
 
 /** Where a family's files come from, for the stylesheet's header comment. */
@@ -168,15 +175,15 @@ export function parseFontsourceCss(css: string): FontFace[] {
   return faces
 }
 
-/** Directory (relative to the stylesheet) holding a family's files: `<slug>@<version>`. */
-export function fontFilesDir(font: SelfHostedFont, version: string): string {
-  return `${font.slug}@${version}`
+/** Directory (relative to the stylesheet) holding a family's files: `<slug>@<version>` (`<slug>-variable@<version>` for the app-shell cut). */
+export function fontFilesDir(font: SelfHostedFont, version: string, variant: 'document' | 'ui' = 'document'): string {
+  return variant === 'ui' ? `${font.slug}-variable@${version}` : `${font.slug}@${version}`
 }
 
 /** The family's stylesheet: one @font-face per subset / style (/ weight), named as the theme names it. */
-export function buildFontCss(font: SelfHostedFont, version: string, faces: readonly FontFace[]): string {
+export function buildFontCss(font: SelfHostedFont, version: string, faces: readonly FontFace[], variant: 'document' | 'ui' = 'document'): string {
   const family = font.name.replaceAll('\\', '').replaceAll('\'', '')
-  const dir = fontFilesDir(font, version)
+  const dir = fontFilesDir(font, version, variant)
   const rules = faces.map(face => [
     '@font-face {',
     `  font-family: '${family}';`,
@@ -189,7 +196,7 @@ export function buildFontCss(font: SelfHostedFont, version: string, faces: reado
     '}'
   ].join('\n'))
   return [
-    `/* ${font.name} — ${fontOrigin(font, version)}, licence: ${dir}/LICENSE.txt. Generated by modules/vendor-assets.ts. */`,
+    `/* ${font.name} — ${variant === 'ui' && font.ui ? `${font.ui.package}@${version}` : fontOrigin(font, version)}, licence: ${fontLicences(font, variant).map(l => `${dir}/${l}`).join(', ')}. Generated by modules/vendor-assets.ts. */`,
     ...rules
   ].join('\n') + '\n'
 }
@@ -215,11 +222,14 @@ function vendorPath(outDir: string, url: string): string {
 }
 
 /** Bump when the generator's output format changes, so stale build dirs are rebuilt. */
-const GENERATOR_REVISION = 2
+const GENERATOR_REVISION = 3
 
 /** Fingerprint of everything the output depends on (package versions + pinned constants + font registry). */
 export function vendorInputsKey(rootDir: string): string {
-  const packages = [...Object.keys(PINNED_VERSIONS), ...SELF_HOSTED_FONTS.flatMap(f => f.source.kind === 'fontsource' ? [f.source.package] : [])]
+  const packages = [
+    ...Object.keys(PINNED_VERSIONS),
+    ...SELF_HOSTED_FONTS.flatMap(f => [...(f.source.kind === 'fontsource' ? [f.source.package] : []), ...(f.ui ? [f.ui.package] : [])])
+  ]
   const parts = {
     versions: packages.map(p => `${p}@${installedVersion(rootDir, p) ?? '-'}`),
     files: lockedVendorFiles(),
@@ -273,34 +283,44 @@ export function generateVendorAssets(rootDir: string, outDir: string): Generated
     if (licence) add(copy(join(packageDir(rootDir, pkg), licence), join(tmp, `${pkg}@${version}`, 'LICENSE.txt')))
   }
 
-  // Fonts: one stylesheet per family + its woff2 files + licence.
+  // Fonts: one stylesheet per family + its woff2 files + licence(s).
   const fontsOut = vendorPath(tmp, FONT_STYLESHEET_BASE)
-  for (const font of SELF_HOSTED_FONTS) {
-    const source = font.source
-    const version = fontVersion(rootDir, font)
-    // Bundled families: files committed in fonts/<slug>/, one woff2 per style.
-    const filesDir = source.kind === 'bundled' ? bundledFontDir(rootDir, font) : join(packageDir(rootDir, source.package), 'files')
-    const faces: FontFace[] = source.kind === 'bundled'
-      ? source.faces.map(f => ({ style: f.style, weight: String(f.weight), unicodeRange: source.unicodeRange, file: f.file }))
-      : source.stylesheets.flatMap(sheet => parseFontsourceCss(readFileSync(join(packageDir(rootDir, source.package), sheet), 'utf8')))
-    const dir = join(fontsOut, fontFilesDir(font, version))
+  mkdirSync(fontsOut, { recursive: true })
+  const writeFamily = (font: SelfHostedFont, version: string, filesDir: string, faces: readonly FontFace[], licences: ReadonlyArray<[from: string, to: string]>, variant: 'document' | 'ui', sheetName: string) => {
+    const dir = join(fontsOut, fontFilesDir(font, version, variant))
     let familyBytes = 0
     for (const face of faces) {
       const bytes = copy(join(filesDir, face.file), join(dir, face.file))
       familyBytes += bytes
       add(bytes)
     }
-    summary.fontBytes[font.name] = familyBytes
-    if (source.kind === 'bundled') {
-      add(copy(join(filesDir, 'LICENSE.txt'), join(dir, 'LICENSE.txt')))
-    } else {
-      const licence = licenceFile(rootDir, source.package)
-      if (licence) add(copy(join(packageDir(rootDir, source.package), licence), join(dir, 'LICENSE.txt')))
-    }
-    const css = buildFontCss(font, version, faces)
-    mkdirSync(fontsOut, { recursive: true })
-    writeFileSync(join(fontsOut, `${font.slug}.css`), css)
+    for (const [from, to] of licences) add(copy(from, join(dir, to)))
+    const css = buildFontCss(font, version, faces, variant)
+    writeFileSync(join(fontsOut, sheetName), css)
     add(Buffer.byteLength(css))
+    return familyBytes
+  }
+  const fontsourceFamily = (font: SelfHostedFont, source: FontsourceSource, variant: 'document' | 'ui', sheetName: string) => {
+    const pkgDir = packageDir(rootDir, source.package)
+    const faces = source.stylesheets.flatMap(sheet => parseFontsourceCss(readFileSync(join(pkgDir, sheet), 'utf8')))
+    const licence = licenceFile(rootDir, source.package)
+    return writeFamily(font, installedVersion(rootDir, source.package) ?? '', join(pkgDir, 'files'), faces, licence ? [[join(pkgDir, licence), 'LICENSE.txt']] : [], variant, sheetName)
+  }
+  for (const font of SELF_HOSTED_FONTS) {
+    const source = font.source
+    if (source.kind === 'bundled') {
+      // Bundled families: files committed in fonts/<slug>/, one woff2 per
+      // style (+ companion files for another script, with their own range
+      // and licence).
+      const filesDir = bundledFontDir(rootDir, font)
+      const faces = source.faces.map(f => ({ style: f.style, weight: String(f.weight), unicodeRange: f.unicodeRange ?? source.unicodeRange, file: f.file }))
+      const licences = fontLicences(font, 'document').map((l): [string, string] => [join(filesDir, l), l])
+      summary.fontBytes[font.name] = writeFamily(font, source.version, filesDir, faces, licences, 'document', `${font.slug}.css`)
+    } else {
+      summary.fontBytes[font.name] = fontsourceFamily(font, source, 'document', `${font.slug}.css`)
+    }
+    // The app shell's variable cut, next to the document stylesheet.
+    if (font.ui) fontsourceFamily(font, font.ui, 'ui', uiFontStylesheetName(font))
   }
 
   rmSync(outDir, { recursive: true, force: true })
