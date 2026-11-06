@@ -1015,9 +1015,17 @@
         "name": "arXiv-Preprint",
         "description": "Das Erscheinungsbild des arXiv-LaTeX-Preprints: US Letter, Times 10 pt im Blocksatz, nummerierte fette Abschnitte, Titelblock zwischen kräftigen Linien in Kapitälchen, Kolumnentitel «A Preprint» über einer feinen Linie."
       },
+      "ieee-conference": {
+        "name": "IEEE-Konferenzbeitrag",
+        "description": "Die IEEE-Konferenzvorlage (IEEEtran): US Letter, zwei Spalten Times 10 pt, zentrierte Abschnitte in Kapitälchen mit römischen Ziffern, kursive Unterabschnitte, ein Titel in 24 pt über nebeneinanderstehenden Autorenblöcken, die fette Zusammenfassung als Fliesstext am Anfang der ersten Spalte."
+      },
       "tech": {
         "name": "Technischer Bericht",
         "description": "Kompakte IBM Plex Sans, cyanfarbene Markenfarbe, dunkle Codeblöcke, markengefärbte Tabellenköpfe mit Zebra-Zeilen."
+      },
+      "tech-docs": {
+        "name": "Technische Dokumentation",
+        "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
       },
       "business": {
         "name": "Geschäftsbericht",
