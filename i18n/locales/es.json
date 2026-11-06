@@ -1046,6 +1046,10 @@
         "name": "Informe de negocios",
         "description": "Encabezados Playfair sobre cuerpo Source Sans, acento ámbar cálido, encabezados de tabla con color de marca, título centrado."
       },
+      "business-report": {
+        "name": "Informe corporativo",
+        "description": "Informes trimestrales y anuales, actualizaciones para el consejo, entregables para clientes: títulos en Source Serif sobre Inter, un acento azul petróleo profundo, tablas financieras con cifras tabulares y totales destacados, citas resaltadas, pie de página discreto sobre una línea fina."
+      },
       "novel": {
         "name": "Novela",
         "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
