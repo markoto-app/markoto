@@ -5,7 +5,7 @@ import {
   type TourBeat,
   type TourScene
 } from '~~/shared/tour/manifest'
-import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composables/useTourPager'
+import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composables/useTourScroll'
 
 /**
  * One scene's picture: a poster still and a short looping video, each in

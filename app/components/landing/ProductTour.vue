@@ -26,13 +26,14 @@ import { TOUR_DARK_FROM } from '~~/shared/tour/config'
  *    motion: the static version of the same — alternating two columns on
  *    desktop, stacked on phones.
  *
- * One rest position per scene (CSS scroll snapping, tour page only): copy
- * fully in, stage settled, video playing. On the pinned layout every wheel
- * gesture / paging key glides exactly one scene (`useTourPager`), so the
- * transitions between rests get time to play.
+ * One rest position per scene: copy fully in, stage settled, video
+ * playing. The visitor's own scroll drives the transitions between rests;
+ * on the pinned layout `useTourScroll` smooths wheel/trackpad input
+ * (Lenis, loaded after idle) and settles the page on a rest once the
+ * input stops. Elsewhere CSS `proximity` snapping does that.
  *
  * JS: lazy-mounts the pinned stage's far-away scenes (otherwise every
- * poster would load at once), pages the pinned layout (`useTourPager`),
+ * poster would load at once), scrolls the pinned layout (`useTourScroll`),
  * sets the colour phase (`useTourTone`, every engine — the colours
  * transition in CSS), and, in `TourVisual`, plays the video of the scene
  * on stage and fans the share scene's PDF pages out once it has settled.
@@ -67,10 +68,10 @@ const sceneTitle = (scene: TourScene) => t(`tour.scenes.${scene.id}.title`)
 const sceneBody = (scene: TourScene) => t(`tour.scenes.${scene.id}.body`)
 const ordinal = (i: number) => String(i + 1).padStart(2, '0')
 
-// One crossing = the pager's glide from one scene's rest (t = 0.5) to the
+// One crossing = the scroll from one scene's rest (t = 0.5) to the
 // next one's (t = 0.5 of the next scene, 160vh further). Its motion is
-// spread over nearly the whole crossing, so a glide shows movement from
-// its first frames instead of scrolling under pinned content and then
+// spread over nearly the whole crossing, so any scroll shows movement from
+// its first pixels instead of scrolling under pinned content and then
 // changing everything at the boundary in a fraction of a second:
 //   t 0.53 → 0.85   the outgoing copy fades and lifts out
 //   ±SIDE_GLIDE_VH  the stage slides to the other side (around t = 1 / 0)
@@ -138,18 +139,18 @@ function rests(): number[] {
   out.push(Math.max(0, document.documentElement.scrollHeight - window.innerHeight))
   return out
 }
-const pager = useTourPager({ rests, active: pinnedNow })
+const tourScroll = useTourScroll({ rests, active: pinnedNow, activeQuery: PINNED_QUERY })
 
 // ─── "Next" buttons ───────────────────────────────────────────────────
 // A quiet down arrow under the hero and every scene but the last: the
 // visible hint that the page goes on, and a way to page with a click or
-// Enter/Space. Pinned layout: one pager glide to the next rest (rest 0 is
+// Enter/Space. Pinned layout: a smooth scroll to the next rest (rest 0 is
 // the hero, rest k the k-th scene). Elsewhere: the next scene section
 // scrolls to the middle of the viewport (its snap point), smoothly unless
 // the visitor prefers reduced motion.
 function goToScene(i: number): void {
   if (pinnedNow()) {
-    pager.goTo(i + 1)
+    tourScroll.goTo(i + 1)
     return
   }
   const el = sectionEls.value[i]
@@ -196,11 +197,11 @@ onMounted(() => {
     if (changed) nearScenes.value = next
   }, { rootMargin: '150% 0px 150% 0px' })
   for (const el of sectionEls.value) if (el) observer.observe(el)
-  pager.start()
+  tourScroll.start()
 })
 onBeforeUnmount(() => {
   observer?.disconnect()
-  pager.stop()
+  tourScroll.stop()
   window.removeEventListener('scroll', queueTone)
   window.removeEventListener('resize', queueTone)
   cancelAnimationFrame(toneRaf)
@@ -673,7 +674,7 @@ html .mk-tour-page--auto .mk-wordmark__img--dark {
 }
 /* "See how it works ↓" beside the call to action, and the round arrow
    under every scene but the last: quiet (mono caption, hairline), but a
-   real button — a click (or Enter / Space) glides to the next scene. */
+   real button — a click (or Enter / Space) scrolls to the next scene. */
 .mk-hero__scroll {
   display: inline-flex;
   align-items: center;
@@ -1001,10 +1002,12 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
    lies between two rest positions. Rest points are 1px markers
    (`.mk-snap`), not the sections: a snap area taller than the viewport
    lets the browser stop anywhere inside it.
-   - Pinned desktop layout: mandatory + snap-stop, so one wheel/trackpad
-     gesture or one PageDown/Space/arrow moves exactly one scene.
+   - Pinned desktop layout: proximity snapping on the 1px markers until
+     Lenis has loaded (useTourScroll); then CSS snapping is off (Lenis
+     sets the scroll position every frame, which native snapping would
+     fight) and useTourScroll settles the page on the rests itself.
    - Everything else (phones, tablets, Firefox, reduced motion): gentle
-     proximity snapping on the scene sections.
+     proximity snapping on the scene sections, no Lenis.
    The hero rest is the page top (the page's header, the first thing in
    the document — a marker above the page would be clamped to 0 by
    Chromium but dropped by WebKit); the last rest is the page bottom
@@ -1019,6 +1022,12 @@ html:has(.mk-tour-page) {
 @media (prefers-reduced-motion: reduce) {
   html:has(.mk-tour-page) { scroll-behavior: auto; }
 }
+/* Lenis (pinned layout only, see useTourScroll) — the rules of its
+   lenis.css that apply here. */
+html.lenis,
+html.lenis body { height: auto; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
 .mk-snap {
   position: absolute;
   left: 0;
@@ -1162,7 +1171,7 @@ html:has(.mk-tour-page) {
         padding: 0;
         scroll-snap-align: none;
       }
-      html:has(.mk-tour-page) { scroll-snap-type: y mandatory; }
+      html.lenis:has(.mk-tour-page) { scroll-snap-type: none; }
       /* The rest point: the scene's window at t = SNAP_REST_T (script),
          where the marker's top meets the viewport top. */
       .mk-snap--scene {
