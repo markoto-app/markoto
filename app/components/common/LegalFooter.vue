@@ -29,6 +29,24 @@ const { legalSurfaces, operatorName, marketingSite } = useInstanceConfig()
 const { pricingVisible } = useBillingMode()
 const nav = useMarketingNav()
 
+// Layout on top of Nuxt UI's footer: the same 72rem column as the
+// marketing pages, brand left of the link columns from `lg`, two link
+// columns on phones and as many as fit from `sm`, the copyright row
+// under a hairline. (Variant prefixes repeat where the default theme
+// sets an `lg:` / `xl:` value of its own.)
+const ui = {
+  top: 'pt-10 pb-6 sm:pt-12 sm:pb-7 lg:pt-12 lg:pb-7',
+  container: 'max-w-6xl lg:px-6 flex lg:flex pt-3.5 pb-[18px] lg:pt-3.5 lg:pb-[18px] border-t border-sumi-300/35 dark:border-sumi-700/40',
+  left: 'justify-start lg:justify-start mt-0',
+  center: 'hidden',
+  right: 'hidden'
+}
+const columnsUi = {
+  root: 'grid gap-8 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-12 xl:grid-cols-[14rem_minmax(0,1fr)] xl:gap-12',
+  left: 'mb-0 xl:mb-0 flex flex-col gap-2.5',
+  center: 'grid lg:grid grid-cols-2 sm:grid-cols-[repeat(auto-fit,minmax(150px,1fr))] grid-flow-row gap-x-5 gap-y-7 xl:col-span-1'
+}
+
 interface FooterLink {
   to: string
   label: string
@@ -76,140 +94,70 @@ const columns = computed<FooterColumn[]>(() => {
 </script>
 
 <template>
-  <footer
-    class="legal-footer"
+  <!-- UFooter: the column grid sits in its `top` slot, the copyright row
+       in the footer's own container. Root keeps `legal-footer` (the
+       product tour snaps to it, ProductTour.vue). -->
+  <UFooter
+    class="legal-footer border-t border-sumi-300/50 dark:border-sumi-700/50 bg-muted"
     role="contentinfo"
     data-testid="legal-footer"
+    :ui="ui"
   >
-    <div class="legal-footer__inner">
-      <div class="legal-footer__brand">
-        <NuxtLink
-          to="/"
-          aria-label="markoto home"
-          class="legal-footer__mark"
+    <template #top>
+      <UContainer class="max-w-6xl lg:px-6">
+        <!-- Columns from the default slot, not the `columns` prop: the
+             prop renders anonymous wrappers, and every column keeps its
+             own test id. -->
+        <UFooterColumns
+          :aria-label="t('legal.footer.navLabel')"
+          :ui="columnsUi"
         >
-          <CommonWordmark :size="18" />
-        </NuxtLink>
-        <p class="legal-footer__tagline">
-          {{ t('legal.footer.tagline') }}
-        </p>
-      </div>
-      <nav
-        class="legal-footer__nav"
-        :aria-label="t('legal.footer.navLabel')"
-      >
-        <section
-          v-for="column in columns"
-          :key="column.id"
-          class="legal-footer__col"
-          :data-testid="`footer-col-${column.id}`"
-        >
-          <h2 class="legal-footer__heading">
-            {{ column.heading }}
-          </h2>
-          <ul class="legal-footer__list">
-            <li
-              v-for="link in column.links"
-              :key="link.to + link.label"
+          <template #left>
+            <NuxtLink
+              to="/"
+              aria-label="markoto home"
+              class="inline-flex w-fit"
             >
-              <NuxtLink
-                :to="link.to"
-                class="legal-footer__link"
-                :aria-label="link.fullName"
-                :title="link.fullName"
-                :data-testid="link.testid"
-                :target="link.external ? '_blank' : undefined"
-                :rel="link.external ? 'noopener' : undefined"
+              <CommonWordmark :size="18" />
+            </NuxtLink>
+            <p class="max-w-[22ch] text-[13px] leading-normal text-muted">
+              {{ t('legal.footer.tagline') }}
+            </p>
+          </template>
+          <section
+            v-for="column in columns"
+            :key="column.id"
+            :data-testid="`footer-col-${column.id}`"
+          >
+            <h2 class="mb-2.5 font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-dimmed">
+              {{ column.heading }}
+            </h2>
+            <ul class="flex flex-col gap-[7px] text-[13px] leading-[1.35]">
+              <li
+                v-for="link in column.links"
+                :key="link.to + link.label"
               >
-                {{ link.label }}
-              </NuxtLink>
-            </li>
-          </ul>
-        </section>
-      </nav>
-    </div>
-    <div class="legal-footer__base">
-      <p class="legal-footer__copy">
+                <NuxtLink
+                  :to="link.to"
+                  class="text-muted transition-colors hover:text-default"
+                  :aria-label="link.fullName"
+                  :title="link.fullName"
+                  :data-testid="link.testid"
+                  :target="link.external ? '_blank' : undefined"
+                  :rel="link.external ? 'noopener' : undefined"
+                >
+                  {{ link.label }}
+                </NuxtLink>
+              </li>
+            </ul>
+          </section>
+        </UFooterColumns>
+      </UContainer>
+    </template>
+    <template #left>
+      <p class="font-mono text-[11px] text-muted">
         © {{ new Date().getFullYear() }} {{ operatorName || 'markoto' }}
       </p>
-    </div>
-  </footer>
+    </template>
+  </UFooter>
 </template>
-
-<style scoped>
-.legal-footer {
-  border-top: 1px solid color-mix(in srgb, var(--color-sumi-300, #d3cdb6) 50%, transparent);
-  background: var(--ui-bg-muted);
-}
-html.dark .legal-footer {
-  border-top-color: color-mix(in srgb, var(--color-sumi-700, #3a3631) 50%, transparent);
-}
-.legal-footer__inner {
-  max-width: 72rem;
-  margin-inline: auto;
-  padding: 40px 16px 24px;
-  display: grid;
-  gap: 32px;
-}
-.legal-footer__brand {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.legal-footer__mark { display: inline-flex; width: fit-content; }
-.legal-footer__tagline {
-  max-width: 22ch;
-  font-size: 13px;
-  line-height: 1.5;
-  color: var(--ui-text-muted);
-}
-/* Two columns on phones, as many as fit from there on. */
-.legal-footer__nav {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 28px 20px;
-}
-.legal-footer__heading {
-  margin: 0 0 10px;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  font-weight: 400;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--ui-text-dimmed);
-}
-.legal-footer__list {
-  display: flex;
-  flex-direction: column;
-  gap: 7px;
-  font-size: 13px;
-  line-height: 1.35;
-}
-.legal-footer__link {
-  color: var(--ui-text-muted);
-  transition: color 150ms ease;
-}
-.legal-footer__link:hover { color: var(--ui-text); }
-.legal-footer__base {
-  max-width: 72rem;
-  margin-inline: auto;
-  padding: 14px 16px 18px;
-  border-top: 1px solid color-mix(in srgb, var(--color-sumi-300, #d3cdb6) 35%, transparent);
-}
-html.dark .legal-footer__base {
-  border-top-color: color-mix(in srgb, var(--color-sumi-700, #3a3631) 40%, transparent);
-}
-.legal-footer__copy {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--ui-text-muted);
-}
-@media (min-width: 640px) {
-  .legal-footer__inner { padding: 48px 24px 28px; }
-  .legal-footer__nav { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
-  .legal-footer__base { padding-inline: 24px; }
-}
-@media (min-width: 1024px) {
-  .legal-footer__inner { grid-template-columns: 14rem minmax(0, 1fr); gap: 48px; }
-}
-</style>

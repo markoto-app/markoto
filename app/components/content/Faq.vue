@@ -14,6 +14,9 @@ import { faqStructuredData, serializeJsonLd, type FaqItem } from '~~/shared/seo/
 // Answers are plain text (the same string goes into the optional
 // FAQPage JSON-LD, which must match what the page shows). Each pair is a
 // <details>: closed, but every answer is in the server-rendered HTML.
+// Deliberately not UAccordion: <details> opens without JavaScript (the
+// page paints from the server render, its code follows), and the
+// browser's find-in-page reaches the closed answers.
 const props = withDefaults(defineProps<{
   items: FaqItem[]
   /** Also emit FAQPage JSON-LD. */
@@ -35,52 +38,23 @@ useHead(() => (props.jsonLd && props.items.length
 
 <template>
   <div
-    class="mk-faq not-prose"
+    class="not-prose mt-4 mb-7 border-t border-default"
     data-testid="marketing-faq"
   >
     <details
       v-for="item in items"
       :key="item.q"
-      class="mk-faq__item"
+      class="group border-b border-default"
     >
-      <summary class="mk-faq__q">
+      <summary
+        class="flex cursor-pointer list-none justify-between gap-3 px-0.5 py-3.5 font-serif text-lg leading-normal tracking-[-0.01em] [&::-webkit-details-marker]:hidden after:font-mono after:text-muted after:content-['+'] group-open:after:content-['−']"
+      >
         {{ item.q }}
       </summary>
-      <p class="mk-faq__a">
+      <!-- A div, not a <p>: main.css's `.prose p` would restyle it. -->
+      <div class="mx-0.5 mb-4 text-[15px] leading-[1.65] text-muted">
         {{ item.a }}
-      </p>
+      </div>
     </details>
   </div>
 </template>
-
-<style scoped>
-.mk-faq {
-  margin: 16px 0 28px;
-  border-top: 1px solid var(--ui-border);
-}
-.mk-faq__item { border-bottom: 1px solid var(--ui-border); }
-.mk-faq__q {
-  cursor: pointer;
-  list-style: none;
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 14px 2px;
-  font-family: var(--font-serif);
-  font-size: 18px;
-  letter-spacing: -0.01em;
-}
-.mk-faq__q::-webkit-details-marker { display: none; }
-.mk-faq__q::after {
-  content: '+';
-  font-family: var(--font-mono);
-  color: var(--ui-text-muted);
-}
-.mk-faq__item[open] .mk-faq__q::after { content: '−'; }
-.mk-faq__a {
-  margin: 0 2px 16px;
-  font-size: 15px;
-  line-height: 1.65;
-  color: var(--ui-text-muted);
-}
-</style>

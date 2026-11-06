@@ -33,20 +33,26 @@ withDefaults(defineProps<{
 </script>
 
 <template>
-  <aside
-    class="mk-cta not-prose"
+  <!-- Title as a div: a <p> would take main.css's `.prose p` size. -->
+  <UPageCTA
+    :as="{ root: 'aside', title: 'div' }"
+    :title="title"
+    variant="outline"
+    class="mk-cta not-prose my-10"
+    :ui="{
+      root: 'rounded-[10px] border border-default ring-0',
+      container: 'px-6 py-7 sm:px-6 sm:py-7 lg:px-6 lg:py-7 gap-0 sm:gap-0',
+      title: 'mb-2 text-wrap text-[length:clamp(24px,3.5vw,32px)] sm:text-[length:clamp(24px,3.5vw,32px)] leading-[1.15]',
+      description: 'mt-0 mx-auto max-w-[48ch] text-[15px] sm:text-[15px] leading-[1.7] text-sumi-700 dark:text-sumi-200 [&_p]:m-0',
+      footer: 'mt-[18px]',
+      links: 'gap-x-2 gap-y-2'
+    }"
     data-testid="marketing-cta"
   >
-    <p
-      v-if="title"
-      class="mk-cta__title"
-    >
-      {{ title }}
-    </p>
-    <div class="mk-cta__body">
+    <template #description>
       <slot />
-    </div>
-    <div class="mk-cta__actions">
+    </template>
+    <template #links>
       <UButton
         v-if="to"
         :to="to"
@@ -73,42 +79,12 @@ withDefaults(defineProps<{
       >
         {{ secondaryLabel }}
       </UButton>
-    </div>
-  </aside>
+    </template>
+  </UPageCTA>
 </template>
 
 <style scoped>
-.mk-cta {
-  margin: 40px 0;
-  padding: 28px 24px;
-  border-radius: 10px;
-  background: var(--ui-bg);
-  border: 1px solid var(--ui-border);
-  text-align: center;
-}
-.mk-cta__title {
-  font-family: var(--font-serif);
-  font-weight: 300;
-  font-size: clamp(24px, 3.5vw, 32px);
-  line-height: 1.15;
-  letter-spacing: -0.02em;
-  margin: 0 0 8px;
-}
-.mk-cta__body {
-  font-size: 15px;
-  line-height: 1.6;
-  color: var(--ui-text-muted);
-  max-width: 48ch;
-  margin-inline: auto;
-}
-.mk-cta__body :deep(p) { margin: 0; }
-/* Buttons, not prose links (the article's `.prose a` underline). */
-.mk-cta .mk-cta__actions :deep(a) { text-decoration: none; }
-.mk-cta__actions {
-  margin-top: 18px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: center;
-}
+/* Buttons, not prose links: main.css's `.prose a` underline is unlayered
+   CSS, which no utility class outranks. */
+.mk-cta :deep([data-slot="links"] a) { text-decoration: none; }
 </style>

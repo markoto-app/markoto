@@ -26,100 +26,76 @@ interface TemplateCard {
 }
 
 withDefaults(defineProps<{ items?: TemplateCard[] }>(), { items: () => [] })
+
+// A 1px border, not the outline variant's ring: the ring sits outside
+// the box and would make the card 2px narrower inside.
+// UPageCard without `to`: its own link would carry only an aria-label,
+// the visible link text below is what crawlers and screen readers read.
+// The picture sits in the header slot on the elevated field, cut off at
+// a fixed height; title, line and link below.
+const cardUi = {
+  root: 'rounded-[10px] overflow-hidden border border-default ring-0 hover:border-accented has-[a:focus-visible]:outline-2 has-[a:focus-visible]:outline-offset-2 has-[a:focus-visible]:outline-(--ui-text)',
+  container: 'p-0 sm:p-0 gap-0 gap-y-0 lg:flex',
+  wrapper: 'items-stretch',
+  header: 'mb-0 h-[200px] sm:h-[240px] overflow-hidden bg-elevated px-7 pt-5',
+  body: 'flex flex-col px-[18px] pt-4',
+  description: 'mt-1.5 flex-1 text-wrap text-sm leading-[1.55] text-muted',
+  footer: 'mt-0 flex flex-col items-start px-[18px] pt-3 pb-[18px]'
+}
 </script>
 
 <template>
-  <div
-    class="mk-template-cards mk-wide not-prose"
+  <UPageGrid
+    class="mk-wide not-prose mt-9 mb-12 gap-4 sm:gap-5"
     data-testid="template-cards"
   >
-    <article
+    <UPageCard
       v-for="card in items"
       :key="card.to"
-      class="mk-template-card"
+      as="article"
+      variant="outline"
+      :ui="cardUi"
     >
-      <div class="mk-template-card__sheet">
+      <template #header>
         <img
           loading="lazy"
           :src="card.image"
           alt=""
           width="600"
           height="850"
-          class="mk-template-card__img"
+          class="block h-auto w-full border border-b-0 border-default bg-white"
         >
-      </div>
-      <div class="mk-template-card__body">
+      </template>
+      <template #title>
         <h2 class="mk-template-card__title">
           {{ card.title }}
         </h2>
-        <p class="mk-template-card__text">
-          {{ card.text }}
-        </p>
+      </template>
+      <template #description>
+        {{ card.text }}
+      </template>
+      <template #footer>
+        <!-- The whole card is the link's target area (`after:` covers
+             the card); the visible text stays the anchor text. -->
         <NuxtLink
           :to="card.to"
-          class="mk-template-card__link"
+          class="mk-template-card__link after:absolute after:inset-0 focus-visible:outline-none"
         >
           {{ card.link }}
         </NuxtLink>
-      </div>
-    </article>
-  </div>
+      </template>
+    </UPageCard>
+  </UPageGrid>
 </template>
 
 <style scoped>
-.mk-template-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 20px;
-  margin: 36px 0 48px;
-}
-.mk-template-card {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  border: 1px solid var(--ui-border);
-  border-radius: 10px;
-  background: var(--ui-bg);
-  overflow: hidden;
-}
-.mk-template-card:hover {
-  border-color: var(--ui-border-accented);
-}
-.mk-template-card__sheet {
-  padding: 20px 28px 0;
-  background: var(--ui-bg-elevated);
-  height: 240px;
-  overflow: hidden;
-}
-.mk-template-card__img {
-  display: block;
-  width: 100%;
-  height: auto;
-  background: #fff;
-  border: 1px solid var(--ui-border);
-  border-bottom: 0;
-}
-.mk-template-card__body {
-  padding: 16px 18px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-}
+/* The title and the link sit inside the marketing page's prose, whose
+   heading and link rules (main.css `.prose h2` / `.prose a`, the page's
+   `:deep(h2)`) are unlayered CSS: utility classes can't outrank them. */
 .mk-template-card__title {
-  font-family: var(--font-serif);
-  font-weight: 400;
+  margin: 0;
   font-size: 20px;
   line-height: 1.2;
-  letter-spacing: -0.01em;
-  margin: 0;
-}
-.mk-template-card__text {
-  font-size: 14px;
-  line-height: 1.55;
-  color: var(--ui-text-muted);
-  margin: 0;
-  flex: 1;
 }
 .mk-template-card__link {
   font-size: 14px;
@@ -128,26 +104,5 @@ withDefaults(defineProps<{ items?: TemplateCard[] }>(), { items: () => [] })
   text-decoration: underline;
   text-underline-offset: 3px;
   text-decoration-color: var(--ui-border-accented);
-  margin-top: 6px;
-}
-/* The whole card is the click target. */
-.mk-template-card__link::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
-.mk-template-card__link:focus-visible {
-  outline: none;
-}
-.mk-template-card:has(.mk-template-card__link:focus-visible) {
-  outline: 2px solid var(--ui-text);
-  outline-offset: 2px;
-}
-@media (max-width: 1023px) {
-  .mk-template-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-@media (max-width: 639px) {
-  .mk-template-cards { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .mk-template-card__sheet { height: 200px; }
 }
 </style>
