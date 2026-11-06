@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { uiFontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { applyTitleTemplate } from '~~/shared/seo/meta'
 
 const { t, locale, localeProperties } = useI18n()
@@ -26,7 +26,7 @@ useHead({
     // handles the wordmark, display headlines, and the AI's italic
     // voice. Served from our own origin (shared/utils/themeFonts.ts) —
     // no request leaves for Google Fonts.
-    ...fontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet', href }))
+    ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet', href }))
   ],
   htmlAttrs: {
     // The active UI language (cookie / Accept-Language, `no_prefix`).

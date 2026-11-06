@@ -292,6 +292,42 @@ describe('renderMarkdown — legit features pass through', () => {
     expect(actual).toEqual(expected)
   })
 
+  it('keeps KaTeX\'s stretchy SVG (underbrace, sqrt, cancel) with its geometry only', async () => {
+    const formulas = String.raw`\underbrace{x+y}_{n} + \sqrt{2} + \cancel{q} + \widehat{abc}`
+    const { default: katex } = await import('katex')
+    const raw = parseDoc(katex.renderToString(formulas, { output: 'html' }))
+    const root = parseDoc(await renderMarkdown(`$${formulas}$\n`))
+    const html = root.querySelector('.katex-html')
+    expect(html).not.toBeNull()
+    // Same SVG shapes as KaTeX's own output, same path data.
+    const shape = (el: Element) => `${el.localName}:${el.getAttribute('d') ?? ''}${el.getAttribute('x2') ?? ''}`
+    const expected = Array.from(raw.querySelectorAll('svg path, svg line'), shape)
+    expect(expected.length).toBeGreaterThan(3)
+    expect(Array.from(html?.querySelectorAll('svg path, svg line') ?? [], shape)).toEqual(expected)
+    for (const svg of Array.from(root.querySelectorAll('svg'))) {
+      expect(svg.closest('.katex-html'), 'svg outside KaTeX').not.toBeNull()
+      expect(svg.getAttribute('viewBox') ?? svg.getAttribute('width')).toBeTruthy()
+      for (const attr of Array.from(svg.attributes)) expect(['width', 'height', 'viewbox', 'preserveaspectratio', 'style']).toContain(attr.name.toLowerCase())
+    }
+  })
+
+  it('drops SVG anywhere but inside KaTeX output, and SVG attributes on HTML elements', async () => {
+    const { sanitizeRenderedHtml } = await import('../../app/utils/sanitizeHtml')
+    const out = parseDoc(sanitizeRenderedHtml([
+      '<p><svg width="10"><path d="M0 0"/></svg></p>',
+      '<span class="katex"><span class="katex-html"><svg width="1em" onload="alert(1)"><path d="M0 0" fill="url(#x)" onclick="x()"/><a href="javascript:alert(1)"><text>x</text></a><use href="#p"/><script>alert(1)</script><svg><path d="M1 1"/></svg></svg></span></span>',
+      '<span d="M0 0" viewbox="0 0 1 1" x1="3">t</span>'
+    ].join('')))
+    const svgs = Array.from(out.querySelectorAll('svg'))
+    expect(svgs).toHaveLength(1)
+    expect(svgs[0]?.closest('.katex-html')).not.toBeNull()
+    expect(svgs[0]?.hasAttribute('onload')).toBe(false)
+    expect(Array.from(out.querySelectorAll('path'), p => Array.from(p.attributes, a => a.name))).toEqual([['d']])
+    expect(out.querySelector('a, use, script, text')).toBeNull()
+    const span = out.querySelector('span[d], span[viewbox], span[x1]')
+    expect(span).toBeNull()
+  })
+
   it('renders footnotes transformed to inline span (paged-media shape)', async () => {
     // The render pipeline post-processes `<sup class="footnote-ref">`
     // into an inline `<span class="footnote">` so paged.js's

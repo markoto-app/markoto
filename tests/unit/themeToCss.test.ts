@@ -591,3 +591,29 @@ describe('themeToCss — documents at scale', () => {
     expect(themeToCss(t, { ...runtime, date: '29. Oktober 2026' })).toContain('"29. Oktober 2026"')
   })
 })
+
+describe('themeToCss — KaTeX keeps its own alignment and spacing', () => {
+  test('justified text no longer start-aligns accents, fractions and display math', () => {
+    const t = structuredClone(defaultTheme)
+    t.body.textAlign = 'justify'
+    const css = themeToCss(t, runtime)
+    // The paragraph's last-line rule is inherited into KaTeX's nested rows…
+    expect(css).toContain('text-align-last: left;')
+    // …so KaTeX resets it (and the other inherited text properties).
+    const rule = /\.paged-doc \.katex \{ text-align-last: auto;[^}]*\}/.exec(css)?.[0] ?? ''
+    for (const decl of ['letter-spacing: normal', 'word-spacing: normal', 'text-transform: none', 'font-variant: normal', 'font-feature-settings: normal', 'hyphens: manual']) {
+      expect(rule, decl).toContain(decl)
+    }
+  })
+})
+
+describe('themeToCss — column-wide diagrams keep their text size', () => {
+  test('sequence diagrams and gantt charts may run taller than other diagrams', () => {
+    const css = themeToCss(structuredClone(defaultTheme), runtime)
+    const general = Number(/\.paged-doc \.mermaid > svg \{[^}]*max-height: (\d+)mm/.exec(css)?.[1])
+    const tall = Number(/\.paged-doc \.mermaid-gantt > svg \{\s*max-height: (\d+)mm/.exec(css)?.[1])
+    expect(general).toBeGreaterThan(0)
+    expect(tall).toBeGreaterThan(general * 1.5)
+    expect(css).toMatch(/\.paged-doc \.mermaid-sequence > svg,/)
+  })
+})

@@ -22,9 +22,9 @@
        drawing per size; weight 300 is the display register, 400 is
        text register, italic 400 is the AI moment.
      The wordmark moves from Inter → Fraunces per the mockup's lockup. */
-  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-  --font-serif: 'Fraunces', Georgia, serif;
+  --font-sans: 'Inter Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-serif: 'Fraunces Variable', 'Fraunces', Georgia, serif;
 
   /* Shu — primary (vermillion). The seal red. Reserved for AI presence
      (cursor, tag, gutter mark, thinking-line seal) and a small set of

@@ -14,7 +14,7 @@ import {
   sriOf,
   type GeneratedSummary
 } from '../../scripts/lib/vendorAssets'
-import { FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, THEME_FONTS, fontStylesheetUrl, fontStylesheetUrls, selfHostedFont } from '../../shared/utils/themeFonts'
+import { FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, THEME_FONTS, fontStylesheetUrl, fontStylesheetUrls, selfHostedFont, uiFontStylesheetUrls } from '../../shared/utils/themeFonts'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
@@ -56,11 +56,24 @@ describe('pinned constants vs installed packages', () => {
 
   it('font packages are exact-pinned (a font update is a reviewed change)', () => {
     for (const font of SELF_HOSTED_FONTS) {
-      if (font.source.kind !== 'fontsource') continue
-      const spec = rootPackage.devDependencies[font.source.package]
-      expect(spec, font.source.package).toMatch(/^\d+\.\d+\.\d+$/)
-      expect(installedVersion(ROOT, font.source.package)).toBe(spec)
+      const packages = [...(font.source.kind === 'fontsource' ? [font.source.package] : []), ...(font.ui ? [font.ui.package] : [])]
+      for (const pkg of packages) {
+        const spec = rootPackage.devDependencies[pkg]
+        expect(spec, pkg).toMatch(/^\d+\.\d+\.\d+$/)
+        expect(installedVersion(ROOT, pkg)).toBe(spec)
+      }
     }
+  })
+
+  it('documents use static font cuts only (Chromium prints variable fonts as Type 3)', () => {
+    for (const font of SELF_HOSTED_FONTS) {
+      if (font.source.kind !== 'fontsource') continue
+      expect(font.source.package, font.name).toMatch(/^@fontsource\//)
+      for (const sheet of font.source.stylesheets) expect(sheet, font.name).toMatch(/^\d00(?:-italic)?\.css$/)
+    }
+    // Only the app shell's brand fonts keep a variable cut.
+    expect(SELF_HOSTED_FONTS.filter(f => f.ui).map(f => f.name).sort()).toEqual(['Fraunces', 'Inter', 'JetBrains Mono'])
+    expect(uiFontStylesheetUrls(['Fraunces', 'Lato'])).toEqual([`${FONT_STYLESHEET_BASE}fraunces.variable.css`, `${FONT_STYLESHEET_BASE}lato.css`])
   })
 
   it('bundled font families ship their woff2 files and licence', () => {
@@ -71,6 +84,7 @@ describe('pinned constants vs installed packages', () => {
       const dir = join(ROOT, 'fonts', font.slug)
       expect(readFileSync(join(dir, 'LICENSE.txt'), 'utf8'), font.name).toContain('GUST Font License')
       for (const face of font.source.faces) {
+        if (face.licence) expect(readFileSync(join(dir, face.licence), 'utf8'), face.file).toContain('SIL OPEN FONT LICENSE')
         const bytes = readFileSync(join(dir, face.file))
         // WOFF2 signature 'wOF2'
         expect(bytes.subarray(0, 4).toString('latin1'), face.file).toBe('wOF2')
@@ -181,13 +195,54 @@ describe('generated tree', () => {
       const urls = [...css.matchAll(/url\('([^']+)'\)/g)].map(m => m[1] ?? '')
       expect(urls.length, font.name).toBeGreaterThan(0)
       for (const u of urls) {
-        expect(u, font.name).toMatch(/^[\w-]+@\d+(?:\.\d+)+\/[\w-]+\.woff2$/)
+        // `<slug>@<version>/…`; a bundled family's version may carry a `-<n>` subset revision.
+        expect(u, font.name).toMatch(/^[\w-]+@\d+(?:\.\d+)+(?:-\d+)?\/[\w-]+\.woff2$/)
         expect(existsSync(join(out, 'fonts', u)), u).toBe(true)
       }
       expect(css).toMatch(/font-style: italic;/)
       const dir = urls[0]?.split('/')[0] ?? ''
       expect(existsSync(join(out, 'fonts', dir, 'LICENSE.txt')), font.name).toBe(true)
       expect(summary.fontBytes[font.name], font.name).toBeGreaterThan(0)
+      // Static cuts only: one weight per face, never a variable range.
+      for (const m of css.matchAll(/font-weight: ([^;]+);/g)) expect(m[1], font.name).toMatch(/^\d00$/)
+      for (const m of css.matchAll(/src: url\('[^']+'\)/g)) expect(m[0], font.name).not.toMatch(/-(?:wght|opsz)-/)
+    }
+  })
+
+  it('serves the app shell\'s variable cuts from their own stylesheet', () => {
+    const appCss = readFileSync(join(ROOT, 'app', 'assets', 'css', 'main.css'), 'utf8')
+    for (const font of SELF_HOSTED_FONTS.filter(f => f.ui)) {
+      const css = readFileSync(join(out, 'fonts', `${font.slug}.variable.css`), 'utf8')
+      // Its own family name: under the theme's name it would join the
+      // document's static faces on the server render page (an app page)
+      // and win the matching — the PDF would embed it as Type 3 again.
+      expect(css, font.name).toContain(`font-family: '${font.name} Variable';`)
+      expect(css, font.name).not.toContain(`font-family: '${font.name}';`)
+      expect(appCss, font.name).toContain(`'${font.name} Variable', '${font.name}'`)
+      const urls = [...css.matchAll(/url\('([^']+)'\)/g)].map(m => m[1] ?? '')
+      expect(urls.length, font.name).toBeGreaterThan(0)
+      for (const u of urls) {
+        expect(u, font.name).toMatch(new RegExp(`^${font.slug}-variable@[\\d.]+/[\\w-]+-(?:wght|opsz)-(?:normal|italic)\\.woff2$`))
+        expect(existsSync(join(out, 'fonts', u)), u).toBe(true)
+      }
+      expect(existsSync(join(out, 'fonts', urls[0]?.split('/')[0] ?? '', 'LICENSE.txt')), font.name).toBe(true)
+    }
+  })
+
+  it('covers Greek in the bundled TeX families (own glyphs or a CM Unicode companion)', () => {
+    for (const slug of ['tex-gyre-termes', 'tex-gyre-heros']) {
+      expect(readFileSync(join(out, 'fonts', `${slug}.css`), 'utf8'), slug).toContain('U+0370-03FF')
+    }
+    for (const slug of ['latin-modern-roman', 'latin-modern-mono']) {
+      const css = readFileSync(join(out, 'fonts', `${slug}.css`), 'utf8')
+      const greek = css.split('@font-face').filter(rule => rule.includes('cmu-greek-'))
+      expect(greek.length, slug).toBeGreaterThanOrEqual(3)
+      for (const rule of greek) expect(rule, slug).toContain('unicode-range: U+0370-03FF, U+1F00-1FFF;')
+      // The Latin Modern files themselves don't claim Greek, so every Greek letter comes from one design.
+      for (const rule of css.split('@font-face').filter(r => r.includes('/lm'))) expect(rule, slug).not.toContain('U+0370')
+      expect(css, slug).toContain('LICENSE-CMU.txt')
+      const dir = [...css.matchAll(/url\('([^'/]+)\//g)][0]?.[1] ?? ''
+      expect(existsSync(join(out, 'fonts', dir, 'LICENSE-CMU.txt')), slug).toBe(true)
     }
   })
 

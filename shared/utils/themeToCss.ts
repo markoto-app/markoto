@@ -831,6 +831,15 @@ function alertBlock(theme: DocTheme): string {
  * block math gets a vertical breathing room, doesn't break across pages,
  * and overflows horizontally rather than clipping when the equation is
  * wider than the page.
+ *
+ * KaTeX lays a formula out with nested inline tables whose rows are
+ * centred by `text-align` — but inherited text properties of the
+ * surrounding paragraph leak in. A justified paragraph's
+ * `text-align-last: left` made every single-line row start-aligned:
+ * accents (`\hat{\lambda}`) slid off their base, fraction numerators and
+ * limits left-aligned, display equations hugged the left margin. The
+ * reset below hands KaTeX back its own alignment and spacing, whatever
+ * the theme or template CSS sets on the text around it.
  */
 function katexBlock(): string {
   return [
@@ -840,7 +849,8 @@ function katexBlock(): string {
   overflow-y: hidden;
   break-inside: avoid;
 }`,
-    `.paged-doc .katex { font-size: 1.05em; }`
+    `.paged-doc .katex { font-size: 1.05em; }`,
+    `.paged-doc .katex { text-align-last: auto; letter-spacing: normal; word-spacing: normal; text-transform: none; font-variant: normal; font-feature-settings: normal; hyphens: manual; -webkit-hyphens: manual; }`
   ].join('\n')
 }
 
@@ -883,6 +893,15 @@ function mermaidBlock(theme: DocTheme): string {
     `.paged-doc .mermaid-pie > img,
 .paged-doc .mermaid-pie > svg {
   max-height: ${Math.min(maxHeightMm, 85)}mm;
+}`,
+    // Sequence diagrams and gantt charts are drawn one text column wide
+    // with their labels at the body size (mermaidConfig.ts); a long one
+    // capped at the general height scaled its text back down to ~6pt.
+    `.paged-doc .mermaid-sequence > img,
+.paged-doc .mermaid-sequence > svg,
+.paged-doc .mermaid-gantt > img,
+.paged-doc .mermaid-gantt > svg {
+  max-height: ${Math.max(maxHeightMm, Math.round(textHeightMm * 0.85))}mm;
 }`,
     `.paged-doc .mermaid-error {
   margin: 1em 0;

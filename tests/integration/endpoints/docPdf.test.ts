@@ -417,13 +417,11 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // GAP: Inter and Source Serif 4 come from Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name) — the same known
-    // issue as Fraunces / JetBrains Mono. Expected: both embedded as real
-    // (TrueType/CID) fonts. Tracked by the engine fonts PR
-    // (fix/engine-fonts-charts); when it lands this test starts passing,
-    // `it.fails` turns red, and the marker is flipped to `it`.
-    it.fails('embeds Inter and Source Serif 4 as real fonts, never Type 3', async () => {
+    // Inter and Source Serif 4 used to come from Fontsource VARIABLE fonts,
+    // which Chromium embeds as Type 3 (no BaseFont name). Documents now get
+    // the static cuts (themeFonts.ts): both embed as real (TrueType/CID)
+    // fonts, and no Type 3 font is left in the file.
+    it('embeds Inter and Source Serif 4 as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderBusinessReport()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
         .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
@@ -432,6 +430,8 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(fonts.some(f => /Inter/.test(f.name)), summary).toBe(true)
       expect(fonts.some(f => /SourceSerif4/.test(f.name)), summary).toBe(true)
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
     // The technical-documentation preset end to end: title block + TOC on
@@ -466,12 +466,10 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // GAP: Source Serif 4 and Source Sans 3 are Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name). Expected: all
-    // three families embedded as real (TrueType/CID) fonts. Tracked by the
-    // engine fonts PR (fix/engine-fonts-charts); when it lands this test
-    // starts passing, `it.fails` turns red, and the marker is flipped to `it`.
-    it.fails('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
+    // Source Serif 4 and Source Sans 3 used to be Fontsource VARIABLE fonts,
+    // which Chromium embeds as Type 3 (no BaseFont name). With the static
+    // cuts all three families embed as real (TrueType/CID) fonts.
+    it('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderTechDocs()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
         .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
@@ -481,6 +479,8 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
         expect(fonts.some(f => family.test(f.name)), summary).toBe(true)
       }
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
     // The IEEE conference preset end to end: Letter pages, two columns,
@@ -549,6 +549,35 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
 
       await wipeRendersFor(doc.docId)
     }, 90_000)
+
+    // Chromium (Skia) embeds a variable font, or a CFF one, as Type 3
+    // glyph procedures: bigger files, no hinting, refused by some print
+    // shops. Documents get static TrueType cuts only (themeFonts.ts), so
+    // no preset may produce a Type 3 font, in any text style it uses.
+    it('embeds no Type 3 font in any built-in preset', async () => {
+      const owner = await createUser()
+      const body = [
+        '# Heading one', '', 'Body text with **bold**, *italic*, ***bold italic*** and `inline code`.', '',
+        '## Heading two', '', '### Heading three', '', '> A quotation, *emphasised*.', '',
+        '| Item | Value |', '|---|---|', '| One | 1 |', '',
+        '```ts', 'const answer: number = 42', '```', ''
+      ].join('\n')
+      const offenders: string[] = []
+      for (const preset of THEME_PRESETS) {
+        const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+        await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(preset.theme), doc.docId])
+        const snapId = await insertYjsRow(doc.docId, body)
+        const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+        expect(res.status, preset.id).toBe(302)
+        const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+        const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+          .map(m => `${m[2] ?? m[3] ?? ''}:${m[1] ?? m[4] ?? ''}`)
+        const type3 = (pdf.match(/\/Subtype\s*\/Type3/g) ?? []).length
+        if (type3 > 0) offenders.push(`${preset.id}: ${type3} Type 3 font(s) — ${fonts.join(', ')}`)
+        await wipeRendersFor(doc.docId)
+      }
+      expect(offenders).toEqual([])
+    }, 600_000)
 
     it('cache hit: second call reuses the manifest and produces no new artefacts', async () => {
       const owner = await createUser()

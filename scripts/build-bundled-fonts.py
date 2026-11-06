@@ -8,17 +8,29 @@ run it again only to refresh them:
 
     curl -sSLO https://mirrors.ctan.org/fonts/tex-gyre.zip
     curl -sSLO https://mirrors.ctan.org/fonts/lm.zip
-    unzip -q tex-gyre.zip -d ctan && unzip -q lm.zip -d ctan
+    curl -sSLO https://mirrors.ctan.org/fonts/cm-unicode.zip
+    unzip -q tex-gyre.zip -d ctan && unzip -q lm.zip -d ctan && unzip -q cm-unicode.zip -d ctan
     uv run --with fonttools --with brotli scripts/build-bundled-fonts.py ctan
 
 Each file is the original OpenType font cut down to Latin + Latin
-Extended + punctuation, currency, arrows and the common math operators,
-with the layout features a document uses, and its CFF outlines converted
+Extended + punctuation, currency, arrows and the common math operators
+(+ Greek for TeX Gyre, which has the monotonic alphabet), with the
+layout features a document uses, and its CFF outlines converted
 to TrueType quadratics (Chromium's PDF backend embeds CFF fonts as Type 3
 glyph procedures; TrueType outlines embed as real fonts — the server PDF
 comes from Chromium). The GUST Font License asks (not requires) that
 derived files get new names, so the files are renamed and the name table
 says "(markoto subset)".
+
+Latin Modern has only the capital Greek letters (no "μ" in "3 μm"), so
+the Latin Modern families get a Greek companion cut from CM Unicode
+(Computer Modern Unicode, SIL Open Font License, same Computer Modern
+design): Greek + Greek Extended only, served under the Latin Modern
+family name with a Greek `unicode-range` (themeFonts.ts), vertical
+metrics copied from the matching Latin Modern font so a Greek word
+doesn't change the line height. "Computer Modern Unicode fonts" is a
+Reserved Font Name, so those files are renamed "markoto Greek Serif" /
+"markoto Greek Mono" and say what they were cut from.
 """
 import os
 import sys
@@ -34,6 +46,10 @@ UNICODES = (
 )
 FEATURES = ['kern', 'liga', 'clig', 'ccmp', 'locl', 'mark', 'mkmk', 'smcp', 'c2sc',
             'onum', 'lnum', 'tnum', 'pnum', 'frac', 'sups', 'subs']
+
+GREEK_UNICODES = 'U+0370-03FF, U+1F00-1FFF'
+# Families whose own files keep their Greek (TeX Gyre: the monotonic alphabet).
+WITH_GREEK = {'tex-gyre-termes', 'tex-gyre-heros'}
 
 # slug -> (source dir inside the CTAN tree, [(source file, output file)])
 FAMILIES = {
@@ -62,6 +78,25 @@ FAMILIES = {
         ('lmroman10-bolditalic.otf', 'lmroman-bolditalic.woff2'),
     ]),
 }
+
+
+LM_DIR = 'lm/fonts/opentype/public/lm'
+
+# Greek companions: slug -> (new family name, [(CM Unicode file, output file, Latin Modern file for the vertical metrics)])
+GREEK_COMPANIONS = {
+    'latin-modern-roman': ('markoto Greek Serif', [
+        ('cmunrm.otf', 'cmu-greek-regular.woff2', 'lmroman10-regular.otf'),
+        ('cmunti.otf', 'cmu-greek-italic.woff2', 'lmroman10-italic.otf'),
+        ('cmunbx.otf', 'cmu-greek-bold.woff2', 'lmroman10-bold.otf'),
+        ('cmunbi.otf', 'cmu-greek-bolditalic.woff2', 'lmroman10-bolditalic.otf'),
+    ]),
+    'latin-modern-mono': ('markoto Greek Mono', [
+        ('cmuntt.otf', 'cmu-greek-regular.woff2', 'lmmono10-regular.otf'),
+        ('cmunit.otf', 'cmu-greek-italic.woff2', 'lmmono10-italic.otf'),
+        ('cmuntb.otf', 'cmu-greek-bold.woff2', 'lmmonolt10-bold.otf'),
+    ]),
+}
+CMU_DIR = 'cm-unicode/fonts/otf'
 
 
 def cff_to_truetype(font: TTFont) -> None:
@@ -106,24 +141,64 @@ def rename(font: TTFont) -> None:
             record.string = f'{record.toUnicode()}-markotoSubset'
 
 
-def main(ctan: str, out: str) -> None:
+def rename_companion(font: TTFont, family: str, style: str) -> None:
+    """New names without the Reserved Font Name; the copyright + licence records stay."""
+    names = {
+        1: family,
+        2: style,
+        3: f'{family} {style}; cut from CM Unicode by markoto',
+        4: f'{family} {style}',
+        6: f'{family.replace(" ", "")}-{style.replace(" ", "")}',
+        16: family,
+        17: style,
+    }
+    table = font['name']
+    table.names = [r for r in table.names if r.nameID not in names]
+    for name_id, value in names.items():
+        table.setName(value, name_id, 3, 1, 0x409)
+
+
+def copy_vertical_metrics(font: TTFont, source: TTFont) -> None:
+    for field in ('ascent', 'descent', 'lineGap'):
+        setattr(font['hhea'], field, getattr(source['hhea'], field))
+    for field in ('sTypoAscender', 'sTypoDescender', 'sTypoLineGap', 'usWinAscent', 'usWinDescent'):
+        setattr(font['OS/2'], field, getattr(source['OS/2'], field))
+
+
+def subset_font(path: str, unicodes: list) -> TTFont:
     options = subset.Options()
     options.flavor = 'woff2'
     options.layout_features = FEATURES
     options.name_IDs = ['*']
     options.notdef_outline = True
     options.desubroutinize = True
-    unicodes = subset.parse_unicodes(UNICODES)
+    font = TTFont(path)
+    subsetter = subset.Subsetter(options)
+    subsetter.populate(unicodes=unicodes)
+    subsetter.subset(font)
+    cff_to_truetype(font)
+    return font
+
+
+def main(ctan: str, out: str) -> None:
     for slug, (src_dir, files) in FAMILIES.items():
         dest = os.path.join(out, slug)
         os.makedirs(dest, exist_ok=True)
+        unicodes = subset.parse_unicodes(UNICODES + (', ' + GREEK_UNICODES if slug in WITH_GREEK else ''))
         for src, target in files:
-            font = TTFont(os.path.join(ctan, src_dir, src))
-            subsetter = subset.Subsetter(options)
-            subsetter.populate(unicodes=unicodes)
-            subsetter.subset(font)
-            cff_to_truetype(font)
+            font = subset_font(os.path.join(ctan, src_dir, src), unicodes)
             rename(font)
+            font.flavor = 'woff2'
+            font.save(os.path.join(dest, target))
+            print(slug, target, os.path.getsize(os.path.join(dest, target)))
+    greek = subset.parse_unicodes(GREEK_UNICODES)
+    styles = {'regular': 'Regular', 'italic': 'Italic', 'bold': 'Bold', 'bolditalic': 'Bold Italic'}
+    for slug, (family, files) in GREEK_COMPANIONS.items():
+        dest = os.path.join(out, slug)
+        for src, target, metrics_from in files:
+            font = subset_font(os.path.join(ctan, CMU_DIR, src), greek)
+            copy_vertical_metrics(font, TTFont(os.path.join(ctan, LM_DIR, metrics_from)))
+            rename_companion(font, family, styles[target.removeprefix('cmu-greek-').removesuffix('.woff2')])
             font.flavor = 'woff2'
             font.save(os.path.join(dest, target))
             print(slug, target, os.path.getsize(os.path.join(dest, target)))

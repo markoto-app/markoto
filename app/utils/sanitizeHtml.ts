@@ -1,4 +1,4 @@
-import createDOMPurify, { type DOMPurify, type UponSanitizeAttributeHookEvent } from 'dompurify'
+import createDOMPurify, { type DOMPurify, type UponSanitizeAttributeHookEvent, type UponSanitizeElementHookEvent } from 'dompurify'
 
 /**
  * The one HTML sanitizer of the render pipeline. `renderMarkdown` runs it
@@ -23,7 +23,11 @@ const SANITIZE_OPTS = {
     'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'mtext',
     'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mover', 'munder',
     'munderover', 'mspace', 'mstyle', 'mpadded', 'menclose', 'mtable',
-    'mtr', 'mtd'
+    'mtr', 'mtd',
+    // KaTeX draws stretchy symbols as inline SVG. Only inside KaTeX's
+    // HTML output, only these three tags and their geometry attributes
+    // (`onElement` / `onAttribute` below).
+    'svg', 'path', 'line'
   ],
   ALLOWED_ATTR: [
     'href', 'src', 'alt', 'title', 'target', 'rel',
@@ -41,7 +45,9 @@ const SANITIZE_OPTS = {
     // MathML attributes used by KaTeX's mathml output.
     'mathvariant', 'displaystyle', 'scriptlevel', 'encoding',
     // ARIA + role for KaTeX's a11y wrapping of the HTML rendering.
-    'aria-hidden', 'role'
+    'aria-hidden', 'role',
+    // KaTeX SVG geometry (only kept on the KaTeX SVG elements, see `KATEX_SVG_ATTRS`).
+    'viewbox', 'preserveaspectratio', 'd', 'x1', 'y1', 'x2', 'y2', 'stroke-width'
   ],
   // Explicit URI allowlist — strictly more restrictive than DOMPurify's default.
   // Permits:
@@ -132,7 +138,51 @@ export function filterInlineStyle(style: string): string {
   return kept.join('; ')
 }
 
-function onAttribute(_node: Element, data: UponSanitizeAttributeHookEvent): void {
+const SVG_NS = 'http://www.w3.org/2000/svg'
+
+/**
+ * KaTeX's SVG (`\underbrace`, `\overbrace`, `\widehat`, `\overrightarrow`,
+ * `\cancel`, `\sqrt`'s radical…): the elements and the attributes
+ * each may keep. Without them those symbols vanish from the page (the
+ * braces of `\underbrace` printed as nothing).
+ */
+const KATEX_SVG_ATTRS: Readonly<Record<string, ReadonlySet<string>>> = {
+  svg: new Set(['width', 'height', 'viewbox', 'preserveaspectratio', 'style']),
+  path: new Set(['d']),
+  line: new Set(['x1', 'y1', 'x2', 'y2', 'stroke-width'])
+}
+
+/** Attributes that only make sense on the KaTeX SVG elements. */
+const SVG_ONLY_ATTRS = new Set(['viewbox', 'preserveaspectratio', 'd', 'x1', 'y1', 'x2', 'y2', 'stroke-width'])
+
+function isKatexSvgElement(node: Element): boolean {
+  return node.namespaceURI === SVG_NS && node.localName in KATEX_SVG_ATTRS
+}
+
+/**
+ * SVG survives only where KaTeX puts it: an `<svg>` inside `.katex-html`,
+ * `<path>` / `<line>` directly inside such an `<svg>`. Anything else in
+ * the SVG namespace is removed with its content.
+ */
+function onElement(node: Node, data: UponSanitizeElementHookEvent): void {
+  if (!(node instanceof Element) || node.namespaceURI !== SVG_NS) return
+  const parent = node.parentElement
+  const allowed = data.tagName === 'svg'
+    ? parent?.namespaceURI !== SVG_NS && parent?.closest('.katex-html') != null
+    : (data.tagName === 'path' || data.tagName === 'line') && parent?.namespaceURI === SVG_NS && parent.localName === 'svg'
+  if (!allowed) node.parentNode?.removeChild(node)
+}
+
+function onAttribute(node: Element, data: UponSanitizeAttributeHookEvent): void {
+  if (isKatexSvgElement(node)) {
+    if (!KATEX_SVG_ATTRS[node.localName]?.has(data.attrName)) {
+      data.keepAttr = false
+      return
+    }
+  } else if (SVG_ONLY_ATTRS.has(data.attrName)) {
+    data.keepAttr = false
+    return
+  }
   if (data.attrName !== 'style') return
   const filtered = filterInlineStyle(data.attrValue)
   if (filtered) {
@@ -149,6 +199,7 @@ function getPurifier(): DOMPurify {
     // A private instance so the style hook can't leak into (or be
     // removed by) any other DOMPurify user.
     purifier = createDOMPurify(globalThis.window)
+    purifier.addHook('uponSanitizeElement', onElement)
     purifier.addHook('uponSanitizeAttribute', onAttribute)
   }
   return purifier
