@@ -166,6 +166,18 @@ async function capturePreview(ctx: BrowserContext, base: string, docId: string):
     clone.querySelectorAll('.pagedjs_pages').forEach((e) => {
       if (e instanceof HTMLElement) e.style.zoom = ''
     })
+    // paged.js stores `string-set` values (the `{section}` token) as
+    // `--pagedjs-string-*: "text` with no closing quote. Live, the CSSOM
+    // keeps each property apart; re-parsed from the style attribute the
+    // open string swallows the next declarations. Close the strings.
+    clone.querySelectorAll('.pagedjs_page').forEach((e) => {
+      if (!(e instanceof HTMLElement)) return
+      for (const name of Array.from(e.style)) {
+        if (!name.startsWith('--pagedjs-string-')) continue
+        const value = e.style.getPropertyValue(name).trim()
+        if (value.startsWith('"') && (value.length === 1 || !value.endsWith('"'))) e.style.setProperty(name, `${value}"`)
+      }
+    })
     clone.querySelector('head')?.insertAdjacentHTML('beforeend', sheets.join(''))
     return `<!doctype html>${clone.outerHTML}`
   })
