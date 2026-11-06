@@ -1215,17 +1215,19 @@ function pageBreakBlock(): string {
  *
  * Only the document's first h1 spans (\`markoto-first-section\`, set by
  * \`composeFinalHtml\`): paged.js clones \`.paged-doc\` onto every page,
- * so \`h1:first-of-type\` matched the first h1 of EVERY page. And only in
- * multi-column themes: in a single-column document the nearest multicol
- * ancestor is paged.js's own page box, where a spanner's margins stop
- * collapsing with the text after it (the first h1 of every page got a
- * larger gap below it than every other h1).
+ * so \`h1:first-of-type\` matched the first h1 of EVERY page. Both
+ * spanners only in multi-column themes: in a single-column document the
+ * nearest multicol ancestor is paged.js's own page box, where a spanner's
+ * margins stop collapsing with its neighbours (the first h1 of every page
+ * sat further from its text than every other h1, and the gap after the
+ * TOC depended on what followed it).
  */
 function columnSpanBlock(theme: DocTheme): string {
+  if (theme.layout.columns === 1) return ''
   return [
     // With a cover (or title block) the title is there; the first h1 is
     // then just the first section and stays in its column.
-    theme.cover.enabled || theme.layout.columns === 1
+    theme.cover.enabled
       ? ''
       : `.paged-doc > h1.markoto-first-section {
   column-span: all;

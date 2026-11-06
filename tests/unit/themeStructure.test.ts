@@ -7,6 +7,7 @@ import { referenceStyle, resolveCaptions, resolveHeadingLevel, resolvePageMargin
 import { textColumnWidthPx } from '../../shared/utils/mermaidConfig'
 import { captionLabelsFor } from '../../shared/utils/documentLocale'
 import { nowrapRuns } from '../../app/utils/markdownTables'
+import { keepNumbersTogether } from '../../app/utils/coverHtml'
 import type { DocTheme } from '../../shared/types/theme'
 
 // Document-structure theme fields (engine batch after the template wave):
@@ -278,6 +279,14 @@ describe('first section + cover title', () => {
       t.cover.layout = 'title-block'
     }))
     expect(tb).toMatch(/\.markoto-title-block \.markoto-cover-title \{[^}]*text-wrap: balance;/)
+  })
+})
+
+describe('cover title', () => {
+  test('words that both contain a digit stay together', () => {
+    expect(keepNumbersTogether('Halden Outdoor AG — Q3 2026 Quarterly Report')).toBe('Halden Outdoor AG — Q3\u00A02026 Quarterly Report')
+    expect(keepNumbersTogether('Chapter 3 — Learning sparse sensors')).toBe('Chapter 3 — Learning sparse sensors')
+    expect(keepNumbersTogether('ISO 9001 2015 audit')).toBe('ISO 9001\u00A02015 audit')
   })
 })
 

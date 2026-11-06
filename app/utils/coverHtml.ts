@@ -58,7 +58,18 @@ function buildLogoHtml(theme: DocTheme): string {
 
 function buildTitleHtml(theme: DocTheme, title: string): string {
   if (!theme.cover.showTitle || !title) return ''
-  return `<h1 class="markoto-cover-title">${esc(title)}</h1>`
+  return `<h1 class="markoto-cover-title">${esc(keepNumbersTogether(title))}</h1>`
+}
+
+/**
+ * The title is balanced (`text-wrap: balance`, themeToCss); a balanced
+ * break can still fall between two words that belong together, like
+ * "Q3 / 2026 Quarterly Report". A space between two words that both
+ * contain a digit becomes a no-break space, so "Q3 2026", "v2 2026" or
+ * "ISO 9001 2015" stay on one line.
+ */
+export function keepNumbersTogether(title: string): string {
+  return title.replace(/(?<=\S*\d\S*) (?=\S*\d)/gu, '\u00A0')
 }
 
 function buildSubtitleHtml(theme: DocTheme): string {
