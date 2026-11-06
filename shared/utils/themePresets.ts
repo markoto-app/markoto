@@ -471,39 +471,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Tech Report: tight IBM Plex Sans, cyan accent, dark code,
-  // underlined headings, brand-color table headers with white text +
-  // zebra rows.
-  {
-    id: 'tech',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 20 },
-      meta: { font: 'IBM Plex Mono' },
-      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#0f172a', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
-      headings: { font: 'IBM Plex Sans', scale: 1.25, weight: 600, underline: true, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.9, numbering: 'decimal', levels: {} },
-      color: { brand: '#0891b2', secondary: '#94a3b8' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-dark', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Tech-report cyan-ish palette — note picks up the brand colour
-      // since cyan IS the report's voice. The rest stay traditional.
-      alerts: {
-        note: '#0891b2',
-        tip: '#1a7f37',
-        important: '#7c3aed',
-        warning: '#b45309',
-        caution: '#dc2626'
-      },
-      toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dashed' },
-      cover: { enabled: false, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
-    }
-  },
-
   // — Technical documentation: printed developer docs (library guides,
   // API references, runbooks) in the O'Reilly / Sphinx-PDF tradition —
   // Source Serif 4 reading text, Source Sans 3 headings and furniture,
@@ -541,39 +508,6 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
       customCss: TECH_DOCS_TEMPLATE_CSS
-    }
-  },
-
-  // — Business Report: serif headings (Playfair) over sans body
-  // (Source Sans), warm amber accent (also tinting headings), centered
-  // title in head, brand-color full-bordered tables with zebra rows.
-  {
-    id: 'business',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 25 },
-      meta: { font: 'Source Sans 3' },
-      body: { font: 'Source Sans 3', size: 11, lineHeight: 1.45, textAlign: 'justify', color: '#1c1917', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.8, hyphenate: true },
-      headings: { font: 'Playfair Display', scale: 1.25, weight: 700, underline: true, color: '#b45309', letterSpacing: 0, lineHeight: 1.15, spacingScale: 1.1, numbering: 'none', levels: {} },
-      color: { brand: '#b45309', secondary: '#a8a29e' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 9, font: 'IBM Plex Mono', background: 'auto', frame: 'rule', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Business-report warm palette — note shifts to a navy that
-      // pairs with the amber brand; warning picks up the brand amber.
-      alerts: {
-        note: '#1e3a8a',
-        tip: '#15803d',
-        important: '#7e22ce',
-        warning: '#b45309',
-        caution: '#991b1b'
-      },
-      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 

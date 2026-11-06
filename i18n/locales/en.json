@@ -1042,17 +1042,9 @@
         "name": "IEEE conference paper",
         "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
       },
-      "tech": {
-        "name": "Tech Report",
-        "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."
-      },
       "tech-docs": {
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
-      },
-      "business": {
-        "name": "Business Report",
-        "description": "Playfair headings over Source Sans body, warm amber accent, brand-colored table headers, centered title."
       },
       "business-report": {
         "name": "Corporate report",
@@ -1687,7 +1679,7 @@
       "themes": {
         "label": "Themes",
         "title": "Change the look, not the Markdown.",
-        "body": "Pick one of eight themes, then adjust colours, fonts and the cover page. Your text stays untouched."
+        "body": "Pick one of ten themes, then adjust colours, fonts and the cover page. Your text stays untouched."
       },
       "collab": {
         "label": "Collaboration",
