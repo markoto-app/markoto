@@ -780,8 +780,13 @@
       "underline": "Subrayado (con color de marca)",
       "letterSpacing": "Espaciado entre letras (em)",
       "lineHeight": "Altura de línea",
-      "spacingScale": "Escala del margen superior",
-      "spacingScaleHelp": "Multiplicador de los márgenes superiores de los encabezados. 1,0 = valor de impresión predeterminado, 1,5 = respiración editorial."
+      "spacingScale": "Espacio sobre los títulos",
+      "spacingScaleHelp": "Multiplicador del espacio sobre los títulos. 1,0 = estándar de impresión, 1,5 = holgado.",
+      "scaleOption": "{ratio} (título 1 = {h1}× el texto)",
+      "numbering": "Numeración",
+      "numberingHelp": "Numera los títulos 1 a 4 (1, 1.1, 1.1.1) y sus entradas en el índice. Una sección «Resumen» al principio no se numera.",
+      "numberingNone": "Ninguna",
+      "numberingDecimal": "1, 1.1, 1.1.1"
     },
     "align": {
       "left": "Izquierda",
@@ -818,7 +823,21 @@
     "code": {
       "theme": "Tema de color",
       "fontSize": "Tamaño de fuente (pt)",
-      "none": "Sin formato (sin resaltado de sintaxis)"
+      "none": "Sin formato (sin resaltado de sintaxis)",
+      "font": "Fuente del código",
+      "fontSystem": "Monoespaciada del sistema",
+      "background": "Fondo",
+      "backgroundHelp": "Para temas claros. Los temas oscuros siempre conservan su propio fondo.",
+      "backgroundAuto": "Automático (tinte tras los temas blancos)",
+      "backgroundTint": "Tinte suave",
+      "backgroundNone": "Ninguno (color de la página)",
+      "frame": "Marco",
+      "frameNone": "Ninguno",
+      "frameRule": "Línea de acento a la izquierda",
+      "frameBox": "Borde fino",
+      "wrap": "Ajustar líneas largas",
+      "wrapHelp": "Una página impresa no se desplaza: sin ajuste, las líneas largas se cortan.",
+      "lineNumbers": "Números de línea"
     },
     "tables": {
       "headerBackground": "Fondo del encabezado",
@@ -904,7 +923,13 @@
       "authorsHelp": "Cada autor se muestra en su propia línea. Hasta 10.",
       "authorPlaceholder": "Nombre del autor",
       "addAuthor": "Añadir autor",
-      "removeAuthor": "Eliminar autor"
+      "removeAuthor": "Eliminar autor",
+      "layoutTitleBlock": "Bloque de título en la página 1 (artículo)",
+      "titleBlockHelp": "Sin portada aparte: el título, los autores, la fecha y el resumen abren la página 1. Empieza el documento con una sección titulada «Resumen» (o «Abstract») para colocarla en el bloque de título.",
+      "rules": "Líneas sobre y bajo el título",
+      "rulesHelp": "Líneas horizontales gruesas, como en un preprint de arXiv.",
+      "smallCaps": "Título en versalitas",
+      "affiliationPlaceholder": "Afiliación (departamento, institución, correo; una por línea)"
     },
     "brand": {
       "logo": "Logotipo de marca",
@@ -972,7 +997,7 @@
       },
       "academic": {
         "name": "Artículo académico",
-        "description": "Cuerpo Source Serif a dos columnas, números de página en el encabezado, bordes de tabla mínimos — estilo revista."
+        "description": "Cuerpo Source Serif a dos columnas, bloque de título con autores y resumen en la página 1, secciones numeradas, bordes de tabla mínimos — estilo revista."
       },
       "tech": {
         "name": "Informe técnico",

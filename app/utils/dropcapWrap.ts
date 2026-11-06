@@ -41,7 +41,7 @@
  * get the drop cap — a doc starting with a Tip alert showed a giant "T"
  * in front of "IP".
  */
-const NOT_BODY_PROSE = 'blockquote, .markdown-alert, li, td, th, figure, figcaption, aside, dl, .footnote'
+const NOT_BODY_PROSE = 'blockquote, .markdown-alert, li, td, th, figure, figcaption, aside, dl, .footnote, .markoto-cover'
 
 /** Inline elements we look inside for the first letter. */
 const DESCEND_INTO = new Set(['a', 'abbr', 'b', 'code', 'del', 'em', 'i', 'ins', 'mark', 's', 'span', 'strong', 'sub', 'sup', 'u'])

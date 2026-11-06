@@ -36,6 +36,20 @@ export const HLJS_THEMES: Record<HljsThemeName, { path: string, sri: string }> =
 }
 
 /** Every highlight.js stylesheet lives under this prefix. */
+/**
+ * Base colours of each theme (`.hljs { color; background }` in its
+ * stylesheet) — `themeToCss` paints the code box itself, so it needs them.
+ * `tests/unit/codeBlockCss.test.ts` checks them against the stylesheets.
+ */
+export const HLJS_THEME_COLORS: Record<HljsThemeName, { background: string, color: string, dark: boolean }> = {
+  'github-light': { background: '#ffffff', color: '#24292e', dark: false },
+  'github-dark': { background: '#0d1117', color: '#c9d1d9', dark: true },
+  'monokai': { background: '#272822', color: '#dddddd', dark: true },
+  'dracula': { background: '#282936', color: '#e9e9f4', dark: true },
+  'solarized-light': { background: '#fdf6e3', color: '#586e75', dark: false },
+  'solarized-dark': { background: '#002b36', color: '#93a1a1', dark: true }
+}
+
 export const HLJS_STYLES_BASE = vendorUrl('highlight.js', HLJS_VERSION, 'styles/')
 
 /**

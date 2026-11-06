@@ -780,8 +780,13 @@
       "underline": "下划线（使用品牌色）",
       "letterSpacing": "字间距（em）",
       "lineHeight": "行高",
-      "spacingScale": "上边距缩放",
-      "spacingScaleHelp": "标题上边距的倍数。1.0 = 印刷默认值，1.5 = 编辑排版式留白。"
+      "spacingScale": "标题上方间距",
+      "spacingScaleHelp": "标题上方间距的倍数。1.0 = 印刷默认，1.5 = 宽松。",
+      "scaleOption": "{ratio}（一级标题 = 正文的 {h1} 倍）",
+      "numbering": "编号",
+      "numberingHelp": "为一至四级标题及其目录条目编号（1、1.1、1.1.1）。开头的“摘要”部分不编号。",
+      "numberingNone": "无",
+      "numberingDecimal": "1、1.1、1.1.1"
     },
     "align": {
       "left": "左对齐",
@@ -818,7 +823,21 @@
     "code": {
       "theme": "配色主题",
       "fontSize": "字号（pt）",
-      "none": "纯文本（无语法高亮）"
+      "none": "纯文本（无语法高亮）",
+      "font": "代码字体",
+      "fontSystem": "系统等宽字体",
+      "background": "背景",
+      "backgroundHelp": "适用于浅色配色。深色配色始终保留自己的背景。",
+      "backgroundAuto": "自动（白色配色加浅色底）",
+      "backgroundTint": "浅色底",
+      "backgroundNone": "无（页面颜色）",
+      "frame": "边框",
+      "frameNone": "无",
+      "frameRule": "左侧强调线",
+      "frameBox": "细边框",
+      "wrap": "长行自动换行",
+      "wrapHelp": "打印的页面无法滚动：不换行时，长行会被截断。",
+      "lineNumbers": "行号"
     },
     "tables": {
       "headerBackground": "表头背景",
@@ -904,7 +923,13 @@
       "authorsHelp": "每位作者单独占一行。最多 10 位。",
       "authorPlaceholder": "作者姓名",
       "addAuthor": "添加作者",
-      "removeAuthor": "移除作者"
+      "removeAuthor": "移除作者",
+      "layoutTitleBlock": "第 1 页标题区（论文）",
+      "titleBlockHelp": "不单独设封面页：标题、作者、日期和摘要排在第 1 页开头。以标题为“摘要”（或“Abstract”）的部分开始文档，它就会放进标题区。",
+      "rules": "标题上下加线",
+      "rulesHelp": "粗横线，如 arXiv 预印本。",
+      "smallCaps": "标题使用小型大写字母",
+      "affiliationPlaceholder": "单位（院系、机构、邮箱；每行一项）"
     },
     "brand": {
       "logo": "品牌徽标",
@@ -972,7 +997,7 @@
       },
       "academic": {
         "name": "学术论文",
-        "description": "双栏 Source Serif 正文、页码位于页眉、极简表格边框 — 期刊风格。"
+        "description": "双栏 Source Serif 正文，第 1 页为含作者和摘要的标题区，章节编号，极简表格边框 — 期刊风格。"
       },
       "tech": {
         "name": "技术报告",

@@ -135,8 +135,8 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     test('h1 has -0.01em letter-spacing (Fraunces tracking)', () => {
       expect(css).toMatch(/h1\s*\{[^}]*letter-spacing:\s*-0\.01em/)
     })
-    test('h1 has margin-top 1.68em (1.4 base × 1.2 spacingScale)', () => {
-      expect(css).toMatch(/h1\s*\{[^}]*margin-top:\s*1\.68em/)
+    test('h1 space above = 2 body lines × spacingScale (10.5pt × 1.55 × 2 × 1.2 = 39.06pt), below 0.6 lines', () => {
+      expect(css).toMatch(/\.paged-doc h1\s*\{[^}]*margin-top:\s*39\.06pt;\s*margin-bottom:\s*9\.77pt/)
     })
     test('paragraph margin from theme.body.paragraphSpacing (0.6em)', () => {
       expect(css).toMatch(/\.paged-doc p\s*\{[^}]*margin:\s*0\.60em\s*0/)
@@ -330,7 +330,7 @@ describe('themeToCss — Step 9: cover page', () => {
 })
 
 describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
-  test('markoto preset: header/footer/figcaption/footnote all use JetBrains Mono', () => {
+  test('markoto preset: header/footer/figcaption use JetBrains Mono, footnotes the body font', () => {
     const markotoWithFooter: DocTheme = {
       ...markoto,
       footer: {
@@ -343,17 +343,17 @@ describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
     const css = themeToCss(markotoWithFooter, runtime)
     // figcaption font-family
     expect(css).toMatch(/figcaption\s*\{[^}]*font-family:\s*"?JetBrains Mono"?/)
-    // footnote font-family
-    expect(css).toMatch(/\.footnote\s*\{[^}]*font-family:\s*"?JetBrains Mono"?/)
+    // footnotes are text: body font (Inter) at 0.8 × body (10.5pt → 8.40pt)
+    expect(css).toMatch(/\.footnote\s*\{[^}]*font-family:\s*Inter,[^}]*font-size:\s*8\.40pt/)
     // margin-box (footer)
     expect(css).toMatch(/@bottom-center\s*\{[^}]*font-family:\s*"?JetBrains Mono"?/)
   })
-  test('the @footnote area carries the meta font (it sits outside .paged-doc)', () => {
+  test('the @footnote area carries the body font at 0.8 × body (it sits outside .paged-doc)', () => {
     // paged.js moves footnotes into a page-level area outside `.paged-doc`,
     // so the `.paged-doc .footnote` rule no longer matches there and the
     // notes fell back to the browser's default serif.
     const css = themeToCss(markoto, runtime)
-    expect(css).toMatch(/@footnote\s*\{[^}]*font-family:\s*"JetBrains Mono"/)
+    expect(css).toMatch(/@footnote\s*\{[^}]*font-family:\s*Inter,[^}]*font-size:\s*8\.40pt/)
   })
   test('font import includes the meta font (same-origin stylesheets only)', () => {
     const css = themeToCss(markoto, runtime)

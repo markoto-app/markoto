@@ -3,6 +3,8 @@ import { pageHeightMm } from './pageDimensions'
 import type { CustomCssResult } from '../types/customCss'
 import { isThemeImageUrl } from './themeImages'
 import { fontStylesheetUrls } from './themeFonts'
+import { headingNumbering, resolveCodeOptions, resolveTitleBlock } from './themeOptions'
+import { HLJS_THEME_COLORS } from './hljsAssets'
 
 /**
  * Runtime values interpolated into the theme CSS. Kept separate from
@@ -54,10 +56,11 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     katexBlock(),
     mermaidBlock(theme),
     tocBlock(theme, runtime),
+    numberingBlock(theme),
     pageBreakBlock(),
-    columnSpanBlock(),
+    columnSpanBlock(theme),
     coverBlock(theme),
-    breakHints()
+    breakHints(theme.layout.columns)
   ]
   const custom = runtime.customCss?.css
   if (custom) blocks.push(`/* custom css */\n${custom}`)
@@ -73,7 +76,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
  * styles and unicode-range subsets the document actually uses.
  */
 export function themeFontsImport(theme: DocTheme): string {
-  return fontStylesheetUrls([theme.body.font, theme.headings.font, theme.meta.font])
+  return fontStylesheetUrls([theme.body.font, theme.headings.font, theme.meta.font, resolveCodeOptions(theme).font])
     .map(url => `@import url('${url}');`)
     .join('\n')
 }
@@ -89,20 +92,23 @@ function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const secondaryColor = theme.color.secondary
   // The footnote area is a page-level box outside `.paged-doc`, so it does
   // not inherit the body font: without an explicit family the notes fall
-  // back to the browser default serif. Same voice as figcaptions + the
-  // running header/footer (the meta font).
+  // back to the browser default serif. Footnotes are text, so they use
+  // the body font at 0.8 × the body size (not the meta voice — a mono
+  // meta font made every footnote look like code).
   return `@page {
   size: ${size} ${orientation};
   margin: ${margin}mm;
 ${headerSlots}
 ${footerSlots}
   @footnote {
-    border-top: 0.5pt solid ${secondaryColor};
-    padding-top: 4pt;
-    margin-top: 8pt;
-    font-family: ${cssFontStack(metaFont)};
-    font-size: 8pt;
-    line-height: 1.3;
+    /* A short rule over the notes (a third of the text width), as in print. */
+    border-top: none;
+    background: linear-gradient(${secondaryColor}, ${secondaryColor}) top left / 33% 0.5pt no-repeat;
+    padding-top: 5pt;
+    margin-top: 10pt;
+    font-family: ${cssFontStack(theme.body.font)};
+    font-size: ${(theme.body.size * 0.8).toFixed(2)}pt;
+    line-height: 1.35;
     color: ${textColor};
   }
 }`
@@ -221,18 +227,41 @@ ${columnRules(columns, columnGap)}
 
 // — typography ————————————————————————————————————————————————————————
 
+/**
+ * Heading scale. `headings.scale` is the ratio between neighbouring levels
+ * from h4 up: h4 = body size (weight carries it), h3 = body·scale,
+ * h2 = body·scale², h1 = body·scale³ — 1.73× body at 1.2, 1.95× at 1.25,
+ * 2.1× at 1.28, 2.37× at 1.333. h5 = body, h6 = 0.9·body. (Until 2026-11
+ * h1 was body·scale⁵, 33–46 pt next to 10–11 pt text; display sizes now
+ * belong to the cover / title block only.)
+ */
+export const HEADING_SCALE_EXPONENTS = [3, 2, 1, 0, 0, 0] as const
+
+/**
+ * Space around headings in body lines (body size × line height): more
+ * above than below, so a heading sits closer to the text it introduces
+ * than to the text before it. `headings.spacingScale` multiplies the
+ * space above.
+ */
+const HEADING_SPACE_ABOVE = [2, 1.6, 1.3, 1.1, 1, 1] as const
+const HEADING_SPACE_BELOW = [0.6, 0.5, 0.4, 0.3, 0.3, 0.3] as const
+
+export function headingSizePt(theme: DocTheme, level: number): number {
+  const exp = HEADING_SCALE_EXPONENTS[level - 1] ?? 0
+  const factor = level === 6 ? 0.9 : Math.pow(theme.headings.scale, exp)
+  return theme.body.size * factor
+}
+
 function typographyBlock(theme: DocTheme): string {
   const bodySize = theme.body.size
-  const { font: headingFont, scale, weight, underline, letterSpacing, lineHeight: hLineHeight, spacingScale } = theme.headings
+  const { font: headingFont, weight, underline, letterSpacing, lineHeight: hLineHeight, spacingScale } = theme.headings
   const headingFamily = cssFontStack(headingFont)
+  const linePt = bodySize * theme.body.lineHeight
   const headingRules: string[] = []
-  // Modular scale: h6 at body, h1 at body * scale^5. Top-margin is
-  // base-em × user spacingScale (1.0 = traditional print rhythm).
   for (let level = 1; level <= 6; level++) {
-    const exponent = 6 - level
-    const sizePt = (bodySize * Math.pow(scale, exponent)).toFixed(2)
-    const baseTop = level <= 2 ? 1.4 : 1
-    const marginTop = (baseTop * spacingScale).toFixed(2)
+    const sizePt = headingSizePt(theme, level).toFixed(2)
+    const above = ((HEADING_SPACE_ABOVE[level - 1] ?? 1) * linePt * spacingScale).toFixed(2)
+    const below = ((HEADING_SPACE_BELOW[level - 1] ?? 0.3) * linePt).toFixed(2)
     headingRules.push(`.paged-doc h${level} {
   font-family: ${headingFamily};
   font-size: ${sizePt}pt;
@@ -240,10 +269,19 @@ function typographyBlock(theme: DocTheme): string {
   line-height: ${hLineHeight};
   letter-spacing: ${letterSpacing}em;
   color: var(--doc-heading-color);
-  margin-top: ${marginTop}em;
-  margin-bottom: 0.5em;${underline ? `\n  border-bottom: 1px solid var(--doc-brand);\n  padding-bottom: 0.2em;` : ''}
+  margin-top: ${above}pt;
+  margin-bottom: ${below}pt;${underline ? `\n  border-bottom: 1px solid var(--doc-brand);\n  padding-bottom: 0.2em;` : ''}
 }`)
   }
+  // A heading right under another heading needs no full gap above.
+  // (Spelled out: paged.js splits selector lists at every comma, so a
+  // comma inside `:is()` breaks its querySelectorAll.)
+  const stacked = [1, 2, 3, 4, 5, 6].flatMap(a => [2, 3, 4, 5, 6].map(b => `.paged-doc h${a} + h${b}`)).join(', ')
+  headingRules.push(`${stacked} { margin-top: ${(0.5 * linePt).toFixed(2)}pt; }`)
+  // The first block of every page starts at the top margin (paged.js
+  // keeps the margin of the block that opens a page; pagedHandlers.ts
+  // marks it).
+  headingRules.push(`.paged-doc [data-markoto-page-top] { margin-top: 0 !important; }`)
 
   // Hyphenation is now an explicit body knob (decoupled from textAlign).
   // Justified text always needs `text-align-last: left` to prevent the
@@ -290,7 +328,7 @@ function typographyBlock(theme: DocTheme): string {
     // Suppress top margin on the leading element so an opening h1
     // doesn't push whitespace at the top of page 1.
     `.paged-doc > :first-child { margin-top: 0; }`,
-    `.paged-doc p { margin: ${paragraphMargin}em 0; orphans: 3; widows: 3; text-align: ${align};${justifyExtras} }${firstLineIndentCss}`,
+    `.paged-doc p { margin: ${paragraphMargin}em 0; orphans: 2; widows: 2; text-align: ${align};${justifyExtras} }${firstLineIndentCss}`,
     // Per-block alignment overrides via `@mdit/plugin-attrs`. Source:
     //   This paragraph is centered.
     //   {.text-center}
@@ -325,9 +363,10 @@ function typographyBlock(theme: DocTheme): string {
     hrCss(theme),
     // Footnote support — see `transformFootnotesForPagedMedia` in
     // app/utils/renderMarkdown.ts.
-    `.paged-doc .footnote { float: footnote; font-family: ${cssFontStack(theme.meta.font)}; font-size: 0.85em; }`,
+    // Footnotes are text: body font, 0.8 × body size (set on @footnote too).
+    `.paged-doc .footnote { float: footnote; font-family: ${cssFontStack(theme.body.font)}; font-size: ${(theme.body.size * 0.8).toFixed(2)}pt; line-height: 1.35; font-style: normal; font-weight: normal; }`,
     `.paged-doc ::footnote-call { content: counter(footnote); vertical-align: super; font-size: 0.7em; color: var(--doc-brand); line-height: 0; }`,
-    `.paged-doc ::footnote-marker { content: counter(footnote) ". "; font-weight: 600; color: var(--doc-brand); }`,
+    `.paged-doc ::footnote-marker { content: counter(footnote) ". "; color: var(--doc-brand); }`,
     dropCapRule
   ].filter(Boolean).join('\n')
 }
@@ -473,51 +512,132 @@ function blockquoteCss(variant: DocTheme['blocks']['blockquoteStyle']): string {
 
 // — code ——————————————————————————————————————————————————————————————
 
-function codeBlock(theme: DocTheme): string {
-  const monoStack = `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace`
-  const { theme: codeTheme, fontSize } = theme.code
+const SYSTEM_MONO_STACK = `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace`
 
-  // Inline code is always lightly tinted regardless of code theme — it
-  // sits inline with body text and shouldn't pull a heavy fill.
-  const inlineCode = `.paged-doc :not(pre) > code {
+function codeFontStack(theme: DocTheme): string {
+  const font = resolveCodeOptions(theme).font
+  if (!font) return SYSTEM_MONO_STACK
+  const escaped = font.replaceAll('"', String.raw`\"`)
+  return `"${escaped}", ${SYSTEM_MONO_STACK}`
+}
+
+/**
+ * Blocks of at most this many lines are kept on one page; longer ones
+ * split between lines. `renderMarkdown` wraps every code line in a
+ * `<span class="code-line">`, so the count is a selector.
+ */
+export const CODE_KEEP_TOGETHER_LINES = 15
+
+/**
+ * Code blocks: one box for every highlight theme. The `<pre>` carries the
+ * fill, frame, padding and radius; the highlight.js stylesheet only
+ * colours tokens (its own `.hljs` padding/background/overflow are
+ * neutralised). Fill (`code.background`): dark highlight themes always
+ * keep their own background (their token colours need it); light ones
+ * use their background when it isn't white (solarized), else a faint
+ * tint of the text colour, so a block never floats bare on the page.
+ * Frame (`code.frame`): an accent rule on the left or a hairline box.
+ * Long lines wrap (`code.wrap`, default on — a page can't scroll; the
+ * old `overflow-x: auto` clipped them in print). Line numbers
+ * (`code.lineNumbers`) come from each line's `data-line`. A fence title
+ * (```ts title="replay.ts") renders as a caption bar above the block.
+ */
+function codeBlock(theme: DocTheme): string {
+  const monoStack = codeFontStack(theme)
+  const { theme: codeTheme, fontSize } = theme.code
+  const opts = resolveCodeOptions(theme)
+  const colors = codeTheme === 'none' ? null : HLJS_THEME_COLORS[codeTheme]
+  const tint = 'color-mix(in srgb, var(--doc-text) 5%, var(--doc-bg))'
+  let fill: string
+  let ink = 'inherit'
+  if (colors?.dark) {
+    fill = colors.background
+    ink = colors.color
+  } else if (opts.background === 'none') {
+    fill = 'transparent'
+  } else if (opts.background === 'tint' || !colors || colors.background === '#ffffff') {
+    fill = tint
+  } else {
+    fill = colors.background
+  }
+  const filled = fill !== 'transparent'
+  const radius = Math.min(6, Math.max(2, theme.blocks.imageRadius))
+  const frameCss = opts.frame === 'rule'
+    ? `\n  border-left: 3px solid var(--doc-brand);\n  border-radius: 0 ${radius}px ${radius}px 0;`
+    : opts.frame === 'box'
+      ? `\n  border: 0.75pt solid color-mix(in srgb, var(--doc-secondary) 70%, transparent);\n  border-radius: ${radius}px;`
+      : `\n  border-radius: ${filled ? radius : 0}px;`
+  const padX = filled || opts.frame !== 'none' ? '0.9em' : '0'
+  const gutter = opts.lineNumbers ? '3.2em' : padX
+  const whiteSpace = opts.wrap
+    ? 'white-space: pre-wrap;\n  overflow-wrap: anywhere;'
+    : 'white-space: pre;\n  overflow: hidden;'
+
+  return [
+    // Inline code is always lightly tinted regardless of code theme — it
+    // sits inline with body text and shouldn't pull a heavy fill.
+    `.paged-doc :not(pre) > code {
   font-family: ${monoStack};
   font-size: 0.88em;
   padding: 0.1em 0.35em;
   border-radius: 3px;
   background: color-mix(in srgb, var(--doc-text) 8%, transparent);
-}`
-
-  if (codeTheme === 'none') {
-    // No syntax styling. Strip the .hljs background that the hljs
-    // stylesheet would otherwise paint, so the block reads as plain
-    // monospace on the page background.
-    return [
-      inlineCode,
-      `.paged-doc pre {
-  font-family: ${monoStack};
-  font-size: ${fontSize}pt;
-  margin: 1em 0;
-  padding: 0.5em 0;
 }`,
-      `.paged-doc pre code.hljs { background: none; padding: 0; color: inherit; }`
-    ].join('\n')
-  }
-
-  // For all other themes, hljs's stylesheet (loaded into the iframe
-  // head from /vendor/ — see hljsAssets.ts) owns the code block visuals
-  // (background, foreground, padding, per-token colors). Theme CSS
-  // only controls the surrounding box: font stack + size, margin,
-  // border-radius, overflow.
-  return [
-    inlineCode,
     `.paged-doc pre {
   font-family: ${monoStack};
   font-size: ${fontSize}pt;
+  line-height: 1.45;
   margin: 1em 0;
-  border-radius: 4px;
-  overflow-x: auto;
+  padding: ${filled || opts.frame !== 'none' ? '0.75em' : '0.25em'} ${padX} ${filled || opts.frame !== 'none' ? '0.75em' : '0.25em'} ${gutter};
+  background: ${fill};
+  color: ${ink};${frameCss}
+  ${whiteSpace}
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}`,
+    `.paged-doc pre code,
+.paged-doc pre code.hljs {
+  display: block;
+  font-family: inherit;
+  font-size: inherit;
+  background: transparent;
+  padding: 0;
+  overflow: visible;
+  white-space: inherit;
+  overflow-wrap: inherit;${codeTheme === 'none' ? '\n  color: inherit;' : ''}
+}`,
+    // One block per line (renderMarkdown#wrapCodeLines drops the "\n"s);
+    // an empty line keeps its height.
+    `.paged-doc pre .code-line { display: block; min-height: 1.45em; }`,
+    opts.lineNumbers
+      ? `.paged-doc pre .code-line::before {
+  content: attr(data-line);
+  display: inline-block;
+  width: 2.4em;
+  margin-left: -3em;
+  margin-right: 0.6em;
+  text-align: right;
+  color: color-mix(in srgb, currentColor 45%, transparent);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
 }`
-  ].join('\n')
+      : '',
+    // Caption from the fence's `title="…"`: a small bar glued to the block.
+    `.paged-doc .code-block { margin: 1em 0; }
+.paged-doc .code-block > pre { margin-top: 0; }
+.paged-doc .code-title {
+  font-family: ${monoStack};
+  font-size: ${Math.max(6, fontSize - 1)}pt;
+  color: var(--doc-secondary);
+  padding: 0.35em ${padX === '0' ? '0' : '0.9em'};
+  border-bottom: 0.75pt solid ${colors?.dark ? `color-mix(in srgb, ${fill} 70%, #ffffff)` : 'color-mix(in srgb, var(--doc-secondary) 45%, transparent)'};
+  background: ${filled ? (colors?.dark ? `color-mix(in srgb, ${fill} 88%, #ffffff)` : fill) : 'transparent'};${colors?.dark ? `\n  color: color-mix(in srgb, ${ink} 75%, ${fill});` : ''}
+  border-radius: ${filled || opts.frame === 'box' ? `${radius}px ${radius}px 0 0` : '0'};
+  break-after: avoid;
+}
+.paged-doc .code-title + pre { border-top-left-radius: 0; border-top-right-radius: 0; }`
+  ].filter(Boolean).join('\n')
 }
 
 // — alerts (GitHub-style admonitions) —————————————————————————————————
@@ -664,8 +784,10 @@ function mermaidBlock(theme: DocTheme): string {
 function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const { maxDepth, showTitle, showPageNumbers, leaderStyle } = theme.toc
 
-  // Renderer always emits up to h4 (4 nested ULs in worst case). To
-  // honor a smaller maxDepth, hide every ul beyond that level. depth 2
+  // Renderer always emits up to h4 (4 nested ULs in worst case).
+  // `composeFinalHtml` removes the levels beyond maxDepth (pruneTocDepth —
+  // paged.js mis-measures hidden lists and broke the TOC after them); the
+  // rules below only cover a TOC that reaches the page some other way. depth 2
   // keeps only the second-level ul (h2 entries under h1), so we hide
   // any ul nested 2+ deep inside that.
   const depthHide: string[] = []
@@ -733,12 +855,16 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 }`,
     `.paged-doc .table-of-contents ul ul {
   padding-left: 1.2em;
-  margin: 0.1em 0;
+  margin: 0;
 }`,
+    // Spacing on the entry above, not around it: with heading numbers the
+    // entries are flex boxes whose margins don't collapse.
     `.paged-doc .table-of-contents li {
-  margin: 0.25em 0;
+  margin: 0;
   break-inside: avoid;
-}`,
+}
+.paged-doc .table-of-contents li + li,
+.paged-doc .table-of-contents li > ul { margin-top: 0.3em; }`,
     `.paged-doc .table-of-contents a {
   display: flex;
   align-items: baseline;
@@ -750,6 +876,60 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
     pageNumberRule,
     ...depthHide
   ].filter(Boolean).join('\n')
+}
+
+// — heading numbers ————————————————————————————————————————————————————
+
+/** Headings that never get a number: the cover / title-block title and the abstract. */
+const UNNUMBERED = ':not(.markoto-cover-title):not(.markoto-abstract-heading)'
+
+/**
+ * `headings.numbering: 'decimal'` → `1`, `1.1`, `1.1.1`, `1.1.1.1` before
+ * h1–h4 and before the matching TOC entries. Plain CSS counters: paged.js
+ * turns `counter-increment` / `counter-reset` into per-element values, so
+ * numbers continue across pages. h1 resets the levels below it and
+ * nothing above. The TOC lists the same headings in the same order (the
+ * abstract's entry is marked by `markAbstract` and skipped), so its
+ * counters match the headings'.
+ */
+function numberingBlock(theme: DocTheme): string {
+  if (headingNumbering(theme) !== 'decimal') return ''
+  const levels = [1, 2, 3, 4]
+  const name = (l: number) => `mk-h${l}`
+  const tocName = (l: number) => `mk-toc${l}`
+  const label = (counter: (l: number) => string, l: number) =>
+    levels.slice(0, l).map(i => `counter(${counter(i)})`).join(' "." ')
+  const rules: string[] = []
+  for (const l of levels) {
+    const below = levels.filter(i => i > l)
+    const reset = below.length ? `\n  counter-reset: ${below.map(name).join(' ')};` : ''
+    rules.push(`.paged-doc h${l}${UNNUMBERED} {
+  counter-increment: ${name(l)};${reset}
+}
+.paged-doc h${l}${UNNUMBERED}::before {
+  content: ${label(name, l)};
+  margin-right: 0.75em;
+  font-variant-numeric: lining-nums tabular-nums;
+}`)
+    const tocReset = below.length ? `\n  counter-reset: ${below.map(tocName).join(' ')};` : ''
+    const li = `.paged-doc .table-of-contents > ${'ul > li > '.repeat(l - 1)}ul > li:not(.markoto-abstract-entry)`
+    rules.push(`${li} {
+  counter-increment: ${tocName(l)};${tocReset}
+}
+${li}::before {
+  content: ${label(tocName, l)};
+  min-width: ${(1.2 + 0.6 * (l - 1)).toFixed(1)}em;
+  margin-right: 0.5em;
+  font-variant-numeric: lining-nums tabular-nums;
+}`)
+  }
+  return [
+    // Number + entry on one row; a nested list wraps below.
+    `.paged-doc .table-of-contents li { display: flex; flex-wrap: wrap; align-items: baseline; }
+.paged-doc .table-of-contents li > a { flex: 1 1 0; min-width: 0; }
+.paged-doc .table-of-contents li > ul { flex-basis: 100%; }`,
+    ...rules
+  ].join('\n')
 }
 
 // — page break ————————————————————————————————————————————————————————
@@ -784,15 +964,19 @@ function pageBreakBlock(): string {
  * Why \`:first-of-type\` for the H1: scope is "the first H1 of the doc",
  * not every H1. Subsequent H1s (rare but possible) stay in-flow.
  */
-function columnSpanBlock(): string {
+function columnSpanBlock(theme: DocTheme): string {
   return [
-    `.paged-doc > h1:first-of-type {
+    // With a cover (or title block) the title is there; the first h1 is
+    // then just the first section and stays in its column.
+    theme.cover.enabled
+      ? ''
+      : `.paged-doc > h1:first-of-type {
   column-span: all;
 }`,
     `.paged-doc .table-of-contents {
   column-span: all;
 }`
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 // — cover page ———————————————————————————————————————————————————————
@@ -829,7 +1013,9 @@ function coverBlock(theme: DocTheme): string {
   // column for the other layouts. The `display` declaration is layout-
   // specific so each composition gets its own vertical rhythm.
   const ctx = { justifyItems, align, coverHeightMm }
+  if (layout === 'title-block') return titleBlockCss(theme, align)
   const layoutCss = renderCoverLayoutCss(layout, ctx)
+  const caps = resolveTitleBlock(theme).smallCaps ? '\n  font-variant-caps: small-caps;' : ''
 
   return [
     layoutCss,
@@ -860,14 +1046,14 @@ function coverBlock(theme: DocTheme): string {
   line-height: 1.2;
   letter-spacing: ${theme.headings.letterSpacing}em;
   color: var(--doc-heading-color);
-  margin: 0 0 0.4em 0;
+  margin: 0 0 0.4em 0;${caps}
 }`,
     `.paged-doc .markoto-cover-subtitle {
   font-family: ${cssFontStack(theme.body.font)};
   font-size: ${subtitleSize}em;
   font-style: italic;
   color: var(--doc-secondary);
-  margin: 0 0 1em 0;
+  margin: 0 0 1em 0;${caps}
 }`,
     `.paged-doc .markoto-cover-meta {
   font-family: ${cssFontStack(theme.meta.font)};
@@ -906,6 +1092,90 @@ function coverBlock(theme: DocTheme): string {
   ].join('\n')
 }
 
+// — title block (papers) ——————————————————————————————————————————————
+
+/**
+ * `cover.layout: 'title-block'` — no cover page: title, subtitle, authors
+ * (+ affiliations), date and the abstract open page 1 and the text
+ * follows on the same page (arXiv / journal first page). Built by
+ * `coverHtml.ts`; the abstract is the document's own leading `Abstract`
+ * section, moved in by `app/utils/titleBlock.ts`. Page 1 carries no
+ * running header (`@page :first`). `cover.rules` draws heavy rules above
+ * and below the title, `cover.smallCaps` sets title + subtitle in small
+ * capitals.
+ */
+function titleBlockCss(theme: DocTheme, align: 'left' | 'center' | 'right'): string {
+  const { rules, smallCaps } = resolveTitleBlock(theme)
+  const caps = smallCaps ? '\n  font-variant-caps: small-caps;' : ''
+  const ruleCss = rules
+    ? `\n  border-top: 2pt solid var(--doc-heading-color);\n  border-bottom: 2pt solid var(--doc-heading-color);\n  padding: 0.45em 0 0.5em;`
+    : ''
+  return [
+    theme.layout.columns > 1
+      ? `.paged-doc .markoto-cover { column-span: all; width: 100%; }`
+      : '',
+    `.paged-doc .markoto-title-block {
+  text-align: ${align};
+  margin: 0 0 ${(theme.body.size * theme.body.lineHeight * 1.6).toFixed(2)}pt 0;
+  break-inside: avoid;
+}`,
+    `.paged-doc .markoto-title-block .markoto-cover-logo {
+  display: block;
+  height: ${theme.brand.logoHeight}px;
+  width: auto;
+  margin: 0 ${align === 'left' ? 'auto 0 0' : align === 'right' ? '0 0 auto' : 'auto'} 1.2em;
+}`,
+    `.paged-doc .markoto-title-block .markoto-cover-title {
+  font-family: ${cssFontStack(theme.headings.font)};
+  font-size: ${theme.cover.titleSize}em;
+  font-weight: ${theme.headings.weight};
+  line-height: 1.2;
+  letter-spacing: ${theme.headings.letterSpacing}em;
+  color: var(--doc-heading-color);
+  margin: 0 0 0.6em 0;
+  border: none;${ruleCss}${caps}
+}`,
+    `.paged-doc .markoto-title-block .markoto-cover-subtitle {
+  font-family: ${cssFontStack(theme.body.font)};
+  font-size: ${theme.cover.subtitleSize}em;
+  color: var(--doc-text);
+  margin: 0 0 1.4em 0;${caps}
+}`,
+    `.paged-doc .markoto-title-block .markoto-cover-authors {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: ${align === 'left' ? 'flex-start' : align === 'right' ? 'flex-end' : 'center'};
+  gap: 0.9em 3em;
+  margin: 0 0 1.2em 0;
+}`,
+    `.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 700; }
+.paged-doc .markoto-title-block .markoto-cover-affiliation { white-space: pre-line; line-height: 1.3; }`,
+    `.paged-doc .markoto-title-block .markoto-cover-date { margin: 0 0 1.4em 0; }`,
+    `.paged-doc .markoto-abstract {
+  margin: 0 auto;
+  max-width: 84%;
+  text-align: ${theme.body.textAlign === 'justify' ? 'justify' : 'left'};
+  font-size: 0.95em;
+}
+.paged-doc .markoto-abstract p { margin: 0.4em 0; text-indent: 0; }
+.paged-doc .markoto-abstract-title {
+  font-family: ${cssFontStack(theme.headings.font)};
+  font-weight: 700;
+  font-size: 1.1em;
+  text-align: center;
+  font-variant-caps: small-caps;
+  letter-spacing: 0.03em;
+  color: var(--doc-heading-color);
+  margin: 0 0 0.5em 0;
+}`,
+    `@page :first {
+  @top-left { content: none; }
+  @top-center { content: none; }
+  @top-right { content: none; }
+}`
+  ].filter(Boolean).join('\n')
+}
+
 // — cover-layout helpers (per-layout CSS) —————————————————————————————
 
 interface CoverCtx {
@@ -933,6 +1203,7 @@ function justifyItemsToFlexAlign(j: string): string {
 }
 
 function renderCoverLayoutCss(layout: string, ctx: CoverCtx): string {
+  if (layout === 'title-block') return ''
   if (layout === 'editorial') return editorialCoverCss(ctx)
   if (layout === 'banner') return bannerCoverCss(ctx)
   if (layout === 'minimal') return minimalCoverCss(ctx)
@@ -1085,12 +1356,24 @@ function classicCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): stri
  * ones. Long tables split between rows and repeat their header row on
  * the next page (pagedHandlers.ts).
  */
-function breakHints(): string {
+function breakHints(columns: number): string {
   return [
     `.paged-doc h1, .paged-doc h2, .paged-doc h3, .paged-doc h4, .paged-doc h5, .paged-doc h6 { break-after: avoid-page; break-inside: avoid; }`,
-    `.paged-doc img, .paged-doc pre, .paged-doc blockquote { break-inside: avoid; }`,
+    // Multi-column themes: the column breaks inside a page are the
+    // browser's (paged.js only breaks pages), so a heading must not end a
+    // column either. Only there: `avoid` (pages + columns) on every theme made
+    // Chromium move whole sections to the next page (paged.js measures
+    // pages through a column layout of its own).
+    columns > 1 ? `.paged-doc h1, .paged-doc h2, .paged-doc h3, .paged-doc h4, .paged-doc h5, .paged-doc h6 { break-after: avoid-column; }` : '',
+    `.paged-doc img, .paged-doc blockquote { break-inside: avoid; }`,
+    // Short code blocks (and their caption) stay whole; long ones split
+    // between lines rather than leaving half a page empty.
+    `.paged-doc pre:not(:has(.code-line:nth-of-type(${CODE_KEEP_TOGETHER_LINES + 1}))), .paged-doc .code-block:not(:has(.code-line:nth-of-type(${CODE_KEEP_TOGETHER_LINES + 1}))) { break-inside: avoid; }`,
+    // A rule that would open a page (or close one) is hidden by
+    // pagedHandlers.ts; never split a heading from what follows.
+    `.paged-doc hr[data-markoto-page-edge] { display: none; }`,
     `.paged-doc table:not(:has(tbody tr:nth-child(13))) { break-inside: avoid; }`
-  ].join('\n')
+  ].filter(Boolean).join('\n')
 }
 
 // — helpers ———————————————————————————————————————————————————————————

@@ -7,7 +7,7 @@ import { useLitellmAdmin, useLitellmForUser } from '../litellmClient'
 import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { providerRequestFields, withProviderErrors } from '../aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
-import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { CODE_FONT_NAMES, THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { TEMPLATE_IDS } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
@@ -27,7 +27,10 @@ import {
   MermaidThemeSchema,
   TocLeaderStyleSchema,
   HrStyleSchema,
-  CoverLayoutSchema
+  CoverLayoutSchema,
+  CodeBackgroundSchema,
+  CodeFrameSchema,
+  HeadingNumberingSchema
 } from '~~/shared/types/theme'
 
 /**
@@ -372,7 +375,7 @@ export const UpdateThemeArgs = z.object({
   headings: z.object({
     font: z.enum(FONT_NAMES).optional(),
     scale: z.number().min(1).max(2).optional()
-      .describe('Modular scale ratio between heading levels (1–2). Typical: 1.2 tight, 1.25 default, 1.333 airy.'),
+      .describe('Ratio between heading levels (1–2): h4 = body size, h3 = body×scale, h2 = body×scale², h1 = body×scale³. 1.2 → h1 1.73× body (papers), 1.25 → 1.95× (reports), 1.28 → 2.1×, 1.333 → 2.37× (airy). Big display sizes belong on the cover (cover.titleSize).'),
     weight: z.enum(['400', '500', '600', '700', '800', '900']).optional()
       .describe('Heading font weight; pass as a string numeric like "600".'),
     underline: z.boolean().optional().describe('Draw a brand-colored underline below headings.'),
@@ -382,7 +385,9 @@ export const UpdateThemeArgs = z.object({
     lineHeight: z.number().min(0.9).max(1.6).optional()
       .describe('Heading line-height multiplier (0.9–1.6). 1.2 print default; 1.25 for larger display serifs.'),
     spacingScale: z.number().min(0.5).max(2).optional()
-      .describe('Multiplier on heading top margins (0.5–2). 1.0 default; 1.2 editorial breathing; 0.7 tight reports.')
+      .describe('Multiplier on the space above headings (0.5–2). 1.0 default; 1.2 editorial breathing; 0.7 tight reports.'),
+    numbering: HeadingNumberingSchema.optional()
+      .describe('Section numbers: `decimal` puts 1, 1.1, 1.1.1, 1.1.1.1 before h1–h4 and their TOC entries (reports, papers, specs); `none` (default) shows none. The cover title and a leading "Abstract" section are never numbered.')
   }).optional(),
   color: z.object({
     brand: HexColorSchema.optional().describe('Brand color used for links, accents, optional heading underline.'),
@@ -401,7 +406,15 @@ export const UpdateThemeArgs = z.object({
   footer: RunningSlotsPatch.optional(),
   code: z.object({
     theme: CodeThemeSchema.optional(),
-    fontSize: z.number().min(6).max(16).optional().describe('Code block font size in pt (6–16).')
+    fontSize: z.number().min(6).max(16).optional().describe('Code block font size in pt (6–16).'),
+    font: z.enum(CODE_FONT_NAMES).optional()
+      .describe('Code font (monospace). Omit for the system monospace stack. "Latin Modern Mono" gives the LaTeX typewriter look.'),
+    background: CodeBackgroundSchema.optional()
+      .describe('Code block fill for LIGHT code themes: `auto` (default; the theme\'s own background, or a faint tint when it is white), `tint`, `none`. Dark code themes always keep their own background.'),
+    frame: CodeFrameSchema.optional()
+      .describe('Code block frame: `none` (default), `rule` (accent rule on the left), `box` (hairline border).'),
+    wrap: z.boolean().optional().describe('Wrap long code lines (default true; a printed page cannot scroll, unwrapped lines are cut off).'),
+    lineNumbers: z.boolean().optional().describe('Line numbers in the gutter of every code block (default false).')
   }).optional(),
   tables: z.object({
     headerBackground: TableHeaderBgSchema.optional(),
@@ -441,7 +454,7 @@ export const UpdateThemeArgs = z.object({
     enabled: z.boolean().optional()
       .describe('Toggle the title-sheet cover page (page 1 with title/subtitle/authors/date, no header/footer running text).'),
     layout: CoverLayoutSchema.optional()
-      .describe('Cover composition: `centered` (vertical mid, classic), `top` (title block top, blank below), `split` (title top, meta bottom).'),
+      .describe('Cover composition: `editorial` (logo top, title at the upper third, meta lower third), `classic` (everything centred), `banner` (title in a brand-tinted top band), `minimal` (title only), `title-block` (NO cover page — papers: title, subtitle, authors with affiliations, date and the abstract at the top of page 1, text follows on the same page; the abstract is the document\'s own leading "## Abstract" section, which moves into the block).'),
     showTitle: z.boolean().optional(),
     showSubtitle: z.boolean().optional(),
     subtitle: z.string().max(200).optional().describe('Cover subtitle text (≤200 chars).'),
@@ -451,6 +464,12 @@ export const UpdateThemeArgs = z.object({
     showAuthors: z.boolean().optional(),
     authors: z.array(z.string().max(100)).max(10).optional()
       .describe('Author name list (up to 10). Each renders on its own line — for collaboration. Pass full name strings; ordering is preserved.'),
+    affiliations: z.array(z.string().max(300)).max(10).optional()
+      .describe('Affiliation per author, same order as `authors` (department, institution, address, e-mail — separate lines with \\n). Shown by the `title-block` layout.'),
+    rules: z.boolean().optional().describe('`title-block`: heavy rules above and below the title (arXiv look).'),
+    smallCaps: z.boolean().optional().describe('Title and subtitle in small capitals.'),
+    titleSize: z.number().min(0.6).max(4).optional().describe('Cover / title-block title size as a multiple of the body size (0.6–4). 2.4 for cover pages, ~1.7 for a paper title block.'),
+    subtitleSize: z.number().min(0.5).max(2.5).optional().describe('Subtitle size as a multiple of the body size (0.5–2.5).'),
     showLogo: z.boolean().optional()
       .describe('Render `brand.logoUrl` above the title block on the cover. Requires brand.logoUrl to be set.')
   }).optional(),
@@ -462,7 +481,7 @@ export const UpdateThemeArgs = z.object({
   }).optional(),
   customCss: z.string().max(CUSTOM_CSS_MAX_BYTES).optional()
     .describe(`Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. LAST RESORT: first use the structured fields above (fonts, sizes, colours, spacing, tables.zebra, blocks.*, alerts.*, header/footer, cover, layout.columns); write CSS only for what no field expresses (a coloured h2 underline, a custom alert look, a two-column section, page-number formats). REPLACES the whole existing custom CSS: call get_theme first and send the full text with your rules added — keep the user's existing rules. Empty string clears it. ${CUSTOM_CSS_AI_REFERENCE}`)
-}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
+}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: section numbering (`headings.numbering`), code block look (`code.font/background/frame/wrap/lineNumbers`), paper title block (`cover.layout: "title-block"` + `cover.affiliations`), A5 pages, bundled TeX fonts (TeX Gyre Termes / Heros, Latin Modern Roman / Mono), cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
 
 // --- Theme inspection / preset management --------------------------------
 //

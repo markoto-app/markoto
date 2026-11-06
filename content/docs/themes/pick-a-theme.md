@@ -4,7 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
-updated: '2026-11-03'
+updated: '2026-11-06'
 ---
 
 # Pick a theme that fits your document
@@ -33,10 +33,11 @@ The eight presets cover most use cases:
   The "calm field guide" voice.
 - **Modern** — clean Inter sans, blue accent, justified body. The
   neutral starting point.
-- **Academic Paper** — two-column Source Serif body, journal-style
-  margins, minimal table borders.
+- **Academic Paper** — two-column Source Serif body, a title block
+  with authors and abstract on page 1 instead of a cover page,
+  numbered sections, minimal table borders.
 - **Tech Report** — IBM Plex Sans, cyan brand color, dark code
-  blocks, brand-colored table headers.
+  blocks, numbered sections, brand-colored table headers.
 - **Business Report** — Playfair headings over Source Sans body,
   warm amber accent, centered title in the running head.
 - **Novel** — Crimson Text serif, deep violet accent, generous

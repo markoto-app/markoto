@@ -780,8 +780,13 @@
       "underline": "下線（ブランドカラー付き）",
       "letterSpacing": "字間（em）",
       "lineHeight": "行の高さ",
-      "spacingScale": "上余白スケール",
-      "spacingScaleHelp": "見出しの上余白の倍率です。1.0＝印刷既定、1.5＝編集向けのゆとり。"
+      "spacingScale": "見出しの上の余白",
+      "spacingScaleHelp": "見出しの上の余白の倍率。1.0 = 印刷の標準、1.5 = ゆったり。",
+      "scaleOption": "{ratio}（見出し1 = 本文の{h1}倍）",
+      "numbering": "番号付け",
+      "numberingHelp": "見出し1〜4と目次の項目に番号（1、1.1、1.1.1）を付けます。冒頭の「概要」セクションには付けません。",
+      "numberingNone": "なし",
+      "numberingDecimal": "1、1.1、1.1.1"
     },
     "align": {
       "left": "左揃え",
@@ -818,7 +823,21 @@
     "code": {
       "theme": "カラーテーマ",
       "fontSize": "フォントサイズ（pt）",
-      "none": "プレーン（構文ハイライトなし）"
+      "none": "プレーン（構文ハイライトなし）",
+      "font": "コードのフォント",
+      "fontSystem": "システムの等幅フォント",
+      "background": "背景",
+      "backgroundHelp": "明るいカラーテーマ用です。暗いテーマは常に独自の背景を使います。",
+      "backgroundAuto": "自動（白いテーマには淡い色）",
+      "backgroundTint": "淡い色",
+      "backgroundNone": "なし（ページの色）",
+      "frame": "枠",
+      "frameNone": "なし",
+      "frameRule": "左側のアクセント線",
+      "frameBox": "細い枠線",
+      "wrap": "長い行を折り返す",
+      "wrapHelp": "印刷したページはスクロールできません。折り返さないと長い行が切れます。",
+      "lineNumbers": "行番号"
     },
     "tables": {
       "headerBackground": "ヘッダー背景",
@@ -904,7 +923,13 @@
       "authorsHelp": "各著者はそれぞれ別の行に表示されます。最大10名。",
       "authorPlaceholder": "著者名",
       "addAuthor": "著者を追加",
-      "removeAuthor": "著者を削除"
+      "removeAuthor": "著者を削除",
+      "layoutTitleBlock": "1ページ目のタイトルブロック（論文）",
+      "titleBlockHelp": "表紙ページを作らず、タイトル・著者・日付・概要で1ページ目を始めます。文書の最初に「概要」（または「Abstract」）という見出しのセクションを置くと、タイトルブロックに入ります。",
+      "rules": "タイトルの上下に罫線",
+      "rulesHelp": "arXivのプレプリントのような太い横罫線。",
+      "smallCaps": "タイトルをスモールキャップスに",
+      "affiliationPlaceholder": "所属（部署、機関、メール。1行に1つ）"
     },
     "brand": {
       "logo": "ブランドロゴ",
@@ -972,7 +997,7 @@
       },
       "academic": {
         "name": "学術論文",
-        "description": "2段組みのSource Serif本文、ランニングヘッドにページ番号、最小限の表罫線 — ジャーナルスタイル。"
+        "description": "2段組みのSource Serif本文、1ページ目に著者と概要のタイトルブロック、番号付きの節、最小限の表罫線 — ジャーナルスタイル。"
       },
       "tech": {
         "name": "技術レポート",

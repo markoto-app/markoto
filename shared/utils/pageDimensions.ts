@@ -12,7 +12,7 @@ import type { PageOrientation, PageSize } from '../types/theme'
  * `Type 'X' is not assignable to type 'never'` error here, you added a
  * new PageSize without giving it dimensions.
  *
- * Source: ISO 216 (A4) and ANSI/ASME Y14.1 (Letter, Legal). Values in mm,
+ * Source: ISO 216 (A4, A5) and ANSI/ASME Y14.1 (Letter, Legal). Values in mm,
  * standard portrait orientation. Landscape swaps width ↔ height.
  */
 
@@ -33,6 +33,7 @@ export interface PageRect {
 function rectFor(size: PageSize): PageRect {
   switch (size) {
     case 'A4': return { portraitHeightMm: 297, portraitWidthMm: 210 }
+    case 'A5': return { portraitHeightMm: 210, portraitWidthMm: 148 }
     case 'Letter': return { portraitHeightMm: 279.4, portraitWidthMm: 215.9 }
     case 'Legal': return { portraitHeightMm: 355.6, portraitWidthMm: 215.9 }
     default: {

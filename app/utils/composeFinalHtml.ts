@@ -2,6 +2,9 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { buildCoverHtml } from './coverHtml'
 import { wrapFirstLetterAsDropCap } from './dropcapWrap'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
+import { extractAbstract, markAbstract } from './titleBlock'
+import { pruneTocDepth } from './tocDepth'
+import { headingNumbering } from '~~/shared/utils/themeOptions'
 
 /**
  * Combine the cover page + body markdown render + optional drop-cap
@@ -40,8 +43,18 @@ export function composeFinalHtml(opts: {
   date: string
   bodyHtml: string
 }): string {
-  const { theme, title, date, bodyHtml } = opts
-  const coverHtml = buildCoverHtml(theme, title || '', date)
+  const { theme, title, date } = opts
+  let bodyHtml = pruneTocDepth(opts.bodyHtml, theme.toc.maxDepth)
+  let abstractHtml = ''
+  // Papers: the document's leading "Abstract" section moves into the
+  // title block on page 1 (app/utils/titleBlock.ts); elsewhere it stays
+  // and is only marked so heading numbers skip it.
+  if (theme.cover.enabled && theme.cover.layout === 'title-block') {
+    ({ abstractHtml, bodyHtml } = extractAbstract(bodyHtml))
+  } else if (headingNumbering(theme) === 'decimal') {
+    bodyHtml = markAbstract(bodyHtml)
+  }
+  const coverHtml = buildCoverHtml(theme, title || '', date, abstractHtml)
   let html = coverHtml + bodyHtml
   if (theme.body.dropCap) {
     html = wrapFirstLetterAsDropCap(html)

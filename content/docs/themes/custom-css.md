@@ -3,7 +3,7 @@ title: Add your own CSS
 description: When the theme settings don't go far enough, write CSS rules for your document. Which selectors exist, what is allowed, and examples to copy.
 category: themes
 order: 5
-updated: '2026-11-03'
+updated: '2026-11-06'
 ---
 
 # Add your own CSS
@@ -39,7 +39,8 @@ document:
 | `.paged-doc a` | Links. |
 | `.paged-doc blockquote` | Quotes (`>`). |
 | `.paged-doc table` | Tables, with `th`, `td`, `thead` and `tbody tr` inside. |
-| `.paged-doc pre` | Code blocks. Inline code is `.paged-doc :not(pre) > code`. |
+| `.paged-doc pre` | Code blocks. Inline code is `.paged-doc :not(pre) > code`. Each line is a `.code-line` with its number in `data-line`. |
+| `.paged-doc .code-block` | A code block with a title (```` ```ts title="app.ts" ````); the title bar is `.code-title`. |
 | `.paged-doc img` | Images. |
 | `.paged-doc figure` | The figure around an image; the caption is `figcaption`. |
 | `.paged-doc hr` | Horizontal rules (`---`). |
@@ -85,6 +86,9 @@ always spans the full page, also in multi-column themes.
 | `.paged-doc .markoto-cover-meta` | The block with authors and date. |
 | `.paged-doc .markoto-cover-author` | One author line. |
 | `.paged-doc .markoto-cover-date` | The date. |
+| `.paged-doc .markoto-title-block` | The title block on page 1 (layout *Title block*), instead of a cover page. |
+| `.paged-doc .markoto-cover-authors` | The row of authors in the title block; each is a `.markoto-cover-author-card` with `.markoto-cover-author` and `.markoto-cover-affiliation`. |
+| `.paged-doc .markoto-abstract` | The abstract in the title block; its heading is `.markoto-abstract-title`. |
 
 ### Theme colors
 

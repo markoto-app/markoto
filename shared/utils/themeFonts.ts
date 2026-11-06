@@ -23,12 +23,38 @@ export interface ThemeFont {
 }
 
 /** Where a family's files come from: a Fontsource package + the stylesheets in it to take @font-face rules from. */
-export interface FontSource {
+export interface FontsourceSource {
+  kind: 'fontsource'
   /** npm package (pinned exactly in package.json devDependencies). */
   package: string
   /** Stylesheets inside the package (each a list of per-subset @font-face rules). */
   stylesheets: readonly string[]
 }
+
+/** One woff2 file of a bundled family (`fonts/<slug>/<file>`). */
+export interface BundledFace {
+  file: string
+  style: 'normal' | 'italic'
+  weight: number
+}
+
+/**
+ * A family that isn't on Fontsource, committed to the repo as WOFF2
+ * subsets in `fonts/<slug>/` (with its LICENSE.txt; how the files were
+ * made: `scripts/build-bundled-fonts.py`). Served exactly like the
+ * Fontsource families. Adding one: put the files in `fonts/<slug>/` and
+ * list them here.
+ */
+export interface BundledSource {
+  kind: 'bundled'
+  /** Upstream version of the font files (part of the immutable URL). */
+  version: string
+  /** What the files cover — the @font-face `unicode-range`. */
+  unicodeRange: string
+  faces: readonly BundledFace[]
+}
+
+export type FontSource = FontsourceSource | BundledSource
 
 export interface SelfHostedFont extends ThemeFont {
   /** URL-safe id; also the file name of the family's stylesheet. */
@@ -40,12 +66,20 @@ export interface SelfHostedFont extends ThemeFont {
 
 /** Variable font: one file per subset and style covers every weight. */
 function variable(slug: string, axis: 'wght' | 'opsz' = 'wght'): FontSource {
-  return { package: `@fontsource-variable/${slug}`, stylesheets: [`${axis}.css`, `${axis}-italic.css`] }
+  return { kind: 'fontsource', package: `@fontsource-variable/${slug}`, stylesheets: [`${axis}.css`, `${axis}-italic.css`] }
 }
 
 /** Static font: one file per subset, weight and style. */
 function staticWeights(slug: string, weights: readonly number[]): FontSource {
-  return { package: `@fontsource/${slug}`, stylesheets: weights.flatMap(w => [`${w}.css`, `${w}-italic.css`]) }
+  return { kind: 'fontsource', package: `@fontsource/${slug}`, stylesheets: weights.flatMap(w => [`${w}.css`, `${w}-italic.css`]) }
+}
+
+/** What `scripts/build-bundled-fonts.py` keeps: Latin, Latin Extended, punctuation, currency, arrows, math operators. */
+const BUNDLED_RANGE = 'U+0000-024F, U+02B0-036F, U+1E00-1EFF, U+2000-22FF, U+25A0-25FF, U+FB00-FB06, U+FEFF, U+FFFD'
+
+/** Bundled family: `fonts/<slug>/<prefix>-<style>.woff2` (GUST Font License families from CTAN). */
+function bundled(version: string, faces: ReadonlyArray<[file: string, style: 'normal' | 'italic', weight: number]>): BundledSource {
+  return { kind: 'bundled', version, unicodeRange: BUNDLED_RANGE, faces: faces.map(([file, style, weight]) => ({ file, style, weight })) }
 }
 
 function font(name: string, category: FontCategory, slug: string, source: FontSource, picker = true): SelfHostedFont {
@@ -83,8 +117,36 @@ export const SELF_HOSTED_FONTS: readonly SelfHostedFont[] = [
   // Fraunces keeps its optical-size axis (the brand's display cuts).
   font('JetBrains Mono', 'mono', 'jetbrains-mono', variable('jetbrains-mono'), false),
   font('IBM Plex Mono', 'mono', 'ibm-plex-mono', staticWeights('ibm-plex-mono', [400, 500, 600, 700]), false),
-  font('Fraunces', 'serif', 'fraunces', variable('fraunces', 'opsz'), false)
+  font('Fraunces', 'serif', 'fraunces', variable('fraunces', 'opsz'), false),
+
+  // Bundled (not on Fontsource): the TeX look — Times / Helvetica clones
+  // of the TeX Gyre collection and Latin Modern (Computer Modern), GUST
+  // Font License, committed in fonts/<slug>/.
+  font('TeX Gyre Termes', 'serif', 'tex-gyre-termes', bundled('2.004', [
+    ['termes-regular.woff2', 'normal', 400], ['termes-italic.woff2', 'italic', 400],
+    ['termes-bold.woff2', 'normal', 700], ['termes-bolditalic.woff2', 'italic', 700]
+  ])),
+  font('TeX Gyre Heros', 'sans', 'tex-gyre-heros', bundled('2.004', [
+    ['heros-regular.woff2', 'normal', 400], ['heros-italic.woff2', 'italic', 400],
+    ['heros-bold.woff2', 'normal', 700], ['heros-bolditalic.woff2', 'italic', 700]
+  ])),
+  font('Latin Modern Roman', 'serif', 'latin-modern-roman', bundled('2.004', [
+    ['lmroman-regular.woff2', 'normal', 400], ['lmroman-italic.woff2', 'italic', 400],
+    ['lmroman-bold.woff2', 'normal', 700], ['lmroman-bolditalic.woff2', 'italic', 700]
+  ])),
+  // Monospace: offered in the code-font picker (CODE_FONT_NAMES), not
+  // in the text pickers.
+  font('Latin Modern Mono', 'mono', 'latin-modern-mono', bundled('2.004', [
+    ['lmmono-regular.woff2', 'normal', 400], ['lmmono-italic.woff2', 'italic', 400],
+    ['lmmono-bold.woff2', 'normal', 700]
+  ]), false)
 ]
+
+/** Families offered for `code.font` (every one is a self-hosted mono family). */
+export const CODE_FONT_NAMES = ['JetBrains Mono', 'IBM Plex Mono', 'Latin Modern Mono'] as const
+
+/** Folder (repo root) holding the bundled families' files. */
+export const BUNDLED_FONTS_DIR = 'fonts'
 
 /** Curated list shown in the theme editor's font pickers. */
 export const THEME_FONTS: ThemeFont[] = SELF_HOSTED_FONTS

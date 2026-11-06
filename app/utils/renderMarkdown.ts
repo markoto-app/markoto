@@ -139,7 +139,7 @@ function commentPlugin(md: MarkdownIt): void {
  * GitHub anchors get the same URLs.
  */
 function defaultSlugify(s: string): string {
-  return s
+  const slug = s
     .toLowerCase()
     .trim()
     .replace(/[\s\u00A0]+/g, '-')
@@ -149,6 +149,59 @@ function defaultSlugify(s: string): string {
     // a SINGLE leading/trailing dash is equivalent to the old /^-+|-+$/
     // (whose `-+$` half backtracks super-linearly).
     .replace(/^-|-$/g, '')
+  return clobberSafeId(slug)
+}
+
+let clobberProbe: HTMLFormElement | null = null
+
+/**
+ * DOMPurify drops an `id` whose value names a property of `document` or of
+ * a `<form>` (`SANITIZE_DOM`, DOM-clobbering protection) — `method`,
+ * `title`, `action`, `images`, `forms`, `length`, … A heading "Method"
+ * therefore lost its `id="method"`: the TOC link pointed nowhere and
+ * paged.js's `target-counter()` printed page 0 for it. Such slugs get a
+ * `-section` suffix (anchor + TOC share this slugify, so both agree).
+ * Checked the way DOMPurify checks, in the same browser; without a DOM
+ * (server-side trusted render, no DOMPurify) slugs stay as they are.
+ */
+export function clobberSafeId(slug: string): string {
+  if (!slug || typeof document === 'undefined') return slug
+  clobberProbe ??= document.createElement('form')
+  return slug in document || slug in clobberProbe ? `${slug}-section` : slug
+}
+
+/**
+ * Wrap every line of a code block's (highlighted, escaped) HTML in
+ * `<span class="code-line" data-line="N">`, closing and re-opening the
+ * highlight spans that cross a line break so the markup stays nested.
+ * The theme makes each line a block (`display: block`), so the newlines
+ * themselves are dropped: paged.js treats whitespace-only text nodes as
+ * ignorable, and a block split over two pages lost the "\n" between its
+ * lines on the second page (all lines ran into one). Block lines also
+ * give paged.js clean break points, the theme its line numbers
+ * (`code.lineNumbers`, `attr(data-line)`) and a line count for the
+ * keep-short-blocks-together rule.
+ */
+export function wrapCodeLines(html: string): string {
+  const lines = html.replace(/\n$/, '').split('\n')
+  const open: string[] = []
+  return lines.map((line, i) => {
+    const prefix = open.join('')
+    for (const m of line.matchAll(/<span\b[^>]*>|<\/span>/g)) {
+      if (m[0].startsWith('</')) open.pop()
+      else open.push(m[0])
+    }
+    return `<span class="code-line" data-line="${i + 1}">${prefix}${line}${'</span>'.repeat(open.length)}</span>`
+  }).join('')
+}
+
+/**
+ * `title="replay.ts"` (or `title='…'` / `title=word`) from a fence's info
+ * string after the language — shown as a caption bar above the block.
+ */
+export function fenceTitle(info: string): string {
+  const m = /(?:^|\s)title=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(info)
+  return (m?.[1] ?? m?.[2] ?? m?.[3] ?? '').trim().slice(0, 200)
 }
 
 // Lazy singleton via createGlobalState: the factory runs once on first
@@ -246,7 +299,7 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
       if (lang && hljs.getLanguage(lang)) {
         try {
           const out = hljs.highlight(str, { language: lang, ignoreIllegals: true }).value
-          return `<pre><code class="hljs language-${lang}">${out}</code></pre>`
+          return `<pre><code class="hljs language-${lang}">${wrapCodeLines(out)}</code></pre>`
         } catch { /* fall through to the plain-class path below */ }
       }
       // Preserve language class even when hljs doesn't recognize the
@@ -255,7 +308,9 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
       // (and any future unknown-lang detector) sees `class="hljs"`
       // only and can't tell what kind of block this is.
       const langClass = lang ? ` language-${lang.replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
-      return `<pre><code class="hljs${langClass}">${escaped}</code></pre>`
+      // Mermaid source is replaced by the diagram; keep it as plain text.
+      const body = lang === 'mermaid' ? escaped : wrapCodeLines(escaped)
+      return `<pre><code class="hljs${langClass}">${body}</code></pre>`
     }
   })
     .use(taskLists, { enabled: true })
@@ -311,6 +366,16 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // `{.class}` on the line right after a table → attributes of the table
   // (instead of an extra empty row). See markdownTableAttrs.ts.
     .use(tableAttrsRowPlugin)
+
+  // ```ts title="replay.ts" → a caption bar above the block. The title is
+  // escaped text; the wrapper is a plain <div> (allowed by the sanitiser).
+  const defaultFence: RenderRule | undefined = md.renderer.rules.fence
+  md.renderer.rules.fence = (tokens, idx, options, env, self) => {
+    const html = defaultFence ? defaultFence(tokens, idx, options, env, self) : self.renderToken(tokens, idx, options)
+    const title = fenceTitle(tokens[idx]?.info ?? '')
+    if (!title) return html
+    return `<div class="code-block"><div class="code-title">${md.utils.escapeHtml(title)}</div>${html}</div>\n`
+  }
 
   // Open all preview links in a new tab. `rel="noopener noreferrer"`
   // prevents the opened page from reaching back into our window.
