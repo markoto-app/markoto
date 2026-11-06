@@ -753,7 +753,14 @@
       "size": "ページサイズ",
       "orientation": "向き",
       "margin": "余白（mm）",
-      "marginHelp": "四辺すべてに均一の余白を設定します。"
+      "marginHelp": "四辺すべてに均一の余白を設定します。",
+      "sideMargins": "辺ごとの余白",
+      "sideMarginsHelp": "値を設定した辺は共通の余白の代わりにその値を使います(例: 下余白を広くする)。",
+      "sideMarginsReset": "共通の余白を使う",
+      "margin_top": "上 (mm)",
+      "margin_right": "右 (mm)",
+      "margin_bottom": "下 (mm)",
+      "margin_left": "左 (mm)"
     },
     "body": {
       "font": "フォント",
@@ -793,7 +800,10 @@
       "levelSize": "サイズ（本文の倍率）",
       "levelItalic": "斜体",
       "levelSmallCaps": "スモールキャップス",
-      "levelReset": "既定値に戻す"
+      "levelReset": "既定値に戻す",
+      "numberingDecimalDot": "1., 1.1., 1.1.1.",
+      "numberingIeee": "I., A., 1), a) (IEEE)",
+      "levelCentered": "中央揃え"
     },
     "align": {
       "left": "左揃え",
@@ -865,7 +875,13 @@
       "bordersNone": "罫線なし",
       "zebra": "行の交互色",
       "zebraHelp": "1行おきに控えめな縞模様を付けます。",
-      "cellPadding": "セルの余白（px）"
+      "cellPadding": "セルの余白（px）",
+      "captionPosition": "キャプションの位置",
+      "captionPositionHelp": "表の直前または直後にある「{code}」で始まる段落が、その表のキャプションになります。",
+      "captionAbove": "表の上",
+      "captionBelow": "表の下",
+      "captionLabel": "表に番号を付ける",
+      "captionLabelHelp": "各キャプションの前に文書の言語で「表 1:」を付けます。"
     },
     "blocks": {
       "imageRadius": "画像の角丸（px）",
@@ -873,7 +889,14 @@
       "blockquoteStyle": "引用ブロックのスタイル",
       "hrStyle": "水平線のスタイル",
       "hrStyleHelp": "`---`（Markdownの水平線）の表示方法です。",
-      "hrThickness": "線の太さ（px）"
+      "hrThickness": "線の太さ（px）",
+      "figureLabel": "図に番号を付ける",
+      "figureLabelHelp": "各画像キャプションの前に文書の言語で「図 1:」を付けます。",
+      "referenceStyle": "参考文献リスト",
+      "referenceStyleHelp": "「参考文献」(または References、Bibliography、Literatur など)という見出しのセクション。",
+      "referencePlain": "他のリストと同じ",
+      "referenceHanging": "ぶら下げインデント",
+      "referenceBrackets": "番号付き [1], [2]"
     },
     "blockquote": {
       "border": "左の縦線",

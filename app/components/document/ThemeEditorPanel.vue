@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { DocTheme, CodeTheme, CodeBackground, CodeFrame, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
+import type { DocTheme, CaptionPosition, CodeTheme, CodeBackground, CodeFrame, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, ReferenceStyle, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { CODE_OPTION_DEFAULTS, headingNumbering, resolveHeadingLevel, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
+import { CODE_OPTION_DEFAULTS, headingNumbering, referenceStyle, resolveCaptions, resolveHeadingLevel, resolvePageMargins, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
 import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
@@ -206,6 +206,59 @@ const headingNumberingModel = computed({
   get: () => headingNumbering(draft.value),
   set: (v: HeadingNumbering) => { draft.value.headings.numbering = v }
 })
+// Captions + reference list (optional fields, see themeOptions).
+const tableCaptionPositionModel = computed({
+  get: () => resolveCaptions(draft.value).tablePosition,
+  set: (v: CaptionPosition) => { draft.value.tables.captionPosition = v }
+})
+const tableCaptionLabelModel = computed({
+  get: () => resolveCaptions(draft.value).tableLabel,
+  set: (v: boolean) => { draft.value.tables.captionLabel = v }
+})
+const figureLabelModel = computed({
+  get: () => resolveCaptions(draft.value).figureLabel,
+  set: (v: boolean) => { draft.value.blocks.figureLabel = v }
+})
+const referenceStyleModel = computed({
+  get: () => referenceStyle(draft.value),
+  set: (v: ReferenceStyle) => { draft.value.blocks.referenceStyle = v }
+})
+const captionPositionItems = computed<Array<{ label: string, value: CaptionPosition }>>(() => [
+  { label: t('theme.tables.captionAbove'), value: 'above' },
+  { label: t('theme.tables.captionBelow'), value: 'below' }
+])
+const referenceStyleItems = computed<Array<{ label: string, value: ReferenceStyle }>>(() => [
+  { label: t('theme.blocks.referencePlain'), value: 'plain' },
+  { label: t('theme.blocks.referenceHanging'), value: 'hanging' },
+  { label: t('theme.blocks.referenceBrackets'), value: 'brackets' }
+])
+// Per-side page margins: each side shows `page.margin` until set; the
+// reset button removes all four (back to the uniform margin).
+type MarginSide = 'top' | 'right' | 'bottom' | 'left'
+const MARGIN_SIDES: readonly MarginSide[] = ['top', 'right', 'bottom', 'left']
+const MARGIN_FIELDS = { top: 'marginTop', right: 'marginRight', bottom: 'marginBottom', left: 'marginLeft' } as const
+const pageMarginsOpen = ref(MARGIN_SIDES.some(side => draft.value.page[MARGIN_FIELDS[side]] !== undefined))
+function onPageMarginsToggle(e: Event) {
+  if (e.target instanceof HTMLDetailsElement) pageMarginsOpen.value = e.target.open
+}
+function pageMargin(side: MarginSide): number {
+  return resolvePageMargins(draft.value)[side]
+}
+function setPageMargin(side: MarginSide, v: number | null | undefined) {
+  if (typeof v === 'number') draft.value.page[MARGIN_FIELDS[side]] = v
+  else clearSideMargin(side)
+}
+function clearSideMargin(side: MarginSide) {
+  const page = draft.value.page
+  if (side === 'top') delete page.marginTop
+  else if (side === 'right') delete page.marginRight
+  else if (side === 'bottom') delete page.marginBottom
+  else delete page.marginLeft
+}
+const hasSideMargins = computed(() => MARGIN_SIDES.some(side => draft.value.page[MARGIN_FIELDS[side]] !== undefined))
+function resetSideMargins() {
+  for (const side of MARGIN_SIDES) clearSideMargin(side)
+}
 const headerRuleModel = computed({
   get: () => runningRule(draft.value.header),
   set: (v: boolean) => { draft.value.header.rule = v }
@@ -264,6 +317,7 @@ function setLevelField<K extends keyof HeadingLevelStyle>(key: HeadingLevelKey, 
   if (merged.weight !== undefined) entry.weight = merged.weight
   if (merged.style !== undefined) entry.style = merged.style
   if (merged.smallCaps !== undefined) entry.smallCaps = merged.smallCaps
+  if (merged.align !== undefined) entry.align = merged.align
   draft.value.headings.levels = levelsWith(key, entry)
 }
 function levelNumber(key: HeadingLevelKey): number {
@@ -292,6 +346,12 @@ function setLevelItalic(key: HeadingLevelKey, v: boolean) {
   const style: HeadingStyle = v ? 'italic' : 'normal'
   setLevelField(key, 'style', style)
 }
+function levelCentered(key: HeadingLevelKey): boolean {
+  return resolveHeadingLevel(draft.value, levelNumber(key)).align === 'center'
+}
+function setLevelCentered(key: HeadingLevelKey, v: boolean) {
+  setLevelField(key, 'align', v ? 'center' : undefined)
+}
 function levelSmallCaps(key: HeadingLevelKey): boolean {
   return resolveHeadingLevel(draft.value, levelNumber(key)).smallCaps
 }
@@ -307,7 +367,9 @@ function resetLevel(key: HeadingLevelKey) {
 
 const headingNumberingItems = computed<Array<{ label: string, value: HeadingNumbering }>>(() => [
   { label: t('theme.headings.numberingNone'), value: 'none' },
-  { label: t('theme.headings.numberingDecimal'), value: 'decimal' }
+  { label: t('theme.headings.numberingDecimal'), value: 'decimal' },
+  { label: t('theme.headings.numberingDecimalDot'), value: 'decimal-dot' },
+  { label: t('theme.headings.numberingIeee'), value: 'ieee' }
 ])
 /**
  * SYSTEM_CODE_FONT stands for "system monospace" in the picker (the field
@@ -481,6 +543,7 @@ const fontPickerItems = computed(() => [
 // Header/footer token chips — cursor-aware insertion via data-* attrs.
 const tokenChips = [
   { token: '{title}' },
+  { token: '{section}' },
   { token: '{date}' },
   { token: '{page}' },
   { token: '{pages}' }
@@ -1106,6 +1169,50 @@ function deleteSaved(saved: SavedTheme) {
                   class="w-full"
                 />
               </UFormField>
+              <!-- Per-side margins (page.marginTop/Right/Bottom/Left):
+                   collapsed unless the theme already sets one. -->
+              <details
+                class="rounded-md border border-default"
+                data-testid="theme-page-margins"
+                :open="pageMarginsOpen"
+                @toggle="onPageMarginsToggle"
+              >
+                <summary class="cursor-pointer select-none px-3 py-2 text-sm font-medium">
+                  {{ t('theme.page.sideMargins') }}
+                </summary>
+                <div class="space-y-3 px-3 pb-3">
+                  <p class="text-xs text-muted">
+                    {{ t('theme.page.sideMarginsHelp') }}
+                  </p>
+                  <div class="grid grid-cols-2 gap-2">
+                    <UFormField
+                      v-for="side in MARGIN_SIDES"
+                      :key="side"
+                      :label="t(`theme.page.margin_${side}`)"
+                    >
+                      <UInputNumber
+                        :model-value="pageMargin(side)"
+                        :min="0"
+                        :max="60"
+                        :step="1"
+                        class="w-full"
+                        :data-testid="`theme-page-margin-${side}`"
+                        @update:model-value="(v: number | null | undefined) => setPageMargin(side, v)"
+                      />
+                    </UFormField>
+                  </div>
+                  <UButton
+                    v-if="hasSideMargins"
+                    size="xs"
+                    color="neutral"
+                    variant="ghost"
+                    data-testid="theme-page-margins-reset"
+                    @click="resetSideMargins"
+                  >
+                    {{ t('theme.page.sideMarginsReset') }}
+                  </UButton>
+                </div>
+              </details>
             </div>
           </template>
 
@@ -1392,6 +1499,12 @@ function deleteSaved(saved: SavedTheme) {
                         :model-value="levelSmallCaps(key)"
                         :label="t('theme.headings.levelSmallCaps')"
                         @update:model-value="(v: boolean) => setLevelSmallCaps(key, v)"
+                      />
+                      <USwitch
+                        :model-value="levelCentered(key)"
+                        :label="t('theme.headings.levelCentered')"
+                        :data-testid="`theme-heading-level-${key}-centered`"
+                        @update:model-value="(v: boolean) => setLevelCentered(key, v)"
                       />
                     </div>
                   </div>
@@ -1797,6 +1910,26 @@ function deleteSaved(saved: SavedTheme) {
                   class="w-full"
                 />
               </UFormField>
+              <UFormField
+                :label="t('theme.tables.captionPosition')"
+                :help="t('theme.tables.captionPositionHelp', { code: 'Table: …' })"
+              >
+                <USelect
+                  v-model="tableCaptionPositionModel"
+                  :items="captionPositionItems"
+                  class="w-full"
+                  data-testid="theme-tables-caption-position"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.tables.captionLabel')"
+                :help="t('theme.tables.captionLabelHelp')"
+              >
+                <USwitch
+                  v-model="tableCaptionLabelModel"
+                  data-testid="theme-tables-caption-label"
+                />
+              </UFormField>
             </div>
           </template>
 
@@ -1851,6 +1984,26 @@ function deleteSaved(saved: SavedTheme) {
                   :min="1"
                   :max="6"
                   class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.blocks.figureLabel')"
+                :help="t('theme.blocks.figureLabelHelp')"
+              >
+                <USwitch
+                  v-model="figureLabelModel"
+                  data-testid="theme-blocks-figure-label"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.blocks.referenceStyle')"
+                :help="t('theme.blocks.referenceStyleHelp')"
+              >
+                <USelect
+                  v-model="referenceStyleModel"
+                  :items="referenceStyleItems"
+                  class="w-full"
+                  data-testid="theme-blocks-reference-style"
                 />
               </UFormField>
             </div>

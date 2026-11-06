@@ -24,6 +24,7 @@ import { createGlobalState } from '@vueuse/core'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
 import { tableAttrsRowPlugin } from './markdownTableAttrs'
 import { unnumberedShorthandPlugin } from './markdownUnnumbered'
+import { tablePlugin } from './markdownTables'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
@@ -381,6 +382,9 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // `{.class}` on the line right after a table → attributes of the table
   // (instead of an extra empty row). See markdownTableAttrs.ts.
     .use(tableAttrsRowPlugin)
+  // `Table: …` next to a table → <caption>; numbers + units in cells
+  // never part. See markdownTables.ts.
+    .use(tablePlugin)
 
   // ```ts title="replay.ts" → a caption bar above the block. The title is
   // escaped text; the wrapper is a plain <div> (allowed by the sanitiser).

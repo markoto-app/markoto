@@ -75,7 +75,8 @@ describe('documentTexts', () => {
 
   it('uses the picked publication date', () => {
     expect(documentTexts(cover('2026-10-29'), 'de', now)).toEqual({
-      locale: 'de', dateIso: '2026-10-29', date: '29. Oktober 2026', tocTitle: 'Inhalt'
+      locale: 'de', dateIso: '2026-10-29', date: '29. Oktober 2026', tocTitle: 'Inhalt',
+      captionLabels: { table: 'Tabelle', figure: 'Abbildung', separator: ': ' }
     })
   })
 

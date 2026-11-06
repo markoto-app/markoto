@@ -4,7 +4,10 @@ import { wrapFirstLetterAsDropCap } from './dropcapWrap'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
 import { extractAbstract, markAbstract, markUnnumbered } from './titleBlock'
 import { pruneTocDepth } from './tocDepth'
-import { headingNumbering } from '~~/shared/utils/themeOptions'
+import { markHeadingStructure } from './headingStructure'
+import { markReferences } from './references'
+import { moveCaptionsBelow } from './tableCaptions'
+import { headingNumbering, resolveCaptions } from '~~/shared/utils/themeOptions'
 
 /**
  * Combine the cover page + body markdown render + optional drop-cap
@@ -49,7 +52,7 @@ export function composeFinalHtml(opts: {
   // Papers: the document's leading "Abstract" section moves into the
   // title block on page 1 (app/utils/titleBlock.ts); elsewhere it stays
   // and is only marked so heading numbers skip it.
-  const numbered = headingNumbering(theme) === 'decimal'
+  const numbered = headingNumbering(theme) !== 'none'
   if (theme.cover.enabled && theme.cover.layout === 'title-block') {
     ({ abstractHtml, bodyHtml } = extractAbstract(bodyHtml))
   } else if (numbered) {
@@ -58,6 +61,11 @@ export function composeFinalHtml(opts: {
   // `{.unnumbered}` headings: their TOC entries are skipped by the TOC
   // numbers too (the headings themselves carry the class).
   if (numbered) bodyHtml = markUnnumbered(bodyHtml)
+  // Section markers ({section} token, first section, numbering base),
+  // the reference list, table captions below their table.
+  bodyHtml = markHeadingStructure(bodyHtml, numbered)
+  bodyHtml = markReferences(bodyHtml)
+  if (resolveCaptions(theme).tablePosition === 'below') bodyHtml = moveCaptionsBelow(bodyHtml)
   const coverHtml = buildCoverHtml(theme, title || '', date, abstractHtml)
   let html = coverHtml + bodyHtml
   if (theme.body.dropCap) {

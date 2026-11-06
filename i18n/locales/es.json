@@ -753,7 +753,14 @@
       "size": "Tamaño de página",
       "orientation": "Orientación",
       "margin": "Margen (mm)",
-      "marginHelp": "Margen uniforme en los cuatro lados."
+      "marginHelp": "Margen uniforme en los cuatro lados.",
+      "sideMargins": "Márgenes por lado",
+      "sideMarginsHelp": "Un valor sustituye el margen uniforme en ese lado, por ejemplo para un margen inferior mayor.",
+      "sideMarginsReset": "Usar el margen uniforme",
+      "margin_top": "Superior (mm)",
+      "margin_right": "Derecho (mm)",
+      "margin_bottom": "Inferior (mm)",
+      "margin_left": "Izquierdo (mm)"
     },
     "body": {
       "font": "Fuente",
@@ -793,7 +800,10 @@
       "levelSize": "Tamaño (× cuerpo)",
       "levelItalic": "Cursiva",
       "levelSmallCaps": "Versalitas",
-      "levelReset": "Usar valores predeterminados"
+      "levelReset": "Usar valores predeterminados",
+      "numberingDecimalDot": "1., 1.1., 1.1.1.",
+      "numberingIeee": "I., A., 1), a) (IEEE)",
+      "levelCentered": "Centrado"
     },
     "align": {
       "left": "Izquierda",
@@ -865,7 +875,13 @@
       "bordersNone": "Sin bordes",
       "zebra": "Colores de fila alternos",
       "zebraHelp": "Franjas sutiles en filas alternas.",
-      "cellPadding": "Relleno de celda (px)"
+      "cellPadding": "Relleno de celda (px)",
+      "captionPosition": "Posición del título",
+      "captionPositionHelp": "Un párrafo que empieza por «{code}» justo antes o después de una tabla se convierte en su título.",
+      "captionAbove": "Encima de la tabla",
+      "captionBelow": "Debajo de la tabla",
+      "captionLabel": "Numerar las tablas",
+      "captionLabelHelp": "Añade «Tabla 1:» en el idioma del documento delante de cada título."
     },
     "blocks": {
       "imageRadius": "Radio de imagen (px)",
@@ -873,7 +889,14 @@
       "blockquoteStyle": "Estilo de cita en bloque",
       "hrStyle": "Estilo de regla horizontal",
       "hrStyleHelp": "Cómo se muestra `---` (regla horizontal de Markdown).",
-      "hrThickness": "Grosor de la regla (px)"
+      "hrThickness": "Grosor de la regla (px)",
+      "figureLabel": "Numerar las figuras",
+      "figureLabelHelp": "Añade «Figura 1:» en el idioma del documento delante de cada pie de imagen.",
+      "referenceStyle": "Lista de referencias",
+      "referenceStyleHelp": "La sección titulada «Referencias» (o Bibliografía, References, Literatur …).",
+      "referencePlain": "Como otras listas",
+      "referenceHanging": "Sangría francesa",
+      "referenceBrackets": "Numerada [1], [2]"
     },
     "blockquote": {
       "border": "Borde izquierdo",

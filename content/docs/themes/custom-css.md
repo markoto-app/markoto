@@ -102,8 +102,35 @@ fixed colors, and your rules follow the theme when you change it:
 | `--doc-text` | Body text |
 | `--doc-bg` | Paper |
 | `--doc-heading-color` | Headings |
+| `--doc-accent` | Same as `--doc-brand` |
 
-For example `border-bottom: 2px solid var(--doc-brand)`.
+The fonts are variables too, so a rule can follow the fonts you pick:
+
+| Variable | Font |
+|---|---|
+| `--doc-body-font` | Body text |
+| `--doc-heading-font` | Headings |
+| `--doc-meta-font` | Header, footer and captions |
+| `--doc-mono-font` | Code |
+
+For example `border-bottom: 2px solid var(--doc-brand)` or
+`font-family: var(--doc-heading-font)`.
+
+### Document structure
+
+markoto marks parts of the text so that CSS can find them, also after the
+text has been split into pages:
+
+| Selector | What it styles |
+|---|---|
+| `.paged-doc .markoto-first-section` | The first top-level heading of the text (not the first one on every page). |
+| `.paged-doc .markoto-section-heading` | Every top-level heading (heading 1, or heading 2 if the text has no heading 1). |
+| `.paged-doc .markoto-references` | The lists and paragraphs of the *References* section; its heading is `.markoto-references-heading`. |
+| `.paged-doc table > caption` | A table caption (`Table: …`). |
+
+`h1:first-of-type` does not work for "the first heading": every page
+starts its own copy of the document, so it matches the first heading on
+each page.
 
 ### Pages, headers and footers
 

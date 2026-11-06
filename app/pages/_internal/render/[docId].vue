@@ -148,6 +148,7 @@ onMounted(async () => {
     title,
     date: texts.date,
     tocTitle: texts.tocTitle,
+    captionLabels: texts.captionLabels,
     customCss,
     imageUrl: url => withRenderFileToken(url, fileAccess)
   })

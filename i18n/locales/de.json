@@ -753,7 +753,14 @@
       "size": "Seitengrösse",
       "orientation": "Ausrichtung",
       "margin": "Rand (mm)",
-      "marginHelp": "Einheitlicher Rand auf allen vier Seiten."
+      "marginHelp": "Einheitlicher Rand auf allen vier Seiten.",
+      "sideMargins": "Ränder pro Seite",
+      "sideMarginsHelp": "Ein gesetzter Wert ersetzt den einheitlichen Rand auf dieser Seite, z. B. für einen tieferen unteren Rand.",
+      "sideMarginsReset": "Einheitlichen Rand verwenden",
+      "margin_top": "Oben (mm)",
+      "margin_right": "Rechts (mm)",
+      "margin_bottom": "Unten (mm)",
+      "margin_left": "Links (mm)"
     },
     "body": {
       "font": "Schriftart",
@@ -793,7 +800,10 @@
       "levelSize": "Grösse (× Fliesstext)",
       "levelItalic": "Kursiv",
       "levelSmallCaps": "Kapitälchen",
-      "levelReset": "Standardwerte verwenden"
+      "levelReset": "Standardwerte verwenden",
+      "numberingDecimalDot": "1., 1.1., 1.1.1.",
+      "numberingIeee": "I., A., 1), a) (IEEE)",
+      "levelCentered": "Zentriert"
     },
     "align": {
       "left": "Links",
@@ -865,7 +875,13 @@
       "bordersNone": "Keine Ränder",
       "zebra": "Abwechselnde Zeilenfarben",
       "zebraHelp": "Dezente Streifen auf jeder zweiten Zeile.",
-      "cellPadding": "Zellenabstand (px)"
+      "cellPadding": "Zellenabstand (px)",
+      "captionPosition": "Position der Beschriftung",
+      "captionPositionHelp": "Ein Absatz, der mit „{code}“ beginnt und direkt vor oder nach einer Tabelle steht, wird zu ihrer Beschriftung.",
+      "captionAbove": "Über der Tabelle",
+      "captionBelow": "Unter der Tabelle",
+      "captionLabel": "Tabellen nummerieren",
+      "captionLabelHelp": "Setzt „Tabelle 1:“ in der Sprache des Dokuments vor jede Beschriftung."
     },
     "blocks": {
       "imageRadius": "Bildradius (px)",
@@ -873,7 +889,14 @@
       "blockquoteStyle": "Zitatstil",
       "hrStyle": "Stil der horizontalen Linie",
       "hrStyleHelp": "Wie `---` (horizontale Markdown-Linie) dargestellt wird.",
-      "hrThickness": "Liniendicke (px)"
+      "hrThickness": "Liniendicke (px)",
+      "figureLabel": "Abbildungen nummerieren",
+      "figureLabelHelp": "Setzt „Abbildung 1:“ in der Sprache des Dokuments vor jede Bildbeschriftung.",
+      "referenceStyle": "Literaturverzeichnis",
+      "referenceStyleHelp": "Der Abschnitt mit der Überschrift „Literatur“ (oder References, Bibliography, Références …).",
+      "referencePlain": "Wie andere Listen",
+      "referenceHanging": "Hängender Einzug",
+      "referenceBrackets": "Nummeriert [1], [2]"
     },
     "blockquote": {
       "border": "Linker Rand",

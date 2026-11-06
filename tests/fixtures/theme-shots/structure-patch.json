@@ -1,0 +1,6 @@
+{
+  "headings": { "numbering": "decimal" },
+  "header": { "left": "{section}", "center": "", "right": "{title}" },
+  "tables": { "captionLabel": true },
+  "blocks": { "figureLabel": true, "referenceStyle": "brackets" }
+}

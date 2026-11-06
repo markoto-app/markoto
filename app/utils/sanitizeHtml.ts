@@ -12,7 +12,7 @@ import createDOMPurify, { type DOMPurify, type UponSanitizeAttributeHookEvent } 
 
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
-    'a', 'abbr', 'b', 'blockquote', 'br', 'code', 'dd', 'del', 'div', 'dl',
+    'a', 'abbr', 'b', 'blockquote', 'br', 'caption', 'code', 'dd', 'del', 'div', 'dl',
     'dt', 'em', 'figcaption', 'figure', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
     'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'nav', 'ol', 'p', 'pre',
     's', 'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',

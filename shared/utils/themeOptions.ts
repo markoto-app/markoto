@@ -1,4 +1,4 @@
-import type { CodeBackground, CodeFrame, DocTheme, HeadingLevelKey, HeadingNumbering, HeadingStyle, RunningSlots } from '../types/theme'
+import type { CaptionPosition, CodeBackground, CodeFrame, DocTheme, HeadingAlign, HeadingLevelKey, HeadingNumbering, HeadingStyle, ReferenceStyle, RunningSlots } from '../types/theme'
 
 /**
  * Defaults for the OPTIONAL theme fields (added after themes were already
@@ -74,6 +74,7 @@ export interface ResolvedHeadingLevel {
   weight: number
   style: HeadingStyle
   smallCaps: boolean
+  align: HeadingAlign
 }
 
 /** Look of heading level 1–6: `headings.levels.hN` (h1–h4) over the theme-wide values. */
@@ -84,8 +85,53 @@ export function resolveHeadingLevel(theme: DocTheme, level: number): ResolvedHea
     size: entry?.size ?? null,
     weight: entry?.weight ?? theme.headings.weight,
     style: entry?.style ?? 'normal',
-    smallCaps: entry?.smallCaps ?? false
+    smallCaps: entry?.smallCaps ?? false,
+    align: entry?.align ?? 'left'
   }
+}
+
+export interface ResolvedPageMargins {
+  top: number
+  right: number
+  bottom: number
+  left: number
+}
+
+/** Page margins in mm: `page.marginTop/Right/Bottom/Left`, each falling back to `page.margin`. */
+export function resolvePageMargins(theme: DocTheme): ResolvedPageMargins {
+  const p = theme.page
+  return {
+    top: p.marginTop ?? p.margin,
+    right: p.marginRight ?? p.margin,
+    bottom: p.marginBottom ?? p.margin,
+    left: p.marginLeft ?? p.margin
+  }
+}
+
+export interface ResolvedCaptions {
+  tablePosition: CaptionPosition
+  tableLabel: boolean
+  figureLabel: boolean
+}
+
+export const CAPTION_DEFAULTS: ResolvedCaptions = {
+  tablePosition: 'above',
+  tableLabel: false,
+  figureLabel: false
+}
+
+/** Table / figure caption options (`tables.captionPosition`, `tables.captionLabel`, `blocks.figureLabel`). */
+export function resolveCaptions(theme: DocTheme): ResolvedCaptions {
+  return {
+    tablePosition: theme.tables.captionPosition ?? CAPTION_DEFAULTS.tablePosition,
+    tableLabel: theme.tables.captionLabel ?? CAPTION_DEFAULTS.tableLabel,
+    figureLabel: theme.blocks.figureLabel ?? CAPTION_DEFAULTS.figureLabel
+  }
+}
+
+/** `blocks.referenceStyle` — absent = `plain`. */
+export function referenceStyle(theme: DocTheme): ReferenceStyle {
+  return theme.blocks.referenceStyle ?? 'plain'
 }
 
 function isLevelKey(key: string): key is HeadingLevelKey {
@@ -93,16 +139,20 @@ function isLevelKey(key: string): key is HeadingLevelKey {
 }
 
 /**
- * Fill every optional field with its default (except `cover.titleWeight`,
- * which inherits `headings.weight` while absent) — for UIs that bind each
+ * Fill every optional field with its default (except the inheriting ones:
+ * `cover.titleWeight` follows `headings.weight` and `page.marginTop/Right/
+ * Bottom/Left` follow `page.margin` while absent) — for UIs that bind each
  * field (theme panel) and for showing a theme in full (`get_theme`).
  * Returns a new object; `theme` is not changed.
  */
 export function withThemeDefaults(theme: DocTheme): DocTheme {
   const code = resolveCodeOptions(theme)
   const tb = resolveTitleBlock(theme)
+  const captions = resolveCaptions(theme)
   return {
     ...theme,
+    tables: { ...theme.tables, captionPosition: captions.tablePosition, captionLabel: captions.tableLabel },
+    blocks: { ...theme.blocks, figureLabel: captions.figureLabel, referenceStyle: referenceStyle(theme) },
     headings: { ...theme.headings, numbering: headingNumbering(theme), levels: theme.headings.levels ?? {} },
     header: { ...theme.header, rule: runningRule(theme.header) },
     footer: { ...theme.footer, rule: runningRule(theme.footer) },

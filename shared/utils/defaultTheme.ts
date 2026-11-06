@@ -104,14 +104,18 @@ export const defaultTheme: DocTheme = {
     headerTextColor: 'inherit',
     borders: 'minimal',
     zebra: false,
-    cellPadding: 8
+    cellPadding: 8,
+    captionPosition: 'above',
+    captionLabel: false // "Table 1: " before captions
   },
   blocks: {
     imageRadius: 0, // sharp print corners, not iOS
     imageMaxWidth: 92,
     blockquoteStyle: 'border',
     hrStyle: 'asterism', // editorial signature — Penguin Classics scene break
-    hrThickness: 1 // unused for asterism, kept for schema completeness
+    hrThickness: 1, // unused for asterism, kept for schema completeness
+    figureLabel: false, // "Figure 1: " before captions
+    referenceStyle: 'plain' // reference list like any other list
   },
   mermaid: {
     theme: 'document'
