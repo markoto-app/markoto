@@ -1,0 +1,9 @@
+{
+  "cover": {
+    "showSubtitle": true,
+    "subtitle": "A novel",
+    "showAuthors": true,
+    "authors": ["Anne-Sophie Riou"],
+    "showDate": false
+  }
+}
