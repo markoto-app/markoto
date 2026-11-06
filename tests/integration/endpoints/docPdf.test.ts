@@ -14,6 +14,9 @@
 // renderer-test (all in docker-compose.test.yml). `bun run test:integration:up`
 // brings them up.
 
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { resetDb, testDb, ensureYjsTable } from '../setup/db'
@@ -338,6 +341,45 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(termes.length, summary).toBeGreaterThan(0)
       expect(lmMono.length, summary).toBeGreaterThan(0)
       for (const f of [...termes, ...lmMono]) expect(f.subtype, summary).not.toBe('Type3')
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // The arXiv preprint preset end to end: Letter pages, title block,
+    // running head with its rule, the preset's template CSS (sanitised at
+    // render like any custom CSS) and the bundled Termes / Latin Modern
+    // Mono — embedded as TrueType, never as Type 3 glyph procedures.
+    it('renders the arXiv preprint fixture over several pages with Termes embedded as TrueType', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
+      if (!arxiv) throw new Error('arxiv preset missing')
+      expect(arxiv.customCss).toBeTruthy()
+      const theme = { ...arxiv, cover: { ...arxiv.cover, authors: ['David S. Hippocampus', 'Elias D. Striatum'], affiliations: ['Cranberry-Lemon University', 'Mount-Sheikh University'] } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/arxiv.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(2)
+      expect(Number(pageCount)).toBeLessThanOrEqual(4)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // US Letter: 612 × 792 pt.
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+612(?:\.0+)?\s+792(?:\.0+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const termes = fonts.filter(f => /TeXGyreTermes/.test(f.name))
+      expect(termes.length, summary).toBeGreaterThan(0)
+      // Regular, bold (sections) and italic (references) faces all used.
+      expect(new Set(termes.map(f => f.name.replace(/^[A-Z]{6}\+/, ''))).size, summary).toBeGreaterThanOrEqual(3)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
 
       await wipeRendersFor(doc.docId)
     }, 90_000)

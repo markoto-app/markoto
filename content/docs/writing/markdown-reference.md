@@ -4,7 +4,7 @@ description: Every syntax markoto renders in the preview and PDF - formatting, a
 category: writing
 order: 3.5
 icon: i-lucide-file-text
-updated: '2026-11-04'
+updated: '2026-11-06'
 ---
 
 # Markdown reference
@@ -36,6 +36,10 @@ paragraph.
 ## Structure
 
 - Headings with `#` to `######`. Every heading gets an anchor id.
+- When the theme numbers sections, `# References {.unnumbered}` (or the
+  shorter `# References {-}`) leaves that heading without a number; the
+  numbering of the other headings carries on as if it weren't there, and
+  its table-of-contents entry has no number either.
 - Lists: `-`, `*` or `+` for bullets, `1.` for numbers, indent two spaces to nest.
 - Task lists: `- [ ] todo` and `- [x] done`.
 - Definition lists: a term on one line, then `: definition` on the next.

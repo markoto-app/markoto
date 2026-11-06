@@ -29,7 +29,22 @@ A few settings worth knowing:
   sizes are for the cover page; set them with the cover's title size.
 - **Numbered sections.** *Numbering* puts 1, 1.1, 1.1.1 in front of
   headings 1 to 4, and the same numbers in the table of contents. The
-  cover title and a leading *Abstract* section get none.
+  cover title and a leading *Abstract* section get none. To leave out
+  another heading, such as the references, write `{.unnumbered}` after
+  it: `# References {.unnumbered}`. The sections after it keep counting
+  as if it weren't there.
+- **One heading level at a time.** *Per level*, at the end of the
+  Headings section, sets the size (as a multiple of the body text), the
+  weight, italics or small capitals for heading 1, 2, 3 or 4 on its own,
+  for formats that prescribe them: an arXiv preprint has 12 pt bold
+  sections over 10 pt text, an IEEE paper small-capital sections and
+  italic subsections. A level you don't touch follows the scale ratio;
+  *Use defaults* hands a level back to it.
+- **A rule under the header.** *Rule under the header* in the Page header
+  section draws a thin line across the full text width, right under the
+  header text, and moves the header close to the text, as in a journal or
+  a LaTeX document. *Rule above the footer* does the same for the footer.
+  Pages without a header (the cover page, page 1 of a paper) get no rule.
 - **Code blocks.** Pick a color theme and a code font (Latin Modern Mono
   gives the LaTeX typewriter look). Light themes get a faint background
   so a block doesn't float on the page; *Background* and *Frame* (an

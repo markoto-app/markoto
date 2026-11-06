@@ -1,0 +1,16 @@
+{
+  "cover": {
+    "enabled": true,
+    "layout": "title-block",
+    "showAuthors": true,
+    "authors": ["Noor Haddad", "Linus Berg", "Chiara Rossi"],
+    "affiliations": ["School of Computing\nUniversity of Lund-Aalborg\nnoor.haddad@example.org", "Embedded Systems Lab\nNordvik Institute of Technology\nlinus.berg@example.org", "Edge Platforms Group\nAltaris Research\nchiara.rossi@example.com"],
+    "showSubtitle": false,
+    "subtitle": "",
+    "showDate": false,
+    "rules": false,
+    "smallCaps": false,
+    "titleSize": 1.6,
+    "subtitleSize": 1
+  }
+}

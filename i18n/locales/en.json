@@ -784,9 +784,16 @@
       "spacingScaleHelp": "Multiplier on the space above headings. 1.0 = print default, 1.5 = editorial breathing.",
       "scaleOption": "{ratio} (heading 1 = {h1}× body)",
       "numbering": "Numbering",
-      "numberingHelp": "Numbers headings 1 to 4 (1, 1.1, 1.1.1) and their table-of-contents entries. A leading “Abstract” section is not numbered.",
+      "numberingHelp": "Numbers headings 1 to 4 (1, 1.1, 1.1.1) and their table-of-contents entries. A leading “Abstract” section is not numbered; mark any other heading with {code}, e.g. “# References {code}”.",
       "numberingNone": "None",
-      "numberingDecimal": "1, 1.1, 1.1.1"
+      "numberingDecimal": "1, 1.1, 1.1.1",
+      "levels": "Per level",
+      "levelsHelp": "Set size, weight, italics or small capitals for one heading level. Anything you leave alone follows the scale and weight above.",
+      "levelTitle": "Heading {level}",
+      "levelSize": "Size (× body)",
+      "levelItalic": "Italic",
+      "levelSmallCaps": "Small capitals",
+      "levelReset": "Use defaults"
     },
     "align": {
       "left": "Left",
@@ -818,7 +825,10 @@
       "imageHelp": "Optional logo or mark rendered in the running header on every body page (the cover page suppresses headers automatically).",
       "imagePosition": "Image position",
       "imageHeight": "Image height",
-      "uploadImage": "Upload image"
+      "uploadImage": "Upload image",
+      "ruleHeader": "Rule under the header",
+      "ruleFooter": "Rule above the footer",
+      "ruleHelp": "A thin line across the full text width. The text moves next to it."
     },
     "code": {
       "theme": "Color theme",
@@ -929,7 +939,9 @@
       "rules": "Rules above and below the title",
       "rulesHelp": "Heavy horizontal rules, as on an arXiv preprint.",
       "smallCaps": "Title in small capitals",
-      "affiliationPlaceholder": "Affiliation (department, institution, e-mail; one per line)"
+      "affiliationPlaceholder": "Affiliation (department, institution, e-mail; one per line)",
+      "titleWeight": "Title weight",
+      "titleWeightInherit": "Same as headings ({weight})"
     },
     "brand": {
       "logo": "Brand logo",
@@ -998,6 +1010,10 @@
       "academic": {
         "name": "Academic Paper",
         "description": "Two-column Source Serif body, a title block with authors and abstract on page 1, numbered sections, minimal table borders — journal-style."
+      },
+      "arxiv": {
+        "name": "arXiv preprint",
+        "description": "The arXiv LaTeX preprint look: US Letter, Times 10 pt justified, numbered bold sections, a title block between heavy rules in small capitals, “A Preprint” running head over a thin rule."
       },
       "tech": {
         "name": "Tech Report",

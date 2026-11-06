@@ -59,6 +59,10 @@ preset uses it.
   heavy lines around the title, as on an arXiv preprint; *Title in small
   capitals* sets title and subtitle in small caps (this one works with
   every layout).
+- **Title weight.** The title is as bold as your headings unless you
+  pick its own weight under *Title weight*, for example a regular-weight
+  title over bold sections, as on an arXiv preprint. This works with every
+  layout.
 
 Page 1 shows no page header with the title block; the footer stays.
 

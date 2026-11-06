@@ -1,0 +1,16 @@
+{
+  "cover": {
+    "enabled": true,
+    "layout": "title-block",
+    "showSubtitle": true,
+    "subtitle": "Product one-pager · November 2026",
+    "showAuthors": false,
+    "authors": [],
+    "showDate": false,
+    "rules": false,
+    "smallCaps": false,
+    "titleSize": 1.8,
+    "subtitleSize": 1,
+    "showLogo": false
+  }
+}

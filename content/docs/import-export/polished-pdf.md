@@ -4,7 +4,7 @@ description: What you see in the preview is what lands in the PDF. Export it fro
 category: import-export
 order: 1
 featured: true
-updated: '2026-11-02'
+updated: '2026-11-06'
 ---
 
 # Polish your doc and download it as a PDF
@@ -35,6 +35,6 @@ prints the same paged view.
 
 ## What's next
 
-- [Pick a theme](/docs/themes/pick-a-theme): eight presets, each one exactly what the PDF will look like.
+- [Pick a theme](/docs/themes/pick-a-theme): nine presets, each one exactly what the PDF will look like.
 - [Edit your cover page](/docs/themes/cover-page): title, subtitle, logo and layout.
 - [Lock the doc with a password](/docs/sharing/password-protect): gate the link (and the PDF) behind a passphrase.
