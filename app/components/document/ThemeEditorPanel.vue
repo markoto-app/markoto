@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import type { DocTheme, CodeTheme, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
+import type { DocTheme, CodeTheme, CodeBackground, CodeFrame, HeadingNumbering, MermaidTheme, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { CODE_OPTION_DEFAULTS, headingNumbering, resolveTitleBlock } from '~~/shared/utils/themeOptions'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
@@ -53,7 +54,7 @@ watch(draft, (next) => {
 // the files download once a dropdown item shows text in that family.
 if (import.meta.client) {
   useHead({
-    link: fontStylesheetUrls(THEME_FONTS.map(f => f.name)).map(href => ({
+    link: fontStylesheetUrls([...THEME_FONTS.map(f => f.name), ...CODE_FONT_NAMES]).map(href => ({
       key: `theme-font-picker-preview-${href}`,
       rel: 'stylesheet',
       href
@@ -86,6 +87,7 @@ const sectionItems = computed(() => [
 // Static option lists
 const pageSizeItems = [
   { label: 'A4 (210 × 297 mm)', value: 'A4' },
+  { label: 'A5 (148 × 210 mm)', value: 'A5' },
   { label: 'Letter (8.5 × 11 in)', value: 'Letter' },
   { label: 'Legal (8.5 × 14 in)', value: 'Legal' }
 ]
@@ -114,7 +116,8 @@ const coverLayoutItems = computed(() => [
   { label: t('theme.cover.layoutClassic'), value: 'classic' },
   { label: t('theme.cover.layoutEditorial'), value: 'editorial' },
   { label: t('theme.cover.layoutBanner'), value: 'banner' },
-  { label: t('theme.cover.layoutMinimal'), value: 'minimal' }
+  { label: t('theme.cover.layoutMinimal'), value: 'minimal' },
+  { label: t('theme.cover.layoutTitleBlock'), value: 'title-block' }
 ])
 const coverAlignItems = computed(() => [
   { label: t('theme.align.left'), value: 'left' },
@@ -173,7 +176,76 @@ function addAuthor() {
 }
 function removeAuthor(idx: number) {
   draft.value.cover.authors = draft.value.cover.authors.filter((_, i) => i !== idx)
+  const affiliations = draft.value.cover.affiliations
+  if (affiliations) draft.value.cover.affiliations = affiliations.filter((_, i) => i !== idx)
 }
+
+// Optional theme fields (absent in themes stored before they existed):
+// read through their defaults, written only when the user changes them —
+// opening the panel must not rewrite the document's theme.
+function affiliationAt(idx: number): string {
+  return resolveTitleBlock(draft.value).affiliations[idx] ?? ''
+}
+function setAffiliation(idx: number, value: string | number) {
+  const next = [...resolveTitleBlock(draft.value).affiliations]
+  while (next.length < draft.value.cover.authors.length) next.push('')
+  next[idx] = String(value)
+  draft.value.cover.affiliations = next.slice(0, draft.value.cover.authors.length)
+}
+const coverRules = computed({
+  get: () => resolveTitleBlock(draft.value).rules,
+  set: (v: boolean) => { draft.value.cover.rules = v }
+})
+const coverSmallCaps = computed({
+  get: () => resolveTitleBlock(draft.value).smallCaps,
+  set: (v: boolean) => { draft.value.cover.smallCaps = v }
+})
+const headingNumberingModel = computed({
+  get: () => headingNumbering(draft.value),
+  set: (v: HeadingNumbering) => { draft.value.headings.numbering = v }
+})
+const headingNumberingItems = computed<Array<{ label: string, value: HeadingNumbering }>>(() => [
+  { label: t('theme.headings.numberingNone'), value: 'none' },
+  { label: t('theme.headings.numberingDecimal'), value: 'decimal' }
+])
+/** '' stands for "system monospace" in the picker (the field is then absent). */
+const codeFontModel = computed({
+  get: () => draft.value.code.font ?? '',
+  set: (v: string) => {
+    if (v) draft.value.code.font = v
+    else delete draft.value.code.font
+  }
+})
+const codeFontItems = computed(() => [
+  { label: t('theme.code.fontSystem'), value: '' },
+  ...CODE_FONT_NAMES.map(name => ({ label: name, value: name }))
+])
+const codeBackgroundModel = computed({
+  get: () => draft.value.code.background ?? CODE_OPTION_DEFAULTS.background,
+  set: (v: CodeBackground) => { draft.value.code.background = v }
+})
+const codeBackgroundItems = computed<Array<{ label: string, value: CodeBackground }>>(() => [
+  { label: t('theme.code.backgroundAuto'), value: 'auto' },
+  { label: t('theme.code.backgroundTint'), value: 'tint' },
+  { label: t('theme.code.backgroundNone'), value: 'none' }
+])
+const codeFrameModel = computed({
+  get: () => draft.value.code.frame ?? CODE_OPTION_DEFAULTS.frame,
+  set: (v: CodeFrame) => { draft.value.code.frame = v }
+})
+const codeFrameItems = computed<Array<{ label: string, value: CodeFrame }>>(() => [
+  { label: t('theme.code.frameNone'), value: 'none' },
+  { label: t('theme.code.frameRule'), value: 'rule' },
+  { label: t('theme.code.frameBox'), value: 'box' }
+])
+const codeWrapModel = computed({
+  get: () => draft.value.code.wrap ?? CODE_OPTION_DEFAULTS.wrap,
+  set: (v: boolean) => { draft.value.code.wrap = v }
+})
+const codeLineNumbersModel = computed({
+  get: () => draft.value.code.lineNumbers ?? CODE_OPTION_DEFAULTS.lineNumbers,
+  set: (v: boolean) => { draft.value.code.lineNumbers = v }
+})
 
 // Logo upload — reuses the existing presigned-PUT image flow keyed
 // on docId. Empty string means "no logo uploaded yet"; rendering
@@ -217,15 +289,19 @@ const textAlignItems = computed(() => [
   { label: t('theme.align.left'), value: 'left' },
   { label: t('theme.align.justify'), value: 'justify' }
 ])
-const headingScaleItems = [
-  { label: '1.067 (Minor Second)', value: 1.067 },
-  { label: '1.125 (Major Second)', value: 1.125 },
-  { label: '1.200 (Minor Third)', value: 1.2 },
-  { label: '1.250 (Major Third)', value: 1.25 },
-  { label: '1.333 (Perfect Fourth)', value: 1.333 },
-  { label: '1.414 (Augmented Fourth)', value: 1.414 },
-  { label: '1.500 (Perfect Fifth)', value: 1.5 }
-]
+// h1 = body × scale³ (themeToCss HEADING_SCALE_EXPONENTS); the label
+// says what that means on the page. A stored value outside the list is
+// added so the select never shows blank.
+const HEADING_SCALES = [1.12, 1.15, 1.18, 1.2, 1.22, 1.25, 1.28, 1.333, 1.414]
+const headingScaleItems = computed(() => {
+  const values = HEADING_SCALES.includes(draft.value.headings.scale)
+    ? HEADING_SCALES
+    : [...HEADING_SCALES, draft.value.headings.scale].sort((a, b) => a - b)
+  return values.map(value => ({
+    label: t('theme.headings.scaleOption', { ratio: value.toFixed(3).replace(/0$/, ''), h1: Math.pow(value, 3).toFixed(1) }),
+    value
+  }))
+})
 const headingWeightItems = [
   { label: 'Regular (400)', value: 400 },
   { label: 'Medium (500)', value: 500 },
@@ -701,6 +777,22 @@ function deleteSaved(saved: SavedTheme) {
                     :step="0.05"
                   />
                 </UFormField>
+                <UFormField
+                  v-if="draft.cover.layout === 'title-block'"
+                  :label="t('theme.cover.rules')"
+                  :help="t('theme.cover.rulesHelp')"
+                >
+                  <USwitch v-model="coverRules" />
+                </UFormField>
+                <UFormField :label="t('theme.cover.smallCaps')">
+                  <USwitch v-model="coverSmallCaps" />
+                </UFormField>
+                <p
+                  v-if="draft.cover.layout === 'title-block'"
+                  class="text-xs text-muted"
+                >
+                  {{ t('theme.cover.titleBlockHelp') }}
+                </p>
                 <UFormField :label="t('theme.cover.showTitle')">
                   <USwitch v-model="draft.cover.showTitle" />
                 </UFormField>
@@ -830,12 +922,25 @@ function deleteSaved(saved: SavedTheme) {
                       :key="idx"
                       class="flex gap-2"
                     >
-                      <UInput
-                        v-model="draft.cover.authors[idx]"
-                        :placeholder="t('theme.cover.authorPlaceholder')"
-                        maxlength="100"
-                        class="flex-1"
-                      />
+                      <div class="flex-1 space-y-1">
+                        <UInput
+                          v-model="draft.cover.authors[idx]"
+                          :placeholder="t('theme.cover.authorPlaceholder')"
+                          maxlength="100"
+                          class="w-full"
+                        />
+                        <UTextarea
+                          v-if="draft.cover.layout === 'title-block'"
+                          :model-value="affiliationAt(idx)"
+                          :placeholder="t('theme.cover.affiliationPlaceholder')"
+                          :rows="2"
+                          autoresize
+                          maxlength="300"
+                          class="w-full"
+                          :data-testid="`theme-cover-affiliation-${idx}`"
+                          @update:model-value="setAffiliation(idx, $event)"
+                        />
+                      </div>
                       <UButton
                         color="neutral"
                         variant="ghost"
@@ -1033,6 +1138,17 @@ function deleteSaved(saved: SavedTheme) {
                   v-model="draft.headings.scale"
                   :items="headingScaleItems"
                   class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.headings.numbering')"
+                :help="t('theme.headings.numberingHelp')"
+              >
+                <USelect
+                  v-model="headingNumberingModel"
+                  :items="headingNumberingItems"
+                  class="w-full"
+                  data-testid="theme-headings-numbering"
                 />
               </UFormField>
               <UFormField :label="t('theme.headings.weight')">
@@ -1400,6 +1516,40 @@ function deleteSaved(saved: SavedTheme) {
                   :step="0.5"
                   class="w-full"
                 />
+              </UFormField>
+              <UFormField :label="t('theme.code.font')">
+                <USelect
+                  v-model="codeFontModel"
+                  :items="codeFontItems"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.code.background')"
+                :help="t('theme.code.backgroundHelp')"
+              >
+                <USelect
+                  v-model="codeBackgroundModel"
+                  :items="codeBackgroundItems"
+                  class="w-full"
+                />
+              </UFormField>
+              <UFormField :label="t('theme.code.frame')">
+                <USelect
+                  v-model="codeFrameModel"
+                  :items="codeFrameItems"
+                  class="w-full"
+                  data-testid="theme-code-frame"
+                />
+              </UFormField>
+              <UFormField
+                :label="t('theme.code.wrap')"
+                :help="t('theme.code.wrapHelp')"
+              >
+                <USwitch v-model="codeWrapModel" />
+              </UFormField>
+              <UFormField :label="t('theme.code.lineNumbers')">
+                <USwitch v-model="codeLineNumbersModel" />
               </UFormField>
             </div>
           </template>

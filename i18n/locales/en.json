@@ -780,8 +780,13 @@
       "underline": "Underline (with brand color)",
       "letterSpacing": "Letter spacing (em)",
       "lineHeight": "Line height",
-      "spacingScale": "Top-margin scale",
-      "spacingScaleHelp": "Multiplier on heading top margins. 1.0 = print default, 1.5 = editorial breathing."
+      "spacingScale": "Space above headings",
+      "spacingScaleHelp": "Multiplier on the space above headings. 1.0 = print default, 1.5 = editorial breathing.",
+      "scaleOption": "{ratio} (heading 1 = {h1}× body)",
+      "numbering": "Numbering",
+      "numberingHelp": "Numbers headings 1 to 4 (1, 1.1, 1.1.1) and their table-of-contents entries. A leading “Abstract” section is not numbered.",
+      "numberingNone": "None",
+      "numberingDecimal": "1, 1.1, 1.1.1"
     },
     "align": {
       "left": "Left",
@@ -818,7 +823,21 @@
     "code": {
       "theme": "Color theme",
       "fontSize": "Font size (pt)",
-      "none": "Plain (no syntax highlighting)"
+      "none": "Plain (no syntax highlighting)",
+      "font": "Code font",
+      "fontSystem": "System monospace",
+      "background": "Background",
+      "backgroundHelp": "For light color themes. Dark themes always keep their own background.",
+      "backgroundAuto": "Automatic (tint behind white themes)",
+      "backgroundTint": "Light tint",
+      "backgroundNone": "None (page color)",
+      "frame": "Frame",
+      "frameNone": "None",
+      "frameRule": "Accent rule on the left",
+      "frameBox": "Thin border",
+      "wrap": "Wrap long lines",
+      "wrapHelp": "A printed page can’t scroll: without wrapping, long lines are cut off.",
+      "lineNumbers": "Line numbers"
     },
     "tables": {
       "headerBackground": "Header background",
@@ -904,7 +923,13 @@
       "authorsHelp": "Each author renders on its own line. Up to 10.",
       "authorPlaceholder": "Author name",
       "addAuthor": "Add author",
-      "removeAuthor": "Remove author"
+      "removeAuthor": "Remove author",
+      "layoutTitleBlock": "Title block on page 1 (paper)",
+      "titleBlockHelp": "No separate cover page: title, authors, date and the abstract open page 1. Start the document with a section headed “Abstract” to place it in the title block.",
+      "rules": "Rules above and below the title",
+      "rulesHelp": "Heavy horizontal rules, as on an arXiv preprint.",
+      "smallCaps": "Title in small capitals",
+      "affiliationPlaceholder": "Affiliation (department, institution, e-mail; one per line)"
     },
     "brand": {
       "logo": "Brand logo",
@@ -972,7 +997,7 @@
       },
       "academic": {
         "name": "Academic Paper",
-        "description": "Two-column Source Serif body, page numbers in the running head, minimal table borders — journal-style."
+        "description": "Two-column Source Serif body, a title block with authors and abstract on page 1, numbered sections, minimal table borders — journal-style."
       },
       "tech": {
         "name": "Tech Report",

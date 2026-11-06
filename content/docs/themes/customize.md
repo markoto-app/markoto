@@ -3,7 +3,7 @@ title: Tune your typography and colors
 description: Open the Theme tab and tweak fonts, colors, page geometry, header/footer tokens — see the preview repaginate live.
 category: themes
 order: 2
-updated: '2026-11-04'
+updated: '2026-11-06'
 ---
 
 # Tune your typography and colors
@@ -17,6 +17,41 @@ live preview and the PDF export.
 
 ::flow{id="tune-your-typography-and-colors" hide-title}
 ::
+
+## Headings, code and pages
+
+A few settings worth knowing:
+
+- **Heading size.** *Scale ratio* in the Headings section sets how much
+  each heading level grows: level 4 is as large as the body text, level 3
+  one step larger, level 1 three steps. Each option tells you what level
+  1 ends up as, for example *1.25 (heading 1 = 2.0× body)*. Large display
+  sizes are for the cover page; set them with the cover's title size.
+- **Numbered sections.** *Numbering* puts 1, 1.1, 1.1.1 in front of
+  headings 1 to 4, and the same numbers in the table of contents. The
+  cover title and a leading *Abstract* section get none.
+- **Code blocks.** Pick a color theme and a code font (Latin Modern Mono
+  gives the LaTeX typewriter look). Light themes get a faint background
+  so a block doesn't float on the page; *Background* and *Frame* (an
+  accent line on the left or a thin border) change that. Long lines wrap,
+  because a printed page can't scroll; switch *Wrap long lines* off to
+  keep them on one line. *Line numbers* numbers every line. Name a block
+  by adding a title after the language, and it shows above the block:
+
+  ````markdown
+  ```ts title="replay.ts"
+  export async function replay() { … }
+  ```
+  ````
+
+  Short blocks stay on one page; long ones continue on the next.
+- **Page size.** A4, A5 (books and manuscripts), Letter and Legal, each
+  portrait or landscape.
+- **Fonts.** Besides the web fonts, the pickers offer TeX Gyre Termes (a
+  Times design), TeX Gyre Heros (a Helvetica design) and Latin Modern
+  Roman (the classic LaTeX face), for documents that should look like
+  they came out of LaTeX. They load from markoto itself, in the preview
+  and in the PDF.
 
 ## What just happened
 

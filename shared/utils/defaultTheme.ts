@@ -43,14 +43,15 @@ export const defaultTheme: DocTheme = {
   },
   headings: {
     font: 'Fraunces',
-    // major-third (1.333) — visible jumps without screaming
-    scale: 1.333,
+    // h1 = body·scale³ ≈ 2.1× body (see HEADING_SCALE_EXPONENTS in themeToCss)
+    scale: 1.28,
     weight: 500, // brand cap — never 600+
     underline: false,
     color: '#1F1B14', // sumi-900
     letterSpacing: -0.01, // Fraunces wants slight negative tracking
     lineHeight: 1.25, // generous breathing for big serif headings
-    spacingScale: 1.2 // editorial top-margin breathing
+    spacingScale: 1.2, // editorial top-margin breathing
+    numbering: 'none'
   },
   color: {
     brand: '#B5371F', // shu-500 — the seal lives here
@@ -88,7 +89,12 @@ export const defaultTheme: DocTheme = {
   },
   code: {
     theme: 'github-light',
-    fontSize: 9
+    fontSize: 9,
+    font: 'JetBrains Mono', // the brand's instrument voice
+    background: 'auto', // faint tint behind light-theme code
+    frame: 'none',
+    wrap: true, // print can't scroll
+    lineNumbers: false
   },
   tables: {
     headerBackground: 'none',
@@ -135,6 +141,9 @@ export const defaultTheme: DocTheme = {
     showDate: true,
     showAuthors: false, // user fills in via theme editor when ready
     authors: [],
+    affiliations: [],
+    rules: false,
+    smallCaps: false,
     // Brand logo on by default — `theme.brand.logoUrl` is pre-filled
     // with the markoto wordmark above, so a brand-new doc opens with
     // the mark visible on the cover.

@@ -1,5 +1,6 @@
 import type { DocTheme } from '~~/shared/types/theme'
 import { isThemeImageUrl } from '~~/shared/utils/themeImages'
+import { resolveTitleBlock } from '~~/shared/utils/themeOptions'
 
 /**
  * Build the cover-page HTML when `theme.cover.enabled`. Returns the
@@ -34,8 +35,9 @@ import { isThemeImageUrl } from '~~/shared/utils/themeImages'
  *     possible) AND escapes it for attribute context. `composeFinalHtml`
  *     additionally sanitises the composed document.
  */
-export function buildCoverHtml(theme: DocTheme, title: string, dateText: string): string {
+export function buildCoverHtml(theme: DocTheme, title: string, dateText: string, abstractHtml = ''): string {
   if (!theme.cover.enabled) return ''
+  if (theme.cover.layout === 'title-block') return buildTitleBlockHtml(theme, title, dateText, abstractHtml)
   const logo = buildLogoHtml(theme)
   const parts = [
     logo,
@@ -78,6 +80,47 @@ function buildMetaHtml(theme: DocTheme, dateText: string): string {
   }
   if (metaParts.length === 0) return ''
   return `<div class="markoto-cover-meta">${metaParts.join('')}</div>`
+}
+
+/**
+ * `title-block` layout (papers): flows at the top of page 1.
+ *
+ *   <section class="markoto-cover markoto-title-block">
+ *     <img class="markoto-cover-logo">            ← optional
+ *     <h1 class="markoto-cover-title">…</h1>
+ *     <div class="markoto-cover-subtitle">…</div>
+ *     <div class="markoto-cover-authors">
+ *       <div class="markoto-cover-author-card">
+ *         <div class="markoto-cover-author">…</div>
+ *         <div class="markoto-cover-affiliation">…</div>   ← cover.affiliations[i]
+ *       </div>×N
+ *     </div>
+ *     <div class="markoto-cover-date">…</div>
+ *     <div class="markoto-abstract">…</div>          ← the doc's Abstract section
+ *   </section>
+ *
+ * `abstractHtml` is sanitised body markup moved here by
+ * `app/utils/titleBlock.ts#extractAbstract` (composeFinalHtml sanitises
+ * the whole composition again).
+ */
+function buildTitleBlockHtml(theme: DocTheme, title: string, dateText: string, abstractHtml: string): string {
+  const { affiliations } = resolveTitleBlock(theme)
+  const parts = [buildLogoHtml(theme), buildTitleHtml(theme, title), buildSubtitleHtml(theme)]
+  if (theme.cover.showAuthors) {
+    const cards = theme.cover.authors.flatMap((author, i) => {
+      const name = author.trim()
+      if (!name) return []
+      const aff = (affiliations[i] ?? '').trim()
+      const affHtml = aff ? `<div class="markoto-cover-affiliation">${esc(aff)}</div>` : ''
+      return [`<div class="markoto-cover-author-card"><div class="markoto-cover-author">${esc(name)}</div>${affHtml}</div>`]
+    })
+    if (cards.length) parts.push(`<div class="markoto-cover-authors">${cards.join('')}</div>`)
+  }
+  if (theme.cover.showDate && dateText) parts.push(`<div class="markoto-cover-date">${esc(dateText)}</div>`)
+  if (abstractHtml) parts.push(`<div class="markoto-abstract">${abstractHtml}</div>`)
+  const content = parts.filter(Boolean)
+  if (content.length === 0) return ''
+  return `<section class="markoto-cover markoto-title-block">${content.join('')}</section>`
 }
 
 /** Minimal HTML escape for text interpolated into element bodies. */

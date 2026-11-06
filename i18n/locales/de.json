@@ -780,8 +780,13 @@
       "underline": "Unterstreichen (mit Markenfarbe)",
       "letterSpacing": "Buchstabenabstand (em)",
       "lineHeight": "Zeilenhöhe",
-      "spacingScale": "Skala des oberen Rands",
-      "spacingScaleHelp": "Multiplikator für die oberen Ränder von Überschriften. 1.0 = Druckstandard, 1.5 = redaktioneller Freiraum."
+      "spacingScale": "Abstand über Überschriften",
+      "spacingScaleHelp": "Faktor für den Abstand über Überschriften. 1,0 = Druckstandard, 1,5 = viel Luft.",
+      "scaleOption": "{ratio} (Überschrift 1 = {h1}× Fliesstext)",
+      "numbering": "Nummerierung",
+      "numberingHelp": "Nummeriert die Überschriften 1 bis 4 (1, 1.1, 1.1.1) und ihre Einträge im Inhaltsverzeichnis. Ein Abschnitt «Abstract» am Anfang wird nicht nummeriert.",
+      "numberingNone": "Keine",
+      "numberingDecimal": "1, 1.1, 1.1.1"
     },
     "align": {
       "left": "Links",
@@ -818,7 +823,21 @@
     "code": {
       "theme": "Farbschema",
       "fontSize": "Schriftgrösse (pt)",
-      "none": "Einfach (keine Syntaxhervorhebung)"
+      "none": "Einfach (keine Syntaxhervorhebung)",
+      "font": "Schrift für Code",
+      "fontSystem": "Monospace des Systems",
+      "background": "Hintergrund",
+      "backgroundHelp": "Für helle Farbschemata. Dunkle Schemata behalten immer ihren eigenen Hintergrund.",
+      "backgroundAuto": "Automatisch (Tönung hinter weissen Schemata)",
+      "backgroundTint": "Leichte Tönung",
+      "backgroundNone": "Keiner (Seitenfarbe)",
+      "frame": "Rahmen",
+      "frameNone": "Keiner",
+      "frameRule": "Akzentlinie links",
+      "frameBox": "Dünner Rahmen",
+      "wrap": "Lange Zeilen umbrechen",
+      "wrapHelp": "Eine gedruckte Seite lässt sich nicht scrollen: Ohne Umbruch werden lange Zeilen abgeschnitten.",
+      "lineNumbers": "Zeilennummern"
     },
     "tables": {
       "headerBackground": "Kopfhintergrund",
@@ -904,7 +923,13 @@
       "authorsHelp": "Jeder Autor wird in einer eigenen Zeile dargestellt. Bis zu 10.",
       "authorPlaceholder": "Autorenname",
       "addAuthor": "Autor hinzufügen",
-      "removeAuthor": "Autor entfernen"
+      "removeAuthor": "Autor entfernen",
+      "layoutTitleBlock": "Titelblock auf Seite 1 (Paper)",
+      "titleBlockHelp": "Keine eigene Titelseite: Titel, Autorinnen und Autoren, Datum und Abstract eröffnen Seite 1. Beginnen Sie das Dokument mit einem Abschnitt «Abstract», damit er im Titelblock erscheint.",
+      "rules": "Linien über und unter dem Titel",
+      "rulesHelp": "Kräftige waagrechte Linien wie bei einem arXiv-Preprint.",
+      "smallCaps": "Titel in Kapitälchen",
+      "affiliationPlaceholder": "Zugehörigkeit (Institut, Hochschule, E-Mail; je eine Zeile)"
     },
     "brand": {
       "logo": "Markenlogo",
@@ -972,7 +997,7 @@
       },
       "academic": {
         "name": "Wissenschaftliche Arbeit",
-        "description": "Zweispaltiger Source-Serif-Fliesstext, Seitenzahlen im laufenden Kopf, minimale Tabellenränder — im Journal-Stil."
+        "description": "Zweispaltiger Source-Serif-Fliesstext, Titelblock mit Autorinnen, Autoren und Abstract auf Seite 1, nummerierte Abschnitte, minimale Tabellenränder — im Journal-Stil."
       },
       "tech": {
         "name": "Technischer Bericht",

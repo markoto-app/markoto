@@ -1,0 +1,22 @@
+{
+  "body": { "font": "TeX Gyre Termes", "size": 10, "lineHeight": 1.25 },
+  "headings": { "font": "TeX Gyre Termes", "weight": 700, "numbering": "decimal" },
+  "meta": { "font": "TeX Gyre Termes" },
+  "code": { "font": "Latin Modern Mono", "theme": "github-light", "background": "none", "frame": "none" },
+  "layout": { "columns": 1 },
+  "cover": {
+    "enabled": true,
+    "layout": "title-block",
+    "showAuthors": true,
+    "authors": ["Ada Kovač", "Jonas Meier"],
+    "affiliations": ["Department of Computer Science\nUniversity of Zurich\nada.kovac@example.org", "Systems Group\nETH Zurich\njonas.meier@example.org"],
+    "showSubtitle": true,
+    "subtitle": "A preprint",
+    "showDate": true,
+    "date": "2026-11-06",
+    "rules": true,
+    "smallCaps": true,
+    "titleSize": 1.7,
+    "subtitleSize": 1.05
+  }
+}

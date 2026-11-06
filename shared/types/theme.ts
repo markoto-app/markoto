@@ -71,7 +71,7 @@ const slotTemplate = z.string().max(200).refine(
 
 // ── Enum types (exported so consumers that import them still work) ──────
 
-export const PageSizeSchema = z.enum(['A4', 'Letter', 'Legal'])
+export const PageSizeSchema = z.enum(['A4', 'A5', 'Letter', 'Legal'])
 export type PageSize = z.infer<typeof PageSizeSchema>
 
 export const PageOrientationSchema = z.enum(['portrait', 'landscape'])
@@ -116,6 +116,23 @@ export const CodeThemeSchema = z.enum([
 ])
 export type CodeTheme = z.infer<typeof CodeThemeSchema>
 
+/**
+ * Code block fill. `auto` (default): the highlight theme's own background
+ * for the dark themes, a faint tint of the text colour for the light ones
+ * and for `none` — so a block never floats bare on the page. `tint`
+ * always tints, `none` leaves the page colour.
+ */
+export const CodeBackgroundSchema = z.enum(['auto', 'tint', 'none'])
+export type CodeBackground = z.infer<typeof CodeBackgroundSchema>
+
+/** Code block frame: nothing, an accent rule on the left, or a hairline box. */
+export const CodeFrameSchema = z.enum(['none', 'rule', 'box'])
+export type CodeFrame = z.infer<typeof CodeFrameSchema>
+
+/** Heading numbers: none, or `1`, `1.1`, `1.1.1`, `1.1.1.1` on h1–h4 (also in the TOC). */
+export const HeadingNumberingSchema = z.enum(['none', 'decimal'])
+export type HeadingNumbering = z.infer<typeof HeadingNumberingSchema>
+
 export const TableHeaderBgSchema = z.enum(['brand', 'muted', 'none'])
 export type TableHeaderBg = z.infer<typeof TableHeaderBgSchema>
 
@@ -154,8 +171,13 @@ export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
  *  - `editorial` — logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)
  *  - `banner`    — logo + title in a top band on a brand-tinted stripe, meta at bottom
  *  - `minimal`   — just title (and optional subtitle) centered, no logo/meta even when toggled on
+ *  - `title-block` — no cover PAGE: title, subtitle, authors (with
+ *                  affiliations), date and the abstract sit at the top of
+ *                  page 1 and the text starts right below (papers). The
+ *                  abstract is the document's own `Abstract` section — see
+ *                  `app/utils/titleBlock.ts`.
  */
-export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal'])
+export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal', 'title-block'])
 export type CoverLayout = z.infer<typeof CoverLayoutSchema>
 
 /**
@@ -285,7 +307,12 @@ export const DocThemeSchema = z.object({
      * (h1/h2 = 1.4em, h3+ = 1.0em). 1.2 = editorial breathing room;
      * 0.7 = tight reports. Range 0.5–2.0.
      */
-    spacingScale: z.number().min(0.5).max(2)
+    spacingScale: z.number().min(0.5).max(2),
+    /**
+     * Section numbers on h1–h4 (`1`, `1.1`, …), also shown in the TOC.
+     * Optional: themes stored before the field existed read as `none`.
+     */
+    numbering: HeadingNumberingSchema.optional()
   }).strict(),
   color: z.object({
     // hex; used for links + accent borders + (optionally) heading underline
@@ -321,7 +348,17 @@ export const DocThemeSchema = z.object({
   code: z.object({
     theme: CodeThemeSchema,
     // pt — separate from body so code can be tighter
-    fontSize: z.number().min(6).max(16)
+    fontSize: z.number().min(6).max(16),
+    // The fields below are optional: themes stored before they existed
+    // render with the defaults in `shared/utils/themeOptions.ts`.
+    /** Code font; absent = the system monospace stack. */
+    font: fontName.optional(),
+    background: CodeBackgroundSchema.optional(),
+    frame: CodeFrameSchema.optional(),
+    /** Wrap long lines instead of clipping them at the page edge (default on). */
+    wrap: z.boolean().optional(),
+    /** Line numbers in the left gutter of every code block (default off). */
+    lineNumbers: z.boolean().optional()
   }).strict(),
   tables: z.object({
     headerBackground: TableHeaderBgSchema,
@@ -399,6 +436,16 @@ export const DocThemeSchema = z.object({
      * keeps the cover from becoming a credit roll.
      */
     authors: z.array(z.string().max(100)).max(10),
+    /**
+     * Affiliation per author, same order as `authors` (department,
+     * institution, address, e-mail — one per line). Shown by the
+     * `title-block` layout. Optional (absent = none).
+     */
+    affiliations: z.array(z.string().max(300)).max(10).optional(),
+    /** `title-block`: a heavy rule above and below the title (arXiv style). */
+    rules: z.boolean().optional(),
+    /** Title (and subtitle) in small capitals. */
+    smallCaps: z.boolean().optional(),
     /** Whether to render `theme.brand.logoUrl` on the cover. */
     showLogo: z.boolean(),
     /**

@@ -56,9 +56,26 @@ describe('pinned constants vs installed packages', () => {
 
   it('font packages are exact-pinned (a font update is a reviewed change)', () => {
     for (const font of SELF_HOSTED_FONTS) {
+      if (font.source.kind !== 'fontsource') continue
       const spec = rootPackage.devDependencies[font.source.package]
       expect(spec, font.source.package).toMatch(/^\d+\.\d+\.\d+$/)
       expect(installedVersion(ROOT, font.source.package)).toBe(spec)
+    }
+  })
+
+  it('bundled font families ship their woff2 files and licence', () => {
+    const bundled = SELF_HOSTED_FONTS.filter(f => f.source.kind === 'bundled')
+    expect(bundled.map(f => f.name)).toEqual(expect.arrayContaining(['TeX Gyre Termes', 'TeX Gyre Heros', 'Latin Modern Mono', 'Latin Modern Roman']))
+    for (const font of bundled) {
+      if (font.source.kind !== 'bundled') continue
+      const dir = join(ROOT, 'fonts', font.slug)
+      expect(readFileSync(join(dir, 'LICENSE.txt'), 'utf8'), font.name).toContain('GUST Font License')
+      for (const face of font.source.faces) {
+        const bytes = readFileSync(join(dir, face.file))
+        // WOFF2 signature 'wOF2'
+        expect(bytes.subarray(0, 4).toString('latin1'), face.file).toBe('wOF2')
+        expect(bytes.length, face.file).toBeLessThan(80_000)
+      }
     }
   })
 
@@ -82,8 +99,9 @@ describe('font registry', () => {
     for (const name of used) expect(selfHostedFont(name), name).not.toBeNull()
   })
 
-  it('keeps the curated 20-font picker', () => {
-    expect(THEME_FONTS).toHaveLength(20)
+  it('keeps the curated picker: 20 Fontsource families + 3 bundled TeX families', () => {
+    expect(THEME_FONTS).toHaveLength(23)
+    expect(THEME_FONTS.map(f => f.name)).toEqual(expect.arrayContaining(['TeX Gyre Termes', 'TeX Gyre Heros', 'Latin Modern Roman']))
     expect(new Set(SELF_HOSTED_FONTS.map(f => f.slug)).size).toBe(SELF_HOSTED_FONTS.length)
   })
 
@@ -163,7 +181,7 @@ describe('generated tree', () => {
       const urls = [...css.matchAll(/url\('([^']+)'\)/g)].map(m => m[1] ?? '')
       expect(urls.length, font.name).toBeGreaterThan(0)
       for (const u of urls) {
-        expect(u, font.name).toMatch(/^[\w-]+@\d+\.\d+\.\d+\/[\w-]+\.woff2$/)
+        expect(u, font.name).toMatch(/^[\w-]+@\d+(?:\.\d+)+\/[\w-]+\.woff2$/)
         expect(existsSync(join(out, 'fonts', u)), u).toBe(true)
       }
       expect(css).toMatch(/font-style: italic;/)
