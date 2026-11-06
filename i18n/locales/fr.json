@@ -1023,6 +1023,10 @@
         "name": "Rapport d'affaires",
         "description": "Titres Playfair sur corps Source Sans, accent ambre chaleureux, en-têtes de tableau colorés, titre centré."
       },
+      "business-report": {
+        "name": "Rapport d'entreprise",
+        "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
+      },
       "novel": {
         "name": "Roman",
         "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."
