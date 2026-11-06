@@ -14,8 +14,9 @@
  * procedures — bigger files, no hinting, refused by some print shops —
  * and the server PDF comes from Chromium. The preview uses the same
  * files so it stays what the PDF shows. Only the app shell keeps the
- * variable cuts of its brand fonts (`uiFontStylesheetUrls`), e.g. for
- * Fraunces' optical sizes in display headlines.
+ * variable cuts of its brand fonts (`uiFontStylesheetUrls`, family names
+ * `'Inter Variable'` …, see `uiFontFamilyName`), e.g. for Fraunces'
+ * optical sizes in display headlines.
  *
  * A theme stored in the DB can still name a family outside this list
  * (`themeValidation.isFontName` only clamps it to safe characters); it
@@ -226,6 +227,17 @@ export function fontStylesheetUrl(name: string | null | undefined): string | nul
 /** Unique stylesheet URLs for a list of family names (unknown families skipped). */
 export function fontStylesheetUrls(names: ReadonlyArray<string | null | undefined>): string[] {
   return [...new Set(names.map(fontStylesheetUrl).filter((u): u is string => u !== null))]
+}
+
+/**
+ * CSS family name of the app shell's variable cut: `'Inter Variable'`, not
+ * `'Inter'`. Under the theme's name it would join the document's static
+ * faces in the same page — the server render page is an app page — and
+ * win the font matching, so the PDF would embed the variable font as
+ * Type 3 again.
+ */
+export function uiFontFamilyName(font: SelfHostedFont): string {
+  return font.ui ? `${font.name} Variable` : font.name
 }
 
 /** File name of a family's app-shell stylesheet (variable cut) under FONT_STYLESHEET_BASE. */

@@ -15,7 +15,7 @@ import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL, PAGEDJS_VERSION } from '../
 import { MERMAID_SRI, MERMAID_URL, MERMAID_VERSION } from '../../shared/utils/mermaidAssets'
 import { KATEX_CSS_SRI, KATEX_CSS_URL, KATEX_VERSION } from '../../shared/utils/katexAssets'
 import { HLJS_STYLES_BASE, HLJS_THEMES, HLJS_VERSION } from '../../shared/utils/hljsAssets'
-import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/themeFonts'
+import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontFamilyName, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/themeFonts'
 import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
 
 /** One file copied from an npm package to `/vendor/…`. */
@@ -182,7 +182,7 @@ export function fontFilesDir(font: SelfHostedFont, version: string, variant: 'do
 
 /** The family's stylesheet: one @font-face per subset / style (/ weight), named as the theme names it. */
 export function buildFontCss(font: SelfHostedFont, version: string, faces: readonly FontFace[], variant: 'document' | 'ui' = 'document'): string {
-  const family = font.name.replaceAll('\\', '').replaceAll('\'', '')
+  const family = (variant === 'ui' ? uiFontFamilyName(font) : font.name).replaceAll('\\', '').replaceAll('\'', '')
   const dir = fontFilesDir(font, version, variant)
   const rules = faces.map(face => [
     '@font-face {',
@@ -222,7 +222,7 @@ function vendorPath(outDir: string, url: string): string {
 }
 
 /** Bump when the generator's output format changes, so stale build dirs are rebuilt. */
-const GENERATOR_REVISION = 3
+const GENERATOR_REVISION = 4
 
 /** Fingerprint of everything the output depends on (package versions + pinned constants + font registry). */
 export function vendorInputsKey(rootDir: string): string {

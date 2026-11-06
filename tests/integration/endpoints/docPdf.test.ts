@@ -411,6 +411,35 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
+    // Chromium (Skia) embeds a variable font, or a CFF one, as Type 3
+    // glyph procedures: bigger files, no hinting, refused by some print
+    // shops. Documents get static TrueType cuts only (themeFonts.ts), so
+    // no preset may produce a Type 3 font, in any text style it uses.
+    it('embeds no Type 3 font in any built-in preset', async () => {
+      const owner = await createUser()
+      const body = [
+        '# Heading one', '', 'Body text with **bold**, *italic*, ***bold italic*** and `inline code`.', '',
+        '## Heading two', '', '### Heading three', '', '> A quotation, *emphasised*.', '',
+        '| Item | Value |', '|---|---|', '| One | 1 |', '',
+        '```ts', 'const answer: number = 42', '```', ''
+      ].join('\n')
+      const offenders: string[] = []
+      for (const preset of THEME_PRESETS) {
+        const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+        await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(preset.theme), doc.docId])
+        const snapId = await insertYjsRow(doc.docId, body)
+        const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+        expect(res.status, preset.id).toBe(302)
+        const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+        const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+          .map(m => `${m[2] ?? m[3] ?? ''}:${m[1] ?? m[4] ?? ''}`)
+        const type3 = (pdf.match(/\/Subtype\s*\/Type3/g) ?? []).length
+        if (type3 > 0) offenders.push(`${preset.id}: ${type3} Type 3 font(s) — ${fonts.join(', ')}`)
+        await wipeRendersFor(doc.docId)
+      }
+      expect(offenders).toEqual([])
+    }, 600_000)
+
     it('cache hit: second call reuses the manifest and produces no new artefacts', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })

@@ -591,3 +591,18 @@ describe('themeToCss — documents at scale', () => {
     expect(themeToCss(t, { ...runtime, date: '29. Oktober 2026' })).toContain('"29. Oktober 2026"')
   })
 })
+
+describe('themeToCss — KaTeX keeps its own alignment and spacing', () => {
+  test('justified text no longer start-aligns accents, fractions and display math', () => {
+    const t = structuredClone(defaultTheme)
+    t.body.textAlign = 'justify'
+    const css = themeToCss(t, runtime)
+    // The paragraph's last-line rule is inherited into KaTeX's nested rows…
+    expect(css).toContain('text-align-last: left;')
+    // …so KaTeX resets it (and the other inherited text properties).
+    const rule = /\.paged-doc \.katex \{ text-align-last: auto;[^}]*\}/.exec(css)?.[0] ?? ''
+    for (const decl of ['letter-spacing: normal', 'word-spacing: normal', 'text-transform: none', 'font-variant: normal', 'font-feature-settings: normal', 'hyphens: manual']) {
+      expect(rule, decl).toContain(decl)
+    }
+  })
+})

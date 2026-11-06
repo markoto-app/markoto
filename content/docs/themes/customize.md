@@ -66,7 +66,12 @@ A few settings worth knowing:
   Times design), TeX Gyre Heros (a Helvetica design) and Latin Modern
   Roman (the classic LaTeX face), for documents that should look like
   they came out of LaTeX. They load from markoto itself, in the preview
-  and in the PDF.
+  and in the PDF, and include Greek letters, so "3 μm" or "λ = 532 nm"
+  in the text matches the rest of the line. Fonts are embedded in the PDF
+  as real fonts, which print shops expect.
+- **Charts.** With the "Match document" diagram colors, chart and pie colors
+  follow your accent color and also differ in lightness, so neighboring
+  slices stay distinguishable when the PDF is printed in black and white.
 
 ## What just happened
 

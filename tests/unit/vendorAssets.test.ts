@@ -210,8 +210,15 @@ describe('generated tree', () => {
   })
 
   it('serves the app shell\'s variable cuts from their own stylesheet', () => {
+    const appCss = readFileSync(join(ROOT, 'app', 'assets', 'css', 'main.css'), 'utf8')
     for (const font of SELF_HOSTED_FONTS.filter(f => f.ui)) {
       const css = readFileSync(join(out, 'fonts', `${font.slug}.variable.css`), 'utf8')
+      // Its own family name: under the theme's name it would join the
+      // document's static faces on the server render page (an app page)
+      // and win the matching — the PDF would embed it as Type 3 again.
+      expect(css, font.name).toContain(`font-family: '${font.name} Variable';`)
+      expect(css, font.name).not.toContain(`font-family: '${font.name}';`)
+      expect(appCss, font.name).toContain(`'${font.name} Variable', '${font.name}'`)
       const urls = [...css.matchAll(/url\('([^']+)'\)/g)].map(m => m[1] ?? '')
       expect(urls.length, font.name).toBeGreaterThan(0)
       for (const u of urls) {
