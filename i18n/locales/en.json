@@ -1050,6 +1050,10 @@
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
       },
+      "design-doc": {
+        "name": "Design doc / RFC",
+        "description": "Engineering design documents, RFCs and decision records: IBM Plex Sans in a comfortable reading column with a review margin, numbered sections for review comments, a document header with status, decision records on an accent rule, scannable comparison tables, the title and current section as running head."
+      },
       "business": {
         "name": "Business Report",
         "description": "Playfair headings over Source Sans body, warm amber accent, brand-colored table headers, centered title."

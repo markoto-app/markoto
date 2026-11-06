@@ -101,6 +101,15 @@ generated theme CSS.
   selector list at commas, and a comma inside parentheses breaks its
   `querySelectorAll` — the whole render fails. Top-level selector lists
   (`.paged-doc ul, .paged-doc ol`) are fine.
+- **Sibling combinators (`+`, `~`) lose specificity and pseudo-elements.**
+  paged.js rewrites every rule with a sibling combinator into a
+  `[data-following*="…"]` attribute selector on the matched elements:
+  the rule drops to the specificity of one attribute (an engine rule like
+  `.paged-doc tr { … }` beats it) and a `::before` / `::after` in it is
+  lost. Target such elements without a sibling combinator (design-doc:
+  the metadata table by its empty header cells, not as
+  `.markoto-title-block + table`), or keep the rule to properties nothing
+  else sets.
 - No `@import`, `@font-face`, external `url()`: the sanitizer refuses them.
   Fonts come from the bundled / self-hosted families (`themeFonts.ts`).
 - **Follow the author's choices: use the variables, not names.** The
