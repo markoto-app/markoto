@@ -753,7 +753,14 @@
       "size": "Taille de la page",
       "orientation": "Orientation",
       "margin": "Marge (mm)",
-      "marginHelp": "Marge uniforme sur les quatre côtés."
+      "marginHelp": "Marge uniforme sur les quatre côtés.",
+      "sideMargins": "Marges par côté",
+      "sideMarginsHelp": "Une valeur remplace la marge uniforme de ce côté, par exemple pour une marge inférieure plus grande.",
+      "sideMarginsReset": "Utiliser la marge uniforme",
+      "margin_top": "Haut (mm)",
+      "margin_right": "Droite (mm)",
+      "margin_bottom": "Bas (mm)",
+      "margin_left": "Gauche (mm)"
     },
     "body": {
       "font": "Police",
@@ -793,7 +800,10 @@
       "levelSize": "Taille (× corps)",
       "levelItalic": "Italique",
       "levelSmallCaps": "Petites capitales",
-      "levelReset": "Valeurs par défaut"
+      "levelReset": "Valeurs par défaut",
+      "numberingDecimalDot": "1., 1.1., 1.1.1.",
+      "numberingIeee": "I., A., 1), a) (IEEE)",
+      "levelCentered": "Centré"
     },
     "align": {
       "left": "Gauche",
@@ -865,7 +875,13 @@
       "bordersNone": "Sans bordures",
       "zebra": "Couleurs de lignes alternées",
       "zebraHelp": "Rayures subtiles une ligne sur deux.",
-      "cellPadding": "Marge intérieure des cellules (px)"
+      "cellPadding": "Marge intérieure des cellules (px)",
+      "captionPosition": "Position de la légende",
+      "captionPositionHelp": "Un paragraphe qui commence par « {code} » juste avant ou après un tableau devient sa légende.",
+      "captionAbove": "Au-dessus du tableau",
+      "captionBelow": "Sous le tableau",
+      "captionLabel": "Numéroter les tableaux",
+      "captionLabelHelp": "Ajoute « Tableau 1 : » dans la langue du document devant chaque légende."
     },
     "blocks": {
       "imageRadius": "Rayon des images (px)",
@@ -873,7 +889,14 @@
       "blockquoteStyle": "Style de citation",
       "hrStyle": "Style de filet horizontal",
       "hrStyleHelp": "Comment `---` (filet horizontal Markdown) s'affiche.",
-      "hrThickness": "Épaisseur du filet (px)"
+      "hrThickness": "Épaisseur du filet (px)",
+      "figureLabel": "Numéroter les figures",
+      "figureLabelHelp": "Ajoute « Figure 1 : » dans la langue du document devant chaque légende d’image.",
+      "referenceStyle": "Bibliographie",
+      "referenceStyleHelp": "La section intitulée « Références » (ou Bibliographie, References, Literatur …).",
+      "referencePlain": "Comme les autres listes",
+      "referenceHanging": "Retrait suspendu",
+      "referenceBrackets": "Numérotée [1], [2]"
     },
     "blockquote": {
       "border": "Bordure gauche",

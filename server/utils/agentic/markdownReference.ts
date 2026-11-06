@@ -44,6 +44,7 @@ Typography (auto — don't fight it):
 
 Headings: #, ##, …, ######. Every heading auto-gets a slug \`id\`.
   Unnumbered heading (when the theme numbers sections): \`# References {.unnumbered}\` (Pandoc's \`{-}\` works too) — no number, the counters don't advance, its TOC entry has no number either. Use it for References, Acknowledgements, Appendix intros.
+  Reference list: a section headed "References" (or Bibliography, Literatur, Références, Referencias, 参考文献 …) is recognised automatically — its numbered list or paragraphs get the theme's reference style (hanging indent / [1] labels). Write the entries as a numbered list (\`1. A. Author, "Title," …\`) or one paragraph each; no class needed.
 
 Attribute syntax \`{…}\` (CRITICAL — unlocks classes / custom IDs / inline style on most elements):
   After the element, in curly braces:
@@ -107,6 +108,7 @@ Tables (pipe syntax):
   |:--|:---:|--:|
   | l | c   | r |
   Use \`:---\`, \`:---:\`, \`---:\` in the separator row for left/center/right alignment.
+  Caption (Pandoc syntax): a paragraph starting with \`Table:\` (or just \`:\`) right before or after the table — \`Table: Key figures (CHF million)\` — becomes the table's caption. The theme places it above or below and can number it ("Table 1:"). Refer to tables in the text by number ("Table 2 shows …"); the label is added by the theme, don't type it into the caption.
 
 Blockquotes: lines prefixed with \`> \`. Nest with \`> > \`.
 

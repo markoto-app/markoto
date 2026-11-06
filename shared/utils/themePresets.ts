@@ -44,11 +44,12 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
 .paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 1em; }
 /* \\texttt: typewriter, no box. */
 .paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 1em; }
-/* figure: \\abovecaptionskip 7pt, "Figure N:" caption in roman. */
-.paged-doc figure { counter-increment: mk-fig; margin: 12pt 0; }
+/* figure: \\abovecaptionskip 7pt, "Figure N:" caption in roman (the label is the theme's blocks.figureLabel). */
+.paged-doc figure { margin: 12pt 0; }
 .paged-doc figure img { display: block; margin: 0 auto; }
 .paged-doc figcaption { font: inherit; color: inherit; margin-top: 7pt; }
-.paged-doc figcaption::before { content: "Figure " counter(mk-fig) ": "; }
+/* table: "Table N:" caption above in roman (tables.captionLabel), \\abovecaptionskip 7pt. */
+.paged-doc table > caption { font: inherit; color: inherit; padding-bottom: 7pt; }
 /* booktabs: centred at natural width, \\toprule + \\bottomrule heavier than \\midrule. */
 .paged-doc table { width: auto; margin: 10pt auto; }
 .paged-doc table thead th { border-top: 0.08em solid; border-bottom: 0.05em solid; font-weight: 400; }
@@ -57,8 +58,8 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
 /* lists: \\leftmargini 3pc, \\topsep 4pt, \\itemsep + \\parsep 2pt each. */
 .paged-doc ul, .paged-doc ol { padding-left: 36pt; margin: 4pt 0; }
 .paged-doc li { margin: 4pt 0; }
-/* natbib bibliography: hanging indent. */
-.paged-doc #references ~ p { padding-left: 1.2em; text-indent: -1.2em; margin: 0 0 5pt; }
+/* natbib bibliography: hanging indent (blocks.referenceStyle) of 1.2em, 5pt between entries. */
+.paged-doc p.markoto-references { --doc-reference-indent: 1.2em; margin: 0 0 5pt; }
 /* hyperref links print as plain text. */
 .paged-doc a { text-decoration: none; }
 `
@@ -110,8 +111,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '{page} · {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 9, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
-      blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Desaturated warm-paper admonition palette. Each hue keeps its
       // traditional meaning (blue/info, green/tip, purple/important,
@@ -146,8 +147,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-dark', fontSize: 9, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6 },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // GitHub palette — the canonical look most users have seen in
       // README admonitions for years.
@@ -181,8 +182,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
-      blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Academic restraint — slightly desaturated GitHub colours to
       // match the journal voice. Stay below the fold visually.
@@ -230,8 +231,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '{title}', right: 'A Preprint', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4 },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: admonitions are not part of the LaTeX look; keep
       // them dark and muted so they read as print.
@@ -264,8 +265,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-dark', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6 },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2 },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Tech-report cyan-ish palette — note picks up the brand colour
       // since cyan IS the report's voice. The rest stay traditional.
@@ -297,8 +298,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 9, font: 'IBM Plex Mono', background: 'auto', frame: 'rule', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8 },
-      blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Business-report warm palette — note shifts to a navy that
       // pairs with the amber brand; warning picks up the brand amber.
@@ -330,8 +331,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 10, font: 'IBM Plex Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8 },
-      blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Novel — admonitions are rare in fiction; if they appear they
       // should feel period-appropriate. Muted ink palette that reads
@@ -364,8 +365,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4 },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1 },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Newsletter — bright, friendly admonition palette to match the
       // weekly-digest feel. Slightly more saturated than the reports.
@@ -398,8 +399,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3 },
-      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       alerts: {
         note: '#2f5b7c',

@@ -40,6 +40,10 @@ paragraph.
   shorter `# References {-}`) leaves that heading without a number; the
   numbering of the other headings carries on as if it weren't there, and
   its table-of-contents entry has no number either.
+- A section headed *References* (or Bibliography, Literatur, Références,
+  Referencias, 参考文献 …) is the reference list: write each entry as an
+  item of a numbered list or as its own paragraph, and the theme gives it
+  a hanging indent or [1] labels.
 - Lists: `-`, `*` or `+` for bullets, `1.` for numbers, indent two spaces to nest.
 - Task lists: `- [ ] todo` and `- [x] done`.
 - Definition lists: a term on one line, then `: definition` on the next.
@@ -99,6 +103,22 @@ def f(x):
 
 The colons in the separator row set the alignment. The **Insert** menu has a
 table size picker.
+
+A paragraph that starts with `Table:` (or just `:`) right above or below a
+table is its caption:
+
+```markdown
+| Metric      | Q3 2026 |
+|:------------|--------:|
+| Net revenue |    48.6 |
+
+Table: Key figures (CHF million)
+```
+
+The theme decides whether captions sit above or below the table and can
+number them ("Table 1:"), so don't type the number yourself. In table
+cells, a number and its unit (`+8.1 %`, `180 ms`, `CHF 48.6`) and short
+codes like `SEV-1` never break across two lines.
 
 ## Math
 

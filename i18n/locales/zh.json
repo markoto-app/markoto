@@ -753,7 +753,14 @@
       "size": "页面尺寸",
       "orientation": "方向",
       "margin": "页边距（mm）",
-      "marginHelp": "四边统一的页边距。"
+      "marginHelp": "四边统一的页边距。",
+      "sideMargins": "各边页边距",
+      "sideMarginsHelp": "为某一边设置数值即可替代统一页边距,例如加大下边距。",
+      "sideMarginsReset": "使用统一页边距",
+      "margin_top": "上 (mm)",
+      "margin_right": "右 (mm)",
+      "margin_bottom": "下 (mm)",
+      "margin_left": "左 (mm)"
     },
     "body": {
       "font": "字体",
@@ -793,7 +800,10 @@
       "levelSize": "字号（正文的倍数）",
       "levelItalic": "斜体",
       "levelSmallCaps": "小型大写字母",
-      "levelReset": "使用默认值"
+      "levelReset": "使用默认值",
+      "numberingDecimalDot": "1., 1.1., 1.1.1.",
+      "numberingIeee": "I., A., 1), a) (IEEE)",
+      "levelCentered": "居中"
     },
     "align": {
       "left": "左对齐",
@@ -865,7 +875,13 @@
       "bordersNone": "无边框",
       "zebra": "隔行变色",
       "zebraHelp": "在每隔一行添加淡色条纹。",
-      "cellPadding": "单元格内边距（px）"
+      "cellPadding": "单元格内边距（px）",
+      "captionPosition": "标题位置",
+      "captionPositionHelp": "紧挨在表格之前或之后、以“{code}”开头的段落会成为该表格的标题。",
+      "captionAbove": "表格上方",
+      "captionBelow": "表格下方",
+      "captionLabel": "为表格编号",
+      "captionLabelHelp": "在每个标题前加上文档语言的“表 1:”。"
     },
     "blocks": {
       "imageRadius": "图片圆角（px）",
@@ -873,7 +889,14 @@
       "blockquoteStyle": "引用块样式",
       "hrStyle": "水平分割线样式",
       "hrStyleHelp": "`---`（Markdown 水平分割线）的渲染方式。",
-      "hrThickness": "分割线粗细（px）"
+      "hrThickness": "分割线粗细（px）",
+      "figureLabel": "为图片编号",
+      "figureLabelHelp": "在每个图片说明前加上文档语言的“图 1:”。",
+      "referenceStyle": "参考文献列表",
+      "referenceStyleHelp": "标题为“参考文献”(或 References、Bibliography、Literatur 等)的章节。",
+      "referencePlain": "与其他列表相同",
+      "referenceHanging": "悬挂缩进",
+      "referenceBrackets": "编号 [1], [2]"
     },
     "blockquote": {
       "border": "左边框",

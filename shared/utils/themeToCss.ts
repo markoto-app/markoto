@@ -1,9 +1,9 @@
-import type { DocTheme, RunningSlots } from '../types/theme'
+import type { DocTheme, RunningSlots, HeadingNumbering } from '../types/theme'
 import { pageHeightMm } from './pageDimensions'
 import type { CustomCssResult } from '../types/customCss'
 import { isThemeImageUrl } from './themeImages'
 import { fontStylesheetUrls } from './themeFonts'
-import { coverTitleWeight, headingNumbering, resolveCodeOptions, resolveHeadingLevel, resolveTitleBlock, runningRule } from './themeOptions'
+import { coverTitleWeight, headingNumbering, referenceStyle, resolveCaptions, resolveCodeOptions, resolveHeadingLevel, resolvePageMargins, resolveTitleBlock, runningRule } from './themeOptions'
 import { HLJS_THEME_COLORS } from './hljsAssets'
 
 /**
@@ -23,6 +23,11 @@ export type ThemeRuntime = {
   // shouldn't be persisted to the doc — same translation should apply
   // when the doc opens in another language.
   tocTitle: string
+  /**
+   * Caption labels in the document language (`documentTexts().captionLabels`)
+   * for `tables.captionLabel` / `blocks.figureLabel`. Absent = English.
+   */
+  captionLabels?: { table: string, figure: string, separator: string }
   /**
    * The document's custom CSS AFTER `sanitizeCustomCss` (shared/utils/customCss.ts).
    * Appended last so user rules override the theme. Typed as the
@@ -57,6 +62,9 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     mermaidBlock(theme),
     tocBlock(theme, runtime),
     numberingBlock(theme),
+    captionBlock(theme, runtime),
+    referencesBlock(theme),
+    sectionStringBlock(theme),
     runningRuleBlock(theme),
     pageBreakBlock(),
     columnSpanBlock(theme),
@@ -85,11 +93,17 @@ export function themeFontsImport(theme: DocTheme): string {
 // — page block ————————————————————————————————————————————————————————
 
 function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
-  const { size, orientation, margin } = theme.page
+  const { size, orientation } = theme.page
+  const m = resolvePageMargins(theme)
   const textColor = theme.body.color
   const metaFont = theme.meta.font
-  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont, margin)
-  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont, margin)
+  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont, m.top)
+  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont, m.bottom)
+  // One value when the four sides agree (the common case, and the CSS the
+  // engine always wrote), else top right bottom left.
+  const margin = m.top === m.right && m.top === m.bottom && m.top === m.left
+    ? `${m.top}mm`
+    : `${m.top}mm ${m.right}mm ${m.bottom}mm ${m.left}mm`
   const secondaryColor = theme.color.secondary
   // The footnote area is a page-level box outside `.paged-doc`, so it does
   // not inherit the body font: without an explicit family the notes fall
@@ -98,7 +112,7 @@ function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   // meta font made every footnote look like code).
   return `@page {
   size: ${size} ${orientation};
-  margin: ${margin}mm;
+  margin: ${margin};
 ${headerSlots}
 ${footerSlots}
   @footnote {
@@ -199,12 +213,13 @@ const RUNNING_RULE_WIDTH_PT = 0.4
  */
 function runningRuleBlock(theme: DocTheme): string {
   const color = theme.body.color
-  const gap = runningRuleGapPt(theme.page.margin).toFixed(2)
+  const margins = resolvePageMargins(theme)
   const page = theme.cover.enabled ? '.pagedjs_page:not(.pagedjs_first_page)' : '.pagedjs_page'
   const rules: string[] = []
-  const edges = [['top', theme.header, 'bottom'], ['bottom', theme.footer, 'top']] as const
-  for (const [edge, slots, side] of edges) {
+  const edges = [['top', theme.header, 'bottom', margins.top], ['bottom', theme.footer, 'top', margins.bottom]] as const
+  for (const [edge, slots, side, marginMm] of edges) {
     if (!runningRule(slots) || !hasRunningContent(slots)) continue
+    const gap = runningRuleGapPt(marginMm).toFixed(2)
     rules.push(`${page} .pagedjs_margin-${edge} {
   background: linear-gradient(${color}, ${color}) left 0 ${side} ${gap}pt / 100% ${RUNNING_RULE_WIDTH_PT}pt no-repeat;
 }`)
@@ -219,7 +234,7 @@ function hasRunningContent(slots: RunningSlots): boolean {
 
 function compileTemplate(template: string, runtime: ThemeRuntime): string {
   const parts: string[] = []
-  const regex = /\{(title|page|pages|date)\}/g
+  const regex = /\{(title|section|page|pages|date)\}/g
   let lastIndex = 0
   let match: RegExpExecArray | null
   while ((match = regex.exec(template)) !== null) {
@@ -238,6 +253,8 @@ function compileTemplate(template: string, runtime: ThemeRuntime): string {
 function tokenToCss(token: string, runtime: ThemeRuntime): string {
   switch (token) {
     case 'title': return cssString(runtime.title)
+    // The current section heading (sectionStringBlock).
+    case 'section': return `string(${SECTION_STRING})`
     case 'page': return 'counter(page)'
     case 'pages': return 'counter(pages)'
     case 'date': return cssString(runtime.date)
@@ -262,6 +279,7 @@ function rootBlock(theme: DocTheme): string {
   --doc-text: ${text};
   --doc-bg: ${background};
   --doc-heading-color: ${theme.headings.color};
+${fontVars(theme)}
   font-family: ${cssFontStack(font)};
   font-size: ${size}pt;
   line-height: ${lineHeight};
@@ -280,7 +298,32 @@ ${columnRules(columns, columnGap)}
    internal margin-box layout (which can hang the chunker). */
 .pagedjs_page {
   background: ${background} !important;
+}
+
+/* The same variables for the margin boxes (running head / foot), which
+   are not inside .paged-doc. */
+.pagedjs_page {
+  --doc-brand: ${brand};
+  --doc-secondary: ${secondary};
+  --doc-text: ${text};
+${fontVars(theme)}
 }`
+}
+
+/**
+ * The author's font + accent choices as custom properties, so template CSS
+ * (\`theme.customCss\`) follows them instead of naming a family:
+ * \`font-family: var(--doc-heading-font)\`. Documented in
+ * docs/TEMPLATE-WORKFLOW.md.
+ */
+function fontVars(theme: DocTheme): string {
+  return [
+    `  --doc-accent: ${theme.color.brand};`,
+    `  --doc-body-font: ${cssFontStack(theme.body.font)};`,
+    `  --doc-heading-font: ${cssFontStack(theme.headings.font)};`,
+    `  --doc-meta-font: ${cssFontStack(theme.meta.font)};`,
+    `  --doc-mono-font: ${codeFontStack(theme)};`
+  ].join('\n')
 }
 
 // — typography ————————————————————————————————————————————————————————
@@ -329,7 +372,7 @@ function typographyBlock(theme: DocTheme): string {
     const below = ((HEADING_SPACE_BELOW[level - 1] ?? 0.3) * linePt).toFixed(2)
     // `headings.levels.hN` (h1–h4): size, weight, italic, small caps.
     const look = resolveHeadingLevel(theme, level)
-    const lookCss = `${look.style === 'italic' ? '\n  font-style: italic;' : ''}${look.smallCaps ? '\n  font-variant-caps: small-caps;' : ''}`
+    const lookCss = `${look.style === 'italic' ? '\n  font-style: italic;' : ''}${look.smallCaps ? '\n  font-variant-caps: small-caps;' : ''}${look.align === 'center' ? '\n  text-align: center;' : ''}`
     headingRules.push(`.paged-doc h${level} {
   font-family: ${headingFamily};
   font-size: ${sizePt}pt;
@@ -518,6 +561,9 @@ function tableBlock(theme: DocTheme): string {
     // ordinary words apart — and tables with many columns get a smaller
     // type size (one selector each — paged.js splits selector lists).
     `.paged-doc td code { overflow-wrap: anywhere; }`,
+    // A number and its unit, a currency and its amount, and short codes
+    // like SEV-1 never part (renderMarkdown wraps them in table cells).
+    `.paged-doc .markoto-nowrap { white-space: nowrap; }`,
     `.paged-doc th code { overflow-wrap: anywhere; }`,
     `.paged-doc table:has(tr > :nth-child(8)) { font-size: 0.88em; }`,
     `.paged-doc table:has(tr > :nth-child(10)) { font-size: 0.8em; }`,
@@ -810,7 +856,8 @@ function katexBlock(): string {
  * whole page. Colours + fonts come from `buildMermaidConfig(theme)`.
  */
 function mermaidBlock(theme: DocTheme): string {
-  const textHeightMm = pageHeightMm(theme.page.size, theme.page.orientation) - 2 * theme.page.margin
+  const margins = resolvePageMargins(theme)
+  const textHeightMm = pageHeightMm(theme.page.size, theme.page.orientation) - margins.top - margins.bottom
   const maxHeightMm = Math.max(40, Math.round(textHeightMm * 0.45))
   return [
     `.paged-doc .mermaid {
@@ -971,22 +1018,28 @@ const UNNUMBERED = ':not(.markoto-cover-title):not(.markoto-abstract-heading):no
 const UNNUMBERED_TOC = ':not(.markoto-abstract-entry):not(.markoto-unnumbered-entry)'
 
 /**
- * `headings.numbering: 'decimal'` → `1`, `1.1`, `1.1.1`, `1.1.1.1` before
- * h1–h4 and before the matching TOC entries. Plain CSS counters: paged.js
- * turns `counter-increment` / `counter-reset` into per-element values, so
+ * Heading numbers (`headings.numbering`) before h1–h4 and before the
+ * matching TOC entries. Plain CSS counters: paged.js turns
+ * `counter-increment` / `counter-reset` into per-element values, so
  * numbers continue across pages. h1 resets the levels below it and
  * nothing above. The TOC lists the same headings in the same order (the
  * abstract's and `{.unnumbered}` headings' entries are marked by
- * `markAbstract` / `markUnnumbered` and skipped), so its
- * counters match the headings'.
+ * `markAbstract` / `markUnnumbered` and skipped), so its counters match
+ * the headings'.
+ *
+ * Levels count from the highest heading level the document numbers: when
+ * that is h2 (no h1), `composeFinalHtml` marks the numbered headings
+ * `markoto-num-from-h2` and the h2 shows `1`, the h3 `1.1` — not `0.1`.
+ * The TOC is relative already (markdown-it-toc-done-right nests from the
+ * highest level used), so its depth is the logical level.
  */
 function numberingBlock(theme: DocTheme): string {
-  if (headingNumbering(theme) !== 'decimal') return ''
+  const style = headingNumbering(theme)
+  if (style === 'none') return ''
   const levels = [1, 2, 3, 4]
   const name = (l: number) => `mk-h${l}`
   const tocName = (l: number) => `mk-toc${l}`
-  const label = (counter: (l: number) => string, l: number) =>
-    levels.slice(0, l).map(i => `counter(${counter(i)})`).join(' "." ')
+  const gap = style === 'ieee' ? '0.5em' : '0.75em'
   const rules: string[] = []
   for (const l of levels) {
     const below = levels.filter(i => i > l)
@@ -995,8 +1048,8 @@ function numberingBlock(theme: DocTheme): string {
   counter-increment: ${name(l)};${reset}
 }
 .paged-doc h${l}${UNNUMBERED}::before {
-  content: ${label(name, l)};
-  margin-right: 0.75em;
+  content: ${numberLabel(style, levels.slice(0, l).map(name))};
+  margin-right: ${gap};
   font-variant-numeric: lining-nums tabular-nums;
 }`)
     const tocReset = below.length ? `\n  counter-reset: ${below.map(tocName).join(' ')};` : ''
@@ -1005,11 +1058,18 @@ function numberingBlock(theme: DocTheme): string {
   counter-increment: ${tocName(l)};${tocReset}
 }
 ${li}::before {
-  content: ${label(tocName, l)};
+  content: ${numberLabel(style, levels.slice(0, l).map(tocName))};
   min-width: ${(1.2 + 0.6 * (l - 1)).toFixed(1)}em;
   margin-right: 0.5em;
   font-variant-numeric: lining-nums tabular-nums;
 }`)
+  }
+  // Documents whose highest numbered level is h2–h4: count from there.
+  for (const base of [2, 3, 4]) {
+    for (const l of levels.filter(i => i >= base)) {
+      const counters = levels.filter(i => i >= base && i <= l).map(name)
+      rules.push(`.paged-doc h${l}.${numberingBaseClass(base)}${UNNUMBERED}::before { content: ${numberLabel(style, counters)}; }`)
+    }
   }
   return [
     // Number + entry on one row; a nested list wraps below.
@@ -1018,6 +1078,113 @@ ${li}::before {
 .paged-doc .table-of-contents li > ul { flex-basis: 100%; }`,
     ...rules
   ].join('\n')
+}
+
+/** Class `composeFinalHtml` puts on numbered headings when the highest numbered level is h`base` (2–4). */
+export function numberingBaseClass(base: number): string {
+  return `markoto-num-from-h${base}`
+}
+
+/** IEEEtran's number per level: \Roman. / \Alph. / \arabic) / \alph). */
+const IEEE_LEVEL_FORMATS = [['upper-roman', '.'], ['upper-alpha', '.'], ['decimal', ')'], ['lower-alpha', ')']] as const
+
+/**
+ * CSS `content` for the number of a heading whose counters (outermost
+ * first) are `counters` — the last one is the heading's own level.
+ */
+function numberLabel(style: Exclude<HeadingNumbering, 'none'>, counters: string[]): string {
+  if (style === 'ieee') {
+    const own = counters.at(-1) ?? ''
+    const [fmt, suffix] = IEEE_LEVEL_FORMATS[counters.length - 1] ?? IEEE_LEVEL_FORMATS[3]
+    return `counter(${own}, ${fmt}) "${suffix}"`
+  }
+  const joined = counters.map(c => `counter(${c})`).join(' "." ')
+  return style === 'decimal-dot' ? `${joined} "."` : joined
+}
+
+// — captions ——————————————————————————————————————————————————————————
+
+/**
+ * Table captions (`Table: …` / `: …` next to a table in the Markdown →
+ * `<caption>`, renderMarkdown `tableCaptionPlugin`) in the figure-caption
+ * voice, above or below the table (`tables.captionPosition`; for `below`
+ * `composeFinalHtml` moves the caption to the end of the table, so a
+ * table split across pages shows it under its last part). Optional
+ * "Table 1: " / "Figure 1: " labels in the document language
+ * (`tables.captionLabel`, `blocks.figureLabel`); only captioned tables and
+ * figures count. Template CSS can restyle the label through `::before`
+ * and the counters `mk-table` / `mk-figure`.
+ */
+function captionBlock(theme: DocTheme, runtime: ThemeRuntime): string {
+  const { tablePosition, tableLabel, figureLabel } = resolveCaptions(theme)
+  const labels = runtime.captionLabels ?? { table: 'Table', figure: 'Figure', separator: ': ' }
+  const side = tablePosition === 'below' ? 'bottom' : 'top'
+  const space = tablePosition === 'below' ? 'padding-top' : 'padding-bottom'
+  const rules = [
+    `.paged-doc table > caption {
+  caption-side: ${side};
+  ${space}: 0.4em;
+  font-family: ${cssFontStack(theme.meta.font)};
+  font-size: 0.85em;
+  font-style: italic;
+  color: var(--doc-secondary);
+  text-align: center;
+}`
+  ]
+  if (tableLabel) {
+    rules.push(`.paged-doc table > caption { counter-increment: mk-table; }
+.paged-doc table > caption::before { content: ${cssString(`${labels.table} `)} counter(mk-table) ${cssString(labels.separator)}; }`)
+  }
+  if (figureLabel) {
+    rules.push(`.paged-doc figcaption:not(:empty) { counter-increment: mk-figure; }
+.paged-doc figcaption:not(:empty)::before { content: ${cssString(`${labels.figure} `)} counter(mk-figure) ${cssString(labels.separator)}; }`)
+  }
+  return rules.join('\n')
+}
+
+// — references ————————————————————————————————————————————————————————
+
+/**
+ * The reference list: `composeFinalHtml` marks the lists and paragraphs of
+ * the section headed References / Bibliography / Literatur / Références …
+ * `markoto-references` (`app/utils/references.ts`), so the look survives a
+ * list continued on the next page or column. `blocks.referenceStyle`:
+ * `hanging` indents every line but the first; `brackets` labels numbered
+ * lists `[1]`, `[2]` (and hangs paragraphs and bullet entries). The indent
+ * is `--doc-reference-indent` (template CSS can set it).
+ */
+function referencesBlock(theme: DocTheme): string {
+  const style = referenceStyle(theme)
+  if (style === 'plain') return ''
+  const indent = 'var(--doc-reference-indent, 1.5em)'
+  const rules = [
+    `.paged-doc p.markoto-references { padding-left: ${indent}; text-indent: calc(-1 * ${indent}); }`,
+    `.paged-doc ul.markoto-references { list-style: none; padding-left: ${indent}; }
+.paged-doc ul.markoto-references > li { text-indent: calc(-1 * ${indent}); }`
+  ]
+  if (style === 'brackets') {
+    rules.push(`.paged-doc ol.markoto-references { padding-left: 2.4em; }
+.paged-doc ol.markoto-references > li::marker { content: "[" counter(list-item) "]\\2002"; font-variant-numeric: lining-nums tabular-nums; }`)
+  }
+  return rules.join('\n')
+}
+
+// — running section title ——————————————————————————————————————————————
+
+/** Named string behind the `{section}` header/footer token. */
+const SECTION_STRING = 'mk-section'
+
+/**
+ * `{section}`: paged.js `string-set` on the document's top-level section
+ * headings (`markoto-section-heading`, marked by `composeFinalHtml` — h1,
+ * or h2 in a document without h1). The token reads the first one that
+ * starts on the page, else the one running on from before. Only emitted
+ * when a header/footer slot uses the token.
+ */
+function sectionStringBlock(theme: DocTheme): string {
+  const slots = [theme.header, theme.footer].flatMap(s => [s.left, s.center, s.right])
+  if (!slots.some(t => t.includes('{section}'))) return ''
+  return `.paged-doc .markoto-section-heading { string-set: ${SECTION_STRING} content(text); }`
 }
 
 // — page break ————————————————————————————————————————————————————————
@@ -1049,8 +1216,9 @@ function pageBreakBlock(): string {
  * Rules are unconditional: \`column-span\` is a no-op outside a
  * multi-column container, so single-column docs aren't affected.
  *
- * Why \`:first-of-type\` for the H1: scope is "the first H1 of the doc",
- * not every H1. Subsequent H1s (rare but possible) stay in-flow.
+ * Only the document's first h1 spans (\`markoto-first-section\`, set by
+ * \`composeFinalHtml\`): paged.js clones \`.paged-doc\` onto every page,
+ * so \`h1:first-of-type\` matched the first h1 of EVERY page.
  */
 function columnSpanBlock(theme: DocTheme): string {
   return [
@@ -1058,7 +1226,7 @@ function columnSpanBlock(theme: DocTheme): string {
     // then just the first section and stays in its column.
     theme.cover.enabled
       ? ''
-      : `.paged-doc > h1:first-of-type {
+      : `.paged-doc > h1.markoto-first-section {
   column-span: all;
 }`,
     `.paged-doc .table-of-contents {
@@ -1137,6 +1305,7 @@ function coverBlock(theme: DocTheme): string {
   line-height: 1.2;
   letter-spacing: ${theme.headings.letterSpacing}em;
   color: var(--doc-heading-color);
+  text-wrap: balance;
   margin: 0 0 0.4em 0;${caps || '\n  font-variant-caps: normal;'}
 }`,
     `.paged-doc .markoto-cover-subtitle {
@@ -1224,6 +1393,7 @@ function titleBlockCss(theme: DocTheme, align: 'left' | 'center' | 'right'): str
   line-height: 1.2;
   letter-spacing: ${theme.headings.letterSpacing}em;
   color: var(--doc-heading-color);
+  text-wrap: balance;
   margin: 0 0 0.6em 0;
   border: none;${ruleCss}${caps || '\n  font-variant-caps: normal;'}
 }`,

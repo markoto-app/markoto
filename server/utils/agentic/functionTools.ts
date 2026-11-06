@@ -32,7 +32,10 @@ import {
   CodeFrameSchema,
   HeadingNumberingSchema,
   FontWeightSchema,
-  HeadingStyleSchema
+  HeadingStyleSchema,
+  HeadingAlignSchema,
+  CaptionPositionSchema,
+  ReferenceStyleSchema
 } from '~~/shared/types/theme'
 
 /**
@@ -329,7 +332,7 @@ const PRESET_IDS = THEME_PRESETS.map(p => p.id) as [string, ...string[]]
 
 const RunningSlotsPatch = z.object({
   left: z.string().max(200).optional()
-    .describe('Header/footer left slot template. Tokens: {title}, {page}, {pages}, {date}. Empty string disables the slot.'),
+    .describe('Header/footer left slot template. Tokens: {title}, {section} (the current top-level section heading — running heads), {page}, {pages}, {date}. Empty string disables the slot.'),
   center: z.string().max(200).optional().describe('Center slot template; same tokens as left.'),
   right: z.string().max(200).optional().describe('Right slot template; same tokens as left.'),
   rule: z.boolean().optional()
@@ -341,7 +344,8 @@ const HeadingLevelPatch = z.object({
     .describe('Size as a multiple of the body size (0.5–4), replacing the scale for this level. arXiv: h1 1.2, h2 1, h3 1.'),
   weight: FontWeightSchema.optional().describe('Font weight 100–900 in steps of 100 for this level (default: headings.weight).'),
   style: HeadingStyleSchema.optional().describe('`italic` or `normal` (default).'),
-  smallCaps: z.boolean().optional().describe('Small capitals for this level (default false).')
+  smallCaps: z.boolean().optional().describe('Small capitals for this level (default false).'),
+  align: HeadingAlignSchema.optional().describe('`center` centres this level, number included (IEEE sections); `left` (default).')
 }).describe('Look of one heading level. Omitted fields follow the theme-wide heading values; `{}` removes every override of the level.')
 
 // Function-call compatibility quirk (carried over from pre-Phase-5
@@ -365,7 +369,11 @@ export const UpdateThemeArgs = z.object({
   page: z.object({
     size: PageSizeSchema.optional(),
     orientation: PageOrientationSchema.optional(),
-    margin: z.number().min(0).max(60).optional().describe('Uniform page margin in mm (0–60).')
+    margin: z.number().min(0).max(60).optional().describe('Uniform page margin in mm (0–60).'),
+    marginTop: z.number().min(0).max(60).optional().describe('Top margin in mm (0–60), overriding `margin` for that side only. Omit to follow `margin`. IEEE conference: top 18, bottom 24.3, sides 16.93.'),
+    marginRight: z.number().min(0).max(60).optional().describe('Right margin in mm, overriding `margin`.'),
+    marginBottom: z.number().min(0).max(60).optional().describe('Bottom margin in mm, overriding `margin`.'),
+    marginLeft: z.number().min(0).max(60).optional().describe('Left margin in mm, overriding `margin`.')
   }).optional(),
   body: z.object({
     font: z.enum(FONT_NAMES).optional()
@@ -399,7 +407,7 @@ export const UpdateThemeArgs = z.object({
     spacingScale: z.number().min(0.5).max(2).optional()
       .describe('Multiplier on the space above headings (0.5–2). 1.0 default; 1.2 editorial breathing; 0.7 tight reports.'),
     numbering: HeadingNumberingSchema.optional()
-      .describe('Section numbers: `decimal` puts 1, 1.1, 1.1.1, 1.1.1.1 before h1–h4 and their TOC entries (reports, papers, specs); `none` (default) shows none. The cover title, a leading "Abstract" section and headings marked `{.unnumbered}` in the Markdown (`# References {.unnumbered}`) are never numbered and don\'t advance the counters.'),
+      .describe('Section numbers before h1–h4 and their TOC entries: `decimal` 1, 1.1, 1.1.1 (reports, papers, specs); `decimal-dot` 1., 1.1., 1.1.1. (legal / German style); `ieee` I., A., 1), a) (IEEE papers: each level shows only its own number); `none` (default). Numbers count from the highest heading level the document uses (a document whose sections are h2 starts at 1). The cover title, a leading "Abstract" section and headings marked `{.unnumbered}` in the Markdown (`# References {.unnumbered}`) are never numbered and don\'t advance the counters.'),
     levels: z.object({
       h1: HeadingLevelPatch.optional(),
       h2: HeadingLevelPatch.optional(),
@@ -440,7 +448,11 @@ export const UpdateThemeArgs = z.object({
     headerTextColor: TableHeaderColorSchema.optional(),
     borders: TableBordersSchema.optional(),
     zebra: z.boolean().optional().describe('Alternating row backgrounds.'),
-    cellPadding: z.number().int().min(0).max(24).optional().describe('Cell padding in px (0–24).')
+    cellPadding: z.number().int().min(0).max(24).optional().describe('Cell padding in px (0–24).'),
+    captionPosition: CaptionPositionSchema.optional()
+      .describe('Where table captions sit: `above` (default) or `below`. A caption is a paragraph starting with `Table:` (or `:`) right before or after the table in the Markdown.'),
+    captionLabel: z.boolean().optional()
+      .describe('Prefix every table caption with "Table 1: " in the document language (default false).')
   }).optional(),
   blocks: z.object({
     imageRadius: z.number().min(0).max(32).optional().describe('Image corner radius in px (0–32).'),
@@ -449,7 +461,11 @@ export const UpdateThemeArgs = z.object({
     hrStyle: HrStyleSchema.optional()
       .describe('Horizontal-rule style. `rule`/`dashed`/`dotted` draw a line; `asterism` emits a centered ⁂ glyph (literary scene break); `none` is invisible.'),
     hrThickness: z.number().int().min(1).max(6).optional()
-      .describe('HR stroke width in px (1–6). Ignored by asterism + none.')
+      .describe('HR stroke width in px (1–6). Ignored by asterism + none.'),
+    figureLabel: z.boolean().optional()
+      .describe('Prefix every figure (image) caption with "Figure 1: " in the document language (default false).'),
+    referenceStyle: ReferenceStyleSchema.optional()
+      .describe('Look of the reference list — the section headed References / Bibliography / Literatur / Références … : `plain` (default), `hanging` (hanging indent, APA / author-year), `brackets` (numbered lists labelled [1], [2] — IEEE).')
   }).optional(),
   mermaid: z.object({
     theme: MermaidThemeSchema.optional()
@@ -502,7 +518,7 @@ export const UpdateThemeArgs = z.object({
   }).optional(),
   customCss: z.string().max(CUSTOM_CSS_MAX_BYTES).optional()
     .describe(`Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. LAST RESORT: first use the structured fields above (fonts, sizes, colours, spacing, tables.zebra, blocks.*, alerts.*, header/footer, cover, layout.columns); write CSS only for what no field expresses (a coloured h2 underline, a custom alert look, a two-column section, page-number formats). REPLACES the whole existing custom CSS: call get_theme first and send the full text with your rules added — keep the user's existing rules. Empty string clears it. ${CUSTOM_CSS_AI_REFERENCE}`)
-}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: header/footer rule (`header.rule`, `footer.rule`), per-level heading look (`headings.levels`), cover title weight (`cover.titleWeight`), `{.unnumbered}` headings, the `arxiv` preset, section numbering (`headings.numbering`), code block look (`code.font/background/frame/wrap/lineNumbers`), paper title block (`cover.layout: "title-block"` + `cover.affiliations`), A5 pages, bundled TeX fonts (TeX Gyre Termes / Heros, Latin Modern Roman / Mono), cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
+}).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: numbering styles (`headings.numbering: "decimal-dot" | "ieee"`), centred heading levels (`headings.levels.hN.align`), per-side page margins (`page.marginTop/Right/Bottom/Left`), table captions (`tables.captionPosition/captionLabel`), figure numbers (`blocks.figureLabel`), reference-list style (`blocks.referenceStyle`), the `{section}` header/footer token, header/footer rule (`header.rule`, `footer.rule`), per-level heading look (`headings.levels`), cover title weight (`cover.titleWeight`), `{.unnumbered}` headings, the `arxiv` preset, section numbering (`headings.numbering`), code block look (`code.font/background/frame/wrap/lineNumbers`), paper title block (`cover.layout: "title-block"` + `cover.affiliations`), A5 pages, bundled TeX fonts (TeX Gyre Termes / Heros, Latin Modern Roman / Mono), cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
 
 // --- Theme inspection / preset management --------------------------------
 //

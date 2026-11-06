@@ -50,6 +50,8 @@ The documentation for `booktabs` ('Publication quality tables in LaTeX') is avai
 
 <https://www.ctan.org/pkg/booktabs>
 
+Table: Sample table title
+
 | Name | Description | Size (μm) |
 |---|---|---|
 | Dendrite | Input terminal | ∼100 |

@@ -35,10 +35,10 @@ const FONT_NAME_REGEX = /^[A-Za-z0-9 ]{1,40}$/
  * Header/footer templates render via `themeToCss` which interpolates
  * them directly into CSS `content:` properties. The `SAFE_TEXT` class
  * rejects CSS-escape characters so a payload like `}body{display:none`
- * can't break the whole stylesheet. `{title} / {page} / {pages} /
- * {date}` are stripped before the check so authors CAN use them.
+ * can't break the whole stylesheet. `{title} / {section} / {page} /
+ * {pages} / {date}` are stripped before the check so authors CAN use them.
  */
-const TEMPLATE_TOKEN_REGEX = /\{(?:title|page|pages|date)\}/g
+const TEMPLATE_TOKEN_REGEX = /\{(?:title|section|page|pages|date)\}/g
 const TEMPLATE_SAFE_TEXT_REGEX = /^[^"\\\n\r<>]*$/
 
 const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
@@ -111,6 +111,10 @@ export type FontWeight = z.infer<typeof FontWeightSchema>
 export const HeadingStyleSchema = z.enum(['normal', 'italic'])
 export type HeadingStyle = z.infer<typeof HeadingStyleSchema>
 
+/** Horizontal alignment of one heading level (IEEE: centred sections). */
+export const HeadingAlignSchema = z.enum(['left', 'center'])
+export type HeadingAlign = z.infer<typeof HeadingAlignSchema>
+
 /**
  * Look of ONE heading level, overriding the theme-wide heading values
  * for that level only. Every field optional: absent = the scale /
@@ -123,7 +127,9 @@ export const HeadingLevelStyleSchema = z.object({
   size: z.number().min(0.5).max(4).optional(),
   weight: FontWeightSchema.optional(),
   style: HeadingStyleSchema.optional(),
-  smallCaps: z.boolean().optional()
+  smallCaps: z.boolean().optional(),
+  /** `center` centres the level (number included); absent = left. */
+  align: HeadingAlignSchema.optional()
 }).strict()
 export type HeadingLevelStyle = z.infer<typeof HeadingLevelStyleSchema>
 
@@ -163,8 +169,16 @@ export type CodeBackground = z.infer<typeof CodeBackgroundSchema>
 export const CodeFrameSchema = z.enum(['none', 'rule', 'box'])
 export type CodeFrame = z.infer<typeof CodeFrameSchema>
 
-/** Heading numbers: none, or `1`, `1.1`, `1.1.1`, `1.1.1.1` on h1–h4 (also in the TOC). */
-export const HeadingNumberingSchema = z.enum(['none', 'decimal'])
+/**
+ * Heading numbers on h1–h4 (also in the TOC):
+ *  - `none`
+ *  - `decimal`     — `1`, `1.1`, `1.1.1`, `1.1.1.1`
+ *  - `decimal-dot` — `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.` (legal / German style)
+ *  - `ieee`        — `I.`, `A.`, `1)`, `a)` (IEEEtran: each level shows its own number only)
+ * The levels count from the highest heading level the document uses: a
+ * document whose sections are h2 numbers them `1`, `2`, … (not `0.1`).
+ */
+export const HeadingNumberingSchema = z.enum(['none', 'decimal', 'decimal-dot', 'ieee'])
 export type HeadingNumbering = z.infer<typeof HeadingNumberingSchema>
 
 export const TableHeaderBgSchema = z.enum(['brand', 'muted', 'none'])
@@ -176,6 +190,20 @@ export type TableHeaderColor = z.infer<typeof TableHeaderColorSchema>
 
 export const TableBordersSchema = z.enum(['all', 'horizontal', 'minimal', 'none'])
 export type TableBorders = z.infer<typeof TableBordersSchema>
+
+/** Where a table caption (`Table: …` in the Markdown) sits. */
+export const CaptionPositionSchema = z.enum(['above', 'below'])
+export type CaptionPosition = z.infer<typeof CaptionPositionSchema>
+
+/**
+ * Look of the reference list — the section headed References /
+ * Bibliography / Literatur / Références … (`app/utils/references.ts`):
+ *  - `plain`    — like any other list / paragraphs
+ *  - `hanging`  — hanging indent (author-year lists, APA)
+ *  - `brackets` — numbered lists get `[1]`, `[2]` labels (IEEE); paragraphs hang
+ */
+export const ReferenceStyleSchema = z.enum(['plain', 'hanging', 'brackets'])
+export type ReferenceStyle = z.infer<typeof ReferenceStyleSchema>
 
 /**
  * Diagram colours. `document` (the default for new themes) derives every
@@ -232,6 +260,8 @@ export type HeaderImagePosition = z.infer<typeof HeaderImagePositionSchema>
 /**
  * Header/footer slot. Templates support these tokens:
  *   {title}  → document title
+ *   {section} → the current top-level section heading (the first one
+ *              that starts on the page, else the one running on)
  *   {page}   → current page number
  *   {pages}  → total page count
  *   {date}   → the publication date (`cover.date`, else today), written
@@ -276,7 +306,16 @@ export const DocThemeSchema = z.object({
     orientation: PageOrientationSchema,
     // mm — uniform on all four sides. Bounded so a payload can't push
     // e.g. `margin: 1e9` and crash paged.js.
-    margin: z.number().min(0).max(60)
+    margin: z.number().min(0).max(60),
+    /**
+     * Per-side margins in mm, each overriding `margin` for its side
+     * (formats with a deeper bottom or binding margin: IEEE 51 / 69 pt).
+     * Optional: absent = `margin`.
+     */
+    marginTop: z.number().min(0).max(60).optional(),
+    marginRight: z.number().min(0).max(60).optional(),
+    marginBottom: z.number().min(0).max(60).optional(),
+    marginLeft: z.number().min(0).max(60).optional()
   }).strict(),
   /**
    * Optional third font slot — the "eyebrow / meta" voice. Used for
@@ -413,7 +452,11 @@ export const DocThemeSchema = z.object({
     headerTextColor: TableHeaderColorSchema,
     borders: TableBordersSchema,
     zebra: z.boolean(),
-    cellPadding: z.number().int().min(0).max(24) // px
+    cellPadding: z.number().int().min(0).max(24), // px
+    /** Table caption above (default) or below the table. */
+    captionPosition: CaptionPositionSchema.optional(),
+    /** "Table 1: " before every caption, in the document language (default off). */
+    captionLabel: z.boolean().optional()
   }).strict(),
   blocks: z.object({
     imageRadius: z.number().min(0).max(32), // px
@@ -423,7 +466,11 @@ export const DocThemeSchema = z.object({
     // Stroke width for rule/dashed/dotted variants. Ignored by
     // asterism + none (they don't draw a border). 1-6 px keeps it
     // proportionate to typical body sizes.
-    hrThickness: z.number().int().min(1).max(6)
+    hrThickness: z.number().int().min(1).max(6),
+    /** "Figure 1: " before every figure caption, in the document language (default off). */
+    figureLabel: z.boolean().optional(),
+    /** Look of the reference list (default `plain`). */
+    referenceStyle: ReferenceStyleSchema.optional()
   }).strict(),
   mermaid: z.object({
     theme: MermaidThemeSchema
