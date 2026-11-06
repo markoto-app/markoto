@@ -1015,6 +1015,10 @@
         "name": "arXivプレプリント",
         "description": "arXivのLaTeXプレプリントの体裁：USレター、Times 10 ptの両端揃え、番号付きの太字の節、太い罫線に挟まれたスモールキャップスのタイトルブロック、細い罫線の上に「A Preprint」の柱。"
       },
+      "ieee-conference": {
+        "name": "IEEE会議論文",
+        "description": "IEEEの会議用テンプレート（IEEEtran）：USレター、Times 10 ptの2段組、ローマ数字付きのスモールキャップスで中央揃えの節、イタリックの小節、横に並んだ著者ブロックの上に24 ptのタイトル、第1段の冒頭に太字の要旨。"
+      },
       "tech": {
         "name": "技術レポート",
         "description": "コンパクトなIBM Plex Sans、シアンのブランドカラー、暗いコードブロック、縞模様のブランドカラー表ヘッダー。"

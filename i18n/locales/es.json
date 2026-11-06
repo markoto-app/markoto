@@ -1015,6 +1015,10 @@
         "name": "Preprint de arXiv",
         "description": "El aspecto del preprint LaTeX de arXiv: tamaño US Letter, Times 10 pt justificado, secciones numeradas en negrita, bloque de título entre filetes gruesos en versalitas, encabezado «A Preprint» sobre un filete fino."
       },
+      "ieee-conference": {
+        "name": "Artículo de congreso IEEE",
+        "description": "La plantilla de congresos del IEEE (IEEEtran): tamaño US Letter, dos columnas en Times 10 pt, secciones centradas en versalitas con números romanos, subsecciones en cursiva, título de 24 pt sobre bloques de autores uno al lado del otro y el resumen en negrita al comienzo de la primera columna."
+      },
       "tech": {
         "name": "Informe técnico",
         "description": "IBM Plex Sans compacta, color de marca cian, bloques de código oscuros, encabezados de tabla con color de marca y filas cebra."
