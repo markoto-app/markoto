@@ -1,4 +1,4 @@
-import { easeInOutCubic, GLIDE_MS, nearestRest, newWheelGesture, stepTarget, wheelSteps } from '~~/shared/tour/paging'
+import { easeInOutSine, glideDuration, nearestRest, newWheelGesture, stepTarget, wheelSteps } from '~~/shared/tour/paging'
 
 /** Fired on `window` when the page comes to rest on a scene (detail: rest index). */
 export const TOUR_REST_EVENT = 'mk-tour:rest'
@@ -28,8 +28,8 @@ export interface TourPagerOptions {
  * CSS snaps the page (`mandatory`, one rest per scene), but the native
  * snap is a quick jump — and in Chromium a short wheel gesture springs
  * back. So every wheel/trackpad gesture and every paging key becomes ONE
- * step to the next (or previous) rest, glided over `GLIDE_MS` with an
- * ease-in-out curve: long enough for the scroll-tied copy fade, stage
+ * step to the next (or previous) rest, glided over `glideDuration` (≈1.6 s
+ * per scene, scaled by distance) on a sine ease-in-out: long enough for the scroll-tied copy fade, stage
  * slide and colour flip to play. While gliding, snapping is switched off
  * (it would catch every intermediate frame) and further input is
  * swallowed; the rest of a gesture (more notches, a trackpad's momentum
@@ -72,10 +72,11 @@ export function useTourPager(opts: TourPagerOptions) {
     lastRest = -1
     emit(TOUR_DEPART_EVENT, index)
     snapping(false)
+    const duration = glideDuration(to - from, window.innerHeight)
     const start = performance.now()
     const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / GLIDE_MS)
-      window.scrollTo(0, from + (to - from) * easeInOutCubic(p))
+      const p = Math.min(1, (now - start) / duration)
+      window.scrollTo(0, from + (to - from) * easeInOutSine(p))
       if (p < 1) {
         raf = requestAnimationFrame(tick)
         return

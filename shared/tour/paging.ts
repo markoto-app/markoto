@@ -1,9 +1,21 @@
 // Scene-to-scene paging of the product page (WP11): pure helpers behind
 // app/composables/useTourPager.ts, unit-tested in tests/unit/tourPaging.test.ts.
 
-/** How long one scene-to-scene glide takes (ms). Long enough for the
- *  scroll-tied copy fade, stage slide and colour flip to be seen. */
-export const GLIDE_MS = 1050
+/** Scene-to-scene glide duration: a base plus a share per viewport height
+ *  travelled, clamped. One scene (~1.6 viewports) takes ~1.6 s — long
+ *  enough for the scroll-tied copy fade, stage slide and colour flip to be
+ *  followed, short enough that the page doesn't feel held back. */
+export const GLIDE_BASE_MS = 800
+export const GLIDE_MS_PER_VIEWPORT = 500
+export const GLIDE_MIN_MS = 1200
+export const GLIDE_MAX_MS = 2000
+
+/** How long a glide over `distance` px takes in a `viewport` px tall window. */
+export function glideDuration(distance: number, viewport: number): number {
+  const viewports = viewport > 0 ? Math.abs(distance) / viewport : 1
+  const ms = GLIDE_BASE_MS + GLIDE_MS_PER_VIEWPORT * viewports
+  return Math.min(GLIDE_MAX_MS, Math.max(GLIDE_MIN_MS, ms))
+}
 
 /** Wheel events closer together than this belong to one gesture (a run
  *  of notches, a trackpad flick and its momentum tail). */
@@ -54,10 +66,14 @@ export function wheelSteps(g: WheelGesture, now: number, deltaY: number, gliding
   return true
 }
 
-/** Ease-in-out (cubic): slow start, slow arrival. */
-export function easeInOutCubic(t: number): number {
+/**
+ * Ease-in-out (sine): soft start, soft arrival, and a mid-glide peak speed
+ * of ~1.57× the average (a cubic curve peaks at 3×, which reads as a jump
+ * between scenes).
+ */
+export function easeInOutSine(t: number): number {
   const x = Math.min(1, Math.max(0, t))
-  return x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2
+  return -(Math.cos(Math.PI * x) - 1) / 2
 }
 
 /** Index of the rest position nearest to `y`. */

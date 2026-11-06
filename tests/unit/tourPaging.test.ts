@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest'
 import {
   GESTURE_GAP_MS,
   GESTURE_MIN_DELTA,
-  easeInOutCubic,
+  GLIDE_MAX_MS,
+  GLIDE_MIN_MS,
+  easeInOutSine,
+  glideDuration,
   nearestRest,
   newWheelGesture,
   stepTarget,
@@ -14,12 +17,32 @@ import {
 
 describe('glide easing', () => {
   it('starts and ends at rest, symmetric around the middle', () => {
-    expect(easeInOutCubic(0)).toBe(0)
-    expect(easeInOutCubic(1)).toBe(1)
-    expect(easeInOutCubic(0.5)).toBeCloseTo(0.5, 6)
-    expect(easeInOutCubic(0.25) + easeInOutCubic(0.75)).toBeCloseTo(1, 6)
-    expect(easeInOutCubic(-1)).toBe(0)
-    expect(easeInOutCubic(2)).toBe(1)
+    expect(easeInOutSine(0)).toBeCloseTo(0, 9)
+    expect(easeInOutSine(1)).toBe(1)
+    expect(easeInOutSine(0.5)).toBeCloseTo(0.5, 6)
+    expect(easeInOutSine(0.25) + easeInOutSine(0.75)).toBeCloseTo(1, 6)
+    expect(easeInOutSine(-1)).toBeCloseTo(0, 9)
+    expect(easeInOutSine(2)).toBe(1)
+  })
+
+  it('never moves faster than ~1.6x the average speed (no jump mid-glide)', () => {
+    const steps = 1000
+    let peak = 0
+    for (let i = 0; i < steps; i++) peak = Math.max(peak, (easeInOutSine((i + 1) / steps) - easeInOutSine(i / steps)) * steps)
+    expect(peak).toBeLessThan(1.6)
+  })
+})
+
+describe('glide duration', () => {
+  it('grows with the distance, within bounds', () => {
+    const vh = 900
+    const oneScene = glideDuration(1440, vh)
+    expect(oneScene).toBeGreaterThanOrEqual(1500)
+    expect(oneScene).toBeLessThanOrEqual(1700)
+    expect(glideDuration(-1440, vh)).toBe(oneScene)
+    expect(glideDuration(100, vh)).toBe(GLIDE_MIN_MS)
+    expect(glideDuration(20 * vh, vh)).toBe(GLIDE_MAX_MS)
+    expect(glideDuration(1440, 0)).toBeGreaterThanOrEqual(GLIDE_MIN_MS)
   })
 })
 
