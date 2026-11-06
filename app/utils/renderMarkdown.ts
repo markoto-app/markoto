@@ -150,7 +150,19 @@ function defaultSlugify(s: string): string {
     // a SINGLE leading/trailing dash is equivalent to the old /^-+|-+$/
     // (whose `-+$` half backtracks super-linearly).
     .replace(/^-|-$/g, '')
-  return clobberSafeId(slug)
+  return clobberSafeId(selectorSafeId(slug))
+}
+
+/**
+ * An id that starts with a digit (heading "2024 results" → `2024-results`)
+ * is a valid HTML id but not a valid CSS `#id` selector, and paged.js
+ * resolves `target-counter()` / internal links with `querySelector('#…')`
+ * without escaping — it threw and the WHOLE preview stayed blank. Such
+ * slugs get an `h-` prefix (anchor + TOC share this slugify, so both
+ * agree).
+ */
+export function selectorSafeId(slug: string): string {
+  return /^\p{N}/u.test(slug) ? `h-${slug}` : slug
 }
 
 let clobberProbe: HTMLFormElement | null = null

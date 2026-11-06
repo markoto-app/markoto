@@ -228,3 +228,17 @@ describe('footnotes', () => {
     expect(css).toMatch(/@footnote \{[^}]*background: linear-gradient\([^)]*\) top left \/ 33% 0\.5pt no-repeat;[^}]*font-family: Inter,[^}]*font-size: 8\.00pt/)
   })
 })
+
+describe('tables and figures', () => {
+  test('wide tables fit the text width: words hyphenate, code in cells may break anywhere, many columns get a smaller size', () => {
+    const css = themeToCss(clone(defaultTheme), runtime)
+    expect(css).toMatch(/\.paged-doc th, \.paged-doc td \{[^}]*overflow-wrap: break-word;[^}]*hyphens: auto;/)
+    expect(css).toContain('.paged-doc td code { overflow-wrap: anywhere; }')
+    expect(css).toContain('.paged-doc table:has(tr > :nth-child(8)) { font-size: 0.88em; }')
+    expect(css).toContain('.paged-doc table:has(tr > :nth-child(10)) { font-size: 0.8em; }')
+  })
+
+  test('an empty figure caption (image without alt text) takes no space', () => {
+    expect(themeToCss(clone(defaultTheme), runtime)).toContain('.paged-doc figcaption:empty { display: none; }')
+  })
+})
