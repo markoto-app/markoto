@@ -1019,6 +1019,10 @@
         "name": "Technischer Bericht",
         "description": "Kompakte IBM Plex Sans, cyanfarbene Markenfarbe, dunkle Codeblöcke, markengefärbte Tabellenköpfe mit Zebra-Zeilen."
       },
+      "tech-docs": {
+        "name": "Technische Dokumentation",
+        "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
+      },
       "business": {
         "name": "Geschäftsbericht",
         "description": "Playfair-Überschriften über Source-Sans-Fliesstext, warmer Bernstein-Akzent, markengefärbte Tabellenköpfe, zentrierter Titel."

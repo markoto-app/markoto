@@ -40,8 +40,9 @@ describe('preset template CSS', () => {
       for (const m of css.matchAll(/(?:^|\})\s*([^{}]+)\{/g)) {
         const selectors = (m[1] ?? '').trim()
         expect(/\([^()]*,[^()]*\)/.test(selectors), selectors).toBe(false)
+        // Every selector starts at the document root: `.paged-doc` itself (a template grid on the root, tech-docs) or something inside it.
         for (const sel of selectors.split(',')) {
-          expect(sel.trim(), p.id).toMatch(/^\.(paged-doc|pagedjs_pages) /)
+          expect(sel.trim(), p.id).toMatch(/^\.(paged-doc|pagedjs_pages)( |$)/)
         }
       }
     }

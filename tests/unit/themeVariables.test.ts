@@ -44,9 +44,9 @@ describe('absent fields = the old look', () => {
     expect('titleWeight' in filled.cover).toBe(false)
   })
 
-  test('no preset other than arxiv changes its CSS through the new fields', () => {
+  test('no preset other than arxiv and tech-docs changes its CSS through the new fields', () => {
     for (const p of THEME_PRESETS) {
-      if (p.id === 'arxiv') continue
+      if (p.id === 'arxiv' || p.id === 'tech-docs') continue
       const css = themeToCss(p.theme, runtime)
       const stripped = clone(p.theme)
       delete stripped.headings.levels
