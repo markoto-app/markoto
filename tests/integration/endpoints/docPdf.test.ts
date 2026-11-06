@@ -256,14 +256,16 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
-    // Multi-column theme + cover: the cover spans both columns
+    // Multi-column theme + cover PAGE: the cover spans both columns
     // (column-span, themeToCss coverBlock) and the body still follows it.
+    // The academic preset itself uses the title block (no cover page) since
+    // the theme foundation PR, so the cover-page layout is set explicitly.
     it('two-column theme with a cover still renders the body after the cover', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
       const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
       expect(academic.layout.columns).toBe(2)
-      const theme = { ...academic, cover: { ...academic.cover, enabled: true } }
+      const theme = { ...academic, cover: { ...academic.cover, enabled: true, layout: 'editorial' } }
       await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
       const snapId = await insertYjsRow(doc.docId, multiPageBody())
 
@@ -278,6 +280,64 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       // The body face only appears when body text was laid out.
       const bodyFont = academic.body.font.replaceAll(' ', '')
       expect(fontNames.some(n => n.replaceAll('-', '').includes(bodyFont)), fontNames.join(', ')).toBe(true)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // Title block (papers): no cover page — title, authors and the leading
+    // "Abstract" section open page 1 and the two-column body follows on the
+    // same page and continues after it.
+    it('two-column title block renders title, abstract and the whole body', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
+      expect(academic.cover.layout).toBe('title-block')
+      const theme = { ...academic, cover: { ...academic.cover, authors: ['Ada Kovač'], affiliations: ['University of Zurich'] } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const abstract = '## Abstract\n\nWe measure stale reads under partitions.\n\n'
+      const snapId = await insertYjsRow(doc.docId, abstract + multiPageBody() + multiPageBody().replace('# Test fixture', '# Second part'))
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      )) as { pageCount: number }
+      expect(manifest.pageCount).toBeGreaterThanOrEqual(2)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
+      const bodyFont = academic.body.font.replaceAll(' ', '')
+      expect(fontNames.some(n => n.replaceAll('-', '').includes(bodyFont)), fontNames.join(', ')).toBe(true)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // The bundled TeX fonts (fonts/<slug>/, GUST licence) load from
+    // /vendor/fonts/ like the Fontsource families and embed as real
+    // TrueType fonts — CFF outlines would be embedded as Type 3 glyph
+    // procedures by Chromium (scripts/build-bundled-fonts.py converts them).
+    it('embeds the bundled TeX Gyre Termes and Latin Modern Mono as TrueType fonts', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const theme = {
+        ...defaultTheme,
+        body: { ...defaultTheme.body, font: 'TeX Gyre Termes' },
+        code: { ...defaultTheme.code, font: 'Latin Modern Mono' }
+      }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const snapId = await insertYjsRow(doc.docId, '# Fonts\n\nBody text in Termes, **bold too**.\n\n```js\nconst answer = 42\n```\n')
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // Each font dictionary: its /Subtype and /BaseFont.
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const termes = fonts.filter(f => /TeXGyreTermes/.test(f.name))
+      const lmMono = fonts.filter(f => /LMMono/.test(f.name))
+      expect(termes.length, summary).toBeGreaterThan(0)
+      expect(lmMono.length, summary).toBeGreaterThan(0)
+      for (const f of [...termes, ...lmMono]) expect(f.subtype, summary).not.toBe('Type3')
 
       await wipeRendersFor(doc.docId)
     }, 90_000)
