@@ -317,6 +317,7 @@ function setLevelField<K extends keyof HeadingLevelStyle>(key: HeadingLevelKey, 
   if (merged.weight !== undefined) entry.weight = merged.weight
   if (merged.style !== undefined) entry.style = merged.style
   if (merged.smallCaps !== undefined) entry.smallCaps = merged.smallCaps
+  if (merged.align !== undefined) entry.align = merged.align
   draft.value.headings.levels = levelsWith(key, entry)
 }
 function levelNumber(key: HeadingLevelKey): number {
