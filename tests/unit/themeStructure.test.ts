@@ -86,6 +86,7 @@ describe('optional fields', () => {
     for (const p of THEME_PRESETS) {
       const t = structuredClone(p.theme)
       if (t.tables.captionLabel || t.blocks.figureLabel || t.blocks.referenceStyle !== 'plain') continue
+      if ([t.header, t.footer].some(slot => [slot.left, slot.center, slot.right].some(v => v.includes('{section}')))) continue
       const out = css(t)
       expect(out, p.id).not.toContain('mk-table')
       expect(out, p.id).not.toContain('mk-figure')

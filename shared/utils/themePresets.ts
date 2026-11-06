@@ -72,9 +72,6 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
  * and the regular-weight 24pt title are theme values.
  */
 const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8b, LPPL). Values from IEEEtran.cls, 10pt conference mode. */
-/* \\textheight 9.25in quantised to 56 lines (672pt), top margin 0.75in less half the rounding; \\textwidth 43pc centred. */
-/* (paged.js margin variables, not an @page rule: a second @page replaces the theme's @footnote.) */
-.pagedjs_pages .pagedjs_page { --pagedjs-margin-top: 51pt; --pagedjs-margin-bottom: 69pt; }
 /* \\@maketitle: \\Huge 24/28pt title, 0.5\\baselineskip + 0.2em above, 1em - 0.25em to the author blocks. */
 .paged-doc .markoto-title-block { margin: 0 0 6pt; }
 .paged-doc .markoto-title-block .markoto-cover-title { line-height: 28pt; margin: -4pt 0 18pt; }
@@ -95,14 +92,10 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 /* Every paragraph indented \\parindent 1em, also the first after a heading; text after a list continues the paragraph. */
 .paged-doc > p, .paged-doc > p + p { text-indent: 1em; }
 .paged-doc > ul + p, .paged-doc > ol + p { text-indent: 0; }
-/* \\section: centred, "I." (\\Roman) + 0.5em; \\subsection "A." (\\Alph); 1.5ex above, 0.7ex below. */
+/* \\section / \\subsection: 1.5ex above, 0.7ex below (numbers "I." / "A." and the centred section come from the theme). */
 .paged-doc h1, .paged-doc h2 { margin: 6.75pt 0 3.15pt; break-after: avoid; }
-.paged-doc h1 { text-align: center; }
-.paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h1, upper-roman) "."; margin-right: 0.5em; }
-.paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h2, upper-alpha) "."; margin-right: 0.5em; }
 /* \\subsubsection: run-in at \\parindent, "1)" and ":" after the heading (inline with its paragraph, so the two never part at a column break). */
 .paged-doc h3 { display: inline; margin: 0 0.35em 0 1em; }
-.paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: counter(mk-h3) ")"; margin-right: 0.5em; }
 .paged-doc h3::after { content: ":"; }
 .paged-doc h3 + p { display: inline; text-indent: 0; }
 /* itemize / enumerate: \\leftmargini 2em, bullet and "1)" labels \\labelsep 0.5em before the text, \\topsep 2pt, no \\itemsep. */
@@ -116,21 +109,20 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 .pagedjs_pages .pagedjs_page .pagedjs_footnote_area .footnote { text-indent: 1em; line-height: 9pt; }
 .pagedjs_pages .pagedjs_page .pagedjs_footnote_area [data-footnote-marker]::marker { content: none; }
 .pagedjs_pages .pagedjs_page .pagedjs_footnote_area [data-footnote-marker]::before { content: counter(footnote-marker); vertical-align: super; font-size: 0.75em; line-height: 0; }
-/* table: \\footnotesize body, caption above: "TABLE I" (\\Roman), then the caption in small caps, centred. */
-.paged-doc p.table-caption { counter-increment: mk-tab; text-align: center; text-indent: 0; font-size: 8pt; line-height: 9pt; font-variant-caps: small-caps; text-align-last: center; margin: 12pt 0 9.5pt; }
-.paged-doc p.table-caption::before { content: "TABLE " counter(mk-tab, upper-roman); display: block; font-variant-caps: normal; }
-.paged-doc table { width: auto; margin: 0 auto 12pt; font-size: 8pt; line-height: 9pt; border-top: 0.4pt solid; border-bottom: 0.4pt solid; }
+/* table: \\footnotesize body, caption above (Table: …): "TABLE I" (\\Roman) on its own line, then the caption in small caps, centred. */
+.paged-doc table > caption { font: inherit; font-size: 8pt; line-height: 9pt; font-style: normal; color: inherit; font-variant-caps: small-caps; padding-bottom: 9.5pt; }
+.paged-doc table > caption::before { content: "TABLE " counter(mk-table, upper-roman); display: block; font-variant-caps: normal; }
+.paged-doc table { width: auto; margin: 12pt auto; font-size: 8pt; line-height: 9pt; border-top: 0.4pt solid; border-bottom: 0.4pt solid; }
 .paged-doc th, .paged-doc td { padding: 0 6pt; font-weight: 400; }
 /* \\hline: 0.4pt above the table (on the table rule), below the header and at the end. */
 .paged-doc thead { border-bottom: 0.4pt solid; }
 /* figure: centred, "Fig. 1." + two spaces, \\footnotesize caption below, centred when it fits one line, else justified. */
-.paged-doc figure { counter-increment: mk-fig; margin: 12pt 0; text-align: center; }
+.paged-doc figure { margin: 12pt 0; text-align: center; }
 .paged-doc figure img { display: block; margin: 0 auto; }
 .paged-doc figcaption { font: inherit; font-size: 8pt; line-height: 9pt; font-style: normal; color: inherit; margin-top: 9pt; text-align: justify; text-align-last: center; }
-.paged-doc figcaption::before { content: "Fig. " counter(mk-fig) ".\\a0\\a0"; }
-/* thebibliography: \\footnotesize, "[1]" labels in a hanging list. The list after "References"; mark it {.references} so a part continued on the next page keeps the look. */
-.paged-doc #references ~ ol, .paged-doc ol.references { padding-left: 1.75em; font-size: 8pt; line-height: 9pt; }
-.paged-doc #references ~ ol > li::marker, .paged-doc ol.references > li::marker { content: "[" counter(list-item) "]\\2002"; }
+.paged-doc figcaption:not(:empty)::before { content: "Fig. " counter(mk-figure) ".\\a0\\a0"; }
+/* thebibliography: \\footnotesize, "[1]" labels (blocks.referenceStyle: brackets) in a hanging list. */
+.paged-doc ol.markoto-references { padding-left: 1.75em; font-size: 8pt; line-height: 9pt; }
 /* \\texttt: typewriter, no box. hyperref is not loaded: links print as text. */
 .paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 1em; }
 .paged-doc a { text-decoration: none; color: inherit; }
@@ -150,6 +142,8 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 .paged-doc { --td-gutter: 30mm; padding-left: var(--td-gutter); }
 .paged-doc > pre, .paged-doc > .code-block, .paged-doc > .mermaid, .paged-doc > hr, .paged-doc > .markoto-cover { margin-left: calc(-1 * var(--td-gutter)); }
 .paged-doc > table { margin-left: calc(-1 * var(--td-gutter)); width: calc(100% + var(--td-gutter)); }
+/* The contents list uses the full width too (its section numbers line up with the text edge). */
+.paged-doc > .table-of-contents { margin-left: calc(-1 * var(--td-gutter)); }
 .paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before, .paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before, .paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before, .paged-doc h4:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { display: inline-block; width: var(--td-gutter); margin-left: calc(-1 * var(--td-gutter)); margin-right: 0; color: var(--doc-brand); }
 /* Chapters (h1) open under a hairline across the full width. */
 .paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered) { margin-left: calc(-1 * var(--td-gutter)); padding: 6pt 0 0 var(--td-gutter); border-top: 0.5pt solid var(--doc-secondary); }
@@ -157,12 +151,12 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 .paged-doc :not(pre) > code { font-size: 0.86em; padding: 0.05em 0.2em; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }
 .paged-doc h1 code, .paged-doc h2 code, .paged-doc h3 code, .paged-doc h4 code { background: none; padding: 0; font-size: 0.92em; }
 /* Code titles read as file tabs: sans, dark, semibold, inside the block's hairline frame. */
-.paged-doc .code-title { font-family: "Source Sans 3", sans-serif; font-weight: 600; font-size: 8pt; color: var(--doc-heading-color); border: 0.75pt solid color-mix(in srgb, var(--doc-secondary) 70%, transparent); }
+.paged-doc .code-title { font-family: var(--doc-heading-font); font-weight: 600; font-size: 8pt; color: var(--doc-heading-color); border: 0.75pt solid color-mix(in srgb, var(--doc-secondary) 70%, transparent); }
 .paged-doc .code-title + pre { border-top: 0; }
 /* A wrapped code line continues 4 columns in, so it can't be mistaken for a new line. */
 .paged-doc pre .code-line { padding-left: 4ch; text-indent: -4ch; }
 /* Tables are reference material: sans, a step smaller, tabular figures, hairline rows under a firm header rule. */
-.paged-doc table { font-family: "Source Sans 3", sans-serif; font-size: 0.92em; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.paged-doc table { font-family: var(--doc-heading-font); font-size: 0.92em; line-height: 1.3; font-variant-numeric: tabular-nums; }
 .paged-doc thead th { border-bottom: 0.75pt solid var(--doc-text); vertical-align: bottom; }
 .paged-doc tbody tr { border-bottom: 0.4pt solid color-mix(in srgb, var(--doc-secondary) 55%, transparent); }
 .paged-doc td code, .paged-doc th code { font-size: 0.9em; background: none; padding: 0; }
@@ -172,12 +166,12 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 .paged-doc th, .paged-doc td { hyphens: manual; }
 /* Admonitions: a thin coloured rule and a faint wash; the title (sans, the kind in words) carries the meaning in greyscale. */
 .paged-doc .markdown-alert { border-left-width: 2.5pt; border-radius: 0; padding: 0.5em 0.9em; }
-.paged-doc .markdown-alert-title { font-family: "Source Sans 3", sans-serif; font-size: 0.85em; letter-spacing: 0.06em; margin-bottom: 0.25em; }
+.paged-doc .markdown-alert-title { font-family: var(--doc-heading-font); font-size: 0.85em; letter-spacing: 0.06em; margin-bottom: 0.25em; }
 /* TOC: chapters in the heading sans, sections in the text face. */
-.paged-doc .table-of-contents > ul > li > a { font-family: "Source Sans 3", sans-serif; font-weight: 600; }
+.paged-doc .table-of-contents > ul > li > a { font-family: var(--doc-heading-font); font-weight: 600; }
 .paged-doc .table-of-contents::before { font-size: 1.1em; font-weight: 600; }
 /* Glossary terms in the heading sans. */
-.paged-doc dt { font-family: "Source Sans 3", sans-serif; }
+.paged-doc dt { font-family: var(--doc-heading-font); }
 /* Links print as accent text without underline (mostly cross-references). */
 .paged-doc a { text-decoration: none; }
 `
@@ -429,9 +423,10 @@ export const THEME_PRESETS: ThemePreset[] = [
   {
     id: 'ieee-conference',
     theme: {
-      // \textwidth 43pc on Letter → 48pt (16.93mm) side margins; top and
-      // bottom come from the template CSS (51pt / 69pt).
-      page: { size: 'Letter', orientation: 'portrait', margin: 16.93 },
+      // \textwidth 43pc on Letter → 48pt (16.93mm) side margins;
+      // \textheight 9.25in quantised to 56 lines (672pt): top 0.75in less
+      // half the rounding = 51pt (17.99mm), bottom 69pt (24.34mm).
+      page: { size: 'Letter', orientation: 'portrait', margin: 16.93, marginTop: 17.99, marginBottom: 24.34 },
       meta: { font: 'TeX Gyre Termes' },
       // \normalsize 10/12pt, \parskip 0, \parindent 1em.
       body: { font: 'TeX Gyre Termes', size: 10, lineHeight: 1.2, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
@@ -444,9 +439,10 @@ export const THEME_PRESETS: ThemePreset[] = [
         letterSpacing: 0,
         lineHeight: 1.2,
         spacingScale: 0.5,
-        numbering: 'decimal',
-        // \section \normalsize\scshape, \subsection + \subsubsection \normalsize\itshape.
-        levels: { h1: { size: 1, smallCaps: true }, h2: { size: 1, style: 'italic' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
+        // \Roman. sections, \Alph. subsections, \arabic) subsubsections.
+        numbering: 'ieee',
+        // \section \normalsize\scshape centred, \subsection + \subsubsection \normalsize\itshape.
+        levels: { h1: { size: 1, smallCaps: true, align: 'center' }, h2: { size: 1, style: 'italic' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
       },
       color: { brand: '#000000', secondary: '#000000' },
       brand: { logoUrl: '', logoHeight: 48 },
@@ -456,8 +452,9 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 8, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 2 },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1 },
+      // Caption above, numbered (the "TABLE I" format is template CSS); "Fig. 1." figures; [1] references.
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 2, captionPosition: 'above', captionLabel: true },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'brackets' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: IEEE has no admonitions; keep them dark and muted.
       alerts: {
@@ -525,11 +522,12 @@ export const THEME_PRESETS: ThemePreset[] = [
       color: { brand: '#1d4f91', secondary: '#7b8594' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      // Running head: the guide's title, and the chapter the page is in.
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
       footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'tint', frame: 'box', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 4 },
-      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // GitHub's admonition hues, darkened so each stays legible as text
       // and distinct as a grey value in black-and-white print.
