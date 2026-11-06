@@ -64,6 +64,52 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
 `
 
 /**
+ * TECH_DOCS_TEMPLATE_CSS — what the "Technical documentation" look needs
+ * beyond theme fields: sans "furniture" (tables, admonition and code
+ * titles, TOC chapters) around a serif reading text, accent heading
+ * numbers, hairline-ruled tables, quieter admonitions and inline code.
+ * Ordinary custom CSS (tests/unit/themePresetCss.test.ts).
+ */
+const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
+/* Grid: prose in a column 30 mm in from the text edge (about 85 characters);
+   section numbers hang in that gutter; code, tables, diagrams and the title
+   block use the full width (about 90 columns of code before a line wraps). */
+.paged-doc { --td-gutter: 30mm; padding-left: var(--td-gutter); }
+.paged-doc > pre, .paged-doc > .code-block, .paged-doc > .mermaid, .paged-doc > hr, .paged-doc > .markoto-cover { margin-left: calc(-1 * var(--td-gutter)); }
+.paged-doc > table { margin-left: calc(-1 * var(--td-gutter)); width: calc(100% + var(--td-gutter)); }
+.paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before, .paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before, .paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before, .paged-doc h4:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { display: inline-block; width: var(--td-gutter); margin-left: calc(-1 * var(--td-gutter)); margin-right: 0; color: var(--doc-brand); }
+/* Chapters (h1) open under a hairline across the full width. */
+.paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered) { margin-left: calc(-1 * var(--td-gutter)); padding: 6pt 0 0 var(--td-gutter); border-top: 0.5pt solid var(--doc-secondary); }
+/* Inline code: a faint tint, tight padding so it doesn't push the punctuation away; plain in headings. */
+.paged-doc :not(pre) > code { font-size: 0.86em; padding: 0.05em 0.2em; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }
+.paged-doc h1 code, .paged-doc h2 code, .paged-doc h3 code, .paged-doc h4 code { background: none; padding: 0; font-size: 0.92em; }
+/* Code titles read as file tabs: sans, dark, semibold, inside the block's hairline frame. */
+.paged-doc .code-title { font-family: "Source Sans 3", sans-serif; font-weight: 600; font-size: 8pt; color: var(--doc-heading-color); border: 0.75pt solid color-mix(in srgb, var(--doc-secondary) 70%, transparent); }
+.paged-doc .code-title + pre { border-top: 0; }
+/* A wrapped code line continues 4 columns in, so it can't be mistaken for a new line. */
+.paged-doc pre .code-line { padding-left: 4ch; text-indent: -4ch; }
+/* Tables are reference material: sans, a step smaller, tabular figures, hairline rows under a firm header rule. */
+.paged-doc table { font-family: "Source Sans 3", sans-serif; font-size: 0.92em; line-height: 1.3; font-variant-numeric: tabular-nums; }
+.paged-doc thead th { border-bottom: 0.75pt solid var(--doc-text); vertical-align: bottom; }
+.paged-doc tbody tr { border-bottom: 0.4pt solid color-mix(in srgb, var(--doc-secondary) 55%, transparent); }
+.paged-doc td code, .paged-doc th code { font-size: 0.9em; background: none; padding: 0; }
+/* Identifiers in cells break only where they must (the engine's "anywhere" split "pg.Pool" into "pg.Poo / l"). */
+.paged-doc td code { overflow-wrap: break-word; }
+/* Reference cells hold type names and identifiers: no automatic hyphenation ("inte-ger"). */
+.paged-doc th, .paged-doc td { hyphens: manual; }
+/* Admonitions: a thin coloured rule and a faint wash; the title (sans, the kind in words) carries the meaning in greyscale. */
+.paged-doc .markdown-alert { border-left-width: 2.5pt; border-radius: 0; padding: 0.5em 0.9em; }
+.paged-doc .markdown-alert-title { font-family: "Source Sans 3", sans-serif; font-size: 0.85em; letter-spacing: 0.06em; margin-bottom: 0.25em; }
+/* TOC: chapters in the heading sans, sections in the text face. */
+.paged-doc .table-of-contents > ul > li > a { font-family: "Source Sans 3", sans-serif; font-weight: 600; }
+.paged-doc .table-of-contents::before { font-size: 1.1em; font-weight: 600; }
+/* Glossary terms in the heading sans. */
+.paged-doc dt { font-family: "Source Sans 3", sans-serif; }
+/* Links print as accent text without underline (mostly cross-references). */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
  * BUSINESS_REPORT_TEMPLATE_CSS — what the business-report look needs beyond
  * theme fields: the two-width grid, section-opener bars, finance-style
  * tables (tabular figures, hairlines, rules on bold total rows), pull
@@ -327,6 +373,45 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dashed' },
       cover: { enabled: false, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+    }
+  },
+
+  // — Technical documentation: printed developer docs (library guides,
+  // API references, runbooks) in the O'Reilly / Sphinx-PDF tradition —
+  // Source Serif 4 reading text, Source Sans 3 headings and furniture,
+  // JetBrains Mono code in light, hairline-framed blocks. Numbered
+  // sections, a compact title block with the TOC on page 1, running head
+  // (title over a hairline) and dated page x / y footer. One ink-blue
+  // accent; admonitions dark enough for greyscale print. Template CSS:
+  // TECH_DOCS_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/tech-docs.md.
+  {
+    id: 'tech-docs',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 20 },
+      meta: { font: 'Source Sans 3' },
+      body: { font: 'Source Serif 4', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#1b1f24', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: false },
+      headings: { font: 'Source Sans 3', scale: 1.2, weight: 600, underline: false, color: '#111827', letterSpacing: 0, lineHeight: 1.25, spacingScale: 0.85, numbering: 'decimal', levels: {} },
+      color: { brand: '#1d4f91', secondary: '#7b8594' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'tint', frame: 'box', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 4 },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      mermaid: { theme: 'document' },
+      // GitHub's admonition hues, darkened so each stays legible as text
+      // and distinct as a grey value in black-and-white print.
+      alerts: {
+        note: '#1d4f91',
+        tip: '#1d6b3a',
+        important: '#5b3a99',
+        warning: '#8a5a00',
+        caution: '#a3212b'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
+      customCss: TECH_DOCS_TEMPLATE_CSS
     }
   },
 
