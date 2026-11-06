@@ -100,8 +100,8 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 /* A header row with no labels (key/value tables) is not drawn. */
 .paged-doc thead tr:not(:has(> th:not(:empty))) { display: none; }
 /* Pull quotes: serif italic in heading ink; a last paragraph after the quote is its attribution. */
-.paged-doc blockquote { font-family: "Source Serif 4", Georgia, serif; font-size: 1.18em; line-height: 1.4; color: var(--doc-heading-color); border-left: 2pt solid var(--doc-brand); padding-left: 1.1em; margin: 1.4em 0; }
-.paged-doc blockquote > p:last-child:not(:first-child) { font-family: "Inter", sans-serif; font-style: normal; font-size: 0.72em; color: var(--doc-secondary); margin-top: 0.6em; }
+.paged-doc blockquote { font-family: var(--doc-heading-font); font-size: 1.18em; line-height: 1.4; color: var(--doc-heading-color); border-left: 2pt solid var(--doc-brand); padding-left: 1.1em; margin: 1.4em 0; }
+.paged-doc blockquote > p:last-child:not(:first-child) { font-family: var(--doc-body-font); font-style: normal; font-size: 0.72em; color: var(--doc-secondary); margin-top: 0.6em; }
 /* Callouts: square, a thin rule, a lighter tint, a step smaller than the text. */
 .paged-doc .markdown-alert { border-left-width: 2pt; border-radius: 0; padding: 0.8em 1.1em; font-size: 0.92em; }
 /* Cover: aligned with the text block; title in the upper half, organisation and date at the foot over a hairline. */
@@ -395,8 +395,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: true },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3 },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1 },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       alerts: {
         note: '#155A75',
