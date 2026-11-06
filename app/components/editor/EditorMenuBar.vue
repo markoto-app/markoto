@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
+import { SOURCE_REPO_NEW_ISSUE_URL, SOURCE_REPO_URL } from '~~/shared/config/links'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment,
   insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
@@ -416,12 +417,12 @@ const helpItems = computed(() => [[
   {
     label: t('menubar.help.feedback'),
     icon: 'i-lucide-message-circle',
-    onSelect: () => window.open('https://github.com/joelbarmettlerUZH/markoto.app/issues/new', '_blank', 'noopener,noreferrer')
+    onSelect: () => window.open(SOURCE_REPO_NEW_ISSUE_URL, '_blank', 'noopener,noreferrer')
   },
   {
     label: t('menubar.help.github'),
     icon: 'i-simple-icons-github',
-    onSelect: () => window.open('https://github.com/joelbarmettlerUZH/markoto.app', '_blank', 'noopener,noreferrer')
+    onSelect: () => window.open(SOURCE_REPO_URL, '_blank', 'noopener,noreferrer')
   }
 ]])
 

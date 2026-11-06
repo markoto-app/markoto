@@ -74,5 +74,10 @@ items:
 Free on markoto.app, no sign-up needed.
 ::
 
+<!-- Sources for our own periodic fact checks (content/compare/overleaf.yml), not shown on the page:
 ::compare-sources{competitor="overleaf"}
+::
+-->
+
+::compare-note{competitor="overleaf"}
 ::

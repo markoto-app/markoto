@@ -9,6 +9,7 @@ import {
   resolveSiteUrl,
   resolveDocsCanonicalBase,
   resolveSiteIndexable,
+  resolveCanonicalSiteUrl,
   DEFAULT_DOCS_CANONICAL_BASE
 } from '../../shared/config/instance'
 import {
@@ -130,6 +131,14 @@ describe('resolveInstanceConfig', () => {
     expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'https://docs.example.com/' })).toBe('https://docs.example.com')
     expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'garbage' })).toBe('https://markoto.app')
     expect(resolveInstanceConfig({}).docsCanonicalBase).toBe('https://markoto.app')
+  })
+
+  it('SEO origin: NUXT_CANONICAL_SITE_URL when valid, else the site URL', () => {
+    expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app' })).toBe('https://staging.markoto.app')
+    expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: '' })).toBe('https://staging.markoto.app')
+    expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'https://markoto.app/' })).toBe('https://markoto.app')
+    expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'garbage' })).toBe('https://staging.markoto.app')
+    expect(resolveInstanceConfig({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'https://markoto.app' }).siteUrl).toBe('https://markoto.app')
   })
 
   it('site is indexable unless NUXT_SITE_INDEXABLE is an explicit false', () => {
