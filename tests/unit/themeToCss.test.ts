@@ -465,9 +465,9 @@ describe('themeToCss — schema completeness invariants', () => {
       expect(css).toContain('--doc-secondary')
     }
   })
-  test('all 12 presets exist', () => {
+  test('all 10 presets exist', () => {
     expect(THEME_PRESETS.map(p => p.id)).toEqual([
-      'markoto', 'modern', 'academic', 'arxiv', 'ieee-conference', 'tech', 'tech-docs', 'business', 'business-report', 'novel', 'newsletter', 'resume'
+      'markoto', 'modern', 'academic', 'arxiv', 'ieee-conference', 'lecture-notes', 'tech-docs', 'business-report', 'novel', 'newsletter', 'resume'
     ])
   })
   test('markoto is first preset (becomes default in new-doc dialog)', () => {

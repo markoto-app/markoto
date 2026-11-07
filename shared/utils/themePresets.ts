@@ -11,8 +11,16 @@ import type { DocTheme } from '../types/theme'
  * matching i18n keys.
  */
 
+/**
+ * Who a preset is for — the tabs of the new-document design picker. A
+ * `general` preset (the brand look, an all-rounder) shows under "All" only.
+ */
+export const THEME_PRESET_CATEGORIES = ['engineering', 'academic', 'business', 'writing'] as const
+export type ThemePresetCategory = typeof THEME_PRESET_CATEGORIES[number] | 'general'
+
 export interface ThemePreset {
   id: string // matches i18n key under theme.presets.<id>
+  category: ThemePresetCategory
   theme: DocTheme
 }
 
@@ -326,6 +334,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // matched mermaid, github-light code.
   {
     id: 'markoto',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 24 },
       meta: { font: 'JetBrains Mono' },
@@ -362,6 +371,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // numbers in footer. The classic neutral starting point.
   {
     id: 'modern',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Inter' },
@@ -397,6 +407,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // opens page 1, sections are numbered.
   {
     id: 'academic',
+    category: 'academic',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Source Serif 4' },
@@ -434,6 +445,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // (ARXIV_TEMPLATE_CSS). Fixture: tests/fixtures/theme-shots/arxiv.md.
   {
     id: 'arxiv',
+    category: 'academic',
     theme: {
       page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
       meta: { font: 'TeX Gyre Termes' },
@@ -487,6 +499,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/ieee-conference.md.
   {
     id: 'ieee-conference',
+    category: 'academic',
     theme: {
       // \textwidth 43pc on Letter → 48pt (16.93mm) side margins;
       // \textheight 9.25in quantised to 56 lines (672pt): top 0.75in less
@@ -549,6 +562,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/lecture-notes.md.
   {
     id: 'lecture-notes',
+    category: 'academic',
     theme: {
       // geometry: 25 mm top/left, 46 mm right (annotation margin), 27 mm bottom.
       page: { size: 'A4', orientation: 'portrait', margin: 25, marginRight: 46, marginBottom: 27 },
@@ -597,39 +611,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Tech Report: tight IBM Plex Sans, cyan accent, dark code,
-  // underlined headings, brand-color table headers with white text +
-  // zebra rows.
-  {
-    id: 'tech',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 20 },
-      meta: { font: 'IBM Plex Mono' },
-      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#0f172a', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
-      headings: { font: 'IBM Plex Sans', scale: 1.25, weight: 600, underline: true, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.9, numbering: 'decimal', levels: {} },
-      color: { brand: '#0891b2', secondary: '#94a3b8' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-dark', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Tech-report cyan-ish palette — note picks up the brand colour
-      // since cyan IS the report's voice. The rest stay traditional.
-      alerts: {
-        note: '#0891b2',
-        tip: '#1a7f37',
-        important: '#7c3aed',
-        warning: '#b45309',
-        caution: '#dc2626'
-      },
-      toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dashed' },
-      cover: { enabled: false, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
-    }
-  },
-
   // — Technical documentation: printed developer docs (library guides,
   // API references, runbooks) in the O'Reilly / Sphinx-PDF tradition —
   // Source Serif 4 reading text, Source Sans 3 headings and furniture,
@@ -640,6 +621,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // TECH_DOCS_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/tech-docs.md.
   {
     id: 'tech-docs',
+    category: 'engineering',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Source Sans 3' },
@@ -670,39 +652,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Business Report: serif headings (Playfair) over sans body
-  // (Source Sans), warm amber accent (also tinting headings), centered
-  // title in head, brand-color full-bordered tables with zebra rows.
-  {
-    id: 'business',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 25 },
-      meta: { font: 'Source Sans 3' },
-      body: { font: 'Source Sans 3', size: 11, lineHeight: 1.45, textAlign: 'justify', color: '#1c1917', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.8, hyphenate: true },
-      headings: { font: 'Playfair Display', scale: 1.25, weight: 700, underline: true, color: '#b45309', letterSpacing: 0, lineHeight: 1.15, spacingScale: 1.1, numbering: 'none', levels: {} },
-      color: { brand: '#b45309', secondary: '#a8a29e' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 9, font: 'IBM Plex Mono', background: 'auto', frame: 'rule', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Business-report warm palette — note shifts to a navy that
-      // pairs with the amber brand; warning picks up the brand amber.
-      alerts: {
-        note: '#1e3a8a',
-        tip: '#15803d',
-        important: '#7e22ce',
-        warning: '#b45309',
-        caution: '#991b1b'
-      },
-      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
-    }
-  },
-
   // — Business report: quarterly / annual reports, board updates, client
   // deliverables. Source Serif 4 headings over Inter 9.5/1.5 text, one deep
   // petrol accent used sparingly (cover rule, section bars, links, charts),
@@ -711,6 +660,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/business-report.md + proposal.md.
   {
     id: 'business-report',
+    category: 'business',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Inter' },
@@ -755,6 +705,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // code blocks rare in fiction — kept minimal.
   {
     id: 'novel',
+    category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 25 },
       meta: { font: 'Crimson Text' },
@@ -789,6 +740,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // table headers + zebra. Showcases the multi-column flow.
   {
     id: 'newsletter',
+    category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'PT Serif' },
@@ -823,6 +775,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // accent. Made for the `resume` template (one A4 page).
   {
     id: 'resume',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 16 },
       meta: { font: 'Inter' },

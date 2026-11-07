@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Nouveau document",
-    "subtitle": "Quelques choix rapides aident markoto à écrire pour vous dès le départ. Tous facultatifs — commencez avec un document vierge à tout moment.",
+    "subtitle": "Donnez-lui un nom et commencez à écrire. Contenu, design et détails sont facultatifs — modifiables maintenant ou plus tard.",
     "titleLabel": "Titre",
     "titlePlaceholder": "ex. Plan de lancement T3",
     "descriptionLabel": "Description",
@@ -299,7 +299,20 @@
     "templateLabel": "Modèle",
     "templateHelp": "Pré-remplit le document avec une structure de base que vous pouvez modifier. Chaque section comporte une indication en commentaire pour que markoto sache ce qui y a sa place.",
     "create": "Créer le document",
-    "skip": "Donnez-moi simplement un document vierge"
+    "sections": {
+      "content": "Contenu",
+      "design": "Design",
+      "details": "Détails"
+    },
+    "detailsHelp": "Aidez l'IA à écrire pour vous : le sujet du document, sa langue et son ton.",
+    "designTabs": {
+      "all": "Tous",
+      "engineering": "Ingénierie",
+      "academic": "Académique",
+      "business": "Entreprise",
+      "writing": "Écriture",
+      "saved": "Mes designs"
+    }
   },
   "templates": {
     "blank": {
@@ -1046,17 +1059,9 @@
         "name": "Notes de cours",
         "description": "Polycopiés et notes de cours dans la tradition LaTeX : texte en Latin Modern assorti aux formules, une large marge pour vos annotations, sections numérotées, théorèmes et remarques en environnements encadrés, listes de définitions, exercices avec questions (a)/(b), un bloc de titre compact avec cours, enseignant et date."
       },
-      "tech": {
-        "name": "Rapport technique",
-        "description": "IBM Plex Sans compact, couleur de marque cyan, blocs de code sombres, en-têtes de tableau colorés avec lignes zébrées."
-      },
       "tech-docs": {
         "name": "Documentation technique",
         "description": "Documentation développeur imprimée : texte courant à empattements et titres sans empattements, sections numérotées aux numéros en marge, blocs de code clairs et encadrés sur toute la largeur, tableaux de référence à filets fins, encadrés d’avertissement discrets, bloc de titre avec sommaire en page 1."
-      },
-      "business": {
-        "name": "Rapport d'affaires",
-        "description": "Titres Playfair sur corps Source Sans, accent ambre chaleureux, en-têtes de tableau colorés, titre centré."
       },
       "business-report": {
         "name": "Rapport d'entreprise",
@@ -1238,7 +1243,8 @@
         "invalidEmail": "Saisissez une adresse e-mail valide.",
         "alreadyMember": "Cette personne est déjà membre de l'espace de travail.",
         "inviteCap": "Cet espace de travail a trop d'invitations en attente. Retirez-en d'abord quelques-unes."
-      }
+      },
+      "invitePeople": "Inviter des personnes"
     },
     "capReachedFree": "{used} espaces de travail utilisés sur {limit}. Supprimez-en un pour en créer un autre.",
     "capReachedShortFree": "Limite d'espaces de travail atteinte",
@@ -1263,6 +1269,28 @@
         "missingToken": "Ce lien d'invitation est incomplet. Rouvrez-le depuis l'e-mail.",
         "home": "Aller au tableau de bord"
       }
+    },
+    "actions": "Actions de l'espace de travail",
+    "sponsorship": {
+      "description": "Faites de cet espace un espace markoto : l'utilisation de l'IA par tous les membres dans ses documents est alors prise sur le crédit de votre forfait. Nécessite Max ou Ultra.",
+      "banner": "Ceci est un espace markoto : l'utilisation de l'IA ici est prise sur le crédit du sponsor.",
+      "memberSponsored": "Ceci est un espace markoto. Un administrateur prend en charge l'utilisation de l'IA ici.",
+      "memberRegular": "Ceci est un espace ordinaire. Les membres utilisent leur propre crédit IA. Un administrateur peut en faire un espace markoto pour le prendre en charge.",
+      "memberComingSoon": "Le parrainage de l'IA d'un espace arrivera avec les forfaits payants.",
+      "onYourPlan": "sur votre forfait · les membres voient le bandeau dans l'éditeur",
+      "sponsoredByOther": "parrainé par un autre administrateur",
+      "takeOver": "Reprendre le parrainage",
+      "needsUpgrade": "Votre forfait {plan} ne permet pas de parrainer un espace. Il faut Max ou Ultra.",
+      "upgrade": "Changer de forfait",
+      "comingSoon": "Arrive avec les forfaits payants.",
+      "seePlans": "Voir les forfaits",
+      "off": "désactivé · les membres utilisent leur propre crédit IA",
+      "toggleLabel": "Parrainer l'IA dans cet espace",
+      "enabledToast": "Espace IA activé",
+      "enabledToastDescription": "L'utilisation de l'IA par les membres de cet espace est désormais prise en charge par votre forfait.",
+      "disabledToast": "Espace IA désactivé",
+      "disabledToastDescription": "Les membres utilisent de nouveau leur propre crédit IA.",
+      "updateFailed": "Impossible de modifier l'espace IA"
     }
   },
   "knowledge": {
@@ -1691,7 +1719,7 @@
       "themes": {
         "label": "Thèmes",
         "title": "Changez l’apparence, pas le Markdown.",
-        "body": "Choisissez l’un des huit thèmes, puis ajustez couleurs, polices et page de couverture. Votre texte reste intact."
+        "body": "Choisissez l’un des dix thèmes, puis ajustez couleurs, polices et page de couverture. Votre texte reste intact."
       },
       "collab": {
         "label": "Collaboration",
@@ -1914,5 +1942,15 @@
       "caption": "La liste actuelle pour markoto.app, lue dans le même registre que la page juridique.",
       "link": "Sous-traitants, avec politiques de confidentialité et DPA"
     }
+  },
+  "home": {
+    "title": "Accueil",
+    "greeting": "Bon retour, {name}",
+    "description": "Vos espaces de travail et vos documents."
+  },
+  "docRow": {
+    "actions": "Actions du document",
+    "open": "Ouvrir",
+    "openNewTab": "Ouvrir dans un nouvel onglet"
   }
 }

@@ -227,6 +227,10 @@ lighthouse: ## Lighthouse (mobile) on the marketing pages of a running instance 
 SHOTS_OUT ?= /tmp/theme-shots
 SHOTS_MD ?= tests/fixtures/theme-shots/kitchen-sink.md
 
+.PHONY: theme-thumbs
+theme-thumbs: ## Re-render the new-doc design-picker thumbnails (public/theme-thumbs) from a TEST_MODE app with NUXT_ANON_GATE_ENABLED=false (URL=… PRESETS="arxiv tech-docs")
+	bun scripts/render-theme-thumbs.ts --base $(URL) $(PRESETS)
+
 .PHONY: theme-shots
 theme-shots: ## PNG per page + contact sheet per theme preset from a running app with NUXT_ANON_GATE_ENABLED=false (URL=… SHOTS_OUT=… SHOTS_MD=… PRESETS="markoto tech")
 	bun scripts/render-theme-shots.ts --base $(URL) --out $(SHOTS_OUT) --md $(SHOTS_MD) $(PRESETS)
