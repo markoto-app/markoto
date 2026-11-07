@@ -60,7 +60,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   await flow.heading('Invite a teammate to your workspace', 3)
   await flow.narrate(
     'Workspaces start with one member — you, the admin. To bring '
-    + 'others in, open the members panel from the workspace home '
+    + 'others in, click "Invite people" at the top of the workspace '
     + 'page, type their email, pick a role (admin, editor, or '
     + 'viewer). Invitations are exact-email — no typeahead, so the '
     + 'directory isn\'t enumerable. Nobody joins until they accept.'
@@ -68,13 +68,13 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
 
   // ─── Open the Members panel ─────────────────────────────────────
   await flow.click(
-    'Click the members card on the workspace home page',
-    page.locator('[data-testid="workspace-members-trigger"]'),
+    'Click "Invite people" at the top of the workspace page',
+    page.locator('[data-testid="workspace-invite-people"]'),
     {
       annotations: [
-        { label: 'members card', selector: '[data-testid="workspace-members-trigger"]', kind: 'arrow' }
+        { label: 'invite people', selector: '[data-testid="workspace-invite-people"]', kind: 'arrow' }
       ],
-      result: 'The Members modal opens — current roster + invite-by-email form.',
+      result: 'The Members modal opens with the email field ready — current roster + invite-by-email form.',
       after: () => page.locator('[data-testid="workspace-invite-email"]').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )

@@ -136,7 +136,7 @@ JS, and why: lazy-mounting far-away stage scenes; playing the on-stage video (`T
 
 **PDF fan-out** (share scene): part of the scene's rest state — `TourVisual` opens it ~1.6 s after `mk-tour:rest` for that scene (the share dialog in the video is seen first), closes on `mk-tour:depart`; inline (phones / static) when the figure is ≥ 60 % in view. CSS transitions, staggered per page; reduced motion shows it fanned.
 
-**Copy:** `tour.*` in all six locales — plain and concrete for people who already want a Markdown editor; no slogans, nothing the product doesn't do (eight theme presets: `shared/utils/themePresets.ts`). `<div class="mk-tour" :lang>` carries the locale so Japanese/Chinese headings break at phrases (`word-break: auto-phrase`).
+**Copy:** `tour.*` in all six locales — plain and concrete for people who already want a Markdown editor; no slogans, nothing the product doesn't do (ten theme presets: `shared/utils/themePresets.ts` — keep the count in `tour.scenes.themes.body` in step). `<div class="mk-tour" :lang>` carries the locale so Japanese/Chinese headings break at phrases (`word-break: auto-phrase`).
 
 ## SEO (`shared/seo/`, SEO-1)
 

@@ -477,8 +477,10 @@ export class EditorPage {
   /** Selectors inside the new-document dialog. The dialog opens when
    *  the user clicks "+ New Document" anywhere — homepage, workspace,
    *  or File menu. Five questions: title, description, language,
-   *  audience, theme, template. Two submit paths: `submitCreate` (full
-   *  form) and `submitBlank` ("Just give me a blank doc").
+   *  The title is in view; template ("Content"), theme ("Design") and
+   *  description / language / audience ("Details") sit in collapsed rows —
+   *  open one with `section(id)` (or `openNewDocSection`) before using its
+   *  cards or inputs. One submit path: `submitCreate`.
    *
    *  All selectors go through `data-testid` rather than IDs / role +
    *  text, so they (a) survive i18n changes, (b) don't accidentally
@@ -495,10 +497,18 @@ export class EditorPage {
       // `newdoc-theme-card-modern`, etc.). Cleaner + faster than text matching.
       templateCard: (id: string) => this.page.locator(`[data-testid="newdoc-template-card-${id}"]`),
       themeCard: (id: string) => this.page.locator(`[data-testid="newdoc-theme-card-${id}"]`),
+      /** The collapsed option row's trigger (`content` / `design` / `details`). */
+      section: (id: 'content' | 'design' | 'details') => this.page.locator(`[data-testid="newdoc-section-${id}"]`),
       submitCreate: this.page.locator('[data-testid="newdoc-submit-create"]'),
-      submitBlank: this.page.locator('[data-testid="newdoc-submit-blank"]'),
       cancel: this.page.locator('[data-testid="newdoc-cancel"]')
     }
+  }
+
+  /** Expand one of the new-doc dialog's option rows (no-op when open). */
+  async openNewDocSection(id: 'content' | 'design' | 'details'): Promise<void> {
+    const trigger = this.newDocDialog.section(id)
+    if (await trigger.getAttribute('aria-expanded') !== 'true') await trigger.click()
+    await expect(trigger).toHaveAttribute('aria-expanded', 'true')
   }
 
   /** The accept-terms step an ANONYMOUS visitor sees before their first

@@ -49,10 +49,20 @@ async function openDialog(props: Record<string, string>) {
   return wrapper
 }
 
+/** Expand one of the dialog's collapsed option rows (content / design / details). */
+async function expand(section: 'content' | 'design' | 'details') {
+  const trigger = el(`[data-testid="newdoc-section-${section}"]`)
+  if (trigger.getAttribute('aria-expanded') !== 'true') trigger.click()
+  await flushPromises()
+  await vi.waitFor(() => expect(trigger.getAttribute('aria-expanded')).toBe('true'))
+}
+
 let push: ReturnType<typeof vi.spyOn>
 
 beforeEach(() => {
   created.bodies = []
+  // A fresh browser: the dialog's first-document default (Demo) applies.
+  localStorage.clear()
   push = vi.spyOn(useRouter(), 'push').mockResolvedValue(undefined)
   // The gate is off here: this test is about what the dialog posts, not
   // the terms/bot-check rounds (tests/nuxt/anonGate*).
@@ -67,8 +77,10 @@ describe('::cta with a template ("Use this template")', () => {
   it('opens the new-document dialog with the template and theme selected and creates the doc from them', async () => {
     const wrapper = await openDialog({ template: 'resume', theme: 'modern' })
     expect(wrapper.find('[data-testid="cta-use-template"]').exists()).toBe(true)
+    await expand('content')
     expect(el('[data-testid="newdoc-template-card-resume"]').getAttribute('aria-pressed')).toBe('true')
     expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('false')
+    await expand('design')
     expect(el('[data-testid="newdoc-theme-card-modern"]').getAttribute('aria-pressed')).toBe('true')
 
     el('[data-testid="newdoc-submit-create"]').click()
@@ -81,7 +93,9 @@ describe('::cta with a template ("Use this template")', () => {
 
   it('falls back to the demo template and the markoto theme for unknown ids', async () => {
     const wrapper = await openDialog({ template: 'no-such-template', theme: 'no-such-theme' })
+    await expand('content')
     expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('true')
+    await expand('design')
     expect(el('[data-testid="newdoc-theme-card-markoto"]').getAttribute('aria-pressed')).toBe('true')
     wrapper.unmount()
   })
@@ -91,8 +105,10 @@ describe('::cta with a template ("Use this template")', () => {
     expect(mounted.find('[data-testid="cta-start-writing"]').exists()).toBe(true)
     await mounted.find('button').trigger('click')
     await flushPromises()
-    await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-template-card-demo"]')).not.toBeNull())
+    await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-section-content"]')).not.toBeNull())
+    await expand('content')
     expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('true')
+    await expand('design')
     expect(el('[data-testid="newdoc-theme-card-markoto"]').getAttribute('aria-pressed')).toBe('true')
     mounted.unmount()
   })

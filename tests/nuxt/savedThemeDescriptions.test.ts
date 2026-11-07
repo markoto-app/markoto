@@ -68,7 +68,11 @@ describe('saved-theme descriptions in theme pickers', () => {
       props: { open: false, workspaceId: null }
     })
     await wrapper.setProps({ open: true })
-    // The dialog fetches saved themes on open; the modal is teleported.
+    // The theme cards live in the collapsed "Design" row; the modal is teleported.
+    await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-section-design"]')).not.toBeNull())
+    const design = document.body.querySelector('[data-testid="newdoc-section-design"]')
+    if (design instanceof HTMLElement) design.click()
+    // The dialog fetches saved themes on open.
     await vi.waitFor(() => {
       expect(textOf('[data-testid="newdoc-theme-card-saved-description-described"]'))
         .toBe('Board-ready: serif headings, wide margins')

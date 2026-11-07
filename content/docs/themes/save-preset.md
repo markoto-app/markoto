@@ -8,8 +8,10 @@ updated: '2026-11-06'
 
 # Save your custom theme as a preset
 
-The nine built-in theme presets (markoto, Modern, Academic Paper, arXiv
-preprint, Tech Report, Business Report, Novel, Newsletter and Resume) cover the common cases. Once you've customised one to
+The built-in theme presets (markoto, Modern, Academic Paper, arXiv
+preprint, IEEE conference paper, Thesis, Technical documentation,
+Corporate report, Novel, Newsletter, Resume and more) cover the common
+cases. Once you've customised one to
 your liking, save it as a personal preset and it shows up in the
 preset picker on every future doc.
 

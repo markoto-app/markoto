@@ -2,20 +2,25 @@
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
 import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
 
-// The home page for everyone who doesn't get the product tour: the plain
-// hero, and for signed-in users their invitations, workspaces and recent
-// documents. Split out of pages/index.vue and mounted as a Lazy component
+// The home page for everyone who doesn't get the product tour. Logged-out
+// visitors see the plain hero with "New document"; signed-in users get an
+// app dashboard instead — a compact page header, then their invitations,
+// workspaces and documents, each section with its own create button in
+// its header. Split out of pages/index.vue and mounted as a Lazy component
 // there, so its code (workspace list, document modals, Nuxt UI menus and
 // forms) stays out of the product page's chunks — a logged-out visitor
 // on the marketing site never downloads it. The new-document dialog
 // stays on the page (the tour opens it too): `new-document` asks for it.
 const emit = defineEmits<{
   'new-document': []
+  // Pointer over / focus on a "New document" button: fetch the dialog's
+  // chunk a moment early (useNewDocDialog.warm).
+  'warm-new-document': []
 }>()
 
 const { t } = useI18n()
 const router = useRouter()
-const { loggedIn } = useUserSession()
+const { loggedIn, user } = useUserSession()
 const { billing, workspaceCapReached } = useBilling()
 const toast = useToast()
 const { showContextualError } = useErrorHandler()
@@ -169,6 +174,12 @@ tryOnMounted(() => {
   }, { immediate: true })
 })
 
+// Compact dashboard header: a greeting when we know the name, else "Home".
+const pageTitle = computed(() => {
+  const name = user.value?.name?.trim()
+  return name ? t('home.greeting', { name }) : t('home.title')
+})
+
 // Delete modal state
 const deleteTarget = ref<DocumentListItem | null>(null)
 const showDeleteConfirm = ref(false)
@@ -187,8 +198,8 @@ function onDocDeleted() {
 }
 
 // Duplicate / Move modals. Dashboard shows personal + owned-in-workspace
-// docs; every entry here is owned by the caller, so canManage is true
-// for all of them (no per-row gating needed).
+// docs; every entry here is owned by the caller (`isOwner`), so the menu
+// offers every action — `isOwner` is still passed through as the gate.
 const duplicateTarget = ref<DocumentListItem | null>(null)
 const showDuplicateModal = ref(false)
 const moveTarget = ref<DocumentListItem | null>(null)
@@ -205,12 +216,14 @@ function openMove(doc: DocumentListItem) {
 function onDocDuplicated(newDocId: string) {
   router.push(`/d/${newDocId}`)
 }
-function onDocMoved(_newWorkspaceId: string | null) {
-  // The "Recent Documents" list on the dashboard shows all owned docs
-  // regardless of workspace, so a move doesn't need to drop the row.
-  // If the target is a workspace, the user probably wants to see the
-  // doc in the workspace view — but re-fetching here is enough for
-  // updated metadata. Noop for now; visible state already accurate.
+function onDocMoved(newWorkspaceId: string | null) {
+  // The documents list shows every owned doc regardless of workspace,
+  // so a move keeps the row; record the new workspace so a second Move
+  // starts from the right place.
+  const target = moveTarget.value
+  if (target) {
+    myDocs.value = myDocs.value.map(d => d.docId === target.docId ? { ...d, workspaceId: newWorkspaceId } : d)
+  }
   moveTarget.value = null
 }
 
@@ -223,20 +236,30 @@ function onWorkspaceCreated(workspaceId: string) {
 
 // Long-press a doc row to open its action menu — discoverable on
 // touch where the 3-dot button is a small target. Per-row keying so
-// only the long-pressed row's menu opens. Owner-only here, mirroring
-// the menu's existing visibility gate.
+// only the long-pressed row's menu opens. The trigger writes the same
+// state (two-way), so a click opens the menu as well.
 const openMenuDocId = ref<string | null>(null)
 function onRowLongPress(doc: DocumentListItem) {
-  if (!doc.isOwner) return
   openMenuDocId.value = doc.docId
+}
+function setMenuOpen(doc: DocumentListItem, open: boolean) {
+  if (open) openMenuDocId.value = doc.docId
+  else if (openMenuDocId.value === doc.docId) openMenuDocId.value = null
 }
 </script>
 
 <template>
   <main
-    class="flex-1 flex flex-col items-center px-4 sm:px-6 py-10 sm:py-20"
+    class="flex-1 flex flex-col items-center px-4 sm:px-6"
+    :class="loggedIn ? 'py-6 sm:py-10' : 'py-10 sm:py-20'"
   >
-    <div class="max-w-2xl text-center space-y-5 sm:space-y-7">
+    <!-- Logged out: the plain hero. Editorial register from the homepage
+         mockup — Fraunces weight 300 display, italic-400 emphasis on the
+         brand's loadbearing word ("Markdown"), Inter lede capped at 34ch. -->
+    <div
+      v-if="!loggedIn"
+      class="max-w-2xl text-center space-y-5 sm:space-y-7"
+    >
       <i18n-t
         keypath="landing.hero"
         tag="h1"
@@ -250,163 +273,192 @@ function onRowLongPress(doc: DocumentListItem) {
       <p class="text-[14px] leading-[1.65] text-muted max-w-[34ch] mx-auto">
         {{ t('landing.subtitle') }}
       </p>
-      <div class="flex flex-col sm:flex-row gap-4 justify-center items-center">
+      <div class="flex justify-center">
         <UButton
           size="lg"
           icon="i-lucide-plus"
           data-testid="landing-new-document"
           @click="emit('new-document')"
+          @pointerenter="emit('warm-new-document')"
+          @focus="emit('warm-new-document')"
         >
           {{ t('landing.newDocument') }}
         </UButton>
-        <!-- At-cap pattern: stays visible, muted styling + tooltip +
-             click routes to /pricing (or, with billing off on a
-             self-hosted instance, explains the limit in a toast). We never hide the button (user
-             should still see the feature exists) and never silently
-             no-op on click (we redirect them toward upgrading). The
-             native `disabled` attribute is NOT used because that
-             would also suppress the click — we want the click to
-             navigate, not do nothing. -->
-        <UButton
-          v-if="loggedIn"
-          size="xl"
-          color="neutral"
-          :variant="workspaceCapReached ? 'ghost' : 'subtle'"
-          :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
-          :class="workspaceCapReached ? 'opacity-60' : ''"
-          :title="workspaceCapReached ? workspaceCapTooltip : undefined"
-          data-testid="landing-new-workspace"
-          @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
-        >
-          {{ workspaceCapReached ? workspaceCapShortLabel : t('workspace.newWorkspace') }}
-        </UButton>
       </div>
     </div>
 
-    <!-- Pending workspace invitations addressed to this account.
-         Hidden when there are none. -->
+    <!-- Logged in: an app dashboard, not a landing page. -->
     <div
-      v-if="loggedIn && myInvites.length > 0"
-      class="mt-12 w-full max-w-4xl"
+      v-else
+      class="w-full max-w-4xl space-y-10 sm:space-y-12"
+      data-testid="home-dashboard"
     >
-      <h2 class="font-serif text-2xl font-normal mb-4">
-        {{ t('workspace.invites.sectionTitle') }}
-      </h2>
-      <WorkspaceInviteList
-        :invites="myInvites"
-        @removed="onInviteRemoved"
-        @accepted="onInviteAccepted"
+      <UPageHeader
+        :title="pageTitle"
+        :description="t('home.description')"
+        :ui="{
+          root: 'border-b border-default/60 pt-0 pb-5 sm:pb-6',
+          title: 'font-serif text-2xl sm:text-3xl font-normal tracking-tight text-default',
+          description: 'text-sm text-muted'
+        }"
+        data-testid="home-page-header"
       />
-    </div>
 
-    <!-- My workspaces. Mounts whenever logged-in so the loading
-         spinner is visible during the SSR→hydration window AND
-         during a manual refetch. After the first fetch resolves
-         and there are no workspaces, the section quietly empties
-         via `WorkspaceList`'s own empty fallback (`v-else`). -->
-    <div
-      v-if="loggedIn && (!workspacesFetched || myWorkspaces.length > 0)"
-      class="mt-12 w-full max-w-4xl"
-    >
-      <h2 class="font-serif text-2xl font-normal mb-4">
-        {{ t('workspace.sectionTitle') }}
-      </h2>
-      <WorkspaceList
-        :workspaces="myWorkspaces"
-        :loading="!workspacesFetched"
-      />
-    </div>
+      <!-- Pending workspace invitations addressed to this account.
+           Hidden when there are none. -->
+      <section
+        v-if="myInvites.length > 0"
+        class="space-y-4"
+      >
+        <h2 class="font-serif text-2xl font-normal tracking-tight">
+          {{ t('workspace.invites.sectionTitle') }}
+        </h2>
+        <WorkspaceInviteList
+          :invites="myInvites"
+          @removed="onInviteRemoved"
+          @accepted="onInviteAccepted"
+        />
+      </section>
 
-    <!-- Recent documents -->
-    <div
-      v-if="loggedIn && myDocs.length > 0"
-      data-testid="landing-recent-documents"
-      class="mt-12 w-full max-w-2xl"
-    >
-      <h2 class="font-serif text-2xl font-normal mb-4">
-        {{ t('landing.recentDocuments') }}
-      </h2>
-      <div class="space-y-2">
-        <div
-          v-for="doc in myDocs"
-          :key="doc.docId"
-          v-long-press="() => onRowLongPress(doc)"
-          class="group flex items-center gap-3 p-3 rounded-lg border border-default hover:bg-muted/50 transition-colors"
-        >
-          <NuxtLink
-            :to="`/d/${doc.docId}`"
-            class="flex items-center gap-3 min-w-0 flex-1"
+      <!-- My workspaces. Always mounted for signed-in users so the
+           create button has a home; `WorkspaceList` shows the spinner
+           during the first fetch and its own empty line after. -->
+      <section class="space-y-4">
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <h2 class="font-serif text-2xl font-normal tracking-tight">
+            {{ t('workspace.sectionTitle') }}
+          </h2>
+          <!-- At-cap pattern: stays visible, muted styling + tooltip +
+               click routes to /pricing (or, with billing off on a
+               self-hosted instance, explains the limit in a toast). We
+               never hide the button (the user should still see the
+               feature exists) and never silently no-op on click. The
+               native `disabled` attribute is NOT used because that
+               would also suppress the click. -->
+          <UButton
+            size="sm"
+            color="neutral"
+            :variant="workspaceCapReached ? 'ghost' : 'subtle'"
+            :icon="workspaceCapReached ? 'i-lucide-lock' : 'i-lucide-folder-plus'"
+            :class="workspaceCapReached ? 'opacity-60' : ''"
+            :title="workspaceCapReached ? workspaceCapTooltip : undefined"
+            data-testid="landing-new-workspace"
+            @click="workspaceCapReached ? onCapReachedClick() : (showCreateWorkspace = true)"
           >
-            <UIcon
-              name="i-lucide-file-text"
-              class="size-5 text-muted shrink-0"
-            />
-            <div class="min-w-0">
-              <p class="font-serif text-base font-normal tracking-tight truncate">{{ doc.title }}</p>
-              <!-- Description as a subtitle when set. Highest-info
-                   field for picking which doc to open; collapses
-                   entirely when empty so legacy/blank docs don't
-                   show "—" placeholders. -->
-              <p
-                v-if="doc.description"
-                class="text-xs text-toned truncate"
-              >
-                {{ doc.description }}
-              </p>
-              <p class="text-xs text-muted">
-                <CommonTimeAgo :ts="doc.lastActive" />
-              </p>
-            </div>
-          </NuxtLink>
-          <div class="flex items-center gap-2 shrink-0">
-            <UBadge
-              v-if="doc.accessMode !== 'open-edit'"
-              size="xs"
-              color="neutral"
-              variant="subtle"
+            {{ workspaceCapReached ? workspaceCapShortLabel : t('workspace.newWorkspace') }}
+          </UButton>
+        </div>
+        <WorkspaceList
+          :workspaces="myWorkspaces"
+          :loading="!workspacesFetched"
+        />
+      </section>
+
+      <!-- My documents -->
+      <section
+        data-testid="landing-recent-documents"
+        class="space-y-4"
+      >
+        <div class="flex items-center justify-between gap-3 flex-wrap">
+          <h2 class="font-serif text-2xl font-normal tracking-tight">
+            {{ t('landing.recentDocuments') }}
+          </h2>
+          <UButton
+            size="sm"
+            color="neutral"
+            icon="i-lucide-plus"
+            data-testid="landing-new-document"
+            @click="emit('new-document')"
+            @pointerenter="emit('warm-new-document')"
+            @focus="emit('warm-new-document')"
+          >
+            {{ t('landing.newDocument') }}
+          </UButton>
+        </div>
+
+        <!-- Spinner during the first fetch — `docsFetched` flips true
+             after `loadDocs` resolves (success or error), so it covers
+             the SSR→hydration window where `isLoading` alone reports
+             false. -->
+        <div
+          v-if="!docsFetched && myDocs.length === 0"
+          class="flex justify-center py-6"
+        >
+          <UIcon
+            name="i-lucide-loader"
+            class="size-6 animate-spin text-muted mx-auto"
+          />
+        </div>
+        <p
+          v-else-if="myDocs.length === 0"
+          class="text-sm text-muted"
+          data-testid="home-no-documents"
+        >
+          {{ t('landing.noRecent') }}
+        </p>
+        <div
+          v-else
+          class="space-y-2"
+        >
+          <div
+            v-for="doc in myDocs"
+            :key="doc.docId"
+            v-long-press="() => onRowLongPress(doc)"
+            class="group flex items-center gap-3 p-3 rounded-lg border border-default bg-default hover:bg-muted/50 transition-colors"
+          >
+            <NuxtLink
+              :to="`/d/${doc.docId}`"
+              class="flex items-center gap-3 min-w-0 flex-1"
             >
-              {{
-                doc.accessMode === 'private' ? 'Private'
-                : doc.accessMode === 'open-view' ? 'View only'
-                  : 'Protected'
-              }}
-            </UBadge>
-            <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
-            <UDropdownMenu
-              v-if="doc.isOwner"
-              :items="[[
-                {
-                  label: t('common.duplicate'),
-                  icon: 'i-lucide-copy',
-                  onSelect: () => openDuplicate(doc)
-                },
-                {
-                  label: t('common.move'),
-                  icon: 'i-lucide-folder-input',
-                  onSelect: () => openMove(doc)
-                },
-                { type: 'separator' },
-                {
-                  label: t('common.delete'),
-                  icon: 'i-lucide-trash-2',
-                  color: 'error',
-                  onSelect: () => openDeleteConfirm(doc)
-                }
-              ]]"
-              :open="openMenuDocId === doc.docId"
-              @update:open="(v: boolean) => { if (!v && openMenuDocId === doc.docId) openMenuDocId = null }"
-            >
-              <UButton
-                icon="i-lucide-more-vertical"
-                color="neutral"
-                variant="ghost"
-                size="xs"
-                class="opacity-60 group-hover:opacity-100 transition-opacity"
+              <UIcon
+                name="i-lucide-file-text"
+                class="size-5 text-muted shrink-0"
               />
-            </UDropdownMenu>
+              <div class="min-w-0">
+                <p class="font-serif text-base font-normal tracking-tight truncate">{{ doc.title }}</p>
+                <!-- Description as a subtitle when set. Highest-info
+                     field for picking which doc to open; collapses
+                     entirely when empty so legacy/blank docs don't
+                     show "—" placeholders. -->
+                <p
+                  v-if="doc.description"
+                  class="text-xs text-toned truncate"
+                >
+                  {{ doc.description }}
+                </p>
+                <p class="text-xs text-muted">
+                  <CommonTimeAgo :ts="doc.lastActive" />
+                </p>
+              </div>
+            </NuxtLink>
+            <div class="flex items-center gap-2 shrink-0">
+              <UBadge
+                v-if="doc.accessMode !== 'open-edit'"
+                size="xs"
+                color="neutral"
+                variant="subtle"
+              >
+                {{
+                  doc.accessMode === 'private' ? 'Private'
+                  : doc.accessMode === 'open-view' ? 'View only'
+                    : 'Protected'
+                }}
+              </UBadge>
+              <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+              <DocumentDocRowMenu
+                :doc-id="doc.docId"
+                :can-edit="!!doc.isOwner"
+                :can-manage="!!doc.isOwner"
+                :open="openMenuDocId === doc.docId"
+                @update:open="(v: boolean) => setMenuOpen(doc, v)"
+                @duplicate="openDuplicate(doc)"
+                @move="openMove(doc)"
+                @delete="openDeleteConfirm(doc)"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
 
     <!-- Delete confirmation (shared across all doc rows) -->
@@ -440,20 +492,5 @@ function onRowLongPress(doc: DocumentListItem) {
       v-model:open="showCreateWorkspace"
       @created="onWorkspaceCreated"
     />
-
-    <!-- Recent-docs spinner. Renders during the first fetch
-         regardless of cached state — `docsFetched` flips true
-         after `loadDocs` resolves (success or error), so the
-         indicator covers the SSR→hydration window where
-         `loadingDocs` alone reports false. -->
-    <div
-      v-if="loggedIn && !docsFetched && myDocs.length === 0"
-      class="mt-12 flex justify-center"
-    >
-      <UIcon
-        name="i-lucide-loader"
-        class="size-6 animate-spin text-primary mx-auto"
-      />
-    </div>
   </main>
 </template>
