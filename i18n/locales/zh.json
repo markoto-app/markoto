@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "新建文档",
-    "subtitle": "做几个快速选择，让 markoto 从一开始就为你量身写作。全部可选 — 你随时可跳过并新建空白文档。",
+    "subtitle": "起个名字就可以开始写作。内容、设计和详细信息都是可选的，现在或以后随时可以更改。",
     "titleLabel": "标题",
     "titlePlaceholder": "例如：第三季度发布计划",
     "descriptionLabel": "描述",
@@ -299,7 +299,20 @@
     "templateLabel": "模板",
     "templateHelp": "用可编辑的结构框架预填文档。每个章节都附带一条注释提示，让 markoto 了解各处应放置什么内容。",
     "create": "创建文档",
-    "skip": "直接给我一个空白文档"
+    "sections": {
+      "content": "内容",
+      "design": "设计",
+      "details": "详细信息"
+    },
+    "detailsHelp": "帮助 AI 为你写作：文档的主题、语言和语气。",
+    "designTabs": {
+      "all": "全部",
+      "engineering": "工程",
+      "academic": "学术",
+      "business": "商务",
+      "writing": "写作",
+      "saved": "我的设计"
+    }
   },
   "templates": {
     "blank": {
@@ -1042,17 +1055,9 @@
         "name": "IEEE 会议论文",
         "description": "IEEE 会议模板（IEEEtran）的样式：US Letter 纸张，Times 10 pt 双栏，带罗马数字的居中小型大写章节标题，斜体小节标题，24 pt 标题下并排的作者信息块，第一栏开头的粗体摘要。"
       },
-      "tech": {
-        "name": "技术报告",
-        "description": "紧凑的 IBM Plex Sans、青色品牌色、深色代码块、品牌色表头搭配隔行变色。"
-      },
       "tech-docs": {
         "name": "技术文档",
         "description": "印刷版开发者文档：衬线正文配无衬线标题，节编号悬挂在页边，全宽的浅色带框代码块，细线参考表格，低调的提示框，第 1 页为带目录的标题区。"
-      },
-      "business": {
-        "name": "商务报告",
-        "description": "Playfair 标题搭配 Source Sans 正文、暖琥珀色点缀、品牌色表头、标题居中。"
       },
       "business-report": {
         "name": "企业报告",
@@ -1238,7 +1243,8 @@
         "invalidEmail": "请输入有效的邮箱地址。",
         "alreadyMember": "此人已是该工作区的成员。",
         "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。"
-      }
+      },
+      "invitePeople": "邀请成员"
     },
     "capReachedFree": "已使用 {used} / {limit} 个工作区。请删除一个后再创建新的。",
     "capReachedShortFree": "已达工作区上限",
@@ -1263,6 +1269,28 @@
         "missingToken": "此邀请链接不完整。请从邮件中重新打开。",
         "home": "前往控制台"
       }
+    },
+    "actions": "工作区操作",
+    "sponsorship": {
+      "description": "将此工作区设为 markoto 工作区后，所有成员在其文档中的 AI 使用都从你套餐的额度中扣除。需要 Max 或 Ultra。",
+      "banner": "这是一个 markoto 工作区：此处的 AI 使用从赞助者的额度中扣除。",
+      "memberSponsored": "这是一个 markoto 工作区。此处的 AI 使用由管理员赞助。",
+      "memberRegular": "这是一个普通工作区。成员使用自己的 AI 额度。管理员可以将其设为 markoto 工作区来赞助使用。",
+      "memberComingSoon": "赞助工作区的 AI 使用将随付费套餐推出。",
+      "onYourPlan": "由你的套餐赞助 · 成员会在编辑器中看到提示",
+      "sponsoredByOther": "由另一位管理员赞助",
+      "takeOver": "接管赞助",
+      "needsUpgrade": "你的 {plan} 套餐无法赞助工作区，需要 Max 或 Ultra。",
+      "upgrade": "升级套餐",
+      "comingSoon": "将随付费套餐推出。",
+      "seePlans": "查看套餐",
+      "off": "关闭 · 成员使用自己的 AI 额度",
+      "toggleLabel": "赞助此工作区的 AI 使用",
+      "enabledToast": "已启用 AI 工作区",
+      "enabledToastDescription": "成员在此工作区中的 AI 使用现在由你的套餐赞助。",
+      "disabledToast": "已停用 AI 工作区",
+      "disabledToastDescription": "成员重新使用自己的 AI 额度。",
+      "updateFailed": "无法更改 AI 工作区"
     }
   },
   "knowledge": {
@@ -1691,7 +1719,7 @@
       "themes": {
         "label": "主题",
         "title": "改变外观，不动 Markdown。",
-        "body": "从八款主题中任选其一，再调整颜色、字体和封面。正文内容保持不变。"
+        "body": "从十款主题中任选其一，再调整颜色、字体和封面。正文内容保持不变。"
       },
       "collab": {
         "label": "协作",
@@ -1914,5 +1942,15 @@
       "caption": "markoto.app 的当前列表，读取自与法律页面相同的登记表。",
       "link": "次级处理者，附隐私政策和 DPA"
     }
+  },
+  "home": {
+    "title": "主页",
+    "greeting": "欢迎回来，{name}",
+    "description": "你的工作区和文档"
+  },
+  "docRow": {
+    "actions": "文档操作",
+    "open": "打开",
+    "openNewTab": "在新标签页中打开"
   }
 }

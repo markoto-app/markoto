@@ -293,11 +293,11 @@ test('Tour: themes', async ({ page, editor, tour }) => {
   await previewTo(page, '.mermaid')
   const clip = await tour.clip('themes')
   await clip.frame(8)
-  await clip.click(editor.page.sidebar.theme, { after: () => expect(editor.page.theme.preset('business')).toBeVisible() })
+  await clip.click(editor.page.sidebar.theme, { after: () => expect(editor.page.theme.preset('business-report')).toBeVisible() })
   await clip.frame(3)
 
   // A different preset: the body pages restyle.
-  await clip.click(editor.page.theme.preset('business'), {
+  await clip.click(editor.page.theme.preset('business-report'), {
     after: async () => {
       await settlePreview(page, 1600)
       await editor.page.setCoverEnabled(false)
