@@ -465,7 +465,7 @@ describe('themeToCss — schema completeness invariants', () => {
       expect(css).toContain('--doc-secondary')
     }
   })
-  test('all 10 presets exist', () => {
+  test('all 11 presets exist', () => {
     expect(THEME_PRESETS.map(p => p.id)).toEqual([
       'markoto', 'modern', 'academic', 'arxiv', 'ieee-conference', 'lecture-notes', 'tech-docs', 'business-report', 'novel', 'newsletter', 'resume'
     ])
