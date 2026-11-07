@@ -1069,6 +1069,10 @@
       "resume": {
         "name": "CV",
         "description": "Une page A4 dense : Inter en 10 pt, petits titres soulignés, sans en-tête, pied de page ni couverture."
+      },
+      "runbook": {
+        "name": "Runbook d’astreinte",
+        "description": "Pour la personne d’astreinte, à l’écran ou imprimé : linéale et police à chasse fixe robustes, sections numérotées avec la section dans le titre courant, étapes numérotées en blanc sur noir, commandes encadrées et faciles à copier, listes de contrôle avec de vraies cases, tableaux à en-tête noir, alertes qui restent visibles en niveaux de gris."
       }
     },
     "customCss": {
