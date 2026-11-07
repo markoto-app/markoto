@@ -3,7 +3,7 @@
   Stresses: one chapter (h1) with numbered sections down to h3 (meant for
   headings.numbering = decimal); long justified paragraphs; display equations
   incl. multi-line aligned + inline math; figures with captions (image-only
-  paragraph → <figure>, sized with {width=…}); tables with captions in text;
+  paragraph → <figure>, sized with {width=…}); tables with Pandoc captions (chapter-relative numbers written by the author, like the figures);
   many footnotes (some long); a block quotation; a definition list; a
   references list with long entries and URLs; an abbreviation.
   Suggested title: "Chapter 3 — Learning sparse sensor placements for urban
@@ -86,6 +86,8 @@ Table 3.1 compares the learned placement with three baselines at the same budget
 | Greedy forward selection | 7.1 | 15.2 | 69 % | 41 h |
 | Learned gates (ours) | **6.2** | **11.8** | **81 %** | 6 h |
 
+Table: Table 3.1: Forecast skill of four placements with the same budget ($k = 12$), north catchment, 30-minute horizon.
+
 The learned placement improves most where it matters: error at high-risk nodes falls by 22 % relative to greedy selection, and early detection rises by twelve percentage points. Training is also faster, because a single model is trained instead of one per greedy step.
 
 ### Sensitivity to the budget
@@ -108,6 +110,8 @@ Table 3.2 lists the selected nodes with their characteristics; node identifiers 
 | N-1120 | Outfall | 4.0 | 212.7 | River outfall with tidal backwater |
 | N-1188 | Junction | 3.6 | 140.9 | Below confluence; known surcharge point |
 
+Table: Table 3.2: Five of the twelve nodes selected by the learned placement in the north catchment.
+
 ## Discussion
 
 The results support the central hypothesis of this chapter: when the forecaster can exploit network structure, the most informative sensors are not those that best describe their own location but those that pin down the hydraulic state between them. This has a practical consequence for utilities, which typically place sensors where flooding has been reported. Our placements overlap with reported flood sites at only two of twelve locations, yet they forecast flooding at those sites more accurately than sensors placed there directly.[^direct]
@@ -118,7 +122,7 @@ Three limitations qualify this conclusion. First, all evaluation used simulated 
 
 This chapter formulated sensor placement for flood forecasting as a joint optimisation over sensor locations and forecaster parameters, relaxed it through Concrete gates with an annealed temperature, and showed on two catchments that the learned placements reduce high-risk forecast error by 22 % compared with greedy selection at a seventh of the training cost.
 
-## References
+## References {.unnumbered}
 
 Halvorsen, C., Ito, R., & Bauer, T. (2017). Continuous relaxations of discrete choices for gradient-based learning. In *Proceedings of the Conference on Learning Representations*.
 
