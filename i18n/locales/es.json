@@ -1042,6 +1042,10 @@
         "name": "Artículo de congreso IEEE",
         "description": "La plantilla de congresos del IEEE (IEEEtran): tamaño US Letter, dos columnas en Times 10 pt, secciones centradas en versalitas con números romanos, subsecciones en cursiva, título de 24 pt sobre bloques de autores uno al lado del otro y el resumen en negrita al comienzo de la primera columna."
       },
+      "lecture-notes": {
+        "name": "Apuntes de clase",
+        "description": "Apuntes y material de curso en la tradición LaTeX: texto en Latin Modern a juego con las fórmulas, un margen amplio para anotaciones, secciones numeradas, teoremas y observaciones como entornos enmarcados, listas de definiciones, ejercicios con apartados (a)/(b) y un bloque de título compacto con curso, docente y fecha."
+      },
       "tech": {
         "name": "Informe técnico",
         "description": "IBM Plex Sans compacta, color de marca cian, bloques de código oscuros, encabezados de tabla con color de marca y filas cebra."

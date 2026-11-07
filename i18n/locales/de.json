@@ -1042,6 +1042,10 @@
         "name": "IEEE-Konferenzbeitrag",
         "description": "Die IEEE-Konferenzvorlage (IEEEtran): US Letter, zwei Spalten Times 10 pt, zentrierte Abschnitte in Kapitälchen mit römischen Ziffern, kursive Unterabschnitte, ein Titel in 24 pt über nebeneinanderstehenden Autorenblöcken, die fette Zusammenfassung als Fliesstext am Anfang der ersten Spalte."
       },
+      "lecture-notes": {
+        "name": "Vorlesungsskript",
+        "description": "Skripte und Handouts für Vorlesungen in LaTeX-Tradition: Latin Modern passend zu den Formeln, ein breiter Rand für Notizen, nummerierte Abschnitte, Sätze und Bemerkungen als gerahmte Umgebungen, Definitionslisten, Übungen mit Teilaufgaben (a)/(b), ein kompakter Titelblock mit Kurs, Lehrperson und Datum."
+      },
       "tech": {
         "name": "Technischer Bericht",
         "description": "Kompakte IBM Plex Sans, cyanfarbene Markenfarbe, dunkle Codeblöcke, markengefärbte Tabellenköpfe mit Zebra-Zeilen."

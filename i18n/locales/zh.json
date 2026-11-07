@@ -1042,6 +1042,10 @@
         "name": "IEEE 会议论文",
         "description": "IEEE 会议模板（IEEEtran）的样式：US Letter 纸张，Times 10 pt 双栏，带罗马数字的居中小型大写章节标题，斜体小节标题，24 pt 标题下并排的作者信息块，第一栏开头的粗体摘要。"
       },
+      "lecture-notes": {
+        "name": "课程讲义",
+        "description": "LaTeX 传统风格的课程讲义与讲稿：与公式相协调的 Latin Modern 正文、便于批注的宽页边、编号章节、以边框环境呈现的定理与注记、定义列表、带 (a)/(b) 小题的习题，以及包含课程、讲师和日期的紧凑标题区。"
+      },
       "tech": {
         "name": "技术报告",
         "description": "紧凑的 IBM Plex Sans、青色品牌色、深色代码块、品牌色表头搭配隔行变色。"

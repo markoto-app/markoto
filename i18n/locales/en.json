@@ -1042,6 +1042,10 @@
         "name": "IEEE conference paper",
         "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
       },
+      "lecture-notes": {
+        "name": "Lecture notes",
+        "description": "Course handouts and lecture notes in the LaTeX tradition: Latin Modern text that matches the math, a wide margin for annotations, numbered sections, theorems and remarks as framed environments, definition lists, exercises with (a)/(b) parts, a compact title block with course, lecturer and date."
+      },
       "tech": {
         "name": "Tech Report",
         "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."
