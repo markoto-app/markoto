@@ -1226,7 +1226,8 @@
         "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
         "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
         "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück."
-      }
+      },
+      "invitePeople": "Personen einladen"
     },
     "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
     "capReachedShortFree": "Workspace-Limit erreicht",
@@ -1251,6 +1252,28 @@
         "missingToken": "Dieser Einladungslink ist unvollständig. Öffnen Sie ihn erneut aus der E-Mail.",
         "home": "Zum Dashboard"
       }
+    },
+    "actions": "Workspace-Aktionen",
+    "sponsorship": {
+      "description": "Machen Sie diesen Workspace zu einem markoto-Workspace: Die KI-Nutzung aller Mitglieder in seinen Dokumenten läuft dann über das Guthaben Ihres Plans. Erfordert Max oder Ultra.",
+      "banner": "Dies ist ein markoto-Workspace: Die KI-Nutzung hier läuft über das Guthaben des Sponsors.",
+      "memberSponsored": "Dies ist ein markoto-Workspace. Ein Admin übernimmt die KI-Nutzung hier.",
+      "memberRegular": "Dies ist ein normaler Workspace. Mitglieder nutzen ihr eigenes KI-Guthaben. Ein Admin kann ihn zu einem markoto-Workspace machen und die Nutzung übernehmen.",
+      "memberComingSoon": "Das Sponsern der KI-Nutzung eines Workspace kommt mit den bezahlten Plänen.",
+      "onYourPlan": "über Ihren Plan · Mitglieder sehen den Hinweis im Editor",
+      "sponsoredByOther": "von einem anderen Admin gesponsert",
+      "takeOver": "Sponsoring übernehmen",
+      "needsUpgrade": "Mit Ihrem Plan {plan} können Sie keinen Workspace sponsern. Dafür brauchen Sie Max oder Ultra.",
+      "upgrade": "Plan upgraden",
+      "comingSoon": "Kommt mit den bezahlten Plänen.",
+      "seePlans": "Pläne ansehen",
+      "off": "aus · Mitglieder nutzen ihr eigenes KI-Guthaben",
+      "toggleLabel": "KI-Nutzung in diesem Workspace sponsern",
+      "enabledToast": "KI-Workspace aktiviert",
+      "enabledToastDescription": "Die KI-Nutzung der Mitglieder in diesem Workspace läuft jetzt über Ihren Plan.",
+      "disabledToast": "KI-Workspace deaktiviert",
+      "disabledToastDescription": "Mitglieder nutzen wieder ihr eigenes KI-Guthaben.",
+      "updateFailed": "Der KI-Workspace konnte nicht geändert werden"
     }
   },
   "knowledge": {
@@ -1902,5 +1925,15 @@
       "caption": "Die aktuelle Liste für markoto.app, aus demselben Verzeichnis wie die rechtliche Seite.",
       "link": "Auftragsverarbeiter, mit Datenschutzerklärungen und AVV"
     }
+  },
+  "home": {
+    "title": "Start",
+    "greeting": "Willkommen zurück, {name}",
+    "description": "Ihre Workspaces und Dokumente."
+  },
+  "docRow": {
+    "actions": "Dokumentaktionen",
+    "open": "Öffnen",
+    "openNewTab": "In neuem Tab öffnen"
   }
 }
