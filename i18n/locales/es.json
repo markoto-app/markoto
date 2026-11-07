@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Nuevo documento",
-    "subtitle": "Unas pocas opciones rápidas ayudan a markoto a escribir para ti desde el principio. Todo es opcional — puedes saltar a un documento en blanco en cualquier momento.",
+    "subtitle": "Ponle un nombre y empieza a escribir. Contenido, diseño y detalles son opcionales: cámbialos ahora o cuando quieras.",
     "titleLabel": "Título",
     "titlePlaceholder": "p. ej. Plan de lanzamiento del T3",
     "descriptionLabel": "Descripción",
@@ -299,7 +299,20 @@
     "templateLabel": "Plantilla",
     "templateHelp": "Rellena previamente el documento con una estructura básica que puedes editar. Cada sección viene con una nota de comentario para que markoto sepa qué corresponde a cada parte.",
     "create": "Crear documento",
-    "skip": "Solo dame un documento en blanco"
+    "sections": {
+      "content": "Contenido",
+      "design": "Diseño",
+      "details": "Detalles"
+    },
+    "detailsHelp": "Ayuda a la IA a escribir para ti: de qué trata el documento, su idioma y su tono.",
+    "designTabs": {
+      "all": "Todos",
+      "engineering": "Ingeniería",
+      "academic": "Académico",
+      "business": "Empresa",
+      "writing": "Escritura",
+      "saved": "Mis diseños"
+    }
   },
   "templates": {
     "blank": {

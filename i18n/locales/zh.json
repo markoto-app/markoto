@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "新建文档",
-    "subtitle": "做几个快速选择，让 markoto 从一开始就为你量身写作。全部可选 — 你随时可跳过并新建空白文档。",
+    "subtitle": "起个名字就可以开始写作。内容、设计和详细信息都是可选的，现在或以后随时可以更改。",
     "titleLabel": "标题",
     "titlePlaceholder": "例如：第三季度发布计划",
     "descriptionLabel": "描述",
@@ -299,7 +299,20 @@
     "templateLabel": "模板",
     "templateHelp": "用可编辑的结构框架预填文档。每个章节都附带一条注释提示，让 markoto 了解各处应放置什么内容。",
     "create": "创建文档",
-    "skip": "直接给我一个空白文档"
+    "sections": {
+      "content": "内容",
+      "design": "设计",
+      "details": "详细信息"
+    },
+    "detailsHelp": "帮助 AI 为你写作：文档的主题、语言和语气。",
+    "designTabs": {
+      "all": "全部",
+      "engineering": "工程",
+      "academic": "学术",
+      "business": "商务",
+      "writing": "写作",
+      "saved": "我的设计"
+    }
   },
   "templates": {
     "blank": {

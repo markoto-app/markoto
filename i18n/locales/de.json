@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Neues Dokument",
-    "subtitle": "Ein paar schnelle Angaben helfen markoto, von Anfang an für Sie zu schreiben. Alles optional — Sie können jederzeit zu einem leeren Dokument springen.",
+    "subtitle": "Geben Sie ihm einen Namen und legen Sie los. Inhalt, Design und Details sind optional — jetzt oder jederzeit später änderbar.",
     "titleLabel": "Titel",
     "titlePlaceholder": "z. B. Q3-Launch-Plan",
     "descriptionLabel": "Beschreibung",
@@ -299,7 +299,20 @@
     "templateLabel": "Vorlage",
     "templateHelp": "Füllt das Dokument mit einem strukturellen Grundgerüst vor, das Sie bearbeiten können. Jeder Abschnitt enthält einen Kommentarhinweis, damit markoto weiss, was wohin gehört.",
     "create": "Dokument erstellen",
-    "skip": "Nur ein leeres Dokument"
+    "sections": {
+      "content": "Inhalt",
+      "design": "Design",
+      "details": "Details"
+    },
+    "detailsHelp": "Damit die KI passend für Sie schreibt: worum es geht, in welcher Sprache und in welchem Ton.",
+    "designTabs": {
+      "all": "Alle",
+      "engineering": "Technik",
+      "academic": "Wissenschaft",
+      "business": "Business",
+      "writing": "Schreiben",
+      "saved": "Meine Designs"
+    }
   },
   "templates": {
     "blank": {

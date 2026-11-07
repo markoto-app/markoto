@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Nouveau document",
-    "subtitle": "Quelques choix rapides aident markoto à écrire pour vous dès le départ. Tous facultatifs — commencez avec un document vierge à tout moment.",
+    "subtitle": "Donnez-lui un nom et commencez à écrire. Contenu, design et détails sont facultatifs — modifiables maintenant ou plus tard.",
     "titleLabel": "Titre",
     "titlePlaceholder": "ex. Plan de lancement T3",
     "descriptionLabel": "Description",
@@ -299,7 +299,20 @@
     "templateLabel": "Modèle",
     "templateHelp": "Pré-remplit le document avec une structure de base que vous pouvez modifier. Chaque section comporte une indication en commentaire pour que markoto sache ce qui y a sa place.",
     "create": "Créer le document",
-    "skip": "Donnez-moi simplement un document vierge"
+    "sections": {
+      "content": "Contenu",
+      "design": "Design",
+      "details": "Détails"
+    },
+    "detailsHelp": "Aidez l'IA à écrire pour vous : le sujet du document, sa langue et son ton.",
+    "designTabs": {
+      "all": "Tous",
+      "engineering": "Ingénierie",
+      "academic": "Académique",
+      "business": "Entreprise",
+      "writing": "Écriture",
+      "saved": "Mes designs"
+    }
   },
   "templates": {
     "blank": {

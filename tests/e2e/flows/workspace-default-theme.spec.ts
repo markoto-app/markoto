@@ -125,8 +125,18 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
     'Click "+ New document"',
     page.locator('[data-testid="workspace-new-document"]'),
     {
-      result: 'The new-doc dialog opens — title, description, language, audience, theme, template.',
+      result: 'The new-doc dialog opens. The Design row already names the workspace default.',
       after: () => editor.page.waitForNewDocDialog()
+    }
+  )
+  await expect(page.locator('[data-testid="newdoc-section-design-summary"]')).toHaveText('Academic Paper')
+
+  await flow.click(
+    'Open "Design"',
+    editor.page.newDocDialog.section('design'),
+    {
+      result: 'The design picker opens.',
+      after: () => editor.page.openNewDocSection('design')
     }
   )
 
@@ -138,13 +148,12 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   const academicCard = page.locator('[data-testid="newdoc-theme-card-academic"]')
   await expect(academicCard).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('[data-testid^="newdoc-theme-card-"][aria-pressed="true"]')).toHaveCount(1)
-  // The Theme question sits below the fold of the dialog — scroll it
-  // into view so the frame shows what the caption says.
+  // Bring the card into view so the frame shows what the caption says.
   await academicCard.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
   await expect(academicCard).toBeInViewport()
 
   await flow.shot(
-    'Further down, under the Theme question, the academic card is preselected.',
+    'In the design picker, the academic card is preselected.',
     {
       hero: true,
       highlights: [

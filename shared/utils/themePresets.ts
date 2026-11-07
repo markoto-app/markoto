@@ -11,8 +11,16 @@ import type { DocTheme } from '../types/theme'
  * matching i18n keys.
  */
 
+/**
+ * Who a preset is for — the tabs of the new-document design picker. A
+ * `general` preset (the brand look, an all-rounder) shows under "All" only.
+ */
+export const THEME_PRESET_CATEGORIES = ['engineering', 'academic', 'business', 'writing'] as const
+export type ThemePresetCategory = typeof THEME_PRESET_CATEGORIES[number] | 'general'
+
 export interface ThemePreset {
   id: string // matches i18n key under theme.presets.<id>
+  category: ThemePresetCategory
   theme: DocTheme
 }
 
@@ -261,6 +269,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // matched mermaid, github-light code.
   {
     id: 'markoto',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 24 },
       meta: { font: 'JetBrains Mono' },
@@ -297,6 +306,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // numbers in footer. The classic neutral starting point.
   {
     id: 'modern',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Inter' },
@@ -332,6 +342,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // opens page 1, sections are numbered.
   {
     id: 'academic',
+    category: 'academic',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Source Serif 4' },
@@ -369,6 +380,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // (ARXIV_TEMPLATE_CSS). Fixture: tests/fixtures/theme-shots/arxiv.md.
   {
     id: 'arxiv',
+    category: 'academic',
     theme: {
       page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
       meta: { font: 'TeX Gyre Termes' },
@@ -422,6 +434,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/ieee-conference.md.
   {
     id: 'ieee-conference',
+    category: 'academic',
     theme: {
       // \textwidth 43pc on Letter → 48pt (16.93mm) side margins;
       // \textheight 9.25in quantised to 56 lines (672pt): top 0.75in less
@@ -481,6 +494,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // TECH_DOCS_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/tech-docs.md.
   {
     id: 'tech-docs',
+    category: 'engineering',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Source Sans 3' },
@@ -519,6 +533,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/business-report.md + proposal.md.
   {
     id: 'business-report',
+    category: 'business',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Inter' },
@@ -563,6 +578,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // code blocks rare in fiction — kept minimal.
   {
     id: 'novel',
+    category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 25 },
       meta: { font: 'Crimson Text' },
@@ -597,6 +613,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // table headers + zebra. Showcases the multi-column flow.
   {
     id: 'newsletter',
+    category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'PT Serif' },
@@ -631,6 +648,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // accent. Made for the `resume` template (one A4 page).
   {
     id: 'resume',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 16 },
       meta: { font: 'Inter' },
