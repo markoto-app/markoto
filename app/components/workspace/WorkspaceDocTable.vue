@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { languageBadge, resolveLanguageDisplayName } from '~~/shared/languages'
 
-// Doc list for the workspace detail page. Action gates:
+import { workspaceDocPermissions } from '~/utils/docRowActions'
+
+// Doc list for the workspace detail page. Every member gets a row menu
+// (Open / Open in new tab); the rest follows `docRowActionGroups`:
 //   - Duplicate: any editor or admin (anyone with edit access).
-//   - Move: admin OR doc owner (canManage equivalent).
-//   - Delete: admin OR doc owner (canManage equivalent).
-// Viewers see no action menu. The server re-checks all three rules on
-// the underlying endpoints — the UI gates are UX-only.
+//   - Move / Delete: admin OR doc owner (canManageDoc).
+// The server re-checks all rules on the underlying endpoints — the UI
+// gates are UX-only.
 
 export interface WorkspaceDoc {
   docId: string
@@ -37,41 +39,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function canEdit() {
-  return props.myRole === 'admin' || props.myRole === 'editor'
-}
-function canManage(doc: WorkspaceDoc) {
-  return props.myRole === 'admin' || doc.isOwner
-}
-function hasAnyAction(doc: WorkspaceDoc) {
-  return canEdit() || canManage(doc)
-}
-
-function rowMenu(doc: WorkspaceDoc) {
-  const items: Array<Record<string, unknown>> = []
-  if (canEdit()) {
-    items.push({
-      label: t('common.duplicate'),
-      icon: 'i-lucide-copy',
-      onSelect: () => emit('duplicateRequested', doc)
-    })
-  }
-  if (canManage(doc)) {
-    items.push(
-      {
-        label: t('common.move'),
-        icon: 'i-lucide-folder-input',
-        onSelect: () => emit('moveRequested', doc)
-      },
-      {
-        label: t('common.delete'),
-        icon: 'i-lucide-trash-2',
-        color: 'error',
-        onSelect: () => emit('deleteRequested', doc)
-      }
-    )
-  }
-  return [items]
+function permsFor(doc: WorkspaceDoc) {
+  return workspaceDocPermissions(props.myRole, doc.isOwner)
 }
 
 // Long-press to open the row's actions menu — discoverable on touch
@@ -79,8 +48,11 @@ function rowMenu(doc: WorkspaceDoc) {
 // on docId so only the long-pressed row's menu opens.
 const openMenuDocId = ref<string | null>(null)
 function onRowLongPress(doc: WorkspaceDoc) {
-  if (!hasAnyAction(doc)) return
   openMenuDocId.value = doc.docId
+}
+function setMenuOpen(doc: WorkspaceDoc, open: boolean) {
+  if (open) openMenuDocId.value = doc.docId
+  else if (openMenuDocId.value === doc.docId) openMenuDocId.value = null
 }
 </script>
 
@@ -144,20 +116,16 @@ function onRowLongPress(doc: WorkspaceDoc) {
           }}
         </UBadge>
         <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
-        <UDropdownMenu
-          v-if="hasAnyAction(doc)"
-          :items="rowMenu(doc)"
+        <DocumentDocRowMenu
+          :doc-id="doc.docId"
+          :can-edit="permsFor(doc).canEdit"
+          :can-manage="permsFor(doc).canManage"
           :open="openMenuDocId === doc.docId"
-          @update:open="(v: boolean) => { if (!v && openMenuDocId === doc.docId) openMenuDocId = null }"
-        >
-          <UButton
-            icon="i-lucide-more-vertical"
-            color="neutral"
-            variant="ghost"
-            size="xs"
-            class="opacity-60 group-hover:opacity-100 transition-opacity"
-          />
-        </UDropdownMenu>
+          @update:open="(v: boolean) => setMenuOpen(doc, v)"
+          @duplicate="emit('duplicateRequested', doc)"
+          @move="emit('moveRequested', doc)"
+          @delete="emit('deleteRequested', doc)"
+        />
       </div>
     </div>
   </div>

@@ -1239,7 +1239,8 @@
         "invalidEmail": "Introduce una dirección de correo válida.",
         "alreadyMember": "Esta persona ya es miembro del espacio de trabajo.",
         "inviteCap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero."
-      }
+      },
+      "invitePeople": "Invitar a personas"
     },
     "capReachedFree": "{used} de {limit} espacios de trabajo usados. Elimina uno para crear otro.",
     "capReachedShortFree": "Límite de espacios de trabajo alcanzado",
@@ -1264,6 +1265,28 @@
         "missingToken": "Este enlace de invitación está incompleto. Ábrelo de nuevo desde el correo.",
         "home": "Ir al panel"
       }
+    },
+    "actions": "Acciones del espacio de trabajo",
+    "sponsorship": {
+      "description": "Convierte este espacio en un espacio markoto: el uso de la IA de todos los miembros en sus documentos se descuenta del crédito de tu plan. Requiere Max o Ultra.",
+      "banner": "Este es un espacio markoto: el uso de la IA aquí se descuenta del crédito del patrocinador.",
+      "memberSponsored": "Este es un espacio markoto. Un administrador patrocina el uso de la IA aquí.",
+      "memberRegular": "Este es un espacio normal. Los miembros usan su propio crédito de IA. Un administrador puede convertirlo en un espacio markoto para patrocinarlo.",
+      "memberComingSoon": "Patrocinar el uso de la IA de un espacio llegará con los planes de pago.",
+      "onYourPlan": "con tu plan · los miembros ven el aviso en el editor",
+      "sponsoredByOther": "patrocinado por otro administrador",
+      "takeOver": "Asumir el patrocinio",
+      "needsUpgrade": "Tu plan {plan} no permite patrocinar un espacio. Se necesita Max o Ultra.",
+      "upgrade": "Mejorar tu plan",
+      "comingSoon": "Llegará con los planes de pago.",
+      "seePlans": "Ver planes",
+      "off": "desactivado · los miembros usan su propio crédito de IA",
+      "toggleLabel": "Patrocinar el uso de la IA en este espacio",
+      "enabledToast": "Espacio de IA activado",
+      "enabledToastDescription": "El uso de la IA de los miembros en este espacio ahora lo patrocina tu plan.",
+      "disabledToast": "Espacio de IA desactivado",
+      "disabledToastDescription": "Los miembros vuelven a usar su propio crédito de IA.",
+      "updateFailed": "No se pudo cambiar el espacio de IA"
     }
   },
   "knowledge": {
@@ -1915,5 +1938,15 @@
       "caption": "La lista actual de markoto.app, leída del mismo registro que la página legal.",
       "link": "Subencargados, con políticas de privacidad y DPA"
     }
+  },
+  "home": {
+    "title": "Inicio",
+    "greeting": "Hola de nuevo, {name}",
+    "description": "Tus espacios de trabajo y documentos."
+  },
+  "docRow": {
+    "actions": "Acciones del documento",
+    "open": "Abrir",
+    "openNewTab": "Abrir en una pestaña nueva"
   }
 }

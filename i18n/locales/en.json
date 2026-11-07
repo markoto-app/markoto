@@ -1239,7 +1239,8 @@
         "invalidEmail": "Enter a valid email address.",
         "alreadyMember": "This person is already a member of the workspace.",
         "inviteCap": "This workspace has too many open invitations. Revoke some first."
-      }
+      },
+      "invitePeople": "Invite people"
     },
     "capReachedFree": "{used} of {limit} workspaces used. Delete one to create another.",
     "capReachedShortFree": "Workspace limit reached",
@@ -1264,6 +1265,28 @@
         "missingToken": "This invitation link is incomplete. Open it again from the email.",
         "home": "Go to the dashboard"
       }
+    },
+    "actions": "Workspace actions",
+    "sponsorship": {
+      "description": "Turn this workspace into a markoto workspace so every member's AI use in its documents draws on your plan's credit pool. Requires Max or Ultra.",
+      "banner": "This is a markoto workspace: AI use here runs on the sponsor's credit pool.",
+      "memberSponsored": "This is a markoto workspace. An admin sponsors the AI use here.",
+      "memberRegular": "This is a regular workspace. Members use their own AI credits. An admin can turn it into a markoto workspace to sponsor them.",
+      "memberComingSoon": "Sponsoring the AI use of a workspace comes with paid plans.",
+      "onYourPlan": "on your plan · members see the editor banner",
+      "sponsoredByOther": "sponsored by another admin",
+      "takeOver": "Take over sponsorship",
+      "needsUpgrade": "Your {plan} plan can’t sponsor a workspace. It needs Max or Ultra.",
+      "upgrade": "Upgrade your plan",
+      "comingSoon": "Coming with paid plans.",
+      "seePlans": "See plans",
+      "off": "off · members use their own AI credits",
+      "toggleLabel": "Sponsor AI use in this workspace",
+      "enabledToast": "AI workspace enabled",
+      "enabledToastDescription": "Members' AI use in this workspace is now sponsored by your plan.",
+      "disabledToast": "AI workspace disabled",
+      "disabledToastDescription": "Members are back to using their own AI credits.",
+      "updateFailed": "Could not update the AI workspace"
     }
   },
   "knowledge": {
@@ -1915,5 +1938,15 @@
       "caption": "The live list for markoto.app, read from the same registry as the legal page.",
       "link": "Sub-processors, with privacy policies and DPAs"
     }
+  },
+  "home": {
+    "title": "Home",
+    "greeting": "Welcome back, {name}",
+    "description": "Your workspaces and documents."
+  },
+  "docRow": {
+    "actions": "Document actions",
+    "open": "Open",
+    "openNewTab": "Open in new tab"
   }
 }
