@@ -18,10 +18,10 @@ the bones of what you're writing.
 
 ## What just happened
 
-markoto ships nine starting shapes. **Demo** is picked for you: a short
-tour of markdown and of markoto (sharing, themes, comments, the AI, PDF
-export), handy for your first document. **Blank** is an empty page, and so
-is "Just give me a blank doc". **Resume** is a filled-in one-page CV for a
+markoto ships nine starting shapes, under **Content** in the new-document
+dialog. **Demo** is picked for your first document: a short tour of markdown
+and of markoto (sharing, themes, comments, the AI, PDF export). After that,
+new documents start **Blank**, an empty page. **Resume** is a filled-in one-page CV for a
 made-up person that you rewrite line by line. The other six are skeletons:
 report, meeting notes, project README, academic paper, business plan and
 recipe. Each is written in the language you pick (English or German; Demo,

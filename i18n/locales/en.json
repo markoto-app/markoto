@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "New document",
-    "subtitle": "A few quick choices help markoto write for you from the start. All optional — skip to a blank doc anytime.",
+    "subtitle": "Give it a name and start writing. Content, design and details are optional — change them now or any time later.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. Q3 launch plan",
     "descriptionLabel": "Description",
@@ -299,7 +299,20 @@
     "templateLabel": "Template",
     "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so markoto knows what belongs where.",
     "create": "Create document",
-    "skip": "Just give me a blank doc"
+    "sections": {
+      "content": "Content",
+      "design": "Design",
+      "details": "Details"
+    },
+    "detailsHelp": "Help the AI write for you: what the document is about, its language and its tone.",
+    "designTabs": {
+      "all": "All",
+      "engineering": "Engineering",
+      "academic": "Academic",
+      "business": "Business",
+      "writing": "Writing",
+      "saved": "My designs"
+    }
   },
   "templates": {
     "blank": {

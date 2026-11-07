@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "新しいドキュメント",
-    "subtitle": "いくつかの簡単な選択で、markotoが最初からあなたに合わせて執筆できます。すべて任意です — いつでも空白のドキュメントに進めます。",
+    "subtitle": "名前を付けて書き始めましょう。内容・デザイン・詳細は任意で、後からいつでも変更できます。",
     "titleLabel": "タイトル",
     "titlePlaceholder": "例：第3四半期のローンチ計画",
     "descriptionLabel": "説明",
@@ -299,7 +299,20 @@
     "templateLabel": "テンプレート",
     "templateHelp": "編集可能な構造の骨組みでドキュメントを事前入力します。各セクションにはコメントヒントが付いており、markotoがどこに何が入るかを把握できます。",
     "create": "ドキュメントを作成",
-    "skip": "空白のドキュメントでいい"
+    "sections": {
+      "content": "内容",
+      "design": "デザイン",
+      "details": "詳細"
+    },
+    "detailsHelp": "AI があなたに合わせて書けるように：文書の内容、言語、トーン。",
+    "designTabs": {
+      "all": "すべて",
+      "engineering": "エンジニアリング",
+      "academic": "学術",
+      "business": "ビジネス",
+      "writing": "執筆",
+      "saved": "マイデザイン"
+    }
   },
   "templates": {
     "blank": {

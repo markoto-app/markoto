@@ -16,16 +16,26 @@ import { test, expect } from '../fixtures/flow'
 test('Start from a template', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // Opens the homepage and clicks "+ New Document" — the dialog
-  // appears with all nine templates visible. Capture the dialog so
-  // the reader sees the template grid before we make a choice.
+  // Opens the homepage and clicks "+ New Document"; the Content row
+  // opens the template grid. A fresh browser's first document starts
+  // from the Demo.
   await editor.recordPreamble()
-  // Demo is the pre-selected template.
+  await flow.click(
+    'Open "Content"',
+    editor.page.newDocDialog.section('content'),
+    {
+      result: 'The template cards open. Demo is picked for your first document; after that, new documents start blank.',
+      after: async () => {
+        await expect(editor.page.newDocDialog.section('content')).toHaveAttribute('aria-expanded', 'true')
+      }
+    }
+  )
   await expect(editor.page.newDocDialog.templateCard('demo')).toHaveAttribute('aria-pressed', 'true')
 
   await flow.heading('Start from a template instead of a blank page', 3)
   await flow.narrate(
-    'Every new doc starts from a template. Demo, picked for you, is a '
+    'Every new doc starts from a template. Demo, picked for your first '
+    + 'document, is a '
     + 'short tour of markdown and of markoto itself; Blank is an empty '
     + 'page; Resume is a one-page sample CV to rewrite; six skeletons '
     + 'cover the common cases (report, business plan, academic paper, '
