@@ -177,6 +177,60 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 `
 
 /**
+ * API_REFERENCE_TEMPLATE_CSS — what the "API reference" look needs beyond
+ * theme fields: a prose measure narrower than the tables and code, resource
+ * openers, endpoint lines (```http fences) as a findable band, small-caps
+ * style section labels, status-code headings coloured by class, and dense
+ * parameter tables with the parameter name in mono. Ordinary custom CSS
+ * (tests/unit/themePresetCss.test.ts).
+ */
+const API_REFERENCE_TEMPLATE_CSS = `/* API reference template. Lookup material: sans text, mono identifiers, every endpoint a findable unit. */
+/* Prose keeps a ~75-character measure; tables, code and endpoint lines use the full text width. */
+.paged-doc > p, .paged-doc > ul, .paged-doc > ol, .paged-doc > blockquote, .paged-doc > .markdown-alert { max-width: 128mm; }
+/* Resources (h1) open under a firm rule across the full width, so a new resource is visible from across the page. */
+.paged-doc h1:not(.markoto-cover-title) { border-top: 1.5pt solid var(--doc-heading-color); padding-top: 5pt; }
+/* Endpoint line: an http code fence holding "POST /payments" prints as a tinted band with an accent edge; the method stands a little apart from the path. */
+.paged-doc pre:has(> code.language-http) { background: color-mix(in srgb, var(--doc-accent) 7%, transparent); border: 0; border-left: 2.5pt solid var(--doc-accent); border-radius: 0; padding: 4pt 8pt; font-size: 9pt; font-weight: 600; word-spacing: 0.45em; color: var(--doc-heading-color); }
+.paged-doc pre > code.language-http { font-weight: 600; }
+/* Section labels inside an endpoint (Parameters, Request, Response): small, spaced capitals over a hairline. */
+.paged-doc h3 { text-transform: uppercase; letter-spacing: 0.08em; color: var(--doc-secondary); padding-bottom: 2pt; border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 45%, transparent); }
+/* Status headings (200 OK, 402 Payment Required) in mono, with a mark coloured by status class (from the heading id, "h-200-ok"); the code itself carries the meaning in greyscale. */
+.paged-doc h4 { font-family: var(--doc-mono-font); }
+.paged-doc h4[id^="h-2"]::before, .paged-doc h4[id^="h-4"]::before, .paged-doc h4[id^="h-5"]::before { content: ""; display: inline-block; width: 0.55em; height: 0.55em; margin-right: 0.45em; border-radius: 50%; vertical-align: 0.05em; }
+.paged-doc h4[id^="h-2"]::before { background: #2f7d4a; }
+.paged-doc h4[id^="h-4"]::before { background: #b26a00; }
+.paged-doc h4[id^="h-5"]::before { background: #b42a2a; }
+/* Inline code: a faint tint, tight padding; plain inside headings. */
+.paged-doc :not(pre) > code { font-size: 0.88em; padding: 0.05em 0.25em; border-radius: 1.5pt; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }
+.paged-doc h1 code, .paged-doc h2 code, .paged-doc h3 code, .paged-doc h4 code { background: none; padding: 0; font-size: 0.92em; }
+/* Code blocks: compact leading for JSON; a wrapped line continues 4 columns in. */
+.paged-doc pre { line-height: 1.35; }
+.paged-doc pre .code-line { padding-left: 4ch; text-indent: -4ch; }
+/* Reference tables: a step smaller, tabular figures, top-aligned cells, hairline rows. */
+.paged-doc table { font-size: 0.92em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.paged-doc th, .paged-doc td { vertical-align: top; hyphens: manual; }
+.paged-doc thead th { font-weight: 600; text-align: left; }
+.paged-doc td code, .paged-doc th code { background: none; padding: 0; font-size: 0.92em; }
+/* Identifiers never break inside (the engine's "anywhere" split "invalid_re / quest"); a cell breaks between them. */
+.paged-doc td code { white-space: nowrap; }
+/* The first column names the thing (parameter, field, key prefix): mono, medium weight, heading ink. */
+.paged-doc td:first-child code { font-weight: 500; color: var(--doc-heading-color); }
+/* Rules: a firm one under the header, hairlines between rows, a closing rule. */
+.paged-doc thead tr { border-bottom: 0.75pt solid var(--doc-text); }
+.paged-doc tbody tr { border-bottom: 0.4pt solid color-mix(in srgb, var(--doc-secondary) 40%, transparent); }
+.paged-doc tbody tr:last-child { border-bottom: 0.75pt solid var(--doc-text); }
+/* Admonitions: square, a thin rule, the title in spaced capitals. */
+.paged-doc .markdown-alert { border-left-width: 2.5pt; border-radius: 0; padding: 0.45em 0.9em; }
+.paged-doc .markdown-alert-title { font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.2em; }
+/* Contents: resources semibold, endpoints regular under them. */
+.paged-doc .table-of-contents > ul > li > a { font-weight: 600; }
+/* Links are cross-references: accent, no underline. */
+.paged-doc a { text-decoration: none; }
+/* Running head: the resource the page is in, in the heading weight. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-weight: 600; }
+`
+
+/**
  * BUSINESS_REPORT_TEMPLATE_CSS — what the business-report look needs beyond
  * theme fields: the two-width grid, section-opener bars, finance-style
  * tables (tabular figures, hairlines, rules on bold total rows), pull
@@ -541,6 +595,58 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
       customCss: TECH_DOCS_TEMPLATE_CSS
+    }
+  },
+
+  // — API reference: printed/PDF reference for an HTTP API (Stripe-like
+  // clarity in print). Lookup material, not reading text: IBM Plex Sans
+  // 9.5/1.45 throughout with IBM Plex Mono for every identifier, prose held
+  // to ~75 characters while parameter tables and JSON use the full width,
+  // unnumbered resources (h1) under a firm rule, endpoints (h2) with their
+  // "POST /path" line as an accent band (```http fence), spaced-capital
+  // section labels (h3), mono status headings (h4). Running head: the
+  // resource the page is in ({section}) and the title. Template CSS:
+  // API_REFERENCE_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/api-reference.md.
+  {
+    id: 'api-reference',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 18, marginTop: 20 },
+      meta: { font: 'IBM Plex Sans' },
+      body: { font: 'IBM Plex Sans', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1f2328', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: false },
+      headings: {
+        font: 'IBM Plex Sans',
+        scale: 1.2,
+        weight: 600,
+        underline: false,
+        color: '#14171c',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.8,
+        numbering: 'none',
+        // Resource 16.6pt, endpoint 12.4pt, section label 8pt caps, status code 9.5pt mono.
+        levels: { h1: { size: 1.75 }, h2: { size: 1.3 }, h3: { size: 0.84 } }
+      },
+      color: { brand: '#3a3f9e', secondary: '#5f6673' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      // The resource the page is in (where the eye lands first), and the title.
+      header: { left: '{section}', center: '', right: '{title}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8, font: 'IBM Plex Mono', background: 'tint', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Admonition hues dark enough to stay distinct grey values in print.
+      alerts: {
+        note: '#3a3f9e',
+        tip: '#2f6b3f',
+        important: '#5b3a99',
+        warning: '#8a5a00',
+        caution: '#a3212b'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.1, subtitleSize: 1.1 },
+      customCss: API_REFERENCE_TEMPLATE_CSS
     }
   },
 

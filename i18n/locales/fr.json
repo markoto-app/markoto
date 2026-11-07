@@ -1050,6 +1050,10 @@
         "name": "Documentation technique",
         "description": "Documentation développeur imprimée : texte courant à empattements et titres sans empattements, sections numérotées aux numéros en marge, blocs de code clairs et encadrés sur toute la largeur, tableaux de référence à filets fins, encadrés d’avertissement discrets, bloc de titre avec sommaire en page 1."
       },
+      "api-reference": {
+        "name": "Référence d’API",
+        "description": "Référence imprimée d’une API HTTP : texte sans empattements et identifiants en chasse fixe, méthode et chemin de chaque point de terminaison sur un bandeau coloré (à écrire comme bloc de code http), tableaux de paramètres denses, exemples JSON compacts, codes de statut marqués par classe, la ressource courante en titre courant."
+      },
       "business": {
         "name": "Rapport d'affaires",
         "description": "Titres Playfair sur corps Source Sans, accent ambre chaleureux, en-têtes de tableau colorés, titre centré."

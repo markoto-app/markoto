@@ -1050,6 +1050,10 @@
         "name": "Documentación técnica",
         "description": "Documentación para desarrolladores impresa: texto con serifa y títulos sin serifa, secciones numeradas con el número en el margen, bloques de código claros y enmarcados a todo el ancho, tablas de referencia con filetes finos, avisos discretos, bloque de título con índice en la página 1."
       },
+      "api-reference": {
+        "name": "Referencia de API",
+        "description": "Referencia impresa de una API HTTP: texto sin serifa con identificadores en monoespaciada, método y ruta de cada endpoint en una banda de color (escríbalos como bloque de código http), tablas de parámetros densas, ejemplos JSON compactos, códigos de estado marcados por clase, el recurso actual en el encabezado."
+      },
       "business": {
         "name": "Informe de negocios",
         "description": "Encabezados Playfair sobre cuerpo Source Sans, acento ámbar cálido, encabezados de tabla con color de marca, título centrado."

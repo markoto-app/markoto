@@ -1050,6 +1050,10 @@
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
       },
+      "api-reference": {
+        "name": "API reference",
+        "description": "Printed reference for an HTTP API: sans text with mono identifiers, each endpoint's method and path on an accent band (write it as an http code fence), dense parameter tables, compact JSON examples, status codes marked by class, the current resource in the running head."
+      },
       "business": {
         "name": "Business Report",
         "description": "Playfair headings over Source Sans body, warm amber accent, brand-colored table headers, centered title."

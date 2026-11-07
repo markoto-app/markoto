@@ -1050,6 +1050,10 @@
         "name": "Technische Dokumentation",
         "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
       },
+      "api-reference": {
+        "name": "API-Referenz",
+        "description": "Gedruckte Referenz für eine HTTP-API: serifenloser Text mit Bezeichnern in Monospace, Methode und Pfad jedes Endpunkts auf einem farbigen Band (als http-Codeblock schreiben), dichte Parametertabellen, kompakte JSON-Beispiele, Statuscodes nach Klasse markiert, die aktuelle Ressource im Kolumnentitel."
+      },
       "business": {
         "name": "Geschäftsbericht",
         "description": "Playfair-Überschriften über Source-Sans-Fliesstext, warmer Bernstein-Akzent, markengefärbte Tabellenköpfe, zentrierter Titel."
