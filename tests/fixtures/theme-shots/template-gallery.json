@@ -1,0 +1,7 @@
+{
+  "report": { "md": "../../e2e/fixtures/content/q3-report/quaybridge-q3-2026.md", "title": "Q3 2026 Quarterly Report", "theme": "business-report", "pageNumber": 4 },
+  "resume": { "tryIt": "../../../content/marketing/en/templates/resume.md" },
+  "meeting-notes": { "tryIt": "../../../content/marketing/en/templates/meeting-notes.md" },
+  "academic-paper": { "tryIt": "../../../content/marketing/en/templates/academic-paper.md" },
+  "business-plan": { "tryIt": "../../../content/marketing/en/templates/business-plan.md" }
+}
