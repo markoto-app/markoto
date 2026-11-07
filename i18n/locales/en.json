@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "New document",
-    "subtitle": "A few quick choices help markoto write for you from the start. All optional — skip to a blank doc anytime.",
+    "subtitle": "Give it a name and start writing. Content, design and details are optional — change them now or any time later.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. Q3 launch plan",
     "descriptionLabel": "Description",
@@ -299,7 +299,20 @@
     "templateLabel": "Template",
     "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so markoto knows what belongs where.",
     "create": "Create document",
-    "skip": "Just give me a blank doc"
+    "sections": {
+      "content": "Content",
+      "design": "Design",
+      "details": "Details"
+    },
+    "detailsHelp": "Help the AI write for you: what the document is about, its language and its tone.",
+    "designTabs": {
+      "all": "All",
+      "engineering": "Engineering",
+      "academic": "Academic",
+      "business": "Business",
+      "writing": "Writing",
+      "saved": "My designs"
+    }
   },
   "templates": {
     "blank": {
@@ -1042,10 +1055,6 @@
         "name": "IEEE conference paper",
         "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
       },
-      "tech": {
-        "name": "Tech Report",
-        "description": "Compact IBM Plex Sans, cyan brand color, dark code blocks, brand-colored table headers with zebra rows."
-      },
       "tech-docs": {
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
@@ -1053,10 +1062,6 @@
       "api-reference": {
         "name": "API reference",
         "description": "Printed reference for an HTTP API: sans text with mono identifiers, each endpoint's method and path on an accent band (write it as an http code fence), dense parameter tables, compact JSON examples, status codes marked by class, the current resource in the running head."
-      },
-      "business": {
-        "name": "Business Report",
-        "description": "Playfair headings over Source Sans body, warm amber accent, brand-colored table headers, centered title."
       },
       "business-report": {
         "name": "Corporate report",
@@ -1238,7 +1243,8 @@
         "invalidEmail": "Enter a valid email address.",
         "alreadyMember": "This person is already a member of the workspace.",
         "inviteCap": "This workspace has too many open invitations. Revoke some first."
-      }
+      },
+      "invitePeople": "Invite people"
     },
     "capReachedFree": "{used} of {limit} workspaces used. Delete one to create another.",
     "capReachedShortFree": "Workspace limit reached",
@@ -1263,6 +1269,28 @@
         "missingToken": "This invitation link is incomplete. Open it again from the email.",
         "home": "Go to the dashboard"
       }
+    },
+    "actions": "Workspace actions",
+    "sponsorship": {
+      "description": "Turn this workspace into a markoto workspace so every member's AI use in its documents draws on your plan's credit pool. Requires Max or Ultra.",
+      "banner": "This is a markoto workspace: AI use here runs on the sponsor's credit pool.",
+      "memberSponsored": "This is a markoto workspace. An admin sponsors the AI use here.",
+      "memberRegular": "This is a regular workspace. Members use their own AI credits. An admin can turn it into a markoto workspace to sponsor them.",
+      "memberComingSoon": "Sponsoring the AI use of a workspace comes with paid plans.",
+      "onYourPlan": "on your plan · members see the editor banner",
+      "sponsoredByOther": "sponsored by another admin",
+      "takeOver": "Take over sponsorship",
+      "needsUpgrade": "Your {plan} plan can’t sponsor a workspace. It needs Max or Ultra.",
+      "upgrade": "Upgrade your plan",
+      "comingSoon": "Coming with paid plans.",
+      "seePlans": "See plans",
+      "off": "off · members use their own AI credits",
+      "toggleLabel": "Sponsor AI use in this workspace",
+      "enabledToast": "AI workspace enabled",
+      "enabledToastDescription": "Members' AI use in this workspace is now sponsored by your plan.",
+      "disabledToast": "AI workspace disabled",
+      "disabledToastDescription": "Members are back to using their own AI credits.",
+      "updateFailed": "Could not update the AI workspace"
     }
   },
   "knowledge": {
@@ -1691,7 +1719,7 @@
       "themes": {
         "label": "Themes",
         "title": "Change the look, not the Markdown.",
-        "body": "Pick one of eight themes, then adjust colours, fonts and the cover page. Your text stays untouched."
+        "body": "Pick one of ten themes, then adjust colours, fonts and the cover page. Your text stays untouched."
       },
       "collab": {
         "label": "Collaboration",
@@ -1914,5 +1942,15 @@
       "caption": "The live list for markoto.app, read from the same registry as the legal page.",
       "link": "Sub-processors, with privacy policies and DPAs"
     }
+  },
+  "home": {
+    "title": "Home",
+    "greeting": "Welcome back, {name}",
+    "description": "Your workspaces and documents."
+  },
+  "docRow": {
+    "actions": "Document actions",
+    "open": "Open",
+    "openNewTab": "Open in new tab"
   }
 }

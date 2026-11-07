@@ -113,6 +113,7 @@ function onDocCreated(docId: string) {
     <LazyHomeDashboard
       v-else
       @new-document="createDocument"
+      @warm-new-document="warmNewDocDialog"
     />
 
     <!-- New-document dialog. Standalone (no workspace) on the home

@@ -65,7 +65,10 @@ for what no theme field covers, and a Markdown fixture that shows it off.
 7. **Bake** it into a preset: values in `THEME_PRESETS`, template CSS as
    the preset's `customCss` (a commented constant next to the preset; each
    rule names its source in the original), i18n
-   `theme.presets.<id>.{name,description}` in all six locales, the
+   `theme.presets.<id>.{name,description}` in all six locales, a
+   `category` (the design-picker tab), an entry in
+   `tests/fixtures/theme-shots/thumbnails.json` plus its picture
+   (`make theme-thumbs URL=… PRESETS=<id>`), the
    fixture committed. Every optional field spelled out
    (`tests/unit/themeFoundation.test.ts` checks it); template CSS passes
    the sanitizer without issues and follows the CSS rules below

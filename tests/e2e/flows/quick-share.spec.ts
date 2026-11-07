@@ -37,10 +37,10 @@ test('Quick share', async ({ page, flow, editor }) => {
   // ─── Set up your document ───────────────────────────────────────
   await flow.heading('Set up your document', 3)
   await flow.narrate(
-    'markoto asks a few quick questions up front: what you\'re writing, who '
-    + 'it\'s for, what language. The AI uses these every time it helps '
-    + 'you write — so a one-time minute here saves you re-typing context '
-    + 'on every prompt later. All optional; skip to a blank doc anytime.'
+    'Name your document and you can start. Under Details, tell markoto '
+    + 'what you\'re writing, who it\'s for and in which language: the AI uses '
+    + 'this every time it helps you write, so a minute here saves you '
+    + 're-typing context on every prompt later. All optional.'
   )
 
   await flow.type(
@@ -51,6 +51,17 @@ test('Quick share', async ({ page, flow, editor }) => {
   )
   await expect(editor.page.newDocDialog.titleInput).toHaveValue('Project kickoff notes')
 
+  await flow.click(
+    'Open "Details"',
+    editor.page.newDocDialog.section('details'),
+    {
+      result: 'Description, language and audience open.',
+      after: async () => {
+        await expect(editor.page.newDocDialog.descriptionInput).toBeVisible()
+      }
+    }
+  )
+
   await flow.type(
     'Add a one-line description so the AI knows what you\'re writing about',
     editor.page.newDocDialog.descriptionInput,
@@ -59,6 +70,17 @@ test('Quick share', async ({ page, flow, editor }) => {
   )
   await expect(editor.page.newDocDialog.descriptionInput).toHaveValue(
     'Notes from our team\'s Q3 kickoff meeting'
+  )
+
+  await flow.click(
+    'Open "Content" to start from a template',
+    editor.page.newDocDialog.section('content'),
+    {
+      result: 'The template cards open.',
+      after: async () => {
+        await expect(editor.page.newDocDialog.templateCard('meeting-notes')).toBeVisible()
+      }
+    }
   )
 
   await flow.click(
