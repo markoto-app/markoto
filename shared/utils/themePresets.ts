@@ -334,6 +334,9 @@ const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before eleg
 .paged-doc .markdown-alert-title { display: inline-block; padding: 0.05em 0.45em; background: currentColor; -webkit-text-fill-color: var(--doc-bg); font-weight: 700; font-size: 0.8em; letter-spacing: 0.06em; margin-bottom: 0.35em; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 /* Links are cross-references to other procedures: ink, with a quiet underline. */
 .paged-doc a { color: inherit; text-decoration-thickness: 0.5pt; text-underline-offset: 0.15em; }
+`
+
+/**
  * THESIS_TEMPLATE_CSS — the long-form academic look (Bachelor / Master /
  * PhD theses, long reports) beyond theme fields. Genre reference: LaTeX
  * `report` / `book` (report.cls, LPPL) as most university thesis classes
@@ -900,7 +903,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4, captionPosition: 'above', captionLabel: false },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
       // Newsletter — bright, friendly admonition palette to match the
