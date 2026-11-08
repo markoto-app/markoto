@@ -1055,6 +1055,10 @@
         "name": "Artículo de congreso IEEE",
         "description": "La plantilla de congresos del IEEE (IEEEtran): tamaño US Letter, dos columnas en Times 10 pt, secciones centradas en versalitas con números romanos, subsecciones en cursiva, título de 24 pt sobre bloques de autores uno al lado del otro y el resumen en negrita al comienzo de la primera columna."
       },
+      "thesis": {
+        "name": "Tesis",
+        "description": "Trabajos académicos extensos en la tradición de la clase report de LaTeX: A4, Latin Modern 11 pt justificado con sangría de párrafo, márgenes amplios, cada capítulo en una página nueva bajo un número grande, secciones numeradas 1.1 / 1.1.1, portada clásica, título del capítulo y número de página en el encabezado, tablas de estilo booktabs y bibliografía con sangría francesa."
+      },
       "tech-docs": {
         "name": "Documentación técnica",
         "description": "Documentación para desarrolladores impresa: texto con serifa y títulos sin serifa, secciones numeradas con el número en el margen, bloques de código claros y enmarcados a todo el ancho, tablas de referencia con filetes finos, avisos discretos, bloque de título con índice en la página 1."
@@ -1719,7 +1723,7 @@
       "themes": {
         "label": "Temas",
         "title": "Cambia el aspecto, no el Markdown.",
-        "body": "Elige uno de los diez temas y ajusta colores, fuentes y portada. Tu texto no se toca."
+        "body": "Elige un tema listo para usar y ajusta colores, fuentes y portada. Tu texto no se toca."
       },
       "collab": {
         "label": "Colaboración",

@@ -1055,6 +1055,10 @@
         "name": "IEEE-Konferenzbeitrag",
         "description": "Die IEEE-Konferenzvorlage (IEEEtran): US Letter, zwei Spalten Times 10 pt, zentrierte Abschnitte in Kapitälchen mit römischen Ziffern, kursive Unterabschnitte, ein Titel in 24 pt über nebeneinanderstehenden Autorenblöcken, die fette Zusammenfassung als Fliesstext am Anfang der ersten Spalte."
       },
+      "thesis": {
+        "name": "Abschlussarbeit",
+        "description": "Lange wissenschaftliche Texte in der Tradition der LaTeX-Klasse report: A4, Latin Modern 11 pt im Blocksatz mit Einzügen, grosszügige Ränder, jedes Kapitel auf einer neuen Seite unter einer grossen Kapitelnummer, Abschnitte nummeriert 1.1 / 1.1.1, klassische Titelseite, Kapiteltitel und Seitenzahl im Kolumnentitel, Tabellen im booktabs-Stil, Literaturverzeichnis mit hängendem Einzug."
+      },
       "tech-docs": {
         "name": "Technische Dokumentation",
         "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
@@ -1719,7 +1723,7 @@
       "themes": {
         "label": "Themes",
         "title": "Neues Aussehen, gleiches Markdown.",
-        "body": "Wählen Sie eines von zehn Themes und passen Sie Farben, Schriften und Titelseite an. Ihr Text bleibt unverändert."
+        "body": "Wählen Sie ein fertiges Theme und passen Sie Farben, Schriften und Titelseite an. Ihr Text bleibt unverändert."
       },
       "collab": {
         "label": "Zusammenarbeit",

@@ -26,7 +26,7 @@ You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
 
-The presets cover most use cases:
+The built-in presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
   body, plain white paper, vermillion accents, asterism scene breaks.
@@ -45,6 +45,10 @@ The presets cover most use cases:
   two columns of Times 10 pt, centred small-caps sections with Roman
   numerals, a 24 pt title over side-by-side author blocks and the
   run-in abstract in the first column.
+- **Thesis** — long-form academic writing in the LaTeX report
+  tradition: A4, Latin Modern 11 pt with paragraph indents, every
+  chapter on a new page under a large number, sections numbered
+  1.1 / 1.1.1 and a classic title page.
 - **Technical documentation** — Source Serif reading text with Source
   Sans headings, section numbers hanging in the margin, light framed
   code blocks with file titles, the current chapter in the running
