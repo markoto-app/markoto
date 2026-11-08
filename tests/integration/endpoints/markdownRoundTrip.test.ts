@@ -48,7 +48,7 @@ async function importMarkdown(text: string | Uint8Array, docId: string | null, f
 }
 
 function paperTheme(docId: string): DocTheme {
-  const base = structuredClone(THEME_PRESETS.find(p => p.id === 'arxiv')!.theme)
+  const base = structuredClone(THEME_PRESETS.find(p => p.id === 'ieee-conference')!.theme)
   return {
     ...base,
     color: { ...base.color, brand: '#3355AA' },
