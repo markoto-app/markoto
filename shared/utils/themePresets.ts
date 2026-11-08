@@ -234,6 +234,53 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 `
 
 /**
+ * ONE_PAGER_TEMPLATE_CSS — the one-pager / fact-sheet look beyond theme
+ * fields: a sidehead grid (section labels in a narrow left column, text in
+ * the right one), a title block under a heavy accent bar, a full-width
+ * lead, a filled "important" callout, compact lists and tables, accent
+ * run-in labels. Same rules as the other template CSS (sanitised, editable
+ * by the author). Fixture: tests/fixtures/theme-shots/one-pager.md.
+ */
+const ONE_PAGER_TEMPLATE_CSS = `/* One-pager template. A sidehead grid: section labels in a 36 mm left column, text in the right one (about 75 characters); title block and lead use the full width. */
+.paged-doc { --op-side: 36mm; padding-left: var(--op-side); }
+/* Title block: across the full width under a heavy accent bar, the way a product sheet opens. */
+.paged-doc > .markoto-title-block { margin-left: calc(-1 * var(--op-side)); padding-top: 10pt; border-top: 5pt solid var(--doc-accent); margin-bottom: 12pt; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 1.08; letter-spacing: -0.02em; margin-bottom: 0.3em; text-wrap: pretty; }
+/* The line under the title (kind of sheet, date) is quiet meta; the pitch is the lead paragraph. */
+.paged-doc .markoto-title-block .markoto-cover-subtitle { color: color-mix(in srgb, var(--doc-text) 65%, var(--doc-bg)); font-weight: 500; margin-bottom: 0; }
+/* Lead: an all-bold first paragraph is the pitch: full width, a size up, in the accent (run-in rule below); the first section's hairline closes it. paged.js rewrites :first-of-type (and sibling selectors) into a bare attribute selector that loses to the engine's paragraph margin, so the full width comes from a shift + width, not a negative margin. */
+.paged-doc > p:first-of-type:has(> strong:only-child) { position: relative; left: calc(-1 * var(--op-side)); width: calc(100% + var(--op-side)); margin-bottom: 0.9em; font-size: 1.3em; line-height: 1.3; }
+/* Sideheads: each section opens on a hairline across the full width; its label sits in the left column (a zero-height box; the -0.5em cancels the next block's 0.5em top margin, so the text starts level with the label). */
+.paged-doc .markoto-section-heading { margin-left: calc(-1 * var(--op-side)); width: calc(var(--op-side) - 5mm); box-sizing: content-box; padding: 7pt calc(100% + 5mm) 0 0; height: 0; overflow: visible; margin-bottom: -0.5em; border-top: 0.5pt solid var(--doc-secondary); color: var(--doc-accent); line-height: 1.42; }
+/* Compact lists: a short hang, little space between items; the same 0.5em above as a paragraph, so the first line of every section sits level with its sidehead. */
+.paged-doc ul, .paged-doc ol { padding-left: 1.15em; margin: 0.5em 0; }
+.paged-doc li { margin: 0.12em 0; }
+.paged-doc li::marker { color: var(--doc-accent); }
+.paged-doc ol > li::marker { font-weight: 700; }
+/* Key-facts table: tabular figures, small tracked header labels, a firm rule under the header and at the foot, hairlines between rows. */
+.paged-doc table { font-size: 0.94em; line-height: 1.3; margin: 0.5em 0 0.7em; }
+.paged-doc td[style*="right"], .paged-doc th[style*="right"] { font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc th { font-size: 0.82em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--doc-heading-color); vertical-align: bottom; }
+.paged-doc tr { border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 60%, transparent); }
+.paged-doc thead tr { border-bottom: 1pt solid var(--doc-heading-color); }
+.paged-doc tbody tr:last-child { border-bottom: 1pt solid var(--doc-heading-color); }
+/* A key/value table without header labels draws no header row. */
+.paged-doc thead tr:not(:has(> th:not(:empty))) { display: none; }
+.paged-doc th:first-child, .paged-doc td:first-child { padding-left: 0; }
+.paged-doc th:last-child, .paged-doc td:last-child { padding-right: 0; }
+/* The "important" callout pops: a solid accent field with paper-coloured text (prints as a dark band in black and white). */
+.paged-doc .markdown-alert { border-left-width: 2.5pt; border-radius: 0; padding: 0.6em 0.95em; }
+.paged-doc .markdown-alert-important { background: var(--doc-accent); border-left-color: var(--doc-accent); color: var(--doc-bg); }
+.paged-doc .markdown-alert-important .markdown-alert-title { color: var(--doc-bg); }
+.paged-doc .markdown-alert-important a { color: inherit; }
+.paged-doc .markdown-alert-title { font-size: 0.8em; letter-spacing: 0.08em; margin-bottom: 0.2em; }
+/* Run-in facts ("Pricing: … Team: …"): the bold labels in the accent. */
+.paged-doc p:has(> strong:first-child) > strong { color: var(--doc-accent); }
+/* Links print as accent text without underline. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -570,6 +617,57 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
       cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35 },
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
+    }
+  },
+
+  // — One-pager: a product / project fact sheet that must fit one page.
+  // DM Sans throughout (10.5/1.42 text, 800-weight title), one confident
+  // orange accent (title bar, pitch, sideheads, markers, run-in labels,
+  // the filled "important" callout), a sidehead grid that keeps the text
+  // at about 75 characters, no running head or foot (one page), tight
+  // 16 mm margins. Template CSS: ONE_PAGER_TEMPLATE_CSS. Fixture:
+  // tests/fixtures/theme-shots/one-pager.md.
+  {
+    id: 'one-pager',
+    category: 'business',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 16 },
+      meta: { font: 'DM Sans' },
+      body: { font: 'DM Sans', size: 10.5, lineHeight: 1.42, textAlign: 'left', color: '#262A31', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: false },
+      headings: {
+        font: 'DM Sans',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#15171C',
+        letterSpacing: -0.005,
+        lineHeight: 1.25,
+        spacingScale: 0.8,
+        numbering: 'none',
+        // Sideheads at text size (the grid, not the size, marks a section); h3 a run-in step.
+        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } }
+      },
+      color: { brand: '#C2410C', secondary: '#9AA0A8' },
+      brand: { logoUrl: '', logoHeight: 36 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // The accent doubles as "important" (the filled callout); the others
+      // are dark enough to stay distinct in black-and-white print.
+      alerts: {
+        note: '#2F5D8A',
+        tip: '#3B6E4F',
+        important: '#C2410C',
+        warning: '#8F661C',
+        caution: '#9E2A2B'
+      },
+      toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.6, subtitleSize: 1.15, titleWeight: 800 },
+      customCss: ONE_PAGER_TEMPLATE_CSS
     }
   },
 

@@ -483,6 +483,38 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
+    // The one-pager preset end to end: the whole point of the template is
+    // that the fixture fits ONE A4 page (title block, lead, sidehead grid,
+    // table, filled callout) in the server render too, with DM Sans
+    // embedded as a real font, never Type 3.
+    it('renders the one-pager fixture on exactly one A4 page with DM Sans embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: 'Fieldnote — field-service reports in one tap' })
+      const preset = THEME_PRESETS.find(p => p.id === 'one-pager')?.theme
+      if (!preset) throw new Error('one-pager preset missing')
+      expect(preset.customCss).toBeTruthy()
+      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Product one-pager · November 2026' } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/one-pager.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(pageCount).toBe(1)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      await wipeRendersFor(doc.docId)
+      expect(fonts.some(f => /DMSans/i.test(f.name)), summary).toBe(true)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+    }, 90_000)
+
     // The IEEE conference preset end to end: Letter pages, two columns,
     // title block with three author blocks, the template CSS and the
     // bundled Termes (regular, bold abstract, italic subsections) embedded

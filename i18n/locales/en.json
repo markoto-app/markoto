@@ -1063,6 +1063,10 @@
         "name": "Corporate report",
         "description": "Quarterly and annual reports, board updates, client deliverables: Source Serif headings over Inter, one deep petrol accent, finance-style tables with tabular figures and ruled totals, pull quotes, a quiet footer over a thin rule."
       },
+      "one-pager": {
+        "name": "One-pager",
+        "description": "A product or project fact sheet on one A4 page: a title block under a heavy accent bar, the pitch as a bold lead, section labels in a left column, a compact key-facts table and a filled callout. DM Sans with one orange accent."
+      },
       "novel": {
         "name": "Novel",
         "description": "Crimson Text serif for long-form reading. No code blocks, plain blockquotes, just a page number in the footer."

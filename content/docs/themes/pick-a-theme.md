@@ -4,7 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Pick a theme that fits your document
@@ -26,7 +26,7 @@ You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
 
-The ten presets cover most use cases:
+The presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
   body, plain white paper, vermillion accents, asterism scene breaks.
@@ -52,6 +52,11 @@ The ten presets cover most use cases:
 - **Corporate report** — a cover page with a petrol band, Source Serif
   headings over Inter, finance-style tables with ruled totals, pull
   quotes and a quiet footer rule.
+- **One-pager** — a product or project fact sheet that fits on one
+  page: a title block under an orange bar, the pitch as a bold first
+  paragraph, section labels in a left column, a compact key-facts
+  table and a filled *Important* callout. Start with a bold paragraph
+  to get the large lead.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
