@@ -85,8 +85,6 @@ The built-in presets cover most use cases:
   number, scene breaks (`---` or `* * *`) as three asterisks, the book
   title as the running head, a title page and an epigraph page for a
   quotation placed before the first chapter.
-- **Newsletter** — two-column Karla over PT Serif, green accent,
-  weekly-digest density.
 - **Newsletter** — a newsletter to print or send as a PDF: a bold
   masthead with the issue line, headlines and captioned photos across
   the page over two columns of text, pull quotes, a terracotta accent.

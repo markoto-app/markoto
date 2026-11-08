@@ -1676,30 +1676,42 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'newsletter',
     category: 'writing',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 22 },
-      meta: { font: 'PT Serif' },
-      body: { font: 'Karla', size: 10, lineHeight: 1.45, textAlign: 'justify', color: '#18181b', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
-      headings: { font: 'PT Serif', scale: 1.22, weight: 700, underline: false, color: '#047857', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
-      color: { brand: '#047857', secondary: '#a1a1aa' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Newsletter — bright, friendly admonition palette to match the
-      // weekly-digest feel. Slightly more saturated than the reports.
-      alerts: {
-        note: '#0284c7',
-        tip: '#16a34a',
-        important: '#9333ea',
-        warning: '#d97706',
-        caution: '#dc2626'
+      page: { size: 'A4', orientation: 'portrait', margin: 15 },
+      meta: { font: 'Source Sans 3' },
+      body: { font: 'Source Sans 3', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1F2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: true },
+      headings: {
+        font: 'Fraunces',
+        scale: 1.26,
+        weight: 700,
+        underline: false,
+        color: '#1B2D40',
+        letterSpacing: -0.01,
+        lineHeight: 1.15,
+        spacingScale: 1,
+        numbering: 'none',
+        // Headlines 2× body (19 pt); kickers inside the columns 11.4 / 10.5 pt.
+        levels: { h1: { size: 2 }, h2: { size: 1.2 }, h3: { size: 1.1 } }
       },
-      toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+      color: { brand: '#C4452D', secondary: '#7D8792' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 2, columnGap: 7 },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Muted, print-safe callouts; the note picks up a teal that sits next to the terracotta accent.
+      alerts: {
+        note: '#2F6B78',
+        tip: '#3F7550',
+        important: '#6A4C86',
+        warning: '#9A6A16',
+        caution: '#A8322A'
+      },
+      toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 800, showLogo: false, align: 'left', titleSize: 4, subtitleSize: 1 },
+      customCss: NEWSLETTER_TEMPLATE_CSS
     }
   },
 
