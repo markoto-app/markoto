@@ -214,16 +214,19 @@ export function ganttLayout(colPx: number, px: number): Record<string, unknown> 
  * CSS Mermaid adds to every diagram. Gantt: the axis labels are drawn
  * with a hard-coded `font-size="10"` attribute (CSS wins over it); a
  * label beside its bar gets the document font (the left one has none of
- * its own) and a halo in the paper colour so grid lines don't cut through
- * it; the "today" line is hidden — a printed plan shouldn't change with
+ * its own). No paper-coloured halo (`stroke` + `paint-order`) behind those
+ * labels: Chromium's PDF backend cannot embed stroked text as a font and
+ * falls back to a Type 3 bitmap font — instead the grid lines are lighter,
+ * so a line crossing a label doesn't fight it. The "today" line is hidden — a printed plan shouldn't change with
  * the day it was rendered (and outside the plan's range it was drawn in
  * the page margin).
  */
-export function mermaidThemeCss(fontFamily: string, px: number, paper: string): string {
+export function mermaidThemeCss(fontFamily: string, px: number): string {
   const axisPx = Math.max(MIN_LABEL_PX, Math.round(px * 0.85))
   return [
     `.grid .tick text { font-size: ${axisPx}px; }`,
-    `.taskTextOutsideLeft, .taskTextOutsideRight { font-family: ${fontFamily}; paint-order: stroke; stroke: ${paper}; stroke-width: 3px; stroke-linejoin: round; }`,
+    `.taskTextOutsideLeft, .taskTextOutsideRight { font-family: ${fontFamily}; }`,
+    '.grid .tick line { opacity: 0.45; }',
     '.today { display: none; }'
   ].join('\n')
 }
@@ -263,7 +266,7 @@ export function buildMermaidConfig(theme: DocTheme): Record<string, unknown> {
     // inlines diagrams into the page.
     htmlLabels: false,
     themeVariables,
-    themeCSS: mermaidThemeCss(fontFamily, px, theme.body.background),
+    themeCSS: mermaidThemeCss(fontFamily, px),
     flowchart: {
       htmlLabels: false,
       padding: 10,

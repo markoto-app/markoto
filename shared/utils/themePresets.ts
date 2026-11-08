@@ -185,6 +185,59 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 `
 
 /**
+ * DESIGN_DOC_TEMPLATE_CSS — what the "Design doc / RFC" look needs beyond
+ * theme fields: the metadata table under the title set as a document
+ * header (labels in small caps, the status as a badge), decision records
+ * (runs of paragraphs that open with a bold label: **D1.** …) on an accent
+ * rule, comparison tables with a label column and a highlighted
+ * proposed option, quiet inline code. Ordinary custom CSS
+ * (tests/unit/themePresetCss.test.ts).
+ */
+const DESIGN_DOC_TEMPLATE_CSS = `/* Design doc / RFC template. */
+/* Grid: prose in a ~75-character column; the rest of the text width is the review margin, which tables, code and diagrams may use. */
+.paged-doc > p, .paged-doc > ul, .paged-doc > ol, .paged-doc > dl, .paged-doc > blockquote, .paged-doc > h1, .paged-doc > h2, .paged-doc > h3, .paged-doc > h4, .paged-doc > .markdown-alert { max-width: 122mm; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area .footnote { max-width: 122mm; }
+/* Title block: the subtitle (team · document type) is an eyebrow over the title. */
+.paged-doc .markoto-title-block { display: flex; flex-direction: column; margin-bottom: 0.9em; }
+.paged-doc .markoto-title-block .markoto-cover-subtitle { order: -1; margin: 0 0 5pt; font-style: normal; font-size: 0.82em; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--doc-secondary); }
+.paged-doc .markoto-title-block .markoto-cover-title { margin: 0 0 6pt; max-width: 140mm; line-height: 1.15; letter-spacing: -0.01em; }
+/* Document header: a two-column table without header labels (Status, Authors, Reviewers …) sits between two rules, without row lines. */
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) { width: 100%; margin: 0 0 1.8em; font-size: 0.92em; border-top: 1pt solid var(--doc-heading-color); border-bottom: 0.5pt solid var(--doc-secondary); }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) thead { display: none; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr { border: 0; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) td { padding: 1.6pt 0; vertical-align: baseline; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td { padding-top: 6pt; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:last-child td { padding-bottom: 6pt; }
+/* Its labels: small caps in the muted grey at a fixed width, so the values form one column. */
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) td:first-child { width: 34mm; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) td:first-child strong { font-weight: 500; font-variant-caps: all-small-caps; letter-spacing: 0.06em; color: var(--doc-secondary); }
+/* The first row is the document's status: a dot and semibold text in the accent colour. */
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td:last-child { font-weight: 600; color: var(--doc-accent); }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td:last-child::before { content: ""; display: inline-block; width: 0.5em; height: 0.5em; margin-right: 0.5em; border-radius: 50%; background: var(--doc-accent); }
+/* Section numbers in the accent colour for "see 3.2" in review comments. */
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { color: var(--doc-accent); margin-right: 0.6em; }
+/* Decision records: paragraphs that open with a bold label (D1., D2. …), two or more in a row, sit on an accent rule with the label in the accent. */
+.paged-doc > p:has(> strong:first-child):has(+ p > strong:first-child), .paged-doc > p:has(> strong:first-child) + p:has(> strong:first-child) { padding: 0.15em 0 0.15em 0.9em; border-left: 2pt solid var(--doc-accent); }
+.paged-doc > p:has(> strong:first-child):has(+ p > strong:first-child) > strong:first-child, .paged-doc > p:has(> strong:first-child) + p:has(> strong:first-child) > strong:first-child { color: var(--doc-accent); }
+/* Tables: a step smaller, tabular figures, a firm rule under the header, hairlines between rows. */
+.paged-doc table { font-size: 0.9em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.paged-doc thead th { font-weight: 600; vertical-align: bottom; border-bottom: 0.75pt solid var(--doc-heading-color); }
+/* Cells hold short phrases, identifiers and figures: no automatic hyphenation ("ac-counts", "docu-mented"). */
+.paged-doc th, .paged-doc td { hyphens: manual; }
+/* Comparison tables (an empty top-left cell): the first column holds the row labels. */
+.paged-doc table:has(> thead th:first-child:empty) tbody td:first-child { font-weight: 600; color: var(--doc-heading-color); }
+/* An option marked in bold in its header cell ("B … (proposed)") is the recommendation: accent text under an accent bar. */
+.paged-doc thead th:has(strong) { color: var(--doc-accent); box-shadow: inset 0 2pt 0 var(--doc-accent); }
+/* Task lists (open questions): a wrapped line continues under the text, not under the checkbox. */
+.paged-doc li.task-list-item { padding-left: 2em; text-indent: -2em; }
+/* Inline code: a faint tint without a box, never broken at a hyphen ("eu-" / "central"; a long span may run into the review margin); plain in table cells. */
+.paged-doc :not(pre) > code { font-size: 0.88em; padding: 0.05em 0.2em; border: 0; white-space: nowrap; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }
+.paged-doc td code { background: none; padding: 0; white-space: normal; }
+/* Links mostly point inside the document: accent text, no underline. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
  * BUSINESS_REPORT_TEMPLATE_CSS — what the business-report look needs beyond
  * theme fields: the two-width grid, section-opener bars, finance-style
  * tables (tabular figures, hairlines, rules on bold total rows), pull
@@ -231,6 +284,56 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 .paged-doc .markoto-cover-subtitle { font-style: normal; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); margin-top: 0.5em; max-width: 140mm; line-height: 1.4; }
 .paged-doc .markoto-cover-meta { grid-row: 6; align-self: end; min-width: 100%; }
 .paged-doc .markoto-cover-author { font-weight: 600; }
+`
+
+/**
+ * RUNBOOK_TEMPLATE_CSS — what the on-call runbook look needs beyond theme
+ * fields. A runbook is read under stress (3 a.m., second screen, a
+ * printout): every rule here is about finding the next step and the next
+ * command fast, and about surviving greyscale printing. Ordinary custom
+ * CSS (tests/unit/themePresetCss.test.ts).
+ */
+const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before elegant. */
+/* Measure: prose and list text stop short of the right edge (~80 characters); commands and tables keep the full width. */
+.paged-doc { --rb-overhang: 22mm; }
+.paged-doc > p, .paged-doc > .markdown-alert, .paged-doc > blockquote { margin-right: var(--rb-overhang); }
+.paged-doc > ol > li, .paged-doc > ul > li { padding-right: var(--rb-overhang); }
+.paged-doc > ol > li > pre, .paged-doc > ol > li > .code-block, .paged-doc > ul > li > pre, .paged-doc > ul > li > .code-block { margin-right: calc(-1 * var(--rb-overhang)); }
+/* Procedure steps: the number white on black in the left gutter, easy to find again after typing a command. */
+.paged-doc > ol { padding-left: 2.2em; list-style: none; }
+.paged-doc > ol > li { position: relative; margin: 0.5em 0; }
+.paged-doc > ol > li::before { content: counter(list-item); position: absolute; left: -2.2em; top: -0.02em; min-width: 1.55em; padding: 0 0.15em; box-sizing: border-box; line-height: 1.4em; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; color: var(--doc-bg); background: var(--doc-heading-color); border-radius: 2pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Checklists: real boxes with a firm outline (an unticked box must print), a filled box with a tick when done. Wrapped text hangs after the box. */
+.paged-doc li.task-list-item { margin-left: -1.4em; padding-left: 1.4em; text-indent: -1.4em; }
+.paged-doc li.task-list-item > * { text-indent: 0; }
+.paged-doc li.task-list-item input[type="checkbox"] { appearance: none; -webkit-appearance: none; position: relative; width: 0.9em; height: 0.9em; margin: 0 0.3em 0 0; vertical-align: -0.13em; border: 1.1pt solid var(--doc-text); border-radius: 1.5pt; background: var(--doc-bg); text-indent: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* A ticked box is crossed, as on a paper checklist (a checkbox draws no ::after in Chromium, so the cross is two gradients). */
+.paged-doc li.task-list-item input[type="checkbox"]:checked { background: linear-gradient(45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), var(--doc-bg); }
+/* Code: no programming ligatures — a runbook command must print exactly what is typed (JetBrains Mono turns |= into a turnstile). */
+.paged-doc code, .paged-doc pre { font-variant-ligatures: none; font-feature-settings: "calt" 0; }
+/* Inline commands: framed, not just tinted, so they stand apart from prose in greyscale; a wrapped command keeps its frame on both lines. */
+.paged-doc :not(pre) > code { font-size: 0.84em; padding: 0.02em 0.25em; border: 0.5pt solid color-mix(in srgb, var(--doc-text) 40%, transparent); border-radius: 1.5pt; background: color-mix(in srgb, var(--doc-text) 5%, transparent); overflow-wrap: break-word; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+/* Shell blocks: compact leading; a wrapped line continues 4 columns in, so it can't be mistaken for a new command. */
+.paged-doc pre { line-height: 1.35; margin: 0.6em 0; padding-top: 0.55em; padding-bottom: 0.55em; }
+.paged-doc pre .code-line { min-height: 1.35em; padding-left: 4ch; text-indent: -4ch; }
+/* A step is not split across pages: its command stays with the sentence that introduces it. */
+.paged-doc > ol > li { break-inside: avoid; }
+/* Sections open under a heavy rule across the full width: a printout shows where a section starts from arm's length. */
+.paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading) { border-top: 2pt solid var(--doc-heading-color); padding-top: 4pt; }
+/* Procedures (h2) sit on a grey band, the strongest landmark after a section. */
+.paged-doc h2 { background: color-mix(in srgb, var(--doc-text) 9%, transparent); padding: 2.5pt 6pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 0.6em; }
+/* Tables are looked up, not read: a step smaller, tabular figures, the first column (level, area, task) in bold as the row label. */
+.paged-doc table { font-size: 0.9em; line-height: 1.25; font-variant-numeric: tabular-nums; margin: 0.7em 0; }
+.paged-doc th { text-align: left; vertical-align: bottom; }
+.paged-doc td { vertical-align: top; hyphens: manual; }
+.paged-doc tbody td:first-child { font-weight: 700; }
+.paged-doc td code { background: none; border: 0; padding: 0; }
+/* Alerts: a hairline frame plus the coloured bar, and the kind as a dark label chip, so WARNING / CAUTION read in greyscale. */
+.paged-doc .markdown-alert { border-radius: 0; border-top: 0.75pt solid var(--doc-text); border-right: 0.75pt solid var(--doc-text); border-bottom: 0.75pt solid var(--doc-text); border-left-width: 5pt; padding: 0.5em 0.8em; margin: 0.8em 0; }
+.paged-doc .markdown-alert-title { display: inline-block; padding: 0.05em 0.45em; background: currentColor; -webkit-text-fill-color: var(--doc-bg); font-weight: 700; font-size: 0.8em; letter-spacing: 0.06em; margin-bottom: 0.35em; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Links are cross-references to other procedures: ink, with a quiet underline. */
+.paged-doc a { color: inherit; text-decoration-thickness: 0.5pt; text-underline-offset: 0.15em; }
 `
 
 /**
@@ -647,6 +750,59 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
+  // — Design doc / RFC: engineering design documents, RFCs, ADRs and
+  // technical proposals — read once, carefully, and argued about. IBM Plex
+  // Sans 10/14.5 in a ~75-character column with a deeper right margin for
+  // review notes on the printout, numbered sections ("see 3.2"), one muted
+  // indigo accent (section numbers, status, decision records, the proposed
+  // option), the doc title + current section as a quiet running head,
+  // lightly tinted IBM Plex Mono code. Template CSS:
+  // DESIGN_DOC_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/design-doc.md.
+  {
+    id: 'design-doc',
+    category: 'engineering',
+    theme: {
+      // 166 mm text width: prose takes 122 mm of it (~75 characters, template CSS), the rest is the review margin.
+      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      meta: { font: 'IBM Plex Sans' },
+      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.45, textAlign: 'left', color: '#1F2328', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.65, hyphenate: false },
+      headings: {
+        font: 'IBM Plex Sans',
+        scale: 1.2,
+        weight: 600,
+        underline: false,
+        color: '#15171C',
+        letterSpacing: -0.005,
+        lineHeight: 1.25,
+        spacingScale: 0.8,
+        numbering: 'decimal',
+        // A quiet three-step hierarchy: 16 / 12.5 / 10.5 pt over 10 pt text.
+        levels: { h1: { size: 1.6 }, h2: { size: 1.25 }, h3: { size: 1.05 } }
+      },
+      color: { brand: '#3A428C', secondary: '#7D828C' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      // Running head: what the page is and where in the argument it stands.
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'tint', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Muted, print-safe admonition hues; note follows the accent.
+      alerts: {
+        note: '#3A428C',
+        tip: '#2E6B47',
+        important: '#6B3F8F',
+        warning: '#8A5B12',
+        caution: '#A12C2C'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.2, subtitleSize: 1 },
+      customCss: DESIGN_DOC_TEMPLATE_CSS
+    }
+  },
+
   // — Business report: quarterly / annual reports, board updates, client
   // deliverables. Source Serif 4 headings over Inter 9.5/1.5 text, one deep
   // petrol accent used sparingly (cover rule, section bars, links, charts),
@@ -794,6 +950,60 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
       cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.4, subtitleSize: 1.15 }
+    }
+  },
+  // — On-call runbook: an operations handbook read under stress — on a
+  // second screen at 3 a.m. or as a printout pinned next to the desk.
+  // Scannable before elegant: IBM Plex Sans 10/13.5 (unambiguous Il1, a
+  // robust sans for small print), JetBrains Mono commands (slashed 0,
+  // distinct l/1), black ink only plus strong alert colours, A4 with 15 mm
+  // margins for density. Numbered sections and `{section}` in the running
+  // head so "see 3.2" works; procedure steps numbered white on black;
+  // checklists with real boxes; black-header zebra tables; framed alerts
+  // with a label chip that survives greyscale. Template CSS:
+  // RUNBOOK_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/runbook.md.
+  {
+    id: 'runbook',
+    category: 'engineering',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 15, marginTop: 16, marginBottom: 15 },
+      meta: { font: 'IBM Plex Sans' },
+      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.35, textAlign: 'left', color: '#111111', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.45, hyphenate: false },
+      headings: {
+        font: 'IBM Plex Sans',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.6,
+        numbering: 'decimal',
+        // 15.5 / 12 / 10.5 pt over 10 pt text: findable, not loud.
+        levels: { h1: { size: 1.55 }, h2: { size: 1.2 }, h3: { size: 1.05 } }
+      },
+      color: { brand: '#000000', secondary: '#5C636B' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      // Which runbook, and which section the page is in (for "see 3.2").
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      // Printouts go stale: the date is on every page.
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 8.5, font: 'JetBrains Mono', background: 'tint', frame: 'rule', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Signal colours dark enough to read as text and as distinct greys.
+      alerts: {
+        note: '#1F4E8C',
+        tip: '#1D6B3A',
+        important: '#5B2D91',
+        warning: '#8A4B00',
+        caution: '#B0101E'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.9, subtitleSize: 1.1 },
+      customCss: RUNBOOK_TEMPLATE_CSS
     }
   }
 ]

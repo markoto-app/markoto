@@ -53,6 +53,10 @@ The built-in presets cover most use cases:
   Sans headings, section numbers hanging in the margin, light framed
   code blocks with file titles, the current chapter in the running
   head.
+- **Design doc / RFC** — for engineering design documents, RFCs and
+  decision records: a calm sans with a review margin beside the prose,
+  a metadata table up front, numbered decisions and wide comparison
+  tables.
 - **Corporate report** — a cover page with a petrol band, Source Serif
   headings over Inter, finance-style tables with ruled totals, pull
   quotes and a quiet footer rule.
