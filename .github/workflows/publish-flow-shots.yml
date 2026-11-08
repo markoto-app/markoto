@@ -45,6 +45,7 @@ jobs:
     environment: release
     permissions:
       actions: read # download the artifact of the triggering run
+      contents: read # check out the (private) repository
     env:
       RUN_ID: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
     steps:
