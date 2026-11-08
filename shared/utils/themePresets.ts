@@ -745,6 +745,57 @@ const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhu
 `
 
 /**
+ * NEWSLETTER_TEMPLATE_CSS — the newsletter look beyond theme fields: a
+ * masthead (title block + the issue line under it), article headlines and
+ * captioned photos across both columns, a pull quote, a diary-style events
+ * table and friendlier callouts. Ordinary custom CSS
+ * (tests/unit/themePresetCss.test.ts).
+ */
+const NEWSLETTER_TEMPLATE_CSS = `/* Newsletter template: two columns of text under full-width headlines and photos. */
+/* Balance the columns of every run of text, also the last one on a page (the engine's column-fill: auto fills the left column first, which left a short article's right column empty); a run that continues on the next page still fills its page. */
+.paged-doc { column-fill: balance; }
+/* Masthead: an accent bar over the publication name, set large and tight; subtitle and date as a small sans line under a firm rule. */
+.paged-doc .markoto-title-block { border-top: 5pt solid var(--doc-accent); border-bottom: 1.5pt solid var(--doc-heading-color); padding: 10pt 0 2pt; margin-bottom: 0; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 1; letter-spacing: -0.025em; margin: 0 0 6pt; }
+.paged-doc .markoto-title-block .markoto-cover-subtitle { font-family: var(--doc-meta-font); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.82em; color: var(--doc-heading-color); margin: 0 0 6pt; }
+.paged-doc .markoto-title-block .markoto-cover-date { font-family: var(--doc-meta-font); font-size: 0.82em; color: var(--doc-secondary); margin: 0 0 6pt; }
+/* The issue line (a bold line right under the masthead) spans the page as the masthead's last line; a rule the author puts after it spans too and closes it (right under the masthead it would double the masthead's rule: invisible) (an hr hidden with display: none breaks paged.js's column fill). */
+.paged-doc .markoto-title-block + p:has(> strong:only-child) { column-span: all; font-family: var(--doc-meta-font); font-size: 0.82em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--doc-heading-color); padding: 4pt 0 0; margin: 0 0 5pt; }
+.paged-doc .markoto-title-block + p:has(> strong:only-child) + hr { column-span: all; margin: 0 0 14pt; border: 0; border-top: 0.5pt solid var(--doc-heading-color); }
+.paged-doc .markoto-title-block + hr { column-span: all; margin: 0 0 10pt; border: 0; }
+/* Articles: every headline runs across both columns under a hairline that closes the article before it. */
+.paged-doc h1.markoto-section-heading { column-span: all; margin: 16pt 0 8pt; padding-top: 9pt; border-top: 0.5pt solid var(--doc-secondary); text-wrap: balance; }
+.paged-doc h1.markoto-first-section { border-top: 0; padding-top: 0; margin-top: 4pt; }
+/* No hairline at the top of a page: the running head is already there. */
+.paged-doc h1.markoto-section-heading[data-markoto-page-top] { border-top: 0; padding-top: 0; }
+/* Subheads (kickers) inside an article: the sans in the accent colour, across both columns too, so a heading can never be left at the foot of a column away from its text (each run of text between two headings is balanced over the two columns). */
+.paged-doc h2, .paged-doc h3, .paged-doc h4 { column-span: all; font-family: var(--doc-meta-font); color: var(--doc-accent); }
+/* Photos with a caption run across both columns, the caption a quiet sans line under the picture; a narrower photo gets its caption beside it, at the foot. */
+.paged-doc figure:has(> figcaption:not(:empty)) { column-span: all; }
+.paged-doc figure { margin: 4pt 0 12pt; text-align: left; }
+.paged-doc figure img { display: block; }
+.paged-doc figure:has(> img[width]:not([width="100%"])) { display: flex; align-items: flex-end; gap: 5mm; }
+.paged-doc figure:has(> img[width]:not([width="100%"])) > figcaption { flex: 1; margin-bottom: 1pt; }
+.paged-doc figcaption { font-family: var(--doc-meta-font); font-style: normal; font-size: 0.8em; line-height: 1.35; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); margin-top: 4pt; padding-left: 6pt; border-left: 2pt solid var(--doc-accent); }
+/* Pull quote: the headline face in the accent colour between two short rules, inside the column. */
+.paged-doc blockquote { font-family: var(--doc-heading-font); font-size: 1.45em; line-height: 1.25; font-weight: 600; color: var(--doc-accent); border: 0; border-top: 2pt solid var(--doc-accent); border-bottom: 0.5pt solid var(--doc-accent); background: none; padding: 7pt 0 8pt; margin: 4pt 0 12pt; }
+.paged-doc blockquote p { margin: 0; }
+/* Events table: across both columns, sans, tabular figures, accent header labels over a firm rule, a faint tint on every other row, the first column (the date) bold. */
+.paged-doc table { column-span: all; width: 100%; font-family: var(--doc-meta-font); font-size: 0.95em; font-variant-numeric: lining-nums tabular-nums; margin: 6pt 0 14pt; }
+.paged-doc thead th { font-size: 0.82em; text-transform: uppercase; letter-spacing: 0.06em; color: var(--doc-accent); border-bottom: 1.5pt solid var(--doc-heading-color); vertical-align: bottom; }
+.paged-doc tbody tr { border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 45%, transparent); }
+.paged-doc tbody tr:nth-child(even) { background: color-mix(in srgb, var(--doc-accent) 6%, transparent); }
+.paged-doc tbody td:first-child { font-weight: 700; }
+/* Callouts: square, a faint wash, the title in the sans. */
+.paged-doc .markdown-alert { border-radius: 0; border-left-width: 3pt; padding: 0.6em 0.9em; font-size: 0.95em; }
+.paged-doc .markdown-alert-title { font-family: var(--doc-meta-font); letter-spacing: 0.05em; }
+/* Lists: accent bullets. */
+.paged-doc ul > li::marker { color: var(--doc-accent); }
+/* Links: accent text with a thin underline (readable in black-and-white print). */
+.paged-doc a { color: var(--doc-accent); text-decoration: underline; text-decoration-thickness: 0.5pt; text-underline-offset: 1.5pt; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -1625,30 +1676,42 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'newsletter',
     category: 'writing',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 22 },
-      meta: { font: 'PT Serif' },
-      body: { font: 'Karla', size: 10, lineHeight: 1.45, textAlign: 'justify', color: '#18181b', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
-      headings: { font: 'PT Serif', scale: 1.22, weight: 700, underline: false, color: '#047857', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
-      color: { brand: '#047857', secondary: '#a1a1aa' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Newsletter — bright, friendly admonition palette to match the
-      // weekly-digest feel. Slightly more saturated than the reports.
-      alerts: {
-        note: '#0284c7',
-        tip: '#16a34a',
-        important: '#9333ea',
-        warning: '#d97706',
-        caution: '#dc2626'
+      page: { size: 'A4', orientation: 'portrait', margin: 15 },
+      meta: { font: 'Source Sans 3' },
+      body: { font: 'Source Sans 3', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1F2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: true },
+      headings: {
+        font: 'Fraunces',
+        scale: 1.26,
+        weight: 700,
+        underline: false,
+        color: '#1B2D40',
+        letterSpacing: -0.01,
+        lineHeight: 1.15,
+        spacingScale: 1,
+        numbering: 'none',
+        // Headlines 2× body (19 pt); kickers inside the columns 11.4 / 10.5 pt.
+        levels: { h1: { size: 2 }, h2: { size: 1.2 }, h3: { size: 1.1 } }
       },
-      toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+      color: { brand: '#C4452D', secondary: '#7D8792' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 2, columnGap: 7 },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Muted, print-safe callouts; the note picks up a teal that sits next to the terracotta accent.
+      alerts: {
+        note: '#2F6B78',
+        tip: '#3F7550',
+        important: '#6A4C86',
+        warning: '#9A6A16',
+        caution: '#A8322A'
+      },
+      toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 800, showLogo: false, align: 'left', titleSize: 4, subtitleSize: 1 },
+      customCss: NEWSLETTER_TEMPLATE_CSS
     }
   },
 

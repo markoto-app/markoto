@@ -39,7 +39,7 @@ genre needs it, the cover layout — never the template's design.
 | `one-pager.md` | One-pager (must fit 1 page) | dense h2 sections; bold lead; small table; important callout; lists; run-in facts paragraph | Fieldnote — field-service reports in one tap | `one-pager-patch.json` (title-block, no logo) |
 | `essay.md` | Academic essay (APA-like) | author/course/instructor via title block; in-text citations; long block quotation; footnote; reference list for hanging indents | Who Owns the Shoreline? Public Access and Private Property on Alpine Lakes | `essay-patch.json` (title-block) |
 | `manuscript.md` | Fiction manuscript | epigraph; three h1 chapters; long runs of dialogue; scene breaks (`---`, `* * *`); italic thoughts; quoted letter | The Salt Ledger | `manuscript-patch.json` |
-| `newsletter.md` | Newsletter | masthead line; short articles; raster images (full width, sized, figure captions); pull quote; events table; links; note callout | The Commons | `newsletter-patch.json` (title-block masthead) |
+| `newsletter.md` | Newsletter | masthead line; short articles; raster images (full width, sized, figure captions); pull quote; events table; links; note callout | The Commons | `newsletter-patch.json` (subtitle; date off — the issue line carries it) |
 | `structure.md` | engine (any) | numbering from h2, Pandoc table captions above/below, number + unit and SEV-1 in narrow cells, captioned figure, References as a numbered list | Quarterly review | `structure-patch.json` (numbering, caption + figure labels, [1] references, `{section}` header — engine options, not a template's design) |
 
 Images are tiny palette PNG `data:` URIs: Markdown only accepts raster
