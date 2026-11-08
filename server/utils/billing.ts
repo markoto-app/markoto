@@ -4,6 +4,7 @@ import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { ensureUserKey } from './litellmKeys'
 import { isBillingEnabled } from './billingMode'
+import { planSupportsTeamBilling } from '~~/shared/config/sponsorship'
 
 /**
  * Phase 6 billing context resolution. Every AI call site calls
@@ -147,7 +148,7 @@ function isPaidAndActive(
  * Pro is personal-only. Free is never a sponsor target.
  */
 function supportsTeamBilling(plan: PlanName): boolean {
-  return plan === 'max' || plan === 'ultra'
+  return planSupportsTeamBilling(plan)
 }
 
 /**

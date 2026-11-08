@@ -59,7 +59,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'theme tab', selector: '[data-testid="mobile-tab-bar"] button[aria-label="Theme"]', kind: 'arrow' }
         ],
-        result: 'The theme panel slides up: eight presets at the top, all settings below.',
+        result: 'The theme panel slides up: the presets at the top, all settings below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
@@ -76,7 +76,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'theme tab', selector: 'button[aria-label*="theme" i]', kind: 'arrow' }
         ],
-        result: 'The theme panel opens: eight built-in presets at the top, all settings below.',
+        result: 'The theme panel opens: the built-in presets at the top, all settings below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
@@ -101,14 +101,14 @@ test('Pick a theme', async ({ page, flow, editor }) => {
       force: editor.isMobile,
       result: editor.isMobile
         ? 'Academic Paper is applied: serif type, justified text, two columns in the PDF.'
-        : 'The text switches to a serif, justified in two columns. Academic Paper adds '
-          + 'a cover page, so the report now starts on page 2.',
+        : 'The text switches to a serif, justified in two columns, with numbered sections. '
+          + 'Academic Paper sets the title, authors and date in a title block at the top of page 1.',
       after: async () => {
         await expect.poll(async () => (await themeMeta()).color.brand.toLowerCase()).toBe('#1e3a8a')
         if (!editor.isMobile) {
           await expect.poll(previewBrand).toBe('#1e3a8a')
-          // Academic turns the cover on: show page 2, where the columns are.
-          await editor.page.scrollPreviewTo('.pagedjs_page[data-page-number="2"]')
+          // Academic uses a title block (no cover page): the columns start on page 1.
+          await editor.page.scrollPreviewTo('.pagedjs_page[data-page-number="1"]')
         }
       }
     }

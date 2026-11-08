@@ -523,6 +523,47 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
+    // The thesis preset end to end: a title page, the chapter on a new page
+    // (template CSS `break-before: page`), A4, Latin Modern Roman embedded
+    // as a real font in regular, bold and italic.
+    it('renders the thesis fixture as an A4 thesis chapter with Latin Modern embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const thesis = THEME_PRESETS.find(p => p.id === 'thesis')?.theme
+      if (!thesis) throw new Error('thesis preset missing')
+      expect(thesis.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/thesis-chapter-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...thesis, cover: { ...thesis.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/thesis-chapter.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview: 8 pages (title page, seven of the chapter).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(7)
+      expect(Number(pageCount)).toBeLessThanOrEqual(9)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // A4 (210 × 297 mm ≈ 595 × 842 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const lm = fonts.filter(f => /LMRoman/.test(f.name))
+      expect(lm.length, summary).toBeGreaterThan(0)
+      expect(new Set(lm.map(f => f.name.replace(/^[A-Z]{6}\+/, ''))).size, summary).toBeGreaterThanOrEqual(3)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
     // The proposal preset end to end: cover panel, invoice tables, Mermaid
     // gantt, the signature block from the template CSS, and Lora + Work Sans
     // embedded as real fonts, never Type 3.

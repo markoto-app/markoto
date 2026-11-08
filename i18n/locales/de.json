@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Neues Dokument",
-    "subtitle": "Ein paar schnelle Angaben helfen markoto, von Anfang an für Sie zu schreiben. Alles optional — Sie können jederzeit zu einem leeren Dokument springen.",
+    "subtitle": "Geben Sie ihm einen Namen und legen Sie los. Inhalt, Design und Details sind optional — jetzt oder jederzeit später änderbar.",
     "titleLabel": "Titel",
     "titlePlaceholder": "z. B. Q3-Launch-Plan",
     "descriptionLabel": "Beschreibung",
@@ -299,7 +299,20 @@
     "templateLabel": "Vorlage",
     "templateHelp": "Füllt das Dokument mit einem strukturellen Grundgerüst vor, das Sie bearbeiten können. Jeder Abschnitt enthält einen Kommentarhinweis, damit markoto weiss, was wohin gehört.",
     "create": "Dokument erstellen",
-    "skip": "Nur ein leeres Dokument"
+    "sections": {
+      "content": "Inhalt",
+      "design": "Design",
+      "details": "Details"
+    },
+    "detailsHelp": "Damit die KI passend für Sie schreibt: worum es geht, in welcher Sprache und in welchem Ton.",
+    "designTabs": {
+      "all": "Alle",
+      "engineering": "Technik",
+      "academic": "Wissenschaft",
+      "business": "Business",
+      "writing": "Schreiben",
+      "saved": "Meine Designs"
+    }
   },
   "templates": {
     "blank": {
@@ -1042,17 +1055,13 @@
         "name": "IEEE-Konferenzbeitrag",
         "description": "Die IEEE-Konferenzvorlage (IEEEtran): US Letter, zwei Spalten Times 10 pt, zentrierte Abschnitte in Kapitälchen mit römischen Ziffern, kursive Unterabschnitte, ein Titel in 24 pt über nebeneinanderstehenden Autorenblöcken, die fette Zusammenfassung als Fliesstext am Anfang der ersten Spalte."
       },
-      "tech": {
-        "name": "Technischer Bericht",
-        "description": "Kompakte IBM Plex Sans, cyanfarbene Markenfarbe, dunkle Codeblöcke, markengefärbte Tabellenköpfe mit Zebra-Zeilen."
+      "thesis": {
+        "name": "Abschlussarbeit",
+        "description": "Lange wissenschaftliche Texte in der Tradition der LaTeX-Klasse report: A4, Latin Modern 11 pt im Blocksatz mit Einzügen, grosszügige Ränder, jedes Kapitel auf einer neuen Seite unter einer grossen Kapitelnummer, Abschnitte nummeriert 1.1 / 1.1.1, klassische Titelseite, Kapiteltitel und Seitenzahl im Kolumnentitel, Tabellen im booktabs-Stil, Literaturverzeichnis mit hängendem Einzug."
       },
       "tech-docs": {
         "name": "Technische Dokumentation",
         "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
-      },
-      "business": {
-        "name": "Geschäftsbericht",
-        "description": "Playfair-Überschriften über Source-Sans-Fliesstext, warmer Bernstein-Akzent, markengefärbte Tabellenköpfe, zentrierter Titel."
       },
       "business-report": {
         "name": "Unternehmensbericht",
@@ -1238,7 +1247,8 @@
         "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
         "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
         "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück."
-      }
+      },
+      "invitePeople": "Personen einladen"
     },
     "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
     "capReachedShortFree": "Workspace-Limit erreicht",
@@ -1263,6 +1273,28 @@
         "missingToken": "Dieser Einladungslink ist unvollständig. Öffnen Sie ihn erneut aus der E-Mail.",
         "home": "Zum Dashboard"
       }
+    },
+    "actions": "Workspace-Aktionen",
+    "sponsorship": {
+      "description": "Machen Sie diesen Workspace zu einem markoto-Workspace: Die KI-Nutzung aller Mitglieder in seinen Dokumenten läuft dann über das Guthaben Ihres Plans. Erfordert Max oder Ultra.",
+      "banner": "Dies ist ein markoto-Workspace: Die KI-Nutzung hier läuft über das Guthaben des Sponsors.",
+      "memberSponsored": "Dies ist ein markoto-Workspace. Ein Admin übernimmt die KI-Nutzung hier.",
+      "memberRegular": "Dies ist ein normaler Workspace. Mitglieder nutzen ihr eigenes KI-Guthaben. Ein Admin kann ihn zu einem markoto-Workspace machen und die Nutzung übernehmen.",
+      "memberComingSoon": "Das Sponsern der KI-Nutzung eines Workspace kommt mit den bezahlten Plänen.",
+      "onYourPlan": "über Ihren Plan · Mitglieder sehen den Hinweis im Editor",
+      "sponsoredByOther": "von einem anderen Admin gesponsert",
+      "takeOver": "Sponsoring übernehmen",
+      "needsUpgrade": "Mit Ihrem Plan {plan} können Sie keinen Workspace sponsern. Dafür brauchen Sie Max oder Ultra.",
+      "upgrade": "Plan upgraden",
+      "comingSoon": "Kommt mit den bezahlten Plänen.",
+      "seePlans": "Pläne ansehen",
+      "off": "aus · Mitglieder nutzen ihr eigenes KI-Guthaben",
+      "toggleLabel": "KI-Nutzung in diesem Workspace sponsern",
+      "enabledToast": "KI-Workspace aktiviert",
+      "enabledToastDescription": "Die KI-Nutzung der Mitglieder in diesem Workspace läuft jetzt über Ihren Plan.",
+      "disabledToast": "KI-Workspace deaktiviert",
+      "disabledToastDescription": "Mitglieder nutzen wieder ihr eigenes KI-Guthaben.",
+      "updateFailed": "Der KI-Workspace konnte nicht geändert werden"
     }
   },
   "knowledge": {
@@ -1691,7 +1723,7 @@
       "themes": {
         "label": "Themes",
         "title": "Neues Aussehen, gleiches Markdown.",
-        "body": "Wählen Sie eines von acht Themes und passen Sie Farben, Schriften und Titelseite an. Ihr Text bleibt unverändert."
+        "body": "Wählen Sie ein fertiges Theme und passen Sie Farben, Schriften und Titelseite an. Ihr Text bleibt unverändert."
       },
       "collab": {
         "label": "Zusammenarbeit",
@@ -1914,5 +1946,15 @@
       "caption": "Die aktuelle Liste für markoto.app, aus demselben Verzeichnis wie die rechtliche Seite.",
       "link": "Auftragsverarbeiter, mit Datenschutzerklärungen und AVV"
     }
+  },
+  "home": {
+    "title": "Start",
+    "greeting": "Willkommen zurück, {name}",
+    "description": "Ihre Workspaces und Dokumente."
+  },
+  "docRow": {
+    "actions": "Dokumentaktionen",
+    "open": "Öffnen",
+    "openNewTab": "In neuem Tab öffnen"
   }
 }

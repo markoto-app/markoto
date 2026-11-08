@@ -7,7 +7,7 @@ keywords:
   - quarterly report template
   - project report markdown
   - markdown to pdf report
-updated: '2026-11-04'
+updated: '2026-11-06'
 navGroup: templates
 navLabel: Report template
 navOrder: 10
@@ -34,8 +34,8 @@ pages:
 ---
 ::
 
-::cta{title="Start your report from this template." label="Use this template" template="report" theme="business" secondary-label="All templates" secondary-to="/templates"}
-Opens the new-document dialog with the report template and the Business Report theme, which has a cover page. The template is the outline of the report above, with a short brief in each section.
+::cta{title="Start your report from this template." label="Use this template" template="report" theme="business-report" secondary-label="All templates" secondary-to="/templates"}
+Opens the new-document dialog with the report template and the Corporate report theme, which has a cover page. The template is the outline of the report above, with a short brief in each section.
 ::
 
 ## What's in it
@@ -57,7 +57,7 @@ The briefs under the headings are Markdown comments: visible in the editor and t
 - **Alerts** (`> [!NOTE]`, `> [!WARNING]`) for remarks that must stand out.
 - **A custom theme**: IBM Plex Sans for the text, Source Serif 4 for the headings, a running header, "page / pages" in the footer and a few lines of custom CSS for the figures.
 
-The template opens with the built-in **Business Report** theme instead. Change fonts, colours, the header and the footer in the document theme, and save the result as your own preset to reuse it for the next report.
+The template opens with the built-in **Corporate report** theme instead. Change fonts, colours, the header and the footer in the document theme, and save the result as your own preset to reuse it for the next report.
 
 ## Who it's for
 
@@ -79,6 +79,6 @@ items:
 ---
 ::
 
-::cta{title="Write the report once, print it every quarter." label="Use this template" template="report" theme="business"}
+::cta{title="Write the report once, print it every quarter." label="Use this template" template="report" theme="business-report"}
 Free on markoto.app, no sign-up needed.
 ::

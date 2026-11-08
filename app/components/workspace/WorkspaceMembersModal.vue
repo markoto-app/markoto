@@ -20,6 +20,9 @@ const props = defineProps<{
   members: WorkspaceMember[]
   myRole: MemberRole
   myUserId: number
+  // Opened from the workspace header's "Invite people" button: focus
+  // the email field so the admin can type straight away.
+  focusInvite?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
@@ -343,6 +346,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               :placeholder="t('workspace.members.emailPlaceholder')"
               class="flex-1"
               :ui="{ base: 'w-full' }"
+              :autofocus="focusInvite"
               data-testid="workspace-invite-email"
               @keydown.enter="addMember"
             />

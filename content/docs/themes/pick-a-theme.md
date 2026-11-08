@@ -26,7 +26,7 @@ You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
 
-The nine presets cover most use cases:
+The built-in presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
   body, plain white paper, vermillion accents, asterism scene breaks.
@@ -41,10 +41,24 @@ The nine presets cover most use cases:
   numbered bold sections and an "A Preprint" running head over a thin
   rule. Start the document with an *Abstract* section and mark the
   references `# References {.unnumbered}`.
-- **Tech Report** — IBM Plex Sans, cyan brand color, dark code
-  blocks, numbered sections, brand-colored table headers.
-- **Business Report** — Playfair headings over Source Sans body,
-  warm amber accent, centered title in the running head.
+- **IEEE conference paper** — the IEEEtran conference look: US Letter,
+  two columns of Times 10 pt, centred small-caps sections with Roman
+  numerals, a 24 pt title over side-by-side author blocks and the
+  run-in abstract in the first column.
+- **Thesis** — long-form academic writing in the LaTeX report
+  tradition: A4, Latin Modern 11 pt with paragraph indents, every
+  chapter on a new page under a large number, sections numbered
+  1.1 / 1.1.1 and a classic title page.
+- **Technical documentation** — Source Serif reading text with Source
+  Sans headings, section numbers hanging in the margin, light framed
+  code blocks with file titles, the current chapter in the running
+  head.
+- **Corporate report** — a cover page with a petrol band, Source Serif
+  headings over Inter, finance-style tables with ruled totals, pull
+  quotes and a quiet footer rule.
+- **Client proposal** — a proposal you send to a client: a cover
+  panel, numbered sections, a timeline, pricing tables with subtotal,
+  VAT and total, and a signature block at the end.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
 - **Newsletter** — two-column Karla over PT Serif, green accent,

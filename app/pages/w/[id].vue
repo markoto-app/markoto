@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
+import { sponsorshipTabVisible } from '~~/shared/config/sponsorship'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -83,21 +84,22 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
 const activeTab = ref<'documents' | 'knowledge' | 'ai' | 'settings'>('documents')
-const { billingEnabled } = useBillingMode()
+const { mode: billingMode, billingEnabled, plansComingSoon } = useBillingMode()
 const tabItems = computed(() => {
   const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'ai' | 'settings', value: string }> = [
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
   // The AI-workspace tab is `(+)` sponsorship — a paid-plan feature.
-  // With billing off it doesn't exist (the server 404s the toggle and
-  // the billing resolver ignores `ai_enabled`), so don't show it.
+  // Billing on → the real toggle. Hosted free SaaS (plans coming soon) →
+  // shown, but disabled with a "coming with paid plans" note, so people
+  // see the option exists. Self-hosted (no upgrade path) → hidden.
   // No `icon` for the AI tab — UTabs would render it as a Lucide
   // glyph, but the seal is a Vue component, not an Iconify name. The
   // seal sits inside the Fraunces-titled section header within the
   // tab content instead, where it carries equal weight without
   // needing to squeeze into the icon slot.
-  if (billingEnabled.value) {
+  if (sponsorshipTabVisible(billingMode.value)) {
     items.push({ label: t('workspace.tabs.ai'), slot: 'ai', value: 'ai' })
   }
   // Admin-only Settings tab. Hidden for editors / viewers — there's
@@ -124,6 +126,13 @@ function onDocCreated(docId: string) {
 const editOpen = ref(false)
 const deleteOpen = ref(false)
 const membersOpen = ref(false)
+// "Invite people" opens the same Members modal with the email field
+// focused; the avatar row / menu open it without focusing.
+const membersFocusInvite = ref(false)
+function openMembers(focusInvite: boolean) {
+  membersFocusInvite.value = focusInvite
+  membersOpen.value = true
+}
 const deleteTargetDoc = ref<WorkspaceDoc | null>(null)
 const showDocDeleteConfirm = ref(false)
 
@@ -218,7 +227,7 @@ const workspaceMenuItems = computed(() => {
     {
       label: t('workspace.members.manageTitle'),
       icon: 'i-lucide-users',
-      onSelect: () => { membersOpen.value = true }
+      onSelect: () => openMembers(false)
     }
   ]
   if (isAdmin.value) {
@@ -378,7 +387,7 @@ async function leaveWorkspace() {
             <div class="mt-6">
               <WorkspaceMemberAvatars
                 :members="data.members"
-                @click="membersOpen = true"
+                @click="openMembers(false)"
               />
             </div>
           </div>
@@ -386,13 +395,26 @@ async function leaveWorkspace() {
                sit here, but it belongs inside the Documents tab — a
                page-level CTA implies "this is THE primary action" and
                on Knowledge / AI tabs that's misleading. The dropdown
-               (rename / delete / members) stays — it's truly page-level. -->
+               (rename / delete / members) stays — it's truly page-level.
+               "Invite people" is the admins' primary page action: a
+               visible button, not an entry buried in the members modal. -->
           <div class="flex items-center gap-2 shrink-0">
+            <UButton
+              v-if="isAdmin"
+              icon="i-lucide-user-plus"
+              color="neutral"
+              :aria-label="t('workspace.members.invitePeople')"
+              data-testid="workspace-invite-people"
+              @click="openMembers(true)"
+            >
+              <span class="hidden sm:inline">{{ t('workspace.members.invitePeople') }}</span>
+            </UButton>
             <UDropdownMenu :items="workspaceMenuItems">
               <UButton
                 icon="i-lucide-more-vertical"
                 color="neutral"
                 variant="ghost"
+                :aria-label="t('workspace.actions')"
               />
             </UDropdownMenu>
           </div>
@@ -410,9 +432,7 @@ async function leaveWorkspace() {
             :size="10"
             class="shrink-0"
           />
-          <span>
-            This is a <strong class="text-default font-medium">markoto workspace</strong> — markoto's work here runs on the sponsor's credit pool.
-          </span>
+          <span>{{ t('workspace.sponsorship.banner') }}</span>
         </div>
 
         <!--
@@ -526,12 +546,14 @@ async function leaveWorkspace() {
                 </div>
               </div>
               <p class="text-xs text-muted">
-                Turn this workspace into a markoto workspace so every member's markoto use across its documents bills to your plan's credit pool. Requires Max or Ultra.
+                {{ t('workspace.sponsorship.description') }}
               </p>
 
               <!-- Admin-only toggle — non-admins see the read-only
                    explanation so they understand the feature without
-                   being able to flip it. -->
+                   being able to flip it. While paid plans are only
+                   "coming soon" the toggle shows disabled with a note
+                   (WorkspaceBillingToggle). -->
               <div class="pt-2">
                 <WorkspaceBillingToggle
                   v-if="isAdmin"
@@ -544,11 +566,14 @@ async function leaveWorkspace() {
                   v-else
                   class="border border-default rounded-lg p-4 bg-default text-sm text-muted"
                 >
-                  <p v-if="data.workspace.aiEnabled">
-                    This workspace is a <strong class="text-default font-medium">markoto workspace</strong>. markoto's work here is sponsored by an admin.
+                  <p v-if="!billingEnabled && plansComingSoon">
+                    {{ t('workspace.sponsorship.memberComingSoon') }}
+                  </p>
+                  <p v-else-if="data.workspace.aiEnabled">
+                    {{ t('workspace.sponsorship.memberSponsored') }}
                   </p>
                   <p v-else>
-                    This is a regular workspace. Members use their own markoto credits. An admin can turn it into a markoto workspace to sponsor the pool.
+                    {{ t('workspace.sponsorship.memberRegular') }}
                   </p>
                 </div>
               </div>
@@ -595,6 +620,7 @@ async function leaveWorkspace() {
       :members="data.members"
       :my-role="data.workspace.myRole"
       :my-user-id="myUserId"
+      :focus-invite="membersFocusInvite"
       @updated="onMembersUpdated"
       @leave="onLeftWorkspace"
     />
