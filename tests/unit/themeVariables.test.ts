@@ -48,7 +48,7 @@ describe('absent fields = the old look', () => {
   // the presets that predate them must render exactly as before.
   test('no preset other than the templates changes its CSS through the new fields', () => {
     for (const p of THEME_PRESETS) {
-      if (p.id === 'arxiv' || p.id === 'business-report' || p.id === 'tech-docs' || p.id === 'ieee-conference' || p.id === 'thesis' || p.id === 'essay') continue
+      if (p.id === 'arxiv' || p.id === 'business-report' || p.id === 'tech-docs' || p.id === 'ieee-conference' || p.id === 'thesis' || p.id === 'design-doc' || p.id === 'runbook' || p.id === 'api-reference' || p.id === 'lecture-notes' || p.id === 'essay') continue
       const css = themeToCss(p.theme, runtime)
       const stripped = clone(p.theme)
       delete stripped.headings.levels
