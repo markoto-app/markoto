@@ -68,6 +68,7 @@ jobs:
       current_version: ${{ steps.compute.outputs.current_version }}
       new_version: ${{ steps.compute.outputs.new_version }}
       previous_tag: ${{ steps.compute.outputs.previous_tag }}
+      docs_only: ${{ steps.scope.outputs.docs_only }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -163,6 +164,31 @@ jobs:
             echo "previous_tag=v$CURRENT"
           } >> "$GITHUB_OUTPUT"
           echo "Bump: $BUMP  $CURRENT → $NEW"
+
+      # A release whose changes since the previous tag touch nothing the app
+      # image runs — the committed flow screenshots (public/flows, a
+      # publish-flow-shots PR), operator docs, AGENTS.md / top-level Markdown,
+      # CI workflows (.github/) — has no code for the flow suite to test: it ships new images (the screenshots live in the app
+      # image) without the ~45-minute suite. content/ is NOT docs-only: those
+      # pages are served by the app and covered by flows.
+      - name: Detect a docs-only release
+        id: scope
+        if: steps.pr.outputs.should_release == 'true'
+        env:
+          PREVIOUS: ${{ steps.compute.outputs.previous_tag }}
+        run: |
+          set -euo pipefail
+          if ! git rev-parse -q --verify "refs/tags/${PREVIOUS}" >/dev/null; then
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          changed=$(git diff --name-only "${PREVIOUS}" HEAD)
+          others=$(printf '%s\n' "$changed" | grep -vE '^(public/flows/|docs/|\.github/)' | grep -vE '^[^/]+\.md$|^(app|server|shared|tests|infra|scripts|sync-server|renderer)/(.*/)?CLAUDE\.md$' | grep -v '^$' || true)
+          if [ -n "$changed" ] && [ -z "$others" ]; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+            echo "Docs-only release: the flow suite is skipped."
+          else
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
 
   bump-version:
     name: bump-version
@@ -356,7 +382,7 @@ jobs:
   run-flows-and-collect-outputs:
     name: run-flows-and-collect-outputs
     needs: [resolve-pr, build-images]
-    if: needs.resolve-pr.outputs.should_release == 'true'
+    if: needs.resolve-pr.outputs.should_release == 'true' && needs.resolve-pr.outputs.docs_only != 'true'
     permissions:
       contents: read
     # Live-AI provider keys live in this main-only Environment.
@@ -486,7 +512,15 @@ jobs:
       - bump-version
       - build-images
       - run-flows-and-collect-outputs
-    if: needs.resolve-pr.outputs.should_release == 'true'
+    # Runs after a green flow suite, or without one for a docs-only release
+    # (the suite is skipped then; a skipped `needs` would skip this job too
+    # without the explicit result checks).
+    if: >-
+      !cancelled() &&
+      needs.resolve-pr.outputs.should_release == 'true' &&
+      needs.build-images.result == 'success' &&
+      (needs.run-flows-and-collect-outputs.result == 'success' ||
+       (needs.run-flows-and-collect-outputs.result == 'skipped' && needs.resolve-pr.outputs.docs_only == 'true'))
     permissions:
       contents: write
     runs-on: ubuntu-latest
@@ -494,6 +528,7 @@ jobs:
       release_url: ${{ steps.release.outputs.url }}
     steps:
       - name: Download flow output artefact
+        if: needs.resolve-pr.outputs.docs_only != 'true'
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
           name: flow-output
