@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { extractAbstract, markAbstract } from '../../app/utils/titleBlock'
+import { dropTitleHeading, extractAbstract, markAbstract } from '../../app/utils/titleBlock'
 import { buildCoverHtml } from '../../app/utils/coverHtml'
 import { pruneTocDepth } from '../../app/utils/tocDepth'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
@@ -85,5 +85,24 @@ describe('pruneTocDepth', () => {
   it('leaves a depth-4 TOC and documents without one untouched', () => {
     expect(pruneTocDepth(toc, 4)).toBe(toc)
     expect(pruneTocDepth('<p>x</p>', 2)).toBe('<p>x</p>')
+  })
+})
+
+describe('dropTitleHeading — no duplicate title in title-block layouts', () => {
+  const doc = '<nav class="table-of-contents"><ul><li><a href="#edge-cache">Edge cache</a></li><li><a href="#intro">Intro</a></li></ul></nav>'
+  const titled = '<h1 id="edge-cache">Edge  cache\n behaviour</h1><h2 id="abstract">Abstract</h2><p>We measure.</p><h1 id="intro">Intro</h1>'
+
+  it('drops a leading h1 that repeats the title (normalised), with its TOC entry', () => {
+    const out = dropTitleHeading(titled + doc, 'edge cache Behaviour')
+    expect(out).not.toContain('id="edge-cache"')
+    expect(out).not.toContain('href="#edge-cache"')
+    expect(out).toContain('<h1 id="intro">Intro</h1>')
+  })
+
+  it('leaves a different first h1, a later h1 and an empty title alone', () => {
+    expect(dropTitleHeading('<h1>Introduction</h1><p>x</p>', 'My paper')).toBe('<h1>Introduction</h1><p>x</p>')
+    expect(dropTitleHeading('<p>Intro</p><h1>My paper</h1>', 'My paper')).toBe('<p>Intro</p><h1>My paper</h1>')
+    expect(dropTitleHeading('<h2>My paper</h2>', 'My paper')).toBe('<h2>My paper</h2>')
+    expect(dropTitleHeading('<h1>My paper</h1>', '  ')).toBe('<h1>My paper</h1>')
   })
 })

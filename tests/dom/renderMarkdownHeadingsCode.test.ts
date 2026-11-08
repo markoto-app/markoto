@@ -3,7 +3,7 @@
 // jsdom (not happy-dom): DOMPurify's checks only behave like Chromium's
 // under jsdom — see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines } from '../../app/utils/renderMarkdown'
+import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines, wrapCodeTokens } from '../../app/utils/renderMarkdown'
 
 function parse(html: string): DocumentFragment {
   const tpl = document.createElement('template')
@@ -103,5 +103,30 @@ describe('code blocks', () => {
     expect(fenceTitle('x title=\'c.py\' y')).toBe('c.py')
     expect(fenceTitle('title=main.go')).toBe('main.go')
     expect(fenceTitle('subtitle=no')).toBe('')
+  })
+})
+
+describe('inline code breaks only between its tokens', () => {
+  it('wraps every space-separated token in a span and keeps the spaces as text', async () => {
+    const html = await renderMarkdown('Run `curl -s --data-urlencode  \'q=a<b\'` now.')
+    const code = parse(html).querySelector('p > code')
+    expect(code).not.toBeNull()
+    const tokens = Array.from(code?.querySelectorAll('span.markoto-code-token') ?? []).map(s => s.textContent)
+    expect(tokens).toEqual(['curl', '-s', '--data-urlencode', '\'q=a<b\''])
+    // Copying the code gives the original string (spaces included, escaped text decoded).
+    expect(code?.textContent).toBe('curl -s --data-urlencode  \'q=a<b\'')
+  })
+
+  it('a single token is one span; fenced code is untouched', async () => {
+    const html = await renderMarkdown('`checkout-api`\n\n```sh\na b\n```\n')
+    const root = parse(html)
+    expect(root.querySelectorAll('p > code > span.markoto-code-token')).toHaveLength(1)
+    expect(root.querySelector('pre .markoto-code-token')).toBeNull()
+  })
+
+  it('wrapCodeTokens escapes each token', () => {
+    const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    expect(wrapCodeTokens('a<b  c&d', esc)).toBe('<span class="markoto-code-token">a&lt;b</span>  <span class="markoto-code-token">c&amp;d</span>')
+    expect(wrapCodeTokens(' x ', esc)).toBe(' <span class="markoto-code-token">x</span> ')
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { themeFontsImport, themeToCss } from '../../shared/utils/themeToCss'
+import { mathFontScale, themeFontsImport, themeToCss } from '../../shared/utils/themeToCss'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import type { DocTheme, ThemeRuntime } from '../../shared/types/theme'
@@ -609,6 +609,56 @@ describe('themeToCss — KaTeX keeps its own alignment and spacing', () => {
     for (const decl of ['letter-spacing: normal', 'word-spacing: normal', 'text-transform: none', 'font-variant: normal', 'font-feature-settings: normal', 'hyphens: manual']) {
       expect(rule, decl).toContain(decl)
     }
+  })
+})
+
+describe('themeToCss — wide display math is never clipped in print', () => {
+  test('display math wraps at TeX break points instead of scrolling (= clipped on paper)', () => {
+    const css = themeToCss(structuredClone(defaultTheme), runtime)
+    const display = /\.paged-doc \.katex-display \{[^}]*\}/.exec(css)?.[0] ?? ''
+    expect(display).not.toBe('')
+    expect(display).not.toMatch(/overflow/)
+    expect(css).toContain('.paged-doc .katex-display > .katex { white-space: normal; }')
+  })
+
+  test('no preset clips display math again in its template CSS', () => {
+    for (const p of THEME_PRESETS) {
+      expect(p.theme.customCss ?? '', p.id).not.toMatch(/katex-display[^}]*overflow-x/)
+    }
+  })
+})
+
+describe('themeToCss — inline math size follows the body font', () => {
+  test('text size next to Computer-Modern-sized faces, a small step up elsewhere', () => {
+    for (const font of ['Latin Modern Roman', 'TeX Gyre Termes', 'EB Garamond', 'Crimson Text', 'Cormorant Garamond', ' latin modern roman ']) {
+      expect(mathFontScale(font), font).toBe(1)
+    }
+    for (const font of ['Inter', 'Source Serif 4', 'IBM Plex Sans', 'TeX Gyre Heros', 'Unknown Family']) {
+      expect(mathFontScale(font), font).toBe(1.05)
+    }
+  })
+
+  test('the stylesheet carries the scale for the theme\'s body font', () => {
+    const t = structuredClone(defaultTheme)
+    t.body.font = 'Latin Modern Roman'
+    expect(themeToCss(t, runtime)).toContain('.paged-doc .katex { font-size: 1em; }')
+    t.body.font = 'Inter'
+    expect(themeToCss(t, runtime)).toContain('.paged-doc .katex { font-size: 1.05em; }')
+  })
+})
+
+describe('themeToCss — code is literal', () => {
+  test('no programming ligatures in inline code, blocks and code titles', () => {
+    const css = themeToCss(structuredClone(markoto), runtime)
+    expect(css).toContain('.paged-doc code, .paged-doc pre, .paged-doc .code-title { font-variant-ligatures: none; }')
+  })
+
+  test('inline code wraps between tokens only; an over-long token may still break', () => {
+    const css = themeToCss(structuredClone(defaultTheme), runtime)
+    const rule = /\.paged-doc \.markoto-code-token \{[^}]*\}/.exec(css)?.[0] ?? ''
+    expect(rule).toContain('display: inline-block')
+    expect(rule).toContain('max-width: 100%')
+    expect(rule).toContain('overflow-wrap: anywhere')
   })
 })
 

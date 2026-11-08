@@ -58,7 +58,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     blockBlock(theme),
     codeBlock(theme),
     alertBlock(theme),
-    katexBlock(),
+    katexBlock(theme),
     mermaidBlock(theme),
     tocBlock(theme, runtime),
     numberingBlock(theme),
@@ -701,6 +701,16 @@ function codeBlock(theme: DocTheme): string {
     : 'white-space: pre;\n  overflow: hidden;'
 
   return [
+    // Code is literal: no ligatures. Programming fonts (JetBrains Mono)
+    // draw `|=` as a turnstile, `!=` as ≠, `->` as an arrow, and the
+    // printed page must show what is typed. `none` also turns off the
+    // contextual alternates (`calt`) those ligatures live in.
+    `.paged-doc code, .paged-doc pre, .paged-doc .code-title { font-variant-ligatures: none; }`,
+    // Inline code wraps between its words, never inside one
+    // (renderMarkdown wraps each space-separated token): `--data-urlencode`
+    // doesn't break after a hyphen. A token wider than the line still
+    // breaks rather than running off the page.
+    `.paged-doc .markoto-code-token { display: inline-block; max-width: 100%; overflow-wrap: anywhere; text-indent: 0; }`,
     // Inline code is always lightly tinted regardless of code theme — it
     // sits inline with body text and shouldn't pull a heavy fill.
     `.paged-doc :not(pre) > code {
@@ -825,12 +835,39 @@ function alertBlock(theme: DocTheme): string {
 // — KaTeX math —————————————————————————————————————————————————————————
 
 /**
+ * Body fonts whose x-height is no larger than KaTeX's Computer Modern
+ * (0.431 em) plus 5 %: inline math is set at the text size next to them.
+ * Measured from the bundled / self-hosted files (x-height / em):
+ * Latin Modern Roman 0.431 (the same design as KaTeX's), TeX Gyre Termes
+ * 0.450, Crimson Text 0.424, EB Garamond 0.405, Cormorant Garamond 0.386.
+ * Every other registered text face has an x-height of 0.47–0.56 em, so
+ * math there gets a small step up (1.05 em) to sit level with the text.
+ */
+const SMALL_X_HEIGHT_FONTS: ReadonlySet<string> = new Set([
+  'latin modern roman', 'tex gyre termes', 'crimson text', 'eb garamond', 'cormorant garamond'
+])
+
+/** Size of KaTeX math (inline and display) relative to the body text, in em. */
+export function mathFontScale(bodyFont: string): number {
+  return SMALL_X_HEIGHT_FONTS.has(bodyFont.trim().toLowerCase()) ? 1 : 1.05
+}
+
+/**
  * Layout-only adjustments around `@mdit/plugin-katex` output. Glyph
  * positioning and font selection come from the KaTeX stylesheet (loaded
  * from /vendor/ inside the iframe). What remains here is print-context hygiene:
- * block math gets a vertical breathing room, doesn't break across pages,
- * and overflows horizontally rather than clipping when the equation is
- * wider than the page.
+ * block math gets a vertical breathing room and doesn't break across pages.
+ *
+ * A display wider than the text column wraps instead of being cut off:
+ * KaTeX already splits a formula into one box per stretch between the
+ * places TeX allows a break (after a relation or a binary operator on
+ * the outer level, TeXbook p. 173 — `=`, `+`, `\le` …), and only its
+ * `white-space: nowrap` on display math keeps those boxes on one line.
+ * Allowing the wrap continues a long equation on the next line after an
+ * `=` or `+`, centred like the first. Nothing is clipped any more
+ * (overflow visible): a single unbreakable stretch wider than the column
+ * — a huge fraction or matrix — runs into the margin instead of being
+ * cut off at the page edge, as `overflow-x: auto` did on paper.
  *
  * KaTeX lays a formula out with nested inline tables whose rows are
  * centred by `text-align` — but inherited text properties of the
@@ -841,15 +878,14 @@ function alertBlock(theme: DocTheme): string {
  * reset below hands KaTeX back its own alignment and spacing, whatever
  * the theme or template CSS sets on the text around it.
  */
-function katexBlock(): string {
+function katexBlock(theme: DocTheme): string {
   return [
     `.paged-doc .katex-display {
   margin: 1em 0;
-  overflow-x: auto;
-  overflow-y: hidden;
   break-inside: avoid;
 }`,
-    `.paged-doc .katex { font-size: 1.05em; }`,
+    `.paged-doc .katex-display > .katex { white-space: normal; }`,
+    `.paged-doc .katex { font-size: ${mathFontScale(theme.body.font)}em; }`,
     `.paged-doc .katex { text-align-last: auto; letter-spacing: normal; word-spacing: normal; text-transform: none; font-variant: normal; font-feature-settings: normal; hyphens: manual; -webkit-hyphens: manual; }`
   ].join('\n')
 }

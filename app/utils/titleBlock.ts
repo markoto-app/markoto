@@ -130,3 +130,28 @@ export function markUnnumbered(bodyHtml: string): string {
   }
   return serialize(root)
 }
+
+/** Title text for comparison: Unicode-normalised, whitespace collapsed, case folded. */
+function normalisedTitle(text: string): string {
+  return text.normalize('NFKC').replace(/\s+/gu, ' ').trim().toLowerCase()
+}
+
+/**
+ * Title-block layouts set the document title themselves, so a document
+ * whose text opens with `# <its title>` (the academic-paper template, and
+ * how most people write a paper) would print the title twice. Drop that
+ * leading h1 — and its TOC entry — when its text equals the title
+ * (normalised: case, whitespace, Unicode form). A different first h1, or
+ * anything before it, leaves the body unchanged.
+ */
+export function dropTitleHeading(bodyHtml: string, title: string): string {
+  const wanted = normalisedTitle(title)
+  if (!wanted) return bodyHtml
+  const root = parse(bodyHtml)
+  const first = root.firstElementChild
+  if (!first || first.tagName !== 'H1') return bodyHtml
+  if (normalisedTitle(first.textContent ?? '') !== wanted) return bodyHtml
+  for (const li of tocEntriesFor(root, first.id)) li.remove()
+  first.remove()
+  return serialize(root)
+}

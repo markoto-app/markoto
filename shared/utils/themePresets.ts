@@ -309,8 +309,6 @@ const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before eleg
 .paged-doc li.task-list-item input[type="checkbox"] { appearance: none; -webkit-appearance: none; position: relative; width: 0.9em; height: 0.9em; margin: 0 0.3em 0 0; vertical-align: -0.13em; border: 1.1pt solid var(--doc-text); border-radius: 1.5pt; background: var(--doc-bg); text-indent: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 /* A ticked box is crossed, as on a paper checklist (a checkbox draws no ::after in Chromium, so the cross is two gradients). */
 .paged-doc li.task-list-item input[type="checkbox"]:checked { background: linear-gradient(45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), var(--doc-bg); }
-/* Code: no programming ligatures — a runbook command must print exactly what is typed (JetBrains Mono turns |= into a turnstile). */
-.paged-doc code, .paged-doc pre { font-variant-ligatures: none; font-feature-settings: "calt" 0; }
 /* Inline commands: framed, not just tinted, so they stand apart from prose in greyscale; a wrapped command keeps its frame on both lines. */
 .paged-doc :not(pre) > code { font-size: 0.84em; padding: 0.02em 0.25em; border: 0.5pt solid color-mix(in srgb, var(--doc-text) 40%, transparent); border-radius: 1.5pt; background: color-mix(in srgb, var(--doc-text) 5%, transparent); overflow-wrap: break-word; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 /* Shell blocks: compact leading; a wrapped line continues 4 columns in, so it can't be mistaken for a new command. */
@@ -475,11 +473,7 @@ const LECTURE_NOTES_TEMPLATE_CSS = `/* Lecture notes / course handout (LaTeX art
 .paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 1em; }
 /* Running head (\\pagestyle{headings}): the current section in italics left, the page number right. */
 .pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-style: italic; }
-/* KaTeX sets math in Computer Modern, the body is Latin Modern (the same design): no size step between inline math and text. */
-.paged-doc .katex { font-size: 1em; }
 .paged-doc .katex-display { margin: 0.7em 0; }
-/* A display wider than the measure runs into the annotation margin (an overfull box) instead of being clipped in print. */
-.paged-doc .katex-display { overflow: visible; }
 /* amsthm environments, not callouts: square, no tint, the kind's name as a small-caps label (Note, Tip, Warning …). */
 .paged-doc .markdown-alert { border-radius: 0; background: none; border-left-width: 1.2pt; padding: 0.15em 0 0.15em 0.9em; margin: 0.9em 0; }
 .paged-doc .markdown-alert-title { font-size: 1em; font-weight: 700; text-transform: none; letter-spacing: 0.03em; font-variant-caps: small-caps; margin: 0 0 0.15em; }
