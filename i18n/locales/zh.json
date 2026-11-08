@@ -1075,6 +1075,10 @@
         "name": "简报",
         "description": "Karla 正文置于 PT Serif 标题之下、绿色点缀、品牌色表头 — 周报式质感。"
       },
+      "bulletin": {
+        "name": "通讯",
+        "description": "双栏通讯：醒目的刊头、通栏标题与图片、温暖的赤陶色点缀。"
+      },
       "resume": {
         "name": "简历",
         "description": "紧凑的一页 A4：Inter 10 pt，带横线的小标题，无页眉、页脚和封面。"

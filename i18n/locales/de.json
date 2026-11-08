@@ -1075,6 +1075,10 @@
         "name": "Newsletter",
         "description": "Karla-Fliesstext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."
       },
+      "bulletin": {
+        "name": "Bulletin",
+        "description": "Zweispaltiger Newsletter: kräftiger Titelkopf, Schlagzeilen und Fotos über die ganze Breite, warmer Terrakotta-Akzent."
+      },
       "resume": {
         "name": "Lebenslauf",
         "description": "Eine dichte A4-Seite: Inter in 10 pt, kleine Überschriften mit Linie, ohne Kopf, Fuss und Titelseite."

@@ -564,6 +564,44 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
+    // The bulletin (newsletter) preset end to end: two balanced columns with
+    // full-width headlines, photos and the events table (template CSS
+    // `column-span: all`), A4, Fraunces + Source Sans 3 embedded as real fonts.
+    it('renders the newsletter fixture in the bulletin preset on 2–4 A4 pages', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const bulletin = THEME_PRESETS.find(p => p.id === 'bulletin')?.theme
+      if (!bulletin) throw new Error('bulletin preset missing')
+      expect(bulletin.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/bulletin-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...bulletin, cover: { ...bulletin.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/newsletter.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview: 3 pages. A spanning element that breaks paged.js's column fill duplicates pages (a 4th–6th page).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(2)
+      expect(Number(pageCount)).toBeLessThanOrEqual(4)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      expect(fonts.some(f => /Fraunces/i.test(f.name)), summary).toBe(true)
+      expect(fonts.some(f => /SourceSans/i.test(f.name)), summary).toBe(true)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
     // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
     // (the renderer allows no CDN host any more). Chromium embeds the font
     // files it actually used, by name: had a web font failed to load, the

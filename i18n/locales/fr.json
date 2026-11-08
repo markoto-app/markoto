@@ -1075,6 +1075,10 @@
         "name": "Newsletter",
         "description": "Corps Karla sous titres PT Serif, accent vert, en-têtes de tableau colorés — style digest hebdomadaire."
       },
+      "bulletin": {
+        "name": "Bulletin",
+        "description": "Newsletter sur deux colonnes : bandeau-titre affirmé, titres et photos sur toute la largeur, accent terracotta chaleureux."
+      },
       "resume": {
         "name": "CV",
         "description": "Une page A4 dense : Inter en 10 pt, petits titres soulignés, sans en-tête, pied de page ni couverture."

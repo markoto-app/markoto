@@ -4,7 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Pick a theme that fits your document
@@ -60,6 +60,9 @@ The built-in presets cover most use cases:
   line-height, drop cap on page 1.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
+- **Bulletin** — a newsletter to print or send as a PDF: a bold
+  masthead with the issue line, headlines and captioned photos across
+  the page over two columns of text, pull quotes, a terracotta accent.
 - **Resume** — one dense page: Inter at 10 pt, small headings with
   a rule, no running header, page number or cover.
 
