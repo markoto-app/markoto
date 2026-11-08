@@ -10,7 +10,7 @@ keywords:
   - markdown en pdf avec table des matières
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Markdown en PDF"
-updated: '2026-11-04'
+updated: '2026-11-08'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). See docs/TRANSLATION-REVIEW.md.
 reviewed: false
@@ -74,12 +74,12 @@ Un convertisseur transforme le Markdown en une seule longue page HTML et l'impri
 
 ## Changer l'apparence sans toucher au texte
 
-Chaque document a un thème : polices, couleurs, marges, colonnes, tableaux, en-tête, pied de page et couverture. Huit modèles sont inclus : markoto, Moderne, Article académique (deux colonnes), Rapport technique, Rapport d'affaires, Roman, Newsletter et CV. Choisissez-en un, puis modifiez n'importe quel détail. L'aperçu et le PDF utilisent le même thème. Si aucun réglage ne fait ce que vous voulez, vous pouvez ajouter votre propre [CSS](/docs/themes/custom-css) à un document.
+Chaque document a un thème : polices, couleurs, marges, colonnes, tableaux, en-tête, pied de page et couverture. Les modèles inclus comprennent markoto, Moderne, Prépublication arXiv, Article de conférence IEEE (deux colonnes), Thèse, Documentation technique, Rapport d'entreprise, Newsletter et CV. Choisissez-en un, puis modifiez n'importe quel détail. L'aperçu et le PDF utilisent le même thème. Si aucun réglage ne fait ce que vous voulez, vous pouvez ajouter votre propre [CSS](/docs/themes/custom-css) à un document.
 
 ::flow-strip{id="pick-a-theme" frames="05,14"}
 ---
 captions:
-  - Le modèle Article académique compose le texte dans une police à empattements, justifié sur deux colonnes, et ajoute une page de couverture.
+  - Le modèle Prépublication arXiv compose le texte en Times, justifié, numérote les sections et place le titre dans un bloc en haut de la page 1.
   - Le modèle markoto avec sa page de couverture, qui porte le logo, le titre et la date, mais pas de numéro de page.
 ---
 ::

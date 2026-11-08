@@ -11,7 +11,7 @@ import type { TabsItem } from '@nuxt/ui'
 
 // Same trick as ThemeEditorPanel — link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
-// font face. Otherwise we'd see "Modern" / "Academic Paper" / etc. all in
+// font face. Otherwise we'd see "Modern" / "arXiv preprint" / etc. all in
 // the system fallback and lose the visual signal. The stylesheets only
 // declare @font-face rules; a font file downloads once text uses it.
 if (import.meta.client) {

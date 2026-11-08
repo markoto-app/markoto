@@ -36,8 +36,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
 
   await flow.heading('Save your custom theme as a preset', 3)
   await flow.narrate(
-    'You land on a theme that fits your team\'s docs — academic '
-    + 'preset, cover off, slightly different page color. Save it '
+    'You land on a theme that fits your team\'s docs — a built-in '
+    + 'preset with the cover page switched off. Save it '
     + 'once and every doc you create after this gets it as a '
     + 'one-click pick in the theme grid. Saved presets are '
     + 'per-user — they don\'t leak into other people\'s drafts, '
@@ -59,7 +59,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
       result: 'The Theme panel slides in — presets grid + section list '
         + '(Page, Body, Headings, Layout, Colors, Cover, Code, '
         + 'Mermaid, TOC).',
-      after: () => editor.page.theme.preset('academic').waitFor({ state: 'visible', timeout: 5_000 })
+      after: () => editor.page.theme.preset('business-report').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
 
@@ -67,20 +67,20 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   await flow.heading('Pick a starting preset', 3)
   await flow.narrate(
     'Saved presets live ALONGSIDE the built-in ones — you don\'t '
-    + 'replace anything. Pick a built-in to start (academic here, '
-    + 'serif body + restrained color), then we\'ll tweak it.'
+    + 'replace anything. Pick a built-in to start (Corporate report '
+    + 'here: serif headings and one petrol accent), then tweak it.'
   )
 
   await flow.click(
-    'Click "Academic"',
-    editor.page.theme.preset('academic'),
+    'Click "Corporate report"',
+    editor.page.theme.preset('business-report'),
     {
       // Mobile: BottomSheet portal interception. See `tests/e2e/AGENTS.md`.
       force: editor.isMobile,
       result: editor.isMobile
-        ? 'The academic preset is selected — preview iframe is hidden in mobile edit-only mode.'
-        : 'The preview repaginates — two-column serif body and '
-          + 'restrained colour, the academic preset\'s signature look.',
+        ? 'The Corporate report preset is selected — preview iframe is hidden in mobile edit-only mode.'
+        : 'The preview repaginates: a cover page with a petrol band, '
+          + 'serif headings over a sans body.',
       after: async () => {
         // Mobile is edit-only — no preview iframe to wait on.
         if (!editor.isMobile) {
@@ -93,7 +93,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   // ─── Tweak: turn the cover off ──────────────────────────────────
   await flow.heading('Tweak — turn the cover page off', 3)
   await flow.narrate(
-    'Academic Paper opens with a cover page. For internal documents '
+    'Corporate report opens with a cover page. For internal documents '
     + 'a title sheet often gets in the way: switch it off and page 1 '
     + 'starts with the text itself. The switch is at the top of the '
     + 'Cover page section.'
@@ -136,8 +136,8 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     + 'in Your themes, just like the built-in presets.'
   )
 
-  const PRESET_NAME = 'My academic, no cover'
-  const PRESET_DESCRIPTION = 'Two columns, serif body, starts with the text.'
+  const PRESET_NAME = 'My report, no cover'
+  const PRESET_DESCRIPTION = 'Petrol accent, serif headings, starts with the text.'
   // Clear the earlier "Template applied" toast so the hero frame shows
   // only the save confirmation.
   await editor.page.dismissToasts()
@@ -222,7 +222,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   await expect(nameInput).toHaveValue(PRESET_NAME)
   await expect(descriptionInput).toHaveValue(PRESET_DESCRIPTION)
 
-  const RENAMED = 'Team paper'
+  const RENAMED = 'Team report'
   await nameInput.fill('')
   await flow.type('Type a new name', nameInput, RENAMED, { force: editor.isMobile, result: 'The new name replaces the old one.' })
   await flow.click(

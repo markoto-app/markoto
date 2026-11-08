@@ -4,7 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Pick a theme that fits your document
@@ -33,9 +33,6 @@ The built-in presets cover most use cases:
   The "calm field guide" voice.
 - **Modern** — clean Inter sans, blue accent, justified body. The
   neutral starting point.
-- **Academic Paper** — two-column Source Serif body, a title block
-  with authors and abstract on page 1 instead of a cover page,
-  numbered sections, minimal table borders.
 - **arXiv preprint** — the look of an arXiv LaTeX preprint: US Letter,
   Times at 10 pt, a title block between heavy rules in small capitals,
   numbered bold sections and an "A Preprint" running head over a thin
@@ -60,8 +57,6 @@ The built-in presets cover most use cases:
 - **Corporate report** — a cover page with a petrol band, Source Serif
   headings over Inter, finance-style tables with ruled totals, pull
   quotes and a quiet footer rule.
-- **Novel** — Crimson Text serif, deep violet accent, generous
-  line-height, drop cap on page 1.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
 - **Resume** — one dense page: Inter at 10 pt, small headings with

@@ -159,7 +159,7 @@ describe('POST /api/docs', () => {
         audience: 'technical',
         language: 'de',
         templateId: 'business-plan',
-        themePreset: 'academic'
+        themePreset: 'arxiv'
       })
       expect(res.status).toBe(200)
       const { docId } = await res.json() as { docId: string }
@@ -169,7 +169,7 @@ describe('POST /api/docs', () => {
       expect(row.audience).toBe('technical')
       expect(row.language).toBe('de')
       expect(row.template_id).toBe('business-plan')
-      // themePreset resolves server-side to the academic preset's full
+      // themePreset resolves server-side to the arxiv preset's full
       // theme object — client cannot inject arbitrary JSONB.
       expect(row.theme).not.toBeNull()
       expect(row.theme).toHaveProperty('color')

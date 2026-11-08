@@ -1043,10 +1043,6 @@
         "name": "Modern",
         "description": "Klare Inter-Serifenlose mit blauem Akzent. Der neutrale Ausgangspunkt."
       },
-      "academic": {
-        "name": "Wissenschaftliche Arbeit",
-        "description": "Zweispaltiger Source-Serif-Fliesstext, Titelblock mit Autorinnen, Autoren und Abstract auf Seite 1, nummerierte Abschnitte, minimale Tabellenränder — im Journal-Stil."
-      },
       "arxiv": {
         "name": "arXiv-Preprint",
         "description": "Das Erscheinungsbild des arXiv-LaTeX-Preprints: US Letter, Times 10 pt im Blocksatz, nummerierte fette Abschnitte, Titelblock zwischen kräftigen Linien in Kapitälchen, Kolumnentitel «A Preprint» über einer feinen Linie."
@@ -1070,10 +1066,6 @@
       "business-report": {
         "name": "Unternehmensbericht",
         "description": "Für Quartals- und Jahresberichte, Board-Updates und Kundendokumente: Source-Serif-Überschriften über Inter, ein tiefer Petrol-Akzent, Finanztabellen mit Tabellenziffern und abgesetzten Summenzeilen, Zitate als Pull-Quotes, eine ruhige Fusszeile über einer feinen Linie."
-      },
-      "novel": {
-        "name": "Roman",
-        "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
       },
       "newsletter": {
         "name": "Newsletter",

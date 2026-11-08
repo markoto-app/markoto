@@ -4,7 +4,7 @@
  *
  * They used to be hidden with `display: none`, but paged.js measures a
  * hidden list as overflowing: the TOC broke after the first entry that
- * had hidden children, leaving a near-empty page (Novel preset, depth 2).
+ * had hidden children, leaving a near-empty page (a preset with TOC depth 2).
  * Removing the nodes avoids the measurement altogether.
  *
  * Works on parsed DOM (inert `<template>`) of sanitised markup;

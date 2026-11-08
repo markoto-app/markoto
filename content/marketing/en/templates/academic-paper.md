@@ -1,13 +1,13 @@
 ---
 title: Academic paper Markdown template with math
-description: An academic paper template in Markdown with abstract, table of contents, LaTeX math and footnotes, in two columns. No BibTeX; you type the references.
+description: An academic paper template in Markdown with abstract, LaTeX math and footnotes, set like an arXiv preprint. No BibTeX; you type the references.
 keywords:
   - academic paper markdown template
   - markdown thesis template
   - scientific paper in markdown
   - markdown latex math
   - markdown paper to pdf
-updated: '2026-11-04'
+updated: '2026-11-08'
 navGroup: templates
 navLabel: Academic paper template
 navOrder: 40
@@ -15,20 +15,14 @@ navOrder: 40
 
 # Academic paper template in Markdown
 
-This template follows the usual structure of a research paper: abstract, introduction, related work, methods, results, discussion, conclusion and references. You write Markdown, with formulas in LaTeX syntax and footnotes, and the **Academic Paper** theme sets it in a serif, in two justified columns, after a cover page.
+This template follows the usual structure of a research paper: abstract, introduction, related work, methods, results, discussion, conclusion and references. You write Markdown, with formulas in LaTeX syntax and footnotes, and the **arXiv preprint** theme sets it like a LaTeX preprint: Times, justified, numbered sections, and the title and abstract in a block at the top of page 1.
 
-Below is a short paper written with the template. The first page is the cover; scroll the preview for the text.
+Below is a short paper written with the template. Its first line, `# Reading speed on paper and on screen`, is the title: the theme puts it in the title block, between two rules.
 
-::try-it{theme="academic" height="760"}
+::try-it{theme="arxiv" height="760"}
 ---
 source: |
   # Reading speed on paper and on screen
-
-  Mira Halvorsen¹, Daniel Okafor²
-
-  ¹ Department of Psychology, University of Bergen · ² Institute of Education, Leeds
-
-  [[toc]]
 
   ## Abstract
 
@@ -59,7 +53,7 @@ source: |
 
   The medium changed what readers remembered, not how fast they read. A limitation is that all texts were expository; narrative texts may behave differently.[^2]
 
-  ## References
+  ## References {.unnumbered}
 
   1. Clinton, V. (2019). Reading from paper compared to screens. *Journal of Research in Reading*, 42(2), 288–325.
   2. Delgado, P. et al. (2018). Don't throw away your printed books. *Educational Research Review*, 25, 23–38.
@@ -69,13 +63,13 @@ source: |
 ---
 ::
 
-::cta{title="Write your paper from this template." label="Use this template" template="academic-paper" theme="academic" secondary-label="All templates" secondary-to="/templates"}
-Opens the new-document dialog with the academic paper template and the Academic Paper theme selected. It starts with the same headings and a short brief in each section.
+::cta{title="Write your paper from this template." label="Use this template" template="academic-paper" theme="arxiv" secondary-label="All templates" secondary-to="/templates"}
+Opens the new-document dialog with the academic paper template and the arXiv preprint theme selected. It starts with the same headings and a short brief in each section.
 ::
 
 ## What's in it
 
-- **Title, authors and affiliations.** A note under the title says how to lay out the author line.
+- **Title, authors and affiliations.** A note under the title says how to lay out the author line. In the arXiv preprint theme, enter the authors and their affiliations under **Cover page** in the document theme instead: they are set side by side under the title.
 - **Abstract.** A brief for 150 to 250 words: context, gap, what you did, what you found, why it matters.
 - **Introduction, related work, methods, results, discussion, conclusion.** Each section has a note on what goes there, such as "report what you found, not what it means" under Results.
 - **References.** Typed by hand in the style the venue asks for.
@@ -88,11 +82,11 @@ The notes are Markdown comments: they show in the editor and to the AI assistant
 - **Footnotes.** `[^1]` in the text and the note below; it prints at the foot of the page where it is cited.
 - **Table of contents.** `[[toc]]` lists the headings with their page numbers.
 - **Tables, figures and diagrams.** Markdown tables, images with captions (with an account) and Mermaid diagrams.
-- **Two columns.** The Academic Paper theme sets the body in two columns; any theme can be changed to one.
+- **One or two columns.** The arXiv preprint theme sets one column; the IEEE conference paper theme sets two. Any theme can be changed to either.
 
 ## What it doesn't do
 
-markoto has **no BibTeX, no citation manager and no automatic reference list**. You type the references as a numbered list and cite them by hand, as [1] or with footnotes. There are no journal or university templates either, and no LaTeX beyond math formulas. If you need those, [Overleaf](/compare/overleaf) or [Typst](/compare/typst) are the better tools.
+markoto has **no BibTeX, no citation manager and no automatic reference list**. You type the references as a numbered list and cite them by hand, as [1] or with footnotes. Apart from the arXiv preprint and IEEE conference paper looks there are no journal or university templates, and no LaTeX beyond math formulas. If you need those, [Overleaf](/compare/overleaf) or [Typst](/compare/typst) are the better tools.
 
 ## Who it's for
 
@@ -107,13 +101,13 @@ items:
     a: Yes. Inline math goes between single dollar signs and display math between double dollar signs, in LaTeX syntax. KaTeX renders it in the preview and in the PDF.
   - q: Does the template support BibTeX or Zotero?
     a: No. markoto has no citation support. Type the reference list by hand and cite with numbers or footnotes.
-  - q: Can I turn off the two columns or the cover page?
-    a: Yes. Both are theme settings. Set the layout to one column, or switch off the cover page in the document theme.
+  - q: Can I set the paper in two columns?
+    a: Yes. Pick the IEEE conference paper theme, or set the layout to two columns in the document theme.
   - q: Can I submit the PDF to a journal?
     a: If the journal accepts a PDF in any layout, yes. If it requires its own LaTeX or Word template, use that template instead.
 ---
 ::
 
-::cta{title="Markdown in, a typeset paper out." label="Use this template" template="academic-paper" theme="academic"}
+::cta{title="Markdown in, a typeset paper out." label="Use this template" template="academic-paper" theme="arxiv"}
 Free on markoto.app, no sign-up needed.
 ::

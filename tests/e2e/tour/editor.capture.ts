@@ -244,7 +244,7 @@ test('Tour: header and footer', async ({ page, editor, tour }) => {
   const clip = await tour.clip('rich')
   await clip.frame(10)
 
-  await clip.click(editor.page.sidebar.theme, { after: () => expect(editor.page.theme.preset('academic')).toBeVisible() })
+  await clip.click(editor.page.sidebar.theme, { after: () => expect(editor.page.theme.preset('arxiv')).toBeVisible() })
   await clip.frame(4)
   const section = (name: RegExp) => page.getByRole('button', { name }).first()
   const slot = (where: 'header' | 'footer', pos: 'Left' | 'Right') =>

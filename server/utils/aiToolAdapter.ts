@@ -439,7 +439,7 @@ type BaseResolution = { ok: true, theme: DocTheme } | { ok: false, error: ToolRe
  * Passing more than one is a usage error; surface it loudly so the
  * model self-corrects rather than silently picking one. Other fields
  * in the same call merge on top of whichever base is chosen, so
- * "preset academic with my brand red" is one call.
+ * "preset arxiv with my brand red" is one call.
  */
 function checkBaseSourceConflict(input: UpdateThemeInput): ToolResult | null {
   const baseSources: string[] = []

@@ -1043,10 +1043,6 @@
         "name": "现代",
         "description": "简洁的 Inter 无衬线字体搭配蓝色点缀。中性的起点。"
       },
-      "academic": {
-        "name": "学术论文",
-        "description": "双栏 Source Serif 正文，第 1 页为含作者和摘要的标题区，章节编号，极简表格边框 — 期刊风格。"
-      },
       "arxiv": {
         "name": "arXiv 预印本",
         "description": "arXiv LaTeX 预印本的样式：US Letter 纸张，Times 10 pt 两端对齐，编号的粗体章节，夹在粗线之间的小型大写标题区，细线上方的“A Preprint”页眉。"
@@ -1070,10 +1066,6 @@
       "business-report": {
         "name": "企业报告",
         "description": "适用于季度和年度报告、董事会简报和客户交付文档：Source Serif 标题搭配 Inter 正文，一种深石油蓝点缀，等宽数字和带线合计行的财务表格，醒目引言，细线上方的低调页脚。"
-      },
-      "novel": {
-        "name": "小说",
-        "description": "Crimson Text 衬线字体，适合长文阅读。无代码块、纯净引用块，仅在页脚显示页码。"
       },
       "newsletter": {
         "name": "简报",

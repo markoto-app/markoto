@@ -451,42 +451,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Academic Paper: serif body, generous margins, dark-blue accent,
-  // running head with title + page (no footer). Tables are minimal-
-  // border (top/bottom rules only) — the academic convention. No cover
-  // page: a title block (title, authors + affiliations, date, abstract)
-  // opens page 1, sections are numbered.
-  {
-    id: 'academic',
-    category: 'academic',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 22 },
-      meta: { font: 'Source Serif 4' },
-      body: { font: 'Source Serif 4', size: 10, lineHeight: 1.4, textAlign: 'justify', color: '#0f172a', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0.4, hyphenate: true },
-      headings: { font: 'Source Serif 4', scale: 1.2, weight: 600, underline: false, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'decimal', levels: {} },
-      color: { brand: '#1e3a8a', secondary: '#94a3b8' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 2, columnGap: 7 },
-      header: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 90, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Academic restraint — slightly desaturated GitHub colours to
-      // match the journal voice. Stay below the fold visually.
-      alerts: {
-        note: '#1f3a6e',
-        tip: '#175c2e',
-        important: '#5d3d99',
-        warning: '#7a5200',
-        caution: '#9b1a25'
-      },
-      toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 1.7, subtitleSize: 1.1 }
-    }
-  },
-
   // — arXiv preprint: the kourgeorge/arxiv-style LaTeX template (MIT),
   // rebuilt from arxiv.sty — US Letter with 1in margins, Times
   // (TeX Gyre Termes) 10/11 justified, \parskip 5.5pt, numbered bold
@@ -798,41 +762,6 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
       cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35 },
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
-    }
-  },
-
-  // — Novel: classic Crimson Text serif, deep violet accent, generous
-  // line-height, only a centered page number in the footer. Tables and
-  // code blocks rare in fiction — kept minimal.
-  {
-    id: 'novel',
-    category: 'writing',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 25 },
-      meta: { font: 'Crimson Text' },
-      body: { font: 'Crimson Text', size: 12, lineHeight: 1.5, textAlign: 'justify', color: '#1c1917', background: '#FFFFFF', dropCap: true, firstLineIndent: true, paragraphSpacing: 0.2, hyphenate: true },
-      headings: { font: 'Crimson Text', scale: 1.22, weight: 600, underline: false, color: '#1c1917', letterSpacing: 0.01, lineHeight: 1.2, spacingScale: 1.4, numbering: 'none', levels: {} },
-      color: { brand: '#4c1d95', secondary: '#a8a29e' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'none', fontSize: 10, font: 'IBM Plex Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 80, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Novel — admonitions are rare in fiction; if they appear they
-      // should feel period-appropriate. Muted ink palette that reads
-      // like marginalia in an old book.
-      alerts: {
-        note: '#3b3b6b',
-        tip: '#2f5d3a',
-        important: '#552d70',
-        warning: '#7a5200',
-        caution: '#7c1d1d'
-      },
-      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 

@@ -9,9 +9,9 @@ const body = '<nav class="table-of-contents"><ul><li><a href="#abstract">Abstrac
   + '<h2 id="abstract">Abstract</h2><p>We measure.</p><p><strong>Keywords</strong> a · b</p>'
   + '<h1 id="intro">Intro</h1><p>Text.</p>'
 
-function academic(): DocTheme {
-  const preset = THEME_PRESETS.find(p => p.id === 'academic')
-  if (!preset) throw new Error('academic preset missing')
+function arxiv(): DocTheme {
+  const preset = THEME_PRESETS.find(p => p.id === 'arxiv')
+  if (!preset) throw new Error('arxiv preset missing')
   return structuredClone(preset.theme)
 }
 
@@ -46,7 +46,7 @@ describe('markAbstract', () => {
 
 describe('buildCoverHtml — title-block layout', () => {
   it('title, subtitle, author cards with affiliations, date and the abstract', () => {
-    const theme = academic()
+    const theme = arxiv()
     theme.cover.showSubtitle = true
     theme.cover.subtitle = 'A preprint'
     theme.cover.authors = ['Ada <b>Kovač</b>', ' ', 'Jonas Meier']
@@ -62,7 +62,7 @@ describe('buildCoverHtml — title-block layout', () => {
   })
 
   it('renders nothing when there is nothing to show', () => {
-    const theme = academic()
+    const theme = arxiv()
     theme.cover.showTitle = false
     theme.cover.showAuthors = false
     theme.cover.showDate = false

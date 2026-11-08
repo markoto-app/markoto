@@ -3,14 +3,14 @@ title: Save your custom theme as a preset
 description: Once you've tuned a theme, save it — every new doc you create lists it next to the built-in presets.
 category: themes
 order: 3
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Save your custom theme as a preset
 
-The built-in theme presets (markoto, Modern, Academic Paper, arXiv
-preprint, IEEE conference paper, Thesis, Technical documentation,
-Corporate report, Novel, Newsletter, Resume and more) cover the common
+The built-in theme presets (markoto, Modern, arXiv preprint, IEEE
+conference paper, Thesis, Technical documentation, Corporate report,
+Newsletter, Resume and more) cover the common
 cases. Once you've customised one to
 your liking, save it as a personal preset and it shows up in the
 preset picker on every future doc.
