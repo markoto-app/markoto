@@ -434,6 +434,37 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
+    // The memo preset end to end: no cover, the letterhead running head, the
+    // label-column grid and the rest of the template CSS sanitised at render.
+    it('renders the memo fixture in the memo preset on 1–2 A4 pages with real Inter fonts', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const preset = THEME_PRESETS.find(p => p.id === 'memo')?.theme
+      if (!preset) throw new Error('memo preset missing')
+      expect(preset.customCss).toBeTruthy()
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(preset), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/memo.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      await wipeRendersFor(doc.docId)
+      // 2 pages in the preview (the sign-off on page 2).
+      expect(typeof pageCount).toBe('number')
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(1)
+      expect(Number(pageCount)).toBeLessThanOrEqual(2)
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      expect(fonts.some(f => /Inter/.test(f.name)), summary).toBe(true)
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+    }, 90_000)
+
     // The technical-documentation preset end to end: title block + TOC on
     // page 1 and the template CSS (hanging section numbers, full-width code)
     // sanitised at render.

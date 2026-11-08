@@ -60,6 +60,12 @@ The built-in presets cover most use cases:
 - **Corporate report** — a cover page with a petrol band, Source Serif
   headings over Inter, finance-style tables with ruled totals, pull
   quotes and a quiet footer rule.
+- **Memo / letter** — a one- or two-page memo or business letter:
+  start with *To / From / Date / Subject* lines (a bold label each,
+  ending the lines with a backslash) and a `---` rule; the labels and
+  your `##` headings sit in a margin column. A paragraph that opens
+  with your bold name gets room to sign above it; an italic last line
+  becomes a small cc line.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
 - **Academic essay (APA)** — the APA 7 student paper: Times 12 pt
