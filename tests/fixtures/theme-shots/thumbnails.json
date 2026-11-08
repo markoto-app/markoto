@@ -4,11 +4,18 @@
   "academic": {"md": "paper.md", "title": "Edge cache behaviour under partitions", "patch": "paper-patch.json"},
   "arxiv": {"md": "paper.md", "title": "Edge cache behaviour under partitions", "patch": "arxiv-patch.json"},
   "ieee-conference": {"md": "conference-paper.md", "title": "Tidewater: Energy-Proportional Batching for Edge Inference Servers", "patch": "conference-paper-patch.json"},
+  "lecture-notes": {"md": "lecture-notes.md", "title": "Probability for Computer Scientists — Lecture 7: Expectation and Linearity", "patch": "lecture-notes-patch.json"},
   "thesis": {"md": "thesis-chapter.md", "title": "Learning sparse sensor placements for urban flood forecasting", "patch": "thesis-chapter-patch.json"},
   "tech-docs": {"md": "tech-docs.md", "title": "Ferrule 3 — Developer Guide", "patch": "tech-docs-patch.json"},
+  "api-reference": {"md": "api-reference.md", "title": "Larkspur Payments API v2 — Reference", "patch": "api-reference-patch.json"},
+  "design-doc": {"md": "design-doc.md", "title": "RFC 0042: Regional failover for the payments ledger", "patch": "design-doc-patch.json"},
   "business-report": {"md": "business-report.md", "title": "Halden Outdoor AG — Q3 2026 Quarterly Report", "patch": "business-report-patch.json"},
   "one-pager": {"md": "one-pager.md", "title": "Fieldnote — field-service reports in one tap", "patch": "one-pager-patch.json"},
+  "proposal": {"md": "proposal.md", "title": "Proposal: Customer portal relaunch for Rheintal Energie", "patch": "proposal-patch.json"},
+  "memo": {"md": "memo.md", "title": "Memo — Office move to Hardturmstrasse", "patch": "memo-patch.json"},
   "novel": {"md": "manuscript.md", "title": "The Salt Ledger", "patch": "manuscript-patch.json"},
+  "essay": {"md": "essay.md", "title": "Who Owns the Shoreline? Public Access and Private Property on Alpine Lakes", "patch": "essay-patch.json"},
   "newsletter": {"md": "newsletter.md", "title": "The Commons", "patch": "newsletter-patch.json"},
-  "resume": {"md": "../../../shared/templates/content/resume/en.md", "title": "Alex Morgan — Resume"}
+  "resume": {"md": "../../../shared/templates/content/resume/en.md", "title": "Alex Morgan — Resume"},
+  "runbook": {"md": "runbook.md", "title": "Checkout platform — on-call runbook", "patch": "runbook-patch.json"}
 }

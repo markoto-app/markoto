@@ -53,9 +53,22 @@ The built-in presets cover most use cases:
   Sans headings, section numbers hanging in the margin, light framed
   code blocks with file titles, the current chapter in the running
   head.
+- **Design doc / RFC** — for engineering design documents, RFCs and
+  decision records: a calm sans with a review margin beside the prose,
+  a metadata table up front, numbered decisions and wide comparison
+  tables.
 - **Corporate report** — a cover page with a petrol band, Source Serif
   headings over Inter, finance-style tables with ruled totals, pull
   quotes and a quiet footer rule.
+- **Memo / letter** — a one- or two-page memo or business letter:
+  start with *To / From / Date / Subject* lines (a bold label each,
+  ending the lines with a backslash) and a `---` rule; the labels and
+  your `##` headings sit in a margin column. A paragraph that opens
+  with your bold name gets room to sign above it; an italic last line
+  becomes a small cc line.
+- **Client proposal** — a proposal you send to a client: a cover
+  panel, numbered sections, a timeline, pricing tables with subtotal,
+  VAT and total, and a signature block at the end.
 - **One-pager** — a product or project fact sheet that fits on one
   page: a title block under an orange bar, the pitch as a bold first
   paragraph, section labels in a left column, a compact key-facts
@@ -63,6 +76,10 @@ The built-in presets cover most use cases:
   to get the large lead.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
+- **Academic essay (APA)** — the APA 7 student paper: Times 12 pt
+  double-spaced, a title page with your name, course, instructor and
+  date, the page number top right, centred bold headings and the
+  references on a new page with hanging indents.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
 - **Resume** — one dense page: Inter at 10 pt, small headings with

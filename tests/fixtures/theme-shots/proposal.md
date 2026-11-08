@@ -5,8 +5,9 @@
   a timeline table and a Mermaid gantt; a pricing table with subtotal, VAT and
   total rows (bold) and right-aligned currency; optional items; terms as a
   numbered list with nested sub-clauses; a callout (TIP); a signature block
-  (two parties side by side as a table with blank lines); a page break
-  before the terms.
+  (two parties side by side as a table: a row of empty cells is a line to
+  sign on, the row under it its caption — the `proposal` template draws
+  the lines); a page break before the terms.
   Suggested title: "Proposal: Customer portal relaunch for Rheintal Energie".
   Patch: proposal-patch.json.
 -->
@@ -145,10 +146,9 @@ By signing, both parties accept this proposal and its terms.
 
 | Rheintal Energie AG | Northlight Studio GmbH |
 |---|---|
-| Place, date: | Place, date: |
-| &nbsp; | &nbsp; |
-| ______________________________ | ______________________________ |
+| | |
+| Place, date | Place, date |
+| | |
 | Sabine Kälin, Head of Customer Service | Marco Bianchi, Managing Partner |
-| &nbsp; | &nbsp; |
-| ______________________________ | ______________________________ |
+| | |
 | Thomas Egli, CFO | Nina Hofer, Partner |
