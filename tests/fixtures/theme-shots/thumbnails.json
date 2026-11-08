@@ -6,6 +6,7 @@
   "ieee-conference": { "md": "conference-paper.md", "title": "Tidewater: Energy-Proportional Batching for Edge Inference Servers", "patch": "conference-paper-patch.json" },
   "tech-docs": { "md": "tech-docs.md", "title": "Ferrule 3 — Developer Guide", "patch": "tech-docs-patch.json" },
   "business-report": { "md": "business-report.md", "title": "Halden Outdoor AG — Q3 2026 Quarterly Report", "patch": "business-report-patch.json" },
+  "memo": { "md": "memo.md", "title": "Memo — Office move to Hardturmstrasse", "patch": "memo-patch.json" },
   "novel": { "md": "manuscript.md", "title": "The Salt Ledger", "patch": "manuscript-patch.json" },
   "newsletter": { "md": "newsletter.md", "title": "The Commons", "patch": "newsletter-patch.json" },
   "resume": { "md": "../../../shared/templates/content/resume/en.md", "title": "Alex Morgan — Resume" }

@@ -44,11 +44,11 @@ describe('absent fields = the old look', () => {
     expect('titleWeight' in filled.cover).toBe(false)
   })
 
-  // Templates built on the new fields (arXiv, business report, tech docs, IEEE conference) are exempt;
+  // Templates built on the new fields (arXiv, business report, tech docs, IEEE conference, memo) are exempt;
   // the presets that predate them must render exactly as before.
   test('no preset other than the templates changes its CSS through the new fields', () => {
     for (const p of THEME_PRESETS) {
-      if (p.id === 'arxiv' || p.id === 'business-report' || p.id === 'tech-docs' || p.id === 'ieee-conference') continue
+      if (p.id === 'arxiv' || p.id === 'business-report' || p.id === 'tech-docs' || p.id === 'ieee-conference' || p.id === 'memo') continue
       const css = themeToCss(p.theme, runtime)
       const stripped = clone(p.theme)
       delete stripped.headings.levels

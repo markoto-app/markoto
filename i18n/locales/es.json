@@ -1063,6 +1063,10 @@
         "name": "Informe corporativo",
         "description": "Informes trimestrales y anuales, actualizaciones para el consejo, entregables para clientes: títulos en Source Serif sobre Inter, un acento azul petróleo profundo, tablas financieras con cifras tabulares y totales destacados, citas resaltadas, pie de página discreto sobre una línea fina."
       },
+      "memo": {
+        "name": "Memorándum / carta",
+        "description": "Memorandos internos y cartas comerciales de una o dos páginas para imprimir, firmar o adjuntar: retícula de carta suiza con Para / De / Fecha / Asunto y títulos laterales en una columna de margen, texto en Inter, tablas sobrias con líneas finas, espacio para la firma, números de página desde la página 2."
+      },
       "novel": {
         "name": "Novela",
         "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."

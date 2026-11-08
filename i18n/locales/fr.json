@@ -1063,6 +1063,10 @@
         "name": "Rapport d'entreprise",
         "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
       },
+      "memo": {
+        "name": "Mémo / lettre",
+        "description": "Mémos internes et lettres professionnelles d'une ou deux pages à imprimer, signer ou joindre : grille de lettre suisse avec les mentions À / De / Date / Objet et les intertitres dans une colonne de marge, texte en Inter, tableaux sobres à filets fins, place pour la signature, numéros de page dès la page 2."
+      },
       "novel": {
         "name": "Roman",
         "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."

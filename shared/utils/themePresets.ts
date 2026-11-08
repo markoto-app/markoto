@@ -234,6 +234,42 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 `
 
 /**
+ * MEMO_TEMPLATE_CSS — what the memo / business-letter look needs beyond
+ * theme fields: the label-column grid (To / From / Date / Subject labels and
+ * side heads hang in a 32 mm column, the text beside it), the letterhead
+ * mark, rules across both columns, calm hairline tables, room to sign and a
+ * quiet cc line, page numbers from page 2 on. Same rules as the other
+ * template CSS (sanitised, editable by the author).
+ */
+const MEMO_TEMPLATE_CSS = `/* Memo / business letter. A4 on a two-column grid (Swiss business-letter style, DIN 5008 margins): a 32 mm label column at the page margin, the text in a ~75-character column beside it. */
+/* paged.js rewrites every selector with a "+" into a low-specificity attribute rule, so this CSS uses ":has(~ …)" and descendant selectors instead. */
+.paged-doc { --memo-gutter: 32mm; padding-left: var(--memo-gutter); }
+/* Rules run across both columns: the one under the address block, and any section rule. */
+.paged-doc > hr { margin: 1.1em 0 1.9em calc(-1 * var(--memo-gutter)); border-top: 0.6pt solid var(--doc-text); }
+/* Letterhead: a small square mark in the accent before the document title, in text ink. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content { display: flex; align-items: center; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content::before { content: ""; flex: none; width: 2.2mm; height: 2.2mm; margin-right: 2.6mm; background: var(--doc-accent); }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-weight: 600; color: var(--doc-text); opacity: 1; }
+/* Page numbers from page 2 on (DIN 5008 follow-up pages); a one-page memo has no footer. */
+.pagedjs_pages .pagedjs_page.pagedjs_first_page .pagedjs_margin-bottom-right { visibility: hidden; }
+/* To / From / Date / Subject: a paragraph that opens with a bold label, breaks into lines and comes before the rule. Labels hang in the label column, values line up with the text. */
+.paged-doc > p:has(> strong:first-child):has(> br):has(~ hr) { margin: 0; }
+.paged-doc > p:has(> strong:first-child):has(> br):has(~ hr) > strong { float: left; clear: left; width: var(--memo-gutter); margin-left: calc(-1 * var(--memo-gutter)); font-weight: 400; color: var(--doc-secondary); }
+/* Side heads: section headings sit in the label column, level with the first line of their section. */
+.paged-doc .markoto-section-heading { float: left; clear: left; width: calc(var(--memo-gutter) - 5mm); margin: 0 5mm 0 calc(-1 * var(--memo-gutter)); break-after: avoid; }
+/* Tables: small reference grids in the text column; a firm rule under the header, hairlines between rows, tabular figures. */
+.paged-doc table { font-size: 0.95em; font-variant-numeric: tabular-nums; width: 100%; margin: 0.7em 0 1.1em; }
+.paged-doc th { font-weight: 600; vertical-align: bottom; }
+.paged-doc thead tr { border-bottom: 0.75pt solid var(--doc-text); }
+.paged-doc tbody tr { border-bottom: 0.4pt solid color-mix(in srgb, var(--doc-secondary) 60%, transparent); }
+/* Signature: a paragraph after the rule that opens with a bold line and breaks into lines (name, title, company) gets room to sign above it. */
+.paged-doc > p:has(> strong:first-child):has(> br):not(:has(~ hr)) { margin-top: 3.4em; }
+/* cc line: a last paragraph set entirely in italics reads as distribution: small, upright, grey. */
+.paged-doc > p:last-child:has(> em:only-child) { margin-top: 2.2em; font-size: 0.85em; color: var(--doc-secondary); }
+.paged-doc > p:last-child > em:only-child { font-style: normal; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -570,6 +606,60 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
       cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35 },
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
+    }
+  },
+
+  // — Memo / business letter: a one- or two-page internal memo or letter
+  // to print, sign or attach. A4 with DIN 5008-like margins (24 mm left,
+  // 20 mm right) on a Swiss business-letter grid: labels (To / From / Date /
+  // Subject) and side heads in a 32 mm column at the page margin, Inter
+  // 10/15 text in a ~75-character column beside it. No cover, contents or
+  // section numbers; the letterhead is the title beside a small accent
+  // square, page numbers start on page 2. One signal-red accent, used only
+  // for that mark. Template CSS: MEMO_TEMPLATE_CSS. Fixture:
+  // tests/fixtures/theme-shots/memo.md.
+  {
+    id: 'memo',
+    category: 'business',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 20, marginTop: 30, marginRight: 20, marginBottom: 24, marginLeft: 24 },
+      meta: { font: 'Inter' },
+      body: { font: 'Inter', size: 10, lineHeight: 1.5, textAlign: 'left', color: '#1A1A1A', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
+      headings: {
+        font: 'Inter',
+        // The scale only sets the defaults; every level is pinned below.
+        scale: 1.18,
+        weight: 600,
+        underline: false,
+        color: '#1A1A1A',
+        letterSpacing: 0,
+        // Side heads share the text's 15 pt line, so they sit level with it.
+        lineHeight: 1.5,
+        spacingScale: 1,
+        numbering: 'none',
+        // A memo's headings are side heads at text size; deeper levels stay at text size too.
+        levels: { h1: { size: 1 }, h2: { size: 1 }, h3: { size: 1 } }
+      },
+      color: { brand: '#C8102E', secondary: '#6E6E6E' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Dark, desaturated hues: a callout in a memo must still read in greyscale print.
+      alerts: {
+        note: '#2F4F6F',
+        tip: '#3B6147',
+        important: '#57476F',
+        warning: '#7F5E1E',
+        caution: '#9E1F2A'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
+      customCss: MEMO_TEMPLATE_CSS
     }
   },
 

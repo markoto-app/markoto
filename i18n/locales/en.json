@@ -1063,6 +1063,10 @@
         "name": "Corporate report",
         "description": "Quarterly and annual reports, board updates, client deliverables: Source Serif headings over Inter, one deep petrol accent, finance-style tables with tabular figures and ruled totals, pull quotes, a quiet footer over a thin rule."
       },
+      "memo": {
+        "name": "Memo / letter",
+        "description": "One- or two-page internal memos and business letters to print, sign or attach: a Swiss letter grid with To / From / Date / Subject labels and side heads in a margin column, Inter text, calm hairline tables, room to sign, page numbers from page 2."
+      },
       "novel": {
         "name": "Novel",
         "description": "Crimson Text serif for long-form reading. No code blocks, plain blockquotes, just a page number in the footer."

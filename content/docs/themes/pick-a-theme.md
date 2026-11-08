@@ -26,7 +26,7 @@ You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
 
-The ten presets cover most use cases:
+The presets cover most use cases:
 
 - **markoto** — the default. Fraunces editorial headings on Inter
   body, plain white paper, vermillion accents, asterism scene breaks.
@@ -52,6 +52,12 @@ The ten presets cover most use cases:
 - **Corporate report** — a cover page with a petrol band, Source Serif
   headings over Inter, finance-style tables with ruled totals, pull
   quotes and a quiet footer rule.
+- **Memo / letter** — a one- or two-page memo or business letter:
+  start with *To / From / Date / Subject* lines (a bold label each,
+  ending the lines with a backslash) and a `---` rule; the labels and
+  your `##` headings sit in a margin column. A paragraph that opens
+  with your bold name gets room to sign above it; an italic last line
+  becomes a small cc line.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
