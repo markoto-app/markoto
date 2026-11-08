@@ -4,6 +4,7 @@
   "academic": {"md": "paper.md", "title": "Edge cache behaviour under partitions", "patch": "paper-patch.json"},
   "arxiv": {"md": "paper.md", "title": "Edge cache behaviour under partitions", "patch": "arxiv-patch.json"},
   "ieee-conference": {"md": "conference-paper.md", "title": "Tidewater: Energy-Proportional Batching for Edge Inference Servers", "patch": "conference-paper-patch.json"},
+  "lecture-notes": {"md": "lecture-notes.md", "title": "Probability for Computer Scientists — Lecture 7: Expectation and Linearity", "patch": "lecture-notes-patch.json"},
   "thesis": {"md": "thesis-chapter.md", "title": "Learning sparse sensor placements for urban flood forecasting", "patch": "thesis-chapter-patch.json"},
   "tech-docs": {"md": "tech-docs.md", "title": "Ferrule 3 — Developer Guide", "patch": "tech-docs-patch.json"},
   "api-reference": {"md": "api-reference.md", "title": "Larkspur Payments API v2 — Reference", "patch": "api-reference-patch.json"},

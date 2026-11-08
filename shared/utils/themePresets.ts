@@ -454,6 +454,71 @@ const API_REFERENCE_TEMPLATE_CSS = `/* API reference template. Lookup material: 
 `
 
 /**
+ * LECTURE_NOTES_TEMPLATE_CSS — what the lecture-notes handout needs beyond
+ * theme fields (reference: LaTeX `article` 11pt + amsthm, typeset as
+ * handouts are: a compact title block, theorem environments, a wide
+ * annotation margin). The fixture convention it styles: IMPORTANT alerts
+ * are theorems, NOTE alerts remarks, TIP intuition, WARNING / CAUTION
+ * pitfalls; a bold run-in label ("**Theorem 7.3 (linearity).**") names
+ * the environment. Ordinary custom CSS (tests/unit/themePresetCss.test.ts).
+ */
+const LECTURE_NOTES_TEMPLATE_CSS = `/* Lecture notes / course handout (LaTeX article 11pt + amsthm). */
+/* Title block = a handout's \\maketitle: course line in small caps over the title, lecturer left and date right on one line, closed by a rule. */
+.paged-doc .markoto-title-block { display: grid; grid-template-columns: 1fr auto; column-gap: 1em; padding-bottom: 5pt; border-bottom: 0.6pt solid; margin-bottom: 6pt; }
+.paged-doc .markoto-title-block > * { grid-column: 1 / -1; }
+.paged-doc .markoto-title-block .markoto-cover-subtitle { grid-row: 1; margin: 0 0 4pt; font-style: normal; font-variant-caps: all-small-caps; letter-spacing: 0.06em; }
+.paged-doc .markoto-title-block .markoto-cover-title { grid-row: 2; margin: 0 0 8pt; line-height: 1.15; }
+.paged-doc .markoto-title-block .markoto-cover-authors { grid-row: 3; grid-column: 1; margin: 0; }
+.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; }
+.paged-doc .markoto-title-block .markoto-cover-date { grid-row: 3; grid-column: 2; align-self: end; margin: 0; }
+/* \\@startsection: the section number, then a quad. */
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 1em; }
+/* Running head (\\pagestyle{headings}): the current section in italics left, the page number right. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-style: italic; }
+/* KaTeX sets math in Computer Modern, the body is Latin Modern (the same design): no size step between inline math and text. */
+.paged-doc .katex { font-size: 1em; }
+.paged-doc .katex-display { margin: 0.7em 0; }
+/* A display wider than the measure runs into the annotation margin (an overfull box) instead of being clipped in print. */
+.paged-doc .katex-display { overflow: visible; }
+/* amsthm environments, not callouts: square, no tint, the kind's name as a small-caps label (Note, Tip, Warning …). */
+.paged-doc .markdown-alert { border-radius: 0; background: none; border-left-width: 1.2pt; padding: 0.15em 0 0.15em 0.9em; margin: 0.9em 0; }
+.paged-doc .markdown-alert-title { font-size: 1em; font-weight: 700; text-transform: none; letter-spacing: 0.03em; font-variant-caps: small-caps; margin: 0 0 0.15em; }
+/* An environment that opens with its own bold label (**Theorem 7.3 (linearity).**, **Remark.**) needs no kind name above it. */
+.paged-doc .markdown-alert-important:has(> p:nth-child(2) > strong:first-child) > .markdown-alert-title { display: none; }
+.paged-doc .markdown-alert-note:has(> p:nth-child(2) > strong:first-child) > .markdown-alert-title { display: none; }
+.paged-doc .markdown-alert > p:nth-child(2) { margin-top: 0; }
+/* Theorem (IMPORTANT), amsthm "plain" style: framed, italic statement, upright bold label. */
+.paged-doc .markdown-alert-important { border: 0.6pt solid var(--doc-accent); border-left-width: 2.4pt; background: color-mix(in srgb, var(--doc-accent) 5%, transparent); padding: 0.55em 0.9em; font-style: italic; }
+.paged-doc .markdown-alert-important strong:first-child { font-style: normal; }
+/* Pitfalls (WARNING, CAUTION): a hairline box, upright text. */
+.paged-doc .markdown-alert-warning, .paged-doc .markdown-alert-caution { border-width: 0.6pt; border-style: solid; border-left-width: 2.4pt; padding: 0.55em 0.9em; }
+/* Definitions (definition list): bold term, the definition indented under it, never parted at a page break. */
+.paged-doc dl { margin: 0.9em 0; }
+.paged-doc dt { font-weight: 700; margin-top: 0.7em; break-after: avoid; }
+.paged-doc dd { margin: 0.15em 0 0 1.5em; }
+/* Lists: \\leftmargini 2.5em; exercise sub-parts (a), (b), (c) as in LaTeX enumerate level 2, indented under their exercise; \\itemsep of a few points. */
+.paged-doc ul, .paged-doc ol { padding-left: 1.9em; }
+.paged-doc ol ol { padding-left: 2.2em; margin: 0.25em 0; }
+.paged-doc ol ol > li::marker { content: "(" counter(list-item, lower-alpha) ")\\a0"; }
+.paged-doc li { margin: 0.25em 0; }
+/* \\texttt: typewriter, no box; listings: keywords in bold, no colour (prints in black and white). */
+.paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 0.95em; }
+.paged-doc pre .hljs-keyword, .paged-doc pre .hljs-built_in { font-weight: 700; }
+/* Listings box: a line of air above and below the code, not more. */
+.paged-doc pre { padding: 0.55em 0.9em; }
+/* ==Highlights== as a light marker that still reads in greyscale; abbreviations print without the screen's dotted underline. */
+.paged-doc mark { background: color-mix(in srgb, var(--doc-accent) 13%, transparent); }
+.paged-doc abbr { text-decoration: none; }
+/* booktabs: \\toprule and \\bottomrule heavier than \\midrule, figures in lining tabular digits. */
+.paged-doc table { width: auto; margin: 0.9em auto; font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc table thead th { border-top: 0.8pt solid; border-bottom: 0.5pt solid; font-weight: 700; }
+.paged-doc table tbody tr:last-child td { border-bottom: 0.8pt solid; }
+.paged-doc th, .paged-doc td { padding: 1.5pt 8pt; }
+/* hyperref with hidelinks: links read as text. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -701,6 +766,67 @@ export const THEME_PRESETS: ThemePreset[] = [
       // \Huge (24pt) regular title, centred; no date.
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1 },
       customCss: IEEE_CONFERENCE_TEMPLATE_CSS
+    }
+  },
+  // — Lecture notes: a course handout in the LaTeX tradition (article
+  // 11pt + amsthm, KOMA-style generous margins). Latin Modern Roman so
+  // text and KaTeX's Computer Modern math are one design; A4 with a wide
+  // right margin for students' annotations (139 mm measure, ~75
+  // characters at 11 pt); numbered bold sections at \Large / \large /
+  // \normalsize; a compact title block (course, title, lecturer, date)
+  // over a rule; the section in the running head. Theorem environments
+  // from alerts and bold run-in labels, (a)/(b) exercise parts, booktabs
+  // tables and black-and-white listings are template CSS
+  // (LECTURE_NOTES_TEMPLATE_CSS). One ink-blue accent. Fixture:
+  // tests/fixtures/theme-shots/lecture-notes.md.
+  {
+    id: 'lecture-notes',
+    category: 'academic',
+    theme: {
+      // geometry: 25 mm top/left, 46 mm right (annotation margin), 27 mm bottom.
+      page: { size: 'A4', orientation: 'portrait', margin: 25, marginRight: 46, marginBottom: 27 },
+      meta: { font: 'Latin Modern Roman' },
+      // 11/14pt (\normalsize 11pt with \baselineskip 13.6pt, opened up a
+      // little for inline fractions and handwritten notes); half-line
+      // \parskip instead of an indent (KOMA parskip=half).
+      body: { font: 'Latin Modern Roman', size: 11, lineHeight: 1.27, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
+      headings: {
+        font: 'Latin Modern Roman',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.9,
+        numbering: 'decimal',
+        // \section \Large (14.4pt), \subsection \large (12pt), \subsubsection \normalsize.
+        levels: { h1: { size: 1.31 }, h2: { size: 1.09 }, h3: { size: 1 } }
+      },
+      color: { brand: '#1f3a6e', secondary: '#555555' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // \pagestyle{headings}: section left, page right, over a hairline; nothing at the foot.
+      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      // Listings: Latin Modern Mono at \small, no colour, a light tint and an accent rule.
+      code: { theme: 'none', fontSize: 9.5, font: 'Latin Modern Mono', background: 'tint', frame: 'rule', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      mermaid: { theme: 'document' },
+      // Theorems in the accent; remarks and intuition in grey; pitfalls
+      // dark amber / red — all distinct grey values in black-and-white print.
+      alerts: {
+        note: '#555555',
+        tip: '#555555',
+        important: '#1f3a6e',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // \LARGE (17.28pt) bold title, left-aligned; course as the subtitle, lecturer + date.
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.57, subtitleSize: 1 },
+      customCss: LECTURE_NOTES_TEMPLATE_CSS
     }
   },
 

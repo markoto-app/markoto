@@ -1055,6 +1055,10 @@
         "name": "Artículo de congreso IEEE",
         "description": "La plantilla de congresos del IEEE (IEEEtran): tamaño US Letter, dos columnas en Times 10 pt, secciones centradas en versalitas con números romanos, subsecciones en cursiva, título de 24 pt sobre bloques de autores uno al lado del otro y el resumen en negrita al comienzo de la primera columna."
       },
+      "lecture-notes": {
+        "name": "Apuntes de clase",
+        "description": "Apuntes y material de curso en la tradición LaTeX: texto en Latin Modern a juego con las fórmulas, un margen amplio para anotaciones, secciones numeradas, teoremas y observaciones como entornos enmarcados, listas de definiciones, ejercicios con apartados (a)/(b) y un bloque de título compacto con curso, docente y fecha."
+      },
       "thesis": {
         "name": "Tesis",
         "description": "Trabajos académicos extensos en la tradición de la clase report de LaTeX: A4, Latin Modern 11 pt justificado con sangría de párrafo, márgenes amplios, cada capítulo en una página nueva bajo un número grande, secciones numeradas 1.1 / 1.1.1, portada clásica, título del capítulo y número de página en el encabezado, tablas de estilo booktabs y bibliografía con sangría francesa."
