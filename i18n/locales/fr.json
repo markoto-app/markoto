@@ -1063,6 +1063,10 @@
         "name": "Documentation technique",
         "description": "Documentation développeur imprimée : texte courant à empattements et titres sans empattements, sections numérotées aux numéros en marge, blocs de code clairs et encadrés sur toute la largeur, tableaux de référence à filets fins, encadrés d’avertissement discrets, bloc de titre avec sommaire en page 1."
       },
+      "design-doc": {
+        "name": "Document de conception / RFC",
+        "description": "Documents de conception, RFC et registres de décisions : IBM Plex Sans dans une colonne de lecture confortable avec une marge pour les annotations de relecture, sections numérotées pour les commentaires, en-tête de document avec statut, décisions sur un filet d’accent, tableaux comparatifs faciles à parcourir, titre et section courante en titre courant."
+      },
       "business-report": {
         "name": "Rapport d'entreprise",
         "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
