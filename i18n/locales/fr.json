@@ -1083,6 +1083,10 @@
         "name": "Roman",
         "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."
       },
+      "essay": {
+        "name": "Essai universitaire (APA)",
+        "description": "Le travail étudiant selon l’APA 7 : US Letter, Times 12 pt en double interligne aligné à gauche, alinéas de 0,5 pouce, page de titre avec auteur, cours, enseignant et date, numéro de page en haut à droite, titres gras centrés, citations longues en retrait, références sur une nouvelle page avec retrait suspendu."
+      },
       "newsletter": {
         "name": "Newsletter",
         "description": "Corps Karla sous titres PT Serif, accent vert, en-têtes de tableau colorés — style digest hebdomadaire."

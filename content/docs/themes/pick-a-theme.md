@@ -62,6 +62,10 @@ The built-in presets cover most use cases:
   quotes and a quiet footer rule.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
+- **Academic essay (APA)** — the APA 7 student paper: Times 12 pt
+  double-spaced, a title page with your name, course, instructor and
+  date, the page number top right, centred bold headings and the
+  references on a new page with hanging indents.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
 - **Resume** — one dense page: Inter at 10 pt, small headings with

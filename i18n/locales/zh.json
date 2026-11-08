@@ -1083,6 +1083,10 @@
         "name": "小说",
         "description": "Crimson Text 衬线字体，适合长文阅读。无代码块、纯净引用块，仅在页脚显示页码。"
       },
+      "essay": {
+        "name": "学术论文（APA）",
+        "description": "APA 第 7 版学生论文格式：US Letter，Times 12 pt 双倍行距左对齐，段落首行缩进 0.5 英寸，含作者、课程、授课教师和日期的扉页，页码位于右上角，居中加粗标题，缩进的整段引文，参考文献另起一页并采用悬挂缩进。"
+      },
       "newsletter": {
         "name": "简报",
         "description": "Karla 正文置于 PT Serif 标题之下、绿色点缀、品牌色表头 — 周报式质感。"

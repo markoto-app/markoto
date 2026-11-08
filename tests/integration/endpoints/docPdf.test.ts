@@ -605,6 +605,46 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
+    // The APA essay preset end to end: a title page (template CSS
+    // `break-after: page` on the title block), References on a new page,
+    // US Letter, Termes embedded as a real font in regular, bold and italic.
+    it('renders the essay fixture as an APA student paper on Letter pages with Termes embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: 'Who Owns the Shoreline? Public Access and Private Property on Alpine Lakes' })
+      const essay = THEME_PRESETS.find(p => p.id === 'essay')?.theme
+      if (!essay) throw new Error('essay preset missing')
+      expect(essay.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/essay-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...essay, cover: { ...essay.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/essay.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview + local server PDF: 6 pages (title page, four of text, References).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(5)
+      expect(Number(pageCount)).toBeLessThanOrEqual(7)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // US Letter: 612 × 792 pt.
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+612(?:\.0+)?\s+792(?:\.0+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const termes = fonts.filter(f => /TeXGyreTermes/.test(f.name))
+      expect(termes.length, summary).toBeGreaterThan(0)
+      expect(new Set(termes.map(f => f.name.replace(/^[A-Z]{6}\+/, ''))).size, summary).toBeGreaterThanOrEqual(3)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
     // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
     // (the renderer allows no CDN host any more). Chromium embeds the font
     // files it actually used, by name: had a web font failed to load, the
