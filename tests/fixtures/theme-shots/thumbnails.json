@@ -6,6 +6,7 @@
   "ieee-conference": {"md": "conference-paper.md", "title": "Tidewater: Energy-Proportional Batching for Edge Inference Servers", "patch": "conference-paper-patch.json"},
   "thesis": {"md": "thesis-chapter.md", "title": "Learning sparse sensor placements for urban flood forecasting", "patch": "thesis-chapter-patch.json"},
   "tech-docs": {"md": "tech-docs.md", "title": "Ferrule 3 — Developer Guide", "patch": "tech-docs-patch.json"},
+  "api-reference": {"md": "api-reference.md", "title": "Larkspur Payments API v2 — Reference", "patch": "api-reference-patch.json"},
   "design-doc": {"md": "design-doc.md", "title": "RFC 0042: Regional failover for the payments ledger", "patch": "design-doc-patch.json"},
   "business-report": {"md": "business-report.md", "title": "Halden Outdoor AG — Q3 2026 Quarterly Report", "patch": "business-report-patch.json"},
   "novel": {"md": "manuscript.md", "title": "The Salt Ledger", "patch": "manuscript-patch.json"},
