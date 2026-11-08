@@ -4,7 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Pick a theme that fits your document
@@ -69,6 +69,11 @@ The built-in presets cover most use cases:
 - **Client proposal** — a proposal you send to a client: a cover
   panel, numbered sections, a timeline, pricing tables with subtotal,
   VAT and total, and a signature block at the end.
+- **One-pager** — a product or project fact sheet that fits on one
+  page: a title block under an orange bar, the pitch as a bold first
+  paragraph, section labels in a left column, a compact key-facts
+  table and a filled *Important* callout. Start with a bold paragraph
+  to get the large lead.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
 - **Academic essay (APA)** — the APA 7 student paper: Times 12 pt

@@ -1079,6 +1079,10 @@
         "name": "Rapport d'entreprise",
         "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
       },
+      "one-pager": {
+        "name": "Fiche synthétique",
+        "description": "Une fiche produit ou projet sur une seule page A4 : un bloc de titre sous une barre d’accent épaisse, l’argumentaire en chapeau gras, les titres de section dans une colonne de gauche, un tableau de chiffres clés compact et un encadré plein. DM Sans avec un seul accent orange."
+      },
       "proposal": {
         "name": "Proposition commerciale",
         "description": "Propositions et devis d'agences, de consultants et d'indépendants : titres Lora sur Work Sans, un accent rouille chaleureux, un grand panneau de couverture, des tableaux de prix comme sur une facture avec un total doublement souligné, des sections numérotées et un bloc de signature (une ligne de tableau aux cellules vides devient une ligne où vous signez)."
