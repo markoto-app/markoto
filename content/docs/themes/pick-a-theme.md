@@ -62,9 +62,7 @@ The built-in presets cover most use cases:
   quotes and a quiet footer rule.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
-- **Newsletter** — two-column Karla over PT Serif, green accent,
-  weekly-digest density.
-- **Bulletin** — a newsletter to print or send as a PDF: a bold
+- **Newsletter** — a newsletter to print or send as a PDF: a bold
   masthead with the issue line, headlines and captioned photos across
   the page over two columns of text, pull quotes, a terracotta accent.
 - **Resume** — one dense page: Inter at 10 pt, small headings with

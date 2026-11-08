@@ -605,18 +605,18 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
-    // The bulletin (newsletter) preset end to end: two balanced columns with
+    // The newsletter preset end to end: two balanced columns with
     // full-width headlines, photos and the events table (template CSS
     // `column-span: all`), A4, Fraunces + Source Sans 3 embedded as real fonts.
-    it('renders the newsletter fixture in the bulletin preset on 2–4 A4 pages', async () => {
+    it('renders the newsletter fixture in the newsletter preset on 2–4 A4 pages', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const bulletin = THEME_PRESETS.find(p => p.id === 'bulletin')?.theme
-      if (!bulletin) throw new Error('bulletin preset missing')
-      expect(bulletin.customCss).toBeTruthy()
-      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/bulletin-patch.json', import.meta.url))), 'utf8'))
+      const newsletter = THEME_PRESETS.find(p => p.id === 'newsletter')?.theme
+      if (!newsletter) throw new Error('newsletter preset missing')
+      expect(newsletter.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/newsletter-patch.json', import.meta.url))), 'utf8'))
       const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
-      const theme = { ...bulletin, cover: { ...bulletin.cover, ...cover } }
+      const theme = { ...newsletter, cover: { ...newsletter.cover, ...cover } }
       await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/newsletter.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)

@@ -350,13 +350,13 @@ const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.c
 `
 
 /**
- * BULLETIN_TEMPLATE_CSS — the newsletter look beyond theme fields: a
+ * NEWSLETTER_TEMPLATE_CSS — the newsletter look beyond theme fields: a
  * masthead (title block + the issue line under it), article headlines and
  * captioned photos across both columns, a pull quote, a diary-style events
  * table and friendlier callouts. Ordinary custom CSS
  * (tests/unit/themePresetCss.test.ts).
  */
-const BULLETIN_TEMPLATE_CSS = `/* Newsletter template: two columns of text under full-width headlines and photos. */
+const NEWSLETTER_TEMPLATE_CSS = `/* Newsletter template: two columns of text under full-width headlines and photos. */
 /* Balance the columns of every run of text, also the last one on a page (the engine's column-fill: auto fills the left column first, which left a short article's right column empty); a run that continues on the next page still fills its page. */
 .paged-doc { column-fill: balance; }
 /* Masthead: an accent bar over the publication name, set large and tight; subtitle and date as a small sans line under a firm rule. */
@@ -887,49 +887,15 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Newsletter: 2-column layout, smaller body for density, sans body
-  // (Karla) under serif headings (PT Serif), green accent, brand-color
-  // table headers + zebra. Showcases the multi-column flow.
-  {
-    id: 'newsletter',
-    category: 'writing',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 22 },
-      meta: { font: 'PT Serif' },
-      body: { font: 'Karla', size: 10, lineHeight: 1.45, textAlign: 'justify', color: '#18181b', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
-      headings: { font: 'PT Serif', scale: 1.22, weight: 700, underline: false, color: '#047857', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
-      color: { brand: '#047857', secondary: '#a1a1aa' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Newsletter — bright, friendly admonition palette to match the
-      // weekly-digest feel. Slightly more saturated than the reports.
-      alerts: {
-        note: '#0284c7',
-        tip: '#16a34a',
-        important: '#9333ea',
-        warning: '#d97706',
-        caution: '#dc2626'
-      },
-      toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
-    }
-  },
-
-  // — Bulletin: a modern community / company newsletter for print and
+  // — Newsletter: a modern community / company newsletter for print and
   // PDF. A4 with narrow margins, two columns of Source Sans 3 at
   // 9.5/14 under full-width Fraunces headlines (strong but friendly),
   // captioned photos across both columns, a masthead built from the
   // title block, one warm accent (terracotta) for bars, kickers, the
   // pull quote and links on dark-ink text. Template CSS:
-  // BULLETIN_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/newsletter.md.
+  // NEWSLETTER_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/newsletter.md.
   {
-    id: 'bulletin',
+    id: 'newsletter',
     category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 15 },
@@ -967,7 +933,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 800, showLogo: false, align: 'left', titleSize: 4, subtitleSize: 1 },
-      customCss: BULLETIN_TEMPLATE_CSS
+      customCss: NEWSLETTER_TEMPLATE_CSS
     }
   },
 

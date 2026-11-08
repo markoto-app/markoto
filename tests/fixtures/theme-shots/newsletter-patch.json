@@ -1,15 +1,7 @@
 {
   "cover": {
-    "enabled": true,
-    "layout": "title-block",
     "showSubtitle": true,
     "subtitle": "Neighbourhood newsletter of Lindenhof",
-    "showAuthors": false,
-    "authors": [],
-    "showDate": false,
-    "rules": true,
-    "smallCaps": false,
-    "titleSize": 2.6,
-    "subtitleSize": 1.1
+    "showDate": false
   }
 }

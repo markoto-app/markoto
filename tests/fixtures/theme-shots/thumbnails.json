@@ -10,6 +10,5 @@
   "business-report": {"md": "business-report.md", "title": "Halden Outdoor AG — Q3 2026 Quarterly Report", "patch": "business-report-patch.json"},
   "novel": {"md": "manuscript.md", "title": "The Salt Ledger", "patch": "manuscript-patch.json"},
   "newsletter": {"md": "newsletter.md", "title": "The Commons", "patch": "newsletter-patch.json"},
-  "bulletin": {"md": "newsletter.md", "title": "The Commons", "patch": "bulletin-patch.json"},
   "resume": {"md": "../../../shared/templates/content/resume/en.md", "title": "Alex Morgan — Resume"}
 }
