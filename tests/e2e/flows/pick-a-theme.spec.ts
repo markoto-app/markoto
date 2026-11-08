@@ -59,7 +59,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'theme tab', selector: '[data-testid="mobile-tab-bar"] button[aria-label="Theme"]', kind: 'arrow' }
         ],
-        result: 'The theme panel slides up: ten presets at the top, all settings below.',
+        result: 'The theme panel slides up: the presets at the top, all settings below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
@@ -76,7 +76,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'theme tab', selector: 'button[aria-label*="theme" i]', kind: 'arrow' }
         ],
-        result: 'The theme panel opens: ten built-in presets at the top, all settings below.',
+        result: 'The theme panel opens: the built-in presets at the top, all settings below.',
         after: () => editor.page.theme.preset('markoto').waitFor({ state: 'visible' }),
         highlights: [
           { label: 'Built-in presets', selector: '[data-testid="theme-preset-markoto"]' }
