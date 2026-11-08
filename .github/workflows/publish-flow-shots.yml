@@ -1,0 +1,124 @@
+# Publish the docs screenshots from a release run.
+#
+# Every release run (release.yml) records the whole flow suite and uploads
+# its manifests + screenshots as the `flow-output` artifact — also when a
+# few flows failed: scripts/build-flows.ts republishes only variants with a
+# `.passed` sentinel, a failed variant keeps its previously published
+# frames. This workflow turns that artifact into a PR that refreshes
+# `public/flows/`, so the docs site always shows the released app without
+# anyone copying screenshots by hand. main stays PR-only: the change goes
+# through the normal PR gate (label `release:none`, merged by a human or
+# the release operator).
+#
+# Runs after every release run (any conclusion — a run that skipped its
+# flow job has no artifact and ends here as a no-op) or by hand with a
+# release run id.
+
+name: publish-flow-shots
+
+on:
+  workflow_run:
+    workflows: [release]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'release.yml run id whose flow-output to publish'
+        required: true
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: publish-flow-shots
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: open a screenshots PR
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion != 'cancelled'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # RELEASE_BOT_TOKEN (main-only Environment) pushes the branch and opens
+    # the PR: a PR opened with GITHUB_TOKEN would not trigger ci.yml, so its
+    # required checks would never report.
+    environment: release
+    permissions:
+      actions: read # download the artifact of the triggering run
+    env:
+      RUN_ID: ${{ github.event.inputs.run_id || github.event.workflow_run.id }}
+    steps:
+      - name: Find the flow-output artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          count=$(gh api "/repos/${REPO}/actions/runs/${RUN_ID}/artifacts" \
+            --jq '[.artifacts[] | select(.name == "flow-output" and .expired == false)] | length')
+          echo "flow-output artifacts on run ${RUN_ID}: ${count}"
+          echo "found=$([ "$count" -gt 0 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        if: steps.artifact.outputs.found == 'true'
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download flow output
+        if: steps.artifact.outputs.found == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: flow-output
+          path: tests/e2e/output/flows
+          run-id: ${{ env.RUN_ID }}
+          github-token: ${{ github.token }}
+
+      - name: Setup Bun
+        if: steps.artifact.outputs.found == 'true'
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.4.4
+
+      # build-flows.ts only needs node built-ins + a shared helper; no
+      # `bun install`, so no dependency code runs next to the bot token.
+      - name: Rebuild public/flows
+        if: steps.artifact.outputs.found == 'true'
+        run: bun scripts/build-flows.ts
+
+      - name: Open the PR
+        if: steps.artifact.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GH_TOKEN:-}" ]; then
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
+            exit 1
+          fi
+          if [ -z "$(git status --porcelain -- public/flows)" ]; then
+            echo "public/flows is unchanged — nothing to publish."
+            exit 0
+          fi
+          version=$(git tag --list 'v*' --sort=-v:refname | head -1)
+          branch="docs/flow-shots-${version:-run-${RUN_ID}}"
+          git config user.name "markoto release bot"
+          git config user.email "release-bot@users.noreply.github.com"
+          git switch -c "$branch"
+          git add public/flows
+          git commit -q -m "docs: publish the ${version} flow screenshots" \
+            -m "From release run ${RUN_ID} (flow-output artifact, scripts/build-flows.ts)."
+          git push -q --force "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git" "HEAD:refs/heads/${branch}"
+          if gh pr view "$branch" --repo "$REPO" --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            echo "PR for ${branch} already open — branch updated."
+            exit 0
+          fi
+          gh pr create --repo "$REPO" --base main --head "$branch" \
+            --title "docs: publish the ${version} flow screenshots" \
+            --label release:none \
+            --body "Refreshes \`public/flows/\` (the screenshots and manifests the docs embed) from the flow-output artifact of release run [${RUN_ID}](${GITHUB_SERVER_URL}/${REPO}/actions/runs/${RUN_ID}). Variants whose flow failed in that run keep their previous frames (\`scripts/build-flows.ts\` only republishes passed variants).
+
+          Opened by \`.github/workflows/publish-flow-shots.yml\`."
