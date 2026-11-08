@@ -1074,6 +1074,10 @@
       "resume": {
         "name": "Currículum",
         "description": "Una página A4 densa: Inter a 10 pt, títulos pequeños con línea, sin encabezado, pie ni portada."
+      },
+      "runbook": {
+        "name": "Runbook de guardia",
+        "description": "Para la persona de guardia, en pantalla o impreso: sans serif y monoespaciada robustas, secciones numeradas con la sección en el encabezado, pasos numerados en blanco sobre negro, comandos enmarcados y fáciles de copiar, listas de control con casillas reales, tablas con cabecera negra, avisos que se distinguen también en escala de grises."
       }
     },
     "customCss": {

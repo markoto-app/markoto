@@ -1074,6 +1074,10 @@
       "resume": {
         "name": "Lebenslauf",
         "description": "Eine dichte A4-Seite: Inter in 10 pt, kleine Überschriften mit Linie, ohne Kopf, Fuss und Titelseite."
+      },
+      "runbook": {
+        "name": "Bereitschafts-Runbook",
+        "description": "Für die Person im Bereitschaftsdienst, am Bildschirm oder gedruckt: robuste Grotesk- und Monospace-Schrift, nummerierte Abschnitte mit dem Abschnitt im Kolumnentitel, Arbeitsschritte weiss auf schwarz nummeriert, gerahmte, kopierbare Befehle, Checklisten mit echten Kästchen, Tabellen mit schwarzer Kopfzeile, Hinweise, die auch in Graustufen auffallen."
       }
     },
     "customCss": {
