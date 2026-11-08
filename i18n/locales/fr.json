@@ -1055,6 +1055,10 @@
         "name": "Article de conférence IEEE",
         "description": "Le modèle de conférence IEEE (IEEEtran) : format US Letter, deux colonnes en Times 10 pt, sections centrées en petites capitales avec chiffres romains, sous-sections en italique, titre en 24 pt au-dessus des blocs d’auteurs côte à côte, résumé en gras au début de la première colonne."
       },
+      "lecture-notes": {
+        "name": "Notes de cours",
+        "description": "Polycopiés et notes de cours dans la tradition LaTeX : texte en Latin Modern assorti aux formules, une large marge pour vos annotations, sections numérotées, théorèmes et remarques en environnements encadrés, listes de définitions, exercices avec questions (a)/(b), un bloc de titre compact avec cours, enseignant et date."
+      },
       "thesis": {
         "name": "Thèse",
         "description": "Les longs travaux universitaires dans la tradition de la classe LaTeX report : A4, Latin Modern 11 pt justifié avec alinéas, marges généreuses, chaque chapitre sur une nouvelle page sous un grand numéro, sections numérotées 1.1 / 1.1.1, page de titre classique, titre du chapitre et numéro de page en en-tête, tableaux de style booktabs, bibliographie avec retrait suspendu."
@@ -1062,6 +1066,10 @@
       "tech-docs": {
         "name": "Documentation technique",
         "description": "Documentation développeur imprimée : texte courant à empattements et titres sans empattements, sections numérotées aux numéros en marge, blocs de code clairs et encadrés sur toute la largeur, tableaux de référence à filets fins, encadrés d’avertissement discrets, bloc de titre avec sommaire en page 1."
+      },
+      "api-reference": {
+        "name": "Référence d’API",
+        "description": "Référence imprimée d’une API HTTP : texte sans empattements et identifiants en chasse fixe, méthode et chemin de chaque point de terminaison sur un bandeau coloré (à écrire comme bloc de code http), tableaux de paramètres denses, exemples JSON compacts, codes de statut marqués par classe, la ressource courante en titre courant."
       },
       "design-doc": {
         "name": "Document de conception / RFC",
@@ -1071,9 +1079,29 @@
         "name": "Rapport d'entreprise",
         "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
       },
+      "one-pager": {
+        "name": "Fiche synthétique",
+        "description": "Une fiche produit ou projet sur une seule page A4 : un bloc de titre sous une barre d’accent épaisse, l’argumentaire en chapeau gras, les titres de section dans une colonne de gauche, un tableau de chiffres clés compact et un encadré plein. DM Sans avec un seul accent orange."
+      },
+      "proposal": {
+        "name": "Proposition commerciale",
+        "description": "Propositions et devis d'agences, de consultants et d'indépendants : titres Lora sur Work Sans, un accent rouille chaleureux, un grand panneau de couverture, des tableaux de prix comme sur une facture avec un total doublement souligné, des sections numérotées et un bloc de signature (une ligne de tableau aux cellules vides devient une ligne où vous signez)."
+      },
+      "memo": {
+        "name": "Mémo / lettre",
+        "description": "Mémos internes et lettres professionnelles d'une ou deux pages à imprimer, signer ou joindre : grille de lettre suisse avec les mentions À / De / Date / Objet et les intertitres dans une colonne de marge, texte en Inter, tableaux sobres à filets fins, place pour la signature, numéros de page dès la page 2."
+      },
       "novel": {
         "name": "Roman",
         "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."
+      },
+      "manuscript": {
+        "name": "Livre (fiction)",
+        "description": "L'intérieur d'un roman composé : A5, EB Garamond 11 pt justifié avec alinéas, chaque chapitre sur une nouvelle page sous son numéro, changements de scène marqués par trois astérisques, le titre du livre en titre courant, une page de titre classique et une page d'épigraphe."
+      },
+      "essay": {
+        "name": "Essai universitaire (APA)",
+        "description": "Le travail étudiant selon l’APA 7 : US Letter, Times 12 pt en double interligne aligné à gauche, alinéas de 0,5 pouce, page de titre avec auteur, cours, enseignant et date, numéro de page en haut à droite, titres gras centrés, citations longues en retrait, références sur une nouvelle page avec retrait suspendu."
       },
       "newsletter": {
         "name": "Newsletter",
@@ -1082,6 +1110,10 @@
       "resume": {
         "name": "CV",
         "description": "Une page A4 dense : Inter en 10 pt, petits titres soulignés, sans en-tête, pied de page ni couverture."
+      },
+      "runbook": {
+        "name": "Runbook d’astreinte",
+        "description": "Pour la personne d’astreinte, à l’écran ou imprimé : linéale et police à chasse fixe robustes, sections numérotées avec la section dans le titre courant, étapes numérotées en blanc sur noir, commandes encadrées et faciles à copier, listes de contrôle avec de vraies cases, tableaux à en-tête noir, alertes qui restent visibles en niveaux de gris."
       }
     },
     "customCss": {

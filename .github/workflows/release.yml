@@ -444,7 +444,12 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.test.yml --profile flows down -v
 
+      # Uploaded even when some flows failed: build-flows.ts republishes
+      # only variants with a `.passed` sentinel, so publish-flow-shots.yml
+      # can still refresh every flow that passed (a failed one keeps its
+      # previous frames). create-release still needs the whole job green.
       - name: Upload flow output (manifests + images)
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: flow-output
@@ -455,7 +460,7 @@ jobs:
           include-hidden-files: true
           retention-days: 30
 
-      # On failure, the flow-output step above never runs and the Playwright
+      # On failure the Playwright
       # error contexts (test-results/) used to vanish with the runner —
       # debugging the July-11 polished-pdf hang required a full local
       # reproduction because of exactly this gap. Ship them always.

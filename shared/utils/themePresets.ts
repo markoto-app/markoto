@@ -287,6 +287,56 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 `
 
 /**
+ * RUNBOOK_TEMPLATE_CSS — what the on-call runbook look needs beyond theme
+ * fields. A runbook is read under stress (3 a.m., second screen, a
+ * printout): every rule here is about finding the next step and the next
+ * command fast, and about surviving greyscale printing. Ordinary custom
+ * CSS (tests/unit/themePresetCss.test.ts).
+ */
+const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before elegant. */
+/* Measure: prose and list text stop short of the right edge (~80 characters); commands and tables keep the full width. */
+.paged-doc { --rb-overhang: 22mm; }
+.paged-doc > p, .paged-doc > .markdown-alert, .paged-doc > blockquote { margin-right: var(--rb-overhang); }
+.paged-doc > ol > li, .paged-doc > ul > li { padding-right: var(--rb-overhang); }
+.paged-doc > ol > li > pre, .paged-doc > ol > li > .code-block, .paged-doc > ul > li > pre, .paged-doc > ul > li > .code-block { margin-right: calc(-1 * var(--rb-overhang)); }
+/* Procedure steps: the number white on black in the left gutter, easy to find again after typing a command. */
+.paged-doc > ol { padding-left: 2.2em; list-style: none; }
+.paged-doc > ol > li { position: relative; margin: 0.5em 0; }
+.paged-doc > ol > li::before { content: counter(list-item); position: absolute; left: -2.2em; top: -0.02em; min-width: 1.55em; padding: 0 0.15em; box-sizing: border-box; line-height: 1.4em; font-weight: 700; font-variant-numeric: tabular-nums; text-align: center; color: var(--doc-bg); background: var(--doc-heading-color); border-radius: 2pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Checklists: real boxes with a firm outline (an unticked box must print), a filled box with a tick when done. Wrapped text hangs after the box. */
+.paged-doc li.task-list-item { margin-left: -1.4em; padding-left: 1.4em; text-indent: -1.4em; }
+.paged-doc li.task-list-item > * { text-indent: 0; }
+.paged-doc li.task-list-item input[type="checkbox"] { appearance: none; -webkit-appearance: none; position: relative; width: 0.9em; height: 0.9em; margin: 0 0.3em 0 0; vertical-align: -0.13em; border: 1.1pt solid var(--doc-text); border-radius: 1.5pt; background: var(--doc-bg); text-indent: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* A ticked box is crossed, as on a paper checklist (a checkbox draws no ::after in Chromium, so the cross is two gradients). */
+.paged-doc li.task-list-item input[type="checkbox"]:checked { background: linear-gradient(45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), var(--doc-bg); }
+/* Code: no programming ligatures — a runbook command must print exactly what is typed (JetBrains Mono turns |= into a turnstile). */
+.paged-doc code, .paged-doc pre { font-variant-ligatures: none; font-feature-settings: "calt" 0; }
+/* Inline commands: framed, not just tinted, so they stand apart from prose in greyscale; a wrapped command keeps its frame on both lines. */
+.paged-doc :not(pre) > code { font-size: 0.84em; padding: 0.02em 0.25em; border: 0.5pt solid color-mix(in srgb, var(--doc-text) 40%, transparent); border-radius: 1.5pt; background: color-mix(in srgb, var(--doc-text) 5%, transparent); overflow-wrap: break-word; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+/* Shell blocks: compact leading; a wrapped line continues 4 columns in, so it can't be mistaken for a new command. */
+.paged-doc pre { line-height: 1.35; margin: 0.6em 0; padding-top: 0.55em; padding-bottom: 0.55em; }
+.paged-doc pre .code-line { min-height: 1.35em; padding-left: 4ch; text-indent: -4ch; }
+/* A step is not split across pages: its command stays with the sentence that introduces it. */
+.paged-doc > ol > li { break-inside: avoid; }
+/* Sections open under a heavy rule across the full width: a printout shows where a section starts from arm's length. */
+.paged-doc h1:not(.markoto-cover-title):not(.markoto-abstract-heading) { border-top: 2pt solid var(--doc-heading-color); padding-top: 4pt; }
+/* Procedures (h2) sit on a grey band, the strongest landmark after a section. */
+.paged-doc h2 { background: color-mix(in srgb, var(--doc-text) 9%, transparent); padding: 2.5pt 6pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 0.6em; }
+/* Tables are looked up, not read: a step smaller, tabular figures, the first column (level, area, task) in bold as the row label. */
+.paged-doc table { font-size: 0.9em; line-height: 1.25; font-variant-numeric: tabular-nums; margin: 0.7em 0; }
+.paged-doc th { text-align: left; vertical-align: bottom; }
+.paged-doc td { vertical-align: top; hyphens: manual; }
+.paged-doc tbody td:first-child { font-weight: 700; }
+.paged-doc td code { background: none; border: 0; padding: 0; }
+/* Alerts: a hairline frame plus the coloured bar, and the kind as a dark label chip, so WARNING / CAUTION read in greyscale. */
+.paged-doc .markdown-alert { border-radius: 0; border-top: 0.75pt solid var(--doc-text); border-right: 0.75pt solid var(--doc-text); border-bottom: 0.75pt solid var(--doc-text); border-left-width: 5pt; padding: 0.5em 0.8em; margin: 0.8em 0; }
+.paged-doc .markdown-alert-title { display: inline-block; padding: 0.05em 0.45em; background: currentColor; -webkit-text-fill-color: var(--doc-bg); font-weight: 700; font-size: 0.8em; letter-spacing: 0.06em; margin-bottom: 0.35em; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+/* Links are cross-references to other procedures: ink, with a quiet underline. */
+.paged-doc a { color: inherit; text-decoration-thickness: 0.5pt; text-underline-offset: 0.15em; }
+`
+
+/**
  * THESIS_TEMPLATE_CSS — the long-form academic look (Bachelor / Master /
  * PhD theses, long reports) beyond theme fields. Genre reference: LaTeX
  * `report` / `book` (report.cls, LPPL) as most university thesis classes
@@ -347,6 +397,351 @@ const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.c
 .pagedjs_pages abbr { text-decoration: none; }
 /* hyperref: links print as plain text. */
 .paged-doc a { text-decoration: none; color: inherit; }
+`
+
+/**
+ * API_REFERENCE_TEMPLATE_CSS — what the "API reference" look needs beyond
+ * theme fields: a prose measure narrower than the tables and code, resource
+ * openers, endpoint lines (```http fences) as a findable band, small-caps
+ * style section labels, status-code headings coloured by class, and dense
+ * parameter tables with the parameter name in mono. Ordinary custom CSS
+ * (tests/unit/themePresetCss.test.ts).
+ */
+const API_REFERENCE_TEMPLATE_CSS = `/* API reference template. Lookup material: sans text, mono identifiers, every endpoint a findable unit. */
+/* Prose keeps a ~75-character measure; tables, code and endpoint lines use the full text width. */
+.paged-doc > p, .paged-doc > ul, .paged-doc > ol, .paged-doc > blockquote, .paged-doc > .markdown-alert { max-width: 128mm; }
+/* Resources (h1) open under a firm rule across the full width, so a new resource is visible from across the page. */
+.paged-doc h1:not(.markoto-cover-title) { border-top: 1.5pt solid var(--doc-heading-color); padding-top: 5pt; }
+/* Endpoint line: an http code fence holding "POST /payments" prints as a tinted band with an accent edge; the method stands a little apart from the path. */
+.paged-doc pre:has(> code.language-http) { background: color-mix(in srgb, var(--doc-accent) 7%, transparent); border: 0; border-left: 2.5pt solid var(--doc-accent); border-radius: 0; padding: 4pt 8pt; font-size: 9pt; font-weight: 600; word-spacing: 0.45em; color: var(--doc-heading-color); }
+.paged-doc pre > code.language-http { font-weight: 600; }
+/* Section labels inside an endpoint (Parameters, Request, Response): small, spaced capitals over a hairline. */
+.paged-doc h3 { text-transform: uppercase; letter-spacing: 0.08em; color: var(--doc-secondary); padding-bottom: 2pt; border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 45%, transparent); }
+/* Status headings (200 OK, 402 Payment Required) in mono, with a mark coloured by status class (from the heading id, "h-200-ok"); the code itself carries the meaning in greyscale. */
+.paged-doc h4 { font-family: var(--doc-mono-font); }
+.paged-doc h4[id^="h-2"]::before, .paged-doc h4[id^="h-4"]::before, .paged-doc h4[id^="h-5"]::before { content: ""; display: inline-block; width: 0.55em; height: 0.55em; margin-right: 0.45em; border-radius: 50%; vertical-align: 0.05em; }
+.paged-doc h4[id^="h-2"]::before { background: #2f7d4a; }
+.paged-doc h4[id^="h-4"]::before { background: #b26a00; }
+.paged-doc h4[id^="h-5"]::before { background: #b42a2a; }
+/* Inline code: a faint tint, tight padding; plain inside headings. */
+.paged-doc :not(pre) > code { font-size: 0.88em; padding: 0.05em 0.25em; border-radius: 1.5pt; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }
+.paged-doc h1 code, .paged-doc h2 code, .paged-doc h3 code, .paged-doc h4 code { background: none; padding: 0; font-size: 0.92em; }
+/* Code blocks: compact leading for JSON; a wrapped line continues 4 columns in. */
+.paged-doc pre { line-height: 1.35; }
+.paged-doc pre .code-line { padding-left: 4ch; text-indent: -4ch; }
+/* Reference tables: a step smaller, tabular figures, top-aligned cells, hairline rows. */
+.paged-doc table { font-size: 0.92em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.paged-doc th, .paged-doc td { vertical-align: top; hyphens: manual; }
+.paged-doc thead th { font-weight: 600; text-align: left; }
+.paged-doc td code, .paged-doc th code { background: none; padding: 0; font-size: 0.92em; }
+/* Identifiers never break inside (the engine's "anywhere" split "invalid_re / quest"); a cell breaks between them. */
+.paged-doc td code { white-space: nowrap; }
+/* The first column names the thing (parameter, field, key prefix): mono, medium weight, heading ink. */
+.paged-doc td:first-child code { font-weight: 500; color: var(--doc-heading-color); }
+/* Rules: a firm one under the header, hairlines between rows, a closing rule. */
+.paged-doc thead tr { border-bottom: 0.75pt solid var(--doc-text); }
+.paged-doc tbody tr { border-bottom: 0.4pt solid color-mix(in srgb, var(--doc-secondary) 40%, transparent); }
+.paged-doc tbody tr:last-child { border-bottom: 0.75pt solid var(--doc-text); }
+/* Admonitions: square, a thin rule, the title in spaced capitals. */
+.paged-doc .markdown-alert { border-left-width: 2.5pt; border-radius: 0; padding: 0.45em 0.9em; }
+.paged-doc .markdown-alert-title { font-size: 0.82em; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 0.2em; }
+/* Contents: resources semibold, endpoints regular under them. */
+.paged-doc .table-of-contents > ul > li > a { font-weight: 600; }
+/* Links are cross-references: accent, no underline. */
+.paged-doc a { text-decoration: none; }
+/* Running head: the resource the page is in, in the heading weight. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-weight: 600; }
+`
+
+/**
+ * LECTURE_NOTES_TEMPLATE_CSS — what the lecture-notes handout needs beyond
+ * theme fields (reference: LaTeX `article` 11pt + amsthm, typeset as
+ * handouts are: a compact title block, theorem environments, a wide
+ * annotation margin). The fixture convention it styles: IMPORTANT alerts
+ * are theorems, NOTE alerts remarks, TIP intuition, WARNING / CAUTION
+ * pitfalls; a bold run-in label ("**Theorem 7.3 (linearity).**") names
+ * the environment. Ordinary custom CSS (tests/unit/themePresetCss.test.ts).
+ */
+const LECTURE_NOTES_TEMPLATE_CSS = `/* Lecture notes / course handout (LaTeX article 11pt + amsthm). */
+/* Title block = a handout's \\maketitle: course line in small caps over the title, lecturer left and date right on one line, closed by a rule. */
+.paged-doc .markoto-title-block { display: grid; grid-template-columns: 1fr auto; column-gap: 1em; padding-bottom: 5pt; border-bottom: 0.6pt solid; margin-bottom: 6pt; }
+.paged-doc .markoto-title-block > * { grid-column: 1 / -1; }
+.paged-doc .markoto-title-block .markoto-cover-subtitle { grid-row: 1; margin: 0 0 4pt; font-style: normal; font-variant-caps: all-small-caps; letter-spacing: 0.06em; }
+.paged-doc .markoto-title-block .markoto-cover-title { grid-row: 2; margin: 0 0 8pt; line-height: 1.15; }
+.paged-doc .markoto-title-block .markoto-cover-authors { grid-row: 3; grid-column: 1; margin: 0; }
+.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; }
+.paged-doc .markoto-title-block .markoto-cover-date { grid-row: 3; grid-column: 2; align-self: end; margin: 0; }
+/* \\@startsection: the section number, then a quad. */
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 1em; }
+/* Running head (\\pagestyle{headings}): the current section in italics left, the page number right. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-style: italic; }
+/* KaTeX sets math in Computer Modern, the body is Latin Modern (the same design): no size step between inline math and text. */
+.paged-doc .katex { font-size: 1em; }
+.paged-doc .katex-display { margin: 0.7em 0; }
+/* A display wider than the measure runs into the annotation margin (an overfull box) instead of being clipped in print. */
+.paged-doc .katex-display { overflow: visible; }
+/* amsthm environments, not callouts: square, no tint, the kind's name as a small-caps label (Note, Tip, Warning …). */
+.paged-doc .markdown-alert { border-radius: 0; background: none; border-left-width: 1.2pt; padding: 0.15em 0 0.15em 0.9em; margin: 0.9em 0; }
+.paged-doc .markdown-alert-title { font-size: 1em; font-weight: 700; text-transform: none; letter-spacing: 0.03em; font-variant-caps: small-caps; margin: 0 0 0.15em; }
+/* An environment that opens with its own bold label (**Theorem 7.3 (linearity).**, **Remark.**) needs no kind name above it. */
+.paged-doc .markdown-alert-important:has(> p:nth-child(2) > strong:first-child) > .markdown-alert-title { display: none; }
+.paged-doc .markdown-alert-note:has(> p:nth-child(2) > strong:first-child) > .markdown-alert-title { display: none; }
+.paged-doc .markdown-alert > p:nth-child(2) { margin-top: 0; }
+/* Theorem (IMPORTANT), amsthm "plain" style: framed, italic statement, upright bold label. */
+.paged-doc .markdown-alert-important { border: 0.6pt solid var(--doc-accent); border-left-width: 2.4pt; background: color-mix(in srgb, var(--doc-accent) 5%, transparent); padding: 0.55em 0.9em; font-style: italic; }
+.paged-doc .markdown-alert-important strong:first-child { font-style: normal; }
+/* Pitfalls (WARNING, CAUTION): a hairline box, upright text. */
+.paged-doc .markdown-alert-warning, .paged-doc .markdown-alert-caution { border-width: 0.6pt; border-style: solid; border-left-width: 2.4pt; padding: 0.55em 0.9em; }
+/* Definitions (definition list): bold term, the definition indented under it, never parted at a page break. */
+.paged-doc dl { margin: 0.9em 0; }
+.paged-doc dt { font-weight: 700; margin-top: 0.7em; break-after: avoid; }
+.paged-doc dd { margin: 0.15em 0 0 1.5em; }
+/* Lists: \\leftmargini 2.5em; exercise sub-parts (a), (b), (c) as in LaTeX enumerate level 2, indented under their exercise; \\itemsep of a few points. */
+.paged-doc ul, .paged-doc ol { padding-left: 1.9em; }
+.paged-doc ol ol { padding-left: 2.2em; margin: 0.25em 0; }
+.paged-doc ol ol > li::marker { content: "(" counter(list-item, lower-alpha) ")\\a0"; }
+.paged-doc li { margin: 0.25em 0; }
+/* \\texttt: typewriter, no box; listings: keywords in bold, no colour (prints in black and white). */
+.paged-doc :not(pre) > code { background: none; padding: 0; border: 0; font-size: 0.95em; }
+.paged-doc pre .hljs-keyword, .paged-doc pre .hljs-built_in { font-weight: 700; }
+/* Listings box: a line of air above and below the code, not more. */
+.paged-doc pre { padding: 0.55em 0.9em; }
+/* ==Highlights== as a light marker that still reads in greyscale; abbreviations print without the screen's dotted underline. */
+.paged-doc mark { background: color-mix(in srgb, var(--doc-accent) 13%, transparent); }
+.paged-doc abbr { text-decoration: none; }
+/* booktabs: \\toprule and \\bottomrule heavier than \\midrule, figures in lining tabular digits. */
+.paged-doc table { width: auto; margin: 0.9em auto; font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc table thead th { border-top: 0.8pt solid; border-bottom: 0.5pt solid; font-weight: 700; }
+.paged-doc table tbody tr:last-child td { border-bottom: 0.8pt solid; }
+.paged-doc th, .paged-doc td { padding: 1.5pt 8pt; }
+/* hyperref with hidelinks: links read as text. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
+ * ESSAY_TEMPLATE_CSS — the part of the APA 7 student paper no theme field
+ * expresses (Publication Manual of the APA, 7th ed.; checked against
+ * apa7.cls in `stu` mode). Letter page with 1in margins, Termes 12 pt
+ * double-spaced and ragged right, bold headings at text size (centred /
+ * flush left / bold italic), the page number top right, the hanging
+ * reference list and the title block are theme values.
+ */
+const ESSAY_TEMPLATE_CSS = `/* APA 7 student paper. Values from the Publication Manual (7th ed.) §2.3–2.28 and §8.27; apa7.cls (stu mode) as the check. */
+/* §2.24: indent the first line of every paragraph 0.5 in, the first after a heading too. */
+.paged-doc > p, .paged-doc > p + p { text-indent: 0.5in; }
+/* §2.21 + §2.27: everything double-spaced, headings included, no extra space around them. */
+.paged-doc h1, .paged-doc h2, .paged-doc h3, .paged-doc h4, .paged-doc h5 { line-height: 2; margin: 0; }
+/* §2.27: Level 4 and 5 are indented 0.5 in (bold, bold italic). */
+.paged-doc h4, .paged-doc h5 { text-indent: 0.5in; }
+/* §2.3 title page: the title 3–4 double-spaced lines down, one blank line, then author, affiliation, course, instructor, date, each on its own double-spaced line; the text starts on page 2. */
+.paged-doc .markoto-title-block { padding-top: 96pt; margin: 0; break-after: page; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 2; margin: 0 0 24pt; }
+.paged-doc .markoto-title-block .markoto-cover-authors { display: block; margin: 0; }
+.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; }
+.paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 2; }
+.paged-doc .markoto-title-block .markoto-cover-date { margin: 0; }
+/* §2.18: the page number top right on every page, the title page included, in the text font and size. */
+.pagedjs_pages .pagedjs_page.pagedjs_first_page .pagedjs_margin-top-right > .pagedjs_margin-content::after { content: counter(page); }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-right { font-size: 12pt; color: var(--doc-text); opacity: 1; }
+/* §2.19: footnotes in the word processor's default, 10 pt single-spaced. */
+.paged-doc .footnote { font-size: 10pt; line-height: 1.2; }
+/* §8.27: a block quotation is indented 0.5 in as a block, double-spaced, no quotation marks, no extra space. */
+.paged-doc blockquote { margin: 0 0 0 0.5in; font-style: normal; }
+.paged-doc blockquote p { text-indent: 0; margin: 0; }
+/* §2.12 + §9.43: the reference list starts on a new page; entries double-spaced with a 0.5 in hanging indent. */
+.paged-doc .markoto-references-heading { break-before: page; }
+.paged-doc p.markoto-references { --doc-reference-indent: 0.5in; margin: 0; }
+/* §9.35: DOIs and URLs print as plain text. */
+.paged-doc a { color: inherit; text-decoration: none; }
+`
+
+/**
+ * MEMO_TEMPLATE_CSS — what the memo / business-letter look needs beyond
+ * theme fields: the label-column grid (To / From / Date / Subject labels and
+ * side heads hang in a 32 mm column, the text beside it), the letterhead
+ * mark, rules across both columns, calm hairline tables, room to sign and a
+ * quiet cc line, page numbers from page 2 on. Same rules as the other
+ * template CSS (sanitised, editable by the author).
+ */
+const MEMO_TEMPLATE_CSS = `/* Memo / business letter. A4 on a two-column grid (Swiss business-letter style, DIN 5008 margins): a 32 mm label column at the page margin, the text in a ~75-character column beside it. */
+/* paged.js rewrites every selector with a "+" into a low-specificity attribute rule, so this CSS uses ":has(~ …)" and descendant selectors instead. */
+.paged-doc { --memo-gutter: 32mm; padding-left: var(--memo-gutter); }
+/* Rules run across both columns: the one under the address block, and any section rule. */
+.paged-doc > hr { margin: 1.1em 0 1.9em calc(-1 * var(--memo-gutter)); border-top: 0.6pt solid var(--doc-text); }
+/* Letterhead: a small square mark in the accent before the document title, in text ink. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content { display: flex; align-items: center; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content::before { content: ""; flex: none; width: 2.2mm; height: 2.2mm; margin-right: 2.6mm; background: var(--doc-accent); }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-weight: 600; color: var(--doc-text); opacity: 1; }
+/* Page numbers from page 2 on (DIN 5008 follow-up pages); a one-page memo has no footer. */
+.pagedjs_pages .pagedjs_page.pagedjs_first_page .pagedjs_margin-bottom-right { visibility: hidden; }
+/* To / From / Date / Subject: a paragraph that opens with a bold label, breaks into lines and comes before the rule. Labels hang in the label column, values line up with the text. */
+.paged-doc > p:has(> strong:first-child):has(> br):has(~ hr) { margin: 0; }
+.paged-doc > p:has(> strong:first-child):has(> br):has(~ hr) > strong { float: left; clear: left; width: var(--memo-gutter); margin-left: calc(-1 * var(--memo-gutter)); font-weight: 400; color: var(--doc-secondary); }
+/* Side heads: section headings sit in the label column, level with the first line of their section. */
+.paged-doc .markoto-section-heading { float: left; clear: left; width: calc(var(--memo-gutter) - 5mm); margin: 0 5mm 0 calc(-1 * var(--memo-gutter)); break-after: avoid; }
+/* Tables: small reference grids in the text column; a firm rule under the header, hairlines between rows, tabular figures. */
+.paged-doc table { font-size: 0.95em; font-variant-numeric: tabular-nums; width: 100%; margin: 0.7em 0 1.1em; }
+.paged-doc th { font-weight: 600; vertical-align: bottom; }
+.paged-doc thead tr { border-bottom: 0.75pt solid var(--doc-text); }
+.paged-doc tbody tr { border-bottom: 0.4pt solid color-mix(in srgb, var(--doc-secondary) 60%, transparent); }
+/* Signature: a paragraph after the rule that opens with a bold line and breaks into lines (name, title, company) gets room to sign above it. */
+.paged-doc > p:has(> strong:first-child):has(> br):not(:has(~ hr)) { margin-top: 3.4em; }
+/* cc line: a last paragraph set entirely in italics reads as distribution: small, upright, grey. */
+.paged-doc > p:last-child:has(> em:only-child) { margin-top: 2.2em; font-size: 0.85em; color: var(--doc-secondary); }
+.paged-doc > p:last-child > em:only-child { font-style: normal; }
+`
+
+/**
+ * PROPOSAL_TEMPLATE_CSS — what the client-proposal look needs beyond theme
+ * fields: the cover panel, the "01" section index, invoice-style pricing
+ * tables (ruled subtotal, double-ruled grand total), the key/value facts
+ * table and the signature block. Same rules as the other template CSS
+ * (sanitised, editable by the author).
+ */
+const PROPOSAL_TEMPLATE_CSS = `/* Client proposal template. */
+/* Cover: a tall warm panel (the banner band) with the title set low in it over an accent rule; who it is for under the panel, who sends it and when at the foot. Insets follow the page margins (32 / 30 mm). */
+.paged-doc .markoto-cover { grid-template-rows: auto minmax(150mm, auto) auto 1fr auto; }
+.paged-doc .markoto-cover::before { background: color-mix(in srgb, var(--doc-brand) 7%, color-mix(in srgb, var(--doc-secondary) 14%, var(--doc-bg))); border-bottom: 3pt solid var(--doc-brand); }
+.paged-doc .markoto-cover-logo { padding: 24mm 30mm 0 32mm; }
+.paged-doc .markoto-cover-title { align-self: end; padding: 0 30mm 14mm 32mm; line-height: 1.08; letter-spacing: -0.015em; }
+.paged-doc .markoto-cover-subtitle { font-style: normal; font-weight: 500; color: var(--doc-brand); padding: 10mm 30mm 0 32mm; }
+.paged-doc .markoto-cover-meta { padding: 0 30mm 26mm 32mm; font-size: 0.95em; }
+.paged-doc .markoto-cover-author { font-weight: 600; color: var(--doc-heading-color); }
+/* Sections: a small accent index ("01") over each top-level heading, the proposal's contents in miniature (decorative; headings.numbering stays off). */
+.paged-doc h1.markoto-section-heading:not(.unnumbered) { counter-increment: mk-proposal; }
+.paged-doc h1.markoto-section-heading:not(.unnumbered)::before { content: counter(mk-proposal, decimal-leading-zero); display: block; margin-bottom: 0.45em; font-family: var(--doc-body-font); font-size: 0.42em; font-weight: 600; letter-spacing: 0.12em; color: var(--doc-brand); font-variant-numeric: lining-nums tabular-nums; }
+/* The first paragraph of a section is its lead: a step larger, in heading ink. */
+.paged-doc > h1 + p { font-size: 1.1em; line-height: 1.45; color: var(--doc-heading-color); }
+.paged-doc h1 + h2 { margin-top: 0; }
+/* Tables read like an invoice: a step smaller, tabular figures in the amount columns, a firm rule under the header, hairlines between line items. */
+.paged-doc table { font-size: 0.93em; line-height: 1.35; margin: 1.1em 0 1.4em; }
+.paged-doc td, .paged-doc th { vertical-align: baseline; }
+.paged-doc td[style*="right"], .paged-doc th[style*="right"] { font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc th { font-size: 0.86em; font-weight: 600; letter-spacing: 0.03em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); vertical-align: bottom; }
+.paged-doc tr { border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 45%, transparent); }
+.paged-doc thead tr { border-bottom: 0.75pt solid var(--doc-heading-color); }
+/* Subtotal and total: a row whose label is bold, after a plain row, gets a rule above it. */
+.paged-doc tbody tr:not(:has(> td:first-child > strong)) + tr:has(> td:first-child > strong) > td { border-top: 0.75pt solid var(--doc-heading-color); }
+/* The grand total (a bold last row after line items): a step larger, closed by the bookkeeper's double rule. */
+.paged-doc tbody tr:not(:has(> td:first-child > strong)) ~ tr:last-child:has(> td:first-child > strong) { font-size: 1.1em; border-bottom: 2.5pt double var(--doc-heading-color); }
+/* A table with an empty header row is a key/value list (prepared for / by, reference, validity): no header, quiet labels, a rule above and below. */
+.paged-doc thead tr:not(:has(> th:not(:empty))) { display: none; }
+.paged-doc table:has(> thead > tr > th:first-child:empty) { border-top: 0.75pt solid var(--doc-heading-color); border-bottom: 0.75pt solid var(--doc-heading-color); }
+.paged-doc table:has(> thead > tr > th:first-child:empty) td:first-child { width: 26%; font-size: 0.86em; letter-spacing: 0.03em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); }
+.paged-doc table:has(> thead > tr > th:first-child:empty) td:first-child strong { font-weight: 600; }
+/* Signature block: in a table, a row of empty cells is a line to sign on and the row under it its caption (name, role, "Place, date"). The block never splits (the engine would split a short table to fill a page). */
+.paged-doc table:has(td:first-child:empty) { table-layout: fixed; break-inside: avoid !important; }
+.paged-doc table:has(td:first-child:empty) tr { border: 0; }
+.paged-doc table:has(td:first-child:empty) th { font-size: 1em; letter-spacing: 0; color: var(--doc-heading-color); }
+.paged-doc table:has(td:first-child:empty) th, .paged-doc table:has(td:first-child:empty) td { padding-left: 0; }
+.paged-doc tr:has(> td:first-child:empty):has(> td:last-child:empty) > td { height: 12mm; padding: 0; background: linear-gradient(var(--doc-text), var(--doc-text)) left bottom / calc(100% - 12mm) 0.75pt no-repeat; }
+.paged-doc tr:has(> td:first-child:empty):has(> td:last-child:empty) + tr > td { padding-top: 0.35em; font-size: 0.86em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); }
+/* Callouts: square, a thin rule, a step smaller than the text. */
+.paged-doc .markdown-alert { border-left-width: 2pt; border-radius: 0; padding: 0.8em 1.1em; font-size: 0.94em; }
+/* Numbered lists (the problems, the terms): numbers in the accent; sub-clauses a, b, c as in a contract. */
+.paged-doc ol > li::marker { color: var(--doc-brand); font-weight: 600; }
+.paged-doc ol ol { list-style-type: lower-alpha; }
+`
+
+/**
+ * ONE_PAGER_TEMPLATE_CSS — the one-pager / fact-sheet look beyond theme
+ * fields: a sidehead grid (section labels in a narrow left column, text in
+ * the right one), a title block under a heavy accent bar, a full-width
+ * lead, a filled "important" callout, compact lists and tables, accent
+ * run-in labels. Same rules as the other template CSS (sanitised, editable
+ * by the author). Fixture: tests/fixtures/theme-shots/one-pager.md.
+ */
+const ONE_PAGER_TEMPLATE_CSS = `/* One-pager template. A sidehead grid: section labels in a 36 mm left column, text in the right one (about 75 characters); title block and lead use the full width. */
+.paged-doc { --op-side: 36mm; padding-left: var(--op-side); }
+/* Title block: across the full width under a heavy accent bar, the way a product sheet opens. */
+.paged-doc > .markoto-title-block { margin-left: calc(-1 * var(--op-side)); padding-top: 10pt; border-top: 5pt solid var(--doc-accent); margin-bottom: 12pt; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 1.08; letter-spacing: -0.02em; margin-bottom: 0.3em; text-wrap: pretty; }
+/* The line under the title (kind of sheet, date) is quiet meta; the pitch is the lead paragraph. */
+.paged-doc .markoto-title-block .markoto-cover-subtitle { color: color-mix(in srgb, var(--doc-text) 65%, var(--doc-bg)); font-weight: 500; margin-bottom: 0; }
+/* Lead: an all-bold first paragraph is the pitch: full width, a size up, in the accent (run-in rule below); the first section's hairline closes it. paged.js rewrites :first-of-type (and sibling selectors) into a bare attribute selector that loses to the engine's paragraph margin, so the full width comes from a shift + width, not a negative margin. */
+.paged-doc > p:first-of-type:has(> strong:only-child) { position: relative; left: calc(-1 * var(--op-side)); width: calc(100% + var(--op-side)); margin-bottom: 0.9em; font-size: 1.3em; line-height: 1.3; }
+/* Sideheads: each section opens on a hairline across the full width; its label sits in the left column (a zero-height box; the -0.5em cancels the next block's 0.5em top margin, so the text starts level with the label). */
+.paged-doc .markoto-section-heading { margin-left: calc(-1 * var(--op-side)); width: calc(var(--op-side) - 5mm); box-sizing: content-box; padding: 7pt calc(100% + 5mm) 0 0; height: 0; overflow: visible; margin-bottom: -0.5em; border-top: 0.5pt solid var(--doc-secondary); color: var(--doc-accent); line-height: 1.42; }
+/* Compact lists: a short hang, little space between items; the same 0.5em above as a paragraph, so the first line of every section sits level with its sidehead. */
+.paged-doc ul, .paged-doc ol { padding-left: 1.15em; margin: 0.5em 0; }
+.paged-doc li { margin: 0.12em 0; }
+.paged-doc li::marker { color: var(--doc-accent); }
+.paged-doc ol > li::marker { font-weight: 700; }
+/* Key-facts table: tabular figures, small tracked header labels, a firm rule under the header and at the foot, hairlines between rows. */
+.paged-doc table { font-size: 0.94em; line-height: 1.3; margin: 0.5em 0 0.7em; }
+.paged-doc td[style*="right"], .paged-doc th[style*="right"] { font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc th { font-size: 0.82em; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--doc-heading-color); vertical-align: bottom; }
+.paged-doc tr { border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 60%, transparent); }
+.paged-doc thead tr { border-bottom: 1pt solid var(--doc-heading-color); }
+.paged-doc tbody tr:last-child { border-bottom: 1pt solid var(--doc-heading-color); }
+/* A key/value table without header labels draws no header row. */
+.paged-doc thead tr:not(:has(> th:not(:empty))) { display: none; }
+.paged-doc th:first-child, .paged-doc td:first-child { padding-left: 0; }
+.paged-doc th:last-child, .paged-doc td:last-child { padding-right: 0; }
+/* The "important" callout pops: a solid accent field with paper-coloured text (prints as a dark band in black and white). */
+.paged-doc .markdown-alert { border-left-width: 2.5pt; border-radius: 0; padding: 0.6em 0.95em; }
+.paged-doc .markdown-alert-important { background: var(--doc-accent); border-left-color: var(--doc-accent); color: var(--doc-bg); }
+.paged-doc .markdown-alert-important .markdown-alert-title { color: var(--doc-bg); }
+.paged-doc .markdown-alert-important a { color: inherit; }
+.paged-doc .markdown-alert-title { font-size: 0.8em; letter-spacing: 0.08em; margin-bottom: 0.2em; }
+/* Run-in facts ("Pricing: … Team: …"): the bold labels in the accent. */
+.paged-doc p:has(> strong:first-child) > strong { color: var(--doc-accent); }
+/* Links print as accent text without underline. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
+ * MANUSCRIPT_TEMPLATE_CSS — the book-interior conventions no theme field
+ * expresses: chapter openers (new page, sunk, numeral over a spaced-capital
+ * title), the epigraph page, the scene-break
+ * ornament, the quoted letter, folios at the outer corners and no running
+ * head on opening pages, the title-page composition. Genre references:
+ * Bringhurst, The Elements of Typographic Style (§2.3, §4.2, §8.5), and
+ * the Penguin Composition Rules (Tschichold, 1947).
+ */
+const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhurst, Elements of Typographic Style; Penguin Composition Rules (1947). */
+/* Chapter opener: every chapter starts a new page, sunk about a third down the text block; the numeral on its own line over the title. */
+.paged-doc h1.markoto-section-heading { break-before: page; padding-top: 38mm; margin-bottom: 2.6em; text-transform: uppercase; letter-spacing: 0.14em; }
+.paged-doc .markoto-cover + h1.markoto-section-heading { break-before: auto; }
+.paged-doc h1.markoto-section-heading:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { display: block; margin: 0 0 0.5em; font-size: 2.2em; line-height: 1; letter-spacing: 0; font-variant-numeric: normal; }
+/* A novel numbers its chapters only: part and scene titles (h2-h4) and their contents entries carry no number. */
+.paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
+.paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
+.paged-doc h4:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
+.paged-doc .table-of-contents > ul > li > ul > li:not(.markoto-abstract-entry):not(.markoto-unnumbered-entry)::before { content: none; }
+/* Contents page: set like a chapter opener (title sunk, centred, spaced capitals), no leaders, folios in the text colour, part / scene entries indented past the chapter numbers; it ends its page. */
+.paged-doc .table-of-contents { margin: 0; break-after: page; }
+.paged-doc .table-of-contents::before { padding-top: 38mm; margin-bottom: 2.6em; text-align: center; font-size: 1.15em; font-weight: 400; text-transform: uppercase; letter-spacing: 0.14em; }
+.paged-doc .table-of-contents a::after { color: var(--doc-text); }
+.paged-doc .table-of-contents ul ul { padding-left: 2.7em; }
+/* Scene break: three spaced asterisks, lowered to sit centred in their line (EB Garamond has no asterism glyph); the next paragraph starts flush (engine). */
+.paged-doc hr { margin: 0.66em 0; height: 1.32em; line-height: 1.32em; }
+.paged-doc hr::before { content: '*\\2002\\2002*\\2002\\2002*'; position: relative; top: 0.3em; color: var(--doc-text); font-size: 1em; letter-spacing: 0; }
+/* An ornamented break stays visible at a page boundary, where a blank line alone would be lost (the engine hides rules there). */
+.paged-doc hr[data-markoto-page-edge] { display: block; }
+/* Epigraph: the opening quotation alone on its page, a third down, narrow and italic; the attribution roman, set right. */
+.paged-doc > blockquote:first-child:last-child { padding: 38mm 8mm 0 18mm; font-style: italic; }
+.paged-doc > blockquote:first-child:last-child p:last-child:not(:first-child) { font-style: normal; text-align: right; text-align-last: right; margin-top: 0.6em; }
+/* Quoted letters and extracts: roman (the author's italics show), ragged right on the narrower measure, indented both sides, a line of space around. */
+.paged-doc blockquote { margin: 1.32em 1.5em; font-style: normal; }
+.paged-doc blockquote p { margin: 0 0 0.5em; text-indent: 0; text-align: left; text-align-last: left; hyphens: manual; }
+/* Running head: book title in spaced capitals, folio at the outer corner — left on versos, right on rectos. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin { opacity: 1; letter-spacing: 0.12em; font-size: 8pt; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-center { text-transform: uppercase; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content, .pagedjs_pages .pagedjs_page .pagedjs_margin-top-right .pagedjs_margin-content { font-size: 9pt; letter-spacing: 0; }
+.pagedjs_pages .pagedjs_right_page .pagedjs_margin-top-left { visibility: hidden; }
+.pagedjs_pages .pagedjs_left_page .pagedjs_margin-top-right { visibility: hidden; }
+/* Chapter openers, the contents and the epigraph page carry no running head; only an opener shows its folio, at the foot. */
+.pagedjs_pages .pagedjs_page:has(h1.markoto-section-heading) .pagedjs_margin-top, .pagedjs_pages .pagedjs_page:has(.table-of-contents) .pagedjs_margin-top, .pagedjs_pages .pagedjs_page:has(.paged-doc > blockquote:first-child:last-child) .pagedjs_margin-top { visibility: hidden; }
+.pagedjs_pages .pagedjs_page:not(:has(h1.markoto-section-heading)) .pagedjs_margin-bottom { visibility: hidden; }
+/* Title page: title in spaced capitals a third down, the subtitle in italic under it, the author lower on the page. */
+.paged-doc .markoto-cover { justify-content: flex-start; padding: 52mm 16mm 30mm; }
+.paged-doc .markoto-cover-title { text-transform: uppercase; letter-spacing: 0.12em; line-height: 1.25; margin-bottom: 0.5em; }
+.paged-doc .markoto-cover-subtitle { color: var(--doc-text); }
+.paged-doc .markoto-cover-meta { margin-top: 30mm; }
+.paged-doc .markoto-cover-author { font-family: var(--doc-body-font); font-size: 1.15em; text-transform: uppercase; letter-spacing: 0.14em; }
+/* Links and abbreviations print as plain text. */
+.paged-doc a { color: inherit; text-decoration: none; }
 `
 
 /**
@@ -650,6 +1045,67 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: IEEE_CONFERENCE_TEMPLATE_CSS
     }
   },
+  // — Lecture notes: a course handout in the LaTeX tradition (article
+  // 11pt + amsthm, KOMA-style generous margins). Latin Modern Roman so
+  // text and KaTeX's Computer Modern math are one design; A4 with a wide
+  // right margin for students' annotations (139 mm measure, ~75
+  // characters at 11 pt); numbered bold sections at \Large / \large /
+  // \normalsize; a compact title block (course, title, lecturer, date)
+  // over a rule; the section in the running head. Theorem environments
+  // from alerts and bold run-in labels, (a)/(b) exercise parts, booktabs
+  // tables and black-and-white listings are template CSS
+  // (LECTURE_NOTES_TEMPLATE_CSS). One ink-blue accent. Fixture:
+  // tests/fixtures/theme-shots/lecture-notes.md.
+  {
+    id: 'lecture-notes',
+    category: 'academic',
+    theme: {
+      // geometry: 25 mm top/left, 46 mm right (annotation margin), 27 mm bottom.
+      page: { size: 'A4', orientation: 'portrait', margin: 25, marginRight: 46, marginBottom: 27 },
+      meta: { font: 'Latin Modern Roman' },
+      // 11/14pt (\normalsize 11pt with \baselineskip 13.6pt, opened up a
+      // little for inline fractions and handwritten notes); half-line
+      // \parskip instead of an indent (KOMA parskip=half).
+      body: { font: 'Latin Modern Roman', size: 11, lineHeight: 1.27, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
+      headings: {
+        font: 'Latin Modern Roman',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.9,
+        numbering: 'decimal',
+        // \section \Large (14.4pt), \subsection \large (12pt), \subsubsection \normalsize.
+        levels: { h1: { size: 1.31 }, h2: { size: 1.09 }, h3: { size: 1 } }
+      },
+      color: { brand: '#1f3a6e', secondary: '#555555' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // \pagestyle{headings}: section left, page right, over a hairline; nothing at the foot.
+      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      // Listings: Latin Modern Mono at \small, no colour, a light tint and an accent rule.
+      code: { theme: 'none', fontSize: 9.5, font: 'Latin Modern Mono', background: 'tint', frame: 'rule', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      mermaid: { theme: 'document' },
+      // Theorems in the accent; remarks and intuition in grey; pitfalls
+      // dark amber / red — all distinct grey values in black-and-white print.
+      alerts: {
+        note: '#555555',
+        tip: '#555555',
+        important: '#1f3a6e',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // \LARGE (17.28pt) bold title, left-aligned; course as the subtitle, lecturer + date.
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.57, subtitleSize: 1 },
+      customCss: LECTURE_NOTES_TEMPLATE_CSS
+    }
+  },
 
   // — Thesis: long-form academic writing (Bachelor / Master / PhD theses,
   // long reports) in the LaTeX report/book tradition (report.cls 11pt,
@@ -748,6 +1204,58 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
       customCss: TECH_DOCS_TEMPLATE_CSS
+    }
+  },
+  // — API reference: printed/PDF reference for an HTTP API (Stripe-like
+  // clarity in print). Lookup material, not reading text: IBM Plex Sans
+  // 9.5/1.45 throughout with IBM Plex Mono for every identifier, prose held
+  // to ~75 characters while parameter tables and JSON use the full width,
+  // unnumbered resources (h1) under a firm rule, endpoints (h2) with their
+  // "POST /path" line as an accent band (```http fence), spaced-capital
+  // section labels (h3), mono status headings (h4). Running head: the
+  // resource the page is in ({section}) and the title. Template CSS:
+  // API_REFERENCE_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/api-reference.md.
+  {
+    id: 'api-reference',
+    category: 'engineering',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 18, marginTop: 20 },
+      meta: { font: 'IBM Plex Sans' },
+      body: { font: 'IBM Plex Sans', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1f2328', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: false },
+      headings: {
+        font: 'IBM Plex Sans',
+        scale: 1.2,
+        weight: 600,
+        underline: false,
+        color: '#14171c',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.8,
+        numbering: 'none',
+        // Resource 16.6pt, endpoint 12.4pt, section label 8pt caps, status code 9.5pt mono.
+        levels: { h1: { size: 1.75 }, h2: { size: 1.3 }, h3: { size: 0.84 } }
+      },
+      color: { brand: '#3a3f9e', secondary: '#5f6673' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      // The resource the page is in (where the eye lands first), and the title.
+      header: { left: '{section}', center: '', right: '{title}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8, font: 'IBM Plex Mono', background: 'tint', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Admonition hues dark enough to stay distinct grey values in print.
+      alerts: {
+        note: '#3a3f9e',
+        tip: '#2f6b3f',
+        important: '#5b3a99',
+        warning: '#8a5a00',
+        caution: '#a3212b'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.1, subtitleSize: 1.1 },
+      customCss: API_REFERENCE_TEMPLATE_CSS
     }
   },
 
@@ -851,6 +1359,162 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
     }
   },
+  // — One-pager: a product / project fact sheet that must fit one page.
+  // DM Sans throughout (10.5/1.42 text, 800-weight title), one confident
+  // orange accent (title bar, pitch, sideheads, markers, run-in labels,
+  // the filled "important" callout), a sidehead grid that keeps the text
+  // at about 75 characters, no running head or foot (one page), tight
+  // 16 mm margins. Template CSS: ONE_PAGER_TEMPLATE_CSS. Fixture:
+  // tests/fixtures/theme-shots/one-pager.md.
+  {
+    id: 'one-pager',
+    category: 'business',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 16 },
+      meta: { font: 'DM Sans' },
+      body: { font: 'DM Sans', size: 10.5, lineHeight: 1.42, textAlign: 'left', color: '#262A31', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: false },
+      headings: {
+        font: 'DM Sans',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#15171C',
+        letterSpacing: -0.005,
+        lineHeight: 1.25,
+        spacingScale: 0.8,
+        numbering: 'none',
+        // Sideheads at text size (the grid, not the size, marks a section); h3 a run-in step.
+        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } }
+      },
+      color: { brand: '#C2410C', secondary: '#9AA0A8' },
+      brand: { logoUrl: '', logoHeight: 36 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // The accent doubles as "important" (the filled callout); the others
+      // are dark enough to stay distinct in black-and-white print.
+      alerts: {
+        note: '#2F5D8A',
+        tip: '#3B6E4F',
+        important: '#C2410C',
+        warning: '#8F661C',
+        caution: '#9E2A2B'
+      },
+      toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.6, subtitleSize: 1.15, titleWeight: 800 },
+      customCss: ONE_PAGER_TEMPLATE_CSS
+    }
+  },
+  // — Client proposal: agencies, consultants and freelancers sending a
+  // proposal or quote. Warmer and more personal than the corporate report:
+  // Lora headings (a calligraphic serif, set at 500 on the cover) over
+  // Work Sans 10/1.5 text in a 148 mm column (about 75 characters), one
+  // rust accent that greys to a dark tone in print, a tall warm cover
+  // panel, invoice-style pricing tables, an accent "01" index over every
+  // section and a signature block drawn from a table (a row of empty
+  // cells is a line to sign on). Footer: title and "page / pages" (the
+  // client can see the document is complete). Template CSS:
+  // PROPOSAL_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/proposal.md.
+  {
+    id: 'proposal',
+    category: 'business',
+    theme: {
+      // Generous margins, a slightly wider inner (left) margin.
+      page: { size: 'A4', orientation: 'portrait', margin: 26, marginTop: 24, marginRight: 30, marginBottom: 26, marginLeft: 32 },
+      meta: { font: 'Work Sans' },
+      body: { font: 'Work Sans', size: 10, lineHeight: 1.5, textAlign: 'left', color: '#2B2622', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
+      headings: {
+        font: 'Lora',
+        scale: 1.25,
+        weight: 600,
+        underline: false,
+        color: '#1F1A17',
+        letterSpacing: -0.01,
+        lineHeight: 1.2,
+        spacingScale: 1.2,
+        numbering: 'none',
+        // 20 / 13 / 11 pt over 10 pt text.
+        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 } }
+      },
+      color: { brand: '#9C3E22', secondary: '#8C8279' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '{title}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Muted, each a distinct grey in black-and-white print; caution is the accent.
+      alerts: {
+        note: '#2F5A73',
+        tip: '#3F6B45',
+        important: '#5E4778',
+        warning: '#8A6417',
+        caution: '#9C3E22'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'banner', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 500, showLogo: false, align: 'left', titleSize: 3.4, subtitleSize: 1.3 },
+      customCss: PROPOSAL_TEMPLATE_CSS
+    }
+  },
+  // — Memo / business letter: a one- or two-page internal memo or letter
+  // to print, sign or attach. A4 with DIN 5008-like margins (24 mm left,
+  // 20 mm right) on a Swiss business-letter grid: labels (To / From / Date /
+  // Subject) and side heads in a 32 mm column at the page margin, Inter
+  // 10/15 text in a ~75-character column beside it. No cover, contents or
+  // section numbers; the letterhead is the title beside a small accent
+  // square, page numbers start on page 2. One signal-red accent, used only
+  // for that mark. Template CSS: MEMO_TEMPLATE_CSS. Fixture:
+  // tests/fixtures/theme-shots/memo.md.
+  {
+    id: 'memo',
+    category: 'business',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 20, marginTop: 30, marginRight: 20, marginBottom: 24, marginLeft: 24 },
+      meta: { font: 'Inter' },
+      body: { font: 'Inter', size: 10, lineHeight: 1.5, textAlign: 'left', color: '#1A1A1A', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
+      headings: {
+        font: 'Inter',
+        // The scale only sets the defaults; every level is pinned below.
+        scale: 1.18,
+        weight: 600,
+        underline: false,
+        color: '#1A1A1A',
+        letterSpacing: 0,
+        // Side heads share the text's 15 pt line, so they sit level with it.
+        lineHeight: 1.5,
+        spacingScale: 1,
+        numbering: 'none',
+        // A memo's headings are side heads at text size; deeper levels stay at text size too.
+        levels: { h1: { size: 1 }, h2: { size: 1 }, h3: { size: 1 } }
+      },
+      color: { brand: '#C8102E', secondary: '#6E6E6E' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Dark, desaturated hues: a callout in a memo must still read in greyscale print.
+      alerts: {
+        note: '#2F4F6F',
+        tip: '#3B6147',
+        important: '#57476F',
+        warning: '#7F5E1E',
+        caution: '#9E1F2A'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
+      customCss: MEMO_TEMPLATE_CSS
+    }
+  },
 
   // — Novel: classic Crimson Text serif, deep violet accent, generous
   // line-height, only a centered page number in the footer. Tables and
@@ -886,54 +1550,156 @@ export const THEME_PRESETS: ThemePreset[] = [
       cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
+  // — Manuscript: a typeset fiction interior (novel, novella, short-story
+  // collection) in the trade-paperback tradition — A5, EB Garamond 11/14.5
+  // justified and hyphenated, first-line indents and no paragraph space,
+  // chapters on a new page sunk a third down under the chapter numeral,
+  // scene breaks as three spaced asterisks, the book title as the running
+  // head with folios at the outer corners, a classic title page and an
+  // epigraph page. Ink only: no colour on the page. Template CSS:
+  // MANUSCRIPT_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/manuscript.md.
+  {
+    id: 'manuscript',
+    category: 'writing',
+    theme: {
+      // A5 (148 × 210 mm, the European trade size): a 114 mm text block,
+      // about 66 characters of Garamond at 11 pt, ~33 lines a page.
+      page: { size: 'A5', orientation: 'portrait', margin: 17, marginTop: 19, marginBottom: 20 },
+      meta: { font: 'EB Garamond' },
+      body: { font: 'EB Garamond', size: 11, lineHeight: 1.32, textAlign: 'justify', color: '#1A1A1A', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
+      headings: {
+        font: 'EB Garamond',
+        scale: 1.2,
+        weight: 400,
+        underline: false,
+        color: '#1A1A1A',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 1,
+        // Chapter numbers (the numeral over the chapter title, template CSS).
+        numbering: 'decimal',
+        // Chapter titles in spaced capitals a step over the text; part or
+        // scene titles below that centred italic.
+        levels: { h1: { size: 1.15, align: 'center' }, h2: { size: 1.1, style: 'italic', align: 'center' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
+      },
+      color: { brand: '#1A1A1A', secondary: '#6B6660' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // Book title centred over the text, folio at the outer corner (left
+      // on versos, right on rectos — template CSS hides the inner one).
+      header: { left: '{page}', center: '{title}', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      // A chapter opening page drops the head; its folio sits at the foot.
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 9, font: 'IBM Plex Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: fiction has no admonitions; if one appears it stays
+      // dark and muted.
+      alerts: {
+        note: '#3b3b5c',
+        tip: '#2f5d3a',
+        important: '#552d70',
+        warning: '#7a5200',
+        caution: '#7c1d1d'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
+      // Title page: title in spaced capitals a third down, "A novel" in
+      // italic, the author lower on the page (template CSS).
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2, subtitleSize: 1.15 },
+      customCss: MANUSCRIPT_TEMPLATE_CSS
+    }
+  },
+  // — Academic essay: the APA 7 student paper (Publication Manual,
+  // 7th ed.) — US Letter with 1in margins, Times (TeX Gyre Termes) 12 pt
+  // double-spaced throughout, ragged right without hyphenation, every
+  // paragraph indented 0.5in; a title page (bold title, then author,
+  // affiliation, course, instructor and date, all centred) with the page
+  // number top right on every page; Level 1 headings centred bold,
+  // Level 2 flush-left bold, Level 3 bold italic, all at text size; block
+  // quotations indented 0.5in without quotation marks; References on a
+  // new page with 0.5in hanging indents. The rest is template CSS
+  // (ESSAY_TEMPLATE_CSS). Fixture: tests/fixtures/theme-shots/essay.md.
+  {
+    id: 'essay',
+    category: 'writing',
+    theme: {
+      // §2.22: 1in margins on all sides.
+      page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
+      meta: { font: 'TeX Gyre Termes' },
+      // §2.19 12 pt Times; §2.21 double spacing; §2.23 flush left, ragged right, no hyphenation; §2.24 indent (0.5in in the template CSS), no space between paragraphs.
+      body: { font: 'TeX Gyre Termes', size: 12, lineHeight: 2, textAlign: 'left', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: false },
+      headings: {
+        font: 'TeX Gyre Termes',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.6,
+        spacingScale: 0.5,
+        numbering: 'none',
+        // §2.27: every level at text size and bold; Level 1 centred, Level 3 bold italic.
+        levels: { h1: { size: 1, align: 'center' }, h2: { size: 1 }, h3: { size: 1, style: 'italic' }, h4: { size: 1 } }
+      },
+      color: { brand: '#000000', secondary: '#000000' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // §2.18: student papers carry only the page number, top right; no running head.
+      header: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
+      // APA tables and figures (ch. 7): horizontal rules only, the numbered label above.
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
+      // §8.27 block quotations (no rule, no italics — template CSS); §9.43 hanging references.
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: APA papers have no admonitions; keep them dark and muted.
+      alerts: {
+        note: '#1f3a6e',
+        tip: '#175c2e',
+        important: '#5d3d99',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // §2.3: bold title at text size, author / affiliation / course / instructor / date in regular weight, centred; the template CSS turns the block into a title page.
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'center', titleSize: 1, subtitleSize: 1 },
+      customCss: ESSAY_TEMPLATE_CSS
+    }
+  },
 
-  // — Newsletter: a modern community / company newsletter for print and
-  // PDF. A4 with narrow margins, two columns of Source Sans 3 at
-  // 9.5/14 under full-width Fraunces headlines (strong but friendly),
-  // captioned photos across both columns, a masthead built from the
-  // title block, one warm accent (terracotta) for bars, kickers, the
-  // pull quote and links on dark-ink text. Template CSS:
-  // NEWSLETTER_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/newsletter.md.
+  // — Newsletter: 2-column layout, smaller body for density, sans body
+  // (Karla) under serif headings (PT Serif), green accent, brand-color
+  // table headers + zebra. Showcases the multi-column flow.
   {
     id: 'newsletter',
     category: 'writing',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 15 },
-      meta: { font: 'Source Sans 3' },
-      body: { font: 'Source Sans 3', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1F2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: true },
-      headings: {
-        font: 'Fraunces',
-        scale: 1.26,
-        weight: 700,
-        underline: false,
-        color: '#1B2D40',
-        letterSpacing: -0.01,
-        lineHeight: 1.15,
-        spacingScale: 1,
-        numbering: 'none',
-        // Headlines 2× body (19 pt); kickers inside the columns 11.4 / 10.5 pt.
-        levels: { h1: { size: 2 }, h2: { size: 1.2 }, h3: { size: 1.1 } }
-      },
-      color: { brand: '#C4452D', secondary: '#7D8792' },
+      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      meta: { font: 'PT Serif' },
+      body: { font: 'Karla', size: 10, lineHeight: 1.45, textAlign: 'justify', color: '#18181b', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: true },
+      headings: { font: 'PT Serif', scale: 1.22, weight: 700, underline: false, color: '#047857', letterSpacing: 0, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
+      color: { brand: '#047857', secondary: '#a1a1aa' },
       brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 2, columnGap: 7 },
+      layout: { columns: 1, columnGap: 8 },
       header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'dashed', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
       mermaid: { theme: 'document' },
-      // Muted, print-safe callouts; the note picks up a teal that sits next to the terracotta accent.
+      // Newsletter — bright, friendly admonition palette to match the
+      // weekly-digest feel. Slightly more saturated than the reports.
       alerts: {
-        note: '#2F6B78',
-        tip: '#3F7550',
-        important: '#6A4C86',
-        warning: '#9A6A16',
-        caution: '#A8322A'
+        note: '#0284c7',
+        tip: '#16a34a',
+        important: '#9333ea',
+        warning: '#d97706',
+        caution: '#dc2626'
       },
-      toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 800, showLogo: false, align: 'left', titleSize: 4, subtitleSize: 1 },
-      customCss: NEWSLETTER_TEMPLATE_CSS
+      toc: { maxDepth: 3, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
     }
   },
 
@@ -967,6 +1733,60 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
       cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.4, subtitleSize: 1.15 }
+    }
+  },
+  // — On-call runbook: an operations handbook read under stress — on a
+  // second screen at 3 a.m. or as a printout pinned next to the desk.
+  // Scannable before elegant: IBM Plex Sans 10/13.5 (unambiguous Il1, a
+  // robust sans for small print), JetBrains Mono commands (slashed 0,
+  // distinct l/1), black ink only plus strong alert colours, A4 with 15 mm
+  // margins for density. Numbered sections and `{section}` in the running
+  // head so "see 3.2" works; procedure steps numbered white on black;
+  // checklists with real boxes; black-header zebra tables; framed alerts
+  // with a label chip that survives greyscale. Template CSS:
+  // RUNBOOK_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/runbook.md.
+  {
+    id: 'runbook',
+    category: 'engineering',
+    theme: {
+      page: { size: 'A4', orientation: 'portrait', margin: 15, marginTop: 16, marginBottom: 15 },
+      meta: { font: 'IBM Plex Sans' },
+      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.35, textAlign: 'left', color: '#111111', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.45, hyphenate: false },
+      headings: {
+        font: 'IBM Plex Sans',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 0.6,
+        numbering: 'decimal',
+        // 15.5 / 12 / 10.5 pt over 10 pt text: findable, not loud.
+        levels: { h1: { size: 1.55 }, h2: { size: 1.2 }, h3: { size: 1.05 } }
+      },
+      color: { brand: '#000000', secondary: '#5C636B' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      // Which runbook, and which section the page is in (for "see 3.2").
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      // Printouts go stale: the date is on every page.
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 8.5, font: 'JetBrains Mono', background: 'tint', frame: 'rule', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Signal colours dark enough to read as text and as distinct greys.
+      alerts: {
+        note: '#1F4E8C',
+        tip: '#1D6B3A',
+        important: '#5B2D91',
+        warning: '#8A4B00',
+        caution: '#B0101E'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.9, subtitleSize: 1.1 },
+      customCss: RUNBOOK_TEMPLATE_CSS
     }
   }
 ]

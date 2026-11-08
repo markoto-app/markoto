@@ -1,0 +1,11 @@
+# gitleaks configuration (read by the CI secret-scan job and `make secrets-scan`).
+# The default rules apply; only the paths below are exempt.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Render hashes, not credentials"
+# shared/utils/*.manifest.json map a preset / template id to the SHA-256 of
+# what its picture was rendered from (scripts/render-theme-thumbs.ts). A
+# preset id containing "api" next to a 64-hex value trips generic-api-key.
+paths = ['''^shared/utils/[^/]+\.manifest\.json$''']
