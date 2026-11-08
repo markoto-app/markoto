@@ -237,7 +237,9 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2))
   const content = readFileSync(args.md, 'utf8')
   mkdirSync(args.out, { recursive: true })
-  const browser = await chromium.launch()
+  // Same text layout as the PDF renderer (renderer/src/render.ts): real,
+  // unhinted glyph advances.
+  const browser = await chromium.launch({ args: ['--font-render-hinting=none'] })
   const ctx = await browser.newContext({ viewport: { width: 1800, height: 1100 }, deviceScaleFactor: 2 })
   const sheetCtx = await browser.newContext({ deviceScaleFactor: 1 })
   try {

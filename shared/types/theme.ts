@@ -36,9 +36,9 @@ const FONT_NAME_REGEX = /^[A-Za-z0-9 ]{1,40}$/
  * them directly into CSS `content:` properties. The `SAFE_TEXT` class
  * rejects CSS-escape characters so a payload like `}body{display:none`
  * can't break the whole stylesheet. `{title} / {section} / {page} /
- * {pages} / {date}` are stripped before the check so authors CAN use them.
+ * {pages} / {date} / {author}` are stripped before the check so authors CAN use them.
  */
-const TEMPLATE_TOKEN_REGEX = /\{(?:title|section|page|pages|date)\}/g
+const TEMPLATE_TOKEN_REGEX = /\{(?:title|section|author|page|pages|date)\}/g
 const TEMPLATE_SAFE_TEXT_REGEX = /^[^"\\\n\r<>]*$/
 
 const HEX_COLOR_REGEX = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/
@@ -175,11 +175,57 @@ export type CodeFrame = z.infer<typeof CodeFrameSchema>
  *  - `decimal`     — `1`, `1.1`, `1.1.1`, `1.1.1.1`
  *  - `decimal-dot` — `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.` (legal / German style)
  *  - `ieee`        — `I.`, `A.`, `1)`, `a)` (IEEEtran: each level shows its own number only)
+ *  - `decimal-zero` — `01`, `01.1`, `01.1.1`, … (two-digit top level: proposals, brochures)
  * The levels count from the highest heading level the document uses: a
  * document whose sections are h2 numbers them `1`, `2`, … (not `0.1`).
  */
-export const HeadingNumberingSchema = z.enum(['none', 'decimal', 'decimal-dot', 'ieee'])
+export const HeadingNumberingSchema = z.enum(['none', 'decimal', 'decimal-dot', 'ieee', 'decimal-zero'])
 export type HeadingNumbering = z.infer<typeof HeadingNumberingSchema>
+
+/** How many heading levels show a number (1 = only the top level), counted from the highest numbered level. */
+export const NumberingDepthSchema = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)])
+export type NumberingDepth = z.infer<typeof NumberingDepthSchema>
+
+/**
+ * Chapter word before the top-level number ("Chapter", "Kapitel"). Plain
+ * text, interpolated into a CSS string: no quotes, backslashes, angle
+ * brackets or newlines.
+ */
+const chapterWord = z.string().max(40).regex(TEMPLATE_SAFE_TEXT_REGEX, String.raw`contains forbidden characters (", \, <, >, newline)`)
+
+/**
+ * Figure / table numbers: through the document (`1`, `2`, …) or within
+ * each top-level section (`3.1`, `3.2`, … — theses, books).
+ */
+export const CaptionNumberingSchema = z.enum(['document', 'chapter'])
+export type CaptionNumbering = z.infer<typeof CaptionNumberingSchema>
+
+/**
+ * Caption label layout: `inline` = "Table 1: Title"; `stacked` = a bold
+ * "Table 1" on its own line, the title below it without separator (APA).
+ */
+export const CaptionLabelStyleSchema = z.enum(['inline', 'stacked'])
+export type CaptionLabelStyle = z.infer<typeof CaptionLabelStyleSchema>
+
+/**
+ * How the cover date and the `{date}` token are written: `locale` = the
+ * document language's long date (29 October 2026 / 29. Oktober 2026),
+ * `us` = US English (October 29, 2026), `iso` = 2026-10-29.
+ */
+export const DateFormatSchema = z.enum(['locale', 'us', 'iso'])
+export type DateFormat = z.infer<typeof DateFormatSchema>
+
+/**
+ * `{section}` reads the section heading that is `first` on the page (else
+ * the one running on), or the one the page `start`s in (the heading only
+ * when it opens the page — the usual running head).
+ */
+export const SectionModeSchema = z.enum(['first', 'start'])
+export type SectionMode = z.infer<typeof SectionModeSchema>
+
+/** Drop cap: off, on the document's first paragraph, or on the first paragraph of every top-level section. */
+export const DropCapSchema = z.union([z.boolean(), z.literal('every-chapter')])
+export type DropCap = z.infer<typeof DropCapSchema>
 
 export const TableHeaderBgSchema = z.enum(['brand', 'muted', 'none'])
 export type TableHeaderBg = z.infer<typeof TableHeaderBgSchema>
@@ -261,7 +307,9 @@ export type HeaderImagePosition = z.infer<typeof HeaderImagePositionSchema>
  * Header/footer slot. Templates support these tokens:
  *   {title}  → document title
  *   {section} → the current top-level section heading (the first one
- *              that starts on the page, else the one running on)
+ *              that starts on the page, else the one running on;
+ *              `header.sectionMode` / `header.sectionNumber`)
+ *   {author} → the cover authors, comma-separated
  *   {page}   → current page number
  *   {pages}  → total page count
  *   {date}   → the publication date (`cover.date`, else today), written
@@ -298,6 +346,18 @@ export const RunningSlotsSchema = z.object({
 }).strict()
 export type RunningSlots = z.infer<typeof RunningSlotsSchema>
 
+/**
+ * The header carries the document-wide options of the `{section}` token
+ * (they apply wherever the token is used, header or footer).
+ */
+export const HeaderSlotsSchema = RunningSlotsSchema.extend({
+  /** `{section}` shows the section number before the title ("3 Procedures"). Optional: absent = title only. */
+  sectionNumber: z.boolean().optional(),
+  /** Which section heading `{section}` names (`SectionModeSchema`). Optional: absent = `first`. */
+  sectionMode: SectionModeSchema.optional()
+}).strict()
+export type HeaderSlots = z.infer<typeof HeaderSlotsSchema>
+
 // ── DocTheme ────────────────────────────────────────────────────────────
 
 export const DocThemeSchema = z.object({
@@ -315,7 +375,13 @@ export const DocThemeSchema = z.object({
     marginTop: z.number().min(0).max(60).optional(),
     marginRight: z.number().min(0).max(60).optional(),
     marginBottom: z.number().min(0).max(60).optional(),
-    marginLeft: z.number().min(0).max(60).optional()
+    marginLeft: z.number().min(0).max(60).optional(),
+    /**
+     * Book spreads: left (verso) pages swap the left and right margins, so
+     * `marginLeft` is the inside (binding) margin on every page. Optional:
+     * absent = the same margins on every page.
+     */
+    mirrorMargins: z.boolean().optional()
   }).strict(),
   /**
    * Optional third font slot — the "eyebrow / meta" voice. Used for
@@ -335,14 +401,15 @@ export const DocThemeSchema = z.object({
     color: hexColor,
     background: hexColor,
     /**
-     * Drop cap on the first paragraph of the document. Editorial
+     * Drop cap on the first paragraph of the document (`true`), or on
+     * the first paragraph of every top-level section (`'every-chapter'`). Editorial
      * signature — gives the page a "first chapter of a book" feel.
      * Renders the leading character at ~3.4× body size, floated left
      * over the first three lines. Uses the heading font + heading
      * colour so it reads as a typographic flourish rather than a
      * brand stamp.
      */
-    dropCap: z.boolean(),
+    dropCap: DropCapSchema,
     /**
      * Indent the first line of every paragraph EXCEPT the first one in
      * a sequence (typical novel typography). When true, prefer setting
@@ -399,7 +466,16 @@ export const DocThemeSchema = z.object({
      * Optional: absent / empty = every level follows the scale and
      * `weight` above.
      */
-    levels: HeadingLevelsSchema.optional()
+    levels: HeadingLevelsSchema.optional(),
+    /** Levels that show a number (`NumberingDepthSchema`). Optional: absent = 4 (all). */
+    numberingDepth: NumberingDepthSchema.optional(),
+    /**
+     * "Chapter 3" over every numbered top-level heading (with numbering
+     * on), on a line of its own. Optional: absent = off.
+     */
+    chapterLabel: z.boolean().optional(),
+    /** The chapter word; empty / absent = the document language's ("Chapter", "Kapitel", "第…章"). */
+    chapterWord: chapterWord.optional()
   }).strict(),
   color: z.object({
     // hex; used for links + accent borders + (optionally) heading underline
@@ -430,7 +506,7 @@ export const DocThemeSchema = z.object({
     columns: ColumnCountSchema,
     columnGap: z.number().min(0).max(30) // mm
   }).strict(),
-  header: RunningSlotsSchema,
+  header: HeaderSlotsSchema,
   footer: RunningSlotsSchema,
   code: z.object({
     theme: CodeThemeSchema,
@@ -470,7 +546,11 @@ export const DocThemeSchema = z.object({
     /** "Figure 1: " before every figure caption, in the document language (default off). */
     figureLabel: z.boolean().optional(),
     /** Look of the reference list (default `plain`). */
-    referenceStyle: ReferenceStyleSchema.optional()
+    referenceStyle: ReferenceStyleSchema.optional(),
+    /** Figure / table numbers through the document or per chapter (default `document`). */
+    captionNumbering: CaptionNumberingSchema.optional(),
+    /** Caption label on the title's line or above it (default `inline`). */
+    captionLabelStyle: CaptionLabelStyleSchema.optional()
   }).strict(),
   mermaid: z.object({
     theme: MermaidThemeSchema
@@ -524,6 +604,13 @@ export const DocThemeSchema = z.object({
      * before the field existed stay valid.
      */
     date: z.string().refine(v => v === '' || isIsoDate(v), { message: 'must be empty or a date (YYYY-MM-DD)' }).optional(),
+    /** How the date is written (`DateFormatSchema`). Optional: absent = `locale`. */
+    dateFormat: DateFormatSchema.optional(),
+    /**
+     * Repeat the title (bold, centred) at the top of the first text page
+     * after a title page (APA). Optional: absent = off.
+     */
+    repeatTitle: z.boolean().optional(),
     showAuthors: z.boolean(),
     /**
      * Multi-author list. We're a collaboration tool, so this is an
@@ -533,8 +620,8 @@ export const DocThemeSchema = z.object({
     authors: z.array(z.string().max(100)).max(10),
     /**
      * Affiliation per author, same order as `authors` (department,
-     * institution, address, e-mail — one per line). Shown by the
-     * `title-block` layout. Optional (absent = none).
+     * institution, address, e-mail — one per line). Shown under each
+     * author on every layout. Optional (absent = none).
      */
     affiliations: z.array(z.string().max(300)).max(10).optional(),
     /** `title-block`: a heavy rule above and below the title (arXiv style). */

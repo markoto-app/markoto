@@ -1,4 +1,4 @@
-import type { DocTheme } from '../types/theme'
+import type { DateFormat, DocTheme } from '../types/theme'
 
 /**
  * Locale-dependent text that ends up IN the document (cover date, the
@@ -127,14 +127,47 @@ const CAPTION_LABELS: Record<string, readonly [string, string]> = {
 }
 
 /**
+ * Chapter label per language: the text before and after the number
+ * ("Chapter 3", "Kapitel 3", "第3章").
+ */
+const CHAPTER_LABELS: Record<string, readonly [string, string]> = {
+  en: ['Chapter ', ''],
+  de: ['Kapitel ', ''],
+  fr: ['Chapitre ', ''],
+  es: ['Capítulo ', ''],
+  it: ['Capitolo ', ''],
+  pt: ['Capítulo ', ''],
+  nl: ['Hoofdstuk ', ''],
+  pl: ['Rozdział ', ''],
+  sv: ['Kapitel ', ''],
+  da: ['Kapitel ', ''],
+  nb: ['Kapittel ', ''],
+  no: ['Kapittel ', ''],
+  fi: ['Luku ', ''],
+  cs: ['Kapitola ', ''],
+  rm: ['Chapitel ', ''],
+  ja: ['第', '章'],
+  zh: ['第', '章']
+}
+
+export interface CaptionLabels {
+  table: string
+  figure: string
+  separator: string
+  /** Text before / after the number of a chapter label (`headings.chapterLabel`). */
+  chapter: { before: string, after: string }
+}
+
+/**
  * Caption labels in the document language: the word before the number
  * (`Table` / `Tabelle`) and what follows the number (`: `; French sets a
- * no-break space before the colon).
+ * no-break space before the colon), plus the chapter label.
  */
-export function captionLabelsFor(locale: string): { table: string, figure: string, separator: string } {
+export function captionLabelsFor(locale: string): CaptionLabels {
   const lang = primary(locale)
   const [table, figure] = CAPTION_LABELS[lang] ?? ['Table', 'Figure']
-  return { table, figure, separator: lang === 'fr' ? '\u00A0: ' : ': ' }
+  const [before, after] = CHAPTER_LABELS[lang] ?? ['Chapter ', '']
+  return { table, figure, separator: lang === 'fr' ? '\u00A0: ' : ': ', chapter: { before, after } }
 }
 
 const ISO_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
@@ -159,14 +192,17 @@ export function todayIso(now: Date = new Date()): string {
 /**
  * Long date in the document language: `29 October 2026`, `29. Oktober
  * 2026`, `29 octobre 2026`, `2026年10月29日`. Plain `en` uses the
- * day-month-year order (`en-US` gives `October 29, 2026`). An invalid
- * input is returned unchanged.
+ * day-month-year order (`en-US` gives `October 29, 2026`). `format`
+ * (`cover.dateFormat`): `us` = `October 29, 2026` in any language, `iso`
+ * = the input. An invalid input is returned unchanged.
  */
-export function formatDocumentDate(iso: string, locale: string): string {
+export function formatDocumentDate(iso: string, locale: string, format: DateFormat = 'locale'): string {
   if (!isIsoDate(iso)) return iso
+  if (format === 'iso') return iso
   const [y, m, d] = iso.split('-').map(Number)
   const date = new Date(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1))
-  const tag = locale === 'en' ? 'en-GB' : locale
+  // `us`: the US English long date (APA) whatever the document language.
+  const tag = format === 'us' ? 'en-US' : locale === 'en' ? 'en-GB' : locale
   try {
     return new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' }).format(date)
   } catch {
@@ -183,8 +219,8 @@ export interface DocumentTexts {
   date: string
   /** TOC heading in the document language. */
   tocTitle: string
-  /** Caption labels ("Table" / "Figure" + separator) in the document language. */
-  captionLabels: { table: string, figure: string, separator: string }
+  /** Caption labels ("Table" / "Figure" + separator, chapter label) in the document language. */
+  captionLabels: CaptionLabels
 }
 
 /** Everything locale-dependent a render needs, from the theme + document language. */
@@ -192,5 +228,6 @@ export function documentTexts(theme: Pick<DocTheme, 'cover'>, language: string |
   const locale = documentLocale(language)
   const picked = theme.cover.date ?? ''
   const dateIso = picked && isIsoDate(picked) ? picked : todayIso(now)
-  return { locale, dateIso, date: formatDocumentDate(dateIso, locale), tocTitle: tocTitleFor(locale), captionLabels: captionLabelsFor(locale) }
+  const format = theme.cover.dateFormat ?? 'locale'
+  return { locale, dateIso, date: formatDocumentDate(dateIso, locale, format), tocTitle: tocTitleFor(locale), captionLabels: captionLabelsFor(locale) }
 }

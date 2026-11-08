@@ -85,8 +85,17 @@ function getBrowser(): Promise<Browser> {
     //
     // EXCLUDE_LOCALHOST keeps anything that ALREADY resolves locally
     // (the renderer's own /health probe at 127.0.0.1:9000) untouched.
+    //
+    // `--font-render-hinting=none`: headless Chromium on Linux hints glyphs
+    // and lays text out with whole-pixel, hinted advances — the PDF then
+    // carries those positions. Fonts without TrueType hints (the bundled
+    // TeX Gyre faces) go through the auto-hinter and come out with gaps
+    // ("T his", "Dat e" in TeX Gyre Heros: T 10 px instead of 8.15 px at
+    // 10 pt). Unhinted layout uses the fonts' real advances, as a desktop
+    // browser's preview does.
     const browserArgs = [
       '--disable-dev-shm-usage',
+      '--font-render-hinting=none',
       `--host-resolver-rules=MAP localhost ${LOCALHOST_TARGET}`
     ]
     browserPromise = chromium.launch({ args: browserArgs, chromiumSandbox: CHROMIUM_SANDBOX })

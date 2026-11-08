@@ -3,7 +3,7 @@ title: Add your own CSS
 description: When the theme settings don't go far enough, write CSS rules for your document. Which selectors exist, what is allowed, and examples to copy.
 category: themes
 order: 5
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Add your own CSS
@@ -127,6 +127,10 @@ text has been split into pages:
 | `.paged-doc .markoto-section-heading` | Every top-level heading (heading 1, or heading 2 if the text has no heading 1). |
 | `.paged-doc .markoto-references` | The lists and paragraphs of the *References* section; its heading is `.markoto-references-heading`. |
 | `.paged-doc table > caption` | A table caption (`Table: …`). |
+| `.paged-doc p.markoto-labelled` | A paragraph that opens with a bold label: `**Note.** …`, `**Pricing:** …`. An alert whose first paragraph is one is `.markoto-alert-labelled`. |
+| `.paged-doc .markoto-endpoint` | A line holding only `POST /payments` (a paragraph or an `http` code block); the method is `.markoto-http-method`, the path `.markoto-http-path`. |
+| `.paged-doc p.markoto-lead` | The paragraph right under the cover or title block. |
+| `.paged-doc .markoto-opening` | The first few words of that paragraph and of the first paragraph after every top-level heading, for small-capital openings. |
 
 `h1:first-of-type` does not work for "the first heading": every page
 starts its own copy of the document, so it matches the first heading on

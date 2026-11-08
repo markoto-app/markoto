@@ -141,10 +141,23 @@ generated theme CSS.
   and the counters `mk-h1…mk-h4` (headings), `mk-table`, `mk-figure`
   (captions, when the theme numbers them). Change a caption label's format
   through `::before { content: … }` on `table > caption` / `figcaption`.
+  Content markers: `p.markoto-labelled` (opens with a bold run-in label,
+  `**Theorem 3.** …`, `**Pricing:** …`), `.markoto-alert-labelled` (an
+  alert whose first paragraph is labelled), `.markoto-endpoint` (a
+  paragraph or `http` fence holding exactly `POST /payments`; method in
+  `.markoto-http-method`, path in `.markoto-http-path`), `p.markoto-lead`
+  (the paragraph under the cover / title block), `span.markoto-opening`
+  (the first words of the lead and of the first paragraph after every
+  top-level heading — small-capital openings), `.markoto-repeat-title`,
+  `.markoto-cover-affiliation`.
 - **Engine fields first:** heading numbers (`decimal`, `decimal-dot`,
-  `ieee`), per-level alignment, per-side page margins, caption position +
-  labels, the reference-list style and the `{section}` running-head token
-  are theme fields — don't rebuild them in CSS.
+  `ieee`, `decimal-zero`) and how many levels show them
+  (`numberingDepth`), "Chapter 3" labels (`chapterLabel`), per-level
+  alignment, per-side and mirrored page margins, caption position, labels,
+  per-chapter numbers and the stacked APA label, the reference-list style,
+  the `{section}` running-head token (with its number, the section a page
+  starts in) and `{author}`, a drop cap on every chapter, the repeated
+  title and the date format are theme fields — don't rebuild them in CSS.
 - Comment every rule with the line of the original it reproduces.
 
 **Variables before CSS.** If a template needs more than about 40 lines of

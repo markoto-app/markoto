@@ -773,7 +773,9 @@
       "margin_top": "Superior (mm)",
       "margin_right": "Derecho (mm)",
       "margin_bottom": "Inferior (mm)",
-      "margin_left": "Izquierdo (mm)"
+      "margin_left": "Izquierdo (mm)",
+      "mirrorMargins": "Márgenes en espejo en las páginas izquierdas",
+      "mirrorMarginsHelp": "Para libros impresos: las páginas izquierdas intercambian los márgenes izquierdo y derecho, así el margen izquierdo es siempre el interior."
     },
     "body": {
       "font": "Fuente",
@@ -789,7 +791,9 @@
       "firstLineIndentHelp": "Sangra la primera línea de cada párrafo excepto el primero de una secuencia (tipografía de novela).",
       "paragraphSpacing": "Espaciado de párrafos (em)",
       "hyphenate": "Separar sílabas automáticamente en el cuerpo",
-      "hyphenateHelp": "Divide palabras largas en los saltos de línea. Recomendado para texto justificado."
+      "hyphenateHelp": "Divide palabras largas en los saltos de línea. Recomendado para texto justificado.",
+      "dropCapEveryChapter": "En cada capítulo",
+      "dropCapEveryChapterHelp": "Pone una letra capital en el primer párrafo después de cada encabezado de primer nivel, no solo en el primer párrafo."
     },
     "headings": {
       "font": "Fuente",
@@ -816,7 +820,17 @@
       "levelReset": "Usar valores predeterminados",
       "numberingDecimalDot": "1., 1.1., 1.1.1.",
       "numberingIeee": "I., A., 1), a) (IEEE)",
-      "levelCentered": "Centrado"
+      "levelCentered": "Centrado",
+      "numberingDecimalZero": "De dos cifras (01, 01.1)",
+      "numberingDepth": "Niveles numerados",
+      "numberingDepth1": "Solo el primer nivel",
+      "numberingDepthN": "{n} niveles",
+      "numberingDepthAll": "Todos los niveles",
+      "chapterLabel": "Etiqueta de capítulo",
+      "chapterLabelHelp": "Muestra «Capítulo 3» en una línea propia sobre cada encabezado numerado de primer nivel.",
+      "chapterWord": "Palabra para capítulo",
+      "chapterWordHelp": "Déjalo vacío para usar la palabra del idioma del documento (Chapter, Kapitel, Capítulo …).",
+      "chapterWordPlaceholder": "Capítulo"
     },
     "align": {
       "left": "Izquierda",
@@ -851,7 +865,13 @@
       "uploadImage": "Subir imagen",
       "ruleHeader": "Filete bajo el encabezado",
       "ruleFooter": "Filete sobre el pie de página",
-      "ruleHelp": "Una línea fina a todo el ancho del texto. El texto se acerca a ella."
+      "ruleHelp": "Una línea fina a todo el ancho del texto. El texto se acerca a ella.",
+      "sectionNumber": "Número de sección en {token}",
+      "sectionNumberHelp": "Muestra «3 Procedimientos» en lugar de «Procedimientos» cuando los encabezados están numerados.",
+      "sectionMode": "{token} muestra",
+      "sectionModeHelp": "Qué sección nombra una página en su encabezado o pie de página.",
+      "sectionModeFirst": "El primer encabezado de sección de la página",
+      "sectionModeStart": "La sección en la que empieza la página"
     },
     "code": {
       "theme": "Tema de color",
@@ -909,7 +929,14 @@
       "referenceStyleHelp": "La sección titulada «Referencias» (o Bibliografía, References, Literatur …).",
       "referencePlain": "Como otras listas",
       "referenceHanging": "Sangría francesa",
-      "referenceBrackets": "Numerada [1], [2]"
+      "referenceBrackets": "Numerada [1], [2]",
+      "captionNumbering": "Números de los pies",
+      "captionNumberingHelp": "Numera figuras y tablas a lo largo del documento o dentro de cada sección de primer nivel (Figura 3.1).",
+      "captionNumberingDocument": "En todo el documento (1, 2, 3)",
+      "captionNumberingChapter": "Por capítulo (3.1, 3.2)",
+      "captionLabelStyle": "Etiqueta del pie",
+      "captionLabelInline": "En la línea del pie (Tabla 1: Título)",
+      "captionLabelStacked": "En su propia línea, en negrita (APA)"
     },
     "blockquote": {
       "border": "Borde izquierdo",
@@ -977,7 +1004,13 @@
       "smallCaps": "Título en versalitas",
       "affiliationPlaceholder": "Afiliación (departamento, institución, correo; una por línea)",
       "titleWeight": "Grosor del título",
-      "titleWeightInherit": "Igual que los títulos ({weight})"
+      "titleWeightInherit": "Igual que los títulos ({weight})",
+      "dateFormat": "Formato de fecha",
+      "dateFormatLocale": "Idioma del documento (2 de noviembre de 2026)",
+      "dateFormatUs": "EE. UU. (November 2, 2026)",
+      "dateFormatIso": "ISO (2026-11-02)",
+      "repeatTitle": "Repetir el título en la primera página",
+      "repeatTitleHelp": "Vuelve a mostrar el título, en negrita y centrado, al principio de la primera página de texto tras la portada (APA)."
     },
     "brand": {
       "logo": "Logotipo de marca",

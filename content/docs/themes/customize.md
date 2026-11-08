@@ -3,7 +3,7 @@ title: Tune your typography and colors
 description: Open the Theme tab and tweak fonts, colors, page geometry, header/footer tokens — see the preview repaginate live.
 category: themes
 order: 2
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Tune your typography and colors
@@ -35,7 +35,11 @@ A few settings worth knowing:
   not 0.1. The cover title and a leading *Abstract* section get none. To
   leave out another heading, such as the references, write
   `{.unnumbered}` after it: `# References {.unnumbered}`. The sections
-  after it keep counting as if it weren't there.
+  after it keep counting as if it weren't there. 01, 01.1 gives two-digit
+  numbers. *Numbered levels* limits the numbers to the top level (or the
+  top two or three), and *Chapter label* puts "Chapter 3" on a line of
+  its own above each numbered top-level heading, in the document's
+  language unless you type your own word.
 - **One heading level at a time.** *Per level*, at the end of the
   Headings section, sets the size (as a multiple of the body text), the
   weight, italics or small capitals for heading 1, 2, 3 or 4 on its own,
@@ -45,17 +49,23 @@ A few settings worth knowing:
   level you don't touch follows the scale ratio; *Use defaults* hands a
   level back to it.
 - **Running heads.** The page header and footer take the tokens
-  `{title}`, `{section}`, `{date}`, `{page}` and `{pages}`. `{section}`
-  is the title of the current chapter (your top-level heading): the one
-  that starts on the page, or the one still running from the page
-  before.
+  `{title}`, `{section}`, `{author}`, `{date}`, `{page}` and `{pages}`.
+  `{section}` is the title of the current chapter (your top-level
+  heading): the one that starts on the page, or the one still running
+  from the page before. Choose *The section the page starts in* to name
+  the chapter a page begins in instead, and *Section number* to show
+  "3 Procedures" rather than "Procedures". `{author}` prints the cover's
+  authors.
 - **Captions and numbers.** Write a table's caption as a paragraph that
   starts with `Table:` right above or below the table (see
   [Markdown syntax](/docs/writing/markdown-reference#tables)). In the
   Tables section, *Caption position* puts captions above or below
   tables, and *Number table captions* adds "Table 1:" in the document's
   language. *Number figure captions* in the Images and quotes section
-  does the same for images ("Figure 1:").
+  does the same for images ("Figure 1:"). With numbers on, *Caption
+  numbers* counts per chapter instead (Figure 3.1, 3.2), and *Caption
+  label* can put a bold "Table 1" on its own line above the title, as
+  APA wants.
 - **Reference list.** A section headed *References* (or Bibliography,
   Literatur, Références, Referencias …) is your reference list. *Reference
   list* in the Images and quotes section gives it a hanging indent or

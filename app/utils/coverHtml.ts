@@ -1,6 +1,6 @@
 import type { DocTheme } from '~~/shared/types/theme'
 import { isThemeImageUrl } from '~~/shared/utils/themeImages'
-import { resolveTitleBlock } from '~~/shared/utils/themeOptions'
+import { repeatTitle, resolveTitleBlock } from '~~/shared/utils/themeOptions'
 
 /**
  * Build the cover-page HTML when `theme.cover.enabled`. Returns the
@@ -13,9 +13,11 @@ import { resolveTitleBlock } from '~~/shared/utils/themeOptions'
  *     <div class="markoto-cover-subtitle">…</div>
  *     <div class="markoto-cover-meta">
  *       <div class="markoto-cover-author">…</div>×N
+ *       <div class="markoto-cover-affiliation">…</div>  ← cover.affiliations[i], after its author
  *       <div class="markoto-cover-date">…</div>
  *     </div>
  *   </section>
+ *   <div class="markoto-repeat-title">…</div>  ← cover.repeatTitle (also after a title block)
  *
  * Design notes:
  *   - `<h1>` + `<div>` only, never `<p>` — `wrapFirstLetterAsDropCap`
@@ -37,7 +39,7 @@ import { resolveTitleBlock } from '~~/shared/utils/themeOptions'
  */
 export function buildCoverHtml(theme: DocTheme, title: string, dateText: string, abstractHtml = ''): string {
   if (!theme.cover.enabled) return ''
-  if (theme.cover.layout === 'title-block') return buildTitleBlockHtml(theme, title, dateText, abstractHtml)
+  if (theme.cover.layout === 'title-block') return buildTitleBlockHtml(theme, title, dateText, abstractHtml) + buildRepeatTitleHtml(theme, title)
   const logo = buildLogoHtml(theme)
   const parts = [
     logo,
@@ -47,7 +49,16 @@ export function buildCoverHtml(theme: DocTheme, title: string, dateText: string,
   ].filter(Boolean)
   // Layout CSS adds an accent where the logo would be (themeToCss).
   const cls = logo ? 'markoto-cover' : 'markoto-cover markoto-cover--no-logo'
-  return `<section class="${cls}">${parts.join('')}</section>`
+  return `<section class="${cls}">${parts.join('')}</section>${buildRepeatTitleHtml(theme, title)}`
+}
+
+/**
+ * `cover.repeatTitle`: the title again at the top of the first text page
+ * (APA). A `<div>`, not a heading: no number, TOC entry or `{section}`.
+ */
+function buildRepeatTitleHtml(theme: DocTheme, title: string): string {
+  if (!repeatTitle(theme) || !theme.cover.showTitle || !title) return ''
+  return `<div class="markoto-repeat-title">${esc(title)}</div>`
 }
 
 function buildLogoHtml(theme: DocTheme): string {
@@ -58,7 +69,20 @@ function buildLogoHtml(theme: DocTheme): string {
 
 function buildTitleHtml(theme: DocTheme, title: string): string {
   if (!theme.cover.showTitle || !title) return ''
-  return `<h1 class="markoto-cover-title">${esc(keepNumbersTogether(title))}</h1>`
+  return `<h1 class="markoto-cover-title">${keepCompoundsTogether(esc(keepNumbersTogether(title)))}</h1>`
+}
+
+/**
+ * The balanced title (`text-wrap: balance`) may break after the hyphen of
+ * a compound ("field-/service reports"). Every hyphenated compound
+ * becomes `<span class="markoto-nobreak">` (`white-space: nowrap`,
+ * themeToCss) — not U+2011: many text fonts have no non-breaking-hyphen
+ * glyph (a fallback font would print it), and copied PDF text would no
+ * longer contain a plain hyphen. Input and output are escaped HTML text:
+ * only letters, digits and hyphens are matched, never `&…;` or tags.
+ */
+export function keepCompoundsTogether(escapedTitle: string): string {
+  return escapedTitle.replace(/[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)+/gu, m => `<span class="markoto-nobreak">${m}</span>`)
 }
 
 /**
@@ -81,10 +105,14 @@ function buildSubtitleHtml(theme: DocTheme): string {
 function buildMetaHtml(theme: DocTheme, dateText: string): string {
   const metaParts: string[] = []
   if (theme.cover.showAuthors) {
-    for (const author of theme.cover.authors) {
+    const { affiliations } = resolveTitleBlock(theme)
+    theme.cover.authors.forEach((author, i) => {
       const trimmed = author.trim()
-      if (trimmed) metaParts.push(`<div class="markoto-cover-author">${esc(trimmed)}</div>`)
-    }
+      if (!trimmed) return
+      metaParts.push(`<div class="markoto-cover-author">${esc(trimmed)}</div>`)
+      const aff = (affiliations[i] ?? '').trim()
+      if (aff) metaParts.push(`<div class="markoto-cover-affiliation">${esc(aff)}</div>`)
+    })
   }
   if (theme.cover.showDate && dateText) {
     metaParts.push(`<div class="markoto-cover-date">${esc(dateText)}</div>`)

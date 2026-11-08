@@ -216,9 +216,9 @@ const DESIGN_DOC_TEMPLATE_CSS = `/* Design doc / RFC template. */
 .paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td:last-child::before { content: ""; display: inline-block; width: 0.5em; height: 0.5em; margin-right: 0.5em; border-radius: 50%; background: var(--doc-accent); }
 /* Section numbers in the accent colour for "see 3.2" in review comments. */
 .paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { color: var(--doc-accent); margin-right: 0.6em; }
-/* Decision records: paragraphs that open with a bold label (D1., D2. …), two or more in a row, sit on an accent rule with the label in the accent. */
-.paged-doc > p:has(> strong:first-child):has(+ p > strong:first-child), .paged-doc > p:has(> strong:first-child) + p:has(> strong:first-child) { padding: 0.15em 0 0.15em 0.9em; border-left: 2pt solid var(--doc-accent); }
-.paged-doc > p:has(> strong:first-child):has(+ p > strong:first-child) > strong:first-child, .paged-doc > p:has(> strong:first-child) + p:has(> strong:first-child) > strong:first-child { color: var(--doc-accent); }
+/* Decision records: paragraphs that open with a bold run-in label (D1., D2. … — engine markoto-labelled), two or more in a row, sit on an accent rule with the label in the accent. */
+.paged-doc > p.markoto-labelled:has(+ p.markoto-labelled), .paged-doc > p.markoto-labelled + p.markoto-labelled { padding: 0.15em 0 0.15em 0.9em; border-left: 2pt solid var(--doc-accent); }
+.paged-doc > p.markoto-labelled:has(+ p.markoto-labelled) > strong:first-child, .paged-doc > p.markoto-labelled + p.markoto-labelled > strong:first-child { color: var(--doc-accent); }
 /* Tables: a step smaller, tabular figures, a firm rule under the header, hairlines between rows. */
 .paged-doc table { font-size: 0.9em; line-height: 1.35; font-variant-numeric: tabular-nums; }
 .paged-doc thead th { font-weight: 600; vertical-align: bottom; border-bottom: 0.75pt solid var(--doc-heading-color); }
@@ -309,8 +309,6 @@ const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before eleg
 .paged-doc li.task-list-item input[type="checkbox"] { appearance: none; -webkit-appearance: none; position: relative; width: 0.9em; height: 0.9em; margin: 0 0.3em 0 0; vertical-align: -0.13em; border: 1.1pt solid var(--doc-text); border-radius: 1.5pt; background: var(--doc-bg); text-indent: 0; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 /* A ticked box is crossed, as on a paper checklist (a checkbox draws no ::after in Chromium, so the cross is two gradients). */
 .paged-doc li.task-list-item input[type="checkbox"]:checked { background: linear-gradient(45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), linear-gradient(-45deg, transparent 42%, var(--doc-text) 42% 58%, transparent 58%), var(--doc-bg); }
-/* Code: no programming ligatures — a runbook command must print exactly what is typed (JetBrains Mono turns |= into a turnstile). */
-.paged-doc code, .paged-doc pre { font-variant-ligatures: none; font-feature-settings: "calt" 0; }
 /* Inline commands: framed, not just tinted, so they stand apart from prose in greyscale; a wrapped command keeps its frame on both lines. */
 .paged-doc :not(pre) > code { font-size: 0.84em; padding: 0.02em 0.25em; border: 0.5pt solid color-mix(in srgb, var(--doc-text) 40%, transparent); border-radius: 1.5pt; background: color-mix(in srgb, var(--doc-text) 5%, transparent); overflow-wrap: break-word; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 /* Shell blocks: compact leading; a wrapped line continues 4 columns in, so it can't be mistaken for a new command. */
@@ -345,9 +343,9 @@ const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before eleg
  * shows only a page number at the foot (\thispagestyle{plain}).
  */
 const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.cls (LPPL), 11pt. */
-/* \\chapter: every chapter (top-level heading) opens a new page, 50pt down; \\@makechapterhead puts the number on a line of its own, 20pt (\\huge) over the title, 40pt to the text. */
+/* \\chapter: every chapter (top-level heading) opens a new page, 50pt down; \\@makechapterhead puts "Chapter 3" (headings.chapterLabel, in the document language) on a line of its own, \\huge bold (20.7pt) over the \\Huge title, 40pt to the text. */
 .paged-doc h1.markoto-section-heading { break-before: page; padding-top: 36pt; margin-bottom: 28pt; }
-.paged-doc h1.markoto-section-heading:not(.unnumbered):not(.markoto-cover-title):not(.markoto-abstract-heading)::before { display: block; margin: 0 0 14pt; font-size: 2.1em; line-height: 1; font-weight: 400; color: var(--doc-accent); }
+.paged-doc h1.markoto-section-heading:not(.unnumbered):not(.markoto-cover-title):not(.markoto-abstract-heading)::before { margin: 0 0 14pt; font-size: 0.94em; line-height: 1; font-weight: 700; color: var(--doc-accent); }
 /* The chapter after the title page already starts a page. */
 .paged-doc .markoto-cover + h1.markoto-section-heading { break-before: auto; }
 /* \\tableofcontents: "Contents" set like a chapter title (\\chapter*) and ending its page; chapter entries bold with \\addvspace{1em} and no leaders; page numbers in the text colour. */
@@ -387,6 +385,8 @@ const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.c
 /* description: bold term, the definition hanging 1.5em under it. */
 .paged-doc dt { font-weight: 700; }
 .paged-doc dd { margin-left: 1.5em; }
+/* titlepage: the author's institution under the name (cover.affiliations), at text size. */
+.paged-doc .markoto-cover-affiliation { font-family: var(--doc-body-font); font-size: 1.05em; line-height: 1.35; color: var(--doc-text); margin-top: 0.3em; }
 /* Bibliography: hanging indent (blocks.referenceStyle), a smaller step and a little space between entries. */
 .paged-doc p.markoto-references { margin: 0 0 4pt; text-align: left; }
 /* Listings: a hairline at the left in grey instead of the accent bar. */
@@ -412,9 +412,9 @@ const API_REFERENCE_TEMPLATE_CSS = `/* API reference template. Lookup material: 
 .paged-doc > p, .paged-doc > ul, .paged-doc > ol, .paged-doc > blockquote, .paged-doc > .markdown-alert { max-width: 128mm; }
 /* Resources (h1) open under a firm rule across the full width, so a new resource is visible from across the page. */
 .paged-doc h1:not(.markoto-cover-title) { border-top: 1.5pt solid var(--doc-heading-color); padding-top: 5pt; }
-/* Endpoint line: an http code fence holding "POST /payments" prints as a tinted band with an accent edge; the method stands a little apart from the path. */
-.paged-doc pre:has(> code.language-http) { background: color-mix(in srgb, var(--doc-accent) 7%, transparent); border: 0; border-left: 2.5pt solid var(--doc-accent); border-radius: 0; padding: 4pt 8pt; font-size: 9pt; font-weight: 600; word-spacing: 0.45em; color: var(--doc-heading-color); }
-.paged-doc pre > code.language-http { font-weight: 600; }
+/* Endpoint line (engine markoto-endpoint: an http fence or paragraph holding "POST /payments"): a tinted band with an accent edge; the method in the accent, a little apart from the path. */
+.paged-doc .markoto-endpoint { background: color-mix(in srgb, var(--doc-accent) 7%, transparent); border: 0; border-left: 2.5pt solid var(--doc-accent); border-radius: 0; padding: 4pt 8pt; font-family: var(--doc-mono-font); font-size: 9pt; font-weight: 600; color: var(--doc-heading-color); }
+.paged-doc .markoto-http-method { margin-right: 0.45em; color: var(--doc-accent); }
 /* Section labels inside an endpoint (Parameters, Request, Response): small, spaced capitals over a hairline. */
 .paged-doc h3 { text-transform: uppercase; letter-spacing: 0.08em; color: var(--doc-secondary); padding-bottom: 2pt; border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 45%, transparent); }
 /* Status headings (200 OK, 402 Payment Required) in mono, with a mark coloured by status class (from the heading id, "h-200-ok"); the code itself carries the meaning in greyscale. */
@@ -475,21 +475,16 @@ const LECTURE_NOTES_TEMPLATE_CSS = `/* Lecture notes / course handout (LaTeX art
 .paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { margin-right: 1em; }
 /* Running head (\\pagestyle{headings}): the current section in italics left, the page number right. */
 .pagedjs_pages .pagedjs_page .pagedjs_margin-top-left { font-style: italic; }
-/* KaTeX sets math in Computer Modern, the body is Latin Modern (the same design): no size step between inline math and text. */
-.paged-doc .katex { font-size: 1em; }
 .paged-doc .katex-display { margin: 0.7em 0; }
-/* A display wider than the measure runs into the annotation margin (an overfull box) instead of being clipped in print. */
-.paged-doc .katex-display { overflow: visible; }
 /* amsthm environments, not callouts: square, no tint, the kind's name as a small-caps label (Note, Tip, Warning …). */
 .paged-doc .markdown-alert { border-radius: 0; background: none; border-left-width: 1.2pt; padding: 0.15em 0 0.15em 0.9em; margin: 0.9em 0; }
 .paged-doc .markdown-alert-title { font-size: 1em; font-weight: 700; text-transform: none; letter-spacing: 0.03em; font-variant-caps: small-caps; margin: 0 0 0.15em; }
-/* An environment that opens with its own bold label (**Theorem 7.3 (linearity).**, **Remark.**) needs no kind name above it. */
-.paged-doc .markdown-alert-important:has(> p:nth-child(2) > strong:first-child) > .markdown-alert-title { display: none; }
-.paged-doc .markdown-alert-note:has(> p:nth-child(2) > strong:first-child) > .markdown-alert-title { display: none; }
+/* An environment that opens with its own bold label (**Theorem 7.3 (linearity).**, **Remark.** — engine markoto-alert-labelled) needs no kind name above it. */
+.paged-doc .markdown-alert-important.markoto-alert-labelled > .markdown-alert-title, .paged-doc .markdown-alert-note.markoto-alert-labelled > .markdown-alert-title { display: none; }
 .paged-doc .markdown-alert > p:nth-child(2) { margin-top: 0; }
 /* Theorem (IMPORTANT), amsthm "plain" style: framed, italic statement, upright bold label. */
 .paged-doc .markdown-alert-important { border: 0.6pt solid var(--doc-accent); border-left-width: 2.4pt; background: color-mix(in srgb, var(--doc-accent) 5%, transparent); padding: 0.55em 0.9em; font-style: italic; }
-.paged-doc .markdown-alert-important strong:first-child { font-style: normal; }
+.paged-doc .markdown-alert-important .markoto-labelled > strong:first-child { font-style: normal; }
 /* Pitfalls (WARNING, CAUTION): a hairline box, upright text. */
 .paged-doc .markdown-alert-warning, .paged-doc .markdown-alert-caution { border-width: 0.6pt; border-style: solid; border-left-width: 2.4pt; padding: 0.55em 0.9em; }
 /* Definitions (definition list): bold term, the definition indented under it, never parted at a page break. */
@@ -540,6 +535,8 @@ const ESSAY_TEMPLATE_CSS = `/* APA 7 student paper. Values from the Publication 
 .paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; }
 .paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 2; }
 .paged-doc .markoto-title-block .markoto-cover-date { margin: 0; }
+/* §2.11: the repeated title (cover.repeatTitle) opens page 2 without extra space; the text follows on the next double-spaced line. */
+.paged-doc .markoto-repeat-title { margin: 0; }
 /* §2.18: the page number top right on every page, the title page included, in the text font and size. */
 .pagedjs_pages .pagedjs_page.pagedjs_first_page .pagedjs_margin-top-right > .pagedjs_margin-content::after { content: counter(page); }
 .pagedjs_pages .pagedjs_page .pagedjs_margin-top-right { font-size: 12pt; color: var(--doc-text); opacity: 1; }
@@ -606,9 +603,8 @@ const PROPOSAL_TEMPLATE_CSS = `/* Client proposal template. */
 .paged-doc .markoto-cover-subtitle { font-style: normal; font-weight: 500; color: var(--doc-brand); padding: 10mm 30mm 0 32mm; }
 .paged-doc .markoto-cover-meta { padding: 0 30mm 26mm 32mm; font-size: 0.95em; }
 .paged-doc .markoto-cover-author { font-weight: 600; color: var(--doc-heading-color); }
-/* Sections: a small accent index ("01") over each top-level heading, the proposal's contents in miniature (decorative; headings.numbering stays off). */
-.paged-doc h1.markoto-section-heading:not(.unnumbered) { counter-increment: mk-proposal; }
-.paged-doc h1.markoto-section-heading:not(.unnumbered)::before { content: counter(mk-proposal, decimal-leading-zero); display: block; margin-bottom: 0.45em; font-family: var(--doc-body-font); font-size: 0.42em; font-weight: 600; letter-spacing: 0.12em; color: var(--doc-brand); font-variant-numeric: lining-nums tabular-nums; }
+/* Sections: the engine's "01" (headings.numbering decimal-zero, top level only) as a small accent index over each top-level heading, the proposal's contents in miniature. */
+.paged-doc h1.markoto-section-heading::before { display: block; margin-bottom: 0.45em; font-family: var(--doc-body-font); font-size: 0.42em; font-weight: 600; letter-spacing: 0.12em; color: var(--doc-brand); }
 /* The first paragraph of a section is its lead: a step larger, in heading ink. */
 .paged-doc > h1 + p { font-size: 1.1em; line-height: 1.45; color: var(--doc-heading-color); }
 .paged-doc h1 + h2 { margin-top: 0; }
@@ -657,8 +653,8 @@ const ONE_PAGER_TEMPLATE_CSS = `/* One-pager template. A sidehead grid: section 
 .paged-doc .markoto-title-block .markoto-cover-title { line-height: 1.08; letter-spacing: -0.02em; margin-bottom: 0.3em; text-wrap: pretty; }
 /* The line under the title (kind of sheet, date) is quiet meta; the pitch is the lead paragraph. */
 .paged-doc .markoto-title-block .markoto-cover-subtitle { color: color-mix(in srgb, var(--doc-text) 65%, var(--doc-bg)); font-weight: 500; margin-bottom: 0; }
-/* Lead: an all-bold first paragraph is the pitch: full width, a size up, in the accent (run-in rule below); the first section's hairline closes it. The full width comes from a shift + width. */
-.paged-doc > p:first-of-type:has(> strong:only-child) { position: relative; left: calc(-1 * var(--op-side)); width: calc(100% + var(--op-side)); margin-bottom: 0.9em; font-size: 1.3em; line-height: 1.3; }
+/* Lead (the engine's markoto-lead, the paragraph under the title block) is the pitch: full width, a size up, in the accent (run-in rule below); the first section's hairline closes it. */
+.paged-doc > p.markoto-lead { margin: 0 0 0.9em calc(-1 * var(--op-side)); font-size: 1.3em; line-height: 1.3; color: var(--doc-accent); }
 /* Sideheads: each section opens on a hairline across the full width; its label sits in the left column (a zero-height box; the -0.5em cancels the next block's 0.5em top margin, so the text starts level with the label). */
 .paged-doc .markoto-section-heading { margin-left: calc(-1 * var(--op-side)); width: calc(var(--op-side) - 5mm); box-sizing: content-box; padding: 7pt calc(100% + 5mm) 0 0; height: 0; overflow: visible; margin-bottom: -0.5em; border-top: 0.5pt solid var(--doc-secondary); color: var(--doc-accent); line-height: 1.42; }
 /* Compact lists: a short hang, little space between items; the same 0.5em above as a paragraph, so the first line of every section sits level with its sidehead. */
@@ -683,8 +679,8 @@ const ONE_PAGER_TEMPLATE_CSS = `/* One-pager template. A sidehead grid: section 
 .paged-doc .markdown-alert-important .markdown-alert-title { color: var(--doc-bg); }
 .paged-doc .markdown-alert-important a { color: inherit; }
 .paged-doc .markdown-alert-title { font-size: 0.8em; letter-spacing: 0.08em; margin-bottom: 0.2em; }
-/* Run-in facts ("Pricing: … Team: …"): the bold labels in the accent. */
-.paged-doc p:has(> strong:first-child) > strong { color: var(--doc-accent); }
+/* Run-in facts ("Pricing: … Team: …", engine markoto-labelled): the bold labels in the accent. */
+.paged-doc p.markoto-labelled > strong { color: var(--doc-accent); }
 /* Links print as accent text without underline. */
 .paged-doc a { text-decoration: none; }
 `
@@ -703,11 +699,8 @@ const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhu
 .paged-doc h1.markoto-section-heading { break-before: page; padding-top: 38mm; margin-bottom: 2.6em; text-transform: uppercase; letter-spacing: 0.14em; }
 .paged-doc .markoto-cover + h1.markoto-section-heading { break-before: auto; }
 .paged-doc h1.markoto-section-heading:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { display: block; margin: 0 0 0.5em; font-size: 2.2em; line-height: 1; letter-spacing: 0; font-variant-numeric: normal; }
-/* A novel numbers its chapters only: part and scene titles (h2-h4) and their contents entries carry no number. */
-.paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
-.paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
-.paged-doc h4:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
-.paged-doc .table-of-contents > ul > li > ul > li:not(.markoto-abstract-entry):not(.markoto-unnumbered-entry)::before { content: none; }
+/* Chapter openings: the first words in small capitals (engine markoto-opening), as books set them. */
+.paged-doc .markoto-opening { font-variant-caps: all-small-caps; letter-spacing: 0.05em; }
 /* Contents page: set like a chapter opener (title sunk, centred, spaced capitals), no leaders, folios in the text colour, part / scene entries indented past the chapter numbers; it ends its page. */
 .paged-doc .table-of-contents { margin: 0; break-after: page; }
 .paged-doc .table-of-contents::before { padding-top: 38mm; margin-bottom: 2.6em; text-align: center; font-size: 1.15em; font-weight: 400; text-transform: uppercase; letter-spacing: 0.14em; }
@@ -830,18 +823,18 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'markoto',
     category: 'general',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 24 },
+      page: { size: 'A4', orientation: 'portrait', margin: 24, mirrorMargins: false },
       meta: { font: 'JetBrains Mono' },
       body: { font: 'Inter', size: 10.5, lineHeight: 1.55, textAlign: 'left', color: '#14110D', background: '#FFFFFF', dropCap: true, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: false },
-      headings: { font: 'Fraunces', scale: 1.28, weight: 500, underline: false, color: '#1F1B14', letterSpacing: -0.01, lineHeight: 1.25, spacingScale: 1.2, numbering: 'none', levels: {} },
+      headings: { font: 'Fraunces', scale: 1.28, weight: 500, underline: false, color: '#1F1B14', letterSpacing: -0.01, lineHeight: 1.25, spacingScale: 1.2, numbering: 'none', levels: {}, numberingDepth: 4, chapterLabel: false, chapterWord: '' },
       color: { brand: '#B5371F', secondary: '#A39A8A' },
       brand: { logoUrl: '/markoto-logos/primary-lockup-light.svg', logoHeight: 56 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '{page} · {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 9, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 8, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 92, blockquoteStyle: 'border', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Desaturated warm-paper admonition palette. Each hue keeps its
       // traditional meaning (blue/info, green/tip, purple/important,
@@ -857,7 +850,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#B5371F' // shu-500
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: true, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: true, align: 'center', titleSize: 2.4, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false }
     }
   },
 
@@ -867,18 +860,18 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'modern',
     category: 'general',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 20 },
+      page: { size: 'A4', orientation: 'portrait', margin: 20, mirrorMargins: false },
       meta: { font: 'Inter' },
       body: { font: 'Inter', size: 11, lineHeight: 1.3, textAlign: 'justify', color: '#111827', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.6, hyphenate: true },
-      headings: { font: 'Inter', scale: 1.25, weight: 600, underline: false, color: '#111827', letterSpacing: -0.01, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {} },
+      headings: { font: 'Inter', scale: 1.25, weight: 600, underline: false, color: '#111827', letterSpacing: -0.01, lineHeight: 1.2, spacingScale: 1, numbering: 'none', levels: {}, numberingDepth: 4, chapterLabel: false, chapterWord: '' },
       color: { brand: '#3B82F6', secondary: '#9ca3af' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-dark', fontSize: 9, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // GitHub palette — the canonical look most users have seen in
       // README admonitions for years.
@@ -890,7 +883,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#cf222e'
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false }
     }
   },
 
@@ -905,7 +898,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'arxiv',
     category: 'academic',
     theme: {
-      page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
+      page: { size: 'Letter', orientation: 'portrait', margin: 25.4, mirrorMargins: false },
       meta: { font: 'TeX Gyre Termes' },
       body: { font: 'TeX Gyre Termes', size: 10, lineHeight: 1.1, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: true },
       headings: {
@@ -919,16 +912,17 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.7,
         numbering: 'decimal',
         // \section \large (12pt), \subsection + \subsubsection \normalsize (10pt).
-        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } }
+        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#000000', secondary: '#000000' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '{title}', right: 'A Preprint', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      header: { left: '', center: '{title}', right: 'A Preprint', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: admonitions are not part of the LaTeX look; keep
       // them dark and muted so they read as print.
@@ -940,7 +934,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9b1a25'
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: 'A Preprint', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: true, smallCaps: true, titleWeight: 400, showLogo: false, align: 'center', titleSize: 1.7, subtitleSize: 1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: 'A Preprint', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: true, smallCaps: true, titleWeight: 400, showLogo: false, align: 'center', titleSize: 1.7, subtitleSize: 1, dateFormat: 'locale', repeatTitle: false },
       customCss: ARXIV_TEMPLATE_CSS
     }
   },
@@ -962,7 +956,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       // \textwidth 43pc on Letter → 48pt (16.93mm) side margins;
       // \textheight 9.25in quantised to 56 lines (672pt): top 0.75in less
       // half the rounding = 51pt (17.99mm), bottom 69pt (24.34mm).
-      page: { size: 'Letter', orientation: 'portrait', margin: 16.93, marginTop: 17.99, marginBottom: 24.34 },
+      page: { size: 'Letter', orientation: 'portrait', margin: 16.93, marginTop: 17.99, marginBottom: 24.34, mirrorMargins: false },
       meta: { font: 'TeX Gyre Termes' },
       // \normalsize 10/12pt, \parskip 0, \parindent 1em.
       body: { font: 'TeX Gyre Termes', size: 10, lineHeight: 1.2, textAlign: 'justify', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
@@ -978,19 +972,20 @@ export const THEME_PRESETS: ThemePreset[] = [
         // \Roman. sections, \Alph. subsections, \arabic) subsubsections.
         numbering: 'ieee',
         // \section \normalsize\scshape centred, \subsection + \subsubsection \normalsize\itshape.
-        levels: { h1: { size: 1, smallCaps: true, align: 'center' }, h2: { size: 1, style: 'italic' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
+        levels: { h1: { size: 1, smallCaps: true, align: 'center' }, h2: { size: 1, style: 'italic' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#000000', secondary: '#000000' },
       brand: { logoUrl: '', logoHeight: 48 },
       // \columnsep 1pc = 4.23mm.
       layout: { columns: 2, columnGap: 4.23 },
       // Conference mode: no running head, no page numbers (the publisher adds them).
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 8, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
       // Caption above, numbered (the "TABLE I" format is template CSS); "Fig. 1." figures; [1] references.
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 2, captionPosition: 'above', captionLabel: true },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'brackets' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'brackets', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: IEEE has no admonitions; keep them dark and muted.
       alerts: {
@@ -1002,7 +997,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       // \Huge (24pt) regular title, centred; no date.
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1, dateFormat: 'locale', repeatTitle: false },
       customCss: IEEE_CONFERENCE_TEMPLATE_CSS
     }
   },
@@ -1022,7 +1017,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     category: 'academic',
     theme: {
       // geometry: 25 mm top/left, 46 mm right (annotation margin), 27 mm bottom.
-      page: { size: 'A4', orientation: 'portrait', margin: 25, marginRight: 46, marginBottom: 27 },
+      page: { size: 'A4', orientation: 'portrait', margin: 25, marginRight: 46, marginBottom: 27, mirrorMargins: false },
       meta: { font: 'Latin Modern Roman' },
       // 11/14pt (\normalsize 11pt with \baselineskip 13.6pt, opened up a
       // little for inline fractions and handwritten notes); half-line
@@ -1039,18 +1034,19 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.9,
         numbering: 'decimal',
         // \section \Large (14.4pt), \subsection \large (12pt), \subsubsection \normalsize.
-        levels: { h1: { size: 1.31 }, h2: { size: 1.09 }, h3: { size: 1 } }
+        levels: { h1: { size: 1.31 }, h2: { size: 1.09 }, h3: { size: 1 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#1f3a6e', secondary: '#555555' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
       // \pagestyle{headings}: section left, page right, over a hairline; nothing at the foot.
-      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true, sectionNumber: true, sectionMode: 'start' },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       // Listings: Latin Modern Mono at \small, no colour, a light tint and an accent rule.
       code: { theme: 'none', fontSize: 9.5, font: 'Latin Modern Mono', background: 'tint', frame: 'rule', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Theorems in the accent; remarks and intuition in grey; pitfalls
       // dark amber / red — all distinct grey values in black-and-white print.
@@ -1063,7 +1059,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       // \LARGE (17.28pt) bold title, left-aligned; course as the subtitle, lecturer + date.
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.57, subtitleSize: 1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.57, subtitleSize: 1, dateFormat: 'locale', repeatTitle: false },
       customCss: LECTURE_NOTES_TEMPLATE_CSS
     }
   },
@@ -1083,7 +1079,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     theme: {
       // report.cls 11pt on A4: \textwidth 360pt (127mm). A touch wider
       // here (130mm ≈ 70 characters); top/bottom leave room for the head.
-      page: { size: 'A4', orientation: 'portrait', margin: 40, marginTop: 35, marginBottom: 38 },
+      page: { size: 'A4', orientation: 'portrait', margin: 40, marginTop: 35, marginBottom: 38, mirrorMargins: false },
       meta: { font: 'Latin Modern Roman' },
       // \normalsize 11/13.6pt, \parskip 0, \parindent 1.5em (engine: 1.2em).
       body: { font: 'Latin Modern Roman', size: 11, lineHeight: 1.28, textAlign: 'justify', color: '#111111', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
@@ -1098,19 +1094,20 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 1,
         numbering: 'decimal',
         // \chapter \Huge (the title at 2 × body), \section \Large, \subsection \large, \subsubsection \normalsize.
-        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 }, h4: { size: 1 } }
+        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 }, h4: { size: 1 } },
+        numberingDepth: 4, chapterLabel: true, chapterWord: ''
       },
       color: { brand: '#24456b', secondary: '#6b6b6b' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
       // \pagestyle{headings}: chapter title left, page number right; the
       // footer number shows only on chapter opening pages (template CSS).
-      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: true, sectionMode: 'start' },
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 9.5, font: 'Latin Modern Mono', background: 'none', frame: 'rule', wrap: true, lineNumbers: false },
-      // Captions are written by the author ("Table 3.1: …", chapter-relative), above tables.
-      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'hanging' },
+      // \caption: "Table 3.1: …" / "Figure 3.1: …", numbered within the chapter; tables captioned above.
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: true },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging', captionNumbering: 'chapter', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: dark, muted admonitions that survive greyscale print.
       alerts: {
@@ -1122,7 +1119,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       // titlepage: \Huge bold title, author, date at the foot; no running head.
-      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: true, align: 'center', titleSize: 2.3, subtitleSize: 1.2 },
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: true, align: 'center', titleSize: 2.3, subtitleSize: 1.2, dateFormat: 'locale', repeatTitle: false },
       customCss: THESIS_TEMPLATE_CSS
     }
   },
@@ -1139,19 +1136,19 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'tech-docs',
     category: 'engineering',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 20 },
+      page: { size: 'A4', orientation: 'portrait', margin: 20, mirrorMargins: false },
       meta: { font: 'Source Sans 3' },
       body: { font: 'Source Serif 4', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#1b1f24', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: false },
-      headings: { font: 'Source Sans 3', scale: 1.2, weight: 600, underline: false, color: '#111827', letterSpacing: 0, lineHeight: 1.25, spacingScale: 0.85, numbering: 'decimal', levels: {} },
+      headings: { font: 'Source Sans 3', scale: 1.2, weight: 600, underline: false, color: '#111827', letterSpacing: 0, lineHeight: 1.25, spacingScale: 0.85, numbering: 'decimal', levels: {}, numberingDepth: 4, chapterLabel: false, chapterWord: '' },
       color: { brand: '#1d4f91', secondary: '#7b8594' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
       // Running head: the guide's title, and the chapter the page is in.
-      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true, sectionNumber: true, sectionMode: 'start' },
       footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'tint', frame: 'box', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // GitHub's admonition hues, darkened so each stays legible as text
       // and distinct as a grey value in black-and-white print.
@@ -1163,7 +1160,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#a3212b'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false },
       customCss: TECH_DOCS_TEMPLATE_CSS
     }
   },
@@ -1180,7 +1177,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'api-reference',
     category: 'engineering',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 18, marginTop: 20 },
+      page: { size: 'A4', orientation: 'portrait', margin: 18, marginTop: 20, mirrorMargins: false },
       meta: { font: 'IBM Plex Sans' },
       body: { font: 'IBM Plex Sans', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1f2328', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: false },
       headings: {
@@ -1194,17 +1191,18 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.8,
         numbering: 'none',
         // Resource 16.6pt, endpoint 12.4pt, section label 8pt caps, status code 9.5pt mono.
-        levels: { h1: { size: 1.75 }, h2: { size: 1.3 }, h3: { size: 0.84 } }
+        levels: { h1: { size: 1.75 }, h2: { size: 1.3 }, h3: { size: 0.84 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#3a3f9e', secondary: '#5f6673' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
       // The resource the page is in (where the eye lands first), and the title.
-      header: { left: '{section}', center: '', right: '{title}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      header: { left: '{section}', center: '', right: '{title}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true, sectionNumber: false, sectionMode: 'start' },
       footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8, font: 'IBM Plex Mono', background: 'tint', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Admonition hues dark enough to stay distinct grey values in print.
       alerts: {
@@ -1215,7 +1213,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#a3212b'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.1, subtitleSize: 1.1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.1, subtitleSize: 1.1, dateFormat: 'locale', repeatTitle: false },
       customCss: API_REFERENCE_TEMPLATE_CSS
     }
   },
@@ -1233,7 +1231,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     category: 'engineering',
     theme: {
       // 166 mm text width: prose takes 122 mm of it (~75 characters, template CSS), the rest is the review margin.
-      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      page: { size: 'A4', orientation: 'portrait', margin: 22, mirrorMargins: false },
       meta: { font: 'IBM Plex Sans' },
       body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.45, textAlign: 'left', color: '#1F2328', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.65, hyphenate: false },
       headings: {
@@ -1247,17 +1245,18 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.8,
         numbering: 'decimal',
         // A quiet three-step hierarchy: 16 / 12.5 / 10.5 pt over 10 pt text.
-        levels: { h1: { size: 1.6 }, h2: { size: 1.25 }, h3: { size: 1.05 } }
+        levels: { h1: { size: 1.6 }, h2: { size: 1.25 }, h3: { size: 1.05 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#3A428C', secondary: '#7D828C' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
       // Running head: what the page is and where in the argument it stands.
-      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: true, sectionMode: 'start' },
       footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'tint', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Muted, print-safe admonition hues; note follows the accent.
       alerts: {
@@ -1268,7 +1267,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#A12C2C'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.2, subtitleSize: 1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.2, subtitleSize: 1, dateFormat: 'locale', repeatTitle: false },
       customCss: DESIGN_DOC_TEMPLATE_CSS
     }
   },
@@ -1283,7 +1282,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'business-report',
     category: 'business',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      page: { size: 'A4', orientation: 'portrait', margin: 22, mirrorMargins: false },
       meta: { font: 'Inter' },
       body: { font: 'Inter', size: 9.5, lineHeight: 1.5, textAlign: 'left', color: '#1E2329', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.75, hyphenate: false },
       headings: {
@@ -1297,16 +1296,17 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 1.1,
         numbering: 'none',
         // A clear three-step hierarchy: 19 / 13.3 / 10.9 pt over 9.5 pt text.
-        levels: { h1: { size: 2 }, h2: { size: 1.4 }, h3: { size: 1.15 } }
+        levels: { h1: { size: 2 }, h2: { size: 1.4 }, h3: { size: 1.15 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#155A75', secondary: '#8A949E' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '{title}', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: true },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       alerts: {
         note: '#155A75',
@@ -1316,7 +1316,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9E2A2B'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
-      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35 },
+      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35, dateFormat: 'locale', repeatTitle: false },
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
     }
   },
@@ -1331,7 +1331,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'one-pager',
     category: 'business',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 16 },
+      page: { size: 'A4', orientation: 'portrait', margin: 16, mirrorMargins: false },
       meta: { font: 'DM Sans' },
       body: { font: 'DM Sans', size: 10.5, lineHeight: 1.42, textAlign: 'left', color: '#262A31', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.5, hyphenate: false },
       headings: {
@@ -1345,16 +1345,17 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.8,
         numbering: 'none',
         // Sideheads at text size (the grid, not the size, marks a section); h3 a run-in step.
-        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } }
+        levels: { h1: { size: 1.2 }, h2: { size: 1 }, h3: { size: 1 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#C2410C', secondary: '#9AA0A8' },
       brand: { logoUrl: '', logoHeight: 36 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // The accent doubles as "important" (the filled callout); the others
       // are dark enough to stay distinct in black-and-white print.
@@ -1366,7 +1367,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9E2A2B'
       },
       toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.6, subtitleSize: 1.15, titleWeight: 800 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.6, subtitleSize: 1.15, titleWeight: 800, dateFormat: 'locale', repeatTitle: false },
       customCss: ONE_PAGER_TEMPLATE_CSS
     }
   },
@@ -1385,7 +1386,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     category: 'business',
     theme: {
       // Generous margins, a slightly wider inner (left) margin.
-      page: { size: 'A4', orientation: 'portrait', margin: 26, marginTop: 24, marginRight: 30, marginBottom: 26, marginLeft: 32 },
+      page: { size: 'A4', orientation: 'portrait', margin: 26, marginTop: 24, marginRight: 30, marginBottom: 26, marginLeft: 32, mirrorMargins: false },
       meta: { font: 'Work Sans' },
       body: { font: 'Work Sans', size: 10, lineHeight: 1.5, textAlign: 'left', color: '#2B2622', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
       headings: {
@@ -1397,18 +1398,20 @@ export const THEME_PRESETS: ThemePreset[] = [
         letterSpacing: -0.01,
         lineHeight: 1.2,
         spacingScale: 1.2,
-        numbering: 'none',
+        // The "01" index over each top-level heading (template CSS styles it).
+        numbering: 'decimal-zero',
         // 20 / 13 / 11 pt over 10 pt text.
-        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 } }
+        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 } },
+        numberingDepth: 1, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#9C3E22', secondary: '#8C8279' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '{title}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Muted, each a distinct grey in black-and-white print; caution is the accent.
       alerts: {
@@ -1419,7 +1422,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9C3E22'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'banner', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 500, showLogo: false, align: 'left', titleSize: 3.4, subtitleSize: 1.3 },
+      cover: { enabled: true, layout: 'banner', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 500, showLogo: false, align: 'left', titleSize: 3.4, subtitleSize: 1.3, dateFormat: 'locale', repeatTitle: false },
       customCss: PROPOSAL_TEMPLATE_CSS
     }
   },
@@ -1436,7 +1439,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'memo',
     category: 'business',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 20, marginTop: 30, marginRight: 20, marginBottom: 24, marginLeft: 24 },
+      page: { size: 'A4', orientation: 'portrait', margin: 20, marginTop: 30, marginRight: 20, marginBottom: 24, marginLeft: 24, mirrorMargins: false },
       meta: { font: 'Inter' },
       body: { font: 'Inter', size: 10, lineHeight: 1.5, textAlign: 'left', color: '#1A1A1A', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
       headings: {
@@ -1452,16 +1455,17 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 1,
         numbering: 'none',
         // A memo's headings are side heads at text size; deeper levels stay at text size too.
-        levels: { h1: { size: 1 }, h2: { size: 1 }, h3: { size: 1 } }
+        levels: { h1: { size: 1 }, h2: { size: 1 }, h3: { size: 1 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#C8102E', secondary: '#6E6E6E' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '{title}', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'none', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Dark, desaturated hues: a callout in a memo must still read in greyscale print.
       alerts: {
@@ -1472,7 +1476,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9E1F2A'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false },
       customCss: MEMO_TEMPLATE_CSS
     }
   },
@@ -1490,8 +1494,9 @@ export const THEME_PRESETS: ThemePreset[] = [
     category: 'writing',
     theme: {
       // A5 (148 × 210 mm, the European trade size): a 114 mm text block,
-      // about 66 characters of Garamond at 11 pt, ~33 lines a page.
-      page: { size: 'A5', orientation: 'portrait', margin: 17, marginTop: 19, marginBottom: 20 },
+      // about 66 characters of Garamond at 11 pt, ~33 lines a page. Spreads:
+      // a deeper inside (binding) margin, mirrored on left-hand pages.
+      page: { size: 'A5', orientation: 'portrait', margin: 17, marginTop: 19, marginRight: 15, marginBottom: 20, marginLeft: 19, mirrorMargins: true },
       meta: { font: 'EB Garamond' },
       body: { font: 'EB Garamond', size: 11, lineHeight: 1.32, textAlign: 'justify', color: '#1A1A1A', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
       headings: {
@@ -1503,23 +1508,25 @@ export const THEME_PRESETS: ThemePreset[] = [
         letterSpacing: 0,
         lineHeight: 1.2,
         spacingScale: 1,
-        // Chapter numbers (the numeral over the chapter title, template CSS).
+        // Chapter numbers only (the numeral over the chapter title, template
+        // CSS): part and scene titles (h2–h4) carry none.
         numbering: 'decimal',
         // Chapter titles in spaced capitals a step over the text; part or
         // scene titles below that centred italic.
-        levels: { h1: { size: 1.15, align: 'center' }, h2: { size: 1.1, style: 'italic', align: 'center' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
+        levels: { h1: { size: 1.15, align: 'center' }, h2: { size: 1.1, style: 'italic', align: 'center' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } },
+        numberingDepth: 1, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#1A1A1A', secondary: '#6B6660' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
       // Book title centred over the text, folio at the outer corner (left
       // on versos, right on rectos — template CSS hides the inner one).
-      header: { left: '{page}', center: '{title}', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '{page}', center: '{title}', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       // A chapter opening page drops the head; its folio sits at the foot.
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 9, font: 'IBM Plex Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: fiction has no admonitions; if one appears it stays
       // dark and muted.
@@ -1533,7 +1540,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
       // Title page: title in spaced capitals a third down, "A novel" in
       // italic, the author lower on the page (template CSS).
-      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2, subtitleSize: 1.15 },
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false },
       customCss: MANUSCRIPT_TEMPLATE_CSS
     }
   },
@@ -1552,7 +1559,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     category: 'writing',
     theme: {
       // §2.22: 1in margins on all sides.
-      page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
+      page: { size: 'Letter', orientation: 'portrait', margin: 25.4, mirrorMargins: false },
       meta: { font: 'TeX Gyre Termes' },
       // §2.19 12 pt Times; §2.21 double spacing; §2.23 flush left, ragged right, no hyphenation; §2.24 indent (0.5in in the template CSS), no space between paragraphs.
       body: { font: 'TeX Gyre Termes', size: 12, lineHeight: 2, textAlign: 'left', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: false },
@@ -1567,19 +1574,20 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.5,
         numbering: 'none',
         // §2.27: every level at text size and bold; Level 1 centred, Level 3 bold italic.
-        levels: { h1: { size: 1, align: 'center' }, h2: { size: 1 }, h3: { size: 1, style: 'italic' }, h4: { size: 1 } }
+        levels: { h1: { size: 1, align: 'center' }, h2: { size: 1 }, h3: { size: 1, style: 'italic' }, h4: { size: 1 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#000000', secondary: '#000000' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
       // §2.18: student papers carry only the page number, top right; no running head.
-      header: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
-      // APA tables and figures (ch. 7): horizontal rules only, the numbered label above.
+      // APA tables and figures (ch. 7): horizontal rules only, the bold number on its own line above the italic title.
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
       // §8.27 block quotations (no rule, no italics — template CSS); §9.43 hanging references.
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging', captionNumbering: 'document', captionLabelStyle: 'stacked' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: APA papers have no admonitions; keep them dark and muted.
       alerts: {
@@ -1591,7 +1599,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       // §2.3: bold title at text size, author / affiliation / course / instructor / date in regular weight, centred; the template CSS turns the block into a title page.
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'center', titleSize: 1, subtitleSize: 1 },
+      // §2.11: the title repeated in bold at the top of the first text page; §2.3 dates US style (November 2, 2026).
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'center', titleSize: 1, subtitleSize: 1, dateFormat: 'us', repeatTitle: true },
       customCss: ESSAY_TEMPLATE_CSS
     }
   },
@@ -1603,7 +1612,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'newsletter',
     category: 'writing',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 15 },
+      page: { size: 'A4', orientation: 'portrait', margin: 15, mirrorMargins: false },
       meta: { font: 'Source Sans 3' },
       body: { font: 'Source Sans 3', size: 9.5, lineHeight: 1.45, textAlign: 'left', color: '#1F2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.55, hyphenate: true },
       headings: {
@@ -1617,16 +1626,17 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 1,
         numbering: 'none',
         // Headlines 2× body (19 pt); kickers inside the columns 11.4 / 10.5 pt.
-        levels: { h1: { size: 2 }, h2: { size: 1.2 }, h3: { size: 1.1 } }
+        levels: { h1: { size: 2 }, h2: { size: 1.2 }, h3: { size: 1.1 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#C4452D', secondary: '#7D8792' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 2, columnGap: 7 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Muted, print-safe callouts; the note picks up a teal that sits next to the terracotta accent.
       alerts: {
@@ -1637,7 +1647,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#A8322A'
       },
       toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 800, showLogo: false, align: 'left', titleSize: 4, subtitleSize: 1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 800, showLogo: false, align: 'left', titleSize: 4, subtitleSize: 1, dateFormat: 'locale', repeatTitle: false },
       customCss: NEWSLETTER_TEMPLATE_CSS
     }
   },
@@ -1650,18 +1660,18 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'resume',
     category: 'general',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 16 },
+      page: { size: 'A4', orientation: 'portrait', margin: 16, mirrorMargins: false },
       meta: { font: 'Inter' },
       body: { font: 'Inter', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#1f2933', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.45, hyphenate: false },
-      headings: { font: 'Inter', scale: 1.18, weight: 600, underline: true, color: '#1e3a52', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.6, numbering: 'none', levels: {} },
+      headings: { font: 'Inter', scale: 1.18, weight: 600, underline: true, color: '#1e3a52', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.6, numbering: 'none', levels: {}, numberingDepth: 4, chapterLabel: false, chapterWord: '' },
       color: { brand: '#2f5b7c', secondary: '#94a3b8' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'github-light', fontSize: 8.5, font: 'JetBrains Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 2, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       alerts: {
         note: '#2f5b7c',
@@ -1671,7 +1681,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#9a2f2a'
       },
       toc: { maxDepth: 2, showTitle: false, showPageNumbers: false, leaderStyle: 'none' },
-      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.4, subtitleSize: 1.15 }
+      cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.4, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false }
     }
   },
   // — On-call runbook: an operations handbook read under stress — on a
@@ -1688,7 +1698,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     id: 'runbook',
     category: 'engineering',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 15, marginTop: 16, marginBottom: 15 },
+      page: { size: 'A4', orientation: 'portrait', margin: 15, marginTop: 16, marginBottom: 15, mirrorMargins: false },
       meta: { font: 'IBM Plex Sans' },
       body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.35, textAlign: 'left', color: '#111111', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.45, hyphenate: false },
       headings: {
@@ -1702,18 +1712,19 @@ export const THEME_PRESETS: ThemePreset[] = [
         spacingScale: 0.6,
         numbering: 'decimal',
         // 15.5 / 12 / 10.5 pt over 10 pt text: findable, not loud.
-        levels: { h1: { size: 1.55 }, h2: { size: 1.2 }, h3: { size: 1.05 } }
+        levels: { h1: { size: 1.55 }, h2: { size: 1.2 }, h3: { size: 1.05 } },
+        numberingDepth: 4, chapterLabel: false, chapterWord: ''
       },
       color: { brand: '#000000', secondary: '#5C636B' },
       brand: { logoUrl: '', logoHeight: 40 },
       layout: { columns: 1, columnGap: 8 },
       // Which runbook, and which section the page is in (for "see 3.2").
-      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true },
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: true, sectionNumber: true, sectionMode: 'start' },
       // Printouts go stale: the date is on every page.
       footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
       code: { theme: 'none', fontSize: 8.5, font: 'JetBrains Mono', background: 'tint', frame: 'rule', wrap: true, lineNumbers: false },
       tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 3, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Signal colours dark enough to read as text and as distinct greys.
       alerts: {
@@ -1724,7 +1735,7 @@ export const THEME_PRESETS: ThemePreset[] = [
         caution: '#B0101E'
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.9, subtitleSize: 1.1 },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'left', titleSize: 1.9, subtitleSize: 1.1, dateFormat: 'locale', repeatTitle: false },
       customCss: RUNBOOK_TEMPLATE_CSS
     }
   }
