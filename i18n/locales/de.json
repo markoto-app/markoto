@@ -1063,6 +1063,10 @@
         "name": "Technische Dokumentation",
         "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
       },
+      "design-doc": {
+        "name": "Design-Dokument / RFC",
+        "description": "Technische Design-Dokumente, RFCs und Entscheidungsprotokolle: IBM Plex Sans in einer gut lesbaren Spalte mit Rand für Review-Notizen, nummerierte Abschnitte für Review-Kommentare, Dokumentkopf mit Status, Entscheidungen an einer Akzentlinie, übersichtliche Vergleichstabellen, Titel und aktueller Abschnitt im Kolumnentitel."
+      },
       "business-report": {
         "name": "Unternehmensbericht",
         "description": "Für Quartals- und Jahresberichte, Board-Updates und Kundendokumente: Source-Serif-Überschriften über Inter, ein tiefer Petrol-Akzent, Finanztabellen mit Tabellenziffern und abgesetzten Summenzeilen, Zitate als Pull-Quotes, eine ruhige Fusszeile über einer feinen Linie."
@@ -1078,6 +1082,10 @@
       "resume": {
         "name": "Lebenslauf",
         "description": "Eine dichte A4-Seite: Inter in 10 pt, kleine Überschriften mit Linie, ohne Kopf, Fuss und Titelseite."
+      },
+      "runbook": {
+        "name": "Bereitschafts-Runbook",
+        "description": "Für die Person im Bereitschaftsdienst, am Bildschirm oder gedruckt: robuste Grotesk- und Monospace-Schrift, nummerierte Abschnitte mit dem Abschnitt im Kolumnentitel, Arbeitsschritte weiss auf schwarz nummeriert, gerahmte, kopierbare Befehle, Checklisten mit echten Kästchen, Tabellen mit schwarzer Kopfzeile, Hinweise, die auch in Graustufen auffallen."
       }
     },
     "customCss": {
