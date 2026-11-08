@@ -681,7 +681,11 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
         '# Heading one', '', 'Body text with **bold**, *italic*, ***bold italic*** and `inline code`.', '',
         '## Heading two', '', '### Heading three', '', '> A quotation, *emphasised*.', '',
         '| Item | Value |', '|---|---|', '| One | 1 |', '',
-        '```ts', 'const answer: number = 42', '```', ''
+        '```ts', 'const answer: number = 42', '```', '',
+        // A gantt chart with a label beside its (short) bar: Mermaid text
+        // with a stroke (a halo) printed as a Type 3 font in every preset.
+        '```mermaid', 'gantt', '  dateFormat YYYY-MM-DD', '  section Plan',
+        '  Kick-off and research :a1, 2027-01-04, 4d', '  Build :a2, after a1, 40d', '```', ''
       ].join('\n')
       const offenders: string[] = []
       for (const preset of THEME_PRESETS) {
