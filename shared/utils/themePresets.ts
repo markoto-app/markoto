@@ -11,8 +11,16 @@ import type { DocTheme } from '../types/theme'
  * matching i18n keys.
  */
 
+/**
+ * Who a preset is for — the tabs of the new-document design picker. A
+ * `general` preset (the brand look, an all-rounder) shows under "All" only.
+ */
+export const THEME_PRESET_CATEGORIES = ['engineering', 'academic', 'business', 'writing'] as const
+export type ThemePresetCategory = typeof THEME_PRESET_CATEGORIES[number] | 'general'
+
 export interface ThemePreset {
   id: string // matches i18n key under theme.presets.<id>
+  category: ThemePresetCategory
   theme: DocTheme
 }
 
@@ -279,6 +287,69 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 `
 
 /**
+ * THESIS_TEMPLATE_CSS — the long-form academic look (Bachelor / Master /
+ * PhD theses, long reports) beyond theme fields. Genre reference: LaTeX
+ * `report` / `book` (report.cls, LPPL) as most university thesis classes
+ * derive it — chapters open a new page under a large number, the running
+ * head carries the chapter title and the page number, the opening page
+ * shows only a page number at the foot (\thispagestyle{plain}).
+ */
+const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.cls (LPPL), 11pt. */
+/* \\chapter: every chapter (top-level heading) opens a new page, 50pt down; \\@makechapterhead puts the number on a line of its own, 20pt (\\huge) over the title, 40pt to the text. */
+.paged-doc h1.markoto-section-heading { break-before: page; padding-top: 36pt; margin-bottom: 28pt; }
+.paged-doc h1.markoto-section-heading:not(.unnumbered):not(.markoto-cover-title):not(.markoto-abstract-heading)::before { display: block; margin: 0 0 14pt; font-size: 2.1em; line-height: 1; font-weight: 400; color: var(--doc-accent); }
+/* The chapter after the title page already starts a page. */
+.paged-doc .markoto-cover + h1.markoto-section-heading { break-before: auto; }
+/* \\tableofcontents: "Contents" set like a chapter title (\\chapter*) and ending its page; chapter entries bold with \\addvspace{1em} and no leaders; page numbers in the text colour. */
+.paged-doc .table-of-contents { margin: 0; break-after: page; }
+.paged-doc .table-of-contents::before { font-size: 2em; line-height: 1.2; padding-top: 36pt; margin-bottom: 28pt; }
+.paged-doc .table-of-contents > ul > li { margin-top: 0.7em; }
+.paged-doc .table-of-contents > ul > li::before { font-weight: 700; }
+.paged-doc .table-of-contents > ul > li > a { font-weight: 700; }
+.paged-doc .table-of-contents > ul > li > a::before { border-bottom-color: transparent; }
+.paged-doc .table-of-contents a::after { color: var(--doc-text); }
+/* \\section 1.1: the number, then a quad. */
+.paged-doc h2::before, .paged-doc h3::before, .paged-doc h4::before { margin-right: 1em; }
+/* \\pagestyle{headings}: chapter title + page number at the head (italic small caps here, not slanted capitals); no head on a chapter's opening page, only the page number centred at the foot (\\thispagestyle{plain}). */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top { font-style: italic; font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-right { font-style: normal; font-variant-caps: normal; letter-spacing: 0; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin { opacity: 1; }
+.pagedjs_pages .pagedjs_page:has(h1.markoto-section-heading) .pagedjs_margin-top { visibility: hidden; }
+.pagedjs_pages .pagedjs_page:not(:has(h1.markoto-section-heading)) .pagedjs_margin-bottom { visibility: hidden; }
+/* titlepage: title at a third of the page, author in the middle, date at the foot; text-block margins. */
+.paged-doc .markoto-cover { justify-content: flex-start; padding: 62mm 30mm 40mm; }
+.paged-doc .markoto-cover-title { line-height: 1.15; margin-bottom: 0.9em; }
+.paged-doc .markoto-cover-subtitle { font-style: normal; color: var(--doc-text); line-height: 1.4; max-width: 120mm; }
+.paged-doc .markoto-cover-meta { flex: 1; margin-top: 18mm; font-family: var(--doc-body-font); color: var(--doc-text); }
+.paged-doc .markoto-cover-author { font-family: var(--doc-body-font); font-size: 1.3em; }
+.paged-doc .markoto-cover-date { margin-top: auto; font-family: var(--doc-body-font); font-size: 1.1em; letter-spacing: 0; text-transform: none; color: var(--doc-text); }
+/* figure: \\abovecaptionskip 10pt, caption a step smaller than the text, centred under the image. */
+.paged-doc figure { margin: 14pt 0; }
+.paged-doc figure img { display: block; margin: 0 auto; }
+.paged-doc figcaption { font: inherit; font-size: 0.9em; line-height: 1.3; color: inherit; margin: 8pt auto 0; max-width: 85%; text-align: center; text-wrap: pretty; }
+/* table: caption above, booktabs rules (\\toprule and \\bottomrule heavier than \\midrule), no vertical lines, tabular figures. */
+.paged-doc table > caption { font: inherit; font-size: 0.9em; color: inherit; padding-bottom: 6pt; }
+.paged-doc table { font-size: 0.92em; line-height: 1.25; margin: 10pt auto; font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc table thead th { border-top: 0.8pt solid var(--doc-text); border-bottom: 0.5pt solid var(--doc-text); font-weight: 400; vertical-align: bottom; }
+.paged-doc table tbody tr:last-child td { border-bottom: 0.8pt solid var(--doc-text); }
+/* quote: indented on both sides, no rule; an attribution line after a dash stays roman. */
+.paged-doc blockquote { margin: 10pt 2.5em; font-style: normal; }
+/* description: bold term, the definition hanging 1.5em under it. */
+.paged-doc dt { font-weight: 700; }
+.paged-doc dd { margin-left: 1.5em; }
+/* Bibliography: hanging indent (blocks.referenceStyle), a smaller step and a little space between entries. */
+.paged-doc p.markoto-references { margin: 0 0 4pt; text-align: left; }
+/* Listings: a hairline at the left in grey instead of the accent bar. */
+.paged-doc pre { border-left-width: 0.75pt; border-left-color: var(--doc-secondary); }
+/* Math at text size: KaTeX scales its Computer Modern by 1.21 to match other faces; next to Latin Modern that is a size too large. */
+.paged-doc .katex { font-size: 1em; }
+/* Abbreviations print as plain text (no dotted underline), in the text and in the footnotes. */
+.pagedjs_pages abbr { text-decoration: none; }
+/* hyperref: links print as plain text. */
+.paged-doc a { text-decoration: none; color: inherit; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -314,6 +385,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // matched mermaid, github-light code.
   {
     id: 'markoto',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 24 },
       meta: { font: 'JetBrains Mono' },
@@ -350,6 +422,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // numbers in footer. The classic neutral starting point.
   {
     id: 'modern',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Inter' },
@@ -385,6 +458,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // opens page 1, sections are numbered.
   {
     id: 'academic',
+    category: 'academic',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Source Serif 4' },
@@ -422,6 +496,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // (ARXIV_TEMPLATE_CSS). Fixture: tests/fixtures/theme-shots/arxiv.md.
   {
     id: 'arxiv',
+    category: 'academic',
     theme: {
       page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
       meta: { font: 'TeX Gyre Termes' },
@@ -475,6 +550,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/ieee-conference.md.
   {
     id: 'ieee-conference',
+    category: 'academic',
     theme: {
       // \textwidth 43pc on Letter → 48pt (16.93mm) side margins;
       // \textheight 9.25in quantised to 56 lines (672pt): top 0.75in less
@@ -524,36 +600,62 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Tech Report: tight IBM Plex Sans, cyan accent, dark code,
-  // underlined headings, brand-color table headers with white text +
-  // zebra rows.
+  // — Thesis: long-form academic writing (Bachelor / Master / PhD theses,
+  // long reports) in the LaTeX report/book tradition (report.cls 11pt,
+  // LPPL) — A4, Latin Modern Roman 11/14 justified and hyphenated with
+  // first-line indents, a ~70-character measure inside generous margins,
+  // chapters on a new page under a large number, decimal sections 1.1 /
+  // 1.1.1, a classic title page, chapter title + page number in the
+  // running head, booktabs tables, hanging-indent references. The rest is
+  // template CSS (THESIS_TEMPLATE_CSS). Fixture:
+  // tests/fixtures/theme-shots/thesis-chapter.md.
   {
-    id: 'tech',
+    id: 'thesis',
+    category: 'academic',
     theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 20 },
-      meta: { font: 'IBM Plex Mono' },
-      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.4, textAlign: 'left', color: '#0f172a', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
-      headings: { font: 'IBM Plex Sans', scale: 1.25, weight: 600, underline: true, color: '#0f172a', letterSpacing: 0, lineHeight: 1.2, spacingScale: 0.9, numbering: 'decimal', levels: {} },
-      color: { brand: '#0891b2', secondary: '#94a3b8' },
+      // report.cls 11pt on A4: \textwidth 360pt (127mm). A touch wider
+      // here (130mm ≈ 70 characters); top/bottom leave room for the head.
+      page: { size: 'A4', orientation: 'portrait', margin: 40, marginTop: 35, marginBottom: 38 },
+      meta: { font: 'Latin Modern Roman' },
+      // \normalsize 11/13.6pt, \parskip 0, \parindent 1.5em (engine: 1.2em).
+      body: { font: 'Latin Modern Roman', size: 11, lineHeight: 1.28, textAlign: 'justify', color: '#111111', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
+      headings: {
+        font: 'Latin Modern Roman',
+        scale: 1.26,
+        weight: 700,
+        underline: false,
+        color: '#111111',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 1,
+        numbering: 'decimal',
+        // \chapter \Huge (the title at 2 × body), \section \Large, \subsection \large, \subsubsection \normalsize.
+        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 }, h4: { size: 1 } }
+      },
+      color: { brand: '#24456b', secondary: '#6b6b6b' },
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
-      header: { left: '{title}', center: '', right: '{date}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '', center: '{page} / {pages}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-dark', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'horizontal', zebra: true, cellPadding: 6, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 2, figureLabel: false, referenceStyle: 'plain' },
+      // \pagestyle{headings}: chapter title left, page number right; the
+      // footer number shows only on chapter opening pages (template CSS).
+      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 9.5, font: 'Latin Modern Mono', background: 'none', frame: 'rule', wrap: true, lineNumbers: false },
+      // Captions are written by the author ("Table 3.1: …", chapter-relative), above tables.
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'hanging' },
       mermaid: { theme: 'document' },
-      // Tech-report cyan-ish palette — note picks up the brand colour
-      // since cyan IS the report's voice. The rest stay traditional.
+      // Ink-on-paper: dark, muted admonitions that survive greyscale print.
       alerts: {
-        note: '#0891b2',
-        tip: '#1a7f37',
-        important: '#7c3aed',
-        warning: '#b45309',
-        caution: '#dc2626'
+        note: '#1f3a6e',
+        tip: '#175c2e',
+        important: '#5d3d99',
+        warning: '#7a5200',
+        caution: '#9b1a25'
       },
-      toc: { maxDepth: 4, showTitle: true, showPageNumbers: true, leaderStyle: 'dashed' },
-      cover: { enabled: false, layout: 'editorial', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // titlepage: \Huge bold title, author, date at the foot; no running head.
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: true, align: 'center', titleSize: 2.3, subtitleSize: 1.2 },
+      customCss: THESIS_TEMPLATE_CSS
     }
   },
 
@@ -567,6 +669,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // TECH_DOCS_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/tech-docs.md.
   {
     id: 'tech-docs',
+    category: 'engineering',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 20 },
       meta: { font: 'Source Sans 3' },
@@ -607,6 +710,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // DESIGN_DOC_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/design-doc.md.
   {
     id: 'design-doc',
+    category: 'engineering',
     theme: {
       // 166 mm text width: prose takes 122 mm of it (~75 characters, template CSS), the rest is the review margin.
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
@@ -649,39 +753,6 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Business Report: serif headings (Playfair) over sans body
-  // (Source Sans), warm amber accent (also tinting headings), centered
-  // title in head, brand-color full-bordered tables with zebra rows.
-  {
-    id: 'business',
-    theme: {
-      page: { size: 'A4', orientation: 'portrait', margin: 25 },
-      meta: { font: 'Source Sans 3' },
-      body: { font: 'Source Sans 3', size: 11, lineHeight: 1.45, textAlign: 'justify', color: '#1c1917', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.8, hyphenate: true },
-      headings: { font: 'Playfair Display', scale: 1.25, weight: 700, underline: true, color: '#b45309', letterSpacing: 0, lineHeight: 1.15, spacingScale: 1.1, numbering: 'none', levels: {} },
-      color: { brand: '#b45309', secondary: '#a8a29e' },
-      brand: { logoUrl: '', logoHeight: 48 },
-      layout: { columns: 1, columnGap: 8 },
-      header: { left: '', center: '{title}', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
-      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
-      code: { theme: 'github-light', fontSize: 9, font: 'IBM Plex Mono', background: 'auto', frame: 'rule', wrap: true, lineNumbers: false },
-      tables: { headerBackground: 'brand', headerTextColor: 'auto', borders: 'all', zebra: true, cellPadding: 8, captionPosition: 'above', captionLabel: false },
-      blocks: { imageRadius: 6, imageMaxWidth: 95, blockquoteStyle: 'background', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
-      mermaid: { theme: 'document' },
-      // Business-report warm palette — note shifts to a navy that
-      // pairs with the amber brand; warning picks up the brand amber.
-      alerts: {
-        note: '#1e3a8a',
-        tip: '#15803d',
-        important: '#7e22ce',
-        warning: '#b45309',
-        caution: '#991b1b'
-      },
-      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
-      cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
-    }
-  },
-
   // — Business report: quarterly / annual reports, board updates, client
   // deliverables. Source Serif 4 headings over Inter 9.5/1.5 text, one deep
   // petrol accent used sparingly (cover rule, section bars, links, charts),
@@ -690,6 +761,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // tests/fixtures/theme-shots/business-report.md + proposal.md.
   {
     id: 'business-report',
+    category: 'business',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'Inter' },
@@ -734,6 +806,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // code blocks rare in fiction — kept minimal.
   {
     id: 'novel',
+    category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 25 },
       meta: { font: 'Crimson Text' },
@@ -768,6 +841,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // table headers + zebra. Showcases the multi-column flow.
   {
     id: 'newsletter',
+    category: 'writing',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 22 },
       meta: { font: 'PT Serif' },
@@ -802,6 +876,7 @@ export const THEME_PRESETS: ThemePreset[] = [
   // accent. Made for the `resume` template (one A4 page).
   {
     id: 'resume',
+    category: 'general',
     theme: {
       page: { size: 'A4', orientation: 'portrait', margin: 16 },
       meta: { font: 'Inter' },

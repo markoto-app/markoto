@@ -51,8 +51,10 @@ test('Start a workspace', async ({ page, flow, editor }) => {
   // ─── Open the create-workspace modal ────────────────────────────
   await flow.heading('Click "+ New workspace"', 3)
   await flow.narrate(
-    'The dashboard\'s top-right CTA pair is "+ New document" + '
-    + '"+ New workspace". Click the second to open the create dialog.'
+    'Each section of your home page has its own create button: '
+    + '"+ New workspace" sits next to the Workspaces heading, '
+    + '"+ New document" next to your documents. Click "+ New workspace" '
+    + 'to open the create dialog.'
   )
 
   await flow.click(
