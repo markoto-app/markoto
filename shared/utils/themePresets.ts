@@ -234,6 +234,69 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 `
 
 /**
+ * THESIS_TEMPLATE_CSS — the long-form academic look (Bachelor / Master /
+ * PhD theses, long reports) beyond theme fields. Genre reference: LaTeX
+ * `report` / `book` (report.cls, LPPL) as most university thesis classes
+ * derive it — chapters open a new page under a large number, the running
+ * head carries the chapter title and the page number, the opening page
+ * shows only a page number at the foot (\thispagestyle{plain}).
+ */
+const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.cls (LPPL), 11pt. */
+/* \\chapter: every chapter (top-level heading) opens a new page, 50pt down; \\@makechapterhead puts the number on a line of its own, 20pt (\\huge) over the title, 40pt to the text. */
+.paged-doc h1.markoto-section-heading { break-before: page; padding-top: 36pt; margin-bottom: 28pt; }
+.paged-doc h1.markoto-section-heading:not(.unnumbered):not(.markoto-cover-title):not(.markoto-abstract-heading)::before { display: block; margin: 0 0 14pt; font-size: 2.1em; line-height: 1; font-weight: 400; color: var(--doc-accent); }
+/* The chapter after the title page already starts a page. */
+.paged-doc .markoto-cover + h1.markoto-section-heading { break-before: auto; }
+/* \\tableofcontents: "Contents" set like a chapter title (\\chapter*) and ending its page; chapter entries bold with \\addvspace{1em} and no leaders; page numbers in the text colour. */
+.paged-doc .table-of-contents { margin: 0; break-after: page; }
+.paged-doc .table-of-contents::before { font-size: 2em; line-height: 1.2; padding-top: 36pt; margin-bottom: 28pt; }
+.paged-doc .table-of-contents > ul > li { margin-top: 0.7em; }
+.paged-doc .table-of-contents > ul > li::before { font-weight: 700; }
+.paged-doc .table-of-contents > ul > li > a { font-weight: 700; }
+.paged-doc .table-of-contents > ul > li > a::before { border-bottom-color: transparent; }
+.paged-doc .table-of-contents a::after { color: var(--doc-text); }
+/* \\section 1.1: the number, then a quad. */
+.paged-doc h2::before, .paged-doc h3::before, .paged-doc h4::before { margin-right: 1em; }
+/* \\pagestyle{headings}: chapter title + page number at the head (italic small caps here, not slanted capitals); no head on a chapter's opening page, only the page number centred at the foot (\\thispagestyle{plain}). */
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top { font-style: italic; font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-right { font-style: normal; font-variant-caps: normal; letter-spacing: 0; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin { opacity: 1; }
+.pagedjs_pages .pagedjs_page:has(h1.markoto-section-heading) .pagedjs_margin-top { visibility: hidden; }
+.pagedjs_pages .pagedjs_page:not(:has(h1.markoto-section-heading)) .pagedjs_margin-bottom { visibility: hidden; }
+/* titlepage: title at a third of the page, author in the middle, date at the foot; text-block margins. */
+.paged-doc .markoto-cover { justify-content: flex-start; padding: 62mm 30mm 40mm; }
+.paged-doc .markoto-cover-title { line-height: 1.15; margin-bottom: 0.9em; }
+.paged-doc .markoto-cover-subtitle { font-style: normal; color: var(--doc-text); line-height: 1.4; max-width: 120mm; }
+.paged-doc .markoto-cover-meta { flex: 1; margin-top: 18mm; font-family: var(--doc-body-font); color: var(--doc-text); }
+.paged-doc .markoto-cover-author { font-family: var(--doc-body-font); font-size: 1.3em; }
+.paged-doc .markoto-cover-date { margin-top: auto; font-family: var(--doc-body-font); font-size: 1.1em; letter-spacing: 0; text-transform: none; color: var(--doc-text); }
+/* figure: \\abovecaptionskip 10pt, caption a step smaller than the text, centred under the image. */
+.paged-doc figure { margin: 14pt 0; }
+.paged-doc figure img { display: block; margin: 0 auto; }
+.paged-doc figcaption { font: inherit; font-size: 0.9em; line-height: 1.3; color: inherit; margin: 8pt auto 0; max-width: 85%; text-align: center; text-wrap: pretty; }
+/* table: caption above, booktabs rules (\\toprule and \\bottomrule heavier than \\midrule), no vertical lines, tabular figures. */
+.paged-doc table > caption { font: inherit; font-size: 0.9em; color: inherit; padding-bottom: 6pt; }
+.paged-doc table { font-size: 0.92em; line-height: 1.25; margin: 10pt auto; font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc table thead th { border-top: 0.8pt solid var(--doc-text); border-bottom: 0.5pt solid var(--doc-text); font-weight: 400; vertical-align: bottom; }
+.paged-doc table tbody tr:last-child td { border-bottom: 0.8pt solid var(--doc-text); }
+/* quote: indented on both sides, no rule; an attribution line after a dash stays roman. */
+.paged-doc blockquote { margin: 10pt 2.5em; font-style: normal; }
+/* description: bold term, the definition hanging 1.5em under it. */
+.paged-doc dt { font-weight: 700; }
+.paged-doc dd { margin-left: 1.5em; }
+/* Bibliography: hanging indent (blocks.referenceStyle), a smaller step and a little space between entries. */
+.paged-doc p.markoto-references { margin: 0 0 4pt; text-align: left; }
+/* Listings: a hairline at the left in grey instead of the accent bar. */
+.paged-doc pre { border-left-width: 0.75pt; border-left-color: var(--doc-secondary); }
+/* Math at text size: KaTeX scales its Computer Modern by 1.21 to match other faces; next to Latin Modern that is a size too large. */
+.paged-doc .katex { font-size: 1em; }
+/* Abbreviations print as plain text (no dotted underline), in the text and in the footnotes. */
+.pagedjs_pages abbr { text-decoration: none; }
+/* hyperref: links print as plain text. */
+.paged-doc a { text-decoration: none; color: inherit; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -481,6 +544,65 @@ export const THEME_PRESETS: ThemePreset[] = [
       // \Huge (24pt) regular title, centred; no date.
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1 },
       customCss: IEEE_CONFERENCE_TEMPLATE_CSS
+    }
+  },
+
+  // — Thesis: long-form academic writing (Bachelor / Master / PhD theses,
+  // long reports) in the LaTeX report/book tradition (report.cls 11pt,
+  // LPPL) — A4, Latin Modern Roman 11/14 justified and hyphenated with
+  // first-line indents, a ~70-character measure inside generous margins,
+  // chapters on a new page under a large number, decimal sections 1.1 /
+  // 1.1.1, a classic title page, chapter title + page number in the
+  // running head, booktabs tables, hanging-indent references. The rest is
+  // template CSS (THESIS_TEMPLATE_CSS). Fixture:
+  // tests/fixtures/theme-shots/thesis-chapter.md.
+  {
+    id: 'thesis',
+    category: 'academic',
+    theme: {
+      // report.cls 11pt on A4: \textwidth 360pt (127mm). A touch wider
+      // here (130mm ≈ 70 characters); top/bottom leave room for the head.
+      page: { size: 'A4', orientation: 'portrait', margin: 40, marginTop: 35, marginBottom: 38 },
+      meta: { font: 'Latin Modern Roman' },
+      // \normalsize 11/13.6pt, \parskip 0, \parindent 1.5em (engine: 1.2em).
+      body: { font: 'Latin Modern Roman', size: 11, lineHeight: 1.28, textAlign: 'justify', color: '#111111', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
+      headings: {
+        font: 'Latin Modern Roman',
+        scale: 1.26,
+        weight: 700,
+        underline: false,
+        color: '#111111',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 1,
+        numbering: 'decimal',
+        // \chapter \Huge (the title at 2 × body), \section \Large, \subsection \large, \subsubsection \normalsize.
+        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 }, h4: { size: 1 } }
+      },
+      color: { brand: '#24456b', secondary: '#6b6b6b' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // \pagestyle{headings}: chapter title left, page number right; the
+      // footer number shows only on chapter opening pages (template CSS).
+      header: { left: '{section}', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 9.5, font: 'Latin Modern Mono', background: 'none', frame: 'rule', wrap: true, lineNumbers: false },
+      // Captions are written by the author ("Table 3.1: …", chapter-relative), above tables.
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'hanging' },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: dark, muted admonitions that survive greyscale print.
+      alerts: {
+        note: '#1f3a6e',
+        tip: '#175c2e',
+        important: '#5d3d99',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // titlepage: \Huge bold title, author, date at the foot; no running head.
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: true, align: 'center', titleSize: 2.3, subtitleSize: 1.2 },
+      customCss: THESIS_TEMPLATE_CSS
     }
   },
 
