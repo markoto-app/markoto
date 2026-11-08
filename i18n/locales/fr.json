@@ -1043,10 +1043,6 @@
         "name": "Moderne",
         "description": "Inter sans empattement épuré avec un accent bleu. Le point de départ neutre."
       },
-      "academic": {
-        "name": "Article académique",
-        "description": "Corps Source Serif sur deux colonnes, bloc de titre avec auteurs et résumé en page 1, sections numérotées, bordures de tableau minimales — style revue."
-      },
       "arxiv": {
         "name": "Prépublication arXiv",
         "description": "L’apparence de la prépublication LaTeX arXiv : format US Letter, Times 10 pt justifié, sections numérotées en gras, bloc de titre entre deux filets épais en petites capitales, titre courant « A Preprint » au-dessus d’un filet fin."
@@ -1090,10 +1086,6 @@
       "memo": {
         "name": "Mémo / lettre",
         "description": "Mémos internes et lettres professionnelles d'une ou deux pages à imprimer, signer ou joindre : grille de lettre suisse avec les mentions À / De / Date / Objet et les intertitres dans une colonne de marge, texte en Inter, tableaux sobres à filets fins, place pour la signature, numéros de page dès la page 2."
-      },
-      "novel": {
-        "name": "Roman",
-        "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."
       },
       "manuscript": {
         "name": "Livre (fiction)",

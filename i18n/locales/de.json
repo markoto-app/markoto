@@ -1043,10 +1043,6 @@
         "name": "Modern",
         "description": "Klare Inter-Serifenlose mit blauem Akzent. Der neutrale Ausgangspunkt."
       },
-      "academic": {
-        "name": "Wissenschaftliche Arbeit",
-        "description": "Zweispaltiger Source-Serif-Fliesstext, Titelblock mit Autorinnen, Autoren und Abstract auf Seite 1, nummerierte Abschnitte, minimale Tabellenränder — im Journal-Stil."
-      },
       "arxiv": {
         "name": "arXiv-Preprint",
         "description": "Das Erscheinungsbild des arXiv-LaTeX-Preprints: US Letter, Times 10 pt im Blocksatz, nummerierte fette Abschnitte, Titelblock zwischen kräftigen Linien in Kapitälchen, Kolumnentitel «A Preprint» über einer feinen Linie."
@@ -1090,10 +1086,6 @@
       "memo": {
         "name": "Memo / Brief",
         "description": "Für ein- bis zweiseitige interne Memos und Geschäftsbriefe zum Drucken, Unterschreiben oder Anhängen: Schweizer Briefraster mit An / Von / Datum / Betreff und Marginaltiteln in einer Randspalte, Inter-Text, ruhige Tabellen mit feinen Linien, Platz für die Unterschrift, Seitenzahlen ab Seite 2."
-      },
-      "novel": {
-        "name": "Roman",
-        "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
       },
       "manuscript": {
         "name": "Buch (Belletristik)",

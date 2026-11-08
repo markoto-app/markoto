@@ -1043,10 +1043,6 @@
         "name": "Modern",
         "description": "Clean Inter sans-serif with a blue accent. The neutral starting point."
       },
-      "academic": {
-        "name": "Academic Paper",
-        "description": "Two-column Source Serif body, a title block with authors and abstract on page 1, numbered sections, minimal table borders — journal-style."
-      },
       "arxiv": {
         "name": "arXiv preprint",
         "description": "The arXiv LaTeX preprint look: US Letter, Times 10 pt justified, numbered bold sections, a title block between heavy rules in small capitals, “A Preprint” running head over a thin rule."
@@ -1090,10 +1086,6 @@
       "memo": {
         "name": "Memo / letter",
         "description": "One- or two-page internal memos and business letters to print, sign or attach: a Swiss letter grid with To / From / Date / Subject labels and side heads in a margin column, Inter text, calm hairline tables, room to sign, page numbers from page 2."
-      },
-      "novel": {
-        "name": "Novel",
-        "description": "Crimson Text serif for long-form reading. No code blocks, plain blockquotes, just a page number in the footer."
       },
       "manuscript": {
         "name": "Fiction book",

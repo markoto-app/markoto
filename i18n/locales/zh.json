@@ -1043,10 +1043,6 @@
         "name": "现代",
         "description": "简洁的 Inter 无衬线字体搭配蓝色点缀。中性的起点。"
       },
-      "academic": {
-        "name": "学术论文",
-        "description": "双栏 Source Serif 正文，第 1 页为含作者和摘要的标题区，章节编号，极简表格边框 — 期刊风格。"
-      },
       "arxiv": {
         "name": "arXiv 预印本",
         "description": "arXiv LaTeX 预印本的样式：US Letter 纸张，Times 10 pt 两端对齐，编号的粗体章节，夹在粗线之间的小型大写标题区，细线上方的“A Preprint”页眉。"
@@ -1090,10 +1086,6 @@
       "memo": {
         "name": "备忘录 / 信函",
         "description": "适用于需要打印、签名或附加的一到两页内部备忘录和商务信函：瑞士信函网格，收件人 / 发件人 / 日期 / 主题和侧标题位于页边栏，Inter 正文，细线简洁表格，签名留白，从第 2 页起显示页码。"
-      },
-      "novel": {
-        "name": "小说",
-        "description": "Crimson Text 衬线字体，适合长文阅读。无代码块、纯净引用块，仅在页脚显示页码。"
       },
       "manuscript": {
         "name": "小说（书籍排版）",

@@ -71,8 +71,6 @@ The built-in presets cover most use cases:
   paragraph, section labels in a left column, a compact key-facts
   table and a filled *Important* callout. Start with a bold paragraph
   to get the large lead.
-- **Novel** — Crimson Text serif, deep violet accent, generous
-  line-height, drop cap on page 1.
 - **Academic essay (APA)** — the APA 7 student paper: Times 12 pt
   double-spaced, a title page with your name, course, instructor and
   date, the page number top right, centred bold headings and the

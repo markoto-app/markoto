@@ -1043,10 +1043,6 @@
         "name": "Moderno",
         "description": "Limpia Inter sans-serif con acento azul. El punto de partida neutro."
       },
-      "academic": {
-        "name": "Artículo académico",
-        "description": "Cuerpo Source Serif a dos columnas, bloque de título con autores y resumen en la página 1, secciones numeradas, bordes de tabla mínimos — estilo revista."
-      },
       "arxiv": {
         "name": "Preprint de arXiv",
         "description": "El aspecto del preprint LaTeX de arXiv: tamaño US Letter, Times 10 pt justificado, secciones numeradas en negrita, bloque de título entre filetes gruesos en versalitas, encabezado «A Preprint» sobre un filete fino."
@@ -1090,10 +1086,6 @@
       "memo": {
         "name": "Memorándum / carta",
         "description": "Memorandos internos y cartas comerciales de una o dos páginas para imprimir, firmar o adjuntar: retícula de carta suiza con Para / De / Fecha / Asunto y títulos laterales en una columna de margen, texto en Inter, tablas sobrias con líneas finas, espacio para la firma, números de página desde la página 2."
-      },
-      "novel": {
-        "name": "Novela",
-        "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
       },
       "manuscript": {
         "name": "Libro de ficción",

@@ -8,6 +8,7 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { markotoMarkdownHighlight } from '~/utils/markdownHighlight'
 import { formattingKeymap } from '~/utils/editorCommands'
 import { titleFromMarkdown, tryItErrorKey, withoutTitleHeading } from '~/utils/tryIt'
+import { showsTitleItself } from '~~/shared/utils/markdownTitle'
 import { AnonGateCancelled } from '~/composables/useAnonGate'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
@@ -49,8 +50,7 @@ const theme = computed(() => THEME_PRESETS.find(p => p.id === props.themePreset)
 // leading `# Title` is the document title, not body text, so it is left
 // out of the preview and of the created document (whose title it becomes).
 const bodyText = computed(() => {
-  const cover = theme.value.cover
-  return cover.enabled && cover.layout === 'title-block' && cover.showTitle ? withoutTitleHeading(text.value) : text.value
+  return showsTitleItself(theme.value.cover) ? withoutTitleHeading(text.value) : text.value
 })
 const tooLong = computed(() => text.value.length > INITIAL_CONTENT_MAX_LENGTH)
 

@@ -1,5 +1,7 @@
 import { ANON_GATE_CODES } from '~~/shared/config/anonGate'
 
+export { withoutTitleHeading } from '~~/shared/utils/markdownTitle'
+
 // Pure helpers of the marketing `::try-it` block (components/content/TryIt.vue
 // + components/marketing/TryItWorkbench.vue).
 
@@ -23,23 +25,6 @@ export function titleFromMarkdown(markdown: string): string {
     if (m?.[1]) return m[1].trim().slice(0, TITLE_MAX)
   }
   return ''
-}
-
-/**
- * The text without its title line: a level-1 ATX heading on the first
- * non-blank line, plus the blank lines after it. Used for themes that set
- * the title in a title block on page 1 (papers): the heading is the
- * document title there, and left in the body it would print twice.
- * Anything else (no heading first, a level-2 heading) is returned as is.
- */
-export function withoutTitleHeading(markdown: string): string {
-  const lines = markdown.split('\n')
-  let i = 0
-  while (i < lines.length && (lines[i] ?? '').trim() === '') i++
-  if (!/^\s{0,3}#[ \t]+\S/.test(lines[i] ?? '')) return markdown
-  i++
-  while (i < lines.length && (lines[i] ?? '').trim() === '') i++
-  return lines.slice(i).join('\n')
 }
 
 /** Status + code of a `$fetch` error, whatever its exact shape. */
