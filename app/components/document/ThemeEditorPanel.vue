@@ -5,7 +5,7 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { CODE_OPTION_DEFAULTS, headingNumbering, referenceStyle, resolveCaptions, resolveHeadingLevel, resolvePageMargins, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
-import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
+import { themeFromPreset, type ThemePreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isIsoDate } from '~~/shared/utils/documentLocale'
@@ -579,7 +579,7 @@ function doReset() {
   emit('reset')
 }
 
-function applyPreset(preset: typeof THEME_PRESETS[number]) {
+function applyPreset(preset: ThemePreset) {
   if (!props.canEdit) return
   // The document's own custom CSS stays; a preset's template CSS (arXiv)
   // goes in front of it, replacing a previous preset's (themeFromPreset).
@@ -854,36 +854,13 @@ function deleteSaved(saved: SavedTheme) {
               {{ t('theme.saved.saveCurrent') }}
             </UButton>
           </div>
-          <div class="grid grid-cols-1 gap-2">
-            <!-- Preset card. `bg-default` (= white in light, sumi-900
-                 in dark) so cards pop against the panel's `bg-muted`
-                 (sumi-50 in light, sumi-950 in dark) surround. Same
-                 contrast pattern as the comment + activity cards. -->
-            <button
-              v-for="preset in THEME_PRESETS"
-              :key="preset.id"
-              :data-testid="`theme-preset-${preset.id}`"
-              type="button"
-              class="text-left rounded-md border border-default bg-default p-3 hover:border-default/80 hover:bg-default/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-              @click="applyPreset(preset)"
-            >
-              <div class="flex items-center gap-2 mb-1">
-                <span
-                  class="size-3 rounded-full shrink-0"
-                  :style="{ backgroundColor: preset.theme.color.brand }"
-                />
-                <span
-                  class="text-sm font-medium truncate"
-                  :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
-                >
-                  {{ t(`theme.presets.${preset.id}.name`) }}
-                </span>
-              </div>
-              <p class="text-xs text-muted leading-snug line-clamp-2">
-                {{ t(`theme.presets.${preset.id}.description`) }}
-              </p>
-            </button>
-          </div>
+          <!-- Same picker as the new-document dialog: audience tabs over
+               a picture of each preset's first page. A click applies it. -->
+          <DocumentThemePresetGrid
+            testid-prefix="theme-preset-"
+            :columns="2"
+            @select="applyPreset"
+          />
         </section>
 
         <UAccordion

@@ -436,7 +436,11 @@ jobs:
     if: >-
       github.event.pull_request.draft == false &&
       needs.changes.outputs.code == 'true'
-    timeout-minutes: 20
+    # ~10 min of setup (install, test stack, unit coverage) + the
+    # integration suite, which grows with every design template (each has a
+    # real-renderer PDF case, and the Type 3 sweep renders every preset).
+    # 20 min cancelled healthy runs mid-suite on 2026-11-08.
+    timeout-minutes: 30
     env:
       # Test stack defaults — match docker-compose.test.yml.
       TEST_MODE: "1"

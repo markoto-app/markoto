@@ -1055,6 +1055,10 @@
         "name": "IEEE conference paper",
         "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
       },
+      "lecture-notes": {
+        "name": "Lecture notes",
+        "description": "Course handouts and lecture notes in the LaTeX tradition: Latin Modern text that matches the math, a wide margin for annotations, numbered sections, theorems and remarks as framed environments, definition lists, exercises with (a)/(b) parts, a compact title block with course, lecturer and date."
+      },
       "thesis": {
         "name": "Thesis",
         "description": "Long-form academic writing in the LaTeX report tradition: A4, Latin Modern 11 pt justified with paragraph indents, generous margins, every chapter on a new page under a large number, sections numbered 1.1 / 1.1.1, a classic title page, chapter title and page number in the running head, booktabs tables, hanging-indent references."
@@ -1063,9 +1067,29 @@
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
       },
+      "api-reference": {
+        "name": "API reference",
+        "description": "Printed reference for an HTTP API: sans text with mono identifiers, each endpoint's method and path on an accent band (write it as an http code fence), dense parameter tables, compact JSON examples, status codes marked by class, the current resource in the running head."
+      },
+      "design-doc": {
+        "name": "Design doc / RFC",
+        "description": "Engineering design documents, RFCs and decision records: IBM Plex Sans in a comfortable reading column with a review margin, numbered sections for review comments, a document header with status, decision records on an accent rule, scannable comparison tables, the title and current section as running head."
+      },
       "business-report": {
         "name": "Corporate report",
         "description": "Quarterly and annual reports, board updates, client deliverables: Source Serif headings over Inter, one deep petrol accent, finance-style tables with tabular figures and ruled totals, pull quotes, a quiet footer over a thin rule."
+      },
+      "one-pager": {
+        "name": "One-pager",
+        "description": "A product or project fact sheet on one A4 page: a title block under a heavy accent bar, the pitch as a bold lead, section labels in a left column, a compact key-facts table and a filled callout. DM Sans with one orange accent."
+      },
+      "proposal": {
+        "name": "Client proposal",
+        "description": "Proposals and quotes from agencies, consultants and freelancers: Lora headings over Work Sans, one warm rust accent, a tall cover panel, invoice-style pricing tables with a double-ruled total, numbered sections and a signature block (a table row of empty cells becomes a line to sign on)."
+      },
+      "memo": {
+        "name": "Memo / letter",
+        "description": "One- or two-page internal memos and business letters to print, sign or attach: a Swiss letter grid with To / From / Date / Subject labels and side heads in a margin column, Inter text, calm hairline tables, room to sign, page numbers from page 2."
       },
       "novel": {
         "name": "Novel",
@@ -1075,6 +1099,10 @@
         "name": "Fiction book",
         "description": "A typeset novel interior: A5, EB Garamond 11 pt justified with paragraph indents, every chapter on a new page under its number, scene breaks as three asterisks, the book title as the running head, a classic title page and an epigraph page."
       },
+      "essay": {
+        "name": "Academic essay (APA)",
+        "description": "The APA 7 student paper: US Letter, Times 12 pt double-spaced and ragged right, 0.5-inch paragraph indents, a title page with author, course, instructor and date, the page number top right, centred bold headings, indented block quotations, references on a new page with hanging indents."
+      },
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla body under PT Serif headings, green accent, brand-colored table headers — weekly-digest feel."
@@ -1082,6 +1110,10 @@
       "resume": {
         "name": "Resume",
         "description": "One dense A4 page: Inter at 10 pt, small headings with a rule, no header, footer or cover."
+      },
+      "runbook": {
+        "name": "On-call runbook",
+        "description": "For the engineer on call, on screen or printed: robust sans and mono, numbered sections with the section in the running head, procedure steps numbered white on black, commands framed and copyable, checklists with real boxes, black-header tables, alerts that stay visible in greyscale."
       }
     },
     "customCss": {
