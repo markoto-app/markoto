@@ -1063,6 +1063,10 @@
         "name": "Documentación técnica",
         "description": "Documentación para desarrolladores impresa: texto con serifa y títulos sin serifa, secciones numeradas con el número en el margen, bloques de código claros y enmarcados a todo el ancho, tablas de referencia con filetes finos, avisos discretos, bloque de título con índice en la página 1."
       },
+      "api-reference": {
+        "name": "Referencia de API",
+        "description": "Referencia impresa de una API HTTP: texto sin serifa con identificadores en monoespaciada, método y ruta de cada endpoint en una banda de color (escríbalos como bloque de código http), tablas de parámetros densas, ejemplos JSON compactos, códigos de estado marcados por clase, el recurso actual en el encabezado."
+      },
       "design-doc": {
         "name": "Documento de diseño / RFC",
         "description": "Documentos de diseño, RFC y registros de decisiones: IBM Plex Sans en una columna de lectura cómoda con margen para notas de revisión, secciones numeradas para los comentarios, encabezado del documento con estado, decisiones sobre un filete de acento, tablas comparativas fáciles de recorrer, título y sección actual como encabezado de página."

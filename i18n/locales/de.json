@@ -1063,6 +1063,10 @@
         "name": "Technische Dokumentation",
         "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
       },
+      "api-reference": {
+        "name": "API-Referenz",
+        "description": "Gedruckte Referenz für eine HTTP-API: serifenloser Text mit Bezeichnern in Monospace, Methode und Pfad jedes Endpunkts auf einem farbigen Band (als http-Codeblock schreiben), dichte Parametertabellen, kompakte JSON-Beispiele, Statuscodes nach Klasse markiert, die aktuelle Ressource im Kolumnentitel."
+      },
       "design-doc": {
         "name": "Design-Dokument / RFC",
         "description": "Technische Design-Dokumente, RFCs und Entscheidungsprotokolle: IBM Plex Sans in einer gut lesbaren Spalte mit Rand für Review-Notizen, nummerierte Abschnitte für Review-Kommentare, Dokumentkopf mit Status, Entscheidungen an einer Akzentlinie, übersichtliche Vergleichstabellen, Titel und aktueller Abschnitt im Kolumnentitel."

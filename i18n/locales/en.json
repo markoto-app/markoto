@@ -1063,6 +1063,10 @@
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
       },
+      "api-reference": {
+        "name": "API reference",
+        "description": "Printed reference for an HTTP API: sans text with mono identifiers, each endpoint's method and path on an accent band (write it as an http code fence), dense parameter tables, compact JSON examples, status codes marked by class, the current resource in the running head."
+      },
       "design-doc": {
         "name": "Design doc / RFC",
         "description": "Engineering design documents, RFCs and decision records: IBM Plex Sans in a comfortable reading column with a review margin, numbered sections for review comments, a document header with status, decision records on an accent rule, scannable comparison tables, the title and current section as running head."

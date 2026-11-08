@@ -671,6 +671,46 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
+    // The API-reference preset end to end: title block + contents on page 1,
+    // endpoint bands, parameter tables and the template CSS sanitised at
+    // render; IBM Plex Sans + Plex Mono embedded as real fonts.
+    it('renders the api-reference fixture as A4 pages (6–8) with IBM Plex Sans + Mono, never Type 3', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const preset = THEME_PRESETS.find(p => p.id === 'api-reference')?.theme
+      if (!preset) throw new Error('api-reference preset missing')
+      expect(preset.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/api-reference-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...preset, cover: { ...preset.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/api-reference.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      await wipeRendersFor(doc.docId)
+      // 7 pages in the preview (tech-docs: 7 too).
+      expect(typeof pageCount).toBe('number')
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(6)
+      expect(Number(pageCount)).toBeLessThanOrEqual(8)
+      // A4 (210 × 297 mm ≈ 595 × 842 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      for (const family of [/IBMPlexSans/i, /IBMPlexMono/i]) {
+        expect(fonts.some(f => family.test(f.name)), summary).toBe(true)
+      }
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+    }, 90_000)
+
     // Chromium (Skia) embeds a variable font, or a CFF one, as Type 3
     // glyph procedures: bigger files, no hinting, refused by some print
     // shops. Documents get static TrueType cuts only (themeFonts.ts), so
