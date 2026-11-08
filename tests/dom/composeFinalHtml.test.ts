@@ -64,8 +64,10 @@ describe('composeFinalHtml — features keep working', () => {
     const frag = parse(out)
     const img = frag.querySelector('section.markoto-cover img.markoto-cover-logo')
     expect(img?.getAttribute('src')).toBe('/api/files/doc1/AbCdEfGhIjKl.png')
-    // (defaultTheme has the drop cap on, so match the paragraph's tail)
-    expect(out.indexOf('markoto-cover')).toBeLessThan(out.indexOf('ody</p>'))
+    // The body paragraph (now the lead, its first word in the opening span) follows the cover.
+    expect(frag.firstElementChild?.matches('section.markoto-cover')).toBe(true)
+    expect(frag.lastElementChild?.matches('p.markoto-lead')).toBe(true)
+    expect(frag.lastElementChild?.textContent).toBe('Body')
   })
 
   it('drop cap lands on the first body paragraph, not the cover', () => {
@@ -77,7 +79,9 @@ describe('composeFinalHtml — features keep working', () => {
     // Long enough for a cap (DROPCAP_MIN_CHARS); short openers get none.
     const prose = 'Once upon a time' + ', there was a writer who kept drafting the same opening paragraph'.repeat(4)
     const out = compose(theme, `<p>${prose}</p>`)
-    expect(out).toContain('<p class="markoto-dropcap-p"><span class="markoto-dropcap">O</span>nce upon a time')
+    // The cap, then the opening words (documentMarkers.ts) continue the word.
+    expect(out).toContain('<span class="markoto-dropcap">O</span><span class="markoto-opening">nce upon a time,</span> there')
+    expect(parse(out).querySelector('p.markoto-dropcap-p.markoto-lead > .markoto-dropcap:first-child')).not.toBeNull()
     expect(parse(out).querySelector('.markoto-cover .markoto-dropcap')).toBeNull()
   })
 

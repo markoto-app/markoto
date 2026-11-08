@@ -3,7 +3,7 @@ import { pageHeightMm } from './pageDimensions'
 import type { CustomCssResult } from '../types/customCss'
 import { isThemeImageUrl } from './themeImages'
 import { fontStylesheetUrls } from './themeFonts'
-import { coverTitleWeight, headingNumbering, referenceStyle, resolveCaptions, resolveCodeOptions, resolveHeadingLevel, resolvePageMargins, resolveTitleBlock, runningRule } from './themeOptions'
+import { coverTitleWeight, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveCodeOptions, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from './themeOptions'
 import { HLJS_THEME_COLORS } from './hljsAssets'
 
 /**
@@ -27,7 +27,7 @@ export type ThemeRuntime = {
    * Caption labels in the document language (`documentTexts().captionLabels`)
    * for `tables.captionLabel` / `blocks.figureLabel`. Absent = English.
    */
-  captionLabels?: { table: string, figure: string, separator: string }
+  captionLabels?: { table: string, figure: string, separator: string, chapter?: { before: string, after: string } }
   /**
    * The document's custom CSS AFTER `sanitizeCustomCss` (shared/utils/customCss.ts).
    * Appended last so user rules override the theme. Typed as the
@@ -61,7 +61,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     katexBlock(theme),
     mermaidBlock(theme),
     tocBlock(theme, runtime),
-    numberingBlock(theme),
+    numberingBlock(theme, runtime),
     captionBlock(theme, runtime),
     referencesBlock(theme),
     sectionStringBlock(theme),
@@ -69,6 +69,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
     pageBreakBlock(),
     columnSpanBlock(theme),
     coverBlock(theme),
+    repeatTitleBlock(theme),
     breakHints(theme.layout.columns)
   ]
   const custom = runtime.customCss?.css
@@ -97,8 +98,8 @@ function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const m = resolvePageMargins(theme)
   const textColor = theme.body.color
   const metaFont = theme.meta.font
-  const headerSlots = renderMarginBoxes(theme.header, 'top', runtime, textColor, metaFont, m.top)
-  const footerSlots = renderMarginBoxes(theme.footer, 'bottom', runtime, textColor, metaFont, m.bottom)
+  const headerSlots = renderMarginBoxes(theme, theme.header, 'top', runtime, textColor, metaFont, m.top)
+  const footerSlots = renderMarginBoxes(theme, theme.footer, 'bottom', runtime, textColor, metaFont, m.bottom)
   // One value when the four sides agree (the common case, and the CSS the
   // engine always wrote), else top right bottom left.
   const margin = m.top === m.right && m.top === m.bottom && m.top === m.left
@@ -126,12 +127,28 @@ ${footerSlots}
     line-height: 1.35;
     color: ${textColor};
   }
+}${mirroredPagesBlock(theme)}`
+}
+
+/**
+ * `page.mirrorMargins`: left-hand (verso) pages swap the left and right
+ * margins, so `marginLeft` is the inside margin of every spread. paged.js
+ * applies `@page :left` to its `.pagedjs_left_page` pages (the first page
+ * is a right-hand page). Nothing when the two sides are equal.
+ */
+function mirroredPagesBlock(theme: DocTheme): string {
+  const m = resolvePageMargins(theme)
+  if (!mirrorMargins(theme) || m.left === m.right) return ''
+  return `
+@page :left {
+  margin-left: ${m.right}mm;
+  margin-right: ${m.left}mm;
 }`
 }
 
 type RunningSlotPosition = 'left' | 'center' | 'right'
 
-function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string, marginMm: number): string {
+function renderMarginBoxes(theme: DocTheme, slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string, marginMm: number): string {
   // The optional image (if `imageUrl` is set) wins over text in the slot
   // it lands in — same slot can't show both. Users typically pick one
   // mental model per slot anyway. paged.js margin boxes accept
@@ -176,7 +193,7 @@ function renderMarginBoxes(slots: RunningSlots, edge: 'top' | 'bottom', runtime:
     const tpl = text[pos].trim()
     if (!tpl) continue
     out.push(`  @${boxName} {
-    content: ${compileTemplate(tpl, runtime)};
+    content: ${compileTemplate(tpl, theme, runtime)};
     font-family: ${cssFontStack(metaFont)};
     font-size: 9pt;
     color: ${textColor};
@@ -232,16 +249,16 @@ function hasRunningContent(slots: RunningSlots): boolean {
   return image || [slots.left, slots.center, slots.right].some(t => t.trim() !== '')
 }
 
-function compileTemplate(template: string, runtime: ThemeRuntime): string {
+function compileTemplate(template: string, theme: DocTheme, runtime: ThemeRuntime): string {
   const parts: string[] = []
-  const regex = /\{(title|section|page|pages|date)\}/g
+  const regex = /\{(title|section|author|page|pages|date)\}/g
   let lastIndex = 0
   let match: RegExpExecArray | null
   while ((match = regex.exec(template)) !== null) {
     if (match.index > lastIndex) {
       parts.push(cssString(template.slice(lastIndex, match.index)))
     }
-    parts.push(tokenToCss(match[1]!, runtime))
+    parts.push(tokenToCss(match[1]!, theme, runtime))
     lastIndex = regex.lastIndex
   }
   if (lastIndex < template.length) {
@@ -250,11 +267,13 @@ function compileTemplate(template: string, runtime: ThemeRuntime): string {
   return parts.length ? parts.join(' ') : '""'
 }
 
-function tokenToCss(token: string, runtime: ThemeRuntime): string {
+function tokenToCss(token: string, theme: DocTheme, runtime: ThemeRuntime): string {
   switch (token) {
     case 'title': return cssString(runtime.title)
-    // The current section heading (sectionStringBlock).
-    case 'section': return `string(${SECTION_STRING})`
+    // The current section heading (sectionStringBlock): the first on the
+    // page, or with `header.sectionMode: 'start'` the one the page starts in.
+    case 'section': return resolveSectionToken(theme).mode === 'start' ? `string(${SECTION_STRING}, start)` : `string(${SECTION_STRING})`
+    case 'author': return cssString(theme.cover.authors.map(a => a.trim()).filter(Boolean).join(', '))
     case 'page': return 'counter(page)'
     case 'pages': return 'counter(pages)'
     case 'date': return cssString(runtime.date)
@@ -1088,9 +1107,13 @@ const UNNUMBERED_TOC = ':not(.markoto-abstract-entry):not(.markoto-unnumbered-en
  * The TOC is relative already (markdown-it-toc-done-right nests from the
  * highest level used), so its depth is the logical level.
  */
-function numberingBlock(theme: DocTheme): string {
+function numberingBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const style = headingNumbering(theme)
   if (style === 'none') return ''
+  // `headings.numberingDepth`: how many levels (from the highest numbered
+  // one) show a number. Every level still counts, so the numbers that do
+  // show stay right.
+  const depth = numberingDepth(theme)
   const levels = [1, 2, 3, 4]
   const name = (l: number) => `mk-h${l}`
   const tocName = (l: number) => `mk-toc${l}`
@@ -1101,27 +1124,31 @@ function numberingBlock(theme: DocTheme): string {
     const reset = below.length ? `\n  counter-reset: ${below.map(name).join(' ')};` : ''
     rules.push(`.paged-doc h${l}${UNNUMBERED} {
   counter-increment: ${name(l)};${reset}
-}
-.paged-doc h${l}${UNNUMBERED}::before {
+}`)
+    if (l <= depth) {
+      rules.push(`.paged-doc h${l}${UNNUMBERED}::before {
   content: ${numberLabel(style, levels.slice(0, l).map(name))};
   margin-right: ${gap};
   font-variant-numeric: lining-nums tabular-nums;
 }`)
+    }
     const tocReset = below.length ? `\n  counter-reset: ${below.map(tocName).join(' ')};` : ''
     const li = `.paged-doc .table-of-contents > ${'ul > li > '.repeat(l - 1)}ul > li${UNNUMBERED_TOC}`
     rules.push(`${li} {
   counter-increment: ${tocName(l)};${tocReset}
-}
-${li}::before {
+}`)
+    if (l <= depth) {
+      rules.push(`${li}::before {
   content: ${numberLabel(style, levels.slice(0, l).map(tocName))};
   min-width: ${(1.2 + 0.6 * (l - 1)).toFixed(1)}em;
   margin-right: 0.5em;
   font-variant-numeric: lining-nums tabular-nums;
 }`)
+    }
   }
   // Documents whose highest numbered level is h2–h4: count from there.
   for (const base of [2, 3, 4]) {
-    for (const l of levels.filter(i => i >= base)) {
+    for (const l of levels.filter(i => i >= base && i - base < depth)) {
       const counters = levels.filter(i => i >= base && i <= l).map(name)
       rules.push(`.paged-doc h${l}.${numberingBaseClass(base)}${UNNUMBERED}::before { content: ${numberLabel(style, counters)}; }`)
     }
@@ -1131,9 +1158,49 @@ ${li}::before {
     `.paged-doc .table-of-contents li { display: flex; flex-wrap: wrap; align-items: baseline; }
 .paged-doc .table-of-contents li > a { flex: 1 1 0; min-width: 0; }
 .paged-doc .table-of-contents li > ul { flex-basis: 100%; }`,
-    ...rules
-  ].join('\n')
+    ...rules,
+    chapterLabelBlock(theme, runtime)
+  ].filter(Boolean).join('\n')
 }
+
+/**
+ * `headings.chapterLabel`: "Chapter 3" (in the document language, or
+ * `headings.chapterWord`) on a line of its own over every numbered
+ * top-level section heading — the heading of the highest level used,
+ * which is also the numbering base (`headingStructure.ts`). Replaces the
+ * plain number there; the TOC keeps the number.
+ */
+function chapterLabelBlock(theme: DocTheme, runtime: ThemeRuntime): string {
+  const chapter = resolveChapterLabel(theme)
+  if (!chapter.enabled) return ''
+  const style = headingNumbering(theme)
+  if (style === 'none') return ''
+  const words = chapter.word.trim()
+    ? { before: `${chapter.word.trim()} `, after: '' }
+    : runtime.captionLabels?.chapter ?? { before: 'Chapter ', after: '' }
+  const fmt = style === 'ieee' ? 'upper-roman' : style === 'decimal-zero' ? 'decimal-leading-zero' : 'decimal'
+  const label = (l: number) => [
+    words.before ? cssString(words.before) : '',
+    `counter(mk-h${l}, ${fmt})`,
+    words.after ? cssString(words.after) : ''
+  ].filter(Boolean).join(' ')
+  const look = `display: block;
+  margin: 0 0 0.35em;`
+  const rules = [`.paged-doc h1.${SECTION_HEADING_CLASS}${UNNUMBERED}::before {
+  content: ${label(1)};
+  ${look}
+}`]
+  for (const base of [2, 3, 4]) {
+    rules.push(`.paged-doc h${base}.${SECTION_HEADING_CLASS}.${numberingBaseClass(base)}${UNNUMBERED}::before {
+  content: ${label(base)};
+  ${look}
+}`)
+  }
+  return rules.join('\n')
+}
+
+/** Class `composeFinalHtml` puts on every heading of the highest level the document uses (`headingStructure.ts`). */
+const SECTION_HEADING_CLASS = 'markoto-section-heading'
 
 /** Class `composeFinalHtml` puts on numbered headings when the highest numbered level is h`base` (2–4). */
 export function numberingBaseClass(base: number): string {
@@ -1153,7 +1220,8 @@ function numberLabel(style: Exclude<HeadingNumbering, 'none'>, counters: string[
     const [fmt, suffix] = IEEE_LEVEL_FORMATS[counters.length - 1] ?? IEEE_LEVEL_FORMATS[3]
     return `counter(${own}, ${fmt}) "${suffix}"`
   }
-  const joined = counters.map(c => `counter(${c})`).join(' "." ')
+  // `decimal-zero`: the top level two-digit (`01`), the levels below plain (`01.2`).
+  const joined = counters.map((c, i) => style === 'decimal-zero' && i === 0 ? `counter(${c}, decimal-leading-zero)` : `counter(${c})`).join(' "." ')
   return style === 'decimal-dot' ? `${joined} "."` : joined
 }
 
@@ -1171,7 +1239,7 @@ function numberLabel(style: Exclude<HeadingNumbering, 'none'>, counters: string[
  * and the counters `mk-table` / `mk-figure`.
  */
 function captionBlock(theme: DocTheme, runtime: ThemeRuntime): string {
-  const { tablePosition, tableLabel, figureLabel } = resolveCaptions(theme)
+  const { tablePosition, tableLabel, figureLabel, numbering, labelStyle } = resolveCaptions(theme)
   const labels = runtime.captionLabels ?? { table: 'Table', figure: 'Figure', separator: ': ' }
   const side = tablePosition === 'below' ? 'bottom' : 'top'
   const space = tablePosition === 'below' ? 'padding-top' : 'padding-bottom'
@@ -1186,16 +1254,28 @@ function captionBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   text-align: center;
 }`
   ]
+  // `blocks.captionNumbering: 'chapter'`: "3.1" from the number
+  // `composeFinalHtml` writes on the caption (captionNumbers.ts) — CSS
+  // counters can't reset per section level the document happens to use.
+  const number = (counter: string) => numbering === 'chapter' ? `attr(${CAPTION_NUMBER_ATTR})` : `counter(${counter})`
+  // `blocks.captionLabelStyle: 'stacked'`: a bold upright label on its own
+  // line, the title under it without separator (APA).
+  const stacked = labelStyle === 'stacked'
+  const separator = stacked ? '' : ` ${cssString(labels.separator)}`
+  const stackedLook = stacked ? ' display: block; font-style: normal; font-weight: 700;' : ''
   if (tableLabel) {
     rules.push(`.paged-doc table > caption { counter-increment: mk-table; }
-.paged-doc table > caption::before { content: ${cssString(`${labels.table} `)} counter(mk-table) ${cssString(labels.separator)}; }`)
+.paged-doc table > caption::before { content: ${cssString(`${labels.table} `)} ${number('mk-table')}${separator};${stackedLook} }`)
   }
   if (figureLabel) {
     rules.push(`.paged-doc figcaption:not(:empty) { counter-increment: mk-figure; }
-.paged-doc figcaption:not(:empty)::before { content: ${cssString(`${labels.figure} `)} counter(mk-figure) ${cssString(labels.separator)}; }`)
+.paged-doc figcaption:not(:empty)::before { content: ${cssString(`${labels.figure} `)} ${number('mk-figure')}${separator};${stackedLook} }`)
   }
   return rules.join('\n')
 }
+
+/** Attribute with a caption's chapter-relative number ("3.1"), written by `app/utils/captionNumbers.ts`. */
+export const CAPTION_NUMBER_ATTR = 'data-markoto-number'
 
 // — references ————————————————————————————————————————————————————————
 
@@ -1239,8 +1319,15 @@ const SECTION_STRING = 'mk-section'
 function sectionStringBlock(theme: DocTheme): string {
   const slots = [theme.header, theme.footer].flatMap(s => [s.left, s.center, s.right])
   if (!slots.some(t => t.includes('{section}'))) return ''
-  return `.paged-doc .markoto-section-heading { string-set: ${SECTION_STRING} content(text); }`
+  // paged.js 0.4.3 reads `content()` (the text, without the CSS number)
+  // and `attr()` only. With `header.sectionNumber` the heading carries
+  // "3 Procedures" in `data-markoto-section` (headingStructure.ts).
+  const value = resolveSectionToken(theme).number ? `attr(${SECTION_LABEL_ATTR})` : 'content(text)'
+  return `.paged-doc .markoto-section-heading { string-set: ${SECTION_STRING} ${value}; }`
 }
+
+/** Attribute with the section number + title, set on every top-level section heading when `header.sectionNumber` is on. */
+export const SECTION_LABEL_ATTR = 'data-markoto-section'
 
 // — page break ————————————————————————————————————————————————————————
 
@@ -1365,7 +1452,8 @@ function coverBlock(theme: DocTheme): string {
   color: var(--doc-heading-color);
   text-wrap: balance;
   margin: 0 0 0.4em 0;${caps || '\n  font-variant-caps: normal;'}
-}`,
+}
+.paged-doc .markoto-cover-title .markoto-nobreak { white-space: nowrap; }`,
     `.paged-doc .markoto-cover-subtitle {
   font-family: ${cssFontStack(theme.body.font)};
   font-size: ${subtitleSize}em;
@@ -1394,6 +1482,16 @@ function coverBlock(theme: DocTheme): string {
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }`,
+    // `cover.affiliations` under each author (one line per line of text).
+    ...(resolveTitleBlock(theme).affiliations.some(a => a.trim() !== '')
+      ? [`.paged-doc .markoto-cover-affiliation {
+  white-space: pre-line;
+  font-size: 0.85em;
+  line-height: 1.35;
+  color: var(--doc-secondary);
+  margin-bottom: 0.4em;
+}`]
+      : []),
     // The named-page rules suppress all running margin boxes on the
     // cover sheet (no page number, no title bar, no header image).
     // paged.js handles `@page <name>` for any element that opted in
@@ -1408,6 +1506,24 @@ function coverBlock(theme: DocTheme): string {
   @bottom-right { content: ''; }
 }`
   ].join('\n')
+}
+
+/**
+ * `cover.repeatTitle`: the title again, bold and centred at text size, at
+ * the top of the first text page after a title page (APA §2.11). The
+ * element is a `<div class="markoto-repeat-title">` (coverHtml.ts), so it
+ * is no heading: no number, no TOC entry, no `{section}`.
+ */
+function repeatTitleBlock(theme: DocTheme): string {
+  if (!theme.cover.enabled || !repeatTitle(theme)) return ''
+  return `.paged-doc .markoto-repeat-title {
+  font-family: ${cssFontStack(theme.headings.font)};
+  font-weight: 700;
+  text-align: center;
+  color: var(--doc-heading-color);
+  margin: 0 0 ${(theme.body.size * theme.body.lineHeight).toFixed(2)}pt;
+  break-after: avoid;
+}`
 }
 
 // — title block (papers) ——————————————————————————————————————————————
@@ -1454,7 +1570,8 @@ function titleBlockCss(theme: DocTheme, align: 'left' | 'center' | 'right'): str
   text-wrap: balance;
   margin: 0 0 0.6em 0;
   border: none;${ruleCss}${caps || '\n  font-variant-caps: normal;'}
-}`,
+}
+.paged-doc .markoto-title-block .markoto-cover-title .markoto-nobreak { white-space: nowrap; }`,
     `.paged-doc .markoto-title-block .markoto-cover-subtitle {
   font-family: ${cssFontStack(theme.body.font)};
   font-size: ${theme.cover.subtitleSize}em;

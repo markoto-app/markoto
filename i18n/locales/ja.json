@@ -773,7 +773,9 @@
       "margin_top": "上 (mm)",
       "margin_right": "右 (mm)",
       "margin_bottom": "下 (mm)",
-      "margin_left": "左 (mm)"
+      "margin_left": "左 (mm)",
+      "mirrorMargins": "左ページで余白を反転",
+      "mirrorMarginsHelp": "製本用: 左ページでは左右の余白を入れ替え、左余白が常にノド側になります。"
     },
     "body": {
       "font": "フォント",
@@ -789,7 +791,9 @@
       "firstLineIndentHelp": "連続する段落のうち最初のものを除き、各段落の1行目をインデントします（小説の組版）。",
       "paragraphSpacing": "段落の間隔（em）",
       "hyphenate": "本文を自動ハイフネーション",
-      "hyphenateHelp": "長い単語を行末で分割します。両端揃えのテキストに推奨されます。"
+      "hyphenateHelp": "長い単語を行末で分割します。両端揃えのテキストに推奨されます。",
+      "dropCapEveryChapter": "すべての章に",
+      "dropCapEveryChapterHelp": "最初の段落だけでなく、最上位の見出しごとに直後の段落へドロップキャップを付けます。"
     },
     "headings": {
       "font": "フォント",
@@ -816,7 +820,17 @@
       "levelReset": "既定値に戻す",
       "numberingDecimalDot": "1., 1.1., 1.1.1.",
       "numberingIeee": "I., A., 1), a) (IEEE)",
-      "levelCentered": "中央揃え"
+      "levelCentered": "中央揃え",
+      "numberingDecimalZero": "2桁 (01, 01.1)",
+      "numberingDepth": "番号を付けるレベル",
+      "numberingDepth1": "最上位のみ",
+      "numberingDepthN": "{n} レベル",
+      "numberingDepthAll": "すべてのレベル",
+      "chapterLabel": "章ラベル",
+      "chapterLabelHelp": "番号付きの最上位見出しの上に「第3章」を独立した行で表示します。",
+      "chapterWord": "章の語",
+      "chapterWordHelp": "空欄にすると文書の言語の語を使います (Chapter、Kapitel、第…章 など)。",
+      "chapterWordPlaceholder": "Chapter"
     },
     "align": {
       "left": "左揃え",
@@ -851,7 +865,13 @@
       "uploadImage": "画像をアップロード",
       "ruleHeader": "ヘッダーの下に罫線",
       "ruleFooter": "フッターの上に罫線",
-      "ruleHelp": "本文の幅いっぱいの細い線です。テキストは線の近くに移動します。"
+      "ruleHelp": "本文の幅いっぱいの細い線です。テキストは線の近くに移動します。",
+      "sectionNumber": "{token} に節番号を含める",
+      "sectionNumberHelp": "見出しに番号があるとき、「手順」ではなく「3 手順」と表示します。",
+      "sectionMode": "{token} の表示",
+      "sectionModeHelp": "ヘッダーやフッターにどの節を表示するかを選びます。",
+      "sectionModeFirst": "ページ内の最初の節見出し",
+      "sectionModeStart": "ページが始まる節"
     },
     "code": {
       "theme": "カラーテーマ",
@@ -909,7 +929,14 @@
       "referenceStyleHelp": "「参考文献」(または References、Bibliography、Literatur など)という見出しのセクション。",
       "referencePlain": "他のリストと同じ",
       "referenceHanging": "ぶら下げインデント",
-      "referenceBrackets": "番号付き [1], [2]"
+      "referenceBrackets": "番号付き [1], [2]",
+      "captionNumbering": "キャプション番号",
+      "captionNumberingHelp": "図と表に文書全体で通し番号を付けるか、最上位の節ごとに番号を付けます (図 3.1)。",
+      "captionNumberingDocument": "文書全体 (1, 2, 3)",
+      "captionNumberingChapter": "章ごと (3.1, 3.2)",
+      "captionLabelStyle": "キャプションのラベル",
+      "captionLabelInline": "キャプションと同じ行 (表 1: タイトル)",
+      "captionLabelStacked": "独立した行に太字で (APA)"
     },
     "blockquote": {
       "border": "左の縦線",
@@ -977,7 +1004,13 @@
       "smallCaps": "タイトルをスモールキャップスに",
       "affiliationPlaceholder": "所属（部署、機関、メール。1行に1つ）",
       "titleWeight": "タイトルの太さ",
-      "titleWeightInherit": "見出しと同じ（{weight}）"
+      "titleWeightInherit": "見出しと同じ（{weight}）",
+      "dateFormat": "日付の形式",
+      "dateFormatLocale": "文書の言語 (2026年11月2日)",
+      "dateFormatUs": "米国式 (November 2, 2026)",
+      "dateFormatIso": "ISO (2026-11-02)",
+      "repeatTitle": "最初のページでタイトルを繰り返す",
+      "repeatTitleHelp": "タイトルページの後、最初の本文ページの先頭にタイトルを太字・中央揃えで再び表示します (APA)。"
     },
     "brand": {
       "logo": "ブランドロゴ",

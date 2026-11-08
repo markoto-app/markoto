@@ -7,7 +7,9 @@ import { pruneTocDepth } from './tocDepth'
 import { markHeadingStructure } from './headingStructure'
 import { markReferences } from './references'
 import { moveCaptionsBelow } from './tableCaptions'
-import { headingNumbering, resolveCaptions } from '~~/shared/utils/themeOptions'
+import { numberCaptionsByChapter } from './captionNumbers'
+import { markDocumentStructure } from './documentMarkers'
+import { headingNumbering, resolveCaptions, resolveSectionToken } from '~~/shared/utils/themeOptions'
 import { showsTitleItself } from '~~/shared/utils/markdownTitle'
 
 /**
@@ -31,10 +33,10 @@ import { showsTitleItself } from '~~/shared/utils/markdownTitle'
  * by the cover's date line. Returns an HTML string that's
  * ready to drop into paged.js's Previewer.preview() call.
  *
- * Cover-first ordering is deliberate: drop-cap targets the first
- * `<p>`; running it AFTER cover injection means it skips past the cover
- * (h1/divs) and lands on the actual first paragraph. Reversing this
- * order would put the drop-cap on the cover subtitle.
+ * The drop cap targets the body's first `<p>` (the cover never holds a
+ * body paragraph: h1/divs, its abstract sits inside `.markoto-cover`).
+ * It runs before the opening-words marker (`documentMarkers.ts`), which
+ * then continues after the cap.
  *
  * The composed document is sanitised as a whole (same allowlist as
  * `renderMarkdown`), not only the markdown body: the cover is built from
@@ -67,13 +69,16 @@ export function composeFinalHtml(opts: {
   if (numbered) bodyHtml = markUnnumbered(bodyHtml)
   // Section markers ({section} token, first section, numbering base),
   // the reference list, table captions below their table.
-  bodyHtml = markHeadingStructure(bodyHtml, numbered)
+  // `{section}` with its number reads `data-markoto-section` (header.sectionNumber).
+  const sectionLabels = resolveSectionToken(theme).number ? headingNumbering(theme) : undefined
+  bodyHtml = markHeadingStructure(bodyHtml, numbered, sectionLabels)
   bodyHtml = markReferences(bodyHtml)
-  if (resolveCaptions(theme).tablePosition === 'below') bodyHtml = moveCaptionsBelow(bodyHtml)
+  const captions = resolveCaptions(theme)
+  if (captions.tablePosition === 'below') bodyHtml = moveCaptionsBelow(bodyHtml)
+  if (captions.numbering === 'chapter') bodyHtml = numberCaptionsByChapter(bodyHtml)
+  if (theme.body.dropCap === true) bodyHtml = wrapFirstLetterAsDropCap(bodyHtml)
+  // Lead paragraph + opening words (+ the every-chapter drop cap).
+  bodyHtml = markDocumentStructure(bodyHtml, { capChapters: theme.body.dropCap === 'every-chapter' })
   const coverHtml = buildCoverHtml(theme, title || '', date, abstractHtml)
-  let html = coverHtml + bodyHtml
-  if (theme.body.dropCap) {
-    html = wrapFirstLetterAsDropCap(html)
-  }
-  return sanitizeRenderedHtml(html)
+  return sanitizeRenderedHtml(coverHtml + bodyHtml)
 }

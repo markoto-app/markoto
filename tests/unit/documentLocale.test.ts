@@ -76,8 +76,19 @@ describe('documentTexts', () => {
   it('uses the picked publication date', () => {
     expect(documentTexts(cover('2026-10-29'), 'de', now)).toEqual({
       locale: 'de', dateIso: '2026-10-29', date: '29. Oktober 2026', tocTitle: 'Inhalt',
-      captionLabels: { table: 'Tabelle', figure: 'Abbildung', separator: ': ' }
+      captionLabels: { table: 'Tabelle', figure: 'Abbildung', separator: ': ', chapter: { before: 'Kapitel ', after: '' } }
     })
+  })
+
+  // cover.dateFormat (APA: US dates whatever the language; ISO for specs).
+  it('writes the date in the picked format', () => {
+    const withFormat = (dateFormat: 'locale' | 'us' | 'iso') => ({ cover: { ...cover('2026-11-02').cover, dateFormat } })
+    expect(documentTexts(withFormat('us'), 'en', now).date).toBe('November 2, 2026')
+    expect(documentTexts(withFormat('us'), 'de', now).date).toBe('November 2, 2026')
+    expect(documentTexts(withFormat('iso'), 'de', now).date).toBe('2026-11-02')
+    expect(documentTexts(withFormat('locale'), 'de', now).date).toBe('2. November 2026')
+    expect(formatDocumentDate('2026-11-02', 'fr', 'us')).toBe('November 2, 2026')
+    expect(formatDocumentDate('not a date', 'en', 'iso')).toBe('not a date')
   })
 
   it('falls back to today when no (valid) date is set', () => {

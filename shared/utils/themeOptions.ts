@@ -1,4 +1,4 @@
-import type { CaptionPosition, CodeBackground, CodeFrame, DocTheme, HeadingAlign, HeadingLevelKey, HeadingNumbering, HeadingStyle, ReferenceStyle, RunningSlots } from '../types/theme'
+import type { CaptionLabelStyle, CaptionNumbering, CaptionPosition, CodeBackground, CodeFrame, DateFormat, DocTheme, HeadingAlign, HeadingLevelKey, HeadingNumbering, HeadingStyle, NumberingDepth, ReferenceStyle, RunningSlots, SectionMode } from '../types/theme'
 
 /**
  * Defaults for the OPTIONAL theme fields (added after themes were already
@@ -37,6 +37,49 @@ export function resolveCodeOptions(theme: DocTheme): ResolvedCodeOptions {
 
 export function headingNumbering(theme: DocTheme): HeadingNumbering {
   return theme.headings.numbering ?? 'none'
+}
+
+/** `headings.numberingDepth` — absent = 4 (every level h1–h4 that is numbered at all). */
+export function numberingDepth(theme: DocTheme): NumberingDepth {
+  return theme.headings.numberingDepth ?? 4
+}
+
+export interface ResolvedChapterLabel {
+  /** "Chapter N" over numbered top-level headings (needs numbering on). */
+  enabled: boolean
+  /** The author's chapter word, or '' = the document language's. */
+  word: string
+}
+
+/** `headings.chapterLabel` / `headings.chapterWord` — absent = off / ''. */
+export function resolveChapterLabel(theme: DocTheme): ResolvedChapterLabel {
+  return { enabled: theme.headings.chapterLabel ?? false, word: theme.headings.chapterWord ?? '' }
+}
+
+export interface ResolvedSectionToken {
+  /** `{section}` shows "3 Procedures" instead of "Procedures". */
+  number: boolean
+  mode: SectionMode
+}
+
+/** `header.sectionNumber` / `header.sectionMode` — absent = title only / `first` (the look before the fields). */
+export function resolveSectionToken(theme: DocTheme): ResolvedSectionToken {
+  return { number: theme.header.sectionNumber ?? false, mode: theme.header.sectionMode ?? 'first' }
+}
+
+/** `cover.dateFormat` — absent = `locale`. */
+export function coverDateFormat(theme: Pick<DocTheme, 'cover'>): DateFormat {
+  return theme.cover.dateFormat ?? 'locale'
+}
+
+/** `cover.repeatTitle` — absent = off. */
+export function repeatTitle(theme: DocTheme): boolean {
+  return theme.cover.repeatTitle ?? false
+}
+
+/** `page.mirrorMargins` — absent = off. */
+export function mirrorMargins(theme: DocTheme): boolean {
+  return theme.page.mirrorMargins ?? false
 }
 
 export interface ResolvedTitleBlock {
@@ -112,20 +155,26 @@ export interface ResolvedCaptions {
   tablePosition: CaptionPosition
   tableLabel: boolean
   figureLabel: boolean
+  numbering: CaptionNumbering
+  labelStyle: CaptionLabelStyle
 }
 
 export const CAPTION_DEFAULTS: ResolvedCaptions = {
   tablePosition: 'above',
   tableLabel: false,
-  figureLabel: false
+  figureLabel: false,
+  numbering: 'document',
+  labelStyle: 'inline'
 }
 
-/** Table / figure caption options (`tables.captionPosition`, `tables.captionLabel`, `blocks.figureLabel`). */
+/** Table / figure caption options (`tables.captionPosition`, `tables.captionLabel`, `blocks.figureLabel`, `blocks.captionNumbering`, `blocks.captionLabelStyle`). */
 export function resolveCaptions(theme: DocTheme): ResolvedCaptions {
   return {
     tablePosition: theme.tables.captionPosition ?? CAPTION_DEFAULTS.tablePosition,
     tableLabel: theme.tables.captionLabel ?? CAPTION_DEFAULTS.tableLabel,
-    figureLabel: theme.blocks.figureLabel ?? CAPTION_DEFAULTS.figureLabel
+    figureLabel: theme.blocks.figureLabel ?? CAPTION_DEFAULTS.figureLabel,
+    numbering: theme.blocks.captionNumbering ?? CAPTION_DEFAULTS.numbering,
+    labelStyle: theme.blocks.captionLabelStyle ?? CAPTION_DEFAULTS.labelStyle
   }
 }
 
@@ -149,12 +198,15 @@ export function withThemeDefaults(theme: DocTheme): DocTheme {
   const code = resolveCodeOptions(theme)
   const tb = resolveTitleBlock(theme)
   const captions = resolveCaptions(theme)
+  const chapter = resolveChapterLabel(theme)
+  const section = resolveSectionToken(theme)
   return {
     ...theme,
+    page: { ...theme.page, mirrorMargins: mirrorMargins(theme) },
     tables: { ...theme.tables, captionPosition: captions.tablePosition, captionLabel: captions.tableLabel },
-    blocks: { ...theme.blocks, figureLabel: captions.figureLabel, referenceStyle: referenceStyle(theme) },
-    headings: { ...theme.headings, numbering: headingNumbering(theme), levels: theme.headings.levels ?? {} },
-    header: { ...theme.header, rule: runningRule(theme.header) },
+    blocks: { ...theme.blocks, figureLabel: captions.figureLabel, referenceStyle: referenceStyle(theme), captionNumbering: captions.numbering, captionLabelStyle: captions.labelStyle },
+    headings: { ...theme.headings, numbering: headingNumbering(theme), levels: theme.headings.levels ?? {}, numberingDepth: numberingDepth(theme), chapterLabel: chapter.enabled, chapterWord: chapter.word },
+    header: { ...theme.header, rule: runningRule(theme.header), sectionNumber: section.number, sectionMode: section.mode },
     footer: { ...theme.footer, rule: runningRule(theme.footer) },
     code: {
       ...theme.code,
@@ -164,6 +216,6 @@ export function withThemeDefaults(theme: DocTheme): DocTheme {
       wrap: code.wrap,
       lineNumbers: code.lineNumbers
     },
-    cover: { ...theme.cover, affiliations: tb.affiliations, rules: tb.rules, smallCaps: tb.smallCaps }
+    cover: { ...theme.cover, affiliations: tb.affiliations, rules: tb.rules, smallCaps: tb.smallCaps, dateFormat: coverDateFormat(theme), repeatTitle: repeatTitle(theme) }
   }
 }

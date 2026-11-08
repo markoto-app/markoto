@@ -3,7 +3,7 @@
   Stresses: one chapter (h1) with numbered sections down to h3 (meant for
   headings.numbering = decimal); long justified paragraphs; display equations
   incl. multi-line aligned + inline math; figures with captions (image-only
-  paragraph → <figure>, sized with {width=…}); tables with Pandoc captions (chapter-relative numbers written by the author, like the figures);
+  paragraph → <figure>, sized with {width=…}); tables with Pandoc captions (the engine numbers both within the chapter: blocks.captionNumbering = chapter);
   many footnotes (some long); a block quotation; a definition list; a
   references list with long entries and URLs; an abbreviation.
   Suggested title: "Chapter 3 — Learning sparse sensor placements for urban
@@ -17,7 +17,7 @@
 
 Urban flood forecasting depends on knowing, minutes in advance, how much water is moving through a drainage network that nobody can observe in full. Cities instrument a handful of manholes and outfalls with level sensors, and every additional sensor costs not only its purchase price but years of maintenance in a corrosive, confined environment.[^cost] The question this chapter addresses is therefore not how to forecast well with unlimited data, but where a small, fixed budget of sensors should go so that a forecasting model trained on their readings is as accurate as possible across the whole network.
 
-Chapter 2 introduced the hydraulic surrogate model that serves as the forecaster throughout this thesis. Here we treat that model as given and turn to the placement problem. Section 3.1 states the problem formally and shows that it is a monotone but not submodular set function maximisation. Section 3.2 develops a relaxation in which placements are learned jointly with the surrogate through a differentiable gating mechanism. Section 3.3 evaluates the method on two catchments of the fictional city of Valmont, and Section 3.4 discusses its limits.
+Chapter 2 introduced the hydraulic surrogate model that serves as the forecaster throughout this thesis. Here we treat that model as given and turn to the placement problem. Section 1.1 states the problem formally and shows that it is a monotone but not submodular set function maximisation. Section 1.2 develops a relaxation in which placements are learned jointly with the surrogate through a differentiable gating mechanism. Section 1.3 evaluates the method on two catchments of the fictional city of Valmont, and Section 1.4 discusses its limits.
 
 ## Problem statement
 
@@ -75,9 +75,9 @@ Effective budget
 
 We used the two catchments described in Section 2.4. Rainfall forcing combined 14 years of radar-derived precipitation at 5-minute resolution with 200 synthetic design storms. Ground truth for every node came from a calibrated hydrodynamic simulation, which is the only way to obtain "observations" at locations where no sensor exists. The DEM and the pipe inventory were supplied by the Valmont water utility in 2024.[^data]
 
-![Figure 3.1: Mean forecast error against the number of sensors for the north catchment. The learned placement (blue) reaches the error of a 12-sensor greedy placement with 7 sensors.](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAgMAAAAs9Cz0AAAADFBMVEX////AUE1EREQ9b7bxqYjxAAAEAklEQVR42u3XPW4cMQwFYBmLrX0k5wguMvfJEdKkX8CdgSBV+smNtkm3gTKzmpnVv0SJpByErOzqw3ukBrZSMjIyMjIyMjIyjHMRWGCBBRZYYIEFFljgztF6Zob1PnywdocH1gWVBC6JJHAViQ7Xo6gwBMWDgSgWDFdR4Ca2H25T++FWthNuZ7vgHrYH7nPb4T62Ge5lW+F+tw1GcJtgBLYJRnEbYBwXDiO5YBjLhcJoLhDGc2EwoguCMV0I/IzpQmBUFwDr25j/jzVu4Gr4GdmthrHdWhh5wdUwetG1ML5bB+MXXQcTFF0HU7g18DNB0VUwSeAKmCZwBUwTuAwTBS7DRIGLMFXgIkwVuASTBS7BZIELMF7g6RMIRgo8LQOCUQJPZkBwf+Apwebh7sBJNQ+f+gLn1DzcFTiv5mF9pWNzcHvTZTULtzZdxWbgU1vTlWwGbgpczWbghsAANg03nBaETcPgpmFsEoaeFpRNwsDAcDcFgwI3sCkYdFotbAqGNN3mJuD6phvZBFzfdLMbh6ubbnfjcGXTHWwcrmy6y43CdU33uVG4quk+NgpXNd3rxuCaprvdGPxyZXBjcLlpBDcCnzSHG4GLK0ZxI3DpMeG4IVx6TEhuCBeaxnJDOP+Y0NwQzjaN5wZw9jEhugGcWzGmG8CZx4Tq+nDmMZ1RXR/ONI3r+nD6MU2fFSWcbHpCDuzByceE7npwasVndNeDUyvGdz04sWLswwrgxIongsAuHF/xmcJ14fiKSVwPnpkW7MOarWgXjt4WkevAsdsiKtqFI7dFVbQLRz4fZK4NR1ZMVrQDhyumK9qBwxUTujYcrPhMV7QNhyumDGzBwYonysAW7K/4TBrYhmfGom1YM16WDfu3RRz4AXu3RR34AXu3RR3Ygme+p+TAmvEp2bB7W/TuATu3RX5ZFuzcFkPgBzzzBj5gzRx4h+3bYgm8w/ZtsQQ+4Ctz4B22bosn8A4//t5iCnzA++9PTIE3+HTjDrzBj6OeXlnh44PJ1vQOz9xNb7Bmb9rAxweTL7CBj9ti2/AOX9kDG3i7rSfGwAbePpicgTeY+6Q3ePtgsjZ9h7ejZm3awFcT+JUbNkfNG/gOm6PmDWxg/tO6w+aomZte4ftRM5+Wga8DAq/w/ai5A6/wetTcp2XgEU0v8HrU7Ke1w/yBF3g9av7AKzwPOK0VfhnStIEHNL3AtyFNq8ty1COaVpflqEc0vcJDmlaXl3lI0+qifw1peoHHBFZvtzGB1dufIae1wL/HNK1+DGpafR/UtPo5qGn1bVDTalTTT9OgwKdRK1ZfR8EXgQUWWGCBBf6Y8JfjV46fBGaG37nmw8BqVNX/KSwjIyMjIyMjIyMj8w/NXw+3DbeZQfBOAAAAAElFTkSuQmCC){width=80%}
+![Mean forecast error against the number of sensors for the north catchment. The learned placement (blue) reaches the error of a 12-sensor greedy placement with 7 sensors.](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAgMAAAAs9Cz0AAAADFBMVEX////AUE1EREQ9b7bxqYjxAAAEAklEQVR42u3XPW4cMQwFYBmLrX0k5wguMvfJEdKkX8CdgSBV+smNtkm3gTKzmpnVv0SJpByErOzqw3ukBrZSMjIyMjIyMjIyjHMRWGCBBRZYYIEFFljgztF6Zob1PnywdocH1gWVBC6JJHAViQ7Xo6gwBMWDgSgWDFdR4Ca2H25T++FWthNuZ7vgHrYH7nPb4T62Ge5lW+F+tw1GcJtgBLYJRnEbYBwXDiO5YBjLhcJoLhDGc2EwoguCMV0I/IzpQmBUFwDr25j/jzVu4Gr4GdmthrHdWhh5wdUwetG1ML5bB+MXXQcTFF0HU7g18DNB0VUwSeAKmCZwBUwTuAwTBS7DRIGLMFXgIkwVuASTBS7BZIELMF7g6RMIRgo8LQOCUQJPZkBwf+Apwebh7sBJNQ+f+gLn1DzcFTiv5mF9pWNzcHvTZTULtzZdxWbgU1vTlWwGbgpczWbghsAANg03nBaETcPgpmFsEoaeFpRNwsDAcDcFgwI3sCkYdFotbAqGNN3mJuD6phvZBFzfdLMbh6ubbnfjcGXTHWwcrmy6y43CdU33uVG4quk+NgpXNd3rxuCaprvdGPxyZXBjcLlpBDcCnzSHG4GLK0ZxI3DpMeG4IVx6TEhuCBeaxnJDOP+Y0NwQzjaN5wZw9jEhugGcWzGmG8CZx4Tq+nDmMZ1RXR/ONI3r+nD6MU2fFSWcbHpCDuzByceE7npwasVndNeDUyvGdz04sWLswwrgxIongsAuHF/xmcJ14fiKSVwPnpkW7MOarWgXjt4WkevAsdsiKtqFI7dFVbQLRz4fZK4NR1ZMVrQDhyumK9qBwxUTujYcrPhMV7QNhyumDGzBwYonysAW7K/4TBrYhmfGom1YM16WDfu3RRz4AXu3RR34AXu3RR3Ygme+p+TAmvEp2bB7W/TuATu3RX5ZFuzcFkPgBzzzBj5gzRx4h+3bYgm8w/ZtsQQ+4Ctz4B22bosn8A4//t5iCnzA++9PTIE3+HTjDrzBj6OeXlnh44PJ1vQOz9xNb7Bmb9rAxweTL7CBj9ti2/AOX9kDG3i7rSfGwAbePpicgTeY+6Q3ePtgsjZ9h7ejZm3awFcT+JUbNkfNG/gOm6PmDWxg/tO6w+aomZte4ftRM5+Wga8DAq/w/ai5A6/wetTcp2XgEU0v8HrU7Ke1w/yBF3g9av7AKzwPOK0VfhnStIEHNL3AtyFNq8ty1COaVpflqEc0vcJDmlaXl3lI0+qifw1peoHHBFZvtzGB1dufIae1wL/HNK1+DGpafR/UtPo5qGn1bVDTalTTT9OgwKdRK1ZfR8EXgQUWWGCBBf6Y8JfjV46fBGaG37nmw8BqVNX/KSwjIyMjIyMjIyMj8w/NXw+3DbeZQfBOAAAAAElFTkSuQmCC){width=80%}
 
-Table 3.1 compares the learned placement with three baselines at the same budget. We report RMSE over all nodes for a 30-minute horizon, the error at the 50 nodes with the highest flood risk, and the share of surcharge events detected at least 10 minutes before onset.
+Table 1.1 compares the learned placement with three baselines at the same budget. We report RMSE over all nodes for a 30-minute horizon, the error at the 50 nodes with the highest flood risk, and the share of surcharge events detected at least 10 minutes before onset.
 
 | Placement ($k = 12$) | RMSE all (cm) | RMSE high-risk (cm) | Early detection | Training time |
 |---|---:|---:|---:|---:|
@@ -86,21 +86,21 @@ Table 3.1 compares the learned placement with three baselines at the same budget
 | Greedy forward selection | 7.1 | 15.2 | 69 % | 41 h |
 | Learned gates (ours) | **6.2** | **11.8** | **81 %** | 6 h |
 
-Table: Table 3.1: Forecast skill of four placements with the same budget ($k = 12$), north catchment, 30-minute horizon.
+Table: Forecast skill of four placements with the same budget ($k = 12$), north catchment, 30-minute horizon.
 
 The learned placement improves most where it matters: error at high-risk nodes falls by 22 % relative to greedy selection, and early detection rises by twelve percentage points. Training is also faster, because a single model is trained instead of one per greedy step.
 
 ### Sensitivity to the budget
 
-Figure 3.2 shows how error decreases with the budget. The decrease flattens beyond $k \approx 16$; after that, additional sensors mostly duplicate information that the surrogate can already infer from the network topology. This is consistent with the observability argument of Section 2.2, which predicts diminishing returns once every independent sub-catchment contains at least one sensor.[^subcatch]
+Figure 1.2 shows how error decreases with the budget. The decrease flattens beyond $k \approx 16$; after that, additional sensors mostly duplicate information that the surrogate can already infer from the network topology. This is consistent with the observability argument of Section 2.2, which predicts diminishing returns once every independent sub-catchment contains at least one sensor.[^subcatch]
 
-![Figure 3.2: Forecast error at the 50 high-risk nodes for budgets k = 4, 6, …, 16 (blue) and for the utility's current twelve sensors (orange).](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAgMAAAAs9Cz0AAAADFBMVEX////gej9EREQ9b7ZgGbXOAAAAtElEQVR42u3NsQ1AUBSGUYmojWQJ9jGK2hRGMoDkqTyRoCHicb7uL+49WSZJkqQH68BgMBgcK5qlGgwGg8FgMBh8W1VYGsFgMBgMBoPBYDAY/Cc4j78DGAwGpwmvawCDwWAwGAwGg8Fg8Lfh7T0YDAanB5dxTWAwGAwGg8HgC/DZPRgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGLwL90/VvgWWJEmSJB00Awuysb3oMlM0AAAAAElFTkSuQmCC){width=70%}
+![Forecast error at the 50 high-risk nodes for budgets k = 4, 6, …, 16 (blue) and for the utility's current twelve sensors (orange).](data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAeAAAAEOAgMAAAAs9Cz0AAAADFBMVEX////gej9EREQ9b7ZgGbXOAAAAtElEQVR42u3NsQ1AUBSGUYmojWQJ9jGK2hRGMoDkqTyRoCHicb7uL+49WSZJkqQH68BgMBgcK5qlGgwGg8FgMBh8W1VYGsFgMBgMBoPBYDAY/Cc4j78DGAwGpwmvawCDwWAwGAwGg8Fg8Lfh7T0YDAanB5dxTWAwGAwGg8HgC/DZPRgMBoPBYDAYDAaDwWAwGAwGg8FgMBgMBoPBYDAYDAaDwWAwGLwL90/VvgWWJEmSJB00Awuysb3oMlM0AAAAAElFTkSuQmCC){width=70%}
 
 ### Where the method places sensors
 
 Inspecting the selected nodes reveals a consistent pattern. Of the twelve sensors in the north catchment, five sit immediately downstream of confluences, four at the upstream end of pipes whose slope drops below 0.3 %, and three at outfalls. None sits on the trunk sewer between confluences, which is exactly where greedy selection placed half of its budget. Engineers at the utility recognised the slope-change locations as places where they have historically seen backwater effects, which lends the placement some physical credibility beyond its forecast skill.
 
-Table 3.2 lists the selected nodes with their characteristics; node identifiers follow the utility's asset register.
+Table 1.2 lists the selected nodes with their characteristics; node identifiers follow the utility's asset register.
 
 | Node | Type | Depth (m) | Upstream area (ha) | Reason (post hoc) |
 |---|---|---:|---:|---|
@@ -110,7 +110,7 @@ Table 3.2 lists the selected nodes with their characteristics; node identifiers 
 | N-1120 | Outfall | 4.0 | 212.7 | River outfall with tidal backwater |
 | N-1188 | Junction | 3.6 | 140.9 | Below confluence; known surcharge point |
 
-Table: Table 3.2: Five of the twelve nodes selected by the learned placement in the north catchment.
+Table: Five of the twelve nodes selected by the learned placement in the north catchment.
 
 ## Discussion
 

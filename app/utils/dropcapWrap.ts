@@ -82,18 +82,27 @@ export function wrapFirstLetterAsDropCap(html: string): string {
   const tpl = document.createElement('template')
   tpl.innerHTML = html
   const p = Array.from(tpl.content.querySelectorAll('p')).find(el => !el.closest(NOT_BODY_PROSE)) ?? null
-  if (!p) return html
+  if (!p || !capParagraph(p)) return html
+  return tpl.innerHTML
+}
+
+/**
+ * Put the drop cap on `p` (in place) when it qualifies — see the rules
+ * above. Returns whether it did. Shared with the every-chapter drop cap
+ * (`documentMarkers.ts#markChapterOpenings`).
+ */
+export function capParagraph(p: Element): boolean {
   // Only real opening prose: long enough to sit beside the cap, and not a
   // block of hard-broken lines (metadata like Date / Attendees).
-  if ((p.textContent ?? '').trim().length < DROPCAP_MIN_CHARS) return html
-  if (p.querySelector('br')) return html
+  if ((p.textContent ?? '').trim().length < DROPCAP_MIN_CHARS) return false
+  if (p.querySelector('br')) return false
   const text = firstTextNode(p)
-  if (!text) return html
-  if (text.parentElement && text.parentElement !== p && NO_CAP_INSIDE.has(text.parentElement.tagName.toLowerCase())) return html
+  if (!text) return false
+  if (text.parentElement && text.parentElement !== p && NO_CAP_INSIDE.has(text.parentElement.tagName.toLowerCase())) return false
   const leading = /^\s*/.exec(text.data)?.[0] ?? ''
   const rest = text.data.slice(leading.length)
   const first = Array.from(rest)[0]
-  if (!first) return html
+  if (!first) return false
 
   const doc = text.ownerDocument
   const span = doc.createElement('span')
@@ -104,5 +113,5 @@ export function wrapFirstLetterAsDropCap(html: string): string {
   text.after(span, tail)
   if (leading === '') text.remove()
   p.classList.add(DROPCAP_PARAGRAPH_CLASS)
-  return tpl.innerHTML
+  return true
 }
