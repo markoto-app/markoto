@@ -8,10 +8,6 @@
     "showSubtitle": false,
     "subtitle": "",
     "showDate": true,
-    "date": "2026-11-02",
-    "rules": false,
-    "smallCaps": false,
-    "titleSize": 1.4,
-    "subtitleSize": 1
+    "date": "2026-11-02"
   }
 }

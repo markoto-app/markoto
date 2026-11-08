@@ -6,7 +6,7 @@
   reference table with long cells; caution/warning/important alerts; a
   quick-reference section of dense tables; a scene of h3s that are short, so
   headings land near page ends; a horizontal rule.
-  Suggested title: "Checkout platform — on-call runbook". No patch.
+  Suggested title: "Checkout platform — on-call runbook". Patch: runbook-patch.json.
 -->
 
 # How to use this runbook

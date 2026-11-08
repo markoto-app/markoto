@@ -3,11 +3,9 @@ import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePresetCategory } from '~~/shared/utils/themePresets'
-import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
+import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/themePresets'
 import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { DEFAULT_TEMPLATE_ID, TEMPLATES, isTemplateId } from '~~/shared/templates'
-import type { TabsItem } from '@nuxt/ui'
 
 // Same trick as ThemeEditorPanel — link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
@@ -231,22 +229,6 @@ const audienceItems = computed(() => AUDIENCE_KINDS.map(kind => ({
   value: kind
 })))
 
-// Design picker tabs: everything, one tab per audience that has presets,
-// and the user's own saved themes.
-const designTabs = computed<TabsItem[]>(() => [
-  { label: t('newDoc.designTabs.all'), value: 'all' },
-  ...THEME_PRESET_CATEGORIES
-    .filter(c => THEME_PRESETS.some(p => p.category === c))
-    .map(c => ({ label: t(`newDoc.designTabs.${c}`), value: c })),
-  ...(savedThemes.value.length ? [{ label: t('newDoc.designTabs.saved'), value: 'saved' }] : [])
-])
-const visiblePresets = computed(() => {
-  if (designTab.value === 'saved') return []
-  if (designTab.value === 'all') return THEME_PRESETS
-  return THEME_PRESETS.filter(p => p.category === designTab.value)
-})
-const showSaved = computed(() => designTab.value === 'all' || designTab.value === 'saved')
-
 // One-line summaries on the collapsed rows.
 const contentSummary = computed(() => {
   const tpl = TEMPLATES.find(x => x.id === templateId.value)
@@ -430,134 +412,85 @@ async function submit() {
                 <p class="text-xs text-toned mb-2">
                   {{ t('newDoc.themeHelp') }}
                 </p>
-                <UTabs
-                  v-model="designTab"
-                  :items="designTabs"
-                  :content="false"
-                  size="xs"
-                  variant="link"
-                  class="mb-3 overflow-x-auto"
-                  data-testid="newdoc-design-tabs"
-                />
-                <div
-                  class="grid grid-cols-2 sm:grid-cols-3 gap-2"
+                <DocumentThemePresetGrid
+                  v-model:tab="designTab"
+                  testid-prefix="newdoc-theme-card-"
+                  :saved-tab="savedThemes.length > 0"
+                  :selected-id="themeChoice.kind === 'preset' ? themeChoice.id : null"
                   data-testid="newdoc-theme-grid"
+                  @select="(preset) => themeChoice = { kind: 'preset', id: preset.id }"
                 >
-                  <!-- Workspace-default "inherit" card. Only shown when
-                       filing into a workspace whose default matches no
-                       built-in or saved theme of this user; a match
-                       lights up that card instead. -->
-                  <button
-                    v-if="workspaceDefaultTheme && themeChoice.kind === 'inherit' && designTab === 'all'"
-                    type="button"
-                    data-testid="newdoc-theme-card-inherit"
-                    aria-pressed="true"
-                    class="text-left rounded-md border p-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary border-primary bg-elevated/40"
-                  >
-                    <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white flex flex-col overflow-hidden">
-                      <div
-                        class="h-2 shrink-0"
-                        :style="{ backgroundColor: workspaceDefaultTheme.color.brand }"
-                      />
-                      <span
-                        class="m-auto text-3xl text-neutral-800"
-                        :style="{ fontFamily: `'${workspaceDefaultTheme.headings.font}', system-ui, sans-serif` }"
-                      >Aa</span>
-                    </div>
-                    <div class="mt-1.5 px-0.5 text-xs font-semibold truncate">
-                      {{ t('newDoc.themeWorkspaceDefault') }}
-                    </div>
-                    <p class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2">
-                      {{ t('newDoc.themeWorkspaceDefaultHelp') }}
-                    </p>
-                  </button>
-
-                  <!-- The user's saved themes: no page picture, a brand
-                       stripe + "Aa" in their heading font instead. -->
-                  <template v-if="showSaved">
+                  <template #before="{ tab: slotTab }">
+                    <!-- Workspace-default "inherit" card. Only shown when
+                         filing into a workspace whose default matches no
+                         built-in or saved theme of this user; a match
+                         lights up that card instead. -->
                     <button
-                      v-for="saved in savedThemes"
-                      :key="saved.themeId"
+                      v-if="workspaceDefaultTheme && themeChoice.kind === 'inherit' && slotTab === 'all'"
                       type="button"
-                      :data-testid="`newdoc-theme-card-saved-${saved.themeId}`"
-                      class="text-left rounded-md border p-1.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      :class="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId
-                        ? 'border-primary bg-elevated/40'
-                        : 'border-default'"
-                      :aria-pressed="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId"
-                      @click="themeChoice = { kind: 'saved', themeId: saved.themeId }"
+                      data-testid="newdoc-theme-card-inherit"
+                      aria-pressed="true"
+                      class="text-left rounded-md border p-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary border-primary bg-elevated/40"
                     >
                       <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white flex flex-col overflow-hidden">
                         <div
                           class="h-2 shrink-0"
-                          :style="{ backgroundColor: saved.theme.color.brand }"
+                          :style="{ backgroundColor: workspaceDefaultTheme.color.brand }"
                         />
                         <span
                           class="m-auto text-3xl text-neutral-800"
-                          :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
+                          :style="{ fontFamily: `'${workspaceDefaultTheme.headings.font}', system-ui, sans-serif` }"
                         >Aa</span>
                       </div>
-                      <div
-                        class="mt-1.5 px-0.5 text-xs font-semibold truncate"
-                        :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
-                      >
-                        {{ saved.name }}
+                      <div class="mt-1.5 px-0.5 text-xs font-semibold truncate">
+                        {{ t('newDoc.themeWorkspaceDefault') }}
                       </div>
-                      <p
-                        class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2 break-words"
-                        :data-testid="`newdoc-theme-card-saved-description-${saved.themeId}`"
-                      >
-                        {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
+                      <p class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2">
+                        {{ t('newDoc.themeWorkspaceDefaultHelp') }}
                       </p>
                     </button>
-                  </template>
 
-                  <!-- Built-in presets: a picture of their first page
-                       (`make theme-thumbs`), the brand stripe until one
-                       is rendered. -->
-                  <button
-                    v-for="preset in visiblePresets"
-                    :key="preset.id"
-                    type="button"
-                    :data-testid="`newdoc-theme-card-${preset.id}`"
-                    class="text-left rounded-md border p-1.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    :class="themeChoice.kind === 'preset' && themeChoice.id === preset.id
-                      ? 'border-primary bg-elevated/40'
-                      : 'border-default'"
-                    :aria-pressed="themeChoice.kind === 'preset' && themeChoice.id === preset.id"
-                    @click="themeChoice = { kind: 'preset', id: preset.id }"
-                  >
-                    <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white overflow-hidden flex flex-col">
-                      <img
-                        v-if="themeThumbnailUrl(preset.id)"
-                        :src="themeThumbnailUrl(preset.id) ?? undefined"
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                        class="w-full h-full object-cover object-top"
+                    <!-- The user's saved themes: no page picture, a brand
+                         stripe + "Aa" in their heading font instead. -->
+                    <template v-if="slotTab === 'all' || slotTab === 'saved'">
+                      <button
+                        v-for="saved in savedThemes"
+                        :key="saved.themeId"
+                        type="button"
+                        :data-testid="`newdoc-theme-card-saved-${saved.themeId}`"
+                        class="text-left rounded-md border p-1.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        :class="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId
+                          ? 'border-primary bg-elevated/40'
+                          : 'border-default'"
+                        :aria-pressed="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId"
+                        @click="themeChoice = { kind: 'saved', themeId: saved.themeId }"
                       >
-                      <template v-else>
+                        <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white flex flex-col overflow-hidden">
+                          <div
+                            class="h-2 shrink-0"
+                            :style="{ backgroundColor: saved.theme.color.brand }"
+                          />
+                          <span
+                            class="m-auto text-3xl text-neutral-800"
+                            :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
+                          >Aa</span>
+                        </div>
                         <div
-                          class="h-2 shrink-0"
-                          :style="{ backgroundColor: preset.theme.color.brand }"
-                        />
-                        <span
-                          class="m-auto text-3xl text-neutral-800"
-                          :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
-                        >Aa</span>
-                      </template>
-                    </div>
-                    <div
-                      class="mt-1.5 px-0.5 text-xs font-semibold truncate"
-                      :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
-                    >
-                      {{ t(`theme.presets.${preset.id}.name`) }}
-                    </div>
-                    <p class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2">
-                      {{ t(`theme.presets.${preset.id}.description`) }}
-                    </p>
-                  </button>
-                </div>
+                          class="mt-1.5 px-0.5 text-xs font-semibold truncate"
+                          :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
+                        >
+                          {{ saved.name }}
+                        </div>
+                        <p
+                          class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2 break-words"
+                          :data-testid="`newdoc-theme-card-saved-description-${saved.themeId}`"
+                        >
+                          {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
+                        </p>
+                      </button>
+                    </template>
+                  </template>
+                </DocumentThemePresetGrid>
               </div>
             </template>
           </UCollapsible>
