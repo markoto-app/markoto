@@ -1055,9 +1055,17 @@
         "name": "IEEE conference paper",
         "description": "The IEEE conference template (IEEEtran): US Letter, two columns of Times 10 pt, centred small-caps sections with Roman numerals, italic subsections, a 24 pt title over side-by-side author blocks, the bold run-in abstract in the first column."
       },
+      "thesis": {
+        "name": "Thesis",
+        "description": "Long-form academic writing in the LaTeX report tradition: A4, Latin Modern 11 pt justified with paragraph indents, generous margins, every chapter on a new page under a large number, sections numbered 1.1 / 1.1.1, a classic title page, chapter title and page number in the running head, booktabs tables, hanging-indent references."
+      },
       "tech-docs": {
         "name": "Technical documentation",
         "description": "Printed developer docs: serif reading text with sans headings, numbered sections hanging in the margin, light framed code blocks at full width, hairline reference tables, quiet admonitions, title block with contents on page 1."
+      },
+      "design-doc": {
+        "name": "Design doc / RFC",
+        "description": "Engineering design documents, RFCs and decision records: IBM Plex Sans in a comfortable reading column with a review margin, numbered sections for review comments, a document header with status, decision records on an accent rule, scannable comparison tables, the title and current section as running head."
       },
       "business-report": {
         "name": "Corporate report",
@@ -1719,7 +1727,7 @@
       "themes": {
         "label": "Themes",
         "title": "Change the look, not the Markdown.",
-        "body": "Pick one of ten themes, then adjust colours, fonts and the cover page. Your text stays untouched."
+        "body": "Pick a ready-made theme, then adjust colours, fonts and the cover page. Your text stays untouched."
       },
       "collab": {
         "label": "Collaboration",

@@ -483,6 +483,47 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
+    // The design-doc preset end to end: title block over the metadata
+    // header, the template CSS (prose column, decision records, comparison
+    // tables) sanitised at render, two Mermaid diagrams, and IBM Plex Sans /
+    // Mono embedded as real fonts, never Type 3.
+    it('renders the design-doc fixture as an A4 RFC of 6–8 pages with IBM Plex embedded as real fonts', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const preset = THEME_PRESETS.find(p => p.id === 'design-doc')?.theme
+      if (!preset) throw new Error('design-doc preset missing')
+      expect(preset.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/design-doc-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...preset, cover: { ...preset.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/design-doc.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      await wipeRendersFor(doc.docId)
+      // 7 pages in the preview.
+      expect(typeof pageCount).toBe('number')
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(6)
+      expect(Number(pageCount)).toBeLessThanOrEqual(8)
+      // A4 (210 × 297 mm ≈ 595 × 842 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      for (const family of [/IBMPlexSans/i, /IBMPlexMono/i]) {
+        expect(fonts.some(f => family.test(f.name)), summary).toBe(true)
+      }
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      // A Type 3 font has no /BaseFont, so the list above can't show it.
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+    }, 90_000)
+
     // The IEEE conference preset end to end: Letter pages, two columns,
     // title block with three author blocks, the template CSS and the
     // bundled Termes (regular, bold abstract, italic subsections) embedded
@@ -519,6 +560,74 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(termes.length, summary).toBeGreaterThan(0)
       expect(new Set(termes.map(f => f.name.replace(/^[A-Z]{6}\+/, ''))).size, summary).toBeGreaterThanOrEqual(3)
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // The thesis preset end to end: a title page, the chapter on a new page
+    // (template CSS `break-before: page`), A4, Latin Modern Roman embedded
+    // as a real font in regular, bold and italic.
+    it('renders the thesis fixture as an A4 thesis chapter with Latin Modern embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const thesis = THEME_PRESETS.find(p => p.id === 'thesis')?.theme
+      if (!thesis) throw new Error('thesis preset missing')
+      expect(thesis.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/thesis-chapter-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...thesis, cover: { ...thesis.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/thesis-chapter.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview: 8 pages (title page, seven of the chapter).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(7)
+      expect(Number(pageCount)).toBeLessThanOrEqual(9)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // A4 (210 × 297 mm ≈ 595 × 842 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+59[45](?:\.\d+)?\s+84[12](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const lm = fonts.filter(f => /LMRoman/.test(f.name))
+      expect(lm.length, summary).toBeGreaterThan(0)
+      expect(new Set(lm.map(f => f.name.replace(/^[A-Z]{6}\+/, ''))).size, summary).toBeGreaterThanOrEqual(3)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
+    // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
+    // (the renderer allows no CDN host any more). Chromium embeds the font
+    // files it actually used, by name: had a web font failed to load, the
+    // PDF would carry a system fallback instead.
+    it('embeds the theme\'s self-hosted fonts and KaTeX\'s math font', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const theme = {
+        ...defaultTheme,
+        body: { ...defaultTheme.body, font: 'Lora' },
+        headings: { ...defaultTheme.headings, font: 'Playfair Display' },
+        meta: { ...defaultTheme.meta, font: 'IBM Plex Mono' }
+      }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const snapId = await insertYjsRow(doc.docId, '# Fonts and math\n\nBody text in Lora, *in italics too*.\n\n$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$\n\n```js\nconst answer = 42\n```\n')
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
+      expect(fontNames.some(n => /Lora/i.test(n)), fontNames.join(', ')).toBe(true)
+      expect(fontNames.some(n => /Playfair/i.test(n)), fontNames.join(', ')).toBe(true)
+      expect(fontNames.some(n => /KaTeX/i.test(n)), fontNames.join(', ')).toBe(true)
 
       await wipeRendersFor(doc.docId)
     }, 90_000)
@@ -560,33 +669,6 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       }
       for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
       expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
-    }, 90_000)
-
-    // Fonts, KaTeX and highlight.js come from the app's own /vendor/ path
-    // (the renderer allows no CDN host any more). Chromium embeds the font
-    // files it actually used, by name: had a web font failed to load, the
-    // PDF would carry a system fallback instead.
-    it('embeds the theme\'s self-hosted fonts and KaTeX\'s math font', async () => {
-      const owner = await createUser()
-      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const theme = {
-        ...defaultTheme,
-        body: { ...defaultTheme.body, font: 'Lora' },
-        headings: { ...defaultTheme.headings, font: 'Playfair Display' },
-        meta: { ...defaultTheme.meta, font: 'IBM Plex Mono' }
-      }
-      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
-      const snapId = await insertYjsRow(doc.docId, '# Fonts and math\n\nBody text in Lora, *in italics too*.\n\n$$\\int_0^1 x^2 \\, dx = \\frac{1}{3}$$\n\n```js\nconst answer = 42\n```\n')
-
-      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
-      expect(res.status).toBe(302)
-      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
-      const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
-      expect(fontNames.some(n => /Lora/i.test(n)), fontNames.join(', ')).toBe(true)
-      expect(fontNames.some(n => /Playfair/i.test(n)), fontNames.join(', ')).toBe(true)
-      expect(fontNames.some(n => /KaTeX/i.test(n)), fontNames.join(', ')).toBe(true)
-
-      await wipeRendersFor(doc.docId)
     }, 90_000)
 
     // Chromium (Skia) embeds a variable font, or a CFF one, as Type 3
