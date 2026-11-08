@@ -139,9 +139,34 @@ const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const UNIT_RE = [...UNITS].sort((a, b) => b.length - a.length).map(escapeRe).join('|')
 const NUMBER = String.raw`[+\-−±]?\d+(?:[.,'’]\d+)*`
 const SPACE = '[ \\u00A0\\u202F]'
-/** Pairs that must not break: [comparison] [currency] number [unit], or a short code like SEV-1. */
+/**
+ * Month names and abbreviations (English, German, French, Spanish — the
+ * document languages with Latin script) for dates like "30 Jan 2027".
+ */
+const MONTHS = [
+  'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December',
+  'Jan', 'Feb', 'Mar', 'Apr', 'Jun', 'Jul', 'Aug', 'Sep', 'Sept', 'Oct', 'Nov', 'Dec',
+  'Januar', 'Februar', 'März', 'Mai', 'Juni', 'Juli', 'Oktober', 'Dezember', 'Okt', 'Dez',
+  'janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre',
+  'janv', 'févr', 'avr', 'juil', 'sept', 'oct', 'nov', 'déc',
+  'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre',
+  'ene', 'abr', 'ago', 'dic'
+]
+const MONTH_RE = `(?:${[...new Set(MONTHS)].sort((a, b) => b.length - a.length).map(escapeRe).join('|')})\\.?`
+const DAY = String.raw`\d{1,2}\.?`
+const YEAR = String.raw`\d{4}`
+/** "30 Jan 2027", "12. Januar", "Jan 12, 2027", "March 2027", "2027-01-30". */
+const DATE = String.raw`(?:${DAY}${SPACE}(?:de${SPACE})?${MONTH_RE}(?:${SPACE}(?:de${SPACE})?${YEAR})?|${MONTH_RE}${SPACE}(?:${DAY},?${SPACE}${YEAR}|${DAY}|${YEAR})|${YEAR}-\d{2}-\d{2})(?![\p{L}\p{N}])`
+/** A short hyphenated word ("on-call", "roll-out", "e-mail"): the browser would break after the hyphen. */
+const COMPOUND = String.raw`(?<!-)\p{L}[\p{L}\p{N}]*(?:-[\p{L}\p{N}]+)+(?![\p{L}\p{N}-])`
+/** A hyphenated word longer than this may still break at its hyphens (a narrow column must stay narrow). */
+const COMPOUND_MAX_LENGTH = 16
+/**
+ * Runs that must not break: a date; [comparison] [currency] number [unit];
+ * a short code like SEV-1; a short hyphenated word.
+ */
 const NOWRAP_RE = new RegExp(
-  String.raw`(?<![\p{L}\p{N}])(?:(?:[<>≤≥~≈]=?${SPACE})?(?:(?:CHF|EUR|USD|GBP|JPY|Fr\.|[€$£¥])${SPACE})?${NUMBER}(?:${SPACE}(?:${UNIT_RE}))?(?![\p{L}\p{N}])|[A-Z][A-Za-z]{0,7}-\d{1,4}[a-z]?(?![\p{L}\p{N}-]))`,
+  String.raw`(?<![\p{L}\p{N}])(?:${DATE}|(?:[<>≤≥~≈]=?${SPACE})?(?:(?:CHF|EUR|USD|GBP|JPY|Fr\.|[€$£¥])${SPACE})?${NUMBER}(?:${SPACE}(?:${UNIT_RE}))?(?![\p{L}\p{N}])|[A-Z][A-Za-z]{0,7}-\d{1,4}[a-z]?(?![\p{L}\p{N}-])|${COMPOUND})`,
   'gu'
 )
 
@@ -153,6 +178,8 @@ export function nowrapRuns(text: string): Array<{ text: string, nowrap: boolean 
     const s = m[0]
     // A lone number has nothing to keep together.
     if (!/[ \u00A0\u202F-]/u.test(s.replace(/^[+\-−±]/u, ''))) continue
+    // A long hyphenated word keeps its break opportunities.
+    if (/^\p{L}/u.test(s) && s.includes('-') && !s.includes(' ') && s.length > COMPOUND_MAX_LENGTH) continue
     const at = m.index ?? 0
     if (at > last) runs.push({ text: text.slice(last, at), nowrap: false })
     runs.push({ text: s, nowrap: true })

@@ -308,7 +308,27 @@ describe('number + unit in table cells', () => {
     expect(kept('48.6')).toEqual([])
     expect(kept('Customers cannot complete payments')).toEqual([])
     expect(kept('2 and 3 apples')).toEqual([])
-    expect(kept('re-run the job')).toEqual([])
     expect(nowrapRuns('a 5 % b').map(r => r.text).join('')).toBe('a 5 % b')
+  })
+
+  test('keeps dates together', () => {
+    expect(kept('12 Jan 2027')).toEqual(['12 Jan 2027'])
+    expect(kept('from 30 Jan 2027 to Mar 2027')).toEqual(['30 Jan 2027', 'Mar 2027'])
+    expect(kept('Jan 12, 2027')).toEqual(['Jan 12, 2027'])
+    expect(kept('Wed 10 Dec, 17:00')).toEqual(['10 Dec'])
+    expect(kept('12. Januar 2027')).toEqual(['12. Januar 2027'])
+    expect(kept('12 janv. 2027')).toEqual(['12 janv. 2027'])
+    expect(kept('5 de mayo de 2027')).toEqual(['5 de mayo de 2027'])
+    expect(kept('due 2027-01-30')).toEqual(['2027-01-30'])
+    // A month-like word start isn't a date.
+    expect(kept('12 Marketing leads')).toEqual([])
+  })
+
+  test('keeps short hyphenated words together, not long ones', () => {
+    expect(kept('Payments on-call')).toEqual(['on-call'])
+    expect(kept('re-run the job')).toEqual(['re-run'])
+    expect(kept('Phase 1 roll-out')).toEqual(['roll-out'])
+    expect(kept('state-of-the-art-and-beyond tooling')).toEqual([])
+    expect(nowrapRuns('Payments on-call, 24/7').map(r => r.text).join('')).toBe('Payments on-call, 24/7')
   })
 })

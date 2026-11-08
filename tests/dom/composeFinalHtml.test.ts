@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { composeFinalHtml } from '../../app/utils/composeFinalHtml'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
+import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import type { DocTheme } from '../../shared/types/theme'
 
 // composeFinalHtml is the last step before HTML reaches the preview
@@ -86,5 +87,29 @@ describe('composeFinalHtml — features keep working', () => {
     expect(img?.getAttribute('src')).toBe('data:image/svg+xml;base64,PHN2Zz48L3N2Zz4=')
     expect(img?.getAttribute('style')).toContain('max-width')
     expect(img?.getAttribute('width')).toBe('200')
+  })
+})
+
+describe('composeFinalHtml — a leading `# <title>` in a title-block layout', () => {
+  const titled = '<h1 id="edge-cache">Edge  cache\n behaviour</h1><h2 id="abstract">Abstract</h2><p>We measure.</p><h1 id="intro">Intro</h1>'
+  function arxiv(): DocTheme {
+    const preset = THEME_PRESETS.find(p => p.id === 'arxiv')
+    if (!preset) throw new Error('arxiv preset missing')
+    return structuredClone(preset.theme)
+  }
+
+  it('composeFinalHtml: title block shows the title once and still takes the abstract', () => {
+    const html = composeFinalHtml({ theme: arxiv(), title: 'Edge cache behaviour', date: '6 November 2026', bodyHtml: titled })
+    const root = document.createElement('div')
+    root.innerHTML = html
+    expect(Array.from(root.querySelectorAll('h1')).map(h => h.textContent)).toEqual(['Edge cache behaviour', 'Intro'])
+    expect(root.querySelector('.markoto-title-block')?.textContent).toContain('We measure.')
+  })
+
+  it('composeFinalHtml: other layouts keep the heading', () => {
+    const theme = arxiv()
+    theme.cover.layout = 'classic'
+    const html = composeFinalHtml({ theme, title: 'Edge cache behaviour', date: '6 November 2026', bodyHtml: titled })
+    expect(html).toContain('id="edge-cache"')
   })
 })

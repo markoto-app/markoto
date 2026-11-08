@@ -213,6 +213,21 @@ export function wrapCodeLines(html: string): string {
  * `title="replay.ts"` (or `title='…'` / `title=word`) from a fence's info
  * string after the language — shown as a caption bar above the block.
  */
+export const CODE_TOKEN_CLASS = 'markoto-code-token'
+
+/**
+ * Inline-code text as escaped HTML with every run of non-space
+ * characters in a `markoto-code-token` span (themeToCss: an inline block,
+ * so the line breaks only between tokens). Spaces are kept as they are.
+ */
+export function wrapCodeTokens(content: string, escape: (s: string) => string): string {
+  return content.split(/( +)/).map((part) => {
+    if (part === '') return ''
+    if (part.startsWith(' ')) return part
+    return `<span class="${CODE_TOKEN_CLASS}">${escape(part)}</span>`
+  }).join('')
+}
+
 export function fenceTitle(info: string): string {
   const m = /(?:^|\s)title=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(info)
   return (m?.[1] ?? m?.[2] ?? m?.[3] ?? '').trim().slice(0, 200)
@@ -394,6 +409,15 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     const title = fenceTitle(tokens[idx]?.info ?? '')
     if (!title) return html
     return `<div class="code-block"><div class="code-title">${md.utils.escapeHtml(title)}</div>${html}</div>\n`
+  }
+
+  // Inline code: one span per space-separated token, so a long command
+  // wraps at its spaces but never inside a token (`--data-urlencode`,
+  // `checkout-api` would otherwise break after a hyphen). The spaces stay
+  // text between the spans: copying gives the original string.
+  md.renderer.rules.code_inline = (tokens, idx, _options, _env, self) => {
+    const token = tokens[idx]!
+    return `<code${self.renderAttrs(token)}>${wrapCodeTokens(token.content, md.utils.escapeHtml)}</code>`
   }
 
   // Open all preview links in a new tab. `rel="noopener noreferrer"`
