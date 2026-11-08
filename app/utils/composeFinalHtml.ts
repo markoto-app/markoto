@@ -2,7 +2,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { buildCoverHtml } from './coverHtml'
 import { wrapFirstLetterAsDropCap } from './dropcapWrap'
 import { sanitizeRenderedHtml } from './sanitizeHtml'
-import { extractAbstract, markAbstract, markUnnumbered } from './titleBlock'
+import { dropTitleHeading, extractAbstract, markAbstract, markUnnumbered } from './titleBlock'
 import { pruneTocDepth } from './tocDepth'
 import { markHeadingStructure } from './headingStructure'
 import { markReferences } from './references'
@@ -10,6 +10,7 @@ import { moveCaptionsBelow } from './tableCaptions'
 import { numberCaptionsByChapter } from './captionNumbers'
 import { markDocumentStructure } from './documentMarkers'
 import { headingNumbering, resolveCaptions, resolveSectionToken } from '~~/shared/utils/themeOptions'
+import { showsTitleItself } from '~~/shared/utils/markdownTitle'
 
 /**
  * Combine the cover page + body markdown render + optional drop-cap
@@ -51,6 +52,9 @@ export function composeFinalHtml(opts: {
   const { theme, title, date } = opts
   let bodyHtml = pruneTocDepth(opts.bodyHtml, theme.toc.maxDepth)
   let abstractHtml = ''
+  // A title block prints the title: a leading `# <title>` in the text
+  // would repeat it (and, as the first heading, hide the abstract below).
+  if (showsTitleItself(theme.cover)) bodyHtml = dropTitleHeading(bodyHtml, title)
   // Papers: the document's leading "Abstract" section moves into the
   // title block on page 1 (app/utils/titleBlock.ts); elsewhere it stays
   // and is only marked so heading numbers skip it.
