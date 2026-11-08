@@ -194,6 +194,75 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     expect(h2 instanceof HTMLElement ? h2.style.getPropertyValue('break-before') : '').toBe('column')
   })
 
+  it('carries a closing totals block over with at least three rows before it', () => {
+    const names = ['Research', 'Frontend', 'Backend', 'Management', 'Audit', 'Discount', '<strong>Subtotal</strong>', 'VAT 8.1 %', '<strong>Total</strong>']
+    const rows = names.map((n, i) => `<tr data-ref="t${i}"><td>${n}</td><td>1</td></tr>`).join('')
+    const source = el(`<table><tbody>${rows}</tbody></table>`)
+    const r = el(`<div class="paged-doc"><p>Intro.</p><table><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>${rows}</tbody></table></div>`)
+    const vat = r.querySelector('tr[data-ref="t7"]')
+    if (!vat) throw new Error('fixture')
+    // paged.js would leave VAT + Total alone on the next page: the totals
+    // (Subtotal · VAT · Total) and three rows before them go over.
+    expect(refOf(startNode(handler(source).onOverflow(overflowFrom(vat, r), r)))).toBe('t3')
+  })
+
+  it('does not treat a column of bold row headers as totals', () => {
+    const rows = Array.from({ length: 8 }, (_, i) => `<tr data-ref="b${i}"><td><strong>SEV-${i}</strong></td><td>x</td></tr>`).join('')
+    const source = el(`<table><tbody>${rows}</tbody></table>`)
+    const r = el(`<div class="paged-doc"><p>Intro.</p><table><tbody>${rows}</tbody></table></div>`)
+    const row = r.querySelector('tr[data-ref="b5"]')
+    if (!row) throw new Error('fixture')
+    expect(refOf(startNode(handler(source).onOverflow(overflowFrom(row, r), r)))).toBe('b5')
+  })
+
+  it('moves the whole table when paged.js breaks at its body (header row left alone)', () => {
+    const r = el('<div class="paged-doc"><p>Intro.</p><table><thead><tr><th>H</th></tr></thead><tbody><tr><td>1</td></tr><tr><td>2</td></tr></tbody></table></div>')
+    const body = r.querySelector('tbody')
+    if (!body) throw new Error('fixture')
+    expect(startNode(handler().onOverflow(overflowFrom(body, r), r))?.nodeName).toBe('TABLE')
+  })
+
+  it('keeps at least three code lines on each side of a split', () => {
+    const lines = (from: number, to: number): string => Array.from({ length: to - from + 1 }, (_, i) => `<span class="code-line" data-line="${from + i}">line ${from + i}</span>`).join('')
+    const source = el(`<pre data-ref="c1"><code>${lines(1, 20)}</code></pre>`)
+    const r = el(`<div class="paged-doc"><p>Intro.</p><pre data-ref="c1"><code>${lines(1, 20)}</code></pre></div>`)
+    const h = handler(source)
+    const last = r.querySelector('[data-line="20"]')
+    const second = r.querySelector('[data-line="2"]')
+    if (!last || !second) throw new Error('fixture')
+    // One line (the closing brace) would go over: three go.
+    expect(startNode(h.onOverflow(overflowFrom(last, r), r))?.getAttribute?.('data-line')).toBe('18')
+    // Only one line would stay: the block moves whole.
+    expect(startNode(h.onOverflow(overflowFrom(second, r), r))?.nodeName).toBe('PRE')
+  })
+
+  it('moves a list instead of leaving its first item alone at the foot of the page', () => {
+    const items = Array.from({ length: 5 }, (_, i) => `<li data-ref="l${i}">Step ${i}</li>`).join('')
+    const source = el(`<ol>${items}</ol>`)
+    const r = el(`<div class="paged-doc"><p>Intro.</p><ol>${items}</ol></div>`)
+    const list = r.querySelector('ol')
+    const second = r.querySelector('li[data-ref="l1"]')
+    if (!list || !second) throw new Error('fixture')
+    place(r, [[0, 0, 600, 1000]])
+    place(list, [[0, 900, 600, 100]])
+    expect(startNode(handler(source).onOverflow(overflowFrom(second, r), r))?.nodeName).toBe('OL')
+  })
+
+  it('gives a hidden node the position of the content before it (not x = 0)', () => {
+    const r = el('<div class="paged-doc"><p>Masthead.</p></div>')
+    const doc = r.querySelector('.paged-doc')
+    const p = r.querySelector('p')
+    if (!doc || !p) throw new Error('fixture')
+    place(p, [[-9000, 100, 600, 40]])
+    const hr = document.createElement('hr')
+    hr.style.display = 'none'
+    doc.appendChild(hr)
+    handler().renderNode(hr, hr)
+    const rect = hr.getBoundingClientRect()
+    expect(rect.left).toBe(-9000)
+    expect(rect.top).toBe(140)
+  })
+
   it('leaves column breaks alone in a single-column document', () => {
     const r = el('<div class="pagedjs_page_content"><div class="paged-doc"><p>Body text.</p><h2>Section</h2><p>Section text.</p></div></div>')
     handler().layout(r)
@@ -254,5 +323,43 @@ describe('footnotes in multi-column pages', () => {
     footnotes.moveFootnote(note, area, true)
     expect(note.parentElement).not.toBe(inner)
     expect(footnotes.needsLayout).toHaveLength(1)
+  })
+})
+
+describe('selectors paged.js rewrites keep their specificity', () => {
+  class FakeFollowing {
+    styleSheet = new CSSStyleSheet()
+    processSelectors(): void {
+      throw new Error('paged.js original must be replaced')
+    }
+  }
+
+  beforeAll(() => {
+    const paged = { Handler: FakeHandler, registerHandlers: () => {}, registeredHandlers: [FakeFollowing] }
+    new Function('Paged', PAGED_HANDLERS_SCRIPT.replace('globalThis.Paged', 'Paged'))(paged)
+  })
+
+  it('marks the elements and inserts the rule with the original selector inside :is()', () => {
+    const parsed = el('<div class="paged-doc"><h1>T</h1><p>Lead.</p><p>Body.</p></div>')
+    const handlerInstance = new FakeFollowing()
+    const id = 'following-0f8fad5b-d9cb-469f-a165-70867728950e'
+    handlerInstance.processSelectors.call(handlerInstance, parsed, { '.paged-doc h1 + p': [id, 'font-size: 1.1em'] })
+    const lead = parsed.querySelectorAll('p')[0]
+    expect(lead?.getAttribute('data-following')).toBe(id)
+    expect(parsed.querySelectorAll('p')[1]?.hasAttribute('data-following')).toBe(false)
+    const rule = handlerInstance.styleSheet.cssRules[0]?.cssText ?? ''
+    expect(rule).toContain(':is(.paged-doc h1 + p')
+    expect(rule).toContain('data-following')
+    expect(rule).toContain('font-size: 1.1em')
+  })
+
+  it('keeps a pseudo-element outside :is() and uses the handler\'s own attribute', () => {
+    const parsed = el('<ul><li>a</li><li>b</li></ul>')
+    const handlerInstance = new FakeFollowing()
+    const id = 'nth-of-type-0f8fad5b-d9cb-469f-a165-70867728950e'
+    handlerInstance.processSelectors.call(handlerInstance, parsed, { 'li:first-of-type::marker': [id, 'color: red'] })
+    expect(parsed.querySelector('li')?.getAttribute('data-nth-of-type')).toBe(id)
+    const rule = handlerInstance.styleSheet.cssRules[0]?.cssText ?? ''
+    expect(rule).toMatch(/:is\(li:first-of-type, :where\(\[data-nth-of-type\*=.*\)\)::marker/)
   })
 })

@@ -104,15 +104,20 @@ generated theme CSS.
   selector list at commas, and a comma inside parentheses breaks its
   `querySelectorAll` — the whole render fails. Top-level selector lists
   (`.paged-doc ul, .paged-doc ol`) are fine.
-- **Sibling combinators (`+`, `~`) lose specificity and pseudo-elements.**
-  paged.js rewrites every rule with a sibling combinator into a
-  `[data-following*="…"]` attribute selector on the matched elements:
-  the rule drops to the specificity of one attribute (an engine rule like
-  `.paged-doc tr { … }` beats it) and a `::before` / `::after` in it is
-  lost. Target such elements without a sibling combinator (design-doc:
-  the metadata table by its empty header cells, not as
-  `.markoto-title-block + table`), or keep the rule to properties nothing
-  else sets.
+- **`+` and `:first-of-type` / `:last-of-type` / `:nth-of-type` are
+  decided on the whole document, before pagination.** paged.js takes every
+  rule whose selector contains a `+` (also inside `:has(+ …)` or
+  `:nth-child(2n+1)`) or an `-of-type` pseudo-class out of the stylesheet,
+  marks the elements it matches in the unpaginated document
+  (`data-following` / `data-nth-of-type`) and re-inserts the declarations
+  for the marked elements — so `h1 + p` still styles the paragraph when the
+  break falls between the two. `pagedHandlers.ts` re-inserts them as
+  `:where(<mark>):is(<your selector>, :where(<mark>))`, which keeps your
+  selector's specificity (until 2026-11 they dropped to one attribute,
+  (0,1,0), and lost to engine rules such as `.paged-doc p`; several
+  presets' `h1 + p` / `.markoto-title-block + …` rules never applied). A
+  trailing pseudo-element (`h1 + p::first-line`) works. `~` is not
+  rewritten: it is matched per page like any other selector.
 - No `@import`, `@font-face`, external `url()`: the sanitizer refuses them.
   Fonts come from the bundled / self-hosted families (`themeFonts.ts`).
 - **Follow the author's choices: use the variables, not names.** The
@@ -126,8 +131,8 @@ generated theme CSS.
   1.5em) sets the hanging indent of the reference list.
 - **Target structure through the engine's markers, not position.**
   paged.js clones `.paged-doc` (and every parent of split content) onto
-  each page, so `:first-of-type`, `:first-child` and sibling selectors
-  across a page break match once PER PAGE. Use:
+  each page, so `:first-child`, `:last-child` and `~` across a page break
+  match once PER PAGE. Use:
   `.markoto-first-section` (the document's first top-level heading),
   `.markoto-section-heading` (every top-level heading),
   `.markoto-references` (lists + paragraphs of the References /
