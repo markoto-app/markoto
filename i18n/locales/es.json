@@ -1055,6 +1055,10 @@
         "name": "Artículo de congreso IEEE",
         "description": "La plantilla de congresos del IEEE (IEEEtran): tamaño US Letter, dos columnas en Times 10 pt, secciones centradas en versalitas con números romanos, subsecciones en cursiva, título de 24 pt sobre bloques de autores uno al lado del otro y el resumen en negrita al comienzo de la primera columna."
       },
+      "lecture-notes": {
+        "name": "Apuntes de clase",
+        "description": "Apuntes y material de curso en la tradición LaTeX: texto en Latin Modern a juego con las fórmulas, un margen amplio para anotaciones, secciones numeradas, teoremas y observaciones como entornos enmarcados, listas de definiciones, ejercicios con apartados (a)/(b) y un bloque de título compacto con curso, docente y fecha."
+      },
       "thesis": {
         "name": "Tesis",
         "description": "Trabajos académicos extensos en la tradición de la clase report de LaTeX: A4, Latin Modern 11 pt justificado con sangría de párrafo, márgenes amplios, cada capítulo en una página nueva bajo un número grande, secciones numeradas 1.1 / 1.1.1, portada clásica, título del capítulo y número de página en el encabezado, tablas de estilo booktabs y bibliografía con sangría francesa."
@@ -1062,6 +1066,14 @@
       "tech-docs": {
         "name": "Documentación técnica",
         "description": "Documentación para desarrolladores impresa: texto con serifa y títulos sin serifa, secciones numeradas con el número en el margen, bloques de código claros y enmarcados a todo el ancho, tablas de referencia con filetes finos, avisos discretos, bloque de título con índice en la página 1."
+      },
+      "api-reference": {
+        "name": "Referencia de API",
+        "description": "Referencia impresa de una API HTTP: texto sin serifa con identificadores en monoespaciada, método y ruta de cada endpoint en una banda de color (escríbalos como bloque de código http), tablas de parámetros densas, ejemplos JSON compactos, códigos de estado marcados por clase, el recurso actual en el encabezado."
+      },
+      "design-doc": {
+        "name": "Documento de diseño / RFC",
+        "description": "Documentos de diseño, RFC y registros de decisiones: IBM Plex Sans en una columna de lectura cómoda con margen para notas de revisión, secciones numeradas para los comentarios, encabezado del documento con estado, decisiones sobre un filete de acento, tablas comparativas fáciles de recorrer, título y sección actual como encabezado de página."
       },
       "business-report": {
         "name": "Informe corporativo",
@@ -1071,9 +1083,17 @@
         "name": "Propuesta comercial",
         "description": "Propuestas y presupuestos de agencias, consultoras y autónomos: títulos en Lora sobre Work Sans, un acento cálido color óxido, un panel de portada alto, tablas de precios como en una factura con el total en doble línea, secciones numeradas y un bloque de firmas (una fila de tabla con celdas vacías se convierte en una línea para firmar)."
       },
+      "memo": {
+        "name": "Memorándum / carta",
+        "description": "Memorandos internos y cartas comerciales de una o dos páginas para imprimir, firmar o adjuntar: retícula de carta suiza con Para / De / Fecha / Asunto y títulos laterales en una columna de margen, texto en Inter, tablas sobrias con líneas finas, espacio para la firma, números de página desde la página 2."
+      },
       "novel": {
         "name": "Novela",
         "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
+      },
+      "essay": {
+        "name": "Ensayo académico (APA)",
+        "description": "El trabajo estudiantil según APA 7: US Letter, Times 12 pt a doble espacio y alineado a la izquierda, sangría de párrafo de 0,5 pulgadas, portada con autor, curso, docente y fecha, número de página arriba a la derecha, títulos en negrita centrados, citas en bloque con sangría y referencias en una página nueva con sangría francesa."
       },
       "newsletter": {
         "name": "Boletín",
@@ -1082,6 +1102,10 @@
       "resume": {
         "name": "Currículum",
         "description": "Una página A4 densa: Inter a 10 pt, títulos pequeños con línea, sin encabezado, pie ni portada."
+      },
+      "runbook": {
+        "name": "Runbook de guardia",
+        "description": "Para la persona de guardia, en pantalla o impreso: sans serif y monoespaciada robustas, secciones numeradas con la sección en el encabezado, pasos numerados en blanco sobre negro, comandos enmarcados y fáciles de copiar, listas de control con casillas reales, tablas con cabecera negra, avisos que se distinguen también en escala de grises."
       }
     },
     "customCss": {
