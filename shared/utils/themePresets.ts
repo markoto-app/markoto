@@ -691,6 +691,60 @@ const ONE_PAGER_TEMPLATE_CSS = `/* One-pager template. A sidehead grid: section 
 `
 
 /**
+ * MANUSCRIPT_TEMPLATE_CSS — the book-interior conventions no theme field
+ * expresses: chapter openers (new page, sunk, numeral over a spaced-capital
+ * title), the epigraph page, the scene-break
+ * ornament, the quoted letter, folios at the outer corners and no running
+ * head on opening pages, the title-page composition. Genre references:
+ * Bringhurst, The Elements of Typographic Style (§2.3, §4.2, §8.5), and
+ * the Penguin Composition Rules (Tschichold, 1947).
+ */
+const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhurst, Elements of Typographic Style; Penguin Composition Rules (1947). */
+/* Chapter opener: every chapter starts a new page, sunk about a third down the text block; the numeral on its own line over the title. */
+.paged-doc h1.markoto-section-heading { break-before: page; padding-top: 38mm; margin-bottom: 2.6em; text-transform: uppercase; letter-spacing: 0.14em; }
+.paged-doc .markoto-cover + h1.markoto-section-heading { break-before: auto; }
+.paged-doc h1.markoto-section-heading:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { display: block; margin: 0 0 0.5em; font-size: 2.2em; line-height: 1; letter-spacing: 0; font-variant-numeric: normal; }
+/* A novel numbers its chapters only: part and scene titles (h2-h4) and their contents entries carry no number. */
+.paged-doc h2:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
+.paged-doc h3:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
+.paged-doc h4:not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)::before { content: none; }
+.paged-doc .table-of-contents > ul > li > ul > li:not(.markoto-abstract-entry):not(.markoto-unnumbered-entry)::before { content: none; }
+/* Contents page: set like a chapter opener (title sunk, centred, spaced capitals), no leaders, folios in the text colour, part / scene entries indented past the chapter numbers; it ends its page. */
+.paged-doc .table-of-contents { margin: 0; break-after: page; }
+.paged-doc .table-of-contents::before { padding-top: 38mm; margin-bottom: 2.6em; text-align: center; font-size: 1.15em; font-weight: 400; text-transform: uppercase; letter-spacing: 0.14em; }
+.paged-doc .table-of-contents a::after { color: var(--doc-text); }
+.paged-doc .table-of-contents ul ul { padding-left: 2.7em; }
+/* Scene break: three spaced asterisks, lowered to sit centred in their line (EB Garamond has no asterism glyph); the next paragraph starts flush (engine). */
+.paged-doc hr { margin: 0.66em 0; height: 1.32em; line-height: 1.32em; }
+.paged-doc hr::before { content: '*\\2002\\2002*\\2002\\2002*'; position: relative; top: 0.3em; color: var(--doc-text); font-size: 1em; letter-spacing: 0; }
+/* An ornamented break stays visible at a page boundary, where a blank line alone would be lost (the engine hides rules there). */
+.paged-doc hr[data-markoto-page-edge] { display: block; }
+/* Epigraph: the opening quotation alone on its page, a third down, narrow and italic; the attribution roman, set right. */
+.paged-doc > blockquote:first-child:last-child { padding: 38mm 8mm 0 18mm; font-style: italic; }
+.paged-doc > blockquote:first-child:last-child p:last-child:not(:first-child) { font-style: normal; text-align: right; text-align-last: right; margin-top: 0.6em; }
+/* Quoted letters and extracts: roman (the author's italics show), ragged right on the narrower measure, indented both sides, a line of space around. */
+.paged-doc blockquote { margin: 1.32em 1.5em; font-style: normal; }
+.paged-doc blockquote p { margin: 0 0 0.5em; text-indent: 0; text-align: left; text-align-last: left; hyphens: manual; }
+/* Running head: book title in spaced capitals, folio at the outer corner — left on versos, right on rectos. */
+.pagedjs_pages .pagedjs_page .pagedjs_margin { opacity: 1; letter-spacing: 0.12em; font-size: 8pt; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-center { text-transform: uppercase; }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content, .pagedjs_pages .pagedjs_page .pagedjs_margin-top-right .pagedjs_margin-content { font-size: 9pt; letter-spacing: 0; }
+.pagedjs_pages .pagedjs_right_page .pagedjs_margin-top-left { visibility: hidden; }
+.pagedjs_pages .pagedjs_left_page .pagedjs_margin-top-right { visibility: hidden; }
+/* Chapter openers, the contents and the epigraph page carry no running head; only an opener shows its folio, at the foot. */
+.pagedjs_pages .pagedjs_page:has(h1.markoto-section-heading) .pagedjs_margin-top, .pagedjs_pages .pagedjs_page:has(.table-of-contents) .pagedjs_margin-top, .pagedjs_pages .pagedjs_page:has(.paged-doc > blockquote:first-child:last-child) .pagedjs_margin-top { visibility: hidden; }
+.pagedjs_pages .pagedjs_page:not(:has(h1.markoto-section-heading)) .pagedjs_margin-bottom { visibility: hidden; }
+/* Title page: title in spaced capitals a third down, the subtitle in italic under it, the author lower on the page. */
+.paged-doc .markoto-cover { justify-content: flex-start; padding: 52mm 16mm 30mm; }
+.paged-doc .markoto-cover-title { text-transform: uppercase; letter-spacing: 0.12em; line-height: 1.25; margin-bottom: 0.5em; }
+.paged-doc .markoto-cover-subtitle { color: var(--doc-text); }
+.paged-doc .markoto-cover-meta { margin-top: 30mm; }
+.paged-doc .markoto-cover-author { font-family: var(--doc-body-font); font-size: 1.15em; text-transform: uppercase; letter-spacing: 0.14em; }
+/* Links and abbreviations print as plain text. */
+.paged-doc a { color: inherit; text-decoration: none; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -1443,6 +1497,66 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+    }
+  },
+  // — Manuscript: a typeset fiction interior (novel, novella, short-story
+  // collection) in the trade-paperback tradition — A5, EB Garamond 11/14.5
+  // justified and hyphenated, first-line indents and no paragraph space,
+  // chapters on a new page sunk a third down under the chapter numeral,
+  // scene breaks as three spaced asterisks, the book title as the running
+  // head with folios at the outer corners, a classic title page and an
+  // epigraph page. Ink only: no colour on the page. Template CSS:
+  // MANUSCRIPT_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/manuscript.md.
+  {
+    id: 'manuscript',
+    category: 'writing',
+    theme: {
+      // A5 (148 × 210 mm, the European trade size): a 114 mm text block,
+      // about 66 characters of Garamond at 11 pt, ~33 lines a page.
+      page: { size: 'A5', orientation: 'portrait', margin: 17, marginTop: 19, marginBottom: 20 },
+      meta: { font: 'EB Garamond' },
+      body: { font: 'EB Garamond', size: 11, lineHeight: 1.32, textAlign: 'justify', color: '#1A1A1A', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: true },
+      headings: {
+        font: 'EB Garamond',
+        scale: 1.2,
+        weight: 400,
+        underline: false,
+        color: '#1A1A1A',
+        letterSpacing: 0,
+        lineHeight: 1.2,
+        spacingScale: 1,
+        // Chapter numbers (the numeral over the chapter title, template CSS).
+        numbering: 'decimal',
+        // Chapter titles in spaced capitals a step over the text; part or
+        // scene titles below that centred italic.
+        levels: { h1: { size: 1.15, align: 'center' }, h2: { size: 1.1, style: 'italic', align: 'center' }, h3: { size: 1, style: 'italic' }, h4: { size: 1, style: 'italic' } }
+      },
+      color: { brand: '#1A1A1A', secondary: '#6B6660' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // Book title centred over the text, folio at the outer corner (left
+      // on versos, right on rectos — template CSS hides the inner one).
+      header: { left: '{page}', center: '{title}', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      // A chapter opening page drops the head; its folio sits at the foot.
+      footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 9, font: 'IBM Plex Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 3, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'asterism', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: fiction has no admonitions; if one appears it stays
+      // dark and muted.
+      alerts: {
+        note: '#3b3b5c',
+        tip: '#2f5d3a',
+        important: '#552d70',
+        warning: '#7a5200',
+        caution: '#7c1d1d'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
+      // Title page: title in spaced capitals a third down, "A novel" in
+      // italic, the author lower on the page (template CSS).
+      cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: true, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 400, showLogo: false, align: 'center', titleSize: 2, subtitleSize: 1.15 },
+      customCss: MANUSCRIPT_TEMPLATE_CSS
     }
   },
   // — Academic essay: the APA 7 student paper (Publication Manual,

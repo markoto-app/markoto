@@ -80,6 +80,11 @@ The built-in presets cover most use cases:
   double-spaced, a title page with your name, course, instructor and
   date, the page number top right, centred bold headings and the
   references on a new page with hanging indents.
+- **Fiction book** — a typeset novel interior: A5 pages, EB Garamond
+  with paragraph indents, every chapter on a new page under its
+  number, scene breaks (`---` or `* * *`) as three asterisks, the book
+  title as the running head, a title page and an epigraph page for a
+  quotation placed before the first chapter.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
 - **Resume** — one dense page: Inter at 10 pt, small headings with

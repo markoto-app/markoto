@@ -896,6 +896,47 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
     }, 90_000)
 
+    // The manuscript (fiction book) preset end to end: title page, epigraph
+    // page, three chapters each opening a new page (template CSS), A5, EB
+    // Garamond embedded as a real font in roman and italic.
+    it('renders the manuscript fixture as an A5 book interior with EB Garamond embedded', async () => {
+      const owner = await createUser()
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+      const manuscript = THEME_PRESETS.find(p => p.id === 'manuscript')?.theme
+      if (!manuscript) throw new Error('manuscript preset missing')
+      expect(manuscript.customCss).toBeTruthy()
+      const patch: unknown = JSON.parse(readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/manuscript-patch.json', import.meta.url))), 'utf8'))
+      const cover = typeof patch === 'object' && patch !== null && 'cover' in patch && typeof patch.cover === 'object' && patch.cover !== null ? patch.cover : {}
+      const theme = { ...manuscript, cover: { ...manuscript.cover, ...cover } }
+      await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
+      const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/manuscript.md', import.meta.url))), 'utf8')
+      const snapId = await insertYjsRow(doc.docId, fixture)
+
+      const res = await anonClient().get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const manifest: unknown = JSON.parse(new TextDecoder().decode(
+        await fetchRenderBytes(`renders/${doc.docId}/${snapId}/manifest.json`)
+      ))
+      const pageCount = typeof manifest === 'object' && manifest !== null && 'pageCount' in manifest ? manifest.pageCount : null
+      expect(typeof pageCount).toBe('number')
+      // Preview: 9 pages (title page, epigraph, three chapters of 3 + 2 + 2).
+      expect(Number(pageCount)).toBeGreaterThanOrEqual(8)
+      expect(Number(pageCount)).toBeLessThanOrEqual(10)
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
+      // A5 (148 × 210 mm ≈ 420 × 595 pt; Chromium rounds to its own grid).
+      expect(pdf).toMatch(/\/MediaBox\s*\[\s*0\s+0\s+4(?:19|20)(?:\.\d+)?\s+59[45](?:\.\d+)?\s*\]/)
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const garamond = fonts.filter(f => /EBGaramond/.test(f.name))
+      expect(garamond.length, summary).toBeGreaterThan(0)
+      expect(new Set(garamond.map(f => f.name.replace(/^[A-Z]{6}\+/, ''))).size, summary).toBeGreaterThanOrEqual(2)
+      for (const f of fonts) expect(f.subtype, summary).not.toBe('Type3')
+      expect(pdf, summary).not.toMatch(/\/Subtype\s*\/Type3/)
+
+      await wipeRendersFor(doc.docId)
+    }, 90_000)
+
     // Chromium (Skia) embeds a variable font, or a CFF one, as Type 3
     // glyph procedures: bigger files, no hinting, refused by some print
     // shops. Documents get static TrueType cuts only (themeFonts.ts), so

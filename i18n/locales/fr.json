@@ -1095,6 +1095,10 @@
         "name": "Roman",
         "description": "Serif Crimson Text pour la lecture longue. Pas de blocs de code, citations simples, juste un numéro de page en pied de page."
       },
+      "manuscript": {
+        "name": "Livre (fiction)",
+        "description": "L'intérieur d'un roman composé : A5, EB Garamond 11 pt justifié avec alinéas, chaque chapitre sur une nouvelle page sous son numéro, changements de scène marqués par trois astérisques, le titre du livre en titre courant, une page de titre classique et une page d'épigraphe."
+      },
       "essay": {
         "name": "Essai universitaire (APA)",
         "description": "Le travail étudiant selon l’APA 7 : US Letter, Times 12 pt en double interligne aligné à gauche, alinéas de 0,5 pouce, page de titre avec auteur, cours, enseignant et date, numéro de page en haut à droite, titres gras centrés, citations longues en retrait, références sur une nouvelle page avec retrait suspendu."

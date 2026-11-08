@@ -1095,6 +1095,10 @@
         "name": "Roman",
         "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
       },
+      "manuscript": {
+        "name": "Buch (Belletristik)",
+        "description": "Ein gesetzter Roman: A5, EB Garamond 11 pt im Blocksatz mit Einzügen, jedes Kapitel auf einer neuen Seite unter seiner Nummer, Szenenwechsel als drei Sternchen, der Buchtitel als Kolumnentitel, eine klassische Titelseite und eine Seite für das Motto."
+      },
       "essay": {
         "name": "Akademischer Essay (APA)",
         "description": "Die studentische Arbeit nach APA 7: US Letter, Times 12 pt zweizeilig im Flattersatz, Absatzeinzug von 0,5 Zoll, Titelseite mit Autorin oder Autor, Kurs, Dozentin oder Dozent und Datum, Seitenzahl oben rechts, zentrierte fette Überschriften, eingerückte Blockzitate, Literaturverzeichnis auf einer neuen Seite mit hängendem Einzug."

@@ -1095,6 +1095,10 @@
         "name": "Novela",
         "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
       },
+      "manuscript": {
+        "name": "Libro de ficción",
+        "description": "El interior de una novela compuesta: A5, EB Garamond 11 pt justificado con sangría, cada capítulo en una página nueva bajo su número, cambios de escena con tres asteriscos, el título del libro como titulillo, una portadilla clásica y una página para el epígrafe."
+      },
       "essay": {
         "name": "Ensayo académico (APA)",
         "description": "El trabajo estudiantil según APA 7: US Letter, Times 12 pt a doble espacio y alineado a la izquierda, sangría de párrafo de 0,5 pulgadas, portada con autor, curso, docente y fecha, número de página arriba a la derecha, títulos en negrita centrados, citas en bloque con sangría y referencias en una página nueva con sangría francesa."
