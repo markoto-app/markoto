@@ -58,6 +58,11 @@ The built-in presets cover most use cases:
   quotes and a quiet footer rule.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
+- **Fiction book** — a typeset novel interior: A5 pages, EB Garamond
+  with paragraph indents, every chapter on a new page under its
+  number, scene breaks (`---` or `* * *`) as three asterisks, the book
+  title as the running head, a title page and an epigraph page for a
+  quotation placed before the first chapter.
 - **Newsletter** — two-column Karla over PT Serif, green accent,
   weekly-digest density.
 - **Resume** — one dense page: Inter at 10 pt, small headings with

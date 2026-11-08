@@ -1071,6 +1071,10 @@
         "name": "Roman",
         "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
       },
+      "manuscript": {
+        "name": "Buch (Belletristik)",
+        "description": "Ein gesetzter Roman: A5, EB Garamond 11 pt im Blocksatz mit Einzügen, jedes Kapitel auf einer neuen Seite unter seiner Nummer, Szenenwechsel als drei Sternchen, der Buchtitel als Kolumnentitel, eine klassische Titelseite und eine Seite für das Motto."
+      },
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla-Fliesstext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."

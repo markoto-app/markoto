@@ -1071,6 +1071,10 @@
         "name": "Novela",
         "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
       },
+      "manuscript": {
+        "name": "Libro de ficción",
+        "description": "El interior de una novela compuesta: A5, EB Garamond 11 pt justificado con sangría, cada capítulo en una página nueva bajo su número, cambios de escena con tres asteriscos, el título del libro como titulillo, una portadilla clásica y una página para el epígrafe."
+      },
       "newsletter": {
         "name": "Boletín",
         "description": "Cuerpo Karla bajo encabezados PT Serif, acento verde, encabezados de tabla con color de marca — sensación de resumen semanal."

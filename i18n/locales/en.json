@@ -1071,6 +1071,10 @@
         "name": "Novel",
         "description": "Crimson Text serif for long-form reading. No code blocks, plain blockquotes, just a page number in the footer."
       },
+      "manuscript": {
+        "name": "Fiction book",
+        "description": "A typeset novel interior: A5, EB Garamond 11 pt justified with paragraph indents, every chapter on a new page under its number, scene breaks as three asterisks, the book title as the running head, a classic title page and an epigraph page."
+      },
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla body under PT Serif headings, green accent, brand-colored table headers — weekly-digest feel."

@@ -1071,6 +1071,10 @@
         "name": "小说",
         "description": "Crimson Text 衬线字体，适合长文阅读。无代码块、纯净引用块，仅在页脚显示页码。"
       },
+      "manuscript": {
+        "name": "小说（书籍排版）",
+        "description": "排版好的小说内页：A5 开本，EB Garamond 11 pt 两端对齐并首行缩进，每章在新页上以章节编号开始，场景转换用三个星号标出，页眉显示书名，经典扉页和题词页。"
+      },
       "newsletter": {
         "name": "简报",
         "description": "Karla 正文置于 PT Serif 标题之下、绿色点缀、品牌色表头 — 周报式质感。"
