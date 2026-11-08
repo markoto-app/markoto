@@ -1043,6 +1043,10 @@
         "name": "Modern",
         "description": "Klare Inter-Serifenlose mit blauem Akzent. Der neutrale Ausgangspunkt."
       },
+      "academic": {
+        "name": "Wissenschaftliche Arbeit",
+        "description": "Zweispaltiger Source-Serif-Fliesstext, Titelblock mit Autorinnen, Autoren und Abstract auf Seite 1, nummerierte Abschnitte, minimale Tabellenränder — im Journal-Stil."
+      },
       "arxiv": {
         "name": "arXiv-Preprint",
         "description": "Das Erscheinungsbild des arXiv-LaTeX-Preprints: US Letter, Times 10 pt im Blocksatz, nummerierte fette Abschnitte, Titelblock zwischen kräftigen Linien in Kapitälchen, Kolumnentitel «A Preprint» über einer feinen Linie."
@@ -1050,6 +1054,10 @@
       "ieee-conference": {
         "name": "IEEE-Konferenzbeitrag",
         "description": "Die IEEE-Konferenzvorlage (IEEEtran): US Letter, zwei Spalten Times 10 pt, zentrierte Abschnitte in Kapitälchen mit römischen Ziffern, kursive Unterabschnitte, ein Titel in 24 pt über nebeneinanderstehenden Autorenblöcken, die fette Zusammenfassung als Fliesstext am Anfang der ersten Spalte."
+      },
+      "lecture-notes": {
+        "name": "Vorlesungsskript",
+        "description": "Skripte und Handouts für Vorlesungen in LaTeX-Tradition: Latin Modern passend zu den Formeln, ein breiter Rand für Notizen, nummerierte Abschnitte, Sätze und Bemerkungen als gerahmte Umgebungen, Definitionslisten, Übungen mit Teilaufgaben (a)/(b), ein kompakter Titelblock mit Kurs, Lehrperson und Datum."
       },
       "thesis": {
         "name": "Abschlussarbeit",
@@ -1059,6 +1067,10 @@
         "name": "Technische Dokumentation",
         "description": "Gedruckte Entwicklerdokumentation: Serifen-Fliesstext mit serifenlosen Überschriften, nummerierte Abschnitte mit hängenden Nummern, helle gerahmte Codeblöcke über die volle Breite, Referenztabellen mit Haarlinien, ruhige Hinweisboxen, Titelblock mit Inhaltsverzeichnis auf Seite 1."
       },
+      "api-reference": {
+        "name": "API-Referenz",
+        "description": "Gedruckte Referenz für eine HTTP-API: serifenloser Text mit Bezeichnern in Monospace, Methode und Pfad jedes Endpunkts auf einem farbigen Band (als http-Codeblock schreiben), dichte Parametertabellen, kompakte JSON-Beispiele, Statuscodes nach Klasse markiert, die aktuelle Ressource im Kolumnentitel."
+      },
       "design-doc": {
         "name": "Design-Dokument / RFC",
         "description": "Technische Design-Dokumente, RFCs und Entscheidungsprotokolle: IBM Plex Sans in einer gut lesbaren Spalte mit Rand für Review-Notizen, nummerierte Abschnitte für Review-Kommentare, Dokumentkopf mit Status, Entscheidungen an einer Akzentlinie, übersichtliche Vergleichstabellen, Titel und aktueller Abschnitt im Kolumnentitel."
@@ -1067,9 +1079,33 @@
         "name": "Unternehmensbericht",
         "description": "Für Quartals- und Jahresberichte, Board-Updates und Kundendokumente: Source-Serif-Überschriften über Inter, ein tiefer Petrol-Akzent, Finanztabellen mit Tabellenziffern und abgesetzten Summenzeilen, Zitate als Pull-Quotes, eine ruhige Fusszeile über einer feinen Linie."
       },
+      "one-pager": {
+        "name": "One-Pager",
+        "description": "Ein Produkt- oder Projektsteckbrief auf einer A4-Seite: Titelblock unter einem kräftigen Akzentbalken, der Pitch als fetter Lead, Abschnittstitel in einer linken Spalte, eine kompakte Faktentabelle und ein gefüllter Hinweiskasten. DM Sans mit einem orangen Akzent."
+      },
+      "proposal": {
+        "name": "Kundenofferte",
+        "description": "Für Offerten und Angebote von Agenturen, Beratungen und Freelancern: Lora-Überschriften über Work Sans, ein warmer Rostton als Akzent, ein hohes Titelfeld, Preistabellen wie auf einer Rechnung mit doppelt unterstrichenem Total, nummerierte Abschnitte und ein Unterschriftenblock (eine Tabellenzeile mit leeren Zellen wird zur Linie für Ihre Unterschrift)."
+      },
+      "memo": {
+        "name": "Memo / Brief",
+        "description": "Für ein- bis zweiseitige interne Memos und Geschäftsbriefe zum Drucken, Unterschreiben oder Anhängen: Schweizer Briefraster mit An / Von / Datum / Betreff und Marginaltiteln in einer Randspalte, Inter-Text, ruhige Tabellen mit feinen Linien, Platz für die Unterschrift, Seitenzahlen ab Seite 2."
+      },
+      "novel": {
+        "name": "Roman",
+        "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
+      },
+      "manuscript": {
+        "name": "Buch (Belletristik)",
+        "description": "Ein gesetzter Roman: A5, EB Garamond 11 pt im Blocksatz mit Einzügen, jedes Kapitel auf einer neuen Seite unter seiner Nummer, Szenenwechsel als drei Sternchen, der Buchtitel als Kolumnentitel, eine klassische Titelseite und eine Seite für das Motto."
+      },
+      "essay": {
+        "name": "Akademischer Essay (APA)",
+        "description": "Die studentische Arbeit nach APA 7: US Letter, Times 12 pt zweizeilig im Flattersatz, Absatzeinzug von 0,5 Zoll, Titelseite mit Autorin oder Autor, Kurs, Dozentin oder Dozent und Datum, Seitenzahl oben rechts, zentrierte fette Überschriften, eingerückte Blockzitate, Literaturverzeichnis auf einer neuen Seite mit hängendem Einzug."
+      },
       "newsletter": {
         "name": "Newsletter",
-        "description": "Karla-Fliesstext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."
+        "description": "Zweispaltiger Newsletter: kräftiger Titelkopf, Schlagzeilen und Fotos über die ganze Breite, warmer Terrakotta-Akzent."
       },
       "resume": {
         "name": "Lebenslauf",

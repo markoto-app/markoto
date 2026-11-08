@@ -154,7 +154,19 @@ async function capturePreview(ctx: BrowserContext, base: string, docId: string):
     const sheets: string[] = []
     for (const s of Array.from(el.ownerDocument.styleSheets)) {
       try {
-        sheets.push(`<style>${Array.from(s.cssRules).map(r => r.cssText).join('\n')}</style>`)
+        // Relative url()s (KaTeX's `fonts/KaTeX_*.woff2`) would resolve
+        // against the page the copy is re-hosted on: make them absolute
+        // against the sheet they came from.
+        const base = s.href ?? el.ownerDocument.baseURI
+        const css = Array.from(s.cssRules).map(r => r.cssText).join('\n')
+          .replace(/url\(\s*(["']?)(?![a-z][a-z0-9+.-]*:|\/|#)([^"')]+)\1\s*\)/gi, (m, q: string, u: string) => {
+            try {
+              return `url(${q}${new URL(u, base).href}${q})`
+            } catch {
+              return m // inline sheet in the srcdoc frame: no usable base
+            }
+          })
+        sheets.push(`<style>${css}</style>`)
       } catch {
         if (s.href) sheets.push(`<link rel="stylesheet" href="${s.href}">`)
       }

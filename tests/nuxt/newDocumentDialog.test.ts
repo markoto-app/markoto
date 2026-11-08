@@ -99,7 +99,7 @@ describe('new-document dialog', () => {
     for (const preset of THEME_PRESETS) {
       expect(exists(`[data-testid="newdoc-theme-card-${preset.id}"]`)).toBe(true)
     }
-    const academicTab = Array.from(document.body.querySelectorAll('[data-testid="newdoc-design-tabs"] button'))
+    const academicTab = Array.from(document.body.querySelectorAll('[data-testid="theme-preset-tabs"] button'))
       .find(b => b.textContent?.trim() === 'Academic')
     if (!(academicTab instanceof HTMLElement)) throw new Error('no Academic tab')
     // Reka tabs activate on mousedown, not click.

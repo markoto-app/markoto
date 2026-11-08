@@ -1,7 +1,7 @@
 <!--
   Fixture: api-reference — template "API reference" (Engineering).
   Stresses: deep heading hierarchy (h1 resource → h2 endpoint with method +
-  path in inline code → h3 Parameters/Request/Response → h4 per status code);
+  path as an ```http fence → h3 Parameters/Request/Response → h4 per status code);
   many parameter tables (some with long description cells and inline code);
   request/response JSON blocks (one > 15 lines, so it splits); curl blocks with
   long lines; an error-code table; auth + rate-limit sections; note/warning
@@ -109,7 +109,9 @@ A **payment** represents one attempt to collect money from a customer. Payments 
 
 ## Create a payment
 
-`POST /payments`
+```http
+POST /payments
+```
 
 Creates a payment and, with `capture_method=automatic`, attempts to charge the payment method immediately.
 
@@ -190,7 +192,9 @@ curl https://api.larkspur.example/v2/payments \
 
 ## Retrieve a payment
 
-`GET /payments/{id}`
+```http
+GET /payments/{id}
+```
 
 ### Parameters
 
@@ -211,7 +215,9 @@ Returned when the ID does not exist **or** belongs to another account; the two c
 
 ## List payments
 
-`GET /payments`
+```http
+GET /payments
+```
 
 Returns payments sorted by creation date, newest first. Results are paginated with cursors.
 
@@ -242,7 +248,9 @@ Returns payments sorted by creation date, newest first. Results are paginated wi
 
 ## Create a refund
 
-`POST /refunds`
+```http
+POST /refunds
+```
 
 ### Parameters
 
@@ -276,12 +284,18 @@ Returns payments sorted by creation date, newest first. Results are paginated wi
 
 Larkspur sends events to the HTTPS endpoints you register. Each request is signed; verify the `Larkspur-Signature` header before trusting the body.
 
+## Event types
+
 | Event | Sent when |
 |---|---|
 | `payment.captured` | A payment was captured (automatic or manual). |
 | `payment.failed` | An attempt failed; the body includes the decline code. |
 | `refund.succeeded` | The refund reached the customer's bank. |
 | `dispute.created` | The cardholder disputed a payment. Respond within 7 days. |
+
+## Verify the `Larkspur-Signature` header
+
+The header holds a timestamp `t` and an HMAC-SHA256 signature `v1` of `{t}.{body}`, keyed with the endpoint's signing secret. Reject requests older than five minutes to stop replays.
 
 ```python
 import hmac, hashlib, time

@@ -182,11 +182,12 @@ describe('chart geometry', () => {
   })
 
   it('sizes gantt axis labels above the legibility floor and hides the render-date line', () => {
-    const css = mermaidThemeCss('"Inter", sans-serif', 10, '#ffffff')
+    const css = mermaidThemeCss('"Inter", sans-serif', 10)
     expect(css).toContain('.grid .tick text { font-size: 11px; }')
     expect(css).toContain('font-family: "Inter", sans-serif')
-    expect(css).toContain('stroke: #ffffff')
+    // No stroked text: Chromium prints it as a Type 3 bitmap font.
+    expect(css).not.toMatch(/stroke|paint-order/)
     expect(css).toContain('.today { display: none; }')
-    expect(mermaidThemeCss('"Inter", sans-serif', 20, '#ffffff')).toContain('font-size: 17px')
+    expect(mermaidThemeCss('"Inter", sans-serif', 20)).toContain('font-size: 17px')
   })
 })
