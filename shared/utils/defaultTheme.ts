@@ -14,7 +14,8 @@ export const defaultTheme: DocTheme = {
   page: {
     size: 'A4',
     orientation: 'portrait',
-    margin: 24
+    margin: 24,
+    mirrorMargins: false // the same margins on left and right pages
   },
   meta: {
     // JetBrains Mono — the "instrument" voice. Used for header/footer
@@ -52,7 +53,10 @@ export const defaultTheme: DocTheme = {
     lineHeight: 1.25, // generous breathing for big serif headings
     spacingScale: 1.2, // editorial top-margin breathing
     numbering: 'none',
-    levels: {} // every level follows the scale + weight above
+    levels: {}, // every level follows the scale + weight above
+    numberingDepth: 4, // every numbered level shows its number
+    chapterLabel: false, // no "Chapter 3" over top-level headings
+    chapterWord: '' // the document language's word when the label is on
   },
   color: {
     brand: '#B5371F', // shu-500 — the seal lives here
@@ -79,7 +83,9 @@ export const defaultTheme: DocTheme = {
     imageUrl: '',
     imagePosition: 'left',
     imageHeight: 12, // pt — proportionate to typical 9-11pt header text
-    rule: false
+    rule: false,
+    sectionNumber: false, // {section} = the title only
+    sectionMode: 'first' // {section} = the first section heading on the page
   },
   footer: {
     left: '',
@@ -115,7 +121,9 @@ export const defaultTheme: DocTheme = {
     hrStyle: 'asterism', // editorial signature — Penguin Classics scene break
     hrThickness: 1, // unused for asterism, kept for schema completeness
     figureLabel: false, // "Figure 1: " before captions
-    referenceStyle: 'plain' // reference list like any other list
+    referenceStyle: 'plain', // reference list like any other list
+    captionNumbering: 'document', // Figure 1, 2, 3 … through the document
+    captionLabelStyle: 'inline' // "Table 1: Title" on one line
   },
   mermaid: {
     theme: 'document'
@@ -151,6 +159,8 @@ export const defaultTheme: DocTheme = {
     affiliations: [],
     rules: false,
     smallCaps: false,
+    dateFormat: 'locale', // the document language's long date
+    repeatTitle: false,
     // Brand logo on by default — `theme.brand.logoUrl` is pre-filled
     // with the markoto wordmark above, so a brand-new doc opens with
     // the mark visible on the cover.

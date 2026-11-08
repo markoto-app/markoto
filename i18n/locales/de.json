@@ -773,7 +773,9 @@
       "margin_top": "Oben (mm)",
       "margin_right": "Rechts (mm)",
       "margin_bottom": "Unten (mm)",
-      "margin_left": "Links (mm)"
+      "margin_left": "Links (mm)",
+      "mirrorMargins": "Ränder auf linken Seiten spiegeln",
+      "mirrorMarginsHelp": "Für gedruckte Bücher: Linke Seiten tauschen den linken und rechten Rand, der linke Rand ist also immer der Innenrand."
     },
     "body": {
       "font": "Schriftart",
@@ -789,7 +791,9 @@
       "firstLineIndentHelp": "Zieht die erste Zeile jedes Absatzes ein, ausser dem ersten in einer Folge (Roman-Typografie).",
       "paragraphSpacing": "Absatzabstand (em)",
       "hyphenate": "Fliesstext automatisch trennen",
-      "hyphenateHelp": "Trennt lange Wörter an Zeilenumbrüchen. Empfohlen für Blocksatz."
+      "hyphenateHelp": "Trennt lange Wörter an Zeilenumbrüchen. Empfohlen für Blocksatz.",
+      "dropCapEveryChapter": "In jedem Kapitel",
+      "dropCapEveryChapterHelp": "Setzt eine Initiale auf den ersten Absatz nach jeder Überschrift der obersten Ebene statt nur auf den ersten Absatz."
     },
     "headings": {
       "font": "Schriftart",
@@ -816,7 +820,17 @@
       "levelReset": "Standardwerte verwenden",
       "numberingDecimalDot": "1., 1.1., 1.1.1.",
       "numberingIeee": "I., A., 1), a) (IEEE)",
-      "levelCentered": "Zentriert"
+      "levelCentered": "Zentriert",
+      "numberingDecimalZero": "Zweistellig (01, 01.1)",
+      "numberingDepth": "Nummerierte Ebenen",
+      "numberingDepth1": "Nur oberste Ebene",
+      "numberingDepthN": "{n} Ebenen",
+      "numberingDepthAll": "Alle Ebenen",
+      "chapterLabel": "Kapitelbezeichnung",
+      "chapterLabelHelp": "Setzt «Kapitel 3» auf eine eigene Zeile über jede nummerierte Überschrift der obersten Ebene.",
+      "chapterWord": "Wort für Kapitel",
+      "chapterWordHelp": "Leer lassen, um das Wort der Dokumentsprache zu verwenden (Chapter, Kapitel, Chapitre …).",
+      "chapterWordPlaceholder": "Kapitel"
     },
     "align": {
       "left": "Links",
@@ -851,7 +865,13 @@
       "uploadImage": "Bild hochladen",
       "ruleHeader": "Linie unter der Kopfzeile",
       "ruleFooter": "Linie über der Fusszeile",
-      "ruleHelp": "Eine feine Linie über die ganze Satzbreite. Der Text rückt nahe an sie heran."
+      "ruleHelp": "Eine feine Linie über die ganze Satzbreite. Der Text rückt nahe an sie heran.",
+      "sectionNumber": "Abschnittsnummer in {token}",
+      "sectionNumberHelp": "Zeigt «3 Verfahren» statt «Verfahren», wenn die Überschriften nummeriert sind.",
+      "sectionMode": "{token} zeigt",
+      "sectionModeHelp": "Welcher Abschnitt in der Kopf- oder Fusszeile einer Seite steht.",
+      "sectionModeFirst": "Die erste Abschnittsüberschrift auf der Seite",
+      "sectionModeStart": "Den Abschnitt, in dem die Seite beginnt"
     },
     "code": {
       "theme": "Farbschema",
@@ -909,7 +929,14 @@
       "referenceStyleHelp": "Der Abschnitt mit der Überschrift „Literatur“ (oder References, Bibliography, Références …).",
       "referencePlain": "Wie andere Listen",
       "referenceHanging": "Hängender Einzug",
-      "referenceBrackets": "Nummeriert [1], [2]"
+      "referenceBrackets": "Nummeriert [1], [2]",
+      "captionNumbering": "Nummerierung der Beschriftungen",
+      "captionNumberingHelp": "Abbildungen und Tabellen durch das ganze Dokument nummerieren oder innerhalb jedes Abschnitts der obersten Ebene (Abbildung 3.1).",
+      "captionNumberingDocument": "Durch das Dokument (1, 2, 3)",
+      "captionNumberingChapter": "Pro Kapitel (3.1, 3.2)",
+      "captionLabelStyle": "Bezeichnung der Beschriftung",
+      "captionLabelInline": "In der Beschriftungszeile (Tabelle 1: Titel)",
+      "captionLabelStacked": "Auf eigener Zeile, fett (APA)"
     },
     "blockquote": {
       "border": "Linker Rand",
@@ -977,7 +1004,13 @@
       "smallCaps": "Titel in Kapitälchen",
       "affiliationPlaceholder": "Zugehörigkeit (Institut, Hochschule, E-Mail; je eine Zeile)",
       "titleWeight": "Stärke des Titels",
-      "titleWeightInherit": "Wie die Überschriften ({weight})"
+      "titleWeightInherit": "Wie die Überschriften ({weight})",
+      "dateFormat": "Datumsformat",
+      "dateFormatLocale": "Dokumentsprache (2. November 2026)",
+      "dateFormatUs": "US (November 2, 2026)",
+      "dateFormatIso": "ISO (2026-11-02)",
+      "repeatTitle": "Titel auf der ersten Seite wiederholen",
+      "repeatTitleHelp": "Setzt den Titel fett und zentriert erneut oben auf die erste Textseite nach der Titelseite (APA)."
     },
     "brand": {
       "logo": "Markenlogo",

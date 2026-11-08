@@ -25,6 +25,7 @@ import { sanitizeRenderedHtml } from './sanitizeHtml'
 import { tableAttrsRowPlugin } from './markdownTableAttrs'
 import { unnumberedShorthandPlugin } from './markdownUnnumbered'
 import { tablePlugin } from './markdownTables'
+import { markersPlugin } from './markdownMarkers'
 
 // markdown-it exports Options as a nested type under the default class; we
 // pluck it from the instance shape so the type resolution doesn't depend on
@@ -385,6 +386,9 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
   // `Table: …` next to a table → <caption>; numbers + units in cells
   // never part. See markdownTables.ts.
     .use(tablePlugin)
+  // Marker classes for template CSS: bold run-in labels, `METHOD /path`
+  // endpoint lines. See markdownMarkers.ts.
+    .use(markersPlugin)
 
   // ```ts title="replay.ts" → a caption bar above the block. The title is
   // escaped text; the wrapper is a plain <div> (allowed by the sanitiser).

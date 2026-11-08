@@ -773,7 +773,9 @@
       "margin_top": "Haut (mm)",
       "margin_right": "Droite (mm)",
       "margin_bottom": "Bas (mm)",
-      "margin_left": "Gauche (mm)"
+      "margin_left": "Gauche (mm)",
+      "mirrorMargins": "Marges en miroir sur les pages de gauche",
+      "mirrorMarginsHelp": "Pour les livres imprimés : les pages de gauche échangent les marges gauche et droite, la marge gauche est donc toujours la marge intérieure."
     },
     "body": {
       "font": "Police",
@@ -789,7 +791,9 @@
       "firstLineIndentHelp": "Ajoute un retrait à la première ligne de chaque paragraphe sauf le premier d'une séquence (typographie de roman).",
       "paragraphSpacing": "Espacement des paragraphes (em)",
       "hyphenate": "Césure automatique du corps de texte",
-      "hyphenateHelp": "Coupe les mots longs en fin de ligne. Recommandé pour le texte justifié."
+      "hyphenateHelp": "Coupe les mots longs en fin de ligne. Recommandé pour le texte justifié.",
+      "dropCapEveryChapter": "À chaque chapitre",
+      "dropCapEveryChapterHelp": "Place une lettrine sur le premier paragraphe après chaque titre de premier niveau, et pas seulement sur le premier paragraphe."
     },
     "headings": {
       "font": "Police",
@@ -816,7 +820,17 @@
       "levelReset": "Valeurs par défaut",
       "numberingDecimalDot": "1., 1.1., 1.1.1.",
       "numberingIeee": "I., A., 1), a) (IEEE)",
-      "levelCentered": "Centré"
+      "levelCentered": "Centré",
+      "numberingDecimalZero": "À deux chiffres (01, 01.1)",
+      "numberingDepth": "Niveaux numérotés",
+      "numberingDepth1": "Premier niveau seulement",
+      "numberingDepthN": "{n} niveaux",
+      "numberingDepthAll": "Tous les niveaux",
+      "chapterLabel": "Mention du chapitre",
+      "chapterLabelHelp": "Affiche « Chapitre 3 » sur une ligne à part au-dessus de chaque titre numéroté de premier niveau.",
+      "chapterWord": "Mot pour chapitre",
+      "chapterWordHelp": "Laissez vide pour utiliser le mot de la langue du document (Chapter, Kapitel, Chapitre …).",
+      "chapterWordPlaceholder": "Chapitre"
     },
     "align": {
       "left": "Gauche",
@@ -851,7 +865,13 @@
       "uploadImage": "Téléverser une image",
       "ruleHeader": "Filet sous l’en-tête",
       "ruleFooter": "Filet au-dessus du pied de page",
-      "ruleHelp": "Une ligne fine sur toute la largeur du texte. Le texte se rapproche de la ligne."
+      "ruleHelp": "Une ligne fine sur toute la largeur du texte. Le texte se rapproche de la ligne.",
+      "sectionNumber": "Numéro de section dans {token}",
+      "sectionNumberHelp": "Affiche « 3 Procédures » au lieu de « Procédures » quand les titres sont numérotés.",
+      "sectionMode": "{token} affiche",
+      "sectionModeHelp": "La section qu’une page indique dans son en-tête ou son pied de page.",
+      "sectionModeFirst": "Le premier titre de section de la page",
+      "sectionModeStart": "La section dans laquelle la page commence"
     },
     "code": {
       "theme": "Thème de couleurs",
@@ -909,7 +929,14 @@
       "referenceStyleHelp": "La section intitulée « Références » (ou Bibliographie, References, Literatur …).",
       "referencePlain": "Comme les autres listes",
       "referenceHanging": "Retrait suspendu",
-      "referenceBrackets": "Numérotée [1], [2]"
+      "referenceBrackets": "Numérotée [1], [2]",
+      "captionNumbering": "Numéros des légendes",
+      "captionNumberingHelp": "Numérotez figures et tableaux dans tout le document, ou dans chaque section de premier niveau (Figure 3.1).",
+      "captionNumberingDocument": "Dans tout le document (1, 2, 3)",
+      "captionNumberingChapter": "Par chapitre (3.1, 3.2)",
+      "captionLabelStyle": "Mention de la légende",
+      "captionLabelInline": "Sur la ligne de la légende (Tableau 1 : Titre)",
+      "captionLabelStacked": "Sur sa propre ligne, en gras (APA)"
     },
     "blockquote": {
       "border": "Bordure gauche",
@@ -977,7 +1004,13 @@
       "smallCaps": "Titre en petites capitales",
       "affiliationPlaceholder": "Affiliation (département, institution, e-mail ; une par ligne)",
       "titleWeight": "Graisse du titre",
-      "titleWeightInherit": "Comme les titres ({weight})"
+      "titleWeightInherit": "Comme les titres ({weight})",
+      "dateFormat": "Format de date",
+      "dateFormatLocale": "Langue du document (2 novembre 2026)",
+      "dateFormatUs": "États-Unis (November 2, 2026)",
+      "dateFormatIso": "ISO (2026-11-02)",
+      "repeatTitle": "Répéter le titre sur la première page",
+      "repeatTitleHelp": "Reprend le titre, en gras et centré, en haut de la première page de texte après la page de titre (APA)."
     },
     "brand": {
       "logo": "Logo de marque",

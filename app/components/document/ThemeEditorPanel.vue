@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { DocTheme, CaptionPosition, CodeTheme, CodeBackground, CodeFrame, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, ReferenceStyle, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
+import type { DocTheme, CaptionLabelStyle, CaptionNumbering, CaptionPosition, CodeTheme, CodeBackground, CodeFrame, DateFormat, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, NumberingDepth, ReferenceStyle, SectionMode, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { CODE_OPTION_DEFAULTS, headingNumbering, referenceStyle, resolveCaptions, resolveHeadingLevel, resolvePageMargins, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
+import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
 import { themeFromPreset, type ThemePreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
@@ -206,6 +206,65 @@ const headingNumberingModel = computed({
   get: () => headingNumbering(draft.value),
   set: (v: HeadingNumbering) => { draft.value.headings.numbering = v }
 })
+const numberingDepthModel = computed({
+  get: () => numberingDepth(draft.value),
+  set: (v: NumberingDepth) => { draft.value.headings.numberingDepth = v }
+})
+const numberingDepthItems = computed<Array<{ label: string, value: NumberingDepth }>>(() => [
+  { label: t('theme.headings.numberingDepth1'), value: 1 },
+  { label: t('theme.headings.numberingDepthN', { n: 2 }), value: 2 },
+  { label: t('theme.headings.numberingDepthN', { n: 3 }), value: 3 },
+  { label: t('theme.headings.numberingDepthAll'), value: 4 }
+])
+const chapterLabelModel = computed({
+  get: () => resolveChapterLabel(draft.value).enabled,
+  set: (v: boolean) => { draft.value.headings.chapterLabel = v }
+})
+const chapterWordModel = computed({
+  get: () => resolveChapterLabel(draft.value).word,
+  // The schema refuses quotes, backslashes, angle brackets and newlines (CSS string).
+  set: (v: string) => { draft.value.headings.chapterWord = v.replace(/["\\<>\r\n]/g, '').slice(0, 40) }
+})
+// Drop cap: a switch (first paragraph) plus "every chapter".
+const dropCapOnModel = computed({
+  get: () => draft.value.body.dropCap !== false,
+  set: (v: boolean) => { draft.value.body.dropCap = v ? (draft.value.body.dropCap || true) : false }
+})
+const dropCapEveryChapterModel = computed({
+  get: () => draft.value.body.dropCap === 'every-chapter',
+  set: (v: boolean) => { draft.value.body.dropCap = v ? 'every-chapter' : true }
+})
+// `{section}` options (header.sectionNumber / sectionMode), shown while a slot uses the token.
+const usesSectionToken = computed(() => [draft.value.header, draft.value.footer].some(s => [s.left, s.center, s.right].some(v => v.includes('{section}'))))
+const sectionNumberModel = computed({
+  get: () => resolveSectionToken(draft.value).number,
+  set: (v: boolean) => { draft.value.header.sectionNumber = v }
+})
+const sectionModeModel = computed({
+  get: () => resolveSectionToken(draft.value).mode,
+  set: (v: SectionMode) => { draft.value.header.sectionMode = v }
+})
+const sectionModeItems = computed<Array<{ label: string, value: SectionMode }>>(() => [
+  { label: t('theme.runningSlots.sectionModeFirst'), value: 'first' },
+  { label: t('theme.runningSlots.sectionModeStart'), value: 'start' }
+])
+const coverDateFormatModel = computed({
+  get: () => coverDateFormat(draft.value),
+  set: (v: DateFormat) => { draft.value.cover.dateFormat = v }
+})
+const coverDateFormatItems = computed<Array<{ label: string, value: DateFormat }>>(() => [
+  { label: t('theme.cover.dateFormatLocale'), value: 'locale' },
+  { label: t('theme.cover.dateFormatUs'), value: 'us' },
+  { label: t('theme.cover.dateFormatIso'), value: 'iso' }
+])
+const coverRepeatTitleModel = computed({
+  get: () => repeatTitle(draft.value),
+  set: (v: boolean) => { draft.value.cover.repeatTitle = v }
+})
+const mirrorMarginsModel = computed({
+  get: () => mirrorMargins(draft.value),
+  set: (v: boolean) => { draft.value.page.mirrorMargins = v }
+})
 // Captions + reference list (optional fields, see themeOptions).
 const tableCaptionPositionModel = computed({
   get: () => resolveCaptions(draft.value).tablePosition,
@@ -219,6 +278,22 @@ const figureLabelModel = computed({
   get: () => resolveCaptions(draft.value).figureLabel,
   set: (v: boolean) => { draft.value.blocks.figureLabel = v }
 })
+const captionNumberingModel = computed({
+  get: () => resolveCaptions(draft.value).numbering,
+  set: (v: CaptionNumbering) => { draft.value.blocks.captionNumbering = v }
+})
+const captionNumberingItems = computed<Array<{ label: string, value: CaptionNumbering }>>(() => [
+  { label: t('theme.blocks.captionNumberingDocument'), value: 'document' },
+  { label: t('theme.blocks.captionNumberingChapter'), value: 'chapter' }
+])
+const captionLabelStyleModel = computed({
+  get: () => resolveCaptions(draft.value).labelStyle,
+  set: (v: CaptionLabelStyle) => { draft.value.blocks.captionLabelStyle = v }
+})
+const captionLabelStyleItems = computed<Array<{ label: string, value: CaptionLabelStyle }>>(() => [
+  { label: t('theme.blocks.captionLabelInline'), value: 'inline' },
+  { label: t('theme.blocks.captionLabelStacked'), value: 'stacked' }
+])
 const referenceStyleModel = computed({
   get: () => referenceStyle(draft.value),
   set: (v: ReferenceStyle) => { draft.value.blocks.referenceStyle = v }
@@ -369,7 +444,8 @@ const headingNumberingItems = computed<Array<{ label: string, value: HeadingNumb
   { label: t('theme.headings.numberingNone'), value: 'none' },
   { label: t('theme.headings.numberingDecimal'), value: 'decimal' },
   { label: t('theme.headings.numberingDecimalDot'), value: 'decimal-dot' },
-  { label: t('theme.headings.numberingIeee'), value: 'ieee' }
+  { label: t('theme.headings.numberingIeee'), value: 'ieee' },
+  { label: t('theme.headings.numberingDecimalZero'), value: 'decimal-zero' }
 ])
 /**
  * SYSTEM_CODE_FONT stands for "system monospace" in the picker (the field
@@ -544,6 +620,7 @@ const fontPickerItems = computed(() => [
 const tokenChips = [
   { token: '{title}' },
   { token: '{section}' },
+  { token: '{author}' },
   { token: '{date}' },
   { token: '{page}' },
   { token: '{pages}' }
@@ -990,6 +1067,23 @@ function deleteSaved(saved: SavedTheme) {
                     />
                   </div>
                 </UFormField>
+                <UFormField :label="t('theme.cover.dateFormat')">
+                  <USelect
+                    v-model="coverDateFormatModel"
+                    :items="coverDateFormatItems"
+                    class="w-full"
+                    data-testid="theme-cover-date-format"
+                  />
+                </UFormField>
+                <UFormField
+                  :label="t('theme.cover.repeatTitle')"
+                  :help="t('theme.cover.repeatTitleHelp')"
+                >
+                  <USwitch
+                    v-model="coverRepeatTitleModel"
+                    data-testid="theme-cover-repeat-title"
+                  />
+                </UFormField>
                 <UFormField :label="t('theme.cover.showAuthors')">
                   <USwitch
                     v-model="draft.cover.showAuthors"
@@ -1082,7 +1176,6 @@ function deleteSaved(saved: SavedTheme) {
                           class="w-full"
                         />
                         <UTextarea
-                          v-if="draft.cover.layout === 'title-block'"
                           :model-value="affiliationAt(idx)"
                           :placeholder="t('theme.cover.affiliationPlaceholder')"
                           :rows="2"
@@ -1188,6 +1281,15 @@ function deleteSaved(saved: SavedTheme) {
                   >
                     {{ t('theme.page.sideMarginsReset') }}
                   </UButton>
+                  <UFormField
+                    :label="t('theme.page.mirrorMargins')"
+                    :help="t('theme.page.mirrorMarginsHelp')"
+                  >
+                    <USwitch
+                      v-model="mirrorMarginsModel"
+                      data-testid="theme-page-mirror-margins"
+                    />
+                  </UFormField>
                 </div>
               </details>
             </div>
@@ -1286,8 +1388,18 @@ function deleteSaved(saved: SavedTheme) {
                 :help="t('theme.body.dropCapHelp')"
               >
                 <USwitch
-                  v-model="draft.body.dropCap"
+                  v-model="dropCapOnModel"
                   data-testid="theme-body-drop-cap-switch"
+                />
+              </UFormField>
+              <UFormField
+                v-if="dropCapOnModel"
+                :label="t('theme.body.dropCapEveryChapter')"
+                :help="t('theme.body.dropCapEveryChapterHelp')"
+              >
+                <USwitch
+                  v-model="dropCapEveryChapterModel"
+                  data-testid="theme-body-drop-cap-every-chapter"
                 />
               </UFormField>
               <UFormField
@@ -1347,6 +1459,38 @@ function deleteSaved(saved: SavedTheme) {
                   data-testid="theme-headings-numbering"
                 />
               </UFormField>
+              <template v-if="headingNumberingModel !== 'none'">
+                <UFormField :label="t('theme.headings.numberingDepth')">
+                  <USelect
+                    v-model="numberingDepthModel"
+                    :items="numberingDepthItems"
+                    class="w-full"
+                    data-testid="theme-headings-numbering-depth"
+                  />
+                </UFormField>
+                <UFormField
+                  :label="t('theme.headings.chapterLabel')"
+                  :help="t('theme.headings.chapterLabelHelp')"
+                >
+                  <USwitch
+                    v-model="chapterLabelModel"
+                    data-testid="theme-headings-chapter-label"
+                  />
+                </UFormField>
+                <UFormField
+                  v-if="chapterLabelModel"
+                  :label="t('theme.headings.chapterWord')"
+                  :help="t('theme.headings.chapterWordHelp')"
+                >
+                  <UInput
+                    v-model="chapterWordModel"
+                    maxlength="40"
+                    :placeholder="t('theme.headings.chapterWordPlaceholder')"
+                    class="w-full"
+                    data-testid="theme-headings-chapter-word"
+                  />
+                </UFormField>
+              </template>
               <UFormField :label="t('theme.headings.weight')">
                 <USelect
                   v-model="draft.headings.weight"
@@ -1647,6 +1791,28 @@ function deleteSaved(saved: SavedTheme) {
                   data-testid="theme-header-rule"
                 />
               </UFormField>
+              <template v-if="usesSectionToken">
+                <UFormField
+                  :label="t('theme.runningSlots.sectionNumber', { token: '{section}' })"
+                  :help="t('theme.runningSlots.sectionNumberHelp')"
+                >
+                  <USwitch
+                    v-model="sectionNumberModel"
+                    data-testid="theme-header-section-number"
+                  />
+                </UFormField>
+                <UFormField
+                  :label="t('theme.runningSlots.sectionMode', { token: '{section}' })"
+                  :help="t('theme.runningSlots.sectionModeHelp')"
+                >
+                  <USelect
+                    v-model="sectionModeModel"
+                    :items="sectionModeItems"
+                    class="w-full"
+                    data-testid="theme-header-section-mode"
+                  />
+                </UFormField>
+              </template>
 
               <!-- Header image — companies typically want their logo in
                    the running header on every body page. The cover page's
@@ -1972,6 +2138,27 @@ function deleteSaved(saved: SavedTheme) {
                   data-testid="theme-blocks-figure-label"
                 />
               </UFormField>
+              <template v-if="figureLabelModel || tableCaptionLabelModel">
+                <UFormField
+                  :label="t('theme.blocks.captionNumbering')"
+                  :help="t('theme.blocks.captionNumberingHelp')"
+                >
+                  <USelect
+                    v-model="captionNumberingModel"
+                    :items="captionNumberingItems"
+                    class="w-full"
+                    data-testid="theme-blocks-caption-numbering"
+                  />
+                </UFormField>
+                <UFormField :label="t('theme.blocks.captionLabelStyle')">
+                  <USelect
+                    v-model="captionLabelStyleModel"
+                    :items="captionLabelStyleItems"
+                    class="w-full"
+                    data-testid="theme-blocks-caption-label-style"
+                  />
+                </UFormField>
+              </template>
               <UFormField
                 :label="t('theme.blocks.referenceStyle')"
                 :help="t('theme.blocks.referenceStyleHelp')"

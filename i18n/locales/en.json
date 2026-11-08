@@ -773,7 +773,9 @@
       "margin_top": "Top (mm)",
       "margin_right": "Right (mm)",
       "margin_bottom": "Bottom (mm)",
-      "margin_left": "Left (mm)"
+      "margin_left": "Left (mm)",
+      "mirrorMargins": "Mirror margins on left pages",
+      "mirrorMarginsHelp": "For printed books: left-hand pages swap the left and right margins, so the left margin is always the inside margin."
     },
     "body": {
       "font": "Font",
@@ -789,7 +791,9 @@
       "firstLineIndentHelp": "Indents the first line of every paragraph except the first in a sequence (novel typography).",
       "paragraphSpacing": "Paragraph spacing (em)",
       "hyphenate": "Auto-hyphenate body text",
-      "hyphenateHelp": "Splits long words at line breaks. Recommended for justified text."
+      "hyphenateHelp": "Splits long words at line breaks. Recommended for justified text.",
+      "dropCapEveryChapter": "On every chapter",
+      "dropCapEveryChapterHelp": "Puts a drop cap on the first paragraph after every top-level heading instead of the first paragraph only."
     },
     "headings": {
       "font": "Font",
@@ -816,7 +820,17 @@
       "levelReset": "Use defaults",
       "numberingDecimalDot": "1., 1.1., 1.1.1.",
       "numberingIeee": "I., A., 1), a) (IEEE)",
-      "levelCentered": "Centred"
+      "levelCentered": "Centred",
+      "numberingDecimalZero": "Two-digit (01, 01.1)",
+      "numberingDepth": "Numbered levels",
+      "numberingDepth1": "Top level only",
+      "numberingDepthN": "{n} levels",
+      "numberingDepthAll": "All levels",
+      "chapterLabel": "Chapter label",
+      "chapterLabelHelp": "Prints “Chapter 3” on a line of its own above every numbered top-level heading.",
+      "chapterWord": "Chapter word",
+      "chapterWordHelp": "Leave empty to use the word for the document language (Chapter, Kapitel, Chapitre …).",
+      "chapterWordPlaceholder": "Chapter"
     },
     "align": {
       "left": "Left",
@@ -851,7 +865,13 @@
       "uploadImage": "Upload image",
       "ruleHeader": "Rule under the header",
       "ruleFooter": "Rule above the footer",
-      "ruleHelp": "A thin line across the full text width. The text moves next to it."
+      "ruleHelp": "A thin line across the full text width. The text moves next to it.",
+      "sectionNumber": "Section number in {token}",
+      "sectionNumberHelp": "Shows “3 Procedures” instead of “Procedures” when headings are numbered.",
+      "sectionMode": "{token} shows",
+      "sectionModeHelp": "Which section a page names in its header or footer.",
+      "sectionModeFirst": "The first section heading on the page",
+      "sectionModeStart": "The section the page starts in"
     },
     "code": {
       "theme": "Color theme",
@@ -909,7 +929,14 @@
       "referenceStyleHelp": "The section headed “References” (or Bibliography, Literatur, Références …).",
       "referencePlain": "Like other lists",
       "referenceHanging": "Hanging indent",
-      "referenceBrackets": "Numbered [1], [2]"
+      "referenceBrackets": "Numbered [1], [2]",
+      "captionNumbering": "Caption numbers",
+      "captionNumberingHelp": "Number figures and tables through the document, or within each top-level section (Figure 3.1).",
+      "captionNumberingDocument": "Through the document (1, 2, 3)",
+      "captionNumberingChapter": "Per chapter (3.1, 3.2)",
+      "captionLabelStyle": "Caption label",
+      "captionLabelInline": "On the caption line (Table 1: Title)",
+      "captionLabelStacked": "On its own line, bold (APA)"
     },
     "blockquote": {
       "border": "Left border",
@@ -977,7 +1004,13 @@
       "smallCaps": "Title in small capitals",
       "affiliationPlaceholder": "Affiliation (department, institution, e-mail; one per line)",
       "titleWeight": "Title weight",
-      "titleWeightInherit": "Same as headings ({weight})"
+      "titleWeightInherit": "Same as headings ({weight})",
+      "dateFormat": "Date format",
+      "dateFormatLocale": "Document language (2 November 2026)",
+      "dateFormatUs": "US (November 2, 2026)",
+      "dateFormatIso": "ISO (2026-11-02)",
+      "repeatTitle": "Repeat title on the first page",
+      "repeatTitleHelp": "Prints the title again, bold and centred, at the top of the first text page after the title page (APA)."
     },
     "brand": {
       "logo": "Brand logo",

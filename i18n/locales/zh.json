@@ -773,7 +773,9 @@
       "margin_top": "上 (mm)",
       "margin_right": "右 (mm)",
       "margin_bottom": "下 (mm)",
-      "margin_left": "左 (mm)"
+      "margin_left": "左 (mm)",
+      "mirrorMargins": "左页镜像页边距",
+      "mirrorMarginsHelp": "用于印刷书籍：左页交换左右页边距，使左边距始终是内侧页边距。"
     },
     "body": {
       "font": "字体",
@@ -789,7 +791,9 @@
       "firstLineIndentHelp": "对每个段落的首行进行缩进，连续段落中的首段除外（小说排版风格）。",
       "paragraphSpacing": "段落间距（em）",
       "hyphenate": "正文自动断字",
-      "hyphenateHelp": "在换行处拆分长单词。建议用于两端对齐的文本。"
+      "hyphenateHelp": "在换行处拆分长单词。建议用于两端对齐的文本。",
+      "dropCapEveryChapter": "每章都用",
+      "dropCapEveryChapterHelp": "不只在第一段，而是在每个最高级标题后的第一段使用首字下沉。"
     },
     "headings": {
       "font": "字体",
@@ -816,7 +820,17 @@
       "levelReset": "使用默认值",
       "numberingDecimalDot": "1., 1.1., 1.1.1.",
       "numberingIeee": "I., A., 1), a) (IEEE)",
-      "levelCentered": "居中"
+      "levelCentered": "居中",
+      "numberingDecimalZero": "两位数 (01, 01.1)",
+      "numberingDepth": "编号的级别",
+      "numberingDepth1": "仅最高级",
+      "numberingDepthN": "{n} 级",
+      "numberingDepthAll": "所有级别",
+      "chapterLabel": "章标签",
+      "chapterLabelHelp": "在每个带编号的最高级标题上方单独一行显示“第3章”。",
+      "chapterWord": "章的称呼",
+      "chapterWordHelp": "留空则使用文档语言的称呼 (Chapter、Kapitel、第…章 等)。",
+      "chapterWordPlaceholder": "Chapter"
     },
     "align": {
       "left": "左对齐",
@@ -851,7 +865,13 @@
       "uploadImage": "上传图片",
       "ruleHeader": "页眉下方的细线",
       "ruleFooter": "页脚上方的细线",
-      "ruleHelp": "横跨整个正文宽度的细线。文字会移到细线旁边。"
+      "ruleHelp": "横跨整个正文宽度的细线。文字会移到细线旁边。",
+      "sectionNumber": "{token} 中包含节号",
+      "sectionNumberHelp": "标题有编号时，显示“3 步骤”而不是“步骤”。",
+      "sectionMode": "{token} 显示",
+      "sectionModeHelp": "页眉或页脚中显示哪一节。",
+      "sectionModeFirst": "本页的第一个节标题",
+      "sectionModeStart": "本页开始时所在的节"
     },
     "code": {
       "theme": "配色主题",
@@ -909,7 +929,14 @@
       "referenceStyleHelp": "标题为“参考文献”(或 References、Bibliography、Literatur 等)的章节。",
       "referencePlain": "与其他列表相同",
       "referenceHanging": "悬挂缩进",
-      "referenceBrackets": "编号 [1], [2]"
+      "referenceBrackets": "编号 [1], [2]",
+      "captionNumbering": "题注编号",
+      "captionNumberingHelp": "图和表在全文统一编号，或在每个最高级章节内编号 (图 3.1)。",
+      "captionNumberingDocument": "全文统一 (1, 2, 3)",
+      "captionNumberingChapter": "按章 (3.1, 3.2)",
+      "captionLabelStyle": "题注标签",
+      "captionLabelInline": "与题注同一行 (表 1: 标题)",
+      "captionLabelStacked": "单独一行，粗体 (APA)"
     },
     "blockquote": {
       "border": "左边框",
@@ -977,7 +1004,13 @@
       "smallCaps": "标题使用小型大写字母",
       "affiliationPlaceholder": "单位（院系、机构、邮箱；每行一项）",
       "titleWeight": "标题字重",
-      "titleWeightInherit": "与标题相同（{weight}）"
+      "titleWeightInherit": "与标题相同（{weight}）",
+      "dateFormat": "日期格式",
+      "dateFormatLocale": "文档语言 (2026年11月2日)",
+      "dateFormatUs": "美式 (November 2, 2026)",
+      "dateFormatIso": "ISO (2026-11-02)",
+      "repeatTitle": "在第一页重复标题",
+      "repeatTitleHelp": "在标题页之后的第一页正文顶部再次以粗体居中显示标题 (APA)。"
     },
     "brand": {
       "logo": "品牌徽标",

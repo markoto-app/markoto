@@ -40,7 +40,7 @@ describe('optional fields', () => {
     const t = legacy()
     expect(isValidTheme(t)).toBe(true)
     expect(css(t)).toBe(css(withThemeDefaults(t)))
-    expect(resolveCaptions(t)).toEqual({ tablePosition: 'above', tableLabel: false, figureLabel: false })
+    expect(resolveCaptions(t)).toEqual({ tablePosition: 'above', tableLabel: false, figureLabel: false, numbering: 'document', labelStyle: 'inline' })
     expect(referenceStyle(t)).toBe('plain')
     expect(resolvePageMargins(t)).toEqual({ top: 24, right: 24, bottom: 24, left: 24 })
   })
@@ -208,9 +208,11 @@ describe('captions', () => {
   })
 
   test('caption labels per language', () => {
-    expect(captionLabelsFor('en-US')).toEqual({ table: 'Table', figure: 'Figure', separator: ': ' })
-    expect(captionLabelsFor('fr')).toEqual({ table: 'Tableau', figure: 'Figure', separator: ' : ' })
+    expect(captionLabelsFor('en-US')).toEqual({ table: 'Table', figure: 'Figure', separator: ': ', chapter: { before: 'Chapter ', after: '' } })
+    expect(captionLabelsFor('fr')).toEqual({ table: 'Tableau', figure: 'Figure', separator: ' : ', chapter: { before: 'Chapitre ', after: '' } })
     expect(captionLabelsFor('ja').table).toBe('表')
+    expect(captionLabelsFor('ja').chapter).toEqual({ before: '第', after: '章' })
+    expect(captionLabelsFor('de-CH').chapter.before).toBe('Kapitel ')
     expect(captionLabelsFor('xx').figure).toBe('Figure')
   })
 })
