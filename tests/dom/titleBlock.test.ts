@@ -64,6 +64,7 @@ describe('buildCoverHtml — title-block layout', () => {
   it('renders nothing when there is nothing to show', () => {
     const theme = arxiv()
     theme.cover.showTitle = false
+    theme.cover.showSubtitle = false
     theme.cover.showAuthors = false
     theme.cover.showDate = false
     expect(buildCoverHtml(theme, 'T', 'd')).toBe('')
