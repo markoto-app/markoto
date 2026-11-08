@@ -1071,6 +1071,10 @@
         "name": "Roman",
         "description": "Crimson-Text-Serif für langes Lesen. Keine Codeblöcke, einfache Zitate, nur eine Seitenzahl in der Fusszeile."
       },
+      "essay": {
+        "name": "Akademischer Essay (APA)",
+        "description": "Die studentische Arbeit nach APA 7: US Letter, Times 12 pt zweizeilig im Flattersatz, Absatzeinzug von 0,5 Zoll, Titelseite mit Autorin oder Autor, Kurs, Dozentin oder Dozent und Datum, Seitenzahl oben rechts, zentrierte fette Überschriften, eingerückte Blockzitate, Literaturverzeichnis auf einer neuen Seite mit hängendem Einzug."
+      },
       "newsletter": {
         "name": "Newsletter",
         "description": "Karla-Fliesstext unter PT-Serif-Überschriften, grüner Akzent, markengefärbte Tabellenköpfe — Wochenrückblick-Gefühl."

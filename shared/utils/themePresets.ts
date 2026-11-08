@@ -297,6 +297,43 @@ const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.c
 `
 
 /**
+ * ESSAY_TEMPLATE_CSS — the part of the APA 7 student paper no theme field
+ * expresses (Publication Manual of the APA, 7th ed.; checked against
+ * apa7.cls in `stu` mode). Letter page with 1in margins, Termes 12 pt
+ * double-spaced and ragged right, bold headings at text size (centred /
+ * flush left / bold italic), the page number top right, the hanging
+ * reference list and the title block are theme values.
+ */
+const ESSAY_TEMPLATE_CSS = `/* APA 7 student paper. Values from the Publication Manual (7th ed.) §2.3–2.28 and §8.27; apa7.cls (stu mode) as the check. */
+/* §2.24: indent the first line of every paragraph 0.5 in, the first after a heading too. */
+.paged-doc > p, .paged-doc > p + p { text-indent: 0.5in; }
+/* §2.21 + §2.27: everything double-spaced, headings included, no extra space around them. */
+.paged-doc h1, .paged-doc h2, .paged-doc h3, .paged-doc h4, .paged-doc h5 { line-height: 2; margin: 0; }
+/* §2.27: Level 4 and 5 are indented 0.5 in (bold, bold italic). */
+.paged-doc h4, .paged-doc h5 { text-indent: 0.5in; }
+/* §2.3 title page: the title 3–4 double-spaced lines down, one blank line, then author, affiliation, course, instructor, date, each on its own double-spaced line; the text starts on page 2. */
+.paged-doc .markoto-title-block { padding-top: 96pt; margin: 0; break-after: page; }
+.paged-doc .markoto-title-block .markoto-cover-title { line-height: 2; margin: 0 0 24pt; }
+.paged-doc .markoto-title-block .markoto-cover-authors { display: block; margin: 0; }
+.paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; }
+.paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 2; }
+.paged-doc .markoto-title-block .markoto-cover-date { margin: 0; }
+/* §2.18: the page number top right on every page, the title page included, in the text font and size. */
+.pagedjs_pages .pagedjs_page.pagedjs_first_page .pagedjs_margin-top-right > .pagedjs_margin-content::after { content: counter(page); }
+.pagedjs_pages .pagedjs_page .pagedjs_margin-top-right { font-size: 12pt; color: var(--doc-text); opacity: 1; }
+/* §2.19: footnotes in the word processor's default, 10 pt single-spaced. */
+.paged-doc .footnote { font-size: 10pt; line-height: 1.2; }
+/* §8.27: a block quotation is indented 0.5 in as a block, double-spaced, no quotation marks, no extra space. */
+.paged-doc blockquote { margin: 0 0 0 0.5in; font-style: normal; }
+.paged-doc blockquote p { text-indent: 0; margin: 0; }
+/* §2.12 + §9.43: the reference list starts on a new page; entries double-spaced with a 0.5 in hanging indent. */
+.paged-doc .markoto-references-heading { break-before: page; }
+.paged-doc p.markoto-references { --doc-reference-indent: 0.5in; margin: 0; }
+/* §9.35: DOIs and URLs print as plain text. */
+.paged-doc a { color: inherit; text-decoration: none; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -727,6 +764,65 @@ export const THEME_PRESETS: ThemePreset[] = [
       },
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'center', titleSize: 2.4, subtitleSize: 1.15 }
+    }
+  },
+
+  // — Academic essay: the APA 7 student paper (Publication Manual,
+  // 7th ed.) — US Letter with 1in margins, Times (TeX Gyre Termes) 12 pt
+  // double-spaced throughout, ragged right without hyphenation, every
+  // paragraph indented 0.5in; a title page (bold title, then author,
+  // affiliation, course, instructor and date, all centred) with the page
+  // number top right on every page; Level 1 headings centred bold,
+  // Level 2 flush-left bold, Level 3 bold italic, all at text size; block
+  // quotations indented 0.5in without quotation marks; References on a
+  // new page with 0.5in hanging indents. The rest is template CSS
+  // (ESSAY_TEMPLATE_CSS). Fixture: tests/fixtures/theme-shots/essay.md.
+  {
+    id: 'essay',
+    category: 'writing',
+    theme: {
+      // §2.22: 1in margins on all sides.
+      page: { size: 'Letter', orientation: 'portrait', margin: 25.4 },
+      meta: { font: 'TeX Gyre Termes' },
+      // §2.19 12 pt Times; §2.21 double spacing; §2.23 flush left, ragged right, no hyphenation; §2.24 indent (0.5in in the template CSS), no space between paragraphs.
+      body: { font: 'TeX Gyre Termes', size: 12, lineHeight: 2, textAlign: 'left', color: '#000000', background: '#FFFFFF', dropCap: false, firstLineIndent: true, paragraphSpacing: 0, hyphenate: false },
+      headings: {
+        font: 'TeX Gyre Termes',
+        scale: 1.2,
+        weight: 700,
+        underline: false,
+        color: '#000000',
+        letterSpacing: 0,
+        lineHeight: 1.6,
+        spacingScale: 0.5,
+        numbering: 'none',
+        // §2.27: every level at text size and bold; Level 1 centred, Level 3 bold italic.
+        levels: { h1: { size: 1, align: 'center' }, h2: { size: 1 }, h3: { size: 1, style: 'italic' }, h4: { size: 1 } }
+      },
+      color: { brand: '#000000', secondary: '#000000' },
+      brand: { logoUrl: '', logoHeight: 48 },
+      layout: { columns: 1, columnGap: 8 },
+      // §2.18: student papers carry only the page number, top right; no running head.
+      header: { left: '', center: '', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
+      // APA tables and figures (ch. 7): horizontal rules only, the numbered label above.
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
+      // §8.27 block quotations (no rule, no italics — template CSS); §9.43 hanging references.
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging' },
+      mermaid: { theme: 'document' },
+      // Ink-on-paper: APA papers have no admonitions; keep them dark and muted.
+      alerts: {
+        note: '#1f3a6e',
+        tip: '#175c2e',
+        important: '#5d3d99',
+        warning: '#7a5200',
+        caution: '#9b1a25'
+      },
+      toc: { maxDepth: 3, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      // §2.3: bold title at text size, author / affiliation / course / instructor / date in regular weight, centred; the template CSS turns the block into a title page.
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: false, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 700, showLogo: false, align: 'center', titleSize: 1, subtitleSize: 1 },
+      customCss: ESSAY_TEMPLATE_CSS
     }
   },
 

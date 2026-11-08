@@ -1071,6 +1071,10 @@
         "name": "Novela",
         "description": "Serif Crimson Text para lectura extensa. Sin bloques de código, citas simples, solo un número de página en el pie."
       },
+      "essay": {
+        "name": "Ensayo académico (APA)",
+        "description": "El trabajo estudiantil según APA 7: US Letter, Times 12 pt a doble espacio y alineado a la izquierda, sangría de párrafo de 0,5 pulgadas, portada con autor, curso, docente y fecha, número de página arriba a la derecha, títulos en negrita centrados, citas en bloque con sangría y referencias en una página nueva con sangría francesa."
+      },
       "newsletter": {
         "name": "Boletín",
         "description": "Cuerpo Karla bajo encabezados PT Serif, acento verde, encabezados de tabla con color de marca — sensación de resumen semanal."
