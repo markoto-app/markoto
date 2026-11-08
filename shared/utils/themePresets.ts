@@ -185,6 +185,59 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 `
 
 /**
+ * DESIGN_DOC_TEMPLATE_CSS — what the "Design doc / RFC" look needs beyond
+ * theme fields: the metadata table under the title set as a document
+ * header (labels in small caps, the status as a badge), decision records
+ * (runs of paragraphs that open with a bold label: **D1.** …) on an accent
+ * rule, comparison tables with a label column and a highlighted
+ * proposed option, quiet inline code. Ordinary custom CSS
+ * (tests/unit/themePresetCss.test.ts).
+ */
+const DESIGN_DOC_TEMPLATE_CSS = `/* Design doc / RFC template. */
+/* Grid: prose in a ~75-character column; the rest of the text width is the review margin, which tables, code and diagrams may use. */
+.paged-doc > p, .paged-doc > ul, .paged-doc > ol, .paged-doc > dl, .paged-doc > blockquote, .paged-doc > h1, .paged-doc > h2, .paged-doc > h3, .paged-doc > h4, .paged-doc > .markdown-alert { max-width: 122mm; }
+.pagedjs_pages .pagedjs_page .pagedjs_footnote_area .footnote { max-width: 122mm; }
+/* Title block: the subtitle (team · document type) is an eyebrow over the title. */
+.paged-doc .markoto-title-block { display: flex; flex-direction: column; margin-bottom: 0.9em; }
+.paged-doc .markoto-title-block .markoto-cover-subtitle { order: -1; margin: 0 0 5pt; font-style: normal; font-size: 0.82em; font-weight: 500; letter-spacing: 0.07em; text-transform: uppercase; color: var(--doc-secondary); }
+.paged-doc .markoto-title-block .markoto-cover-title { margin: 0 0 6pt; max-width: 140mm; line-height: 1.15; letter-spacing: -0.01em; }
+/* Document header: a two-column table without header labels (Status, Authors, Reviewers …) sits between two rules, without row lines. */
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) { width: 100%; margin: 0 0 1.8em; font-size: 0.92em; border-top: 1pt solid var(--doc-heading-color); border-bottom: 0.5pt solid var(--doc-secondary); }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) thead { display: none; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr { border: 0; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) td { padding: 1.6pt 0; vertical-align: baseline; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td { padding-top: 6pt; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:last-child td { padding-bottom: 6pt; }
+/* Its labels: small caps in the muted grey at a fixed width, so the values form one column. */
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) td:first-child { width: 34mm; }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) td:first-child strong { font-weight: 500; font-variant-caps: all-small-caps; letter-spacing: 0.06em; color: var(--doc-secondary); }
+/* The first row is the document's status: a dot and semibold text in the accent colour. */
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td:last-child { font-weight: 600; color: var(--doc-accent); }
+.paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td:last-child::before { content: ""; display: inline-block; width: 0.5em; height: 0.5em; margin-right: 0.5em; border-radius: 50%; background: var(--doc-accent); }
+/* Section numbers in the accent colour for "see 3.2" in review comments. */
+.paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { color: var(--doc-accent); margin-right: 0.6em; }
+/* Decision records: paragraphs that open with a bold label (D1., D2. …), two or more in a row, sit on an accent rule with the label in the accent. */
+.paged-doc > p:has(> strong:first-child):has(+ p > strong:first-child), .paged-doc > p:has(> strong:first-child) + p:has(> strong:first-child) { padding: 0.15em 0 0.15em 0.9em; border-left: 2pt solid var(--doc-accent); }
+.paged-doc > p:has(> strong:first-child):has(+ p > strong:first-child) > strong:first-child, .paged-doc > p:has(> strong:first-child) + p:has(> strong:first-child) > strong:first-child { color: var(--doc-accent); }
+/* Tables: a step smaller, tabular figures, a firm rule under the header, hairlines between rows. */
+.paged-doc table { font-size: 0.9em; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.paged-doc thead th { font-weight: 600; vertical-align: bottom; border-bottom: 0.75pt solid var(--doc-heading-color); }
+/* Cells hold short phrases, identifiers and figures: no automatic hyphenation ("ac-counts", "docu-mented"). */
+.paged-doc th, .paged-doc td { hyphens: manual; }
+/* Comparison tables (an empty top-left cell): the first column holds the row labels. */
+.paged-doc table:has(> thead th:first-child:empty) tbody td:first-child { font-weight: 600; color: var(--doc-heading-color); }
+/* An option marked in bold in its header cell ("B … (proposed)") is the recommendation: accent text under an accent bar. */
+.paged-doc thead th:has(strong) { color: var(--doc-accent); box-shadow: inset 0 2pt 0 var(--doc-accent); }
+/* Task lists (open questions): a wrapped line continues under the text, not under the checkbox. */
+.paged-doc li.task-list-item { padding-left: 2em; text-indent: -2em; }
+/* Inline code: a faint tint without a box, never broken at a hyphen ("eu-" / "central"; a long span may run into the review margin); plain in table cells. */
+.paged-doc :not(pre) > code { font-size: 0.88em; padding: 0.05em 0.2em; border: 0; white-space: nowrap; background: color-mix(in srgb, var(--doc-text) 6%, transparent); }
+.paged-doc td code { background: none; padding: 0; white-space: normal; }
+/* Links mostly point inside the document: accent text, no underline. */
+.paged-doc a { text-decoration: none; }
+`
+
+/**
  * BUSINESS_REPORT_TEMPLATE_CSS — what the business-report look needs beyond
  * theme fields: the two-width grid, section-opener bars, finance-style
  * tables (tabular figures, hairlines, rules on bold total rows), pull
@@ -695,6 +748,59 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
       cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2, subtitleSize: 1.15 },
       customCss: TECH_DOCS_TEMPLATE_CSS
+    }
+  },
+
+  // — Design doc / RFC: engineering design documents, RFCs, ADRs and
+  // technical proposals — read once, carefully, and argued about. IBM Plex
+  // Sans 10/14.5 in a ~75-character column with a deeper right margin for
+  // review notes on the printout, numbered sections ("see 3.2"), one muted
+  // indigo accent (section numbers, status, decision records, the proposed
+  // option), the doc title + current section as a quiet running head,
+  // lightly tinted IBM Plex Mono code. Template CSS:
+  // DESIGN_DOC_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/design-doc.md.
+  {
+    id: 'design-doc',
+    category: 'engineering',
+    theme: {
+      // 166 mm text width: prose takes 122 mm of it (~75 characters, template CSS), the rest is the review margin.
+      page: { size: 'A4', orientation: 'portrait', margin: 22 },
+      meta: { font: 'IBM Plex Sans' },
+      body: { font: 'IBM Plex Sans', size: 10, lineHeight: 1.45, textAlign: 'left', color: '#1F2328', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.65, hyphenate: false },
+      headings: {
+        font: 'IBM Plex Sans',
+        scale: 1.2,
+        weight: 600,
+        underline: false,
+        color: '#15171C',
+        letterSpacing: -0.005,
+        lineHeight: 1.25,
+        spacingScale: 0.8,
+        numbering: 'decimal',
+        // A quiet three-step hierarchy: 16 / 12.5 / 10.5 pt over 10 pt text.
+        levels: { h1: { size: 1.6 }, h2: { size: 1.25 }, h3: { size: 1.05 } }
+      },
+      color: { brand: '#3A428C', secondary: '#7D828C' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      // Running head: what the page is and where in the argument it stands.
+      header: { left: '{title}', center: '', right: '{section}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '{date}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'tint', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Muted, print-safe admonition hues; note follows the accent.
+      alerts: {
+        note: '#3A428C',
+        tip: '#2E6B47',
+        important: '#6B3F8F',
+        warning: '#8A5B12',
+        caution: '#A12C2C'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'title-block', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 600, showLogo: false, align: 'left', titleSize: 2.2, subtitleSize: 1 },
+      customCss: DESIGN_DOC_TEMPLATE_CSS
     }
   },
 
