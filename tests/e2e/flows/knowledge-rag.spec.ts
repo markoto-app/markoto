@@ -324,19 +324,22 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   )
 
   // The agentic loop typically runs 1-3 turns for a knowledge query:
-  // search_knowledge → (optional) get_knowledge_file → insert_text
+  // search_knowledge and/or get_knowledge_file → insert_text
   // with the grounded answer. 90s budget covers worst case.
   await editor.page.waitForAiIdle()
 
-  // ASSERTION: the AI actually searched the knowledge base this session
-  // (the Activity log records every AI tool call) and the paragraph it
+  // ASSERTION: the AI actually consulted the knowledge base this session
+  // (the Activity log records every AI tool call) — through
+  // search_knowledge, or by reading the file directly with
+  // get_knowledge_file, which the model picks when the workspace holds a
+  // single short file; both are grounded — and the paragraph it
   // wrote carries the file's real figures — 5%, 24 hours, 12 hours.
   // Invented numbers ("~40%", "5–10%") fail here.
   const docId = editor.page.currentDocId()
   await expect.poll(async () => {
     const res = await page.request.get(`/api/docs/${docId}/activity`)
     return res.ok() ? JSON.stringify(await res.json()) : ''
-  }, { timeout: 15_000, message: 'the AI never called search_knowledge' }).toMatch(/search_knowledge/)
+  }, { timeout: 15_000, message: 'the AI never consulted the knowledge base' }).toMatch(/"tool":"(search_knowledge|get_knowledge_file)"/)
   const docText = await editor.page.docText()
   expect(docText).toMatch(/5\s?%/)
   expect(docText).toMatch(/24[\s-]?(h\b|hours?)/i)
