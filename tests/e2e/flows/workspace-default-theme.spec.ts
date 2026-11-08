@@ -67,7 +67,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   const clearCard = page.locator('[data-testid="workspace-default-theme-clear"]')
   await expect(clearCard).toBeVisible()
 
-  // ─── Pick the academic preset ───────────────────────────────────
+  // ─── Pick the Corporate report preset ───────────────────────────
   await flow.heading('Pick a preset', 3)
   await flow.narrate(
     'The grid lists every built-in preset (and any themes you\'ve '
@@ -76,12 +76,12 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   )
 
   await flow.click(
-    'Pick the academic preset',
-    page.locator('[data-testid="workspace-default-theme-preset-academic"]'),
+    'Pick the Corporate report preset',
+    page.locator('[data-testid="workspace-default-theme-preset-business-report"]'),
     {
-      result: 'The academic card is now selected — every new doc in this workspace starts with this preset.',
+      result: 'The Corporate report card is now selected — every new doc in this workspace starts with this preset.',
       annotations: [
-        { label: 'Academic preset', selector: '[data-testid="workspace-default-theme-preset-academic"]', kind: 'arrow' }
+        { label: 'Corporate report preset', selector: '[data-testid="workspace-default-theme-preset-business-report"]', kind: 'arrow' }
       ],
       // The pick saves immediately — wait until the server has it.
       after: () => expect.poll(async () => {
@@ -98,7 +98,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   const wsCheck = await page.request.get(`/api/workspaces/${ws.workspaceId}`).then(r => r.json()) as {
     workspace: { defaultTheme?: { headings?: { font?: string } } | null }
   }
-  // The academic preset's heading font is Source Serif Pro — a
+  // The Corporate report preset's heading font is Source Serif 4 — a
   // marker we can read back. We don't assert the whole theme
   // (would couple this test to the preset's exact JSON shape).
   expect(wsCheck.workspace.defaultTheme).toBeTruthy()
@@ -108,8 +108,8 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   await flow.heading('Create a doc — your default is preselected', 3)
   await flow.narrate(
     'Hit "+ New document" in the workspace. The new-doc dialog '
-    + 'opens with the academic card already lit up under the Theme '
-    + 'question — your pick, ready to go. The member can override, '
+    + 'opens with the Corporate report card already lit up under '
+    + 'Design — your pick, ready to go. The member can override, '
     + 'but they don\'t have to.'
   )
 
@@ -129,7 +129,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
       after: () => editor.page.waitForNewDocDialog()
     }
   )
-  await expect(page.locator('[data-testid="newdoc-section-design-summary"]')).toHaveText('Academic Paper')
+  await expect(page.locator('[data-testid="newdoc-section-design-summary"]')).toHaveText('Corporate report')
 
   await flow.click(
     'Open "Design"',
@@ -142,22 +142,22 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
 
   // The new-doc dialog shows the workspace's default theme as the
   // selected card. When the workspace default IS a built-in preset
-  // (academic in our case), the matching preset card lights up
+  // (Corporate report in our case), the matching preset card lights up
   // directly — no separate "inherit" card is rendered.
-  // ASSERTION: the academic card is the selected one.
-  const academicCard = page.locator('[data-testid="newdoc-theme-card-academic"]')
-  await expect(academicCard).toHaveAttribute('aria-pressed', 'true')
+  // ASSERTION: the Corporate report card is the selected one.
+  const presetCard = page.locator('[data-testid="newdoc-theme-card-business-report"]')
+  await expect(presetCard).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('[data-testid^="newdoc-theme-card-"][aria-pressed="true"]')).toHaveCount(1)
   // Bring the card into view so the frame shows what the caption says.
-  await academicCard.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
-  await expect(academicCard).toBeInViewport()
+  await presetCard.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
+  await expect(presetCard).toBeInViewport()
 
   await flow.shot(
-    'In the design picker, the academic card is preselected.',
+    'In the design picker, the Corporate report card is preselected.',
     {
       hero: true,
       highlights: [
-        { label: 'Workspace default — preselected', selector: '[data-testid="newdoc-theme-card-academic"]' }
+        { label: 'Workspace default — preselected', selector: '[data-testid="newdoc-theme-card-business-report"]' }
       ]
     }
   )

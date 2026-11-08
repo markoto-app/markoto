@@ -10,8 +10,8 @@ import { test, expect } from '../fixtures/flow'
 //
 // The doc starts with the cover OFF so the first preview page shows the
 // report: each preset's typography is visible without scrolling. Presets
-// replace the whole theme, cover included — Academic Paper turns the
-// cover on, so its two columns are shown on page 2 (scrolled to).
+// replace the whole theme, cover included — arXiv preprint swaps the
+// cover for a title block at the top of page 1 (scrolled to).
 //
 // Runs on desktop AND mobile. Mobile routes through the bottom-tab-bar
 // Theme entry and stops after the preset switch (no preview iframe on
@@ -93,21 +93,21 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   )
 
   await flow.click(
-    'Click "Academic Paper" for a journal-style two-column layout',
-    editor.page.theme.preset('academic'),
+    'Click "arXiv preprint" for the look of a LaTeX paper',
+    editor.page.theme.preset('arxiv'),
     {
       // Mobile: theme presets render inside the BottomSheet portal.
       // See `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
       force: editor.isMobile,
       result: editor.isMobile
-        ? 'Academic Paper is applied: serif type, justified text, two columns in the PDF.'
-        : 'The text switches to a serif, justified in two columns, with numbered sections. '
-          + 'Academic Paper sets the title, authors and date in a title block at the top of page 1.',
+        ? 'arXiv preprint is applied: Times, justified text, numbered sections.'
+        : 'The text switches to Times, justified, with numbered sections. '
+          + 'arXiv preprint sets the title and the date in a title block at the top of page 1.',
       after: async () => {
-        await expect.poll(async () => (await themeMeta()).color.brand.toLowerCase()).toBe('#1e3a8a')
+        await expect.poll(async () => (await themeMeta()).color.brand.toLowerCase()).toBe('#000000')
         if (!editor.isMobile) {
-          await expect.poll(previewBrand).toBe('#1e3a8a')
-          // Academic uses a title block (no cover page): the columns start on page 1.
+          await expect.poll(previewBrand).toBe('#000000')
+          // arXiv uses a title block (no cover page): the text starts on page 1.
           await editor.page.scrollPreviewTo('.pagedjs_page[data-page-number="1"]')
         }
       }

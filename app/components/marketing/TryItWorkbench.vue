@@ -7,7 +7,8 @@ import { syntaxHighlighting } from '@codemirror/language'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { markotoMarkdownHighlight } from '~/utils/markdownHighlight'
 import { formattingKeymap } from '~/utils/editorCommands'
-import { titleFromMarkdown, tryItErrorKey } from '~/utils/tryIt'
+import { titleFromMarkdown, tryItErrorKey, withoutTitleHeading } from '~/utils/tryIt'
+import { showsTitleItself } from '~~/shared/utils/markdownTitle'
 import { AnonGateCancelled } from '~/composables/useAnonGate'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
@@ -45,6 +46,12 @@ const anonDoc = useAnonDocCreate()
 const text = ref(props.initial)
 const title = computed(() => titleFromMarkdown(text.value))
 const theme = computed(() => THEME_PRESETS.find(p => p.id === props.themePreset)?.theme ?? defaultTheme)
+// Title-block themes (papers) set the title on page 1 themselves: the
+// leading `# Title` is the document title, not body text, so it is left
+// out of the preview and of the created document (whose title it becomes).
+const bodyText = computed(() => {
+  return showsTitleItself(theme.value.cover) ? withoutTitleHeading(text.value) : text.value
+})
 const tooLong = computed(() => text.value.length > INITIAL_CONTENT_MAX_LENGTH)
 
 // ── Editor ───────────────────────────────────────────────────────────
@@ -101,7 +108,7 @@ onBeforeUnmount(() => {
 })
 
 // ── Preview (the editor's client pipeline, no document) ─────────────
-const { rendered } = useMarkdownPreview(text)
+const { rendered } = useMarkdownPreview(bodyText)
 const previewHost = ref<HTMLElement | null>(null)
 const { pageCount, isReady, error: previewError } = usePagedPreview({
   html: rendered,
@@ -132,11 +139,11 @@ const notice = computed(() => {
 async function ensureDocument(): Promise<string> {
   const current = text.value
   if (created && created.text === current) return created.docId
-  const body: Record<string, unknown> = { content: current }
-  if (title.value) body.title = title.value
-  if (props.language) body.language = props.language
-  if (props.themePreset && THEME_PRESETS.some(p => p.id === props.themePreset)) body.themePreset = props.themePreset
-  const docId = await anonDoc.createDocument(body)
+  const request: Record<string, unknown> = { content: bodyText.value }
+  if (title.value) request.title = title.value
+  if (props.language) request.language = props.language
+  if (props.themePreset && THEME_PRESETS.some(p => p.id === props.themePreset)) request.themePreset = props.themePreset
+  const docId = await anonDoc.createDocument(request)
   created = { text: current, docId }
   return docId
 }

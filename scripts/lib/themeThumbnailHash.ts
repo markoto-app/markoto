@@ -4,6 +4,7 @@ import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse as parseYaml } from 'yaml'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
+import { showsTitleItself, withoutTitleHeading } from '../../shared/utils/markdownTitle'
 
 /**
  * What a preset's design-picker thumbnail is rendered from: the preset
@@ -72,7 +73,11 @@ export function gallerySources(): Record<string, GallerySource> {
     if (typeof value.tryIt === 'string') {
       const { theme, source } = firstTryIt(resolve(FIXTURE_DIR, value.tryIt))
       const title = /^#\s+(.+)$/m.exec(source)?.[1]?.trim() ?? id
-      out[id] = { md: source, title, theme, pageNumber }
+      // Same as the page's workbench: a title-block theme sets the title
+      // itself, so the example's leading `# Title` stays out of the body.
+      const cover = THEME_PRESETS.find(p => p.id === theme)?.theme.cover
+      const md = cover && showsTitleItself(cover) ? withoutTitleHeading(source) : source
+      out[id] = { md, title, theme, pageNumber }
     } else if (typeof value.md === 'string' && typeof value.title === 'string' && typeof value.theme === 'string') {
       out[id] = { md: readFileSync(resolve(FIXTURE_DIR, value.md), 'utf8'), title: value.title, theme: value.theme, pageNumber }
     } else {

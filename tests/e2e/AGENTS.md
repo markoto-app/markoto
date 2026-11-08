@@ -188,7 +188,7 @@ All nine Tier-1 flows shipped:
 - **`pick-a-theme`** — open theme panel → switch presets → toggle cover (desktop only — mobile skipped because half the visual story is the live preview iframe, which mobile hides).
 - **`ai-prompt-bar`** (slug: `write-with-ai`) — focus prompt bar → ask AI to extend the doc → AI's edits stream into the editor.
 - **`ai-comment-mention`** (slug: `summon-ai-from-a-comment`) — `@markoto` typeahead → post comment → AI replies on the same thread.
-- **`polished-pdf`** — pick the academic preset → File → Save as PDF (desktop only — menubar hidden on mobile).
+- **`polished-pdf`** — File → Save as PDF (desktop only — menubar hidden on mobile).
 - **`import-existing`** (slug: `import-existing-document`) — File → Import → drop HTML/DOCX/PDF/PPTX → markitdown converts → Replace welcome content (desktop only).
 - **`rich-content`** — Insert menu → code block + alert + KaTeX math + Mermaid pie (desktop only).
 - **`password-protect`** — switch access mode → set passphrase → spawn a visitor (`flow.spawn('visitor')`) in a fresh `BrowserContext` → visitor hits PasswordModal → unlock. Hero is the visitor's unlocked outcome, latched across actors.

@@ -288,15 +288,15 @@ describe('POST /api/docs — theme resolution order', () => {
     const ws = await createWorkspace(admin.id)
     await setMemberRole(ws.workspaceId, admin.id, 'admin')
     const adminClient = await loggedInClient(admin.id)
-    const academic = THEME_PRESETS.find(p => p.id === 'academic')!
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')!
     await adminClient.put(`/api/workspaces/${ws.workspaceId}`, {
-      defaultTheme: academic.theme
+      defaultTheme: arxiv.theme
     })
     const res = await adminClient.post('/api/docs', { workspaceId: ws.workspaceId })
     expect(res.status).toBe(200)
     const { docId } = await res.json() as { docId: string }
     const stored = await readDocTheme(docId)
-    expect(stored).toEqual(academic.theme)
+    expect(stored).toEqual(arxiv.theme)
   })
 
   it('themePreset takes precedence over the workspace default', async () => {
@@ -304,29 +304,29 @@ describe('POST /api/docs — theme resolution order', () => {
     const ws = await createWorkspace(admin.id)
     await setMemberRole(ws.workspaceId, admin.id, 'admin')
     const adminClient = await loggedInClient(admin.id)
-    const academic = THEME_PRESETS.find(p => p.id === 'academic')!
-    const novel = THEME_PRESETS.find(p => p.id === 'novel')!
-    await adminClient.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: academic.theme })
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')!
+    const thesis = THEME_PRESETS.find(p => p.id === 'thesis')!
+    await adminClient.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: arxiv.theme })
     const res = await adminClient.post('/api/docs', {
       workspaceId: ws.workspaceId,
-      themePreset: 'novel'
+      themePreset: 'thesis'
     })
     const { docId } = await res.json() as { docId: string }
-    expect(await readDocTheme(docId)).toEqual(novel.theme)
+    expect(await readDocTheme(docId)).toEqual(thesis.theme)
   })
 
   it('saved themeId resolves to that theme for the owner', async () => {
     const user = await createUser()
     const client = await loggedInClient(user.id)
-    const academic = THEME_PRESETS.find(p => p.id === 'academic')!
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')!
     const created = await (await client.post('/api/themes', {
-      name: 'Saved-Academic',
-      theme: academic.theme
+      name: 'Saved-arXiv',
+      theme: arxiv.theme
     })).json() as { themeId: string }
     const res = await client.post('/api/docs', { themeId: created.themeId })
     expect(res.status).toBe(200)
     const { docId } = await res.json() as { docId: string }
-    expect(await readDocTheme(docId)).toEqual(academic.theme)
+    expect(await readDocTheme(docId)).toEqual(arxiv.theme)
   })
 
   it('rejects passing both themePreset AND themeId with 400', async () => {
@@ -359,18 +359,18 @@ describe('POST /api/docs — theme resolution order', () => {
     const ws = await createWorkspace(admin.id)
     await setMemberRole(ws.workspaceId, admin.id, 'admin')
     const adminClient = await loggedInClient(admin.id)
-    const academic = THEME_PRESETS.find(p => p.id === 'academic')!
-    const novel = THEME_PRESETS.find(p => p.id === 'novel')!
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')!
+    const thesis = THEME_PRESETS.find(p => p.id === 'thesis')!
 
-    await adminClient.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: academic.theme })
+    await adminClient.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: arxiv.theme })
     const { docId } = await (await adminClient.post('/api/docs', {
       workspaceId: ws.workspaceId
     })).json() as { docId: string }
-    expect(await readDocTheme(docId)).toEqual(academic.theme)
+    expect(await readDocTheme(docId)).toEqual(arxiv.theme)
 
-    // Change workspace default. Existing doc must keep academic.
-    await adminClient.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: novel.theme })
-    expect(await readDocTheme(docId)).toEqual(academic.theme)
+    // Change workspace default. Existing doc must keep arxiv.
+    await adminClient.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: thesis.theme })
+    expect(await readDocTheme(docId)).toEqual(arxiv.theme)
   })
 })
 

@@ -171,7 +171,7 @@ describe('update_theme schema', () => {
 
   it('accepts valid preset ids', () => {
     expect(parse('update_theme', { preset: 'modern' }).success).toBe(true)
-    expect(parse('update_theme', { preset: 'academic' }).success).toBe(true)
+    expect(parse('update_theme', { preset: 'arxiv' }).success).toBe(true)
   })
 
   it('rejects unknown preset id', () => {

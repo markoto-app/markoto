@@ -204,13 +204,13 @@ describe('GET /api/_internal/render-bootstrap', () => {
   // anonymous doc came out in the default theme.
   it('takes theme + properties from the replayed Y.js meta (anonymous doc, row theme NULL)', async () => {
     await ensureYjsTable()
-    const academic = THEME_PRESETS.find(p => p.id === 'academic')?.theme
-    expect(academic).toBeDefined()
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
+    expect(arxiv).toBeDefined()
     const doc = await createDoc({ ownerId: null, title: 'Row title' })
     const ydoc = new Y.Doc()
     ydoc.getText('content').insert(0, '# Hello\n')
     const ymeta = ydoc.getMap('meta')
-    ymeta.set('theme', academic)
+    ymeta.set('theme', arxiv)
     ymeta.set('title', 'Live title')
     ymeta.set('language', 'de')
     const inserted = await testDb().query<{ id: number }>(
@@ -225,7 +225,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({
       markdown: '# Hello\n',
-      theme: academic,
+      theme: arxiv,
       title: 'Live title',
       language: 'de'
     })

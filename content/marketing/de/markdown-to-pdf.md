@@ -10,7 +10,7 @@ keywords:
   - markdown pdf mit inhaltsverzeichnis
 # Menu label once reviewed (group + order come from the English page).
 navLabel: "Markdown in PDF"
-updated: '2026-11-04'
+updated: '2026-11-08'
 # Machine draft, not yet read by a native speaker: noindex, no hreflang,
 # not in the sitemap (shared/seo/marketing.ts). See docs/TRANSLATION-REVIEW.md.
 reviewed: false
@@ -74,12 +74,12 @@ Ein Konverter macht aus Markdown eine einzige lange HTML-Seite und druckt sie. m
 
 ## Das Aussehen ändern, ohne den Text anzufassen
 
-Jedes Dokument hat ein Theme: Schriften, Farben, Ränder, Spalten, Tabellen, Kopfzeile, Fusszeile und Deckblatt. Acht Vorlagen sind eingebaut: markoto, Modern, Wissenschaftliche Arbeit (zweispaltig), Technischer Bericht, Geschäftsbericht, Roman, Newsletter und Lebenslauf. Wählen Sie eine aus und passen Sie danach jedes Detail an. Vorschau und PDF verwenden dasselbe Theme. Reicht keine Einstellung, können Sie einem Dokument eigenes [CSS](/docs/themes/custom-css) hinzufügen.
+Jedes Dokument hat ein Theme: Schriften, Farben, Ränder, Spalten, Tabellen, Kopfzeile, Fusszeile und Deckblatt. Eingebaut sind unter anderem die Vorlagen markoto, Modern, arXiv-Preprint, IEEE-Konferenzbeitrag (zweispaltig), Abschlussarbeit, Technische Dokumentation, Unternehmensbericht, Newsletter und Lebenslauf. Wählen Sie eine aus und passen Sie danach jedes Detail an. Vorschau und PDF verwenden dasselbe Theme. Reicht keine Einstellung, können Sie einem Dokument eigenes [CSS](/docs/themes/custom-css) hinzufügen.
 
 ::flow-strip{id="pick-a-theme" frames="05,14"}
 ---
 captions:
-  - Die Vorlage «Wissenschaftliche Arbeit» setzt den Text in einer Serifenschrift im Blocksatz, zweispaltig, und fügt ein Deckblatt hinzu.
+  - Die Vorlage «arXiv-Preprint» setzt den Text in Times im Blocksatz, nummeriert die Abschnitte und stellt den Titel in einem Block oben auf Seite 1.
   - Die Vorlage markoto mit ihrem Deckblatt, das Logo, Titel und Datum zeigt, aber keine Seitenzahl.
 ---
 ::

@@ -1,5 +1,7 @@
 import { ANON_GATE_CODES } from '~~/shared/config/anonGate'
 
+export { withoutTitleHeading } from '~~/shared/utils/markdownTitle'
+
 // Pure helpers of the marketing `::try-it` block (components/content/TryIt.vue
 // + components/marketing/TryItWorkbench.vue).
 

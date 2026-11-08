@@ -3,7 +3,7 @@ title: Edit your cover page
 description: Four cover-page layouts, an optional header image, size knobs — the front-page treatment is its own little design surface.
 category: themes
 order: 4
-updated: '2026-11-06'
+updated: '2026-11-08'
 ---
 
 # Edit your cover page
@@ -32,8 +32,8 @@ the cover you see is the cover you get.
 
 Papers usually have no cover page: the title, the authors and the
 abstract sit at the top of page 1 and the text starts right below. Pick
-**Title block on page 1 (paper)** as the layout. The Academic Paper
-preset uses it.
+**Title block on page 1 (paper)** as the layout. The arXiv preprint
+and IEEE conference paper presets use it.
 
 - **Authors and affiliations.** Turn on *Show authors* and add each
   author. With the title block, every author gets a second field for the

@@ -20,8 +20,8 @@ vi.mock('../../server/repos/documents', async (importOriginal) => {
 })
 const mockedGetDoc = vi.mocked(getDoc)
 
-const academic = THEME_PRESETS.find(p => p.id === 'academic')?.theme
-if (!academic) throw new Error('academic preset missing')
+const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
+if (!arxiv) throw new Error('arxiv preset missing')
 
 function row(overrides: Partial<DocSnapshot> = {}): DocSnapshot {
   return {
@@ -77,7 +77,7 @@ describe('export_document_as_markdown', () => {
   it('writes markoto frontmatter (live ymeta theme + properties) above the raw body', async () => {
     mockedGetDoc.mockResolvedValue(row())
     const body = '# Report\n\nLine one.\n'
-    const res = await run(session(body, { theme: academic, title: 'Live title' }))
+    const res = await run(session(body, { theme: arxiv, title: 'Live title' }))
     expect(res.isError).toBe(false)
     const split = splitMarkotoFrontmatter(String(res.content))
     expect(split.kind).toBe('markoto')
@@ -90,7 +90,7 @@ describe('export_document_as_markdown', () => {
       audience: 'business',
       language: 'fr',
       templateId: 'blank',
-      theme: academic
+      theme: arxiv
     })
     // No line-number prefixes (that's view_document).
     expect(String(res.content)).not.toMatch(/^1:\s/m)

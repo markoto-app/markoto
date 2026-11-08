@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { titleFromMarkdown, tryItErrorKey } from '../../app/utils/tryIt'
+import { titleFromMarkdown, tryItErrorKey, withoutTitleHeading } from '../../app/utils/tryIt'
 
 // Pure helpers of the marketing `::try-it` block.
 
@@ -17,6 +17,18 @@ describe('titleFromMarkdown', () => {
   it('is empty without a heading and caps the length', () => {
     expect(titleFromMarkdown('Just a paragraph.')).toBe('')
     expect(titleFromMarkdown(`# ${'a'.repeat(400)}`)).toHaveLength(255)
+  })
+})
+
+describe('withoutTitleHeading', () => {
+  it('drops a leading level-1 heading and the blank lines after it', () => {
+    expect(withoutTitleHeading('\n# Paper title\n\nAuthor line\n\n## Abstract\n')).toBe('Author line\n\n## Abstract\n')
+  })
+
+  it('keeps text that does not open with a level-1 heading', () => {
+    expect(withoutTitleHeading('## Abstract\n\nText')).toBe('## Abstract\n\nText')
+    expect(withoutTitleHeading('Intro\n\n# Later')).toBe('Intro\n\n# Later')
+    expect(withoutTitleHeading('#hashtag\n\nText')).toBe('#hashtag\n\nText')
   })
 })
 

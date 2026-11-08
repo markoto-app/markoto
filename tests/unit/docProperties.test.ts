@@ -10,8 +10,8 @@ import { defaultTheme } from '../../shared/utils/defaultTheme'
 // ymeta only (the row's theme stays NULL — only the owner persists it), so
 // its server-rendered PDF came out with the default theme.
 
-const academic = THEME_PRESETS.find(p => p.id === 'academic')?.theme
-if (!academic) throw new Error('academic preset missing')
+const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme
+if (!arxiv) throw new Error('arxiv preset missing')
 
 const anonRow: DocPropertiesRow = {
   title: 'Row title',
@@ -31,13 +31,13 @@ function metaWith(entries: Record<string, unknown>): Y.Map<unknown> {
 
 describe('resolveDocProperties', () => {
   it('anonymous doc: theme set only in ymeta is used (row theme NULL)', () => {
-    const props = resolveDocProperties(metaWith({ theme: academic }), anonRow)
-    expect(props.theme).toEqual(academic)
+    const props = resolveDocProperties(metaWith({ theme: arxiv }), anonRow)
+    expect(props.theme).toEqual(arxiv)
   })
 
   it('ymeta wins over the row for every property', () => {
     const props = resolveDocProperties(metaWith({
-      theme: academic,
+      theme: arxiv,
       title: 'Live title',
       description: '',
       audience: 'technical',
@@ -50,13 +50,13 @@ describe('resolveDocProperties', () => {
       audience: 'technical',
       language: 'de',
       templateId: 'meeting-notes',
-      theme: academic
+      theme: arxiv
     })
   })
 
   it('falls back to the row when ymeta has nothing', () => {
-    const props = resolveDocProperties(metaWith({}), { ...anonRow, theme: academic })
-    expect(props).toEqual({ ...anonRow, theme: academic })
+    const props = resolveDocProperties(metaWith({}), { ...anonRow, theme: arxiv })
+    expect(props).toEqual({ ...anonRow, theme: arxiv })
   })
 
   it('no theme anywhere → null (renderer uses the default)', () => {
@@ -70,7 +70,7 @@ describe('resolveDocProperties', () => {
       audience: 'pirate',
       language: 42,
       description: 'x'.repeat(10_000)
-    }), { ...anonRow, theme: academic })
-    expect(props).toEqual({ ...anonRow, theme: academic })
+    }), { ...anonRow, theme: arxiv })
+    expect(props).toEqual({ ...anonRow, theme: arxiv })
   })
 })

@@ -261,14 +261,14 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
 
     // Multi-column theme + cover PAGE: the cover spans both columns
     // (column-span, themeToCss coverBlock) and the body still follows it.
-    // The academic preset itself uses the title block (no cover page) since
-    // the theme foundation PR, so the cover-page layout is set explicitly.
+    // The IEEE conference preset itself uses the title block (no cover
+    // page), so the cover-page layout is set explicitly.
     it('two-column theme with a cover still renders the body after the cover', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
-      expect(academic.layout.columns).toBe(2)
-      const theme = { ...academic, cover: { ...academic.cover, enabled: true, layout: 'editorial' } }
+      const ieee = THEME_PRESETS.find(p => p.id === 'ieee-conference')!.theme
+      expect(ieee.layout.columns).toBe(2)
+      const theme = { ...ieee, cover: { ...ieee.cover, enabled: true, layout: 'editorial' } }
       await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
       const snapId = await insertYjsRow(doc.docId, multiPageBody())
 
@@ -281,7 +281,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
       const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
       // The body face only appears when body text was laid out.
-      const bodyFont = academic.body.font.replaceAll(' ', '')
+      const bodyFont = ieee.body.font.replaceAll(' ', '')
       expect(fontNames.some(n => n.replaceAll('-', '').includes(bodyFont)), fontNames.join(', ')).toBe(true)
 
       await wipeRendersFor(doc.docId)
@@ -293,9 +293,9 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
     it('two-column title block renders title, abstract and the whole body', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
-      expect(academic.cover.layout).toBe('title-block')
-      const theme = { ...academic, cover: { ...academic.cover, authors: ['Ada Kovač'], affiliations: ['University of Zurich'] } }
+      const ieee = THEME_PRESETS.find(p => p.id === 'ieee-conference')!.theme
+      expect(ieee.cover.layout).toBe('title-block')
+      const theme = { ...ieee, cover: { ...ieee.cover, authors: ['Ada Kovač'], affiliations: ['University of Zurich'] } }
       await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
       const abstract = '## Abstract\n\nWe measure stale reads under partitions.\n\n'
       const snapId = await insertYjsRow(doc.docId, abstract + multiPageBody() + multiPageBody().replace('# Test fixture', '# Second part'))
@@ -308,7 +308,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(manifest.pageCount).toBeGreaterThanOrEqual(2)
       const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(`renders/${doc.docId}/${snapId}/document.pdf`))
       const fontNames = [...pdf.matchAll(/\/(?:BaseFont|FontName)\s*\/([\w+-]+)/g)].map(m => m[1] ?? '')
-      const bodyFont = academic.body.font.replaceAll(' ', '')
+      const bodyFont = ieee.body.font.replaceAll(' ', '')
       expect(fontNames.some(n => n.replaceAll('-', '').includes(bodyFont)), fontNames.join(', ')).toBe(true)
 
       await wipeRendersFor(doc.docId)

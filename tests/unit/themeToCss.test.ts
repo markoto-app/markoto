@@ -21,8 +21,8 @@ const runtime: ThemeRuntime = {
 
 const markoto = THEME_PRESETS.find(p => p.id === 'markoto')!.theme
 const modern = THEME_PRESETS.find(p => p.id === 'modern')!.theme
-const novel = THEME_PRESETS.find(p => p.id === 'novel')!.theme
-const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
+const ieee = THEME_PRESETS.find(p => p.id === 'ieee-conference')!.theme
+const thesis = THEME_PRESETS.find(p => p.id === 'thesis')!.theme
 
 describe('themeToCss — markoto preset (the flagship + default)', () => {
   const css = themeToCss(markoto, runtime)
@@ -218,7 +218,7 @@ describe('themeToCss — Step 9: cover page', () => {
       // out inside the first column — half-width band, title centred in
       // the left column. The browser render check lives in the
       // `cover-page-editor` flow; this pins the CSS contract.
-      const twoColumn: DocTheme = { ...academic, cover: { ...academic.cover, enabled: true, layout } }
+      const twoColumn: DocTheme = { ...ieee, cover: { ...ieee.cover, enabled: true, layout } }
       expect(twoColumn.layout.columns).toBe(2)
       const css = themeToCss(twoColumn, runtime)
       expect(css).toMatch(/\.paged-doc\s*\{[^}]*column-count:\s*2/)
@@ -362,10 +362,10 @@ describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
     expect(imports).toContain('@import url(\'/vendor/fonts/jetbrains-mono.css\');')
     expect(imports).not.toMatch(/https?:\/\//)
   })
-  test('meta font defaults sensibly (markoto = JetBrains Mono, novel = body font)', () => {
+  test('meta font defaults sensibly (markoto = JetBrains Mono, thesis = body font)', () => {
     expect(THEME_PRESETS.find(p => p.id === 'markoto')!.theme.meta.font).toBe('JetBrains Mono')
-    // Novel keeps it consistent with body — no jarring third-font moment.
-    expect(THEME_PRESETS.find(p => p.id === 'novel')!.theme.meta.font).toBe('Crimson Text')
+    // Thesis keeps it consistent with body — no jarring third-font moment.
+    expect(thesis.meta.font).toBe(thesis.body.font)
   })
 })
 
@@ -403,13 +403,13 @@ describe('themeToCss — horizontal table borders', () => {
   })
 })
 
-describe('themeToCss — academic preset (first-line indent)', () => {
-  const css = themeToCss(academic, runtime)
+describe('themeToCss — first-line indent (book typography)', () => {
+  const css = themeToCss({ ...modern, body: { ...modern.body, firstLineIndent: true, paragraphSpacing: 0.4, hyphenate: true } }, runtime)
 
   test('emits `p + p` indent rule when firstLineIndent=true', () => {
     expect(css).toMatch(/p \+ p\s*\{\s*text-indent:\s*1\.2em/)
   })
-  test('paragraph spacing tightened to 0.4em', () => {
+  test('paragraph spacing follows body.paragraphSpacing', () => {
     expect(css).toMatch(/\.paged-doc p\s*\{[^}]*margin:\s*0\.40em\s*0/)
   })
   test('hyphenation enabled on body', () => {
@@ -417,8 +417,13 @@ describe('themeToCss — academic preset (first-line indent)', () => {
   })
 })
 
-describe('themeToCss — novel preset (literary signature)', () => {
-  const css = themeToCss(novel, runtime)
+describe('themeToCss — literary signature (drop cap, indent, asterism)', () => {
+  const literary: DocTheme = {
+    ...modern,
+    body: { ...modern.body, dropCap: true, firstLineIndent: true, paragraphSpacing: 0.2 },
+    blocks: { ...modern.blocks, hrStyle: 'asterism' }
+  }
+  const css = themeToCss(literary, runtime)
 
   test('emits asterism HR (literary scene break)', () => {
     expect(css).toMatch(/hr::before[^{]*\{[^}]*content:\s*'⁂'/)
@@ -426,7 +431,7 @@ describe('themeToCss — novel preset (literary signature)', () => {
   test('drop cap enabled', () => {
     expect(css).toContain('.markoto-dropcap')
   })
-  test('first-line indent enabled (novel typography)', () => {
+  test('first-line indent enabled', () => {
     expect(css).toMatch(/p \+ p\s*\{\s*text-indent:\s*1\.2em/)
   })
   test('tight paragraph spacing 0.2em (indent carries the visual break)', () => {
@@ -465,9 +470,9 @@ describe('themeToCss — schema completeness invariants', () => {
       expect(css).toContain('--doc-secondary')
     }
   })
-  test('all 0 presets exist', () => {
+  test('all 20 presets exist', () => {
     expect(THEME_PRESETS.map(p => p.id)).toEqual([
-      'markoto', 'modern', 'academic', 'arxiv', 'ieee-conference', 'lecture-notes', 'thesis', 'tech-docs', 'api-reference', 'design-doc', 'business-report', 'one-pager', 'proposal', 'memo', 'novel', 'manuscript', 'essay', 'newsletter', 'resume', 'runbook'
+      'markoto', 'modern', 'arxiv', 'ieee-conference', 'lecture-notes', 'thesis', 'tech-docs', 'api-reference', 'design-doc', 'business-report', 'one-pager', 'proposal', 'memo', 'manuscript', 'essay', 'newsletter', 'resume', 'runbook'
     ])
   })
   test('markoto is first preset (becomes default in new-doc dialog)', () => {

@@ -118,8 +118,8 @@ describe('summarizeToolCall', () => {
   })
 
   it('update_theme prefers preset over field list', () => {
-    expect(summarizeToolCall('update_theme', { preset: 'academic', headings: { weight: '600' } }))
-      .toBe('preset=academic')
+    expect(summarizeToolCall('update_theme', { preset: 'arxiv', headings: { weight: '600' } }))
+      .toBe('preset=arxiv')
   })
 
   it('update_theme reports theme_id when present', () => {

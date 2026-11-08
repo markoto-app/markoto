@@ -73,8 +73,9 @@ function enterViewport(): void {
   for (const cb of io.callbacks) cb([{ isIntersecting: true }])
 }
 
-async function mountLive(route?: string) {
-  const wrapper = await mountSuspended(TryIt, route ? { props: { source: SOURCE }, route } : { props: { source: SOURCE } })
+async function mountLive(route?: string, theme?: string) {
+  const props = theme ? { source: SOURCE, theme } : { source: SOURCE }
+  const wrapper = await mountSuspended(TryIt, route ? { props, route } : { props })
   // The block only starts watching the viewport once the page has loaded
   // and the main thread is idle.
   await vi.waitFor(() => expect(io.callbacks.length).toBeGreaterThan(0))
@@ -200,6 +201,17 @@ describe('::try-it actions', () => {
     await wrapper.find('[data-testid="try-it-open"]').trigger('click')
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith('/d/doc123'))
     expect(created.bodies).toEqual([{ content: SOURCE, title: 'Field notes', language: 'en' }])
+    wrapper.unmount()
+  })
+
+  it('in a title-block theme the leading # Title becomes the title only, not body text', async () => {
+    vi.spyOn(useRouter(), 'push').mockResolvedValue(undefined)
+    const wrapper = await mountLive(undefined, 'arxiv')
+    await vi.waitFor(() => expect(md.sanitised).toHaveBeenCalledWith('Some **Markdown**.\n'))
+    expect(preview.opts?.title.value).toBe('Field notes')
+    await wrapper.find('[data-testid="try-it-open"]').trigger('click')
+    await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
+    expect(created.bodies[0]).toMatchObject({ content: 'Some **Markdown**.\n', title: 'Field notes', themePreset: 'arxiv' })
     wrapper.unmount()
   })
 

@@ -33,9 +33,6 @@ The built-in presets cover most use cases:
   The "calm field guide" voice.
 - **Modern** — clean Inter sans, blue accent, justified body. The
   neutral starting point.
-- **Academic Paper** — two-column Source Serif body, a title block
-  with authors and abstract on page 1 instead of a cover page,
-  numbered sections, minimal table borders.
 - **arXiv preprint** — the look of an arXiv LaTeX preprint: US Letter,
   Times at 10 pt, a title block between heavy rules in small capitals,
   numbered bold sections and an "A Preprint" running head over a thin
@@ -74,8 +71,6 @@ The built-in presets cover most use cases:
   paragraph, section labels in a left column, a compact key-facts
   table and a filled *Important* callout. Start with a bold paragraph
   to get the large lead.
-- **Novel** — Crimson Text serif, deep violet accent, generous
-  line-height, drop cap on page 1.
 - **Academic essay (APA)** — the APA 7 student paper: Times 12 pt
   double-spaced, a title page with your name, course, instructor and
   date, the page number top right, centred bold headings and the
@@ -88,6 +83,8 @@ The built-in presets cover most use cases:
 - **Newsletter** — a newsletter to print or send as a PDF: a bold
   masthead with the issue line, headlines and captioned photos across
   the page over two columns of text, pull quotes, a terracotta accent.
+- **Newsletter** — two-column Karla over PT Serif, green accent,
+  weekly-digest density.
 - **Resume** — one dense page: Inter at 10 pt, small headings with
   a rule, no running header, page number or cover.
 

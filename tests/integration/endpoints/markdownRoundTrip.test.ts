@@ -47,8 +47,8 @@ async function importMarkdown(text: string | Uint8Array, docId: string | null, f
   return fetch(`${TEST_BASE_URL}/api/import`, { method: 'POST', body: form })
 }
 
-function academicTheme(docId: string): DocTheme {
-  const base = structuredClone(THEME_PRESETS.find(p => p.id === 'academic')!.theme)
+function paperTheme(docId: string): DocTheme {
+  const base = structuredClone(THEME_PRESETS.find(p => p.id === 'ieee-conference')!.theme)
   return {
     ...base,
     color: { ...base.color, brand: '#3355AA' },
@@ -65,7 +65,7 @@ describe('Markdown export → import round trip', () => {
     const owner = await createUser()
     const client = await loggedInClient(owner.id)
     const source = await createDoc({ ownerId: owner.id })
-    const theme = academicTheme(source.docId)
+    const theme = paperTheme(source.docId)
     const put = await client.put(`/api/docs/${source.docId}/meta`, {
       title: 'Field notes Q3',
       description: 'What we learned this quarter',

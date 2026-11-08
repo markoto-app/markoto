@@ -135,8 +135,8 @@ describe('summarizePatch', () => {
   })
 
   it('surfaces the preset id when present', () => {
-    const s = summarizePatch({ preset: 'academic' } as UpdateThemeInput)
-    expect(s).toContain('preset=academic')
+    const s = summarizePatch({ preset: 'arxiv' } as UpdateThemeInput)
+    expect(s).toContain('preset=arxiv')
   })
 
   it('combines preset + sections with a separator', () => {

@@ -103,10 +103,10 @@ describe('importMarkdownFile (server-side validation)', () => {
   })
 
   test('another document\'s images are removed from the theme and the custom CSS', () => {
-    const academic = THEME_PRESETS.find(p => p.id === 'academic')!.theme
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')!.theme
     const theme: DocTheme = {
-      ...academic,
-      brand: { ...academic.brand, logoUrl: '/api/files/docA/abcdefghijkl.png' },
+      ...arxiv,
+      brand: { ...arxiv.brand, logoUrl: '/api/files/docA/abcdefghijkl.png' },
       customCss: '.paged-doc h2 { color: var(--doc-brand) }\n.paged-doc .hero { background: url(/api/files/docA/abcdefghijkl.png) }\n'
     }
     const file = buildMarkdownExport(BODY, { ...PROPS, theme })
