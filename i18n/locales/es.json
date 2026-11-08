@@ -1079,6 +1079,10 @@
         "name": "Informe corporativo",
         "description": "Informes trimestrales y anuales, actualizaciones para el consejo, entregables para clientes: títulos en Source Serif sobre Inter, un acento azul petróleo profundo, tablas financieras con cifras tabulares y totales destacados, citas resaltadas, pie de página discreto sobre una línea fina."
       },
+      "proposal": {
+        "name": "Propuesta comercial",
+        "description": "Propuestas y presupuestos de agencias, consultoras y autónomos: títulos en Lora sobre Work Sans, un acento cálido color óxido, un panel de portada alto, tablas de precios como en una factura con el total en doble línea, secciones numeradas y un bloque de firmas (una fila de tabla con celdas vacías se convierte en una línea para firmar)."
+      },
       "memo": {
         "name": "Memorándum / carta",
         "description": "Memorandos internos y cartas comerciales de una o dos páginas para imprimir, firmar o adjuntar: retícula de carta suiza con Para / De / Fecha / Asunto y títulos laterales en una columna de margen, texto en Inter, tablas sobrias con líneas finas, espacio para la firma, números de página desde la página 2."

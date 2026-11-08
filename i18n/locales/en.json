@@ -1079,6 +1079,10 @@
         "name": "Corporate report",
         "description": "Quarterly and annual reports, board updates, client deliverables: Source Serif headings over Inter, one deep petrol accent, finance-style tables with tabular figures and ruled totals, pull quotes, a quiet footer over a thin rule."
       },
+      "proposal": {
+        "name": "Client proposal",
+        "description": "Proposals and quotes from agencies, consultants and freelancers: Lora headings over Work Sans, one warm rust accent, a tall cover panel, invoice-style pricing tables with a double-ruled total, numbered sections and a signature block (a table row of empty cells becomes a line to sign on)."
+      },
       "memo": {
         "name": "Memo / letter",
         "description": "One- or two-page internal memos and business letters to print, sign or attach: a Swiss letter grid with To / From / Date / Subject labels and side heads in a margin column, Inter text, calm hairline tables, room to sign, page numbers from page 2."

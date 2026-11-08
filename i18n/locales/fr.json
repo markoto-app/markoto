@@ -1079,6 +1079,10 @@
         "name": "Rapport d'entreprise",
         "description": "Rapports trimestriels et annuels, points au conseil, livrables clients : titres Source Serif sur Inter, un accent bleu pétrole profond, tableaux financiers à chiffres tabulaires et totaux soulignés, citations mises en exergue, pied de page discret sur un filet fin."
       },
+      "proposal": {
+        "name": "Proposition commerciale",
+        "description": "Propositions et devis d'agences, de consultants et d'indépendants : titres Lora sur Work Sans, un accent rouille chaleureux, un grand panneau de couverture, des tableaux de prix comme sur une facture avec un total doublement souligné, des sections numérotées et un bloc de signature (une ligne de tableau aux cellules vides devient une ligne où vous signez)."
+      },
       "memo": {
         "name": "Mémo / lettre",
         "description": "Mémos internes et lettres professionnelles d'une ou deux pages à imprimer, signer ou joindre : grille de lettre suisse avec les mentions À / De / Date / Objet et les intertitres dans une colonne de marge, texte en Inter, tableaux sobres à filets fins, place pour la signature, numéros de page dès la page 2."

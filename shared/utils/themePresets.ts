@@ -592,6 +592,58 @@ const MEMO_TEMPLATE_CSS = `/* Memo / business letter. A4 on a two-column grid (S
 `
 
 /**
+ * PROPOSAL_TEMPLATE_CSS — what the client-proposal look needs beyond theme
+ * fields: the cover panel, the "01" section index, invoice-style pricing
+ * tables (ruled subtotal, double-ruled grand total), the key/value facts
+ * table and the signature block. Same rules as the other template CSS
+ * (sanitised, editable by the author).
+ */
+const PROPOSAL_TEMPLATE_CSS = `/* Client proposal template. */
+/* Cover: a tall warm panel (the banner band) with the title set low in it over an accent rule; who it is for under the panel, who sends it and when at the foot. Insets follow the page margins (32 / 30 mm). */
+.paged-doc .markoto-cover { grid-template-rows: auto minmax(150mm, auto) auto 1fr auto; }
+.paged-doc .markoto-cover::before { background: color-mix(in srgb, var(--doc-brand) 7%, color-mix(in srgb, var(--doc-secondary) 14%, var(--doc-bg))); border-bottom: 3pt solid var(--doc-brand); }
+.paged-doc .markoto-cover-logo { padding: 24mm 30mm 0 32mm; }
+.paged-doc .markoto-cover-title { align-self: end; padding: 0 30mm 14mm 32mm; line-height: 1.08; letter-spacing: -0.015em; }
+.paged-doc .markoto-cover-subtitle { font-style: normal; font-weight: 500; color: var(--doc-brand); padding: 10mm 30mm 0 32mm; }
+.paged-doc .markoto-cover-meta { padding: 0 30mm 26mm 32mm; font-size: 0.95em; }
+.paged-doc .markoto-cover-author { font-weight: 600; color: var(--doc-heading-color); }
+/* Sections: a small accent index ("01") over each top-level heading, the proposal's contents in miniature (decorative; headings.numbering stays off). */
+.paged-doc h1.markoto-section-heading:not(.unnumbered) { counter-increment: mk-proposal; }
+.paged-doc h1.markoto-section-heading:not(.unnumbered)::before { content: counter(mk-proposal, decimal-leading-zero); display: block; margin-bottom: 0.45em; font-family: var(--doc-body-font); font-size: 0.42em; font-weight: 600; letter-spacing: 0.12em; color: var(--doc-brand); font-variant-numeric: lining-nums tabular-nums; }
+/* The first paragraph of a section is its lead: a step larger, in heading ink. */
+.paged-doc > h1 + p { font-size: 1.1em; line-height: 1.45; color: var(--doc-heading-color); }
+.paged-doc h1 + h2 { margin-top: 0; }
+/* Tables read like an invoice: a step smaller, tabular figures in the amount columns, a firm rule under the header, hairlines between line items. */
+.paged-doc table { font-size: 0.93em; line-height: 1.35; margin: 1.1em 0 1.4em; }
+.paged-doc td, .paged-doc th { vertical-align: baseline; }
+.paged-doc td[style*="right"], .paged-doc th[style*="right"] { font-variant-numeric: lining-nums tabular-nums; }
+.paged-doc th { font-size: 0.86em; font-weight: 600; letter-spacing: 0.03em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); vertical-align: bottom; }
+.paged-doc tr { border-bottom: 0.5pt solid color-mix(in srgb, var(--doc-secondary) 45%, transparent); }
+.paged-doc thead tr { border-bottom: 0.75pt solid var(--doc-heading-color); }
+/* Subtotal and total: a row whose label is bold, after a plain row, gets a rule above it. */
+.paged-doc tbody tr:not(:has(> td:first-child > strong)) + tr:has(> td:first-child > strong) > td { border-top: 0.75pt solid var(--doc-heading-color); }
+/* The grand total (a bold last row after line items): a step larger, closed by the bookkeeper's double rule. */
+.paged-doc tbody tr:not(:has(> td:first-child > strong)) ~ tr:last-child:has(> td:first-child > strong) { font-size: 1.1em; border-bottom: 2.5pt double var(--doc-heading-color); }
+/* A table with an empty header row is a key/value list (prepared for / by, reference, validity): no header, quiet labels, a rule above and below. */
+.paged-doc thead tr:not(:has(> th:not(:empty))) { display: none; }
+.paged-doc table:has(> thead > tr > th:first-child:empty) { border-top: 0.75pt solid var(--doc-heading-color); border-bottom: 0.75pt solid var(--doc-heading-color); }
+.paged-doc table:has(> thead > tr > th:first-child:empty) td:first-child { width: 26%; font-size: 0.86em; letter-spacing: 0.03em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); }
+.paged-doc table:has(> thead > tr > th:first-child:empty) td:first-child strong { font-weight: 600; }
+/* Signature block: in a table, a row of empty cells is a line to sign on and the row under it its caption (name, role, "Place, date"). The block never splits (the engine would split a short table to fill a page). */
+.paged-doc table:has(td:first-child:empty) { table-layout: fixed; break-inside: avoid !important; }
+.paged-doc table:has(td:first-child:empty) tr { border: 0; }
+.paged-doc table:has(td:first-child:empty) th { font-size: 1em; letter-spacing: 0; color: var(--doc-heading-color); }
+.paged-doc table:has(td:first-child:empty) th, .paged-doc table:has(td:first-child:empty) td { padding-left: 0; }
+.paged-doc tr:has(> td:first-child:empty):has(> td:last-child:empty) > td { height: 12mm; padding: 0; background: linear-gradient(var(--doc-text), var(--doc-text)) left bottom / calc(100% - 12mm) 0.75pt no-repeat; }
+.paged-doc tr:has(> td:first-child:empty):has(> td:last-child:empty) + tr > td { padding-top: 0.35em; font-size: 0.86em; color: color-mix(in srgb, var(--doc-text) 70%, var(--doc-bg)); }
+/* Callouts: square, a thin rule, a step smaller than the text. */
+.paged-doc .markdown-alert { border-left-width: 2pt; border-radius: 0; padding: 0.8em 1.1em; font-size: 0.94em; }
+/* Numbered lists (the problems, the terms): numbers in the accent; sub-clauses a, b, c as in a contract. */
+.paged-doc ol > li::marker { color: var(--doc-brand); font-weight: 600; }
+.paged-doc ol ol { list-style-type: lower-alpha; }
+`
+
+/**
  * The theme a document gets when a preset is applied over `currentCss`
  * (its custom CSS so far). A built-in preset replaces every theme value;
  * the author's own custom CSS is kept. A preset may carry template CSS
@@ -1153,6 +1205,59 @@ export const THEME_PRESETS: ThemePreset[] = [
       toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'none' },
       cover: { enabled: true, layout: 'editorial', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 3.6, subtitleSize: 1.35 },
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
+    }
+  },
+  // — Client proposal: agencies, consultants and freelancers sending a
+  // proposal or quote. Warmer and more personal than the corporate report:
+  // Lora headings (a calligraphic serif, set at 500 on the cover) over
+  // Work Sans 10/1.5 text in a 148 mm column (about 75 characters), one
+  // rust accent that greys to a dark tone in print, a tall warm cover
+  // panel, invoice-style pricing tables, an accent "01" index over every
+  // section and a signature block drawn from a table (a row of empty
+  // cells is a line to sign on). Footer: title and "page / pages" (the
+  // client can see the document is complete). Template CSS:
+  // PROPOSAL_TEMPLATE_CSS. Fixture: tests/fixtures/theme-shots/proposal.md.
+  {
+    id: 'proposal',
+    category: 'business',
+    theme: {
+      // Generous margins, a slightly wider inner (left) margin.
+      page: { size: 'A4', orientation: 'portrait', margin: 26, marginTop: 24, marginRight: 30, marginBottom: 26, marginLeft: 32 },
+      meta: { font: 'Work Sans' },
+      body: { font: 'Work Sans', size: 10, lineHeight: 1.5, textAlign: 'left', color: '#2B2622', background: '#FFFFFF', dropCap: false, firstLineIndent: false, paragraphSpacing: 0.7, hyphenate: false },
+      headings: {
+        font: 'Lora',
+        scale: 1.25,
+        weight: 600,
+        underline: false,
+        color: '#1F1A17',
+        letterSpacing: -0.01,
+        lineHeight: 1.2,
+        spacingScale: 1.2,
+        numbering: 'none',
+        // 20 / 13 / 11 pt over 10 pt text.
+        levels: { h1: { size: 2 }, h2: { size: 1.3 }, h3: { size: 1.1 } }
+      },
+      color: { brand: '#9C3E22', secondary: '#8C8279' },
+      brand: { logoUrl: '', logoHeight: 40 },
+      layout: { columns: 1, columnGap: 8 },
+      header: { left: '', center: '', right: '', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false },
+      footer: { left: '{title}', center: '', right: '{page} / {pages}', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
+      code: { theme: 'github-light', fontSize: 8.5, font: 'IBM Plex Mono', background: 'auto', frame: 'none', wrap: true, lineNumbers: false },
+      tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'horizontal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: false },
+      blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain' },
+      mermaid: { theme: 'document' },
+      // Muted, each a distinct grey in black-and-white print; caution is the accent.
+      alerts: {
+        note: '#2F5A73',
+        tip: '#3F6B45',
+        important: '#5E4778',
+        warning: '#8A6417',
+        caution: '#9C3E22'
+      },
+      toc: { maxDepth: 2, showTitle: true, showPageNumbers: true, leaderStyle: 'dotted' },
+      cover: { enabled: true, layout: 'banner', showTitle: true, showSubtitle: true, subtitle: '', showDate: true, showAuthors: true, authors: [], affiliations: [], rules: false, smallCaps: false, titleWeight: 500, showLogo: false, align: 'left', titleSize: 3.4, subtitleSize: 1.3 },
+      customCss: PROPOSAL_TEMPLATE_CSS
     }
   },
   // — Memo / business letter: a one- or two-page internal memo or letter

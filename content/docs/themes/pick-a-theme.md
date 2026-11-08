@@ -66,6 +66,9 @@ The built-in presets cover most use cases:
   your `##` headings sit in a margin column. A paragraph that opens
   with your bold name gets room to sign above it; an italic last line
   becomes a small cc line.
+- **Client proposal** — a proposal you send to a client: a cover
+  panel, numbered sections, a timeline, pricing tables with subtotal,
+  VAT and total, and a signature block at the end.
 - **Novel** — Crimson Text serif, deep violet accent, generous
   line-height, drop cap on page 1.
 - **Academic essay (APA)** — the APA 7 student paper: Times 12 pt
