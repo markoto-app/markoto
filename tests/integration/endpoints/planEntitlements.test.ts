@@ -15,10 +15,12 @@
 
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
-import { loggedInClient } from '../setup/client'
+import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL } from '../setup/env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_INTERNAL_SECRET } from '../setup/env'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
+import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
 
 const OFF = TEST_BILLING_OFF_BASE_URL
 
@@ -119,6 +121,29 @@ describe('plan entitlements — hosted free tier (billing-off server)', () => {
 
     const token = await (await client.get(`/api/docs/${doc.docId}/token`)).json() as { planFeatures?: { customCss?: boolean } }
     expect(token.planFeatures).toEqual({ customCss: false })
+  })
+
+  it('custom CSS: a built-in preset\'s template CSS is not gated — it saves and reaches the PDF; the author\'s own CSS is dropped there', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id })
+    const client = await loggedInClient(owner.id, undefined, OFF)
+    const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')
+    if (!arxiv?.theme.customCss) throw new Error('arxiv preset without template CSS')
+    const template = arxiv.theme.customCss.trim()
+
+    // Picking the preset (what ThemeEditorPanel sends) saves on the free tier.
+    expect((await client.put(`/api/docs/${doc.docId}/meta`, { theme: themeFromPreset(arxiv, undefined) })).status).toBe(200)
+    // Adding the author's own CSS after it is refused.
+    const withOwn = themeFromPreset(arxiv, '.paged-doc p { color: #123456; }')
+    await expectPlanError(await client.put(`/api/docs/${doc.docId}/meta`, { theme: withOwn }), 'plan/feature-unavailable', 'plan.feature.customCss')
+
+    // Stored with own CSS (e.g. via Y.js): the PDF path keeps the template only.
+    await testDb().query('UPDATE documents SET theme = $2 WHERE doc_id = $1', [doc.docId, JSON.stringify(withOwn)])
+    const t = mintRenderJwt({ docId: doc.docId, snapshotId: 1 }, { secret: TEST_INTERNAL_SECRET })
+    const res = await anonClient(OFF).get(`/api/_internal/render-bootstrap?docId=${doc.docId}&t=${t}`)
+    expect(res.status).toBe(200)
+    const body = await res.json() as { theme: { customCss?: string } }
+    expect(body.theme.customCss).toBe(template)
   })
 
   it('history window: older rows are hidden from the feed and their diff is refused', async () => {

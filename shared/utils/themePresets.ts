@@ -804,11 +804,38 @@ export function themeFromPreset(preset: ThemePreset, currentCss: string | undefi
 }
 
 function stripPresetCss(css: string): string {
+  return splitPresetCss(css).own
+}
+
+/**
+ * Split a document's custom CSS into the template CSS of a built-in
+ * preset (an unchanged copy at the start, as `themeFromPreset` writes it)
+ * and the author's own CSS after it.
+ */
+export function splitPresetCss(css: string | undefined): { template: string, own: string } {
+  const text = (css ?? '').trimStart()
   for (const p of THEME_PRESETS) {
     const template = p.theme.customCss?.trim()
-    if (template && css.trimStart().startsWith(template)) return css.trimStart().slice(template.length)
+    if (template && text.startsWith(template)) return { template, own: text.slice(template.length) }
   }
-  return css
+  return { template: '', own: css ?? '' }
+}
+
+/**
+ * The custom CSS a document renders with. The plan feature `customCss`
+ * gates the author's own CSS only: a built-in preset's unchanged template
+ * CSS (arXiv, IEEE, …) is part of that preset's look and applies on every
+ * plan. `undefined` when nothing is left.
+ */
+export function customCssForPlan(css: string | undefined, customCssAllowed: boolean): string | undefined {
+  if (customCssAllowed || !css) return css
+  const { template } = splitPresetCss(css)
+  return template || undefined
+}
+
+/** The author's own custom CSS (without a built-in preset's template CSS), trimmed. */
+export function ownCustomCss(css: string | undefined): string {
+  return splitPresetCss(css).own.trim()
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
