@@ -8,7 +8,7 @@
 export interface WorkspaceInviteItem {
   inviteId: string
   workspaceName: string
-  role: 'admin' | 'editor' | 'viewer'
+  role: 'admin' | 'editor' | 'viewer' | 'guest'
   invitedByName: string | null
   /** Team / Business plan of the workspace (WP3): shown as what it includes. */
   workspacePlan?: 'team' | 'business' | null

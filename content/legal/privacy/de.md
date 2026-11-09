@@ -1,7 +1,7 @@
 ---
 slug: privacy
 locale: de
-version: 11
+version: 12
 effectiveDate: 2026-11-09
 translationStatus: machine-translated
 ---
@@ -35,6 +35,7 @@ Kurz zusammengefasst verarbeiten wir:
 - **KI-Nutzung:** Eingaben, Dokumentkontext und KI-Ergebnisse, wenn Sie die KI-Funktionen nutzen.
 - **Technische Daten:** IP-Adressen (kurzzeitig für Ratenbegrenzungen verwendet und in Protokollen nur gekürzt gespeichert), Browsertyp, Fehlerberichte.
 - **Single Sign-on über Ihre Organisation, falls Ihr Workspace ihn nutzt:** Wenn ein Team- oder Business-Workspace seinen eigenen Identitätsanbieter anbindet, erhalten wir von diesem die Kennung, die er für Sie verwendet, Ihren Namen und Ihre E-Mail-Adresse sowie – falls der Workspace die automatische Bereitstellung (SCIM) nutzt – ob Ihr Zugang aktiv ist. Die Verknüpfung mit Ihrem Konto und den Zeitpunkt Ihrer letzten Anmeldung bewahren wir auf, bis der Workspace Sie oder seine Anmeldeeinrichtung entfernt oder Sie Ihr Konto löschen. Ihre Organisation entscheidet, wer Zugang erhält; wir handeln in ihrem Auftrag, wie in unserem Auftragsverarbeitungsvertrag beschrieben.
+- **Gäste eines Workspace:** Wenn ein Workspace Sie als Gast einlädt, sehen seine Admins und Editoren Ihren Namen und Ihre E-Mail-Adresse unter seinen Gästen, und wir speichern, welche seiner Dokumente mit Ihnen geteilt wurden, mit Lese- oder Bearbeitungszugriff und von wem, bis die Freigabe endet, Sie den Workspace verlassen oder Sie Ihr Konto löschen. Die Admins eines Workspace sehen zudem pro Person, wie viele Dokumente, Dateien der Wissensdatenbank und Bilder jedes Mitglied und jeder Gast im Workspace hat (nicht deren Inhalt und nicht, wann jemand arbeitet).
 - **Abrechnungsdaten, erst wenn kostenpflichtige Pläne angeboten werden:** Ihr Plan, dessen Periode und Währung, die Kunden- und Abonnementkennungen bei Stripe, Rechnungen, Käufe von KI-Guthaben und dessen Verbrauch sowie Ihr Akzeptieren der Bedingungen für kostenpflichtige Pläne ([/legal/paid-terms](/legal/paid-terms)). Für einen Team- oder Business-Workspace speichern wir zudem die Anzahl der Plätze und wer der Abrechnungsadmin ist. Die Admins des Workspace sehen die KI-Ausgaben jedes Mitglieds in diesem Workspace für den laufenden Monat und können ein Limit pro Mitglied festlegen; Eingaben oder KI-Ergebnisse sehen sie nicht. Kartendaten gehen nur an Stripe; wir erhalten sie nie.
 
 ## 2b. Anonyme Dokumente, die Bot-Prüfung und Missbrauchsmeldungen
@@ -248,6 +249,7 @@ Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**. Wesen
 
 ### Änderungsverlauf
 
+- **v12 (2026-11-09).** Gäste eines Workspace beschrieben (§2): wer den Namen und die E-Mail-Adresse eines Gastes sieht, die Aufzeichnung, welche Dokumente mit ihm geteilt wurden, und die Nutzungsansicht pro Person für die Admins eines Workspace. Zu Ihrem Datenexport hinzugefügt (`document_shares.json`).
 - **v11 (2026-11-09).** Die Admins eines Workspace mit einem Plan, der das Audit-Protokoll enthält, können die Audit-Einträge dieses Workspace einsehen und herunterladen, einschliesslich des Namens und der gekürzten IP-Adresse der handelnden Person (§5).
 - **v10 (2026-11-09).** Single Sign-on über den eigenen Identitätsanbieter eines Workspace (OpenID Connect oder SAML) und die automatische Bereitstellung (SCIM) beschrieben (§2): die Kennung, den Namen und die E-Mail-Adresse, die der Anbieter sendet, die Verknüpfung mit Ihrem Konto, Ihre letzte Anmeldung und ob Ihr Zugang aktiv ist. Zu Ihrem Datenexport hinzugefügt (`sso_identities.json`).
 - **v9 (2026-11-09).** Die Abrechnungsdaten beschrieben, die wir verarbeiten, sobald kostenpflichtige Pläne angeboten werden (§2): Pläne, Team- und Business-Workspaces mit ihren Plätzen und ihrem Abrechnungsadmin, KI-Guthaben sowie das Akzeptieren der neuen Bedingungen für kostenpflichtige Pläne. Die Admins eines Team- oder Business-Workspace sehen die monatlichen KI-Ausgaben jedes Mitglieds in diesem Workspace (nicht Eingaben oder Ergebnisse) und können ein Limit pro Mitglied festlegen.

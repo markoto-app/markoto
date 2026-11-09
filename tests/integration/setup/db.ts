@@ -55,6 +55,7 @@ export async function resetDb(): Promise<void> {
       workspace_knowledge_chunks,
       workspace_knowledge,
       workspace_invites,
+      document_shares,
       sso_grants,
       user_identities,
       sso_domains,

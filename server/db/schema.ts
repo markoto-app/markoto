@@ -353,7 +353,10 @@ export const themes = pgTable('themes', {
 export const workspaceMembers = pgTable('workspace_members', {
   workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  role: text('role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('editor'),
+  // `guest` (WP11): someone outside the team who sees ONLY the documents
+  // shared with them (`document_shares`). Not a member for any
+  // workspace-level access — `getMemberRole` returns null for guests.
+  role: text('role', { enum: ['admin', 'editor', 'viewer', 'guest'] }).notNull().default('editor'),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
   // Team / Business (WP3): the member's monthly AI limit inside the
   // workspace's pooled budget, in USD. NULL = the default (2 × the
@@ -392,7 +395,7 @@ export const workspaceInvites = pgTable('workspace_invites', {
   inviteId: text('invite_id').notNull().unique(),
   workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
   email: text('email').notNull(),
-  role: text('role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('editor'),
+  role: text('role', { enum: ['admin', 'editor', 'viewer', 'guest'] }).notNull().default('editor'),
   invitedByUserId: integer('invited_by_user_id').references(() => users.id, { onDelete: 'set null' }),
   tokenHash: text('token_hash').unique(),
   expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
@@ -403,6 +406,21 @@ export const workspaceInvites = pgTable('workspace_invites', {
   index('idx_workspace_invites_email').on(table.email),
   // Sweeper: expired rows.
   index('idx_workspace_invites_expires').on(table.expiresAt)
+])
+
+// Documents shared with a workspace GUEST (WP11): the only way a guest
+// reaches anything in the workspace. `edit` = editor rights on that one
+// document, `view` = read-only. Removed with the document, the guest's
+// membership (route code) and when the document leaves the workspace.
+export const documentShares = pgTable('document_shares', {
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  access: text('access', { enum: ['view', 'edit'] }).notNull(),
+  grantedByUserId: integer('granted_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.docId, table.userId] }),
+  index('idx_document_shares_user').on(table.userId)
 ])
 
 // ── Per-workspace single sign-on (WP14) ─────────────────────────────

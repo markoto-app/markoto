@@ -34,6 +34,7 @@ interface WorkspaceDetail {
     sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
     /** Admins only (WP15). */
     auditLog?: { available: boolean } | null
+    guests?: { available: boolean } | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -99,8 +100,8 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing' | 'sso' | 'audit'
-const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : route.query.tab === 'audit' ? 'audit' : 'documents'
+type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'usage' | 'billing' | 'sso' | 'audit'
+const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : route.query.tab === 'audit' ? 'audit' : route.query.tab === 'usage' ? 'usage' : 'documents'
 const activeTab = ref<WorkspaceTab>(initialTab)
 const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
@@ -114,6 +115,8 @@ const tabItems = computed(() => {
   // same width for everyone but the order shifts.
   if (isAdmin.value) {
     items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
+    // Usage per person (WP11), every plan.
+    items.push({ label: t('workspace.tabs.usage'), icon: 'i-lucide-chart-no-axes-column', slot: 'usage', value: 'usage' })
   }
   // Team / Business billing (WP3): admins, and only where something can
   // be bought. Members never see prices.
@@ -623,6 +626,9 @@ async function leaveWorkspace() {
               @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
             />
           </template>
+          <template #usage>
+            <WorkspaceUsagePanel :workspace-id="data.workspace.workspaceId" />
+          </template>
           <template #audit>
             <WorkspaceAuditPanel :workspace-id="data.workspace.workspaceId" />
           </template>
@@ -670,6 +676,7 @@ async function leaveWorkspace() {
       :my-user-id="myUserId"
       :focus-invite="membersFocusInvite"
       :billing="data.workspace.billing ?? null"
+      :guests-available="data.workspace.guests?.available ?? false"
       @billing-changed="loadWorkspace()"
       @updated="onMembersUpdated"
       @leave="onLeftWorkspace"

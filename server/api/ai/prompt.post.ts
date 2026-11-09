@@ -171,7 +171,7 @@ async function resolvePromptWorkspaceContext(rawWorkspaceId: string | null, user
   return {
     workspaceId: rawWorkspaceId,
     knowledgeFiles,
-    members: members.map(m => ({ userId: m.userId, name: m.name })),
+    members: members.filter(m => m.role !== 'guest').map(m => ({ userId: m.userId, name: m.name })),
     toolDeclarations: exposeKnowledgeTools
       ? [...ALL_TOOL_DECLARATIONS, ...KNOWLEDGE_TOOL_DECLARATIONS]
       : ALL_TOOL_DECLARATIONS

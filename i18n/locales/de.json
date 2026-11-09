@@ -11,7 +11,8 @@
     "newDocument": "Neues Dokument",
     "openDocument": "Dokument öffnen",
     "recentDocuments": "Zuletzt verwendete Dokumente",
-    "noRecent": "Keine zuletzt verwendeten Dokumente"
+    "noRecent": "Keine zuletzt verwendeten Dokumente",
+    "sharedWithYou": "Mit Ihnen geteilt"
   },
   "auth": {
     "login": "Anmelden",
@@ -101,7 +102,18 @@
     "enterPassword": "Passwort",
     "invalidPassword": "Falsches Passwort. Bitte versuchen Sie es erneut.",
     "unlock": "Entsperren",
-    "viewOnly": "Nur ansehen"
+    "viewOnly": "Nur ansehen",
+    "guests": {
+      "title": "Gäste",
+      "hint": "Gäste dieses Arbeitsbereichs sehen nur die Dokumente, die mit ihnen geteilt wurden.",
+      "view": "Darf ansehen",
+      "edit": "Darf bearbeiten",
+      "remove": "Teilen beenden",
+      "pick": "Gast auswählen",
+      "add": "Teilen",
+      "loadFailed": "Gäste konnten nicht geladen werden",
+      "saveFailed": "Freigabe konnte nicht geändert werden"
+    }
   },
   "access": {
     "privateTitle": "Dieses Dokument ist privat",
@@ -1310,7 +1322,8 @@
       "settings": "Einstellungen",
       "billing": "Abrechnung",
       "sso": "Single Sign-on",
-      "audit": "Audit-Log"
+      "audit": "Audit-Log",
+      "usage": "Nutzung"
     },
     "settings": {
       "title": "Workspace-Einstellungen",
@@ -1364,7 +1377,8 @@
     "roles": {
       "admin": "Administrator",
       "editor": "Bearbeiter",
-      "viewer": "Betrachter"
+      "viewer": "Betrachter",
+      "guest": "Gast"
     },
     "members": {
       "title": "Mitglieder von {name}",
@@ -1393,9 +1407,11 @@
       "errors": {
         "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
         "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
-        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück."
+        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück.",
+        "guestCap": "Dieser Arbeitsbereich hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entfernen Sie einen Gast oder fügen Sie einen Platz hinzu."
       },
-      "invitePeople": "Personen einladen"
+      "invitePeople": "Personen einladen",
+      "guestHint": "Ein Gast sieht nur die Dokumente, die Sie mit ihm teilen, belegt keinen Platz und nutzt sein eigenes KI-Budget."
     },
     "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
     "capReachedShortFree": "Workspace-Limit erreicht",
@@ -1828,7 +1844,10 @@
       "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält.",
       "aiImage": "Bildgenerierung über die KI von markoto ist in diesem Plan nicht enthalten.",
       "aiVoice": "Spracheingabe über die KI von markoto ist in diesem Plan nicht enthalten.",
-      "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten."
+      "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten.",
+      "sso": "Single Sign-on ist im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "auditLog": "Das Audit-Log ist im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
@@ -2406,8 +2425,25 @@
       "sso_member_joined": "Mitglied über Single Sign-on beigetreten",
       "sso_scim_token_rotated": "Provisioning-Token geändert",
       "sso_scim_user_created": "Mitglied bereitgestellt (Provisioning)",
-      "sso_scim_user_deactivated": "Mitglied entfernt (Deprovisioning)"
+      "sso_scim_user_deactivated": "Mitglied entfernt (Deprovisioning)",
+      "doc_shared": "Dokument mit einem Gast geteilt",
+      "doc_unshared": "Dokument nicht mehr mit einem Gast geteilt"
     },
     "planNotice": "Der Audit-Log ist Teil des Business-Plans."
+  },
+  "usage": {
+    "title": "Nutzung",
+    "intro": "Was jede Person in diesem Arbeitsbereich speichert: eigene Dokumente, hinzugefügte Wissensdateien und Bilder sowie – bei einem Team- oder Business-Plan – die KI-Ausgaben vom gemeinsamen Budget in diesem Zeitraum. Nichts darüber, wann oder wie oft jemand arbeitet.",
+    "person": "Person",
+    "documents": "Dokumente",
+    "knowledge": "Wissen",
+    "images": "Bilder",
+    "aiSpend": "KI in diesem Zeitraum",
+    "files": "keine Dateien | {n} Datei · {size} | {n} Dateien · {size}",
+    "empty": "Noch keine Mitglieder.",
+    "guestsTitle": "Gäste",
+    "sharedDocs": "keine geteilten Dokumente | {n} geteiltes Dokument | {n} geteilte Dokumente",
+    "guestsHint": "Gäste nutzen ihr eigenes KI-Budget, daher werden ihre Ausgaben hier nicht angezeigt.",
+    "loadFailed": "Nutzung konnte nicht geladen werden"
   }
 }

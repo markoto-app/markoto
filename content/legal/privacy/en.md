@@ -1,7 +1,7 @@
 ---
 slug: privacy
 locale: en
-version: 11
+version: 12
 effectiveDate: 2026-11-09
 translationStatus: authoritative
 ---
@@ -35,6 +35,7 @@ In brief, we process:
 - **AI usage:** prompts, document context and AI results, when you use the AI features.
 - **Technical data:** IP addresses (used in short-lived form for rate limiting and stored only shortened in logs), browser type, error reports.
 - **Single sign-on through your organisation, if your workspace uses it:** when a Team or Business workspace connects its own identity provider, we receive from it the identifier it uses for you, your name and email address, and — if the workspace uses automatic provisioning (SCIM) — whether your access is active. We keep the link to your account and the time of your last sign-in until the workspace removes you or its sign-in setup, or you delete your account. Your organisation decides who gets access; we act for it as described in our Data Processing Addendum.
+- **Guests of a workspace:** if a workspace invites you as a guest, its admins and editors see your name and email address among its guests, and we record which of its documents were shared with you, with view or edit access, and by whom, until the share ends, you leave the workspace or you delete your account. Workspace admins also see, per person, how many documents, knowledge files and images each member and guest keeps in the workspace (not their content, and not when anyone works).
 - **Billing data, only once paid plans are offered:** your plan, its period and currency, the Stripe customer and subscription identifiers, invoices, AI credit purchases and their use, and your acceptance of the Paid Plans Terms ([/legal/paid-terms](/legal/paid-terms)). For a Team or Business workspace we also keep the seat count and who the billing admin is. The workspace's admins see each member's AI spend in that workspace for the current month and can set a limit per member; they don't see prompts or AI results. Card details go to Stripe only; we never receive them.
 
 ## 2b. Anonymous documents, the bot check and abuse reports
@@ -248,6 +249,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v12 (2026-11-09).** Described workspace guests (§2): who sees a guest's name and email address, the record of which documents were shared with them, and the per-person usage view for workspace admins. Added to your data export (`document_shares.json`).
 - **v11 (2026-11-09).** Workspace admins of a plan with the audit log can see and download that workspace's audit entries, including the name and shortened IP address of the person who acted (§5).
 - **v10 (2026-11-09).** Described single sign-on through a workspace's own identity provider (OpenID Connect or SAML) and automatic provisioning (SCIM) (§2): the identifier, name and email address the provider sends, the link to your account, your last sign-in and whether your access is active. Added to your data export (`sso_identities.json`).
 - **v9 (2026-11-09).** Described the billing data we process once paid plans are offered (§2): plans, Team and Business workspaces with their seats and billing admin, AI credits, and the acceptance of the new Paid Plans Terms. Workspace admins of a Team or Business workspace see each member's monthly AI spend in that workspace (not prompts or results) and can set a per-member limit.

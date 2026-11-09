@@ -58,7 +58,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'document_storage',
     label: 'Document storage',
     basis: 'contract',
-    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution'],
+    // `guest_document_shares` (WP11): which workspace documents were
+    // shared with which guest (view / edit) and by whom.
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },

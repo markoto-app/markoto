@@ -11,7 +11,8 @@
     "newDocument": "New document",
     "openDocument": "Open document",
     "recentDocuments": "Recent documents",
-    "noRecent": "No recent documents"
+    "noRecent": "No recent documents",
+    "sharedWithYou": "Shared with you"
   },
   "auth": {
     "login": "Log in",
@@ -101,7 +102,18 @@
     "enterPassword": "Password",
     "invalidPassword": "Incorrect password. Please try again.",
     "unlock": "Unlock",
-    "viewOnly": "View only"
+    "viewOnly": "View only",
+    "guests": {
+      "title": "Guests",
+      "hint": "Guests of this workspace see only the documents shared with them.",
+      "view": "Can view",
+      "edit": "Can edit",
+      "remove": "Stop sharing",
+      "pick": "Choose a guest",
+      "add": "Share",
+      "loadFailed": "Couldn't load guests",
+      "saveFailed": "Couldn't change sharing"
+    }
   },
   "access": {
     "privateTitle": "This document is private",
@@ -1310,7 +1322,8 @@
       "settings": "Settings",
       "billing": "Billing",
       "sso": "Single sign-on",
-      "audit": "Audit log"
+      "audit": "Audit log",
+      "usage": "Usage"
     },
     "settings": {
       "title": "Workspace settings",
@@ -1364,7 +1377,8 @@
     "roles": {
       "admin": "Admin",
       "editor": "Editor",
-      "viewer": "Viewer"
+      "viewer": "Viewer",
+      "guest": "Guest"
     },
     "members": {
       "title": "Members of {name}",
@@ -1393,9 +1407,11 @@
       "errors": {
         "invalidEmail": "Enter a valid email address.",
         "alreadyMember": "This person is already a member of the workspace.",
-        "inviteCap": "This workspace has too many open invitations. Revoke some first."
+        "inviteCap": "This workspace has too many open invitations. Revoke some first.",
+        "guestCap": "This workspace has as many guests as its plan allows (5 per paid seat). Remove a guest or add a seat first."
       },
-      "invitePeople": "Invite people"
+      "invitePeople": "Invite people",
+      "guestHint": "A guest sees only the documents you share with them, doesn't take a seat and uses their own AI budget."
     },
     "capReachedFree": "{used} of {limit} workspaces used. Delete one to create another.",
     "capReachedShortFree": "Workspace limit reached",
@@ -1828,7 +1844,10 @@
       "mcpWrite": "Your plan includes read-only access for AI clients over MCP. Editing, rendering and web tools need a plan that includes them.",
       "aiImage": "Image generation on markoto's AI isn't included in this plan.",
       "aiVoice": "Voice input on markoto's AI isn't included in this plan.",
-      "aiStrongModel": "The strong AI model isn't included in this plan."
+      "aiStrongModel": "The strong AI model isn't included in this plan.",
+      "sso": "Single sign-on isn't included in this workspace's plan.",
+      "auditLog": "The audit log isn't included in this workspace's plan.",
+      "guests": "Guests aren't included in this workspace's plan."
     },
     "limit": {
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
@@ -2406,8 +2425,25 @@
       "sso_member_joined": "Member joined through single sign-on",
       "sso_scim_token_rotated": "Provisioning token changed",
       "sso_scim_user_created": "Member provisioned",
-      "sso_scim_user_deactivated": "Member deprovisioned"
+      "sso_scim_user_deactivated": "Member deprovisioned",
+      "doc_shared": "Document shared with a guest",
+      "doc_unshared": "Document no longer shared with a guest"
     },
     "planNotice": "The audit log is part of the Business plan."
+  },
+  "usage": {
+    "title": "Usage",
+    "intro": "What each person keeps in this workspace: documents they own, knowledge files and images they added, and — on a Team or Business plan — their AI spend on the shared budget this period. Nothing about when or how often anyone works.",
+    "person": "Person",
+    "documents": "Documents",
+    "knowledge": "Knowledge",
+    "images": "Images",
+    "aiSpend": "AI this period",
+    "files": "no files | {n} file · {size} | {n} files · {size}",
+    "empty": "No members yet.",
+    "guestsTitle": "Guests",
+    "sharedDocs": "no shared documents | {n} shared document | {n} shared documents",
+    "guestsHint": "Guests use their own AI budget, so their spend is not shown here.",
+    "loadFailed": "Couldn't load usage"
   }
 }

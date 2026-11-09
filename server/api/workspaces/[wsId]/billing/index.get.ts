@@ -1,4 +1,4 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq, ne } from 'drizzle-orm'
 import { users, workspaceMembers } from '../../../../db/schema'
 import { useDatabase } from '../../../../utils/database'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../../../repos/workspaceSubscriptions'
@@ -43,7 +43,8 @@ export default defineEventHandler(async (event) => {
     })
     .from(workspaceMembers)
     .innerJoin(users, eq(users.id, workspaceMembers.userId))
-    .where(eq(workspaceMembers.workspaceId, wsId))
+    // Guests (WP11) take no seat and never use the workspace's AI budget.
+    .where(and(eq(workspaceMembers.workspaceId, wsId), ne(workspaceMembers.role, 'guest')))
     .orderBy(asc(workspaceMembers.joinedAt))
 
   const caps = sub ? workspacePoolCaps(sub.plan, sub.seats) : null

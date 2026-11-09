@@ -1,4 +1,5 @@
 import { moveDocToWorkspace } from '../../../repos/documents'
+import { deleteSharesForDoc } from '../../../repos/documentShares'
 import { appendAuditEvent } from '../../../repos/audit'
 
 // Move a document into, between, or out of a workspace.
@@ -60,6 +61,8 @@ export default defineEventHandler(async (event) => {
   }
 
   await moveDocToWorkspace(docId, target)
+  // Guest shares belong to the workspace the document left (WP11).
+  const droppedShares = await deleteSharesForDoc(docId)
 
   const ip = getClientIp(event)
   await appendAuditEvent({
@@ -72,7 +75,8 @@ export default defineEventHandler(async (event) => {
     // workspace's event; `after` names the new place).
     workspaceId: authz.workspaceId,
     before: { workspaceId: authz.workspaceId },
-    after: { workspaceId: target }
+    after: { workspaceId: target },
+    ...(droppedShares > 0 ? { metadata: { guestSharesRemoved: droppedShares } } : {})
   })
 
   return { success: true, workspaceId: target }

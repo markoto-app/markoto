@@ -125,12 +125,19 @@ export interface TierCaps {
    * committed tier; markoto.app: Business only.
    */
   auditLog: boolean
+  /**
+   * Feature switch: the workspace may invite guests (WP11) — people who
+   * see only the documents shared with them, take no seat (up to
+   * `GUESTS_PER_SEAT` per paid seat). Judged against the WORKSPACE's
+   * plan. On in every committed tier; markoto.app: Team + Business.
+   */
+  guests: boolean
 }
 
 /** Numeric cap fields that accept `unlimited` (stored as `null`). */
 export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay'
 /** On/off feature switches. */
-export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog'
+export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog' | 'guests'
 /** Plain positive-number cap fields. */
 export type NumericCapField = Exclude<keyof TierCaps, UnlimitedCapField | FeatureField>
 
@@ -141,7 +148,7 @@ export const UNLIMITED_CAP_FIELDS: readonly UnlimitedCapField[] = [
   'mcpToolCallsPerDay'
 ]
 
-export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog']
+export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog', 'guests']
 
 /**
  * Whether `used` more units still fit under `limit` (`null` = no limit).
@@ -198,7 +205,8 @@ export const DEFAULT_TIERS = {
     aiVoice: true,
     aiStrongModel: true,
     sso: true,
-    auditLog: true
+    auditLog: true,
+    guests: true
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
@@ -209,7 +217,8 @@ export const DEFAULT_TIERS = {
     imageBytesPerUser: 2 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS,
     sso: true,
-    auditLog: true
+    auditLog: true,
+    guests: true
   },
   // Team / Business: AI budget, knowledge and image storage are per seat.
   // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
@@ -225,7 +234,8 @@ export const DEFAULT_TIERS = {
     imageBytesPerUser: 10 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS,
     sso: true,
-    auditLog: true
+    auditLog: true,
+    guests: true
   },
   business: {
     litellmBudgetUsd: 5,
@@ -236,7 +246,8 @@ export const DEFAULT_TIERS = {
     imageBytesPerUser: 20 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS,
     sso: true,
-    auditLog: true
+    auditLog: true,
+    guests: true
   }
 } as const satisfies Record<PlanName, TierCaps>
 
@@ -266,7 +277,8 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   aiVoice: 'FEATURE_AI_VOICE',
   aiStrongModel: 'FEATURE_AI_STRONG_MODEL',
   sso: 'FEATURE_SSO',
-  auditLog: 'FEATURE_AUDIT_LOG'
+  auditLog: 'FEATURE_AUDIT_LOG',
+  guests: 'FEATURE_GUESTS'
 }
 
 const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])

@@ -14,6 +14,13 @@
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
 export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
+/**
+ * A row in `workspace_members` (WP11): a role, or `guest` — someone who
+ * reaches only the documents shared with them. Never passed to the
+ * access decisions as a role: `getMemberRole` returns null for a guest,
+ * and the document query maps a share to `editor` / `viewer`.
+ */
+export type MembershipRole = WorkspaceRole | 'guest'
 
 export interface DocState {
   ownerId: number | null

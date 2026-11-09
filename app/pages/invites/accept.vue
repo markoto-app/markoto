@@ -33,13 +33,15 @@ async function onAct(action: 'accept' | 'decline'): Promise<void> {
   state.value = 'working'
   errorMessage.value = null
   try {
-    const res = await $fetch<{ workspaceId?: string }>('/api/user/invites/by-token', {
+    const res = await $fetch<{ workspaceId?: string, role?: string }>('/api/user/invites/by-token', {
       method: 'POST',
       body: { token: token.value, action }
     })
     clearPendingInviteToken()
     if (action === 'accept' && typeof res.workspaceId === 'string') {
-      await router.push(`/w/${res.workspaceId}`)
+      // A guest (WP11) has no workspace page: their shared documents
+      // are on the dashboard.
+      await router.push(res.role === 'guest' ? '/' : `/w/${res.workspaceId}`)
       return
     }
     state.value = 'declined'

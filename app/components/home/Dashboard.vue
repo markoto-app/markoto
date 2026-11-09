@@ -135,12 +135,29 @@ async function loadInvites(): Promise<void> {
     myInvites.value = []
   }
 }
+// Documents shared with this account as a workspace GUEST (WP11) — a
+// guest's only way into a workspace. Hidden when there are none.
+interface SharedDoc { docId: string, title: string, access: 'view' | 'edit', workspaceId: string, workspaceName: string, lastActive: string | null }
+const sharedDocs = ref<SharedDoc[]>([])
+async function loadSharedDocs(): Promise<void> {
+  if (!loggedIn.value) {
+    sharedDocs.value = []
+    return
+  }
+  try {
+    sharedDocs.value = await $fetch<SharedDoc[]>('/api/user/shared-documents')
+  } catch {
+    sharedDocs.value = []
+  }
+}
+
 function onInviteRemoved(inviteId: string): void {
   myInvites.value = myInvites.value.filter(i => i.inviteId !== inviteId)
 }
 function onInviteAccepted(): void {
   workspacesFetched.value = false
   loadWorkspaces()
+  void loadSharedDocs()
 }
 
 // Defer the load to AFTER hydration (VueUse `tryOnMounted` =
@@ -171,6 +188,7 @@ tryOnMounted(() => {
     loadDocs()
     loadWorkspaces()
     void loadInvites()
+    void loadSharedDocs()
   }, { immediate: true })
 })
 
@@ -318,6 +336,42 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
           @removed="onInviteRemoved"
           @accepted="onInviteAccepted"
         />
+      </section>
+
+      <!-- Shared with you as a guest of a workspace (WP11). -->
+      <section
+        v-if="sharedDocs.length > 0"
+        class="space-y-4"
+        data-testid="home-shared-documents"
+      >
+        <h2 class="font-serif text-2xl font-normal tracking-tight">
+          {{ t('landing.sharedWithYou') }}
+        </h2>
+        <div class="space-y-2">
+          <NuxtLink
+            v-for="doc in sharedDocs"
+            :key="doc.docId"
+            :to="`/d/${doc.docId}`"
+            class="flex items-center gap-3 p-3 rounded-lg border border-default bg-default hover:bg-muted/50 transition-colors"
+            :data-testid="`home-shared-document-${doc.docId}`"
+          >
+            <UIcon
+              name="i-lucide-file-text"
+              class="size-5 text-muted shrink-0"
+            />
+            <div class="min-w-0 flex-1">
+              <p class="font-serif text-base font-normal tracking-tight truncate">
+                {{ doc.title }}
+              </p>
+              <p class="text-xs text-muted truncate">
+                {{ doc.workspaceName }}
+              </p>
+            </div>
+            <span class="font-mono text-[10.5px] lowercase tracking-[0.04em] text-muted shrink-0">
+              {{ doc.access === 'edit' ? t('share.guests.edit') : t('share.guests.view') }}
+            </span>
+          </NuxtLink>
+        </div>
       </section>
 
       <!-- My workspaces. Always mounted for signed-in users so the

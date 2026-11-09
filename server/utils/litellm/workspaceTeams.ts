@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, isNull } from 'drizzle-orm'
+import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 import { workspaceMembers, workspaceSubscriptions } from '../../db/schema'
 import { useDatabase } from '../database'
 import { encryptToken, decryptToken } from './tokenCrypto'
@@ -174,7 +174,8 @@ async function readMember(workspaceId: string, userId: number): Promise<MemberRo
       litellmKeyToken: workspaceMembers.litellmKeyToken
     })
     .from(workspaceMembers)
-    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
+    // Guests (WP11) use their own AI budget, never the workspace's.
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId), ne(workspaceMembers.role, 'guest')))
     .limit(1))[0]
   return row ?? null
 }

@@ -16,12 +16,16 @@ import type { PlanPricesResponse } from '~~/shared/config/pricing'
 // Admins see the open invitations below the roster and can revoke them.
 
 type MemberRole = 'admin' | 'editor' | 'viewer'
+// Guests (WP11) see only documents shared with them; no workspace role.
+type InviteRole = MemberRole | 'guest'
 
 const props = defineProps<{
   workspaceId: string
   workspaceName: string
   members: WorkspaceMember[]
   myRole: MemberRole
+  // The workspace's plan allows guests (WP11, admins only).
+  guestsAvailable?: boolean
   myUserId: number
   // Opened from the workspace header's "Invite people" button: focus
   // the email field so the admin can type straight away.
@@ -45,7 +49,7 @@ const toast = useToast()
 
 const localMembers = ref<WorkspaceMember[]>([])
 const newEmail = ref('')
-const newRole = ref<'admin' | 'editor' | 'viewer'>('editor')
+const newRole = ref<InviteRole>('editor')
 const adding = ref(false)
 const rowBusy = ref<number | null>(null)
 
@@ -54,7 +58,7 @@ const isAdmin = computed(() => props.myRole === 'admin')
 interface PendingInvite {
   inviteId: string
   email: string
-  role: MemberRole
+  role: InviteRole
   invitedByName: string | null
   createdAt: string
   expiresAt: string
@@ -112,6 +116,7 @@ function isSoleAdmin(m: WorkspaceMember) {
 function roleLabel(role: WorkspaceMember['role']) {
   if (role === 'admin') return t('workspace.roles.admin')
   if (role === 'editor') return t('workspace.roles.editor')
+  if (role === 'guest') return t('workspace.roles.guest')
   return t('workspace.roles.viewer')
 }
 
@@ -227,6 +232,13 @@ async function removeMember(member: WorkspaceMember) {
 
 type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 
+const inviteRoleItems = computed(() => [
+  { label: t('workspace.roles.admin'), value: 'admin' },
+  { label: t('workspace.roles.editor'), value: 'editor' },
+  { label: t('workspace.roles.viewer'), value: 'viewer' },
+  ...(props.guestsAvailable ? [{ label: t('workspace.roles.guest'), value: 'guest' }] : [])
+])
+
 function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
   return [
     (['admin', 'editor', 'viewer'] as WorkspaceRole[]).map(role => ({
@@ -276,8 +288,8 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
 
             <!-- Role chip: dropdown for admin, disabled badge otherwise -->
             <UDropdownMenu
-              v-if="isAdmin"
-              :items="roleItems(m.role, m)"
+              v-if="isAdmin && m.role !== 'guest'"
+              :items="roleItems(m.role as WorkspaceRole, m)"
               :content="{ align: 'end' }"
             >
               <UButton
@@ -297,6 +309,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               size="xs"
               color="neutral"
               variant="subtle"
+              :data-testid="m.role === 'guest' ? 'workspace-member-guest-badge' : undefined"
             >
               {{ roleLabel(m.role) }}
             </UBadge>
@@ -403,13 +416,10 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
             />
             <USelectMenu
               v-model="newRole"
-              :items="[
-                { label: t('workspace.roles.admin'), value: 'admin' },
-                { label: t('workspace.roles.editor'), value: 'editor' },
-                { label: t('workspace.roles.viewer'), value: 'viewer' }
-              ]"
+              :items="inviteRoleItems"
               value-key="value"
               class="w-32"
+              data-testid="workspace-invite-role"
             />
             <UButton
               :loading="adding"
@@ -421,6 +431,13 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               {{ t('workspace.members.add') }}
             </UButton>
           </div>
+          <p
+            v-if="newRole === 'guest'"
+            class="text-xs text-muted"
+            data-testid="workspace-invite-guest-hint"
+          >
+            {{ t('workspace.members.guestHint') }}
+          </p>
           <div
             v-if="seatConfirm"
             class="rounded-md border border-default bg-elevated p-3 space-y-2"

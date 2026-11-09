@@ -11,7 +11,8 @@
     "newDocument": "Nuevo documento",
     "openDocument": "Abrir documento",
     "recentDocuments": "Documentos recientes",
-    "noRecent": "No hay documentos recientes"
+    "noRecent": "No hay documentos recientes",
+    "sharedWithYou": "Compartido contigo"
   },
   "auth": {
     "login": "Iniciar sesión",
@@ -101,7 +102,18 @@
     "enterPassword": "Contraseña",
     "invalidPassword": "Contraseña incorrecta. Inténtalo de nuevo.",
     "unlock": "Desbloquear",
-    "viewOnly": "Solo lectura"
+    "viewOnly": "Solo lectura",
+    "guests": {
+      "title": "Invitados",
+      "hint": "Los invitados de este espacio de trabajo solo ven los documentos compartidos con ellos.",
+      "view": "Puede ver",
+      "edit": "Puede editar",
+      "remove": "Dejar de compartir",
+      "pick": "Elegir un invitado",
+      "add": "Compartir",
+      "loadFailed": "No se pudieron cargar los invitados",
+      "saveFailed": "No se pudo cambiar el uso compartido"
+    }
   },
   "access": {
     "privateTitle": "Este documento es privado",
@@ -1310,7 +1322,8 @@
       "settings": "Configuración",
       "billing": "Facturación",
       "sso": "Inicio de sesión único",
-      "audit": "Registro de auditoría"
+      "audit": "Registro de auditoría",
+      "usage": "Uso"
     },
     "settings": {
       "title": "Configuración del espacio de trabajo",
@@ -1364,7 +1377,8 @@
     "roles": {
       "admin": "Administrador",
       "editor": "Editor",
-      "viewer": "Lector"
+      "viewer": "Lector",
+      "guest": "Invitado"
     },
     "members": {
       "title": "Miembros de {name}",
@@ -1393,9 +1407,11 @@
       "errors": {
         "invalidEmail": "Introduce una dirección de correo válida.",
         "alreadyMember": "Esta persona ya es miembro del espacio de trabajo.",
-        "inviteCap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero."
+        "inviteCap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero.",
+        "guestCap": "Este espacio de trabajo tiene tantos invitados como permite su plan (5 por puesto de pago). Elimina un invitado o añade un puesto primero."
       },
-      "invitePeople": "Invitar a personas"
+      "invitePeople": "Invitar a personas",
+      "guestHint": "Un invitado solo ve los documentos que compartes con él, no ocupa un puesto y usa su propio presupuesto de IA."
     },
     "capReachedFree": "{used} de {limit} espacios de trabajo usados. Elimina uno para crear otro.",
     "capReachedShortFree": "Límite de espacios de trabajo alcanzado",
@@ -1828,7 +1844,10 @@
       "mcpWrite": "Tu plan incluye acceso de solo lectura para clientes de IA mediante MCP. Editar, renderizar y las herramientas web requieren un plan que las incluya.",
       "aiImage": "La generación de imágenes con la IA de markoto no está incluida en este plan.",
       "aiVoice": "La entrada por voz con la IA de markoto no está incluida en este plan.",
-      "aiStrongModel": "El modelo de IA potente no está incluido en este plan."
+      "aiStrongModel": "El modelo de IA potente no está incluido en este plan.",
+      "sso": "El inicio de sesión único no está incluido en el plan de este espacio de trabajo.",
+      "auditLog": "El registro de auditoría no está incluido en el plan de este espacio de trabajo.",
+      "guests": "Los invitados no están incluidos en el plan de este espacio de trabajo."
     },
     "limit": {
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
@@ -2406,8 +2425,25 @@
       "sso_member_joined": "Miembro unido mediante inicio de sesión único",
       "sso_scim_token_rotated": "Token de aprovisionamiento cambiado",
       "sso_scim_user_created": "Miembro aprovisionado",
-      "sso_scim_user_deactivated": "Miembro desaprovisionado"
+      "sso_scim_user_deactivated": "Miembro desaprovisionado",
+      "doc_shared": "Documento compartido con un invitado",
+      "doc_unshared": "Documento que ya no se comparte con un invitado"
     },
     "planNotice": "El registro de auditoría forma parte del plan Business."
+  },
+  "usage": {
+    "title": "Uso",
+    "intro": "Lo que conserva cada persona en este espacio de trabajo: los documentos que posee, los archivos de conocimiento y las imágenes que añadió y, en un plan Team o Business, su gasto de IA del presupuesto compartido en este período. Nada sobre cuándo o con qué frecuencia trabaja nadie.",
+    "person": "Persona",
+    "documents": "Documentos",
+    "knowledge": "Conocimiento",
+    "images": "Imágenes",
+    "aiSpend": "IA este período",
+    "files": "sin archivos | {n} archivo · {size} | {n} archivos · {size}",
+    "empty": "Aún no hay miembros.",
+    "guestsTitle": "Invitados",
+    "sharedDocs": "sin documentos compartidos | {n} documento compartido | {n} documentos compartidos",
+    "guestsHint": "Los invitados usan su propio presupuesto de IA, por lo que su gasto no se muestra aquí.",
+    "loadFailed": "No se pudo cargar el uso"
   }
 }

@@ -87,7 +87,10 @@ export default defineEventHandler(async (event) => {
     accessMode: row.accessMode,
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
-    workspaceRole: row.workspaceRole,
+    // A guest (WP11) is not a member: no workspace role for the UI (no
+    // knowledge panel, no sharing); `guest` says why they may open it.
+    workspaceRole: row.isGuest ? null : row.workspaceRole,
+    guest: row.isGuest,
     theme: row.theme,
     // Title as stored on the row (set by the new-document dialog). The
     // editor shows it until the live Y.js title (`ymeta.title`) exists —

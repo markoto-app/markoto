@@ -19,7 +19,7 @@ import { getPooledWorkspace } from '../workspaceBilling'
 import { resolveWorkspacePlan } from '../entitlements'
 import { getTiers } from '../tierConfig'
 import { wouldExceed } from '~~/shared/config/tiers'
-import type { WorkspaceRole } from '~~/shared/utils/docPermissions'
+import type { MembershipRole } from '~~/shared/utils/docPermissions'
 
 export class SsoJoinRefused extends Error {
   constructor(public readonly code: 'sso/no-seat' | 'sso/member-limit', message: string) {
@@ -29,7 +29,7 @@ export class SsoJoinRefused extends Error {
 }
 
 export interface SsoJoinResult {
-  role: WorkspaceRole
+  role: MembershipRole
   /** False when the user was already a member. */
   joined: boolean
 }
@@ -64,8 +64,8 @@ export async function joinWorkspaceBySso(args: {
     if (!invite) {
       const counts = (await tx.execute<{ members: number, invites: number }>(sql`
         select
-          (select count(*)::int from ${workspaceMembers} where workspace_id = ${args.workspaceId}) as members,
-          (select count(*)::int from ${workspaceInvites} where workspace_id = ${args.workspaceId} and expires_at > ${now}) as invites
+          (select count(*)::int from ${workspaceMembers} where workspace_id = ${args.workspaceId} and role <> 'guest') as members,
+          (select count(*)::int from ${workspaceInvites} where workspace_id = ${args.workspaceId} and expires_at > ${now} and role <> 'guest') as invites
       `)).rows[0] ?? { members: 0, invites: 0 }
       const used = Number(counts.members) + Number(counts.invites)
       if (wouldExceed(memberLimit, used)) {
@@ -76,7 +76,7 @@ export async function joinWorkspaceBySso(args: {
       }
     }
 
-    const role: WorkspaceRole = invite?.role ?? args.defaultRole
+    const role: MembershipRole = invite?.role ?? args.defaultRole
     await tx.insert(workspaceMembers).values({ workspaceId: args.workspaceId, userId: args.userId, role })
       .onConflictDoNothing({ target: [workspaceMembers.workspaceId, workspaceMembers.userId] })
     if (invite) await tx.delete(workspaceInvites).where(eq(workspaceInvites.id, invite.id))

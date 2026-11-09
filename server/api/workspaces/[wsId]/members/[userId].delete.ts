@@ -1,4 +1,5 @@
-import { getMemberRoleIgnoringSso, removeMember } from '../../../../repos/workspaceMembers'
+import { getMembershipRole, removeMember } from '../../../../repos/workspaceMembers'
+import { deleteSharesForUserInWorkspace } from '../../../../repos/documentShares'
 import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
@@ -21,10 +22,12 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid userId' })
   }
 
-  const myRole = await getWorkspaceRole(session.user.id, wsId)
-  if (myRole === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
-
   const isSelf = targetUserId === session.user.id
+  const myRole = await getWorkspaceRole(session.user.id, wsId)
+  // A guest (WP11) has no workspace role but may leave on their own.
+  const leavingGuest = myRole === null && isSelf && (await getMembershipRole(wsId, session.user.id)) === 'guest'
+  if (myRole === null && !leavingGuest) throw createError({ statusCode: 404, message: 'Workspace not found' })
+
   if (!isSelf && myRole !== 'admin') {
     throw createError({ statusCode: 403, message: 'Only admins can remove other members' })
   }
@@ -32,15 +35,16 @@ export default defineEventHandler(async (event) => {
   // Capture the removed member's role BEFORE the delete so the audit
   // row can record what they had. Cheap extra query — this endpoint
   // isn't hot-path.
-  // The TARGET's membership, regardless of single sign-on (WP14): a
-  // member who hasn't signed in through the IdP is still a member.
-  const targetRoleBefore = await getMemberRoleIgnoringSso(wsId, targetUserId)
+  // The TARGET's membership, regardless of single sign-on (WP14) — a
+  // member who hasn't signed in through the IdP is still a member — and
+  // including guests (WP11).
+  const targetRoleBefore = await getMembershipRole(wsId, targetUserId)
 
   // Team / Business (WP3): the member's key in the workspace's LiteLLM
   // team goes with the membership. Deleted first (the row holds the
   // token); if the removal is then refused the key is simply re-created
   // on the next AI use.
-  if (targetRoleBefore !== null) await deleteMemberKey(wsId, targetUserId)
+  if (targetRoleBefore !== null && targetRoleBefore !== 'guest') await deleteMemberKey(wsId, targetUserId)
 
   try {
     await removeMember(wsId, targetUserId)
@@ -50,6 +54,9 @@ export default defineEventHandler(async (event) => {
     if (isRepoError(e)) throw createError({ statusCode: e.httpStatus, message: e.message })
     throw e
   }
+
+  // A guest's shares on this workspace's documents go with them (WP11).
+  if (targetRoleBefore === 'guest') await deleteSharesForUserInWorkspace(targetUserId, wsId)
 
   // Kick any live Y.js connections the removed member holds to workspace
   // docs. Without this the member's 2h JWT stays valid and they keep

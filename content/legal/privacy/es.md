@@ -1,7 +1,7 @@
 ---
 slug: privacy
 locale: es
-version: 11
+version: 12
 effectiveDate: 2026-11-09
 translationStatus: machine-translated
 ---
@@ -35,6 +35,7 @@ En resumen, tratamos:
 - **Uso de la IA:** solicitudes, contexto del documento y resultados de la IA, cuando usa las funciones de IA.
 - **Datos técnicos:** direcciones IP (usadas de forma efímera para los límites de frecuencia y almacenadas en los registros solo en forma acortada), tipo de navegador e informes de errores.
 - **Inicio de sesión único a través de su organización, si su espacio de trabajo lo usa:** cuando un espacio de trabajo Team o Business conecta su propio proveedor de identidad, recibimos de este el identificador que usa para usted, su nombre y su dirección de correo electrónico y, si el espacio de trabajo utiliza el aprovisionamiento automático (SCIM), si su acceso está activo. Conservamos el vínculo con su cuenta y la fecha de su último inicio de sesión hasta que el espacio de trabajo le elimine a usted o elimine su configuración de inicio de sesión, o hasta que usted elimine su cuenta. Su organización decide quién obtiene acceso; actuamos por cuenta de ella, como se describe en nuestra Adenda de tratamiento de datos.
+- **Invitados de un espacio de trabajo:** si un espacio de trabajo le invita como invitado, sus administradores y editores ven su nombre y su dirección de correo electrónico entre sus invitados, y registramos cuáles de sus documentos se han compartido con usted, con acceso de lectura o de edición, y quién lo hizo, hasta que termine el uso compartido, usted abandone el espacio de trabajo o elimine su cuenta. Los administradores de un espacio de trabajo ven además, por persona, cuántos documentos, archivos de conocimiento e imágenes conserva cada miembro e invitado en el espacio de trabajo (no su contenido ni cuándo trabaja alguien).
 - **Datos de facturación, solo cuando se ofrezcan planes de pago:** su plan, su periodo y su moneda, los identificadores de cliente y de suscripción de Stripe, las facturas, las compras de créditos de IA y su uso, y su aceptación de las Condiciones de los planes de pago ([/legal/paid-terms](/legal/paid-terms)). En el caso de un espacio de trabajo Team o Business, también conservamos el número de puestos y quién es el administrador de facturación. Los administradores del espacio de trabajo ven el gasto de IA de cada miembro en ese espacio de trabajo durante el mes en curso y pueden fijar un límite por miembro; no ven las solicitudes ni los resultados de la IA. Los datos de la tarjeta se envían únicamente a Stripe; nunca los recibimos.
 
 ## 2b. Documentos anónimos, comprobación contra bots y denuncias de abusos
@@ -248,6 +249,7 @@ Esta es la **versión {{currentVersion}}**, en vigor desde el **{{effectiveDate}
 
 ### Historial de cambios
 
+- **v12 (2026-11-09).** Se describieron los invitados de un espacio de trabajo (apartado 2): quién ve el nombre y la dirección de correo electrónico de un invitado, el registro de qué documentos se compartieron con él y la vista de uso por persona para los administradores de un espacio de trabajo. Añadido a su exportación de datos (`document_shares.json`).
 - **v11 (2026-11-09).** Los administradores de un espacio de trabajo con un plan que incluye el registro de auditoría pueden ver y descargar las entradas de auditoría de ese espacio de trabajo, incluidos el nombre y la dirección IP acortada de la persona que actuó (apartado 5).
 - **v10 (2026-11-09).** Se describió el inicio de sesión único a través del proveedor de identidad propio de un espacio de trabajo (OpenID Connect o SAML) y el aprovisionamiento automático (SCIM) (apartado 2): el identificador, el nombre y la dirección de correo electrónico que envía el proveedor, el vínculo con su cuenta, su último inicio de sesión y si su acceso está activo. Añadido a su exportación de datos (`sso_identities.json`).
 - **v9 (2026-11-09).** Se describieron los datos de facturación que tratamos cuando se ofrecen planes de pago (apartado 2): planes, espacios de trabajo Team y Business con sus puestos y su administrador de facturación, créditos de IA y la aceptación de las nuevas Condiciones de los planes de pago. Los administradores de un espacio de trabajo Team o Business ven el gasto mensual de IA de cada miembro en ese espacio de trabajo (no las solicitudes ni los resultados) y pueden fijar un límite por miembro.

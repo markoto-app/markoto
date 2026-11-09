@@ -109,6 +109,11 @@ export const AUDIT_SSO_SCIM_USER_DEACTIVATED = 'sso.scim_user_deactivated'
 // row count, date range.
 export const AUDIT_WORKSPACE_AUDIT_EXPORTED = 'workspace.audit_exported'
 
+// A workspace document shared with a guest / no longer (WP11). Metadata:
+// the guest's user id; before / after: the access (view / edit).
+export const AUDIT_DOC_SHARED = 'doc.shared'
+export const AUDIT_DOC_UNSHARED = 'doc.unshared'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -157,3 +162,5 @@ export type ComplianceAuditAction
     | typeof AUDIT_SSO_SCIM_USER_CREATED
     | typeof AUDIT_SSO_SCIM_USER_DEACTIVATED
     | typeof AUDIT_WORKSPACE_AUDIT_EXPORTED
+    | typeof AUDIT_DOC_SHARED
+    | typeof AUDIT_DOC_UNSHARED

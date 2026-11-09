@@ -70,6 +70,7 @@ describe('buildExportZip', () => {
       'billing/workspace_subscriptions.json',
       'comments.ndjson',
       'consent.ndjson',
+      'document_shares.json',
       'moderation_notices.ndjson',
       'profile.json',
       'sso_identities.json',

@@ -40,13 +40,13 @@ import {
   writeSsoGrant,
   type SsoConnectionRow
 } from '../../repos/sso'
-import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
+import { getMemberRoleIgnoringSso, getMembershipRole } from '../../repos/workspaceMembers'
 import { getSessionEpoch } from '../../repos/users'
 import { emailDomain } from './domains'
 import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import type { SsoFlow } from './flowCookie'
 import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
-import type { WorkspaceRole } from '~~/shared/utils/docPermissions'
+import type { MembershipRole } from '~~/shared/utils/docPermissions'
 
 export interface SsoAssertion {
   /** OIDC `sub` / SAML NameID. */
@@ -78,7 +78,7 @@ export interface SsoLoginResult {
   name: string
   email: string | null
   workspaceId: string
-  role: WorkspaceRole
+  role: MembershipRole
   /** The account was created by this sign-in. */
   created: boolean
   /** The identity was linked to an account by this sign-in. */
@@ -152,7 +152,8 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     return { userId, identityId: inserted.id, scim: false, created, linked: true }
   })
 
-  let role = await getMemberRoleIgnoringSso(connection.workspaceId, who.userId)
+  // Raw membership incl. `guest` (WP11): an existing guest stays a guest.
+  let role: MembershipRole | null = await getMembershipRole(connection.workspaceId, who.userId)
   let joined = false
   if (!role) {
     if (!trustedEmail && !who.scim) {

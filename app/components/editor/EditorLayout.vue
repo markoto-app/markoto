@@ -1846,6 +1846,7 @@ const _statusIcon = computed(() => {
       :doc-title="title"
       :is-owner="isOwner"
       :current-access-mode="accessMode"
+      :can-share-with-guests="!!docWorkspaceId && (docWorkspaceRole === 'admin' || docWorkspaceRole === 'editor')"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
     />
 

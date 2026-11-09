@@ -38,7 +38,9 @@
 // provisioning (WP14): identifier, link, last sign-in, active state.
 // v11 (2026-11-09): workspace admins (audit-log plan feature) see and
 // export that workspace's audit entries incl. names + truncated IPs (WP15).
-export const PRIVACY_VERSION = 11
+// v12 (2026-11-09): workspace guests + document shares, per-person usage
+// view for workspace admins (WP11).
+export const PRIVACY_VERSION = 12
 export const PRIVACY_EFFECTIVE_DATE = '2026-11-09'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.

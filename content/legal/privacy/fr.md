@@ -1,7 +1,7 @@
 ---
 slug: privacy
 locale: fr
-version: 11
+version: 12
 effectiveDate: 2026-11-09
 translationStatus: machine-translated
 ---
@@ -35,6 +35,7 @@ En résumé, nous traitons :
 - **Utilisation de l'IA :** requêtes, contexte du document et résultats de l'IA, lorsque vous utilisez les fonctionnalités d'IA.
 - **Données techniques :** adresses IP (utilisées sous une forme éphémère pour la limitation de débit et conservées uniquement sous forme tronquée dans les journaux), type de navigateur, rapports d'erreurs.
 - **Authentification unique (SSO) via votre organisation, si votre espace de travail l'utilise :** lorsqu'un espace de travail Team ou Business connecte son propre fournisseur d'identité, nous recevons de celui-ci l'identifiant qu'il utilise pour vous, votre nom et votre adresse e-mail et, si l'espace de travail recourt au provisionnement automatique (SCIM), l'indication de savoir si votre accès est actif. Nous conservons le lien avec votre compte et la date de votre dernière connexion jusqu'à ce que l'espace de travail vous retire ou supprime sa configuration de connexion, ou que vous supprimiez votre compte. Votre organisation décide qui obtient l'accès ; nous agissons pour son compte, comme décrit dans notre accord de traitement des données.
+- **Invités d'un espace de travail :** si un espace de travail vous invite en tant qu'invité, ses administrateurs et ses éditeurs voient votre nom et votre adresse e-mail parmi ses invités, et nous consignons lesquels de ses documents ont été partagés avec vous, en lecture ou en modification, et par qui, jusqu'à la fin du partage, jusqu'à ce que vous quittiez l'espace de travail ou que vous supprimiez votre compte. Les administrateurs d'un espace de travail voient en outre, par personne, combien de documents, de fichiers de la base de connaissances et d'images chaque membre et chaque invité conserve dans l'espace de travail (pas leur contenu, ni le moment où quelqu'un travaille).
 - **Données de facturation, uniquement dès que des offres payantes seront proposées :** votre plan, sa période et sa devise, les identifiants de client et d'abonnement Stripe, les factures, les achats de crédits IA et leur utilisation, ainsi que votre acceptation des conditions des offres payantes ([/legal/paid-terms](/legal/paid-terms)). Pour un espace de travail Team ou Business, nous conservons également le nombre de places et l'identité de l'admin de facturation. Les admins de l'espace de travail voient les dépenses d'IA de chaque membre dans cet espace de travail pour le mois en cours et peuvent fixer une limite par membre ; ils ne voient ni les requêtes ni les résultats de l'IA. Les données de carte sont transmises uniquement à Stripe ; nous ne les recevons jamais.
 
 ## 2b. Documents anonymes, vérification anti-robots et signalements d'abus
@@ -248,6 +249,7 @@ Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}
 
 ### Historique des modifications
 
+- **v12 (2026-11-09).** Description des invités d'un espace de travail (point 2) : qui voit le nom et l'adresse e-mail d'un invité, l'enregistrement des documents partagés avec lui et la vue d'utilisation par personne pour les admins d'un espace de travail. Ajouté à votre export de données (`document_shares.json`).
 - **v11 (2026-11-09).** Les admins d'un espace de travail dont le plan inclut le journal d'audit peuvent consulter et télécharger les entrées d'audit de cet espace de travail, y compris le nom et l'adresse IP tronquée de la personne qui a agi (point 5).
 - **v10 (2026-11-09).** Description de l'authentification unique via le propre fournisseur d'identité d'un espace de travail (OpenID Connect ou SAML) et du provisionnement automatique (SCIM) (point 2) : l'identifiant, le nom et l'adresse e-mail que transmet le fournisseur, le lien avec votre compte, votre dernière connexion et l'indication de savoir si votre accès est actif. Ajouté à votre export de données (`sso_identities.json`).
 - **v9 (2026-11-09).** Description des données de facturation que nous traitons dès que des offres payantes sont proposées (point 2) : plans, espaces de travail Team et Business avec leurs places et leur admin de facturation, crédits IA, et acceptation des nouvelles conditions des offres payantes. Les admins d'un espace de travail Team ou Business voient les dépenses d'IA mensuelles de chaque membre dans cet espace de travail (pas les requêtes ni les résultats) et peuvent fixer une limite par membre.

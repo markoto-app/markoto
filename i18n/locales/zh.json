@@ -11,7 +11,8 @@
     "newDocument": "新建文档",
     "openDocument": "打开文档",
     "recentDocuments": "最近的文档",
-    "noRecent": "暂无最近的文档"
+    "noRecent": "暂无最近的文档",
+    "sharedWithYou": "与你共享"
   },
   "auth": {
     "login": "登录",
@@ -101,7 +102,18 @@
     "enterPassword": "密码",
     "invalidPassword": "密码不正确，请重试。",
     "unlock": "解锁",
-    "viewOnly": "仅查看"
+    "viewOnly": "仅查看",
+    "guests": {
+      "title": "访客",
+      "hint": "此工作区的访客只能看到与其共享的文档。",
+      "view": "可查看",
+      "edit": "可编辑",
+      "remove": "停止共享",
+      "pick": "选择访客",
+      "add": "共享",
+      "loadFailed": "无法加载访客",
+      "saveFailed": "无法更改共享设置"
+    }
   },
   "access": {
     "privateTitle": "本文档为私有",
@@ -1310,7 +1322,8 @@
       "settings": "设置",
       "billing": "账单",
       "sso": "单点登录",
-      "audit": "审计日志"
+      "audit": "审计日志",
+      "usage": "用量"
     },
     "settings": {
       "title": "工作区设置",
@@ -1364,7 +1377,8 @@
     "roles": {
       "admin": "管理员",
       "editor": "编辑者",
-      "viewer": "查看者"
+      "viewer": "查看者",
+      "guest": "访客"
     },
     "members": {
       "title": "{name} 的成员",
@@ -1393,9 +1407,11 @@
       "errors": {
         "invalidEmail": "请输入有效的邮箱地址。",
         "alreadyMember": "此人已是该工作区的成员。",
-        "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。"
+        "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。",
+        "guestCap": "此工作区的访客数量已达到其套餐上限（每个付费席位 5 位）。请先移除一位访客或增加席位。"
       },
-      "invitePeople": "邀请成员"
+      "invitePeople": "邀请成员",
+      "guestHint": "访客只能看到你与其共享的文档，不占用席位，并使用自己的 AI 额度。"
     },
     "capReachedFree": "已使用 {used} / {limit} 个工作区。请删除一个后再创建新的。",
     "capReachedShortFree": "已达工作区上限",
@@ -1828,7 +1844,10 @@
       "mcpWrite": "你的套餐中，通过 MCP 连接的 AI 客户端只有只读权限。编辑、渲染和网络工具需要包含这些功能的套餐。",
       "aiImage": "此方案不包含使用 markoto AI 生成图像。",
       "aiVoice": "此方案不包含使用 markoto AI 进行语音输入。",
-      "aiStrongModel": "此方案不包含强大的 AI 模型。"
+      "aiStrongModel": "此方案不包含强大的 AI 模型。",
+      "sso": "此工作区的套餐不包含单点登录。",
+      "auditLog": "此工作区的套餐不包含审计日志。",
+      "guests": "此工作区的套餐不包含访客功能。"
     },
     "limit": {
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
@@ -2406,8 +2425,25 @@
       "sso_member_joined": "成员通过单点登录加入",
       "sso_scim_token_rotated": "预配令牌已更改",
       "sso_scim_user_created": "成员已预配",
-      "sso_scim_user_deactivated": "成员已取消预配"
+      "sso_scim_user_deactivated": "成员已取消预配",
+      "doc_shared": "文档已与访客共享",
+      "doc_unshared": "文档不再与访客共享"
     },
     "planNotice": "审计日志是 Business 方案的功能。"
+  },
+  "usage": {
+    "title": "用量",
+    "intro": "每个人在此工作区中保存的内容：其拥有的文档、添加的知识文件和图片，以及在 Team 或 Business 套餐中本期使用共享额度产生的 AI 支出。不包含任何人何时或多频繁工作的信息。",
+    "person": "成员",
+    "documents": "文档",
+    "knowledge": "知识库",
+    "images": "图片",
+    "aiSpend": "本期 AI",
+    "files": "无文件 | {n} 个文件 · {size} | {n} 个文件 · {size}",
+    "empty": "暂无成员。",
+    "guestsTitle": "访客",
+    "sharedDocs": "无共享文档 | {n} 份共享文档 | {n} 份共享文档",
+    "guestsHint": "访客使用自己的 AI 额度，因此此处不显示其支出。",
+    "loadFailed": "无法加载用量"
   }
 }

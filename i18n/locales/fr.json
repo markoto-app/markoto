@@ -11,7 +11,8 @@
     "newDocument": "Nouveau document",
     "openDocument": "Ouvrir un document",
     "recentDocuments": "Documents récents",
-    "noRecent": "Aucun document récent"
+    "noRecent": "Aucun document récent",
+    "sharedWithYou": "Partagé avec vous"
   },
   "auth": {
     "login": "Se connecter",
@@ -101,7 +102,18 @@
     "enterPassword": "Mot de passe",
     "invalidPassword": "Mot de passe incorrect. Veuillez réessayer.",
     "unlock": "Déverrouiller",
-    "viewOnly": "Consultation seule"
+    "viewOnly": "Consultation seule",
+    "guests": {
+      "title": "Invités",
+      "hint": "Les invités de cet espace de travail ne voient que les documents partagés avec eux.",
+      "view": "Peut lire",
+      "edit": "Peut modifier",
+      "remove": "Arrêter le partage",
+      "pick": "Choisir un invité",
+      "add": "Partager",
+      "loadFailed": "Impossible de charger les invités",
+      "saveFailed": "Impossible de modifier le partage"
+    }
   },
   "access": {
     "privateTitle": "Ce document est privé",
@@ -1310,7 +1322,8 @@
       "settings": "Paramètres",
       "billing": "Facturation",
       "sso": "Authentification unique",
-      "audit": "Journal d’audit"
+      "audit": "Journal d’audit",
+      "usage": "Utilisation"
     },
     "settings": {
       "title": "Paramètres de l'espace de travail",
@@ -1364,7 +1377,8 @@
     "roles": {
       "admin": "Administrateur",
       "editor": "Éditeur",
-      "viewer": "Lecteur"
+      "viewer": "Lecteur",
+      "guest": "Invité"
     },
     "members": {
       "title": "Membres de {name}",
@@ -1393,9 +1407,11 @@
       "errors": {
         "invalidEmail": "Saisissez une adresse e-mail valide.",
         "alreadyMember": "Cette personne est déjà membre de l'espace de travail.",
-        "inviteCap": "Cet espace de travail a trop d'invitations en attente. Retirez-en d'abord quelques-unes."
+        "inviteCap": "Cet espace de travail a trop d'invitations en attente. Retirez-en d'abord quelques-unes.",
+        "guestCap": "Cet espace de travail compte autant d’invités que son forfait le permet (5 par place payante). Retirez un invité ou ajoutez une place d’abord."
       },
-      "invitePeople": "Inviter des personnes"
+      "invitePeople": "Inviter des personnes",
+      "guestHint": "Un invité ne voit que les documents que vous partagez avec lui, n’occupe pas de place et utilise son propre budget IA."
     },
     "capReachedFree": "{used} espaces de travail utilisés sur {limit}. Supprimez-en un pour en créer un autre.",
     "capReachedShortFree": "Limite d'espaces de travail atteinte",
@@ -1828,7 +1844,10 @@
       "mcpWrite": "Votre forfait inclut un accès en lecture seule pour les clients d'IA via MCP. La modification, le rendu et les outils web nécessitent un forfait qui les inclut.",
       "aiImage": "La génération d’images avec l’IA de markoto n’est pas incluse dans ce plan.",
       "aiVoice": "La saisie vocale avec l’IA de markoto n’est pas incluse dans ce plan.",
-      "aiStrongModel": "Le modèle d’IA puissant n’est pas inclus dans ce plan."
+      "aiStrongModel": "Le modèle d’IA puissant n’est pas inclus dans ce plan.",
+      "sso": "L’authentification unique n’est pas incluse dans le forfait de cet espace de travail.",
+      "auditLog": "Le journal d’audit n’est pas inclus dans le forfait de cet espace de travail.",
+      "guests": "Les invités ne sont pas inclus dans le forfait de cet espace de travail."
     },
     "limit": {
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
@@ -2406,8 +2425,25 @@
       "sso_member_joined": "Membre arrivé via l’authentification unique",
       "sso_scim_token_rotated": "Jeton de provisionnement modifié",
       "sso_scim_user_created": "Membre provisionné",
-      "sso_scim_user_deactivated": "Membre déprovisionné"
+      "sso_scim_user_deactivated": "Membre déprovisionné",
+      "doc_shared": "Document partagé avec un invité",
+      "doc_unshared": "Document n’est plus partagé avec un invité"
     },
     "planNotice": "Le journal d’audit fait partie du plan Business."
+  },
+  "usage": {
+    "title": "Utilisation",
+    "intro": "Ce que chaque personne conserve dans cet espace de travail : les documents dont elle est propriétaire, les fichiers de connaissances et les images qu’elle a ajoutés et, avec un forfait Team ou Business, ses dépenses d’IA sur le budget partagé pour cette période. Rien sur le moment ni la fréquence de travail de qui que ce soit.",
+    "person": "Personne",
+    "documents": "Documents",
+    "knowledge": "Connaissances",
+    "images": "Images",
+    "aiSpend": "IA sur cette période",
+    "files": "aucun fichier | {n} fichier · {size} | {n} fichiers · {size}",
+    "empty": "Aucun membre pour le moment.",
+    "guestsTitle": "Invités",
+    "sharedDocs": "aucun document partagé | {n} document partagé | {n} documents partagés",
+    "guestsHint": "Les invités utilisent leur propre budget IA ; leurs dépenses ne sont donc pas affichées ici.",
+    "loadFailed": "Impossible de charger l’utilisation"
   }
 }

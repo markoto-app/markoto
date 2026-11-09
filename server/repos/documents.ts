@@ -1,7 +1,7 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, or, sql } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
-import { documents, workspaceMembers } from '../db/schema'
+import { documentShares, documents, workspaceMembers } from '../db/schema'
 import { ssoSatisfiedSql } from './sso'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import { useDatabase } from '../utils/database'
@@ -51,6 +51,11 @@ export interface DocAuthzRow {
   anonCreatorKeyHash: string | null
   theme: DocTheme | null
   workspaceRole: WorkspaceRole | null
+  /**
+   * The caller is a GUEST of the document's workspace (WP11):
+   * `workspaceRole` then comes from their share of this document only.
+   */
+  isGuest: boolean
   /**
    * Document context fields. Surfaced through the token endpoint so the
    * editor can hydrate the Document tab + new-doc-derived UI before the
@@ -173,7 +178,14 @@ export async function getDocWithActorRole(
       audience: documents.audience,
       language: documents.language,
       templateId: documents.templateId,
-      role: workspaceMembers.role
+      // A guest (WP11) has the role their share of THIS document gives
+      // (edit → editor, view → viewer) and none without one.
+      role: sql<WorkspaceRole | null>`case when ${workspaceMembers.role} = 'guest' then (
+        select case ${documentShares.access} when 'edit' then 'editor' else 'viewer' end
+        from ${documentShares}
+        where ${documentShares.docId} = ${documents.docId} and ${documentShares.userId} = ${actorUserId ?? -1}
+      ) else ${workspaceMembers.role} end`,
+      isGuest: sql<boolean>`coalesce(${workspaceMembers.role} = 'guest', false)`
     })
     .from(documents)
     .leftJoin(
@@ -188,7 +200,8 @@ export async function getDocWithActorRole(
             eq(workspaceMembers.userId, actorUserId),
             // Single sign-on (WP14): no role without a current SSO grant
             // in a workspace that enforces it — same as getMemberRole.
-            ssoSatisfiedSql(workspaceMembers.workspaceId, actorUserId)
+            // Guests (WP11) are outside the organisation: not held to it.
+            or(eq(workspaceMembers.role, 'guest'), ssoSatisfiedSql(workspaceMembers.workspaceId, actorUserId))
           )
     )
     .where(eq(documents.docId, docId))
@@ -203,6 +216,7 @@ export async function getDocWithActorRole(
     anonCreatorKeyHash: row.anonCreatorKeyHash,
     theme: row.theme,
     workspaceRole: (row.role ?? null),
+    isGuest: row.isGuest === true,
     title: row.title,
     description: row.description,
     audience: row.audience,

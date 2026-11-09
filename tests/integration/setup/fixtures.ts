@@ -141,7 +141,7 @@ export async function createWorkspace(ownerId: number, overrides: Partial<TestWo
   return { workspaceId, ownerId, name }
 }
 
-export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
+export type WorkspaceRole = 'admin' | 'editor' | 'viewer' | 'guest'
 
 export async function setMemberRole(workspaceId: string, userId: number, role: WorkspaceRole): Promise<void> {
   const db = testDb()

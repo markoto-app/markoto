@@ -61,11 +61,14 @@ export default defineEventHandler(async (event) => {
   let sso: { available: boolean, status: 'none' | 'draft' | 'active' } | null = null
   // Audit log (WP15), admins only: whether the plan includes the viewer.
   let auditLog: { available: boolean } | null = null
+  // Guests (WP11), admins only: whether guests can be invited.
+  let guests: { available: boolean } | null = null
   if (myRole === 'admin') {
     const plan = await resolveWorkspacePlan(wsId)
     const connection = await getSsoConnectionForWorkspace(wsId)
     sso = { available: planHasFeature(plan, 'sso'), status: connection?.status ?? 'none' }
     auditLog = { available: planHasFeature(plan, 'auditLog') }
+    guests = { available: planHasFeature(plan, 'guests') }
   }
 
   return {
@@ -88,7 +91,8 @@ export default defineEventHandler(async (event) => {
       pooled: pool !== null,
       billing,
       sso,
-      auditLog
+      auditLog,
+      guests
     },
     documents,
     members
