@@ -72,8 +72,8 @@ source: |
 ---
 ::
 
-::cta{title="Start your resume from this page." label="Use this template" template="resume" theme="resume" secondary-label="All templates" secondary-to="/templates"}
-Opens the new-document dialog with the resume template and the Resume theme selected.
+::cta{title="Start your resume from this page." label="Use this template" template="resume" secondary-label="All templates" secondary-to="/templates"}
+Opens the new-document dialog with the resume template selected. It comes with the Resume theme.
 ::
 
 ## What's in it
@@ -116,6 +116,6 @@ items:
 ---
 ::
 
-::cta{title="Write your resume as text, print it as a page." label="Use this template" template="resume" theme="resume"}
+::cta{title="Write your resume as text, print it as a page." label="Use this template" template="resume"}
 Free on markoto.app, no sign-up needed.
 ::

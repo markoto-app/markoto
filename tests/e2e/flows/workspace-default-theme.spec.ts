@@ -9,7 +9,7 @@ import { test, expect } from '../fixtures/flow'
 // the same preset by hand each time or works on differently-styled
 // docs. Job done when the admin has picked a preset under workspace
 // settings AND a new doc created in that workspace opens with the
-// admin's choice already selected in the new-doc dialog.
+// admin's choice as the design of a blank page in the new-doc dialog.
 //
 // What this flow is NOT: a tour of the theme presets themselves
 // (covered by `pick-a-theme`) or the per-section editor (covered by
@@ -43,10 +43,9 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   await flow.heading('Set a default theme for your workspace', 3)
   await flow.narrate(
     'Each workspace can pick the theme every new doc starts with. '
-    + 'Admins set it once; every member who creates a doc in this '
-    + 'workspace gets that preset preselected in the new-doc '
-    + 'dialog. They can still pick something else, but the '
-    + 'baseline is yours.'
+    + 'Admins set it once; every member who starts a blank doc in '
+    + 'this workspace gets that design. They can still pick a '
+    + 'template with its own design, but the baseline is yours.'
   )
 
   // ─── Open the Settings tab ──────────────────────────────────────
@@ -79,7 +78,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
     'Pick the Corporate report preset',
     page.locator('[data-testid="workspace-default-theme-preset-business-report"]'),
     {
-      result: 'The Corporate report card is now selected — every new doc in this workspace starts with this preset.',
+      result: 'The Corporate report card is now selected — every blank doc in this workspace starts with this design.',
       annotations: [
         { label: 'Corporate report preset', selector: '[data-testid="workspace-default-theme-preset-business-report"]', kind: 'arrow' }
       ],
@@ -105,12 +104,12 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   expect(wsCheck.workspace.defaultTheme?.headings?.font).toMatch(/source serif/i)
 
   // ─── Create a new doc — see the inheritance ─────────────────────
-  await flow.heading('Create a doc — your default is preselected', 3)
+  await flow.heading('Create a blank doc — it starts in your default', 3)
   await flow.narrate(
-    'Hit "+ New document" in the workspace. The new-doc dialog '
-    + 'opens with the Corporate report card already lit up under '
-    + 'Design — your pick, ready to go. The member can override, '
-    + 'but they don\'t have to.'
+    'Hit "+ New document" in the workspace. Under Template, Blank is a '
+    + 'page in the workspace design — Corporate report, your pick. The '
+    + 'other templates bring a design of their own; the theme panel '
+    + 'switches any document to another one later.'
   )
 
   // Switch back to the Documents tab so the workspace-level "+ New
@@ -125,42 +124,56 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
     'Click "+ New document"',
     page.locator('[data-testid="workspace-new-document"]'),
     {
-      result: 'The new-doc dialog opens. The Design row already names the workspace default.',
+      result: 'The new-doc dialog opens.',
       after: () => editor.page.waitForNewDocDialog()
     }
   )
-  await expect(page.locator('[data-testid="newdoc-section-design-summary"]')).toHaveText('Corporate report')
 
   await flow.click(
-    'Open "Design"',
-    editor.page.newDocDialog.section('design'),
+    'Open "Template"',
+    editor.page.newDocDialog.section('template'),
     {
-      result: 'The design picker opens.',
-      after: () => editor.page.openNewDocSection('design')
+      result: 'The templates open.',
+      after: () => editor.page.openNewDocSection('template')
     }
   )
 
-  // The new-doc dialog shows the workspace's default theme as the
-  // selected card. When the workspace default IS a built-in preset
-  // (Corporate report in our case), the matching preset card lights up
-  // directly — no separate "inherit" card is rendered.
-  // ASSERTION: the Corporate report card is the selected one.
-  const presetCard = page.locator('[data-testid="newdoc-theme-card-business-report"]')
-  await expect(presetCard).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.locator('[data-testid^="newdoc-theme-card-"][aria-pressed="true"]')).toHaveCount(1)
-  // Bring the card into view so the frame shows what the caption says.
-  await presetCard.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
-  await expect(presetCard).toBeInViewport()
+  const blankCard = editor.page.newDocDialog.templateCard('blank')
+  await flow.click(
+    'Pick "Blank"',
+    blankCard,
+    {
+      result: 'Blank is selected: an empty page in the workspace design.',
+      after: async () => {
+        await expect(blankCard).toHaveAttribute('aria-pressed', 'true')
+      }
+    }
+  )
+
+  // ASSERTION: Blank names the workspace default — on its card and in
+  // the Template row's summary.
+  await expect(blankCard).toContainText('Corporate report')
+  await expect(editor.page.newDocDialog.summary('template')).toHaveText('Blank · Corporate report')
+  await expect(page.locator('[data-testid^="newdoc-template-card-"][aria-pressed="true"]')).toHaveCount(1)
+  await blankCard.evaluate((el: HTMLElement) => el.scrollIntoView({ block: 'center' }))
+  await expect(blankCard).toBeInViewport()
 
   await flow.shot(
-    'In the design picker, the Corporate report card is preselected.',
+    'Blank starts in the workspace default: Corporate report.',
     {
       hero: true,
       highlights: [
-        { label: 'Workspace default — preselected', selector: '[data-testid="newdoc-theme-card-business-report"]' }
+        { label: 'Workspace default', selector: '[data-testid="newdoc-template-card-blank"]' }
       ]
     }
   )
+
+  // ASSERTION: the created document has the workspace design.
+  await editor.page.clickCreateAndPassGate(editor.page.newDocDialog.submitCreate)
+  await page.waitForURL(/\/d\/[^/]+/)
+  const docId = /\/d\/([^/?#]+)/.exec(page.url())?.[1]
+  const token = await page.request.get(`/api/docs/${docId}/token`).then(r => r.json()) as { theme?: { headings?: { font?: string } } }
+  expect(token.theme?.headings?.font).toMatch(/source serif/i)
 
   flow.next({
     slug: 'pick-a-theme',

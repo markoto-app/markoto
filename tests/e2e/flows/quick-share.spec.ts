@@ -73,10 +73,10 @@ test('Quick share', async ({ page, flow, editor }) => {
   )
 
   await flow.click(
-    'Open "Content" to start from a template',
-    editor.page.newDocDialog.section('content'),
+    'Open "Template" to start from a template',
+    editor.page.newDocDialog.section('template'),
     {
-      result: 'The template cards open.',
+      result: 'The templates open: each card shows the first page of its text in its design.',
       after: async () => {
         await expect(editor.page.newDocDialog.templateCard('meeting-notes')).toBeVisible()
       }
@@ -86,7 +86,7 @@ test('Quick share', async ({ page, flow, editor }) => {
   await flow.click(
     'Pick a template — Meeting notes seeds the right structure',
     editor.page.newDocDialog.templateCard('meeting-notes'),
-    { result: '"Meeting notes" is selected — the editor will be pre-filled with its skeleton.' }
+    { result: '"Meeting notes" is selected — the editor will be pre-filled with its skeleton, in its design.' }
   )
 
   // Submit. Without an account, the first document in this browser

@@ -9,7 +9,7 @@ import { providerRequestFields, withProviderErrors } from '../aiProviders/reques
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
 import { CODE_FONT_NAMES, THEME_FONTS } from '~~/shared/utils/themeFonts'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { TEMPLATE_IDS } from '~~/shared/templates'
+import { TEMPLATE_IDS, TEMPLATE_TOOL_HINT } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
 import { CUSTOM_CSS_MAX_BYTES } from '~~/shared/types/customCss'
 import { CUSTOM_CSS_AI_REFERENCE } from '~~/shared/utils/customCssReference'
@@ -620,9 +620,9 @@ export const CreateDocumentArgs = z.object({
   language: z.string().trim().min(1).max(50).optional()
     .describe('Free-form language label ("English", "Deutsch", "Schwiizerdütsch"). Used in AI prompts as the writing language.'),
   template_id: z.enum(TEMPLATE_ID_ENUM).optional()
-    .describe(`Template id whose default body becomes the initial markdown when initial_markdown is NOT provided. One of: ${TEMPLATE_IDS.join(', ')}.`),
+    .describe(`Template: a starting text plus the design it is written for. Its body becomes the initial markdown when initial_markdown is NOT provided, and without theme_preset / theme_id the doc gets the template's design. One of: ${TEMPLATE_TOOL_HINT}.`),
   theme_preset: z.string().min(1).optional()
-    .describe('Built-in theme preset id to apply (one of THEME_PRESETS). Mutually exclusive with theme_id.'),
+    .describe('Built-in theme preset id to apply (one of THEME_PRESETS); overrides the template\'s design. Mutually exclusive with theme_id.'),
   theme_id: z.string().min(1).max(64).optional()
     .describe('User-saved theme preset id (from list_themes). Mutually exclusive with theme_preset. Caller must own the theme.')
 }).describe('Create a NEW document owned by the initiator. Returns { doc_id, url } so the caller can deep-link or follow up with view_document / insert_text. Optional initial_markdown seeds the doc body in one call.')

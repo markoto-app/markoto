@@ -8,7 +8,13 @@
 # `docker pull python:3.13-slim`, read the digest, update below, rebuild,
 # verify a docx + pdf import smoke-converts end-to-end via /api/import.
 # Pinned digest corresponds to python:3.13-slim at the time of bump.
-FROM python@sha256:d98cc29d3266e535dd9da1099688d9cb3ca4753813571e071763d17725460962
+FROM python@sha256:e48f59cdba69a3cbd9ed2cf0f348d90d45a8d350d98134cf1070bc106ee9ed90
+
+# Debian security fixes that landed after the base image was built (the
+# CI image scan flags fixable HIGH CVEs in base packages such as zlib1g).
+RUN apt-get update \
+ && apt-get -y --no-install-recommends upgrade \
+ && rm -rf /var/lib/apt/lists/*
 
 # Unprivileged user — markitdown only ever reads from a BytesIO so it
 # doesn't need filesystem write, but defense in depth is cheap.
@@ -35,7 +41,7 @@ RUN pip install --no-cache-dir --only-binary=:all: \
  && pip uninstall -y pip \
  && rm -rf /usr/local/lib/python3.13/ensurepip/_bundled
 
-COPY --chown=root:root --chmod=755 server.py /app/server.py
+COPY --chown=root:root --chmod=755 server.py design_extract.py /app/
 
 USER app
 EXPOSE 8080

@@ -24,6 +24,11 @@
  *  - Lists: no single item carried over or left behind; short lists move
  *    whole; a list under a heading keeps three items with it.
  *  - Diagrams shrink (down to 75 %) before they jump to the next page.
+ *  - Display math wider than the column breaks before a relation /
+ *    operator with the continuation lines hung at the first relation, or
+ *    shrinks (down to 85 %) when a piece of it can't break.
+ *  - Multi-column: a block wider than a column (table, diagram, math)
+ *    spans the page; headings keep with their text in a column.
  *  - A code block's caption (`.code-title`) stays with its block.
  *  - After layout: a plain rule (`<hr>`) that opens or closes a page is
  *    hidden (`data-markoto-page-edge`) — at a page edge it reads as a
@@ -514,12 +519,25 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * it opens the next column with its block. Breaks at the page end are
    * left to onOverflow.
    */
-  function keepWithNextAcrossColumns(rendered: Element): void {
+  function keepWithNextAcrossColumns(rendered: Element, isComplete: (table: Element) => boolean): void {
     const doc = rendered.querySelector('.paged-doc') ?? rendered.closest('.paged-doc')
     if (!(doc instanceof HTMLElement)) return
     const style = getComputedStyle(doc)
     const count = Number.parseInt(style.columnCount, 10) || 1
-    if (count < 2 || doc.offsetWidth === 0) return
+    if (count < 2) return
+    // Before a spanning block Chromium balances the columns, and that is
+    // where it would put a heading at the foot of the first column and
+    // its text at the top of the second (it honours an inline
+    // `break-after: avoid` there; paged.js takes `break-*` out of the
+    // stylesheets). Written before anything is measured: a style change
+    // after a measurement lays the page out once more.
+    for (const el of Array.from(doc.querySelectorAll(':scope > h1, :scope > h2, :scope > h3, :scope > h4, :scope > h5, :scope > h6, :scope > dl > dt, :scope > .code-block > .code-title'))) {
+      if (el instanceof HTMLElement && !el.style.breakAfter) el.style.setProperty('break-after', 'avoid')
+    }
+    // A lead-in ending in a colon is measured (keepsWithNext): one read, then the writes.
+    const leadIns = Array.from(doc.querySelectorAll(':scope > p')).filter(p => p instanceof HTMLElement && !p.style.breakAfter && /:\s*$/.test(p.textContent ?? '') && keepsWithNext(p))
+    for (const p of leadIns) if (p instanceof HTMLElement) p.style.setProperty('break-after', 'avoid')
+    if (doc.offsetWidth === 0) return
     const content = doc.closest('.pagedjs_page_content') ?? rendered
     const page: PageBox = content.getBoundingClientRect()
     const box = doc.getBoundingClientRect()
@@ -528,13 +546,35 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     const stride = (box.width + gap) / count
     const columnOf = (r: DOMRect): number => Math.floor((r.left - box.left + gap / 2) / stride)
     const visible = (e: Element): DOMRect[] => Array.from(e.getClientRects()).filter(r => r.height > 0 && onPage(r, page))
-    // A table wider than its column (long unbreakable cells) would run
-    // into the next column: it spans the page instead.
+    // A table wider than its column (long unbreakable cells) or a diagram
+    // / figure drawn wider than the column would run into the next
+    // column: it spans the page instead. (Code keeps the theme's own
+    // wrapping or clipping; display math is fitted by fitDisplayMath.)
     const columnWidth = (doc.offsetWidth - (Number.parseFloat(style.columnGap) || 0) * (count - 1)) / count
-    for (const table of Array.from(doc.querySelectorAll(':scope > table'))) {
-      if (table instanceof HTMLElement && !table.style.columnSpan && table.offsetWidth > columnWidth + 1) {
+    // A table only fits the column by breaking code or words in its cells
+    // apart (`overflow-wrap: anywhere` keeps a column's minimum width
+    // small): measured once with that switched off (`data-markoto-measure`,
+    // themeToCss), it spans when it is wider than the column. Each
+    // measurement lays the page out twice, so only a complete table with
+    // something that can break apart — code, a word of 16+ characters —
+    // is measured, once.
+    for (const table of Array.from(doc.querySelectorAll(':scope > table:not([data-markoto-measured])'))) {
+      if (!(table instanceof HTMLElement) || table.style.columnSpan || !isComplete(table)) continue
+      table.setAttribute('data-markoto-measured', '')
+      if (table.offsetWidth > columnWidth + 1 || getComputedStyle(table).columnSpan === 'all') continue
+      if (!table.querySelector('code') && !/\S{16}/.test(table.textContent ?? '')) continue
+      table.setAttribute('data-markoto-measure', '')
+      const unbroken = table.offsetWidth
+      table.removeAttribute('data-markoto-measure')
+      if (unbroken > columnWidth + 1) {
         table.style.setProperty('column-span', 'all')
         table.setAttribute('data-markoto-wide', '')
+      }
+    }
+    for (const block of Array.from(doc.querySelectorAll(':scope > table, :scope > .mermaid, :scope > figure'))) {
+      if (block instanceof HTMLElement && !block.style.columnSpan && Math.max(block.offsetWidth, block.scrollWidth) > columnWidth + 1) {
+        block.style.setProperty('column-span', 'all')
+        block.setAttribute('data-markoto-wide', '')
       }
     }
     // Each forced break moves everything after it: measure again.
@@ -695,23 +735,27 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * it out off-screen at negative x. So a hidden `<hr>` always counted as
    * overflowing: the page broke before it (page 1 of a two-column
    * newsletter held only the masthead) and the next page, starting at the
-   * same hidden node, repeated its content. Each hidden node rendered
-   * into a page reports, instead, a zero-size rect where it sits in the
-   * flow: the end of the laid-out node before it (or the top of its
-   * parent). Layout itself is untouched.
+   * same hidden node, repeated its content. A hidden node in a page
+   * reports, instead, a zero-size rect where it sits in the flow: the end
+   * of the laid-out node before it (or the top of its parent). Layout
+   * itself is untouched.
+   *
+   * Done lazily, in `getBoundingClientRect` itself: only an all-zero rect
+   * (no box) of a node inside a page is looked at, and only then is the
+   * style asked. Checking every clone as paged.js inserted it (a computed
+   * style per node) cost ~8 % of the pagination time of a 70-page
+   * document.
    */
-  const boxless = new WeakSet<Node>()
-
   function flowRect(node: Node): DOMRect {
     for (let cur: Node | null = node; cur; cur = cur.parentNode) {
       for (let sib = cur.previousSibling; sib; sib = sib.previousSibling) {
-        if (boxless.has(sib)) continue
+        // A hidden sibling has no client rects either.
         const rects = sib instanceof Element ? Array.from(sib.getClientRects()) : []
         const last = rects[rects.length - 1]
         if (last) return new DOMRect(last.left, last.bottom, 0, 0)
       }
       const parent = cur.parentNode
-      if (parent instanceof Element && !boxless.has(parent)) {
+      if (parent instanceof Element) {
         const first = parent.getClientRects()[0]
         if (first) return new DOMRect(first.left, first.top, 0, 0)
       }
@@ -719,12 +763,30 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     return new DOMRect()
   }
 
-  function placeBoxless(clone: Node): void {
-    const parent = clone.parentNode
-    const hidden = (parent !== null && boxless.has(parent)) || (clone instanceof Element && getComputedStyle(clone).display === 'none')
-    if (!hidden) return
-    boxless.add(clone)
-    Object.defineProperty(clone, 'getBoundingClientRect', { configurable: true, value: () => flowRect(clone) })
+  /** Is `el` in a page and hidden (itself or an ancestor within the page)? */
+  function isBoxless(el: Element): boolean {
+    const page = el.closest('.pagedjs_page')
+    if (!page) return false
+    for (let e: Element | null = el; e && e !== page; e = e.parentElement) {
+      if (getComputedStyle(e).display === 'none') return true
+    }
+    return false
+  }
+
+  const nativeRect: unknown = Element.prototype.getBoundingClientRect
+  if (typeof nativeRect === 'function' && Reflect.get(nativeRect, '__markotoBoxless') !== true) {
+    const rect = function (this: Element): DOMRect {
+      const r: unknown = Reflect.apply(nativeRect, this, [])
+      if (!(r instanceof DOMRect)) return new DOMRect()
+      if (r.x !== 0 || r.y !== 0 || r.width !== 0 || r.height !== 0) return r
+      try {
+        return isBoxless(this) ? flowRect(this) : r
+      } catch {
+        return r
+      }
+    }
+    Reflect.set(rect, '__markotoBoxless', true)
+    Element.prototype.getBoundingClientRect = rect
   }
 
   /*
@@ -736,6 +798,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * again; if it still doesn't fit, the scale is undone and it moves.
    */
   const MIN_DIAGRAM_SCALE = 0.75
+  const DIAGRAM_SCALE_STEP = 0.03
 
   function fitDiagram(overflow: Range, rendered: Element, page: PageBox, bounds: PageBox | undefined, layout: unknown): Range {
     const find: unknown = typeof layout === 'object' && layout !== null ? Reflect.get(layout, 'findOverflow') : null
@@ -757,27 +820,218 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     const zoom = diagram.offsetHeight > 0 ? diagram.getBoundingClientRect().height / diagram.offsetHeight : 1
     const need = diagram.getBoundingClientRect().height + margins * zoom
     const room = bottom - Math.max(...ends)
-    const scale = Math.floor((room / need) * 100) / 100
-    if (!(scale >= MIN_DIAGRAM_SCALE) || scale >= 1) return overflow
-    diagram.style.zoom = String(scale)
+    const estimate = Math.floor((room / need) * 100) / 100
+    if (!(estimate >= MIN_DIAGRAM_SCALE)) return overflow
     diagram.setAttribute('data-markoto-fit', '')
-    let next: unknown
-    try {
-      next = Reflect.apply(find, layout, [rendered, bounds])
-    } catch {
-      next = null
+    // The estimate can come out a little large (margins, the line box
+    // around the image — paged.js moved diagrams the estimate said fit
+    // at 92 %): a few smaller steps before giving up.
+    for (let scale = Math.min(estimate, 1 - DIAGRAM_SCALE_STEP); scale >= MIN_DIAGRAM_SCALE - 0.001; scale = Math.round((scale - DIAGRAM_SCALE_STEP) * 100) / 100) {
+      diagram.style.zoom = String(scale)
+      let next: unknown
+      try {
+        next = Reflect.apply(find, layout, [rendered, bounds])
+      } catch {
+        next = null
+      }
+      const still = next instanceof Range && (() => {
+        const s = startOf(next).node
+        const e = s instanceof Element ? s : s?.parentElement
+        return e ? diagram.contains(e) || e.contains(diagram) : false
+      })()
+      // Everything fits now (the diagram ended the document): paged.js's
+      // hook can't say "no overflow", so the diagram keeps its size and moves.
+      if (next instanceof Range && !still) return next
+      if (!(next instanceof Range)) break
     }
-    const still = next instanceof Range && (() => {
-      const s = startOf(next).node
-      const e = s instanceof Element ? s : s?.parentElement
-      return e ? diagram.contains(e) || e.contains(diagram) : false
-    })()
-    // Everything fits now (the diagram ended the document): paged.js's
-    // hook can't say "no overflow", so the diagram keeps its size and moves.
-    if (next instanceof Range && !still) return next
     diagram.style.removeProperty('zoom')
     diagram.removeAttribute('data-markoto-fit')
     return overflow
+  }
+
+  /*
+   * DISPLAY MATH THAT IS WIDER THAN THE COLUMN. KaTeX splits a formula
+   * into one inline box (`.katex-base`) per stretch between the places
+   * TeX allows a break — after an outer-level relation or binary
+   * operator — and `themeToCss` lets a display wrap there. TeX's own
+   * convention for a displayed formula is the other way round: break
+   * BEFORE the relation or operator, so the continuation line starts
+   * with it, and indent the continuation lines (aligned at the first
+   * relation). So:
+   *  - `afterParsed` moves each trailing operator (with its spacing) of
+   *    a display's box to the start of the next box. Nothing changes on
+   *    one line (same boxes, same spacing); a break now falls before it.
+   *  - In `layout` (before each overflow check, so the page measures the
+   *    final height) a display that wrapped is set flush left with a
+   *    hanging indent at the first relation of its first line (2 em when
+   *    there is none, or it sits past the middle) and the block of lines
+   *    is centred as a whole.
+   *  - A single box wider than the column (a big fraction, a matrix, an
+   *    aligned block) shrinks the formula, down to MIN_MATH_SCALE.
+   */
+  const MIN_MATH_SCALE = 0.85
+  /** Hanging indent when the first line has no usable relation, in em. */
+  const MATH_INDENT_EM = 2
+
+  function isOperator(e: Element | undefined): boolean {
+    return e !== undefined && (e.classList.contains('mrel') || e.classList.contains('mbin'))
+  }
+
+  function breakBeforeOperators(root: ParentNode): void {
+    for (const html of Array.from(root.querySelectorAll('.katex-display > .katex > .katex-html'))) {
+      const bases = Array.from(html.children).filter(c => c.classList.contains('katex-base'))
+      for (let i = 0; i < bases.length - 1; i++) {
+        const base = bases[i]
+        const next = bases[i + 1]
+        if (!base || !next || base.nextElementSibling !== next) continue
+        const kids = Array.from(base.children)
+        let j = kids.length - 1
+        if (kids[j]?.classList.contains('mspace')) j--
+        if (!isOperator(kids[j])) continue
+        j--
+        if (kids[j]?.classList.contains('mspace')) j--
+        // Something other than the strut must stay in the box.
+        const content = kids.slice(0, j + 1).filter(k => !k.classList.contains('katex-strut'))
+        if (content.length === 0) continue
+        const run = kids.slice(j + 1)
+        const strut = next.firstElementChild?.classList.contains('katex-strut') ? next.firstElementChild : null
+        const at = strut ? strut.nextSibling : next.firstChild
+        for (const k of run) next.insertBefore(k, at)
+      }
+    }
+  }
+
+  /** Does this box open with a relation (after its strut and spacing)? */
+  function opensWithRelation(base: Element): boolean {
+    for (const k of Array.from(base.children)) {
+      if (k.classList.contains('katex-strut') || k.classList.contains('mspace')) continue
+      return k.classList.contains('mrel')
+    }
+    return false
+  }
+
+  /** Displays already fitted (a clone laid out again on the next page is a new node). */
+  const fitted = new WeakSet<Element>()
+
+  /** A box that starts left of where the one before it ended opens a new line. */
+  function opensLine(bases: Element[], i: number): boolean {
+    const prev = bases[i - 1]
+    const cur = bases[i]
+    return i > 0 && prev !== undefined && cur !== undefined && cur.getBoundingClientRect().left < prev.getBoundingClientRect().right - 1
+  }
+
+  /** Put each run of boxes from one relation to the next into a no-wrap group. */
+  function groupAtRelations(html: Element, bases: Element[]): HTMLElement[] {
+    const groups: HTMLElement[] = []
+    let run: Element[] = []
+    const flush = (): void => {
+      const first = run[0]
+      if (run.length > 1 && first) {
+        const group = document.createElement('span')
+        group.className = 'markoto-math-run'
+        group.style.setProperty('white-space', 'nowrap')
+        html.insertBefore(group, first)
+        for (const b of run) group.appendChild(b)
+        groups.push(group)
+      }
+      run = []
+    }
+    for (const [i, b] of bases.entries()) {
+      if (i > 0 && (opensWithRelation(b) || b.previousElementSibling !== bases[i - 1])) flush()
+      run.push(b)
+    }
+    flush()
+    return groups
+  }
+
+  function ungroup(group: HTMLElement): void {
+    const parent = group.parentNode
+    if (!parent) return
+    while (group.firstChild) parent.insertBefore(group.firstChild, group)
+    group.remove()
+  }
+
+  function fitDisplayMath(rendered: Element, display: Element): void {
+    const katex = display.querySelector(':scope > .katex')
+    const html = katex?.querySelector(':scope > .katex-html')
+    if (!(katex instanceof HTMLElement) || !(html instanceof HTMLElement) || html.offsetWidth === 0) return
+    // Remembered outside the DOM: an attribute would restyle the page.
+    fitted.add(display)
+    const bases = Array.from(html.children).filter(c => c.classList.contains('katex-base'))
+    if (bases.length === 0) return
+    const box = (): DOMRect => html.getBoundingClientRect()
+    const width = box().width
+    // Viewport px per CSS px (the preview zooms the pages).
+    const zoom = width / html.offsetWidth
+    const widestBox = (): number => Math.max(...bases.map(b => b.getBoundingClientRect().width))
+    const natural = widestBox()
+    if (natural > width + 0.5) {
+      // Shrink the whole formula onto one line when that is enough (a
+      // break would strand the left-hand side: "s" over "= <fraction>"),
+      // else just enough for its widest piece.
+      const total = bases.reduce((sum, b) => sum + b.getBoundingClientRect().width, 0)
+      const whole = Math.floor((width / total) * 100) / 100
+      const scale = whole >= MIN_MATH_SCALE ? whole : Math.max(MIN_MATH_SCALE, Math.floor((width / natural) * 100) / 100)
+      const em = (Number.parseFloat(getComputedStyle(katex).fontSize) || 16) / (Number.parseFloat(getComputedStyle(display).fontSize) || 16)
+      katex.style.setProperty('font-size', `${(em * scale).toFixed(4)}em`)
+      display.setAttribute('data-markoto-math-scale', String(scale))
+    }
+    if (widestBox() > width + 0.5) {
+      // Still too wide at the smallest size. In a multi-column page the
+      // formula spans the page (like a wide table) and is fitted again;
+      // in one column it stays on one line (breaking it would only strand
+      // the left-hand side) and runs into the margin.
+      const block = topBlock(display, rendered)
+      const doc = block.parentElement
+      if (doc?.classList.contains('paged-doc') && (Number.parseInt(getComputedStyle(doc).columnCount, 10) || 1) > 1 && block instanceof HTMLElement && !block.style.columnSpan) {
+        block.style.setProperty('column-span', 'all')
+        block.setAttribute('data-markoto-wide', '')
+        katex.style.removeProperty('font-size')
+        display.removeAttribute('data-markoto-math-scale')
+        fitted.delete(display)
+        fitDisplayMath(rendered, display)
+        return
+      }
+      html.style.setProperty('white-space', 'nowrap')
+      return
+    }
+    // Line breaks the author wrote (`\\`) are left as they are.
+    if (html.querySelector(':scope > .newline')) return
+    if (!bases.some((_, i) => opensLine(bases, i))) return
+    // Break at relations first (TeX's \relpenalty < \binoppenalty): an
+    // operator only breaks a run between two relations that is itself
+    // too long for a line.
+    const groups = groupAtRelations(html, bases)
+    html.style.setProperty('text-align', 'left')
+    const left = box().left
+    const firstLine: Element[] = []
+    for (const [i, b] of bases.entries()) {
+      if (opensLine(bases, i)) break
+      firstLine.push(b)
+    }
+    const relation = firstLine.find((b, i) => i > 0 && opensWithRelation(b))
+    const fontPx = Number.parseFloat(getComputedStyle(katex).fontSize) || 16
+    let indent = relation ? (relation.getBoundingClientRect().left - left) / zoom : MATH_INDENT_EM * fontPx
+    if (indent > (width / zoom) / 2) indent = MATH_INDENT_EM * fontPx
+    html.style.setProperty('padding-left', `${indent.toFixed(2)}px`)
+    html.style.setProperty('text-indent', `${(-indent).toFixed(2)}px`)
+    for (let round = 0; round < groups.length; round++) {
+      const right = box().right
+      const over = groups.find(g => g.isConnected && g.getBoundingClientRect().right > right + 0.5)
+      if (!over) break
+      ungroup(over)
+    }
+    // Centre the block of lines: its widest line decides.
+    const reach = (Math.max(...bases.map(b => b.getBoundingClientRect().right)) - box().left) / zoom
+    const shift = Math.max(0, (width / zoom - reach) / 2)
+    if (shift > 0.5) html.style.setProperty('padding-left', `${(indent + shift).toFixed(2)}px`)
+    display.setAttribute('data-markoto-math-wrapped', '')
+  }
+
+  function fitDisplaysOnPage(rendered: Element): void {
+    for (const display of Array.from(rendered.querySelectorAll('.katex-display'))) {
+      if (!fitted.has(display)) fitDisplayMath(rendered, display)
+    }
   }
 
   /**
@@ -792,10 +1046,47 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     })
   }
 
+  /** The whole (unpaginated) document paged.js lays out from. */
+  function sourceOf(handler: object): Element | DocumentFragment | null {
+    const chunker: unknown = Reflect.get(handler, 'chunker')
+    const source: unknown = typeof chunker === 'object' && chunker !== null ? Reflect.get(chunker, 'source') : null
+    return source instanceof Element || source instanceof DocumentFragment ? source : null
+  }
+
+  /** The element of the source a rendered clone came from. */
+  function originalOf(el: Element, source: Element | DocumentFragment | null): Element | null {
+    const ref = el.getAttribute('data-ref')
+    // paged.js refs are UUIDs; anything else isn't looked up.
+    if (!ref || !/^[\w-]+$/.test(ref) || !source) return null
+    return source.querySelector(`[data-ref="${ref}"]`)
+  }
+
+  /** Has the page all rows of this table that are still to come (paged.js has moved past it, or its last row is here)? */
+  function isComplete(table: Element, source: Element | DocumentFragment | null): boolean {
+    if (table.nextSibling) return true
+    const original = originalOf(table, source)
+    const lastRow = (t: Element): string | null | undefined => Array.from(t.querySelectorAll('tr')).pop()?.getAttribute('data-ref')
+    return original !== null && lastRow(original) === lastRow(table)
+  }
+
   class MarkotoPagination extends paged.Handler {
+    afterParsed(parsed: unknown): void {
+      if (!(parsed instanceof Element || parsed instanceof DocumentFragment)) return
+      try {
+        breakBeforeOperators(parsed)
+      } catch {
+        // KaTeX's own break points.
+      }
+    }
+
     layout(rendered: Element): void {
       try {
-        keepWithNextAcrossColumns(rendered)
+        fitDisplaysOnPage(rendered)
+      } catch {
+        // KaTeX's own layout.
+      }
+      try {
+        keepWithNextAcrossColumns(rendered, table => isComplete(table, sourceOf(this)))
       } catch {
         // Keep Chromium's column breaks.
       }
@@ -817,16 +1108,11 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       const fallback = overflow === found ? undefined : overflow
       // The whole (unpaginated) document paged.js lays out from, to see
       // how many rows of a table are still to come.
-      const chunker: unknown = Reflect.get(this, 'chunker')
-      const source: unknown = typeof chunker === 'object' && chunker !== null ? Reflect.get(chunker, 'source') : null
+      const source = sourceOf(this)
       // Siblings still to come from `tr` / `li` on (itself included), read
       // from the unpaginated source (the page holds only what fit).
       const siblingsFrom = (el: Element): Element[] | null => {
-        const ref = el.getAttribute('data-ref')
-        // paged.js refs are UUIDs; anything else isn't looked up.
-        if (!ref || !/^[\w-]+$/.test(ref)) return null
-        if (!(source instanceof Element || source instanceof DocumentFragment)) return null
-        const original = source.querySelector(`[data-ref="${ref}"]`)
+        const original = originalOf(el, source)
         if (!original) return null
         const out: Element[] = []
         for (let s: Element | null = original; s; s = s.nextElementSibling) out.push(s)
@@ -866,11 +1152,6 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     }
 
     renderNode(clone: Node, source: Node): void {
-      try {
-        placeBoxless(clone)
-      } catch {
-        // paged.js's own geometry.
-      }
       const el = clone instanceof Element ? clone : clone.parentElement
       const table = el?.closest('table')
       if (!table?.hasAttribute('data-split-from')) return

@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { getTemplate, TEMPLATE_LOCALES, type TemplateLocale } from '~~/shared/templates'
+import { getTemplate, templateLocale } from '~~/shared/templates'
 
 /**
  * Server-side template body renderer. The body files live as plain
@@ -37,19 +37,6 @@ function readBody(templateId: string, locale: string): string | null {
   return body
 }
 
-/**
- * Resolve the doc's language string to a template locale. ISO codes
- * match directly; BCP-47 region tags are stripped (`de-CH` → `de`);
- * free-text values fall back to English.
- */
-function resolveTemplateLocale(language: string): string {
-  const list = TEMPLATE_LOCALES as readonly string[]
-  if (list.includes(language)) return language
-  const base = language.split('-')[0]?.toLowerCase()
-  if (base && list.includes(base)) return base
-  return 'en'
-}
-
 export interface TemplateContext {
   title: string
   description: string
@@ -59,7 +46,7 @@ export interface TemplateContext {
 
 /**
  * Render the template body for a doc. Returns null if the templateId
- * is unknown OR if the template has no content (the `blank` template).
+ * is unknown (registered ids and aliases are known) OR if the template has no content (the `blank` template).
  *
  * Placeholder substitution is intentionally minimal: `{{title}}` and
  * `{{description}}` are the only supported variables. Anything more
@@ -67,11 +54,13 @@ export interface TemplateContext {
  * engine, which we don't need yet.
  */
 export function renderTemplate(templateId: string, ctx: TemplateContext): string | null {
+  // Retired ids (aliases, e.g. `academic-paper` on older documents) render
+  // the template they became.
   const meta = getTemplate(templateId)
   if (!meta?.hasContent) return null
 
-  const locale = resolveTemplateLocale(ctx.language) as TemplateLocale
-  const body = readBody(templateId, locale) ?? readBody(templateId, 'en')
+  const locale = templateLocale(ctx.language)
+  const body = readBody(meta.content, locale) ?? readBody(meta.content, 'en')
   if (!body) return null
 
   const safeTitle = ctx.title.trim() || (locale === 'de' ? 'Unbenannt' : 'Untitled')

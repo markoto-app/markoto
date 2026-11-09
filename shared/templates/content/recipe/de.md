@@ -1,6 +1,6 @@
 # {{title}}
 
-<!-- Ein kurzer Absatz: Was ist das für ein Gericht, woher kommt es, wann würdest du es kochen? Foto des fertigen Tellers kommt hier hin, oberhalb von allem Praktischen. -->
+<!-- Ein kurzer Absatz: Was ist das für ein Gericht, woher kommt es, wann kochen Sie es? Foto des fertigen Tellers kommt hier hin, oberhalb von allem Praktischen. -->
 
 ## Auf einen Blick
 

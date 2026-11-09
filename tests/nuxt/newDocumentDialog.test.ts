@@ -6,11 +6,12 @@ import { flushPromises } from '@vue/test-utils'
 import { DocumentNewDocumentDialog } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { TEMPLATES } from '~~/shared/templates'
 
-// The new-document dialog keeps only the title in view: content
-// (template), design (theme) and details (AI context) are collapsed rows
-// that show the current choice. The first document in a browser starts
-// from the Demo, later ones from Blank.
+// The new-document dialog keeps only the title in view: the template
+// (a starting text + its design, one choice) and the details (AI context)
+// are collapsed rows that show the current choice. The first document in a
+// browser starts from the Demo, later ones from Blank.
 
 mockNuxtImport('useUserSession', () => () => ({
   loggedIn: ref(false),
@@ -22,6 +23,9 @@ mockNuxtImport('useUserSession', () => () => ({
 mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
 
 const created = vi.hoisted(() => ({ bodies: [] as Array<Record<string, unknown>> }))
+const workspace = vi.hoisted(() => ({ defaultTheme: null as unknown }))
+registerEndpoint('/api/workspaces/ws1', () => ({ workspace: { defaultTheme: workspace.defaultTheme } }))
+
 registerEndpoint('/api/docs', {
   method: 'POST',
   handler: async (event) => {
@@ -38,15 +42,17 @@ function el(selector: string): HTMLElement {
 }
 const exists = (selector: string) => document.body.querySelector(selector) !== null
 
-async function openDialog() {
-  const wrapper = await mountSuspended(DocumentNewDocumentDialog, { props: { open: false, workspaceId: null } })
+async function openDialog(workspaceId: string | null = null) {
+  const wrapper = await mountSuspended(DocumentNewDocumentDialog, { props: { open: false, workspaceId } })
   await wrapper.setProps({ open: true })
   await flushPromises()
-  await vi.waitFor(() => expect(exists('[data-testid="newdoc-section-content"]')).toBe(true))
+  await vi.waitFor(() => expect(exists('[data-testid="newdoc-section-template"]')).toBe(true))
   return wrapper
 }
 
-async function expand(section: 'content' | 'design' | 'details') {
+const summary = () => el('[data-testid="newdoc-section-template-summary"]').textContent?.trim()
+
+async function expand(section: 'template' | 'details') {
   el(`[data-testid="newdoc-section-${section}"]`).click()
   await flushPromises()
   await vi.waitFor(() => expect(el(`[data-testid="newdoc-section-${section}"]`).getAttribute('aria-expanded')).toBe('true'))
@@ -54,6 +60,7 @@ async function expand(section: 'content' | 'design' | 'details') {
 
 beforeEach(() => {
   created.bodies = []
+  workspace.defaultTheme = null
   localStorage.clear()
   useState<InstanceConfig>('instance-config').value = { ...MINIMAL_INSTANCE_CONFIG, anonGate: false }
 })
@@ -63,56 +70,67 @@ afterEach(() => {
 })
 
 describe('new-document dialog', () => {
-  it('opens with only the title and three collapsed option rows showing the current choice', async () => {
+  it('opens with only the title and two collapsed option rows showing the current choice', async () => {
     const wrapper = await openDialog()
     expect(exists('[data-testid="newdoc-title-input"]')).toBe(true)
-    for (const section of ['content', 'design', 'details']) {
+    for (const section of ['template', 'details']) {
       expect(el(`[data-testid="newdoc-section-${section}"]`).getAttribute('aria-expanded')).toBe('false')
     }
+    expect(exists('[data-testid="newdoc-section-content"]')).toBe(false)
+    expect(exists('[data-testid="newdoc-section-design"]')).toBe(false)
     expect(exists('[data-testid="newdoc-template-grid"]')).toBe(false)
-    expect(exists('[data-testid="newdoc-theme-grid"]')).toBe(false)
     expect(exists('[data-testid="newdoc-description-input"]')).toBe(false)
-    expect(el('[data-testid="newdoc-section-content-summary"]').textContent?.trim()).toBe('Demo')
-    expect(el('[data-testid="newdoc-section-design-summary"]').textContent?.trim()).toBe('markoto')
+    expect(summary()).toBe('Demo')
     expect(el('[data-testid="newdoc-section-details-summary"]').textContent).toContain('English')
-    expect(exists('[data-testid="newdoc-submit-blank"]')).toBe(false)
     wrapper.unmount()
   })
 
-  it('opens one row at a time and updates the summary when a card is picked', async () => {
+  it('shows every template as a picture card and updates the summary when one is picked', async () => {
     const wrapper = await openDialog()
-    await expand('content')
+    await expand('template')
+    for (const tpl of TEMPLATES) {
+      expect(exists(`[data-testid="newdoc-template-card-${tpl.id}"]`), tpl.id).toBe(true)
+    }
+    expect(el('[data-testid="newdoc-template-card-demo"]').getAttribute('aria-pressed')).toBe('true')
+    expect(document.body.querySelector('[data-testid="newdoc-template-card-runbook"] img')?.getAttribute('src'))
+      .toMatch(/^\/template-thumbs\/runbook\.webp\?v=/)
     el('[data-testid="newdoc-template-card-meeting-notes"]').click()
     await flushPromises()
-    expect(el('[data-testid="newdoc-section-content-summary"]').textContent?.trim()).toBe('Meeting notes')
-    await expand('design')
+    expect(summary()).toBe('Meeting notes')
+    await expand('details')
     await vi.waitFor(() => expect(exists('[data-testid="newdoc-template-grid"]')).toBe(false))
-    el('[data-testid="newdoc-theme-card-arxiv"]').click()
-    await flushPromises()
-    expect(el('[data-testid="newdoc-section-design-summary"]').textContent?.trim()).toBe('arXiv preprint')
     wrapper.unmount()
   })
 
-  it('groups the design presets in audience tabs', async () => {
+  it('groups the templates in audience tabs', async () => {
     const wrapper = await openDialog()
-    await expand('design')
-    for (const preset of THEME_PRESETS) {
-      expect(exists(`[data-testid="newdoc-theme-card-${preset.id}"]`)).toBe(true)
-    }
-    const academicTab = Array.from(document.body.querySelectorAll('[data-testid="theme-preset-tabs"] button'))
+    await expand('template')
+    const academicTab = Array.from(document.body.querySelectorAll('[data-testid="template-tabs"] button'))
       .find(b => b.textContent?.trim() === 'Academic')
     if (!(academicTab instanceof HTMLElement)) throw new Error('no Academic tab')
     // Reka tabs activate on mousedown, not click.
     academicTab.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, button: 0 }))
     await flushPromises()
-    await vi.waitFor(() => expect(exists('[data-testid="newdoc-theme-card-markoto"]')).toBe(false))
-    for (const preset of THEME_PRESETS) {
-      expect(exists(`[data-testid="newdoc-theme-card-${preset.id}"]`)).toBe(preset.category === 'academic')
+    await vi.waitFor(() => expect(exists('[data-testid="newdoc-template-card-demo"]')).toBe(false))
+    for (const tpl of TEMPLATES) {
+      expect(exists(`[data-testid="newdoc-template-card-${tpl.id}"]`), tpl.id).toBe(tpl.category === 'academic')
     }
     wrapper.unmount()
   })
 
-  it('starts the first document from the demo and later ones blank', async () => {
+  it('creates the document from the template and its design', async () => {
+    const wrapper = await openDialog()
+    await expand('template')
+    el('[data-testid="newdoc-template-card-runbook"]').click()
+    await flushPromises()
+    el('[data-testid="newdoc-submit-create"]').click()
+    await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
+    expect(created.bodies[0]).toMatchObject({ templateId: 'runbook', themePreset: 'runbook' })
+    expect(created.bodies[0]).not.toHaveProperty('themeId')
+    wrapper.unmount()
+  })
+
+  it('starts the first document from the demo and later ones blank in the markoto design', async () => {
     const first = await openDialog()
     el('[data-testid="newdoc-submit-create"]').click()
     await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
@@ -120,10 +138,26 @@ describe('new-document dialog', () => {
     first.unmount()
 
     const second = await openDialog()
-    expect(el('[data-testid="newdoc-section-content-summary"]').textContent?.trim()).toBe('Blank')
+    expect(summary()).toBe('Blank · markoto')
     el('[data-testid="newdoc-submit-create"]').click()
     await vi.waitFor(() => expect(created.bodies).toHaveLength(2))
-    expect(created.bodies[1]).toMatchObject({ templateId: 'blank' })
+    expect(created.bodies[1]).toMatchObject({ templateId: 'blank', themePreset: 'markoto' })
     second.unmount()
+  })
+
+  it('a blank page in a workspace gets the workspace default design', async () => {
+    localStorage.setItem('markoto-created-first-doc', '1')
+    workspace.defaultTheme = THEME_PRESETS.find(p => p.id === 'business-report')?.theme
+    const wrapper = await openDialog('ws1')
+    await vi.waitFor(() => expect(summary()).toBe('Blank · Corporate report'))
+    await expand('template')
+    // Blank shows the workspace design (a swatch), not the markoto picture.
+    expect(document.body.querySelector('[data-testid="newdoc-template-card-blank"] img')).toBeNull()
+    expect(el('[data-testid="newdoc-template-card-blank"]').textContent).toContain('Corporate report')
+    el('[data-testid="newdoc-submit-create"]').click()
+    await vi.waitFor(() => expect(created.bodies).toHaveLength(1))
+    expect(created.bodies[0]).toMatchObject({ templateId: 'blank', workspaceId: 'ws1' })
+    expect(created.bodies[0]).not.toHaveProperty('themePreset')
+    wrapper.unmount()
   })
 })

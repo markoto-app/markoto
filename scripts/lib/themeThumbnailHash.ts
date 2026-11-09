@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { parse as parseYaml } from 'yaml'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { showsTitleItself, withoutTitleHeading } from '../../shared/utils/markdownTitle'
+import { TEMPLATES, templateCover } from '../../shared/templates'
 
 /**
  * What a preset's design-picker thumbnail is rendered from: the preset
@@ -108,6 +109,62 @@ export function galleryHash(source: GallerySource): string {
   h.update(source.md)
   h.update('\0')
   h.update(source.title)
+  h.update('\0')
+  h.update(String(source.pageNumber))
+  return h.digest('hex')
+}
+
+/**
+ * The new-document dialog's template pictures
+ * (`public/template-thumbs/<id>.webp`): the first page of each template's
+ * English text in its design, with its cover placeholders and a sample
+ * title (and optional `pageNumber`) from
+ * `tests/fixtures/theme-shots/template-thumbs.json`. Blank
+ * shows the markoto design (the default when the workspace sets none).
+ * `tests/unit/templateThumbnails.test.ts` fails when the text, the
+ * design or the placeholders changed without a new picture.
+ */
+export interface TemplateThumbnailSource {
+  md: string
+  title: string
+  theme: string
+  /** Page the picture shows: 1, or the first content page where the cover
+   *  (and contents) would look like another template's (Demo, Report,
+   *  Business plan). */
+  pageNumber: number
+  /** Theme patch (the template's cover placeholders), or null. */
+  patch: Record<string, unknown> | null
+}
+
+export function templateThumbnailSources(): Record<string, TemplateThumbnailSource> {
+  const titles: unknown = JSON.parse(readFileSync(resolve(FIXTURE_DIR, 'template-thumbs.json'), 'utf8'))
+  if (!isRecord(titles)) throw new Error('template-thumbs.json must hold an object')
+  const out: Record<string, TemplateThumbnailSource> = {}
+  for (const tpl of TEMPLATES) {
+    // "<title>" or { "title": "<title>", "pageNumber": 2 }
+    const entry = titles[tpl.id]
+    const title = typeof entry === 'string' ? entry : isRecord(entry) && typeof entry.title === 'string' ? entry.title : undefined
+    if (title === undefined) continue
+    const pageNumber = isRecord(entry) && typeof entry.pageNumber === 'number' ? entry.pageNumber : 1
+    const body = tpl.hasContent ? readFileSync(resolve(ROOT, 'shared/templates/content', tpl.content, 'en.md'), 'utf8') : ''
+    const md = body.replaceAll('{{title}}', title).replaceAll('{{description}}', '')
+    const cover = templateCover(tpl, 'en')
+    out[tpl.id] = { md, title, theme: tpl.design ?? 'markoto', pageNumber, patch: cover ? { cover } : null }
+  }
+  return out
+}
+
+export function templateThumbnailHash(source: TemplateThumbnailSource): string {
+  const preset = THEME_PRESETS.find(p => p.id === source.theme)
+  if (!preset) throw new Error(`unknown preset ${source.theme}`)
+  const h = createHash('sha256')
+  h.update(JSON.stringify(preset.theme))
+  h.update('\0')
+  h.update(source.md)
+  h.update('\0')
+  h.update(source.title)
+  h.update('\0')
+  h.update(JSON.stringify(source.patch))
   h.update('\0')
   h.update(String(source.pageNumber))
   return h.digest('hex')

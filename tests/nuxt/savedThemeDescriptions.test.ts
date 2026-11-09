@@ -68,17 +68,19 @@ describe('saved-theme descriptions in theme pickers', () => {
       props: { open: false, workspaceId: null }
     })
     await wrapper.setProps({ open: true })
-    // The theme cards live in the collapsed "Design" row; the modal is teleported.
-    await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-section-design"]')).not.toBeNull())
-    const design = document.body.querySelector('[data-testid="newdoc-section-design"]')
-    if (design instanceof HTMLElement) design.click()
+    // Saved designs are "Blank in <design>" cards in the collapsed
+    // "Template" row; the modal is teleported.
+    await vi.waitFor(() => expect(document.body.querySelector('[data-testid="newdoc-section-template"]')).not.toBeNull())
+    const row = document.body.querySelector('[data-testid="newdoc-section-template"]')
+    if (row instanceof HTMLElement) row.click()
     // The dialog fetches saved themes on open.
     await vi.waitFor(() => {
-      expect(textOf('[data-testid="newdoc-theme-card-saved-description-described"]'))
+      expect(textOf('[data-testid="newdoc-template-card-saved-description-described"]'))
         .toBe('Board-ready: serif headings, wide margins')
     })
-    expect(textOf('[data-testid="newdoc-theme-card-saved-description-plain"]'))
+    expect(textOf('[data-testid="newdoc-template-card-saved-description-plain"]'))
       .toBe(fallback)
+    expect(textOf('[data-testid="newdoc-template-card-saved-described"]')).toContain('Blank in Quarterly report')
     wrapper.unmount()
   })
 })

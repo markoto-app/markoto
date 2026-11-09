@@ -34,8 +34,8 @@ pages:
 ---
 ::
 
-::cta{title="Start your report from this template." label="Use this template" template="report" theme="business-report" secondary-label="All templates" secondary-to="/templates"}
-Opens the new-document dialog with the report template and the Corporate report theme, which has a cover page. The template is the outline of the report above, with a short brief in each section.
+::cta{title="Start your report from this template." label="Use this template" template="report" secondary-label="All templates" secondary-to="/templates"}
+Opens the new-document dialog with the report template selected. It comes with the Corporate report theme, which has a cover page. The template is the outline of the report above, with a short brief in each section.
 ::
 
 ## What's in it
@@ -79,6 +79,6 @@ items:
 ---
 ::
 
-::cta{title="Write the report once, print it every quarter." label="Use this template" template="report" theme="business-report"}
+::cta{title="Write the report once, print it every quarter." label="Use this template" template="report"}
 Free on markoto.app, no sign-up needed.
 ::

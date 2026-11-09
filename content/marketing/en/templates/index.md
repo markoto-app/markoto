@@ -8,7 +8,7 @@ keywords:
   - markdown resume template
   - markdown meeting notes template
   - academic paper markdown template
-updated: '2026-11-08'
+updated: '2026-11-09'
 navGroup: templates
 navLabel: All templates
 navOrder: 0
@@ -18,7 +18,7 @@ navOrder: 0
 
 Most Markdown templates are a file of headings you copy into your editor. These come with a page: each one opens as a markoto document with a theme, so the preview shows how it will print and the PDF matches it.
 
-Every template is also in the new-document dialog. **Use this template** on each page opens that dialog with the template and a fitting theme selected; you only add a title. The templates are written in English and German; the resume and report also in French, Spanish, Japanese and Chinese. Pick the language in the dialog.
+Every template is also in the new-document dialog, as a picture of its first page. **Use this template** on each page opens that dialog with the template selected, in its theme; you only add a title. The templates are written in English and German; the resume and report also in French, Spanish, Japanese and Chinese. Pick the language in the dialog.
 
 ::template-cards
 ---
@@ -55,8 +55,8 @@ items:
 
 - **Briefs, not filler.** Apart from the resume, each template is an outline. Under every heading a short note says what goes there. The notes are Markdown comments: you and the AI assistant see them in the editor; the preview and the PDF don't show them.
 - **Plain Markdown.** What you write is a Markdown file. Download it with **File › Export** whenever you like, or keep editing in markoto.
-- **The theme is separate.** The template sets the structure, the theme sets fonts, margins, columns, header, footer and cover. Change either without touching the other.
-- **Two more in the dialog.** **Recipe** and **Project README** are there too, along with **Demo**, a short tour of Markdown and markoto, and **Blank**.
+- **The theme comes with it.** Each template is a text and a theme chosen for it: the text sets the structure, the theme sets fonts, margins, columns, header, footer and cover. Switch to another theme in the document at any time; the text stays.
+- **More in the dialog.** The dialog also has templates for engineering (on-call runbook, design doc / RFC, API reference, project README), for papers and teaching (IEEE conference paper, thesis, lecture notes, APA essay), for business (client proposal, one-pager, memo) and for writing (novel manuscript, newsletter, recipe), along with **Demo**, a short tour of Markdown and markoto, and **Blank**.
 
 ::cta{title="Start from a template." secondary-label="Read the docs" secondary-to="/docs/getting-started/templates"}
 Free on markoto.app, no sign-up needed. The new-document dialog lists every template.

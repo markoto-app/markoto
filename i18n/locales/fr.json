@@ -281,7 +281,7 @@
   },
   "newDoc": {
     "title": "Nouveau document",
-    "subtitle": "Donnez-lui un nom et commencez à écrire. Contenu, design et détails sont facultatifs — modifiables maintenant ou plus tard.",
+    "subtitle": "Donnez-lui un nom et commencez à écrire. Le modèle et les détails sont facultatifs — modifiables maintenant ou plus tard.",
     "titleLabel": "Titre",
     "titlePlaceholder": "ex. Plan de lancement T3",
     "descriptionLabel": "Description",
@@ -289,16 +289,11 @@
     "descriptionPlaceholder": "De quoi parle ce document ?",
     "languageLabel": "Langue",
     "audienceLabel": "Public",
-    "themeLabel": "Thème",
-    "themeHelp": "Définit le style visuel. Vous pouvez le changer à tout moment.",
     "themeWorkspaceDefault": "Thème par défaut de l'espace de travail",
-    "themeWorkspaceDefaultHelp": "Utiliser le thème défini par défaut pour cet espace de travail.",
-    "templateLabel": "Modèle",
-    "templateHelp": "Pré-remplit le document avec une structure de base que vous pouvez modifier. Chaque section comporte une indication en commentaire pour que markoto sache ce qui y a sa place.",
+    "templateHelp": "Un modèle est un texte de départ dans un design qui lui convient. Les commentaires gris du texte indiquent ce qui va où ; l’aperçu et le PDF ne les affichent pas. Vous pouvez changer le design à tout moment dans le panneau du thème.",
     "create": "Créer le document",
     "sections": {
-      "content": "Contenu",
-      "design": "Design",
+      "template": "Modèle",
       "details": "Détails"
     },
     "detailsHelp": "Aidez l'IA à écrire pour vous : le sujet du document, sa langue et son ton.",
@@ -309,44 +304,94 @@
       "business": "Entreprise",
       "writing": "Écriture",
       "saved": "Mes designs"
-    }
+    },
+    "blankIn": "Vide en {design}",
+    "blankWorkspaceDescription": "Une page vide dans le design de votre espace de travail : {design}."
   },
   "templates": {
+    "demo": {
+      "label": "Démo",
+      "description": "Les bases de Markdown et une courte visite de markoto."
+    },
     "blank": {
-      "label": "Vierge",
-      "description": "Une page vide. Vous apportez tout le reste."
-    },
-    "business-plan": {
-      "label": "Plan d'affaires",
-      "description": "Résumé exécutif, marché, modèle, feuille de route, finances, risques."
-    },
-    "academic-paper": {
-      "label": "Article académique",
-      "description": "Résumé, introduction, travaux connexes, méthodes, résultats, discussion, références."
-    },
-    "recipe": {
-      "label": "Recette",
-      "description": "Fiche en un coup d'œil, ingrédients, matériel, instructions, variantes."
-    },
-    "meeting-notes": {
-      "label": "Notes de réunion",
-      "description": "Ordre du jour, discussion, décisions, actions à mener, questions ouvertes."
-    },
-    "project-readme": {
-      "label": "README de projet",
-      "description": "Slogan, pourquoi, démarrage rapide, fonctionnalités, docs, contribution, licence."
+      "label": "Vide",
+      "description": "Une page vide. Vous apportez tout."
     },
     "resume": {
       "label": "CV",
-      "description": "Un CV d'une page : profil, expérience, formation, compétences, langues."
+      "description": "Un CV d’une page : profil, expérience, formation, compétences, langues."
+    },
+    "runbook": {
+      "label": "Runbook d’astreinte",
+      "description": "Niveaux de gravité, une procédure par alerte avec commandes, escalade, aide-mémoire."
+    },
+    "design-doc": {
+      "label": "Document de conception / RFC",
+      "description": "En-tête de statut, motivation, objectifs, proposition, alternatives, décisions, déploiement, risques."
+    },
+    "api-reference": {
+      "label": "Référence d’API",
+      "description": "Authentification, erreurs, limites de débit, une ressource avec endpoints, paramètres et exemples."
+    },
+    "project-readme": {
+      "label": "README de projet",
+      "description": "Accroche, pourquoi, démarrage rapide, fonctionnalités, configuration, contribution, licence."
+    },
+    "arxiv": {
+      "label": "Prépublication arXiv",
+      "description": "Résumé dans le bloc de titre, sections numérotées, un tableau, une équation, références."
+    },
+    "ieee-conference": {
+      "label": "Article de conférence IEEE",
+      "description": "Deux colonnes : résumé et mots-clés, sections courtes, références numérotées."
+    },
+    "thesis": {
+      "label": "Thèse / mémoire",
+      "description": "Page de titre, résumé, table des matières, un chapitre par page, bibliographie, annexe."
+    },
+    "lecture-notes": {
+      "label": "Notes de cours",
+      "description": "Objectifs, définitions, théorème et exemple, exercices en plusieurs parties."
+    },
+    "essay": {
+      "label": "Essai APA",
+      "description": "Page de titre APA, thèse, argumentation, contre-arguments, références."
     },
     "report": {
       "label": "Rapport",
       "description": "Couverture, sommaire, synthèse, chiffres clés, résultats, perspectives, annexe."
     },
-    "demo": {
-      "label": "Démo",
-      "description": "Les bases du markdown et une courte visite de markoto."
+    "business-plan": {
+      "label": "Business plan",
+      "description": "Résumé, marché, modèle économique, feuille de route, finances, risques."
+    },
+    "proposal": {
+      "label": "Proposition commerciale",
+      "description": "Votre situation, objectifs, démarche par phases, calendrier, prix, conditions, signature."
+    },
+    "one-pager": {
+      "label": "One-pager",
+      "description": "L’argument, le problème, la solution, les chiffres clés et les prochaines étapes sur une page."
+    },
+    "memo": {
+      "label": "Note / lettre",
+      "description": "À / De / Date / Objet, but, contexte, recommandation, prochaines étapes."
+    },
+    "meeting-notes": {
+      "label": "Notes de réunion",
+      "description": "Ordre du jour, discussion, décisions, actions, questions ouvertes."
+    },
+    "manuscript": {
+      "label": "Manuscrit de roman",
+      "description": "Épigraphe, chapitres sur une nouvelle page, changements de scène, page de titre."
+    },
+    "newsletter": {
+      "label": "Lettre d’information",
+      "description": "Ligne de numéro, article principal avec citation, brèves, agenda, signature."
+    },
+    "recipe": {
+      "label": "Recette",
+      "description": "Fiche résumé, ingrédients, ustensiles, préparation, variantes."
     }
   },
   "documentPanel": {
@@ -1462,6 +1507,57 @@
     "capFilesReachedFree": "Cet espace de travail a atteint sa limite de fichiers ({limit}). Supprimez un fichier pour en ajouter un autre.",
     "capBytesReachedFree": "Cet espace de travail a atteint sa limite de stockage ({limit} Mo). Supprimez un fichier pour libérer de la place.",
     "capReachedShortFree": "Limite atteinte"
+  },
+  "designImport": {
+    "button": "Créer un design à partir d’un document",
+    "title": "Créer un design à partir d’un document",
+    "intro": "Importez un fichier PDF ou Word au design de votre organisation. markoto en lit les polices, les couleurs et la mise en page et crée un design pour vos nouveaux documents.",
+    "chooseFile": "Choisir un fichier PDF ou Word",
+    "fileHint": "PDF ou .docx, jusqu’à 20 Mo",
+    "costNote": "Utilise votre fournisseur d’IA : jusqu’à trois requêtes avec des images de pages. Les polices sont remplacées par la police la plus proche proposée par markoto.",
+    "phase": {
+      "uploading": "Envoi en cours",
+      "reading": "Lecture du document",
+      "designing": "Création du design",
+      "rendering": "Comparaison avec l’original"
+    },
+    "roundOf": "tour {round} sur {max}",
+    "original": "Votre document",
+    "ours": "Votre nouveau design",
+    "originalAlt": "Première page du document importé",
+    "oursAlt": "Page d’exemple dans le nouveau design",
+    "noPagePictures": "Les fichiers Word sont lus à partir de leurs styles : il n’y a donc pas d’image de page. Couleurs trouvées :",
+    "noPreview": "Aucun aperçu n’a pu être créé. Vous pouvez quand même enregistrer le design et le voir dans un document.",
+    "fontsTitle": "Polices",
+    "fontSubstituted": "{from} → {to}",
+    "save": "Enregistrer comme mon design",
+    "apply": "Appliquer à ce document",
+    "tryAnother": "Essayer un autre fichier",
+    "savedToast": "Enregistré dans vos designs",
+    "openAiSettings": "Ouvrir les réglages de l’IA",
+    "errors": {
+      "no-vision": "Votre fournisseur d’IA ne peut pas lire les images. Choisissez un modèle qui le peut, puis réessayez.",
+      "provider-missing": "Aucun fournisseur d’IA n’est configuré. Ajoutez-en un dans les réglages de l’IA.",
+      "provider-error": "Votre fournisseur d’IA a renvoyé une erreur. Vérifiez les réglages de l’IA et réessayez.",
+      "budget": "Votre budget d’IA pour ce mois est épuisé.",
+      "unreadable": "Le fichier n’a pas pu être lu. Vérifiez qu’il s’agit d’un document PDF ou Word qui s’ouvre normalement.",
+      "too-large": "Le fichier est trop volumineux. Choisissez un fichier de 20 Mo au maximum.",
+      "format": "Choisissez un fichier PDF ou Word (.docx).",
+      "invalid-design": "L’IA n’a pas pu créer de design à partir de ce document. Réessayez ou utilisez un autre fichier.",
+      "rate-limited": "Vous avez créé beaucoup de designs au cours de la dernière heure. Réessayez plus tard.",
+      "busy": "Un design est déjà en cours de création. Attendez qu’il soit terminé.",
+      "upload-failed": "L’envoi n’a pas fonctionné. Réessayez.",
+      "internal": "Une erreur s’est produite. Réessayez."
+    },
+    "pageAria": "Page {n}",
+    "thinking": {
+      "uploading": "Réception de votre document…",
+      "reading": "Lecture des polices, couleurs et mise en page de votre document…",
+      "designing": "Je conçois un design d'après vos pages…",
+      "rendering": "Je compose une page d'essai dans le nouveau design…",
+      "comparing": "Je compare mon design à vos pages, tour {round} sur {max}…"
+    },
+    "durationNote": "Cela prend généralement deux à cinq minutes. Gardez cette fenêtre ouverte ; le résultat s'affichera ici."
   },
   "error": {
     "generic": "Une erreur est survenue. Veuillez réessayer.",

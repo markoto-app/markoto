@@ -2,8 +2,8 @@ import { getDoc, updateDocMeta, type MetaUpdate } from '../../../repos/documents
 import { appendAuditEvent } from '../../../repos/audit'
 import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { isTemplateId } from '~~/shared/templates'
 import { assertPlanFeature, resolveDocPlan } from '../../../utils/entitlements'
+import { resolveTemplateId } from '~~/shared/templates'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
@@ -176,10 +176,11 @@ function parseLanguage(raw: unknown): string | null {
 
 function parseTemplateId(raw: unknown): string | null {
   if (raw === undefined) return null
-  if (!isTemplateId(raw)) {
+  const id = resolveTemplateId(raw)
+  if (id === null) {
     throw createError({ statusCode: 400, message: 'Invalid template id' })
   }
-  return raw
+  return id
 }
 
 /**

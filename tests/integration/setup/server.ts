@@ -137,7 +137,9 @@ export async function startNuxt(): Promise<void> {
     // (Env var name carried over from pre-Phase-5 Cloud STT mock.)
     // See `server/utils/agentic/dictateSpeechClient.ts`.
     NUXT_GOOGLE_SPEECH_MOCK: '1',
-    NUXT_MARKITDOWN_URL: 'http://127.0.0.1:1',
+    // The markitdown-test container (host port 8081): the design-from-a-
+    // document pipeline reads its uploads there (`POST /design/extract`).
+    NUXT_MARKITDOWN_URL: process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081',
     // Stripe: tests talk to the `stripe-mock` container for SDK calls
     // (checkout, portal) and construct webhook payloads locally with
     // `computeStripeSig` using this same secret.

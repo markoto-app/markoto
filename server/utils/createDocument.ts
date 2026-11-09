@@ -11,7 +11,7 @@ import { getWorkspaceRole } from './workspaceAccess'
 import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { isTemplateId } from '~~/shared/templates'
+import { getTemplate, templateCover, type TemplateMeta } from '~~/shared/templates'
 import type { DocTheme } from '~~/shared/types/theme'
 import { adaptCustomCssToDoc } from '~~/shared/utils/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
@@ -45,6 +45,8 @@ export interface CreateDocumentParams {
   description?: string
   audience?: AudienceKind
   language?: string
+  /** Template (text + design bundle) id or alias. Seeds the body on first
+   *  open and, without `themePreset` / `themeId`, sets the template's design. */
   templateId?: string
   /** Mutually exclusive with `themeId`. Must be a key in `THEME_PRESETS`. */
   themePreset?: string
@@ -87,8 +89,10 @@ export interface CreateDocumentResult {
  * Theme precedence (first match wins):
  *   1. `themeId`     — caller's own saved-theme preset
  *   2. `themePreset` — built-in preset id
- *   3. Workspace default theme (when filing into a workspace)
- *   4. Schema default — applied by `createDoc()` when none of above set.
+ *   3. The template's design (a template is a text + design bundle;
+ *      Blank has none)
+ *   4. Workspace default theme (when filing into a workspace)
+ *   5. Schema default — applied by `createDoc()` when none of above set.
  *
  * `themeId` + `themePreset` are mutex'd — passing both fails fast rather
  * than silently letting (1) win, so callers can't smuggle a built-in id
@@ -121,17 +125,27 @@ export async function createDocument(input: CreateDocumentParams): Promise<Creat
   const language = parseLanguage(input.language)
   if (language !== null) create.language = language
 
+  let template: TemplateMeta | null = null
   if (input.templateId !== undefined) {
-    if (!isTemplateId(input.templateId)) {
+    template = getTemplate(input.templateId)
+    if (!template) {
       throw createError({ statusCode: 400, message: 'Unknown templateId' })
     }
-    create.templateId = input.templateId
+    // Stored under its current id (an alias like `academic-paper` → `arxiv`).
+    create.templateId = template.id
   }
 
   const content = parseContent(input.content, input.templateId)
 
-  const theme = await resolveTheme(input, input.ownerId, workspaceId)
-  if (theme !== null) create.theme = withCustomCssForNewDoc(theme, docId)
+  const resolved = await resolveTheme(input, input.ownerId, workspaceId, template)
+  if (resolved !== null) {
+    // The template's own design gets the template's cover placeholders
+    // (authors, affiliations, subtitle), in the document's language.
+    const theme = template !== null && resolved.preset !== null && resolved.preset === template.design
+      ? withTemplateCover(resolved.theme, template, language ?? 'en')
+      : resolved.theme
+    create.theme = withCustomCssForNewDoc(theme, docId)
+  }
 
   if (input.ownerId == null && input.anonCreatorKeyHash !== undefined) {
     create.anonCreatorKeyHash = input.anonCreatorKeyHash
@@ -214,11 +228,30 @@ function parseLanguage(raw: string | undefined): string | null {
   return trimmed
 }
 
+/** Fill the template's cover placeholders into fields the preset leaves empty. */
+function withTemplateCover(theme: DocTheme, template: TemplateMeta, language: string): DocTheme {
+  const placeholders = templateCover(template, language)
+  if (!placeholders) return theme
+  const cover = { ...theme.cover }
+  if (placeholders.subtitle !== undefined && cover.subtitle === '') cover.subtitle = placeholders.subtitle
+  if (placeholders.authors !== undefined && cover.authors.length === 0) cover.authors = [...placeholders.authors]
+  if (placeholders.affiliations !== undefined && (cover.affiliations ?? []).length === 0) cover.affiliations = [...placeholders.affiliations]
+  if (placeholders.showDate !== undefined) cover.showDate = placeholders.showDate
+  return { ...theme, cover }
+}
+
+interface ResolvedTheme {
+  theme: DocTheme
+  /** The built-in preset it came from, if any. */
+  preset: string | null
+}
+
 async function resolveTheme(
   input: CreateDocumentParams,
   ownerId: number | null,
-  workspaceId: string | null
-): Promise<DocTheme | null> {
+  workspaceId: string | null,
+  template: TemplateMeta | null
+): Promise<ResolvedTheme | null> {
   if (input.themeId !== undefined && input.themePreset !== undefined) {
     throw createError({ statusCode: 400, message: 'Pass themeId OR themePreset, not both' })
   }
@@ -230,18 +263,20 @@ async function resolveTheme(
     if (!saved) {
       throw createError({ statusCode: 404, message: 'Saved theme not found' })
     }
-    return saved.theme
+    return { theme: saved.theme, preset: null }
   }
   if (input.themePreset !== undefined) {
     const preset = THEME_PRESETS.find(p => p.id === input.themePreset)
     if (!preset) {
       throw createError({ statusCode: 400, message: 'Unknown themePreset' })
     }
-    return preset.theme
+    return { theme: preset.theme, preset: preset.id }
   }
+  const design = template?.design ? THEME_PRESETS.find(p => p.id === template.design) : undefined
+  if (design) return { theme: design.theme, preset: design.id }
   if (workspaceId !== null) {
     const ws = await getWorkspace(workspaceId)
-    return ws?.defaultTheme ?? null
+    return ws?.defaultTheme ? { theme: ws.defaultTheme, preset: null } : null
   }
   return null
 }

@@ -281,7 +281,7 @@
   },
   "newDoc": {
     "title": "Nuevo documento",
-    "subtitle": "Ponle un nombre y empieza a escribir. Contenido, diseño y detalles son opcionales: cámbialos ahora o cuando quieras.",
+    "subtitle": "Ponle un nombre y empieza a escribir. La plantilla y los detalles son opcionales: cámbialos ahora o cuando quieras.",
     "titleLabel": "Título",
     "titlePlaceholder": "p. ej. Plan de lanzamiento del T3",
     "descriptionLabel": "Descripción",
@@ -289,16 +289,11 @@
     "descriptionPlaceholder": "¿De qué trata este documento?",
     "languageLabel": "Idioma",
     "audienceLabel": "Público",
-    "themeLabel": "Tema",
-    "themeHelp": "Define el estilo visual. Puedes cambiarlo en cualquier momento.",
     "themeWorkspaceDefault": "Predeterminado del espacio de trabajo",
-    "themeWorkspaceDefaultHelp": "Usa el tema establecido como predeterminado para este espacio de trabajo.",
-    "templateLabel": "Plantilla",
-    "templateHelp": "Rellena previamente el documento con una estructura básica que puedes editar. Cada sección viene con una nota de comentario para que markoto sepa qué corresponde a cada parte.",
+    "templateHelp": "Una plantilla es un texto inicial en un diseño que le va bien. Los comentarios grises del texto dicen qué va en cada parte; la vista previa y el PDF no los muestran. Cambia el diseño cuando quieras en el panel del tema.",
     "create": "Crear documento",
     "sections": {
-      "content": "Contenido",
-      "design": "Diseño",
+      "template": "Plantilla",
       "details": "Detalles"
     },
     "detailsHelp": "Ayuda a la IA a escribir para ti: de qué trata el documento, su idioma y su tono.",
@@ -309,44 +304,94 @@
       "business": "Empresa",
       "writing": "Escritura",
       "saved": "Mis diseños"
-    }
+    },
+    "blankIn": "En blanco en {design}",
+    "blankWorkspaceDescription": "Una página vacía con el diseño de tu espacio de trabajo: {design}."
   },
   "templates": {
+    "demo": {
+      "label": "Demo",
+      "description": "Lo básico de Markdown y un breve recorrido por markoto."
+    },
     "blank": {
       "label": "En blanco",
-      "description": "Una página vacía. Tú pones todo lo demás."
-    },
-    "business-plan": {
-      "label": "Plan de negocio",
-      "description": "Resumen ejecutivo, mercado, modelo, hoja de ruta, finanzas, riesgos."
-    },
-    "academic-paper": {
-      "label": "Artículo académico",
-      "description": "Resumen, introducción, trabajos relacionados, métodos, resultados, discusión, referencias."
-    },
-    "recipe": {
-      "label": "Receta",
-      "description": "Ficha resumen, ingredientes, utensilios, instrucciones, variaciones."
-    },
-    "meeting-notes": {
-      "label": "Notas de reunión",
-      "description": "Agenda, discusión, decisiones, tareas pendientes, preguntas abiertas."
-    },
-    "project-readme": {
-      "label": "README del proyecto",
-      "description": "Eslogan, por qué, inicio rápido, funciones, documentación, contribuir, licencia."
+      "description": "Una página vacía. Tú pones todo."
     },
     "resume": {
       "label": "Currículum",
       "description": "Un CV de una página: perfil, experiencia, formación, habilidades, idiomas."
     },
+    "runbook": {
+      "label": "Runbook de guardia",
+      "description": "Niveles de gravedad, un procedimiento por alerta con comandos, escalado, referencia rápida."
+    },
+    "design-doc": {
+      "label": "Documento de diseño / RFC",
+      "description": "Cabecera de estado, motivación, objetivos, propuesta, alternativas, decisiones, despliegue, riesgos."
+    },
+    "api-reference": {
+      "label": "Referencia de API",
+      "description": "Autenticación, errores, límites de uso, un recurso con endpoints, parámetros y ejemplos."
+    },
+    "project-readme": {
+      "label": "README de proyecto",
+      "description": "Lema, por qué, inicio rápido, funciones, configuración, contribuir, licencia."
+    },
+    "arxiv": {
+      "label": "Preprint de arXiv",
+      "description": "Resumen en el bloque de título, secciones numeradas, una tabla, una ecuación, referencias."
+    },
+    "ieee-conference": {
+      "label": "Artículo de congreso IEEE",
+      "description": "Dos columnas: resumen y palabras clave, secciones cortas, referencias numeradas."
+    },
+    "thesis": {
+      "label": "Tesis",
+      "description": "Portada, resumen, índice, un capítulo por página, bibliografía, anexo."
+    },
+    "lecture-notes": {
+      "label": "Apuntes de clase",
+      "description": "Objetivos, definiciones, teorema y ejemplo, ejercicios por partes."
+    },
+    "essay": {
+      "label": "Ensayo APA",
+      "description": "Portada APA, tesis, argumentación, contraargumentos, referencias."
+    },
     "report": {
       "label": "Informe",
       "description": "Portada, índice, resumen, cifras clave, resultados, perspectivas, anexo."
     },
-    "demo": {
-      "label": "Demo",
-      "description": "Lo básico de markdown y un breve recorrido por markoto."
+    "business-plan": {
+      "label": "Plan de negocio",
+      "description": "Resumen ejecutivo, mercado, modelo, hoja de ruta, finanzas, riesgos."
+    },
+    "proposal": {
+      "label": "Propuesta comercial",
+      "description": "Tu situación, objetivos, enfoque por fases, calendario, precios, condiciones, firma."
+    },
+    "one-pager": {
+      "label": "One-pager",
+      "description": "La propuesta, el problema, la solución, los datos clave y los próximos pasos en una página."
+    },
+    "memo": {
+      "label": "Memorando / carta",
+      "description": "Para / De / Fecha / Asunto, objetivo, contexto, recomendación, próximos pasos."
+    },
+    "meeting-notes": {
+      "label": "Notas de reunión",
+      "description": "Orden del día, discusión, decisiones, tareas, preguntas abiertas."
+    },
+    "manuscript": {
+      "label": "Manuscrito de novela",
+      "description": "Epígrafe, capítulos en página nueva, cambios de escena, portada."
+    },
+    "newsletter": {
+      "label": "Boletín",
+      "description": "Línea de número, artículo principal con cita, breves, fechas, despedida."
+    },
+    "recipe": {
+      "label": "Receta",
+      "description": "Ficha resumen, ingredientes, utensilios, preparación, variantes."
     }
   },
   "documentPanel": {
@@ -1462,6 +1507,57 @@
     "capFilesReachedFree": "Este espacio de trabajo ha alcanzado su límite de archivos ({limit}). Elimina un archivo para añadir otro.",
     "capBytesReachedFree": "Este espacio de trabajo ha alcanzado su límite de almacenamiento ({limit} MB). Elimina un archivo para liberar espacio.",
     "capReachedShortFree": "Límite alcanzado"
+  },
+  "designImport": {
+    "button": "Crear un diseño a partir de un documento",
+    "title": "Crear un diseño a partir de un documento",
+    "intro": "Sube un archivo PDF o Word con el diseño de tu organización. markoto lee sus fuentes, colores y maquetación y crea un diseño para documentos nuevos.",
+    "chooseFile": "Elegir un archivo PDF o Word",
+    "fileHint": "PDF o .docx, hasta 20 MB",
+    "costNote": "Usa tu proveedor de IA: hasta tres solicitudes con imágenes de páginas. Las fuentes se sustituyen por la más parecida que ofrece markoto.",
+    "phase": {
+      "uploading": "Subiendo",
+      "reading": "Leyendo el documento",
+      "designing": "Creando el diseño",
+      "rendering": "Comparando con el original"
+    },
+    "roundOf": "ronda {round} de {max}",
+    "original": "Tu documento",
+    "ours": "Tu nuevo diseño",
+    "originalAlt": "Primera página del documento subido",
+    "oursAlt": "Página de ejemplo con el nuevo diseño",
+    "noPagePictures": "Los archivos Word se leen a partir de sus estilos, así que no hay imagen de página. Colores encontrados:",
+    "noPreview": "No se pudo crear una vista previa. Aun así puedes guardar el diseño y verlo en un documento.",
+    "fontsTitle": "Fuentes",
+    "fontSubstituted": "{from} → {to}",
+    "save": "Guardar como mi diseño",
+    "apply": "Aplicar a este documento",
+    "tryAnother": "Probar con otro archivo",
+    "savedToast": "Guardado en tus diseños",
+    "openAiSettings": "Abrir los ajustes de IA",
+    "errors": {
+      "no-vision": "Tu proveedor de IA no puede leer imágenes. Elige un modelo que pueda hacerlo y vuelve a intentarlo.",
+      "provider-missing": "No hay ningún proveedor de IA configurado. Añade uno en los ajustes de IA.",
+      "provider-error": "Tu proveedor de IA devolvió un error. Revisa los ajustes de IA y vuelve a intentarlo.",
+      "budget": "Tu presupuesto de IA de este mes se ha agotado.",
+      "unreadable": "No se pudo leer el archivo. Comprueba que sea un documento PDF o Word que se abra con normalidad.",
+      "too-large": "El archivo es demasiado grande. Elige un archivo de hasta 20 MB.",
+      "format": "Elige un archivo PDF o Word (.docx).",
+      "invalid-design": "La IA no pudo convertir este documento en un diseño. Vuelve a intentarlo o usa otro archivo.",
+      "rate-limited": "Has creado muchos diseños en la última hora. Vuelve a intentarlo más tarde.",
+      "busy": "Ya se está creando un diseño. Espera a que termine.",
+      "upload-failed": "La subida no funcionó. Vuelve a intentarlo.",
+      "internal": "Algo salió mal. Vuelve a intentarlo."
+    },
+    "pageAria": "Página {n}",
+    "thinking": {
+      "uploading": "Recibiendo tu documento…",
+      "reading": "Leyendo las fuentes, los colores y el diseño de tu documento…",
+      "designing": "Preparando un diseño a partir de tus páginas…",
+      "rendering": "Componiendo una página de prueba con el nuevo diseño…",
+      "comparing": "Comparando mi diseño con tus páginas, ronda {round} de {max}…"
+    },
+    "durationNote": "Suele tardar entre dos y cinco minutos. Mantén esta ventana abierta; el resultado aparecerá aquí."
   },
   "error": {
     "generic": "Algo salió mal. Inténtalo de nuevo.",

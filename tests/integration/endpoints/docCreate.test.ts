@@ -9,6 +9,7 @@ import {
 } from '../setup/fixtures'
 import { createAnonDoc } from '../setup/anonGate'
 import { INITIAL_CONTENT_MAX_LENGTH } from '../../../shared/config/docCreate'
+import { THEME_PRESETS } from '../../../shared/utils/themePresets'
 
 // POST /api/docs — creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'
@@ -173,6 +174,38 @@ describe('POST /api/docs', () => {
       // theme object — client cannot inject arbitrary JSONB.
       expect(row.theme).not.toBeNull()
       expect(row.theme).toHaveProperty('color')
+    })
+
+    it('a template without themePreset brings its own design and cover placeholders', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      const res = await client.post('/api/docs', { templateId: 'runbook', language: 'de' })
+      expect(res.status).toBe(200)
+      const { docId } = await res.json() as { docId: string }
+      const row = await readDoc(docId)
+      const runbook = THEME_PRESETS.find(p => p.id === 'runbook')
+      const theme = row.theme as { body: unknown, cover: { authors: string[], subtitle: string } }
+      expect(theme.body).toEqual(runbook?.theme.body)
+      expect(theme.cover.authors).toEqual(['Name des Teams'])
+      expect(theme.cover.subtitle).not.toBe('')
+    })
+
+    it('an explicit themePreset overrides the template design without its cover placeholders', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      const res = await client.post('/api/docs', { templateId: 'runbook', themePreset: 'modern' })
+      const { docId } = await res.json() as { docId: string }
+      const theme = (await readDoc(docId)).theme as { cover: { authors: string[] } }
+      expect(theme.cover.authors).toEqual([])
+    })
+
+    it('stores a retired template id under the template it became', async () => {
+      const user = await createUser()
+      const client = await loggedInClient(user.id)
+      const res = await client.post('/api/docs', { templateId: 'academic-paper', themePreset: 'arxiv' })
+      expect(res.status).toBe(200)
+      const { docId } = await res.json() as { docId: string }
+      expect((await readDoc(docId)).template_id).toBe('arxiv')
     })
 
     it('accepts free-text language strings', async () => {

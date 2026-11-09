@@ -1,0 +1,32 @@
+{
+  "demo": {
+    "title": "Welcome to markoto",
+    "pageNumber": 2
+  },
+  "blank": "Untitled",
+  "resume": "Alex Morgan — Resume",
+  "runbook": "Payments service — on-call runbook",
+  "design-doc": "RFC: Regional failover for the order database",
+  "api-reference": "Inventory API v1 — Reference",
+  "project-readme": "Lantern — README",
+  "arxiv": "Bounded invalidation queues for edge caches under network partitions",
+  "ieee-conference": "Energy-Proportional Batching for Edge Inference Servers",
+  "thesis": "Learning sparse sensor placements for urban flood forecasting",
+  "lecture-notes": "Probability for Computer Scientists — Lecture 7: Expectation and Linearity",
+  "essay": "Who Owns the Shoreline? Public Access and Private Property on Lakes",
+  "report": {
+    "title": "Q3 2026 Quarterly Report",
+    "pageNumber": 3
+  },
+  "business-plan": {
+    "title": "Business Plan 2027",
+    "pageNumber": 3
+  },
+  "proposal": "Proposal: Customer portal relaunch",
+  "one-pager": "Fieldnote — service reports in one tap",
+  "memo": "Memo — Office move in December",
+  "meeting-notes": "Weekly team sync",
+  "manuscript": "The Salt Ledger",
+  "newsletter": "The Commons — neighbourhood newsletter",
+  "recipe": "Lemon risotto"
+}

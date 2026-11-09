@@ -2,8 +2,9 @@
 // "Start writing": opens the new-document dialog (the same one as the
 // home page — anonymous visitors pass the terms + bot-check gate there)
 // and opens the created document. Used by the marketing header and the
-// `::cta` content block; `templateId` / `themePreset` pre-select a
-// template and a theme in the dialog ("Use this template"). The dialog
+// `::cta` content block; `templateId` pre-selects a template (text + its
+// design) in the dialog ("Use this template"), `themePreset` puts another
+// built-in design on it. The dialog
 // mounts on the first click (useNewDocDialog), so a marketing page
 // doesn't ship its code.
 withDefaults(defineProps<{

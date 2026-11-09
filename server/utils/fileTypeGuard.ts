@@ -153,3 +153,16 @@ export async function requireContentMatchesExtension(args: {
     })
   }
 }
+
+/**
+ * In-memory variant for uploads the server reads whole anyway (the
+ * design-import file): sniffs the SAME bytes that get processed, so a
+ * re-used presigned URL can't swap them between check and read.
+ * Binary formats only.
+ */
+export async function bytesMatchExtension(bytes: Uint8Array, ext: string): Promise<boolean> {
+  const allowed = EXT_TO_ALLOWED_MIMES[ext.toLowerCase()]
+  if (!allowed) return false
+  const detected = await fileTypeFromBuffer(bytes)
+  return detected !== undefined && allowed.includes(detected.mime)
+}

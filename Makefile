@@ -237,6 +237,10 @@ theme-thumbs: ## Re-render the new-doc design-picker thumbnails (public/theme-th
 template-gallery: ## Re-render the SEO template-gallery pictures (public/templates) from a TEST_MODE app with NUXT_ANON_GATE_ENABLED=false (URL=… IDS="resume report")
 	bun scripts/render-theme-thumbs.ts --base $(URL) --gallery $(IDS)
 
+.PHONY: template-thumbs
+template-thumbs: ## Re-render the new-doc template pictures (public/template-thumbs) from a TEST_MODE app with NUXT_ANON_GATE_ENABLED=false (URL=… IDS="runbook arxiv")
+	bun scripts/render-theme-thumbs.ts --base $(URL) --templates $(IDS)
+
 .PHONY: theme-shots
 theme-shots: ## PNG per page + contact sheet per theme preset from a running app with NUXT_ANON_GATE_ENABLED=false (URL=… SHOTS_OUT=… SHOTS_MD=… PRESETS="markoto tech")
 	bun scripts/render-theme-shots.ts --base $(URL) --out $(SHOTS_OUT) --md $(SHOTS_MD) $(PRESETS)

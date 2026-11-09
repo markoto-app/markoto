@@ -4,9 +4,13 @@ import {
   TEMPLATE_IDS,
   isTemplateId,
   getTemplate,
+  resolveTemplateId,
+  templateCover,
+  templateLocale,
   DEFAULT_TEMPLATE_ID,
   TEMPLATE_LOCALES
 } from '../../shared/templates'
+import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { renderTemplate } from '../../server/utils/templateRenderer'
@@ -27,7 +31,7 @@ describe('TEMPLATES registry', () => {
     expect(TEMPLATE_IDS).toContain('demo')
     expect(TEMPLATE_IDS).toContain('blank')
     expect(TEMPLATE_IDS).toContain('business-plan')
-    expect(TEMPLATE_IDS).toContain('academic-paper')
+    expect(TEMPLATE_IDS).toContain('arxiv')
     expect(TEMPLATE_IDS).toContain('recipe')
     expect(TEMPLATE_IDS).toContain('meeting-notes')
     expect(TEMPLATE_IDS).toContain('project-readme')
@@ -51,6 +55,82 @@ describe('TEMPLATES registry', () => {
   it('blank is the only template without content', () => {
     const noContent = TEMPLATES.filter(t => !t.hasContent).map(t => t.id)
     expect(noContent).toEqual(['blank'])
+  })
+})
+
+// A template is a bundle: a starting text + the design it is written for.
+describe('template bundles', () => {
+  const ROOT = join(__dirname, '..', '..')
+  const presetIds = THEME_PRESETS.map(p => p.id)
+
+  it('every template names a built-in design and a picker category; only Blank has none', () => {
+    for (const tpl of TEMPLATES) {
+      if (tpl.id === 'blank') expect(tpl.design).toBeNull()
+      else expect(presetIds, `${tpl.id}: design ${tpl.design}`).toContain(tpl.design)
+      expect(['general', 'engineering', 'academic', 'business', 'writing']).toContain(tpl.category)
+    }
+  })
+
+  it('every built-in design has at least one template', () => {
+    const used = new Set(TEMPLATES.map(t => t.design))
+    for (const id of presetIds) expect(used.has(id), `no template for the ${id} design`).toBe(true)
+  })
+
+  it('every template with text ships en + de, German without ß, and hint comments', () => {
+    for (const tpl of TEMPLATES) {
+      if (!tpl.hasContent) continue
+      for (const locale of ['en', 'de']) {
+        const file = join(ROOT, 'shared', 'templates', 'content', tpl.content, `${locale}.md`)
+        expect(existsSync(file), `${tpl.content}/${locale}.md`).toBe(true)
+        const body = readFileSync(file, 'utf8')
+        if (locale === 'de') expect(body, `${tpl.id}/de: ss, not ß`).not.toContain('ß')
+        if (tpl.id !== 'resume') expect(body, `${tpl.id}/${locale}: hint comments`).toMatch(/<!--/)
+      }
+    }
+  })
+
+  it('a template whose design prints the title (cover or title block) does not repeat it as a heading', () => {
+    for (const tpl of TEMPLATES) {
+      const cover = THEME_PRESETS.find(p => p.id === tpl.design)?.theme.cover
+      if (!tpl.hasContent || !cover?.enabled) continue
+      const out = renderTemplate(tpl.id, { title: 'The Title', description: '', language: 'en' })
+      expect(out, tpl.id).not.toMatch(/^# The Title$/m)
+    }
+  })
+
+  it('cover placeholders exist in English and German and only for designs that show them', () => {
+    for (const tpl of TEMPLATES) {
+      if (!tpl.cover) continue
+      expect(tpl.cover.en, `${tpl.id}: en placeholders`).toBeDefined()
+      expect(tpl.cover.de, `${tpl.id}: de placeholders`).toBeDefined()
+      const cover = THEME_PRESETS.find(p => p.id === tpl.design)?.theme.cover
+      expect(cover?.enabled, `${tpl.id}: its design has no cover`).toBe(true)
+      for (const value of Object.values(tpl.cover)) {
+        expect(JSON.stringify(value), `${tpl.id}: German uses ss`).not.toContain('ß')
+        if (value.authors) expect(value.authors.length).toBeLessThanOrEqual(10)
+      }
+    }
+    const arxiv = getTemplate('arxiv')
+    if (!arxiv) throw new Error('arxiv template missing')
+    expect(templateCover(arxiv, 'de-CH')?.authors).toEqual(arxiv.cover?.de?.authors)
+    expect(templateCover(arxiv, 'Romansh')?.authors).toEqual(arxiv.cover?.en?.authors)
+  })
+
+  it('a retired id resolves to the template it became', () => {
+    expect(resolveTemplateId('academic-paper')).toBe('arxiv')
+    expect(isTemplateId('academic-paper')).toBe(true)
+    expect(TEMPLATE_IDS).not.toContain('academic-paper')
+    expect(getTemplate('academic-paper')?.id).toBe('arxiv')
+    expect(renderTemplate('academic-paper', { title: 'T', description: '', language: 'en' }))
+      .toBe(renderTemplate('arxiv', { title: 'T', description: '', language: 'en' }))
+    expect(resolveTemplateId('nope')).toBeNull()
+    expect(resolveTemplateId(3)).toBeNull()
+  })
+
+  it('maps a document language to a template locale', () => {
+    expect(templateLocale('de')).toBe('de')
+    expect(templateLocale('de-CH')).toBe('de')
+    expect(templateLocale('Schwiizerdütsch')).toBe('en')
   })
 })
 
@@ -92,7 +172,7 @@ describe('renderTemplate', () => {
   })
 
   it('substitutes {{title}} into the rendered body', () => {
-    const out = renderTemplate('business-plan', baseCtx)
+    const out = renderTemplate('meeting-notes', baseCtx)
     expect(out).toContain('# My Plan')
     expect(out).not.toContain('{{title}}')
   })
@@ -104,9 +184,9 @@ describe('renderTemplate', () => {
   })
 
   it('falls back to a sensible default title when title is empty/whitespace', () => {
-    const en = renderTemplate('business-plan', { ...baseCtx, title: '   ' })
+    const en = renderTemplate('meeting-notes', { ...baseCtx, title: '   ' })
     expect(en).toContain('# Untitled')
-    const de = renderTemplate('business-plan', { ...baseCtx, title: '   ', language: 'de' })
+    const de = renderTemplate('meeting-notes', { ...baseCtx, title: '   ', language: 'de' })
     expect(de).toContain('# Unbenannt')
   })
 
@@ -155,7 +235,7 @@ describe('renderTemplate', () => {
       const out = renderTemplate(tpl.id, baseCtx)
       expect(out, `template ${tpl.id} must produce content`).toBeTruthy()
       expect(out!.length).toBeGreaterThan(50)
-      expect(out!).toMatch(/^#\s+/m)
+      expect(out!).toMatch(/^#{1,3}\s+/m)
     }
   })
 })
@@ -210,8 +290,8 @@ describe('resume + report templates', () => {
     }
   })
 
-  it('the report takes the document title; the resume is a filled-in sample', () => {
-    expect(renderTemplate('report', { title: 'Q3 report', description: '', language: 'en' })).toContain('# Q3 report')
+  it('the report leaves the title to its cover page; the resume is a filled-in sample', () => {
+    expect(renderTemplate('report', { title: 'Q3 report', description: '', language: 'en' })).not.toContain('# Q3 report')
     const resume = renderTemplate('resume', { title: 'My CV', description: '', language: 'de' })
     expect(resume).toContain('## Berufserfahrung')
     expect(resume).not.toContain('{{')
@@ -226,9 +306,9 @@ describe('resume + report templates', () => {
     expect(`${source.trim()}\n`).toBe(template)
   })
 
-  it('the academic paper template does not promise BibTeX', () => {
+  it('the arXiv template does not promise BibTeX', () => {
     for (const locale of ['en', 'de']) {
-      const body = readFileSync(join(ROOT, 'shared', 'templates', 'content', 'academic-paper', `${locale}.md`), 'utf8')
+      const body = readFileSync(join(ROOT, 'shared', 'templates', 'content', 'arxiv', `${locale}.md`), 'utf8')
       expect(body).not.toMatch(/markdown-it-bibliography|render real reference lists|rendern echte Literaturlisten/)
     }
   })

@@ -790,6 +790,40 @@ async function adaptThemeToThisDoc(saved: DocTheme): Promise<DocTheme> {
   return { ...theme, customCss: adapted.css }
 }
 
+// "Create a design from a document" — the result is saved as one of the
+// user's themes (refresh the list) and/or applied to this document.
+const designImportOpen = ref(false)
+// Mounted on first use: the dialog is its own chunk.
+const designImportMounted = ref(false)
+
+function openDesignImport() {
+  designImportMounted.value = true
+  designImportOpen.value = true
+}
+
+async function onDesignImportSaved(name: string) {
+  await refreshSavedThemes()
+  toast.add({
+    title: name,
+    description: t('designImport.savedToast'),
+    icon: 'i-lucide-bookmark-check',
+    color: 'success'
+  })
+}
+
+async function onDesignImportApply(imported: DocTheme) {
+  if (!props.canEdit) return
+  const theme = await adaptThemeToThisDoc(imported)
+  draft.value = structuredClone(theme)
+  emit('update:theme', theme)
+  toast.add({
+    title: t('designImport.title'),
+    description: t('theme.presets.applied'),
+    icon: 'i-lucide-palette',
+    color: 'success'
+  })
+}
+
 // Kept after close so the modal doesn't go blank during its exit animation.
 const deleteTarget = ref<SavedTheme | null>(null)
 const deleteOpen = ref(false)
@@ -937,6 +971,19 @@ function deleteSaved(saved: SavedTheme) {
               {{ t('theme.saved.saveCurrent') }}
             </UButton>
           </div>
+          <UButton
+            v-if="loggedIn"
+            icon="i-lucide-file-input"
+            color="neutral"
+            variant="outline"
+            size="sm"
+            block
+            class="mb-3"
+            data-testid="theme-design-from-document"
+            @click="openDesignImport"
+          >
+            {{ t('designImport.button') }}
+          </UButton>
           <!-- Same picker as the new-document dialog: audience tabs over
                a picture of each preset's first page. A click applies it. -->
           <DocumentThemePresetGrid
@@ -2297,6 +2344,13 @@ function deleteSaved(saved: SavedTheme) {
       </UButton>
     </div>
 
+    <LazyDocumentDesignFromDocumentDialog
+      v-if="designImportMounted"
+      v-model:open="designImportOpen"
+      :can-apply="canEdit"
+      @saved="onDesignImportSaved"
+      @apply="onDesignImportApply"
+    />
     <DocumentSavedThemeDialog
       v-model:open="themeDialogOpen"
       :mode="themeDialogMode"

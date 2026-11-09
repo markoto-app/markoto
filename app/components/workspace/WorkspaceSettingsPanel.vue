@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
 import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 
 // Workspace settings tab — admin-only chrome around workspace-wide
@@ -65,15 +66,20 @@ useHead({
   }))
 })
 
-// Match a theme to a preset id by deep-equality on the JSON payload —
-// avoids "currently selected" highlights drifting when fields are
-// added to DocTheme.
+// Match a theme by structural equality: the stored default comes back
+// from a jsonb column whose key order differs from the in-code preset.
 function isCurrentTheme(t: DocTheme): boolean {
   if (!props.defaultTheme) return false
-  return JSON.stringify(t) === JSON.stringify(props.defaultTheme)
+  return jsonEqual(t, props.defaultTheme)
 }
 
 const isClearActive = computed(() => props.defaultTheme === null)
+
+// The built-in preset the workspace default matches, for the picker's
+// highlight (null when the default is a saved design or none is set).
+const selectedPresetId = computed(() =>
+  THEME_PRESETS.find(p => isCurrentTheme(p.theme))?.id ?? null
+)
 
 async function persist(theme: DocTheme | null) {
   if (saving.value) return
@@ -159,97 +165,34 @@ async function persist(theme: DocTheme | null) {
         </p>
       </button>
 
-      <!-- User-saved themes (admin's own). Section hidden when empty
-           so the panel doesn't render a stray empty heading. -->
-      <div
-        v-if="savedThemes.length > 0"
-        class="space-y-2"
+      <!-- Same design picker as the new-document dialog and the theme
+           panel: audience tabs over a picture of each design's first page;
+           the admin's own saved designs come first (and under "My
+           designs"). A click makes it the workspace default. -->
+      <DocumentThemePresetGrid
+        testid-prefix="workspace-default-theme-preset-"
+        :columns="2"
+        :saved-tab="savedThemes.length > 0"
+        :selected-id="selectedPresetId"
+        @select="(preset) => persist(preset.theme)"
       >
-        <h4 class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted px-1">
-          {{ t('theme.saved.title') }}
-        </h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            v-for="saved in savedThemes"
-            :key="saved.themeId"
-            type="button"
-            :data-testid="`workspace-default-theme-saved-${saved.themeId}`"
-            class="text-left rounded-md border p-3 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            :class="isCurrentTheme(saved.theme)
-              ? 'border-primary bg-primary/5'
-              : 'border-default bg-default hover:border-default/80 hover:bg-default/80'"
-            :disabled="saving"
-            @click="persist(saved.theme)"
-          >
-            <div class="flex items-center gap-2 mb-1">
-              <span
-                class="size-3 rounded-full shrink-0"
-                :style="{ backgroundColor: saved.theme.color.brand }"
-              />
-              <span
-                class="text-sm font-semibold truncate"
-                :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
-              >
-                {{ saved.name }}
-              </span>
-              <UIcon
-                v-if="isCurrentTheme(saved.theme)"
-                name="i-lucide-check"
-                class="size-3.5 text-primary ml-auto"
-              />
-            </div>
-            <p
-              class="text-xs text-muted leading-snug line-clamp-2 break-words"
-              :data-testid="`workspace-default-theme-saved-description-${saved.themeId}`"
-            >
-              {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
-            </p>
-          </button>
-        </div>
-      </div>
-
-      <!-- Built-in presets. Same heading-font preview each card uses
-           in the new-doc dialog and the right-rail theme panel. -->
-      <div class="space-y-2">
-        <h4 class="font-mono text-[10.5px] font-normal uppercase tracking-[0.06em] text-muted px-1">
-          {{ t('theme.presets.title') }}
-        </h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button
-            v-for="preset in THEME_PRESETS"
-            :key="preset.id"
-            type="button"
-            :data-testid="`workspace-default-theme-preset-${preset.id}`"
-            class="text-left rounded-md border p-3 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
-            :class="isCurrentTheme(preset.theme)
-              ? 'border-primary bg-primary/5'
-              : 'border-default bg-default hover:border-default/80 hover:bg-default/80'"
-            :disabled="saving"
-            @click="persist(preset.theme)"
-          >
-            <div class="flex items-center gap-2 mb-1">
-              <span
-                class="size-3 rounded-full shrink-0"
-                :style="{ backgroundColor: preset.theme.color.brand }"
-              />
-              <span
-                class="text-sm font-semibold truncate"
-                :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
-              >
-                {{ t(`theme.presets.${preset.id}.name`) }}
-              </span>
-              <UIcon
-                v-if="isCurrentTheme(preset.theme)"
-                name="i-lucide-check"
-                class="size-3.5 text-primary ml-auto"
-              />
-            </div>
-            <p class="text-xs text-muted leading-snug line-clamp-2">
-              {{ t(`theme.presets.${preset.id}.description`) }}
-            </p>
-          </button>
-        </div>
-      </div>
+        <template #before="{ tab }">
+          <template v-if="tab === 'all' || tab === 'saved'">
+            <DocumentPictureCard
+              v-for="saved in savedThemes"
+              :key="saved.themeId"
+              :testid="`workspace-default-theme-saved-${saved.themeId}`"
+              :description-testid="`workspace-default-theme-saved-description-${saved.themeId}`"
+              :name="saved.name"
+              :description="saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font })"
+              :selected="isCurrentTheme(saved.theme)"
+              :brand="saved.theme.color.brand"
+              :heading-font="saved.theme.headings.font"
+              @click="persist(saved.theme)"
+            />
+          </template>
+        </template>
+      </DocumentThemePresetGrid>
     </section>
   </section>
 </template>

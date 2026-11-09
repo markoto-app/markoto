@@ -45,6 +45,8 @@ The 14 current purposes (truncated): `account_authentication`, `document_storage
 
 `paid_plans_waitlist` (WP3, `PRIVACY_VERSION` 4 → 5) is consent-based and uses the `until_withdrawn` retention sentinel: kept until unsubscribe, at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Its consent is collected inline on the pricing page (unticked checkbox + double opt-in), NOT in the cookie banner, so `CONSENT_VERSION` was not bumped; the waitlist has its own `WAITLIST_CONSENT_VERSION` + `WAITLIST_CONSENT_TEXT_ID` in `shared/legal/versions.ts`, stored on every row.
 
+`uploaded_files` on `ai_assistance` + `user_directed_ai_provider` (no `PRIVACY_VERSION` bump — owner decision: same purpose as AI on pasted text): "Create a design from a document" sends the uploaded file's measured styles, first-page pictures and a short text sample to the user's AI provider; the file is parsed in markitdown and deleted from storage as soon as the server read it. Audit action `design_import.started` (format + size only).
+
 ### Adding a sub-processor
 
 1. Add a row to `SUB_PROCESSORS` with `{id, name, role, dataCategories, regions, transferMechanism, dpaUrl}`.

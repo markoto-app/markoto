@@ -1,33 +1,48 @@
-# {{title}}
-
 [[toc]]
 
-## Zusammenfassung
-<!-- 2-3 Sätze. Was ist das Unternehmen, für wen, welches Problem löst es? Schliesse mit dem einzigartigen Wertversprechen in einem Satz. -->
+# Zusammenfassung
+<!-- Zwei oder drei Sätze: Was ist das Unternehmen, für wen, welches Problem löst es? Schliessen Sie mit dem Wertversprechen in einem Satz. -->
 
-## Das Problem
-<!-- Beschreibe den Schmerzpunkt, den deine Kunden heute haben. Wenn möglich, quantifiziere ihn (verlorene Zeit, verlorenes Geld, Fehlerrate). Maximal ein Absatz. -->
+# Das Problem
+<!-- Beschreiben Sie das Problem, das Ihre Kundinnen und Kunden heute haben. Beziffern Sie es, wenn möglich (verlorene Zeit, verlorenes Geld, Fehlerquote). Höchstens ein Absatz. -->
 
-## Unsere Lösung
-<!-- Wie du das Problem angehst. Halte diesen Abschnitt konkret — kein Marketing-Geschwurbel. Ein Screenshot oder Diagramm rundet die Beschreibung ab. -->
+# Unsere Lösung
+<!-- Wie Sie das Problem lösen. Bleiben Sie konkret, ohne Werbesprache. Ein Screenshot oder ein Diagramm ergänzt die Beschreibung. -->
 
-## Markt & Wettbewerb
-<!-- TAM / SAM / SOM, falls relevant. Nenne die drei wichtigsten Wettbewerber und was dich von jedem unterscheidet. Eine Tabelle eignet sich hier gut. -->
+# Markt & Wettbewerb
+<!-- Marktgrösse (TAM / SAM / SOM), falls relevant. Nennen Sie die drei wichtigsten Wettbewerber und was Sie von jedem unterscheidet. -->
 
-## Geschäftsmodell
-<!-- Preisgestaltung, Vertriebskanäle, Unit Economics. Zeige den Lifetime Value eines Beispielkunden. -->
+| Wettbewerber | Stärke | Unser Unterschied |
+|---|---|---|
+| Wettbewerber A | | |
+| Wettbewerber B | | |
 
-## Go-to-Market
-<!-- Die ersten drei Kanäle für die Kundenakquise. Warum diese, in welcher Reihenfolge, und wie sieht das Budget für die ersten 12 Monate aus? -->
+# Geschäftsmodell
+<!-- Preise, Vertriebskanäle, Stückkosten. Rechnen Sie den Kundenwert (Lifetime Value) an einem Beispielkunden vor. -->
 
-## Roadmap
-<!-- Meilensteine für 6 / 12 / 18 Monate. Pro Meilenstein ein Stichpunkt. Verknüpfe Ziele wo möglich mit Umsatz- oder Nutzerzahlen. -->
+# Go-to-Market
+<!-- Die ersten drei Kanäle für die Kundengewinnung: warum diese, in welcher Reihenfolge, mit welchem Budget in den ersten 12 Monaten. -->
 
-## Team
-<!-- Gründer + Schlüsselrollen + Beiräte. Ein Satz pro Person zur jeweiligen Stärke. -->
+# Roadmap
+<!-- Meilensteine nach 6, 12 und 18 Monaten, je eine Zeile. Verknüpfen Sie die Ziele wo möglich mit Umsatz- oder Nutzerzahlen. -->
 
-## Finanzen
-<!-- 3-Jahres-Prognose mit den wichtigsten Kennzahlen (Umsatz, Kosten, Runway). Inklusive Sensitivitätstabelle für die 2-3 unsichersten Annahmen. -->
+| Zeitpunkt | Meilenstein | Ziel |
+|---|---|---|
+| 6 Monate | | |
+| 12 Monate | | |
+| 18 Monate | | |
 
-## Risiken & Gegenmassnahmen
-<!-- Die 3-5 grössten Risiken. Für jedes ein Satz, was bei Eintreten getan wird. -->
+# Team
+<!-- Gründerinnen und Gründer, Schlüsselrollen, Beirat. Ein Satz pro Person zu dem, was sie einbringt. -->
+
+# Finanzen
+<!-- Drei-Jahres-Prognose mit den wichtigsten Zahlen. Rechtsbündige Zahlenspalten mit `--:`. Darunter eine Sensitivitätsrechnung für die zwei oder drei unsichersten Annahmen. -->
+
+| (CHF k) | Jahr 1 | Jahr 2 | Jahr 3 |
+|---|--:|--:|--:|
+| Umsatz | | | |
+| Kosten | | | |
+| Ergebnis | | | |
+
+# Risiken & Gegenmassnahmen
+<!-- Die drei bis fünf grössten Risiken, je mit einem Satz, was Sie tun, wenn es eintritt. -->

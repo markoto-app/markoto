@@ -281,7 +281,7 @@
   },
   "newDoc": {
     "title": "New document",
-    "subtitle": "Give it a name and start writing. Content, design and details are optional — change them now or any time later.",
+    "subtitle": "Give it a name and start writing. The template and details are optional — change them now or any time later.",
     "titleLabel": "Title",
     "titlePlaceholder": "e.g. Q3 launch plan",
     "descriptionLabel": "Description",
@@ -289,16 +289,11 @@
     "descriptionPlaceholder": "What is this document about?",
     "languageLabel": "Language",
     "audienceLabel": "Audience",
-    "themeLabel": "Theme",
-    "themeHelp": "Sets the visual style. You can change it any time.",
     "themeWorkspaceDefault": "Workspace default",
-    "themeWorkspaceDefaultHelp": "Use the theme set as default for this workspace.",
-    "templateLabel": "Template",
-    "templateHelp": "Pre-fills the doc with a structural skeleton you can edit. Each section comes with a comment hint so markoto knows what belongs where.",
+    "templateHelp": "A template is a starting text in a design that suits it. The grey comments in the text say what goes where; the preview and the PDF don’t show them. Change the design any time in the theme panel.",
     "create": "Create document",
     "sections": {
-      "content": "Content",
-      "design": "Design",
+      "template": "Template",
       "details": "Details"
     },
     "detailsHelp": "Help the AI write for you: what the document is about, its language and its tone.",
@@ -309,44 +304,94 @@
       "business": "Business",
       "writing": "Writing",
       "saved": "My designs"
-    }
+    },
+    "blankIn": "Blank in {design}",
+    "blankWorkspaceDescription": "An empty page in your workspace’s design, {design}."
   },
   "templates": {
+    "demo": {
+      "label": "Demo",
+      "description": "Markdown basics and a short tour of markoto."
+    },
     "blank": {
       "label": "Blank",
       "description": "An empty page. You bring everything."
-    },
-    "business-plan": {
-      "label": "Business plan",
-      "description": "Executive summary, market, model, roadmap, financials, risks."
-    },
-    "academic-paper": {
-      "label": "Academic paper",
-      "description": "Abstract, intro, related work, methods, results, discussion, references."
-    },
-    "recipe": {
-      "label": "Recipe",
-      "description": "At-a-glance card, ingredients, equipment, instructions, variations."
-    },
-    "meeting-notes": {
-      "label": "Meeting notes",
-      "description": "Agenda, discussion, decisions, action items, open questions."
-    },
-    "project-readme": {
-      "label": "Project README",
-      "description": "Tagline, why, quick start, features, docs, contributing, license."
     },
     "resume": {
       "label": "Resume",
       "description": "A one-page CV: profile, experience, education, skills, languages."
     },
+    "runbook": {
+      "label": "On-call runbook",
+      "description": "Severity levels, a procedure per alert with commands, escalation, quick reference."
+    },
+    "design-doc": {
+      "label": "Design doc / RFC",
+      "description": "Status header, motivation, goals, proposal, alternatives, decisions, rollout, risks."
+    },
+    "api-reference": {
+      "label": "API reference",
+      "description": "Authentication, errors, rate limits, one resource with endpoints, parameters and examples."
+    },
+    "project-readme": {
+      "label": "Project README",
+      "description": "Tagline, why, quick start, features, configuration, contributing, license."
+    },
+    "arxiv": {
+      "label": "arXiv preprint",
+      "description": "Abstract in the title block, numbered sections, a table, an equation, references."
+    },
+    "ieee-conference": {
+      "label": "IEEE conference paper",
+      "description": "Two columns: abstract and index terms, short sections, numbered references."
+    },
+    "thesis": {
+      "label": "Thesis",
+      "description": "Title page, abstract, contents, a chapter per page, bibliography, appendix."
+    },
+    "lecture-notes": {
+      "label": "Lecture notes",
+      "description": "Learning goals, definitions, theorem and example, exercises with parts."
+    },
+    "essay": {
+      "label": "APA essay",
+      "description": "APA title page, thesis statement, argument, counterarguments, references."
+    },
     "report": {
       "label": "Report",
       "description": "Cover, contents, summary, key figures, results, outlook, appendix."
     },
-    "demo": {
-      "label": "Demo",
-      "description": "Markdown basics and a short tour of markoto."
+    "business-plan": {
+      "label": "Business plan",
+      "description": "Executive summary, market, model, roadmap, financials, risks."
+    },
+    "proposal": {
+      "label": "Client proposal",
+      "description": "Your situation, objectives, approach in phases, timeline, pricing, terms, signature."
+    },
+    "one-pager": {
+      "label": "One-pager",
+      "description": "The pitch, problem, solution, key facts and next steps on one page."
+    },
+    "memo": {
+      "label": "Memo / letter",
+      "description": "To / From / Date / Subject, purpose, background, recommendation, next steps."
+    },
+    "meeting-notes": {
+      "label": "Meeting notes",
+      "description": "Agenda, discussion, decisions, action items, open questions."
+    },
+    "manuscript": {
+      "label": "Novel manuscript",
+      "description": "Epigraph, chapters on new pages, scene breaks, a title page."
+    },
+    "newsletter": {
+      "label": "Newsletter",
+      "description": "Issue line, lead story with pull quote, short items, dates, sign-off."
+    },
+    "recipe": {
+      "label": "Recipe",
+      "description": "At-a-glance card, ingredients, equipment, instructions, variations."
     }
   },
   "documentPanel": {
@@ -1462,6 +1507,57 @@
     "capFilesReachedFree": "This workspace has reached its file limit ({limit}). Delete a file to add another.",
     "capBytesReachedFree": "This workspace has reached its storage limit ({limit} MB). Delete a file to free up space.",
     "capReachedShortFree": "Limit reached"
+  },
+  "designImport": {
+    "button": "Create a design from a document",
+    "title": "Create a design from a document",
+    "intro": "Upload a PDF or Word file in your organisation's design. markoto reads its fonts, colours and layout and builds a design for new documents.",
+    "chooseFile": "Choose a PDF or Word file",
+    "fileHint": "PDF or .docx, up to 20 MB",
+    "costNote": "Runs on your AI provider: up to three requests with page images. Fonts are replaced by the closest font markoto offers.",
+    "phase": {
+      "uploading": "Uploading",
+      "reading": "Reading the document",
+      "designing": "Designing",
+      "rendering": "Comparing with the original"
+    },
+    "roundOf": "round {round} of {max}",
+    "original": "Your document",
+    "ours": "Your new design",
+    "originalAlt": "First page of the uploaded document",
+    "oursAlt": "Sample page in the new design",
+    "noPagePictures": "Word files are read from their styles, so there is no page picture. Colours found:",
+    "noPreview": "No preview could be made. You can still save the design and look at it in a document.",
+    "fontsTitle": "Fonts",
+    "fontSubstituted": "{from} → {to}",
+    "save": "Save as my design",
+    "apply": "Apply to this document",
+    "tryAnother": "Try another file",
+    "savedToast": "Saved to your designs",
+    "openAiSettings": "Open AI settings",
+    "errors": {
+      "no-vision": "Your AI provider can't read images. Choose a model that can, then try again.",
+      "provider-missing": "No AI provider is set up. Add one in the AI settings.",
+      "provider-error": "Your AI provider returned an error. Check the AI settings and try again.",
+      "budget": "Your AI budget for this month is used up.",
+      "unreadable": "The file could not be read. Check that it is a PDF or Word document that opens normally.",
+      "too-large": "The file is too large. Choose a file of up to 20 MB.",
+      "format": "Choose a PDF or Word (.docx) file.",
+      "invalid-design": "The AI could not turn this document into a design. Try again or use another file.",
+      "rate-limited": "You have created many designs in the last hour. Try again later.",
+      "busy": "A design is already being created. Wait until it is finished.",
+      "upload-failed": "The upload did not work. Try again.",
+      "internal": "Something went wrong. Try again."
+    },
+    "pageAria": "Page {n}",
+    "thinking": {
+      "uploading": "Receiving your document…",
+      "reading": "Reading your document's fonts, colours and layout…",
+      "designing": "Drafting a design from your pages…",
+      "rendering": "Setting a sample page in the new design…",
+      "comparing": "Comparing my design with your pages, round {round} of {max}…"
+    },
+    "durationNote": "This usually takes two to five minutes. Keep this window open; you'll see the result here."
   },
   "error": {
     "generic": "Something went wrong. Please try again.",

@@ -4,6 +4,7 @@ import { listAllDocIds } from '../repos/documents'
 import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
 import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 import { sweepKnowledgeOrphans } from '../utils/knowledgeOrphanSweep'
+import { sweepDesignImportOrphans } from '../utils/designImport/orphanSweep'
 import { s3ObjectStore } from '../utils/objectStore'
 import { stagingKeyFor } from '../utils/uploadKey'
 
@@ -71,6 +72,13 @@ export default defineNitroPlugin((nitroApp) => {
       } catch (e) {
         console.error('[orphan-cleanup] Knowledge sweep failed:', e instanceof Error ? e.message : e)
         Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
+      }
+      try {
+        const { deleted } = await sweepDesignImportOrphans({ store: s3ObjectStore(s3, bucket), now })
+        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} design-import object(s)`)
+      } catch (e) {
+        console.error('[orphan-cleanup] Design-import sweep failed:', e instanceof Error ? e.message : e)
+        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
       }
     } finally {
       await releaseSweepLock('orphan-cleanup')

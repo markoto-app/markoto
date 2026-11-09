@@ -5,6 +5,7 @@ import { reconstructDocAtYjsId } from '../../utils/historyReplay'
 import { resolveDocProperties } from '../../utils/docProperties'
 import { listConfirmedUploadsForDoc } from '../../repos/uploads'
 import { planHasFeature, resolveDocPlanFor } from '../../utils/entitlements'
+import { DESIGN_SAMPLE_ID_RE, loadDesignSample } from '../../utils/designImport/sampleRender'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -37,6 +38,27 @@ export default defineEventHandler(async (event) => {
   const payload = verifyRenderToken(token, docId)
   if (!payload) {
     throw createError({ statusCode: 403, message: 'Invalid render token' })
+  }
+
+  // "Create a design from a document": a sample document rendered in a
+  // proposed theme. Not a stored document — its content sits in Valkey
+  // for the render's duration (utils/designImport/sampleRender.ts). Same
+  // render-token check as above; no uploads, so no usable file token.
+  if (DESIGN_SAMPLE_ID_RE.test(docId)) {
+    const sample = await loadDesignSample(docId)
+    if (!sample) throw createError({ statusCode: 404, message: 'Sample not found' })
+    return {
+      snapshotId: payload.snapshotId,
+      markdown: sample.markdown,
+      theme: sample.theme,
+      title: sample.title,
+      description: '',
+      audience: 'business',
+      language: sample.language,
+      fileAccessToken: '',
+      fileIds: [],
+      appOrigins: customCssAppOrigins()
+    }
   }
 
   // Verify the doc actually exists. The renderer may pass a stale docId

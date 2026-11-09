@@ -4,7 +4,7 @@ description: Switch between built-in presets, see the live preview update, and t
 category: themes
 order: 1
 featured: true
-updated: '2026-11-08'
+updated: '2026-11-09'
 ---
 
 # Pick a theme that fits your document
@@ -25,6 +25,12 @@ live preview update, and turning on a cover page. About two minutes.
 You picked a built-in preset, watched the entire document re-skin
 in place, then turned on a cover sheet that suppresses the running
 header and footer on page 1.
+
+A document starts in the design of the template you picked in the
+new-document dialog ([Start from a template](/docs/getting-started/templates)):
+the runbook template in the On-call runbook preset, the report in
+Corporate report, Blank in your default. Switching the preset here
+changes only the look; the text stays as it is.
 
 The built-in presets cover most use cases:
 

@@ -59,7 +59,7 @@ source: |
 ---
 ::
 
-::cta{title="Start your next meeting from this template." label="Use this template" template="meeting-notes" theme="modern" secondary-label="All templates" secondary-to="/templates"}
+::cta{title="Start your next meeting from this template." label="Use this template" template="meeting-notes" secondary-label="All templates" secondary-to="/templates"}
 Opens the new-document dialog with the meeting notes template selected. It starts with the same headings and a note in each section saying what goes there.
 ::
 
@@ -105,6 +105,6 @@ items:
 ---
 ::
 
-::cta{title="Notes everyone can write at once." label="Use this template" template="meeting-notes" theme="modern"}
+::cta{title="Notes everyone can write at once." label="Use this template" template="meeting-notes"}
 Free on markoto.app, no sign-up needed.
 ::

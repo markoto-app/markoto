@@ -83,6 +83,12 @@ export const AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED = 'workspace.billing_admin_ch
 export const AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED = 'workspace.member_ai_limit_changed'
 export const AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED = 'workspace.subscription_cancelled'
 
+// "Create a design from a document" started: an uploaded PDF / Word file
+// went to the sandboxed extractor and its design facts to the user's AI
+// provider. `scope` user, `scope_id` the user id; metadata: format and
+// size only (never the file name or content).
+export const AUDIT_DESIGN_IMPORT_STARTED = 'design_import.started'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -117,3 +123,4 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED
     | typeof AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED
     | typeof AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED
+    | typeof AUDIT_DESIGN_IMPORT_STARTED

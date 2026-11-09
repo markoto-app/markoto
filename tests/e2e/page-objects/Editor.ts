@@ -476,9 +476,9 @@ export class EditorPage {
 
   /** Selectors inside the new-document dialog. The dialog opens when
    *  the user clicks "+ New Document" anywhere — homepage, workspace,
-   *  or File menu. Five questions: title, description, language,
-   *  The title is in view; template ("Content"), theme ("Design") and
-   *  description / language / audience ("Details") sit in collapsed rows —
+   *  or File menu. The title is in view; the template (text + design,
+   *  one choice: "Template") and description / language / audience
+   *  ("Details") sit in collapsed rows —
    *  open one with `section(id)` (or `openNewDocSection`) before using its
    *  cards or inputs. One submit path: `submitCreate`.
    *
@@ -494,18 +494,20 @@ export class EditorPage {
       languageInput: this.page.locator('[data-testid="newdoc-language-input"]'),
       audienceSelect: this.page.locator('[data-testid="newdoc-audience-select"]'),
       // Each card has its own testid keyed by id (`newdoc-template-card-recipe`,
-      // `newdoc-theme-card-modern`, etc.). Cleaner + faster than text matching.
+      // `newdoc-template-card-saved-<themeId>` for "Blank in <saved design>").
+      // Cleaner + faster than text matching.
       templateCard: (id: string) => this.page.locator(`[data-testid="newdoc-template-card-${id}"]`),
-      themeCard: (id: string) => this.page.locator(`[data-testid="newdoc-theme-card-${id}"]`),
-      /** The collapsed option row's trigger (`content` / `design` / `details`). */
-      section: (id: 'content' | 'design' | 'details') => this.page.locator(`[data-testid="newdoc-section-${id}"]`),
+      /** The collapsed option row's trigger (`template` / `details`). */
+      section: (id: 'template' | 'details') => this.page.locator(`[data-testid="newdoc-section-${id}"]`),
+      /** The one-line summary on a collapsed row. */
+      summary: (id: 'template' | 'details') => this.page.locator(`[data-testid="newdoc-section-${id}-summary"]`),
       submitCreate: this.page.locator('[data-testid="newdoc-submit-create"]'),
       cancel: this.page.locator('[data-testid="newdoc-cancel"]')
     }
   }
 
   /** Expand one of the new-doc dialog's option rows (no-op when open). */
-  async openNewDocSection(id: 'content' | 'design' | 'details'): Promise<void> {
+  async openNewDocSection(id: 'template' | 'details'): Promise<void> {
     const trigger = this.newDocDialog.section(id)
     if (await trigger.getAttribute('aria-expanded') !== 'true') await trigger.click()
     await expect(trigger).toHaveAttribute('aria-expanded', 'true')
