@@ -5,7 +5,7 @@ useDefault = true
 
 [allowlist]
 description = "Render hashes, not credentials"
-# shared/utils/*.manifest.json map a preset / template id to the SHA-256 of
+# shared/{utils,templates}/*.manifest.json map a preset / template id to the SHA-256 of
 # what its picture was rendered from (scripts/render-theme-thumbs.ts). A
 # preset id containing "api" next to a 64-hex value trips generic-api-key.
-paths = ['''^shared/utils/[^/]+\.manifest\.json$''']
+paths = ['''^shared/(utils|templates)/[^/]+\.manifest\.json$''']
