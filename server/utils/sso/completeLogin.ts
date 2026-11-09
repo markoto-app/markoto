@@ -28,7 +28,7 @@
 // customer's IdP must not be able to make anyone an instance operator.
 
 import { and, eq, sql } from 'drizzle-orm'
-import { users } from '../../db/schema'
+import { userIdentities, users } from '../../db/schema'
 import { useDatabase } from '../database'
 import {
   activateSsoConnection,
@@ -45,6 +45,7 @@ import { getSessionEpoch } from '../../repos/users'
 import { emailDomain } from './domains'
 import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import type { SsoFlow } from './flowCookie'
+import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
 import type { WorkspaceRole } from '~~/shared/utils/docPermissions'
 
 export interface SsoAssertion {
@@ -135,9 +136,16 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     } else {
       throw new SsoLoginRefused('sso/not-provisioned', 'Your account is not set up for this workspace. Ask an admin to add you.')
     }
-    // One identity per account and connection: an account already linked
-    // to ANOTHER subject of this IdP is not re-linked silently.
-    if (await findIdentityForUser(connection.id, userId, tx)) {
+    // One identity per account and connection. A SCIM-provisioned
+    // placeholder (`scim:…`) is taken over by the first real sign-in;
+    // an account linked to ANOTHER real subject is not re-linked.
+    const linkedAlready = await findIdentityForUser(connection.id, userId, tx)
+    if (linkedAlready?.subject.startsWith(SCIM_PLACEHOLDER_PREFIX)) {
+      if (!linkedAlready.active) throw new SsoLoginRefused('sso/deactivated', 'Your access to this workspace was removed by your organisation.')
+      await tx.update(userIdentities).set({ subject: assertion.subject }).where(eq(userIdentities.id, linkedAlready.id))
+      return { userId, identityId: linkedAlready.id, scim: true, created, linked: true }
+    }
+    if (linkedAlready) {
       throw new SsoLoginRefused(isTest ? 'sso/test-mismatch' : 'sso/not-provisioned', 'This markoto account is linked to another account at your identity provider.')
     }
     const inserted = await insertIdentity({ userId, connectionId: connection.id, subject: assertion.subject }, tx)
