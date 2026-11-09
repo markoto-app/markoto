@@ -30,7 +30,12 @@ export function sponsorshipAvailability(mode: BillingMode, plan: PlanName | null
   return planSupportsTeamBilling(plan) ? 'available' : 'needsUpgrade'
 }
 
-/** Whether the workspace page shows the sponsorship (AI) tab at all. */
+/**
+ * Whether the workspace page shows the sponsorship (AI) tab at all.
+ * Only with billing on: sponsorship is being replaced by the per-seat
+ * Team plan (implementation plan WS5), so the hosted free-only phase no
+ * longer advertises it as "coming with paid plans".
+ */
 export function sponsorshipTabVisible(mode: BillingMode): boolean {
-  return mode.billingEnabled || mode.plansComingSoon
+  return mode.billingEnabled
 }

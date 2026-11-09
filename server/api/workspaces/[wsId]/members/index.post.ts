@@ -6,6 +6,8 @@ import {
   upsertWorkspaceInvite
 } from '../../../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../../../repos/audit'
+import { countMembers } from '../../../../repos/workspaceMembers'
+import { assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/entitlements'
 import { AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
 import { safeSendTransactionalEmail } from '../../../../utils/email/sendEmail'
 import { emailLinkBaseUrl } from '../../../../utils/siteUrl'
@@ -86,13 +88,27 @@ export default defineEventHandler(async (event) => {
   }
 
   const now = new Date()
-  if (await countOpenWorkspaceInvites(wsId, now, email) >= WORKSPACE_INVITE_OPEN_CAP) {
+  const openInvites = await countOpenWorkspaceInvites(wsId, now, email)
+  if (openInvites >= WORKSPACE_INVITE_OPEN_CAP) {
     throw createError({
       statusCode: 409,
       message: `A workspace can have at most ${WORKSPACE_INVITE_OPEN_CAP} open invitations.`,
       data: { code: 'workspace/invite-cap', messageKey: 'workspace.members.errors.inviteCap', limit: WORKSPACE_INVITE_OPEN_CAP }
     })
   }
+
+  // Plan limit: people in the workspace = members + open invitations
+  // (re-inviting the same address doesn't count twice — the count above
+  // excludes it). Invitations count from the moment they're sent, so an
+  // accepted invite never pushes a workspace past its limit and accepting
+  // needs no second check. A workspace already above the limit (e.g.
+  // after a downgrade) keeps everyone; only new invitations are refused.
+  assertPlanLimit(
+    await resolveWorkspacePlan(wsId),
+    'membersPerWorkspace',
+    await countMembers(wsId) + openInvites,
+    'This workspace has reached the member limit of its plan.'
+  )
 
   // Email link only when the deployment has a configured site URL (links
   // are never built from the request Host) and the per-address daily

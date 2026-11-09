@@ -18,6 +18,7 @@
 
 import { createSharedComposable } from '@vueuse/core'
 import { loginPath, type LoginProvider } from '~~/shared/config/instance'
+import { isPlanErrorCode } from '~~/shared/config/planErrors'
 
 /** Server code for "this action needs a fresh sign-in" (server/utils/sessionPolicy.ts). */
 export const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
@@ -131,6 +132,17 @@ function useErrorHandlerImpl() {
     if (sc === 403) return showError('error.forbidden', err)
     if (sc === 404) return showError('error.notFound', err)
     if (sc === 429) return showError('error.rateLimited', err)
+
+    // Plan limit / feature not in the plan (server/utils/entitlements.ts):
+    // a dedicated title plus the server's recovery link (Upgrade, or
+    // "paid plans coming soon"); self-hosted instances send none.
+    if (isPlanErrorCode(extracted.code)) {
+      const recovery = extracted.recovery
+      const href = recovery?.kind === 'link' ? recovery.href : undefined
+      return showError('plan.limitTitle', err, href && recovery?.labelKey
+        ? { label: t(recovery.labelKey), color: 'neutral', onClick: () => { void navigateTo(href) } }
+        : undefined)
+    }
 
     // 402 intentionally falls through to the caller — the budget-exhausted
     // flow has a specific CTA (/pricing link) that depends on context

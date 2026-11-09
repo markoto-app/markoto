@@ -695,6 +695,11 @@
       "imageStorage": "图片存储",
       "sponsoring": "工作区 AI 赞助",
       "mcp": "面向 AI 客户端的 MCP 服务器",
+      "members": "每个工作区的人数",
+      "history": "版本历史",
+      "days": "{n} 天",
+      "customCss": "文档自定义 CSS",
+      "readOnly": "只读",
       "setByYou": "由你设定",
       "included": "包含",
       "notIncluded": "不包含"
@@ -1628,6 +1633,24 @@
   "billing": {
     "comingSoonCta": "付费方案即将推出",
     "comingSoonHint": "额度更高的付费方案即将推出。"
+  },
+  "plan": {
+    "limitTitle": "已达到套餐上限",
+    "feature": {
+      "customCss": "此文档的套餐不包含自定义 CSS。",
+      "customCssPaused": "此文档的套餐不包含自定义 CSS，因此自定义 CSS 已暂停。CSS 会被保留，套餐包含该功能后将重新生效。",
+      "mcpWrite": "你的套餐中，通过 MCP 连接的 AI 客户端只有只读权限。编辑、渲染和网络工具需要包含这些功能的套餐。"
+    },
+    "limit": {
+      "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
+      "savedThemes": "你已达到套餐的已保存主题上限。请删除一个后再保存新主题。",
+      "importMaxBytes": "此文件超出了你的套餐允许导入的大小。",
+      "historyEntry": "此更改早于此文档套餐所包含的历史记录。",
+      "mcpToolCallsPerDay": "你已用完套餐中今天的 MCP 工具调用次数。请明天再试。"
+    },
+    "notice": {
+      "historyHidden": "在此文档的套餐下，超过 {days} 天的活动已隐藏。这些记录会被保留，套餐包含更长的历史记录后会再次显示。"
+    }
   },
   "waitlist": {
     "title": "加入候补名单",

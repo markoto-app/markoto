@@ -5,6 +5,9 @@ import {
   MONOTONIC_CAP_FIELDS,
   KNOWLEDGE_PLATFORM_LIMITS,
   resolveTiersFromEnv,
+  FEATURE_FIELDS,
+  UNLIMITED_CAP_FIELDS,
+  wouldExceed,
   type TierCaps
 } from '../../shared/config/tiers'
 
@@ -132,5 +135,93 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
     const tiers = resolveTiersFromEnv({ TIER_FREE_KNOWLEDGE_FILES: '42' })
     expect(tiers.free.knowledgeFiles).toBe(42)
     expect(DEFAULT_TIERS).toEqual(before)
+  })
+})
+
+// ─── Phase A entitlements (plan limits + feature switches) ──────────────
+
+describe('tier config — self-hosted instances keep every feature', () => {
+  // Billing off (self-host) resolves everyone to `free`, so the COMMITTED
+  // free tier is what a self-hoster gets: every feature switch on, no
+  // member / history / MCP / web-tool limit. The hosted free tier is
+  // narrowed only through TIER_FREE_* (infra/render-env.sh).
+  it('switches every feature on in every committed tier', () => {
+    for (const plan of PLAN_NAMES) {
+      for (const feature of FEATURE_FIELDS) {
+        expect(DEFAULT_TIERS[plan][feature], `${plan}.${feature}`).toBe(true)
+      }
+    }
+  })
+
+  it('sets no plan limit on the unlimited-capable fields of the committed free tier', () => {
+    for (const field of UNLIMITED_CAP_FIELDS) {
+      expect(DEFAULT_TIERS.free[field], `free.${field}`).toBeNull()
+    }
+  })
+
+  it('keeps today\'s 20 saved themes and 50 MB imports on the committed free tier', () => {
+    expect(DEFAULT_TIERS.free.savedThemes).toBe(20)
+    expect(DEFAULT_TIERS.free.importMaxBytes).toBe(50 * 1024 * 1024)
+  })
+})
+
+describe('tier config — paid tiers never give less than free', () => {
+  const atLeast = (paid: number | null, free: number | null) =>
+    paid === null || (free !== null && paid >= free)
+  for (const field of [...UNLIMITED_CAP_FIELDS, 'savedThemes', 'importMaxBytes'] as const) {
+    it(`${field}`, () => {
+      for (const plan of PLAN_NAMES) {
+        expect(atLeast(DEFAULT_TIERS[plan][field], DEFAULT_TIERS.free[field]), `${plan}.${field}`).toBe(true)
+      }
+    })
+  }
+})
+
+describe('resolveTiersFromEnv — entitlement overrides', () => {
+  it('parses numbers and `unlimited` for the unlimited-capable fields', () => {
+    const tiers = resolveTiersFromEnv({
+      TIER_FREE_MEMBERS_PER_WORKSPACE: '3',
+      TIER_FREE_HISTORY_DAYS: '30',
+      TIER_PRO_MEMBERS_PER_WORKSPACE: 'unlimited',
+      TIER_FREE_WEB_TOOLS_PER_DAY: ' 20 ',
+      TIER_FREE_MCP_TOOL_CALLS_PER_DAY: '100'
+    })
+    expect(tiers.free.membersPerWorkspace).toBe(3)
+    expect(tiers.free.historyDays).toBe(30)
+    expect(tiers.free.webToolsPerDay).toBe(20)
+    expect(tiers.free.mcpToolCallsPerDay).toBe(100)
+    expect(tiers.pro.membersPerWorkspace).toBeNull()
+  })
+
+  it('accepts `unlimited` only where the field allows it', () => {
+    const tiers = resolveTiersFromEnv({ TIER_FREE_SAVED_THEMES: 'unlimited', TIER_FREE_WORKSPACES_OWNED: 'unlimited' })
+    expect(tiers.free.savedThemes).toBe(DEFAULT_TIERS.free.savedThemes)
+    expect(tiers.free.workspacesOwned).toBe(DEFAULT_TIERS.free.workspacesOwned)
+  })
+
+  it('parses feature switches (true/false/1/0/yes/no/on/off, any case)', () => {
+    expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_CUSTOM_CSS: 'false' }).free.customCss).toBe(false)
+    expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_CUSTOM_CSS: 'OFF' }).free.customCss).toBe(false)
+    expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_MCP_WRITE: '0' }).free.mcpWrite).toBe(false)
+    expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_MCP_WRITE: 'no' }).free.mcpWrite).toBe(false)
+    expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_CUSTOM_CSS: 'true' }).free.customCss).toBe(true)
+  })
+
+  it('keeps the default for an unparseable switch or number', () => {
+    const tiers = resolveTiersFromEnv({
+      TIER_FREE_FEATURE_CUSTOM_CSS: 'maybe',
+      TIER_FREE_HISTORY_DAYS: '0',
+      TIER_FREE_MEMBERS_PER_WORKSPACE: '-1',
+      TIER_FREE_IMPORT_MAX_BYTES: 'big'
+    })
+    expect(tiers.free).toEqual(DEFAULT_TIERS.free)
+  })
+})
+
+describe('wouldExceed', () => {
+  it('treats null as no limit and a full limit as exceeded', () => {
+    expect(wouldExceed(null, 10_000)).toBe(false)
+    expect(wouldExceed(3, 2)).toBe(false)
+    expect(wouldExceed(3, 3)).toBe(true)
   })
 })

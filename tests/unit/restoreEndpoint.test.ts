@@ -28,6 +28,8 @@ const pruneActivity = vi.fn(async () => {})
 const restoreDocToYjsId = vi.fn()
 const findUserNameById = vi.fn(async () => 'Alice')
 const nanoidFn = vi.fn(() => 'fixed-session-id')
+const resolveDocPlan = vi.fn(async () => 'free')
+const assertWithinHistory = vi.fn((_plan: string, _createdAt: Date) => {})
 
 vi.mock('../../server/utils/documentAccess', () => ({ requireDocEditAccess }))
 vi.mock('../../server/repos/activity', () => ({
@@ -41,6 +43,7 @@ vi.mock('../../server/utils/restoreDoc', () => ({
 }))
 vi.mock('../../server/repos/users', () => ({ findUserNameById }))
 vi.mock('nanoid', () => ({ nanoid: nanoidFn }))
+vi.mock('../../server/utils/entitlements', () => ({ resolveDocPlan, assertWithinHistory }))
 
 // h3-style globals stubbed identically to validatedSession.test.ts.
 // `defineEventHandler` is the entry point of the SUT — we capture
@@ -124,6 +127,10 @@ beforeEach(() => {
   nanoidFn.mockReturnValue('fixed-session-id')
   requireValidatedUserSession.mockReset()
   requireValidatedUserSession.mockResolvedValue({ user: { id: 7, name: 'Alice' } })
+  resolveDocPlan.mockReset()
+  resolveDocPlan.mockResolvedValue('free')
+  assertWithinHistory.mockReset()
+  assertWithinHistory.mockImplementation(() => {})
 })
 
 describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () => {
@@ -347,5 +354,21 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
 
     expect(getActivityById).not.toHaveBeenCalled()
     expect(restoreDocToYjsId).not.toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/docs/:docId/activity/:activityId/restore — plan history window', () => {
+  it('refuses a row older than the document plan\'s history window BEFORE restoring', async () => {
+    getActivityById.mockResolvedValueOnce(fakeActivityRow())
+    assertWithinHistory.mockImplementationOnce(() => {
+      const err = new Error('older than the plan history') as Error & { statusCode: number }
+      err.statusCode = 409
+      throw err
+    })
+    await expect(capturedHandler!(fakeEvent('doc-1', 41))).rejects.toMatchObject({ statusCode: 409 })
+    expect(resolveDocPlan).toHaveBeenCalledWith('doc-1')
+    expect(assertWithinHistory).toHaveBeenCalledWith('free', new Date('2026-04-28T12:00:00Z'))
+    expect(restoreDocToYjsId).not.toHaveBeenCalled()
+    expect(appendActivity).not.toHaveBeenCalled()
   })
 })

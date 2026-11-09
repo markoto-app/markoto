@@ -695,6 +695,11 @@
       "imageStorage": "Bildspeicher",
       "sponsoring": "KI-Sponsoring für Workspaces",
       "mcp": "MCP-Server für KI-Clients",
+      "members": "Personen pro Workspace",
+      "history": "Versionsverlauf",
+      "days": "{n} Tag | {n} Tage",
+      "customCss": "Eigenes CSS für Dokumente",
+      "readOnly": "Nur Lesen",
       "setByYou": "Legen Sie fest",
       "included": "Enthalten",
       "notIncluded": "Nicht enthalten"
@@ -1628,6 +1633,24 @@
   "billing": {
     "comingSoonCta": "Bezahlpläne folgen in Kürze",
     "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze."
+  },
+  "plan": {
+    "limitTitle": "Planlimit erreicht",
+    "feature": {
+      "customCss": "Eigenes CSS ist im Plan dieses Dokuments nicht enthalten.",
+      "customCssPaused": "Das eigene CSS dieses Dokuments ist pausiert, weil sein Plan kein eigenes CSS enthält. Das CSS bleibt gespeichert und wirkt wieder, sobald der Plan es enthält.",
+      "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält."
+    },
+    "limit": {
+      "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
+      "savedThemes": "Sie haben die Grenze Ihres Plans für gespeicherte Themes erreicht. Löschen Sie eines, um ein neues zu speichern.",
+      "importMaxBytes": "Diese Datei ist grösser, als Ihr Plan für Importe erlaubt.",
+      "historyEntry": "Diese Änderung ist älter als der Verlauf, den der Plan dieses Dokuments enthält.",
+      "mcpToolCallsPerDay": "Sie haben die MCP-Werkzeugaufrufe Ihres Plans für heute aufgebraucht. Versuchen Sie es morgen wieder."
+    },
+    "notice": {
+      "historyHidden": "Aktivitäten, die älter als {days} Tage sind, werden im Plan dieses Dokuments ausgeblendet. Sie bleiben gespeichert und erscheinen wieder, sobald der Plan mehr Verlauf enthält."
+    }
   },
   "waitlist": {
     "title": "Auf die Warteliste",

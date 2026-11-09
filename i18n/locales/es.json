@@ -695,6 +695,11 @@
       "imageStorage": "Almacenamiento de imágenes",
       "sponsoring": "Patrocinio de IA en espacios de trabajo",
       "mcp": "Servidor MCP para clientes de IA",
+      "members": "Personas por espacio de trabajo",
+      "history": "Historial de versiones",
+      "days": "{n} día | {n} días",
+      "customCss": "CSS personalizado para documentos",
+      "readOnly": "Solo lectura",
       "setByYou": "Lo decides tú",
       "included": "Incluido",
       "notIncluded": "No incluido"
@@ -1628,6 +1633,24 @@
   "billing": {
     "comingSoonCta": "Planes de pago muy pronto",
     "comingSoonHint": "Muy pronto habrá planes de pago con límites más altos."
+  },
+  "plan": {
+    "limitTitle": "Límite del plan alcanzado",
+    "feature": {
+      "customCss": "El CSS personalizado no está incluido en el plan de este documento.",
+      "customCssPaused": "El CSS personalizado de este documento está en pausa: su plan no incluye CSS personalizado. El CSS se conserva y vuelve a aplicarse cuando el plan lo incluya.",
+      "mcpWrite": "Tu plan incluye acceso de solo lectura para clientes de IA mediante MCP. Editar, renderizar y las herramientas web requieren un plan que las incluya."
+    },
+    "limit": {
+      "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
+      "savedThemes": "Has alcanzado el límite de temas guardados de tu plan. Elimina uno para guardar uno nuevo.",
+      "importMaxBytes": "Este archivo supera el tamaño que tu plan permite para importaciones.",
+      "historyEntry": "Este cambio es más antiguo que el historial incluido en el plan de este documento.",
+      "mcpToolCallsPerDay": "Has usado las llamadas a herramientas MCP de hoy incluidas en tu plan. Inténtalo de nuevo mañana."
+    },
+    "notice": {
+      "historyHidden": "La actividad de hace más de {days} días está oculta con el plan de este documento. Se conserva y vuelve a mostrarse cuando el plan incluya más historial."
+    }
   },
   "waitlist": {
     "title": "Únete a la lista de espera",

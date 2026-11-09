@@ -695,6 +695,11 @@
       "imageStorage": "Stockage d'images",
       "sponsoring": "Parrainage IA d'un espace de travail",
       "mcp": "Serveur MCP pour clients IA",
+      "members": "Personnes par espace de travail",
+      "history": "Historique des versions",
+      "days": "{n} jour | {n} jours",
+      "customCss": "CSS personnalisé pour les documents",
+      "readOnly": "Lecture seule",
       "setByYou": "Fixé par vous",
       "included": "Inclus",
       "notIncluded": "Non inclus"
@@ -1628,6 +1633,24 @@
   "billing": {
     "comingSoonCta": "Offres payantes bientôt disponibles",
     "comingSoonHint": "Des offres payantes avec des limites plus élevées arrivent bientôt."
+  },
+  "plan": {
+    "limitTitle": "Limite du forfait atteinte",
+    "feature": {
+      "customCss": "Le CSS personnalisé n'est pas inclus dans le forfait de ce document.",
+      "customCssPaused": "Le CSS personnalisé de ce document est en pause : son forfait n'inclut pas le CSS personnalisé. Le CSS est conservé et s'applique de nouveau dès que le forfait l'inclut.",
+      "mcpWrite": "Votre forfait inclut un accès en lecture seule pour les clients d'IA via MCP. La modification, le rendu et les outils web nécessitent un forfait qui les inclut."
+    },
+    "limit": {
+      "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
+      "savedThemes": "Vous avez atteint la limite de thèmes enregistrés de votre forfait. Supprimez-en un pour en enregistrer un nouveau.",
+      "importMaxBytes": "Ce fichier dépasse la taille que votre forfait autorise pour les imports.",
+      "historyEntry": "Cette modification est plus ancienne que l'historique inclus dans le forfait de ce document.",
+      "mcpToolCallsPerDay": "Vous avez utilisé les appels d'outils MCP inclus dans votre forfait pour aujourd'hui. Réessayez demain."
+    },
+    "notice": {
+      "historyHidden": "L'activité de plus de {days} jours est masquée avec le forfait de ce document. Elle est conservée et réapparaît dès que le forfait inclut plus d'historique."
+    }
   },
   "waitlist": {
     "title": "Rejoindre la liste d'attente",

@@ -234,6 +234,16 @@ export async function startNuxt(): Promise<void> {
  * "plans coming soon" mode on (so the waitlist is open), and EVERY
  * NUXT_STRIPE_* var removed — the app must boot and serve without them.
  */
+/** The hosted free tier's plan limits applied to the billing-off server. */
+export const HOSTED_FREE_TIER_LIMITS = {
+  TIER_FREE_MEMBERS_PER_WORKSPACE: '3',
+  TIER_FREE_HISTORY_DAYS: '30',
+  TIER_FREE_SAVED_THEMES: '3',
+  TIER_FREE_IMPORT_MAX_BYTES: String(10 * 1024 * 1024),
+  TIER_FREE_WEB_TOOLS_PER_DAY: '20',
+  TIER_FREE_FEATURE_CUSTOM_CSS: 'false'
+} as const
+
 async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<void> {
   const env: NodeJS.ProcessEnv = {}
   for (const [k, v] of Object.entries(primaryEnv)) {
@@ -250,6 +260,13 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // SaaS BYOK policy: provider allowlist, no private networks.
   env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')
   env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS = 'false'
+  // Hosted free-tier plan limits (infra/render-env.sh), pinned by
+  // tests/integration/endpoints/planEntitlements.test.ts. The MCP ones
+  // (TIER_FREE_FEATURE_MCP_WRITE / _MCP_TOOL_CALLS_PER_DAY) stay at the
+  // self-host default here: mcp/rateLimits.test.ts drives write tools on
+  // this server; read-only MCP is pinned by the unit tier
+  // (tests/unit/mcpPlanGate.test.ts).
+  Object.assign(env, HOSTED_FREE_TIER_LIMITS)
   // The MCP limits are ENFORCED on this server (test mode bypasses every
   // other limit, here and on the primary): tests/integration/mcp/rateLimits.test.ts
   // drives them over real HTTP. No other suite calls /mcp on this port.

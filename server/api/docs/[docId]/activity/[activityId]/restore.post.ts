@@ -3,6 +3,7 @@ import { requireDocEditAccess } from '../../../../../utils/documentAccess'
 import { getActivityById, appendActivity, pruneActivity } from '../../../../../repos/activity'
 import { restoreDocToYjsId, RestorePointCompactedError } from '../../../../../utils/restoreDoc'
 import { findUserNameById } from '../../../../../repos/users'
+import { assertWithinHistory, resolveDocPlan } from '../../../../../utils/entitlements'
 
 // POST /api/docs/:docId/activity/:activityId/restore
 //
@@ -49,6 +50,7 @@ export default defineEventHandler(async (event) => {
   if (!activity) {
     throw createError({ statusCode: 404, message: 'Activity row not found' })
   }
+  assertWithinHistory(await resolveDocPlan(docId), activity.createdAt)
   if (activity.yjsDocIdBefore === null) {
     throw createError({
       statusCode: 410,

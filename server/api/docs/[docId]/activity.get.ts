@@ -1,5 +1,6 @@
 import { getDocWithActorRole } from '../../../repos/documents'
-import { listRecentActivity } from '../../../repos/activity'
+import { hasActivityBefore, listRecentActivity } from '../../../repos/activity'
+import { HISTORY_LIMITED_HEADER, capsFor, historyCutoff, resolveDocPlanFor } from '../../../utils/entitlements'
 import { decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 
@@ -34,5 +35,13 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
-  return listRecentActivity(docId, 50)
+  // The document's plan may limit how far back history goes
+  // (`historyDays`). Older rows stay stored; the header tells the UI
+  // that some are hidden so it can show the plan notice.
+  const plan = await resolveDocPlanFor({ ownerId: row.ownerId, workspaceId: row.workspaceId })
+  const cutoff = historyCutoff(plan)
+  if (cutoff && await hasActivityBefore(docId, cutoff)) {
+    setResponseHeader(event, HISTORY_LIMITED_HEADER, String(capsFor(plan).historyDays))
+  }
+  return listRecentActivity(docId, 50, cutoff)
 })

@@ -4,6 +4,7 @@ import { getDoc } from '../../repos/documents'
 import { reconstructDocAtYjsId } from '../../utils/historyReplay'
 import { resolveDocProperties } from '../../utils/docProperties'
 import { listConfirmedUploadsForDoc } from '../../repos/uploads'
+import { planHasFeature, resolveDocPlanFor } from '../../utils/entitlements'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -78,10 +79,18 @@ export default defineEventHandler(async (event) => {
   // short enough to be useless if it leaks. See server/utils/fileAccessToken.ts.
   const fileAccessToken = mintFileAccessToken(docId, 5 * 60).token
 
+  // Plan gate (authoritative): custom CSS reaches the PDF only when the
+  // document's plan includes it. Y.js writes bypass the API's write-time
+  // check, so the render path decides. The stored CSS stays untouched.
+  const customCssAllowed = planHasFeature(await resolveDocPlanFor(doc), 'customCss')
+  const theme = customCssAllowed || !properties.theme?.customCss
+    ? properties.theme
+    : { ...properties.theme, customCss: undefined }
+
   return {
     snapshotId: payload.snapshotId,
     markdown,
-    theme: properties.theme,
+    theme,
     title: properties.title,
     description: properties.description,
     audience: properties.audience,

@@ -117,6 +117,12 @@ export function useDocToken(docId: string) {
   // before Y.js sync settles. Once synced, ymeta.theme takes over as the
   // live source — `useDocument` bridges the two.
   const initialTheme = ref<DocTheme | null>(null)
+  // Plan features of this document (server: `utils/entitlements.ts`).
+  // `customCss: false` = the doc's plan doesn't include custom CSS: the
+  // stored CSS stays in the theme but is left out of the preview and the
+  // browser print (the server-side PDF renderer drops it too). Defaults
+  // to true so nothing flickers before /token answers.
+  const customCssAllowed = ref<boolean>(true)
   // Document context — description (what the doc is about), audience
   // (writing register), language (output language). Same dual-source
   // pattern as theme: the /token round-trip seeds an initial value so
@@ -165,6 +171,7 @@ export function useDocToken(docId: string) {
         initialBody?: string | null
         templateId?: string
         canDelete?: boolean
+        planFeatures?: { customCss?: boolean } | null
       }>(`/api/docs/${docId}/token`)
 
       tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
@@ -178,6 +185,7 @@ export function useDocToken(docId: string) {
       workspaceAiEnabled.value = data.workspaceAiEnabled ?? false
       workspaceBillingOwner.value = data.workspaceBillingOwner ?? null
       initialTheme.value = data.theme ?? null
+      customCssAllowed.value = data.planFeatures?.customCss !== false
       if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
@@ -327,6 +335,7 @@ export function useDocToken(docId: string) {
     workspaceBillingOwner,
     pendingPasswordUnlock,
     initialTheme,
+    customCssAllowed,
     initialTitle,
     initialDescription,
     initialAudience,

@@ -1,6 +1,7 @@
 import { createError } from 'h3'
 import { checkRateLimit } from './rateLimit'
 import { limitRecovery } from './billingMode'
+import { capsFor, resolveUserPlan } from './entitlements'
 
 // Platform-provided web tools: `web_search` (Staan) and `fetch_url` (Jina
 // Reader). The operator pays the upstream search / reader call — it never
@@ -35,11 +36,20 @@ function readLimit(name: string, fallback: number): number {
   return Number.isInteger(n) && n >= 0 ? n : fallback
 }
 
-/** Per-user limits (calls shared across `web_search` + `fetch_url`). Read per call. */
-export function getWebToolLimits(): WebToolLimits {
+/**
+ * Per-user limits (calls shared across `web_search` + `fetch_url`). Read
+ * per call. The operator ceiling comes from env; `planDailyLimit` (the
+ * plan's `webToolsPerDay`, `null` = no plan limit) narrows the daily
+ * window further — the stricter of the two wins.
+ */
+export function getWebToolLimits(planDailyLimit: number | null = null): WebToolLimits {
+  const operatorDaily = readLimit('NUXT_WEB_TOOLS_DAILY_LIMIT', DEFAULT_DAILY_LIMIT)
+  const daily = planDailyLimit === null
+    ? operatorDaily
+    : operatorDaily === 0 ? planDailyLimit : Math.min(operatorDaily, planDailyLimit)
   return {
     hourly: readLimit('NUXT_WEB_TOOLS_HOURLY_LIMIT', DEFAULT_HOURLY_LIMIT),
-    daily: readLimit('NUXT_WEB_TOOLS_DAILY_LIMIT', DEFAULT_DAILY_LIMIT)
+    daily
   }
 }
 
@@ -81,7 +91,7 @@ function limitError(window: 'hourly' | 'daily', max: number) {
  */
 export async function consumeWebToolQuota(userId: number | null | undefined): Promise<void> {
   if (userId === null || userId === undefined) return
-  const { hourly, daily } = getWebToolLimits()
+  const { hourly, daily } = getWebToolLimits(capsFor(await resolveUserPlan(userId)).webToolsPerDay)
   const key = String(userId)
   if (hourly > 0 && !await checkRateLimit('web-tools-hour', key, hourly, HOUR_MS)) throw limitError('hourly', hourly)
   if (daily > 0 && !await checkRateLimit('web-tools-day', key, daily, DAY_MS)) throw limitError('daily', daily)

@@ -24,6 +24,12 @@ const props = defineProps<{
   theme: DocTheme
   docId: string
   canEdit: boolean
+  /**
+   * The document's plan includes custom CSS. False → the CSS section
+   * shows the plan notice instead of the editor; any stored CSS is kept
+   * but not applied. Optional so other callers default to "allowed".
+   */
+  customCssAllowed?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -2260,7 +2266,13 @@ function deleteSaved(saved: SavedTheme) {
 
           <!-- Custom CSS (documents only — preview, print, PDF) -->
           <template #customCss-body>
+            <CommonPlanLimitNotice
+              v-if="props.customCssAllowed === false"
+              :message-key="draft.customCss?.trim() ? 'plan.feature.customCssPaused' : 'plan.feature.customCss'"
+              data-testid="theme-custom-css-plan-notice"
+            />
             <DocumentThemeCustomCssSection
+              v-else
               :model-value="draft.customCss"
               :doc-id="docId"
               @update:model-value="setCustomCss"

@@ -40,6 +40,7 @@ const {
   workspaceRole: docWorkspaceRole,
   workspaceAiEnabled: docWorkspaceAiEnabled,
   workspaceBillingOwner: docWorkspaceSponsor,
+  customCssAllowed,
   undoManager,
   title,
   theme,
@@ -55,6 +56,14 @@ const {
   setAccessMode,
   getDocJwt
 } = useDocument(props.docId)
+
+// What the preview and the browser print render: the theme without its
+// custom CSS when the document's plan doesn't include it. The CSS stays
+// in the theme (and in Y.js), so upgrading applies it again; the server
+// renderer drops it the same way (render-bootstrap).
+const renderTheme = computed(() => customCssAllowed.value || !theme.value.customCss
+  ? theme.value
+  : { ...theme.value, customCss: undefined })
 
 // Track whether the user has ever focused the editor in this session.
 // Consumed by the AI prompt path so "cursor not in the doc at all" can
@@ -339,7 +348,7 @@ async function exportPdf() {
     // Read content fresh from ytext — shallowRef may be stale after HMR.
     await printDocumentAsPdf({
       source: ytext.toString(),
-      theme: theme.value,
+      theme: renderTheme.value,
       title: title.value,
       docId: props.docId,
       language: language.value,
@@ -1509,7 +1518,7 @@ const _statusIcon = computed(() => {
             :source="textContent"
             :title="title"
             :language="language"
-            :theme="theme"
+            :theme="renderTheme"
             :doc-id="docId"
             :get-doc-jwt="getDocJwt"
             :zoom-control="!isMobile"
@@ -1595,6 +1604,7 @@ const _statusIcon = computed(() => {
             :theme="theme"
             :doc-id="docId"
             :can-edit="canEditTheme"
+            :custom-css-allowed="customCssAllowed"
             @update:theme="setTheme"
             @reset="resetTheme"
             @close="closeSidebar"

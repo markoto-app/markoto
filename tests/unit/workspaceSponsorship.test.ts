@@ -40,9 +40,9 @@ describe('sponsorshipAvailability', () => {
 })
 
 describe('sponsorshipTabVisible', () => {
-  it('shows the tab with billing on or plans coming soon, hides it on self-host', () => {
+  it('shows the tab only with billing on (hidden while plans are coming soon and on self-host)', () => {
     expect(sponsorshipTabVisible(BILLING_ON)).toBe(true)
-    expect(sponsorshipTabVisible(COMING_SOON)).toBe(true)
+    expect(sponsorshipTabVisible(COMING_SOON)).toBe(false)
     expect(sponsorshipTabVisible(SELF_HOST)).toBe(false)
   })
 })

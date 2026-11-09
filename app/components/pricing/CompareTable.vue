@@ -50,6 +50,11 @@ function num(n: number): string {
 
 const accountPlans = ['free', ...PAID_PLAN_NAMES] as const
 
+/** A plan limit cell: `null` = no limit ("Unlimited"). */
+function limitCell(limit: number | null, format: (n: number) => string): Cell {
+  return text(limit === null ? t('pricing.compare.unlimited') : format(limit))
+}
+
 const rows = computed<Row[]>(() => {
   const setByYou = text(t('pricing.compare.setByYou'))
   const free = text(t('pricing.price.free'))
@@ -126,9 +131,24 @@ const rows = computed<Row[]>(() => {
       cells: [no, no, no, no, yes, yes]
     },
     {
+      id: 'members',
+      label: t('pricing.compare.members'),
+      cells: [setByYou, no, ...perAccount(plan => limitCell(props.tiers[plan].membersPerWorkspace, num))]
+    },
+    {
+      id: 'history',
+      label: t('pricing.compare.history'),
+      cells: [setByYou, no, ...perAccount(plan => limitCell(props.tiers[plan].historyDays, n => t('pricing.compare.days', { n: num(n) }, n)))]
+    },
+    {
+      id: 'customCss',
+      label: t('pricing.compare.customCss'),
+      cells: [yes, no, ...perAccount(plan => props.tiers[plan].customCss ? yes : no)]
+    },
+    {
       id: 'mcp',
       label: t('pricing.compare.mcp'),
-      cells: [yes, no, ...perAccount(() => yes)]
+      cells: [yes, no, ...perAccount(plan => props.tiers[plan].mcpWrite ? yes : text(t('pricing.compare.readOnly')))]
     }
   ]
 })

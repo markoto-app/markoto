@@ -52,9 +52,9 @@ import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/customCss'
 import { customCssAppOrigins, themeCustomCssIssues } from './themeCustomCss'
+import { capsFor, historyCutoff, planHasFeature, resolveDocPlan, resolveUserPlan } from './entitlements'
 import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
 import {
-  SAVED_THEMES_PER_USER_MAX,
   SAVED_THEME_DESCRIPTION_MAX,
   SAVED_THEME_NAME_MAX,
   checkSavedThemeDescription,
@@ -381,6 +381,14 @@ export async function handleUpdateTheme(
     return err('Error: merged theme failed validation. Try narrower changes.')
   }
 
+  // Plan gate: a document whose plan lacks custom CSS can't get NEW CSS
+  // from the model (CSS already stored, or carried by the base theme, is
+  // kept but not applied — the renderers drop it).
+  if (typeof input.customCss === 'string' && input.customCss.trim() !== ''
+    && !planHasFeature(await resolveDocPlan(session.docId), 'customCss')) {
+    return err('Error: custom CSS is not included in this document\'s plan — nothing was changed. Retry without customCss, or tell the user it needs a plan with custom CSS.')
+  }
+
   const css = resolveThemeCustomCss(merged, input.customCss !== undefined, session.docId, customCssAppOrigins())
   if (!css.ok) return err(css.error)
 
@@ -610,12 +618,14 @@ export async function handleSaveThemeAsPreset(
     return err('Error: saving a theme requires a logged-in user.')
   }
 
-  // Cap check before write — same 20-per-user rule the REST endpoint
-  // enforces. The cap is correctness-critical (storage growth), not a
-  // rate limit, so we re-check rather than relying on a Valkey hint.
+  // Cap check before write — the same plan limit (`savedThemes`) the
+  // REST endpoint enforces. The cap is correctness-critical (storage
+  // growth), not a rate limit, so we re-check rather than relying on a
+  // Valkey hint.
   const owned = await countThemesByUser(session.initiatorUserId)
-  if (owned >= SAVED_THEMES_PER_USER_MAX) {
-    return err(`Error: you've reached the saved-theme limit (${SAVED_THEMES_PER_USER_MAX}). Ask the user to delete an unused saved theme first.`)
+  const savedThemesLimit = capsFor(await resolveUserPlan(session.initiatorUserId)).savedThemes
+  if (owned >= savedThemesLimit) {
+    return err(`Error: you've reached the saved-theme limit of the user's plan (${savedThemesLimit}). Ask the user to delete an unused saved theme first.`)
   }
 
   const theme = await resolveCurrentTheme(session)
@@ -1788,7 +1798,11 @@ export async function handleSearchActivityLog(
     if (!Number.isFinite(d.getTime())) return undefined
     return d
   }
-  const since = parseTime(input.since)
+  // The document's plan may limit how far back history goes
+  // (`historyDays`); never search past that window.
+  const cutoff = historyCutoff(await resolveDocPlan(session.docId))
+  const requestedSince = parseTime(input.since)
+  const since = cutoff && (!requestedSince || requestedSince < cutoff) ? cutoff : requestedSince
   const before = parseTime(input.before)
 
   let rows: ActivityEntry[]

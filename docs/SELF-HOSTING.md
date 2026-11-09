@@ -274,6 +274,16 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | empty (none) | Optional monthly ceiling in USD on platform-paid AI for all users together (a LiteLLM team budget). When it is used up, users without their own key are told the month's free allowance is used up; own-key calls are unaffected. See [AI-MODELS.md](./AI-MODELS.md#free-ai-allowance-hosted). |
 | `NUXT_INACTIVE_DOC_TTL_DAYS` | `30` | Anonymous documents (no owner, not in a workspace) untouched this long are deleted. `0` disables. |
 | `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `_DAILY_LIMIT` | `30` / `100` | Web tool calls per user. |
+| `TIER_FREE_MEMBERS_PER_WORKSPACE` | empty (no limit) | People per workspace: members plus open invitations. `unlimited` or a number. A workspace already above it keeps everyone; only new invitations are refused. |
+| `TIER_FREE_HISTORY_DAYS` | empty (no limit) | How far back the Activity Log can be viewed and restored, in days. Older entries stay stored. |
+| `TIER_FREE_SAVED_THEMES` | `20` | Saved theme presets per user. |
+| `TIER_FREE_IMPORT_MAX_BYTES` | `52428800` (50 MiB) | Largest file a user can import (never above 50 MiB). |
+| `TIER_FREE_WEB_TOOLS_PER_DAY` | empty (no limit) | Extra per-user daily web-tool limit on top of `NUXT_WEB_TOOLS_DAILY_LIMIT`; the stricter one applies. |
+| `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | empty (no limit) | MCP tool calls per user per day. |
+| `TIER_FREE_FEATURE_CUSTOM_CSS` | `true` | Documents may use custom CSS. `false` keeps stored CSS but doesn't apply it. |
+| `TIER_FREE_FEATURE_MCP_WRITE` | `true` | MCP clients may edit, render, generate images and use web tools. `false` = read-only MCP. |
+
+Every feature is on and these limits are off by default on a self-hosted instance; the variables exist so you can narrow them if you want to.
 
 ### Storage
 
@@ -376,6 +386,7 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **Plan limits and feature switches.** New optional `TIER_FREE_*` variables (members per workspace, history window, saved themes, import size, web-tool and MCP calls per day, custom CSS, MCP write access; see [Limits](#limits)). The defaults keep every feature on and set no new limit, so nothing changes unless you set them. | Nobody, unless you set the new variables | Nothing. |
 | **`NUXT_PRODUCT_TOUR_ENABLED` is now `NUXT_MARKETING_SITE_ENABLED`.** The old name is still read for one release, then ignored. New: pages carry a canonical link built from `MARKOTO_PUBLIC_URL`; the bundled `/docs` pages point theirs at markoto.app (`NUXT_DOCS_CANONICAL_BASE`); `NUXT_SITE_INDEXABLE=false` keeps an instance out of search engines. | Instances that set the tour flag (it advertises the hosted service, so normally nobody); instances whose `/docs` should rank on their own | Rename the variable if you set it. Set `NUXT_DOCS_CANONICAL_BASE=` (empty) to make your docs self-canonical. |
 | **Audit-log entries and closed abuse reports are deleted automatically.** Security audit-log entries older than 2 years (`NUXT_AUDIT_LOG_RETENTION_DAYS`, default 730) and abuse reports closed more than 1 year ago (`NUXT_ABUSE_REPORT_RETENTION_DAYS`, default 365) are deleted by daily sweeps; the first run after the upgrade removes everything already past those periods. | Everyone | To keep them longer, set either variable; `0` keeps them forever. |
 | **No CDN: scripts, styles and fonts are served by the instance.** paged.js, Mermaid, the KaTeX and highlight.js styles and the theme fonts load from the instance's own `/vendor/` path instead of jsDelivr and Google Fonts, so previews and PDFs work without internet access. The renderer no longer accepts requests to those hosts. A theme that names a font outside the theme editor's list now renders in the fallback font (there is no file to serve for it); every font the editor offers is included. | Instances behind a reverse proxy that rewrites or blocks paths; themes with fonts typed in by hand | A custom proxy must pass `/vendor/` through unchanged, with the app's `Access-Control-Allow-Origin` and `Cross-Origin-Resource-Policy` headers. Pick a listed font for themes that used another one. |

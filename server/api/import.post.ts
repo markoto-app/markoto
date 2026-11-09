@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { importMarkdownFile } from '../utils/markdownImport'
+import { capsFor, planLimitError, resolveUserPlan } from '../utils/entitlements'
 
 // Subset of formats markitdown handles well as document imports. Markitdown
 // also supports CSV/JSON/XML/audio/images, but those don't make sense as a
@@ -42,6 +43,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // The caller's plan sets the largest file it may convert
+  // (`importMaxBytes`; anonymous = free), never above the platform cap.
+  const session = await getValidatedUserSession(event)
+  const plan = await resolveUserPlan(session?.user?.id ?? null)
+  const planMaxBytes = Math.min(capsFor(plan).importMaxBytes, MAX_SIZE)
+
   // Size-bounded read. In production Bun already refused anything over
   // 51 MiB (server/runtime/bunEntry.ts) and Traefik did on this route;
   // this keeps the same bound in every runtime.
@@ -58,6 +65,14 @@ export default defineEventHandler(async (event) => {
       message: 'File too large. Max 50MB.',
       data: { code: 'import/file-too-large' }
     })
+  }
+  if (file.size > planMaxBytes) {
+    throw planLimitError(
+      plan,
+      'importMaxBytes',
+      planMaxBytes,
+      `File too large for your plan (max ${Math.floor(planMaxBytes / (1024 * 1024))} MB).`
+    )
   }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || ''

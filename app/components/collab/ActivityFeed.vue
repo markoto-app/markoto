@@ -90,15 +90,22 @@ interface ActivityEntry {
   createdAt: string | number
 }
 
+// Days of history the document's plan includes, when older rows are hidden.
+const historyLimitedDays = ref<number | null>(null)
+
 const {
   state: entries,
   isLoading: loading,
   execute: loadActivity
 } = useAsyncState<ActivityEntry[]>(
   async () => {
-    const rows = await $fetch<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
+    const res = await $fetch.raw<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
     loadErrored.value = false
-    return rows
+    // Set when the document's plan limits how far back history goes and
+    // older rows exist (server/utils/entitlements.ts#HISTORY_LIMITED_HEADER).
+    const limitedDays = Number(res.headers.get('x-markoto-history-limited-days'))
+    historyLimitedDays.value = Number.isFinite(limitedDays) && limitedDays > 0 ? limitedDays : null
+    return res._data ?? []
   },
   [],
   {
@@ -675,6 +682,14 @@ function onRestored() {
         />
       </div>
     </div>
+
+    <!-- The document's plan hides activity older than its history window. -->
+    <CommonPlanLimitNotice
+      v-if="historyLimitedDays !== null"
+      message-key="plan.notice.historyHidden"
+      :params="{ days: historyLimitedDays }"
+      data-testid="activity-history-limited"
+    />
 
     <!-- Restore confirmation modal — single instance, content driven
          by `restoreCandidate` (set when a row's restore button is

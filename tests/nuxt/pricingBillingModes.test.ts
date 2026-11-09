@@ -39,7 +39,16 @@ beforeAll(() => {
 // the singular form ("1 workspace", never "1 workspaces").
 const TIERS: TiersMap = {
   ...DEFAULT_TIERS,
-  free: { ...DEFAULT_TIERS.free, workspacesOwned: 1, knowledgeFiles: 7 }
+  free: {
+    ...DEFAULT_TIERS.free,
+    workspacesOwned: 1,
+    knowledgeFiles: 7,
+    // Hosted free-tier plan limits (infra/render-env.sh).
+    membersPerWorkspace: 3,
+    historyDays: 30,
+    customCss: false,
+    mcpWrite: false
+  }
 }
 registerEndpoint('/api/billing/tiers', () => TIERS)
 
@@ -196,6 +205,12 @@ describe('pricing page — billing off, plans coming soon (hosted SaaS)', () => 
     expect(row.text()).toContain(String(DEFAULT_TIERS.ultra.knowledgeFiles.toLocaleString('en')))
     expect(wrapper.find('[data-testid="pricing-compare-row-price"]').text()).toContain('$10 per month (planned)')
     expect(wrapper.find('[data-testid="pricing-compare-row-documents"]').text()).toContain('Kept 30 days after the last edit')
+    // Plan limits and features come from the same tier map.
+    const members = wrapper.find('[data-testid="pricing-compare-row-members"]').text()
+    expect(members).toContain('3')
+    expect(members).toContain('Unlimited')
+    expect(wrapper.find('[data-testid="pricing-compare-row-history"]').text()).toContain('30 days')
+    expect(wrapper.find('[data-testid="pricing-compare-row-mcp"]').text()).toContain('Read-only')
   })
 
   it('hides the retention line when anonymous documents are never deleted', async () => {

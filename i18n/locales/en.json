@@ -695,6 +695,11 @@
       "imageStorage": "Image storage",
       "sponsoring": "Workspace AI sponsoring",
       "mcp": "MCP server for AI clients",
+      "members": "People per workspace",
+      "history": "Version history",
+      "days": "{n} day | {n} days",
+      "customCss": "Custom CSS for documents",
+      "readOnly": "Read-only",
       "setByYou": "Set by you",
       "included": "Included",
       "notIncluded": "Not included"
@@ -1628,6 +1633,24 @@
   "billing": {
     "comingSoonCta": "Paid plans coming soon",
     "comingSoonHint": "Paid plans with higher limits are coming soon."
+  },
+  "plan": {
+    "limitTitle": "Plan limit reached",
+    "feature": {
+      "customCss": "Custom CSS isn't included in this document's plan.",
+      "customCssPaused": "This document's custom CSS is paused: its plan doesn't include custom CSS. The CSS is kept and applies again once the plan includes it.",
+      "mcpWrite": "Your plan includes read-only access for AI clients over MCP. Editing, rendering and web tools need a plan that includes them."
+    },
+    "limit": {
+      "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
+      "savedThemes": "You've reached the saved-theme limit of your plan. Delete one to save a new theme.",
+      "importMaxBytes": "This file is larger than your plan allows for imports.",
+      "historyEntry": "This change is older than the history this document's plan includes.",
+      "mcpToolCallsPerDay": "You've used today's MCP tool calls included in your plan. Try again tomorrow."
+    },
+    "notice": {
+      "historyHidden": "Activity older than {days} days is hidden on this document's plan. It is kept and shows again once the plan includes more history."
+    }
   },
   "waitlist": {
     "title": "Join the waitlist",

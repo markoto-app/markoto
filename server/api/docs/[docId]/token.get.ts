@@ -4,6 +4,7 @@ import { decideDocDelete, decideTokenAccess, type DocState, type ActorState } fr
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
 import { renderTemplate } from '../../../utils/templateRenderer'
+import { planHasFeature, resolveDocPlanFor } from '../../../utils/entitlements'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -58,9 +59,17 @@ export default defineEventHandler(async (event) => {
       workspaceBillingOwner: null,
       theme: null,
       initialBody: null,
-      canDelete: false
+      canDelete: false,
+      planFeatures: null
     }
   }
+
+  // Plan features of THIS document (its workspace's plan, else its
+  // owner's — server/utils/entitlements.ts). The editor uses them to
+  // leave paused features out of the preview and the browser print, and
+  // to show the plan notice in the theme panel. The renderer and the
+  // write paths check the plan themselves; this is UI hydration only.
+  const docPlan = await resolveDocPlanFor({ ownerId: row.ownerId, workspaceId: row.workspaceId })
 
   // workspaceId + workspaceRole leak to the client so the editor UI can
   // decide which File-menu items to render without a second round-trip.
@@ -103,6 +112,7 @@ export default defineEventHandler(async (event) => {
       language: row.language
     }),
     templateId: row.templateId,
+    planFeatures: { customCss: planHasFeature(docPlan, 'customCss') },
     // Whether DELETE /api/docs/:id would succeed for this caller — the
     // File menu shows "Delete" only then. For an anonymous doc that's
     // only the creating browser (creator-key cookie).
