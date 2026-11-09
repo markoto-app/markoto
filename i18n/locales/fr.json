@@ -570,7 +570,16 @@
     "memberLimitReachedDescription": "Vous avez utilisé votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’espace de l’augmenter.",
     "memberLimitPlaceholder": "Votre limite IA ici est épuisée — demandez à un admin",
     "teamBudgetExhausted": "Le budget IA de cet espace est épuisé pour ce mois. Demandez à un admin d’ajouter des places ou du crédit.",
-    "memberLimitReached": "Vous avez atteint votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’augmenter."
+    "memberLimitReached": "Vous avez atteint votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’augmenter.",
+    "locked": {
+      "aiVoice": "La saisie vocale n’est pas incluse dans ce plan",
+      "aiImage": "La génération d’images n’est pas incluse dans ce plan",
+      "askAdmin": "Demandez à un admin de l’espace de travail quel est son plan, ou utilisez votre propre clé de fournisseur.",
+      "upgrade": "Passez à Pro pour l’utiliser, ou utilisez votre propre clé de fournisseur.",
+      "comingSoon": "Elle arrive avec les plans payants, bientôt disponibles. Votre propre clé de fournisseur fonctionne dès maintenant.",
+      "operator": "Cette instance ne la propose pas pour votre compte. Vous pouvez utiliser votre propre clé de fournisseur.",
+      "ownKey": "Ajouter votre propre clé"
+    }
   },
   "mobileTabBar": {
     "label": "Panneaux du document",
@@ -707,7 +716,11 @@
       "setByYou": "Fixé par vous",
       "included": "Inclus",
       "notIncluded": "Non inclus",
-      "perSeat": "{value} par place"
+      "perSeat": "{value} par place",
+      "aiImage": "Génération d’images par IA",
+      "aiVoice": "Saisie vocale et dictée en direct",
+      "aiStrongModel": "Choix d’un modèle d’IA plus puissant",
+      "ownKeyOnly": "Avec votre propre clé"
     },
     "faq": {
       "title": "Questions",
@@ -1698,7 +1711,10 @@
     "feature": {
       "customCss": "Le CSS personnalisé n'est pas inclus dans le forfait de ce document.",
       "customCssPaused": "Le CSS personnalisé de ce document est en pause : son forfait n'inclut pas le CSS personnalisé. Le CSS est conservé et s'applique de nouveau dès que le forfait l'inclut.",
-      "mcpWrite": "Votre forfait inclut un accès en lecture seule pour les clients d'IA via MCP. La modification, le rendu et les outils web nécessitent un forfait qui les inclut."
+      "mcpWrite": "Votre forfait inclut un accès en lecture seule pour les clients d'IA via MCP. La modification, le rendu et les outils web nécessitent un forfait qui les inclut.",
+      "aiImage": "La génération d’images avec l’IA de markoto n’est pas incluse dans ce plan.",
+      "aiVoice": "La saisie vocale avec l’IA de markoto n’est pas incluse dans ce plan.",
+      "aiStrongModel": "Le modèle d’IA puissant n’est pas inclus dans ce plan."
     },
     "limit": {
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
@@ -1775,7 +1791,8 @@
       "lastVerified": "Dernière vérification : {date}",
       "keyEnding": "se termine par {last4}",
       "noToolSupport": "Ce modèle n'a pas appelé l'outil de test ; l'assistant d'écriture risque de ne pas fonctionner. Choisissez un modèle compatible avec l'appel d'outils.",
-      "liveDictation": "La dictée en direct est disponible."
+      "liveDictation": "La dictée en direct est disponible.",
+      "locked": "Pas dans votre plan — votre propre clé fonctionne"
     },
     "form": {
       "preset": "Fournisseur",
@@ -1837,7 +1854,17 @@
       "openSettings": "Ouvrir les réglages du fournisseur d'IA"
     },
     "ownProviderBadge": "Votre propre fournisseur d'IA",
-    "freeAllowanceNote": "Sans clé personnelle, votre compte dispose d'une allocation IA gratuite mensuelle sur le modèle par défaut de cette instance, tant que la réserve mensuelle commune n'est pas épuisée. Dès que vous ajoutez votre propre clé, c'est elle qui est utilisée."
+    "freeAllowanceNote": "Sans clé personnelle, votre compte dispose d'une allocation IA gratuite mensuelle sur le modèle par défaut de cette instance, tant que la réserve mensuelle commune n'est pas épuisée. Dès que vous ajoutez votre propre clé, c'est elle qui est utilisée.",
+    "modelTier": {
+      "title": "Modèle d’IA",
+      "description": "Le modèle de cette instance que l’IA utilise pour vous. Votre propre clé de chat, si vous en ajoutez une, a toujours la priorité.",
+      "fast": "Rapide",
+      "fastHint": "Réponses et modifications rapides. Utilise moins de votre budget IA.",
+      "strong": "Puissant",
+      "strongHint": "Meilleur pour les textes longs et soignés et les modifications délicates. Utilise plus de votre budget IA.",
+      "locked": "Le modèle puissant fait partie des plans payants.",
+      "saveFailed": "Impossible d’enregistrer le modèle"
+    }
   },
   "tour": {
     "label": "Visite du produit",

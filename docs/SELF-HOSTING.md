@@ -282,6 +282,9 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_MCP_TOOL_CALLS_PER_DAY` | empty (no limit) | MCP tool calls per user per day. |
 | `TIER_FREE_FEATURE_CUSTOM_CSS` | `true` | Documents may use custom CSS. `false` keeps stored CSS but doesn't apply it. |
 | `TIER_FREE_FEATURE_MCP_WRITE` | `true` | MCP clients may edit, render, generate images and use web tools. `false` = read-only MCP. |
+| `TIER_FREE_FEATURE_AI_IMAGE` | `true` | Image generation on the instance default (`NUXT_AI_DEFAULT_IMAGE_*`). A user's own key always works. |
+| `TIER_FREE_FEATURE_AI_VOICE` | `true` | Voice prompts + live dictation on the instance default (`NUXT_AI_DEFAULT_TRANSCRIBE_*`). |
+| `TIER_FREE_FEATURE_AI_STRONG_MODEL` | `true` | Users may pick the strong chat model (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`) in Settings → AI provider. |
 
 Every feature is on and these limits are off by default on a self-hosted instance; the variables exist so you can narrow them if you want to.
 

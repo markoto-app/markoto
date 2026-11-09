@@ -6,6 +6,8 @@ import { ensureUserKey } from './litellmKeys'
 import { isBillingEnabled } from './billingMode'
 import { getPooledWorkspace } from './workspaceBilling'
 import { ensureMemberKey } from './litellm/workspaceTeams'
+import { resolveUserPlan } from './entitlements'
+import { getWorkspaceRole } from './workspaceAccess'
 
 /**
  * Phase 6 billing context resolution. Every AI call site calls
@@ -251,4 +253,15 @@ export async function resolveBillingContext(
     attribution: 'user',
     billingUserId: userId
   }
+}
+
+/**
+ * The plan that pays for AI here, without touching LiteLLM: a Team /
+ * Business workspace's plan for its members inside it, else the user's
+ * effective personal plan. Same rule as `resolveBillingContext`.
+ */
+export async function resolvePayingPlan(userId: number, workspaceId: string | null | undefined): Promise<PlanName> {
+  const pool = isBillingEnabled() ? await getPooledWorkspace(workspaceId) : null
+  if (pool && (await getWorkspaceRole(userId, pool.workspaceId)) !== null) return pool.plan
+  return resolveUserPlan(userId)
 }

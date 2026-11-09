@@ -409,7 +409,7 @@ async function buildStubContext(
   mcpSessionId: string | null
 ): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
   const billingContext = await resolveBillingContext(userId, workspaceId)
-  const aiProviders = await resolveAiProviders(userId)
+  const aiProviders = await resolveAiProviders(userId, billingContext.plan)
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
 
   const ctx: MetaToolContext = {

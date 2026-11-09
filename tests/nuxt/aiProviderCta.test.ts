@@ -19,7 +19,8 @@ mockNuxtImport('useUserSession', () => () => ({
   fetch: vi.fn(),
   clear: vi.fn()
 }))
-mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
+const { toastAdd } = vi.hoisted(() => ({ toastAdd: vi.fn() }))
+mockNuxtImport('useToast', () => () => ({ add: toastAdd }))
 
 registerEndpoint('/api/ai/credits', () => ({ pointsRemaining: 0, pointsTotal: 1000, plan: 'free', periodEnd: new Date().toISOString(), attribution: 'user' }))
 registerEndpoint('/api/user/billing', () => ({ plan: 'free' }))
@@ -93,5 +94,24 @@ describe('AIPromptBar — bring your own key', () => {
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps() } })
     expect(wrapper.find('[data-testid="ai-prompt-bar-input"]').exists()).toBe(true)
     expect(wrapper.find('[data-testid="ai-prompt-bar-mic"]').exists()).toBe(true)
+  })
+})
+
+describe('AIPromptBar — AI by plan (WP5)', () => {
+  it('voice the plan doesn\'t include → a locked mic that explains, not a hidden one', async () => {
+    toastAdd.mockClear()
+    setAvailability({
+      chat: { ...status(true, 'instance', true), supportsVision: true },
+      image: { ...status(false, 'none'), locked: 'plan' },
+      transcription: { ...status(false, 'none'), liveDictation: false, locked: 'plan' }
+    })
+    const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps() } })
+    expect(wrapper.find('[data-testid="ai-prompt-bar-mic"]').exists()).toBe(false)
+    const locked = wrapper.find('[data-testid="ai-prompt-bar-mic-locked"]')
+    expect(locked.exists()).toBe(true)
+    await locked.trigger('click')
+    expect(toastAdd).toHaveBeenCalledWith(expect.objectContaining({ title: 'Voice input isn\'t included in this plan' }))
+    const call = toastAdd.mock.calls.at(-1)![0] as { actions: Array<{ label: string }> }
+    expect(call.actions.map(a => a.label)).toContain('Add your own key')
   })
 })

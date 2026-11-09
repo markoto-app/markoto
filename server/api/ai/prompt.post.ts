@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
   const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
   // BYOK: the user's own provider (or the instance default). No chat
   // provider → 409 `ai/provider-missing` with a link to the settings page.
-  const aiProviders = await requireAiProviders(userId, 'chat')
+  const aiProviders = await requireAiProviders(userId, 'chat', billingContext.plan)
   // Hosted free tier: the shared monthly pool may be used up — answer
   // 402 `ai/free-allowance-exhausted` before opening a session (own-key
   // users are never refused here).

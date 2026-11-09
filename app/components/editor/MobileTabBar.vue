@@ -57,8 +57,14 @@ const dictationActive = computed(() =>
 )
 // Live dictation needs a Mistral transcription provider (own key or
 // instance default) — hide the tab otherwise (kept while recording).
-const { liveDictationAvailable } = useAiAvailability()
-const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value)
+const { liveDictationAvailable, transcriptionLocked } = useAiAvailability()
+const { explainLocked } = useAiLockedPrompt()
+const dictationLocked = computed(() => !liveDictationAvailable.value && transcriptionLocked.value && !dictationActive.value)
+const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationLocked.value)
+function onDictationClick() {
+  if (dictationLocked.value) explainLocked('aiVoice')
+  else emit('toggle-dictation')
+}
 
 interface TabDef {
   name: TabName
@@ -126,7 +132,8 @@ const visibleTabs = computed(() => tabs.value.filter(t => t.visible))
       :aria-label="dictationActive ? t('ai.dictateStop') : t('ai.dictateStart')"
       :aria-pressed="dictationActive"
       data-testid="mobile-tab-dictate"
-      @click="emit('toggle-dictation')"
+      :data-locked="dictationLocked ? 'true' : undefined"
+      @click="onDictationClick"
     >
       <UIcon
         :name="dictationActive ? 'i-lucide-square' : 'i-lucide-mic'"

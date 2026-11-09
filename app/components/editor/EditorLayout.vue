@@ -293,6 +293,16 @@ function flashEditorComment(id: string) {
 // either. The doc composable already resolves workspace membership
 // (`docWorkspaceRole` is non-null iff the viewer is a member).
 const hasKnowledgeAccess = computed(() => Boolean(docWorkspaceId.value) && docWorkspaceRole.value !== null)
+
+// AI availability + voice follow the document's workspace (a Team /
+// Business plan may unlock what the personal plan doesn't, WP5).
+const aiWorkspaceContext = useAiWorkspaceContext()
+watch(() => (docWorkspaceRole.value !== null ? docWorkspaceId.value : null), (ws) => {
+  aiWorkspaceContext.value = ws ?? null
+}, { immediate: true })
+onUnmounted(() => {
+  aiWorkspaceContext.value = null
+})
 // If the user has knowledge open and the doc moves to a workspace they
 // aren't in (or out of a workspace entirely), close the panel so the
 // layout doesn't leave an empty column.

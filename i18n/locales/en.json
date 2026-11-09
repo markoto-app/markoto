@@ -570,7 +570,16 @@
     "memberLimitReachedDescription": "You’ve used your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
     "memberLimitPlaceholder": "Your AI limit here is used up — ask an admin",
     "teamBudgetExhausted": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
-    "memberLimitReached": "You’ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it."
+    "memberLimitReached": "You’ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
+    "locked": {
+      "aiVoice": "Voice input isn't included in this plan",
+      "aiImage": "Image generation isn't included in this plan",
+      "askAdmin": "Ask a workspace admin about the workspace's plan, or use your own provider key.",
+      "upgrade": "Upgrade to Pro to use it, or use your own provider key.",
+      "comingSoon": "It comes with the paid plans, which are coming soon. You can use your own provider key now.",
+      "operator": "This instance doesn't offer it on your account. You can use your own provider key.",
+      "ownKey": "Add your own key"
+    }
   },
   "mobileTabBar": {
     "label": "Document panels",
@@ -707,7 +716,11 @@
       "setByYou": "Set by you",
       "included": "Included",
       "notIncluded": "Not included",
-      "perSeat": "{value} per seat"
+      "perSeat": "{value} per seat",
+      "aiImage": "AI image generation",
+      "aiVoice": "Voice input and live dictation",
+      "aiStrongModel": "Choice of a stronger AI model",
+      "ownKeyOnly": "With your own key"
     },
     "faq": {
       "title": "Questions",
@@ -1698,7 +1711,10 @@
     "feature": {
       "customCss": "Custom CSS isn't included in this document's plan.",
       "customCssPaused": "This document's custom CSS is paused: its plan doesn't include custom CSS. The CSS is kept and applies again once the plan includes it.",
-      "mcpWrite": "Your plan includes read-only access for AI clients over MCP. Editing, rendering and web tools need a plan that includes them."
+      "mcpWrite": "Your plan includes read-only access for AI clients over MCP. Editing, rendering and web tools need a plan that includes them.",
+      "aiImage": "Image generation on markoto's AI isn't included in this plan.",
+      "aiVoice": "Voice input on markoto's AI isn't included in this plan.",
+      "aiStrongModel": "The strong AI model isn't included in this plan."
     },
     "limit": {
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
@@ -1775,7 +1791,8 @@
       "lastVerified": "Last verified {date}",
       "keyEnding": "ends in {last4}",
       "noToolSupport": "This model didn't call the test tool, so the writing assistant may not work with it. Pick a model with tool calling.",
-      "liveDictation": "Live dictation is available."
+      "liveDictation": "Live dictation is available.",
+      "locked": "Not in your plan — your own key works"
     },
     "form": {
       "preset": "Provider",
@@ -1837,7 +1854,17 @@
       "openSettings": "Open AI provider settings"
     },
     "ownProviderBadge": "Your own AI provider",
-    "freeAllowanceNote": "Without your own key, your account gets a monthly free AI allowance on this instance's default model, while the shared monthly pool lasts. As soon as you add your own key, it is used instead."
+    "freeAllowanceNote": "Without your own key, your account gets a monthly free AI allowance on this instance's default model, while the shared monthly pool lasts. As soon as you add your own key, it is used instead.",
+    "modelTier": {
+      "title": "AI model",
+      "description": "Which of this instance's models the AI uses for you. Your own chat key, if you add one, always wins.",
+      "fast": "Fast",
+      "fastHint": "Quick answers and edits. Uses less of your AI budget.",
+      "strong": "Strong",
+      "strongHint": "Better at long, careful writing and tricky edits. Uses more of your AI budget.",
+      "locked": "The strong model is part of the paid plans.",
+      "saveFailed": "Could not save the model"
+    }
   },
   "tour": {
     "label": "Product tour",

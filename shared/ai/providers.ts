@@ -37,10 +37,26 @@ export interface AiCapabilityStatus {
    * BYOK calls (own key) never do.
    */
   platformBilled: boolean
+  /**
+   * `'plan'`: the platform offers this capability, but not on the plan
+   * that pays here (WP5) — the UI shows a locked control with an upgrade
+   * (or "ask your admin") prompt instead of hiding it. A user's own key
+   * always unlocks it.
+   */
+  locked?: 'plan'
+}
+
+export interface AiModelTierStatus {
+  /** The user's pick in Settings → AI provider. */
+  selected: 'fast' | 'strong'
+  /** The platform chat default has a strong variant (and it's in use). */
+  strongAvailable: boolean
+  /** It exists, but the plan doesn't include it. */
+  strongLocked: boolean
 }
 
 export interface AiAvailability {
-  chat: AiCapabilityStatus & { supportsVision: boolean }
+  chat: AiCapabilityStatus & { supportsVision: boolean, modelTier?: AiModelTierStatus }
   image: AiCapabilityStatus
   transcription: AiCapabilityStatus & { liveDictation: boolean }
   /**

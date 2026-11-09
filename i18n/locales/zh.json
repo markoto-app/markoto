@@ -570,7 +570,16 @@
     "memberLimitReachedDescription": "你本月在此工作区的 AI 上限已用完。请让工作区管理员提高上限。",
     "memberLimitPlaceholder": "你在此处的 AI 上限已用完——请联系管理员",
     "teamBudgetExhausted": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
-    "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。"
+    "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。",
+    "locked": {
+      "aiVoice": "此方案不包含语音输入",
+      "aiImage": "此方案不包含图像生成",
+      "askAdmin": "请向工作区管理员询问工作区的方案，或使用你自己的提供商密钥。",
+      "upgrade": "升级到 Pro 即可使用，或使用你自己的提供商密钥。",
+      "comingSoon": "它包含在即将推出的付费方案中。使用你自己的提供商密钥现在即可使用。",
+      "operator": "此实例未为你的账户提供该功能。你可以使用自己的提供商密钥。",
+      "ownKey": "添加自己的密钥"
+    }
   },
   "mobileTabBar": {
     "label": "文档面板",
@@ -707,7 +716,11 @@
       "setByYou": "由你设定",
       "included": "包含",
       "notIncluded": "不包含",
-      "perSeat": "每个席位 {value}"
+      "perSeat": "每个席位 {value}",
+      "aiImage": "AI 图像生成",
+      "aiVoice": "语音输入和实时听写",
+      "aiStrongModel": "选择更强大的 AI 模型",
+      "ownKeyOnly": "使用自己的密钥"
     },
     "faq": {
       "title": "常见问题",
@@ -1698,7 +1711,10 @@
     "feature": {
       "customCss": "此文档的套餐不包含自定义 CSS。",
       "customCssPaused": "此文档的套餐不包含自定义 CSS，因此自定义 CSS 已暂停。CSS 会被保留，套餐包含该功能后将重新生效。",
-      "mcpWrite": "你的套餐中，通过 MCP 连接的 AI 客户端只有只读权限。编辑、渲染和网络工具需要包含这些功能的套餐。"
+      "mcpWrite": "你的套餐中，通过 MCP 连接的 AI 客户端只有只读权限。编辑、渲染和网络工具需要包含这些功能的套餐。",
+      "aiImage": "此方案不包含使用 markoto AI 生成图像。",
+      "aiVoice": "此方案不包含使用 markoto AI 进行语音输入。",
+      "aiStrongModel": "此方案不包含强大的 AI 模型。"
     },
     "limit": {
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
@@ -1775,7 +1791,8 @@
       "lastVerified": "上次验证：{date}",
       "keyEnding": "尾号 {last4}",
       "noToolSupport": "该模型没有调用测试工具，写作助手可能无法正常工作。请选择支持工具调用的模型。",
-      "liveDictation": "可以使用实时听写。"
+      "liveDictation": "可以使用实时听写。",
+      "locked": "不在你的方案中——你自己的密钥可用"
     },
     "form": {
       "preset": "服务商",
@@ -1837,7 +1854,17 @@
       "openSettings": "打开 AI 服务商设置"
     },
     "ownProviderBadge": "你自己的 AI 服务商",
-    "freeAllowanceNote": "没有自己的密钥时，你的账户每月可在本实例的默认模型上获得免费 AI 额度，直至共享的月度额度用完。添加自己的密钥后即改用该密钥。"
+    "freeAllowanceNote": "没有自己的密钥时，你的账户每月可在本实例的默认模型上获得免费 AI 额度，直至共享的月度额度用完。添加自己的密钥后即改用该密钥。",
+    "modelTier": {
+      "title": "AI 模型",
+      "description": "AI 为你使用此实例的哪个模型。如果你添加了自己的聊天密钥，始终优先使用它。",
+      "fast": "快速",
+      "fastHint": "快速回答和编辑，消耗较少 AI 预算。",
+      "strong": "强大",
+      "strongHint": "更擅长长篇、细致的写作和复杂编辑，消耗较多 AI 预算。",
+      "locked": "强大模型属于付费方案。",
+      "saveFailed": "无法保存模型"
+    }
   },
   "tour": {
     "label": "产品导览",

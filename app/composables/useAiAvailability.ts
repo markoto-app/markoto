@@ -13,10 +13,21 @@ import type { AiAvailability } from '~~/shared/ai/providers'
  * null as "unknown" and keep their default (pre-BYOK) rendering so the
  * editor doesn't flash a call-to-action on every page load.
  */
+/**
+ * The workspace of the document being edited (set by the editor, null
+ * elsewhere). Inside a Team / Business workspace its plan decides which
+ * platform AI capabilities are unlocked (WP5), so availability and the
+ * voice prompt send it along.
+ */
+export function useAiWorkspaceContext() {
+  return useState<string | null>('ai-workspace-context', () => null)
+}
+
 export function useAiAvailability() {
   const { loggedIn } = useUserSession()
   const state = useState<AiAvailability | null>('ai-availability', () => null)
   const loading = useState<boolean>('ai-availability-loading', () => false)
+  const workspaceContext = useAiWorkspaceContext()
 
   async function refresh(): Promise<void> {
     if (!loggedIn.value) {
@@ -25,7 +36,8 @@ export function useAiAvailability() {
     }
     loading.value = true
     try {
-      state.value = await $fetch<AiAvailability>('/api/ai/availability')
+      const workspaceId = workspaceContext.value
+      state.value = await $fetch<AiAvailability>('/api/ai/availability', { query: workspaceId ? { workspaceId } : {} })
     } catch {
       // Keep the last known snapshot on a transient failure; the server
       // still refuses AI calls without a provider (409 ai/provider-missing).
@@ -46,11 +58,20 @@ export function useAiAvailability() {
     void refresh()
   })
 
+  if (import.meta.client) {
+    watch(workspaceContext, () => {
+      if (loggedIn.value) void refresh()
+    })
+  }
+
   /** Known AND unavailable — only then do we swap UI for a call-to-action. */
   const chatMissing = computed(() => state.value !== null && !state.value.chat.available)
   const transcriptionAvailable = computed(() => state.value === null || state.value.transcription.available)
   const liveDictationAvailable = computed(() => state.value === null || state.value.transcription.liveDictation)
   const chatPlatformBilled = computed(() => state.value === null || state.value.chat.platformBilled)
+  /** The platform has voice / images, but not on the plan that pays here (WP5). */
+  const transcriptionLocked = computed(() => state.value?.transcription.locked === 'plan')
+  const imageLocked = computed(() => state.value?.image.locked === 'plan')
   /** Operator has Staan / Jina keys; null snapshot → assume available. */
   const webSearchAvailable = computed(() => state.value === null || state.value.webTools.search)
   const pageFetchAvailable = computed(() => state.value === null || state.value.webTools.fetch)
@@ -73,6 +94,8 @@ export function useAiAvailability() {
     transcriptionAvailable,
     liveDictationAvailable,
     chatPlatformBilled,
+    transcriptionLocked,
+    imageLocked,
     webSearchAvailable,
     pageFetchAvailable,
     anyPlatformBilled

@@ -98,12 +98,25 @@ export interface TierCaps {
    * `server/mcp/lib/toolClasses.ts`).
    */
   mcpWrite: boolean
+  /**
+   * Feature switch: AI image generation on the PLATFORM's provider
+   * (the operator's `NUXT_AI_DEFAULT_IMAGE_*`). A user's own key always
+   * works. Off = the default isn't offered (a locked state in the UI).
+   */
+  aiImage: boolean
+  /** Feature switch: voice prompts + live dictation on the platform's provider. */
+  aiVoice: boolean
+  /**
+   * Feature switch: the user may pick the stronger platform chat model
+   * (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`) in Settings → AI provider.
+   */
+  aiStrongModel: boolean
 }
 
 /** Numeric cap fields that accept `unlimited` (stored as `null`). */
 export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay'
 /** On/off feature switches. */
-export type FeatureField = 'customCss' | 'mcpWrite'
+export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel'
 /** Plain positive-number cap fields. */
 export type NumericCapField = Exclude<keyof TierCaps, UnlimitedCapField | FeatureField>
 
@@ -114,7 +127,7 @@ export const UNLIMITED_CAP_FIELDS: readonly UnlimitedCapField[] = [
   'mcpToolCallsPerDay'
 ]
 
-export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite']
+export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel']
 
 /**
  * Whether `used` more units still fit under `limit` (`null` = no limit).
@@ -135,7 +148,10 @@ const PAID_PLAN_ENTITLEMENTS = {
   webToolsPerDay: null,
   mcpToolCallsPerDay: null,
   customCss: true,
-  mcpWrite: true
+  mcpWrite: true,
+  aiImage: true,
+  aiVoice: true,
+  aiStrongModel: true
 } as const
 
 // Committed values are the SELF-HOSTER DEFAULTS. Self-hosted instances
@@ -163,7 +179,10 @@ export const DEFAULT_TIERS = {
     webToolsPerDay: null,
     mcpToolCallsPerDay: null,
     customCss: true,
-    mcpWrite: true
+    mcpWrite: true,
+    aiImage: true,
+    aiVoice: true,
+    aiStrongModel: true
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
@@ -220,7 +239,10 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   webToolsPerDay: 'WEB_TOOLS_PER_DAY',
   mcpToolCallsPerDay: 'MCP_TOOL_CALLS_PER_DAY',
   customCss: 'FEATURE_CUSTOM_CSS',
-  mcpWrite: 'FEATURE_MCP_WRITE'
+  mcpWrite: 'FEATURE_MCP_WRITE',
+  aiImage: 'FEATURE_AI_IMAGE',
+  aiVoice: 'FEATURE_AI_VOICE',
+  aiStrongModel: 'FEATURE_AI_STRONG_MODEL'
 }
 
 const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])

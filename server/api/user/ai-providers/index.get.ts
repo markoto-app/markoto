@@ -1,7 +1,8 @@
 import { listAiProviders } from '../../../repos/aiProviders'
 import { toProviderView } from '../../../utils/aiProviders/store'
 import { readInstanceDefault, resolveByokUrlPolicy } from '../../../utils/aiProviders/config'
-import { availabilityFrom, resolveAiProviders } from '../../../utils/aiProviders/resolve'
+import { availabilityFrom, resolveAiAccess } from '../../../utils/aiProviders/resolve'
+import { resolvePayingPlan } from '../../../utils/billing'
 import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
 
 // GET /api/user/ai-providers — everything the "AI provider" settings
@@ -13,7 +14,10 @@ import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
-  const [rows, providers] = await Promise.all([listAiProviders(userId), resolveAiProviders(userId)])
+  const [rows, access] = await Promise.all([
+    listAiProviders(userId),
+    resolvePayingPlan(userId, null).then(plan => resolveAiAccess(userId, plan))
+  ])
   const policy = resolveByokUrlPolicy()
   return {
     providers: rows.map(toProviderView),
@@ -22,7 +26,7 @@ export default defineEventHandler(async (event) => {
       image: readInstanceDefault('image') !== null,
       transcription: readInstanceDefault('transcription') !== null
     },
-    availability: availabilityFrom(providers),
+    availability: availabilityFrom(access.providers, access),
     policy: {
       allowedBaseUrls: policy.allowedBaseUrls,
       allowPrivate: policy.allowPrivate

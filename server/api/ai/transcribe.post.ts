@@ -57,6 +57,7 @@ export default defineEventHandler(async (event) => {
     audio?: string
     mimeType?: string
     languageCode?: string
+    workspaceId?: string
   }>(event)
 
   const mimeType = body.mimeType
@@ -85,10 +86,14 @@ export default defineEventHandler(async (event) => {
   // BYOK: the user's transcription provider, else the instance default.
   // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
   // case; this is the server-side backstop).
-  const providers = await requireAiProviders(userId, 'transcription')
+  // The plan that pays: the open document's Team / Business workspace when
+  // the caller is a member of it (`workspaceId` is advisory —
+  // resolveBillingContext checks membership), else the caller's own.
+  const workspaceId = typeof body.workspaceId === 'string' && body.workspaceId.length <= 64 ? body.workspaceId : null
+  const billing = await resolveBillingContext(userId, workspaceId)
+  const providers = await requireAiProviders(userId, 'transcription', billing.plan)
   const provider = providers.transcription
   if (!provider) throw providerMissingError('transcription')
-  const billing = await resolveBillingContext(userId, null)
   // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape
   // ('en') both the OpenAI transcription API and Voxtral expect.
   const isoLanguage = languageCode.split('-')[0]?.toLowerCase() || 'en'

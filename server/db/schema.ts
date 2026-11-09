@@ -45,6 +45,10 @@ export const users = pgTable('users', {
   // currency for life, so checkout refuses a different one (409
   // `billing/currency-locked`). NULL until the first subscription.
   billingCurrency: text('billing_currency', { enum: ['eur', 'chf'] }),
+  // Platform chat model the user picked (WP5): 'fast' = the instance chat
+  // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL — only applied
+  // while the plan includes `aiStrongModel`. Own keys are unaffected.
+  aiModelTier: text('ai_model_tier', { enum: ['fast', 'strong'] }).notNull().default('fast'),
   // Phase 6 LiteLLM virtual-key handle. ONE source of truth for the
   // user's AI budget — every billable AI call routes through
   // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the

@@ -570,7 +570,16 @@
     "memberLimitReachedDescription": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat aufgebraucht. Bitten Sie einen Admin des Arbeitsbereichs, es zu erhöhen.",
     "memberLimitPlaceholder": "Ihr KI-Limit hier ist aufgebraucht – fragen Sie einen Admin",
     "teamBudgetExhausted": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
-    "memberLimitReached": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitten Sie einen Admin, es zu erhöhen."
+    "memberLimitReached": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitten Sie einen Admin, es zu erhöhen.",
+    "locked": {
+      "aiVoice": "Spracheingabe ist in diesem Plan nicht enthalten",
+      "aiImage": "Bildgenerierung ist in diesem Plan nicht enthalten",
+      "askAdmin": "Fragen Sie einen Admin des Arbeitsbereichs nach dessen Plan, oder verwenden Sie Ihren eigenen Anbieter-Schlüssel.",
+      "upgrade": "Upgraden Sie auf Pro, oder verwenden Sie Ihren eigenen Anbieter-Schlüssel.",
+      "comingSoon": "Das kommt mit den bezahlten Plänen, die bald verfügbar sind. Mit Ihrem eigenen Anbieter-Schlüssel geht es schon jetzt.",
+      "operator": "Diese Instanz bietet das für Ihr Konto nicht an. Sie können Ihren eigenen Anbieter-Schlüssel verwenden.",
+      "ownKey": "Eigenen Schlüssel hinzufügen"
+    }
   },
   "mobileTabBar": {
     "label": "Dokument-Panels",
@@ -707,7 +716,11 @@
       "setByYou": "Legen Sie fest",
       "included": "Enthalten",
       "notIncluded": "Nicht enthalten",
-      "perSeat": "{value} pro Platz"
+      "perSeat": "{value} pro Platz",
+      "aiImage": "KI-Bildgenerierung",
+      "aiVoice": "Spracheingabe und Live-Diktat",
+      "aiStrongModel": "Wahl eines stärkeren KI-Modells",
+      "ownKeyOnly": "Mit eigenem Schlüssel"
     },
     "faq": {
       "title": "Fragen",
@@ -1698,7 +1711,10 @@
     "feature": {
       "customCss": "Eigenes CSS ist im Plan dieses Dokuments nicht enthalten.",
       "customCssPaused": "Das eigene CSS dieses Dokuments ist pausiert, weil sein Plan kein eigenes CSS enthält. Das CSS bleibt gespeichert und wirkt wieder, sobald der Plan es enthält.",
-      "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält."
+      "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält.",
+      "aiImage": "Bildgenerierung über die KI von markoto ist in diesem Plan nicht enthalten.",
+      "aiVoice": "Spracheingabe über die KI von markoto ist in diesem Plan nicht enthalten.",
+      "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
@@ -1775,7 +1791,8 @@
       "lastVerified": "Zuletzt geprüft am {date}",
       "keyEnding": "endet auf {last4}",
       "noToolSupport": "Dieses Modell hat das Test-Tool nicht aufgerufen; der Schreibassistent funktioniert damit vielleicht nicht. Wähle ein Modell mit Tool-Aufrufen.",
-      "liveDictation": "Live-Diktat ist verfügbar."
+      "liveDictation": "Live-Diktat ist verfügbar.",
+      "locked": "Nicht in Ihrem Plan – Ihr eigener Schlüssel funktioniert"
     },
     "form": {
       "preset": "Anbieter",
@@ -1837,7 +1854,17 @@
       "openSettings": "KI-Anbieter-Einstellungen öffnen"
     },
     "ownProviderBadge": "Eigener KI-Anbieter",
-    "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet."
+    "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet.",
+    "modelTier": {
+      "title": "KI-Modell",
+      "description": "Welches Modell dieser Instanz die KI für Sie verwendet. Ein eigener Chat-Schlüssel hat immer Vorrang.",
+      "fast": "Schnell",
+      "fastHint": "Schnelle Antworten und Änderungen. Braucht weniger von Ihrem KI-Budget.",
+      "strong": "Stark",
+      "strongHint": "Besser bei langen, sorgfältigen Texten und kniffligen Änderungen. Braucht mehr von Ihrem KI-Budget.",
+      "locked": "Das starke Modell gehört zu den bezahlten Plänen.",
+      "saveFailed": "Modell konnte nicht gespeichert werden"
+    }
   },
   "tour": {
     "label": "Produkttour",

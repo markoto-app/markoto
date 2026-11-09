@@ -215,6 +215,33 @@ LiteLLM v1.106.4 does **not** run its own `user_url_validation` DNS check on a c
 
 Residual risk: LiteLLM resolves the hostname again when it connects. A DNS answer that changes between markoto's check and LiteLLM's connection (rebinding with a near-zero TTL) is not caught. On the hosted SaaS the allowlist limits hostnames to the major providers, which closes this; self-hosters who allow free-form URLs accept it.
 
+## AI by plan (WP5)
+
+The instance defaults (`NUXT_AI_DEFAULT_*`) are platform-paid, so a plan
+decides which of them apply (`shared/config/tiers.ts`):
+
+| Switch | Unlocks | Env (per plan) |
+|---|---|---|
+| `aiImage` | `NUXT_AI_DEFAULT_IMAGE_*` (image generation) | `TIER_<PLAN>_FEATURE_AI_IMAGE` |
+| `aiVoice` | `NUXT_AI_DEFAULT_TRANSCRIBE_*` (voice prompt + live dictation) | `TIER_<PLAN>_FEATURE_AI_VOICE` |
+| `aiStrongModel` | the user's "Strong" pick in Settings → AI provider → `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL` instead of the chat default | `TIER_<PLAN>_FEATURE_AI_STRONG_MODEL` |
+
+- Chat on the platform default is in every plan. A user's own key always
+  works, whatever the plan (BYOK never consumes platform budget).
+- The plan that counts is the one that pays: inside a Team / Business
+  workspace its plan (for members), else the user's own
+  (`resolvePayingPlan` / `resolveBillingContext(...).plan`). Voice prompts
+  send the open document's workspace; dictation reads it from the doc.
+- A capability the platform offers but the plan lacks is reported as
+  `locked: 'plan'` by `GET /api/ai/availability`; the UI shows the control
+  locked (mic, dictation) with "upgrade" / "coming soon" / "ask your admin"
+  and "add your own key". The API answers 409 `plan/feature-unavailable`.
+- Committed defaults = self-host: every switch on. Hosted: image
+  (`flux-2-pro`), voice (`voxtral-mini-transcribe`) and the strong model
+  (`mistral-small-2603`) are configured, and the free tier has all three
+  off (`infra/render-env.sh`), so with billing off nobody gets them on
+  markoto.app without their own key.
+
 ## Recommended models for bring-your-own-key
 
 markoto's agent exposes about 29 tools (document editing, theme, web, image, comments, knowledge search), so the model needs reliable multi-tool function calling at low temperature, ideally with vision. Context needs are modest (documents plus tool results, typically under 100K tokens).

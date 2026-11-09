@@ -93,6 +93,9 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('TIER_FREE_MCP_TOOL_CALLS_PER_DAY')).toBe('100')
     expect(vars.get('TIER_FREE_FEATURE_CUSTOM_CSS')).toBe('false')
     expect(vars.get('TIER_FREE_FEATURE_MCP_WRITE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_IMAGE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_VOICE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_STRONG_MODEL')).toBe('false')
   })
 
   it('every hosted free-tier limit parses into the resolved tier map', () => {
@@ -115,10 +118,19 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
   })
 
-  it('sets no image or transcription default (those stay BYOK)', () => {
-    const defaults = [...vars].filter(([k]) => /^NUXT_AI_DEFAULT_(IMAGE|TRANSCRIBE)_/.test(k))
-    expect(defaults.length).toBe(6)
-    for (const [k, v] of defaults) expect(v, k).toBe('')
+  it('image / voice / strong-model defaults are platform aliases, locked for the free tier (WP5)', () => {
+    expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-2-pro')
+    expect(vars.get('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL')).toBe('voxtral-mini-transcribe')
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL')).toBe('mistral-small-2603')
+    // Aliases only: never an operator endpoint + key for these.
+    for (const k of ['IMAGE', 'TRANSCRIBE']) {
+      expect(vars.get(`NUXT_AI_DEFAULT_${k}_BASE_URL`), k).toBe('')
+      expect(vars.get(`NUXT_AI_DEFAULT_${k}_API_KEY`), k).toBe('')
+    }
+    // With billing off everyone is on the free tier: nobody gets them
+    // on markoto.app without their own key.
+    expect(vars.get('TIER_FREE_FEATURE_AI_IMAGE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_VOICE')).toBe('false')
   })
 
   it('each free-allowance default can be overridden by an Environment variable', () => {
@@ -150,7 +162,8 @@ describe('Ansible env.j2 hosted defaults', () => {
     for (const name of [
       'TIER_FREE_MEMBERS_PER_WORKSPACE', 'TIER_FREE_HISTORY_DAYS', 'TIER_FREE_SAVED_THEMES',
       'TIER_FREE_IMPORT_MAX_BYTES', 'TIER_FREE_WEB_TOOLS_PER_DAY', 'TIER_FREE_MCP_TOOL_CALLS_PER_DAY',
-      'TIER_FREE_FEATURE_CUSTOM_CSS', 'TIER_FREE_FEATURE_MCP_WRITE'
+      'TIER_FREE_FEATURE_CUSTOM_CSS', 'TIER_FREE_FEATURE_MCP_WRITE',
+      'TIER_FREE_FEATURE_AI_IMAGE', 'TIER_FREE_FEATURE_AI_VOICE', 'TIER_FREE_FEATURE_AI_STRONG_MODEL'
     ]) {
       expect(template, name).toContain(`${name}={{ ${name.toLowerCase()} | default('${vars.get(name)}') }}`)
     }

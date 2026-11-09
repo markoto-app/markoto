@@ -67,7 +67,8 @@ export default defineEventHandler(async (event) => {
   // that never reach the proxy don't care); a test that provisioned a
   // real key for its user (BYOK image generation through litellm-test)
   // gets that one, exactly like a real session would.
-  const virtualKey = (await resolveBillingContext(session.user.id, doc.workspaceId)).virtualKey
+  const billing = await resolveBillingContext(session.user.id, doc.workspaceId)
+  const virtualKey = billing.virtualKey
 
   const ydoc = new Y.Doc()
   const aiSession: DocToolContext = {
@@ -89,7 +90,7 @@ export default defineEventHandler(async (event) => {
     virtualKey,
     // Real resolution so BYOK tests can drive e.g. generate_image with
     // the caller's configured image provider.
-    aiProviders: await resolveAiProviders(session.user.id),
+    aiProviders: await resolveAiProviders(session.user.id, billing.plan),
     updateStatus: (_phase: AiStatusPhase, _message?: string) => { /* swallow */ }
   }
 

@@ -570,7 +570,16 @@
     "memberLimitReachedDescription": "Has usado tu límite de IA en este espacio este mes. Pide a un admin del espacio que lo aumente.",
     "memberLimitPlaceholder": "Tu límite de IA aquí está agotado; pide a un admin",
     "teamBudgetExhausted": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
-    "memberLimitReached": "Has alcanzado tu límite de IA en este espacio este mes. Pide a un admin que lo aumente."
+    "memberLimitReached": "Has alcanzado tu límite de IA en este espacio este mes. Pide a un admin que lo aumente.",
+    "locked": {
+      "aiVoice": "La entrada por voz no está incluida en este plan",
+      "aiImage": "La generación de imágenes no está incluida en este plan",
+      "askAdmin": "Pregunta a un admin del espacio de trabajo por su plan, o usa tu propia clave de proveedor.",
+      "upgrade": "Pasa a Pro para usarla, o usa tu propia clave de proveedor.",
+      "comingSoon": "Llega con los planes de pago, que estarán disponibles pronto. Con tu propia clave de proveedor funciona ya.",
+      "operator": "Esta instancia no la ofrece para tu cuenta. Puedes usar tu propia clave de proveedor.",
+      "ownKey": "Añadir tu propia clave"
+    }
   },
   "mobileTabBar": {
     "label": "Paneles del documento",
@@ -707,7 +716,11 @@
       "setByYou": "Lo decides tú",
       "included": "Incluido",
       "notIncluded": "No incluido",
-      "perSeat": "{value} por puesto"
+      "perSeat": "{value} por puesto",
+      "aiImage": "Generación de imágenes con IA",
+      "aiVoice": "Entrada por voz y dictado en directo",
+      "aiStrongModel": "Elegir un modelo de IA más potente",
+      "ownKeyOnly": "Con tu propia clave"
     },
     "faq": {
       "title": "Preguntas",
@@ -1698,7 +1711,10 @@
     "feature": {
       "customCss": "El CSS personalizado no está incluido en el plan de este documento.",
       "customCssPaused": "El CSS personalizado de este documento está en pausa: su plan no incluye CSS personalizado. El CSS se conserva y vuelve a aplicarse cuando el plan lo incluya.",
-      "mcpWrite": "Tu plan incluye acceso de solo lectura para clientes de IA mediante MCP. Editar, renderizar y las herramientas web requieren un plan que las incluya."
+      "mcpWrite": "Tu plan incluye acceso de solo lectura para clientes de IA mediante MCP. Editar, renderizar y las herramientas web requieren un plan que las incluya.",
+      "aiImage": "La generación de imágenes con la IA de markoto no está incluida en este plan.",
+      "aiVoice": "La entrada por voz con la IA de markoto no está incluida en este plan.",
+      "aiStrongModel": "El modelo de IA potente no está incluido en este plan."
     },
     "limit": {
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
@@ -1775,7 +1791,8 @@
       "lastVerified": "Última verificación: {date}",
       "keyEnding": "termina en {last4}",
       "noToolSupport": "Este modelo no llamó a la herramienta de prueba, así que el asistente de escritura podría no funcionar. Elige un modelo con llamadas a herramientas.",
-      "liveDictation": "El dictado en directo está disponible."
+      "liveDictation": "El dictado en directo está disponible.",
+      "locked": "No está en tu plan; tu propia clave funciona"
     },
     "form": {
       "preset": "Proveedor",
@@ -1837,7 +1854,17 @@
       "openSettings": "Abrir ajustes del proveedor de IA"
     },
     "ownProviderBadge": "Tu propio proveedor de IA",
-    "freeAllowanceNote": "Sin clave propia, tu cuenta recibe una asignación gratuita mensual de IA en el modelo predeterminado de esta instancia, mientras dure la reserva mensual compartida. En cuanto añades tu propia clave, se usa esa."
+    "freeAllowanceNote": "Sin clave propia, tu cuenta recibe una asignación gratuita mensual de IA en el modelo predeterminado de esta instancia, mientras dure la reserva mensual compartida. En cuanto añades tu propia clave, se usa esa.",
+    "modelTier": {
+      "title": "Modelo de IA",
+      "description": "Qué modelo de esta instancia usa la IA para ti. Tu propia clave de chat, si añades una, siempre tiene prioridad.",
+      "fast": "Rápido",
+      "fastHint": "Respuestas y cambios rápidos. Usa menos de tu presupuesto de IA.",
+      "strong": "Potente",
+      "strongHint": "Mejor para textos largos y cuidados y cambios difíciles. Usa más de tu presupuesto de IA.",
+      "locked": "El modelo potente forma parte de los planes de pago.",
+      "saveFailed": "No se pudo guardar el modelo"
+    }
   },
   "tour": {
     "label": "Recorrido del producto",

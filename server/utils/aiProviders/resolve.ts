@@ -21,6 +21,11 @@ import { decryptToken } from '../litellm/tokenCrypto'
 import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
 import { getWebToolAvailability } from '../webTools'
+import { planHasFeature } from '../entitlements'
+import { eq } from 'drizzle-orm'
+import { users } from '../../db/schema'
+import { useDatabase } from '../database'
+import type { FeatureField, PlanName } from '~~/shared/config/tiers'
 import {
   MISTRAL_EU_API_HOST,
   MISTRAL_LIVE_DICTATION_HOSTS,
@@ -87,26 +92,85 @@ function fromInstanceDefault(capability: AiCapability): ResolvedAiProvider | nul
   }
 }
 
-export async function resolveAiProviders(userId: number): Promise<ResolvedAiProviders> {
-  const rows = await listAiProviders(userId)
-  const pick = (capability: AiCapability): ResolvedAiProvider | null => {
-    const row = rows.find(r => r.capability === capability)
-    return (row ? fromUserRow(row) : null) ?? fromInstanceDefault(capability)
-  }
-  return { chat: pick('chat'), image: pick('image'), transcription: pick('transcription') }
+/**
+ * Plan feature that unlocks a capability on the PLATFORM's provider
+ * (WP5). Chat on the instance default is in every plan; a user's own key
+ * is never gated.
+ */
+export const CAPABILITY_PLAN_FEATURE: Partial<Record<AiCapability, FeatureField>> = {
+  image: 'aiImage',
+  transcription: 'aiVoice'
 }
 
-export async function resolveAiProvider(userId: number, capability: AiCapability): Promise<ResolvedAiProvider | null> {
-  return (await resolveAiProviders(userId))[capability]
+/** The stronger platform chat model (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`), or null. */
+export function strongChatModel(env: Record<string, string | undefined> = process.env): string | null {
+  const v = (env.NUXT_AI_DEFAULT_CHAT_STRONG_MODEL ?? '').trim()
+  return v === '' ? null : v
+}
+
+export interface AiAccess {
+  providers: ResolvedAiProviders
+  /** Capabilities whose platform default exists but the plan doesn't include. */
+  locked: AiCapability[]
+  /** Chat model tier in use / available on the platform default. */
+  modelTier: { selected: 'fast' | 'strong', strongAvailable: boolean, strongLocked: boolean }
 }
 
 /**
- * Live dictation (Voxtral Realtime) is Mistral-only and opens a direct
- * WebSocket to Mistral (LiteLLM can't proxy it). It's available when the
- * transcription provider is Mistral with a key we hold, or when the
- * instance default is a platform alias and the operator configured
- * `MISTRAL_API_KEY` (today's hosted setup).
+ * Resolve the providers for a user under a plan: own config → instance
+ * default (only for capabilities the plan includes) → null. `plan` is
+ * the plan that pays for the call (`resolveBillingContext(...).plan` —
+ * a Team / Business workspace's plan inside it). With the user's "Strong"
+ * pick and a plan that includes `aiStrongModel`, the platform chat
+ * default becomes `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`.
  */
+export async function resolveAiAccess(userId: number, plan: PlanName): Promise<AiAccess> {
+  const [rows, userRow] = await Promise.all([
+    listAiProviders(userId),
+    useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, userId)).limit(1).then(r => r[0])
+  ])
+  const locked: AiCapability[] = []
+  const pick = (capability: AiCapability): ResolvedAiProvider | null => {
+    const row = rows.find(r => r.capability === capability)
+    const own = row ? fromUserRow(row) : null
+    if (own) return own
+    const def = fromInstanceDefault(capability)
+    if (!def) return null
+    const feature = CAPABILITY_PLAN_FEATURE[capability]
+    if (feature && !planHasFeature(plan, feature)) {
+      locked.push(capability)
+      return null
+    }
+    return def
+  }
+  const providers: ResolvedAiProviders = { chat: pick('chat'), image: pick('image'), transcription: pick('transcription') }
+  const strong = strongChatModel()
+  const strongAllowed = planHasFeature(plan, 'aiStrongModel')
+  const selected = userRow?.tier === 'strong' ? 'strong' : 'fast'
+  const chat = providers.chat
+  const chatIsPlatformAlias = chat !== null && chat.source === 'instance' && chat.credentials === null
+  if (chatIsPlatformAlias && strong && strongAllowed && selected === 'strong') {
+    providers.chat = { ...chat, model: strong }
+  }
+  return {
+    providers,
+    locked,
+    modelTier: {
+      selected,
+      strongAvailable: chatIsPlatformAlias && strong !== null,
+      strongLocked: chatIsPlatformAlias && strong !== null && !strongAllowed
+    }
+  }
+}
+
+export async function resolveAiProviders(userId: number, plan: PlanName): Promise<ResolvedAiProviders> {
+  return (await resolveAiAccess(userId, plan)).providers
+}
+
+export async function resolveAiProvider(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProvider | null> {
+  return (await resolveAiProviders(userId, plan))[capability]
+}
+
 export interface LiveDictationTarget {
   apiKey: string
   model: string
@@ -133,17 +197,23 @@ export function liveDictationTarget(transcription: ResolvedAiProvider | null): L
   return { apiKey: platformKey, model, serverURL: `https://${MISTRAL_EU_API_HOST}`, platformBilled: true }
 }
 
-export function availabilityFrom(providers: ResolvedAiProviders): AiAvailability {
-  const status = (p: ResolvedAiProvider | null): AiCapabilityStatus => ({
+export function availabilityFrom(providers: ResolvedAiProviders, access?: Pick<AiAccess, 'locked' | 'modelTier'>): AiAvailability {
+  const locked = access?.locked ?? []
+  const status = (capability: AiCapability, p: ResolvedAiProvider | null): AiCapabilityStatus => ({
     available: p !== null,
     source: p ? p.source : 'none',
-    platformBilled: isPlatformBilled(p)
+    platformBilled: isPlatformBilled(p),
+    ...(locked.includes(capability) ? { locked: 'plan' as const } : {})
   })
   return {
-    chat: { ...status(providers.chat), supportsVision: providers.chat?.supportsVision ?? false },
-    image: status(providers.image),
+    chat: {
+      ...status('chat', providers.chat),
+      supportsVision: providers.chat?.supportsVision ?? false,
+      modelTier: access?.modelTier ?? { selected: 'fast', strongAvailable: false, strongLocked: false }
+    },
+    image: status('image', providers.image),
     transcription: {
-      ...status(providers.transcription),
+      ...status('transcription', providers.transcription),
       liveDictation: liveDictationTarget(providers.transcription) !== null
     },
     webTools: getWebToolAvailability()

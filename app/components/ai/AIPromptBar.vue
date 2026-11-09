@@ -53,7 +53,10 @@ const { isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShare
 // whether chat is paid by the platform. AI Points only gate the bar when
 // chat actually spends them — a user on their own key is never blocked
 // by an empty platform budget.
-const { chatMissing, transcriptionAvailable, chatPlatformBilled } = useAiAvailability()
+const { chatMissing, transcriptionAvailable, transcriptionLocked, chatPlatformBilled } = useAiAvailability()
+// Voice the platform offers but the paying plan doesn't include (WP5):
+// the mic stays, locked, and explains the way forward.
+const { explainLocked } = useAiLockedPrompt()
 // Hosted free tier: the shared monthly pool can run dry before the
 // user's own points do. Only platform-paid chat is affected — an own key
 // keeps working.
@@ -600,6 +603,17 @@ onUnmounted(() => {
         data-testid="ai-prompt-bar-mic"
         class="ai-prompt-bar__secondary"
         @click="voice.toggle()"
+      />
+      <UButton
+        v-else-if="!isActive && transcriptionLocked && !chatMissing"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-mic"
+        :aria-label="t('ai.locked.aiVoice')"
+        :title="t('ai.locked.aiVoice')"
+        data-testid="ai-prompt-bar-mic-locked"
+        class="ai-prompt-bar__secondary opacity-50"
+        @click="explainLocked('aiVoice')"
       />
 
       <!-- Primary slot: send. Stays blue across idle + recording so the

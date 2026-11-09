@@ -147,6 +147,21 @@ const rows = computed<Row[]>(() => {
       cells: [yes, no, ...perAccount(plan => props.tiers[plan].customCss ? yes : no)]
     },
     {
+      id: 'aiImage',
+      label: t('pricing.compare.aiImage'),
+      cells: [setByYou, no, ...perAccount(plan => props.tiers[plan].aiImage ? yes : text(t('pricing.compare.ownKeyOnly')))]
+    },
+    {
+      id: 'aiVoice',
+      label: t('pricing.compare.aiVoice'),
+      cells: [setByYou, no, ...perAccount(plan => props.tiers[plan].aiVoice ? yes : text(t('pricing.compare.ownKeyOnly')))]
+    },
+    {
+      id: 'aiStrongModel',
+      label: t('pricing.compare.aiStrongModel'),
+      cells: [setByYou, no, ...perAccount(plan => props.tiers[plan].aiStrongModel ? yes : no)]
+    },
+    {
       id: 'mcp',
       label: t('pricing.compare.mcp'),
       cells: [yes, no, ...perAccount(plan => props.tiers[plan].mcpWrite ? yes : text(t('pricing.compare.readOnly')))]

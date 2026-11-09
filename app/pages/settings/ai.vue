@@ -46,6 +46,21 @@ function onClose(): void {
 }
 
 const data = ref<ProvidersResponse | null>(null)
+
+// Fast / Strong platform chat model (WP5).
+const savingTier = ref(false)
+async function saveTier(tier: 'fast' | 'strong'): Promise<void> {
+  savingTier.value = true
+  try {
+    await $fetch('/api/user/ai-model', { method: 'PUT', body: { tier } })
+    await load()
+    await refreshAvailability()
+  } catch {
+    toast.add({ title: t('aiProvider.modelTier.saveFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
+  } finally {
+    savingTier.value = false
+  }
+}
 const loading = ref(false)
 
 async function load(): Promise<void> {
@@ -153,6 +168,38 @@ const allowlistText = computed(() => {
         v-if="data"
         class="space-y-6"
       >
+        <!-- Platform chat model: Fast / Strong (WP5). Only where the
+             operator offers a strong model and chat runs on the platform. -->
+        <section
+          v-if="data.availability.chat.modelTier?.strongAvailable"
+          class="border border-default rounded-lg px-4 py-4 space-y-3"
+          data-testid="ai-model-tier"
+        >
+          <h2 class="font-serif text-lg font-normal tracking-tight">
+            {{ t('aiProvider.modelTier.title') }}
+          </h2>
+          <p class="text-sm text-muted">
+            {{ t('aiProvider.modelTier.description') }}
+          </p>
+          <URadioGroup
+            :model-value="data.availability.chat.modelTier.selected"
+            :items="[
+              { label: t('aiProvider.modelTier.fast'), description: t('aiProvider.modelTier.fastHint'), value: 'fast' },
+              { label: t('aiProvider.modelTier.strong'), description: t('aiProvider.modelTier.strongHint'), value: 'strong', disabled: data.availability.chat.modelTier.strongLocked }
+            ]"
+            :disabled="savingTier"
+            data-testid="ai-model-tier-radio"
+            @update:model-value="(v) => saveTier(v as 'fast' | 'strong')"
+          />
+          <p
+            v-if="data.availability.chat.modelTier.strongLocked"
+            class="text-xs text-muted"
+            data-testid="ai-model-tier-locked"
+          >
+            {{ t('aiProvider.modelTier.locked') }}
+          </p>
+        </section>
+
         <SettingsAiProviderCard
           v-for="capability in CAPABILITIES"
           :key="capability"
