@@ -1468,7 +1468,15 @@
       "upload-failed": "L’envoi n’a pas fonctionné. Réessayez.",
       "internal": "Une erreur s’est produite. Réessayez."
     },
-    "pageAria": "Page {n}"
+    "pageAria": "Page {n}",
+    "thinking": {
+      "uploading": "Réception de votre document…",
+      "reading": "Lecture des polices, couleurs et mise en page de votre document…",
+      "designing": "Je conçois un design d'après vos pages…",
+      "rendering": "Je compose une page d'essai dans le nouveau design…",
+      "comparing": "Je compare mon design à vos pages, tour {round} sur {max}…"
+    },
+    "durationNote": "Cela prend généralement deux à cinq minutes. Gardez cette fenêtre ouverte ; le résultat s'affichera ici."
   },
   "error": {
     "generic": "Une erreur est survenue. Veuillez réessayer.",

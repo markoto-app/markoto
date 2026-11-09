@@ -1468,7 +1468,15 @@
       "upload-failed": "Das Hochladen hat nicht funktioniert. Versuchen Sie es erneut.",
       "internal": "Etwas ist schiefgelaufen. Versuchen Sie es erneut."
     },
-    "pageAria": "Seite {n}"
+    "pageAria": "Seite {n}",
+    "thinking": {
+      "uploading": "Ihr Dokument kommt an…",
+      "reading": "Ich lese Schriften, Farben und Layout Ihres Dokuments…",
+      "designing": "Ich entwerfe ein Design nach Ihren Seiten…",
+      "rendering": "Ich setze eine Probeseite im neuen Design…",
+      "comparing": "Ich vergleiche mein Design mit Ihren Seiten, Runde {round} von {max}…"
+    },
+    "durationNote": "Das dauert meist zwei bis fünf Minuten. Lassen Sie dieses Fenster offen; das Ergebnis erscheint hier."
   },
   "error": {
     "generic": "Etwas ist schiefgelaufen. Bitte versuchen Sie es erneut.",

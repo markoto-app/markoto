@@ -1468,7 +1468,15 @@
       "upload-failed": "The upload did not work. Try again.",
       "internal": "Something went wrong. Try again."
     },
-    "pageAria": "Page {n}"
+    "pageAria": "Page {n}",
+    "thinking": {
+      "uploading": "Receiving your document…",
+      "reading": "Reading your document's fonts, colours and layout…",
+      "designing": "Drafting a design from your pages…",
+      "rendering": "Setting a sample page in the new design…",
+      "comparing": "Comparing my design with your pages, round {round} of {max}…"
+    },
+    "durationNote": "This usually takes two to five minutes. Keep this window open; you'll see the result here."
   },
   "error": {
     "generic": "Something went wrong. Please try again.",
