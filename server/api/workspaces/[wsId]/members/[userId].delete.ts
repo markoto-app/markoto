@@ -1,4 +1,4 @@
-import { getMemberRole, removeMember } from '../../../../repos/workspaceMembers'
+import { getMemberRoleIgnoringSso, removeMember } from '../../../../repos/workspaceMembers'
 import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
@@ -32,7 +32,9 @@ export default defineEventHandler(async (event) => {
   // Capture the removed member's role BEFORE the delete so the audit
   // row can record what they had. Cheap extra query — this endpoint
   // isn't hot-path.
-  const targetRoleBefore = await getMemberRole(wsId, targetUserId)
+  // The TARGET's membership, regardless of single sign-on (WP14): a
+  // member who hasn't signed in through the IdP is still a member.
+  const targetRoleBefore = await getMemberRoleIgnoringSso(wsId, targetUserId)
 
   // Team / Business (WP3): the member's key in the workspace's LiteLLM
   // team goes with the membership. Deleted first (the row holds the

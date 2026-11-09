@@ -47,8 +47,10 @@ export async function getMemberRole(
 /**
  * The membership role WITHOUT the SSO condition. Only for the places
  * that must see a member who hasn't signed in through the workspace's
- * IdP: the SSO settings (admins can fix a broken IdP), the billing tab,
- * and the "sign in with SSO" prompt. Never for content access.
+ * IdP: the SSO settings (admins can fix a broken IdP — the only
+ * break-glass), the "sign in with SSO" prompt, the SSO sign-in itself,
+ * SCIM, and admin actions about ANOTHER member (removal). Never for the
+ * caller's own access to content.
  */
 export async function getMemberRoleIgnoringSso(
   workspaceId: string,

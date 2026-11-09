@@ -365,3 +365,91 @@ describe('SSO with SAML', () => {
     expect(done.location).toContain('code=sso%2Ffailed')
   })
 })
+
+describe('SCIM provisioning (/scim/v2/Users)', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function scimSetup() {
+    const admin = await createUser({ email: 'admin@acme.test' })
+    const ws = await createWorkspace(admin.id)
+    const connectionId = await activateOidc(admin.id, ws.workspaceId)
+    await verifyDomain(ws.workspaceId, 'acme.test')
+    const tokenRes = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/sso/scim-token`, {})
+    expect(tokenRes.status).toBe(200)
+    const { token, baseUrl } = await tokenRes.json() as { token: string, baseUrl: string }
+    expect(baseUrl).toBe(`${TEST_BASE_URL}/scim/v2`)
+    const scim = (path: string, init: { method?: string, body?: unknown, token?: string } = {}) => fetch(`${TEST_BASE_URL}/scim/v2${path}`, {
+      method: init.method ?? 'GET',
+      headers: { 'authorization': `Bearer ${init.token ?? token}`, 'content-type': 'application/scim+json' },
+      body: init.body === undefined ? undefined : JSON.stringify(init.body)
+    })
+    return { admin, ws, connectionId, scim }
+  }
+
+  const member = (wsId: string, userId: number) => testDb().query('SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [wsId, userId]).then(r => r.rows[0]?.role ?? null)
+
+  it('refuses requests without the token, with SCIM error bodies', async () => {
+    const { scim } = await scimSetup()
+    const res = await scim('/Users', { token: 'mkscim_wrong-token-wrong-token-wrong' })
+    expect(res.status).toBe(401)
+    expect(await res.json()).toMatchObject({ schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'], status: '401' })
+  })
+
+  it('creates a member, finds them by filter, deactivates (Entra + Okta style), reactivates and deletes', async () => {
+    const { ws, scim } = await scimSetup()
+    const notOurs = await scim('/Users', { method: 'POST', body: { userName: 'eve@elsewhere.test', active: true } })
+    expect(notOurs.status).toBe(400)
+
+    const created = await scim('/Users', { method: 'POST', body: { schemas: ['urn:ietf:params:scim:schemas:core:2.0:User'], userName: 'Finn@Acme.test', externalId: 'ext-finn', name: { givenName: 'Finn', familyName: 'Ito' }, active: true } })
+    expect(created.status).toBe(201)
+    const user = await created.json() as { id: string, userName: string, active: boolean, externalId: string }
+    expect(user).toMatchObject({ userName: 'finn@acme.test', active: true, externalId: 'ext-finn' })
+    const finn = (await testDb().query<{ id: number, name: string }>(`SELECT id, name FROM users WHERE email = 'finn@acme.test'`)).rows[0]!
+    expect(finn.name).toBe('Finn Ito')
+    expect(await member(ws.workspaceId, finn.id)).toBe('editor')
+    expect((await scim('/Users', { method: 'POST', body: { userName: 'finn@acme.test' } })).status).toBe(409)
+
+    const found = await (await scim(`/Users?filter=${encodeURIComponent('userName eq "FINN@acme.test"')}`)).json() as { totalResults: number, Resources: Array<{ id: string }> }
+    expect(found.totalResults).toBe(1)
+    expect(found.Resources[0]!.id).toBe(user.id)
+    expect((await (await scim(`/Users?filter=${encodeURIComponent('externalId eq "ext-finn"')}`)).json() as { totalResults: number }).totalResults).toBe(1)
+
+    // Entra ID: path + string boolean.
+    const off = await scim(`/Users/${user.id}`, { method: 'PATCH', body: { schemas: ['urn:ietf:params:scim:api:messages:2.0:PatchOp'], Operations: [{ op: 'Replace', path: 'active', value: 'False' }] } })
+    expect(off.status).toBe(200)
+    expect((await off.json() as { active: boolean }).active).toBe(false)
+    expect(await member(ws.workspaceId, finn.id)).toBeNull()
+    // Okta: no path, value object.
+    const on = await scim(`/Users/${user.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', value: { active: true } }] } })
+    expect((await on.json() as { active: boolean }).active).toBe(true)
+    expect(await member(ws.workspaceId, finn.id)).toBe('editor')
+
+    expect((await scim(`/Users/${user.id}`, { method: 'DELETE' })).status).toBe(204)
+    expect(await member(ws.workspaceId, finn.id)).toBeNull()
+    expect((await scim(`/Users/${user.id}`)).status).toBe(404)
+    // The account itself stays.
+    expect((await testDb().query('SELECT id FROM users WHERE id = $1', [finn.id])).rows).toHaveLength(1)
+  })
+
+  it('a deactivated user can\'t sign in; the first sign-in of a provisioned user takes over the placeholder', async () => {
+    const { ws, connectionId, scim } = await scimSetup()
+    const created = await (await scim('/Users', { method: 'POST', body: { userName: 'gia@acme.test', externalId: 'ext-gia' } })).json() as { id: string }
+    const signedIn = await oidcSignIn(connectionId, { sub: 'gia-real-sub', claims: { email: 'gia@acme.test', email_verified: true, name: 'Gia' } })
+    expect(signedIn.location).toBe(`/w/${ws.workspaceId}`)
+    expect((await testDb().query('SELECT subject, scim_external_id FROM user_identities WHERE id = $1', [Number(created.id)])).rows).toEqual([{ subject: 'gia-real-sub', scim_external_id: 'ext-gia' }])
+
+    await scim(`/Users/${created.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: false }] } })
+    const refused = await oidcSignIn(connectionId, { sub: 'gia-real-sub', claims: { email: 'gia@acme.test', email_verified: true, name: 'Gia' } })
+    expect(refused.location).toContain('code=sso%2Fdeactivated')
+  })
+
+  it('never removes the last admin', async () => {
+    const { admin, scim } = await scimSetup()
+    const list = await (await scim(`/Users?filter=${encodeURIComponent('userName eq "admin@acme.test"')}`)).json() as { Resources: Array<{ id: string }> }
+    const res = await scim(`/Users/${list.Resources[0]!.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: false }] } })
+    expect(res.status).toBe(409)
+    expect((await testDb().query('SELECT role FROM workspace_members WHERE user_id = $1', [admin.id])).rows).toEqual([{ role: 'admin' }])
+  })
+})
