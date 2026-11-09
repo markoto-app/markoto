@@ -1,6 +1,7 @@
 import { and, desc, eq, inArray, sql, cosineDistance } from 'drizzle-orm'
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
 import { useDatabase } from '../utils/database'
+import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
 
 /**
  * Data access for the workspace knowledge base. Kept thin — business rules
@@ -169,20 +170,31 @@ export async function sumWorkspaceKnowledgeBytes(workspaceId: string): Promise<n
  * Failed rows still hold their S3 bytes until the sweep reaps them, so
  * they're fair game to count against the quota.
  */
-export async function countKnowledgeByUploader(uploaderId: number): Promise<number> {
+export async function countKnowledgeByUploader(uploaderId: number, opts: { excludePooled?: boolean } = {}): Promise<number> {
   const db = useDatabase()
   const rows = await db.select({ n: sql<number>`count(*)::int` })
     .from(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.uploaderId, uploaderId))
+    .where(uploaderCondition(uploaderId, opts.excludePooled === true))
   return rows[0]?.n ?? 0
 }
 
-export async function sumKnowledgeBytesByUploader(uploaderId: number): Promise<number> {
+export async function sumKnowledgeBytesByUploader(uploaderId: number, opts: { excludePooled?: boolean } = {}): Promise<number> {
   const db = useDatabase()
   const rows = await db.select({ total: sql<number>`coalesce(sum(size_bytes), 0)::bigint` })
     .from(workspaceKnowledge)
-    .where(eq(workspaceKnowledge.uploaderId, uploaderId))
+    .where(uploaderCondition(uploaderId, opts.excludePooled === true))
   return Number(rows[0]?.total ?? 0)
+}
+
+/**
+ * Rows of one uploader; with `excludePooled`, without the files in Team /
+ * Business workspaces (those count against the workspace pool, WP3).
+ */
+function uploaderCondition(uploaderId: number, excludePooled: boolean) {
+  const byUploader = eq(workspaceKnowledge.uploaderId, uploaderId)
+  return excludePooled
+    ? and(byUploader, sql`${workspaceKnowledge.workspaceId} not in ${pooledWorkspaceIdsSubquery()}`)
+    : byUploader
 }
 
 export async function deleteKnowledgeRow(knowledgeId: string): Promise<void> {

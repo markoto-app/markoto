@@ -50,19 +50,31 @@ describe('resolveCaps — per-uploader tier', () => {
     await resetDb()
   })
 
-  it('free uploader sees free-tier per-user caps regardless of workspace', async () => {
+  it('free uploader sees free-tier per-user caps in a workspace without a subscription', async () => {
     const owner = await createUser()
     await setPlan(owner.id, 'pro')
     const ws = await createWorkspace(owner.id)
-    await subscribe(ws.workspaceId, 'business')
-    // Uploader is a free-tier member uploading to a Business workspace.
     const uploader = await createUser()
     await setPlan(uploader.id, 'free')
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: uploader.id })
     expect(caps.uploaderPlan).toBe('free')
+    expect(caps.pooled).toBe(false)
     expect(caps.maxFilesPerUser).toBe(TIERS.free.knowledgeFiles)
     expect(caps.maxTotalBytesPerUser).toBe(TIERS.free.knowledgeBytesPerUser)
+  })
+
+  it('in a Business workspace the uploader\'s personal caps don\'t apply (pooled, WP3)', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    await subscribe(ws.workspaceId, 'business')
+    const uploader = await createUser()
+    await setPlan(uploader.id, 'free')
+
+    const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: uploader.id })
+    expect(caps.pooled).toBe(true)
+    expect(caps.maxFilesPerUser).toBe(Number.MAX_SAFE_INTEGER)
+    expect(caps.maxTotalBytesPerUser).toBe(Number.MAX_SAFE_INTEGER)
   })
 
   it('pro uploader sees pro per-user caps', async () => {
@@ -101,8 +113,10 @@ describe('resolveCaps — per-workspace tier', () => {
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
     expect(caps.workspacePlan).toBe('team')
-    expect(caps.maxFilesPerWorkspace).toBe(TIERS.team.knowledgeFiles)
-    // The uploader's own (free) plan still sets the per-user caps.
+    // Pooled: the per-seat Team values × the paid seats.
+    const seats = Number((await testDb().query('SELECT seats FROM workspace_subscriptions WHERE workspace_id = $1', [ws.workspaceId])).rows[0]?.seats)
+    expect(caps.maxFilesPerWorkspace).toBe(TIERS.team.knowledgeFiles * seats)
+    expect(caps.maxTotalBytesPerWorkspace).toBe(TIERS.team.knowledgeBytesPerWorkspace * seats)
     expect(caps.uploaderPlan).toBe('free')
   })
 

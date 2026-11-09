@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { eq, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions, workspaceMembers } from '../db/schema'
 import { useDatabase } from '../utils/database'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
@@ -101,4 +101,16 @@ export async function listSubscribedWorkspacesForMember(userId: number): Promise
     .from(workspaceSubscriptions)
     .innerJoin(workspaceMembers, eq(workspaceMembers.workspaceId, workspaceSubscriptions.workspaceId))
     .where(eq(workspaceMembers.userId, userId))
+}
+
+/**
+ * SQL subquery: ids of workspaces whose subscription currently grants
+ * its plan (same rule as `subscriptionGrantsPlan`). Storage inside them
+ * is pooled per workspace, so per-user storage sums leave them out
+ * (only while billing is on — the caller decides).
+ */
+export function pooledWorkspaceIdsSubquery(): SQL {
+  return sql`(select ${workspaceSubscriptions.workspaceId} from ${workspaceSubscriptions}
+    where ${workspaceSubscriptions.status} in ('active', 'trialing', 'past_due')
+      and (${workspaceSubscriptions.validUntil} is null or ${workspaceSubscriptions.validUntil} > now()))`
 }

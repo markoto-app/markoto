@@ -10,9 +10,9 @@ import {
   insertConfirmedUploads,
   insertConfirmedUploadsWithinQuota,
   deleteUploadsForDoc,
-  sumImageBytesByUploader
+  sumImageBytesInScope
 } from '../repos/uploads'
-import { imageQuotaMessage } from './imageQuota'
+import { imageQuotaMessage, type ImageQuota } from './imageQuota'
 import { cloneYjsStateWithUrlRewrite } from './cloneYjsState'
 import { withThemeDocId } from '~~/shared/utils/customCss'
 import { withThemeImagesDocId } from '~~/shared/utils/themeImages'
@@ -50,12 +50,13 @@ export interface DuplicateDeps {
   s3: Pick<S3Client, 'send'>
   bucket: string
   /**
-   * The duplicator's image quota (`resolveImageQuotaBytes(ownerId)`). The
-   * copied images are attributed to the duplicator — not the original
-   * uploaders, whose quota a stranger could otherwise fill by duplicating
-   * their open doc — and must fit that quota.
+   * The quota the copies count against (`resolveImageQuota(ownerId, null,
+   * targetWorkspaceId)`): the target Team / Business workspace's pool, else
+   * the duplicator's personal quota. The copied images are attributed to
+   * the duplicator — not the original uploaders, whose quota a stranger
+   * could otherwise fill by duplicating their open doc.
    */
-  imageQuotaBytes: number
+  imageQuota: ImageQuota
 }
 
 /** The copies would push the duplicator over their image storage quota. */
@@ -82,8 +83,8 @@ export async function duplicateDocument(
   const uploadsToClone = await listConfirmedUploadsForDoc(input.sourceDocId)
   const cloneBytes = uploadsToClone.reduce((n, r) => n + r.sizeBytes, 0)
   if (input.ownerId !== null && cloneBytes > 0
-    && await sumImageBytesByUploader(input.ownerId) + cloneBytes > deps.imageQuotaBytes) {
-    throw new ImageQuotaExceededError(deps.imageQuotaBytes)
+    && await sumImageBytesInScope(deps.imageQuota.scope) + cloneBytes > deps.imageQuota.maxBytes) {
+    throw new ImageQuotaExceededError(deps.imageQuota.maxBytes)
   }
 
   // Phase 1: documents row. Description/audience/language/templateId
@@ -136,8 +137,8 @@ export async function duplicateDocument(
       })
     }
     if (copiedRows.length > 0 && input.ownerId !== null) {
-      const res = await insertConfirmedUploadsWithinQuota(copiedRows, input.ownerId, deps.imageQuotaBytes)
-      if (!res.reserved) throw new ImageQuotaExceededError(deps.imageQuotaBytes)
+      const res = await insertConfirmedUploadsWithinQuota(copiedRows, deps.imageQuota.maxBytes, deps.imageQuota.scope)
+      if (!res.reserved) throw new ImageQuotaExceededError(deps.imageQuota.maxBytes)
     } else if (copiedRows.length > 0) {
       await insertConfirmedUploads(copiedRows)
     }

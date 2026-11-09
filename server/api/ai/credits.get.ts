@@ -4,6 +4,11 @@ import { getWorkspaceRole } from '../../utils/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/tierConfig'
 import { freeAllowanceView } from '../../utils/freeAllowance'
+import { readMemberKeySpend, readWorkspaceTeam } from '../../utils/litellm/workspaceTeams'
+import { getPooledWorkspace, memberLimitUsd, workspacePoolCaps } from '../../utils/workspaceBilling'
+import { and, eq } from 'drizzle-orm'
+import { workspaceMembers } from '../../db/schema'
+import { useDatabase } from '../../utils/database'
 
 /**
  * GET /api/ai/credits — AI Points UI data source.
@@ -48,6 +53,50 @@ export default defineEventHandler(async (event) => {
 
   const billing = await resolveBillingContext(userId, workspaceId)
 
+  // Team / Business workspace (WP3): the member's key in the workspace
+  // team. Remaining = the smaller of what's left of the member's limit
+  // and of the team pool; `workspace` carries both for the usage panel.
+  if (billing.attribution === 'workspace' && billing.workspaceId) {
+    const pool = await getPooledWorkspace(billing.workspaceId)
+    const caps = pool ? workspacePoolCaps(pool.plan, pool.seats) : null
+    const [member, team, row] = await Promise.all([
+      readMemberKeySpend(billing.virtualKey),
+      readWorkspaceTeam(billing.workspaceId).catch(() => null),
+      useDatabase()
+        .select({ aiLimitUsd: workspaceMembers.aiLimitUsd, aiUnlimited: workspaceMembers.aiUnlimited })
+        .from(workspaceMembers)
+        .where(and(eq(workspaceMembers.workspaceId, billing.workspaceId), eq(workspaceMembers.userId, userId)))
+        .limit(1)
+        .then(rows => rows[0] ?? null)
+    ])
+    const teamBudget = typeof team?.max_budget === 'number' ? team.max_budget : caps?.aiBudgetUsd ?? 0
+    const teamSpend = typeof team?.spend === 'number' ? team.spend : 0
+    const memberSpend = member?.spend ?? 0
+    // The stored limit is the source of truth (the key carries the same
+    // value; `syncMemberKeyLimit` keeps them in step).
+    const memberLimit = caps && row ? memberLimitUsd(row, caps) : member?.maxBudget ?? null
+    const teamLeft = Math.max(0, teamBudget - teamSpend)
+    const memberLeft = memberLimit === null ? teamLeft : Math.max(0, memberLimit - memberSpend)
+    const remaining = Math.min(teamLeft, memberLeft)
+    return {
+      pointsRemaining: dollarsToPoints(remaining),
+      pointsTotal: dollarsToPoints(memberLimit ?? teamBudget),
+      plan: billing.plan,
+      periodEnd: billing.periodEnd.toISOString(),
+      attribution: billing.attribution,
+      freeAllowance: null,
+      workspace: {
+        workspaceId: billing.workspaceId,
+        teamBudgetUsd: teamBudget,
+        teamSpendUsd: teamSpend,
+        memberLimitUsd: memberLimit,
+        memberSpendUsd: memberSpend,
+        exhausted: remaining <= 0,
+        teamExhausted: teamLeft <= 0
+      }
+    }
+  }
+
   // Phase 7: read the live key info from the SAME budget that is
   // actually charged, so the points number matches what gets debited on
   // the next AI call.
@@ -68,6 +117,7 @@ export default defineEventHandler(async (event) => {
     plan: billing.plan,
     periodEnd: billing.periodEnd.toISOString(),
     attribution: billing.attribution,
-    freeAllowance
+    freeAllowance,
+    workspace: null
   }
 })

@@ -175,6 +175,10 @@ export const DEFAULT_TIERS = {
     ...PAID_PLAN_ENTITLEMENTS
   },
   // Team / Business: AI budget, knowledge and image storage are per seat.
+  // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
+  // `knowledgeBytesPerWorkspace` and `imageBytesPerUser` are PER SEAT;
+  // a subscribed workspace pools seats × these values
+  // (`server/utils/workspaceBilling.ts#workspacePoolCaps`).
   team: {
     litellmBudgetUsd: 5,
     workspacesOwned: 100,

@@ -4,6 +4,7 @@ import { listKnowledge } from '../../../repos/knowledge'
 import { deleteDocument } from '../../../utils/documentLifecycle'
 import { deleteKnowledgeArtifact } from '../../../utils/knowledgeAccess'
 import { appendAuditEvent } from '../../../repos/audit'
+import { endWorkspaceBilling } from '../../../utils/workspaceBillingLifecycle'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
 // etc via `deleteDocument`), then drop the workspace row itself. Deletes
@@ -61,6 +62,10 @@ export default defineEventHandler(async (event) => {
   for (const row of knowledgeRows) {
     await deleteKnowledgeArtifact(row.knowledgeId)
   }
+
+  // Team / Business (WP3): cancel the subscription (annual: prorated
+  // credit) and delete the workspace's LiteLLM team. Best-effort.
+  await endWorkspaceBilling(wsId, session.user.id)
 
   // workspace_members rows are removed automatically by the ON DELETE
   // CASCADE foreign key.

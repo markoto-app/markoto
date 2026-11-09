@@ -3,7 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
 import { reservePendingUpload } from '../../repos/uploads'
 import { requireDocEditAccess } from '../../utils/documentAccess'
-import { imageQuotaError, resolveImageQuotaBytes } from '../../utils/imageQuota'
+import { imageQuotaError, resolveImageQuota } from '../../utils/imageQuota'
 import { buildUploadKey, DOC_ID_RE, stagingKeyFor } from '../../utils/uploadKey'
 
 // Presigned PUT lifetime. S3 checks expiry when the request STARTS, so a
@@ -82,7 +82,9 @@ export default defineEventHandler(async (event) => {
   // uses it to reap uploads that never landed. The row is also the quota
   // reservation: check + insert are atomic per user, so parallel requests
   // can't jointly overshoot the image storage quota.
-  const quotaBytes = await resolveImageQuotaBytes(session.user.id)
+  // Team / Business workspace documents use the workspace's pool (WP3).
+  const quota = await resolveImageQuota(session.user.id, docId)
+  const quotaBytes = quota.maxBytes
   const reservation = await reservePendingUpload({
     docId,
     fileId: `${fileId}.${ext}`,
@@ -90,7 +92,7 @@ export default defineEventHandler(async (event) => {
     contentType,
     sizeBytes: size,
     s3Key: key
-  }, quotaBytes)
+  }, quotaBytes, quota.scope)
   if (!reservation.reserved) throw imageQuotaError(quotaBytes)
 
   // SSE NOTE: presigned PUTs deliberately omit `ServerSideEncryption` —

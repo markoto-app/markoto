@@ -6,6 +6,8 @@ import { useDatabase } from './database'
 import { isWorkspacePlan, type PersonalPlanName, type PlanName, type WorkspacePlanName } from '~~/shared/config/tiers'
 import type { Currency, PriceIdentity } from '~~/shared/config/pricing'
 import { identifyStripePrice } from './stripePrices'
+import { getPooledWorkspace } from './workspaceBilling'
+import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from './litellm/workspaceTeams'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
 
@@ -165,6 +167,26 @@ async function upsertWorkspaceSubscriptionFromStripe(
     .onConflictDoUpdate({ target: workspaceSubscriptions.workspaceId, set: { ...values, ...billingAdmin } })
 }
 
+/**
+ * After commit: bring the workspace's LiteLLM team budget (seats ×
+ * per-seat) and every member key's default limit in line with the
+ * subscription the webhook just wrote. No-op unless entitled. Errors are
+ * reported, never thrown — `litellm-key-reconcile` repairs drift.
+ */
+function deferWorkspaceTeamSync(deferAfterCommit: DeferredAfterCommit | undefined, workspaceId: string): void {
+  deferAfterCommit?.push(async () => {
+    try {
+      const pool = await getPooledWorkspace(workspaceId)
+      if (!pool) return
+      await ensureWorkspaceTeam(pool)
+      await syncAllMemberKeyLimits(pool)
+    } catch (e) {
+      console.warn(`[stripe/webhook] workspace team sync failed for ${workspaceId}: ${e instanceof Error ? e.message : e}`)
+      Sentry.captureException(e, { tags: { component: 'stripeWebhook', event: 'workspace_team_sync_failed', workspaceId } })
+    }
+  })
+}
+
 function isWorkspaceIdentity(identity: PriceIdentity | null): identity is PriceIdentity & { plan: WorkspacePlanName } {
   return identity !== null && isWorkspacePlan(identity.plan)
 }
@@ -219,7 +241,7 @@ export async function handleCheckoutSessionCompleted(
       customerId,
       billingAdminId: Number.isInteger(adminRaw) && adminRaw > 0 ? adminRaw : null
     })
-    // TODO(WP3): sync the workspace's pooled LiteLLM team budget here.
+    deferWorkspaceTeamSync(opts.deferAfterCommit, workspaceId)
     return { matched: 1, plan: identity.plan }
   }
 
@@ -324,7 +346,7 @@ export async function handleSubscriptionUpdated(
       return { matched: 0, plan: null }
     }
     await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId: subject.workspaceId, sub, identity, customerId })
-    // TODO(WP3): seats or plan changed → resync the pooled LiteLLM team budget.
+    deferWorkspaceTeamSync(opts.deferAfterCommit, subject.workspaceId)
     return { matched: 1, plan: identity.plan }
   }
 
@@ -389,7 +411,9 @@ export async function handleSubscriptionDeleted(
       .set({ status: 'canceled', updatedAt: new Date() })
       .where(eq(workspaceSubscriptions.workspaceId, subject.workspaceId))
       .returning({ workspaceId: workspaceSubscriptions.workspaceId })
-    // TODO(WP3): drop the pooled LiteLLM team budget and member keys.
+    // The team + member keys stay (unused while not entitled: members
+    // fall back to their personal keys); a resubscription reuses them and
+    // workspace deletion removes them (`endWorkspaceBilling`).
     return { matched: result.length }
   }
 

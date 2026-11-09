@@ -383,3 +383,62 @@ describe('executeAccountDeletion: full graph', () => {
     expect(members.rows[0]).toEqual({ user_id: bob.id, role: 'admin' })
   })
 })
+
+describe('executeAccountDeletion: Team / Business billing admin (WP3)', () => {
+  beforeEach(async () => {
+    await resetDb()
+    deleteDocumentMock.mockClear()
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  async function subscribe(workspaceId: string, billingAdminId: number): Promise<void> {
+    await testDb().query(
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, billing_admin_id, valid_until)
+       VALUES ($1, 'team', 3, 'active', $2, now() + interval '30 days')`,
+      [workspaceId, billingAdminId]
+    )
+  }
+
+  async function billingAdminOf(workspaceId: string): Promise<number | null | undefined> {
+    return (await testDb().query('SELECT billing_admin_id FROM workspace_subscriptions WHERE workspace_id = $1', [workspaceId])).rows[0]?.billing_admin_id
+  }
+
+  it('hands the role to the longest-serving other admin', async () => {
+    const alice = await createUser()
+    const bob = await createUser()
+    const carol = await createUser()
+    const ws = await createWorkspace(alice.id)
+    await setMemberRole(ws.workspaceId, carol.id, 'editor')
+    await setMemberRole(ws.workspaceId, bob.id, 'admin')
+    await subscribe(ws.workspaceId, alice.id)
+
+    const { summary } = await executeAccountDeletion({ userId: alice.id })
+    expect(summary.billingAdminHandovers).toBe(1)
+    expect(await billingAdminOf(ws.workspaceId)).toBe(bob.id)
+    const audit = (await testDb().query(`SELECT action, after FROM audit_log WHERE scope = 'billing' AND scope_id = $1`, [ws.workspaceId])).rows
+    expect(audit).toContainEqual({ action: 'workspace.billing_admin_changed', after: { billingAdminId: bob.id } })
+  })
+
+  it('an editor promoted to admin by the deletion becomes the billing admin', async () => {
+    const alice = await createUser()
+    const dave = await createUser()
+    const ws = await createWorkspace(alice.id)
+    await setMemberRole(ws.workspaceId, dave.id, 'editor')
+    await subscribe(ws.workspaceId, alice.id)
+
+    await executeAccountDeletion({ userId: alice.id })
+    expect(await billingAdminOf(ws.workspaceId)).toBe(dave.id)
+  })
+
+  it('a sole-member workspace goes with the account, subscription row included', async () => {
+    const alice = await createUser()
+    const ws = await createWorkspace(alice.id)
+    await subscribe(ws.workspaceId, alice.id)
+
+    const { summary } = await executeAccountDeletion({ userId: alice.id })
+    expect(summary.billingAdminHandovers).toBe(0)
+    expect(await billingAdminOf(ws.workspaceId)).toBeUndefined()
+  })
+})

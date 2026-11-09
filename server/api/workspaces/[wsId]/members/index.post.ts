@@ -8,7 +8,11 @@ import {
 import { appendAuditEvent } from '../../../../repos/audit'
 import { countMembers } from '../../../../repos/workspaceMembers'
 import { assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/entitlements'
-import { AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
+import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED, AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
+import { getPooledWorkspace, seatsFullError } from '../../../../utils/workspaceBilling'
+import { changeWorkspaceSeats } from '../../../../utils/workspaceStripe'
+import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
+import { useStripeClient } from '../../../../utils/stripeClient'
 import { safeSendTransactionalEmail } from '../../../../utils/email/sendEmail'
 import { emailLinkBaseUrl } from '../../../../utils/siteUrl'
 import {
@@ -46,7 +50,7 @@ import {
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const wsId = requireWsId(event)
-  const body = await readBody<{ email?: unknown, role?: unknown }>(event)
+  const body = await readBody<{ email?: unknown, role?: unknown, addSeat?: unknown }>(event)
 
   const role = await getWorkspaceRole(session.user.id, wsId)
   if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
@@ -103,12 +107,41 @@ export default defineEventHandler(async (event) => {
   // accepted invite never pushes a workspace past its limit and accepting
   // needs no second check. A workspace already above the limit (e.g.
   // after a downgrade) keeps everyone; only new invitations are refused.
+  const membersNow = await countMembers(wsId)
   assertPlanLimit(
     await resolveWorkspacePlan(wsId),
     'membersPerWorkspace',
-    await countMembers(wsId) + openInvites,
+    membersNow + openInvites,
     'This workspace has reached the member limit of its plan.'
   )
+
+  // Team / Business (WP3): members + open invitations may not exceed the
+  // paid seats. With `addSeat: true` (the invite dialog's "This adds a
+  // seat" confirmation) one seat is bought first, prorated.
+  const pool = await getPooledWorkspace(wsId, now)
+  if (pool) {
+    const used = membersNow + openInvites
+    if (used >= pool.seats) {
+      if (body?.addSeat !== true) throw seatsFullError(pool.seats, used)
+      const stripe = useStripeClient()
+      if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
+      const seats = used + 1
+      await changeWorkspaceSeats(stripe, pool.subscription, seats)
+      await ensureWorkspaceTeam({ ...pool, seats }).catch((e: unknown) => {
+        console.warn(`[invite] team budget sync failed: ${e instanceof Error ? e.message : e}`)
+      })
+      await appendAuditEvent({
+        actorUserId: session.user.id,
+        actorIp: getClientIp(event),
+        scope: 'billing',
+        scopeId: wsId,
+        action: AUDIT_WORKSPACE_BILLING_SEATS_CHANGED,
+        before: { seats: pool.seats },
+        after: { seats },
+        metadata: { reason: 'invite' }
+      })
+    }
+  }
 
   // Email link only when the deployment has a configured site URL (links
   // are never built from the request Host) and the per-address daily

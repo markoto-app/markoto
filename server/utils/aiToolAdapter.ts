@@ -63,8 +63,8 @@ import {
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
-import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesByUploader } from '../repos/uploads'
-import { imageQuotaMessage, resolveImageQuotaBytes } from './imageQuota'
+import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../repos/uploads'
+import { imageQuotaMessage, resolveImageQuota } from './imageQuota'
 import { getKnowledgeWithMarkdown, searchKnowledge } from '../repos/knowledge'
 import { getMemberRole } from '../repos/workspaceMembers'
 import {
@@ -881,7 +881,7 @@ export async function handleDuplicateDocument(
       {
         s3: useS3Client(),
         bucket: config.s3.bucket,
-        imageQuotaBytes: await resolveImageQuotaBytes(session.initiatorUserId)
+        imageQuota: await resolveImageQuota(session.initiatorUserId, null, targetWorkspaceId)
       }
     )
   } catch (e) {
@@ -1448,8 +1448,10 @@ export async function handleGenerateImage(
   // 1. Image storage quota — checked BEFORE generating so a full quota
   //    doesn't burn the user's AI budget on an image we can't store. The
   //    atomic reservation (with the real size) happens before the PUT.
-  const quotaBytes = await resolveImageQuotaBytes(session.initiatorUserId)
-  if (await sumImageBytesByUploader(session.initiatorUserId) >= quotaBytes) {
+  //    A Team / Business workspace document uses the workspace pool (WP3).
+  const quota = await resolveImageQuota(session.initiatorUserId, session.docId)
+  const quotaBytes = quota.maxBytes
+  if (await sumImageBytesInScope(quota.scope) >= quotaBytes) {
     return err(`Error: ${imageQuotaMessage(quotaBytes)}`)
   }
 
@@ -1493,7 +1495,7 @@ export async function handleGenerateImage(
         contentType: gen.mimeType,
         sizeBytes: gen.bytes.byteLength,
         s3Key: key
-      }, quotaBytes)
+      }, quotaBytes, quota.scope)
       if (!reservation.reserved) return err(`Error: ${imageQuotaMessage(quotaBytes)}`)
       rowReserved = true
     } catch (e) {

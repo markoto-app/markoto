@@ -1,5 +1,6 @@
 import { migrationsComplete } from '../utils/migrations'
 import { reconcileUserKeys } from '../utils/litellm/keyReconcile'
+import { reconcileWorkspaceTeams } from '../utils/litellm/workspaceTeams'
 import { freeTierTotalBudgetProblems } from '../utils/litellm/freeTierTeam'
 import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
 
@@ -16,6 +17,8 @@ async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock(LOCK)) return
   try {
     await reconcileUserKeys()
+    // Team / Business workspace teams + member keys (WP3).
+    await reconcileWorkspaceTeams()
   } catch (e) {
     // The proxy may still be starting (boot order) — the next run retries.
     console.warn(`[litellm-key-reconcile] skipped: ${e instanceof Error ? e.message : e}`)

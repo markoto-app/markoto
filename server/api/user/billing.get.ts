@@ -1,3 +1,4 @@
+import { isBillingEnabled } from '../../utils/billingMode'
 import { resolveBillingContext } from '../../utils/billing'
 import { countOwnedWorkspacesByUser } from '../../repos/workspaces'
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
@@ -22,9 +23,11 @@ export default defineEventHandler(async (event) => {
 
   const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
     countOwnedWorkspacesByUser(userId),
-    countKnowledgeByUploader(userId),
-    sumKnowledgeBytesByUploader(userId),
-    sumImageBytesByUploader(userId)
+    // Personal storage only: files and images in Team / Business
+    // workspaces count against those workspaces' pools (WP3).
+    countKnowledgeByUploader(userId, { excludePooled: isBillingEnabled() }),
+    sumKnowledgeBytesByUploader(userId, { excludePooled: isBillingEnabled() }),
+    sumImageBytesByUploader(userId, { excludePooled: isBillingEnabled() })
   ])
 
   return {

@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 
@@ -308,7 +308,18 @@ export const workspaceMembers = pgTable('workspace_members', {
   workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('editor'),
-  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow()
+  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  // Team / Business (WP3): the member's monthly AI limit inside the
+  // workspace's pooled budget, in USD. NULL = the default (2 × the
+  // per-seat budget); `ai_unlimited` = no member limit (the team budget
+  // still applies). Set by workspace admins.
+  aiLimitUsd: doublePrecision('ai_limit_usd'),
+  aiUnlimited: boolean('ai_unlimited').notNull().default(false),
+  // The member's LiteLLM key inside the workspace's LiteLLM team, created
+  // on first AI use there (`server/utils/litellm/workspaceTeams.ts`).
+  // Token AES-256-GCM-encrypted like `users.litellm_key_token`.
+  litellmKeyId: text('litellm_key_id'),
+  litellmKeyToken: text('litellm_key_token')
 }, table => [
   primaryKey({ columns: [table.workspaceId, table.userId] }),
   index('idx_workspace_members_user').on(table.userId)

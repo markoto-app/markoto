@@ -4,6 +4,8 @@ import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { ensureUserKey } from './litellmKeys'
 import { isBillingEnabled } from './billingMode'
+import { getPooledWorkspace } from './workspaceBilling'
+import { ensureMemberKey } from './litellm/workspaceTeams'
 
 /**
  * Phase 6 billing context resolution. Every AI call site calls
@@ -59,13 +61,18 @@ export interface BillingContext {
    * client whose calls debit this budget. Lazy-created on first use.
    */
   virtualKey: string
-  /** For diagnostics: `'user'` = self-bill; `'workspace'` = Team billing (WP3). */
+  /**
+   * `'user'` = the caller's own key; `'workspace'` = the caller's key in a
+   * Team / Business workspace's LiteLLM team (member limit + pool).
+   */
   attribution: 'user' | 'workspace'
   /**
    * The user-id whose virtual key + spend the AI Points UI should
    * read. Equals `userId` for self-bill.
    */
   billingUserId: number
+  /** The paying workspace when `attribution === 'workspace'`. */
+  workspaceId?: string
 }
 
 /**
@@ -200,7 +207,27 @@ export async function resolveBillingContext(
   // bills to that workspace's pooled budget through their per-workspace
   // key. Until then every caller self-bills; `workspaceId` is accepted so
   // call sites don't change when that lands.
-  void workspaceId
+  // Team / Business (WP3): inside a workspace with an entitled
+  // subscription a member's AI runs on their key in the workspace's
+  // LiteLLM team (member limit + pooled team budget). Non-members (e.g.
+  // someone editing an open-edit document of the workspace) keep their
+  // own budget, as do members outside the workspace.
+  const pool = billingOn ? await getPooledWorkspace(workspaceId, now) : null
+  if (pool) {
+    const memberKey = await ensureMemberKey(pool, userId)
+    if (memberKey) {
+      return {
+        plan: pool.plan,
+        attributedTo: `workspace:${pool.workspaceId}` as const,
+        periodStart: pool.subscription.currentPeriodStart ?? currentPeriodStart(now),
+        periodEnd: pool.subscription.validUntil ?? nextCalendarMonthStart(now),
+        virtualKey: memberKey.token,
+        attribution: 'workspace',
+        billingUserId: userId,
+        workspaceId: pool.workspaceId
+      }
+    }
+  }
 
   const selfPeriodStart = effectivePeriodStart({
     plan: effectiveCallerPlan,

@@ -121,7 +121,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'billing',
     label: 'Billing (only when paid plans are offered)',
     basis: 'contract',
-    dataCategories: ['stripe_customer_id', 'subscription_state', 'invoice_history', 'workspace_subscription_billing_admin'],
+    dataCategories: ['stripe_customer_id', 'subscription_state', 'invoice_history', 'workspace_subscription_billing_admin', 'workspace_member_ai_limits_and_spend'],
     retention: 'legal_minimum',
     subProcessors: ['stripe']
   },
