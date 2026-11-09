@@ -23,6 +23,13 @@ import { fileURLToPath } from 'node:url'
 //                            Postgres from docker-compose.dev.yml and a
 //                            running app. Opted-in via the `integration`
 //                            project; bun run test runs unit + dom + nuxt.
+// Node 25 defines its own global `localStorage` (Web Storage, on by
+// default), which shadows the DOM test environment's and has no methods
+// without `--localstorage-file` ("localStorage.setItem is not a
+// function"). The flag exists since Node 22; older Node needs nothing.
+const NODE_MAJOR = Number(process.versions.node.split('.')[0])
+const WORKER_EXEC_ARGV = NODE_MAJOR >= 22 ? ['--no-experimental-webstorage'] : []
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -40,6 +47,7 @@ export default defineConfig({
     noExternal: ['zod']
   },
   test: {
+    execArgv: WORKER_EXEC_ARGV,
     // Coverage config. V8 provider (no Istanbul transform — faster + no
     // source-map surprises).
     //
