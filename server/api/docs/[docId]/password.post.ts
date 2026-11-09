@@ -53,6 +53,7 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
     scope: 'doc',
     scopeId: docId,
     action: 'doc.password_set',
+    workspaceId: doc.workspaceId,
     before: { accessMode: doc.accessMode, hasPassword: !!doc.passwordHash },
     after: { accessMode: 'password-protected', hasPassword: true }
   })
@@ -160,6 +161,7 @@ async function handleRemove(event: H3Event, docId: string, doc: DocSnapshot) {
     scope: 'doc',
     scopeId: docId,
     action: 'doc.password_removed',
+    workspaceId: doc.workspaceId,
     before: { accessMode: doc.accessMode, hasPassword: !!doc.passwordHash },
     after: { accessMode: 'open-edit', hasPassword: false }
   })

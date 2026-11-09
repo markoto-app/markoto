@@ -1309,7 +1309,8 @@
       "knowledge": "Knowledge",
       "settings": "Settings",
       "billing": "Billing",
-      "sso": "Single sign-on"
+      "sso": "Single sign-on",
+      "audit": "Audit log"
     },
     "settings": {
       "title": "Workspace settings",
@@ -2351,5 +2352,62 @@
       "notFound": "Single sign-on isn't set up for this email address.",
       "failed": "Something went wrong. Try again."
     }
+  },
+  "audit": {
+    "title": "Audit log",
+    "intro": "Who changed what in this workspace, and when: members and roles, invitations, sharing and deletions, billing and single sign-on. The network address is shortened (the last part removed).",
+    "retention": "Events are kept for {days} days.",
+    "filter": "Show",
+    "from": "From",
+    "to": "Until",
+    "empty": "No events for this selection.",
+    "older": "Show older events",
+    "loadFailed": "Couldn't load the audit log.",
+    "system": "markoto",
+    "deletedUser": "Deleted user",
+    "ipHint": "Shortened network address of the person who did it",
+    "kind": {
+      "all": "All events",
+      "members": "Members and roles",
+      "invites": "Invitations",
+      "documents": "Documents",
+      "billing": "Billing",
+      "sso": "Single sign-on"
+    },
+    "actions": {
+      "workspace_member_removed": "Member removed",
+      "workspace_member_role_changed": "Role changed",
+      "workspace_invite_created": "Invitation sent",
+      "workspace_invite_revoked": "Invitation withdrawn",
+      "workspace_invite_accepted": "Invitation accepted",
+      "workspace_invite_declined": "Invitation declined",
+      "workspace_deleted": "Workspace deleted",
+      "workspace_audit_exported": "Audit log downloaded",
+      "workspace_member_ai_limit_changed": "Member AI limit changed",
+      "workspace_billing_checkout_started": "Plan purchase started",
+      "workspace_billing_plan_changed": "Plan changed",
+      "workspace_billing_seats_changed": "Seats changed",
+      "workspace_billing_admin_changed": "Billing admin changed",
+      "workspace_subscription_cancelled": "Subscription cancelled",
+      "doc_access_mode_changed": "Document sharing changed",
+      "doc_password_set": "Document password set",
+      "doc_password_removed": "Document password removed",
+      "doc_workspace_moved": "Document moved to another place",
+      "doc_deleted": "Document deleted",
+      "policy_accepted": "Terms accepted",
+      "sso_connection_saved": "Single sign-on settings changed",
+      "sso_connection_activated": "Single sign-on switched on",
+      "sso_connection_deleted": "Single sign-on removed",
+      "sso_domain_added": "Domain added",
+      "sso_domain_verified": "Domain verified",
+      "sso_domain_removed": "Domain removed",
+      "sso_sign_in": "Sign-in through the identity provider",
+      "sso_identity_linked": "Identity-provider account linked",
+      "sso_member_joined": "Member joined through single sign-on",
+      "sso_scim_token_rotated": "Provisioning token changed",
+      "sso_scim_user_created": "Member provisioned",
+      "sso_scim_user_deactivated": "Member deprovisioned"
+    },
+    "planNotice": "The audit log is part of the Business plan."
   }
 }

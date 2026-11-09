@@ -32,6 +32,8 @@ interface WorkspaceDetail {
     billing?: import('~/utils/workspaceBilling').WorkspaceSeatBilling | null
     /** Admins only (WP14). */
     sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
+    /** Admins only (WP15). */
+    auditLog?: { available: boolean } | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -97,8 +99,8 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing' | 'sso'
-const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : 'documents'
+type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing' | 'sso' | 'audit'
+const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : route.query.tab === 'audit' ? 'audit' : 'documents'
 const activeTab = ref<WorkspaceTab>(initialTab)
 const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
@@ -120,6 +122,10 @@ const tabItems = computed(() => {
   const sso = data.value?.workspace.sso
   if (isAdmin.value && sso && (sso.available || sso.status !== 'none')) {
     items.push({ label: t('workspace.tabs.sso'), icon: 'i-lucide-key-round', slot: 'sso', value: 'sso' })
+  }
+  // Audit log (WP15): admins of a plan that includes it.
+  if (isAdmin.value && data.value?.workspace.auditLog?.available) {
+    items.push({ label: t('workspace.tabs.audit'), icon: 'i-lucide-scroll-text', slot: 'audit', value: 'audit' })
   }
   if (isAdmin.value && billingEnabled.value) {
     items.push({ label: t('workspace.tabs.billing'), icon: 'i-lucide-credit-card', slot: 'billing', value: 'billing' })
@@ -616,6 +622,9 @@ async function leaveWorkspace() {
               :default-theme="data.workspace.defaultTheme"
               @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
             />
+          </template>
+          <template #audit>
+            <WorkspaceAuditPanel :workspace-id="data.workspace.workspaceId" />
           </template>
           <template #sso>
             <WorkspaceSsoPanel

@@ -245,7 +245,8 @@ export const HOSTED_FREE_TIER_LIMITS = {
   TIER_FREE_WEB_TOOLS_PER_DAY: '20',
   TIER_FREE_FEATURE_CUSTOM_CSS: 'false',
   // Per-workspace SSO is Business-only on markoto.app (WP14).
-  TIER_FREE_FEATURE_SSO: 'false'
+  TIER_FREE_FEATURE_SSO: 'false',
+  TIER_FREE_FEATURE_AUDIT_LOG: 'false'
 } as const
 
 async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<void> {

@@ -152,6 +152,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // than 2 years (`server/utils/legalRetentionSweep.ts`,
     // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
     // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
+    // Since WP15 the entries about a workspace are also shown to (and
+    // downloadable by) that workspace's admins when its plan includes
+    // the audit log — names and the truncated IPs included.
     id: 'security_audit_log',
     label: 'Security audit log',
     basis: 'legal_obligation',

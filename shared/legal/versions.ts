@@ -36,7 +36,9 @@
 // (not content), AI credits, Paid Plans Terms acceptance (WP6b).
 // v10 (2026-11-09): single sign-on through a workspace's own IdP + SCIM
 // provisioning (WP14): identifier, link, last sign-in, active state.
-export const PRIVACY_VERSION = 10
+// v11 (2026-11-09): workspace admins (audit-log plan feature) see and
+// export that workspace's audit entries incl. names + truncated IPs (WP15).
+export const PRIVACY_VERSION = 11
 export const PRIVACY_EFFECTIVE_DATE = '2026-11-09'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.

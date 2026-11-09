@@ -68,6 +68,9 @@ export default defineEventHandler(async (event) => {
     scope: 'doc',
     scopeId: docId,
     action: 'doc.workspace_moved',
+    // Shown in the workspace the document LEFT (the move out is that
+    // workspace's event; `after` names the new place).
+    workspaceId: authz.workspaceId,
     before: { workspaceId: authz.workspaceId },
     after: { workspaceId: target }
   })

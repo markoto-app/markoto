@@ -1309,7 +1309,8 @@
       "knowledge": "Conocimiento",
       "settings": "Configuración",
       "billing": "Facturación",
-      "sso": "Inicio de sesión único"
+      "sso": "Inicio de sesión único",
+      "audit": "Registro de auditoría"
     },
     "settings": {
       "title": "Configuración del espacio de trabajo",
@@ -2351,5 +2352,62 @@
       "notFound": "El inicio de sesión único no está configurado para esta dirección de correo electrónico.",
       "failed": "Algo salió mal. Inténtalo de nuevo."
     }
+  },
+  "audit": {
+    "title": "Registro de auditoría",
+    "intro": "Quién cambió qué en este espacio de trabajo y cuándo: miembros y roles, invitaciones, uso compartido y eliminaciones, facturación e inicio de sesión único. La dirección de red está abreviada (sin la última parte).",
+    "retention": "Los eventos se conservan {days} días.",
+    "filter": "Mostrar",
+    "from": "Desde",
+    "to": "Hasta",
+    "empty": "No hay eventos para esta selección.",
+    "older": "Mostrar eventos anteriores",
+    "loadFailed": "No se pudo cargar el registro de auditoría.",
+    "system": "markoto",
+    "deletedUser": "Usuario eliminado",
+    "ipHint": "Dirección de red abreviada de la persona que lo hizo",
+    "kind": {
+      "all": "Todos los eventos",
+      "members": "Miembros y roles",
+      "invites": "Invitaciones",
+      "documents": "Documentos",
+      "billing": "Facturación",
+      "sso": "Inicio de sesión único"
+    },
+    "actions": {
+      "workspace_member_removed": "Miembro eliminado",
+      "workspace_member_role_changed": "Rol cambiado",
+      "workspace_invite_created": "Invitación enviada",
+      "workspace_invite_revoked": "Invitación retirada",
+      "workspace_invite_accepted": "Invitación aceptada",
+      "workspace_invite_declined": "Invitación rechazada",
+      "workspace_deleted": "Espacio de trabajo eliminado",
+      "workspace_audit_exported": "Registro de auditoría descargado",
+      "workspace_member_ai_limit_changed": "Límite de IA de un miembro cambiado",
+      "workspace_billing_checkout_started": "Compra de plan iniciada",
+      "workspace_billing_plan_changed": "Plan cambiado",
+      "workspace_billing_seats_changed": "Puestos cambiados",
+      "workspace_billing_admin_changed": "Administrador de facturación cambiado",
+      "workspace_subscription_cancelled": "Suscripción cancelada",
+      "doc_access_mode_changed": "Uso compartido del documento cambiado",
+      "doc_password_set": "Contraseña del documento establecida",
+      "doc_password_removed": "Contraseña del documento quitada",
+      "doc_workspace_moved": "Documento movido a otro lugar",
+      "doc_deleted": "Documento eliminado",
+      "policy_accepted": "Condiciones aceptadas",
+      "sso_connection_saved": "Configuración del inicio de sesión único cambiada",
+      "sso_connection_activated": "Inicio de sesión único activado",
+      "sso_connection_deleted": "Inicio de sesión único quitado",
+      "sso_domain_added": "Dominio añadido",
+      "sso_domain_verified": "Dominio verificado",
+      "sso_domain_removed": "Dominio quitado",
+      "sso_sign_in": "Inicio de sesión a través del proveedor de identidad",
+      "sso_identity_linked": "Cuenta del proveedor de identidad vinculada",
+      "sso_member_joined": "Miembro unido mediante inicio de sesión único",
+      "sso_scim_token_rotated": "Token de aprovisionamiento cambiado",
+      "sso_scim_user_created": "Miembro aprovisionado",
+      "sso_scim_user_deactivated": "Miembro desaprovisionado"
+    },
+    "planNotice": "El registro de auditoría forma parte del plan Business."
   }
 }

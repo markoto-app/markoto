@@ -1309,7 +1309,8 @@
       "knowledge": "知识库",
       "settings": "设置",
       "billing": "账单",
-      "sso": "单点登录"
+      "sso": "单点登录",
+      "audit": "审计日志"
     },
     "settings": {
       "title": "工作区设置",
@@ -2351,5 +2352,62 @@
       "notFound": "此邮箱地址未设置单点登录。",
       "failed": "出了点问题。请重试。"
     }
+  },
+  "audit": {
+    "title": "审计日志",
+    "intro": "记录谁在何时更改了此工作区中的什么：成员和角色、邀请、共享和删除、账单以及单点登录。网络地址已缩短（去掉了最后一部分）。",
+    "retention": "事件保留 {days} 天。",
+    "filter": "显示",
+    "from": "从",
+    "to": "至",
+    "empty": "此筛选条件下没有事件。",
+    "older": "显示更早的事件",
+    "loadFailed": "无法加载审计日志。",
+    "system": "markoto",
+    "deletedUser": "已删除的用户",
+    "ipHint": "执行操作者的缩短网络地址",
+    "kind": {
+      "all": "所有事件",
+      "members": "成员和角色",
+      "invites": "邀请",
+      "documents": "文档",
+      "billing": "账单",
+      "sso": "单点登录"
+    },
+    "actions": {
+      "workspace_member_removed": "成员已移除",
+      "workspace_member_role_changed": "角色已更改",
+      "workspace_invite_created": "邀请已发送",
+      "workspace_invite_revoked": "邀请已撤回",
+      "workspace_invite_accepted": "邀请已接受",
+      "workspace_invite_declined": "邀请已拒绝",
+      "workspace_deleted": "工作区已删除",
+      "workspace_audit_exported": "审计日志已下载",
+      "workspace_member_ai_limit_changed": "成员的 AI 限额已更改",
+      "workspace_billing_checkout_started": "已开始购买方案",
+      "workspace_billing_plan_changed": "方案已更改",
+      "workspace_billing_seats_changed": "席位已更改",
+      "workspace_billing_admin_changed": "账单管理员已更改",
+      "workspace_subscription_cancelled": "订阅已取消",
+      "doc_access_mode_changed": "文档共享已更改",
+      "doc_password_set": "已设置文档密码",
+      "doc_password_removed": "已移除文档密码",
+      "doc_workspace_moved": "文档已移至其他位置",
+      "doc_deleted": "文档已删除",
+      "policy_accepted": "已接受条款",
+      "sso_connection_saved": "单点登录设置已更改",
+      "sso_connection_activated": "单点登录已开启",
+      "sso_connection_deleted": "单点登录已移除",
+      "sso_domain_added": "已添加域名",
+      "sso_domain_verified": "域名已验证",
+      "sso_domain_removed": "已移除域名",
+      "sso_sign_in": "通过身份提供商登录",
+      "sso_identity_linked": "身份提供商账号已关联",
+      "sso_member_joined": "成员通过单点登录加入",
+      "sso_scim_token_rotated": "预配令牌已更改",
+      "sso_scim_user_created": "成员已预配",
+      "sso_scim_user_deactivated": "成员已取消预配"
+    },
+    "planNotice": "审计日志是 Business 方案的功能。"
   }
 }

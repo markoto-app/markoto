@@ -837,12 +837,19 @@ export const auditLog = pgTable('audit_log', {
   after: jsonb('after'),
   // Free-form context. Examples: { reason: 'workspace_cascade' },
   // { affectedUserId: 42 }, { stripeEventId: 'evt_xxx' }.
-  metadata: jsonb('metadata')
+  metadata: jsonb('metadata'),
+  // The workspace the event belongs to (WP15: the workspace audit-log
+  // viewer). Set for every `workspace` / `billing` event (= scope_id) and
+  // for document events of a workspace document (the workspace at the
+  // time). Plain text, no FK: the record outlives the workspace.
+  workspaceId: text('workspace_id')
 }, t => [
   // Most queries are "show me audit events for this scoped entity".
   index('idx_audit_scope').on(t.scope, t.scopeId, t.ts.desc()),
   // "Show me everything actor X did" — for investigating compromised accounts.
-  index('idx_audit_actor').on(t.actorUserId, t.ts.desc())
+  index('idx_audit_actor').on(t.actorUserId, t.ts.desc()),
+  // The workspace audit-log viewer + export (WP15).
+  index('idx_audit_workspace').on(t.workspaceId, t.ts.desc())
 ])
 
 // Stripe webhook event-id dedup table. Stripe redelivers webhooks on

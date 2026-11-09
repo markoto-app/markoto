@@ -1309,7 +1309,8 @@
       "knowledge": "Wissen",
       "settings": "Einstellungen",
       "billing": "Abrechnung",
-      "sso": "Single Sign-on"
+      "sso": "Single Sign-on",
+      "audit": "Audit-Log"
     },
     "settings": {
       "title": "Workspace-Einstellungen",
@@ -2351,5 +2352,62 @@
       "notFound": "Für diese E-Mail-Adresse ist kein Single Sign-on eingerichtet.",
       "failed": "Etwas ist schiefgelaufen. Versuchen Sie es noch einmal."
     }
+  },
+  "audit": {
+    "title": "Audit-Log",
+    "intro": "Wer in diesem Workspace was wann geändert hat: Mitglieder und Rollen, Einladungen, Freigaben und Löschungen, Abrechnung und Single Sign-on. Die Netzwerkadresse ist gekürzt (der letzte Teil entfernt).",
+    "retention": "Ereignisse werden {days} Tage lang aufbewahrt.",
+    "filter": "Anzeigen",
+    "from": "Von",
+    "to": "Bis",
+    "empty": "Keine Ereignisse für diese Auswahl.",
+    "older": "Ältere Ereignisse anzeigen",
+    "loadFailed": "Der Audit-Log konnte nicht geladen werden.",
+    "system": "markoto",
+    "deletedUser": "Gelöschter Benutzer",
+    "ipHint": "Gekürzte Netzwerkadresse der Person, die die Aktion ausgeführt hat",
+    "kind": {
+      "all": "Alle Ereignisse",
+      "members": "Mitglieder und Rollen",
+      "invites": "Einladungen",
+      "documents": "Dokumente",
+      "billing": "Abrechnung",
+      "sso": "Single Sign-on"
+    },
+    "actions": {
+      "workspace_member_removed": "Mitglied entfernt",
+      "workspace_member_role_changed": "Rolle geändert",
+      "workspace_invite_created": "Einladung gesendet",
+      "workspace_invite_revoked": "Einladung zurückgezogen",
+      "workspace_invite_accepted": "Einladung angenommen",
+      "workspace_invite_declined": "Einladung abgelehnt",
+      "workspace_deleted": "Workspace gelöscht",
+      "workspace_audit_exported": "Audit-Log heruntergeladen",
+      "workspace_member_ai_limit_changed": "KI-Limit eines Mitglieds geändert",
+      "workspace_billing_checkout_started": "Plankauf gestartet",
+      "workspace_billing_plan_changed": "Plan geändert",
+      "workspace_billing_seats_changed": "Plätze geändert",
+      "workspace_billing_admin_changed": "Abrechnungsadmin geändert",
+      "workspace_subscription_cancelled": "Abo gekündigt",
+      "doc_access_mode_changed": "Freigabe des Dokuments geändert",
+      "doc_password_set": "Dokumentpasswort gesetzt",
+      "doc_password_removed": "Dokumentpasswort entfernt",
+      "doc_workspace_moved": "Dokument an anderen Ort verschoben",
+      "doc_deleted": "Dokument gelöscht",
+      "policy_accepted": "Bedingungen akzeptiert",
+      "sso_connection_saved": "Einstellungen für Single Sign-on geändert",
+      "sso_connection_activated": "Single Sign-on eingeschaltet",
+      "sso_connection_deleted": "Single Sign-on entfernt",
+      "sso_domain_added": "Domain hinzugefügt",
+      "sso_domain_verified": "Domain bestätigt",
+      "sso_domain_removed": "Domain entfernt",
+      "sso_sign_in": "Anmeldung über den Identitätsanbieter",
+      "sso_identity_linked": "Konto beim Identitätsanbieter verknüpft",
+      "sso_member_joined": "Mitglied über Single Sign-on beigetreten",
+      "sso_scim_token_rotated": "Provisioning-Token geändert",
+      "sso_scim_user_created": "Mitglied bereitgestellt (Provisioning)",
+      "sso_scim_user_deactivated": "Mitglied entfernt (Deprovisioning)"
+    },
+    "planNotice": "Der Audit-Log ist Teil des Business-Plans."
   }
 }
