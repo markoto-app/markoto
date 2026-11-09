@@ -5,6 +5,7 @@ import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-uti
 import { flushPromises } from '@vue/test-utils'
 import { WorkspaceBillingPanel, WorkspaceMembersModal } from '#components'
 import { DEFAULT_PLAN_PRICES, CURRENCIES, type PlanPricesResponse } from '~~/shared/config/pricing'
+import type { H3Event } from 'h3'
 import type { WorkspaceBillingOverview } from '~/utils/workspaceBilling'
 
 // Team / Business workspace billing UI (WP3): the admin billing tab and
@@ -21,7 +22,7 @@ registerEndpoint('/api/workspaces/ws1/billing', () => overview)
 
 const posts: Array<{ path: string, body: unknown }> = []
 let memberPostFails = 0
-async function readJson(event: Parameters<Parameters<typeof registerEndpoint>[1] extends { handler: infer H } ? H : never>[0]) {
+async function readJson(event: H3Event) {
   const { readBody } = await import('h3')
   return readBody(event)
 }
@@ -165,7 +166,7 @@ describe('invite dialog — paid seats', () => {
         return () => h(WorkspaceMembersModal, {
           'workspaceId': 'ws1',
           'workspaceName': 'Acme',
-          'members': [{ userId: 1, name: 'Ada', role: 'admin' }],
+          'members': [{ userId: 1, name: 'Ada', email: null, login: null, role: 'admin' }],
           'myRole': 'admin',
           'myUserId': 1,
           'billing': { seats: 3, seatsUsed: 3, status: 'active', plan: 'team', interval: 'month', currency: 'eur' },

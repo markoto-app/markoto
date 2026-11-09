@@ -8,6 +8,7 @@ import type { Currency, PriceIdentity } from '~~/shared/config/pricing'
 import { identifyStripePrice } from './stripePrices'
 import { getPooledWorkspace } from './workspaceBilling'
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from './litellm/workspaceTeams'
+import { notifyWorkspaceAdmins } from './email/workspaceBillingEmails'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
 
@@ -347,6 +348,15 @@ export async function handleSubscriptionUpdated(
     }
     await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId: subject.workspaceId, sub, identity, customerId })
     deferWorkspaceTeamSync(opts.deferAfterCommit, subject.workspaceId)
+    // Cancelled to the period end (portal, or no billing admin left):
+    // tell the admins once per subscription + period.
+    if (sub.cancel_at_period_end) {
+      const end = itemPeriod(item).end
+      const workspaceId = subject.workspaceId
+      opts.deferAfterCommit?.push(async () => {
+        await notifyWorkspaceAdmins({ workspaceId, kind: 'ending', date: end, onceKey: `ending:${sub.id}:${end?.getTime() ?? 0}` })
+      })
+    }
     return { matched: 1, plan: identity.plan }
   }
 
@@ -414,6 +424,10 @@ export async function handleSubscriptionDeleted(
     // The team + member keys stay (unused while not entitled: members
     // fall back to their personal keys); a resubscription reuses them and
     // workspace deletion removes them (`endWorkspaceBilling`).
+    const workspaceId = subject.workspaceId
+    deferAfterCommit?.push(async () => {
+      await notifyWorkspaceAdmins({ workspaceId, kind: 'ended', onceKey: `ended:${sub.id}` })
+    })
     return { matched: result.length }
   }
 
@@ -516,10 +530,24 @@ export async function handleInvoicePaid(
  * `customer.subscription.deleted` if every retry fails).
  */
 export async function handleInvoicePaymentFailed(
-  event: Stripe.InvoicePaymentFailedEvent
+  event: Stripe.InvoicePaymentFailedEvent,
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
+  // Team / Business: Stripe retries for about two weeks; the admins hear
+  // about the FIRST failure (WP3). Personal plans: Stripe's own dunning
+  // emails cover it.
+  if (customerId && (invoice.attempt_count ?? 1) <= 1) {
+    const subject = await subjectForCustomer(customerId, db ?? useDatabase())
+    if (subject?.kind === 'workspace') {
+      const workspaceId = subject.workspaceId
+      deferAfterCommit?.push(async () => {
+        await notifyWorkspaceAdmins({ workspaceId, kind: 'payment_failed', onceKey: `payment_failed:${invoice.id}` })
+      })
+    }
+  }
   const msg = `[stripe/webhook] payment failed for customer=${customerId} invoice=${invoice.id} attempt=${invoice.attempt_count}`
   console.warn(msg)
   Sentry.captureMessage(msg, {
@@ -555,7 +583,7 @@ async function runHandler(
     case 'invoice.paid':
       return { handled: true, detail: await handleInvoicePaid(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.payment_failed':
-      return { handled: true, detail: await handleInvoicePaymentFailed(event) }
+      return { handled: true, detail: await handleInvoicePaymentFailed(event, opts.db, opts.deferAfterCommit) }
     default:
       // Unhandled events are OK — Stripe sends dozens of types we
       // don't care about. Log + acknowledge so Stripe stops retrying.

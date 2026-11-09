@@ -7,6 +7,7 @@ import { changeWorkspaceSeats } from '../../../../utils/workspaceStripe'
 import { countSeatsUsed, getPooledWorkspace, parseSeats, requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED } from '../../../../legal/auditActions'
+import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
 
 // POST /api/workspaces/:wsId/billing/seats — change the paid seat count
 // of a live Team / Business subscription (WP3). Workspace admins only.
@@ -66,5 +67,10 @@ export default defineEventHandler(async (event) => {
     after: { seats },
     metadata: undefined
   })
+  // More seats bought by an admin who isn't the billing admin: tell the
+  // one who pays.
+  if (seats > row.seats && row.billingAdminId !== null && row.billingAdminId !== session.user.id) {
+    void notifyWorkspaceAdmins({ workspaceId: wsId, kind: 'seat_added', onlyUserIds: [row.billingAdminId], vars: { seats, actor: session.user.name } })
+  }
   return { seats }
 })

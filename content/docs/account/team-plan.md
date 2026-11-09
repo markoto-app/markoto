@@ -34,7 +34,8 @@ billing admin.
 
 Every member and every open invitation takes a seat. When all seats are
 taken, inviting someone asks first: **This adds a seat**, charged pro rata
-on the next invoice. You can also change the number of seats on the Billing
+on the next invoice. If another admin adds a seat, the billing admin gets
+an email. You can also change the number of seats on the Billing
 tab. Fewer seats are credited on the next invoice, but there can never be
 fewer seats than people in the workspace: remove someone first.
 
@@ -46,8 +47,9 @@ default a member may use up to two seats' worth of it; an admin can set a
 different limit per person, or none (the workspace budget still applies).
 The Billing tab shows what the workspace and each member used this month.
 
-When the budget or your own limit is used up, the AI tells you and asks you
-to contact an admin. In your personal documents and in other workspaces you
+Admins get an email when the workspace has used 80 % and 100 % of the
+month's budget. When the budget or your own limit is used up, the AI tells
+you and asks you to contact an admin. In your personal documents and in other workspaces you
 use your own plan and budget, as before. Someone who isn't a member but
 edits an open document of the workspace uses their own budget too.
 
@@ -63,8 +65,8 @@ uploader's personal storage.
   Billing tab. The change applies straight away, prorated.
 - **Manage billing** opens Stripe's billing portal: invoices, payment
   method, cancelling.
-- If a payment fails, admins see a notice in the workspace while Stripe
-  retries. If the subscription ends, the workspace falls back to the plan
+- If a payment fails, admins get an email and see a notice in the
+  workspace while Stripe retries. If the subscription ends, the workspace falls back to the plan
   of the person who created it. Nothing is deleted.
 - Deleting the workspace cancels its subscription.
 - If the billing admin deletes their account, the role passes to the

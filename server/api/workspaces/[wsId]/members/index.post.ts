@@ -13,6 +13,7 @@ import { getPooledWorkspace, seatsFullError } from '../../../../utils/workspaceB
 import { changeWorkspaceSeats } from '../../../../utils/workspaceStripe'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { useStripeClient } from '../../../../utils/stripeClient'
+import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
 import { safeSendTransactionalEmail } from '../../../../utils/email/sendEmail'
 import { emailLinkBaseUrl } from '../../../../utils/siteUrl'
 import {
@@ -140,6 +141,16 @@ export default defineEventHandler(async (event) => {
         after: { seats },
         metadata: { reason: 'invite' }
       })
+      // The billing admin pays: tell them when another admin added a seat.
+      const billingAdminId = pool.subscription.billingAdminId
+      if (billingAdminId !== null && billingAdminId !== session.user.id) {
+        void notifyWorkspaceAdmins({
+          workspaceId: wsId,
+          kind: 'seat_added',
+          onlyUserIds: [billingAdminId],
+          vars: { seats, actor: session.user.name }
+        })
+      }
     }
   }
 
