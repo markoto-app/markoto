@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
+import { isPaymentProblem } from '~/utils/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
 
 const { t } = useI18n()
@@ -25,6 +26,10 @@ interface WorkspaceDetail {
     // Read by NewDocumentDialog when seeding the theme card grid for
     // docs created in this workspace.
     defaultTheme: import('~~/shared/types/theme').DocTheme | null
+    // A Team / Business subscription currently covers the workspace.
+    pooled?: boolean
+    // Admins only: seats + status of the subscription (WP3).
+    billing?: import('~/utils/workspaceBilling').WorkspaceSeatBilling | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -82,9 +87,12 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-const activeTab = ref<'documents' | 'knowledge' | 'settings'>('documents')
+type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing'
+const initialTab = route.query.tab === 'billing' || route.query.billing ? 'billing' : 'documents'
+const activeTab = ref<WorkspaceTab>(initialTab)
+const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
-  const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'settings', value: string }> = [
+  const items: Array<{ label: string, icon?: string, slot: WorkspaceTab, value: string }> = [
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
@@ -95,7 +103,32 @@ const tabItems = computed(() => {
   if (isAdmin.value) {
     items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
   }
+  // Team / Business billing (WP3): admins, and only where something can
+  // be bought. Members never see prices.
+  if (isAdmin.value && billingEnabled.value) {
+    items.push({ label: t('workspace.tabs.billing'), icon: 'i-lucide-credit-card', slot: 'billing', value: 'billing' })
+  }
   return items
+})
+
+// Badge next to the workspace name: which plan covers it.
+const planBadge = computed(() => {
+  const plan = data.value?.workspace.plan
+  if (!data.value?.workspace.pooled || (plan !== 'team' && plan !== 'business')) return null
+  return plan === 'team' ? 'Team' : 'Business'
+})
+const paymentProblem = computed(() => isPaymentProblem(data.value?.workspace.billing?.status))
+
+// Back from Stripe Checkout (`?billing=success|cancelled`): say so once,
+// then drop the query so a reload doesn't repeat it.
+tryOnMounted(() => {
+  const outcome = route.query.billing
+  if (outcome === 'success') {
+    toast.add({ title: t('workspace.billing.checkoutSuccess'), description: t('workspace.billing.checkoutSuccessBody'), icon: 'i-lucide-check', color: 'neutral' })
+  } else if (outcome === 'cancelled') {
+    toast.add({ title: t('workspace.billing.checkoutCancelled'), icon: 'i-lucide-x', color: 'neutral' })
+  }
+  if (route.query.billing || route.query.tab) void router.replace({ query: {} })
 })
 
 // Same dialog flow as the home page; just pass our workspaceId so the
@@ -360,7 +393,26 @@ async function leaveWorkspace() {
               >
                 {{ myRole === 'editor' ? t('workspace.roles.editor') : t('workspace.roles.viewer') }}
               </UBadge>
+              <UBadge
+                v-if="planBadge"
+                size="xs"
+                color="neutral"
+                variant="outline"
+                data-testid="workspace-plan-badge"
+              >
+                {{ planBadge }}
+              </UBadge>
             </div>
+            <UAlert
+              v-if="isAdmin && paymentProblem"
+              class="mt-3"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-triangle"
+              :title="t('workspace.billing.paymentProblemTitle')"
+              :description="t('workspace.billing.paymentProblemBody')"
+              data-testid="workspace-payment-problem"
+            />
             <p
               v-if="data.workspace.description"
               class="text-sm text-muted mt-2 whitespace-pre-line"
@@ -509,6 +561,12 @@ async function leaveWorkspace() {
               @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
             />
           </template>
+          <template #billing>
+            <WorkspaceBillingPanel
+              :workspace-id="data.workspace.workspaceId"
+              @changed="loadWorkspace()"
+            />
+          </template>
         </UTabs>
       </div>
     </main>
@@ -540,6 +598,8 @@ async function leaveWorkspace() {
       :my-role="data.workspace.myRole"
       :my-user-id="myUserId"
       :focus-invite="membersFocusInvite"
+      :billing="data.workspace.billing ?? null"
+      @billing-changed="loadWorkspace()"
       @updated="onMembersUpdated"
       @leave="onLeftWorkspace"
     />

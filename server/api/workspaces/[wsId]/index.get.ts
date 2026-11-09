@@ -2,6 +2,9 @@ import { getWorkspace } from '../../../repos/workspaces'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
 import { resolveWorkspacePlan } from '../../../utils/entitlements'
+import { countSeatsUsed, getPooledWorkspace } from '../../../utils/workspaceBilling'
+import { getWorkspaceSubscription } from '../../../repos/workspaceSubscriptions'
+import { isBillingEnabled } from '../../../utils/billingMode'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
 // row, the complete doc list (every doc in the workspace — not just the
@@ -26,10 +29,26 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Workspace not found' })
   }
 
-  const [documents, members] = await Promise.all([
+  const [documents, members, pool] = await Promise.all([
     listWorkspaceDocsWithOwnerFlag(wsId, userId),
-    listMembers(wsId)
+    listMembers(wsId),
+    getPooledWorkspace(wsId)
   ])
+  // Team / Business (WP3), admins only: the seat counter in the invite
+  // dialog and the payment-problem notice in the header. Members never
+  // see billing state.
+  let billing: { seats: number, seatsUsed: number, status: string, plan: string, interval: string, currency: string } | null = null
+  if (myRole === 'admin' && isBillingEnabled()) {
+    const sub = pool?.subscription ?? await getWorkspaceSubscription(wsId)
+    if (sub?.stripeSubscriptionId) billing = {
+      seats: sub.seats,
+      seatsUsed: await countSeatsUsed(wsId),
+      status: sub.status,
+      plan: sub.plan,
+      interval: sub.interval,
+      currency: sub.currency
+    }
+  }
 
   return {
     workspace: {
@@ -46,7 +65,10 @@ export default defineEventHandler(async (event) => {
       // this workspace. NULL = use the global markoto preset. Surfaced
       // to all members so the new-doc dialog seeds correctly even for
       // editors/viewers (visibility ≠ ability to change it).
-      defaultTheme: ws.defaultTheme
+      defaultTheme: ws.defaultTheme,
+      // Whether a Team / Business subscription currently covers it.
+      pooled: pool !== null,
+      billing
     },
     documents,
     members

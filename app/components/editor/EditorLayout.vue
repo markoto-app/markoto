@@ -1651,6 +1651,7 @@ const _statusIcon = computed(() => {
         <AIPromptBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :ai="ai"
+          :workspace-id="docWorkspaceId"
         />
 
         <!-- Mobile bottom tab bar — the single navigation surface for

@@ -545,8 +545,8 @@
     "budgetExhaustedDescription": "Has usado todos tus créditos de IA de este período de facturación. Mejora tu plan para seguir.",
     "exhaustedPlaceholder": "Sin créditos de IA — mejora tu plan para continuar",
     "workspaceBudgetExhaustedTitle": "Presupuesto de IA del espacio de trabajo agotado",
-    "workspaceBudgetExhaustedDescription": "El presupuesto de IA compartido de este espacio de trabajo está agotado para el período de facturación actual. Contacta con el propietario del espacio de trabajo para recargar o mejorar el plan.",
-    "workspaceExhaustedPlaceholder": "Presupuesto de IA del espacio de trabajo agotado — contacta con el propietario",
+    "workspaceBudgetExhaustedDescription": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
+    "workspaceExhaustedPlaceholder": "Presupuesto de IA del espacio agotado; pide a un admin",
     "upgradeCta": "Mejorar plan",
     "remainingLabel": "Quedan {remaining} de {limit} créditos de IA este mes",
     "responseLabel": "markoto dice",
@@ -565,7 +565,12 @@
     "freeAllowanceExhaustedTitle": "Asignación gratuita de IA agotada",
     "freeAllowanceExhausted": "La asignación gratuita de IA de este mes se ha agotado. Añade tu propia clave en Ajustes → Proveedor de IA para continuar.",
     "freeAllowanceCta": "Añadir tu clave",
-    "freeAllowanceExhaustedPlaceholder": "La asignación gratuita de IA de este mes se ha agotado: añade tu propia clave para continuar"
+    "freeAllowanceExhaustedPlaceholder": "La asignación gratuita de IA de este mes se ha agotado: añade tu propia clave para continuar",
+    "memberLimitReachedTitle": "Has alcanzado tu límite de IA",
+    "memberLimitReachedDescription": "Has usado tu límite de IA en este espacio este mes. Pide a un admin del espacio que lo aumente.",
+    "memberLimitPlaceholder": "Tu límite de IA aquí está agotado; pide a un admin",
+    "teamBudgetExhausted": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
+    "memberLimitReached": "Has alcanzado tu límite de IA en este espacio este mes. Pide a un admin que lo aumente."
   },
   "mobileTabBar": {
     "label": "Paneles del documento",
@@ -1230,7 +1235,8 @@
     "tabs": {
       "documents": "Documentos",
       "knowledge": "Conocimiento",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "billing": "Facturación"
     },
     "settings": {
       "title": "Configuración del espacio de trabajo",
@@ -1341,7 +1347,65 @@
         "home": "Ir al panel"
       }
     },
-    "actions": "Acciones del espacio de trabajo"
+    "actions": "Acciones del espacio de trabajo",
+    "billing": {
+      "title": "Facturación",
+      "loading": "Cargando la facturación…",
+      "loadFailed": "No se pudo cargar la facturación",
+      "paymentProblemTitle": "Problema con el pago",
+      "paymentProblemBody": "El último pago de este espacio de trabajo falló. Stripe lo volverá a intentar; actualiza el método de pago en «Gestionar facturación» para conservar las funciones de Team.",
+      "buyTitle": "Mejorar este espacio de trabajo",
+      "buyBody": "Team y Business se pagan por puesto. Todas las personas del espacio tienen dentro de él las funciones del plan, con un presupuesto mensual de IA compartido.",
+      "planLabel": "Plan",
+      "seatsLabel": "Puestos",
+      "seatsHint": "Al menos {min} (todas las personas del espacio, invitaciones incluidas)",
+      "totalPerMonth": "{total} al mes ({seats} puestos × {price})",
+      "totalPerYear": "{total} al año ({seats} puestos × {price})",
+      "continueToPayment": "Continuar al pago",
+      "buyFootnote": "Pagas con Stripe. Pasas a ser admin de facturación de este espacio y puedes cambiar los puestos o cancelar en cualquier momento.",
+      "currentPlan": "Plan actual",
+      "annual": "anual",
+      "monthly": "mensual",
+      "renews": "Se renueva el {date}",
+      "manage": "Gestionar facturación",
+      "seatCounter": "{used} de {seats} puestos ocupados",
+      "updateSeats": "Cambiar puestos",
+      "seatsFootnote": "Los puestos adicionales se cobran de forma proporcional en la próxima factura; los que quitas se abonan. No puede haber menos puestos que personas en el espacio.",
+      "switchToBusiness": "Cambiar a Business",
+      "switchToTeam": "Cambiar a Team",
+      "switchToAnnual": "Cambiar a facturación anual",
+      "switchToMonthly": "Cambiar a facturación mensual",
+      "aiTitle": "IA este mes",
+      "teamSpend": "{spent} de {budget} usados",
+      "resets": "se reinicia el {date}",
+      "storage": "Almacenamiento compartido: {knowledge} para archivos de conocimiento, {images} para imágenes.",
+      "memberSpend": "{spent} usados · límite {limit}",
+      "noLimitShort": "ninguno",
+      "limitDefault": "Límite por defecto",
+      "limitCustom": "Límite propio",
+      "limitNone": "Sin límite",
+      "limitSaved": "Límite guardado",
+      "limitSaveFailed": "No se pudo guardar el límite",
+      "limitFootnote": "Por defecto, cada miembro puede usar hasta {amount} al mes. «Sin límite» se detiene igualmente en el presupuesto del espacio.",
+      "checkoutFailed": "No se pudo iniciar el pago",
+      "planChanged": "Plan cambiado",
+      "planChangeFailed": "No se pudo cambiar el plan",
+      "seatsChanged": "Puestos cambiados a {seats}",
+      "seatsChangeFailed": "No se pudieron cambiar los puestos",
+      "portalFailed": "No se pudo abrir la facturación",
+      "checkoutSuccess": "Pago recibido",
+      "checkoutSuccessBody": "El plan se activa en cuanto Stripe lo confirma, normalmente en pocos segundos.",
+      "checkoutCancelled": "Pago cancelado",
+      "addSeatTitle": "Los {seats} puestos están ocupados",
+      "addSeatBody": "Invitar a {email} añade un puesto al plan de este espacio, cobrado de forma proporcional en la próxima factura.",
+      "addSeatConfirm": "Añadir un puesto e invitar",
+      "pricePerSeatMonth": "Un puesto cuesta {price} al mes.",
+      "pricePerSeatYear": "Un puesto cuesta {price} al año.",
+      "errors": {
+        "seatsFull": "Todos los puestos pagados están ocupados. Añade un puesto para invitar a alguien más.",
+        "seatsBelowMembers": "Hay más personas que puestos en este espacio. Quita a alguien o mantén más puestos."
+      }
+    }
   },
   "knowledge": {
     "title": "Base de conocimiento",

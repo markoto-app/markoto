@@ -545,8 +545,8 @@
     "budgetExhaustedDescription": "你已用完本计费周期的全部 AI 额度。升级套餐即可继续。",
     "exhaustedPlaceholder": "AI 额度已用尽 — 升级以继续",
     "workspaceBudgetExhaustedTitle": "工作区 AI 额度已用尽",
-    "workspaceBudgetExhaustedDescription": "本工作区在当前计费周期的共享 AI 额度已用尽。请联系工作区所有者充值或升级。",
-    "workspaceExhaustedPlaceholder": "工作区 AI 额度已用尽 — 请联系所有者",
+    "workspaceBudgetExhaustedDescription": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
+    "workspaceExhaustedPlaceholder": "工作区 AI 预算已用完——请联系管理员",
     "upgradeCta": "升级",
     "remainingLabel": "本月剩余 {remaining}/{limit} AI 额度",
     "responseLabel": "markoto 说",
@@ -565,7 +565,12 @@
     "freeAllowanceExhaustedTitle": "免费 AI 额度已用完",
     "freeAllowanceExhausted": "本月的免费 AI 额度已用完。请在 设置 → AI 服务商 中添加你自己的密钥以继续使用。",
     "freeAllowanceCta": "添加自己的密钥",
-    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完——添加你自己的密钥即可继续"
+    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完——添加你自己的密钥即可继续",
+    "memberLimitReachedTitle": "已达到你的 AI 上限",
+    "memberLimitReachedDescription": "你本月在此工作区的 AI 上限已用完。请让工作区管理员提高上限。",
+    "memberLimitPlaceholder": "你在此处的 AI 上限已用完——请联系管理员",
+    "teamBudgetExhausted": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
+    "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。"
   },
   "mobileTabBar": {
     "label": "文档面板",
@@ -1230,7 +1235,8 @@
     "tabs": {
       "documents": "文档",
       "knowledge": "知识库",
-      "settings": "设置"
+      "settings": "设置",
+      "billing": "账单"
     },
     "settings": {
       "title": "工作区设置",
@@ -1341,7 +1347,65 @@
         "home": "前往控制台"
       }
     },
-    "actions": "工作区操作"
+    "actions": "工作区操作",
+    "billing": {
+      "title": "账单",
+      "loading": "正在加载账单…",
+      "loadFailed": "无法加载账单",
+      "paymentProblemTitle": "付款问题",
+      "paymentProblemBody": "此工作区的上一次付款失败。Stripe 会重试；请在“管理账单”中更新付款方式，以保留 Team 功能。",
+      "buyTitle": "升级此工作区",
+      "buyBody": "Team 和 Business 按席位付费。工作区中的每个人都能在其中使用该方案的功能，并共享每月的 AI 预算。",
+      "planLabel": "方案",
+      "seatsLabel": "席位",
+      "seatsHint": "至少 {min} 个（工作区中的所有人，包括待接受的邀请）",
+      "totalPerMonth": "每月 {total}（{seats} 个席位 × {price}）",
+      "totalPerYear": "每年 {total}（{seats} 个席位 × {price}）",
+      "continueToPayment": "继续付款",
+      "buyFootnote": "通过 Stripe 付款。你将成为此工作区的账单管理员，可随时更改席位或取消。",
+      "currentPlan": "当前方案",
+      "annual": "按年",
+      "monthly": "按月",
+      "renews": "将于 {date} 续订",
+      "manage": "管理账单",
+      "seatCounter": "已使用 {used} / {seats} 个席位",
+      "updateSeats": "更改席位",
+      "seatsFootnote": "增加的席位按比例计入下一张账单，减少的席位会抵扣。席位数不能少于工作区中的人数。",
+      "switchToBusiness": "改为 Business",
+      "switchToTeam": "改为 Team",
+      "switchToAnnual": "改为按年付费",
+      "switchToMonthly": "改为按月付费",
+      "aiTitle": "本月 AI",
+      "teamSpend": "已使用 {spent} / {budget}",
+      "resets": "{date} 重置",
+      "storage": "共享存储：知识文件 {knowledge}，图片 {images}。",
+      "memberSpend": "已使用 {spent} · 上限 {limit}",
+      "noLimitShort": "无",
+      "limitDefault": "默认上限",
+      "limitCustom": "自定义上限",
+      "limitNone": "无上限",
+      "limitSaved": "已保存上限",
+      "limitSaveFailed": "无法保存上限",
+      "limitFootnote": "默认情况下，每位成员每月最多可使用 {amount}。“无上限”仍受工作区预算限制。",
+      "checkoutFailed": "无法开始付款",
+      "planChanged": "方案已更改",
+      "planChangeFailed": "无法更改方案",
+      "seatsChanged": "席位已改为 {seats}",
+      "seatsChangeFailed": "无法更改席位",
+      "portalFailed": "无法打开账单",
+      "checkoutSuccess": "已收到付款",
+      "checkoutSuccessBody": "Stripe 确认后方案即生效，通常只需几秒钟。",
+      "checkoutCancelled": "付款已取消",
+      "addSeatTitle": "{seats} 个席位已全部占用",
+      "addSeatBody": "邀请 {email} 会为此工作区的方案增加一个席位，按比例计入下一张账单。",
+      "addSeatConfirm": "增加席位并邀请",
+      "pricePerSeatMonth": "每个席位每月 {price}。",
+      "pricePerSeatYear": "每个席位每年 {price}。",
+      "errors": {
+        "seatsFull": "所有付费席位都已占用。请增加一个席位以邀请其他人。",
+        "seatsBelowMembers": "此工作区的人数多于席位数。请移除成员或保留更多席位。"
+      }
+    }
   },
   "knowledge": {
     "title": "知识库",

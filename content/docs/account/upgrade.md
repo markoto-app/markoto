@@ -28,4 +28,4 @@ is off.
 
 - [Plans and limits](/docs/account/plans)
 - [AI Points](/docs/writing/ai-budget): what an upgrade raises.
-- [Plans](/docs/account/plans): Team and Business cover a whole workspace, billed per seat.
+- [Team and Business for a workspace](/docs/account/team-plan): billed per seat, with a shared AI budget.

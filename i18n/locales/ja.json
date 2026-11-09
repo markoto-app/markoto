@@ -545,8 +545,8 @@
     "budgetExhaustedDescription": "この請求期間のAIクレジットをすべて使い切りました。続けるにはプランをアップグレードしてください。",
     "exhaustedPlaceholder": "AIクレジットがありません — 続けるにはアップグレード",
     "workspaceBudgetExhaustedTitle": "ワークスペースのAI予算を使い切りました",
-    "workspaceBudgetExhaustedDescription": "このワークスペースの共有AI予算は現在の請求期間分を使い切りました。補充またはアップグレードについてワークスペース所有者にご連絡ください。",
-    "workspaceExhaustedPlaceholder": "ワークスペースのAI予算を使い切りました — 所有者にご連絡ください",
+    "workspaceBudgetExhaustedDescription": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
+    "workspaceExhaustedPlaceholder": "ワークスペースの AI 予算を使い切りました。管理者に依頼してください",
     "upgradeCta": "アップグレード",
     "remainingLabel": "今月のAIクレジットは残り{limit}件中{remaining}件",
     "responseLabel": "markotoからの返答",
@@ -565,7 +565,12 @@
     "freeAllowanceExhaustedTitle": "無料のAI枠を使い切りました",
     "freeAllowanceExhausted": "今月の無料AI枠は使い切られました。続けるには、設定 → AI プロバイダーでご自身のキーを追加してください。",
     "freeAllowanceCta": "自分のキーを追加",
-    "freeAllowanceExhaustedPlaceholder": "今月の無料AI枠は使い切られました。自分のキーを追加すると続けられます"
+    "freeAllowanceExhaustedPlaceholder": "今月の無料AI枠は使い切られました。自分のキーを追加すると続けられます",
+    "memberLimitReachedTitle": "AI の上限に達しました",
+    "memberLimitReachedDescription": "今月このワークスペースでの AI の上限を使い切りました。ワークスペースの管理者に上限の引き上げを依頼してください。",
+    "memberLimitPlaceholder": "ここでの AI の上限を使い切りました。管理者に依頼してください",
+    "teamBudgetExhausted": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
+    "memberLimitReached": "今月このワークスペースでの AI の上限に達しました。管理者に引き上げを依頼してください。"
   },
   "mobileTabBar": {
     "label": "ドキュメントパネル",
@@ -1230,7 +1235,8 @@
     "tabs": {
       "documents": "ドキュメント",
       "knowledge": "ナレッジ",
-      "settings": "設定"
+      "settings": "設定",
+      "billing": "請求"
     },
     "settings": {
       "title": "ワークスペース設定",
@@ -1341,7 +1347,65 @@
         "home": "ダッシュボードへ"
       }
     },
-    "actions": "ワークスペースの操作"
+    "actions": "ワークスペースの操作",
+    "billing": {
+      "title": "請求",
+      "loading": "請求情報を読み込んでいます…",
+      "loadFailed": "請求情報を読み込めませんでした",
+      "paymentProblemTitle": "支払いの問題",
+      "paymentProblemBody": "このワークスペースの前回の支払いに失敗しました。Stripe が再試行します。Team の機能を維持するには「請求を管理」で支払い方法を更新してください。",
+      "buyTitle": "このワークスペースをアップグレード",
+      "buyBody": "Team と Business は席数ごとの料金です。ワークスペースの全員がその中でプランの機能と共有の月間 AI 予算を使えます。",
+      "planLabel": "プラン",
+      "seatsLabel": "席数",
+      "seatsHint": "{min} 席以上（招待中の人を含むワークスペースの全員）",
+      "totalPerMonth": "月額 {total}（{seats} 席 × {price}）",
+      "totalPerYear": "年額 {total}（{seats} 席 × {price}）",
+      "continueToPayment": "支払いに進む",
+      "buyFootnote": "支払いは Stripe で行います。あなたがこのワークスペースの請求管理者になり、席数の変更や解約はいつでもできます。",
+      "currentPlan": "現在のプラン",
+      "annual": "年払い",
+      "monthly": "月払い",
+      "renews": "{date} に更新",
+      "manage": "請求を管理",
+      "seatCounter": "{seats} 席中 {used} 席を使用中",
+      "updateSeats": "席数を変更",
+      "seatsFootnote": "追加した席は次回の請求で日割り計算され、減らした席はクレジットされます。ワークスペースの人数より少なくはできません。",
+      "switchToBusiness": "Business に変更",
+      "switchToTeam": "Team に変更",
+      "switchToAnnual": "年払いに変更",
+      "switchToMonthly": "月払いに変更",
+      "aiTitle": "今月の AI",
+      "teamSpend": "{budget} のうち {spent} を使用",
+      "resets": "{date} にリセット",
+      "storage": "共有ストレージ：ナレッジファイル {knowledge}、画像 {images}。",
+      "memberSpend": "{spent} 使用 · 上限 {limit}",
+      "noLimitShort": "なし",
+      "limitDefault": "既定の上限",
+      "limitCustom": "個別の上限",
+      "limitNone": "上限なし",
+      "limitSaved": "上限を保存しました",
+      "limitSaveFailed": "上限を保存できませんでした",
+      "limitFootnote": "既定では各メンバーは月に {amount} まで使えます。「上限なし」でもワークスペースの予算で止まります。",
+      "checkoutFailed": "支払いを開始できませんでした",
+      "planChanged": "プランを変更しました",
+      "planChangeFailed": "プランを変更できませんでした",
+      "seatsChanged": "席数を {seats} に変更しました",
+      "seatsChangeFailed": "席数を変更できませんでした",
+      "portalFailed": "請求ページを開けませんでした",
+      "checkoutSuccess": "支払いを受け付けました",
+      "checkoutSuccessBody": "Stripe が確認するとプランが有効になります（通常は数秒以内）。",
+      "checkoutCancelled": "支払いをキャンセルしました",
+      "addSeatTitle": "{seats} 席すべてが使用中です",
+      "addSeatBody": "{email} を招待すると、このワークスペースのプランに 1 席追加され、次回の請求で日割り計算されます。",
+      "addSeatConfirm": "席を追加して招待",
+      "pricePerSeatMonth": "1 席は月額 {price} です。",
+      "pricePerSeatYear": "1 席は年額 {price} です。",
+      "errors": {
+        "seatsFull": "有料の席はすべて使用中です。ほかの人を招待するには席を追加してください。",
+        "seatsBelowMembers": "ワークスペースの人数が席数より多くなっています。誰かを外すか、席数を維持してください。"
+      }
+    }
   },
   "knowledge": {
     "title": "ナレッジベース",

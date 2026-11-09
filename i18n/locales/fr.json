@@ -545,8 +545,8 @@
     "budgetExhaustedDescription": "Vous avez utilisé tous vos crédits IA pour cette période de facturation. Passez à un forfait supérieur pour continuer.",
     "exhaustedPlaceholder": "Plus de crédits IA — passez à un forfait supérieur pour continuer",
     "workspaceBudgetExhaustedTitle": "Budget IA de l'espace de travail épuisé",
-    "workspaceBudgetExhaustedDescription": "Le budget IA partagé de cet espace de travail est épuisé pour la période de facturation en cours. Contactez le propriétaire de l'espace de travail pour le recharger ou passer à un forfait supérieur.",
-    "workspaceExhaustedPlaceholder": "Budget IA de l'espace de travail épuisé — contactez le propriétaire",
+    "workspaceBudgetExhaustedDescription": "Le budget IA de cet espace est épuisé pour ce mois. Demandez à un admin d’ajouter des places ou du crédit.",
+    "workspaceExhaustedPlaceholder": "Budget IA de l’espace épuisé — demandez à un admin",
     "upgradeCta": "Mettre à niveau",
     "remainingLabel": "{remaining} crédits IA restants sur {limit} ce mois-ci",
     "responseLabel": "markoto dit",
@@ -565,7 +565,12 @@
     "freeAllowanceExhaustedTitle": "Allocation IA gratuite épuisée",
     "freeAllowanceExhausted": "L'allocation IA gratuite de ce mois est épuisée. Ajoutez votre propre clé dans Réglages → Fournisseur d'IA pour continuer.",
     "freeAllowanceCta": "Ajouter votre clé",
-    "freeAllowanceExhaustedPlaceholder": "L'allocation IA gratuite de ce mois est épuisée — ajoutez votre propre clé pour continuer"
+    "freeAllowanceExhaustedPlaceholder": "L'allocation IA gratuite de ce mois est épuisée — ajoutez votre propre clé pour continuer",
+    "memberLimitReachedTitle": "Votre limite IA est atteinte",
+    "memberLimitReachedDescription": "Vous avez utilisé votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’espace de l’augmenter.",
+    "memberLimitPlaceholder": "Votre limite IA ici est épuisée — demandez à un admin",
+    "teamBudgetExhausted": "Le budget IA de cet espace est épuisé pour ce mois. Demandez à un admin d’ajouter des places ou du crédit.",
+    "memberLimitReached": "Vous avez atteint votre limite IA dans cet espace pour ce mois. Demandez à un admin de l’augmenter."
   },
   "mobileTabBar": {
     "label": "Panneaux du document",
@@ -1230,7 +1235,8 @@
     "tabs": {
       "documents": "Documents",
       "knowledge": "Connaissances",
-      "settings": "Paramètres"
+      "settings": "Paramètres",
+      "billing": "Facturation"
     },
     "settings": {
       "title": "Paramètres de l'espace de travail",
@@ -1341,7 +1347,65 @@
         "home": "Aller au tableau de bord"
       }
     },
-    "actions": "Actions de l'espace de travail"
+    "actions": "Actions de l'espace de travail",
+    "billing": {
+      "title": "Facturation",
+      "loading": "Chargement de la facturation…",
+      "loadFailed": "Impossible de charger la facturation",
+      "paymentProblemTitle": "Problème de paiement",
+      "paymentProblemBody": "Le dernier paiement de cet espace de travail a échoué. Stripe va réessayer ; mettez à jour le moyen de paiement dans « Gérer la facturation » pour conserver les fonctions Team.",
+      "buyTitle": "Passer cet espace de travail à un plan payant",
+      "buyBody": "Team et Business se paient par place. Toutes les personnes de l’espace de travail y bénéficient des fonctions du plan, avec un budget IA mensuel partagé.",
+      "planLabel": "Plan",
+      "seatsLabel": "Places",
+      "seatsHint": "Au moins {min} (toutes les personnes de l’espace, invitations comprises)",
+      "totalPerMonth": "{total} par mois ({seats} places × {price})",
+      "totalPerYear": "{total} par an ({seats} places × {price})",
+      "continueToPayment": "Continuer vers le paiement",
+      "buyFootnote": "Vous payez avec Stripe. Vous devenez l’admin de facturation de cet espace et pouvez modifier les places ou résilier à tout moment.",
+      "currentPlan": "Plan actuel",
+      "annual": "annuel",
+      "monthly": "mensuel",
+      "renews": "Renouvellement le {date}",
+      "manage": "Gérer la facturation",
+      "seatCounter": "{used} places utilisées sur {seats}",
+      "updateSeats": "Modifier les places",
+      "seatsFootnote": "Les places supplémentaires sont facturées au prorata sur la prochaine facture ; les places en moins sont créditées. Il ne peut y avoir moins de places que de personnes dans l’espace.",
+      "switchToBusiness": "Passer à Business",
+      "switchToTeam": "Passer à Team",
+      "switchToAnnual": "Passer à la facturation annuelle",
+      "switchToMonthly": "Passer à la facturation mensuelle",
+      "aiTitle": "IA ce mois-ci",
+      "teamSpend": "{spent} utilisés sur {budget}",
+      "resets": "remis à zéro le {date}",
+      "storage": "Stockage partagé : {knowledge} pour les fichiers de connaissances, {images} pour les images.",
+      "memberSpend": "{spent} utilisés · limite {limit}",
+      "noLimitShort": "aucune",
+      "limitDefault": "Limite par défaut",
+      "limitCustom": "Limite personnalisée",
+      "limitNone": "Sans limite",
+      "limitSaved": "Limite enregistrée",
+      "limitSaveFailed": "Impossible d’enregistrer la limite",
+      "limitFootnote": "Par défaut, chaque membre peut utiliser jusqu’à {amount} par mois. « Sans limite » s’arrête tout de même au budget de l’espace.",
+      "checkoutFailed": "Impossible de lancer le paiement",
+      "planChanged": "Plan modifié",
+      "planChangeFailed": "Impossible de modifier le plan",
+      "seatsChanged": "Places modifiées : {seats}",
+      "seatsChangeFailed": "Impossible de modifier les places",
+      "portalFailed": "Impossible d’ouvrir la facturation",
+      "checkoutSuccess": "Paiement reçu",
+      "checkoutSuccessBody": "Le plan est actif dès que Stripe le confirme, en général en quelques secondes.",
+      "checkoutCancelled": "Paiement annulé",
+      "addSeatTitle": "Les {seats} places sont toutes occupées",
+      "addSeatBody": "Inviter {email} ajoute une place au plan de cet espace, facturée au prorata sur la prochaine facture.",
+      "addSeatConfirm": "Ajouter une place et inviter",
+      "pricePerSeatMonth": "Une place coûte {price} par mois.",
+      "pricePerSeatYear": "Une place coûte {price} par an.",
+      "errors": {
+        "seatsFull": "Toutes les places payées sont occupées. Ajoutez une place pour inviter quelqu’un.",
+        "seatsBelowMembers": "Il y a plus de personnes que de places dans cet espace. Retirez quelqu’un ou gardez plus de places."
+      }
+    }
   },
   "knowledge": {
     "title": "Base de connaissances",

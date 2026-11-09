@@ -545,8 +545,8 @@
     "budgetExhaustedDescription": "Sie haben alle Ihre KI-Credits für diesen Abrechnungszeitraum aufgebraucht. Führen Sie ein Upgrade durch, um weiterzumachen.",
     "exhaustedPlaceholder": "Keine KI-Credits mehr — für Fortsetzung upgraden",
     "workspaceBudgetExhaustedTitle": "Workspace-KI-Budget aufgebraucht",
-    "workspaceBudgetExhaustedDescription": "Das gemeinsame KI-Budget dieses Workspace ist für den aktuellen Abrechnungszeitraum aufgebraucht. Wenden Sie sich an den Workspace-Eigentümer, um es aufzufüllen oder ein Upgrade durchzuführen.",
-    "workspaceExhaustedPlaceholder": "Workspace-KI-Budget aufgebraucht — Eigentümer kontaktieren",
+    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "workspaceExhaustedPlaceholder": "KI-Budget des Arbeitsbereichs aufgebraucht – fragen Sie einen Admin",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} von {limit} KI-Credits diesen Monat verbleibend",
     "responseLabel": "markoto sagt",
@@ -565,7 +565,12 @@
     "freeAllowanceExhaustedTitle": "Kostenloses KI-Kontingent aufgebraucht",
     "freeAllowanceExhausted": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht. Hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel, um weiterzumachen.",
     "freeAllowanceCta": "Eigenen Schlüssel hinterlegen",
-    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlegen Sie Ihren eigenen Schlüssel"
+    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlegen Sie Ihren eigenen Schlüssel",
+    "memberLimitReachedTitle": "Ihr KI-Limit ist erreicht",
+    "memberLimitReachedDescription": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat aufgebraucht. Bitten Sie einen Admin des Arbeitsbereichs, es zu erhöhen.",
+    "memberLimitPlaceholder": "Ihr KI-Limit hier ist aufgebraucht – fragen Sie einen Admin",
+    "teamBudgetExhausted": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "memberLimitReached": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitten Sie einen Admin, es zu erhöhen."
   },
   "mobileTabBar": {
     "label": "Dokument-Panels",
@@ -1230,7 +1235,8 @@
     "tabs": {
       "documents": "Dokumente",
       "knowledge": "Wissen",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "billing": "Abrechnung"
     },
     "settings": {
       "title": "Workspace-Einstellungen",
@@ -1341,7 +1347,65 @@
         "home": "Zum Dashboard"
       }
     },
-    "actions": "Workspace-Aktionen"
+    "actions": "Workspace-Aktionen",
+    "billing": {
+      "title": "Abrechnung",
+      "loading": "Abrechnung wird geladen…",
+      "loadFailed": "Abrechnung konnte nicht geladen werden",
+      "paymentProblemTitle": "Zahlungsproblem",
+      "paymentProblemBody": "Die letzte Zahlung für diesen Arbeitsbereich ist fehlgeschlagen. Stripe versucht es erneut; aktualisieren Sie die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
+      "buyTitle": "Diesen Arbeitsbereich upgraden",
+      "buyBody": "Team und Business werden pro Platz bezahlt. Alle im Arbeitsbereich erhalten darin die Funktionen des Plans, mit einem gemeinsamen monatlichen KI-Budget.",
+      "planLabel": "Plan",
+      "seatsLabel": "Plätze",
+      "seatsHint": "Mindestens {min} (alle im Arbeitsbereich, Einladungen eingeschlossen)",
+      "totalPerMonth": "{total} pro Monat ({seats} Plätze × {price})",
+      "totalPerYear": "{total} pro Jahr ({seats} Plätze × {price})",
+      "continueToPayment": "Weiter zur Zahlung",
+      "buyFootnote": "Sie bezahlen mit Stripe. Sie werden Abrechnungsadmin dieses Arbeitsbereichs und können Plätze jederzeit ändern oder kündigen.",
+      "currentPlan": "Aktueller Plan",
+      "annual": "jährlich",
+      "monthly": "monatlich",
+      "renews": "Verlängert sich am {date}",
+      "manage": "Abrechnung verwalten",
+      "seatCounter": "{used} von {seats} Plätzen belegt",
+      "updateSeats": "Plätze ändern",
+      "seatsFootnote": "Zusätzliche Plätze werden anteilig auf der nächsten Rechnung berechnet, weniger Plätze gutgeschrieben. Es kann nicht weniger Plätze als Personen im Arbeitsbereich geben.",
+      "switchToBusiness": "Zu Business wechseln",
+      "switchToTeam": "Zu Team wechseln",
+      "switchToAnnual": "Zu jährlicher Abrechnung wechseln",
+      "switchToMonthly": "Zu monatlicher Abrechnung wechseln",
+      "aiTitle": "KI in diesem Monat",
+      "teamSpend": "{spent} von {budget} verbraucht",
+      "resets": "wird am {date} zurückgesetzt",
+      "storage": "Gemeinsamer Speicher: {knowledge} für Wissensdateien, {images} für Bilder.",
+      "memberSpend": "{spent} verbraucht · Limit {limit}",
+      "noLimitShort": "keines",
+      "limitDefault": "Standardlimit",
+      "limitCustom": "Eigenes Limit",
+      "limitNone": "Kein Limit",
+      "limitSaved": "Limit gespeichert",
+      "limitSaveFailed": "Limit konnte nicht gespeichert werden",
+      "limitFootnote": "Standardmässig darf jedes Mitglied bis zu {amount} pro Monat verbrauchen. «Kein Limit» endet trotzdem am Budget des Arbeitsbereichs.",
+      "checkoutFailed": "Zahlung konnte nicht gestartet werden",
+      "planChanged": "Plan geändert",
+      "planChangeFailed": "Plan konnte nicht geändert werden",
+      "seatsChanged": "Plätze auf {seats} geändert",
+      "seatsChangeFailed": "Plätze konnten nicht geändert werden",
+      "portalFailed": "Abrechnung konnte nicht geöffnet werden",
+      "checkoutSuccess": "Zahlung erhalten",
+      "checkoutSuccessBody": "Der Plan ist aktiv, sobald Stripe ihn bestätigt, meist innert weniger Sekunden.",
+      "checkoutCancelled": "Zahlung abgebrochen",
+      "addSeatTitle": "Alle {seats} Plätze sind belegt",
+      "addSeatBody": "Wenn Sie {email} einladen, kommt ein Platz zum Plan dieses Arbeitsbereichs hinzu, anteilig auf der nächsten Rechnung berechnet.",
+      "addSeatConfirm": "Platz hinzufügen und einladen",
+      "pricePerSeatMonth": "Ein Platz kostet {price} pro Monat.",
+      "pricePerSeatYear": "Ein Platz kostet {price} pro Jahr.",
+      "errors": {
+        "seatsFull": "Alle bezahlten Plätze sind belegt. Fügen Sie einen Platz hinzu, um jemanden einzuladen.",
+        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entfernen Sie jemanden oder behalten Sie mehr Plätze."
+      }
+    }
   },
   "knowledge": {
     "title": "Wissensdatenbank",
