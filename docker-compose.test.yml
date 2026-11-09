@@ -347,6 +347,10 @@ services:
       - 'JSON_CONFIG={"interactiveLogin":true}'
     ports:
       - "127.0.0.1:4130:8080"
+      # Per-workspace SSO tests (WP14): the app refuses loopback IdPs, so
+      # the mock is also published on the private host address the fake
+      # OpenAI provider uses (same variables, docs/CONTAINER-ENGINES.md).
+      - "${TEST_FAKE_OPENAI_HOST:-${TEST_NETWORK_GATEWAY:-10.213.47.1}}:4130:8080"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/markoto/.well-known/openid-configuration || exit 1"]
       interval: 2s

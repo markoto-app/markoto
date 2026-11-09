@@ -38,6 +38,16 @@ export interface OidcSettings {
    * on it.
    */
   allowInsecureHttp: boolean
+  /**
+   * Fetch for every request to the IdP (discovery, JWKS, token,
+   * UserInfo). Set for per-workspace SSO connections (WP14): the issuer
+   * is customer-supplied, so requests go through the SSRF policy in
+   * `server/utils/sso/urlPolicy.ts`. Unset = global fetch (the
+   * operator's own instance IdP).
+   */
+  fetch?: (input: string | URL | Request, init?: RequestInit) => Promise<Response>
+  /** Separates cache entries of different connections with equal settings. */
+  cacheScope?: string
 }
 
 export interface OidcSettingsResult {

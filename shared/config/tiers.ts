@@ -111,12 +111,20 @@ export interface TierCaps {
    * (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`) in Settings → AI provider.
    */
   aiStrongModel: boolean
+  /**
+   * Feature switch: the workspace may connect its own identity provider
+   * (SAML / OIDC single sign-on + SCIM, WP14). Judged against the
+   * WORKSPACE's plan. On in every committed tier (self-hosters); on
+   * markoto.app only Business has it (`TIER_{FREE,PRO,TEAM}_FEATURE_SSO=false`
+   * in infra/render-env.sh).
+   */
+  sso: boolean
 }
 
 /** Numeric cap fields that accept `unlimited` (stored as `null`). */
 export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay'
 /** On/off feature switches. */
-export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel'
+export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso'
 /** Plain positive-number cap fields. */
 export type NumericCapField = Exclude<keyof TierCaps, UnlimitedCapField | FeatureField>
 
@@ -127,7 +135,7 @@ export const UNLIMITED_CAP_FIELDS: readonly UnlimitedCapField[] = [
   'mcpToolCallsPerDay'
 ]
 
-export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel']
+export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso']
 
 /**
  * Whether `used` more units still fit under `limit` (`null` = no limit).
@@ -182,7 +190,8 @@ export const DEFAULT_TIERS = {
     mcpWrite: true,
     aiImage: true,
     aiVoice: true,
-    aiStrongModel: true
+    aiStrongModel: true,
+    sso: true
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
@@ -191,7 +200,8 @@ export const DEFAULT_TIERS = {
     knowledgeBytesPerWorkspace: 2 * 1024 * 1024 * 1024,
     knowledgeBytesPerUser: 2 * 1024 * 1024 * 1024,
     imageBytesPerUser: 2 * 1024 * 1024 * 1024,
-    ...PAID_PLAN_ENTITLEMENTS
+    ...PAID_PLAN_ENTITLEMENTS,
+    sso: true
   },
   // Team / Business: AI budget, knowledge and image storage are per seat.
   // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
@@ -205,7 +215,8 @@ export const DEFAULT_TIERS = {
     knowledgeBytesPerWorkspace: 5 * 1024 * 1024 * 1024,
     knowledgeBytesPerUser: 5 * 1024 * 1024 * 1024,
     imageBytesPerUser: 10 * 1024 * 1024 * 1024,
-    ...PAID_PLAN_ENTITLEMENTS
+    ...PAID_PLAN_ENTITLEMENTS,
+    sso: true
   },
   business: {
     litellmBudgetUsd: 5,
@@ -214,7 +225,8 @@ export const DEFAULT_TIERS = {
     knowledgeBytesPerWorkspace: 20 * 1024 * 1024 * 1024,
     knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024,
     imageBytesPerUser: 20 * 1024 * 1024 * 1024,
-    ...PAID_PLAN_ENTITLEMENTS
+    ...PAID_PLAN_ENTITLEMENTS,
+    sso: true
   }
 } as const satisfies Record<PlanName, TierCaps>
 
@@ -242,7 +254,8 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   mcpWrite: 'FEATURE_MCP_WRITE',
   aiImage: 'FEATURE_AI_IMAGE',
   aiVoice: 'FEATURE_AI_VOICE',
-  aiStrongModel: 'FEATURE_AI_STRONG_MODEL'
+  aiStrongModel: 'FEATURE_AI_STRONG_MODEL',
+  sso: 'FEATURE_SSO'
 }
 
 const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])
