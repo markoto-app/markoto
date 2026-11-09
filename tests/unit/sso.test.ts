@@ -116,3 +116,12 @@ describe('SAML profile → assertion', () => {
     expect(() => assertionFromSamlProfile({ ...base, nameID: '' } as Profile)).toThrow()
   })
 })
+
+describe('where "Sign in with your organisation" is offered', () => {
+  it('self-hosted (billing off, committed free tier): yes; markoto.app free-only: no; billing on with Business: yes', async () => {
+    const { resolveWorkspaceSsoAvailable } = await import('../../shared/config/instance')
+    expect(resolveWorkspaceSsoAvailable({})).toBe(true)
+    expect(resolveWorkspaceSsoAvailable({ TIER_FREE_FEATURE_SSO: 'false' })).toBe(false)
+    expect(resolveWorkspaceSsoAvailable({ NUXT_BILLING_ENABLED: 'true', TIER_FREE_FEATURE_SSO: 'false', TIER_PRO_FEATURE_SSO: 'false', TIER_TEAM_FEATURE_SSO: 'false' })).toBe(true)
+  })
+})

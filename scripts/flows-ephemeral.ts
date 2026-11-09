@@ -171,6 +171,9 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_AI_DEFAULT_IMAGE_MODEL: 'flux-2-pro',
   NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
   NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',
+  // Per-workspace single sign-on (WP14): the `workspace-sso` flow's IdP is
+  // the mock OpenID provider on the test network's private address.
+  NUXT_SSO_ALLOW_PRIVATE_URLS: 'true',
   // Live dictation on the alias default needs the operator's Mistral key
   // in the APP process (the realtime WS is direct, not via LiteLLM) —
   // without it the dictation button is hidden. The flow stack swaps the

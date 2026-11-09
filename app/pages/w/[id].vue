@@ -30,6 +30,8 @@ interface WorkspaceDetail {
     pooled?: boolean
     // Admins only: seats + status of the subscription (WP3).
     billing?: import('~/utils/workspaceBilling').WorkspaceSeatBilling | null
+    /** Admins only (WP14). */
+    sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -37,6 +39,10 @@ interface WorkspaceDetail {
 
 const notFound = ref(false)
 const forbidden = ref(false)
+// Single sign-on enforced and no current sign-in through the workspace's
+// IdP (WP14): where to sign in, and whether this admin may still manage
+// the connection (the break-glass).
+const ssoRequired = ref<{ loginUrl: string, canManageSso: boolean } | null>(null)
 
 const {
   state: data,
@@ -46,6 +52,7 @@ const {
   async () => {
     notFound.value = false
     forbidden.value = false
+    ssoRequired.value = null
     return await $fetch<WorkspaceDetail>(`/api/workspaces/${workspaceId.value}`)
   },
   null,
@@ -57,8 +64,11 @@ const {
     // useAsyncState default) wouldn't notify on those nested writes.
     shallow: false,
     onError: (e: unknown) => {
-      const err = e as { statusCode?: number } | null
-      if (err?.statusCode === 404) notFound.value = true
+      const err = e as { statusCode?: number, data?: { data?: { code?: string, loginUrl?: string, canManageSso?: boolean } } } | null
+      const sso = err?.data?.data
+      if (err?.statusCode === 403 && sso?.code === 'sso/required' && sso.loginUrl) {
+        ssoRequired.value = { loginUrl: sso.loginUrl, canManageSso: sso.canManageSso === true }
+      } else if (err?.statusCode === 404) notFound.value = true
       else if (err?.statusCode === 403 || err?.statusCode === 401) forbidden.value = true
       else showError('workspace.notFound', e)
     }
@@ -87,8 +97,8 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing'
-const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : 'documents'
+type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing' | 'sso'
+const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : 'documents'
 const activeTab = ref<WorkspaceTab>(initialTab)
 const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
@@ -105,6 +115,12 @@ const tabItems = computed(() => {
   }
   // Team / Business billing (WP3): admins, and only where something can
   // be bought. Members never see prices.
+  // Single sign-on (WP14): admins, where the plan includes it or a
+  // connection exists (so it can be switched off after a downgrade).
+  const sso = data.value?.workspace.sso
+  if (isAdmin.value && sso && (sso.available || sso.status !== 'none')) {
+    items.push({ label: t('workspace.tabs.sso'), icon: 'i-lucide-key-round', slot: 'sso', value: 'sso' })
+  }
   if (isAdmin.value && billingEnabled.value) {
     items.push({ label: t('workspace.tabs.billing'), icon: 'i-lucide-credit-card', slot: 'billing', value: 'billing' })
   }
@@ -131,7 +147,10 @@ tryOnMounted(() => {
   } else if (outcome === 'cancelled') {
     toast.add({ title: t('workspace.billing.checkoutCancelled'), icon: 'i-lucide-x', color: 'neutral' })
   }
-  if (route.query.billing || route.query.tab || route.query.credits) void router.replace({ query: {} })
+  // Back from a single sign-on test (WP14).
+  if (route.query.test === 'activated') toast.add({ title: t('sso.testActivated'), icon: 'i-lucide-check', color: 'neutral' })
+  else if (route.query.test === 'ok') toast.add({ title: t('sso.testOk'), icon: 'i-lucide-check', color: 'neutral' })
+  if (route.query.billing || route.query.tab || route.query.credits || route.query.test) void router.replace({ query: {} })
 })
 
 // Same dialog flow as the home page; just pass our workspaceId so the
@@ -350,6 +369,40 @@ async function leaveWorkspace() {
       </div>
 
       <div
+        v-else-if="ssoRequired"
+        class="max-w-3xl mx-auto space-y-10 py-12"
+        data-testid="workspace-sso-required"
+      >
+        <div class="max-w-md mx-auto text-center space-y-4">
+          <UIcon
+            name="i-lucide-key-round"
+            class="size-10 text-muted mx-auto"
+          />
+          <h1 class="font-serif text-2xl font-normal tracking-tight">
+            {{ t('sso.requiredTitle') }}
+          </h1>
+          <p class="text-sm text-muted">
+            {{ t('sso.requiredBody') }}
+          </p>
+          <UButton
+            :to="ssoRequired.loginUrl"
+            external
+            color="neutral"
+            icon="i-lucide-log-in"
+            data-testid="workspace-sso-sign-in"
+          >
+            {{ t('sso.signIn') }}
+          </UButton>
+        </div>
+        <!-- Admins can still repair or switch off the connection. -->
+        <WorkspaceSsoPanel
+          v-if="ssoRequired.canManageSso"
+          :workspace-id="workspaceId"
+          @changed="loadWorkspace()"
+        />
+      </div>
+
+      <div
         v-else-if="notFound || forbidden"
         class="max-w-md mx-auto text-center space-y-4 py-16"
       >
@@ -562,6 +615,12 @@ async function leaveWorkspace() {
               :workspace-id="data.workspace.workspaceId"
               :default-theme="data.workspace.defaultTheme"
               @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
+            />
+          </template>
+          <template #sso>
+            <WorkspaceSsoPanel
+              :workspace-id="data.workspace.workspaceId"
+              @changed="loadWorkspace()"
             />
           </template>
           <template #billing>

@@ -71,7 +71,8 @@ describe('resolveLoginProviders', () => {
 
 describe('resolveInstanceConfig', () => {
   it('defaults to the self-hosted shape: no legal surfaces, no operator name', () => {
-    expect(resolveInstanceConfig({})).toEqual(MINIMAL_INSTANCE_CONFIG)
+    // Self-hosted: every committed tier includes per-workspace SSO (WP14).
+    expect(resolveInstanceConfig({})).toEqual({ ...MINIMAL_INSTANCE_CONFIG, workspaceSso: true })
     expect(resolveLegalSurfacesEnabled({ NUXT_LEGAL_SURFACES_ENABLED: 'nope' })).toBe(false)
   })
 

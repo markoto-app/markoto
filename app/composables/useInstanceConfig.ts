@@ -30,10 +30,12 @@ export function useInstanceConfig() {
   const docsCanonicalBase = computed(() => config.value.docsCanonicalBase)
   const anonGate = computed(() => config.value.anonGate)
   const anonDocTtlDays = computed(() => config.value.anonDocTtlDays)
+  /** Per-workspace single sign-on can exist on this instance (WP14). */
+  const workspaceSso = computed(() => config.value.workspaceSso === true)
   /** Start of the login flow — the first configured provider, or null when login is off. */
   const primaryLoginPath = computed(() => {
     const first = config.value.loginProviders[0]
     return first ? loginPath(first) : null
   })
-  return { config, loginProviders, legalSurfaces, operatorName, marketingSite, siteUrl, docsCanonicalBase, anonGate, anonDocTtlDays, primaryLoginPath }
+  return { config, loginProviders, legalSurfaces, operatorName, marketingSite, siteUrl, docsCanonicalBase, anonGate, anonDocTtlDays, workspaceSso, primaryLoginPath }
 }

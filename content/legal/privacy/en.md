@@ -1,7 +1,7 @@
 ---
 slug: privacy
 locale: en
-version: 9
+version: 10
 effectiveDate: 2026-11-09
 translationStatus: authoritative
 ---
@@ -34,6 +34,7 @@ In brief, we process:
 - **Content:** documents, comments, images, knowledge-base files, themes and who edited what.
 - **AI usage:** prompts, document context and AI results, when you use the AI features.
 - **Technical data:** IP addresses (used in short-lived form for rate limiting and stored only shortened in logs), browser type, error reports.
+- **Single sign-on through your organisation, if your workspace uses it:** when a Team or Business workspace connects its own identity provider, we receive from it the identifier it uses for you, your name and email address, and — if the workspace uses automatic provisioning (SCIM) — whether your access is active. We keep the link to your account and the time of your last sign-in until the workspace removes you or its sign-in setup, or you delete your account. Your organisation decides who gets access; we act for it as described in our Data Processing Addendum.
 - **Billing data, only once paid plans are offered:** your plan, its period and currency, the Stripe customer and subscription identifiers, invoices, AI credit purchases and their use, and your acceptance of the Paid Plans Terms ([/legal/paid-terms](/legal/paid-terms)). For a Team or Business workspace we also keep the seat count and who the billing admin is. The workspace's admins see each member's AI spend in that workspace for the current month and can set a limit per member; they don't see prompts or AI results. Card details go to Stripe only; we never receive them.
 
 ## 2b. Anonymous documents, the bot check and abuse reports
@@ -247,6 +248,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v10 (2026-11-09).** Described single sign-on through a workspace's own identity provider (OpenID Connect or SAML) and automatic provisioning (SCIM) (§2): the identifier, name and email address the provider sends, the link to your account, your last sign-in and whether your access is active. Added to your data export (`sso_identities.json`).
 - **v9 (2026-11-09).** Described the billing data we process once paid plans are offered (§2): plans, Team and Business workspaces with their seats and billing admin, AI credits, and the acceptance of the new Paid Plans Terms. Workspace admins of a Team or Business workspace see each member's monthly AI spend in that workspace (not prompts or results) and can set a per-member limit.
 - **v8 (2026-11-03).** Removed the "product analytics" and "session replay" purposes and the cookie banner: neither was ever in use, and markoto uses only strictly necessary storage (§9 lists it). Added the Swiss FADP alongside the GDPR, and the countries data is transferred to (§4). Described anonymous documents (terms acceptance, bot check, deletion 30 days after the last edit; previously 180 days), noindex on documents and abuse reports without an account, with receipt, decision and statement-of-reasons notices (§2b). Stated backup retention (about 30 days), audit-log retention (2 years) and abuse-report retention (1 year after the case is closed). Corrected the statement on password hashing, the age rule (16 everywhere), the AI labelling description and the statements on AI training per provider. Added the free AI allowance for signed-in users (GLM-5.3 Flash by Z.ai, served and processed by Mistral AI on its EU endpoint; Z.ai receives no data), its monthly per-account limit and shared monthly pool, and the retention of AI cost records, which are kept for 90 days also after an account is deleted (§5, §5b, §8). All requests to Mistral AI, including voice transcription and live dictation, go to its EU endpoint (§8). Profile pictures from GitHub, Google or your organisation's sign-in are no longer stored or shown: avatars are drawn in your browser from your account number, and visitors without an account get a random one (`markoto-anon-avatar`, §9).
 - **v7 (2026-10-27).** Added the `workspace_invitations` processing purpose (legitimate interest): when a workspace admin invites someone by email, we keep that email address, the offered role and who invited on a pending invitation until the person accepts or declines it, an admin revokes it, or it expires after 14 days. Nobody joins a workspace without accepting. If email is set up, one invitation email per invite is sent via Resend (at most three per address per day). Stored in OVHcloud (EU).

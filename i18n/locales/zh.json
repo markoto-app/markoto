@@ -1308,7 +1308,8 @@
       "documents": "文档",
       "knowledge": "知识库",
       "settings": "设置",
-      "billing": "账单"
+      "billing": "账单",
+      "sso": "单点登录"
     },
     "settings": {
       "title": "工作区设置",
@@ -2246,5 +2247,109 @@
     "buyFailed": "无法开始购买",
     "purchased": "已购买额度",
     "purchasedBody": "Stripe 确认付款后即会到账，通常只需几秒钟。"
+  },
+  "sso": {
+    "title": "单点登录（SSO）",
+    "loading": "正在加载单点登录…",
+    "loadFailed": "无法加载单点登录设置。",
+    "planNotice": "使用你自己的身份提供商进行单点登录是 Business 方案的功能。",
+    "intro": "成员通过你所在组织的身份提供商（OpenID Connect 或 SAML）登录此工作区。开启后，所有人都必须通过这种方式登录才能打开工作区；管理员随时可以回到这里更改或移除它。",
+    "enforcedNotice": "单点登录已开启：成员只有通过你的身份提供商登录后才能打开此工作区（有效期 12 小时）。",
+    "idpTitle": "身份提供商",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "颁发者 URL",
+      "issuerHint": "你的提供商的 /.well-known/openid-configuration 所在的地址。",
+      "clientId": "客户端 ID",
+      "clientSecret": "客户端密钥",
+      "secretKept": "留空以保留已保存的密钥。"
+    },
+    "saml": {
+      "entityId": "身份提供商实体 ID",
+      "ssoUrl": "单点登录 URL",
+      "certificate": "签名证书",
+      "certificateKept": "已保存：{subject}，有效期至 {date}。粘贴新证书即可替换。"
+    },
+    "defaultRole": "新成员的角色",
+    "defaultRoleHint": "适用于通过登录或预配加入的人。",
+    "save": "保存",
+    "saved": "单点登录设置已保存",
+    "saveFailed": "无法保存单点登录设置。",
+    "testAndActivate": "测试登录并开启",
+    "testAgain": "测试登录",
+    "draftHint": "尚未开启。请用你自己在身份提供商的账号测试登录；测试成功后，此工作区的单点登录即会开启。",
+    "testActivated": "登录成功 — 此工作区的单点登录现已开启",
+    "testOk": "登录成功",
+    "status": {
+      "active": "已开启",
+      "draft": "未开启"
+    },
+    "sp": {
+      "title": "在你的身份提供商中填写以下内容",
+      "body": "你的身份提供商需要这些值，才能将用户送回 markoto。",
+      "callbackUrl": "重定向 URI",
+      "entityId": "实体 ID（受众）",
+      "acsUrl": "回复 URL（ACS）",
+      "metadataUrl": "元数据 URL",
+      "loginUrl": "登录链接"
+    },
+    "copy": "复制",
+    "copied": "已复制",
+    "domains": {
+      "title": "邮箱域名",
+      "body": "验证你所在组织的邮箱地址使用的域名。只有已验证域名下的地址才会关联到现有的 markoto 账号，或在首次登录时加入工作区。",
+      "verified": "已验证",
+      "unverified": "未验证",
+      "verify": "立即检查",
+      "remove": "移除域名",
+      "txtHint": "在 {name} 上添加一条值如下的 TXT 记录，然后检查：",
+      "add": "添加域名"
+    },
+    "domainVerified": "{domain} 已验证",
+    "domainAddFailed": "无法添加域名。",
+    "domainVerifyFailed": "无法验证域名。",
+    "domainRemoveFailed": "无法移除域名。",
+    "scim": {
+      "title": "预配（SCIM）",
+      "body": "让你的身份提供商自动添加和移除成员。在其 SCIM 设置中填写基础 URL 和令牌。在那里移除某人后，此人会立即被移出此工作区。",
+      "baseUrl": "SCIM 基础 URL",
+      "tokenOnce": "请立即复制此令牌 — 它不会再次显示。",
+      "create": "创建令牌",
+      "rotate": "替换令牌",
+      "revoke": "关闭预配"
+    },
+    "scimFailed": "无法更改预配令牌。",
+    "remove": "移除单点登录",
+    "removeConfirm": "成员将恢复以前的登录方式。",
+    "removed": "单点登录已移除",
+    "removeFailed": "无法移除单点登录。",
+    "requiredTitle": "通过你的组织登录",
+    "requiredBody": "此工作区使用单点登录。请通过你所在组织的身份提供商登录以打开它。",
+    "required": "此工作区使用单点登录。请通过你的组织登录以继续。",
+    "signIn": "使用你的组织登录",
+    "error": {
+      "title": "登录失败",
+      "not-provisioned": "你的账号尚未为此工作区设置。请让工作区管理员添加你。",
+      "deactivated": "你的组织已移除你对此工作区的访问权限。",
+      "not-active": "此工作区的单点登录尚未开启。",
+      "test-not-admin": "只有工作区管理员才能测试登录。",
+      "test-mismatch": "此身份提供商账号已关联到另一个 markoto 账号。请使用你自己的账号测试。",
+      "no-seat": "此工作区的付费席位已全部占用。请让管理员增加席位。",
+      "member-limit": "此工作区已达到其方案的成员上限。",
+      "idp-unavailable": "无法连接身份提供商。请稍后重试。",
+      "failed": "无法完成登录。请从登录链接重新开始。",
+      "unknown": "此登录链接不存在。",
+      "toWorkspace": "返回工作区"
+    },
+    "discover": {
+      "button": "使用你的组织登录",
+      "placeholder": "工作邮箱",
+      "continue": "继续",
+      "notFound": "此邮箱地址未设置单点登录。",
+      "failed": "出了点问题。请重试。"
+    }
   }
 }

@@ -1308,7 +1308,8 @@
       "documents": "Documents",
       "knowledge": "Connaissances",
       "settings": "Paramètres",
-      "billing": "Facturation"
+      "billing": "Facturation",
+      "sso": "Authentification unique"
     },
     "settings": {
       "title": "Paramètres de l'espace de travail",
@@ -2246,5 +2247,109 @@
     "buyFailed": "Impossible de lancer l’achat",
     "purchased": "Crédits achetés",
     "purchasedBody": "Ils sont ajoutés dès que Stripe confirme le paiement, en général en quelques secondes."
+  },
+  "sso": {
+    "title": "Authentification unique (SSO)",
+    "loading": "Chargement de l’authentification unique…",
+    "loadFailed": "Impossible de charger les paramètres d’authentification unique.",
+    "planNotice": "L’authentification unique avec votre propre fournisseur d’identité fait partie du plan Business.",
+    "intro": "Les membres se connectent à cet espace de travail via le fournisseur d’identité de votre organisation (OpenID Connect ou SAML). Une fois activée, tout le monde doit se connecter de cette façon pour ouvrir l’espace de travail ; les admins peuvent toujours revenir ici pour la modifier ou la supprimer.",
+    "enforcedNotice": "L’authentification unique est activée : les membres n’ouvrent cet espace de travail qu’après s’être connectés via votre fournisseur d’identité (valable 12 heures).",
+    "idpTitle": "Fournisseur d’identité",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "URL de l’émetteur",
+      "issuerHint": "L’adresse sous laquelle se trouve le /.well-known/openid-configuration de votre fournisseur.",
+      "clientId": "ID client",
+      "clientSecret": "Secret client",
+      "secretKept": "Laissez vide pour conserver le secret enregistré."
+    },
+    "saml": {
+      "entityId": "ID d’entité du fournisseur d’identité",
+      "ssoUrl": "URL d’authentification unique",
+      "certificate": "Certificat de signature",
+      "certificateKept": "Enregistré : {subject}, valable jusqu’au {date}. Collez-en un nouveau pour le remplacer."
+    },
+    "defaultRole": "Rôle des nouveaux membres",
+    "defaultRoleHint": "Pour les personnes qui rejoignent l’espace en se connectant ou par provisionnement.",
+    "save": "Enregistrer",
+    "saved": "Paramètres d’authentification unique enregistrés",
+    "saveFailed": "Impossible d’enregistrer les paramètres d’authentification unique.",
+    "testAndActivate": "Tester la connexion et activer",
+    "testAgain": "Tester la connexion",
+    "draftHint": "Pas encore activée. Testez la connexion avec votre propre compte chez le fournisseur d’identité ; si elle fonctionne, l’authentification unique est activée pour l’espace de travail.",
+    "testActivated": "La connexion fonctionne — l’authentification unique est maintenant activée pour cet espace de travail",
+    "testOk": "La connexion fonctionne",
+    "status": {
+      "active": "Activée",
+      "draft": "Non activée"
+    },
+    "sp": {
+      "title": "Saisissez ces valeurs chez votre fournisseur d’identité",
+      "body": "Votre fournisseur d’identité a besoin de ces valeurs pour renvoyer les personnes vers markoto.",
+      "callbackUrl": "URI de redirection",
+      "entityId": "ID d’entité (audience)",
+      "acsUrl": "URL de réponse (ACS)",
+      "metadataUrl": "URL des métadonnées",
+      "loginUrl": "Lien de connexion"
+    },
+    "copy": "Copier",
+    "copied": "Copié",
+    "domains": {
+      "title": "Domaines e-mail",
+      "body": "Vérifiez les domaines utilisés par les adresses e-mail de votre organisation. Seules les adresses d’un domaine vérifié sont associées à des comptes markoto existants ou rejoignent l’espace de travail lors de leur première connexion.",
+      "verified": "Vérifié",
+      "unverified": "Non vérifié",
+      "verify": "Vérifier maintenant",
+      "remove": "Supprimer le domaine",
+      "txtHint": "Ajoutez un enregistrement TXT sur {name} avec cette valeur, puis vérifiez :",
+      "add": "Ajouter un domaine"
+    },
+    "domainVerified": "{domain} est vérifié",
+    "domainAddFailed": "Impossible d’ajouter le domaine.",
+    "domainVerifyFailed": "Impossible de vérifier le domaine.",
+    "domainRemoveFailed": "Impossible de supprimer le domaine.",
+    "scim": {
+      "title": "Provisionnement (SCIM)",
+      "body": "Laissez votre fournisseur d’identité ajouter et retirer des membres automatiquement. Saisissez l’URL de base et le jeton dans ses paramètres SCIM. Retirer quelqu’un là-bas le retire immédiatement de cet espace de travail.",
+      "baseUrl": "URL de base SCIM",
+      "tokenOnce": "Copiez ce jeton maintenant — il ne sera plus affiché.",
+      "create": "Créer un jeton",
+      "rotate": "Remplacer le jeton",
+      "revoke": "Désactiver le provisionnement"
+    },
+    "scimFailed": "Impossible de modifier le jeton de provisionnement.",
+    "remove": "Supprimer l’authentification unique",
+    "removeConfirm": "Les membres se connecteront de nouveau comme avant.",
+    "removed": "Authentification unique supprimée",
+    "removeFailed": "Impossible de supprimer l’authentification unique.",
+    "requiredTitle": "Connectez-vous via votre organisation",
+    "requiredBody": "Cet espace de travail utilise l’authentification unique. Connectez-vous via le fournisseur d’identité de votre organisation pour l’ouvrir.",
+    "required": "Cet espace de travail utilise l’authentification unique. Connectez-vous via votre organisation pour continuer.",
+    "signIn": "Se connecter avec votre organisation",
+    "error": {
+      "title": "La connexion n’a pas abouti",
+      "not-provisioned": "Votre compte n’est pas configuré pour cet espace de travail. Demandez à un admin de l’espace de travail de vous ajouter.",
+      "deactivated": "Votre organisation a retiré votre accès à cet espace de travail.",
+      "not-active": "L’authentification unique n’est pas encore activée pour cet espace de travail.",
+      "test-not-admin": "Seul un admin de l’espace de travail peut tester la connexion.",
+      "test-mismatch": "Ce compte du fournisseur d’identité est associé à un autre compte markoto. Testez avec votre propre compte.",
+      "no-seat": "Toutes les places payées de cet espace de travail sont occupées. Demandez à un admin d’ajouter une place.",
+      "member-limit": "Cet espace de travail a atteint la limite de membres de son plan.",
+      "idp-unavailable": "Le fournisseur d’identité n’a pas pu être joint. Réessayez dans un instant.",
+      "failed": "La connexion n’a pas pu être finalisée. Recommencez depuis le lien de connexion.",
+      "unknown": "Ce lien de connexion n’existe pas.",
+      "toWorkspace": "Retour à l’espace de travail"
+    },
+    "discover": {
+      "button": "Se connecter avec votre organisation",
+      "placeholder": "E-mail professionnel",
+      "continue": "Continuer",
+      "notFound": "L’authentification unique n’est pas configurée pour cette adresse e-mail.",
+      "failed": "Une erreur s’est produite. Réessayez."
+    }
   }
 }
