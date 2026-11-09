@@ -2,8 +2,6 @@
 
 [[toc]]
 
-<!-- pagebreak -->
-
 # Synthèse
 
 <!-- Une demi-page pour qui ne lira rien d'autre : ce qui s'est passé sur la période, les trois chiffres qui comptent le plus et ce que le lecteur doit décider ou retenir. Signez-la s'il s'agit d'une lettre au conseil ou aux actionnaires. -->

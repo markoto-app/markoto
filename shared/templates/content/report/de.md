@@ -2,8 +2,6 @@
 
 [[toc]]
 
-<!-- pagebreak -->
-
 # Zusammenfassung
 
 <!-- Eine halbe Seite für alle, die nichts anderes lesen: was im Zeitraum passiert ist, die drei wichtigsten Zahlen und was die Leserin oder der Leser entscheiden oder wissen soll. Unterschreiben, wenn es ein Brief an Aufsichtsrat oder Gesellschafter ist. -->

@@ -118,7 +118,8 @@ export function galleryHash(source: GallerySource): string {
  * The new-document dialog's template pictures
  * (`public/template-thumbs/<id>.webp`): the first page of each template's
  * English text in its design, with its cover placeholders and a sample
- * title from `tests/fixtures/theme-shots/template-thumbs.json`. Blank
+ * title (and optional `pageNumber`) from
+ * `tests/fixtures/theme-shots/template-thumbs.json`. Blank
  * shows the markoto design (the default when the workspace sets none).
  * `tests/unit/templateThumbnails.test.ts` fails when the text, the
  * design or the placeholders changed without a new picture.
@@ -127,6 +128,10 @@ export interface TemplateThumbnailSource {
   md: string
   title: string
   theme: string
+  /** Page the picture shows: 1, or the first content page where the cover
+   *  (and contents) would look like another template's (Demo, Report,
+   *  Business plan). */
+  pageNumber: number
   /** Theme patch (the template's cover placeholders), or null. */
   patch: Record<string, unknown> | null
 }
@@ -136,12 +141,15 @@ export function templateThumbnailSources(): Record<string, TemplateThumbnailSour
   if (!isRecord(titles)) throw new Error('template-thumbs.json must hold an object')
   const out: Record<string, TemplateThumbnailSource> = {}
   for (const tpl of TEMPLATES) {
-    const title = titles[tpl.id]
-    if (typeof title !== 'string') continue
+    // "<title>" or { "title": "<title>", "pageNumber": 2 }
+    const entry = titles[tpl.id]
+    const title = typeof entry === 'string' ? entry : isRecord(entry) && typeof entry.title === 'string' ? entry.title : undefined
+    if (title === undefined) continue
+    const pageNumber = isRecord(entry) && typeof entry.pageNumber === 'number' ? entry.pageNumber : 1
     const body = tpl.hasContent ? readFileSync(resolve(ROOT, 'shared/templates/content', tpl.content, 'en.md'), 'utf8') : ''
     const md = body.replaceAll('{{title}}', title).replaceAll('{{description}}', '')
     const cover = templateCover(tpl, 'en')
-    out[tpl.id] = { md, title, theme: tpl.design ?? 'markoto', patch: cover ? { cover } : null }
+    out[tpl.id] = { md, title, theme: tpl.design ?? 'markoto', pageNumber, patch: cover ? { cover } : null }
   }
   return out
 }
@@ -157,5 +165,7 @@ export function templateThumbnailHash(source: TemplateThumbnailSource): string {
   h.update(source.title)
   h.update('\0')
   h.update(JSON.stringify(source.patch))
+  h.update('\0')
+  h.update(String(source.pageNumber))
   return h.digest('hex')
 }

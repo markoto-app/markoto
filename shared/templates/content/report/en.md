@@ -2,8 +2,6 @@
 
 [[toc]]
 
-<!-- pagebreak -->
-
 # Executive summary
 
 <!-- Half a page for someone who reads nothing else: what happened in the period, the three numbers that matter most, and what the reader should decide or note. Sign it if it is a letter to a board or to shareholders. -->

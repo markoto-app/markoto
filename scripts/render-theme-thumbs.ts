@@ -17,9 +17,9 @@
  *   `shared/utils/templateGallery.manifest.json`
  *   (`tests/unit/templateGallery.test.ts`). `make template-gallery`.
  *
- * - `--templates`: the new-document dialog's template pictures — the first
- *   page of each template's English text in its design (with its cover
- *   placeholders and a sample title from
+ * - `--templates`: the new-document dialog's template pictures — one page
+ *   (the first, or its `pageNumber`) of each template's English text in its
+ *   design (with its cover placeholders and a sample title from
  *   `tests/fixtures/theme-shots/template-thumbs.json`), 360 px,
  *   `public/template-thumbs/<id>.webp`, hashes in
  *   `shared/templates/templateThumbnails.manifest.json`
@@ -101,6 +101,7 @@ try {
         shotArgs.push('--patch', patch)
       }
       preset = tpl.theme
+      page = tpl.pageNumber
       hash = templateThumbnailHash(tpl)
     } else {
       const source = sources[id]

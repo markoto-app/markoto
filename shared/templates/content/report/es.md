@@ -2,8 +2,6 @@
 
 [[toc]]
 
-<!-- pagebreak -->
-
 # Resumen ejecutivo
 
 <!-- Media página para quien no lea nada más: qué pasó en el periodo, las tres cifras más importantes y qué debe decidir o tener en cuenta el lector. Fírmalo si es una carta al consejo o a los accionistas. -->

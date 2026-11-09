@@ -1,5 +1,8 @@
 {
-  "demo": "Welcome to markoto",
+  "demo": {
+    "title": "Welcome to markoto",
+    "pageNumber": 2
+  },
   "blank": "Untitled",
   "resume": "Alex Morgan — Resume",
   "runbook": "Payments service — on-call runbook",
@@ -11,8 +14,14 @@
   "thesis": "Learning sparse sensor placements for urban flood forecasting",
   "lecture-notes": "Probability for Computer Scientists — Lecture 7: Expectation and Linearity",
   "essay": "Who Owns the Shoreline? Public Access and Private Property on Lakes",
-  "report": "Q3 2026 Quarterly Report",
-  "business-plan": "Business Plan 2027",
+  "report": {
+    "title": "Q3 2026 Quarterly Report",
+    "pageNumber": 3
+  },
+  "business-plan": {
+    "title": "Business Plan 2027",
+    "pageNumber": 3
+  },
   "proposal": "Proposal: Customer portal relaunch",
   "one-pager": "Fieldnote — service reports in one tap",
   "memo": "Memo — Office move in December",
