@@ -266,6 +266,14 @@ services:
     # instead of OOMing the whole box. Sticky sessions keep a doc's clients
     # pinned to one instance, so per-instance memory scales with local load.
     mem_limit: 1g
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:4001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     environment:
       - PORT=4001
       # The app role (shared with the app: both write the app database).
@@ -315,6 +323,14 @@ services:
     # malicious/huge upload from taking the box down (the app also enforces
     # a 50 MB import size limit upstream).
     mem_limit: 1g
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
     # Image user `app`. Parses untrusted files, so it gets the tightest
     # shape: read-only, no capabilities, and (per env file) a network that
     # reaches nothing but the app.
