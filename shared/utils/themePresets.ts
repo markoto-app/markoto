@@ -561,7 +561,6 @@ const ESSAY_TEMPLATE_CSS = `/* APA 7 student paper. Values from the Publication 
  * template CSS (sanitised, editable by the author).
  */
 const MEMO_TEMPLATE_CSS = `/* Memo / business letter. A4 on a two-column grid (Swiss business-letter style, DIN 5008 margins): a 32 mm label column at the page margin, the text in a ~75-character column beside it. */
-/* paged.js rewrites every selector with a "+" into a low-specificity attribute rule, so this CSS uses ":has(~ …)" and descendant selectors instead. */
 .paged-doc { --memo-gutter: 32mm; padding-left: var(--memo-gutter); }
 /* Rules run across both columns: the one under the address block, and any section rule. */
 .paged-doc > hr { margin: 1.1em 0 1.9em calc(-1 * var(--memo-gutter)); border-top: 0.6pt solid var(--doc-text); }
@@ -710,8 +709,6 @@ const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhu
 /* Scene break: three spaced asterisks, lowered to sit centred in their line (EB Garamond has no asterism glyph); the next paragraph starts flush (engine). */
 .paged-doc hr { margin: 0.66em 0; height: 1.32em; line-height: 1.32em; }
 .paged-doc hr::before { content: '*\\2002\\2002*\\2002\\2002*'; position: relative; top: 0.3em; color: var(--doc-text); font-size: 1em; letter-spacing: 0; }
-/* An ornamented break stays visible at a page boundary, where a blank line alone would be lost (the engine hides rules there). */
-.paged-doc hr[data-markoto-page-edge] { display: block; }
 /* Epigraph: the opening quotation alone on its page, a third down, narrow and italic; the attribution roman, set right. */
 .paged-doc > blockquote:first-child:last-child { padding: 38mm 8mm 0 18mm; font-style: italic; }
 .paged-doc > blockquote:first-child:last-child p:last-child:not(:first-child) { font-style: normal; text-align: right; text-align-last: right; margin-top: 0.6em; }
@@ -752,7 +749,7 @@ const NEWSLETTER_TEMPLATE_CSS = `/* Newsletter template: two columns of text und
 .paged-doc .markoto-title-block .markoto-cover-title { line-height: 1; letter-spacing: -0.025em; margin: 0 0 6pt; }
 .paged-doc .markoto-title-block .markoto-cover-subtitle { font-family: var(--doc-meta-font); font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.82em; color: var(--doc-heading-color); margin: 0 0 6pt; }
 .paged-doc .markoto-title-block .markoto-cover-date { font-family: var(--doc-meta-font); font-size: 0.82em; color: var(--doc-secondary); margin: 0 0 6pt; }
-/* The issue line (a bold line right under the masthead) spans the page as the masthead's last line; a rule the author puts after it spans too and closes it (right under the masthead it would double the masthead's rule: invisible) (an hr hidden with display: none breaks paged.js's column fill). */
+/* The issue line (a bold line right under the masthead) spans the page as the masthead's last line; a rule the author puts after it spans too and closes it (right under the masthead it would double the masthead's rule: invisible). */
 .paged-doc .markoto-title-block + p:has(> strong:only-child) { column-span: all; font-family: var(--doc-meta-font); font-size: 0.82em; letter-spacing: 0.04em; text-transform: uppercase; color: var(--doc-heading-color); padding: 4pt 0 0; margin: 0 0 5pt; }
 .paged-doc .markoto-title-block + p:has(> strong:only-child) + hr { column-span: all; margin: 0 0 14pt; border: 0; border-top: 0.5pt solid var(--doc-heading-color); }
 .paged-doc .markoto-title-block + hr { column-span: all; margin: 0 0 10pt; border: 0; }

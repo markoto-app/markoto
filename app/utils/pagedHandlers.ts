@@ -18,11 +18,20 @@
  *  - Widows: a paragraph never carries just one line over to the next
  *    page (the break moves up one line when the paragraph has lines to
  *    spare, otherwise the paragraph moves whole).
+ *  - Totals: a closing block of bold rows (Subtotal · VAT · Total) goes
+ *    over only together with at least three rows before it.
+ *  - Code blocks split with at least three lines on each side.
+ *  - Lists: no single item carried over or left behind; short lists move
+ *    whole; a list under a heading keeps three items with it.
+ *  - Diagrams shrink (down to 75 %) before they jump to the next page.
  *  - A code block's caption (`.code-title`) stays with its block.
- *  - After layout: a rule (`<hr>`) that opens or closes a page is hidden
- *    (`data-markoto-page-edge`) — a scene break at a page edge reads as a
- *    stray line — and the first block on a page loses its top margin
- *    (`data-markoto-page-top`).
+ *  - After layout: a plain rule (`<hr>`) that opens or closes a page is
+ *    hidden (`data-markoto-page-edge`) — at a page edge it reads as a
+ *    stray line; a glyph break (asterism) stays — and the first block on
+ *    a page loses its top margin (`data-markoto-page-top`).
+ *  - paged.js fixes: hidden (`display: none`) nodes no longer count as
+ *    overflow, and the rules paged.js rewrites (`+`, `-of-type`) keep
+ *    their specificity.
  *
  * Every move is guarded: it only happens when there is other content on
  * the page before the moved block, so nothing can loop or produce an
@@ -77,6 +86,40 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
   }
   /** Fewest body rows of a split table on either page. */
   const MIN_ROWS = 3
+
+  /** A totals row: its first cell is all bold (`**Total**`). */
+  function isBoldRow(tr: Element): boolean {
+    const cell = tr.firstElementChild
+    const text = (cell?.textContent ?? '').trim()
+    if (!cell || !text) return false
+    const bold = Array.from(cell.querySelectorAll('strong, b')).map(b => b.textContent ?? '').join('').trim()
+    return bold === text
+  }
+
+  /**
+   * Rows of the closing totals block of a table body (`rows`, `total`
+   * body rows): from the first bold row of the
+   * table's tail, allowing single plain rows between bold ones
+   * (Subtotal · VAT · Total). The block must end at most one row before
+   * the end, and a table of bold row headers (more than half bold, or
+   * more than four rows) has none.
+   */
+  function totalRows(rows: Element[], total: number): number {
+    let start = -1
+    let gap = 0
+    for (let i = rows.length - 1; i >= 0; i--) {
+      const row = rows[i]
+      if (row && isBoldRow(row)) {
+        start = i
+        gap = 0
+      } else if (start < 0 ? rows.length - 1 - i >= 1 : ++gap > 1) {
+        break
+      }
+    }
+    if (start < 0) return 0
+    const size = rows.length - start
+    return size <= 4 && size * 2 <= total ? size : 0
+  }
 
   function hasContent(node: Node): boolean {
     if (node.nodeType === 3) return (node.textContent ?? '').trim().length > 0
@@ -254,8 +297,9 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
   /**
    * The heading (top of a heading run) that would end up with fewer than
    * NEAR_LINES lines of its section under it on this page, or null.
+   * `moving`: the block holding the break goes over whole.
    */
-  function headingNearBreak(el: Element, root: Element, page: PageBox): Element | null {
+  function headingNearBreak(el: Element, root: Element, page: PageBox, moving = false): Element | null {
     const block = topBlock(el, root)
     const limit = NEAR_LINES * linePx(root.querySelector('p') ?? block)
     // A box split by the break has one client rect per fragment; only the
@@ -263,7 +307,8 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     const here = (e: Element | null): DOMRect[] => e ? Array.from(e.getClientRects()).filter(r => r.height > 0 && onPage(r, page)) : []
     // Where this page's text ends (not the page box: the footnote area
     // sits below it).
-    const ends = [...here(block), ...here(prevElement(block))].map(r => r.bottom)
+    // (`moving`: the whole block goes to the next page, nothing of it stays.)
+    const ends = [...(moving ? [] : here(block)), ...here(prevElement(block))].map(r => r.bottom)
     if (ends.length === 0) return null
     const end = Math.max(...ends)
     const room = (e: Element): number | null => {
@@ -271,7 +316,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       return tops.length ? end - Math.min(...tops) : null
     }
     // The block holding the break: what of it stays on this page counts too.
-    const blockRoom = room(block)
+    const blockRoom = moving ? null : room(block)
     if (blockRoom !== null && blockRoom > limit) return null
     let lead: Element | null = null
     for (let sib = prevElement(block); sib; sib = prevElement(sib)) {
@@ -286,8 +331,50 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     return lead
   }
 
+  /** Lists of at most this many items move whole rather than split. */
+  const SHORT_LIST = 4
+  /** Fewest items of a list kept on the page with the heading above it. */
+  const MIN_LIST_ITEMS = 3
+
+  /** Is `el` in the lower part of the page (moving it leaves at most 40 % empty)? */
+  function nearPageEnd(el: Element, page: PageBox): boolean {
+    const top = Array.from(el.getClientRects()).find(r => r.height > 0 && onPage(r, page))?.top
+    return top !== undefined && page.bottom - top <= 0.4 * (page.bottom - page.top)
+  }
+
+  /**
+   * Code blocks split between lines with at least MIN_SPLIT_LINES lines
+   * on each side: when fewer would go over, break earlier; when fewer
+   * would stay (or breaking earlier leaves too few), move the block
+   * whole. Line numbers come from `data-line` (the page may hold only a
+   * fragment of the block; the total is read from the source).
+   */
+  function codeBreak(pre: Element, range: Range, root: Element, siblingsFrom: (el: Element) => Element[] | null): Element | null {
+    const lines = Array.from(pre.querySelectorAll('.code-line'))
+    const num = (l: Element | undefined): number => Number.parseInt(l?.getAttribute('data-line') ?? '', 10)
+    const first = num(lines[0])
+    // The line the break falls in or before (a break inside a wrapped
+    // line carries that line's rest over).
+    const breakAt = lines.find(l => l.contains(range.startContainer) || range.comparePoint(l, 0) >= 0)
+    const original = siblingsFrom(pre)?.[0]
+    const sourceLines = original ? Array.from(original.querySelectorAll('.code-line')) : lines
+    const total = num(sourceLines[sourceLines.length - 1])
+    const at = num(breakAt)
+    if (!Number.isFinite(first) || !Number.isFinite(total) || !Number.isFinite(at)) return null
+    const staying = at - first
+    const carried = total - at + 1
+    const block = pre.parentElement?.classList.contains('code-block') ? pre.parentElement : pre
+    const whole = hasContentBefore(block, root) ? block : null
+    if (staying < MIN_SPLIT_LINES) return staying > 0 || breakAt !== lines[0] ? whole : null
+    if (carried >= MIN_SPLIT_LINES) return null
+    const earlier = total - MIN_SPLIT_LINES + 1
+    if (earlier - first >= MIN_SPLIT_LINES) return lines.find(l => num(l) === earlier) ?? whole
+    return whole
+  }
+
   /** Where the page should break instead, or null to keep paged.js's choice. */
-  function adjustedBreak(range: Range, root: Element, page: PageBox, rowsFrom: (tr: Element) => number | null): Element | Range | null {
+  function adjustedBreak(range: Range, root: Element, page: PageBox, siblingsFrom: (el: Element) => Element[] | null): Element | Range | null {
+    const rowsFrom = (el: Element): number | null => siblingsFrom(el)?.length ?? null
     const { node, midText } = startOf(range)
     if (!node) return null
     const el = node instanceof Element ? node : node.parentElement
@@ -303,7 +390,8 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     //    (top of a continuation page) keeps paged.js's own break, so a
     //    row taller than a page can't loop.
     if (!target) {
-      const tr = el.closest('tr')
+      // paged.js can start the overflow at the <tbody> itself: that is its first row.
+      const tr = el.nodeName === 'TBODY' ? el.querySelector(':scope > tr') : el.closest('tr')
       const table = tr?.closest('table')
       if (tr && table && root.contains(tr)) {
         const inHead = tr.parentElement?.nodeName === 'THEAD'
@@ -324,8 +412,13 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
           // only part of the table yet: count the rest from the source).
           const total = after === null ? bodyRows.length : rowIndex + after
           const least = table.hasAttribute('data-markoto-split') ? Math.max(MIN_ROWS, Math.ceil(total / 3)) : MIN_ROWS
-          if (after !== null && after < least) {
-            const back = rowIndex - (least - after)
+          // A closing block of bold rows (Subtotal / VAT / Total) never
+          // goes over alone: it takes at least MIN_ROWS rows along.
+          const sourceBody = siblingsFrom(tr)?.[0]?.parentElement
+          const totals = sourceBody ? totalRows(Array.from(sourceBody.children), total) : 0
+          const carry = Math.max(least, totals > 0 ? totals + MIN_ROWS : 0)
+          if (after !== null && after < carry) {
+            const back = rowIndex - (carry - after)
             if (back >= least) target = bodyRows[back] ?? tr
             else if (hasContentBefore(table, root)) target = table
           } else if (rowIndex < least && hasContentBefore(table, root)) {
@@ -334,16 +427,36 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
         }
       }
     }
-    // 2b. Lists: never carry a single item over to the next page — take
-    //     one more along when at least two stay.
+    // 2a. Code blocks: at least MIN_SPLIT_LINES lines on each side of a
+    //     split — carry more lines over, or move the block whole.
     if (!target) {
-      const li = el.closest('li')
+      const pre = el.closest('pre')
+      if (pre && root.contains(pre) && pre.querySelector('.code-line')) target = codeBreak(pre, range, root, siblingsFrom)
+    }
+    // 2b. Lists: never carry a single item over to the next page — take
+    //     one more along when at least two stay — nor leave a single item
+    //     behind. A short list (≤ SHORT_LIST items) moves whole; a list
+    //     right under a heading keeps at least MIN_LIST_ITEMS items with
+    //     it, or the heading goes along.
+    //     (A list item kept whole — `break-inside: avoid` — counts too.)
+    if (!target || target.nodeName === 'LI') {
+      const li = target ?? el.closest('li')
       const list = li?.parentElement
       if (li && list && root.contains(li) && !li.closest('.table-of-contents')) {
         const items = Array.from(list.children).filter(c => c.nodeName === 'LI')
         const index = items.indexOf(li)
-        const breaksBefore = !midText || linesAbove(li, range, page) === 0
-        if (breaksBefore && index >= 2 && rowsFrom(li) === 1) target = items[index - 1] ?? null
+        // (an item that would leave one line behind moves whole: rule 3)
+        const breaksBefore = target === li || !midText || linesAbove(li, range, page) < 2
+        const after = rowsFrom(li)
+        const fresh = !list.hasAttribute('data-split-from') && hasContentBefore(list, root)
+        const total = after === null ? items.length : index + after
+        const staying = breaksBefore ? index : index + 1
+        const lead = prevElement(list)
+        if (fresh && staying < total && total <= SHORT_LIST && nearPageEnd(list, page)) target = list
+        else if (fresh && staying < MIN_LIST_ITEMS && lead && keepsWithNext(lead) && (list.parentElement === root || list.parentElement?.classList.contains('paged-doc') === true) && nearPageEnd(lead, page)) target = list
+        // One item alone at the foot of the page reads as torn off too.
+        else if (fresh && staying === 1 && total > 2 && nearPageEnd(list, page)) target = list
+        else if (breaksBefore && index >= 2 && after === 1) target = items[index - 1] ?? null
       }
     }
     // 3. Orphans: don't leave a single line of a paragraph behind.
@@ -382,7 +495,8 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     }
     // 5. …and a heading followed by only a line or two before the break
     //    (one list item, the start of a paragraph) goes over with them.
-    const near = headingNearBreak(first ?? el, root, page)
+    const moving = target !== null && first !== null && first.contains(target) && topBlock(first, root) === first
+    const near = headingNearBreak(first ?? el, root, page, moving)
     if (near && hasContentBefore(near, root)) return near
     return target && hasContentBefore(target, root) ? target : null
   }
@@ -414,6 +528,15 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     const stride = (box.width + gap) / count
     const columnOf = (r: DOMRect): number => Math.floor((r.left - box.left + gap / 2) / stride)
     const visible = (e: Element): DOMRect[] => Array.from(e.getClientRects()).filter(r => r.height > 0 && onPage(r, page))
+    // A table wider than its column (long unbreakable cells) would run
+    // into the next column: it spans the page instead.
+    const columnWidth = (doc.offsetWidth - (Number.parseFloat(style.columnGap) || 0) * (count - 1)) / count
+    for (const table of Array.from(doc.querySelectorAll(':scope > table'))) {
+      if (table instanceof HTMLElement && !table.style.columnSpan && table.offsetWidth > columnWidth + 1) {
+        table.style.setProperty('column-span', 'all')
+        table.setAttribute('data-markoto-wide', '')
+      }
+    }
     // Each forced break moves everything after it: measure again.
     for (let round = 0; round < 12; round++) {
       let moved = false
@@ -564,6 +687,111 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     return range
   }
 
+  /*
+   * BOXLESS NODES. paged.js finds the overflow by walking the page's
+   * nodes and taking the first one whose rect lies right of or below the
+   * page. An element with `display: none` (and everything in it) has an
+   * all-zero rect — x = 0, which is RIGHT of the page while paged.js lays
+   * it out off-screen at negative x. So a hidden `<hr>` always counted as
+   * overflowing: the page broke before it (page 1 of a two-column
+   * newsletter held only the masthead) and the next page, starting at the
+   * same hidden node, repeated its content. Each hidden node rendered
+   * into a page reports, instead, a zero-size rect where it sits in the
+   * flow: the end of the laid-out node before it (or the top of its
+   * parent). Layout itself is untouched.
+   */
+  const boxless = new WeakSet<Node>()
+
+  function flowRect(node: Node): DOMRect {
+    for (let cur: Node | null = node; cur; cur = cur.parentNode) {
+      for (let sib = cur.previousSibling; sib; sib = sib.previousSibling) {
+        if (boxless.has(sib)) continue
+        const rects = sib instanceof Element ? Array.from(sib.getClientRects()) : []
+        const last = rects[rects.length - 1]
+        if (last) return new DOMRect(last.left, last.bottom, 0, 0)
+      }
+      const parent = cur.parentNode
+      if (parent instanceof Element && !boxless.has(parent)) {
+        const first = parent.getClientRects()[0]
+        if (first) return new DOMRect(first.left, first.top, 0, 0)
+      }
+    }
+    return new DOMRect()
+  }
+
+  function placeBoxless(clone: Node): void {
+    const parent = clone.parentNode
+    const hidden = (parent !== null && boxless.has(parent)) || (clone instanceof Element && getComputedStyle(clone).display === 'none')
+    if (!hidden) return
+    boxless.add(clone)
+    Object.defineProperty(clone, 'getBoundingClientRect', { configurable: true, value: () => flowRect(clone) })
+  }
+
+  /*
+   * DIAGRAMS SHRINK BEFORE THEY JUMP. A diagram (`.mermaid`, kept whole)
+   * that doesn't fit the rest of the page would move to the next one and
+   * leave a large gap. If it fits at MIN_DIAGRAM_SCALE of its size or
+   * more, it is scaled down (CSS `zoom` on its box, which survives the
+   * img → inline SVG swap after pagination) and the overflow is found
+   * again; if it still doesn't fit, the scale is undone and it moves.
+   */
+  const MIN_DIAGRAM_SCALE = 0.75
+
+  function fitDiagram(overflow: Range, rendered: Element, page: PageBox, bounds: PageBox | undefined, layout: unknown): Range {
+    const find: unknown = typeof layout === 'object' && layout !== null ? Reflect.get(layout, 'findOverflow') : null
+    if (typeof find !== 'function' || !bounds) return overflow
+    const { node, midText } = startOf(overflow)
+    if (!node || midText) return overflow
+    const el = node instanceof Element ? node : node.parentElement
+    const diagram = el?.closest('.mermaid')
+    if (!(diagram instanceof HTMLElement) || !rendered.contains(diagram) || diagram.style.zoom || !hasContentBefore(diagram, rendered)) return overflow
+    const content = rendered.closest('.pagedjs_page_content') ?? rendered
+    const bottom = content.getBoundingClientRect().bottom
+    const before = document.createRange()
+    before.setStart(rendered, 0)
+    before.setEndBefore(diagram)
+    const ends = Array.from(before.getClientRects()).filter(r => r.height > 0 && onPage(r, page)).map(r => r.bottom)
+    if (ends.length === 0) return overflow
+    const style = getComputedStyle(diagram)
+    const margins = (Number.parseFloat(style.marginTop) || 0) + (Number.parseFloat(style.marginBottom) || 0)
+    const zoom = diagram.offsetHeight > 0 ? diagram.getBoundingClientRect().height / diagram.offsetHeight : 1
+    const need = diagram.getBoundingClientRect().height + margins * zoom
+    const room = bottom - Math.max(...ends)
+    const scale = Math.floor((room / need) * 100) / 100
+    if (!(scale >= MIN_DIAGRAM_SCALE) || scale >= 1) return overflow
+    diagram.style.zoom = String(scale)
+    diagram.setAttribute('data-markoto-fit', '')
+    let next: unknown
+    try {
+      next = Reflect.apply(find, layout, [rendered, bounds])
+    } catch {
+      next = null
+    }
+    const still = next instanceof Range && (() => {
+      const s = startOf(next).node
+      const e = s instanceof Element ? s : s?.parentElement
+      return e ? diagram.contains(e) || e.contains(diagram) : false
+    })()
+    // Everything fits now (the diagram ended the document): paged.js's
+    // hook can't say "no overflow", so the diagram keeps its size and moves.
+    if (next instanceof Range && !still) return next
+    diagram.style.removeProperty('zoom')
+    diagram.removeAttribute('data-markoto-fit')
+    return overflow
+  }
+
+  /**
+   * A scene break drawn as a glyph (`hrStyle: 'asterism'`, a template's
+   * `* * *`) marks a break exactly where a page turns, so it stays
+   * visible at a page edge; only plain rules are hidden there.
+   */
+  function isOrnament(hr: Element): boolean {
+    return ['::before', '::after'].some((p) => {
+      const c = getComputedStyle(hr, p).content
+      return !/^(?:none|normal|""|''|)$/.test(c)
+    })
+  }
+
   class MarkotoPagination extends paged.Handler {
     layout(rendered: Element): void {
       try {
@@ -580,7 +808,8 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       const page: PageBox = bounds && Number.isFinite(bounds.right) ? bounds : rendered.getBoundingClientRect()
       let overflow: Range
       try {
-        overflow = splitKeptBlock(found, rendered, page, bounds, layout)
+        overflow = fitDiagram(found, rendered, page, bounds, layout)
+        if (overflow === found) overflow = splitKeptBlock(found, rendered, page, bounds, layout)
       } catch {
         overflow = found
       }
@@ -592,20 +821,20 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       const source: unknown = typeof chunker === 'object' && chunker !== null ? Reflect.get(chunker, 'source') : null
       // Siblings still to come from `tr` / `li` on (itself included), read
       // from the unpaginated source (the page holds only what fit).
-      const rowsFrom = (tr: Element): number | null => {
-        const ref = tr.getAttribute('data-ref')
+      const siblingsFrom = (el: Element): Element[] | null => {
+        const ref = el.getAttribute('data-ref')
         // paged.js refs are UUIDs; anything else isn't looked up.
         if (!ref || !/^[\w-]+$/.test(ref)) return null
         if (!(source instanceof Element || source instanceof DocumentFragment)) return null
         const original = source.querySelector(`[data-ref="${ref}"]`)
         if (!original) return null
-        let n = 1
-        for (let s = original.nextElementSibling; s; s = s.nextElementSibling) n++
-        return n
+        const out: Element[] = []
+        for (let s: Element | null = original; s; s = s.nextElementSibling) out.push(s)
+        return out
       }
       let at: Element | Range | null
       try {
-        at = adjustedBreak(overflow, rendered, page, rowsFrom)
+        at = adjustedBreak(overflow, rendered, page, siblingsFrom)
       } catch {
         return fallback
       }
@@ -627,16 +856,21 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
         if (first) first.setAttribute('data-markoto-page-top', '')
         const edges = [first, blocks[blocks.length - 1]]
         for (const el of edges) {
-          if (el?.nodeName === 'HR') el.setAttribute('data-markoto-page-edge', '')
+          if (el?.nodeName === 'HR' && !isOrnament(el)) el.setAttribute('data-markoto-page-edge', '')
         }
         // An <hr> right after the page-top block that is itself hidden.
-        if (first?.nodeName === 'HR' && blocks[1]) blocks[1].setAttribute('data-markoto-page-top', '')
+        if (first?.hasAttribute('data-markoto-page-edge') && blocks[1]) blocks[1].setAttribute('data-markoto-page-top', '')
       } catch {
         // Cosmetic only — never break pagination.
       }
     }
 
     renderNode(clone: Node, source: Node): void {
+      try {
+        placeBoxless(clone)
+      } catch {
+        // paged.js's own geometry.
+      }
       const el = clone instanceof Element ? clone : clone.parentElement
       const table = el?.closest('table')
       if (!table?.hasAttribute('data-split-from')) return
@@ -655,6 +889,63 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
 
   paged.registerHandlers(MarkotoPagination)
 
+  const registry: unknown = Reflect.get(paged, 'registeredHandlers')
+  /** Prototypes of paged.js's own handler classes that define `method`. */
+  function pagedHandlersWith(method: string): object[] {
+    if (!Array.isArray(registry)) return []
+    return registry.flatMap((h: unknown) => {
+      const proto: unknown = typeof h === 'function' ? Reflect.get(h, 'prototype') : null
+      return typeof proto === 'object' && proto !== null && typeof Reflect.get(proto, method) === 'function' ? [proto] : []
+    })
+  }
+
+  /*
+   * REWRITTEN SELECTORS KEEP THEIR SPECIFICITY. Two paged.js handlers
+   * take rules out of the stylesheet before chunking: Following (every
+   * selector containing a "+") and NthOfType (`:first-of-type`,
+   * `:last-of-type`, `:nth-of-type`). They mark the matching elements
+   * with an id (`data-following` / `data-nth-of-type`) — so a paragraph
+   * still counts as "after the heading" on the next page — and re-insert
+   * the declarations as `*[data-following*='id']`: specificity (0,1,0),
+   * so `h1 + p` lost to any `.paged-doc p` rule. Both build the rule in
+   * `processSelectors`; this version inserts
+   * `:where(<mark>):is(<original>, :where(<mark>))` instead — exactly the
+   * marked elements, with the original selector's specificity. A trailing
+   * pseudo-element (`h1 + p::first-line`) stays outside the `:is()`. If
+   * the browser refuses the selector, paged.js's own form is used.
+   */
+  function processSelectors(this: object, parsed: unknown, selectors: unknown): void {
+    const sheet: unknown = Reflect.get(this, 'styleSheet')
+    if (!(parsed instanceof Element || parsed instanceof DocumentFragment || parsed instanceof Document) || typeof selectors !== 'object' || selectors === null || !(sheet instanceof CSSStyleSheet)) return
+    for (const [selector, entry] of Object.entries(selectors)) {
+      if (!Array.isArray(entry)) continue
+      const [id, declarations] = entry
+      if (typeof id !== 'string' || typeof declarations !== 'string' || !/^[\w-]+$/.test(id)) continue
+      // "following-<uuid>" → data-following, "nth-of-type-<uuid>" → data-nth-of-type.
+      const attr = `data-${id.replace(/-[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i, '')}`
+      const s = selector.trim()
+      const pseudo = /::?(?:before|after|first-line|first-letter|marker|placeholder|selection)$/i.exec(s)?.[0] ?? ''
+      const base = s.slice(0, s.length - pseudo.length)
+      let elements: Element[]
+      try {
+        elements = Array.from(parsed.querySelectorAll(base))
+      } catch {
+        continue
+      }
+      for (const element of elements) {
+        const was = element.getAttribute(attr)
+        element.setAttribute(attr, was ? `${was},${id}` : id)
+      }
+      const mark = `[${attr}*='${id}']`
+      try {
+        sheet.insertRule(`:where(${mark}):is(${base}, :where(${mark}))${pseudo} { ${declarations}; }`, sheet.cssRules.length)
+      } catch {
+        sheet.insertRule(`*${mark} { ${declarations}; }`, sheet.cssRules.length)
+      }
+    }
+  }
+  for (const proto of pagedHandlersWith('processSelectors')) Reflect.set(proto, 'processSelectors', processSelectors)
+
   /*
    * FOOTNOTES IN MULTI-COLUMN PAGES. paged.js's Footnotes handler decides
    * where a note goes as if the page had one column: when the note area
@@ -667,13 +958,9 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * removal takes the note along and it is placed again with its call.
    * Single-column pages are left exactly as paged.js lays them out.
    */
-  const registry: unknown = Reflect.get(paged, 'registeredHandlers')
-  const footnotes: unknown = Array.isArray(registry)
-    ? registry.find((h: unknown) => typeof h === 'function' && typeof Reflect.get(Reflect.get(h, 'prototype') ?? {}, 'moveFootnote') === 'function')
-    : undefined
-  const proto: unknown = typeof footnotes === 'function' ? Reflect.get(footnotes, 'prototype') : null
-  const moveFootnote: unknown = typeof proto === 'object' && proto !== null ? Reflect.get(proto, 'moveFootnote') : null
-  if (typeof proto !== 'object' || proto === null || typeof moveFootnote !== 'function') return
+  const proto = pagedHandlersWith('moveFootnote')[0]
+  const moveFootnote: unknown = proto ? Reflect.get(proto, 'moveFootnote') : null
+  if (!proto || typeof moveFootnote !== 'function') return
 
   /** Whole pixels of two edge properties (paged.js rounds the same way). */
   function edges(el: Element, top: string, bottom: string): number {
