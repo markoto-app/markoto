@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/paidTerms'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
@@ -46,10 +47,11 @@ export default defineEventHandler(async (event) => {
       data: { code: 'billing/currency-locked', currency: row.billingCurrency, messageKey: 'pricing.currencyLocked' }
     })
   }
+  requirePaidTermsAccepted(body)
   const stripe = useStripeClient()
   if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
   const base = requestBaseUrl(event)
-  return createTopupCheckout(stripe, {
+  const checkout = await createTopupCheckout(stripe, {
     subject: { type: 'user', id: String(userId) },
     pack: body.pack,
     currency,
@@ -60,4 +62,6 @@ export default defineEventHandler(async (event) => {
     cancelUrl: `${base}/settings/profile?credits=cancelled`,
     automaticTax: automaticTaxEnabled(useRuntimeConfig(event).stripe.automaticTax)
   })
+  await recordPaidTermsAcceptance(event, userId, { kind: 'topup', subject: { type: 'user', id: String(userId) }, item: body.pack })
+  return checkout
 })

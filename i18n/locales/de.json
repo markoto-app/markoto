@@ -677,7 +677,8 @@
       "tagline": "Mehr KI-Punkte, Workspaces und Speicher.",
       "tabsLabel": "Bezahlpläne",
       "joinWaitlist": "Auf die Warteliste",
-      "setUpInWorkspace": "In einem Workspace einrichten"
+      "setUpInWorkspace": "In einem Workspace einrichten",
+      "setUpInWorkspaceHint": "Öffnen Sie den Arbeitsbereich und dort den Tab «Abrechnung». Nur Admins des Arbeitsbereichs können kaufen."
     },
     "instance": {
       "title": "Jedes Konto"
@@ -750,7 +751,11 @@
       "knowledgeFiles": "{n} Wissensdatei pro Platz, gemeinsam | {n} Wissensdateien pro Platz, gemeinsam",
       "knowledgeStorage": "{size} Wissensspeicher pro Platz, gemeinsam",
       "imageStorage": "{size} Bildspeicher pro Platz, gemeinsam"
-    }
+    },
+    "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
+    "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
+    "seatsLabel": "Plätze",
+    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Arbeitsbereichen. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf."
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -1235,7 +1240,8 @@
     "success": "Dokument verschoben",
     "successToPersonal": "\"{title}\" ist jetzt ein persönliches Dokument.",
     "successToWorkspace": "\"{title}\" befindet sich jetzt in {workspace}.",
-    "failed": "Dokument konnte nicht verschoben werden"
+    "failed": "Dokument konnte nicht verschoben werden",
+    "leavesPlan": "Dieses Dokument verlässt einen Arbeitsbereich mit dem Plan {plan}. Danach gilt der Plan am neuen Ort: Funktionen, die dort fehlen (etwa eigenes CSS oder ältere Versionen), pausieren. Es wird nichts gelöscht."
   },
   "delete": {
     "title": "Dokument löschen",
@@ -1366,7 +1372,8 @@
         "declined": "Einladung abgelehnt.",
         "missingToken": "Dieser Einladungslink ist unvollständig. Öffnen Sie ihn erneut aus der E-Mail.",
         "home": "Zum Dashboard"
-      }
+      },
+      "planIncluded": "{name} hat den Plan {plan}: Darin gelten seine Funktionen und sein KI-Budget auch für Sie."
     },
     "actions": "Workspace-Aktionen",
     "billing": {
@@ -1629,7 +1636,8 @@
       "navLabel": "Dokumentation und Rechtliches",
       "product": "Produkt",
       "legal": "Rechtliches",
-      "tagline": "Gemeinsam Markdown schreiben, als Seiten gesetzt."
+      "tagline": "Gemeinsam Markdown schreiben, als Seiten gesetzt.",
+      "paidTerms": "Bedingungen für bezahlte Pläne"
     },
     "documentPage": {
       "translationNoticeTitle": "Übersetzung zur Bequemlichkeit bereitgestellt",
@@ -1658,7 +1666,9 @@
         "viewPricing": "Preise ansehen",
         "plan": "Aktueller Plan: {plan}",
         "manage": "Abrechnung verwalten",
-        "portalFailed": "Abrechnung konnte nicht geöffnet werden"
+        "portalFailed": "Abrechnung konnte nicht geöffnet werden",
+        "coveringTitle": "Arbeitsbereiche, die Sie abdecken",
+        "coveringHint": "In diesen Arbeitsbereichen gilt deren Plan auch für Sie, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt Ihr eigener Plan."
       },
       "data": {
         "heading": "Ihre Daten",
@@ -1704,7 +1714,13 @@
   },
   "billing": {
     "comingSoonCta": "Bezahlpläne folgen in Kürze",
-    "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze."
+    "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze.",
+    "paidTerms": {
+      "consentPlan": "Ich akzeptiere die {terms} und verlange, dass mein Plan sofort beginnt. Widerrufe ich als Konsument in der EU innert 14 Tagen, bezahle ich die genutzte Zeit.",
+      "consentTopup": "Ich akzeptiere die {terms} und verlange das Guthaben sofort. Mein Widerrufsrecht endet, sobald ich es nutze.",
+      "link": "Bedingungen für kostenpflichtige Pläne",
+      "required": "Akzeptieren Sie die Bedingungen für kostenpflichtige Pläne, um fortzufahren."
+    }
   },
   "plan": {
     "limitTitle": "Planlimit erreicht",

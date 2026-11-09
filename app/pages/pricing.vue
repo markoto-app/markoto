@@ -4,6 +4,8 @@ import {
   CURRENCIES,
   DEFAULT_PLAN_PRICES,
   PAID_PLAN_NAMES,
+  TOPUP_PACKS,
+  TOPUP_VALIDITY_MONTHS,
   defaultCurrencyForLocale,
   isPerSeatPlan,
   type BillingInterval,
@@ -13,6 +15,7 @@ import {
 } from '~~/shared/config/pricing'
 import { pricingStructuredData, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import { MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 
 // Pricing page.
 //
@@ -73,6 +76,17 @@ const intervalItems = computed(() => [
   { label: t('pricing.interval.month'), value: 'month' as const },
   { label: t('pricing.interval.year'), value: 'year' as const }
 ])
+// Team / Business: a seat count for the total (minimum 3, the smallest
+// workspace subscription).
+const seats = ref(MIN_WORKSPACE_SEATS)
+function seatTotal(plan: PlanName): string {
+  const total = PRICES.value[plan] * seats.value
+  return t(interval.value === 'year' ? 'pricing.seatTotalYear' : 'pricing.seatTotalMonth', {
+    total: formatPrice(total, CURRENCY.value, locale.value),
+    seats: seats.value
+  })
+}
+
 function priceUnitKey(plan: PlanName): string {
   if (isPerSeatPlan(plan)) return interval.value === 'year' ? 'pricing.price.perSeatPerYear' : 'pricing.price.perSeatPerMonth'
   return interval.value === 'year' ? 'pricing.price.perYear' : 'pricing.price.perMonth'
@@ -152,6 +166,8 @@ function ctaKind(plan: PlanName): CtaKind {
 
 const toast = useToast()
 const checkoutLoading = ref<PlanName | null>(null)
+// The Paid Plans Terms box (WP6b): required for every purchase.
+const paidTermsAccepted = ref(false)
 
 async function onChangePlan(plan: PlanName): Promise<void> {
   if (!billingEnabled.value) return
@@ -160,6 +176,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     return
   }
   if (plan === 'free' || checkoutLoading.value) return
+  if (ctaKind(plan) !== 'downgrade' && !paidTermsAccepted.value) return
 
   const kind = ctaKind(plan)
   if (kind === 'downgrade') {
@@ -179,7 +196,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
   try {
     const resp = await $fetch<{ url?: string, sessionId?: string, updated?: boolean, plan?: PlanName }>('/api/billing/checkout', {
       method: 'POST',
-      body: { plan, interval: interval.value, currency: currency.value }
+      body: { plan, interval: interval.value, currency: currency.value, acceptPaidTerms: true }
     })
     if (resp.updated) {
       toast.add({
@@ -284,8 +301,20 @@ usePageStructuredData(() => {
   if (!optionsLayout.value) return null
   const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }]
   if (billingEnabled.value) {
-    // One stable offer per plan: the monthly EUR price.
-    for (const plan of PAID_PLAN_NAMES) offers.push({ name: PAID_DISPLAY[plan], price: PRICE_TABLE.value.eur[plan].month })
+    // One offer per plan, billing period and currency someone can pay.
+    for (const plan of PAID_PLAN_NAMES) {
+      for (const cur of CURRENCIES) {
+        for (const iv of ['month', 'year'] as const) {
+          offers.push({
+            name: `${PAID_DISPLAY[plan]} (${iv === 'year' ? t('pricing.interval.year') : t('pricing.interval.month')}, ${cur.toUpperCase()})`,
+            price: PRICE_TABLE.value[cur][plan][iv],
+            currency: cur.toUpperCase(),
+            interval: iv,
+            perSeat: isPerSeatPlan(plan)
+          })
+        }
+      }
+    }
   }
   return {
     name: pageTitle.value,
@@ -594,6 +623,24 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                   <p class="font-mono text-[11px] uppercase tracking-[0.06em] text-muted mt-1">
                     {{ pricesPlanned ? t('pricing.price.planned') : t('pricing.availableNow') }}
                   </p>
+                  <div
+                    v-if="isPerSeatPlan(plan)"
+                    class="mt-3 flex items-center gap-2 flex-wrap"
+                  >
+                    <UInputNumber
+                      v-model="seats"
+                      :min="MIN_WORKSPACE_SEATS"
+                      :max="1000"
+                      size="xs"
+                      class="w-28"
+                      :aria-label="t('pricing.seatsLabel')"
+                      :data-testid="`pricing-seats-${plan}`"
+                    />
+                    <span
+                      class="text-sm text-muted"
+                      :data-testid="`pricing-seat-total-${plan}`"
+                    >{{ seatTotal(plan) }}</span>
+                  </div>
                   <p class="text-sm text-muted mt-3">
                     {{ t(PAID_TAGLINE[plan]) }}
                   </p>
@@ -616,16 +663,20 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                     </UButton>
                     <!-- Team / Business are bought for a workspace, from its
                          billing settings (pricing plan WP3). -->
-                    <UButton
-                      v-else-if="isPerSeatPlan(plan)"
-                      to="/"
-                      block
-                      color="neutral"
-                      variant="outline"
-                      :data-testid="`pricing-workspace-plan-${plan}`"
-                    >
-                      {{ t('pricing.paid.setUpInWorkspace') }}
-                    </UButton>
+                    <template v-else-if="isPerSeatPlan(plan)">
+                      <UButton
+                        to="/"
+                        block
+                        color="neutral"
+                        variant="outline"
+                        :data-testid="`pricing-workspace-plan-${plan}`"
+                      >
+                        {{ t('pricing.paid.setUpInWorkspace') }}
+                      </UButton>
+                      <p class="mt-2 text-xs text-muted">
+                        {{ t('pricing.paid.setUpInWorkspaceHint') }}
+                      </p>
+                    </template>
                     <!-- Billing on: current → Customer Portal; higher →
                          upgrade (Checkout or in-place swap); lower →
                          portal downgrade; logged out → sign up. -->
@@ -650,15 +701,25 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                     >
                       {{ t('pricing.downgrade') }}
                     </UButton>
-                    <UButton
-                      v-else
-                      block
-                      color="neutral"
-                      :loading="checkoutLoading === plan"
-                      @click="onChangePlan(plan)"
-                    >
-                      {{ loggedIn ? t('pricing.upgrade') : t('pricing.signUp') }}
-                    </UButton>
+                    <template v-else>
+                      <PricingPaidTermsConsent
+                        v-if="loggedIn"
+                        v-model="paidTermsAccepted"
+                        kind="plan"
+                        class="mb-3"
+                        :testid="`pricing-paid-terms-${plan}`"
+                      />
+                      <UButton
+                        block
+                        color="neutral"
+                        :disabled="loggedIn && !paidTermsAccepted"
+                        :loading="checkoutLoading === plan"
+                        :data-testid="`pricing-buy-${plan}`"
+                        @click="onChangePlan(plan)"
+                      >
+                        {{ loggedIn ? t('pricing.upgrade') : t('pricing.signUp') }}
+                      </UButton>
+                    </template>
                   </div>
                 </div>
               </template>
@@ -700,6 +761,35 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             </p>
           </div>
         </div>
+
+        <!-- AI credit top-ups (WP4): one-off, for paid plans. -->
+        <section
+          v-if="optionsLayout"
+          class="mt-8 rounded-lg border border-default bg-default p-5"
+          data-testid="pricing-credits"
+        >
+          <div class="flex items-center gap-2">
+            <CommonSeal :size="9" />
+            <h2 class="font-serif text-lg font-normal tracking-tight">
+              {{ t('credits.title') }}
+            </h2>
+          </div>
+          <p class="mt-2 text-sm text-muted max-w-3xl">
+            {{ t('pricing.creditsSection', { months: TOPUP_VALIDITY_MONTHS }) }}
+          </p>
+          <p class="mt-3 text-sm">
+            <span
+              v-for="(pack, i) in TOPUP_PACKS"
+              :key="pack.id"
+            >{{ i > 0 ? ' · ' : '' }}{{ formatPrice(pack.price[currency], CURRENCY, locale) }} → {{ formatUsd(pack.creditUsd, locale) }}</span>
+          </p>
+          <p
+            v-if="pricesPlanned"
+            class="mt-2 text-xs text-muted"
+          >
+            {{ t('pricing.price.planned') }}
+          </p>
+        </section>
 
         <!-- Below the columns: hydrates when scrolled to (the server
              render is the whole table). -->

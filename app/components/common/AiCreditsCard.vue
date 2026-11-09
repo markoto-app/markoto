@@ -21,11 +21,15 @@ const props = defineProps<{
 const { t, locale } = useI18n()
 const { showError } = useErrorHandler()
 const buying = ref<TopupPackId | null>(null)
+// The Paid Plans Terms box (WP6b): credits are usable at once, so the box
+// also carries the consent that ends the withdrawal right on first use.
+const paidTermsAccepted = ref(false)
 
 async function buy(pack: TopupPackId) {
+  if (!paidTermsAccepted.value) return
   buying.value = pack
   try {
-    const res = await $fetch<{ url?: string }>(props.endpoint, { method: 'POST', body: { pack, currency: props.currency } })
+    const res = await $fetch<{ url?: string }>(props.endpoint, { method: 'POST', body: { pack, currency: props.currency, acceptPaidTerms: true } })
     if (res.url) goToExternal(res.url)
   } catch (e) {
     showError('credits.buyFailed', e)
@@ -59,6 +63,12 @@ function fmtDate(iso: string): string {
       {{ t('credits.explainer', { months: TOPUP_VALIDITY_MONTHS }) }}
     </p>
 
+    <PricingPaidTermsConsent
+      v-if="canBuy"
+      v-model="paidTermsAccepted"
+      kind="topup"
+      :testid="`${testidPrefix}-paid-terms`"
+    />
     <div
       v-if="canBuy"
       class="grid gap-2 sm:grid-cols-3"
@@ -69,6 +79,7 @@ function fmtDate(iso: string): string {
         color="neutral"
         variant="outline"
         block
+        :disabled="!paidTermsAccepted"
         :loading="buying === pack.id"
         :data-testid="`${testidPrefix}-buy-${pack.id}`"
         @click="buy(pack.id)"

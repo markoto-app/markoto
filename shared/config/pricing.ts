@@ -190,3 +190,6 @@ export function parseStripeTopupLookupKey(key: string | null | undefined, prefix
 export function allStripeTopupLookupKeys(prefix = 'markoto'): string[] {
   return TOPUP_PACK_IDS.flatMap(pack => CURRENCIES.map(c => stripeTopupLookupKey(pack, c, prefix)))
 }
+
+/** 400 code of a purchase sent without accepting the Paid Plans Terms (WP6b). */
+export const PAID_TERMS_REQUIRED_CODE = 'billing/terms-required'

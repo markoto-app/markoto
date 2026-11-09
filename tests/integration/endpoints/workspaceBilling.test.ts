@@ -99,7 +99,7 @@ describe('POST /api/workspaces/:wsId/billing/checkout', () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
     await addMembers(ws.workspaceId, 3)
-    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { plan: 'team', seats: 3 })
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'team', seats: 3 })
     expect(res.status).toBe(409)
     expect((await res.json() as { data?: { code?: string, used?: number } }).data).toMatchObject({ code: 'billing/seats-below-members', used: 4 })
   })
@@ -107,7 +107,7 @@ describe('POST /api/workspaces/:wsId/billing/checkout', () => {
   it('opens Checkout on the workspace\'s own customer and records an incomplete placeholder', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
-    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { plan: 'team', seats: 5, interval: 'year', currency: 'chf' })
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'team', seats: 5, interval: 'year', currency: 'chf' })
     expect(res.status).toBe(200)
     const body = await res.json() as { url?: string, sessionId?: string }
     expect(body.url).toMatch(/^https?:\/\//)
@@ -125,11 +125,11 @@ describe('POST /api/workspaces/:wsId/billing/checkout', () => {
     const ws = await createWorkspace(admin.id)
     await seedSubscription(ws.workspaceId, { adminId: admin.id })
     const client = await loggedInClient(admin.id)
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { plan: 'business', interval: 'year' })
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'business', interval: 'year' })
     expect(res.status).toBe(200)
     expect(await res.json()).toMatchObject({ updated: true, plan: 'business' })
 
-    const locked = await client.post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { plan: 'business', currency: 'chf' })
+    const locked = await client.post(`/api/workspaces/${ws.workspaceId}/billing/checkout`, { acceptPaidTerms: true, plan: 'business', currency: 'chf' })
     expect(locked.status).toBe(409)
     expect((await locked.json() as { data?: { code?: string } }).data?.code).toBe('billing/currency-locked')
   })
@@ -270,5 +270,41 @@ describe('workspace deletion with a subscription', () => {
     expect(await readSub(ws.workspaceId)).toBeUndefined()
     const audit = (await testDb().query(`SELECT action FROM audit_log WHERE scope = 'billing' AND scope_id = $1`, [ws.workspaceId])).rows
     expect(audit.map(r => r.action)).toContain('workspace.subscription_cancelled')
+  })
+})
+
+describe('workspace plan in the surfaces that show it (WP6)', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('workspace list, doc token and the profile billing name the plan that covers a member', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const plain = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { plan: 'business', adminId: admin.id })
+    const [memberId] = await addMembers(ws.workspaceId, 1)
+    const doc = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId })
+    const member = await loggedInClient(memberId!)
+
+    const list = await (await (await loggedInClient(admin.id)).get('/api/user/workspaces')).json() as Array<{ workspaceId: string, plan: string | null }>
+    expect(list.find(w => w.workspaceId === ws.workspaceId)?.plan).toBe('business')
+    expect(list.find(w => w.workspaceId === plain.workspaceId)?.plan).toBeNull()
+
+    const token = await (await member.get(`/api/docs/${doc.docId}/token`)).json() as { workspacePlan: string | null }
+    expect(token.workspacePlan).toBe('business')
+
+    const billing = await (await member.get('/api/user/billing')).json() as { coveringWorkspaces: Array<{ workspaceId: string, plan: string }> }
+    expect(billing.coveringWorkspaces).toEqual([{ workspaceId: ws.workspaceId, name: expect.any(String), plan: 'business' }])
+  })
+
+  it('a lapsed subscription covers nobody', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { status: 'canceled', adminId: admin.id })
+    const doc = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId })
+    const client = await loggedInClient(admin.id)
+    expect((await (await client.get(`/api/docs/${doc.docId}/token`)).json() as { workspacePlan: unknown }).workspacePlan).toBeNull()
+    expect((await (await client.get('/api/user/billing')).json() as { coveringWorkspaces: unknown[] }).coveringWorkspaces).toEqual([])
   })
 })

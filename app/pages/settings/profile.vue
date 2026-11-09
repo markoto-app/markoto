@@ -456,6 +456,30 @@ const policies = computed(() => {
               </UButton>
             </div>
           </div>
+          <div
+            v-if="billing?.coveringWorkspaces?.length"
+            class="border-t border-default pt-4"
+            data-testid="profile-covering-workspaces"
+          >
+            <p class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
+              {{ t('settings.profile.spending.coveringTitle') }}
+            </p>
+            <ul class="text-sm space-y-1">
+              <li
+                v-for="ws in billing.coveringWorkspaces"
+                :key="ws.workspaceId"
+              >
+                <NuxtLink
+                  :to="`/w/${ws.workspaceId}`"
+                  class="underline"
+                >{{ ws.name }}</NuxtLink>
+                <span class="text-muted"> · {{ ws.plan === 'team' ? 'Team' : 'Business' }}</span>
+              </li>
+            </ul>
+            <p class="text-xs text-muted mt-2">
+              {{ t('settings.profile.spending.coveringHint') }}
+            </p>
+          </div>
           <div class="border-t border-default pt-4">
             <p class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('credits.title') }}

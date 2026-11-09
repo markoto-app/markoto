@@ -113,6 +113,8 @@ export function useDocToken(docId: string) {
   // browser print (the server-side PDF renderer drops it too). Defaults
   // to true so nothing flickers before /token answers.
   const customCssAllowed = ref<boolean>(true)
+  /** Team / Business plan covering the doc's workspace (header badge, WP6). */
+  const workspacePlan = ref<'team' | 'business' | null>(null)
   // Document context — description (what the doc is about), audience
   // (writing register), language (output language). Same dual-source
   // pattern as theme: the /token round-trip seeds an initial value so
@@ -160,6 +162,7 @@ export function useDocToken(docId: string) {
         templateId?: string
         canDelete?: boolean
         planFeatures?: { customCss?: boolean } | null
+        workspacePlan?: 'team' | 'business' | null
       }>(`/api/docs/${docId}/token`)
 
       tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
@@ -172,6 +175,7 @@ export function useDocToken(docId: string) {
       workspaceRole.value = data.workspaceRole
       initialTheme.value = data.theme ?? null
       customCssAllowed.value = data.planFeatures?.customCss !== false
+      workspacePlan.value = data.workspacePlan ?? null
       if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
@@ -320,6 +324,7 @@ export function useDocToken(docId: string) {
     pendingPasswordUnlock,
     initialTheme,
     customCssAllowed,
+    workspacePlan,
     initialTitle,
     initialDescription,
     initialAudience,

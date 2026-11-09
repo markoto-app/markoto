@@ -1,4 +1,5 @@
 import { eq } from 'drizzle-orm'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/paidTerms'
 import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
@@ -116,6 +117,7 @@ export default defineEventHandler(async (event) => {
   if (!priceId) {
     throw createError({ statusCode: 503, message: `No Stripe price is set up for ${plan} (${interval}, ${currency.toUpperCase()}).` })
   }
+  requirePaidTermsAccepted(body)
 
   // ── In-place plan change ────────────────────────────────────────────
   // A Checkout Session in `mode: 'subscription'` ALWAYS creates a NEW
@@ -158,6 +160,7 @@ export default defineEventHandler(async (event) => {
     // The webhook is the source of truth for users.plan; the client
     // just shows success + refetches billing (which may briefly still
     // read the old plan until the webhook lands — acceptable).
+    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { updated: true, plan }
   }
 
@@ -212,6 +215,7 @@ export default defineEventHandler(async (event) => {
     if (!checkoutSession.url) {
       throw createError({ statusCode: 502, message: 'Stripe did not return a Checkout URL' })
     }
+    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { url: checkoutSession.url, sessionId: checkoutSession.id }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Stripe error'

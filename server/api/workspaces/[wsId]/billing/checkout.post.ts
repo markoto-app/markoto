@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../../utils/paidTerms'
 import { findUserById } from '../../../../repos/users'
 import { getWorkspace } from '../../../../repos/workspaces'
 import { getWorkspaceSubscription } from '../../../../repos/workspaceSubscriptions'
@@ -75,6 +76,7 @@ export default defineEventHandler(async (event) => {
   if (!priceId) {
     throw createError({ statusCode: 503, message: `No Stripe price is set up for ${plan} (${interval}, ${currency.toUpperCase()}).` })
   }
+  requirePaidTermsAccepted(body)
 
   let liveSub
   try {
@@ -112,6 +114,7 @@ export default defineEventHandler(async (event) => {
       after: { plan, interval },
       metadata: undefined
     })
+    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
     return { updated: true, plan }
   }
 
@@ -176,6 +179,7 @@ export default defineEventHandler(async (event) => {
       after: null,
       metadata: { plan, seats, interval, currency }
     })
+    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'workspace', id: wsId }, item: `${plan}_${interval}` })
     return { url: checkout.url, sessionId: checkout.id }
   } catch (e) {
     if ((e as { statusCode?: number })?.statusCode) throw e

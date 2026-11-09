@@ -436,6 +436,7 @@ export function useDocument(docId: string) {
     workspaceRole: readonly(tokenState.workspaceRole),
     /** The doc's plan includes custom CSS (else it is kept but not applied). */
     customCssAllowed: readonly(tokenState.customCssAllowed),
+    workspacePlan: readonly(tokenState.workspacePlan),
     docSizeBytes: readonly(sync.docSizeBytes),
     docSizeWarning,
     undoManager,

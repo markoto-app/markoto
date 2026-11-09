@@ -1,4 +1,4 @@
-import { eq, sql, type SQL } from 'drizzle-orm'
+import { eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions, workspaceMembers } from '../db/schema'
 import { useDatabase } from '../utils/database'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
@@ -113,4 +113,10 @@ export function pooledWorkspaceIdsSubquery(): SQL {
   return sql`(select ${workspaceSubscriptions.workspaceId} from ${workspaceSubscriptions}
     where ${workspaceSubscriptions.status} in ('active', 'trialing', 'past_due')
       and (${workspaceSubscriptions.validUntil} is null or ${workspaceSubscriptions.validUntil} > now()))`
+}
+
+/** Subscription rows of several workspaces (badges, hints). */
+export async function listSubscriptionsForWorkspaces(workspaceIds: readonly string[]): Promise<WorkspaceSubscriptionRow[]> {
+  if (workspaceIds.length === 0) return []
+  return useDatabase().select().from(workspaceSubscriptions).where(inArray(workspaceSubscriptions.workspaceId, [...workspaceIds])) as Promise<WorkspaceSubscriptionRow[]>
 }

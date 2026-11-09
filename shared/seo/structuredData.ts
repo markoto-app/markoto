@@ -64,8 +64,14 @@ export function homeStructuredData(input: HomeStructuredDataInput): Record<strin
 export interface PricingOffer {
   /** Offer name, e.g. "Free account", "Pro". */
   name: string
-  /** Monthly price in `currency`. */
+  /** Price per billing period in the offer's currency. */
   price: number
+  /** ISO 4217 code; defaults to the input's `currency`. */
+  currency?: string
+  /** Billing period; defaults to a month. */
+  interval?: 'month' | 'year'
+  /** Priced per seat (Team / Business). */
+  perSeat?: boolean
 }
 
 export interface PricingStructuredDataInput {
@@ -108,16 +114,19 @@ export function pricingStructuredData(input: PricingStructuredDataInput): Record
     'operatingSystem': 'Web',
     'offers': input.offers.map((offer) => {
       const price = formatPrice(offer.price)
-      const base = { '@type': 'Offer', 'name': offer.name, 'price': price, 'priceCurrency': input.currency, 'url': url }
+      const currency = offer.currency ?? input.currency
+      const base = { '@type': 'Offer', 'name': offer.name, 'price': price, 'priceCurrency': currency, 'url': url }
       if (offer.price === 0) return base
+      const year = offer.interval === 'year'
       return {
         ...base,
         priceSpecification: {
           '@type': 'UnitPriceSpecification',
           'price': price,
-          'priceCurrency': input.currency,
-          'billingDuration': 'P1M',
-          'unitText': 'MONTH'
+          'priceCurrency': currency,
+          'billingDuration': year ? 'P1Y' : 'P1M',
+          'unitText': year ? 'YEAR' : 'MONTH',
+          ...(offer.perSeat ? { referenceQuantity: { '@type': 'QuantitativeValue', 'value': 1, 'unitText': 'seat' } } : {})
         }
       }
     })

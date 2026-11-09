@@ -46,10 +46,15 @@ describe('AI credits card', () => {
     expect(wrapper.text()).toContain('$2.50 used this month')
     expect(wrapper.text()).toContain('$22.50 left')
     expect(wrapper.find('[data-testid="profile-buy-25"]').text()).toContain('CHF')
+    // Disabled until the Paid Plans Terms box is ticked (WP6b).
+    expect(wrapper.get('[data-testid="profile-buy-25"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-testid="profile-paid-terms"] [role="checkbox"]').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[data-testid="profile-paid-terms"]').text()).toContain('right of withdrawal ends')
     await wrapper.get('[data-testid="profile-buy-25"]').trigger('click')
     await flushPromises()
     await vi.waitFor(() => expect(goToExternal).toHaveBeenCalledWith('https://checkout.stripe.test/topup'))
-    expect(bodies).toEqual([{ pack: '25', currency: 'chf' }])
+    expect(bodies).toEqual([{ pack: '25', currency: 'chf', acceptPaidTerms: true }])
   })
 
   it('without a paid plan shows why instead of the buttons', async () => {

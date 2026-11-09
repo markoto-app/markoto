@@ -677,7 +677,8 @@
       "tagline": "AI ポイント、ワークスペース、ストレージが増えます。",
       "tabsLabel": "有料プラン",
       "joinWaitlist": "ウェイトリストに登録",
-      "setUpInWorkspace": "ワークスペースで設定"
+      "setUpInWorkspace": "ワークスペースで設定",
+      "setUpInWorkspaceHint": "ワークスペースを開き、その請求タブから購入します。購入できるのはワークスペースの管理者だけです。"
     },
     "instance": {
       "title": "すべてのアカウント"
@@ -750,7 +751,11 @@
       "knowledgeFiles": "1 席あたりナレッジファイル {n} 件（共有）",
       "knowledgeStorage": "1 席あたりナレッジ容量 {size}（共有）",
       "imageStorage": "1 席あたり画像容量 {size}（共有）"
-    }
+    },
+    "seatTotalMonth": "{seats} 席で月額 {total}",
+    "seatTotalYear": "{seats} 席で年額 {total}",
+    "seatsLabel": "席数",
+    "creditsSection": "AI クレジットは Pro と Team / Business ワークスペースの月間 AI 予算を補います。その月の予算を使い切ってから使われ、購入から {months} か月後に失効します。"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -1235,7 +1240,8 @@
     "success": "ドキュメントを移動しました",
     "successToPersonal": "「{title}」は個人ドキュメントになりました。",
     "successToWorkspace": "「{title}」は{workspace}に移動しました。",
-    "failed": "ドキュメントを移動できませんでした"
+    "failed": "ドキュメントを移動できませんでした",
+    "leavesPlan": "このドキュメントは {plan} プランのワークスペースから移動します。移動後は移動先のプランに従い、そのプランにない機能（カスタム CSS や古い履歴など）は一時停止します。何も削除されません。"
   },
   "delete": {
     "title": "ドキュメントを削除",
@@ -1366,7 +1372,8 @@
         "declined": "招待を辞退しました。",
         "missingToken": "この招待リンクは不完全です。メールからもう一度開いてください。",
         "home": "ダッシュボードへ"
-      }
+      },
+      "planIncluded": "{name} は {plan} プランです。その中ではプランの機能と AI 予算があなたにも適用されます。"
     },
     "actions": "ワークスペースの操作",
     "billing": {
@@ -1629,7 +1636,8 @@
       "navLabel": "ドキュメントと法的情報",
       "product": "製品",
       "legal": "法的情報",
-      "tagline": "共同編集できる Markdown を、ページとして。"
+      "tagline": "共同編集できる Markdown を、ページとして。",
+      "paidTerms": "有料プラン規約"
     },
     "documentPage": {
       "translationNoticeTitle": "便宜のために翻訳を提供しています",
@@ -1658,7 +1666,9 @@
         "viewPricing": "料金を見る",
         "plan": "現在のプラン：{plan}",
         "manage": "請求を管理",
-        "portalFailed": "請求ページを開けませんでした"
+        "portalFailed": "請求ページを開けませんでした",
+        "coveringTitle": "あなたが含まれるワークスペース",
+        "coveringHint": "これらのワークスペースの中では、共有の AI 予算を含めそのプランがあなたにも適用されます。それ以外ではあなた自身のプランが適用されます。"
       },
       "data": {
         "heading": "あなたのデータ",
@@ -1704,7 +1714,13 @@
   },
   "billing": {
     "comingSoonCta": "有料プランは近日公開",
-    "comingSoonHint": "上限がより高い有料プランを近日公開予定です。"
+    "comingSoonHint": "上限がより高い有料プランを近日公開予定です。",
+    "paidTerms": {
+      "consentPlan": "{terms}に同意し、プランをすぐに開始するよう求めます。EU の消費者として 14 日以内に撤回する場合、利用した期間分を支払います。",
+      "consentTopup": "{terms}に同意し、クレジットをすぐに受け取ります。使用を始めた時点で撤回権は終了します。",
+      "link": "有料プラン規約",
+      "required": "続けるには有料プラン規約に同意してください。"
+    }
   },
   "plan": {
     "limitTitle": "プランの上限に達しました",

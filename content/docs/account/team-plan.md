@@ -26,7 +26,8 @@ Only workspace admins see the **Billing** tab on the workspace page. Choose
 Team or Business, monthly or annual (two months free), the currency (euros
 or Swiss francs) and the number of seats. You need at least three seats, and
 at least one seat for everyone already in the workspace, including people
-you have invited who haven't accepted yet. **Continue to payment** opens
+you have invited who haven't accepted yet. Tick the box that accepts the
+[Paid Plans Terms](/legal/paid-terms); **Continue to payment** then opens
 Stripe Checkout; the invoice names the workspace, and you become its
 billing admin.
 
@@ -56,7 +57,8 @@ edits an open document of the workspace uses their own budget too.
 ## AI credits
 
 If the workspace needs more AI in a month, an admin can buy credits on
-the Billing tab (10, 25 or 50, in the workspace's currency). Credits are
+the Billing tab (10, 25 or 50, in the workspace's currency, after ticking
+the Paid Plans Terms box). Credits are
 used only after the month's budget is spent, and they expire 12 months
 after purchase. The tab shows what's left of each purchase.
 

@@ -4,7 +4,7 @@ import { useAiCredits } from '~/composables/useAiCredits'
 // AI Points budget badge — progress ring + numeric label.
 //
 // Bar fill = `pointsRemaining / pointsTotal` regardless of plan size.
-// Free user with 500 pts displays the same ring shape as Ultra with
+// Free user with 500 pts displays the same ring shape as Business with
 // 35000 pts; only the fill ratio + the numeric label differ.
 //
 // Color coding (kept minimal, brand-restraint):

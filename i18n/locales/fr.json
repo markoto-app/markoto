@@ -677,7 +677,8 @@
       "tagline": "Plus de points IA, d'espaces de travail et de stockage.",
       "tabsLabel": "Forfaits payants",
       "joinWaitlist": "Rejoindre la liste d'attente",
-      "setUpInWorkspace": "Configurer dans un espace de travail"
+      "setUpInWorkspace": "Configurer dans un espace de travail",
+      "setUpInWorkspaceHint": "Ouvrez l’espace de travail, puis son onglet Facturation. Seuls les admins de l’espace peuvent acheter."
     },
     "instance": {
       "title": "Chaque compte"
@@ -750,7 +751,11 @@
       "knowledgeFiles": "{n} fichier de connaissances par place, partagé | {n} fichiers de connaissances par place, partagés",
       "knowledgeStorage": "{size} de stockage de connaissances par place, partagé",
       "imageStorage": "{size} de stockage d’images par place, partagé"
-    }
+    },
+    "seatTotalMonth": "{total} par mois pour {seats} places",
+    "seatTotalYear": "{total} par an pour {seats} places",
+    "seatsLabel": "Places",
+    "creditsSection": "Les crédits IA complètent le budget IA mensuel de Pro et des espaces Team / Business. Ils ne sont utilisés qu’une fois le budget du mois épuisé et expirent {months} mois après l’achat."
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
@@ -1235,7 +1240,8 @@
     "success": "Document déplacé",
     "successToPersonal": "« {title} » est désormais un document personnel.",
     "successToWorkspace": "« {title} » se trouve désormais dans {workspace}.",
-    "failed": "Impossible de déplacer le document"
+    "failed": "Impossible de déplacer le document",
+    "leavesPlan": "Ce document quitte un espace de travail sur {plan}. Après le déplacement, il suit le plan du nouvel emplacement : les fonctions absentes de ce plan (comme le CSS personnalisé ou l’historique ancien) sont mises en pause. Rien n’est supprimé."
   },
   "delete": {
     "title": "Supprimer le document",
@@ -1366,7 +1372,8 @@
         "declined": "Invitation refusée.",
         "missingToken": "Ce lien d'invitation est incomplet. Rouvrez-le depuis l'e-mail.",
         "home": "Aller au tableau de bord"
-      }
+      },
+      "planIncluded": "{name} est sur {plan} : à l’intérieur, les fonctions et le budget IA du plan s’appliquent aussi à vous."
     },
     "actions": "Actions de l'espace de travail",
     "billing": {
@@ -1629,7 +1636,8 @@
       "navLabel": "Documentation et mentions légales",
       "product": "Produit",
       "legal": "Mentions légales",
-      "tagline": "Du Markdown à plusieurs, mis en pages."
+      "tagline": "Du Markdown à plusieurs, mis en pages.",
+      "paidTerms": "Conditions des offres payantes"
     },
     "documentPage": {
       "translationNoticeTitle": "Traduction fournie par commodité",
@@ -1658,7 +1666,9 @@
         "viewPricing": "Voir les tarifs",
         "plan": "Plan actuel : {plan}",
         "manage": "Gérer la facturation",
-        "portalFailed": "Impossible d’ouvrir la facturation"
+        "portalFailed": "Impossible d’ouvrir la facturation",
+        "coveringTitle": "Espaces de travail qui vous couvrent",
+        "coveringHint": "Dans ces espaces, leur plan s’applique aussi à vous, budget IA partagé compris. Partout ailleurs, votre propre plan s’applique."
       },
       "data": {
         "heading": "Vos données",
@@ -1704,7 +1714,13 @@
   },
   "billing": {
     "comingSoonCta": "Offres payantes bientôt disponibles",
-    "comingSoonHint": "Des offres payantes avec des limites plus élevées arrivent bientôt."
+    "comingSoonHint": "Des offres payantes avec des limites plus élevées arrivent bientôt.",
+    "paidTerms": {
+      "consentPlan": "J’accepte les {terms} et demande que mon offre commence immédiatement. Si je me rétracte dans les 14 jours en tant que consommateur de l’UE, je paie le temps utilisé.",
+      "consentTopup": "J’accepte les {terms} et demande les crédits immédiatement. Mon droit de rétractation prend fin dès que je les utilise.",
+      "link": "Conditions des offres payantes",
+      "required": "Acceptez les Conditions des offres payantes pour continuer."
+    }
   },
   "plan": {
     "limitTitle": "Limite du forfait atteinte",

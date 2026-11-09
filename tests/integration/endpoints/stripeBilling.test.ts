@@ -16,14 +16,14 @@ describe('POST /api/billing/checkout', () => {
   })
 
   it('401 for anonymous callers', async () => {
-    const res = await anonClient().post('/api/billing/checkout', { plan: 'pro' })
+    const res = await anonClient().post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(401)
   })
 
   it('400 for invalid plan', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    for (const bad of [{}, { plan: 'free' }, { plan: 'enterprise' }, { plan: 123 }, { plan: 'pro', interval: 'week' }, { plan: 'pro', currency: 'usd' }]) {
+    for (const bad of [{}, { acceptPaidTerms: true, plan: 'free' }, { acceptPaidTerms: true, plan: 'enterprise' }, { plan: 123 }, { acceptPaidTerms: true, plan: 'pro', interval: 'week' }, { acceptPaidTerms: true, plan: 'pro', currency: 'usd' }]) {
       const res = await client.post('/api/billing/checkout', bad)
       expect(res.status).toBe(400)
     }
@@ -32,7 +32,7 @@ describe('POST /api/billing/checkout', () => {
   it('returns a Checkout URL for a valid pro plan request', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { url: string, sessionId: string }
     // stripe-mock returns a deterministic-ish URL; we don't assert
@@ -71,7 +71,7 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_existing_test', u.id])
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
   })
 
@@ -88,7 +88,7 @@ describe('POST /api/billing/checkout', () => {
       ['cus_existing_test', 'sub_existing_test', 'free', u.id]
     )
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { updated?: boolean, plan?: string, url?: string }
     expect(body.updated).toBe(true)
@@ -106,10 +106,10 @@ describe('POST /api/billing/checkout', () => {
       ['cus_existing_test', 'sub_existing_test', 'pro', 'chf', u.id]
     )
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro', interval: 'year', currency: 'chf' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', interval: 'year', currency: 'chf' })
     expect(res.status).toBe(409)
     // Monthly ↔ annual on the same plan is a price swap, not a 409.
-    const swap = await client.post('/api/billing/checkout', { plan: 'pro', interval: 'month', currency: 'chf' })
+    const swap = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', interval: 'month', currency: 'chf' })
     expect(swap.status).toBe(200)
     expect((await swap.json() as { updated?: boolean }).updated).toBe(true)
   })
@@ -121,20 +121,20 @@ describe('POST /api/billing/checkout', () => {
       ['cus_existing_test', 'eur', u.id]
     )
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro', currency: 'chf' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', currency: 'chf' })
     expect(res.status).toBe(409)
     const body = await res.json() as { data?: { code?: string, currency?: string } }
     expect(body.data?.code).toBe('billing/currency-locked')
     expect(body.data?.currency).toBe('eur')
     // The locked currency itself still works; omitting it defaults to it.
-    expect((await client.post('/api/billing/checkout', { plan: 'pro', currency: 'eur' })).status).toBe(200)
-    expect((await client.post('/api/billing/checkout', { plan: 'pro' })).status).toBe(200)
+    expect((await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', currency: 'eur' })).status).toBe(200)
+    expect((await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })).status).toBe(200)
   })
 
   it('opens Checkout for annual and CHF prices', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    for (const body of [{ plan: 'pro', interval: 'year' }, { plan: 'pro', currency: 'chf' }, { plan: 'pro', interval: 'year', currency: 'chf' }]) {
+    for (const body of [{ acceptPaidTerms: true, plan: 'pro', interval: 'year' }, { acceptPaidTerms: true, plan: 'pro', currency: 'chf' }, { acceptPaidTerms: true, plan: 'pro', interval: 'year', currency: 'chf' }]) {
       const res = await client.post('/api/billing/checkout', body)
       expect(res.status, JSON.stringify(body)).toBe(200)
       expect((await res.json() as { url?: string }).url).toMatch(/^https?:\/\//)
@@ -147,7 +147,7 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = NULL WHERE id = $2', ['cus_existing_test', u.id])
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { url?: string, updated?: boolean }
     expect(body.url).toMatch(/^https?:\/\//)
@@ -165,7 +165,7 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
     await testDb().query('DELETE FROM users WHERE id = $1', [u.id])
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(401)
   })
 

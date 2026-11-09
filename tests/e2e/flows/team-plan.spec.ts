@@ -80,6 +80,12 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
     highlights: [{ label: 'Total', selector: '[data-testid="workspace-billing-total"]' }]
   })
 
+  await expect(page.locator('[data-testid="workspace-billing-checkout"]')).toBeDisabled()
+  await flow.click(
+    'Tick the box to accept the Paid Plans Terms',
+    page.getByTestId('workspace-billing-checkout-paid-terms').getByRole('checkbox'),
+    { result: 'Buying needs the box: it accepts the terms and asks for the plan to start right away.' }
+  )
   const checkoutPosted = page.waitForResponse(r => r.url().includes(`/api/workspaces/${workspaceId}/billing/checkout`) && r.request().method() === 'POST')
   await flow.click(
     'Click "Continue to payment"',
@@ -88,7 +94,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   )
   const checkout = await checkoutPosted
   expect(checkout.status()).toBe(200)
-  expect(JSON.parse(checkout.request().postData() ?? '{}')).toMatchObject({ plan: 'team', seats: 4, interval: 'month' })
+  expect(JSON.parse(checkout.request().postData() ?? '{}')).toMatchObject({ plan: 'team', seats: 4, interval: 'month', acceptPaidTerms: true })
 
   // ─── Stripe (off stage) ─────────────────────────────────────────
   await flow.heading('Pay with Stripe', 3)
@@ -205,6 +211,11 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   await flow.narrate(
     'If the workspace needs more AI this month, buy credits. They are '
     + 'used only after the month\'s budget is spent and last a year.'
+  )
+  await flow.click(
+    'Tick the box for the credits',
+    page.getByTestId('workspace-billing-paid-terms').getByRole('checkbox'),
+    { result: 'For credits the box also says that the right of withdrawal ends once they are used.' }
   )
   const topupPosted = page.waitForResponse(r => r.url().includes(`/api/workspaces/${workspaceId}/billing/topup`) && r.request().method() === 'POST')
   await flow.click(

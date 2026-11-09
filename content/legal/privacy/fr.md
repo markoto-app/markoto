@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: fr
-version: 8
-effectiveDate: 2026-11-03
+version: 9
+effectiveDate: 2026-11-09
 translationStatus: machine-translated
 ---
 
@@ -34,6 +34,7 @@ En résumé, nous traitons :
 - **Contenus :** documents, commentaires, images, fichiers de la base de connaissances, thèmes et auteur de chaque modification.
 - **Utilisation de l'IA :** requêtes, contexte du document et résultats de l'IA, lorsque vous utilisez les fonctionnalités d'IA.
 - **Données techniques :** adresses IP (utilisées sous une forme éphémère pour la limitation de débit et conservées uniquement sous forme tronquée dans les journaux), type de navigateur, rapports d'erreurs.
+- **Données de facturation, uniquement dès que des offres payantes seront proposées :** votre plan, sa période et sa devise, les identifiants de client et d'abonnement Stripe, les factures, les achats de crédits IA et leur utilisation, ainsi que votre acceptation des conditions des offres payantes ([/legal/paid-terms](/legal/paid-terms)). Pour un espace de travail Team ou Business, nous conservons également le nombre de places et l'identité de l'admin de facturation. Les admins de l'espace de travail voient les dépenses d'IA de chaque membre dans cet espace de travail pour le mois en cours et peuvent fixer une limite par membre ; ils ne voient ni les requêtes ni les résultats de l'IA. Les données de carte sont transmises uniquement à Stripe ; nous ne les recevons jamais.
 
 ## 2b. Documents anonymes, vérification anti-robots et signalements d'abus
 
@@ -246,6 +247,7 @@ Il s'agit de la **version {{currentVersion}}**, en vigueur le **{{effectiveDate}
 
 ### Historique des modifications
 
+- **v9 (2026-11-09).** Description des données de facturation que nous traitons dès que des offres payantes sont proposées (point 2) : plans, espaces de travail Team et Business avec leurs places et leur admin de facturation, crédits IA, et acceptation des nouvelles conditions des offres payantes. Les admins d'un espace de travail Team ou Business voient les dépenses d'IA mensuelles de chaque membre dans cet espace de travail (pas les requêtes ni les résultats) et peuvent fixer une limite par membre.
 - **v8 (2026-11-03).** Suppression des finalités « statistiques d'usage du produit » et « enregistrement de sessions » ainsi que du bandeau de cookies : ni l'une ni l'autre n'ont jamais été utilisées, et markoto n'utilise que du stockage strictement nécessaire (énuméré au point 9). Ajout de la LPD suisse aux côtés du RGPD, et des pays vers lesquels des données sont transférées (point 4). Description des documents anonymes (acceptation des conditions, vérification anti-robots, suppression 30 jours après la dernière modification ; auparavant 180 jours), du noindex sur les documents et des signalements d'abus sans compte, avec accusé de réception, notification de la décision et exposé des motifs (point 2b). Indication de la durée de conservation des sauvegardes (environ 30 jours), des entrées du journal d'audit (2 ans) et des signalements d'abus (1 an après la clôture du dossier). Correction des mentions relatives au hachage des mots de passe, à la règle d'âge (16 ans partout), à la description de l'identification de l'IA et à l'entraînement de l'IA selon chaque fournisseur. Ajout de l'allocation d'IA gratuite pour les utilisateurs connectés (GLM-5.3 Flash de Z.ai, fourni et traité par Mistral AI via son point d'accès européen ; Z.ai ne reçoit aucune donnée), avec sa limite mensuelle par compte et sa réserve mensuelle commune, ainsi que de la conservation des relevés de coûts de l'IA, conservés 90 jours même après la suppression d'un compte (points 5, 5b et 8). Toutes les requêtes à Mistral AI, y compris la transcription vocale et la dictée en direct, sont envoyées à son point d'accès européen (point 8). Les photos de profil provenant de GitHub, de Google ou de la connexion de votre organisation ne sont plus enregistrées ni affichées : les avatars sont dessinés dans votre navigateur à partir de votre numéro de compte, et les visiteurs sans compte en reçoivent un au hasard (`markoto-anon-avatar`, point 9).
 - **v7 (2026-10-27).** Ajout de la finalité de traitement `workspace_invitations` (intérêt légitime) : lorsqu'un administrateur d'espace de travail invite quelqu'un par e-mail, nous conservons cette adresse, le rôle proposé et l'auteur de l'invitation dans une invitation en attente, jusqu'à ce que la personne l'accepte ou la refuse, qu'un administrateur la retire ou qu'elle expire au bout de 14 jours. Personne ne rejoint un espace de travail sans l'avoir accepté. Si l'envoi d'e-mails est configuré, un e-mail d'invitation est envoyé par invitation via Resend (au plus trois par adresse et par jour). Stockage chez OVHcloud (UE).
 - **v6 (2026-10-26), alignement rédactionnel sur le service exclusivement gratuit.** Stripe et la facturation sont décrits comme pertinents uniquement lorsque des offres payantes sont proposées (la liste des sous-traitants ultérieurs et le registre omettent Stripe tant que la facturation est désactivée). Le registre des finalités de traitement est désormais réellement affiché au point 13. Correction des mentions relatives à la conservation des journaux d'audit, au nettoyage des documents anonymes (180 jours d'inactivité), au compteur d'interactions supprimé et à la (inexistante) désactivation de l'IA au niveau du compte.

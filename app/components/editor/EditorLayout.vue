@@ -39,6 +39,7 @@ const {
   workspaceId: docWorkspaceId,
   workspaceRole: docWorkspaceRole,
   customCssAllowed,
+  workspacePlan,
   undoManager,
   title,
   theme,
@@ -1058,6 +1059,18 @@ const _statusIcon = computed(() => {
         >
           {{ title }}
         </button>
+        <!-- Team / Business plan of the doc's workspace (WP6): which plan
+             this document's features and AI follow. -->
+        <UBadge
+          v-if="workspacePlan"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          class="hidden sm:inline-flex shrink-0"
+          data-testid="doc-plan-badge"
+        >
+          {{ workspacePlan === 'team' ? 'Team' : 'Business' }}
+        </UBadge>
 
         <!-- Collaborators next to title -->
         <CollabPresenceBar

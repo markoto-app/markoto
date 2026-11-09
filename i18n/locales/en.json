@@ -677,7 +677,8 @@
       "tagline": "More AI Points, workspaces and storage.",
       "tabsLabel": "Paid plans",
       "joinWaitlist": "Join the waitlist",
-      "setUpInWorkspace": "Set up in a workspace"
+      "setUpInWorkspace": "Set up in a workspace",
+      "setUpInWorkspaceHint": "Open the workspace, then its Billing tab. Only workspace admins can buy."
     },
     "instance": {
       "title": "Every account"
@@ -750,7 +751,11 @@
       "knowledgeFiles": "{n} knowledge file per seat, shared | {n} knowledge files per seat, shared",
       "knowledgeStorage": "{size} knowledge storage per seat, shared",
       "imageStorage": "{size} image storage per seat, shared"
-    }
+    },
+    "seatTotalMonth": "{total} per month for {seats} seats",
+    "seatTotalYear": "{total} per year for {seats} seats",
+    "seatsLabel": "Seats",
+    "creditsSection": "AI credits top up the monthly AI budget of Pro and of Team / Business workspaces. They are used only after the month’s budget is spent and expire {months} months after purchase."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1235,7 +1240,8 @@
     "success": "Document moved",
     "successToPersonal": "\"{title}\" is now a personal document.",
     "successToWorkspace": "\"{title}\" is now in {workspace}.",
-    "failed": "Could not move document"
+    "failed": "Could not move document",
+    "leavesPlan": "This document leaves a workspace on {plan}. After the move it follows the new place’s plan: features its plan lacks (like custom CSS or older history) pause. Nothing is deleted."
   },
   "delete": {
     "title": "Delete Document",
@@ -1366,7 +1372,8 @@
         "declined": "Invitation declined.",
         "missingToken": "This invitation link is incomplete. Open it again from the email.",
         "home": "Go to the dashboard"
-      }
+      },
+      "planIncluded": "{name} is on {plan}: inside it, the plan’s features and AI budget apply to you too."
     },
     "actions": "Workspace actions",
     "billing": {
@@ -1629,7 +1636,8 @@
       "navLabel": "Documentation and legal",
       "product": "Product",
       "legal": "Legal",
-      "tagline": "Collaborative Markdown, rendered as pages."
+      "tagline": "Collaborative Markdown, rendered as pages.",
+      "paidTerms": "Paid plans terms"
     },
     "documentPage": {
       "translationNoticeTitle": "Translation provided for convenience",
@@ -1658,7 +1666,9 @@
         "viewPricing": "View pricing",
         "plan": "Current plan: {plan}",
         "manage": "Manage billing",
-        "portalFailed": "Could not open billing"
+        "portalFailed": "Could not open billing",
+        "coveringTitle": "Workspaces that cover you",
+        "coveringHint": "Inside these workspaces their plan applies to you, including the shared AI budget. Your own plan applies everywhere else."
       },
       "data": {
         "heading": "Your data",
@@ -1704,7 +1714,13 @@
   },
   "billing": {
     "comingSoonCta": "Paid plans coming soon",
-    "comingSoonHint": "Paid plans with higher limits are coming soon."
+    "comingSoonHint": "Paid plans with higher limits are coming soon.",
+    "paidTerms": {
+      "consentPlan": "I accept the {terms} and ask that my plan starts right away. If I withdraw within 14 days as an EU consumer, I pay for the time used.",
+      "consentTopup": "I accept the {terms} and ask for the credits right away. My right of withdrawal ends once I use them.",
+      "link": "Paid Plans Terms",
+      "required": "Accept the Paid Plans Terms to continue."
+    }
   },
   "plan": {
     "limitTitle": "Plan limit reached",

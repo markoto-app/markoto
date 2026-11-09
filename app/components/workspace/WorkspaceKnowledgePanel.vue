@@ -85,7 +85,7 @@ const canEdit = computed(() => props.myRole === 'admin' || props.myRole === 'edi
 // caps server-side (409) but we mirror them here so the upload button
 // disables BEFORE the click, not after. Two axes: file count, total
 // bytes. `usage.maxFiles` / `usage.maxBytes` are per-workspace, tier-
-// resolved on the server (AI-workspace uses the sponsor's caps).
+// resolved on the server (a Team / Business workspace uses its pooled caps).
 // Per-user caps are ALSO enforced server-side but aren't surfaced
 // here — if a user tops out their per-user bytes in another
 // workspace, they'd click here and see a 409 toast. Acceptable

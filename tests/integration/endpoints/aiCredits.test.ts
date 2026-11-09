@@ -50,11 +50,11 @@ describe('POST /api/billing/topup (personal)', () => {
   })
 
   it('401 anonymous, 400 bad pack, 409 on the free plan', async () => {
-    expect((await anonClient().post('/api/billing/topup', { pack: '10' })).status).toBe(401)
+    expect((await anonClient().post('/api/billing/topup', { acceptPaidTerms: true, pack: '10' })).status).toBe(401)
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    expect((await client.post('/api/billing/topup', { pack: '7' })).status).toBe(400)
-    const free = await client.post('/api/billing/topup', { pack: '10' })
+    expect((await client.post('/api/billing/topup', { acceptPaidTerms: true, pack: '7' })).status).toBe(400)
+    const free = await client.post('/api/billing/topup', { acceptPaidTerms: true, pack: '10' })
     expect(free.status).toBe(409)
     expect((await free.json() as { data?: { code?: string } }).data?.code).toBe('billing/topup-needs-plan')
   })
@@ -63,19 +63,19 @@ describe('POST /api/billing/topup (personal)', () => {
     const u = await createUser()
     await makePro(u.id)
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/topup', { pack: '25' })
+    const res = await client.post('/api/billing/topup', { acceptPaidTerms: true, pack: '25' })
     expect(res.status).toBe(200)
     expect((await res.json() as { url?: string }).url).toMatch(/^https?:\/\//)
 
     await testDb().query(`UPDATE users SET stripe_customer_id = 'cus_x', billing_currency = 'eur' WHERE id = $1`, [u.id])
-    const locked = await client.post('/api/billing/topup', { pack: '25', currency: 'chf' })
+    const locked = await client.post('/api/billing/topup', { acceptPaidTerms: true, pack: '25', currency: 'chf' })
     expect(locked.status).toBe(409)
     expect((await locked.json() as { data?: { code?: string } }).data?.code).toBe('billing/currency-locked')
   })
 
   it('billing off: 404 billing/disabled', async () => {
     const u = await createUser()
-    const res = await (await loggedInClient(u.id, undefined, TEST_BILLING_OFF_BASE_URL)).post('/api/billing/topup', { pack: '10' })
+    const res = await (await loggedInClient(u.id, undefined, TEST_BILLING_OFF_BASE_URL)).post('/api/billing/topup', { acceptPaidTerms: true, pack: '10' })
     expect(res.status).toBe(404)
   })
 })
@@ -89,7 +89,7 @@ describe('POST /api/workspaces/:wsId/billing/topup', () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
     const client = await loggedInClient(admin.id)
-    const none = await client.post(`/api/workspaces/${ws.workspaceId}/billing/topup`, { pack: '50' })
+    const none = await client.post(`/api/workspaces/${ws.workspaceId}/billing/topup`, { acceptPaidTerms: true, pack: '50' })
     expect(none.status).toBe(409)
 
     await testDb().query(
@@ -97,7 +97,7 @@ describe('POST /api/workspaces/:wsId/billing/topup', () => {
        VALUES ($1, 'team', 3, 'active', $2, 'cus_ws_topup', 'sub_ws_topup', $3)`,
       [ws.workspaceId, admin.id, FUTURE]
     )
-    const res = await client.post(`/api/workspaces/${ws.workspaceId}/billing/topup`, { pack: '50' })
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/billing/topup`, { acceptPaidTerms: true, pack: '50' })
     expect(res.status).toBe(200)
     expect((await res.json() as { url?: string }).url).toMatch(/^https?:\/\//)
   })

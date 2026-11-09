@@ -104,10 +104,14 @@ describe('workspace billing tab — no subscription yet', () => {
 
   it('sends plan, interval, currency and seats to checkout and follows the Stripe URL', async () => {
     const wrapper = await mountPanel()
+    // Disabled until the Paid Plans Terms box is ticked (WP6b).
+    expect(wrapper.get('[data-testid="workspace-billing-checkout"]').attributes('disabled')).toBeDefined()
+    await wrapper.get('[data-testid="workspace-billing-checkout-paid-terms"] [role="checkbox"]').trigger('click')
+    await flushPromises()
     await wrapper.get('[data-testid="workspace-billing-checkout"]').trigger('click')
     await flushPromises()
     const post = posts.find(p => p.path === 'checkout')
-    expect(post?.body).toEqual({ plan: 'team', interval: 'month', currency: 'eur', seats: 4 })
+    expect(post?.body).toEqual({ plan: 'team', interval: 'month', currency: 'eur', seats: 4, acceptPaidTerms: true })
     await vi.waitFor(() => expect(goToExternal).toHaveBeenCalledWith('https://checkout.stripe.test/s/1'))
   })
 })
@@ -142,9 +146,11 @@ describe('workspace billing tab — subscription', () => {
 
   it('switching to annual keeps the plan', async () => {
     const wrapper = await mountPanel()
+    await wrapper.get('[data-testid="workspace-billing-switch-paid-terms"] [role="checkbox"]').trigger('click')
+    await flushPromises()
     await wrapper.get('[data-testid="workspace-billing-switch-interval"]').trigger('click')
     await flushPromises()
-    expect(posts.find(p => p.path === 'checkout')?.body).toEqual({ plan: 'team', interval: 'year', currency: 'eur' })
+    expect(posts.find(p => p.path === 'checkout')?.body).toEqual({ plan: 'team', interval: 'year', currency: 'eur', acceptPaidTerms: true })
   })
 
   it('saves "no limit" for a member as limitUsd: null', async () => {

@@ -28,7 +28,7 @@ import { useAiCredits } from '~/composables/useAiCredits'
 const { t, locale } = useI18n()
 const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
-const { pointsRemaining, pointsTotal, fillRatio, isFreeAllowanceExhausted, refresh: refreshCredits } = useAiCredits()
+const { pointsRemaining, pointsTotal, fillRatio, isFreeAllowanceExhausted } = useAiCredits()
 const { billingEnabled, plansComingSoon } = useBillingMode()
 // Bring your own key (WP4): AI Points only measure platform-paid AI
 // (an operator's model-alias defaults). Calls on the user's own key
@@ -91,7 +91,6 @@ const nextPlan = computed((): PlanName | null => {
 const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== null)
 
 const open = ref(false)
-const upgradeLoading = ref(false)
 
 // Counts change on uploads / workspace creation without anything else
 // invalidating the shared billing state — re-fetch on every open.
@@ -99,40 +98,11 @@ watch(open, (isOpen) => {
   if (isOpen) void refreshBilling()
 })
 
-// Upgrade → direct checkout for the next tier up. Faster than
-// bouncing through the pricing page when the user already knows what
-// they want. "View all plans" is the escape hatch for browsing tiers.
-async function onUpgrade(): Promise<void> {
-  if (!billingEnabled.value || !nextPlan.value || upgradeLoading.value) return
-  upgradeLoading.value = true
-  try {
-    const resp = await $fetch<{ url?: string, updated?: boolean }>('/api/billing/checkout', {
-      method: 'POST',
-      body: { plan: nextPlan.value }
-    })
-    if (resp.updated) {
-      // Existing subscription was upgraded IN PLACE (no Checkout
-      // redirect). Refresh plan + points so the badge reflects the new
-      // budget; the webhook that flips the plan can lag by a beat, so
-      // refresh again shortly after.
-      open.value = false
-      await Promise.allSettled([refreshBilling(), refreshCredits()])
-      setTimeout(() => {
-        void refreshBilling()
-        void refreshCredits()
-      }, 2500)
-      return
-    }
-    if (resp.url) globalThis.location.href = resp.url
-  } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-
-    console.warn('[usage-badge] checkout failed; routing to /pricing:', err)
-    open.value = false
-    router.push('/pricing')
-  } finally {
-    upgradeLoading.value = false
-  }
+// Upgrade → the pricing page: every purchase goes through the Paid Plans
+// Terms box there (WP6b), so the badge no longer starts a checkout itself.
+function onUpgrade(): void {
+  open.value = false
+  router.push('/pricing')
 }
 
 function onManage(): void {
@@ -298,7 +268,6 @@ function onManage(): void {
             block
             icon="i-lucide-arrow-up-circle"
             color="primary"
-            :loading="upgradeLoading"
             @click="onUpgrade"
           >
             {{ t('topbar.upgradeToPlan', { plan: nextPlan.charAt(0).toUpperCase() + nextPlan.slice(1) }) }}

@@ -10,6 +10,8 @@ export interface WorkspaceInviteItem {
   workspaceName: string
   role: 'admin' | 'editor' | 'viewer'
   invitedByName: string | null
+  /** Team / Business plan of the workspace (WP3): shown as what it includes. */
+  workspacePlan?: 'team' | 'business' | null
   createdAt: string
   expiresAt: string
 }
@@ -84,6 +86,13 @@ async function act(invite: WorkspaceInviteItem, action: 'accept' | 'decline'): P
             {{ invite.invitedByName
               ? t('workspace.invites.invitedBy', { name: invite.invitedByName, role: roleLabel(invite.role) })
               : t('workspace.invites.invitedAs', { role: roleLabel(invite.role) }) }}
+          </p>
+          <p
+            v-if="invite.workspacePlan"
+            class="text-xs text-muted mt-0.5"
+            :data-testid="`workspace-invite-plan-${invite.inviteId}`"
+          >
+            {{ t('workspace.invites.planIncluded', { name: invite.workspaceName, plan: invite.workspacePlan === 'team' ? 'Team' : 'Business' }) }}
           </p>
         </div>
       </div>

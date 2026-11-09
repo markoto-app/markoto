@@ -20,6 +20,7 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 | `PRIVACY_VERSION` | Material change to the privacy policy. Typo + translation-only edits don't bump. |
 | `TOS_VERSION` | Material change to the ToS. |
 | `DPA_VERSION` | Material change to the DPA. Workspace owners get a re-acceptance modal. |
+| `PAID_TERMS_VERSION` | Material change to the Paid Plans Terms (`content/legal/paid-terms/`, WP6b). No re-acceptance prompt: the terms are accepted per purchase (the box beside every buy button; the server refuses `acceptPaidTerms` ≠ `true` with 400 `billing/terms-required`, `server/utils/paidTerms.ts`) and each acceptance is a `policy.accepted` audit row with `document: paid-terms`, version, purchase kind and item. |
 | `ABUSE_POLICY_VERSION` | Material change to the abuse policy. |
 | `CONSENT_VERSION` | New processing purpose OR existing purpose materially expanded. |
 | `AUTHORITATIVE_LOCALE` | `'en'` — never bump unless the operating entity moves jurisdictions. |

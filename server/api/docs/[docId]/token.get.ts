@@ -5,6 +5,7 @@ import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCr
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
 import { renderTemplate } from '../../../utils/templateRenderer'
 import { planHasFeature, resolveDocPlanFor } from '../../../utils/entitlements'
+import { pooledPlansFor } from '../../../utils/workspaceBilling'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -58,7 +59,8 @@ export default defineEventHandler(async (event) => {
       theme: null,
       initialBody: null,
       canDelete: false,
-      planFeatures: null
+      planFeatures: null,
+      workspacePlan: null
     }
   }
 
@@ -104,6 +106,8 @@ export default defineEventHandler(async (event) => {
     }),
     templateId: row.templateId,
     planFeatures: { customCss: planHasFeature(docPlan, 'customCss') },
+    // The Team / Business plan covering the doc's workspace (header badge).
+    workspacePlan: row.workspaceId ? (await pooledPlansFor([row.workspaceId])).get(row.workspaceId) ?? null : null,
     // Whether DELETE /api/docs/:id would succeed for this caller — the
     // File menu shows "Delete" only then. For an anonymous doc that's
     // only the creating browser (creator-key cookie).

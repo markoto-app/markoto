@@ -31,8 +31,11 @@
 // alongside GDPR with named transfer countries; backup retention; honest
 // audit-log retention; anonymous documents (30 days, bot check, terms
 // acceptance); precise age rule (16); AI training statements per provider.
-export const PRIVACY_VERSION = 8
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-03'
+// v9 (2026-11-09): billing data once paid plans are offered: Team /
+// Business seats + billing admin, admins see members' monthly AI spend
+// (not content), AI credits, Paid Plans Terms acceptance (WP6b).
+export const PRIVACY_VERSION = 9
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-09'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA
@@ -52,6 +55,14 @@ export const DPA_EFFECTIVE_DATE = '2026-11-03'
 // complaints, Art.18 notification of threats to life or safety.
 export const ABUSE_POLICY_VERSION = 2
 export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-11-03'
+
+// Paid Plans Terms (pricing plan WP6): the extra terms for Pro / Team /
+// Business and AI credits, accepted at checkout (not at onboarding — free
+// users never see them). Acceptance is recorded per purchase in the audit
+// log (`policy.accepted`, document `paid-terms`), not on the user row.
+// v1 (2026-11-09): first version.
+export const PAID_TERMS_VERSION = 1
+export const PAID_TERMS_EFFECTIVE_DATE = '2026-11-09'
 
 // The Impressum / provider-identification page (Swiss UWG Art. 3(1)(s),
 // EU/DSA contact-point requirement). Facts come from shared/legal/entity.ts.

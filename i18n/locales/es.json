@@ -677,7 +677,8 @@
       "tagline": "Más puntos de IA, espacios de trabajo y almacenamiento.",
       "tabsLabel": "Planes de pago",
       "joinWaitlist": "Unirse a la lista de espera",
-      "setUpInWorkspace": "Configurar en un espacio de trabajo"
+      "setUpInWorkspace": "Configurar en un espacio de trabajo",
+      "setUpInWorkspaceHint": "Abre el espacio de trabajo y luego su pestaña Facturación. Solo los admins del espacio pueden comprar."
     },
     "instance": {
       "title": "Cada cuenta"
@@ -750,7 +751,11 @@
       "knowledgeFiles": "{n} archivo de conocimiento por puesto, compartido | {n} archivos de conocimiento por puesto, compartidos",
       "knowledgeStorage": "{size} de almacenamiento de conocimiento por puesto, compartido",
       "imageStorage": "{size} de almacenamiento de imágenes por puesto, compartido"
-    }
+    },
+    "seatTotalMonth": "{total} al mes por {seats} puestos",
+    "seatTotalYear": "{total} al año por {seats} puestos",
+    "seatsLabel": "Puestos",
+    "creditsSection": "Los créditos de IA amplían el presupuesto mensual de IA de Pro y de los espacios Team / Business. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1235,7 +1240,8 @@
     "success": "Documento movido",
     "successToPersonal": "«{title}» ahora es un documento personal.",
     "successToWorkspace": "«{title}» ahora está en {workspace}.",
-    "failed": "No se pudo mover el documento"
+    "failed": "No se pudo mover el documento",
+    "leavesPlan": "Este documento sale de un espacio de trabajo con {plan}. Después del traslado sigue el plan del nuevo lugar: las funciones que ese plan no incluye (como CSS propio o el historial antiguo) quedan en pausa. No se borra nada."
   },
   "delete": {
     "title": "Eliminar documento",
@@ -1366,7 +1372,8 @@
         "declined": "Invitación rechazada.",
         "missingToken": "Este enlace de invitación está incompleto. Ábrelo de nuevo desde el correo.",
         "home": "Ir al panel"
-      }
+      },
+      "planIncluded": "{name} está en {plan}: dentro, las funciones y el presupuesto de IA del plan también se aplican a ti."
     },
     "actions": "Acciones del espacio de trabajo",
     "billing": {
@@ -1629,7 +1636,8 @@
       "navLabel": "Documentación y avisos legales",
       "product": "Producto",
       "legal": "Legal",
-      "tagline": "Markdown colaborativo, maquetado en páginas."
+      "tagline": "Markdown colaborativo, maquetado en páginas.",
+      "paidTerms": "Condiciones de los planes de pago"
     },
     "documentPage": {
       "translationNoticeTitle": "Traducción proporcionada por comodidad",
@@ -1658,7 +1666,9 @@
         "viewPricing": "Ver precios",
         "plan": "Plan actual: {plan}",
         "manage": "Gestionar facturación",
-        "portalFailed": "No se pudo abrir la facturación"
+        "portalFailed": "No se pudo abrir la facturación",
+        "coveringTitle": "Espacios de trabajo que te cubren",
+        "coveringHint": "Dentro de estos espacios se aplica su plan, incluido el presupuesto de IA compartido. En todo lo demás se aplica tu propio plan."
       },
       "data": {
         "heading": "Tus datos",
@@ -1704,7 +1714,13 @@
   },
   "billing": {
     "comingSoonCta": "Planes de pago muy pronto",
-    "comingSoonHint": "Muy pronto habrá planes de pago con límites más altos."
+    "comingSoonHint": "Muy pronto habrá planes de pago con límites más altos.",
+    "paidTerms": {
+      "consentPlan": "Acepto las {terms} y pido que mi plan empiece de inmediato. Si desisto en un plazo de 14 días como consumidor de la UE, pago el tiempo utilizado.",
+      "consentTopup": "Acepto las {terms} y pido los créditos de inmediato. Mi derecho de desistimiento termina en cuanto los uso.",
+      "link": "Condiciones de los planes de pago",
+      "required": "Acepte las Condiciones de los planes de pago para continuar."
+    }
   },
   "plan": {
     "limitTitle": "Límite del plan alcanzado",

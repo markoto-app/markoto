@@ -147,15 +147,20 @@ describe('pricing page — billing on', () => {
     expect(wrapper.find('[data-testid="pricing-compare"]').exists()).toBe(true)
   })
 
-  it('emits Offer JSON-LD for every plan with its EUR monthly price on the marketing site', async () => {
+  it('emits Offer JSON-LD for every plan, billing period and currency on the marketing site', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     setConfig({ marketingSite: true, siteUrl: 'https://markoto.app', anonDocTtlDays: 30 })
     await mountPricing()
     await settleHead()
     const data = pricingJsonLd()
     expect(data).not.toBeNull()
-    expect(offerPrices(data)).toEqual(['0', '9', '12', '20'])
-    expect(JSON.stringify(data)).toContain('"priceCurrency":"EUR"')
+    // Free, then per plan: EUR month / year, CHF month / year.
+    expect(offerPrices(data)).toEqual(['0', '9', '90', '10', '100', '12', '120', '13', '130', '20', '200', '21', '210'])
+    const json = JSON.stringify(data)
+    expect(json).toContain('"priceCurrency":"EUR"')
+    expect(json).toContain('"priceCurrency":"CHF"')
+    expect(json).toContain('"billingDuration":"P1Y"')
+    expect(json).toContain('"unitText":"seat"')
   })
 })
 
@@ -171,6 +176,30 @@ describe('pricing page — interval and currency', () => {
     await flushPromises()
     expect(price()).toBe('€90')
     expect(wrapper.find('[data-testid="pricing-tier-pro"]').text()).toContain('per year')
+  })
+})
+
+describe('pricing page — seats and credits', () => {
+  it('totals Team for the chosen seats, starting at the minimum', async () => {
+    setMode({ billingEnabled: true, plansComingSoon: false })
+    const wrapper = await mountPricing()
+    const total = () => wrapper.find('[data-testid="pricing-seat-total-team"]').text()
+    expect(total()).toBe('€36 per month for 3 seats')
+    const input = wrapper.find('input[data-testid="pricing-seats-team"], [data-testid="pricing-seats-team"] input')
+    expect(input.exists()).toBe(true)
+    await input.setValue('5')
+    await input.trigger('blur')
+    await flushPromises()
+    expect(total()).toBe('€60 per month for 5 seats')
+    expect(wrapper.find('[data-testid="pricing-tier-team"]').text()).toContain('Billing tab')
+  })
+
+  it('explains AI credits next to the paid plans', async () => {
+    setMode({ billingEnabled: true, plansComingSoon: false })
+    const wrapper = await mountPricing()
+    const credits = wrapper.find('[data-testid="pricing-credits"]')
+    expect(credits.exists()).toBe(true)
+    expect(credits.text()).toContain('expire 12 months')
   })
 })
 

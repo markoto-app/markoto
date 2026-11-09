@@ -1,4 +1,5 @@
 import { assertBillingEnabled } from '../../../../utils/billingMode'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../../utils/paidTerms'
 import { useStripeClient } from '../../../../utils/stripeClient'
 import { requestBaseUrl } from '../../../../utils/workspaceStripe'
 import { getPooledWorkspace, requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
@@ -23,10 +24,11 @@ export default defineEventHandler(async (event) => {
   if (!pool || !pool.subscription.stripeCustomerId) {
     throw createError({ statusCode: 409, message: 'AI credits are for workspaces with an active Team or Business plan.', data: { code: 'billing/no-subscription' } })
   }
+  requirePaidTermsAccepted(body)
   const stripe = useStripeClient()
   if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
   const base = requestBaseUrl(event)
-  return createTopupCheckout(stripe, {
+  const checkout = await createTopupCheckout(stripe, {
     subject: { type: 'workspace', id: wsId },
     pack: body.pack,
     currency: pool.subscription.currency,
@@ -37,4 +39,6 @@ export default defineEventHandler(async (event) => {
     cancelUrl: `${base}/w/${encodeURIComponent(wsId)}?tab=billing&credits=cancelled`,
     automaticTax: automaticTaxEnabled(useRuntimeConfig(event).stripe.automaticTax)
   })
+  await recordPaidTermsAcceptance(event, session.user.id, { kind: 'topup', subject: { type: 'workspace', id: wsId }, item: body.pack })
+  return checkout
 })

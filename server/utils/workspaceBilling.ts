@@ -1,9 +1,10 @@
-import { getWorkspaceSubscription, subscriptionGrantsPlan, type WorkspaceSubscriptionRow } from '../repos/workspaceSubscriptions'
+import { getWorkspaceSubscription, listSubscriptionsForWorkspaces, subscriptionGrantsPlan, type WorkspaceSubscriptionRow } from '../repos/workspaceSubscriptions'
 import { countMembers } from '../repos/workspaceMembers'
 import { countOpenWorkspaceInvites } from '../repos/workspaceInvites'
 import { getTiers } from './tierConfig'
 import { isBillingEnabled } from './billingMode'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
+import { MAX_WORKSPACE_SEATS, MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 
 // Team / Business workspace billing (pricing plan WP3).
 //
@@ -23,10 +24,7 @@ import type { WorkspacePlanName } from '~~/shared/config/tiers'
 // Everything else (personal documents, other workspaces) keeps the
 // per-user rules.
 
-/** Smallest Team / Business subscription. */
-export const MIN_WORKSPACE_SEATS = 3
-/** Upper bound on one seat change, a typo guard (Stripe allows more). */
-export const MAX_WORKSPACE_SEATS = 1000
+export { MIN_WORKSPACE_SEATS, MAX_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 /** A member's default AI limit = this many seats' worth of the pooled budget. */
 export const DEFAULT_MEMBER_LIMIT_SEAT_SHARES = 2
 
@@ -131,4 +129,19 @@ export async function requireWorkspaceBillingAdmin(userId: number, workspaceId: 
       data: { code: 'billing/admin-required' }
     })
   }
+}
+
+/**
+ * Which of these workspaces a Team / Business subscription covers right
+ * now (billing on only): workspace id → plan. For badges and hints.
+ */
+export async function pooledPlansFor(workspaceIds: readonly string[], now: Date = new Date()): Promise<Map<string, WorkspacePlanName>> {
+  const out = new Map<string, WorkspacePlanName>()
+  if (!isBillingEnabled() || workspaceIds.length === 0) return out
+  const rows = await listSubscriptionsForWorkspaces(workspaceIds)
+  for (const row of rows) {
+    const pool = pooledFromRow(row, now)
+    if (pool) out.set(row.workspaceId, pool.plan)
+  }
+  return out
 }

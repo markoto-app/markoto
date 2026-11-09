@@ -108,12 +108,17 @@ const totalLabel = computed(() => {
   })
 })
 
+// The Paid Plans Terms box (WP6b): a first purchase and a plan switch
+// both need it; seat changes don't (they run under the accepted terms).
+const paidTermsAccepted = ref(false)
+
 async function startCheckout() {
+  if (!paidTermsAccepted.value) return
   busy.value = 'checkout'
   try {
     const res = await $fetch<{ url?: string }>(`/api/workspaces/${props.workspaceId}/billing/checkout`, {
       method: 'POST',
-      body: { plan: plan.value, interval: interval.value, currency: currency.value, seats: seatsDraft.value }
+      body: { plan: plan.value, interval: interval.value, currency: currency.value, seats: seatsDraft.value, acceptPaidTerms: true }
     })
     if (res.url) goToExternal(res.url)
   } catch (e) {
@@ -125,12 +130,12 @@ async function startCheckout() {
 
 // ── Changing ────────────────────────────────────────────────────────
 async function changePlan(next: { plan?: 'team' | 'business', interval?: BillingInterval }) {
-  if (!sub.value) return
+  if (!sub.value || !paidTermsAccepted.value) return
   busy.value = 'plan'
   try {
     await $fetch(`/api/workspaces/${props.workspaceId}/billing/checkout`, {
       method: 'POST',
-      body: { plan: next.plan ?? sub.value.plan, interval: next.interval ?? sub.value.interval, currency: sub.value.currency }
+      body: { plan: next.plan ?? sub.value.plan, interval: next.interval ?? sub.value.interval, currency: sub.value.currency, acceptPaidTerms: true }
     })
     toast.add({ title: t('workspace.billing.planChanged'), icon: 'i-lucide-check', color: 'neutral' })
     await load()
@@ -310,10 +315,17 @@ function usd(amount: number | null | undefined): string {
           >
             {{ totalLabel ?? '' }}
           </p>
+          <PricingPaidTermsConsent
+            v-model="paidTermsAccepted"
+            kind="plan"
+            class="basis-full"
+            testid="workspace-billing-checkout-paid-terms"
+          />
           <UButton
             color="neutral"
             icon="i-lucide-arrow-right"
             trailing
+            :disabled="!paidTermsAccepted"
             :loading="busy === 'checkout'"
             data-testid="workspace-billing-checkout"
             @click="startCheckout"
@@ -390,10 +402,17 @@ function usd(amount: number | null | undefined): string {
           </p>
 
           <div class="flex gap-2 flex-wrap border-t border-default pt-4">
+            <PricingPaidTermsConsent
+              v-model="paidTermsAccepted"
+              kind="plan"
+              class="basis-full"
+              testid="workspace-billing-switch-paid-terms"
+            />
             <UButton
               color="neutral"
               variant="ghost"
               size="sm"
+              :disabled="!paidTermsAccepted"
               :loading="busy === 'plan'"
               data-testid="workspace-billing-switch-plan"
               @click="changePlan({ plan: sub.plan === 'team' ? 'business' : 'team' })"
@@ -404,6 +423,7 @@ function usd(amount: number | null | undefined): string {
               color="neutral"
               variant="ghost"
               size="sm"
+              :disabled="!paidTermsAccepted"
               :loading="busy === 'plan'"
               data-testid="workspace-billing-switch-interval"
               @click="changePlan({ interval: sub.interval === 'month' ? 'year' : 'month' })"
