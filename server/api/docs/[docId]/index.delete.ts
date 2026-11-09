@@ -2,7 +2,7 @@ import { getDoc, getDocWithActorRole } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documentLifecycle'
 import { appendAuditEvent } from '../../../repos/audit'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
-import { decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
 // Delete a document. Authorisation is decided by `decideDocDelete`:
 //   - anonymous doc (no owner, no workspace) → only the browser that
@@ -33,11 +33,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const doc: DocState = {
-    ownerId: row.ownerId,
-    workspaceId: row.workspaceId,
-    accessMode: row.accessMode
-  }
+  const doc: DocState = docStateOf(row)
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: row.workspaceRole,

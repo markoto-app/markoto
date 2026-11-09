@@ -61,7 +61,7 @@ import {
   checkSavedThemeName
 } from '~~/shared/config/savedThemes'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
-import { decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../repos/uploads'
 import { imageQuotaMessage, resolveImageQuota } from './imageQuota'
@@ -993,11 +993,7 @@ async function resolveCrossDocAccess(session: MetaToolContext, targetId: string)
     return { ok: false, error: err(`Error: document "${targetId}" not found, or you don't have access to it.`) }
   }
   const decision = decideTokenAccess(
-    {
-      ownerId: ctx.ownerId,
-      workspaceId: ctx.workspaceId,
-      accessMode: ctx.accessMode
-    },
+    docStateOf(ctx),
     {
       userId: session.initiatorUserId,
       workspaceRole: ctx.workspaceRole
@@ -1028,7 +1024,7 @@ export async function accessibleDocTitle(userId: number, docRef: string): Promis
   const ctx = await getDocWithActorRole(targetId, userId)
   if (!ctx) return null
   const decision = decideTokenAccess(
-    { ownerId: ctx.ownerId, workspaceId: ctx.workspaceId, accessMode: ctx.accessMode },
+    docStateOf(ctx),
     { userId, workspaceRole: ctx.workspaceRole }
   )
   if (decision.outcome !== 'allow') return null
@@ -1100,7 +1096,7 @@ function applyViewRange(body: string, range: ViewOtherDocumentInput['view_range'
  * quote ("From your workspace doc 'Q3 plan': …").
  */
 function scopeLabelFor(ctx: CrossDocCtx, initiatorUserId: number): string {
-  if (ctx.ownerId === initiatorUserId) return 'self'
+  if (isEffectiveDocOwner(ctx, initiatorUserId)) return 'self'
   if (ctx.workspaceRole) return `workspace:${ctx.workspaceRole}`
   if (ctx.accessMode === 'open-edit') return 'public-edit'
   if (ctx.accessMode === 'open-view') return 'public-view'

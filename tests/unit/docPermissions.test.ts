@@ -4,6 +4,8 @@ import {
   decideFileAccess,
   decideActivityAccess,
   decideDocDelete,
+  docStateOf,
+  isEffectiveDocOwner,
   type DocState,
   type ActorState,
   type AccessMode,
@@ -408,5 +410,65 @@ describe('exhaustiveness', () => {
         }
       }
     }
+  })
+})
+
+// Single sign-on (WP14): ownership of a doc in a workspace that enforces
+// SSO counts only while the owner has an effective role there.
+// `getDocWithActorRole` computes `ownerAccessSuspended`; these pin that
+// a suspended owner is treated exactly like a non-owner.
+describe('suspended ownership (single sign-on)', () => {
+  const suspended = (mode: AccessMode): DocState =>
+    doc({ ownerId: 42, workspaceId: 'ws1', accessMode: mode, ownerAccessSuspended: true })
+  const owner = actor({ userId: 42 })
+
+  it.each(['private', 'password-protected'] as const)('no token for a %s doc', (mode) => {
+    const expected = mode === 'private' ? 'forbidden' : 'password-required'
+    expect(decideTokenAccess(suspended(mode), owner).outcome).toBe(expected)
+  })
+
+  it('open-view doc: read-only, like any outsider', () => {
+    expect(decideTokenAccess(suspended('open-view'), owner)).toEqual({ outcome: 'allow', readOnly: true })
+  })
+
+  it('open-edit doc: the public edit grant still applies', () => {
+    expect(decideTokenAccess(suspended('open-edit'), owner)).toEqual({ outcome: 'allow', readOnly: false })
+  })
+
+  it.each(['private', 'password-protected'] as const)('files + activity denied on a %s doc', (mode) => {
+    expect(decideFileAccess(suspended(mode), owner).outcome).toBe('deny')
+    expect(decideActivityAccess(suspended(mode), owner).outcome).toBe('deny')
+  })
+
+  it('a valid doc JWT (password unlock) still opens files', () => {
+    expect(decideFileAccess(suspended('private'), actor({ userId: 42, hasValidDocJwt: true })).outcome).toBe('allow')
+  })
+
+  it.each(ALL_MODES)('cannot delete a %s doc', (mode) => {
+    expect(decideDocDelete(suspended(mode), owner).outcome).toBe('deny')
+  })
+
+  it('the flag only affects ownership: a workspace role still counts', () => {
+    expect(decideTokenAccess(suspended('private'), actor({ userId: 42, workspaceRole: 'editor' })))
+      .toEqual({ outcome: 'allow', readOnly: false })
+  })
+
+  it('not suspended: ownership counts as before', () => {
+    const d = doc({ ownerId: 42, workspaceId: 'ws1', accessMode: 'private', ownerAccessSuspended: false })
+    expect(decideTokenAccess(d, owner)).toEqual({ outcome: 'allow', readOnly: false })
+    expect(decideDocDelete(d, owner).outcome).toBe('allow')
+  })
+
+  it('docStateOf carries the flag through', () => {
+    const row = { ownerId: 42, workspaceId: 'ws1', accessMode: 'private' as const, ownerAccessSuspended: true, title: 'x' }
+    expect(docStateOf(row)).toEqual({ ownerId: 42, workspaceId: 'ws1', accessMode: 'private', ownerAccessSuspended: true })
+  })
+
+  it('isEffectiveDocOwner', () => {
+    expect(isEffectiveDocOwner({ ownerId: 42, ownerAccessSuspended: false }, 42)).toBe(true)
+    expect(isEffectiveDocOwner({ ownerId: 42, ownerAccessSuspended: true }, 42)).toBe(false)
+    expect(isEffectiveDocOwner({ ownerId: 42, ownerAccessSuspended: false }, 7)).toBe(false)
+    expect(isEffectiveDocOwner({ ownerId: 42, ownerAccessSuspended: false }, null)).toBe(false)
+    expect(isEffectiveDocOwner({ ownerId: null, ownerAccessSuspended: false }, null)).toBe(false)
   })
 })
