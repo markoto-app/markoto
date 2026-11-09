@@ -143,8 +143,6 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_flows',
   NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
   NUXT_STRIPE_PRICE_PRO: 'price_test_pro',
-  NUXT_STRIPE_PRICE_MAX: 'price_test_max',
-  NUXT_STRIPE_PRICE_ULTRA: 'price_test_ultra',
   // Skip the inactive-doc sweep — short-lived test infra doesn't
   // benefit and the TTL math complains on a fresh DB.
   NUXT_INACTIVE_DOC_TTL_DAYS: '0',

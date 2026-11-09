@@ -42,9 +42,6 @@
       "invalidMeta": "ドキュメントの設定（タイトル、テーマ、詳細）にサーバーが受け付けられない値が含まれていました。再読み込みして続けてください。",
       "invalidUpdate": "このタブからの変更をサーバーが処理できませんでした。再読み込みして続けてください。"
     },
-    "aiWorkspaceBadge": "markotoワークスペース",
-    "aiWorkspaceBadgeTooltip": "このドキュメントはmarkotoワークスペース内にあります — ここでのmarkotoの作業はあなたではなくスポンサーのクレジットプールを使用します。",
-    "aiWorkspaceSponsoredBy": "{name}がスポンサーするmarkotoワークスペース",
     "bold": "太字",
     "italic": "斜体",
     "heading": "見出し",
@@ -607,7 +604,6 @@
     "subtitle": "自分に合ったプランを選びましょう。プランが決めるのは上限です：AI ポイント、ワークスペース、ストレージ。自分のプロバイダーキーで使う AI はプランで制限されません。",
     "metaDescription": "markoto のプランを比較：AI ポイント、ワークスペース、ストレージの上限。自分のプロバイダーキーで使う AI はプランで制限されません。",
     "creditsHint": "AI ポイントはインスタンスが費用を負担する AI に使われます：1000 ポイント = モデル利用料 1 ドル。自分のプロバイダーキーで使う AI はプロバイダーから請求され、ポイントは消費しません。",
-    "teamBilling": "ワークスペースのスポンサー：ワークスペース全員の AI ポイントを負担",
     "currentPlan": "現在のプラン",
     "manageSubscription": "サブスクリプションを管理",
     "upgrade": "アップグレード",
@@ -625,13 +621,14 @@
     "tiers": {
       "free": "すべての執筆機能と、最初の AI ポイント枠。",
       "pro": "個人向け：より多くの AI ポイント、ワークスペース、ストレージ。",
-      "max": "小規模チーム向け：所有するワークスペースの全員の AI ポイントを負担できます。",
-      "ultra": "大規模チーム向け：最大の枠でワークスペースをスポンサー。"
+      "team": "チーム向け：席ごとの料金、共有の AI Points とストレージ、管理機能。",
+      "business": "組織向け：Team に加えてシングルサインオン、監査エクスポート、個別の上限。"
     },
     "freeAllowanceNote": "無料のAI枠は、EU内でMistral AIがホストするモデルで動作し、今月の共有枠がなくなるまで利用できます。さらに使うには、設定 → AI プロバイダーでご自身のキーを追加してください。",
     "price": {
       "free": "無料",
       "perMonth": "/月",
+      "perSeatPerMonth": "席 / 月",
       "planned": "予定価格",
       "plannedNote": "予定価格は米ドル表示です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。"
     },
@@ -663,7 +660,8 @@
       "title": "有料",
       "tagline": "AI ポイント、ワークスペース、ストレージが増えます。",
       "tabsLabel": "有料プラン",
-      "joinWaitlist": "ウェイトリストに登録"
+      "joinWaitlist": "ウェイトリストに登録",
+      "setUpInWorkspace": "ワークスペースで設定"
     },
     "instance": {
       "title": "すべてのアカウント"
@@ -693,7 +691,6 @@
       "knowledgeFiles": "ナレッジファイル",
       "knowledgeStorage": "ナレッジストレージ",
       "imageStorage": "画像ストレージ",
-      "sponsoring": "ワークスペースの AI スポンサー",
       "mcp": "AI クライアント向け MCP サーバー",
       "members": "ワークスペースあたりの人数",
       "history": "バージョン履歴",
@@ -1224,7 +1221,6 @@
     "tabs": {
       "documents": "ドキュメント",
       "knowledge": "ナレッジ",
-      "ai": "markoto",
       "settings": "設定"
     },
     "settings": {
@@ -1336,28 +1332,7 @@
         "home": "ダッシュボードへ"
       }
     },
-    "actions": "ワークスペースの操作",
-    "sponsorship": {
-      "description": "このワークスペースを markoto ワークスペースにすると、メンバー全員のドキュメント内での AI 利用があなたのプランのクレジットから支払われます。Max または Ultra が必要です。",
-      "banner": "これは markoto ワークスペースです。ここでの AI 利用はスポンサーのクレジットから支払われます。",
-      "memberSponsored": "これは markoto ワークスペースです。ここでの AI 利用は管理者が負担しています。",
-      "memberRegular": "これは通常のワークスペースです。メンバーは各自の AI クレジットを使います。管理者は markoto ワークスペースにして利用を負担できます。",
-      "memberComingSoon": "ワークスペースの AI 利用の負担は有料プランで利用できるようになります。",
-      "onYourPlan": "あなたのプランで負担中 · メンバーにはエディターに表示されます",
-      "sponsoredByOther": "別の管理者が負担中",
-      "takeOver": "負担を引き継ぐ",
-      "needsUpgrade": "{plan} プランではワークスペースの AI 利用を負担できません。Max または Ultra が必要です。",
-      "upgrade": "プランをアップグレード",
-      "comingSoon": "有料プランで利用できるようになります。",
-      "seePlans": "プランを見る",
-      "off": "オフ · メンバーは各自の AI クレジットを使います",
-      "toggleLabel": "このワークスペースの AI 利用を負担する",
-      "enabledToast": "AI ワークスペースを有効にしました",
-      "enabledToastDescription": "このワークスペースでのメンバーの AI 利用は、あなたのプランで負担されます。",
-      "disabledToast": "AI ワークスペースを無効にしました",
-      "disabledToastDescription": "メンバーは再び各自の AI クレジットを使います。",
-      "updateFailed": "AI ワークスペースを変更できませんでした"
-    }
+    "actions": "ワークスペースの操作"
   },
   "knowledge": {
     "title": "ナレッジベース",

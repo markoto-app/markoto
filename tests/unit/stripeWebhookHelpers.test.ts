@@ -81,16 +81,12 @@ vi.mock('../../server/utils/database', () => ({
 }))
 
 const PRICES = {
-  pricePro: 'price_pro_abc',
-  priceMax: 'price_max_def',
-  priceUltra: 'price_ultra_ghi'
+  pricePro: 'price_pro_abc'
 }
 
 describe('priceIdToPlan', () => {
   it('maps configured price ids to plans', () => {
     expect(priceIdToPlan('price_pro_abc', PRICES)).toBe('pro')
-    expect(priceIdToPlan('price_max_def', PRICES)).toBe('max')
-    expect(priceIdToPlan('price_ultra_ghi', PRICES)).toBe('ultra')
   })
 
   it('returns null for unknown price ids', () => {
@@ -108,10 +104,10 @@ describe('priceIdToPlan', () => {
     // If someone ever did a substring match by accident, a config
     // like `pricePro='price_pro'` + caller `price_pro_free` would
     // match. This test pins the exact-equality contract.
-    const prices = { pricePro: 'price_pro', priceMax: 'price_pro_max', priceUltra: 'pro' }
+    const prices = { pricePro: 'price_pro' }
     expect(priceIdToPlan('price_pro', prices)).toBe('pro')
-    expect(priceIdToPlan('price_pro_max', prices)).toBe('max')
-    expect(priceIdToPlan('pro', prices)).toBe('ultra')
+    expect(priceIdToPlan('price_pro_max', prices)).toBeNull()
+    expect(priceIdToPlan('pro', prices)).toBeNull()
     expect(priceIdToPlan('price_pro_free', prices)).toBeNull() // NOT pro
   })
 })

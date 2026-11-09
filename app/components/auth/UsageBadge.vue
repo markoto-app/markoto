@@ -81,15 +81,12 @@ const resetDate = computed(() => {
   }
 })
 
-// The "upgrade" CTA only makes sense when there's a tier above us.
-// Ultra users don't get a button that leads nowhere useful — we show
-// a status line instead.
-const PLAN_ORDER: readonly PlanName[] = ['free', 'pro', 'max', 'ultra']
+// The "upgrade" CTA only makes sense when there's a personal plan above
+// us: Free → Pro. Pro is the top personal plan (Team / Business are
+// bought for a workspace), so Pro users see a status line instead.
 const nextPlan = computed((): PlanName | null => {
   const plan = billing.value?.plan ?? 'free'
-  const idx = PLAN_ORDER.indexOf(plan)
-  if (idx < 0 || idx >= PLAN_ORDER.length - 1) return null
-  return PLAN_ORDER[idx + 1]
+  return plan === 'free' ? 'pro' : null
 })
 const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== null)
 

@@ -41,12 +41,23 @@ describe('POST /api/billing/checkout', () => {
     expect(body.sessionId).toMatch(/^cs_/)
   })
 
-  it('works for max + ultra plans too', async () => {
+  it('refuses Team / Business: those are bought for a workspace', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    for (const plan of ['max', 'ultra'] as const) {
+    for (const plan of ['team', 'business'] as const) {
       const res = await client.post('/api/billing/checkout', { plan })
-      expect(res.status, `plan=${plan}`).toBe(200)
+      expect(res.status, `plan=${plan}`).toBe(400)
+      const body = await res.json() as { data?: { code?: string } }
+      expect(body.data?.code, `plan=${plan}`).toBe('billing/workspace-plan')
+    }
+  })
+
+  it('refuses the retired Max / Ultra plans', async () => {
+    const u = await createUser()
+    const client = await loggedInClient(u.id)
+    for (const plan of ['max', 'ultra']) {
+      const res = await client.post('/api/billing/checkout', { plan })
+      expect(res.status, `plan=${plan}`).toBe(400)
     }
   })
 
@@ -64,23 +75,24 @@ describe('POST /api/billing/checkout', () => {
     expect(res.status).toBe(200)
   })
 
-  it('upgrades IN PLACE when the user already has a live subscription', async () => {
-    // The double-subscription guard: a pro user "upgrading" to max must
-    // get a price swap on their EXISTING subscription, not a Checkout
-    // URL (which would create a second concurrent subscription).
-    // stripe-mock returns status=active for any subscription retrieve,
-    // so this exercises the live-subscription branch end to end.
+  it('swaps IN PLACE when Stripe still has a live subscription for the user', async () => {
+    // The double-subscription guard: a user whose row says free but who
+    // still has a live Stripe subscription (e.g. a lapse the webhook
+    // hasn't caught up with) must get a price swap on that EXISTING
+    // subscription, not a Checkout URL (which would create a second
+    // concurrent subscription). stripe-mock returns status=active for any
+    // subscription retrieve, so this exercises the live branch end to end.
     const u = await createUser()
     await testDb().query(
-      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, plan_valid_until = $4 WHERE id = $5',
-      ['cus_existing_test', 'sub_existing_test', 'pro', new Date(Date.now() + 20 * 24 * 3600 * 1000), u.id]
+      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3 WHERE id = $4',
+      ['cus_existing_test', 'sub_existing_test', 'free', u.id]
     )
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'max' })
+    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { updated?: boolean, plan?: string, url?: string }
     expect(body.updated).toBe(true)
-    expect(body.plan).toBe('max')
+    expect(body.plan).toBe('pro')
     // Crucially: NO checkout URL — nothing to redirect to.
     expect(body.url).toBeUndefined()
   })
@@ -102,7 +114,7 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = NULL WHERE id = $2', ['cus_existing_test', u.id])
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'ultra' })
+    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { url?: string, updated?: boolean }
     expect(body.url).toMatch(/^https?:\/\//)

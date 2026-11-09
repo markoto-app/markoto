@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { DEFAULT_TIERS, type PlanName } from '~~/shared/config/tiers'
+import { DEFAULT_TIERS, PLAN_NAMES, type PlanName } from '~~/shared/config/tiers'
 import {
   DEFAULT_PLAN_PRICES_USD,
   PAID_PLAN_NAMES,
+  isPerSeatPlan,
   PRICE_CURRENCY,
   type PaidPlanName,
   type PlanPricesResponse
@@ -22,7 +23,7 @@ import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 // Two layouts, three instance shapes (shared/config/billingMode.ts):
 //   - Options (billing ON, or billing OFF + NUXT_PLANS_COMING_SOON on the
 //     hosted site): four columns — Self-hosted / No account / Free
-//     account / Paid (tabs Pro · Max · Ultra) — then a comparison table
+//     account / Paid (tabs Pro · Team · Business) — then a comparison table
 //     and an FAQ.
 //       · billing on: real prices + Stripe Checkout / Customer Portal CTAs.
 //       · coming soon: PLANNED prices, labelled as planned, no purchase
@@ -59,10 +60,10 @@ const pricesPlanned = computed(() => !billingEnabled.value)
 
 const PAID_TAGLINE: Record<PaidPlanName, string> = {
   pro: 'pricing.tiers.pro',
-  max: 'pricing.tiers.max',
-  ultra: 'pricing.tiers.ultra'
+  team: 'pricing.tiers.team',
+  business: 'pricing.tiers.business'
 }
-const PAID_DISPLAY: Record<PaidPlanName, string> = { pro: 'Pro', max: 'Max', ultra: 'Ultra' }
+const PAID_DISPLAY: Record<PaidPlanName, string> = { pro: 'Pro', team: 'Team', business: 'Business' }
 
 const paidTab = ref<PaidPlanName>('pro')
 const paidTabs = PAID_PLAN_NAMES.map(plan => ({
@@ -104,9 +105,9 @@ function isCurrent(plan: PlanName): boolean {
   return billing.value?.plan === plan
 }
 
-// Tier ranking. Drives the "upgrade vs downgrade" CTA split so a Max
-// user doesn't see "Upgrade" next to the Pro tab.
-const PLAN_ORDER: readonly PlanName[] = ['free', 'pro', 'max', 'ultra']
+// Personal tier ranking. Drives the "upgrade vs downgrade" CTA split.
+// Team / Business are workspace plans with their own CTA (`isPerSeatPlan`).
+const PLAN_ORDER: readonly PlanName[] = PLAN_NAMES
 type CtaKind = 'current' | 'upgrade' | 'downgrade' | 'signup' | 'free-stay'
 
 function ctaKind(plan: PlanName): CtaKind {
@@ -243,7 +244,7 @@ const { imageUrl } = useMarketingSeo({
 
 // SoftwareApplication + Offer JSON-LD, marketing site only (like the
 // home page's). Offers are what someone can take up TODAY: the free
-// account always; Pro / Max / Ultra only while billing is on. Planned
+// account always; Pro / Team / Business only while billing is on. Planned
 // prices are on the page, labelled as planned, but an Offer states a
 // price someone can pay — publishing one for a plan nobody can buy
 // would put a wrong claim into search results.
@@ -485,7 +486,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             </div>
           </article>
 
-          <!-- Paid: Pro · Max · Ultra -->
+          <!-- Paid: Pro · Team · Business (Team / Business per seat) -->
           <article
             :class="[cardClass, paidPlanFor(billing?.plan) ? 'border-inverted' : 'border-default']"
             data-testid="pricing-option-paid"
@@ -530,7 +531,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                       class="font-serif text-3xl font-light tracking-tight"
                       data-testid="pricing-price"
                     >{{ price(plan) }}</span>
-                    <span class="text-sm text-muted">{{ t('pricing.price.perMonth') }}</span>
+                    <span class="text-sm text-muted">{{ isPerSeatPlan(plan) ? t('pricing.price.perSeatPerMonth') : t('pricing.price.perMonth') }}</span>
                     <span
                       v-if="isCurrent(plan)"
                       data-testid="pricing-current-plan-badge"
@@ -549,7 +550,6 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                     class="mt-4 flex-1"
                     :plan="plan"
                     :tiers="TIERS"
-                    :sponsoring="plan === 'max' || plan === 'ultra'"
                   />
                   <div class="mt-6">
                     <!-- Coming soon: nothing to buy, the waitlist is right below. -->
@@ -562,6 +562,18 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                       data-testid="pricing-join-waitlist"
                     >
                       {{ t('pricing.paid.joinWaitlist') }}
+                    </UButton>
+                    <!-- Team / Business are bought for a workspace, from its
+                         billing settings (pricing plan WP3). -->
+                    <UButton
+                      v-else-if="isPerSeatPlan(plan)"
+                      to="/"
+                      block
+                      color="neutral"
+                      variant="outline"
+                      :data-testid="`pricing-workspace-plan-${plan}`"
+                    >
+                      {{ t('pricing.paid.setUpInWorkspace') }}
                     </UButton>
                     <!-- Billing on: current → Customer Portal; higher →
                          upgrade (Checkout or in-place swap); lower →

@@ -102,16 +102,6 @@ export function useDocToken(docId: string) {
   // render, and by MoveWorkspaceModal to preselect "current workspace".
   const workspaceId = ref<string | null>(null)
   const workspaceRole = ref<'admin' | 'editor' | 'viewer' | null>(null)
-  // Whether the parent workspace is an "AI workspace" (`(+)` toggle on).
-  // Drives the editor's "AI workspace" banner — every member of a
-  // sponsored workspace sees that their AI use here bills to the owner,
-  // not to them.
-  const workspaceAiEnabled = ref<boolean>(false)
-  // Sponsor profile (billing owner) for the AI-workspace indicator.
-  // Null when `workspaceAiEnabled` is false. Carries just the display
-  // bits — no plan / no email / no stripe ids leak through here.
-  interface BillingOwner { id: number, name: string }
-  const workspaceBillingOwner = ref<BillingOwner | null>(null)
   // DB-stored theme (or null = use defaultTheme). Initial value comes back
   // on the same /token round-trip so the preview can paint immediately,
   // before Y.js sync settles. Once synced, ymeta.theme takes over as the
@@ -161,8 +151,6 @@ export function useDocToken(docId: string) {
         ownerId: number | null
         workspaceId: string | null
         workspaceRole: 'admin' | 'editor' | 'viewer' | null
-        workspaceAiEnabled?: boolean | null
-        workspaceBillingOwner?: BillingOwner | null
         theme?: DocTheme | null
         title?: string
         description?: string
@@ -182,8 +170,6 @@ export function useDocToken(docId: string) {
       accessMode.value = data.accessMode
       workspaceId.value = data.workspaceId
       workspaceRole.value = data.workspaceRole
-      workspaceAiEnabled.value = data.workspaceAiEnabled ?? false
-      workspaceBillingOwner.value = data.workspaceBillingOwner ?? null
       initialTheme.value = data.theme ?? null
       customCssAllowed.value = data.planFeatures?.customCss !== false
       if (typeof data.title === 'string') initialTitle.value = data.title
@@ -331,8 +317,6 @@ export function useDocToken(docId: string) {
     accessMode,
     workspaceId,
     workspaceRole,
-    workspaceAiEnabled,
-    workspaceBillingOwner,
     pendingPasswordUnlock,
     initialTheme,
     customCssAllowed,

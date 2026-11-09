@@ -145,17 +145,17 @@ describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
     expect(row.plan_valid_until!.getTime()).toBe(1778678400 * 1000)
   })
 
-  it('scheduled downgrade (cancel_at_period_end=true): plan stays on Max', async () => {
+  it('scheduled downgrade (cancel_at_period_end=true): plan stays on Pro', async () => {
     const u = await createUser()
     await testDb().query(
-      `UPDATE users SET stripe_customer_id = $1, plan = 'max' WHERE id = $2`,
+      `UPDATE users SET stripe_customer_id = $1, plan = 'pro' WHERE id = $2`,
       ['cus_test_alice', u.id]
     )
-    const event = loadStripeFixture('customer.subscription.updated-max-scheduled-downgrade')
+    const event = loadStripeFixture('customer.subscription.updated-pro-scheduled-downgrade')
     await postWebhook(event)
     const row = await readUser(u.id)
-    // Plan STAYS on max — user keeps paid tier through period end.
-    expect(row.plan).toBe('max')
+    // Plan STAYS on pro — user keeps paid tier through period end.
+    expect(row.plan).toBe('pro')
     // plan_valid_until reflects current_period_end so the resolver
     // (and the plan-lapse sweep) knows when to flip to free.
     expect(row.plan_valid_until!.getTime()).toBe(1778678400 * 1000)
@@ -182,10 +182,10 @@ describe('POST /api/webhooks/stripe — customer.subscription.deleted', () => {
 
   it('reverts plan to free and nulls the stripe anchor', async () => {
     const u = await createUser()
-    // Simulate active Max subscription.
+    // Simulate active Pro subscription.
     await testDb().query(
       `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2,
-                        plan = 'max', stripe_current_period_start = now(),
+                        plan = 'pro', stripe_current_period_start = now(),
                         plan_valid_until = now() + interval '1 month'
        WHERE id = $3`,
       ['cus_test_alice', 'sub_test_alice_pro', u.id]
@@ -266,7 +266,7 @@ describe('POST /api/webhooks/stripe — invoice.payment_failed', () => {
   it('does NOT downgrade on first payment failure (Stripe retries)', async () => {
     const u = await createUser()
     await testDb().query(
-      `UPDATE users SET stripe_customer_id = $1, plan = 'max',
+      `UPDATE users SET stripe_customer_id = $1, plan = 'pro',
                         plan_valid_until = now() + interval '1 month'
        WHERE id = $2`,
       ['cus_test_alice', u.id]
@@ -274,12 +274,12 @@ describe('POST /api/webhooks/stripe — invoice.payment_failed', () => {
     const event = loadStripeFixture('invoice.payment_failed')
     const res = await postWebhook(event)
     expect(res.status).toBe(200)
-    // Critical: user stays on Max. Stripe will retry; if retries
+    // Critical: user stays on Pro. Stripe will retry; if retries
     // ultimately fail, subscription.deleted fires and THEN we
     // downgrade. Retrying-but-no-downgrade is the user-friendly
     // default — gives them a window to update their card.
     const row = await readUser(u.id)
-    expect(row.plan).toBe('max')
+    expect(row.plan).toBe('pro')
     expect(row.plan_valid_until).not.toBeNull()
   })
 })
@@ -384,8 +384,8 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
     // Event A: Pro subscription, period Apr → May.
     const eventA = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
 
-    // Event B: same user, Max scheduled-downgrade (different plan, different period).
-    const eventB = loadStripeFixture('customer.subscription.updated-max-scheduled-downgrade') as Record<string, unknown>
+    // Event B: same user, Pro scheduled-downgrade (different period handling).
+    const eventB = loadStripeFixture('customer.subscription.updated-pro-scheduled-downgrade') as Record<string, unknown>
 
     // Fire both at once.
     const [resA, resB] = await Promise.all([
@@ -412,9 +412,9 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
     const row = r.rows[0]
     // Both fixtures share the same period timestamps (1776000000 → 1778678400)
     // so the period anchors will be identical regardless of order.
-    // Plan differs: Event A = pro, Event B = max (Event B has
-    // cancel_at_period_end=true → scheduled downgrade, plan stays max).
-    expect(['pro', 'max']).toContain(row.plan)
+    // Both events are Pro (Event B has cancel_at_period_end=true →
+    // scheduled downgrade, plan stays pro).
+    expect(row.plan).toBe('pro')
     expect(row.stripe_current_period_start.getTime()).toBe(1776000000 * 1000)
     expect(row.plan_valid_until.getTime()).toBe(1778678400 * 1000)
   })
@@ -745,7 +745,7 @@ describe('POST /api/webhooks/stripe — body tampering', () => {
 
     const original = JSON.stringify(loadStripeFixture('customer.subscription.updated-pro'))
     const sig = computeStripeSig(original, TEST_WEBHOOK_SECRET)
-    const tampered = original.replace('"plan":"pro"', '"plan":"ultra"')
+    const tampered = original.replace('"plan":"pro"', '"plan":"free"')
     // (The replace may be a no-op if the fixture doesn't include the
     // string — that's fine, the test still asserts: bad sig → no write.)
     await fetch(`${TEST_BASE_URL}/api/webhooks/stripe`, {

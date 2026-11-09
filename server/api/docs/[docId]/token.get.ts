@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
 
   // Denied (private / password-gated, caller not entitled): return only
   // what the editor needs to draw the gate. No title-derived template
-  // body, description, owner, workspace, theme or `(+)` sponsor — a
+  // body, description, owner, workspace or theme — a
   // leaked link to a private doc must not leak its metadata.
   if (decision.outcome === 'forbidden' || decision.outcome === 'password-required') {
     return {
@@ -55,8 +55,6 @@ export default defineEventHandler(async (event) => {
       ownerId: null,
       workspaceId: null,
       workspaceRole: null,
-      workspaceAiEnabled: false,
-      workspaceBillingOwner: null,
       theme: null,
       initialBody: null,
       canDelete: false,
@@ -81,13 +79,6 @@ export default defineEventHandler(async (event) => {
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
     workspaceRole: row.workspaceRole,
-    // `(+)` AI-workspace state on the parent workspace (if any). Lets
-    // the editor render the "AI workspace" indicator on first paint
-    // without a second round-trip to `/api/workspaces/:id`. The
-    // sponsor block carries the billing owner's profile so the editor
-    // can render their avatar + name inline.
-    workspaceAiEnabled: row.workspaceAiEnabled,
-    workspaceBillingOwner: row.workspaceBillingOwner,
     theme: row.theme,
     // Title as stored on the row (set by the new-document dialog). The
     // editor shows it until the live Y.js title (`ymeta.title`) exists —

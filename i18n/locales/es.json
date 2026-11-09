@@ -42,9 +42,6 @@
       "invalidMeta": "Un ajuste del documento (título, tema o detalles) tenía un valor que el servidor no puede aceptar. Recarga para continuar.",
       "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar."
     },
-    "aiWorkspaceBadge": "espacio de trabajo de markoto",
-    "aiWorkspaceBadgeTooltip": "Este documento está en un espacio de trabajo de markoto — el trabajo de markoto aquí usa el fondo de créditos del patrocinador, no el tuyo.",
-    "aiWorkspaceSponsoredBy": "espacio de trabajo de markoto patrocinado por {name}",
     "bold": "Negrita",
     "italic": "Cursiva",
     "heading": "Encabezado",
@@ -607,7 +604,6 @@
     "subtitle": "Elige el plan que mejor se adapte. Los planes fijan tus límites: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave de proveedor nunca está limitada por un plan.",
     "metaDescription": "Compara los planes de markoto: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave nunca está limitada.",
     "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo. La IA con tu propia clave la factura tu proveedor y no consume puntos.",
-    "teamBilling": "Patrocinio de espacio de trabajo: cubre los puntos de IA de todos los miembros de un espacio de trabajo",
     "currentPlan": "Plan actual",
     "manageSubscription": "Gestionar suscripción",
     "upgrade": "Mejorar plan",
@@ -625,13 +621,14 @@
     "tiers": {
       "free": "Todas las funciones de escritura y una asignación inicial de puntos de IA.",
       "pro": "Para quien escribe en solitario: más puntos de IA, espacios de trabajo y almacenamiento.",
-      "max": "Para equipos pequeños: cubre los puntos de IA de todos los miembros de un espacio de trabajo tuyo.",
-      "ultra": "Para equipos más grandes: patrocinio de espacios de trabajo con la mayor asignación."
+      "team": "Para equipos: por puesto, AI Points y almacenamiento compartidos, controles de administración.",
+      "business": "Para organizaciones: Team con inicio de sesión único, exportación de auditoría y límites a medida."
     },
     "freeAllowanceNote": "La asignación gratuita de IA funciona con un modelo alojado por Mistral AI en la UE y está disponible mientras dure la reserva compartida de este mes. Para más, añade tu propia clave en Ajustes → Proveedor de IA.",
     "price": {
       "free": "Gratis",
       "perMonth": "al mes",
+      "perSeatPerMonth": "por puesto / mes",
       "planned": "Precio previsto",
       "plannedNote": "Precios previstos en dólares estadounidenses. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
     },
@@ -663,7 +660,8 @@
       "title": "De pago",
       "tagline": "Más puntos de IA, espacios de trabajo y almacenamiento.",
       "tabsLabel": "Planes de pago",
-      "joinWaitlist": "Unirse a la lista de espera"
+      "joinWaitlist": "Unirse a la lista de espera",
+      "setUpInWorkspace": "Configurar en un espacio de trabajo"
     },
     "instance": {
       "title": "Cada cuenta"
@@ -693,7 +691,6 @@
       "knowledgeFiles": "Archivos de conocimiento",
       "knowledgeStorage": "Almacenamiento de conocimiento",
       "imageStorage": "Almacenamiento de imágenes",
-      "sponsoring": "Patrocinio de IA en espacios de trabajo",
       "mcp": "Servidor MCP para clientes de IA",
       "members": "Personas por espacio de trabajo",
       "history": "Historial de versiones",
@@ -1224,7 +1221,6 @@
     "tabs": {
       "documents": "Documentos",
       "knowledge": "Conocimiento",
-      "ai": "markoto",
       "settings": "Configuración"
     },
     "settings": {
@@ -1336,28 +1332,7 @@
         "home": "Ir al panel"
       }
     },
-    "actions": "Acciones del espacio de trabajo",
-    "sponsorship": {
-      "description": "Convierte este espacio en un espacio markoto: el uso de la IA de todos los miembros en sus documentos se descuenta del crédito de tu plan. Requiere Max o Ultra.",
-      "banner": "Este es un espacio markoto: el uso de la IA aquí se descuenta del crédito del patrocinador.",
-      "memberSponsored": "Este es un espacio markoto. Un administrador patrocina el uso de la IA aquí.",
-      "memberRegular": "Este es un espacio normal. Los miembros usan su propio crédito de IA. Un administrador puede convertirlo en un espacio markoto para patrocinarlo.",
-      "memberComingSoon": "Patrocinar el uso de la IA de un espacio llegará con los planes de pago.",
-      "onYourPlan": "con tu plan · los miembros ven el aviso en el editor",
-      "sponsoredByOther": "patrocinado por otro administrador",
-      "takeOver": "Asumir el patrocinio",
-      "needsUpgrade": "Tu plan {plan} no permite patrocinar un espacio. Se necesita Max o Ultra.",
-      "upgrade": "Mejorar tu plan",
-      "comingSoon": "Llegará con los planes de pago.",
-      "seePlans": "Ver planes",
-      "off": "desactivado · los miembros usan su propio crédito de IA",
-      "toggleLabel": "Patrocinar el uso de la IA en este espacio",
-      "enabledToast": "Espacio de IA activado",
-      "enabledToastDescription": "El uso de la IA de los miembros en este espacio ahora lo patrocina tu plan.",
-      "disabledToast": "Espacio de IA desactivado",
-      "disabledToastDescription": "Los miembros vuelven a usar su propio crédito de IA.",
-      "updateFailed": "No se pudo cambiar el espacio de IA"
-    }
+    "actions": "Acciones del espacio de trabajo"
   },
   "knowledge": {
     "title": "Base de conocimiento",

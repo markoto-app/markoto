@@ -71,9 +71,7 @@ export default defineEventHandler(async (event) => {
     const result = await dispatchStripeEvent(stripeEvent, {
       stripe,
       config: {
-        pricePro: config.stripe.pricePro,
-        priceMax: config.stripe.priceMax,
-        priceUltra: config.stripe.priceUltra
+        pricePro: config.stripe.pricePro
       }
     })
     console.log(`[stripe/webhook] ${stripeEvent.type} id=${stripeEvent.id} handled=${result.handled}${result.replayed ? ' replayed=true' : ''}${result.stashed ? ' stashed=true' : ''}`)

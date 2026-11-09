@@ -10,7 +10,10 @@
 // JSON-LD leaves them out (nothing can be bought at that price yet).
 //
 // Overridable at runtime like the tier caps, without a rebuild:
-// `TIER_<PRO|MAX|ULTRA>_PRICE_USD`, e.g. `TIER_PRO_PRICE_USD=12`.
+// `TIER_<PRO|TEAM|BUSINESS>_PRICE_USD`, e.g. `TIER_PRO_PRICE_USD=12`.
+// Team and Business prices are PER SEAT (`PER_SEAT_PLANS`).
+// Currencies other than USD and annual prices arrive with the Stripe
+// price catalogue (pricing plan WS3 / WP2).
 
 import { PLAN_NAMES, type PlanName } from './tiers'
 
@@ -19,16 +22,23 @@ export const PRICE_CURRENCY = 'USD'
 
 export type PaidPlanName = Exclude<PlanName, 'free'>
 
-export const PAID_PLAN_NAMES: readonly PaidPlanName[] = ['pro', 'max', 'ultra']
+export const PAID_PLAN_NAMES: readonly PaidPlanName[] = ['pro', 'team', 'business']
+
+/** Plans priced per seat (workspace subscriptions). */
+export const PER_SEAT_PLANS: readonly PaidPlanName[] = ['team', 'business']
+
+export function isPerSeatPlan(plan: PlanName): boolean {
+  return (PER_SEAT_PLANS as readonly PlanName[]).includes(plan)
+}
 
 /** Monthly price per plan in whole or fractional US dollars. Free is always 0. */
 export type PlanPrices = Record<PlanName, number>
 
 export const DEFAULT_PLAN_PRICES_USD: PlanPrices = {
   free: 0,
-  pro: 10,
-  max: 50,
-  ultra: 100
+  pro: 9,
+  team: 12,
+  business: 20
 }
 
 /** Shape of `GET /api/billing/prices`. */

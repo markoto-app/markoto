@@ -3,7 +3,7 @@ import { and, eq } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { users, processedWebhookEvents, pendingStripeEvents } from '../db/schema'
 import { useDatabase } from './database'
-import type { PlanName } from '~~/shared/config/tiers'
+import type { PersonalPlanName } from '~~/shared/config/tiers'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
 
@@ -57,22 +57,25 @@ type DeferredAfterCommit = (() => Promise<void>)[]
  * vs monthly). Unknown price IDs return `null` so the handler can
  * log + skip rather than mis-assign a plan.
  */
-export function priceIdToPlan(priceId: string | null | undefined, config: {
+/**
+ * Stripe Price ids the webhook maps to plans. Pro is the only personal
+ * plan sold through this path; Team / Business are workspace
+ * subscriptions with their own price catalogue (pricing plan WP2/WP3).
+ */
+export interface StripePriceConfig {
   pricePro: string
-  priceMax: string
-  priceUltra: string
-}): PlanName | null {
+}
+
+export function priceIdToPlan(priceId: string | null | undefined, config: StripePriceConfig): PersonalPlanName | null {
   if (!priceId) return null
   if (priceId === config.pricePro) return 'pro'
-  if (priceId === config.priceMax) return 'max'
-  if (priceId === config.priceUltra) return 'ultra'
   return null
 }
 
 interface UpdateUserArgs {
   where: { stripeCustomerId?: string, id?: number }
   set: Partial<{
-    plan: PlanName
+    plan: PersonalPlanName
     planValidUntil: Date | null
     stripeCurrentPeriodStart: Date | null
     stripeCustomerId: string | null
@@ -120,11 +123,11 @@ export async function handleCheckoutSessionCompleted(
   event: Stripe.CheckoutSessionCompletedEvent,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
+    config: StripePriceConfig
     db?: DbOrTx
     deferAfterCommit?: DeferredAfterCommit
   }
-): Promise<{ matched: number, plan: PlanName | null }> {
+): Promise<{ matched: number, plan: PersonalPlanName | null }> {
   const session = event.data.object
   const userId = session.client_reference_id ? Number(session.client_reference_id) : null
   if (!userId || Number.isNaN(userId)) {
@@ -233,10 +236,10 @@ export async function handleCheckoutSessionCompleted(
  */
 export async function handleSubscriptionUpdated(
   event: Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent,
-  config: { pricePro: string, priceMax: string, priceUltra: string },
+  config: StripePriceConfig,
   db?: DbOrTx,
   deferAfterCommit?: DeferredAfterCommit
-): Promise<{ matched: number, plan: PlanName | null }> {
+): Promise<{ matched: number, plan: PersonalPlanName | null }> {
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
   const item = sub.items.data[0]
@@ -435,7 +438,7 @@ async function runHandler(
   event: Stripe.Event,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
+    config: StripePriceConfig
     db: DbOrTx
     deferAfterCommit?: DeferredAfterCommit
   }
@@ -490,7 +493,7 @@ async function drainPendingEvents(
   customerId: string,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
+    config: StripePriceConfig
     db: DbOrTx
     deferAfterCommit?: DeferredAfterCommit
   }
@@ -557,7 +560,7 @@ export async function dispatchStripeEvent(
   event: Stripe.Event,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
+    config: StripePriceConfig
   }
 ): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
   const db = useDatabase()

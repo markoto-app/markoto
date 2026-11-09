@@ -94,7 +94,7 @@ describe('auth middleware whitelist', () => {
       const res = await anonClient().get('/api/billing/tiers')
       expect(res.status).toBe(200)
       const body = await res.json() as Record<string, { litellmBudgetUsd: number }>
-      for (const plan of ['free', 'pro', 'max', 'ultra']) {
+      for (const plan of ['free', 'pro', 'team', 'business']) {
         expect(body[plan]?.litellmBudgetUsd, `${plan} missing`).toBeGreaterThan(0)
       }
     })
@@ -105,7 +105,7 @@ describe('auth middleware whitelist', () => {
       const body = await res.json() as { currency?: string, monthly?: Record<string, number> }
       expect(body.currency).toBe('USD')
       expect(body.monthly?.free).toBe(0)
-      for (const plan of ['pro', 'max', 'ultra']) {
+      for (const plan of ['pro', 'team', 'business']) {
         expect(body.monthly?.[plan], `${plan} missing`).toBeGreaterThan(0)
       }
     })

@@ -1,6 +1,7 @@
 import { getWorkspace } from '../../../repos/workspaces'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
+import { resolveWorkspacePlan } from '../../../utils/entitlements'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
 // row, the complete doc list (every doc in the workspace — not just the
@@ -38,11 +39,9 @@ export default defineEventHandler(async (event) => {
       createdAt: ws.createdAt,
       myRole,
       ownerId: ws.ownerId,
-      // (+) team-billing state. Surfaced to all members so viewers/
-      // editors can see "AI usage billed to {owner}" banners; only
-      // admins can TOGGLE via PATCH /billing.
-      aiEnabled: ws.aiEnabled,
-      billingOwnerId: ws.billingOwnerId,
+      // The workspace's effective plan (Team / Business subscription,
+      // else its creator's personal plan — server/utils/entitlements.ts).
+      plan: await resolveWorkspacePlan(ws.workspaceId),
       // Default theme used by NewDocumentDialog when creating a doc in
       // this workspace. NULL = use the global markoto preset. Surfaced
       // to all members so the new-doc dialog seeds correctly even for

@@ -18,8 +18,6 @@ export interface WorkspaceRow {
   ownerId: number
   name: string
   description: string | null
-  billingOwnerId: number | null
-  aiEnabled: boolean
   defaultTheme: DocTheme | null
   createdAt: Date
 }
@@ -49,10 +47,6 @@ export interface UserWorkspaceSummary {
   role: WorkspaceRole
   docCount: number
   lastActive: Date | null
-  /** `(+)` AI sponsorship state. The dashboard card stamps the seal
-      on every sponsored workspace regardless of who's paying — the
-      seal is becoming the universal mark of "AI is here". */
-  aiEnabled: boolean
 }
 
 export async function getWorkspace(workspaceId: string): Promise<WorkspaceRow | null> {
@@ -109,33 +103,6 @@ export async function updateWorkspace(
 }
 
 /**
- * Update the `(+)` team-billing state for a workspace. Admin-only
- * semantics + plan eligibility live in the endpoint; this repo just
- * writes the two columns atomically so `aiEnabled=true` never lands
- * without a non-null `billingOwnerId`.
- *
- * Pass `{ aiEnabled: true, billingOwnerId: N }` to turn on, or
- * `{ aiEnabled: false, billingOwnerId: null }` to turn off.
- */
-export async function setWorkspaceBilling(
-  workspaceId: string,
-  update: { aiEnabled: boolean, billingOwnerId: number | null }
-): Promise<void> {
-  const db = useDatabase()
-  const result = await db
-    .update(workspaces)
-    .set({
-      aiEnabled: update.aiEnabled,
-      billingOwnerId: update.billingOwnerId
-    })
-    .where(eq(workspaces.workspaceId, workspaceId))
-    .returning({ workspaceId: workspaces.workspaceId })
-  if (result.length === 0) {
-    throw new NotFoundError('Workspace')
-  }
-}
-
-/**
  * Count workspaces owned (created) by a user. Only counts `ownerId` —
  * a user invited to others' workspaces isn't included. Used to enforce
  * the per-user creation cap so one account can't spawn thousands of
@@ -173,8 +140,7 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
     createdAt: workspaces.createdAt,
     role: workspaceMembers.role,
     docCount: sql<number>`count(${documents.docId})::int`,
-    lastActive: sql<Date | null>`max(${documents.lastActive})`,
-    aiEnabled: workspaces.aiEnabled
+    lastActive: sql<Date | null>`max(${documents.lastActive})`
   })
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaces.workspaceId, workspaceMembers.workspaceId))
@@ -185,7 +151,6 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
       workspaces.name,
       workspaces.description,
       workspaces.createdAt,
-      workspaces.aiEnabled,
       workspaceMembers.role
     )
     .orderBy(sql`coalesce(max(${documents.lastActive}), ${workspaces.createdAt}) desc`)

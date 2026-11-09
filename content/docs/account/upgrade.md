@@ -28,4 +28,4 @@ is off.
 
 - [Plans and limits](/docs/account/plans)
 - [AI Points](/docs/writing/ai-budget): what an upgrade raises.
-- [Sponsor AI for the team](/docs/workspaces/sponsor-ai): a higher-tier feature.
+- [Plans](/docs/account/plans): Team and Business cover a whole workspace, billed per seat.

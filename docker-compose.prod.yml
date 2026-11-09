@@ -256,8 +256,6 @@ services:
       - NUXT_STRIPE_SECRET_KEY=${NUXT_STRIPE_SECRET_KEY:-}
       - NUXT_STRIPE_WEBHOOK_SECRET=${NUXT_STRIPE_WEBHOOK_SECRET:-}
       - NUXT_STRIPE_PRICE_PRO=${NUXT_STRIPE_PRICE_PRO:-}
-      - NUXT_STRIPE_PRICE_MAX=${NUXT_STRIPE_PRICE_MAX:-}
-      - NUXT_STRIPE_PRICE_ULTRA=${NUXT_STRIPE_PRICE_ULTRA:-}
       # Optional — enables Stripe Tax on Checkout once the dashboard side is configured.
       - NUXT_STRIPE_AUTOMATIC_TAX=${NUXT_STRIPE_AUTOMATIC_TAX:-}
       # Transactional email (Resend). Empty key = stub mode (logged, not

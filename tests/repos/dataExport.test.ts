@@ -66,6 +66,7 @@ describe('buildExportZip', () => {
       'audit.ndjson',
       'billing/customer.json',
       'billing/invoices.ndjson',
+      'billing/workspace_subscriptions.json',
       'comments.ndjson',
       'consent.ndjson',
       'moderation_notices.ndjson',

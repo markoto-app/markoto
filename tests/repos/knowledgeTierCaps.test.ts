@@ -5,12 +5,13 @@ import { resolveCaps } from '../../server/utils/knowledgeQuota'
 import { DEFAULT_TIERS as TIERS } from '../../shared/config/tiers'
 
 // Tier-aware knowledge caps. `resolveCaps` reads the workspace's
-// effective plan (billing owner if (+), else creator) for per-workspace
-// caps, and the uploader's own plan for per-user caps.
+// effective plan (its Team / Business subscription, or its creator's
+// personal plan when that is better — server/utils/entitlements.ts) for
+// per-workspace caps, and the uploader's own plan for per-user caps.
 
 async function setPlan(
   userId: number,
-  plan: 'free' | 'pro' | 'max' | 'ultra'
+  plan: 'free' | 'pro'
 ): Promise<void> {
   const db = testDb()
   const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -20,10 +21,16 @@ async function setPlan(
   )
 }
 
-async function enableAiBilling(workspaceId: string, billingOwnerId: number): Promise<void> {
+async function subscribe(
+  workspaceId: string,
+  plan: 'team' | 'business',
+  opts: { status?: string, validUntil?: Date | null, billingAdminId?: number | null } = {}
+): Promise<void> {
+  const validUntil = opts.validUntil === undefined ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) : opts.validUntil
   await testDb().query(
-    'UPDATE workspaces SET ai_enabled = true, billing_owner_id = $1 WHERE workspace_id = $2',
-    [billingOwnerId, workspaceId]
+    `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, billing_admin_id, valid_until)
+     VALUES ($1, $2, 3, $3, $4, $5)`,
+    [workspaceId, plan, opts.status ?? 'active', opts.billingAdminId ?? null, validUntil]
   )
 }
 
@@ -45,9 +52,10 @@ describe('resolveCaps — per-uploader tier', () => {
 
   it('free uploader sees free-tier per-user caps regardless of workspace', async () => {
     const owner = await createUser()
-    await setPlan(owner.id, 'ultra')
+    await setPlan(owner.id, 'pro')
     const ws = await createWorkspace(owner.id)
-    // Uploader is a free-tier member uploading to an Ultra-owned ws.
+    await subscribe(ws.workspaceId, 'business')
+    // Uploader is a free-tier member uploading to a Business workspace.
     const uploader = await createUser()
     await setPlan(uploader.id, 'free')
 
@@ -75,68 +83,82 @@ describe('resolveCaps — per-workspace tier', () => {
     await resetDb()
   })
 
-  it('workspace without (+) uses the CREATOR\'s tier for per-workspace caps', async () => {
+  it('no subscription: the CREATOR\'s personal plan sets the per-workspace caps', async () => {
     const creator = await createUser()
-    await setPlan(creator.id, 'max')
+    await setPlan(creator.id, 'pro')
     const ws = await createWorkspace(creator.id)
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
-    expect(caps.workspacePlan).toBe('max')
-    expect(caps.maxFilesPerWorkspace).toBe(TIERS.max.knowledgeFiles)
-    expect(caps.maxTotalBytesPerWorkspace).toBe(TIERS.max.knowledgeBytesPerWorkspace)
+    expect(caps.workspacePlan).toBe('pro')
+    expect(caps.maxFilesPerWorkspace).toBe(TIERS.pro.knowledgeFiles)
+    expect(caps.maxTotalBytesPerWorkspace).toBe(TIERS.pro.knowledgeBytesPerWorkspace)
   })
 
-  it('workspace with (+) + Max billing owner: per-workspace caps follow owner\'s plan, NOT creator\'s', async () => {
-    // Ensure the `(+)` redirect actually changes the effective tier
-    // — not just for interactions but also for the
-    // per-workspace storage cap too. A Free user's workspace with a
-    // Max (+) sponsor should get Max storage.
+  it('an active Team subscription sets the per-workspace caps', async () => {
     const creator = await createUser()
-    await setPlan(creator.id, 'free')
-    const sponsor = await createUser()
-    await setPlan(sponsor.id, 'max')
     const ws = await createWorkspace(creator.id)
-    await enableAiBilling(ws.workspaceId, sponsor.id)
+    await subscribe(ws.workspaceId, 'team')
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
-    expect(caps.workspacePlan).toBe('max')
-    expect(caps.maxFilesPerWorkspace).toBe(TIERS.max.knowledgeFiles)
+    expect(caps.workspacePlan).toBe('team')
+    expect(caps.maxFilesPerWorkspace).toBe(TIERS.team.knowledgeFiles)
+    // The uploader's own (free) plan still sets the per-user caps.
+    expect(caps.uploaderPlan).toBe('free')
   })
 
-  it('(+) with a PRO billing owner: defensive fallback to creator\'s tier', async () => {
-    // Pro can't team-bill (it's a personal-only plan). If somehow
-    // (+) is enabled with a Pro owner (e.g. admin UI bug or DB state
-    // corruption), resolveCaps must NOT apply Pro caps to the
-    // workspace — it falls back to the creator's plan.
+  it('past_due keeps the plan while Stripe retries the payment', async () => {
     const creator = await createUser()
-    await setPlan(creator.id, 'free')
-    const sponsor = await createUser()
-    await setPlan(sponsor.id, 'pro')
     const ws = await createWorkspace(creator.id)
-    await enableAiBilling(ws.workspaceId, sponsor.id)
+    await subscribe(ws.workspaceId, 'business', { status: 'past_due' })
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
-    // Creator is free → per-workspace caps are free.
+    expect(caps.workspacePlan).toBe('business')
+  })
+
+  it('a canceled or unpaid subscription falls back to the creator\'s plan', async () => {
+    for (const status of ['canceled', 'unpaid', 'incomplete_expired']) {
+      await resetDb()
+      const creator = await createUser()
+      const ws = await createWorkspace(creator.id)
+      await subscribe(ws.workspaceId, 'team', { status })
+      const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
+      expect(caps.workspacePlan, status).toBe('free')
+    }
+  })
+
+  it('an expired subscription falls back to the creator\'s plan', async () => {
+    const creator = await createUser()
+    await setPlan(creator.id, 'pro')
+    const ws = await createWorkspace(creator.id)
+    await subscribe(ws.workspaceId, 'team', { validUntil: new Date(Date.now() - 60_000) })
+
+    const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
+    expect(caps.workspacePlan).toBe('pro')
+  })
+
+  it('a lapsed creator with no subscription lands on free', async () => {
+    const creator = await createUser()
+    await testDb().query(
+      'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
+      ['pro', new Date(Date.now() - 24 * 60 * 60 * 1000), creator.id]
+    )
+    const ws = await createWorkspace(creator.id)
+
+    const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
     expect(caps.workspacePlan).toBe('free')
   })
 
-  it('lapsed sponsor defensively downgrades the workspace cap', async () => {
+  it('a leftover retired (+) sponsorship row changes nothing', async () => {
     const creator = await createUser()
-    await setPlan(creator.id, 'free')
     const sponsor = await createUser()
-    const db = testDb()
-    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    await db.query(
-      'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
-      ['max', yesterday, sponsor.id]
-    )
+    await setPlan(sponsor.id, 'pro')
     const ws = await createWorkspace(creator.id)
-    await enableAiBilling(ws.workspaceId, sponsor.id)
+    await testDb().query(
+      'UPDATE workspaces SET ai_enabled = true, billing_owner_id = $1 WHERE workspace_id = $2',
+      [sponsor.id, ws.workspaceId]
+    )
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
-    // Lapsed sponsor falls out of (+) eligibility, falling back to
-    // the creator (free). Prevents a lapsed Max user from continuing
-    // to give their workspace Max-level storage indefinitely.
     expect(caps.workspacePlan).toBe('free')
   })
 })

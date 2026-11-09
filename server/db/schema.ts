@@ -22,11 +22,13 @@ export const users = pgTable('users', {
   login: text('login'),
   name: text('name').notNull(),
   email: text('email'),
-  // Subscription tier. Defaults to `free`; paid tiers are set by
-  // the Stripe webhook when `invoice.paid` / `subscription.updated`
-  // lands. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
+  // PERSONAL subscription tier: `free` or `pro`. Team / Business are
+  // workspace subscriptions (`workspace_subscriptions`). Set by the
+  // Stripe webhook when `invoice.paid` / `subscription.updated` lands.
+  // The retired `max` / `ultra` values were mapped to `pro` by migration
+  // 0028. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
   // server/utils/AGENTS.md.
-  plan: text('plan', { enum: ['free', 'pro', 'max', 'ultra'] }).notNull().default('free'),
+  plan: text('plan', { enum: ['free', 'pro'] }).notNull().default('free'),
   // Paid-tier expiry = Stripe's `current_period_end`. NULL for free
   // users (free never lapses). Set by the Stripe webhook; the
   // plan-lapse sweep flips the row back to `free` + disables any
@@ -214,13 +216,10 @@ export const workspaces = pgTable('workspaces', {
   ownerId: integer('owner_id').notNull().references(() => users.id),
   name: text('name').notNull().default('My Workspace'),
   description: text('description'),
-  // `(+)` team-billing target. NULL means "each member pays their own
-  // interactions" (the default). Set by the workspace admin when they
-  // toggle `(+)` on and their plan is max/ultra. `aiEnabled` is the
-  // boolean twin — redundant with `billingOwnerId IS NOT NULL` but kept
-  // as an explicit column so admin UI + filter queries don't need to
-  // NULL-check. Plan-lapse sweep flips both back to (null, false) when
-  // the billing owner's subscription expires.
+  // DEPRECATED — the retired `(+)` workspace AI sponsorship (replaced by
+  // Team / Business workspace subscriptions, `workspace_subscriptions`).
+  // No code reads or writes them any more; they stay one release so a
+  // code rollback still finds them, then a migration drops them.
   billingOwnerId: integer('billing_owner_id').references(() => users.id, { onDelete: 'set null' }),
   aiEnabled: boolean('ai_enabled').notNull().default(false),
   // Default theme applied to NEW documents created in this workspace.
@@ -234,6 +233,40 @@ export const workspaces = pgTable('workspaces', {
   // Billing resolver reads `(+)` state by workspace id; sweep scans by
   // billing owner. Both benefit from an index on billingOwnerId.
   index('idx_workspaces_billing_owner').on(table.billingOwnerId)
+])
+
+// Team / Business subscription of a workspace (pricing plan WS2). One row
+// per workspace that ever had one; Stripe drives every column through the
+// webhook (WP2/WP3). `resolveWorkspacePlan` (server/utils/entitlements.ts)
+// counts a row only while billing is on, `status` is live and
+// `valid_until` is in the future; otherwise the workspace falls back to
+// its creator's personal plan.
+export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
+  workspaceId: text('workspace_id').primaryKey().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
+  plan: text('plan', { enum: ['team', 'business'] }).notNull(),
+  // Paid seats. Members + open invitations may not exceed it (WP3).
+  seats: integer('seats').notNull(),
+  // Stripe subscription status, verbatim (active, trialing, past_due,
+  // canceled, unpaid, incomplete, incomplete_expired, paused).
+  status: text('status').notNull(),
+  // The member who pays and manages billing. SET NULL when their account
+  // is deleted; the account-deletion flow hands the role to the
+  // longest-serving workspace admin first (WP3).
+  billingAdminId: integer('billing_admin_id').references(() => users.id, { onDelete: 'set null' }),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
+  validUntil: timestamp('valid_until', { withTimezone: true }),
+  // LiteLLM team holding the workspace's pooled AI budget (WP3).
+  litellmTeamId: text('litellm_team_id'),
+  // Stripe customers keep one currency for life.
+  currency: text('currency', { enum: ['eur', 'chf'] }).notNull().default('eur'),
+  interval: text('interval', { enum: ['month', 'year'] }).notNull().default('month'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_workspace_subscriptions_billing_admin').on(table.billingAdminId),
+  index('idx_workspace_subscriptions_customer').on(table.stripeCustomerId)
 ])
 
 // User-saved theme presets. Per-user, not shared across workspaces. A

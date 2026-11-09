@@ -90,7 +90,6 @@ export const TESTID = {
   WORKSPACE_MEMBERS_TRIGGER: 'workspace-members-trigger',
   WORKSPACE_INVITE_EMAIL: 'workspace-invite-email',
   WORKSPACE_INVITE_SUBMIT: 'workspace-invite-submit',
-  WORKSPACE_AI_SPONSORING_TOGGLE: 'workspace-ai-sponsoring-toggle',
   WORKSPACE_AI_TAKEOVER: 'workspace-ai-takeover',
 
   // ─── Knowledge panel ─────────────────────────────────────────────
@@ -118,7 +117,7 @@ export const TESTID_FOR = {
   knowledgeFileRow: (knowledgeId: string) => `knowledge-file-row-${knowledgeId}`,
   /** Workspace dashboard list card. workspaceId = the workspace nanoid. */
   workspaceListItem: (workspaceId: string) => `workspace-list-item-${workspaceId}`,
-  /** Pricing tier card. plan = 'free' | 'pro' | 'max' | 'ultra'. */
+  /** Pricing tier card. plan = 'free' | 'pro' | 'team' | 'business'. */
   pricingTier: (plan: string) => `pricing-tier-${plan}`,
   /** New-document dialog template card. id = template id. */
   newDocTemplateCard: (id: string) => `newdoc-template-card-${id}`,

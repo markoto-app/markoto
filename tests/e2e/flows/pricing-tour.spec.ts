@@ -4,8 +4,8 @@ import { test, expect } from '../fixtures/flow'
 //
 // 1. "What you get on each plan" (untagged → billing-OFF pass, the
 //    markoto.app shape the docs describe): four options side by side
-//    (self-hosted, no account, free account, paid with Pro / Max /
-//    Ultra tabs). Every account is on Free; the paid tabs show PLANNED
+//    (self-hosted, no account, free account, paid with Pro / Team /
+//    Business tabs). Every account is on Free; the paid tabs show PLANNED
 //    prices and limits with no purchase button, and the waitlist sign-up
 //    sits right under the columns. This is the flow
 //    content/docs/account/plans.md embeds.
@@ -18,8 +18,8 @@ import { test, expect } from '../fixtures/flow'
 
 const PAID = [
   { plan: 'pro', label: 'Pro' },
-  { plan: 'max', label: 'Max' },
-  { plan: 'ultra', label: 'Ultra' }
+  { plan: 'team', label: 'Team' },
+  { plan: 'business', label: 'Business' }
 ] as const
 
 test('What you get on each plan', async ({ page, flow, editor }) => {
@@ -33,7 +33,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
   await flow.narrate(
     'You can run markoto on your own server, write without an account, '
     + 'or sign in for a free account. Every account is on Free today. '
-    + 'Pro, Max and Ultra show their planned prices and limits; nothing '
+    + 'Pro, Team and Business show their planned prices and limits; nothing '
     + 'can be bought yet.'
   )
 
@@ -61,9 +61,9 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
   )
 
   // ─── Paid tabs ───────────────────────────────────────────────
-  await flow.click('Click the "Max" tab', paid.getByRole('tab', { name: 'Max' }), {
-    result: 'Max shows its planned price, its limits and workspace AI sponsoring.',
-    after: () => expect(page.getByTestId('pricing-tier-max')).toBeVisible()
+  await flow.click('Click the "Team" tab', paid.getByRole('tab', { name: 'Team' }), {
+    result: 'Team shows its planned price per seat and the limits each seat adds to the workspace.',
+    after: () => expect(page.getByTestId('pricing-tier-team')).toBeVisible()
   })
   // ASSERTION: every paid tab is a preview — planned price, the
   // waitlist link instead of a purchase button.
@@ -88,7 +88,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
   const section = page.getByTestId('waitlist-section')
   await section.scrollIntoViewIfNeeded()
   await flow.narrate(
-    'Want to know when Pro, Max and Ultra launch? Leave your email on the '
+    'Want to know when Pro, Team and Business launch? Leave your email on the '
     + 'waitlist. markoto sends one email when they do, and every email has '
     + 'an unsubscribe link.'
   )
@@ -135,23 +135,23 @@ test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, e
 
   await flow.heading('What you get on each plan', 3)
   await flow.narrate(
-    'The free account, then Pro, Max and Ultra under the Paid tabs. Plans '
+    'The free account, then Pro, Team and Business under the Paid tabs. Plans '
     + 'differ in AI Points per month, workspaces you can own and storage. '
     + 'The numbers on this page are the limits markoto applies.'
   )
 
   const paid = page.getByTestId('pricing-option-paid')
-  await paid.getByRole('tab', { name: 'Max' }).click()
-  await expect(page.getByTestId('pricing-tier-max')).toBeVisible()
+  await paid.getByRole('tab', { name: 'Team' }).click()
+  await expect(page.getByTestId('pricing-tier-team')).toBeVisible()
 
   await flow.shot(
-    'Your current plan (Free) is marked; Max is the first plan that can '
-    + 'sponsor a whole workspace\'s AI use.',
+    'Your current plan (Free) is marked; Team covers a whole workspace, '
+    + 'billed per seat.',
     {
       hero: true,
       annotations: [
         { label: 'you are here · Free', selector: '[data-testid="pricing-tier-free"]', kind: 'box' },
-        { label: 'AI sponsorship unlocks at Max', selector: '[data-testid="pricing-tier-max"]', kind: 'box' }
+        { label: 'a workspace plan, per seat', selector: '[data-testid="pricing-tier-team"]', kind: 'box' }
       ]
     }
   )
@@ -164,7 +164,9 @@ test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, e
     await expect(panel).toBeVisible()
     await expect(panel).toHaveAttribute('data-coming-soon', 'false')
     await expect(panel.getByTestId('pricing-price')).toContainText('$')
-    await expect(panel.getByRole('button', { name: /upgrade/i })).toBeVisible()
+    // Pro is bought personally; Team / Business are set up for a workspace.
+    if (plan === 'pro') await expect(panel.getByRole('button', { name: /upgrade/i })).toBeVisible()
+    else await expect(panel.getByTestId(`pricing-workspace-plan-${plan}`)).toBeVisible()
   }
   await expect(page.locator('[data-testid="pricing-tier-free"]')).toHaveAttribute('data-current', 'true')
   await expect(page.locator('[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]')).toBeVisible()

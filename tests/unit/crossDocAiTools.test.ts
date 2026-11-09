@@ -104,8 +104,6 @@ function ctx(over: Partial<ActorCtx> = {}): ActorCtx {
     workspaceId: null,
     workspaceRole: null,
     accessMode: 'private',
-    workspaceAiEnabled: false,
-    workspaceBillingOwner: null,
     theme: null,
     passwordHash: null,
     ...over

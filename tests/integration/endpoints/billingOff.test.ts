@@ -70,16 +70,6 @@ describe('billing off — billing endpoints are absent', () => {
     expect(body.data?.code).toBe('billing/disabled')
   })
 
-  it('workspace AI sponsorship toggle answers 404 billing/disabled', async () => {
-    const u = await createUser()
-    const ws = await createWorkspace(u.id)
-    const client = await loggedInClient(u.id, undefined, OFF)
-    const res = await client.patch(`/api/workspaces/${ws.workspaceId}/billing`, { aiEnabled: true })
-    expect(res.status).toBe(404)
-    const body = await res.json() as { data?: { code?: string } }
-    expect(body.data?.code).toBe('billing/disabled')
-  })
-
   it('the public tier map still serves (pricing page renders limits)', async () => {
     const res = await anonClient(OFF).get('/api/billing/tiers')
     expect(res.status).toBe(200)
@@ -91,7 +81,7 @@ describe('billing off — billing endpoints are absent', () => {
     const u = await createUser()
     await testDb().query(
       'UPDATE users SET plan = $1, plan_valid_until = $2, stripe_current_period_start = $3 WHERE id = $4',
-      ['ultra', new Date(Date.now() + 20 * 86_400_000), new Date(Date.now() - 5 * 86_400_000), u.id]
+      ['pro', new Date(Date.now() + 20 * 86_400_000), new Date(Date.now() - 5 * 86_400_000), u.id]
     )
     const client = await loggedInClient(u.id, undefined, OFF)
     const res = await client.get('/api/user/billing')
@@ -132,7 +122,7 @@ describe('billing off — SSR billing mode reaches the browser', () => {
     const res = await anonClient().get('/pricing')
     expect(res.status).toBe(200)
     const html = await res.text()
-    expect(html).toContain('$10')
+    expect(html).toContain('$9')
     expect(html).not.toContain('data-testid="waitlist-section"')
   })
 })

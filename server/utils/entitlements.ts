@@ -17,10 +17,10 @@
 //   - Personal limits (saved presets, import size, MCP, web tools):
 //     the ACTING user's plan; anonymous callers are `free`.
 //
-// The workspace plan is the plan of the workspace's creator
-// (`workspaces.owner_id`) until workspace subscriptions exist
-// (implementation plan WS2). `owner_id` is never used for
-// authorisation; here it only picks a limit.
+// The workspace plan is its Team / Business subscription
+// (`workspace_subscriptions`) or, when better, its creator's personal plan
+// (`workspaces.owner_id` — never used for authorisation; here it only
+// picks a limit).
 //
 // Reads `process.env` through `getTiers()` / `effectivePlan()` on every
 // call, like `tierConfig.ts`, so repos/unit tests can vary env per case.
@@ -29,8 +29,9 @@ import { eq } from 'drizzle-orm'
 import { documents, users, workspaces } from '../db/schema'
 import { useDatabase } from './database'
 import { getTiers } from './tierConfig'
-import { effectivePlan, limitRecovery, limitUpgradeHint } from './billingMode'
-import type { FeatureField, PlanName, TierCaps } from '~~/shared/config/tiers'
+import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from './billingMode'
+import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../repos/workspaceSubscriptions'
+import { planRank, type FeatureField, type PlanName, type TierCaps } from '~~/shared/config/tiers'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
 
 export { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE }
@@ -51,14 +52,29 @@ export async function resolveUserPlan(userId: number | null | undefined): Promis
   return row ? effectivePlan(row.plan, row.planValidUntil) : 'free'
 }
 
-/** Effective plan of a workspace (interim: its creator's plan, see header). */
+/**
+ * Effective plan of a workspace: the better of
+ *   - its Team / Business subscription, while billing is on and the
+ *     subscription grants its plan (`subscriptionGrantsPlan`), and
+ *   - its creator's personal plan — a Pro user's own small workspaces get
+ *     Pro features without a workspace subscription.
+ */
 export async function resolveWorkspacePlan(workspaceId: string): Promise<PlanName> {
-  const row = (await useDatabase()
-    .select({ ownerId: workspaces.ownerId })
-    .from(workspaces)
-    .where(eq(workspaces.workspaceId, workspaceId))
-    .limit(1))[0]
-  return row ? resolveUserPlan(row.ownerId) : 'free'
+  const [row, subscription] = await Promise.all([
+    useDatabase()
+      .select({ ownerId: workspaces.ownerId })
+      .from(workspaces)
+      .where(eq(workspaces.workspaceId, workspaceId))
+      .limit(1)
+      .then(rows => rows[0]),
+    getWorkspaceSubscription(workspaceId)
+  ])
+  if (!row) return 'free'
+  const creatorPlan = await resolveUserPlan(row.ownerId)
+  const subscriptionPlan: PlanName | null = isBillingEnabled() && subscription && subscriptionGrantsPlan(subscription)
+    ? subscription.plan
+    : null
+  return subscriptionPlan !== null && planRank(subscriptionPlan) > planRank(creatorPlan) ? subscriptionPlan : creatorPlan
 }
 
 /** Effective plan of a document, from its row fields. */

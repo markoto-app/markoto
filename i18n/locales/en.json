@@ -42,9 +42,6 @@
       "invalidMeta": "A document setting (title, theme or details) had a value the server could not accept. Reload to continue.",
       "invalidUpdate": "The server could not process a change from this tab. Reload to continue."
     },
-    "aiWorkspaceBadge": "markoto workspace",
-    "aiWorkspaceBadgeTooltip": "This document is in a markoto workspace — markoto's work here uses the sponsor's credit pool, not yours.",
-    "aiWorkspaceSponsoredBy": "markoto workspace sponsored by {name}",
     "bold": "Bold",
     "italic": "Italic",
     "heading": "Heading",
@@ -607,7 +604,6 @@
     "subtitle": "Pick the plan that fits. Plans set your limits: AI Points, workspaces and storage. AI on your own provider key is never limited by a plan.",
     "metaDescription": "Compare markoto plans: AI Points, workspaces and storage per plan. AI on your own provider key is never limited by a plan.",
     "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage. AI on your own provider key is billed by your provider and uses no points.",
-    "teamBilling": "Workspace sponsoring: cover the AI Points of everyone in a workspace",
     "currentPlan": "Current plan",
     "manageSubscription": "Manage subscription",
     "upgrade": "Upgrade",
@@ -625,13 +621,14 @@
     "tiers": {
       "free": "Every writing feature, plus a starter allowance of AI Points.",
       "pro": "For solo writers: more AI Points, workspaces and storage.",
-      "max": "For small teams: sponsor the AI Points of everyone in a workspace you own.",
-      "ultra": "For larger teams: workspace sponsoring with the biggest allowance."
+      "team": "For teams: per seat, pooled AI Points and storage, admin controls.",
+      "business": "For organisations: Team plus single sign-on, audit export and custom limits."
     },
     "freeAllowanceNote": "The free AI allowance runs on a model hosted by Mistral AI in the EU and is available while this month's shared free pool lasts. Add your own provider key in Settings → AI provider for more.",
     "price": {
       "free": "Free",
       "perMonth": "per month",
+      "perSeatPerMonth": "per seat / month",
       "planned": "Planned price",
       "plannedNote": "Planned prices in US dollars. Prices and limits may change before paid plans launch; nothing can be bought yet."
     },
@@ -663,7 +660,8 @@
       "title": "Paid",
       "tagline": "More AI Points, workspaces and storage.",
       "tabsLabel": "Paid plans",
-      "joinWaitlist": "Join the waitlist"
+      "joinWaitlist": "Join the waitlist",
+      "setUpInWorkspace": "Set up in a workspace"
     },
     "instance": {
       "title": "Every account"
@@ -693,7 +691,6 @@
       "knowledgeFiles": "Knowledge files",
       "knowledgeStorage": "Knowledge storage",
       "imageStorage": "Image storage",
-      "sponsoring": "Workspace AI sponsoring",
       "mcp": "MCP server for AI clients",
       "members": "People per workspace",
       "history": "Version history",
@@ -1224,7 +1221,6 @@
     "tabs": {
       "documents": "Documents",
       "knowledge": "Knowledge",
-      "ai": "markoto",
       "settings": "Settings"
     },
     "settings": {
@@ -1336,28 +1332,7 @@
         "home": "Go to the dashboard"
       }
     },
-    "actions": "Workspace actions",
-    "sponsorship": {
-      "description": "Turn this workspace into a markoto workspace so every member's AI use in its documents draws on your plan's credit pool. Requires Max or Ultra.",
-      "banner": "This is a markoto workspace: AI use here runs on the sponsor's credit pool.",
-      "memberSponsored": "This is a markoto workspace. An admin sponsors the AI use here.",
-      "memberRegular": "This is a regular workspace. Members use their own AI credits. An admin can turn it into a markoto workspace to sponsor them.",
-      "memberComingSoon": "Sponsoring the AI use of a workspace comes with paid plans.",
-      "onYourPlan": "on your plan · members see the editor banner",
-      "sponsoredByOther": "sponsored by another admin",
-      "takeOver": "Take over sponsorship",
-      "needsUpgrade": "Your {plan} plan can’t sponsor a workspace. It needs Max or Ultra.",
-      "upgrade": "Upgrade your plan",
-      "comingSoon": "Coming with paid plans.",
-      "seePlans": "See plans",
-      "off": "off · members use their own AI credits",
-      "toggleLabel": "Sponsor AI use in this workspace",
-      "enabledToast": "AI workspace enabled",
-      "enabledToastDescription": "Members' AI use in this workspace is now sponsored by your plan.",
-      "disabledToast": "AI workspace disabled",
-      "disabledToastDescription": "Members are back to using their own AI credits.",
-      "updateFailed": "Could not update the AI workspace"
-    }
+    "actions": "Workspace actions"
   },
   "knowledge": {
     "title": "Knowledge base",

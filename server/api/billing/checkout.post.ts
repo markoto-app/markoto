@@ -4,7 +4,6 @@ import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
 import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/stripePlanChange'
-import type { PlanName } from '~~/shared/config/tiers'
 import { assertBillingEnabled } from '../../utils/billingMode'
 
 // POST /api/billing/checkout — plan purchase/upgrade endpoint. Two
@@ -30,10 +29,10 @@ import { assertBillingEnabled } from '../../utils/billingMode'
 // the resulting subscription with our user row. We also pass
 // `customer_email` so Stripe pre-fills the payment form.
 
-const PLAN_TO_PRICE_KEY: Record<Exclude<PlanName, 'free'>, 'pricePro' | 'priceMax' | 'priceUltra'> = {
-  pro: 'pricePro',
-  max: 'priceMax',
-  ultra: 'priceUltra'
+// Personal checkout sells Pro only. Team / Business are workspace
+// subscriptions bought by a workspace admin (pricing plan WP3).
+const PLAN_TO_PRICE_KEY: Record<'pro', 'pricePro'> = {
+  pro: 'pricePro'
 }
 
 function customerOrEmailFields(stripeCustomerId: string | null, email: string | null): { customer: string } | { customer_email: string } | Record<string, never> {
@@ -61,8 +60,15 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ plan?: unknown }>(event)
   const requestedPlan = typeof body?.plan === 'string' ? body.plan : ''
-  if (requestedPlan !== 'pro' && requestedPlan !== 'max' && requestedPlan !== 'ultra') {
-    throw createError({ statusCode: 400, message: 'Invalid plan. Must be pro/max/ultra.' })
+  if (requestedPlan === 'team' || requestedPlan === 'business') {
+    throw createError({
+      statusCode: 400,
+      message: 'Team and Business are bought for a workspace, from its billing settings.',
+      data: { code: 'billing/workspace-plan' }
+    })
+  }
+  if (requestedPlan !== 'pro') {
+    throw createError({ statusCode: 400, message: 'Invalid plan. Must be pro.' })
   }
   const plan = requestedPlan
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
-import { sponsorshipTabVisible } from '~~/shared/config/sponsorship'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -20,8 +19,8 @@ interface WorkspaceDetail {
     createdAt: string
     myRole: 'admin' | 'editor' | 'viewer'
     ownerId: number
-    aiEnabled: boolean
-    billingOwnerId: number | null
+    // Effective plan (Team / Business subscription, else the creator's plan).
+    plan: import('~~/shared/config/tiers').PlanName
     // NEW: workspace default theme. NULL = use the markoto preset.
     // Read by NewDocumentDialog when seeding the theme card grid for
     // docs created in this workspace.
@@ -83,25 +82,12 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-const activeTab = ref<'documents' | 'knowledge' | 'ai' | 'settings'>('documents')
-const { mode: billingMode, billingEnabled, plansComingSoon } = useBillingMode()
+const activeTab = ref<'documents' | 'knowledge' | 'settings'>('documents')
 const tabItems = computed(() => {
-  const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'ai' | 'settings', value: string }> = [
+  const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'settings', value: string }> = [
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
-  // The AI-workspace tab is `(+)` sponsorship — a paid-plan feature.
-  // Billing on → the real toggle. Hosted free SaaS (plans coming soon) →
-  // shown, but disabled with a "coming with paid plans" note, so people
-  // see the option exists. Self-hosted (no upgrade path) → hidden.
-  // No `icon` for the AI tab — UTabs would render it as a Lucide
-  // glyph, but the seal is a Vue component, not an Iconify name. The
-  // seal sits inside the Fraunces-titled section header within the
-  // tab content instead, where it carries equal weight without
-  // needing to squeeze into the icon slot.
-  if (sponsorshipTabVisible(billingMode.value)) {
-    items.push({ label: t('workspace.tabs.ai'), slot: 'ai', value: 'ai' })
-  }
   // Admin-only Settings tab. Hidden for editors / viewers — there's
   // nothing actionable for them there. Putting the gate at tab-list
   // level (rather than inside the slot) means the tab strip is the
@@ -420,21 +406,6 @@ async function leaveWorkspace() {
           </div>
         </div>
 
-        <!-- AI workspace banner — visible to every member when the
-             admin has turned the toggle on. The seal stands in for
-             the old sparkle icon; this banner is genuine AI presence
-             so it's the one place a small shu accent is correct. -->
-        <div
-          v-if="billingEnabled && data.workspace.aiEnabled"
-          class="flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-sm text-muted"
-        >
-          <CommonSeal
-            :size="10"
-            class="shrink-0"
-          />
-          <span>{{ t('workspace.sponsorship.banner') }}</span>
-        </div>
-
         <!--
           Tabs. variant=link swaps the shu pill for a subtle
           underlined-tab register that fits the editorial chrome.
@@ -526,58 +497,6 @@ async function leaveWorkspace() {
               :my-role="data.workspace.myRole"
               :my-user-id="myUserId ?? null"
             />
-          </template>
-
-          <template #ai>
-            <!-- AI workspace tab — same header pattern as Documents
-                 and Knowledge: seal anchor (this is the one place
-                 where shu is correct — genuine AI presence) + Fraunces
-                 title + description, then the toggle/state below. -->
-            <section class="space-y-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <CommonSeal
-                    :size="14"
-                    class="shrink-0"
-                  />
-                  <h2 class="font-serif text-2xl font-normal tracking-tight">
-                    markoto
-                  </h2>
-                </div>
-              </div>
-              <p class="text-xs text-muted">
-                {{ t('workspace.sponsorship.description') }}
-              </p>
-
-              <!-- Admin-only toggle — non-admins see the read-only
-                   explanation so they understand the feature without
-                   being able to flip it. While paid plans are only
-                   "coming soon" the toggle shows disabled with a note
-                   (WorkspaceBillingToggle). -->
-              <div class="pt-2">
-                <WorkspaceBillingToggle
-                  v-if="isAdmin"
-                  :workspace-id="data.workspace.workspaceId"
-                  :ai-enabled="data.workspace.aiEnabled"
-                  :billing-owner-id="data.workspace.billingOwnerId"
-                  @updated="() => loadWorkspace()"
-                />
-                <div
-                  v-else
-                  class="border border-default rounded-lg p-4 bg-default text-sm text-muted"
-                >
-                  <p v-if="!billingEnabled && plansComingSoon">
-                    {{ t('workspace.sponsorship.memberComingSoon') }}
-                  </p>
-                  <p v-else-if="data.workspace.aiEnabled">
-                    {{ t('workspace.sponsorship.memberSponsored') }}
-                  </p>
-                  <p v-else>
-                    {{ t('workspace.sponsorship.memberRegular') }}
-                  </p>
-                </div>
-              </div>
-            </section>
           </template>
 
           <template #settings>

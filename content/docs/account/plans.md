@@ -19,9 +19,9 @@ What you see depends on where markoto runs:
 
 | Where | Plans |
 |---|---|
-| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) compares four ways to use markoto: self-hosted, without an account, with a free account, and paid. Pro, Max and Ultra are marked **coming soon**: they show the prices we plan to charge (US dollars per month, not final) and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
+| **markoto.app** | Everyone is on Free. The [pricing page](/pricing) compares four ways to use markoto: self-hosted, without an account, with a free account, and paid. Pro, Team and Business are marked **coming soon**: they show the prices we plan to charge (US dollars per month, per seat for Team and Business; not final) and no purchase button. You can join a waitlist (double opt-in by email; you can unsubscribe at any time) to hear when they launch. |
 | **A self-hosted instance** | No plans, no pricing page tiers, no waitlist, no purchase. Everyone is on the free tier, and the operator decides the limits (workspaces, knowledge storage, AI Points). |
-| **An instance with paid plans live** (later) | Free, Pro, Max and Ultra with Stripe checkout; see [Upgrade](/docs/account/upgrade). |
+| **An instance with paid plans live** (later) | Free and Pro for individuals with Stripe checkout ([Upgrade](/docs/account/upgrade)); Team and Business for workspaces, billed per seat. |
 
 ::flow{id="what-you-get-on-each-plan" hide-title}
 ::
@@ -32,7 +32,7 @@ What you see depends on where markoto runs:
 - **Knowledge storage**: files and bytes per workspace and per person ([knowledge](/docs/writing/knowledge-rag)).
 - **Image storage**: the total size of the images you upload or the AI generates for you, across all your documents (100 MB on the free plan).
 - **AI Points**, the monthly allowance for AI that the operator pays for. Calls on your own AI provider are not limited by it ([AI Points](/docs/writing/ai-budget)).
-- **Workspace AI sponsoring** (higher paid plans, once available): see [Sponsor AI](/docs/workspaces/sponsor-ai).
+- **Team and Business** (once available): a workspace subscription billed per seat, with AI budget and storage shared by its members.
 
 To see how much of each limit you use, click the usage chip in the top bar
 (the AI Points meter, or **Your own AI provider**). Under **Storage & limits**

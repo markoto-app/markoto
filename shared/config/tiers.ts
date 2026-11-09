@@ -15,7 +15,25 @@
 // Storage caps (knowledge files / bytes) stay because they bind real
 // S3 + DB cost, not LLM cost. `workspacesOwned` is a capacity cap.
 
-export type PlanName = 'free' | 'pro' | 'max' | 'ultra'
+// Free and Pro are PERSONAL plans (`users.plan`); Team and Business are
+// WORKSPACE subscriptions (`workspace_subscriptions`), billed per seat.
+// For Team / Business the per-user style caps (`litellmBudgetUsd`,
+// knowledge, images) are PER SEAT; the workspace pools them (WP3).
+export type PlanName = 'free' | 'pro' | 'team' | 'business'
+export type PersonalPlanName = 'free' | 'pro'
+export type WorkspacePlanName = 'team' | 'business'
+
+export const PERSONAL_PLAN_NAMES: readonly PersonalPlanName[] = ['free', 'pro']
+export const WORKSPACE_PLAN_NAMES: readonly WorkspacePlanName[] = ['team', 'business']
+
+export function isWorkspacePlan(plan: PlanName): plan is WorkspacePlanName {
+  return plan === 'team' || plan === 'business'
+}
+
+/** Order of the plans, lowest first (for "the better of two plans"). */
+export function planRank(plan: PlanName): number {
+  return PLAN_NAMES.indexOf(plan)
+}
 
 export interface TierCaps {
   /**
@@ -149,37 +167,35 @@ export const DEFAULT_TIERS = {
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
-    workspacesOwned: 10,
-    knowledgeFiles: 50,
+    workspacesOwned: 100,
+    knowledgeFiles: 100,
     knowledgeBytesPerWorkspace: 2 * 1024 * 1024 * 1024,
     knowledgeBytesPerUser: 2 * 1024 * 1024 * 1024,
     imageBytesPerUser: 2 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS
   },
-  max: {
-    litellmBudgetUsd: 15, // 15000 AI Points
-    workspacesOwned: 30,
+  // Team / Business: AI budget, knowledge and image storage are per seat.
+  team: {
+    litellmBudgetUsd: 5,
+    workspacesOwned: 100,
     knowledgeFiles: 500,
-    // Per-workspace cap stays at 1 GB — the cap measures one workspace
-    // corpus size, not per-user-total. Max users get more via the
-    // per-user cap (10 GB) spread across more workspaces.
-    knowledgeBytesPerWorkspace: 1024 * 1024 * 1024,
-    knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024,
+    knowledgeBytesPerWorkspace: 5 * 1024 * 1024 * 1024,
+    knowledgeBytesPerUser: 5 * 1024 * 1024 * 1024,
     imageBytesPerUser: 10 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS
   },
-  ultra: {
-    litellmBudgetUsd: 35, // 35000 AI Points
+  business: {
+    litellmBudgetUsd: 5,
     workspacesOwned: 100,
     knowledgeFiles: 2000,
-    knowledgeBytesPerWorkspace: 1024 * 1024 * 1024,
-    knowledgeBytesPerUser: 50 * 1024 * 1024 * 1024,
-    imageBytesPerUser: 50 * 1024 * 1024 * 1024,
+    knowledgeBytesPerWorkspace: 20 * 1024 * 1024 * 1024,
+    knowledgeBytesPerUser: 10 * 1024 * 1024 * 1024,
+    imageBytesPerUser: 20 * 1024 * 1024 * 1024,
     ...PAID_PLAN_ENTITLEMENTS
   }
 } as const satisfies Record<PlanName, TierCaps>
 
-export const PLAN_NAMES: readonly PlanName[] = ['free', 'pro', 'max', 'ultra']
+export const PLAN_NAMES: readonly PlanName[] = ['free', 'pro', 'team', 'business']
 
 /** A fully-resolved tier map (defaults + any runtime overrides). */
 export type TiersMap = Record<PlanName, TierCaps>
@@ -281,8 +297,6 @@ export const STRIPE_CONFIG_DEFAULTS = {
   secretKey: '',
   webhookSecret: '',
   pricePro: '',
-  priceMax: '',
-  priceUltra: '',
   apiBase: '',
   successUrl: '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}',
   cancelUrl: '/pricing?checkout=cancelled',
@@ -298,8 +312,6 @@ export const STRIPE_CONFIG_KEYS = [
   'secretKey',
   'webhookSecret',
   'pricePro',
-  'priceMax',
-  'priceUltra',
   'apiBase',
   'successUrl',
   'cancelUrl',

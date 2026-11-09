@@ -3,15 +3,13 @@ import type { PlanName, TiersMap } from '~~/shared/config/tiers'
 import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 // The limits of one plan, as a list: AI Points, workspaces, knowledge
-// files + storage, image storage, and workspace sponsoring where the
-// plan has it. Every number comes from the resolved tier map
+// files + storage, image storage. For Team / Business the AI Points and
+// storage are per seat. Every number comes from the resolved tier map
 // (`GET /api/billing/tiers`); counts use vue-i18n pluralisation.
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   plan: PlanName
   tiers: TiersMap
-  /** Show the workspace-sponsoring line (Max + Ultra; billing on or coming soon). */
-  sponsoring?: boolean
-}>(), { sponsoring: false })
+}>()
 
 const { t, locale } = useI18n()
 
@@ -62,16 +60,6 @@ function count(key: string, n: number): string {
         class="size-4 text-muted shrink-0 mt-0.5"
       />
       <span>{{ t('pricing.count.imageStorage', { size: formatPlanBytes(caps.imageBytesPerUser) }) }}</span>
-    </li>
-    <li
-      v-if="sponsoring"
-      class="flex gap-2"
-    >
-      <UIcon
-        name="i-lucide-circle-plus"
-        class="size-4 text-muted shrink-0 mt-0.5"
-      />
-      <span>{{ t('pricing.teamBilling') }}</span>
     </li>
   </ul>
 </template>

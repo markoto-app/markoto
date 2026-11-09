@@ -5,7 +5,7 @@ import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 // Comparison table under the pricing cards: one row per limit or
 // feature, one column per option (self-hosted, no account, free
-// account, Pro, Max, Ultra). Account columns read the resolved tier map
+// account, Pro, Team, Business). Account columns read the resolved tier map
 // and the configured prices; the no-account column reads the instance
 // config (anonymous-document retention) and what the server allows an
 // anonymous visitor (no AI, no workspaces, no uploads, open-edit only:
@@ -35,8 +35,8 @@ const columnLabels = computed(() => [
   t('pricing.anon.title'),
   t('pricing.freeAccount.title'),
   'Pro',
-  'Max',
-  'Ultra'
+  'Team',
+  'Business'
 ])
 
 const yes: Cell = { kind: 'yes' }
@@ -124,11 +124,6 @@ const rows = computed<Row[]>(() => {
       id: 'imageStorage',
       label: t('pricing.compare.imageStorage'),
       cells: [setByYou, no, ...perAccount(plan => text(formatPlanBytes(props.tiers[plan].imageBytesPerUser)))]
-    },
-    {
-      id: 'sponsoring',
-      label: t('pricing.compare.sponsoring'),
-      cells: [no, no, no, no, yes, yes]
     },
     {
       id: 'members',

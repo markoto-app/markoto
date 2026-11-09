@@ -42,9 +42,6 @@
       "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Laden Sie neu, um weiterzuarbeiten.",
       "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Laden Sie neu, um weiterzuarbeiten."
     },
-    "aiWorkspaceBadge": "markoto-Workspace",
-    "aiWorkspaceBadgeTooltip": "Dieses Dokument befindet sich in einem markoto-Workspace — die Arbeit von markoto nutzt hier das Guthaben des Sponsors, nicht Ihres.",
-    "aiWorkspaceSponsoredBy": "markoto-Workspace gesponsert von {name}",
     "bold": "Fett",
     "italic": "Kursiv",
     "heading": "Überschrift",
@@ -607,7 +604,6 @@
     "subtitle": "Wählen Sie den passenden Tarif. Tarife legen Ihre Limits fest: KI-Punkte, Workspaces und Speicher. KI über Ihren eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
     "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über Ihren eigenen Anbieterschlüssel ist nie begrenzt.",
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über Ihren eigenen Anbieterschlüssel rechnet Ihr Anbieter ab; sie verbraucht keine Punkte.",
-    "teamBilling": "Workspace-Sponsoring: die KI-Punkte aller Mitglieder eines Workspace übernehmen",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
     "upgrade": "Upgrade",
@@ -625,13 +621,14 @@
     "tiers": {
       "free": "Alle Schreibfunktionen und ein Startkontingent an KI-Punkten.",
       "pro": "Für Einzelpersonen: mehr KI-Punkte, Workspaces und Speicher.",
-      "max": "Für kleine Teams: Übernehmen Sie die KI-Punkte aller Mitglieder eines Ihrer Workspaces.",
-      "ultra": "Für grössere Teams: Workspace-Sponsoring mit dem grössten Kontingent."
+      "team": "Für Teams: pro Platz, gemeinsame AI Points und Speicher, Verwaltung für Admins.",
+      "business": "Für Organisationen: Team plus Single Sign-on, Audit-Export und eigene Limits."
     },
     "freeAllowanceNote": "Das kostenlose KI-Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, und steht zur Verfügung, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel.",
     "price": {
       "free": "Kostenlos",
       "perMonth": "pro Monat",
+      "perSeatPerMonth": "pro Platz / Monat",
       "planned": "Geplanter Preis",
       "plannedNote": "Geplante Preise in US-Dollar. Preise und Limits können sich bis zum Start der Bezahlpläne noch ändern; kaufen kann man noch nichts."
     },
@@ -663,7 +660,8 @@
       "title": "Bezahlt",
       "tagline": "Mehr KI-Punkte, Workspaces und Speicher.",
       "tabsLabel": "Bezahlpläne",
-      "joinWaitlist": "Auf die Warteliste"
+      "joinWaitlist": "Auf die Warteliste",
+      "setUpInWorkspace": "In einem Workspace einrichten"
     },
     "instance": {
       "title": "Jedes Konto"
@@ -693,7 +691,6 @@
       "knowledgeFiles": "Wissensdateien",
       "knowledgeStorage": "Wissensspeicher",
       "imageStorage": "Bildspeicher",
-      "sponsoring": "KI-Sponsoring für Workspaces",
       "mcp": "MCP-Server für KI-Clients",
       "members": "Personen pro Workspace",
       "history": "Versionsverlauf",
@@ -1224,7 +1221,6 @@
     "tabs": {
       "documents": "Dokumente",
       "knowledge": "Wissen",
-      "ai": "markoto",
       "settings": "Einstellungen"
     },
     "settings": {
@@ -1336,28 +1332,7 @@
         "home": "Zum Dashboard"
       }
     },
-    "actions": "Workspace-Aktionen",
-    "sponsorship": {
-      "description": "Machen Sie diesen Workspace zu einem markoto-Workspace: Die KI-Nutzung aller Mitglieder in seinen Dokumenten läuft dann über das Guthaben Ihres Plans. Erfordert Max oder Ultra.",
-      "banner": "Dies ist ein markoto-Workspace: Die KI-Nutzung hier läuft über das Guthaben des Sponsors.",
-      "memberSponsored": "Dies ist ein markoto-Workspace. Ein Admin übernimmt die KI-Nutzung hier.",
-      "memberRegular": "Dies ist ein normaler Workspace. Mitglieder nutzen ihr eigenes KI-Guthaben. Ein Admin kann ihn zu einem markoto-Workspace machen und die Nutzung übernehmen.",
-      "memberComingSoon": "Das Sponsern der KI-Nutzung eines Workspace kommt mit den bezahlten Plänen.",
-      "onYourPlan": "über Ihren Plan · Mitglieder sehen den Hinweis im Editor",
-      "sponsoredByOther": "von einem anderen Admin gesponsert",
-      "takeOver": "Sponsoring übernehmen",
-      "needsUpgrade": "Mit Ihrem Plan {plan} können Sie keinen Workspace sponsern. Dafür brauchen Sie Max oder Ultra.",
-      "upgrade": "Plan upgraden",
-      "comingSoon": "Kommt mit den bezahlten Plänen.",
-      "seePlans": "Pläne ansehen",
-      "off": "aus · Mitglieder nutzen ihr eigenes KI-Guthaben",
-      "toggleLabel": "KI-Nutzung in diesem Workspace sponsern",
-      "enabledToast": "KI-Workspace aktiviert",
-      "enabledToastDescription": "Die KI-Nutzung der Mitglieder in diesem Workspace läuft jetzt über Ihren Plan.",
-      "disabledToast": "KI-Workspace deaktiviert",
-      "disabledToastDescription": "Mitglieder nutzen wieder ihr eigenes KI-Guthaben.",
-      "updateFailed": "Der KI-Workspace konnte nicht geändert werden"
-    }
+    "actions": "Workspace-Aktionen"
   },
   "knowledge": {
     "title": "Wissensdatenbank",

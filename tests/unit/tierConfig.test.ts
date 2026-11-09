@@ -49,17 +49,16 @@ describe('tier config — completeness', () => {
 describe('tier config — monotonicity (paid tiers grant strictly more)', () => {
   // `knowledgeBytesPerWorkspace` is intentionally NOT in this list —
   // the per-workspace cap is about one-workspace corpus size, not
-  // per-user total. A Max/Ultra user gets more total via the per-user
-  // cap, spread across more workspaces.
+  // per-user total.
   for (const field of MONOTONIC_CAP_FIELDS) {
-    it(`${field}: free < pro <= max <= ultra`, () => {
+    it(`${field}: free < pro <= team <= business`, () => {
       const free = DEFAULT_TIERS.free[field]
       const pro = DEFAULT_TIERS.pro[field]
-      const max = DEFAULT_TIERS.max[field]
-      const ultra = DEFAULT_TIERS.ultra[field]
+      const team = DEFAULT_TIERS.team[field]
+      const business = DEFAULT_TIERS.business[field]
       expect(pro, `pro.${field} must exceed free.${field} — upgrade gives more`).toBeGreaterThan(free)
-      expect(max, `max.${field} must be >= pro.${field}`).toBeGreaterThanOrEqual(pro)
-      expect(ultra, `ultra.${field} must be >= max.${field}`).toBeGreaterThanOrEqual(max)
+      expect(team, `team.${field} must be >= pro.${field}`).toBeGreaterThanOrEqual(pro)
+      expect(business, `business.${field} must be >= team.${field}`).toBeGreaterThanOrEqual(team)
     })
   }
 })
@@ -98,24 +97,24 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
     expect(tiers.pro.litellmBudgetUsd).toBe(8)
     expect(tiers.pro.workspacesOwned).toBe(DEFAULT_TIERS.pro.workspacesOwned)
     expect(tiers.free).toEqual(DEFAULT_TIERS.free)
-    expect(tiers.max).toEqual(DEFAULT_TIERS.max)
-    expect(tiers.ultra).toEqual(DEFAULT_TIERS.ultra)
+    expect(tiers.team).toEqual(DEFAULT_TIERS.team)
+    expect(tiers.business).toEqual(DEFAULT_TIERS.business)
   })
 
   it('supports every plan × field combination', () => {
     const tiers = resolveTiersFromEnv({
       TIER_FREE_LITELLM_BUDGET_USD: '2',
       TIER_PRO_WORKSPACES_OWNED: '25',
-      TIER_MAX_KNOWLEDGE_FILES: '999',
-      TIER_ULTRA_KNOWLEDGE_BYTES_PER_WORKSPACE: '123456789',
-      TIER_ULTRA_KNOWLEDGE_BYTES_PER_USER: '987654321',
+      TIER_TEAM_KNOWLEDGE_FILES: '999',
+      TIER_BUSINESS_KNOWLEDGE_BYTES_PER_WORKSPACE: '123456789',
+      TIER_BUSINESS_KNOWLEDGE_BYTES_PER_USER: '987654321',
       TIER_FREE_IMAGE_BYTES_PER_USER: '123456'
     })
     expect(tiers.free.litellmBudgetUsd).toBe(2)
     expect(tiers.pro.workspacesOwned).toBe(25)
-    expect(tiers.max.knowledgeFiles).toBe(999)
-    expect(tiers.ultra.knowledgeBytesPerWorkspace).toBe(123456789)
-    expect(tiers.ultra.knowledgeBytesPerUser).toBe(987654321)
+    expect(tiers.team.knowledgeFiles).toBe(999)
+    expect(tiers.business.knowledgeBytesPerWorkspace).toBe(123456789)
+    expect(tiers.business.knowledgeBytesPerUser).toBe(987654321)
     expect(tiers.free.imageBytesPerUser).toBe(123456)
   })
 
@@ -123,9 +122,9 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
     const tiers = resolveTiersFromEnv({
       TIER_FREE_LITELLM_BUDGET_USD: 'not-a-number',
       TIER_PRO_LITELLM_BUDGET_USD: '0', // zero = disabled product, refused
-      TIER_MAX_LITELLM_BUDGET_USD: '-5',
-      TIER_ULTRA_LITELLM_BUDGET_USD: '', // empty string = unset
-      TIER_ULTRA_KNOWLEDGE_FILES: 'Infinity'
+      TIER_TEAM_LITELLM_BUDGET_USD: '-5',
+      TIER_BUSINESS_LITELLM_BUDGET_USD: '', // empty string = unset
+      TIER_BUSINESS_KNOWLEDGE_FILES: 'Infinity'
     })
     expect(tiers).toEqual(DEFAULT_TIERS)
   })

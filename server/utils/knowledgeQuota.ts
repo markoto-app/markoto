@@ -1,16 +1,14 @@
-import { eq } from 'drizzle-orm'
 import {
   countWorkspaceKnowledge,
   sumWorkspaceKnowledgeBytes,
   countKnowledgeByUploader,
   sumKnowledgeBytesByUploader
 } from '../repos/knowledge'
-import { users, workspaces } from '../db/schema'
-import { useDatabase } from './database'
 import { reserveInflightSlot, releaseInflightSlot } from './rateLimit'
 import { KNOWLEDGE_PLATFORM_LIMITS, type PlanName } from '~~/shared/config/tiers'
 import { getTiers } from '~~/server/utils/tierConfig'
-import { effectivePlan, limitRecovery } from '~~/server/utils/billingMode'
+import { limitRecovery } from '~~/server/utils/billingMode'
+import { resolveUserPlan, resolveWorkspacePlan } from './entitlements'
 
 /**
  * Centralised cap enforcement for the workspace knowledge base.
@@ -78,53 +76,18 @@ export interface KnowledgeCaps {
   uploaderPlan: PlanName
 }
 
-async function getEffectivePlan(userId: number | null): Promise<PlanName> {
-  if (userId === null) return 'free'
-  const db = useDatabase()
-  const rows = await db.select({
-    plan: users.plan,
-    planValidUntil: users.planValidUntil
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const row = rows[0]
-  if (!row) return 'free'
-  // Lapsed paid plans AND billing-off deployments both resolve to free.
-  return effectivePlan(row.plan, row.planValidUntil)
-}
-
-/**
- * Resolve the tier whose per-workspace caps apply to this workspace's
- * knowledge base. If `(+)` team-billing is active and the billing
- * owner's plan is still valid → use the billing owner's plan. Else
- * fall back to the workspace creator's plan.
- *
- * If the creator's account has also lapsed (or was deleted), we end up
- * at `free` — the most restrictive option — which is correct: we don't
- * want an abandoned Max workspace to retain 10 GB of storage room
- * indefinitely after the creator stopped paying.
- */
-async function getWorkspacePlan(workspaceId: string): Promise<PlanName> {
-  const db = useDatabase()
-  const rows = await db.select({
-    ownerId: workspaces.ownerId,
-    billingOwnerId: workspaces.billingOwnerId,
-    aiEnabled: workspaces.aiEnabled
-  }).from(workspaces).where(eq(workspaces.workspaceId, workspaceId)).limit(1)
-  const ws = rows[0]
-  if (!ws) return 'free'
-
-  if (ws.aiEnabled && ws.billingOwnerId !== null) {
-    const ownerPlan = await getEffectivePlan(ws.billingOwnerId)
-    // `(+)` with a pro/free billing owner (e.g. owner downgraded and
-    // sweep hasn't run) defensively falls through to the creator.
-    // Pro is personal-only; only max/ultra can team-bill.
-    if (ownerPlan === 'max' || ownerPlan === 'ultra') return ownerPlan
-  }
-  return await getEffectivePlan(ws.ownerId)
-}
+// Plan resolution is shared with every other plan limit
+// (server/utils/entitlements.ts): the uploader's personal plan for the
+// per-user caps, the workspace's plan (Team / Business subscription,
+// else its creator's plan) for the per-workspace caps. A lapsed or
+// deleted creator lands on `free` — an abandoned workspace doesn't keep
+// paid storage room after its owner stopped paying.
+const getEffectivePlan = resolveUserPlan
+const getWorkspacePlan = resolveWorkspacePlan
 
 /**
  * Resolve the full cap set for an upload. Per-workspace caps read the
- * workspace's effective plan (billing owner if `(+)`, else creator);
+ * workspace's effective plan (Team / Business subscription, else creator);
  * per-user caps read the uploader's own plan. `maxFileBytes` is a
  * platform constant (markitdown conversion throughput + S3
  * single-part upload ceiling), not a tier knob.

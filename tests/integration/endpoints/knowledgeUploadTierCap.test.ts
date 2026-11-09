@@ -11,7 +11,7 @@ import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 //
 // Seeds N ready rows directly (no S3 traffic) to reach the cap.
 
-async function setUserPlan(userId: number, plan: 'free' | 'pro' | 'max' | 'ultra'): Promise<void> {
+async function setUserPlan(userId: number, plan: 'free' | 'pro'): Promise<void> {
   const db = testDb()
   const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
   await db.query(
@@ -82,32 +82,28 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () 
     expect([200, 201]).toContain(res.status)
   })
 
-  it('AI-workspace with Max sponsor: pro creator can exceed their personal per-workspace cap', async () => {
-    // The workspace's per-workspace cap follows the (+) billing
-    // owner's tier — NOT the workspace creator's. A Pro creator in a
-    // Max-sponsored AI workspace gets Max's per-workspace cap.
+  it('Team workspace: a pro creator can exceed their personal per-workspace cap', async () => {
+    // The workspace's per-workspace cap follows its Team subscription
+    // when that is better than the creator's own plan.
     const creator = await createUser()
     await setUserPlan(creator.id, 'pro')
-    const sponsor = await createUser()
-    await setUserPlan(sponsor.id, 'max')
     const ws = await createWorkspace(creator.id)
     const db = testDb()
     await db.query(
-      'UPDATE workspaces SET ai_enabled = true, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, valid_until)
+       VALUES ($1, 'team', 3, 'active', NOW() + interval '30 days')`,
+      [ws.workspaceId]
     )
 
     // Seed just above Pro's per-workspace file cap to prove the
-    // resolver picked Max. Pro per-workspace = 50, Max per-workspace
-    // = 500 — so 51 files lands above Pro's ceiling but well under
-    // Max's. Use uploader=null so the PER-USER cap (Pro = 50 files)
+    // resolver picked Team. Use uploader=null so the PER-USER cap
     // doesn't interfere — we're isolating the workspace cap here.
     await seedReadyKnowledge(ws.workspaceId, null, TIERS.pro.knowledgeFiles + 1)
 
     const client = await loggedInClient(creator.id)
     const res = await client.post(
       `/api/workspaces/${ws.workspaceId}/knowledge/upload-request`,
-      { filename: 'sponsor-lets-me.pdf', size: 1024 }
+      { filename: 'team-lets-me.pdf', size: 1024 }
     )
     // Not 409. Either 200 presign success or a different non-cap
     // error (e.g. S3 signing in the test env). Cap-logic passed.

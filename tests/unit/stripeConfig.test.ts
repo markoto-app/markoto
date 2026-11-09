@@ -26,7 +26,7 @@ describe('stripe config shape', () => {
     // Keys that MUST be empty in the committed source — a non-empty
     // value means a real credential leaked. successUrl/cancelUrl are
     // public URL templates and intentionally carry defaults.
-    const credentialKeys = ['secretKey', 'webhookSecret', 'pricePro', 'priceMax', 'priceUltra', 'apiBase']
+    const credentialKeys = ['secretKey', 'webhookSecret', 'pricePro', 'apiBase']
     for (const key of credentialKeys) {
       const v = (STRIPE_CONFIG_DEFAULTS as Record<string, string>)[key]
       expect(v, `stripe.${key} must be empty — set via NUXT_STRIPE_${key.toUpperCase()} in prod`).toBe('')

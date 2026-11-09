@@ -60,8 +60,6 @@ bfl_api_key: "REPLACE_ME"                  # blackforestlabs — image generatio
 nuxt_stripe_secret_key: ""                 # sk_live_… / sk_test_…
 nuxt_stripe_webhook_secret: ""             # whsec_… from the deployed webhook endpoint (NOT `stripe listen`)
 nuxt_stripe_price_pro: ""                  # price_… recurring, Pro tier
-nuxt_stripe_price_max: ""                  # price_… recurring, Max tier
-nuxt_stripe_price_ultra: ""                # price_… recurring, Ultra tier
 
 # ─── OAuth (optional pairs — both-or-neither per provider) ───
 nuxt_oauth_github_client_id: ""

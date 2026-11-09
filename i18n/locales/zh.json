@@ -42,9 +42,6 @@
       "invalidMeta": "某个文档设置（标题、主题或详细信息）的值无法被服务器接受。请重新加载以继续。",
       "invalidUpdate": "服务器无法处理来自此标签页的更改。请重新加载以继续。"
     },
-    "aiWorkspaceBadge": "markoto 工作区",
-    "aiWorkspaceBadgeTooltip": "本文档位于 markoto 工作区 — markoto 在此的工作使用赞助者的额度池，而非你的额度。",
-    "aiWorkspaceSponsoredBy": "markoto 工作区由 {name} 赞助",
     "bold": "加粗",
     "italic": "斜体",
     "heading": "标题",
@@ -607,7 +604,6 @@
     "subtitle": "选择合适的套餐。套餐决定你的上限：AI 点数、工作区和存储空间。使用你自己服务商密钥的 AI 不受任何套餐限制。",
     "metaDescription": "比较 markoto 套餐：AI 点数、工作区和存储空间的上限。使用你自己服务商密钥的 AI 不受任何套餐限制。",
     "creditsHint": "AI 点数用于由实例付费的 AI：1000 点 = 1 美元模型用量。使用你自己服务商密钥的 AI 由服务商计费，不消耗点数。",
-    "teamBilling": "工作区赞助：为工作区中的每个人承担 AI 点数",
     "currentPlan": "当前套餐",
     "manageSubscription": "管理订阅",
     "upgrade": "升级",
@@ -625,13 +621,14 @@
     "tiers": {
       "free": "全部写作功能，外加一份起步 AI 点数。",
       "pro": "面向个人：更多 AI 点数、工作区和存储空间。",
-      "max": "面向小团队：为你拥有的工作区中的每个人承担 AI 点数。",
-      "ultra": "面向更大的团队：额度最大的工作区赞助。"
+      "team": "适合团队：按席位计费，共享 AI Points 和存储，管理员控制。",
+      "business": "适合组织：在 Team 基础上增加单点登录、审计导出和自定义上限。"
     },
     "freeAllowanceNote": "免费 AI 额度使用由 Mistral AI 在欧盟托管的模型，在本月共享额度用完之前可用。如需更多，请在 设置 → AI 服务商 中添加你自己的密钥。",
     "price": {
       "free": "免费",
       "perMonth": "/ 月",
+      "perSeatPerMonth": "每席位 / 月",
       "planned": "计划价格",
       "plannedNote": "计划价格以美元计。付费套餐推出前，价格和上限仍可能变化；目前无法购买。"
     },
@@ -663,7 +660,8 @@
       "title": "付费",
       "tagline": "更多 AI 点数、工作区和存储空间。",
       "tabsLabel": "付费套餐",
-      "joinWaitlist": "加入候补名单"
+      "joinWaitlist": "加入候补名单",
+      "setUpInWorkspace": "在工作区中设置"
     },
     "instance": {
       "title": "每个账户"
@@ -693,7 +691,6 @@
       "knowledgeFiles": "知识文件",
       "knowledgeStorage": "知识存储",
       "imageStorage": "图片存储",
-      "sponsoring": "工作区 AI 赞助",
       "mcp": "面向 AI 客户端的 MCP 服务器",
       "members": "每个工作区的人数",
       "history": "版本历史",
@@ -1224,7 +1221,6 @@
     "tabs": {
       "documents": "文档",
       "knowledge": "知识库",
-      "ai": "markoto",
       "settings": "设置"
     },
     "settings": {
@@ -1336,28 +1332,7 @@
         "home": "前往控制台"
       }
     },
-    "actions": "工作区操作",
-    "sponsorship": {
-      "description": "将此工作区设为 markoto 工作区后，所有成员在其文档中的 AI 使用都从你套餐的额度中扣除。需要 Max 或 Ultra。",
-      "banner": "这是一个 markoto 工作区：此处的 AI 使用从赞助者的额度中扣除。",
-      "memberSponsored": "这是一个 markoto 工作区。此处的 AI 使用由管理员赞助。",
-      "memberRegular": "这是一个普通工作区。成员使用自己的 AI 额度。管理员可以将其设为 markoto 工作区来赞助使用。",
-      "memberComingSoon": "赞助工作区的 AI 使用将随付费套餐推出。",
-      "onYourPlan": "由你的套餐赞助 · 成员会在编辑器中看到提示",
-      "sponsoredByOther": "由另一位管理员赞助",
-      "takeOver": "接管赞助",
-      "needsUpgrade": "你的 {plan} 套餐无法赞助工作区，需要 Max 或 Ultra。",
-      "upgrade": "升级套餐",
-      "comingSoon": "将随付费套餐推出。",
-      "seePlans": "查看套餐",
-      "off": "关闭 · 成员使用自己的 AI 额度",
-      "toggleLabel": "赞助此工作区的 AI 使用",
-      "enabledToast": "已启用 AI 工作区",
-      "enabledToastDescription": "成员在此工作区中的 AI 使用现在由你的套餐赞助。",
-      "disabledToast": "已停用 AI 工作区",
-      "disabledToastDescription": "成员重新使用自己的 AI 额度。",
-      "updateFailed": "无法更改 AI 工作区"
-    }
+    "actions": "工作区操作"
   },
   "knowledge": {
     "title": "知识库",

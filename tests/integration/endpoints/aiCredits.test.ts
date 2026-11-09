@@ -47,93 +47,24 @@ describe('GET /api/ai/credits', () => {
     expect(body.pointsRemaining).toBe(body.pointsTotal)
   })
 
-  it('reflects the SPONSOR\'s pool when (+) is active for the workspace', async () => {
-    // Setup: sponsor on Max with plan_valid_until in the future +
-    // stripe_current_period_start in the past so the resolver treats
-    // the plan as active. Member is Free; without (+) they'd see
-    // free-tier points.
-    const sponsor = await createUser()
+  it('a workspaceId shows the caller\'s own pool (the (+) sponsorship is retired)', async () => {
+    // Team billing (pooled workspace budgets) arrives in WP3; until then a
+    // workspace context — even one with a leftover `(+)` row — shows the
+    // member's own pool.
+    const owner = await createUser()
     const member = await createUser()
     const db = testDb()
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
     await db.query(
       'UPDATE users SET plan = $1, plan_valid_until = $2, stripe_current_period_start = $3 WHERE id = $4',
-      ['max', future, past, sponsor.id]
+      ['pro', future, past, owner.id]
     )
-    const ws = await createWorkspace(sponsor.id)
-    await setMemberRole(ws.workspaceId, member.id, 'editor')
-    // Turn (+) on for this workspace and pin the sponsor as billing owner.
-    await db.query(
-      'UPDATE workspaces SET ai_enabled = TRUE, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
-    )
-
-    const client = await loggedInClient(member.id)
-    // Pass workspaceId so the resolver enters the `(+)` branch.
-    const res = await client.get(`/api/ai/credits?workspaceId=${encodeURIComponent(ws.workspaceId)}`)
-    expect(res.status).toBe(200)
-    const body = await res.json() as {
-      pointsRemaining: number
-      pointsTotal: number
-      plan: string
-      attribution: 'user' | 'workspace'
-    }
-    expect(body.plan).toBe('max')
-    expect(body.attribution).toBe('workspace')
-    // Member is Free, but the surfaced pool is Max — proves the
-    // `billingUserId` re-routing went through.
-    expect(body.pointsTotal).toBe(dollarsToPoints(TIERS.max.litellmBudgetUsd))
-    expect(body.pointsRemaining).toBe(body.pointsTotal)
-  })
-
-  it('does NOT leak the sponsor pool to a NON-member who passes the workspaceId', async () => {
-    // Regression guard: resolveBillingContext checks the sponsor plan +
-    // ai_enabled but NOT membership. Without the endpoint-level membership
-    // gate, any logged-in user who learns a `(+)` workspace id could read
-    // the sponsor's live budget. A non-member must fall back to self-bill.
-    const sponsor = await createUser()
-    const outsider = await createUser() // NOT a member of the workspace
-    const db = testDb()
-    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
-    await db.query(
-      'UPDATE users SET plan = $1, plan_valid_until = $2, stripe_current_period_start = $3 WHERE id = $4',
-      ['max', future, past, sponsor.id]
-    )
-    const ws = await createWorkspace(sponsor.id)
-    // Deliberately do NOT add `outsider` as a member.
-    await db.query(
-      'UPDATE workspaces SET ai_enabled = TRUE, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
-    )
-
-    const client = await loggedInClient(outsider.id)
-    const res = await client.get(`/api/ai/credits?workspaceId=${encodeURIComponent(ws.workspaceId)}`)
-    expect(res.status).toBe(200)
-    const body = await res.json() as { plan: string, attribution: string, pointsTotal: number }
-    // Must see their OWN free pool, not the sponsor's Max pool.
-    expect(body.plan).toBe('free')
-    expect(body.attribution).toBe('user')
-    expect(body.pointsTotal).toBe(dollarsToPoints(TIERS.free.litellmBudgetUsd))
-  })
-
-  it('falls back to self-bill when the sponsor\'s plan has lapsed', async () => {
-    // Sponsor plan expired yesterday — the resolver collapses (+) and
-    // the member sees their own free-tier pool, NOT a stale sponsor pool.
-    const sponsor = await createUser()
-    const member = await createUser()
-    const db = testDb()
-    const past = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    await db.query(
-      'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
-      ['max', past, sponsor.id]
-    )
-    const ws = await createWorkspace(sponsor.id)
+    const ws = await createWorkspace(owner.id)
     await setMemberRole(ws.workspaceId, member.id, 'editor')
     await db.query(
       'UPDATE workspaces SET ai_enabled = TRUE, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
+      [owner.id, ws.workspaceId]
     )
 
     const client = await loggedInClient(member.id)
