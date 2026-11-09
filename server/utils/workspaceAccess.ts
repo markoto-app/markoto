@@ -1,13 +1,16 @@
 import { getDocWithActorRole } from '../repos/documents'
 import { getMemberRole } from '../repos/workspaceMembers'
-import type { WorkspaceRole } from '../../shared/utils/docPermissions'
+import { isEffectiveDocOwner, type WorkspaceRole } from '../../shared/utils/docPermissions'
 
 // Thin authz shortcuts for workspace / document operations. Delegates to
 // the repos in server/repos/ for the actual queries.
 //
 // Rule of thumb:
 //
-//   - Owner of the doc is always allowed to do anything to it.
+//   - Owner of the doc is always allowed to do anything to it — except in
+//     a workspace that enforces single sign-on, where ownership counts
+//     only while the owner has an effective role there (current SSO
+//     grant + membership; `isEffectiveDocOwner`).
 //   - Workspace *admin* gets doc-owner-equivalent rights over every doc
 //     in the workspace (delete any, change access mode, change password).
 //   - Workspace *editor* can edit content / title / theme of any doc in
@@ -26,7 +29,7 @@ export async function getWorkspaceRole(userId: number, wsId: string): Promise<Wo
 export async function canEditDoc(userId: number, docId: string): Promise<boolean> {
   const ctx = await getDocWithActorRole(docId, userId)
   if (!ctx) return false
-  if (ctx.ownerId === userId) return true
+  if (isEffectiveDocOwner(ctx, userId)) return true
   if (ctx.workspaceRole === 'admin' || ctx.workspaceRole === 'editor') return true
   return false
 }
@@ -40,7 +43,7 @@ export async function canEditDoc(userId: number, docId: string): Promise<boolean
 export async function canManageDoc(userId: number, docId: string): Promise<boolean> {
   const ctx = await getDocWithActorRole(docId, userId)
   if (!ctx) return false
-  if (ctx.ownerId === userId) return true
+  if (isEffectiveDocOwner(ctx, userId)) return true
   if (ctx.workspaceRole === 'admin') return true
   return false
 }
@@ -74,7 +77,7 @@ export async function getDocAuthz(userId: number, docId: string): Promise<DocAut
       canManage: false
     }
   }
-  const isDocOwner = ctx.ownerId === userId
+  const isDocOwner = isEffectiveDocOwner(ctx, userId)
   const hasRole = ctx.workspaceRole !== null
   const isAdmin = ctx.workspaceRole === 'admin'
   const isEditor = ctx.workspaceRole === 'editor'

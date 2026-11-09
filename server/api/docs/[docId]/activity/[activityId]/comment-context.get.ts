@@ -2,7 +2,7 @@ import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/entitlements'
 import { getCommentThreadByEntryId } from '../../../../../repos/comments'
-import { decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
+import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/docTokenVerify'
 
 // On-demand fetch of the full conversation thread for a comment-row
@@ -68,11 +68,7 @@ export default defineEventHandler(async (event): Promise<CommentContextResponse>
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const doc: DocState = {
-    ownerId: docRow.ownerId,
-    workspaceId: docRow.workspaceId,
-    accessMode: docRow.accessMode
-  }
+  const doc: DocState = docStateOf(docRow)
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: docRow.workspaceRole,

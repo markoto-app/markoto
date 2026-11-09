@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 
 // fileId is a nanoid(12) with a content-type-derived extension. Reject
@@ -37,11 +37,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const doc: DocState = {
-    ownerId: row.ownerId,
-    workspaceId: row.workspaceId,
-    accessMode: row.accessMode
-  }
+  const doc: DocState = docStateOf(row)
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: row.workspaceRole,

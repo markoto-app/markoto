@@ -2,7 +2,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import { documents, workspaceMembers } from '../db/schema'
-import { ssoSatisfiedSql } from './sso'
+import { ssoEnforcedSql, ssoSatisfiedSql } from './sso'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import { useDatabase } from '../utils/database'
 import { NotFoundError } from './errors'
@@ -51,6 +51,18 @@ export interface DocAuthzRow {
   anonCreatorKeyHash: string | null
   theme: DocTheme | null
   workspaceRole: WorkspaceRole | null
+  /**
+   * True when the caller OWNS the doc but that ownership must not count:
+   * the doc sits in a workspace that enforces single sign-on (WP14) and
+   * the caller has no effective role there (no current SSO grant, or no
+   * longer a member — e.g. deactivated / deleted via SCIM). Ownership of
+   * a workspace doc then grants nothing beyond what any outsider gets.
+   * Always false in workspaces without an active SSO connection and for
+   * standalone docs (unchanged behaviour). Feed the row to the decide*
+   * functions through `docStateOf` / `isEffectiveDocOwner`
+   * (`shared/utils/docPermissions.ts`) so the rule applies everywhere.
+   */
+  ownerAccessSuspended: boolean
   /**
    * Document context fields. Surfaced through the token endpoint so the
    * editor can hydrate the Document tab + new-doc-derived UI before the
@@ -173,7 +185,13 @@ export async function getDocWithActorRole(
       audience: documents.audience,
       language: documents.language,
       templateId: documents.templateId,
-      role: workspaceMembers.role
+      role: workspaceMembers.role,
+      // Ownership of a doc in an SSO-enforcing workspace counts only
+      // while the caller has an effective role there (the joined role
+      // above already carries the SSO condition, so NULL = no role).
+      ownerAccessSuspended: actorUserId === null
+        ? sql<boolean>`false`
+        : sql<boolean>`coalesce(${documents.ownerId} = ${actorUserId} and ${workspaceMembers.role} is null and ${ssoEnforcedSql(documents.workspaceId)}, false)`
     })
     .from(documents)
     .leftJoin(
@@ -203,6 +221,7 @@ export async function getDocWithActorRole(
     anonCreatorKeyHash: row.anonCreatorKeyHash,
     theme: row.theme,
     workspaceRole: (row.role ?? null),
+    ownerAccessSuspended: row.ownerAccessSuspended === true,
     title: row.title,
     description: row.description,
     audience: row.audience,
