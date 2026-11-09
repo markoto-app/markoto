@@ -1468,7 +1468,15 @@
       "upload-failed": "上传失败。请重试。",
       "internal": "出现问题。请重试。"
     },
-    "pageAria": "第 {n} 页"
+    "pageAria": "第 {n} 页",
+    "thinking": {
+      "uploading": "正在接收你的文档…",
+      "reading": "正在读取文档的字体、颜色和版式…",
+      "designing": "正在根据你的页面设计样式…",
+      "rendering": "正在用新设计排版示例页…",
+      "comparing": "正在将设计与原页面对比，第 {round}/{max} 轮…"
+    },
+    "durationNote": "通常需要两到五分钟。请保持此窗口打开，结果会显示在这里。"
   },
   "error": {
     "generic": "出了点问题。请重试。",

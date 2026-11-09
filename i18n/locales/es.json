@@ -1468,7 +1468,15 @@
       "upload-failed": "La subida no funcionó. Vuelve a intentarlo.",
       "internal": "Algo salió mal. Vuelve a intentarlo."
     },
-    "pageAria": "Página {n}"
+    "pageAria": "Página {n}",
+    "thinking": {
+      "uploading": "Recibiendo tu documento…",
+      "reading": "Leyendo las fuentes, los colores y el diseño de tu documento…",
+      "designing": "Preparando un diseño a partir de tus páginas…",
+      "rendering": "Componiendo una página de prueba con el nuevo diseño…",
+      "comparing": "Comparando mi diseño con tus páginas, ronda {round} de {max}…"
+    },
+    "durationNote": "Suele tardar entre dos y cinco minutos. Mantén esta ventana abierta; el resultado aparecerá aquí."
   },
   "error": {
     "generic": "Algo salió mal. Inténtalo de nuevo.",

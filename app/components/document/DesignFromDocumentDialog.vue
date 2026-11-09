@@ -204,6 +204,35 @@ function poll(jobId: string, token: number) {
 }
 
 const phaseLabel = computed(() => t(`designImport.phase.${phase.value}`))
+
+// The AI's own line while it works (italic serif + pulsing seal, the
+// product's one "AI is thinking" voice) and how long it has been at it:
+// a run takes a few minutes, and a bare progress bar looked stuck.
+const thinkingLine = computed(() => {
+  if (phase.value === 'designing' && round.value > 1) {
+    return t('designImport.thinking.comparing', { round: round.value, max: maxRounds.value })
+  }
+  return t(`designImport.thinking.${phase.value}`)
+})
+const elapsedSeconds = ref(0)
+let elapsedTimer: ReturnType<typeof setInterval> | null = null
+watch(step, (now) => {
+  if (elapsedTimer) clearInterval(elapsedTimer)
+  elapsedTimer = null
+  if (now !== 'working') return
+  elapsedSeconds.value = 0
+  elapsedTimer = setInterval(() => {
+    elapsedSeconds.value++
+  }, 1000)
+})
+onBeforeUnmount(() => {
+  if (elapsedTimer) clearInterval(elapsedTimer)
+})
+const elapsedLabel = computed(() => {
+  const m = Math.floor(elapsedSeconds.value / 60)
+  const sec = String(elapsedSeconds.value % 60).padStart(2, '0')
+  return `${m}:${sec}`
+})
 const progressValue = computed(() => {
   const order: Phase[] = ['uploading', 'reading', 'designing', 'rendering']
   const base = order.indexOf(phase.value)
@@ -337,15 +366,30 @@ function png(base64: string): string {
           <p class="text-sm truncate">
             {{ fileName }}
           </p>
+          <div
+            class="mk-design-import-thinking"
+            role="status"
+            aria-live="polite"
+            data-testid="design-import-thinking"
+          >
+            <AiThinking :text="thinkingLine" />
+          </div>
           <UProgress
             :model-value="progressValue"
             color="neutral"
             size="sm"
           />
-          <p class="font-mono text-[10.5px] tracking-[0.04em] text-muted">
-            {{ phaseLabel }}<template v-if="phase === 'designing' && round > 0">
+          <p class="flex items-center justify-between gap-3 font-mono text-[10.5px] tracking-[0.04em] text-muted">
+            <span>{{ phaseLabel }}<template v-if="phase === 'designing' && round > 0">
               · {{ t('designImport.roundOf', { round, max: maxRounds }) }}
-            </template>
+            </template></span>
+            <span
+              class="tabular-nums"
+              data-testid="design-import-elapsed"
+            >{{ elapsedLabel }}</span>
+          </p>
+          <p class="text-xs text-muted leading-snug">
+            {{ t('designImport.durationNote') }}
           </p>
         </div>
 
@@ -536,3 +580,18 @@ function png(base64: string): string {
     </template>
   </UModal>
 </template>
+
+<style scoped>
+/* The seal pulses while the AI works (same breathing as the prompt bar's
+   active state); still under reduced motion. */
+.mk-design-import-thinking :deep(.mk-ai-thinking__seal) {
+  animation: mk-design-import-seal 1.8s ease-in-out infinite;
+}
+@keyframes mk-design-import-seal {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-shu-500) 45%, transparent); transform: scale(1); }
+  50% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-shu-500) 0%, transparent); transform: scale(1.25); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mk-design-import-thinking :deep(.mk-ai-thinking__seal) { animation: none; }
+}
+</style>
