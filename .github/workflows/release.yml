@@ -85,10 +85,24 @@ jobs:
               repo: context.repo.repo,
               commit_sha: context.sha,
             });
-            // A merged PR maps to exactly one merge commit. Direct pushes to main
-            // are blocked by branch protection except for the release bot's
-            // [skip ci] commits, which never re-enter this workflow.
-            const pr = (prs.data.find(p => p.merged_at) || prs.data[0]);
+            // A merged PR maps to one merge commit — except a merged stack
+            // (gh stack / merge-async on the top PR): ONE merge commit closes
+            // every PR of the stack, and the API lists them in no useful
+            // order. Take the merged PR that carries a release:major|minor|
+            // patch label (the top of the stack, by convention), else any
+            // merged one. Direct pushes to main are blocked by branch
+            // protection except for the release bot's [skip ci] commits,
+            // which never re-enter this workflow.
+            const merged = prs.data.filter(p => p.merged_at);
+            const releasing = merged.filter(p => (p.labels || []).some(l => /^release:(major|minor|patch)$/.test(l.name)));
+            if (releasing.length > 1) {
+              core.setFailed(
+                'Several PRs of this merge carry a release label: ' +
+                releasing.map(p => '#' + p.number).join(', ') + '. Label only the top of the stack.'
+              );
+              return;
+            }
+            const pr = releasing[0] || merged[0] || prs.data[0];
             if (!pr) {
               core.setFailed('No merged PR found for commit ' + context.sha);
               return;
