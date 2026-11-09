@@ -130,7 +130,8 @@ async function main(): Promise<void> {
     if (!CARDS[name]) throw new Error(`unknown card: ${name} (one of ${Object.keys(CARDS).join(', ')})`)
   }
   const tmp = mkdtempSync(join(tmpdir(), 'markoto-og-'))
-  const browser = await chromium.launch()
+  // Unhinted glyph advances, like the PDF renderer (renderer/src/render.ts).
+  const browser = await chromium.launch({ args: ['--font-render-hinting=none'] })
   try {
     const page = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 })
     for (const name of selected) {

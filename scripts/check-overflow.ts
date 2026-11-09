@@ -19,7 +19,8 @@ async function sitemapPaths(): Promise<string[]> {
 }
 
 const paths = args.length > 1 ? args.slice(1) : await sitemapPaths()
-const browser = await chromium.launch()
+// Unhinted glyph advances, like the PDF renderer (renderer/src/render.ts).
+const browser = await chromium.launch({ args: ['--font-render-hinting=none'] })
 let failures = 0
 try {
   for (const width of WIDTHS) {
