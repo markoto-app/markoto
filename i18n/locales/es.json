@@ -706,7 +706,8 @@
       "readOnly": "Solo lectura",
       "setByYou": "Lo decides tú",
       "included": "Incluido",
-      "notIncluded": "No incluido"
+      "notIncluded": "No incluido",
+      "perSeat": "{value} por puesto"
     },
     "faq": {
       "title": "Preguntas",
@@ -729,7 +730,14 @@
       "year": "Anual · 2 meses gratis"
     },
     "currencyLabel": "Moneda",
-    "currencyLocked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar."
+    "currencyLocked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar.",
+    "countPerSeat": {
+      "aiPoints": "{n} punto de IA por puesto al mes, compartido | {n} puntos de IA por puesto al mes, compartidos",
+      "workspaces": "{n} espacio de trabajo propio | {n} espacios de trabajo propios",
+      "knowledgeFiles": "{n} archivo de conocimiento por puesto, compartido | {n} archivos de conocimiento por puesto, compartidos",
+      "knowledgeStorage": "{size} de almacenamiento de conocimiento por puesto, compartido",
+      "imageStorage": "{size} de almacenamiento de imágenes por puesto, compartido"
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",

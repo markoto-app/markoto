@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { PAID_PLAN_NAMES } from '~~/shared/config/pricing'
+import { PAID_PLAN_NAMES, isPerSeatPlan } from '~~/shared/config/pricing'
 import type { PlanName, TiersMap } from '~~/shared/config/tiers'
 import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
@@ -45,6 +45,11 @@ const no: Cell = { kind: 'no' }
 function text(value: string): Cell {
   return { kind: 'text', text: value }
 }
+/** Team / Business values are per seat, shared across the workspace. */
+function seatValue(plan: PlanName, value: string): string {
+  return isPerSeatPlan(plan) ? t('pricing.compare.perSeat', { value }) : value
+}
+
 function num(n: number): string {
   return formatCount(n, locale.value)
 }
@@ -99,7 +104,7 @@ const rows = computed<Row[]>(() => {
     {
       id: 'aiPoints',
       label: t('pricing.compare.aiPoints'),
-      cells: [setByYou, no, ...perAccount(plan => text(num(planToPointsTotal(plan, props.tiers))))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, num(planToPointsTotal(plan, props.tiers)))))]
     },
     {
       id: 'ownKey',
@@ -114,17 +119,17 @@ const rows = computed<Row[]>(() => {
     {
       id: 'knowledgeFiles',
       label: t('pricing.compare.knowledgeFiles'),
-      cells: [setByYou, no, ...perAccount(plan => text(num(props.tiers[plan].knowledgeFiles)))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, num(props.tiers[plan].knowledgeFiles))))]
     },
     {
       id: 'knowledgeStorage',
       label: t('pricing.compare.knowledgeStorage'),
-      cells: [setByYou, no, ...perAccount(plan => text(formatPlanBytes(props.tiers[plan].knowledgeBytesPerUser)))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, formatPlanBytes(isPerSeatPlan(plan) ? props.tiers[plan].knowledgeBytesPerWorkspace : props.tiers[plan].knowledgeBytesPerUser))))]
     },
     {
       id: 'imageStorage',
       label: t('pricing.compare.imageStorage'),
-      cells: [setByYou, no, ...perAccount(plan => text(formatPlanBytes(props.tiers[plan].imageBytesPerUser)))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, formatPlanBytes(props.tiers[plan].imageBytesPerUser))))]
     },
     {
       id: 'members',

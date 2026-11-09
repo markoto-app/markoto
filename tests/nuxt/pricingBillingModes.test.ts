@@ -233,6 +233,11 @@ describe('pricing page — billing off, plans coming soon (hosted SaaS)', () => 
     expect(members).toContain('Unlimited')
     expect(wrapper.find('[data-testid="pricing-compare-row-history"]').text()).toContain('30 days')
     expect(wrapper.find('[data-testid="pricing-compare-row-mcp"]').text()).toContain('Read-only')
+    // Team / Business: AI Points and storage are per seat, shared by the
+    // workspace (the pool = seats × these values).
+    expect(wrapper.find('[data-testid="pricing-tier-team"] [data-testid="pricing-cap-ai"]').text()).toContain('per seat a month, shared')
+    expect(wrapper.find('[data-testid="pricing-tier-pro"] [data-testid="pricing-cap-ai"]').text()).not.toContain('per seat')
+    expect(wrapper.find('[data-testid="pricing-compare-row-knowledgeStorage"]').text()).toContain('20 GB per seat')
   })
 
   it('hides the retention line when anonymous documents are never deleted', async () => {

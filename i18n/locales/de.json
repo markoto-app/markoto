@@ -706,7 +706,8 @@
       "readOnly": "Nur Lesen",
       "setByYou": "Legen Sie fest",
       "included": "Enthalten",
-      "notIncluded": "Nicht enthalten"
+      "notIncluded": "Nicht enthalten",
+      "perSeat": "{value} pro Platz"
     },
     "faq": {
       "title": "Fragen",
@@ -729,7 +730,14 @@
       "year": "Jährlich · 2 Monate gratis"
     },
     "currencyLabel": "Währung",
-    "currencyLocked": "Ihr Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wählen Sie diese Währung, um fortzufahren."
+    "currencyLocked": "Ihr Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wählen Sie diese Währung, um fortzufahren.",
+    "countPerSeat": {
+      "aiPoints": "{n} KI-Punkt pro Platz und Monat, gemeinsam | {n} KI-Punkte pro Platz und Monat, gemeinsam",
+      "workspaces": "{n} eigener Arbeitsbereich | {n} eigene Arbeitsbereiche",
+      "knowledgeFiles": "{n} Wissensdatei pro Platz, gemeinsam | {n} Wissensdateien pro Platz, gemeinsam",
+      "knowledgeStorage": "{size} Wissensspeicher pro Platz, gemeinsam",
+      "imageStorage": "{size} Bildspeicher pro Platz, gemeinsam"
+    }
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",

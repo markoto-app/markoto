@@ -706,7 +706,8 @@
       "readOnly": "只读",
       "setByYou": "由你设定",
       "included": "包含",
-      "notIncluded": "不包含"
+      "notIncluded": "不包含",
+      "perSeat": "每个席位 {value}"
     },
     "faq": {
       "title": "常见问题",
@@ -729,7 +730,14 @@
       "year": "按年 · 免 2 个月"
     },
     "currencyLabel": "货币",
-    "currencyLocked": "你的订阅使用另一种货币计费，无法更改。请选择该货币以继续。"
+    "currencyLocked": "你的订阅使用另一种货币计费，无法更改。请选择该货币以继续。",
+    "countPerSeat": {
+      "aiPoints": "每个席位每月 {n} AI 点数（共享）",
+      "workspaces": "你拥有的 {n} 个工作区",
+      "knowledgeFiles": "每个席位 {n} 个知识文件（共享）",
+      "knowledgeStorage": "每个席位 {size} 知识存储（共享）",
+      "imageStorage": "每个席位 {size} 图片存储（共享）"
+    }
   },
   "topbar": {
     "planBadge": "套餐：{plan}",

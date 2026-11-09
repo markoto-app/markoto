@@ -706,7 +706,8 @@
       "readOnly": "Read-only",
       "setByYou": "Set by you",
       "included": "Included",
-      "notIncluded": "Not included"
+      "notIncluded": "Not included",
+      "perSeat": "{value} per seat"
     },
     "faq": {
       "title": "Questions",
@@ -729,7 +730,14 @@
       "year": "Annual · 2 months free"
     },
     "currencyLabel": "Currency",
-    "currencyLocked": "Your subscription is billed in another currency and can't switch. Choose that currency to continue."
+    "currencyLocked": "Your subscription is billed in another currency and can't switch. Choose that currency to continue.",
+    "countPerSeat": {
+      "aiPoints": "{n} AI Point per seat a month, shared | {n} AI Points per seat a month, shared",
+      "workspaces": "{n} workspace you own | {n} workspaces you own",
+      "knowledgeFiles": "{n} knowledge file per seat, shared | {n} knowledge files per seat, shared",
+      "knowledgeStorage": "{size} knowledge storage per seat, shared",
+      "imageStorage": "{size} image storage per seat, shared"
+    }
   },
   "topbar": {
     "planBadge": "Plan: {plan}",

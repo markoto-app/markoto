@@ -706,7 +706,8 @@
       "readOnly": "読み取り専用",
       "setByYou": "自分で設定",
       "included": "含まれる",
-      "notIncluded": "含まれない"
+      "notIncluded": "含まれない",
+      "perSeat": "1 席あたり {value}"
     },
     "faq": {
       "title": "よくある質問",
@@ -729,7 +730,14 @@
       "year": "年払い · 2 か月分お得"
     },
     "currencyLabel": "通貨",
-    "currencyLocked": "ご利用中のサブスクリプションは別の通貨で請求されており、変更できません。続けるにはその通貨を選択してください。"
+    "currencyLocked": "ご利用中のサブスクリプションは別の通貨で請求されており、変更できません。続けるにはその通貨を選択してください。",
+    "countPerSeat": {
+      "aiPoints": "1 席あたり月 {n} AI ポイント（共有）",
+      "workspaces": "所有ワークスペース {n} 個",
+      "knowledgeFiles": "1 席あたりナレッジファイル {n} 件（共有）",
+      "knowledgeStorage": "1 席あたりナレッジ容量 {size}（共有）",
+      "imageStorage": "1 席あたり画像容量 {size}（共有）"
+    }
   },
   "topbar": {
     "planBadge": "プラン：{plan}",

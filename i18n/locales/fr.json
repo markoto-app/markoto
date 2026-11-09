@@ -706,7 +706,8 @@
       "readOnly": "Lecture seule",
       "setByYou": "Fixé par vous",
       "included": "Inclus",
-      "notIncluded": "Non inclus"
+      "notIncluded": "Non inclus",
+      "perSeat": "{value} par place"
     },
     "faq": {
       "title": "Questions",
@@ -729,7 +730,14 @@
       "year": "Annuel · 2 mois offerts"
     },
     "currencyLabel": "Devise",
-    "currencyLocked": "Votre abonnement est facturé dans une autre devise et ne peut pas en changer. Choisissez cette devise pour continuer."
+    "currencyLocked": "Votre abonnement est facturé dans une autre devise et ne peut pas en changer. Choisissez cette devise pour continuer.",
+    "countPerSeat": {
+      "aiPoints": "{n} point IA par place et par mois, partagé | {n} points IA par place et par mois, partagés",
+      "workspaces": "{n} espace de travail à vous | {n} espaces de travail à vous",
+      "knowledgeFiles": "{n} fichier de connaissances par place, partagé | {n} fichiers de connaissances par place, partagés",
+      "knowledgeStorage": "{size} de stockage de connaissances par place, partagé",
+      "imageStorage": "{size} de stockage d’images par place, partagé"
+    }
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",
