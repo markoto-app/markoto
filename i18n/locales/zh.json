@@ -629,8 +629,10 @@
       "free": "免费",
       "perMonth": "/ 月",
       "perSeatPerMonth": "每席位 / 月",
+      "perYear": "每年",
+      "perSeatPerYear": "每席位 / 年",
       "planned": "计划价格",
-      "plannedNote": "计划价格以美元计。付费套餐推出前，价格和上限仍可能变化；目前无法购买。"
+      "plannedNote": "计划价格。付费套餐推出前，价格和上限可能会变化；目前还无法购买。"
     },
     "selfHosted": {
       "title": "自托管",
@@ -715,7 +717,14 @@
       "anonKeptA": "任何拥有链接的人都可以阅读和编辑，只有创建文档的浏览器才能删除它。登录后可以设为私有或用密码保护。",
       "selfHostQ": "我可以在自己的服务器上运行 markoto 吗？",
       "selfHostA": "可以。代码以 FSL-1.1 许可证 source-available 发布，两年后转为 Apache-2.0。自托管实例拥有全部功能，没有套餐：上限由你设定，并连接你自己的 AI 服务商或本地模型。安装步骤见文档中的自托管指南。"
-    }
+    },
+    "interval": {
+      "label": "计费周期",
+      "month": "按月",
+      "year": "按年 · 免 2 个月"
+    },
+    "currencyLabel": "货币",
+    "currencyLocked": "你的订阅使用另一种货币计费，无法更改。请选择该货币以继续。"
   },
   "topbar": {
     "planBadge": "套餐：{plan}",

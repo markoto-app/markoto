@@ -229,6 +229,7 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
     oidcIssuer: userRow.oidcIssuer,
     plan: userRow.plan,
     planValidUntil: userRow.planValidUntil?.toISOString() ?? null,
+    billingCurrency: userRow.billingCurrency,
     locale: userRow.locale,
     ageConfirmedAt: userRow.ageConfirmedAt?.toISOString() ?? null,
     deletionRequestedAt: userRow.deletionRequestedAt?.toISOString() ?? null,

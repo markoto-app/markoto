@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { DEFAULT_TIERS, PLAN_NAMES, type PlanName } from '~~/shared/config/tiers'
 import {
-  DEFAULT_PLAN_PRICES_USD,
+  CURRENCIES,
+  DEFAULT_PLAN_PRICES,
   PAID_PLAN_NAMES,
+  defaultCurrencyForLocale,
   isPerSeatPlan,
-  PRICE_CURRENCY,
+  type BillingInterval,
+  type Currency,
   type PaidPlanName,
   type PlanPricesResponse
 } from '~~/shared/config/pricing'
@@ -15,7 +18,8 @@ import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 //
 // Every number is live config: tier caps from `GET /api/billing/tiers`
 // (committed defaults + TIER_* overrides, `getTiers()`), prices from
-// `GET /api/billing/prices` (`shared/config/pricing.ts` + TIER_*_PRICE_USD),
+// `GET /api/billing/prices` (live Stripe prices, or the planned ones in
+// `shared/config/pricing.ts` + TIER_*_PRICE_<EUR|CHF>[_YEAR]),
 // the anonymous-document retention from the instance config
 // (`NUXT_INACTIVE_DOC_TTL_DAYS`). The committed defaults are the
 // SSR/fetch-failure fallback.
@@ -46,8 +50,33 @@ const [{ data: tiersData }, { data: pricesData }] = await Promise.all([
   useFetch<PlanPricesResponse>('/api/billing/prices')
 ])
 const TIERS = computed(() => tiersData.value ?? DEFAULT_TIERS)
-const PRICES = computed(() => pricesData.value?.monthly ?? DEFAULT_PLAN_PRICES_USD)
-const CURRENCY = computed(() => pricesData.value?.currency ?? PRICE_CURRENCY)
+const PRICE_TABLE = computed(() => pricesData.value?.prices ?? DEFAULT_PLAN_PRICES)
+
+// Currency + billing interval the visitor looks at. EUR on the server
+// render; after mount a Swiss browser locale (de-CH, fr-CH, …) switches
+// to CHF. Both are switchable on the page.
+const currency = ref<Currency>('eur')
+const interval = ref<BillingInterval>('month')
+const CURRENCY = computed(() => currency.value.toUpperCase())
+/** Prices in the selected currency + interval (free = 0). */
+const PRICES = computed<Record<PlanName, number>>(() => {
+  const row = PRICE_TABLE.value[currency.value]
+  return { free: 0, pro: row.pro[interval.value], team: row.team[interval.value], business: row.business[interval.value] }
+})
+/** Monthly prices in the selected currency (comparison table). */
+const MONTHLY_PRICES = computed<Record<PlanName, number>>(() => {
+  const row = PRICE_TABLE.value[currency.value]
+  return { free: 0, pro: row.pro.month, team: row.team.month, business: row.business.month }
+})
+const currencyItems = CURRENCIES.map(c => ({ label: c.toUpperCase(), value: c }))
+const intervalItems = computed(() => [
+  { label: t('pricing.interval.month'), value: 'month' as const },
+  { label: t('pricing.interval.year'), value: 'year' as const }
+])
+function priceUnitKey(plan: PlanName): string {
+  if (isPerSeatPlan(plan)) return interval.value === 'year' ? 'pricing.price.perSeatPerYear' : 'pricing.price.perSeatPerMonth'
+  return interval.value === 'year' ? 'pricing.price.perYear' : 'pricing.price.perMonth'
+}
 
 interface UserBilling {
   plan: PlanName
@@ -76,6 +105,7 @@ function paidPlanFor(value: string | number | undefined): PaidPlanName | undefin
 }
 
 onMounted(async () => {
+  currency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
   if (!loggedIn.value) return
   try {
     billing.value = await $fetch<UserBilling>('/api/user/billing')
@@ -149,7 +179,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
   try {
     const resp = await $fetch<{ url?: string, sessionId?: string, updated?: boolean, plan?: PlanName }>('/api/billing/checkout', {
       method: 'POST',
-      body: { plan }
+      body: { plan, interval: interval.value, currency: currency.value }
     })
     if (resp.updated) {
       toast.add({
@@ -254,7 +284,8 @@ usePageStructuredData(() => {
   if (!optionsLayout.value) return null
   const offers: PricingOffer[] = [{ name: t('pricing.freeAccount.title'), price: 0 }]
   if (billingEnabled.value) {
-    for (const plan of PAID_PLAN_NAMES) offers.push({ name: PAID_DISPLAY[plan], price: PRICES.value[plan] })
+    // One stable offer per plan: the monthly EUR price.
+    for (const plan of PAID_PLAN_NAMES) offers.push({ name: PAID_DISPLAY[plan], price: PRICE_TABLE.value.eur[plan].month })
   }
   return {
     name: pageTitle.value,
@@ -266,7 +297,7 @@ usePageStructuredData(() => {
       siteUrl: siteUrl.value,
       description: metaDescription.value,
       inLanguage: localeProperties.value.language ?? locale.value,
-      currency: CURRENCY.value,
+      currency: 'EUR',
       offers
     })]
   }
@@ -504,6 +535,26 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
             <p class="text-sm text-muted mt-1 lg:min-h-10">
               {{ t('pricing.paid.tagline') }}
             </p>
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <UTabs
+                v-model="interval"
+                :items="intervalItems"
+                :content="false"
+                color="neutral"
+                variant="link"
+                size="xs"
+                :aria-label="t('pricing.interval.label')"
+                data-testid="pricing-interval"
+              />
+              <USelect
+                v-model="currency"
+                :items="currencyItems"
+                size="xs"
+                class="ml-auto w-20"
+                :aria-label="t('pricing.currencyLabel')"
+                data-testid="pricing-currency"
+              />
+            </div>
             <UTabs
               v-model="paidTab"
               :items="paidTabs"
@@ -531,7 +582,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                       class="font-serif text-3xl font-light tracking-tight"
                       data-testid="pricing-price"
                     >{{ price(plan) }}</span>
-                    <span class="text-sm text-muted">{{ isPerSeatPlan(plan) ? t('pricing.price.perSeatPerMonth') : t('pricing.price.perMonth') }}</span>
+                    <span class="text-sm text-muted">{{ t(priceUnitKey(plan)) }}</span>
                     <span
                       v-if="isCurrent(plan)"
                       data-testid="pricing-current-plan-badge"
@@ -655,7 +706,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
         <LazyPricingCompareTable
           hydrate-on-visible
           :tiers="TIERS"
-          :prices="PRICES"
+          :prices="MONTHLY_PRICES"
           :currency="CURRENCY"
           :planned="pricesPlanned"
           :anon-ttl-days="anonDocTtlDays"

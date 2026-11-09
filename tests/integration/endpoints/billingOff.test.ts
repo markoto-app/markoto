@@ -122,7 +122,7 @@ describe('billing off — SSR billing mode reaches the browser', () => {
     const res = await anonClient().get('/pricing')
     expect(res.status).toBe(200)
     const html = await res.text()
-    expect(html).toContain('$9')
+    expect(html).toContain('€9')
     expect(html).not.toContain('data-testid="waitlist-section"')
   })
 })

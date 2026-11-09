@@ -296,7 +296,6 @@ export const KNOWLEDGE_PLATFORM_LIMITS = {
 export const STRIPE_CONFIG_DEFAULTS = {
   secretKey: '',
   webhookSecret: '',
-  pricePro: '',
   apiBase: '',
   successUrl: '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}',
   cancelUrl: '/pricing?checkout=cancelled',
@@ -311,7 +310,6 @@ export const STRIPE_CONFIG_DEFAULTS = {
 export const STRIPE_CONFIG_KEYS = [
   'secretKey',
   'webhookSecret',
-  'pricePro',
   'apiBase',
   'successUrl',
   'cancelUrl',

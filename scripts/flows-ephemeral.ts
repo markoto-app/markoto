@@ -142,7 +142,9 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_STRIPE_SECRET_KEY: 'sk_test_flows123',
   NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_flows',
   NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
-  NUXT_STRIPE_PRICE_PRO: 'price_test_pro',
+  // Stripe price catalogue for stripe-mock (no lookup keys) — same map as
+  // tests/integration/setup/env.ts#TEST_STRIPE_PRICE_IDS.
+  NUXT_STRIPE_PRICE_IDS: 'markoto_pro_month_eur=price_test_pro,markoto_pro_year_eur=price_test_pro_year,markoto_team_month_eur=price_test_team,markoto_team_year_eur=price_test_team_year,markoto_business_month_eur=price_test_business,markoto_business_year_eur=price_test_business_year,markoto_pro_month_chf=price_test_pro_chf,markoto_pro_year_chf=price_1PgafmB7WZ01zgkW6dKueIc5,markoto_team_month_chf=price_test_team_chf,markoto_team_year_chf=price_test_team_year_chf,markoto_business_month_chf=price_test_business_chf,markoto_business_year_chf=price_test_business_year_chf',
   // Skip the inactive-doc sweep — short-lived test infra doesn't
   // benefit and the TTL math complains on a fresh DB.
   NUXT_INACTIVE_DOC_TTL_DAYS: '0',

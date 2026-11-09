@@ -629,8 +629,10 @@
       "free": "Gratis",
       "perMonth": "al mes",
       "perSeatPerMonth": "por puesto / mes",
+      "perYear": "al año",
+      "perSeatPerYear": "por puesto / año",
       "planned": "Precio previsto",
-      "plannedNote": "Precios previstos en dólares estadounidenses. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
+      "plannedNote": "Precios previstos. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
     },
     "selfHosted": {
       "title": "Autoalojado",
@@ -715,7 +717,14 @@
       "anonKeptA": "Cualquiera con el enlace puede leerlos y editarlos, y solo el navegador que creó un documento puede borrarlo. Inicia sesión para hacer tus documentos privados o protegerlos con contraseña.",
       "selfHostQ": "¿Puedo ejecutar markoto en mi propio servidor?",
       "selfHostA": "Sí. El código es source-available con la licencia FSL-1.1, que pasa a Apache-2.0 a los dos años. Una instancia autoalojada tiene todas las funciones y ningún plan: tú fijas los límites y conectas tu propio proveedor de IA o un modelo local. La guía de autoalojamiento de la documentación explica la instalación."
-    }
+    },
+    "interval": {
+      "label": "Periodo de facturación",
+      "month": "Mensual",
+      "year": "Anual · 2 meses gratis"
+    },
+    "currencyLabel": "Moneda",
+    "currencyLocked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",

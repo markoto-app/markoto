@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { TiersMap } from '~~/shared/config/tiers'
-import { PAID_PLAN_NAMES, type PlanPrices } from '~~/shared/config/pricing'
+import { PAID_PLAN_NAMES } from '~~/shared/config/pricing'
+import type { PlanName, TiersMap } from '~~/shared/config/tiers'
 import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 // Comparison table under the pricing cards: one row per limit or
@@ -15,7 +15,8 @@ import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 // first column stays put, and the page itself never scrolls sideways.
 const props = defineProps<{
   tiers: TiersMap
-  prices: PlanPrices
+  /** Monthly price per plan in `currency`. */
+  prices: Record<PlanName, number>
   currency: string
   /** Paid prices are planned, not on sale (billing off + coming soon). */
   planned: boolean

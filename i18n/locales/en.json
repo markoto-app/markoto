@@ -629,8 +629,10 @@
       "free": "Free",
       "perMonth": "per month",
       "perSeatPerMonth": "per seat / month",
+      "perYear": "per year",
+      "perSeatPerYear": "per seat / year",
       "planned": "Planned price",
-      "plannedNote": "Planned prices in US dollars. Prices and limits may change before paid plans launch; nothing can be bought yet."
+      "plannedNote": "Planned prices. Prices and limits may change before paid plans launch; nothing can be bought yet."
     },
     "selfHosted": {
       "title": "Self-hosted",
@@ -715,7 +717,14 @@
       "anonKeptA": "Anyone with the link can read and edit them, and only the browser that created one can delete it. Sign in to make documents private or lock them with a password.",
       "selfHostQ": "Can I run markoto on my own server?",
       "selfHostA": "Yes. The code is source-available under the FSL-1.1 licence, which becomes Apache-2.0 after two years. A self-hosted instance has every feature and no plans: you set the limits and connect your own AI provider or a local model. The self-hosting guide in the docs covers the install."
-    }
+    },
+    "interval": {
+      "label": "Billing period",
+      "month": "Monthly",
+      "year": "Annual · 2 months free"
+    },
+    "currencyLabel": "Currency",
+    "currencyLocked": "Your subscription is billed in another currency and can't switch. Choose that currency to continue."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",

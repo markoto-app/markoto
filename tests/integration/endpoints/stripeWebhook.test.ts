@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { nanoid } from 'nanoid'
 import { resetDb, testDb } from '../setup/db'
 import { TEST_BASE_URL } from '../setup/env'
-import { createUser } from '../setup/fixtures'
+import { createUser, createWorkspace } from '../setup/fixtures'
 import {
   loadStripeFixture,
   computeStripeSig,
@@ -831,5 +831,102 @@ describe('POST /api/webhooks/stripe — hand-built event edge cases', () => {
     expect(res.status).toBe(200)
     const body = await res.json()
     expect(body).toEqual({ received: true, handled: false }) // we don't handle customer.created
+  })
+})
+
+describe('POST /api/webhooks/stripe — workspace subscriptions (Team / Business)', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function readSub(workspaceId: string): Promise<Record<string, unknown> | undefined> {
+    const r = await testDb().query(
+      `SELECT plan, seats, status, stripe_subscription_id, currency, interval, valid_until, billing_admin_id
+       FROM workspace_subscriptions WHERE workspace_id = $1`,
+      [workspaceId]
+    )
+    return r.rows[0]
+  }
+
+  function subscriptionEvent(type: string, customer: string, priceId: string, extra: Record<string, unknown> = {}): Record<string, unknown> {
+    return makeStripeEvent(type, {
+      id: 'sub_ws_team',
+      object: 'subscription',
+      customer,
+      status: 'active',
+      items: {
+        data: [{
+          id: 'si_ws',
+          quantity: 5,
+          price: { id: priceId, object: 'price' },
+          current_period_start: 1800000000,
+          current_period_end: 1802678400
+        }]
+      },
+      ...extra
+    })
+  }
+
+  async function seedWorkspaceCustomer(): Promise<{ adminId: number, workspaceId: string }> {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await testDb().query(
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, billing_admin_id, stripe_customer_id, stripe_subscription_id)
+       VALUES ($1, 'team', 1, 'incomplete', $2, 'cus_ws_team', 'sub_ws_team')`,
+      [ws.workspaceId, admin.id]
+    )
+    return { adminId: admin.id, workspaceId: ws.workspaceId }
+  }
+
+  it('subscription.updated routes a workspace customer to its subscription row (plan, seats, period, price identity)', async () => {
+    const { workspaceId, adminId } = await seedWorkspaceCustomer()
+    const res = await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_business_year_chf'))
+    expect(res.status).toBe(200)
+    const row = await readSub(workspaceId)
+    expect(row).toMatchObject({
+      plan: 'business',
+      seats: 5,
+      status: 'active',
+      currency: 'chf',
+      interval: 'year',
+      billing_admin_id: adminId
+    })
+    expect((row?.valid_until as Date).getTime()).toBe(1802678400 * 1000)
+    // The admin's personal plan is untouched.
+    expect((await readUser(adminId)).plan).toBe('free')
+  })
+
+  it('subscription.updated with a Pro price on a workspace customer is ignored', async () => {
+    const { workspaceId } = await seedWorkspaceCustomer()
+    const res = await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_pro'))
+    expect(res.status).toBe(200)
+    expect((await readSub(workspaceId))?.status).toBe('incomplete')
+  })
+
+  it('subscription.deleted marks the workspace subscription canceled', async () => {
+    const { workspaceId } = await seedWorkspaceCustomer()
+    await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team'))
+    const res = await postWebhook(makeStripeEvent('customer.subscription.deleted', {
+      id: 'sub_ws_team', object: 'subscription', customer: 'cus_ws_team', status: 'canceled'
+    }))
+    expect(res.status).toBe(200)
+    expect((await readSub(workspaceId))?.status).toBe('canceled')
+  })
+
+  it('checkout for workspace:<id> whose subscription is not a workspace price writes nothing', async () => {
+    // stripe-mock's canned subscription price is annual CHF Pro, so the
+    // workspace path must refuse it rather than sell Pro to a workspace.
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const res = await postWebhook(makeStripeEvent('checkout.session.completed', {
+      id: 'cs_ws',
+      object: 'checkout.session',
+      client_reference_id: `workspace:${ws.workspaceId}`,
+      customer: 'cus_ws_new',
+      subscription: 'sub_ws_new',
+      metadata: { billing_admin_id: String(admin.id) }
+    }))
+    expect(res.status).toBe(200)
+    expect(await readSub(ws.workspaceId)).toBeUndefined()
   })
 })

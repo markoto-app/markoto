@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest'
 import type Stripe from 'stripe'
 import {
-  priceIdToPlan,
   handleCheckoutSessionCompleted,
   handleSubscriptionUpdated,
   handleSubscriptionDeleted,
@@ -80,37 +79,10 @@ vi.mock('../../server/utils/database', () => ({
   })
 }))
 
-const PRICES = {
-  pricePro: 'price_pro_abc'
-}
-
-describe('priceIdToPlan', () => {
-  it('maps configured price ids to plans', () => {
-    expect(priceIdToPlan('price_pro_abc', PRICES)).toBe('pro')
-  })
-
-  it('returns null for unknown price ids', () => {
-    expect(priceIdToPlan('price_unknown_xyz', PRICES)).toBeNull()
-    expect(priceIdToPlan('random', PRICES)).toBeNull()
-  })
-
-  it('returns null for empty string / null / undefined (defensive)', () => {
-    expect(priceIdToPlan('', PRICES)).toBeNull()
-    expect(priceIdToPlan(null, PRICES)).toBeNull()
-    expect(priceIdToPlan(undefined, PRICES)).toBeNull()
-  })
-
-  it('never confuses prices across plans (partial-string safety)', () => {
-    // If someone ever did a substring match by accident, a config
-    // like `pricePro='price_pro'` + caller `price_pro_free` would
-    // match. This test pins the exact-equality contract.
-    const prices = { pricePro: 'price_pro' }
-    expect(priceIdToPlan('price_pro', prices)).toBe('pro')
-    expect(priceIdToPlan('price_pro_max', prices)).toBeNull()
-    expect(priceIdToPlan('pro', prices)).toBeNull()
-    expect(priceIdToPlan('price_pro_free', prices)).toBeNull() // NOT pro
-  })
-})
+// The price catalogue maps this test price id to Pro (monthly, EUR) —
+// pricing plan WP2: prices are identified by lookup key or by the
+// NUXT_STRIPE_PRICE_IDS override, read per call.
+vi.stubEnv('NUXT_STRIPE_PRICE_IDS', 'markoto_pro_month_eur=price_pro_abc')
 
 // Minimal Stripe SDK mock. Only `subscriptions.retrieve` is called by
 // the checkout handler; shape it returns has to match the real SDK
@@ -146,8 +118,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
     })
 
     const result = await handleCheckoutSessionCompleted(event, {
-      stripe: stripe as Parameters<typeof handleCheckoutSessionCompleted>[1]['stripe'],
-      config: PRICES
+      stripe: stripe as Parameters<typeof handleCheckoutSessionCompleted>[1]['stripe']
     })
 
     expect(result.plan).toBe('pro')
@@ -170,7 +141,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
       }),
       data: { object: { id: 'cs', object: 'checkout.session', customer: 'cus', subscription: 'sub', client_reference_id: null } as unknown as Stripe.Checkout.Session }
     } as Stripe.CheckoutSessionCompletedEvent
-    const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
+    const result = await handleCheckoutSessionCompleted(event, { stripe })
     expect(result.matched).toBe(0)
     // SDK not called — we bail before fetching.
     expect((stripe as { subscriptions: { retrieve: ReturnType<typeof vi.fn> } }).subscriptions.retrieve)
@@ -185,7 +156,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
       customer: 'cus_test',
       subscription: null
     })
-    const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
+    const result = await handleCheckoutSessionCompleted(event, { stripe })
     // matched comes from the mock (returns 1 row)
     expect(result.plan).toBeNull()
     expect((stripe as { subscriptions: { retrieve: ReturnType<typeof vi.fn> } }).subscriptions.retrieve)
@@ -211,7 +182,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
       customer: 'cus',
       subscription: 'sub_abc'
     })
-    const result = await handleCheckoutSessionCompleted(event, { stripe, config: PRICES })
+    const result = await handleCheckoutSessionCompleted(event, { stripe })
     expect(result.plan).toBeNull()
   })
 
@@ -227,14 +198,14 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
       customer: 'cus',
       subscription: 'sub'
     })
-    await expect(handleCheckoutSessionCompleted(event, { stripe, config: PRICES }))
+    await expect(handleCheckoutSessionCompleted(event, { stripe }))
       .rejects.toThrow(/Network error/)
   })
 })
 
 describe('dispatchStripeEvent — routing + unknown events', () => {
   const mockStripe = makeStripeMock({ id: 'sub', items: { data: [{ price: { id: 'price_pro_abc' } }] } })
-  const opts = { stripe: mockStripe, config: PRICES }
+  const opts = { stripe: mockStripe }
 
   it('routes checkout.session.completed to its handler', async () => {
     const event = makeCheckoutSessionCompletedEvent({
@@ -342,7 +313,7 @@ describe('handleSubscriptionUpdated — unknown price graceful', () => {
       customer: 'cus',
       priceId: 'price_unrecognised'
     })
-    const result = await handleSubscriptionUpdated(event, PRICES)
+    const result = await handleSubscriptionUpdated(event)
     expect(result.plan).toBeNull()
     expect(result.matched).toBe(0)
     expect(warn).toHaveBeenCalled()

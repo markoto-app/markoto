@@ -5,7 +5,7 @@ import { flushPromises } from '@vue/test-utils'
 import { defineComponent, h, nextTick } from 'vue'
 import { CommonLegalFooter, NuxtPage, PricingWaitlistForm } from '#components'
 import { DEFAULT_TIERS, type TiersMap } from '~~/shared/config/tiers'
-import { PRICE_CURRENCY, type PlanPricesResponse } from '~~/shared/config/pricing'
+import { CURRENCIES, DEFAULT_PLAN_PRICES, type PlanPricesResponse } from '~~/shared/config/pricing'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 import type { BillingMode } from '~~/shared/config/billingMode'
 
@@ -52,7 +52,14 @@ const TIERS: TiersMap = {
 }
 registerEndpoint('/api/billing/tiers', () => TIERS)
 
-const PRICES: PlanPricesResponse = { currency: PRICE_CURRENCY, monthly: { free: 0, pro: 9, team: 12, business: 20 } }
+const PRICES: PlanPricesResponse = {
+  currencies: CURRENCIES,
+  prices: {
+    eur: DEFAULT_PLAN_PRICES.eur,
+    chf: { pro: { month: 10, year: 100 }, team: { month: 13, year: 130 }, business: { month: 21, year: 210 } }
+  },
+  source: 'planned'
+}
 registerEndpoint('/api/billing/prices', () => PRICES)
 
 const waitlistBodies: unknown[] = []
@@ -124,7 +131,7 @@ describe('pricing page — billing on', () => {
     for (const id of ['pricing-option-self-hosted', 'pricing-option-anon', 'pricing-tier-free', 'pricing-option-paid']) {
       expect(wrapper.find(`[data-testid="${id}"]`).exists(), id).toBe(true)
     }
-    const expected = { pro: '$9', team: '$12', business: '$20' }
+    const expected = { pro: '€9', team: '€12', business: '€20' }
     for (const [plan, price] of Object.entries(expected)) {
       const panel = wrapper.find(`[data-testid="pricing-tier-${plan}"]`)
       expect(panel.exists(), plan).toBe(true)
@@ -140,7 +147,7 @@ describe('pricing page — billing on', () => {
     expect(wrapper.find('[data-testid="pricing-compare"]').exists()).toBe(true)
   })
 
-  it('emits Offer JSON-LD for every plan with its USD price on the marketing site', async () => {
+  it('emits Offer JSON-LD for every plan with its EUR monthly price on the marketing site', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     setConfig({ marketingSite: true, siteUrl: 'https://markoto.app', anonDocTtlDays: 30 })
     await mountPricing()
@@ -148,7 +155,22 @@ describe('pricing page — billing on', () => {
     const data = pricingJsonLd()
     expect(data).not.toBeNull()
     expect(offerPrices(data)).toEqual(['0', '9', '12', '20'])
-    expect(JSON.stringify(data)).toContain('"priceCurrency":"USD"')
+    expect(JSON.stringify(data)).toContain('"priceCurrency":"EUR"')
+  })
+})
+
+describe('pricing page — interval and currency', () => {
+  it('switches to annual prices and to CHF', async () => {
+    setMode({ billingEnabled: true, plansComingSoon: false })
+    const wrapper = await mountPricing()
+    const price = () => wrapper.find('[data-testid="pricing-tier-pro"] [data-testid="pricing-price"]').text()
+    expect(price()).toBe('€9')
+    const yearTab = wrapper.findAll('[data-testid="pricing-interval"] [role="tab"]').find(tab => tab.text().startsWith('Annual'))
+    expect(yearTab).toBeDefined()
+    await yearTab?.trigger('mousedown', { button: 0 })
+    await flushPromises()
+    expect(price()).toBe('€90')
+    expect(wrapper.find('[data-testid="pricing-tier-pro"]').text()).toContain('per year')
   })
 })
 
@@ -159,7 +181,7 @@ describe('pricing page — billing off, plans coming soon (hosted SaaS)', () => 
     const paid = wrapper.find('[data-testid="pricing-option-paid"]')
     expect(paid.find('[data-testid="pricing-coming-soon-badge"]').exists()).toBe(true)
     expect(paid.find('[data-testid="pricing-planned-note"]').exists()).toBe(true)
-    const expected = { pro: '$9', team: '$12', business: '$20' }
+    const expected = { pro: '€9', team: '€12', business: '€20' }
     for (const [plan, price] of Object.entries(expected)) {
       const panel = wrapper.find(`[data-testid="pricing-tier-${plan}"]`)
       expect(panel.exists(), plan).toBe(true)
@@ -203,7 +225,7 @@ describe('pricing page — billing off, plans coming soon (hosted SaaS)', () => 
     const row = wrapper.find('[data-testid="pricing-compare-row-knowledgeFiles"]')
     expect(row.text()).toContain('7')
     expect(row.text()).toContain(String(DEFAULT_TIERS.business.knowledgeFiles.toLocaleString('en')))
-    expect(wrapper.find('[data-testid="pricing-compare-row-price"]').text()).toContain('$9 per month (planned)')
+    expect(wrapper.find('[data-testid="pricing-compare-row-price"]').text()).toContain('€9 per month (planned)')
     expect(wrapper.find('[data-testid="pricing-compare-row-documents"]').text()).toContain('Kept 30 days after the last edit')
     // Plan limits and features come from the same tier map.
     const members = wrapper.find('[data-testid="pricing-compare-row-members"]').text()

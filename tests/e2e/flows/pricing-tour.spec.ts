@@ -163,7 +163,7 @@ test('Pricing with paid plans live', { tag: '@billing' }, async ({ page, flow, e
     const panel = page.getByTestId(`pricing-tier-${plan}`)
     await expect(panel).toBeVisible()
     await expect(panel).toHaveAttribute('data-coming-soon', 'false')
-    await expect(panel.getByTestId('pricing-price')).toContainText('$')
+    await expect(panel.getByTestId('pricing-price')).toContainText('€')
     // Pro is bought personally; Team / Business are set up for a workspace.
     if (plan === 'pro') await expect(panel.getByRole('button', { name: /upgrade/i })).toBeVisible()
     else await expect(panel.getByTestId(`pricing-workspace-plan-${plan}`)).toBeVisible()

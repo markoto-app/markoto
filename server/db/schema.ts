@@ -41,6 +41,10 @@ export const users = pgTable('users', {
   stripeCurrentPeriodStart: timestamp('stripe_current_period_start', { withTimezone: true }),
   stripeCustomerId: text('stripe_customer_id').unique(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  // Currency of the personal subscription. A Stripe customer keeps one
+  // currency for life, so checkout refuses a different one (409
+  // `billing/currency-locked`). NULL until the first subscription.
+  billingCurrency: text('billing_currency', { enum: ['eur', 'chf'] }),
   // Phase 6 LiteLLM virtual-key handle. ONE source of truth for the
   // user's AI budget — every billable AI call routes through
   // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the

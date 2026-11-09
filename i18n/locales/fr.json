@@ -629,8 +629,10 @@
       "free": "Gratuit",
       "perMonth": "par mois",
       "perSeatPerMonth": "par place / mois",
+      "perYear": "par an",
+      "perSeatPerYear": "par place / an",
       "planned": "Prix prévu",
-      "plannedNote": "Prix prévus en dollars US. Les prix et les limites peuvent encore changer avant le lancement des forfaits payants ; rien n'est encore en vente."
+      "plannedNote": "Prix prévus. Les prix et les limites peuvent changer avant le lancement des forfaits payants ; rien ne peut encore être acheté."
     },
     "selfHosted": {
       "title": "Auto-hébergé",
@@ -715,7 +717,14 @@
       "anonKeptA": "Toute personne disposant du lien peut les lire et les modifier, et seul le navigateur qui a créé un document peut le supprimer. Connectez-vous pour rendre vos documents privés ou les protéger par un mot de passe.",
       "selfHostQ": "Puis-je héberger markoto sur mon propre serveur ?",
       "selfHostA": "Oui. Le code est source-available sous la licence FSL-1.1, qui devient Apache-2.0 après deux ans. Une instance auto-hébergée a toutes les fonctionnalités et aucun forfait : vous fixez les limites et connectez votre propre fournisseur d'IA ou un modèle local. Le guide d'auto-hébergement de la documentation décrit l'installation."
-    }
+    },
+    "interval": {
+      "label": "Période de facturation",
+      "month": "Mensuel",
+      "year": "Annuel · 2 mois offerts"
+    },
+    "currencyLabel": "Devise",
+    "currencyLocked": "Votre abonnement est facturé dans une autre devise et ne peut pas en changer. Choisissez cette devise pour continuer."
   },
   "topbar": {
     "planBadge": "Forfait : {plan}",

@@ -177,17 +177,17 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   // To make the plan land as `pro` (not just stamp the customer id),
   // the webhook needs the price id to map to Pro. The
   // checkout.session.completed handler fetches the subscription
-  // from Stripe; stripe-mock returns its own canned price id which
-  // doesn't map to ours, so the plan stays Free. Drive a separate
-  // subscription.updated event with our Pro price to nudge the
-  // mapping. (Same pattern the stripeWebhook integration tests
+  // from Stripe; stripe-mock returns its own canned price id (mapped to
+  // annual CHF Pro by NUXT_STRIPE_PRICE_IDS in the test stack). Drive a
+  // separate subscription.updated event with the monthly EUR Pro price so
+  // the flow ends on the plan the user picked. (Same pattern the stripeWebhook integration tests
   // use to exercise the price-mapping branch.)
   const subEvent = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
   subEvent.id = `evt_test_sub_updated_pro_${eventSuffix}`
   const subObj = (subEvent.data as { object: Record<string, unknown> }).object
   subObj.id = subscriptionId
   subObj.customer = customerId
-  // The price id in the fixture should match `NUXT_STRIPE_PRICE_PRO`.
+  // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`.
   // The integration tests rely on the same env-var-driven mapping;
   // the fixture's price id is `price_test_pro` which is the value
   // wired into the test stack (see docker-compose.test.yml).
