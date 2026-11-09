@@ -40,6 +40,7 @@ const {
   workspaceRole: docWorkspaceRole,
   customCssAllowed,
   workspacePlan,
+  ssoLoginUrl,
   undoManager,
   title,
   theme,
@@ -974,7 +975,7 @@ const _statusIcon = computed(() => {
         {{ t('access.privateTitle') }}
       </h1>
       <p class="text-sm text-muted">
-        {{ loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
+        {{ ssoLoginUrl ? t('sso.requiredBody') : loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
       </p>
       <div class="flex justify-center gap-2 pt-2">
         <UButton
@@ -989,6 +990,16 @@ const _statusIcon = computed(() => {
           @click="navigateTo(primaryLoginPath, { external: true })"
         >
           {{ t('auth.login') }}
+        </UButton>
+        <!-- The doc's workspace enforces single sign-on (WP14). -->
+        <UButton
+          v-if="ssoLoginUrl"
+          color="neutral"
+          icon="i-lucide-key-round"
+          data-testid="doc-sso-sign-in"
+          @click="navigateTo(ssoLoginUrl, { external: true })"
+        >
+          {{ t('sso.signIn') }}
         </UButton>
       </div>
     </div>

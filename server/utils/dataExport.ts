@@ -11,7 +11,9 @@ import {
   documentComments,
   documents,
   moderationNotices,
+  ssoConnections,
   themes,
+  userIdentities,
   users,
   workspaceMembers,
   workspaces
@@ -85,6 +87,8 @@ Contents:
                          email ("received") and ones you sent
                          ("sent": the address you typed, role, dates).
   themes.json            saved themes you've created.
+  sso_identities.json    workspace identity providers (single sign-on)
+                         your account is linked to.
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
   ai/edit-provenance.ndjson  which AI sessions you started on which
@@ -187,6 +191,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
   const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, userId)
   await addCreditGrantsEntry(entries, userId)
+  await addSsoIdentitiesEntry(entries, userId)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -670,6 +675,33 @@ async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<n
     currency: r.currency,
     expiresAt: r.expiresAt.toISOString(),
     createdAt: r.createdAt.toISOString()
+  })), null, 2))
+  return rows.length
+}
+
+/**
+ * Single sign-on (WP14): the workspace identity providers this account
+ * is linked to — which workspace, the protocol, the subject the IdP
+ * knows you by, whether provisioning (SCIM) disabled it, last sign-in.
+ */
+async function addSsoIdentitiesEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await useDatabase().select({
+    workspaceId: ssoConnections.workspaceId,
+    protocol: ssoConnections.protocol,
+    subject: userIdentities.subject,
+    active: userIdentities.active,
+    createdAt: userIdentities.createdAt,
+    lastLoginAt: userIdentities.lastLoginAt
+  }).from(userIdentities)
+    .innerJoin(ssoConnections, eq(ssoConnections.id, userIdentities.connectionId))
+    .where(eq(userIdentities.userId, userId))
+  entries['sso_identities.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    workspaceId: r.workspaceId,
+    protocol: r.protocol,
+    subject: r.subject,
+    active: r.active,
+    linkedAt: r.createdAt.toISOString(),
+    lastSignInAt: r.lastLoginAt?.toISOString() ?? null
   })), null, 2))
   return rows.length
 }

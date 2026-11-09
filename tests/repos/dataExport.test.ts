@@ -72,6 +72,7 @@ describe('buildExportZip', () => {
       'consent.ndjson',
       'moderation_notices.ndjson',
       'profile.json',
+      'sso_identities.json',
       'themes.json',
       'waitlist.ndjson',
       'workspace_invites.json',

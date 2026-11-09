@@ -1308,7 +1308,8 @@
       "documents": "Documents",
       "knowledge": "Knowledge",
       "settings": "Settings",
-      "billing": "Billing"
+      "billing": "Billing",
+      "sso": "Single sign-on"
     },
     "settings": {
       "title": "Workspace settings",
@@ -2246,5 +2247,109 @@
     "buyFailed": "Could not start the purchase",
     "purchased": "Credits purchased",
     "purchasedBody": "They are added as soon as Stripe confirms the payment, usually within a few seconds."
+  },
+  "sso": {
+    "title": "Single sign-on",
+    "loading": "Loading single sign-on…",
+    "loadFailed": "Couldn't load the single sign-on settings.",
+    "planNotice": "Single sign-on with your own identity provider is part of the Business plan.",
+    "intro": "Members sign in to this workspace through your organisation's identity provider (OpenID Connect or SAML). Once switched on, everyone needs to sign in that way to open the workspace; admins can always come back here to change or remove it.",
+    "enforcedNotice": "Single sign-on is on: members open this workspace only after signing in through your identity provider (valid for 12 hours).",
+    "idpTitle": "Identity provider",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "Issuer URL",
+      "issuerHint": "The address your provider's /.well-known/openid-configuration lives under.",
+      "clientId": "Client ID",
+      "clientSecret": "Client secret",
+      "secretKept": "Leave empty to keep the saved secret."
+    },
+    "saml": {
+      "entityId": "Identity provider entity ID",
+      "ssoUrl": "Single sign-on URL",
+      "certificate": "Signing certificate",
+      "certificateKept": "Saved: {subject}, valid until {date}. Paste a new one to replace it."
+    },
+    "defaultRole": "Role for new members",
+    "defaultRoleHint": "For people who join by signing in or through provisioning.",
+    "save": "Save",
+    "saved": "Single sign-on settings saved",
+    "saveFailed": "Couldn't save the single sign-on settings.",
+    "testAndActivate": "Test sign-in and switch on",
+    "testAgain": "Test sign-in",
+    "draftHint": "Not switched on yet. Test the sign-in with your own account at the identity provider; when it works, single sign-on is switched on for the workspace.",
+    "testActivated": "Sign-in works — single sign-on is now on for this workspace",
+    "testOk": "Sign-in works",
+    "status": {
+      "active": "On",
+      "draft": "Not switched on"
+    },
+    "sp": {
+      "title": "Enter these at your identity provider",
+      "body": "Your identity provider needs these values to send people back to markoto.",
+      "callbackUrl": "Redirect URI",
+      "entityId": "Entity ID (audience)",
+      "acsUrl": "Reply URL (ACS)",
+      "metadataUrl": "Metadata URL",
+      "loginUrl": "Sign-in link"
+    },
+    "copy": "Copy",
+    "copied": "Copied",
+    "domains": {
+      "title": "Email domains",
+      "body": "Verify the domains your organisation's email addresses use. Only addresses in a verified domain are linked to existing markoto accounts or join the workspace on their first sign-in.",
+      "verified": "Verified",
+      "unverified": "Not verified",
+      "verify": "Check now",
+      "remove": "Remove domain",
+      "txtHint": "Add a TXT record on {name} with this value, then check:",
+      "add": "Add domain"
+    },
+    "domainVerified": "{domain} is verified",
+    "domainAddFailed": "Couldn't add the domain.",
+    "domainVerifyFailed": "Couldn't verify the domain.",
+    "domainRemoveFailed": "Couldn't remove the domain.",
+    "scim": {
+      "title": "Provisioning (SCIM)",
+      "body": "Let your identity provider add and remove members automatically. Enter the base URL and the token in its SCIM settings. Removing someone there takes them out of this workspace at once.",
+      "baseUrl": "SCIM base URL",
+      "tokenOnce": "Copy this token now — it won't be shown again.",
+      "create": "Create token",
+      "rotate": "Replace token",
+      "revoke": "Switch off provisioning"
+    },
+    "scimFailed": "Couldn't change the provisioning token.",
+    "remove": "Remove single sign-on",
+    "removeConfirm": "Members will sign in as before again.",
+    "removed": "Single sign-on removed",
+    "removeFailed": "Couldn't remove single sign-on.",
+    "requiredTitle": "Sign in through your organisation",
+    "requiredBody": "This workspace uses single sign-on. Sign in through your organisation's identity provider to open it.",
+    "required": "This workspace uses single sign-on. Sign in through your organisation to continue.",
+    "signIn": "Sign in with your organisation",
+    "error": {
+      "title": "Sign-in didn't work",
+      "not-provisioned": "Your account isn't set up for this workspace. Ask a workspace admin to add you.",
+      "deactivated": "Your organisation removed your access to this workspace.",
+      "not-active": "Single sign-on for this workspace isn't switched on yet.",
+      "test-not-admin": "Only a workspace admin can test the sign-in.",
+      "test-mismatch": "This identity-provider account is linked to another markoto account. Test with your own account.",
+      "no-seat": "All paid seats of this workspace are taken. Ask an admin to add a seat.",
+      "member-limit": "This workspace has reached the member limit of its plan.",
+      "idp-unavailable": "The identity provider couldn't be reached. Try again in a moment.",
+      "failed": "The sign-in couldn't be completed. Start again from the sign-in link.",
+      "unknown": "This sign-in link doesn't exist.",
+      "toWorkspace": "Back to the workspace"
+    },
+    "discover": {
+      "button": "Sign in with your organisation",
+      "placeholder": "Work email",
+      "continue": "Continue",
+      "notFound": "Single sign-on isn't set up for this email address.",
+      "failed": "Something went wrong. Try again."
+    }
   }
 }

@@ -453,3 +453,39 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
     expect((await testDb().query('SELECT role FROM workspace_members WHERE user_id = $1', [admin.id])).rows).toEqual([{ role: 'admin' }])
   })
 })
+
+describe('Sign in with your organisation (discover) + the workspace\'s SSO state', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('finds the active connection of the workspace that verified the domain, nothing else', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const discover = (email: string, returnTo?: string) => fetch(`${TEST_BASE_URL}/api/auth/sso/discover`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email, returnTo })
+    })
+    expect((await discover('ada@acme.test')).status).toBe(404)
+    const connectionId = await activateOidc(admin.id, ws.workspaceId)
+    expect((await discover('ada@acme.test')).status).toBe(404) // domain not verified
+    await verifyDomain(ws.workspaceId, 'acme.test')
+    const ok = await discover('Ada@ACME.test', '/d/abc')
+    expect(ok.status).toBe(200)
+    expect(await ok.json()).toEqual({ loginUrl: `/auth/sso/${connectionId}?returnTo=${encodeURIComponent('/d/abc')}` })
+    // An off-site returnTo is dropped.
+    expect(await (await discover('ada@acme.test', '//evil.example')).json()).toEqual({ loginUrl: `/auth/sso/${connectionId}` })
+  })
+
+  it('admins see whether SSO is available and on; members don\'t', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const adminView = await (await (await loggedInClient(admin.id)).get(`/api/workspaces/${ws.workspaceId}`)).json() as { workspace: { sso: unknown } }
+    expect(adminView.workspace.sso).toEqual({ available: true, status: 'none' })
+    const editorView = await (await (await loggedInClient(editor.id)).get(`/api/workspaces/${ws.workspaceId}`)).json() as { workspace: { sso: unknown } }
+    expect(editorView.workspace.sso).toBeNull()
+  })
+})

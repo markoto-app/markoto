@@ -12,10 +12,13 @@ export const SSO_REQUIRED_CODE = 'sso/required'
 export async function ssoRequiredError(workspaceId: string, userId: number, returnTo?: string): Promise<Error | null> {
   const loginUrl = await ssoLoginUrlForMember(workspaceId, userId, returnTo)
   if (!loginUrl) return null
+  // Admins may still manage (and switch off) the connection — the
+  // break-glass the UI shows on the sign-in screen.
+  const canManageSso = (await getMemberRoleIgnoringSso(workspaceId, userId)) === 'admin'
   return createError({
     statusCode: 403,
     message: 'This workspace uses single sign-on. Sign in through your organisation to continue.',
-    data: { code: SSO_REQUIRED_CODE, messageKey: 'sso.required', loginUrl }
+    data: { code: SSO_REQUIRED_CODE, messageKey: 'sso.required', loginUrl, canManageSso }
   })
 }
 

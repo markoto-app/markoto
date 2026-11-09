@@ -1,7 +1,8 @@
 import { getWorkspace } from '../../../repos/workspaces'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
-import { resolveWorkspacePlan } from '../../../utils/entitlements'
+import { planHasFeature, resolveWorkspacePlan } from '../../../utils/entitlements'
+import { getSsoConnectionForWorkspace } from '../../../repos/sso'
 import { countSeatsUsed, getPooledWorkspace } from '../../../utils/workspaceBilling'
 import { getWorkspaceSubscription } from '../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../utils/billingMode'
@@ -55,6 +56,17 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Single sign-on (WP14), admins only: whether the SSO tab is shown
+  // (the plan includes it, or a connection exists to switch off).
+  let sso: { available: boolean, status: 'none' | 'draft' | 'active' } | null = null
+  if (myRole === 'admin') {
+    const connection = await getSsoConnectionForWorkspace(wsId)
+    sso = {
+      available: planHasFeature(await resolveWorkspacePlan(wsId), 'sso'),
+      status: connection?.status ?? 'none'
+    }
+  }
+
   return {
     workspace: {
       workspaceId: ws.workspaceId,
@@ -73,7 +85,8 @@ export default defineEventHandler(async (event) => {
       defaultTheme: ws.defaultTheme,
       // Whether a Team / Business subscription currently covers it.
       pooled: pool !== null,
-      billing
+      billing,
+      sso
     },
     documents,
     members

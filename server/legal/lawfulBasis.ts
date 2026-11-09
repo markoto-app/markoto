@@ -36,10 +36,17 @@ export type ProcessingPurpose = {
 
 export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   {
+    // `workspace_sso_identity` (WP14): signing in through a workspace's
+    // own identity provider — the identifier it sends (OIDC subject /
+    // SAML NameID), the link to the account, the last sign-in, a 12-hour
+    // sign-in record per workspace, and what that workspace's SCIM
+    // provisioning sent (external id, active / deactivated). Kept until
+    // the link is removed (SCIM delete, connection removed, account
+    // deleted).
     id: 'account_authentication',
     label: 'Sign-in and account',
     basis: 'contract',
-    dataCategories: ['email', 'oauth_identifier', 'display_name'],
+    dataCategories: ['email', 'oauth_identifier', 'display_name', 'workspace_sso_identity'],
     retention: 'until_deletion',
     subProcessors: ['github_oauth', 'google_oauth']
   },
