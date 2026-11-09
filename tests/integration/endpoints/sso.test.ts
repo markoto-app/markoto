@@ -5,6 +5,7 @@ import { loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { ssoMockIdpBase, TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 import { authnRequestId, makeIdpKeyPair, samlResponse, type IdpKeyPair } from '../setup/samlIdp'
+import { PRIVACY_VERSION, TOS_VERSION } from '~~/shared/legal/versions'
 
 // Per-workspace single sign-on (WP14), end to end through the Nitro
 // server:
@@ -596,6 +597,13 @@ describe('SSO enforcement covers the documents a member owns', () => {
     const signIn = () => oidcSignIn(connectionId, { sub: 'hana-sub', claims: { email: 'hana@acme.test', email_verified: true, name: 'Hana' } })
     const first = await signIn()
     const hanaId = await signedInUser(first)
+    // The account was created by the sign-in: pass the onboarding gate as
+    // a returning user would have (the test server has legal surfaces on).
+    await testDb().query(
+      `UPDATE users SET age_confirmed_at = NOW(), privacy_version_accepted = $2, privacy_version_accepted_locale = 'en',
+         tos_version_accepted = $3, tos_version_accepted_locale = 'en' WHERE id = $1`,
+      [hanaId, PRIVACY_VERSION, TOS_VERSION]
+    )
     const doc = await createDoc({ ownerId: hanaId, workspaceId: ws.workspaceId, accessMode: 'private' })
     expect(await ownerAccess(hanaId, doc.docId, ws.workspaceId)).toMatchObject({ token: true, metaPut: true, files: true })
 
