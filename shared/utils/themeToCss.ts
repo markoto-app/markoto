@@ -584,6 +584,10 @@ function tableBlock(theme: DocTheme): string {
     // like SEV-1 never part (renderMarkdown wraps them in table cells).
     `.paged-doc .markoto-nowrap { white-space: nowrap; }`,
     `.paged-doc th code { overflow-wrap: anywhere; }`,
+    // How wide a table is with nothing broken apart: the pagination
+    // handler sets this attribute for one measurement in a multi-column
+    // page and lets a table that needs more than a column span the page.
+    `.paged-doc table[data-markoto-measure] td, .paged-doc table[data-markoto-measure] th, .paged-doc table[data-markoto-measure] code, .paged-doc table[data-markoto-measure] .markoto-code-token { overflow-wrap: normal !important; word-break: normal !important; max-width: none !important; }`,
     `.paged-doc table:has(tr > :nth-child(8)) { font-size: 0.88em; }`,
     `.paged-doc table:has(tr > :nth-child(10)) { font-size: 0.8em; }`,
     `.paged-doc th {
@@ -882,11 +886,14 @@ export function mathFontScale(bodyFont: string): number {
  * places TeX allows a break (after a relation or a binary operator on
  * the outer level, TeXbook p. 173 — `=`, `+`, `\le` …), and only its
  * `white-space: nowrap` on display math keeps those boxes on one line.
- * Allowing the wrap continues a long equation on the next line after an
- * `=` or `+`, centred like the first. Nothing is clipped any more
- * (overflow visible): a single unbreakable stretch wider than the column
- * — a huge fraction or matrix — runs into the margin instead of being
- * cut off at the page edge, as `overflow-x: auto` did on paper.
+ * Allowing the wrap continues a long equation on the next line. The
+ * pagination handler (`pagedHandlers.ts`, display math) turns that into
+ * TeX's display convention: the break comes BEFORE the relation or
+ * operator, relations first, and the continuation lines hang at the first
+ * relation, the block of lines centred. A single unbreakable piece wider
+ * than the column — a huge fraction or matrix — shrinks to 85 % at most;
+ * still too wide, it spans a multi-column page or runs into the margin
+ * (never clipped, as `overflow-x: auto` did on paper).
  *
  * KaTeX lays a formula out with nested inline tables whose rows are
  * centred by `text-align` — but inherited text properties of the
@@ -904,6 +911,9 @@ function katexBlock(theme: DocTheme): string {
   break-inside: avoid;
 }`,
     `.paged-doc .katex-display > .katex { white-space: normal; }`,
+    // The pagination handler gives a wrapped display a hanging indent
+    // (`text-indent` on `.katex-html`); KaTeX's boxes must not inherit it.
+    `.paged-doc .katex-display .katex-html > *, .paged-doc .katex-display .katex-base { text-indent: 0; }`,
     `.paged-doc .katex { font-size: ${mathFontScale(theme.body.font)}em; }`,
     `.paged-doc .katex { text-align-last: auto; letter-spacing: normal; word-spacing: normal; text-transform: none; font-variant: normal; font-feature-settings: normal; hyphens: manual; -webkit-hyphens: manual; }`
   ].join('\n')
@@ -1259,10 +1269,13 @@ function captionBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   // counters can't reset per section level the document happens to use.
   const number = (counter: string) => numbering === 'chapter' ? `attr(${CAPTION_NUMBER_ATTR})` : `counter(${counter})`
   // `blocks.captionLabelStyle: 'stacked'`: a bold upright label on its own
-  // line, the title under it without separator (APA).
+  // line, the title under it without separator (APA). The label is in the
+  // text colour: the bold cut of a light caption colour (the default
+  // caption is `--doc-secondary`, small, often in a mono face) read as a
+  // light weight.
   const stacked = labelStyle === 'stacked'
   const separator = stacked ? '' : ` ${cssString(labels.separator)}`
-  const stackedLook = stacked ? ' display: block; font-style: normal; font-weight: 700;' : ''
+  const stackedLook = stacked ? ' display: block; font-style: normal; font-weight: 700; color: var(--doc-text);' : ''
   if (tableLabel) {
     rules.push(`.paged-doc table > caption { counter-increment: mk-table; }
 .paged-doc table > caption::before { content: ${cssString(`${labels.table} `)} ${number('mk-table')}${separator};${stackedLook} }`)
