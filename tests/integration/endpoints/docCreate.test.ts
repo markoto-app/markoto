@@ -186,7 +186,7 @@ describe('POST /api/docs', () => {
       const runbook = THEME_PRESETS.find(p => p.id === 'runbook')
       const theme = row.theme as { body: unknown, cover: { authors: string[], subtitle: string } }
       expect(theme.body).toEqual(runbook?.theme.body)
-      expect(theme.cover.authors).toEqual(['Teamname'])
+      expect(theme.cover.authors).toEqual(['Name des Teams'])
       expect(theme.cover.subtitle).not.toBe('')
     })
 
