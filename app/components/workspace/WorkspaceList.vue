@@ -10,10 +10,6 @@ export interface WorkspaceListItem {
   lastActive: string | number | Date | null
   createdAt: string | number | Date
   role: 'admin' | 'editor' | 'viewer'
-  /** `(+)` AI sponsorship state. Drives the seal stamp on the card —
-      shu means AI presence, and a sponsored workspace is exactly that
-      regardless of who's footing the bill. */
-  aiEnabled: boolean
 }
 
 defineProps<{
@@ -22,9 +18,6 @@ defineProps<{
 }>()
 
 const { t } = useI18n()
-// `(+)` sponsorship only exists with billing on; a stale `aiEnabled`
-// row must not stamp the seal on a billing-off deployment.
-const { billingEnabled } = useBillingMode()
 
 function formatDate(value: string | number | Date | null) {
   if (!value) return ''
@@ -70,15 +63,6 @@ function formatDate(value: string | number | Date | null) {
         <div class="min-w-0 flex-1">
           <div class="flex items-center gap-2 min-w-0">
             <p class="font-serif text-base font-normal tracking-tight truncate">{{ ws.name }}</p>
-            <!-- Seal as the universal "AI is here" mark. Stamped on
-                 every (+) workspace regardless of who's sponsoring —
-                 the role badge below carries identity; the seal
-                 carries presence of intelligence. -->
-            <CommonSeal
-              v-if="billingEnabled && ws.aiEnabled"
-              :size="8"
-              class="shrink-0"
-            />
             <UBadge
               v-if="ws.role !== 'admin'"
               size="xs"

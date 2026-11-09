@@ -75,18 +75,20 @@ function setAvailability(chatSource: 'user' | 'instance'): void {
 }
 
 function setCredits(poolExhausted: boolean): void {
-  useState<AiCredits | null>('ai-credits').value = {
-    pointsRemaining: 300,
-    pointsTotal: 500,
-    plan: 'free',
-    periodEnd: new Date().toISOString(),
-    attribution: 'user',
-    freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null }
+  useState<Record<string, AiCredits | null>>('ai-credits').value = {
+    '': {
+      pointsRemaining: 300,
+      pointsTotal: 500,
+      plan: 'free',
+      periodEnd: new Date().toISOString(),
+      attribution: 'user',
+      freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null }
+    }
   }
 }
 
 beforeEach(() => {
-  useState<AiCredits | null>('ai-credits').value = null
+  useState<Record<string, AiCredits | null>>('ai-credits').value = {}
 })
 
 describe('AIPromptBar — free AI allowance', () => {

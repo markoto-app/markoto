@@ -1,11 +1,22 @@
 import type Stripe from 'stripe'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
-import { users, processedWebhookEvents, pendingStripeEvents } from '../db/schema'
+import { users, processedWebhookEvents, pendingStripeEvents, workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from './database'
-import type { PlanName } from '~~/shared/config/tiers'
+import { isWorkspacePlan, type PersonalPlanName, type PlanName, type WorkspacePlanName } from '~~/shared/config/tiers'
+import type { Currency, PriceIdentity } from '~~/shared/config/pricing'
+import { identifyStripePrice } from './stripePrices'
+import { getPooledWorkspace } from './workspaceBilling'
+import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from './litellm/workspaceTeams'
+import { notifyWorkspaceAdmins } from './email/workspaceBillingEmails'
+import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../repos/aiCreditGrants'
+import { recomputeCreditBudget } from './aiCredits'
+import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
+
+/** `client_reference_id` prefix of a workspace (Team / Business) checkout. */
+export const WORKSPACE_REF_PREFIX = 'workspace:'
 
 // Drizzle's node-postgres transaction handle — same shape as the
 // top-level `db` for our usage but typed distinctly. We accept either
@@ -27,7 +38,7 @@ type DbOrTx = ReturnType<typeof useDatabase> | Parameters<Parameters<ReturnType<
 // runs each closure best-effort.
 type DeferredAfterCommit = (() => Promise<void>)[]
 
-// Stripe webhook handlers — pure functions of `(event, config) → DB
+// Stripe webhook handlers — pure functions of `(event, stripe) → DB
 // mutation`. Kept separate from the HTTP endpoint so tests can call
 // them directly without going through signature verification for
 // every case. The endpoint (`server/api/webhooks/stripe.post.ts`)
@@ -52,43 +63,70 @@ type DeferredAfterCommit = (() => Promise<void>)[]
 //     The user's plan stays until the eventual subscription.deleted.
 
 /**
- * Map a Stripe Price ID → our internal plan name. Read from runtime
- * config so ops can swap price IDs without code changes (e.g. annual
- * vs monthly). Unknown price IDs return `null` so the handler can
- * log + skip rather than mis-assign a plan.
+ * What a subscription's first item sells (plan / interval / currency),
+ * via the price catalogue (server/utils/stripePrices.ts): the
+ * `NUXT_STRIPE_PRICE_IDS` overrides, then the price's lookup key (always
+ * on webhook payloads), then the cached catalogue. `null` = not one of
+ * our prices — callers log + skip rather than mis-assign a plan.
  */
-export function priceIdToPlan(priceId: string | null | undefined, config: {
-  pricePro: string
-  priceMax: string
-  priceUltra: string
-}): PlanName | null {
-  if (!priceId) return null
-  if (priceId === config.pricePro) return 'pro'
-  if (priceId === config.priceMax) return 'max'
-  if (priceId === config.priceUltra) return 'ultra'
+async function identifyItem(
+  stripe: Stripe | null,
+  item: { price?: { id?: string | null, lookup_key?: string | null } | null } | null | undefined
+): Promise<PriceIdentity | null> {
+  return identifyStripePrice(stripe, item?.price ?? null)
+}
+
+/** Billing period of a subscription item (API 2025-01-27: on the item). */
+function itemPeriod(item: unknown): { start: Date | null, end: Date | null } {
+  const p = item as { current_period_start?: number, current_period_end?: number } | null | undefined
+  return {
+    start: p?.current_period_start ? new Date(p.current_period_start * 1000) : null,
+    end: p?.current_period_end ? new Date(p.current_period_end * 1000) : null
+  }
+}
+
+function warnUnknownPrice(where: string, priceId: string | null | undefined, ref: string): void {
+  const msg = `[stripe/webhook] ${where} unknown price: ${priceId ?? 'none'} (${ref})`
+  console.warn(msg)
+  Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'unknown_price' } })
+}
+
+/**
+ * Who a Stripe customer belongs to. Personal subscriptions use the user's
+ * customer (`users.stripe_customer_id`); every Team / Business workspace
+ * subscription has its OWN customer (`workspace_subscriptions
+ * .stripe_customer_id`), so a customer id names exactly one subject.
+ * `null` = not bound yet (the out-of-order stash case).
+ */
+type CustomerSubject = { kind: 'user', userId: number } | { kind: 'workspace', workspaceId: string }
+
+async function subjectForCustomer(customerId: string, db: DbOrTx): Promise<CustomerSubject | null> {
+  const user = await db.select({ id: users.id }).from(users).where(eq(users.stripeCustomerId, customerId)).limit(1)
+  if (user[0]) return { kind: 'user', userId: user[0].id }
+  const ws = await db.select({ workspaceId: workspaceSubscriptions.workspaceId })
+    .from(workspaceSubscriptions)
+    .where(eq(workspaceSubscriptions.stripeCustomerId, customerId))
+    .limit(1)
+  if (ws[0]) return { kind: 'workspace', workspaceId: ws[0].workspaceId }
   return null
 }
 
 interface UpdateUserArgs {
   where: { stripeCustomerId?: string, id?: number }
   set: Partial<{
-    plan: PlanName
+    plan: PersonalPlanName
     planValidUntil: Date | null
     stripeCurrentPeriodStart: Date | null
     stripeCustomerId: string | null
     stripeSubscriptionId: string | null
+    billingCurrency: Currency | null
   }>
 }
 
 /**
- * One-shot user update by customer id OR by internal user id. Used
- * by every webhook handler. Returns the number of rows matched (0
- * when the customer id doesn't map to a user — logged but not
- * fatal: old customers from prior test runs, deleted accounts, etc.).
- *
- * Accepts an optional `db` so the dispatcher can pass a transaction
- * handle. When omitted, falls back to the global pool — used by direct
- * unit-test callers that don't go through `dispatchStripeEvent`.
+ * One-shot user update by customer id OR by internal user id. Returns
+ * the number of rows matched (0 when the customer id doesn't map to a
+ * user — logged but not fatal).
  */
 async function updateUser(opts: UpdateUserArgs, db?: DbOrTx): Promise<number> {
   const handle = db ?? useDatabase()
@@ -100,33 +138,187 @@ async function updateUser(opts: UpdateUserArgs, db?: DbOrTx): Promise<number> {
 }
 
 /**
+ * Write a workspace's subscription state from a Stripe subscription
+ * (insert on first sight, update after). Seats = the item quantity.
+ */
+async function upsertWorkspaceSubscriptionFromStripe(
+  db: DbOrTx,
+  args: {
+    workspaceId: string
+    sub: Stripe.Subscription
+    identity: PriceIdentity & { plan: WorkspacePlanName }
+    customerId: string
+    billingAdminId?: number | null
+  }
+): Promise<void> {
+  const item = args.sub.items.data[0]
+  const period = itemPeriod(item)
+  const values = {
+    plan: args.identity.plan,
+    seats: Math.max(1, item?.quantity ?? 1),
+    status: args.sub.status,
+    stripeCustomerId: args.customerId,
+    stripeSubscriptionId: args.sub.id,
+    currentPeriodStart: period.start,
+    validUntil: period.end,
+    currency: args.identity.currency,
+    interval: args.identity.interval,
+    updatedAt: new Date()
+  }
+  const billingAdmin = args.billingAdminId === undefined ? {} : { billingAdminId: args.billingAdminId }
+  await db.insert(workspaceSubscriptions)
+    .values({ workspaceId: args.workspaceId, ...values, ...billingAdmin })
+    .onConflictDoUpdate({ target: workspaceSubscriptions.workspaceId, set: { ...values, ...billingAdmin } })
+}
+
+/**
+ * After commit: bring the workspace's LiteLLM team budget (seats ×
+ * per-seat) and every member key's default limit in line with the
+ * subscription the webhook just wrote. No-op unless entitled. Errors are
+ * reported, never thrown — `litellm-key-reconcile` repairs drift.
+ */
+function deferWorkspaceTeamSync(deferAfterCommit: DeferredAfterCommit | undefined, workspaceId: string): void {
+  deferAfterCommit?.push(async () => {
+    try {
+      const pool = await getPooledWorkspace(workspaceId)
+      if (!pool) return
+      await ensureWorkspaceTeam(pool)
+      await syncAllMemberKeyLimits(pool)
+    } catch (e) {
+      console.warn(`[stripe/webhook] workspace team sync failed for ${workspaceId}: ${e instanceof Error ? e.message : e}`)
+      Sentry.captureException(e, { tags: { component: 'stripeWebhook', event: 'workspace_team_sync_failed', workspaceId } })
+    }
+  })
+}
+
+/**
+ * A paid credit top-up (WP4): record the grant (once per payment intent)
+ * and raise the subject's AI budget after commit. The subject comes from
+ * the session metadata our checkout set (`subject_type` / `subject_id`);
+ * a personal buyer's first customer id is stamped on the user.
+ */
+async function handleTopupCheckout(
+  session: Stripe.Checkout.Session,
+  opts: { db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit }
+): Promise<{ matched: number, plan: PlanName | null }> {
+  const meta = session.metadata ?? {}
+  const pack = meta.pack
+  const subjectType = meta.subject_type
+  const subjectId = meta.subject_id
+  const paymentIntent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+  const currency = (session.currency ?? '').toLowerCase()
+  if (meta.kind !== 'topup' || !isTopupPackId(pack) || (subjectType !== 'user' && subjectType !== 'workspace') || !subjectId || !paymentIntent || !isCurrency(currency)) {
+    const msg = `[stripe/webhook] payment checkout that isn't a valid top-up: session=${session.id}`
+    console.warn(msg)
+    Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'topup_invalid' } })
+    return { matched: 0, plan: null }
+  }
+  if (session.payment_status !== 'paid') return { matched: 0, plan: null }
+  const db = opts.db ?? useDatabase()
+  const subject: CreditSubject = { type: subjectType, id: subjectId }
+  const expiresAt = new Date()
+  expiresAt.setUTCMonth(expiresAt.getUTCMonth() + TOPUP_VALIDITY_MONTHS)
+  const inserted = await insertCreditGrant({
+    subject,
+    pack,
+    amountUsd: topupPack(pack).creditUsd,
+    amountPaid: session.amount_total ?? 0,
+    currency,
+    stripePaymentIntentId: paymentIntent,
+    stripeCheckoutSessionId: session.id,
+    expiresAt
+  }, db)
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+  if (subjectType === 'user' && customerId) {
+    await db.update(users)
+      .set({ stripeCustomerId: customerId, billingCurrency: currency })
+      .where(and(eq(users.id, Number(subjectId)), isNull(users.stripeCustomerId)))
+  }
+  if (inserted) opts.deferAfterCommit?.push(() => recomputeCreditBudget(subject))
+  return { matched: inserted ? 1 : 0, plan: null }
+}
+
+/**
+ * `charge.refunded`: a refunded top-up loses the refunded share of its
+ * credit (credits already used stay used). Other charges are ignored.
+ */
+export async function handleChargeRefunded(
+  event: Stripe.ChargeRefundedEvent,
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
+): Promise<{ matched: number }> {
+  const charge = event.data.object
+  const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null
+  if (!paymentIntent || !(charge.amount > 0)) return { matched: 0 }
+  const subject = await refundCreditGrant(paymentIntent, charge.amount_refunded / charge.amount, db ?? useDatabase())
+  if (!subject) return { matched: 0 }
+  deferAfterCommit?.push(() => recomputeCreditBudget(subject))
+  return { matched: 1 }
+}
+
+function isWorkspaceIdentity(identity: PriceIdentity | null): identity is PriceIdentity & { plan: WorkspacePlanName } {
+  return identity !== null && isWorkspacePlan(identity.plan)
+}
+
+/**
  * `checkout.session.completed` handler. Fires once per successful
- * checkout. Sets the user's customer_id, subscription_id, plan, and
- * period anchors all at once.
+ * checkout. Binds the Stripe customer + subscription to its subject:
+ *   - `client_reference_id = <userId>` → a personal Pro subscription;
+ *   - `client_reference_id = workspace:<id>` → a Team / Business
+ *     workspace subscription (metadata `billing_admin_id` = who paid).
  *
  * Why fetch the subscription here (and not defer to
  * customer.subscription.updated): Stripe fires BOTH events on a
- * successful checkout, and their delivery order is NOT guaranteed.
- * If subscription.updated arrives first, its handler looks up the
- * user via `stripe_customer_id` — which isn't stamped yet because
- * that's THIS handler's job. The update silently drops, and the user
- * sits on Free caps despite paying. By retrieving the subscription
- * synchronously here (indexed by `subscriptionId` from the session
- * object, identified by `client_reference_id` = userId), we apply
- * the full state in one DB write. Subsequent subscription.updated
- * events become idempotent no-ops.
+ * successful checkout, and their delivery order is NOT guaranteed. If
+ * subscription.updated arrives first, its handler can't map the customer
+ * yet — that is THIS handler's job. By retrieving the subscription
+ * synchronously here we apply the full state in one write; later
+ * subscription.updated events become idempotent no-ops.
  */
 export async function handleCheckoutSessionCompleted(
   event: Stripe.CheckoutSessionCompletedEvent,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
     db?: DbOrTx
     deferAfterCommit?: DeferredAfterCommit
   }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const session = event.data.object
-  const userId = session.client_reference_id ? Number(session.client_reference_id) : null
+  // One-time top-up purchase (WP4), not a subscription.
+  if (session.mode === 'payment') {
+    return handleTopupCheckout(session, opts)
+  }
+  const ref = session.client_reference_id ?? ''
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+  const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null
+
+  if (ref.startsWith(WORKSPACE_REF_PREFIX)) {
+    const workspaceId = ref.slice(WORKSPACE_REF_PREFIX.length)
+    if (!workspaceId || !customerId || !subscriptionId) {
+      const msg = `[stripe/webhook] workspace checkout without workspace / customer / subscription: session=${session.id}`
+      console.warn(msg)
+      Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'checkout_workspace_incomplete' } })
+      return { matched: 0, plan: null }
+    }
+    const sub = await opts.stripe.subscriptions.retrieve(subscriptionId)
+    const identity = await identifyItem(opts.stripe, sub.items.data[0])
+    if (!isWorkspaceIdentity(identity)) {
+      warnUnknownPrice('checkout (workspace)', sub.items.data[0]?.price?.id, `session=${session.id}`)
+      return { matched: 0, plan: null }
+    }
+    const adminRaw = Number(session.metadata?.billing_admin_id)
+    await upsertWorkspaceSubscriptionFromStripe(opts.db ?? useDatabase(), {
+      workspaceId,
+      sub,
+      identity,
+      customerId,
+      billingAdminId: Number.isInteger(adminRaw) && adminRaw > 0 ? adminRaw : null
+    })
+    deferWorkspaceTeamSync(opts.deferAfterCommit, workspaceId)
+    return { matched: 1, plan: identity.plan }
+  }
+
+  const userId = ref ? Number(ref) : null
   if (!userId || Number.isNaN(userId)) {
     const msg = `[stripe/webhook] checkout.session.completed with no client_reference_id: session=${session.id}`
     console.warn(msg)
@@ -136,8 +328,6 @@ export async function handleCheckoutSessionCompleted(
     })
     return { matched: 0, plan: null }
   }
-  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
-  const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null
   if (!customerId) {
     const msg = `[stripe/webhook] checkout.session.completed missing customer: session=${session.id}`
     console.warn(msg)
@@ -148,9 +338,9 @@ export async function handleCheckoutSessionCompleted(
     return { matched: 0, plan: null }
   }
 
-  // Non-subscription checkouts (e.g. one-off product purchases) have
-  // no subscription to read. We still stamp the customer id so
-  // future subscription flows can reuse the same customer record.
+  // Non-subscription checkouts (one-off purchases) have no subscription
+  // to read. Still stamp the customer id so future subscription flows can
+  // reuse the same customer record.
   if (!subscriptionId) {
     const matched = await updateUser({
       where: { id: userId },
@@ -160,46 +350,34 @@ export async function handleCheckoutSessionCompleted(
   }
 
   // Fetch the full subscription. If this fails (Stripe API blip), we
-  // throw → webhook returns 500 → Stripe retries with backoff. The
-  // DB write below is a single UPDATE so partial-apply isn't a
-  // concern — either the whole row updates or nothing does.
+  // throw → webhook returns 500 → Stripe retries with backoff.
   const sub = await opts.stripe.subscriptions.retrieve(subscriptionId)
   const item = sub.items.data[0]
-  const priceId = item?.price?.id ?? null
-  const plan = priceIdToPlan(priceId, opts.config)
-  // Stripe API version `2025-01-27.acacia` (pinned in the client)
-  // carries `current_period_start` / `current_period_end` on the
-  // subscription ITEM, not the subscription root. Cast because the
-  // SDK's root type still exposes them during the transition period.
-  const itemWithPeriod = item as unknown as { current_period_start?: number, current_period_end?: number }
-  const periodStart = itemWithPeriod?.current_period_start
-    ? new Date(itemWithPeriod.current_period_start * 1000)
-    : null
-  const periodEnd = itemWithPeriod?.current_period_end
-    ? new Date(itemWithPeriod.current_period_end * 1000)
-    : null
+  const identity = await identifyItem(opts.stripe, item)
+  // A personal customer only ever holds Pro; anything else is logged and
+  // the plan left alone (customer/sub ids are still stamped so ops can
+  // reconcile).
+  const plan: PersonalPlanName | null = identity?.plan === 'pro' ? 'pro' : null
+  if (!plan) warnUnknownPrice('checkout', item?.price?.id, `session=${session.id}`)
+  const period = itemPeriod(item)
 
-  // If the price maps to no known plan (e.g. price ID rotated but
-  // config not updated), still stamp customer/sub ids so we can
-  // reconcile manually. Don't set `plan` from a bogus mapping.
   const setFields: UpdateUserArgs['set'] = {
     stripeCustomerId: customerId,
     stripeSubscriptionId: subscriptionId
   }
   if (plan) setFields.plan = plan
-  if (periodStart) setFields.stripeCurrentPeriodStart = periodStart
-  if (periodEnd) setFields.planValidUntil = periodEnd
+  if (identity) setFields.billingCurrency = identity.currency
+  if (period.start) setFields.stripeCurrentPeriodStart = period.start
+  if (period.end) setFields.planValidUntil = period.end
 
   const matched = await updateUser({
     where: { id: userId },
     set: setFields
   }, opts.db)
 
-  // Phase 6: sync LiteLLM virtual-key budget to the new plan. Lazy-
-  // creates the key if the user hasn't done their first AI call yet.
-  // **Deferred until after the surrounding TX commits** — calling
-  // `updateUserKeyBudget` inline would self-deadlock against the row
-  // lock held by the user UPDATE above (Phase 7 fix).
+  // Sync the LiteLLM virtual-key budget to the new plan — deferred until
+  // after the surrounding TX commits: calling `updateUserKeyBudget` inline
+  // would self-deadlock against the row lock held by the UPDATE above.
   if (plan && opts.deferAfterCommit) {
     opts.deferAfterCommit.push(async () => {
       try {
@@ -217,62 +395,64 @@ export async function handleCheckoutSessionCompleted(
 }
 
 /**
- * `customer.subscription.updated` handler. Triggered for: initial
- * creation, plan changes, `cancel_at_period_end` toggles, period
- * rollover. We use the SAME handler as `customer.subscription.created`
- * because they carry identical shapes.
+ * `customer.subscription.created|updated` handler. Plan changes, seat
+ * changes, monthly ↔ annual swaps, `cancel_at_period_end` toggles,
+ * period rollover, dunning status. Routed by the customer's subject.
  *
- * - `plan` ← mapped from the first subscription item's price id
- * - `stripeCurrentPeriodStart` ← `subscription.current_period_start`
- * - `planValidUntil` ← `subscription.current_period_end`
- *
- * Scheduled downgrades (`cancel_at_period_end=true`): we do NOT flip
- * the plan yet — the user keeps their paid tier through period end.
- * The actual downgrade happens on `customer.subscription.deleted`
- * (which fires when the period ends).
+ * Scheduled downgrades (`cancel_at_period_end=true`): the plan stays
+ * until `customer.subscription.deleted` fires at period end.
  */
 export async function handleSubscriptionUpdated(
   event: Stripe.CustomerSubscriptionUpdatedEvent | Stripe.CustomerSubscriptionCreatedEvent,
-  config: { pricePro: string, priceMax: string, priceUltra: string },
-  db?: DbOrTx,
-  deferAfterCommit?: DeferredAfterCommit
+  opts: { stripe?: Stripe | null, db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit } = {}
 ): Promise<{ matched: number, plan: PlanName | null }> {
+  const db = opts.db ?? useDatabase()
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
   const item = sub.items.data[0]
-  const priceId = item?.price?.id ?? null
-  const plan = priceIdToPlan(priceId, config)
+  const identity = await identifyItem(opts.stripe ?? null, item)
+  const subject = await subjectForCustomer(customerId, db)
+
+  if (subject?.kind === 'workspace') {
+    if (!isWorkspaceIdentity(identity)) {
+      warnUnknownPrice(`subscription.${event.type.split('.').pop()} (workspace)`, item?.price?.id, `sub=${sub.id}`)
+      return { matched: 0, plan: null }
+    }
+    await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId: subject.workspaceId, sub, identity, customerId })
+    deferWorkspaceTeamSync(opts.deferAfterCommit, subject.workspaceId)
+    // Cancelled to the period end (portal, or no billing admin left):
+    // tell the admins once per subscription + period.
+    if (sub.cancel_at_period_end) {
+      const end = itemPeriod(item).end
+      const workspaceId = subject.workspaceId
+      opts.deferAfterCommit?.push(async () => {
+        await notifyWorkspaceAdmins({ workspaceId, kind: 'ending', date: end, onceKey: `ending:${sub.id}:${end?.getTime() ?? 0}` })
+      })
+    }
+    return { matched: 1, plan: identity.plan }
+  }
+
+  const plan: PersonalPlanName | null = identity?.plan === 'pro' ? 'pro' : null
   if (!plan) {
-    const msg = `[stripe/webhook] subscription.${event.type.split('.').pop()} unknown price: ${priceId} (sub=${sub.id})`
-    console.warn(msg)
-    Sentry.captureMessage(msg, {
-      level: 'warning',
-      tags: { component: 'stripeWebhook', event: 'unknown_price' }
-    })
+    warnUnknownPrice(`subscription.${event.type.split('.').pop()}`, item?.price?.id, `sub=${sub.id}`)
     return { matched: 0, plan: null }
   }
-  // API version 2025-01-27.acacia: period fields on item root.
-  const itemWithPeriod = item as unknown as { current_period_start?: number, current_period_end?: number }
+  const period = itemPeriod(item)
   const setFields: UpdateUserArgs['set'] = {
     plan,
-    stripeSubscriptionId: sub.id
+    stripeSubscriptionId: sub.id,
+    billingCurrency: identity!.currency
   }
-  if (itemWithPeriod?.current_period_start) {
-    setFields.stripeCurrentPeriodStart = new Date(itemWithPeriod.current_period_start * 1000)
-  }
-  if (itemWithPeriod?.current_period_end) {
-    setFields.planValidUntil = new Date(itemWithPeriod.current_period_end * 1000)
-  }
+  if (period.start) setFields.stripeCurrentPeriodStart = period.start
+  if (period.end) setFields.planValidUntil = period.end
   const matched = await updateUser({
     where: { stripeCustomerId: customerId },
     set: setFields
   }, db)
 
-  // Phase 6: sync LiteLLM virtual-key budget to the new plan. Deferred
-  // until after the surrounding TX commits to avoid the self-deadlock
-  // against the user-row lock held by the UPDATE above (Phase 7 fix).
-  if (deferAfterCommit) {
-    deferAfterCommit.push(async () => {
+  // Deferred LiteLLM key budget sync (see handleCheckoutSessionCompleted).
+  if (opts.deferAfterCommit) {
+    opts.deferAfterCommit.push(async () => {
       try {
         const userId = await getUserIdByCustomer(customerId)
         if (userId !== null) {
@@ -291,21 +471,38 @@ export async function handleSubscriptionUpdated(
 }
 
 /**
- * `customer.subscription.deleted` handler. Revert user to Free and
- * null the Stripe anchor so the billing resolver picks the calendar-
- * month fallback (Model C defensive behaviour).
- *
- * Keep `stripeCustomerId` — future resubscriptions can re-use the
- * same customer on Stripe's side. Null `stripeSubscriptionId` because
- * the subscription no longer exists.
+ * `customer.subscription.deleted` handler.
+ *   - Personal: revert to Free and null the Stripe anchor (the resolver
+ *     falls back to the calendar month). `stripeCustomerId` and
+ *     `billingCurrency` stay — a resubscription reuses the customer.
+ *   - Workspace: mark the subscription `canceled` (the row stays as the
+ *     record; `resolveWorkspacePlan` stops granting the plan).
  */
 export async function handleSubscriptionDeleted(
   event: Stripe.CustomerSubscriptionDeletedEvent,
   db?: DbOrTx,
   deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
+  const handle = db ?? useDatabase()
   const sub = event.data.object
   const customerId = typeof sub.customer === 'string' ? sub.customer : sub.customer.id
+  const subject = await subjectForCustomer(customerId, handle)
+
+  if (subject?.kind === 'workspace') {
+    const result = await handle.update(workspaceSubscriptions)
+      .set({ status: 'canceled', updatedAt: new Date() })
+      .where(eq(workspaceSubscriptions.workspaceId, subject.workspaceId))
+      .returning({ workspaceId: workspaceSubscriptions.workspaceId })
+    // The team + member keys stay (unused while not entitled: members
+    // fall back to their personal keys); a resubscription reuses them and
+    // workspace deletion removes them (`endWorkspaceBilling`).
+    const workspaceId = subject.workspaceId
+    deferAfterCommit?.push(async () => {
+      await notifyWorkspaceAdmins({ workspaceId, kind: 'ended', onceKey: `ended:${sub.id}` })
+    })
+    return { matched: result.length }
+  }
+
   const matched = await updateUser({
     where: { stripeCustomerId: customerId },
     set: {
@@ -314,20 +511,19 @@ export async function handleSubscriptionDeleted(
       stripeCurrentPeriodStart: null,
       planValidUntil: null
     }
-  }, db)
+  }, handle)
 
-  // Phase 6: drop LiteLLM key budget to free-tier value. Deferred to
-  // post-commit (Phase 7 fix — see handleCheckoutSessionCompleted).
+  // Drop the LiteLLM key budget to the free-tier value — deferred to
+  // post-commit (see handleCheckoutSessionCompleted).
   if (deferAfterCommit) {
     deferAfterCommit.push(async () => {
       try {
         const userId = await getUserIdByCustomer(customerId)
         if (userId !== null) {
           await updateUserKeyBudget(userId, 'free')
-          // Un-brick: a user who spent more than the free cap ($1) while on
-          // a paid plan would otherwise sit over-budget until the monthly
-          // budget_duration reset (up to a month away). Reset spend now so
-          // the drop to free takes effect immediately.
+          // Un-brick: a user who spent more than the free cap while on a
+          // paid plan would otherwise sit over-budget until the monthly
+          // budget_duration reset. Reset spend now.
           await resetUserKeySpend(userId)
         }
       } catch (e) {
@@ -342,10 +538,7 @@ export async function handleSubscriptionDeleted(
   return { matched }
 }
 
-/**
- * Helper: resolve `users.id` from a Stripe customer id. Used by the
- * LiteLLM key sync paths above. Returns null if no matching row.
- */
+/** Resolve `users.id` from a Stripe customer id (null if none). */
 async function getUserIdByCustomer(customerId: string, db?: DbOrTx): Promise<number | null> {
   const conn = db ?? useDatabase()
   const rows = await conn.select({ id: users.id })
@@ -356,14 +549,12 @@ async function getUserIdByCustomer(customerId: string, db?: DbOrTx): Promise<num
 }
 
 /**
- * `invoice.paid` handler. Fires on subscription renewal. Update the
- * period anchors so the billing-period key advances to the new cycle.
+ * `invoice.paid` handler. Fires on subscription renewal: advance the
+ * period anchors to the new cycle (user or workspace).
  *
- * We deliberately do NOT reset the LiteLLM virtual-key spend here. Spend
- * resets are driven by the key's `budget_duration` (monthly, on the 1st)
- * so every tier — including free, which has no invoice — resets uniformly.
- * Resetting here as well would double-reset paid users (once on their
- * billing date, once on the 1st) and over-grant budget.
+ * No LiteLLM spend reset here: spend resets are driven by the key's
+ * `budget_duration` (monthly, on the 1st) so every tier — including free,
+ * which has no invoice — resets uniformly.
  *
  * Skip non-subscription invoices (one-off charges etc.).
  */
@@ -372,48 +563,63 @@ export async function handleInvoicePaid(
   db?: DbOrTx,
   _deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
+  const handle = db ?? useDatabase()
   const invoice = event.data.object
   // Stripe API 2025+ moved subscription off the invoice root onto
-  // `parent.subscription_details.subscription`. Skip non-subscription
-  // invoices (manual one-offs, etc.) — `parent` is null for those.
+  // `parent.subscription_details.subscription`.
   const subscriptionRef = invoice.parent?.subscription_details?.subscription ?? null
   if (!subscriptionRef) {
     return { matched: 0 }
   }
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
   if (!customerId) return { matched: 0 }
-  // `period_start` / `period_end` on the invoice are the new cycle's
-  // boundaries — use them directly. Falling back to the subscription
-  // object would require an extra API round-trip.
   const periodStart = new Date(invoice.period_start * 1000)
   const periodEnd = new Date(invoice.period_end * 1000)
+
+  const subject = await subjectForCustomer(customerId, handle)
+  if (subject?.kind === 'workspace') {
+    const result = await handle.update(workspaceSubscriptions)
+      .set({ currentPeriodStart: periodStart, validUntil: periodEnd, updatedAt: new Date() })
+      .where(eq(workspaceSubscriptions.workspaceId, subject.workspaceId))
+      .returning({ workspaceId: workspaceSubscriptions.workspaceId })
+    return { matched: result.length }
+  }
+
   const matched = await updateUser({
     where: { stripeCustomerId: customerId },
     set: {
       stripeCurrentPeriodStart: periodStart,
       planValidUntil: periodEnd
     }
-  }, db)
-
-  // NOTE: no LiteLLM spend reset here — see the handler doc comment. The
-  // key's `budget_duration` resets spend monthly for every tier; resetting
-  // on invoice.paid too would double-reset paid users.
-
+  }, handle)
   return { matched }
 }
 
 /**
- * `invoice.payment_failed` handler. Observability-only — we do NOT
- * downgrade immediately. Stripe retries failed charges for ~3 weeks;
- * if all retries fail, Stripe fires `customer.subscription.deleted`
- * which our handler above catches. Logging here helps operators see
- * which users are in dunning.
+ * `invoice.payment_failed` handler. Observability-only — no downgrade
+ * on first failure (Stripe retries; the subscription goes `past_due`,
+ * which `customer.subscription.updated` records, and eventually
+ * `customer.subscription.deleted` if every retry fails).
  */
 export async function handleInvoicePaymentFailed(
-  event: Stripe.InvoicePaymentFailedEvent
+  event: Stripe.InvoicePaymentFailedEvent,
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
 ): Promise<{ matched: number }> {
   const invoice = event.data.object
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
+  // Team / Business: Stripe retries for about two weeks; the admins hear
+  // about the FIRST failure (WP3). Personal plans: Stripe's own dunning
+  // emails cover it.
+  if (customerId && (invoice.attempt_count ?? 1) <= 1) {
+    const subject = await subjectForCustomer(customerId, db ?? useDatabase())
+    if (subject?.kind === 'workspace') {
+      const workspaceId = subject.workspaceId
+      deferAfterCommit?.push(async () => {
+        await notifyWorkspaceAdmins({ workspaceId, kind: 'payment_failed', onceKey: `payment_failed:${invoice.id}` })
+      })
+    }
+  }
   const msg = `[stripe/webhook] payment failed for customer=${customerId} invoice=${invoice.id} attempt=${invoice.attempt_count}`
   console.warn(msg)
   Sentry.captureMessage(msg, {
@@ -427,15 +633,13 @@ export async function handleInvoicePaymentFailed(
  * Internal dispatcher — runs an event's handler against the given
  * `db` (top-level pool OR a transaction handle) without doing the
  * dedup INSERT or the out-of-order stash. Used both by the public
- * `dispatchStripeEvent` (which wraps this in a transaction + dedup)
- * AND by the drain logic in `handleCheckoutSessionCompleted` when
- * replaying stashed events for a now-bound customer.
+ * `dispatchStripeEvent` AND by the drain logic when replaying stashed
+ * events for a now-bound customer.
  */
 async function runHandler(
   event: Stripe.Event,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
     db: DbOrTx
     deferAfterCommit?: DeferredAfterCommit
   }
@@ -445,13 +649,15 @@ async function runHandler(
       return { handled: true, detail: await handleCheckoutSessionCompleted(event, opts) }
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
-      return { handled: true, detail: await handleSubscriptionUpdated(event, opts.config, opts.db, opts.deferAfterCommit) }
+      return { handled: true, detail: await handleSubscriptionUpdated(event, opts) }
     case 'customer.subscription.deleted':
       return { handled: true, detail: await handleSubscriptionDeleted(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.paid':
       return { handled: true, detail: await handleInvoicePaid(event, opts.db, opts.deferAfterCommit) }
+    case 'charge.refunded':
+      return { handled: true, detail: await handleChargeRefunded(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.payment_failed':
-      return { handled: true, detail: await handleInvoicePaymentFailed(event) }
+      return { handled: true, detail: await handleInvoicePaymentFailed(event, opts.db, opts.deferAfterCommit) }
     default:
       // Unhandled events are OK — Stripe sends dozens of types we
       // don't care about. Log + acknowledge so Stripe stops retrying.
@@ -480,7 +686,7 @@ function extractCustomerId(event: Stripe.Event): string | null {
 
 /**
  * Drain stashed orphan events for a customer that's now bound to a
- * user row. Called from inside `dispatchStripeEvent` after a
+ * user or a workspace subscription. Called from inside `dispatchStripeEvent` after a
  * `checkout.session.completed` finishes. Each stashed payload is
  * replayed through `runHandler` against the same transaction; rows
  * are then flipped to `processed=true` (kept for a week so ops can
@@ -490,7 +696,6 @@ async function drainPendingEvents(
   customerId: string,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
     db: DbOrTx
     deferAfterCommit?: DeferredAfterCommit
   }
@@ -557,7 +762,6 @@ export async function dispatchStripeEvent(
   event: Stripe.Event,
   opts: {
     stripe: Stripe
-    config: { pricePro: string, priceMax: string, priceUltra: string }
   }
 ): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
   const db = useDatabase()
@@ -591,12 +795,9 @@ export async function dispatchStripeEvent(
     if (isOrderSensitiveStripeEvent(event)) {
       const customerId = extractCustomerId(event)
       if (customerId) {
-        // Probe: does any user own this customer id? If not, stash.
-        const owner = await tx.select({ id: users.id })
-          .from(users)
-          .where(eq(users.stripeCustomerId, customerId))
-          .limit(1)
-        if (owner.length === 0) {
+        // Probe: does a user or a workspace subscription own this
+        // customer id? If not, stash.
+        if (await subjectForCustomer(customerId, tx) === null) {
           await tx.insert(pendingStripeEvents)
             .values({
               eventId: event.id,

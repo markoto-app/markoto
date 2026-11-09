@@ -42,9 +42,6 @@
       "invalidMeta": "A document setting (title, theme or details) had a value the server could not accept. Reload to continue.",
       "invalidUpdate": "The server could not process a change from this tab. Reload to continue."
     },
-    "aiWorkspaceBadge": "markoto workspace",
-    "aiWorkspaceBadgeTooltip": "This document is in a markoto workspace — markoto's work here uses the sponsor's credit pool, not yours.",
-    "aiWorkspaceSponsoredBy": "markoto workspace sponsored by {name}",
     "bold": "Bold",
     "italic": "Italic",
     "heading": "Heading",
@@ -593,8 +590,8 @@
     "budgetExhaustedDescription": "You've used all your AI credits for this billing period. Upgrade your plan to keep going.",
     "exhaustedPlaceholder": "Out of AI credits — upgrade to continue",
     "workspaceBudgetExhaustedTitle": "Workspace AI budget used up",
-    "workspaceBudgetExhaustedDescription": "This workspace's shared AI budget is exhausted for the current billing period. Contact the workspace owner to refill or upgrade.",
-    "workspaceExhaustedPlaceholder": "Workspace AI budget used up — contact owner",
+    "workspaceBudgetExhaustedDescription": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
+    "workspaceExhaustedPlaceholder": "Workspace AI budget used up — ask an admin",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} of {limit} AI credits left this month",
     "responseLabel": "markoto says",
@@ -613,7 +610,21 @@
     "freeAllowanceExhaustedTitle": "Free AI allowance used up",
     "freeAllowanceExhausted": "This month's free AI allowance is used up. Add your own key in Settings → AI provider to keep going.",
     "freeAllowanceCta": "Add your own key",
-    "freeAllowanceExhaustedPlaceholder": "This month's free AI allowance is used up — add your own key to keep going"
+    "freeAllowanceExhaustedPlaceholder": "This month's free AI allowance is used up — add your own key to keep going",
+    "memberLimitReachedTitle": "Your AI limit is reached",
+    "memberLimitReachedDescription": "You’ve used your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
+    "memberLimitPlaceholder": "Your AI limit here is used up — ask an admin",
+    "teamBudgetExhausted": "This workspace’s AI budget is used up for this month. Ask a workspace admin to add seats or credits.",
+    "memberLimitReached": "You’ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.",
+    "locked": {
+      "aiVoice": "Voice input isn't included in this plan",
+      "aiImage": "Image generation isn't included in this plan",
+      "askAdmin": "Ask a workspace admin about the workspace's plan, or use your own provider key.",
+      "upgrade": "Upgrade to Pro to use it, or use your own provider key.",
+      "comingSoon": "It comes with the paid plans, which are coming soon. You can use your own provider key now.",
+      "operator": "This instance doesn't offer it on your account. You can use your own provider key.",
+      "ownKey": "Add your own key"
+    }
   },
   "mobileTabBar": {
     "label": "Document panels",
@@ -652,7 +663,6 @@
     "subtitle": "Pick the plan that fits. Plans set your limits: AI Points, workspaces and storage. AI on your own provider key is never limited by a plan.",
     "metaDescription": "Compare markoto plans: AI Points, workspaces and storage per plan. AI on your own provider key is never limited by a plan.",
     "creditsHint": "AI Points cover AI the instance pays for: 1000 points = 1 US dollar of model usage. AI on your own provider key is billed by your provider and uses no points.",
-    "teamBilling": "Workspace sponsoring: cover the AI Points of everyone in a workspace",
     "currentPlan": "Current plan",
     "manageSubscription": "Manage subscription",
     "upgrade": "Upgrade",
@@ -670,15 +680,18 @@
     "tiers": {
       "free": "Every writing feature, plus a starter allowance of AI Points.",
       "pro": "For solo writers: more AI Points, workspaces and storage.",
-      "max": "For small teams: sponsor the AI Points of everyone in a workspace you own.",
-      "ultra": "For larger teams: workspace sponsoring with the biggest allowance."
+      "team": "For teams: per seat, pooled AI Points and storage, admin controls.",
+      "business": "For organisations: Team plus single sign-on, audit export and custom limits."
     },
     "freeAllowanceNote": "The free AI allowance runs on a model hosted by Mistral AI in the EU and is available while this month's shared free pool lasts. Add your own provider key in Settings → AI provider for more.",
     "price": {
       "free": "Free",
       "perMonth": "per month",
+      "perSeatPerMonth": "per seat / month",
+      "perYear": "per year",
+      "perSeatPerYear": "per seat / year",
       "planned": "Planned price",
-      "plannedNote": "Planned prices in US dollars. Prices and limits may change before paid plans launch; nothing can be bought yet."
+      "plannedNote": "Planned prices. Prices and limits may change before paid plans launch; nothing can be bought yet."
     },
     "selfHosted": {
       "title": "Self-hosted",
@@ -708,7 +721,9 @@
       "title": "Paid",
       "tagline": "More AI Points, workspaces and storage.",
       "tabsLabel": "Paid plans",
-      "joinWaitlist": "Join the waitlist"
+      "joinWaitlist": "Join the waitlist",
+      "setUpInWorkspace": "Set up in a workspace",
+      "setUpInWorkspaceHint": "Open the workspace, then its Billing tab. Only workspace admins can buy."
     },
     "instance": {
       "title": "Every account"
@@ -738,11 +753,20 @@
       "knowledgeFiles": "Knowledge files",
       "knowledgeStorage": "Knowledge storage",
       "imageStorage": "Image storage",
-      "sponsoring": "Workspace AI sponsoring",
       "mcp": "MCP server for AI clients",
+      "members": "People per workspace",
+      "history": "Version history",
+      "days": "{n} day | {n} days",
+      "customCss": "Custom CSS for documents",
+      "readOnly": "Read-only",
       "setByYou": "Set by you",
       "included": "Included",
-      "notIncluded": "Not included"
+      "notIncluded": "Not included",
+      "perSeat": "{value} per seat",
+      "aiImage": "AI image generation",
+      "aiVoice": "Voice input and live dictation",
+      "aiStrongModel": "Choice of a stronger AI model",
+      "ownKeyOnly": "With your own key"
     },
     "faq": {
       "title": "Questions",
@@ -758,7 +782,25 @@
       "anonKeptA": "Anyone with the link can read and edit them, and only the browser that created one can delete it. Sign in to make documents private or lock them with a password.",
       "selfHostQ": "Can I run markoto on my own server?",
       "selfHostA": "Yes. The code is source-available under the FSL-1.1 licence, which becomes Apache-2.0 after two years. A self-hosted instance has every feature and no plans: you set the limits and connect your own AI provider or a local model. The self-hosting guide in the docs covers the install."
-    }
+    },
+    "interval": {
+      "label": "Billing period",
+      "month": "Monthly",
+      "year": "Annual · 2 months free"
+    },
+    "currencyLabel": "Currency",
+    "currencyLocked": "Your subscription is billed in another currency and can't switch. Choose that currency to continue.",
+    "countPerSeat": {
+      "aiPoints": "{n} AI Point per seat a month, shared | {n} AI Points per seat a month, shared",
+      "workspaces": "{n} workspace you own | {n} workspaces you own",
+      "knowledgeFiles": "{n} knowledge file per seat, shared | {n} knowledge files per seat, shared",
+      "knowledgeStorage": "{size} knowledge storage per seat, shared",
+      "imageStorage": "{size} image storage per seat, shared"
+    },
+    "seatTotalMonth": "{total} per month for {seats} seats",
+    "seatTotalYear": "{total} per year for {seats} seats",
+    "seatsLabel": "Seats",
+    "creditsSection": "AI credits top up the monthly AI budget of Pro and of Team / Business workspaces. They are used only after the month’s budget is spent and expire {months} months after purchase."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1243,7 +1285,8 @@
     "success": "Document moved",
     "successToPersonal": "\"{title}\" is now a personal document.",
     "successToWorkspace": "\"{title}\" is now in {workspace}.",
-    "failed": "Could not move document"
+    "failed": "Could not move document",
+    "leavesPlan": "This document leaves a workspace on {plan}. After the move it follows the new place’s plan: features its plan lacks (like custom CSS or older history) pause. Nothing is deleted."
   },
   "delete": {
     "title": "Delete Document",
@@ -1264,8 +1307,8 @@
     "tabs": {
       "documents": "Documents",
       "knowledge": "Knowledge",
-      "ai": "markoto",
-      "settings": "Settings"
+      "settings": "Settings",
+      "billing": "Billing"
     },
     "settings": {
       "title": "Workspace settings",
@@ -1374,29 +1417,67 @@
         "declined": "Invitation declined.",
         "missingToken": "This invitation link is incomplete. Open it again from the email.",
         "home": "Go to the dashboard"
-      }
+      },
+      "planIncluded": "{name} is on {plan}: inside it, the plan’s features and AI budget apply to you too."
     },
     "actions": "Workspace actions",
-    "sponsorship": {
-      "description": "Turn this workspace into a markoto workspace so every member's AI use in its documents draws on your plan's credit pool. Requires Max or Ultra.",
-      "banner": "This is a markoto workspace: AI use here runs on the sponsor's credit pool.",
-      "memberSponsored": "This is a markoto workspace. An admin sponsors the AI use here.",
-      "memberRegular": "This is a regular workspace. Members use their own AI credits. An admin can turn it into a markoto workspace to sponsor them.",
-      "memberComingSoon": "Sponsoring the AI use of a workspace comes with paid plans.",
-      "onYourPlan": "on your plan · members see the editor banner",
-      "sponsoredByOther": "sponsored by another admin",
-      "takeOver": "Take over sponsorship",
-      "needsUpgrade": "Your {plan} plan can’t sponsor a workspace. It needs Max or Ultra.",
-      "upgrade": "Upgrade your plan",
-      "comingSoon": "Coming with paid plans.",
-      "seePlans": "See plans",
-      "off": "off · members use their own AI credits",
-      "toggleLabel": "Sponsor AI use in this workspace",
-      "enabledToast": "AI workspace enabled",
-      "enabledToastDescription": "Members' AI use in this workspace is now sponsored by your plan.",
-      "disabledToast": "AI workspace disabled",
-      "disabledToastDescription": "Members are back to using their own AI credits.",
-      "updateFailed": "Could not update the AI workspace"
+    "billing": {
+      "title": "Billing",
+      "loading": "Loading billing…",
+      "loadFailed": "Could not load billing",
+      "paymentProblemTitle": "Payment problem",
+      "paymentProblemBody": "The last payment for this workspace failed. Stripe will retry; update the payment method under “Manage billing” to keep Team features.",
+      "buyTitle": "Upgrade this workspace",
+      "buyBody": "Team and Business are paid per seat. Everyone in the workspace gets the plan’s features inside it, with a shared monthly AI budget.",
+      "planLabel": "Plan",
+      "seatsLabel": "Seats",
+      "seatsHint": "At least {min} (everyone in the workspace, invitations included)",
+      "totalPerMonth": "{total} per month ({seats} seats × {price})",
+      "totalPerYear": "{total} per year ({seats} seats × {price})",
+      "continueToPayment": "Continue to payment",
+      "buyFootnote": "You pay with Stripe. You become the billing admin of this workspace and can change seats or cancel at any time.",
+      "currentPlan": "Current plan",
+      "annual": "annual",
+      "monthly": "monthly",
+      "renews": "Renews on {date}",
+      "manage": "Manage billing",
+      "seatCounter": "{used} of {seats} seats used",
+      "updateSeats": "Update seats",
+      "seatsFootnote": "More seats are charged pro rata on the next invoice; fewer seats are credited. Seats can’t go below the people in the workspace.",
+      "switchToBusiness": "Switch to Business",
+      "switchToTeam": "Switch to Team",
+      "switchToAnnual": "Switch to annual billing",
+      "switchToMonthly": "Switch to monthly billing",
+      "aiTitle": "AI this month",
+      "teamSpend": "{spent} of {budget} used",
+      "resets": "resets on {date}",
+      "storage": "Shared storage: {knowledge} for knowledge files, {images} for images.",
+      "memberSpend": "{spent} used · limit {limit}",
+      "noLimitShort": "none",
+      "limitDefault": "Default limit",
+      "limitCustom": "Custom limit",
+      "limitNone": "No limit",
+      "limitSaved": "Limit saved",
+      "limitSaveFailed": "Could not save the limit",
+      "limitFootnote": "By default each member may use up to {amount} a month. “No limit” still stops at the workspace budget.",
+      "checkoutFailed": "Could not start the payment",
+      "planChanged": "Plan changed",
+      "planChangeFailed": "Could not change the plan",
+      "seatsChanged": "Seats changed to {seats}",
+      "seatsChangeFailed": "Could not change the seats",
+      "portalFailed": "Could not open billing",
+      "checkoutSuccess": "Payment received",
+      "checkoutSuccessBody": "The plan is active as soon as Stripe confirms it, usually within a few seconds.",
+      "checkoutCancelled": "Payment cancelled",
+      "addSeatTitle": "All {seats} seats are taken",
+      "addSeatBody": "Inviting {email} adds a seat to this workspace’s plan, charged pro rata on the next invoice.",
+      "addSeatConfirm": "Add a seat and invite",
+      "pricePerSeatMonth": "One seat costs {price} per month.",
+      "pricePerSeatYear": "One seat costs {price} per year.",
+      "errors": {
+        "seatsFull": "All paid seats are taken. Add a seat to invite someone else.",
+        "seatsBelowMembers": "There are more people in this workspace than seats. Remove someone or keep more seats."
+      }
     }
   },
   "knowledge": {
@@ -1651,7 +1732,8 @@
       "navLabel": "Documentation and legal",
       "product": "Product",
       "legal": "Legal",
-      "tagline": "Collaborative Markdown, rendered as pages."
+      "tagline": "Collaborative Markdown, rendered as pages.",
+      "paidTerms": "Paid plans terms"
     },
     "documentPage": {
       "translationNoticeTitle": "Translation provided for convenience",
@@ -1677,7 +1759,12 @@
       "spending": {
         "heading": "Spending and usage",
         "comingSoon": "Coming soon — your AI credit usage, plan history, and invoices will live here. For now, manage billing from the Pricing page.",
-        "viewPricing": "View pricing"
+        "viewPricing": "View pricing",
+        "plan": "Current plan: {plan}",
+        "manage": "Manage billing",
+        "portalFailed": "Could not open billing",
+        "coveringTitle": "Workspaces that cover you",
+        "coveringHint": "Inside these workspaces their plan applies to you, including the shared AI budget. Your own plan applies everywhere else."
       },
       "data": {
         "heading": "Your data",
@@ -1723,7 +1810,34 @@
   },
   "billing": {
     "comingSoonCta": "Paid plans coming soon",
-    "comingSoonHint": "Paid plans with higher limits are coming soon."
+    "comingSoonHint": "Paid plans with higher limits are coming soon.",
+    "paidTerms": {
+      "consentPlan": "I accept the {terms} and ask that my plan starts right away. If I withdraw within 14 days as an EU consumer, I pay for the time used.",
+      "consentTopup": "I accept the {terms} and ask for the credits right away. My right of withdrawal ends once I use them.",
+      "link": "Paid Plans Terms",
+      "required": "Accept the Paid Plans Terms to continue."
+    }
+  },
+  "plan": {
+    "limitTitle": "Plan limit reached",
+    "feature": {
+      "customCss": "Custom CSS isn't included in this document's plan.",
+      "customCssPaused": "This document's custom CSS is paused: its plan doesn't include custom CSS. The CSS is kept and applies again once the plan includes it.",
+      "mcpWrite": "Your plan includes read-only access for AI clients over MCP. Editing, rendering and web tools need a plan that includes them.",
+      "aiImage": "Image generation on markoto's AI isn't included in this plan.",
+      "aiVoice": "Voice input on markoto's AI isn't included in this plan.",
+      "aiStrongModel": "The strong AI model isn't included in this plan."
+    },
+    "limit": {
+      "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
+      "savedThemes": "You've reached the saved-theme limit of your plan. Delete one to save a new theme.",
+      "importMaxBytes": "This file is larger than your plan allows for imports.",
+      "historyEntry": "This change is older than the history this document's plan includes.",
+      "mcpToolCallsPerDay": "You've used today's MCP tool calls included in your plan. Try again tomorrow."
+    },
+    "notice": {
+      "historyHidden": "Activity older than {days} days is hidden on this document's plan. It is kept and shows again once the plan includes more history."
+    }
   },
   "waitlist": {
     "title": "Join the waitlist",
@@ -1789,7 +1903,8 @@
       "lastVerified": "Last verified {date}",
       "keyEnding": "ends in {last4}",
       "noToolSupport": "This model didn't call the test tool, so the writing assistant may not work with it. Pick a model with tool calling.",
-      "liveDictation": "Live dictation is available."
+      "liveDictation": "Live dictation is available.",
+      "locked": "Not in your plan — your own key works"
     },
     "form": {
       "preset": "Provider",
@@ -1851,7 +1966,17 @@
       "openSettings": "Open AI provider settings"
     },
     "ownProviderBadge": "Your own AI provider",
-    "freeAllowanceNote": "Without your own key, your account gets a monthly free AI allowance on this instance's default model, while the shared monthly pool lasts. As soon as you add your own key, it is used instead."
+    "freeAllowanceNote": "Without your own key, your account gets a monthly free AI allowance on this instance's default model, while the shared monthly pool lasts. As soon as you add your own key, it is used instead.",
+    "modelTier": {
+      "title": "AI model",
+      "description": "Which of this instance's models the AI uses for you. Your own chat key, if you add one, always wins.",
+      "fast": "Fast",
+      "fastHint": "Quick answers and edits. Uses less of your AI budget.",
+      "strong": "Strong",
+      "strongHint": "Better at long, careful writing and tricky edits. Uses more of your AI budget.",
+      "locked": "The strong model is part of the paid plans.",
+      "saveFailed": "Could not save the model"
+    }
   },
   "tour": {
     "label": "Product tour",
@@ -2109,5 +2234,17 @@
     "actions": "Document actions",
     "open": "Open",
     "openNewTab": "Open in new tab"
+  },
+  "credits": {
+    "title": "AI credits",
+    "balance": "{amount} in AI credits left",
+    "usedThisMonth": "{amount} used this month",
+    "explainer": "Credits top up the monthly AI budget of your plan. They are used only once the plan’s budget for the month is spent, and they expire {months} months after purchase.",
+    "pack": "{price} → {credit} credit",
+    "grantLeft": "{left} left · expires {date}",
+    "needsPlan": "AI credits extend a paid plan. Upgrade to Pro to buy them.",
+    "buyFailed": "Could not start the purchase",
+    "purchased": "Credits purchased",
+    "purchasedBody": "They are added as soon as Stripe confirms the payment, usually within a few seconds."
   }
 }

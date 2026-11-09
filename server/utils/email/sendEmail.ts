@@ -38,6 +38,7 @@ export type TransactionalEmailKind
     | 'breach.notification'
     | 'waitlist.confirm'
     | 'workspace.invite'
+    | 'workspace.billing'
     | 'abuse.operator_notice'
     | 'abuse.report_received'
     | 'abuse.decision'
@@ -90,6 +91,7 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
   'breach.notification': 'breach-notification',
   'waitlist.confirm': 'waitlist-confirm',
   'workspace.invite': 'workspace-invite',
+  'workspace.billing': 'workspace-billing',
   'abuse.operator_notice': 'abuse-operator-notice',
   'abuse.report_received': 'abuse-report-received',
   'abuse.decision': 'abuse-decision',

@@ -111,12 +111,12 @@ if [ -z "$cron_path" ]; then
   echo "FAIL: could not find the backup command in infra/roles/backup_cron/tasks/main.yml" >&2
   exit 1
 fi
-docker build -q -t markoto-backup-ci backup-server > /dev/null
-if [ "$(docker run --rm --entrypoint id markoto-backup-ci -u)" = "0" ]; then
+docker build --load -q -t localhost/markoto-backup-ci backup-server > /dev/null
+if [ "$(docker run --rm --entrypoint id localhost/markoto-backup-ci -u)" = "0" ]; then
   echo "FAIL: the backup image must not run as root" >&2
   exit 1
 fi
-if ! docker run --rm --entrypoint sh markoto-backup-ci -c "test -f '$cron_path' && test -x '$cron_path' && sh -n '$cron_path'"; then
+if ! docker run --rm --entrypoint sh localhost/markoto-backup-ci -c "test -f '$cron_path' && test -x '$cron_path' && sh -n '$cron_path'"; then
   echo "FAIL: the cron command '$cron_path' is not an executable script in the backup image" >&2
   exit 1
 fi
@@ -307,9 +307,11 @@ echo "ok: renderer keeps Chromium's sandbox"
 # docker-compose.test.yml).
 check_loopback() { # check_loopback LABEL CONFIG_JSON
   local out
-  out="$(jq -r '
+  # fake-openai-test may also use TEST_FAKE_OPENAI_HOST (rootless Podman,
+  # docs/CONTAINER-ENGINES.md).
+  out="$(jq -r --arg fakehost "${TEST_FAKE_OPENAI_HOST:-}" '
     .services | to_entries[] | .key as $s | (.value.ports // [])[]
-    | select((.host_ip // "") as $ip | ($ip != "127.0.0.1") and (($s == "fake-openai-test" and ($ip | startswith("10.213.47."))) | not))
+    | select((.host_ip // "") as $ip | ($ip != "127.0.0.1") and (($s == "fake-openai-test" and (($ip | startswith("10.213.47.")) or ($fakehost != "" and $ip == $fakehost))) | not))
     | "\($s) publishes \(.published) on \(.host_ip // "all interfaces")"' "$2")"
   if [ -n "$out" ]; then
     printf 'FAIL (%s): %s\n' "$1" "$out" >&2

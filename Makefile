@@ -7,7 +7,9 @@ SHELL := /usr/bin/env bash
 LOCAL := docker compose -f docker-compose.local.yml
 DEV   := docker compose -f docker-compose.dev.yml
 PROD  := docker compose -f docker-compose.prod.yml
-TEST  := docker compose -f docker-compose.test.yml
+# The test stack goes through a helper that adds the Podman overlay when
+# the engine is Podman (docs/CONTAINER-ENGINES.md).
+TEST  := bash scripts/test-compose.sh
 
 CERT_DIR  := traefik/local
 CERT_NAME := ypad.127.0.0.1.nip.io

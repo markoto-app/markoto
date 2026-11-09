@@ -30,11 +30,12 @@ Prerequisites:
 | Tool | Version | Why |
 |---|---|---|
 | [Bun](https://bun.sh) | **1.4 or newer** | Runtime and package manager. The lockfile format needs Bun 1.4+ (`bun --version`). |
-| Docker with Compose | v2.20+ for the dev stack (self-hosting needs 5.0+) | Postgres, Valkey, S3 (SeaweedFS), the sync server and sidecars. |
+| Docker or rootless Podman, with Docker Compose | v2.20+ for the dev stack (self-hosting needs 5.0+) | Postgres, Valkey, S3 (SeaweedFS), the sync server and sidecars. Podman needs a few `.env` lines and an overlay file: [docs/CONTAINER-ENGINES.md](docs/CONTAINER-ENGINES.md). |
 | `make` | any | Shortcuts; every target is a thin wrapper over a documented command. |
 
 ```sh
 bun install
+bun install --cwd sync-server   # its own package; some unit tests import it
 cp .env.example .env     # the dev defaults already match docker-compose.dev.yml
 make dev                 # infra containers: Postgres (pgvector), Valkey, SeaweedFS, sync, markitdown, renderer
 make dev-app             # the Nuxt app on the host with HMR (bun run dev --host 0.0.0.0)
@@ -81,6 +82,8 @@ bun run test:repos
 bun run test:integration
 bun run test:integration:down    # or: make test-stack-down
 ```
+
+On Podman the test-stack scripts add `docker-compose.test.podman.yml` themselves (`scripts/test-compose.sh`); set `TEST_FAKE_OPENAI_HOST` first ([docs/CONTAINER-ENGINES.md](docs/CONTAINER-ENGINES.md)).
 
 The test database is `ypad_test`; the suites refuse to run against any other database name. Only one person (or agent) should use the test stack on a machine at a time.
 

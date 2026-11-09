@@ -42,9 +42,6 @@
       "invalidMeta": "ドキュメントの設定（タイトル、テーマ、詳細）にサーバーが受け付けられない値が含まれていました。再読み込みして続けてください。",
       "invalidUpdate": "このタブからの変更をサーバーが処理できませんでした。再読み込みして続けてください。"
     },
-    "aiWorkspaceBadge": "markotoワークスペース",
-    "aiWorkspaceBadgeTooltip": "このドキュメントはmarkotoワークスペース内にあります — ここでのmarkotoの作業はあなたではなくスポンサーのクレジットプールを使用します。",
-    "aiWorkspaceSponsoredBy": "{name}がスポンサーするmarkotoワークスペース",
     "bold": "太字",
     "italic": "斜体",
     "heading": "見出し",
@@ -593,8 +590,8 @@
     "budgetExhaustedDescription": "この請求期間のAIクレジットをすべて使い切りました。続けるにはプランをアップグレードしてください。",
     "exhaustedPlaceholder": "AIクレジットがありません — 続けるにはアップグレード",
     "workspaceBudgetExhaustedTitle": "ワークスペースのAI予算を使い切りました",
-    "workspaceBudgetExhaustedDescription": "このワークスペースの共有AI予算は現在の請求期間分を使い切りました。補充またはアップグレードについてワークスペース所有者にご連絡ください。",
-    "workspaceExhaustedPlaceholder": "ワークスペースのAI予算を使い切りました — 所有者にご連絡ください",
+    "workspaceBudgetExhaustedDescription": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
+    "workspaceExhaustedPlaceholder": "ワークスペースの AI 予算を使い切りました。管理者に依頼してください",
     "upgradeCta": "アップグレード",
     "remainingLabel": "今月のAIクレジットは残り{limit}件中{remaining}件",
     "responseLabel": "markotoからの返答",
@@ -613,7 +610,21 @@
     "freeAllowanceExhaustedTitle": "無料のAI枠を使い切りました",
     "freeAllowanceExhausted": "今月の無料AI枠は使い切られました。続けるには、設定 → AI プロバイダーでご自身のキーを追加してください。",
     "freeAllowanceCta": "自分のキーを追加",
-    "freeAllowanceExhaustedPlaceholder": "今月の無料AI枠は使い切られました。自分のキーを追加すると続けられます"
+    "freeAllowanceExhaustedPlaceholder": "今月の無料AI枠は使い切られました。自分のキーを追加すると続けられます",
+    "memberLimitReachedTitle": "AI の上限に達しました",
+    "memberLimitReachedDescription": "今月このワークスペースでの AI の上限を使い切りました。ワークスペースの管理者に上限の引き上げを依頼してください。",
+    "memberLimitPlaceholder": "ここでの AI の上限を使い切りました。管理者に依頼してください",
+    "teamBudgetExhausted": "このワークスペースの今月の AI 予算を使い切りました。管理者に席数かクレジットの追加を依頼してください。",
+    "memberLimitReached": "今月このワークスペースでの AI の上限に達しました。管理者に引き上げを依頼してください。",
+    "locked": {
+      "aiVoice": "このプランには音声入力が含まれていません",
+      "aiImage": "このプランには画像生成が含まれていません",
+      "askAdmin": "ワークスペースの管理者にプランについて確認するか、ご自身のプロバイダーキーを使ってください。",
+      "upgrade": "利用するには Pro にアップグレードするか、ご自身のプロバイダーキーを使ってください。",
+      "comingSoon": "まもなく提供される有料プランに含まれます。ご自身のプロバイダーキーなら今すぐ使えます。",
+      "operator": "このインスタンスではあなたのアカウントで提供されていません。ご自身のプロバイダーキーを使えます。",
+      "ownKey": "自分のキーを追加"
+    }
   },
   "mobileTabBar": {
     "label": "ドキュメントパネル",
@@ -652,7 +663,6 @@
     "subtitle": "自分に合ったプランを選びましょう。プランが決めるのは上限です：AI ポイント、ワークスペース、ストレージ。自分のプロバイダーキーで使う AI はプランで制限されません。",
     "metaDescription": "markoto のプランを比較：AI ポイント、ワークスペース、ストレージの上限。自分のプロバイダーキーで使う AI はプランで制限されません。",
     "creditsHint": "AI ポイントはインスタンスが費用を負担する AI に使われます：1000 ポイント = モデル利用料 1 ドル。自分のプロバイダーキーで使う AI はプロバイダーから請求され、ポイントは消費しません。",
-    "teamBilling": "ワークスペースのスポンサー：ワークスペース全員の AI ポイントを負担",
     "currentPlan": "現在のプラン",
     "manageSubscription": "サブスクリプションを管理",
     "upgrade": "アップグレード",
@@ -670,15 +680,18 @@
     "tiers": {
       "free": "すべての執筆機能と、最初の AI ポイント枠。",
       "pro": "個人向け：より多くの AI ポイント、ワークスペース、ストレージ。",
-      "max": "小規模チーム向け：所有するワークスペースの全員の AI ポイントを負担できます。",
-      "ultra": "大規模チーム向け：最大の枠でワークスペースをスポンサー。"
+      "team": "チーム向け：席ごとの料金、共有の AI Points とストレージ、管理機能。",
+      "business": "組織向け：Team に加えてシングルサインオン、監査エクスポート、個別の上限。"
     },
     "freeAllowanceNote": "無料のAI枠は、EU内でMistral AIがホストするモデルで動作し、今月の共有枠がなくなるまで利用できます。さらに使うには、設定 → AI プロバイダーでご自身のキーを追加してください。",
     "price": {
       "free": "無料",
       "perMonth": "/月",
+      "perSeatPerMonth": "席 / 月",
+      "perYear": "/ 年",
+      "perSeatPerYear": "席 / 年",
       "planned": "予定価格",
-      "plannedNote": "予定価格は米ドル表示です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。"
+      "plannedNote": "予定価格です。有料プランの開始までに価格と上限は変わる可能性があります。現在は購入できません。"
     },
     "selfHosted": {
       "title": "セルフホスト",
@@ -708,7 +721,9 @@
       "title": "有料",
       "tagline": "AI ポイント、ワークスペース、ストレージが増えます。",
       "tabsLabel": "有料プラン",
-      "joinWaitlist": "ウェイトリストに登録"
+      "joinWaitlist": "ウェイトリストに登録",
+      "setUpInWorkspace": "ワークスペースで設定",
+      "setUpInWorkspaceHint": "ワークスペースを開き、その請求タブから購入します。購入できるのはワークスペースの管理者だけです。"
     },
     "instance": {
       "title": "すべてのアカウント"
@@ -738,11 +753,20 @@
       "knowledgeFiles": "ナレッジファイル",
       "knowledgeStorage": "ナレッジストレージ",
       "imageStorage": "画像ストレージ",
-      "sponsoring": "ワークスペースの AI スポンサー",
       "mcp": "AI クライアント向け MCP サーバー",
+      "members": "ワークスペースあたりの人数",
+      "history": "バージョン履歴",
+      "days": "{n} 日",
+      "customCss": "ドキュメントのカスタム CSS",
+      "readOnly": "読み取り専用",
       "setByYou": "自分で設定",
       "included": "含まれる",
-      "notIncluded": "含まれない"
+      "notIncluded": "含まれない",
+      "perSeat": "1 席あたり {value}",
+      "aiImage": "AI 画像生成",
+      "aiVoice": "音声入力とライブ口述",
+      "aiStrongModel": "高性能 AI モデルの選択",
+      "ownKeyOnly": "自分のキーで利用"
     },
     "faq": {
       "title": "よくある質問",
@@ -758,7 +782,25 @@
       "anonKeptA": "リンクを知っている人は誰でも閲覧・編集でき、削除できるのは作成したブラウザーだけです。非公開にしたりパスワードで保護したりするにはログインしてください。",
       "selfHostQ": "markoto を自分のサーバーで動かせますか？",
       "selfHostA": "はい。コードは FSL-1.1 ライセンスの source-available で、2 年後に Apache-2.0 になります。セルフホストのインスタンスにはすべての機能があり、プランはありません。上限は自分で決め、自分の AI プロバイダーやローカルモデルを接続します。インストール方法はドキュメントのセルフホストガイドにあります。"
-    }
+    },
+    "interval": {
+      "label": "請求期間",
+      "month": "月払い",
+      "year": "年払い · 2 か月分お得"
+    },
+    "currencyLabel": "通貨",
+    "currencyLocked": "ご利用中のサブスクリプションは別の通貨で請求されており、変更できません。続けるにはその通貨を選択してください。",
+    "countPerSeat": {
+      "aiPoints": "1 席あたり月 {n} AI ポイント（共有）",
+      "workspaces": "所有ワークスペース {n} 個",
+      "knowledgeFiles": "1 席あたりナレッジファイル {n} 件（共有）",
+      "knowledgeStorage": "1 席あたりナレッジ容量 {size}（共有）",
+      "imageStorage": "1 席あたり画像容量 {size}（共有）"
+    },
+    "seatTotalMonth": "{seats} 席で月額 {total}",
+    "seatTotalYear": "{seats} 席で年額 {total}",
+    "seatsLabel": "席数",
+    "creditsSection": "AI クレジットは Pro と Team / Business ワークスペースの月間 AI 予算を補います。その月の予算を使い切ってから使われ、購入から {months} か月後に失効します。"
   },
   "topbar": {
     "planBadge": "プラン：{plan}",
@@ -1243,7 +1285,8 @@
     "success": "ドキュメントを移動しました",
     "successToPersonal": "「{title}」は個人ドキュメントになりました。",
     "successToWorkspace": "「{title}」は{workspace}に移動しました。",
-    "failed": "ドキュメントを移動できませんでした"
+    "failed": "ドキュメントを移動できませんでした",
+    "leavesPlan": "このドキュメントは {plan} プランのワークスペースから移動します。移動後は移動先のプランに従い、そのプランにない機能（カスタム CSS や古い履歴など）は一時停止します。何も削除されません。"
   },
   "delete": {
     "title": "ドキュメントを削除",
@@ -1264,8 +1307,8 @@
     "tabs": {
       "documents": "ドキュメント",
       "knowledge": "ナレッジ",
-      "ai": "markoto",
-      "settings": "設定"
+      "settings": "設定",
+      "billing": "請求"
     },
     "settings": {
       "title": "ワークスペース設定",
@@ -1374,29 +1417,67 @@
         "declined": "招待を辞退しました。",
         "missingToken": "この招待リンクは不完全です。メールからもう一度開いてください。",
         "home": "ダッシュボードへ"
-      }
+      },
+      "planIncluded": "{name} は {plan} プランです。その中ではプランの機能と AI 予算があなたにも適用されます。"
     },
     "actions": "ワークスペースの操作",
-    "sponsorship": {
-      "description": "このワークスペースを markoto ワークスペースにすると、メンバー全員のドキュメント内での AI 利用があなたのプランのクレジットから支払われます。Max または Ultra が必要です。",
-      "banner": "これは markoto ワークスペースです。ここでの AI 利用はスポンサーのクレジットから支払われます。",
-      "memberSponsored": "これは markoto ワークスペースです。ここでの AI 利用は管理者が負担しています。",
-      "memberRegular": "これは通常のワークスペースです。メンバーは各自の AI クレジットを使います。管理者は markoto ワークスペースにして利用を負担できます。",
-      "memberComingSoon": "ワークスペースの AI 利用の負担は有料プランで利用できるようになります。",
-      "onYourPlan": "あなたのプランで負担中 · メンバーにはエディターに表示されます",
-      "sponsoredByOther": "別の管理者が負担中",
-      "takeOver": "負担を引き継ぐ",
-      "needsUpgrade": "{plan} プランではワークスペースの AI 利用を負担できません。Max または Ultra が必要です。",
-      "upgrade": "プランをアップグレード",
-      "comingSoon": "有料プランで利用できるようになります。",
-      "seePlans": "プランを見る",
-      "off": "オフ · メンバーは各自の AI クレジットを使います",
-      "toggleLabel": "このワークスペースの AI 利用を負担する",
-      "enabledToast": "AI ワークスペースを有効にしました",
-      "enabledToastDescription": "このワークスペースでのメンバーの AI 利用は、あなたのプランで負担されます。",
-      "disabledToast": "AI ワークスペースを無効にしました",
-      "disabledToastDescription": "メンバーは再び各自の AI クレジットを使います。",
-      "updateFailed": "AI ワークスペースを変更できませんでした"
+    "billing": {
+      "title": "請求",
+      "loading": "請求情報を読み込んでいます…",
+      "loadFailed": "請求情報を読み込めませんでした",
+      "paymentProblemTitle": "支払いの問題",
+      "paymentProblemBody": "このワークスペースの前回の支払いに失敗しました。Stripe が再試行します。Team の機能を維持するには「請求を管理」で支払い方法を更新してください。",
+      "buyTitle": "このワークスペースをアップグレード",
+      "buyBody": "Team と Business は席数ごとの料金です。ワークスペースの全員がその中でプランの機能と共有の月間 AI 予算を使えます。",
+      "planLabel": "プラン",
+      "seatsLabel": "席数",
+      "seatsHint": "{min} 席以上（招待中の人を含むワークスペースの全員）",
+      "totalPerMonth": "月額 {total}（{seats} 席 × {price}）",
+      "totalPerYear": "年額 {total}（{seats} 席 × {price}）",
+      "continueToPayment": "支払いに進む",
+      "buyFootnote": "支払いは Stripe で行います。あなたがこのワークスペースの請求管理者になり、席数の変更や解約はいつでもできます。",
+      "currentPlan": "現在のプラン",
+      "annual": "年払い",
+      "monthly": "月払い",
+      "renews": "{date} に更新",
+      "manage": "請求を管理",
+      "seatCounter": "{seats} 席中 {used} 席を使用中",
+      "updateSeats": "席数を変更",
+      "seatsFootnote": "追加した席は次回の請求で日割り計算され、減らした席はクレジットされます。ワークスペースの人数より少なくはできません。",
+      "switchToBusiness": "Business に変更",
+      "switchToTeam": "Team に変更",
+      "switchToAnnual": "年払いに変更",
+      "switchToMonthly": "月払いに変更",
+      "aiTitle": "今月の AI",
+      "teamSpend": "{budget} のうち {spent} を使用",
+      "resets": "{date} にリセット",
+      "storage": "共有ストレージ：ナレッジファイル {knowledge}、画像 {images}。",
+      "memberSpend": "{spent} 使用 · 上限 {limit}",
+      "noLimitShort": "なし",
+      "limitDefault": "既定の上限",
+      "limitCustom": "個別の上限",
+      "limitNone": "上限なし",
+      "limitSaved": "上限を保存しました",
+      "limitSaveFailed": "上限を保存できませんでした",
+      "limitFootnote": "既定では各メンバーは月に {amount} まで使えます。「上限なし」でもワークスペースの予算で止まります。",
+      "checkoutFailed": "支払いを開始できませんでした",
+      "planChanged": "プランを変更しました",
+      "planChangeFailed": "プランを変更できませんでした",
+      "seatsChanged": "席数を {seats} に変更しました",
+      "seatsChangeFailed": "席数を変更できませんでした",
+      "portalFailed": "請求ページを開けませんでした",
+      "checkoutSuccess": "支払いを受け付けました",
+      "checkoutSuccessBody": "Stripe が確認するとプランが有効になります（通常は数秒以内）。",
+      "checkoutCancelled": "支払いをキャンセルしました",
+      "addSeatTitle": "{seats} 席すべてが使用中です",
+      "addSeatBody": "{email} を招待すると、このワークスペースのプランに 1 席追加され、次回の請求で日割り計算されます。",
+      "addSeatConfirm": "席を追加して招待",
+      "pricePerSeatMonth": "1 席は月額 {price} です。",
+      "pricePerSeatYear": "1 席は年額 {price} です。",
+      "errors": {
+        "seatsFull": "有料の席はすべて使用中です。ほかの人を招待するには席を追加してください。",
+        "seatsBelowMembers": "ワークスペースの人数が席数より多くなっています。誰かを外すか、席数を維持してください。"
+      }
     }
   },
   "knowledge": {
@@ -1651,7 +1732,8 @@
       "navLabel": "ドキュメントと法的情報",
       "product": "製品",
       "legal": "法的情報",
-      "tagline": "共同編集できる Markdown を、ページとして。"
+      "tagline": "共同編集できる Markdown を、ページとして。",
+      "paidTerms": "有料プラン規約"
     },
     "documentPage": {
       "translationNoticeTitle": "便宜のために翻訳を提供しています",
@@ -1677,7 +1759,12 @@
       "spending": {
         "heading": "支出と利用",
         "comingSoon": "近日公開 — AIクレジットの利用状況、プラン履歴、請求書がここに表示されます。当面は、料金ページから請求を管理してください。",
-        "viewPricing": "料金を見る"
+        "viewPricing": "料金を見る",
+        "plan": "現在のプラン：{plan}",
+        "manage": "請求を管理",
+        "portalFailed": "請求ページを開けませんでした",
+        "coveringTitle": "あなたが含まれるワークスペース",
+        "coveringHint": "これらのワークスペースの中では、共有の AI 予算を含めそのプランがあなたにも適用されます。それ以外ではあなた自身のプランが適用されます。"
       },
       "data": {
         "heading": "あなたのデータ",
@@ -1723,7 +1810,34 @@
   },
   "billing": {
     "comingSoonCta": "有料プランは近日公開",
-    "comingSoonHint": "上限がより高い有料プランを近日公開予定です。"
+    "comingSoonHint": "上限がより高い有料プランを近日公開予定です。",
+    "paidTerms": {
+      "consentPlan": "{terms}に同意し、プランをすぐに開始するよう求めます。EU の消費者として 14 日以内に撤回する場合、利用した期間分を支払います。",
+      "consentTopup": "{terms}に同意し、クレジットをすぐに受け取ります。使用を始めた時点で撤回権は終了します。",
+      "link": "有料プラン規約",
+      "required": "続けるには有料プラン規約に同意してください。"
+    }
+  },
+  "plan": {
+    "limitTitle": "プランの上限に達しました",
+    "feature": {
+      "customCss": "このドキュメントのプランにはカスタム CSS が含まれていません。",
+      "customCssPaused": "このドキュメントのプランにはカスタム CSS が含まれていないため、カスタム CSS は一時停止中です。CSS は保持され、プランに含まれると再び適用されます。",
+      "mcpWrite": "ご利用のプランでは、MCP 経由の AI クライアントは読み取り専用です。編集、レンダリング、Web ツールにはそれらを含むプランが必要です。",
+      "aiImage": "markoto の AI による画像生成はこのプランに含まれていません。",
+      "aiVoice": "markoto の AI による音声入力はこのプランに含まれていません。",
+      "aiStrongModel": "高性能 AI モデルはこのプランに含まれていません。"
+    },
+    "limit": {
+      "membersPerWorkspace": "このワークスペースはプランのメンバー上限に達しました。",
+      "savedThemes": "プランで保存できるテーマの上限に達しました。新しいテーマを保存するには、いずれかを削除してください。",
+      "importMaxBytes": "このファイルは、プランでインポートできるサイズを超えています。",
+      "historyEntry": "この変更は、このドキュメントのプランに含まれる履歴より古いものです。",
+      "mcpToolCallsPerDay": "プランに含まれる本日の MCP ツール呼び出しを使い切りました。明日もう一度お試しください。"
+    },
+    "notice": {
+      "historyHidden": "このドキュメントのプランでは、{days} 日より前のアクティビティは表示されません。データは保持され、より長い履歴を含むプランで再び表示されます。"
+    }
   },
   "waitlist": {
     "title": "ウェイトリストに登録",
@@ -1789,7 +1903,8 @@
       "lastVerified": "最終確認：{date}",
       "keyEnding": "末尾 {last4}",
       "noToolSupport": "このモデルはテスト用ツールを呼び出しませんでした。執筆アシスタントが動作しない可能性があります。ツール呼び出しに対応したモデルを選んでください。",
-      "liveDictation": "ライブ口述が使えます。"
+      "liveDictation": "ライブ口述が使えます。",
+      "locked": "プランに含まれていません（自分のキーなら使えます）"
     },
     "form": {
       "preset": "プロバイダー",
@@ -1851,7 +1966,17 @@
       "openSettings": "AI プロバイダーの設定を開く"
     },
     "ownProviderBadge": "自分の AI プロバイダー",
-    "freeAllowanceNote": "自分のキーがない場合、このインスタンスの既定モデルで毎月の無料 AI 枠を利用できます（共有の月間枠がなくなるまで）。自分のキーを追加すると、そちらが使われます。"
+    "freeAllowanceNote": "自分のキーがない場合、このインスタンスの既定モデルで毎月の無料 AI 枠を利用できます（共有の月間枠がなくなるまで）。自分のキーを追加すると、そちらが使われます。",
+    "modelTier": {
+      "title": "AI モデル",
+      "description": "このインスタンスのどのモデルを AI が使うか。自分のチャットキーを追加した場合は常にそちらが優先されます。",
+      "fast": "高速",
+      "fastHint": "すばやい回答と編集。AI 予算の消費が少なめです。",
+      "strong": "高性能",
+      "strongHint": "長く丁寧な文章や難しい編集に強い。AI 予算の消費が多めです。",
+      "locked": "高性能モデルは有料プランに含まれます。",
+      "saveFailed": "モデルを保存できませんでした"
+    }
   },
   "tour": {
     "label": "製品ツアー",
@@ -2109,5 +2234,17 @@
     "actions": "ドキュメントの操作",
     "open": "開く",
     "openNewTab": "新しいタブで開く"
+  },
+  "credits": {
+    "title": "AI クレジット",
+    "balance": "AI クレジット残高 {amount}",
+    "usedThisMonth": "今月 {amount} を使用",
+    "explainer": "クレジットはプランの月間 AI 予算を補います。その月のプランの予算を使い切ってから使われ、購入から {months} か月後に失効します。",
+    "pack": "{price} → クレジット {credit}",
+    "grantLeft": "残り {left} · {date} に失効",
+    "needsPlan": "AI クレジットは有料プランを補うものです。購入するには Pro にアップグレードしてください。",
+    "buyFailed": "購入を開始できませんでした",
+    "purchased": "クレジットを購入しました",
+    "purchasedBody": "Stripe が支払いを確認するとすぐに追加されます（通常は数秒以内）。"
   }
 }

@@ -762,7 +762,7 @@ export class EditorPage {
    * Seal a session for an ALREADY-EXISTING user row. The sibling of
    * `loginAsTestUser`, but for cases where the user row was created
    * by other means — typically a direct DB INSERT in the spec to set
-   * fields the login shim doesn't expose (email, plan='max', custom
+   * fields the login shim doesn't expose (email, plan='pro', custom
    * github_id matching a pre-stored invitation, etc.).
    *
    * Why split: `loginAsTestUser` always upserts a fresh user keyed on

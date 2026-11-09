@@ -89,7 +89,7 @@ describe('effectivePeriodStart', () => {
     // Test fixtures / admin-promoted users without a Stripe sub. We'd
     // rather give them SOME anchor (calendar) than crash.
     const r = effectivePeriodStart({
-      plan: 'max',
+      plan: 'pro',
       stripeCurrentPeriodStart: null,
       planValidUntil: new Date('2026-05-30T00:00:00.000Z'),
       now
@@ -118,7 +118,7 @@ describe('effectivePeriodStart', () => {
     // granting an implicit "lifetime" escape hatch.
     const stripeStart = new Date('2026-04-10T00:00:00.000Z')
     const r = effectivePeriodStart({
-      plan: 'ultra',
+      plan: 'pro',
       stripeCurrentPeriodStart: stripeStart,
       planValidUntil: null,
       now
@@ -162,7 +162,7 @@ describe('effectivePeriodEnd', () => {
 
   it('paid without stripe anchor → calendar fallback (matches start)', () => {
     const r = effectivePeriodEnd({
-      plan: 'max',
+      plan: 'pro',
       stripeCurrentPeriodStart: null,
       planValidUntil: new Date('2026-05-30T00:00:00.000Z'),
       now

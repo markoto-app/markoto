@@ -38,7 +38,7 @@ When you're comfortable with the basics:
 - [**Import & export**](/docs/import-export) — DOCX/PDF/PPTX/XLSX/HTML/EPUB
   in; Markdown + PDF out.
 - [**Workspaces**](/docs/workspaces) — team-shared docs with three roles
-  and optional AI sponsoring.
+  and a Team plan for shared AI budget (coming soon).
 - [**History & restore**](/docs/history) — see every change, replay
   comments in context, restore any past version.
 - [**Account & privacy**](/docs/account) — AI provider setup, MCP access

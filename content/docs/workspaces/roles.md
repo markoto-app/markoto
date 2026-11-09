@@ -35,4 +35,4 @@ or remove the last one, so nobody can lock the team out by accident.
 ## What's next
 
 - [Invite a teammate](/docs/workspaces/invite) — invite by email; they join once they accept.
-- [Sponsor AI for the team](/docs/workspaces/sponsor-ai) — admin-set, members benefit.
+- [Plans](/docs/account/plans) — the Team plan covers every member of a workspace.

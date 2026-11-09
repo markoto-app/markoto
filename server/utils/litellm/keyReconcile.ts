@@ -22,6 +22,8 @@ import { getTiers } from '../tierConfig'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
 import type { PlanName } from '~~/shared/config/tiers'
 import { decryptToken } from './tokenCrypto'
+import { creditBudgetExtraUsd } from '../aiCreditBudget'
+import { listSubjectsWithCredits } from '../../repos/aiCreditGrants'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, FREE_TIER_BUDGET_DURATION, teamIdForPlan } from './freeTierTeam'
 
@@ -111,6 +113,9 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
   // The team must exist before any key can be pointed at it.
   await ensureFreeTierTeam()
   const listed = await listAllKeys()
+  // Only users who bought top-ups need the credit lookup (WP4).
+  const usersWithCredits = new Set((await listSubjectsWithCredits(new Date(Date.now() - 62 * 24 * 3600 * 1000)))
+    .filter(s => s.type === 'user').map(s => s.id))
 
   for (const row of rows) {
     if (!row.keyId || !row.keyToken) continue
@@ -121,6 +126,10 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
       continue
     }
     const desired = desiredKeyState(row.plan, row.planValidUntil)
+    // Top-up credits (WP4) raise the key's budget on top of the plan's.
+    if (usersWithCredits.has(String(row.id))) {
+      desired.maxBudget = Math.round((desired.maxBudget + await creditBudgetExtraUsd({ type: 'user', id: String(row.id) })) * 10_000) / 10_000
+    }
     if (!keyNeedsUpdate(current, desired)) continue
     try {
       // LiteLLM only moves a key into a team whose member its user is.

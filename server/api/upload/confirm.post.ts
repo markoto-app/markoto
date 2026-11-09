@@ -4,7 +4,7 @@ import { getDocWithActorRole } from '../../repos/documents'
 import { requireContentMatchesExtension } from '../../utils/fileTypeGuard'
 import { parseUploadKey, stagingKeyFor } from '../../utils/uploadKey'
 import { canWriteDocContent } from '../../utils/documentAccess'
-import { imageQuotaError, resolveImageQuotaBytes } from '../../utils/imageQuota'
+import { imageQuotaError, resolveImageQuota } from '../../utils/imageQuota'
 
 // The key is client-supplied, so it is never trusted by itself: it must have
 // the exact shape `/api/upload/request` mints AND resolve to an `uploads` row
@@ -93,7 +93,7 @@ export default defineEventHandler(async (event) => {
     })
   }
   try {
-    return await confirmUpload({ key, userId, row, ext: parsed.ext })
+    return await confirmUpload({ key, userId, row, ext: parsed.ext, docId: parsed.docId })
   } finally {
     await releaseSessionLock(CONFIRM_LOCK_NS, key)
   }
@@ -104,6 +104,7 @@ async function confirmUpload(args: {
   userId: number
   row: { contentType: string, sizeBytes: number }
   ext: string
+  docId: string
 }) {
   const { key, userId, row } = args
   const s3 = useS3Client()
@@ -153,8 +154,9 @@ async function confirmUpload(args: {
   // time; this only refuses when the user is over quota NOW (e.g. a lower
   // quota was configured since). 'missing' = the row vanished meanwhile
   // (doc deleted) → the object has no owner, drop it.
-  const quotaBytes = await resolveImageQuotaBytes(userId)
-  const outcome = await confirmOwnUploadWithinQuota(key, userId, quotaBytes)
+  const quota = await resolveImageQuota(userId, args.docId)
+  const quotaBytes = quota.maxBytes
+  const outcome = await confirmOwnUploadWithinQuota(key, userId, quotaBytes, quota.scope)
   if (outcome === 'over-quota') {
     await discard()
     throw imageQuotaError(quotaBytes)

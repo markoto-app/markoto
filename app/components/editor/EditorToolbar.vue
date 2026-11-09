@@ -41,8 +41,15 @@ const dictationBusy = computed(() =>
 // user's transcription provider is Mistral or the instance provides it.
 // Stays visible while availability is still loading / unknown — and
 // while a session is running, so the stop button never disappears.
-const { liveDictationAvailable } = useAiAvailability()
-const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationBusy.value)
+const { liveDictationAvailable, transcriptionLocked } = useAiAvailability()
+const { explainLocked } = useAiLockedPrompt()
+// Locked (WP5): the platform has dictation but the paying plan doesn't.
+const dictationLocked = computed(() => !liveDictationAvailable.value && transcriptionLocked.value && !dictationActive.value)
+const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationBusy.value || dictationLocked.value)
+function onDictationClick() {
+  if (dictationLocked.value) explainLocked('aiVoice')
+  else emit('toggle-dictation')
+}
 
 const { uploadAndInsert, uploading, error: uploadError } = useImageUpload(props.docId)
 const toast = useToast()
@@ -302,18 +309,19 @@ const diagramItems = computed(() => [[
     />
     <UTooltip
       v-if="showDictation"
-      :text="dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
+      :text="dictationLocked ? t('ai.locked.aiVoice') : dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
     >
       <UButton
         icon="i-lucide-mic"
         :color="dictationActive || dictationBusy ? 'error' : 'neutral'"
         :variant="dictationActive || dictationBusy ? 'solid' : 'ghost'"
-        :class="{ 'dictation-icon-busy': dictationBusy, 'animate-pulse': dictationActive }"
+        :class="{ 'dictation-icon-busy': dictationBusy, 'animate-pulse': dictationActive, 'opacity-50': dictationLocked }"
         size="xs"
         :aria-label="dictationActive || dictationBusy ? t('ai.dictateStop') : t('ai.dictateStart')"
         :data-active="dictationActive || dictationBusy ? 'true' : 'false'"
+        :data-locked="dictationLocked ? 'true' : undefined"
         data-testid="toolbar-dictate-mic"
-        @click="emit('toggle-dictation')"
+        @click="onDictationClick"
       />
     </UTooltip>
   </div>

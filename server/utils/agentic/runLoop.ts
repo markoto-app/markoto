@@ -13,6 +13,7 @@ import type { BillingContext } from '../billing'
 import { getWebToolAvailability } from '../webTools'
 import { LitellmBudgetExhausted, isBudgetExceededError } from '../litellmKeys'
 import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from '../litellm/freeTierTeam'
+import { MEMBER_LIMIT_REACHED_MESSAGE, TEAM_BUDGET_EXHAUSTED_MESSAGE, isWorkspaceTeamBudgetError } from '../litellm/workspaceTeams'
 import { executeFunctionByName } from '../aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, filterToolsForProviders, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
@@ -58,6 +59,8 @@ type SessionOutcome
     | 'session-cap-exceeded'
     | 'budget-exhausted'
     | 'free-allowance-exhausted'
+    | 'team-budget-exhausted'
+    | 'member-limit-reached'
     | 'turn-limit'
     | 'stalled'
 
@@ -949,6 +952,16 @@ async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'stream', s
     // the session ends with the typed message, which reaches the
     // initiator only, and the prompt bar's credits refresh shows the
     // "add your own key" toast.
+    // Team / Business workspace (WP3): the pooled team budget or the
+    // member's own limit. Never "upgrade" and no breadcrumb in the shared
+    // document — the message reaches the initiator only.
+    if (ctx.opts.billingContext.attribution === 'workspace' && (isWorkspaceTeamBudgetError(e) || isBudgetExceededError(e))) {
+      const team = isWorkspaceTeamBudgetError(e)
+      ctx.telemetry.outcome = team ? 'team-budget-exhausted' : 'member-limit-reached'
+      ctx.telemetry.errorMessage = e instanceof Error ? e.message : String(e)
+      ctx.opts.setStatus('error', team ? TEAM_BUDGET_EXHAUSTED_MESSAGE : MEMBER_LIMIT_REACHED_MESSAGE)
+      return { kind: 'budget-exhausted' }
+    }
     if (isFreeAllowanceExhaustedError(e)) {
       ctx.telemetry.outcome = 'free-allowance-exhausted'
       ctx.telemetry.errorMessage = e instanceof Error ? e.message : String(e)

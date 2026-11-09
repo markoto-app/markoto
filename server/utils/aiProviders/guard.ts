@@ -4,8 +4,10 @@
 // client renders that as "Add your API key in Settings" instead of a
 // generic failure.
 
-import { resolveAiProviders, type ResolvedAiProviders } from './resolve'
+import { CAPABILITY_PLAN_FEATURE, resolveAiAccess, type ResolvedAiProviders } from './resolve'
+import { assertPlanFeature } from '../entitlements'
 import type { AiCapability } from '~~/shared/ai/providers'
+import type { PlanName } from '~~/shared/config/tiers'
 
 export const AI_PROVIDER_MISSING_CODE = 'ai/provider-missing'
 
@@ -31,9 +33,22 @@ export function providerMissingError(capability: AiCapability) {
   })
 }
 
-/** Resolve all providers and require one capability to be available. */
-export async function requireAiProviders(userId: number, capability: AiCapability): Promise<ResolvedAiProviders> {
-  const providers = await resolveAiProviders(userId)
-  if (!providers[capability]) throw providerMissingError(capability)
-  return providers
+const LOCKED_MESSAGE: Partial<Record<AiCapability, string>> = {
+  image: 'Image generation is not part of this plan. Add your own image provider in Settings → AI provider, or upgrade.',
+  transcription: 'Voice input is not part of this plan. Add your own transcription provider in Settings → AI provider, or upgrade.'
+}
+
+/**
+ * Resolve all providers under `plan` and require one capability. A
+ * capability the platform offers but the plan doesn't include answers
+ * 409 `plan/feature-unavailable` (WP5); none at all → `ai/provider-missing`.
+ */
+export async function requireAiProviders(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProviders> {
+  const access = await resolveAiAccess(userId, plan)
+  if (!access.providers[capability]) {
+    const feature = CAPABILITY_PLAN_FEATURE[capability]
+    if (feature && access.locked.includes(capability)) assertPlanFeature(plan, feature, LOCKED_MESSAGE[capability] ?? '')
+    throw providerMissingError(capability)
+  }
+  return access.providers
 }

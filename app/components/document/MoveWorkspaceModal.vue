@@ -7,6 +7,8 @@ interface WorkspaceOption {
   workspaceId: string
   name: string
   role: 'admin' | 'editor' | 'viewer'
+  /** Team / Business plan covering the workspace, else null (WP3). */
+  plan?: 'team' | 'business' | null
 }
 
 const props = defineProps<{
@@ -30,6 +32,9 @@ const saving = ref(false)
 // Null represents "Personal" (no workspace). We use null explicitly
 // in the selection to distinguish "unpicked" from "pick Personal".
 const selected = ref<string | null>(null)
+// The Team / Business plan of the workspace the doc is in now (WP6): a
+// move out of it changes which plan the doc's features follow.
+const sourcePlan = ref<'team' | 'business' | null>(null)
 
 const {
   state: workspaces,
@@ -38,6 +43,7 @@ const {
 } = useAsyncState<WorkspaceOption[]>(
   async () => {
     const rows = await $fetch<WorkspaceOption[]>('/api/user/workspaces')
+    sourcePlan.value = rows.find(w => w.workspaceId === props.currentWorkspaceId)?.plan ?? null
     // Only admin/editor can receive a doc — filter viewer-only workspaces
     // out so the user can't pick something the server would reject.
     return rows.filter(w => w.role === 'admin' || w.role === 'editor')
@@ -57,6 +63,13 @@ watch(open, (v) => {
 })
 
 const hasChange = computed(() => selected.value !== props.currentWorkspaceId)
+/** Leaving a paid workspace for one its plan doesn't cover. */
+const leavesPlan = computed(() => {
+  if (!hasChange.value || !sourcePlan.value) return false
+  const target = workspaces.value.find(w => w.workspaceId === selected.value)?.plan ?? null
+  // Business includes everything Team has; only a step down pauses features.
+  return target === null || (sourcePlan.value === 'business' && target === 'team')
+})
 
 async function handleMove() {
   if (saving.value || !hasChange.value) return
@@ -195,6 +208,15 @@ async function handleMove() {
           >
             {{ t('move.noWorkspaces') }}
           </p>
+          <UAlert
+            v-if="leavesPlan"
+            class="mt-3"
+            color="neutral"
+            variant="subtle"
+            icon="i-lucide-info"
+            :description="t('move.leavesPlan', { plan: sourcePlan === 'team' ? 'Team' : 'Business' })"
+            data-testid="move-leaves-plan"
+          />
         </div>
 
         <div class="flex gap-2 justify-end">

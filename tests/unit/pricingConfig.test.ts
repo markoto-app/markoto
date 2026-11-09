@@ -1,52 +1,97 @@
 import { describe, it, expect } from 'vitest'
 import {
-  DEFAULT_PLAN_PRICES_USD,
+  BILLING_INTERVALS,
+  CURRENCIES,
+  DEFAULT_PLAN_PRICES,
   PAID_PLAN_NAMES,
-  PRICE_CURRENCY,
-  resolvePlanPricesFromEnv
+  allStripePriceLookupKeys,
+  defaultCurrencyForLocale,
+  parseStripePriceLookupKey,
+  resolvePlanPricesFromEnv,
+  stripePriceLookupKey
 } from '../../shared/config/pricing'
-import { PLAN_NAMES } from '../../shared/config/tiers'
 import { formatPlanBytes, formatPrice } from '../../app/utils/pricing'
 
-// Plan prices on /pricing: one config for the cards, the comparison
-// table and the Offer JSON-LD, overridable per paid plan.
+// Plan prices (pricing plan WP2): EUR + CHF, monthly + annual; one table
+// for the cards, the comparison table and the Offer JSON-LD, and the
+// Stripe lookup keys the server sells from.
 
-describe('plan prices', () => {
-  it('has a price for every plan, free at 0 and paid plans ascending', () => {
-    for (const plan of PLAN_NAMES) expect(typeof DEFAULT_PLAN_PRICES_USD[plan], plan).toBe('number')
-    expect(DEFAULT_PLAN_PRICES_USD.free).toBe(0)
-    const paid = PAID_PLAN_NAMES.map(plan => DEFAULT_PLAN_PRICES_USD[plan])
-    expect(paid.every(p => p > 0)).toBe(true)
-    expect([...paid].sort((a, b) => a - b)).toEqual(paid)
+describe('planned plan prices', () => {
+  it('has every currency × paid plan × interval, positive and ascending by plan', () => {
+    for (const currency of CURRENCIES) {
+      for (const interval of BILLING_INTERVALS) {
+        const row = PAID_PLAN_NAMES.map(plan => DEFAULT_PLAN_PRICES[currency][plan][interval])
+        expect(row.every(p => p > 0), `${currency}/${interval}`).toBe(true)
+        expect([...row].sort((a, b) => a - b), `${currency}/${interval}`).toEqual(row)
+      }
+    }
   })
 
-  it('is in US dollars', () => {
-    expect(PRICE_CURRENCY).toBe('USD')
+  it('makes annual cheaper than twelve months', () => {
+    for (const currency of CURRENCIES) {
+      for (const plan of PAID_PLAN_NAMES) {
+        const p = DEFAULT_PLAN_PRICES[currency][plan]
+        expect(p.year, `${currency}/${plan}`).toBeLessThan(p.month * 12)
+      }
+    }
   })
 
-  it('takes positive TIER_<PLAN>_PRICE_USD overrides and ignores anything else', () => {
+  it('takes positive TIER_<PLAN>_PRICE_<CUR>[_YEAR] overrides and ignores anything else', () => {
     const prices = resolvePlanPricesFromEnv({
-      TIER_PRO_PRICE_USD: '12',
-      TIER_MAX_PRICE_USD: '-1',
-      TIER_ULTRA_PRICE_USD: 'abc',
-      TIER_FREE_PRICE_USD: '5'
+      TIER_PRO_PRICE_EUR: '12',
+      TIER_PRO_PRICE_CHF_YEAR: '99',
+      TIER_TEAM_PRICE_EUR: '-1',
+      TIER_BUSINESS_PRICE_CHF: 'abc',
+      TIER_FREE_PRICE_EUR: '5'
     })
-    expect(prices.pro).toBe(12)
-    expect(prices.max).toBe(DEFAULT_PLAN_PRICES_USD.max)
-    expect(prices.ultra).toBe(DEFAULT_PLAN_PRICES_USD.ultra)
-    // A free account never costs money.
-    expect(prices.free).toBe(0)
+    expect(prices.eur.pro.month).toBe(12)
+    expect(prices.chf.pro.year).toBe(99)
+    expect(prices.eur.team.month).toBe(DEFAULT_PLAN_PRICES.eur.team.month)
+    expect(prices.chf.business.month).toBe(DEFAULT_PLAN_PRICES.chf.business.month)
   })
 
-  it('returns the defaults without overrides', () => {
-    expect(resolvePlanPricesFromEnv({})).toEqual(DEFAULT_PLAN_PRICES_USD)
+  it('returns the defaults without overrides and never mutates them', () => {
+    const before = JSON.stringify(DEFAULT_PLAN_PRICES)
+    expect(resolvePlanPricesFromEnv({})).toEqual(DEFAULT_PLAN_PRICES)
+    resolvePlanPricesFromEnv({ TIER_PRO_PRICE_EUR: '50' })
+    expect(JSON.stringify(DEFAULT_PLAN_PRICES)).toBe(before)
+  })
+
+  it('preselects CHF for Swiss locales only', () => {
+    expect(defaultCurrencyForLocale('de-CH')).toBe('chf')
+    expect(defaultCurrencyForLocale('fr_CH')).toBe('chf')
+    expect(defaultCurrencyForLocale('de-DE')).toBe('eur')
+    expect(defaultCurrencyForLocale('en')).toBe('eur')
+    expect(defaultCurrencyForLocale(undefined)).toBe('eur')
+  })
+})
+
+describe('Stripe price lookup keys', () => {
+  it('round-trips plan / interval / currency', () => {
+    for (const key of allStripePriceLookupKeys()) {
+      const id = parseStripePriceLookupKey(key)
+      expect(id, key).not.toBeNull()
+      expect(stripePriceLookupKey(id!.plan, id!.interval, id!.currency)).toBe(key)
+    }
+    expect(allStripePriceLookupKeys()).toHaveLength(CURRENCIES.length * PAID_PLAN_NAMES.length * BILLING_INTERVALS.length)
+  })
+
+  it('honours a custom prefix and rejects foreign or malformed keys', () => {
+    expect(parseStripePriceLookupKey('staging_pro_year_chf', 'staging')).toEqual({ plan: 'pro', interval: 'year', currency: 'chf' })
+    expect(parseStripePriceLookupKey('markoto_pro_year_chf', 'staging')).toBeNull()
+    expect(parseStripePriceLookupKey('markoto_free_month_eur')).toBeNull()
+    expect(parseStripePriceLookupKey('markoto_pro_week_eur')).toBeNull()
+    expect(parseStripePriceLookupKey('markoto_pro_month_usd')).toBeNull()
+    expect(parseStripePriceLookupKey('markoto_pro_month_eur_extra')).toBeNull()
+    expect(parseStripePriceLookupKey(null)).toBeNull()
   })
 })
 
 describe('pricing formatters', () => {
   it('formats whole prices without decimals and fractional ones with two', () => {
-    expect(formatPrice(10, 'USD', 'en')).toBe('$10')
-    expect(formatPrice(12.5, 'USD', 'en')).toBe('$12.50')
+    expect(formatPrice(10, 'EUR', 'en')).toBe('€10')
+    expect(formatPrice(12.5, 'EUR', 'en')).toBe('€12.50')
+    expect(formatPrice(9, 'CHF', 'de-CH')).toMatch(/CHF\s?9/)
   })
 
   it('formats plan byte caps as MB or GB', () => {

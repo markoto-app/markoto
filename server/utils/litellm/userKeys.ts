@@ -7,6 +7,12 @@ import type { PlanName } from '~~/shared/config/tiers'
 import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
+import { creditBudgetExtraUsd } from '../aiCreditBudget'
+
+/** Plan budget + the user's top-up credits (WP4), USD. */
+export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<number> {
+  return planToBudgetUsd(plan, getTiers()) + await creditBudgetExtraUsd({ type: 'user', id: String(userId) })
+}
 
 // Per-user LiteLLM virtual-key CRUD. Single source of truth for the
 // user's AI budget. Every billable AI call goes through
@@ -82,7 +88,7 @@ interface UserKeyHandle {
  * re-reads the winner's key.
  */
 export async function createUserKey(userId: number, plan: PlanName): Promise<UserKeyHandle> {
-  const budget = planToBudgetUsd(plan, getTiers())
+  const budget = await userKeyBudgetUsd(userId, plan)
   // Free-tier keys join the shared monthly pool (`freeTierTeam.ts`) when
   // a global ceiling is configured; the team must exist first.
   const teamId = teamIdForPlan(plan) === null ? null : await ensureFreeTierTeam()
@@ -180,7 +186,7 @@ export async function ensureUserKey(userId: number, plan: PlanName): Promise<Use
 export async function updateUserKeyBudget(userId: number, plan: PlanName): Promise<void> {
   if (isStubMode()) return
   const handle = await ensureUserKey(userId, plan)
-  const budget = planToBudgetUsd(plan, getTiers())
+  const budget = await userKeyBudgetUsd(userId, plan)
   // Join / leave the free-tier pool with the plan: a paid plan must not be
   // capped by (nor spend) the free users' shared ceiling. `null` detaches.
   const teamId = teamIdForPlan(plan) === null ? null : await ensureFreeTierTeam()

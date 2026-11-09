@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { TiersMap } from '~~/shared/config/tiers'
-import { PAID_PLAN_NAMES, type PlanPrices } from '~~/shared/config/pricing'
+import { PAID_PLAN_NAMES, isPerSeatPlan } from '~~/shared/config/pricing'
+import type { PlanName, TiersMap } from '~~/shared/config/tiers'
 import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 
 // Comparison table under the pricing cards: one row per limit or
 // feature, one column per option (self-hosted, no account, free
-// account, Pro, Max, Ultra). Account columns read the resolved tier map
+// account, Pro, Team, Business). Account columns read the resolved tier map
 // and the configured prices; the no-account column reads the instance
 // config (anonymous-document retention) and what the server allows an
 // anonymous visitor (no AI, no workspaces, no uploads, open-edit only:
@@ -15,7 +15,8 @@ import { planToPointsTotal } from '~~/shared/billing/aiPoints'
 // first column stays put, and the page itself never scrolls sideways.
 const props = defineProps<{
   tiers: TiersMap
-  prices: PlanPrices
+  /** Monthly price per plan in `currency`. */
+  prices: Record<PlanName, number>
   currency: string
   /** Paid prices are planned, not on sale (billing off + coming soon). */
   planned: boolean
@@ -35,8 +36,8 @@ const columnLabels = computed(() => [
   t('pricing.anon.title'),
   t('pricing.freeAccount.title'),
   'Pro',
-  'Max',
-  'Ultra'
+  'Team',
+  'Business'
 ])
 
 const yes: Cell = { kind: 'yes' }
@@ -44,11 +45,21 @@ const no: Cell = { kind: 'no' }
 function text(value: string): Cell {
   return { kind: 'text', text: value }
 }
+/** Team / Business values are per seat, shared across the workspace. */
+function seatValue(plan: PlanName, value: string): string {
+  return isPerSeatPlan(plan) ? t('pricing.compare.perSeat', { value }) : value
+}
+
 function num(n: number): string {
   return formatCount(n, locale.value)
 }
 
 const accountPlans = ['free', ...PAID_PLAN_NAMES] as const
+
+/** A plan limit cell: `null` = no limit ("Unlimited"). */
+function limitCell(limit: number | null, format: (n: number) => string): Cell {
+  return text(limit === null ? t('pricing.compare.unlimited') : format(limit))
+}
 
 const rows = computed<Row[]>(() => {
   const setByYou = text(t('pricing.compare.setByYou'))
@@ -93,7 +104,7 @@ const rows = computed<Row[]>(() => {
     {
       id: 'aiPoints',
       label: t('pricing.compare.aiPoints'),
-      cells: [setByYou, no, ...perAccount(plan => text(num(planToPointsTotal(plan, props.tiers))))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, num(planToPointsTotal(plan, props.tiers)))))]
     },
     {
       id: 'ownKey',
@@ -108,27 +119,52 @@ const rows = computed<Row[]>(() => {
     {
       id: 'knowledgeFiles',
       label: t('pricing.compare.knowledgeFiles'),
-      cells: [setByYou, no, ...perAccount(plan => text(num(props.tiers[plan].knowledgeFiles)))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, num(props.tiers[plan].knowledgeFiles))))]
     },
     {
       id: 'knowledgeStorage',
       label: t('pricing.compare.knowledgeStorage'),
-      cells: [setByYou, no, ...perAccount(plan => text(formatPlanBytes(props.tiers[plan].knowledgeBytesPerUser)))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, formatPlanBytes(isPerSeatPlan(plan) ? props.tiers[plan].knowledgeBytesPerWorkspace : props.tiers[plan].knowledgeBytesPerUser))))]
     },
     {
       id: 'imageStorage',
       label: t('pricing.compare.imageStorage'),
-      cells: [setByYou, no, ...perAccount(plan => text(formatPlanBytes(props.tiers[plan].imageBytesPerUser)))]
+      cells: [setByYou, no, ...perAccount(plan => text(seatValue(plan, formatPlanBytes(props.tiers[plan].imageBytesPerUser))))]
     },
     {
-      id: 'sponsoring',
-      label: t('pricing.compare.sponsoring'),
-      cells: [no, no, no, no, yes, yes]
+      id: 'members',
+      label: t('pricing.compare.members'),
+      cells: [setByYou, no, ...perAccount(plan => limitCell(props.tiers[plan].membersPerWorkspace, num))]
+    },
+    {
+      id: 'history',
+      label: t('pricing.compare.history'),
+      cells: [setByYou, no, ...perAccount(plan => limitCell(props.tiers[plan].historyDays, n => t('pricing.compare.days', { n: num(n) }, n)))]
+    },
+    {
+      id: 'customCss',
+      label: t('pricing.compare.customCss'),
+      cells: [yes, no, ...perAccount(plan => props.tiers[plan].customCss ? yes : no)]
+    },
+    {
+      id: 'aiImage',
+      label: t('pricing.compare.aiImage'),
+      cells: [setByYou, no, ...perAccount(plan => props.tiers[plan].aiImage ? yes : text(t('pricing.compare.ownKeyOnly')))]
+    },
+    {
+      id: 'aiVoice',
+      label: t('pricing.compare.aiVoice'),
+      cells: [setByYou, no, ...perAccount(plan => props.tiers[plan].aiVoice ? yes : text(t('pricing.compare.ownKeyOnly')))]
+    },
+    {
+      id: 'aiStrongModel',
+      label: t('pricing.compare.aiStrongModel'),
+      cells: [setByYou, no, ...perAccount(plan => props.tiers[plan].aiStrongModel ? yes : no)]
     },
     {
       id: 'mcp',
       label: t('pricing.compare.mcp'),
-      cells: [yes, no, ...perAccount(() => yes)]
+      cells: [yes, no, ...perAccount(plan => props.tiers[plan].mcpWrite ? yes : text(t('pricing.compare.readOnly')))]
     }
   ]
 })

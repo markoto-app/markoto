@@ -12,6 +12,19 @@ export interface AiCredits {
    * platform-paid AI until `resetsAt`, whatever their own points say.
    */
   freeAllowance?: { pooled: boolean, exhausted: boolean, resetsAt: string | null } | null
+  /**
+   * Team / Business workspace (WP3): the member's limit and the pooled
+   * team budget, in USD. Null outside a subscribed workspace.
+   */
+  workspace?: {
+    workspaceId: string
+    teamBudgetUsd: number
+    teamSpendUsd: number
+    memberLimitUsd: number | null
+    memberSpendUsd: number
+    exhausted: boolean
+    teamExhausted: boolean
+  } | null
 }
 
 /**
@@ -27,51 +40,67 @@ export interface AiCredits {
  *   - after a generate_image tool call commits
  *   - after Stripe checkout returns (plan + budget reset)
  *
- * The `workspaceId` argument switches the displayed pool when the
- * user is on a `(+)` workspace so they see the SPONSOR's pool, not
- * their own.
+ * The `workspaceId` argument reads the budget that pays inside that
+ * workspace: a Team / Business workspace's member limit + team pool
+ * (WP3), else the user's own. One state per workspace (key
+ * `ai-credits:<workspaceId>`), so the topbar badge (personal) and the
+ * prompt bar of a workspace document never overwrite each other.
  */
-export function useAiCredits(workspaceId?: string | null) {
+export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | undefined>) {
   const { loggedIn } = useUserSession()
-  const state = useState<AiCredits | null>('ai-credits', () => null)
-  const loading = useState<boolean>('ai-credits-loading', () => false)
-  const error = useState<string | null>('ai-credits-error', () => null)
+  // One entry per budget: '' = the user's own, else the workspace id.
+  const states = useState<Record<string, AiCredits | null>>('ai-credits', () => ({}))
+  const loadings = useState<Record<string, boolean>>('ai-credits-loading', () => ({}))
+  const errors = useState<Record<string, string | null>>('ai-credits-error', () => ({}))
+  const key = computed(() => toValue(workspaceId) ?? '')
+  const state = computed<AiCredits | null>({
+    get: () => states.value[key.value] ?? null,
+    set: (v) => {
+      states.value = { ...states.value, [key.value]: v }
+    }
+  })
+  const loading = computed(() => loadings.value[key.value] === true)
+  const error = computed(() => errors.value[key.value] ?? null)
 
   async function refresh(): Promise<void> {
+    const k = key.value
     if (!loggedIn.value) {
-      state.value = null
+      states.value = { ...states.value, [k]: null }
       return
     }
-    loading.value = true
-    error.value = null
+    loadings.value = { ...loadings.value, [k]: true }
+    errors.value = { ...errors.value, [k]: null }
     try {
       const query: Record<string, string> = {}
-      if (workspaceId) query.workspaceId = workspaceId
-      state.value = await $fetch<AiCredits>('/api/ai/credits', { query })
+      if (k) query.workspaceId = k
+      const next = await $fetch<AiCredits>('/api/ai/credits', { query })
+      states.value = { ...states.value, [k]: next }
     } catch (e) {
       const err = e as { message?: string, data?: { message?: string } }
-      error.value = err?.data?.message ?? err?.message ?? 'Could not load AI credits'
+      errors.value = { ...errors.value, [k]: err?.data?.message ?? err?.message ?? 'Could not load AI credits' }
       // Keep last-known state so a transient failure doesn't blank
       // the badge mid-session.
     } finally {
-      loading.value = false
+      loadings.value = { ...loadings.value, [k]: false }
     }
   }
 
-  // Auto-fetch once on first consumer.
-  if (import.meta.client && loggedIn.value && state.value === null && !loading.value) {
-    void refresh()
+  // Auto-fetch on the first consumer of a budget, and when the
+  // workspace becomes known (the editor learns it from /token).
+  if (import.meta.client) {
+    watch(key, () => {
+      if (loggedIn.value && state.value === null && !loading.value) void refresh()
+    }, { immediate: true })
   }
 
   watch(loggedIn, (isIn) => {
     if (!isIn) {
-      state.value = null
+      states.value = {}
       return
     }
     void refresh()
   })
 
-  // Derived "low" + "exhausted" flags for visual cue switching.
   const pointsRemaining = computed(() => state.value?.pointsRemaining ?? 0)
   const pointsTotal = computed(() => state.value?.pointsTotal ?? 0)
   const fillRatio = computed(() => {
@@ -82,12 +111,13 @@ export function useAiCredits(workspaceId?: string | null) {
   const isLow = computed(() => fillRatio.value > 0 && fillRatio.value < 0.1)
   const isExhausted = computed(() => fillRatio.value <= 0)
   const isFreeAllowanceExhausted = computed(() => state.value?.freeAllowance?.exhausted === true)
-  // Phase 7: when (+) is active for this workspace the displayed pool
-  // is the SPONSOR's. Members can't upgrade themselves out of an
-  // exhausted shared budget — only the workspace owner can. Surface
-  // this so the AIPromptBar can swap its toast/CTA copy.
+  // Team / Business workspace (WP3): the member's AI runs on the
+  // workspace's budget. A member can't buy their way out of an empty
+  // team budget or their own member limit — the AIPromptBar says "ask an
+  // admin" instead of "upgrade".
   const attribution = computed(() => state.value?.attribution ?? 'user')
   const isWorkspaceShared = computed(() => attribution.value === 'workspace')
+  const isTeamBudgetExhausted = computed(() => state.value?.workspace?.teamExhausted === true)
 
   return {
     state,
@@ -101,6 +131,7 @@ export function useAiCredits(workspaceId?: string | null) {
     isFreeAllowanceExhausted,
     attribution,
     isWorkspaceShared,
+    isTeamBudgetExhausted,
     refresh
   }
 }

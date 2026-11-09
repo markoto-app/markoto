@@ -1,5 +1,8 @@
+import { creditBalanceView } from '../../utils/aiCreditBudget'
+import { pooledPlansFor } from '../../utils/workspaceBilling'
+import { isBillingEnabled } from '../../utils/billingMode'
 import { resolveBillingContext } from '../../utils/billing'
-import { countOwnedWorkspacesByUser } from '../../repos/workspaces'
+import { countOwnedWorkspacesByUser, listWorkspacesForUser } from '../../repos/workspaces'
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
 import { sumImageBytesByUploader } from '../../repos/uploads'
 import { getTiers } from '~~/server/utils/tierConfig'
@@ -22,9 +25,11 @@ export default defineEventHandler(async (event) => {
 
   const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
     countOwnedWorkspacesByUser(userId),
-    countKnowledgeByUploader(userId),
-    sumKnowledgeBytesByUploader(userId),
-    sumImageBytesByUploader(userId)
+    // Personal storage only: files and images in Team / Business
+    // workspaces count against those workspaces' pools (WP3).
+    countKnowledgeByUploader(userId, { excludePooled: isBillingEnabled() }),
+    sumKnowledgeBytesByUploader(userId, { excludePooled: isBillingEnabled() }),
+    sumImageBytesByUploader(userId, { excludePooled: isBillingEnabled() })
   ])
 
   return {
@@ -41,6 +46,19 @@ export default defineEventHandler(async (event) => {
     // Document images (uploads + AI images + duplicate copies), pending
     // uploads included — the same sum the upload quota enforces.
     imageBytesUsed: imageBytes,
-    imageBytesPerUserLimit: tier.imageBytesPerUser
+    imageBytesPerUserLimit: tier.imageBytesPerUser,
+    // AI credit top-ups (WP4): balance + purchases. Null with billing off.
+    credits: isBillingEnabled() ? await creditBalanceView({ type: 'user', id: String(userId) }) : null,
+    // Workspaces whose Team / Business plan covers the user inside them.
+    coveringWorkspaces: await coveringWorkspaces(userId)
   }
 })
+
+async function coveringWorkspaces(userId: number): Promise<Array<{ workspaceId: string, name: string, plan: 'team' | 'business' }>> {
+  const rows = await listWorkspacesForUser(userId)
+  const plans = await pooledPlansFor(rows.map(r => r.workspaceId))
+  return rows.flatMap((r) => {
+    const plan = plans.get(r.workspaceId)
+    return plan ? [{ workspaceId: r.workspaceId, name: r.name, plan }] : []
+  })
+}

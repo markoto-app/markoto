@@ -104,6 +104,19 @@ export async function countAdmins(workspaceId: string): Promise<number> {
 }
 
 /**
+ * How many members does this workspace have right now? Used for the
+ * plan's `membersPerWorkspace` limit (together with open invitations).
+ */
+export async function countMembers(workspaceId: string): Promise<number> {
+  const db = useDatabase()
+  const rows = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(workspaceMembers)
+    .where(eq(workspaceMembers.workspaceId, workspaceId))
+  return rows[0]?.n ?? 0
+}
+
+/**
  * Insert a new member. Does NOT check whether the caller is allowed to —
  * endpoints gate admin-only via getMemberRole beforehand. Does check
  * duplicate insertion and throws ConflictError via the schema-level PK.

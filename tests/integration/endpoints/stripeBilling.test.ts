@@ -16,14 +16,14 @@ describe('POST /api/billing/checkout', () => {
   })
 
   it('401 for anonymous callers', async () => {
-    const res = await anonClient().post('/api/billing/checkout', { plan: 'pro' })
+    const res = await anonClient().post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(401)
   })
 
   it('400 for invalid plan', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    for (const bad of [{}, { plan: 'free' }, { plan: 'enterprise' }, { plan: 123 }]) {
+    for (const bad of [{}, { acceptPaidTerms: true, plan: 'free' }, { acceptPaidTerms: true, plan: 'enterprise' }, { plan: 123 }, { acceptPaidTerms: true, plan: 'pro', interval: 'week' }, { acceptPaidTerms: true, plan: 'pro', currency: 'usd' }]) {
       const res = await client.post('/api/billing/checkout', bad)
       expect(res.status).toBe(400)
     }
@@ -32,7 +32,7 @@ describe('POST /api/billing/checkout', () => {
   it('returns a Checkout URL for a valid pro plan request', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { url: string, sessionId: string }
     // stripe-mock returns a deterministic-ish URL; we don't assert
@@ -41,12 +41,23 @@ describe('POST /api/billing/checkout', () => {
     expect(body.sessionId).toMatch(/^cs_/)
   })
 
-  it('works for max + ultra plans too', async () => {
+  it('refuses Team / Business: those are bought for a workspace', async () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
-    for (const plan of ['max', 'ultra'] as const) {
+    for (const plan of ['team', 'business'] as const) {
       const res = await client.post('/api/billing/checkout', { plan })
-      expect(res.status, `plan=${plan}`).toBe(200)
+      expect(res.status, `plan=${plan}`).toBe(400)
+      const body = await res.json() as { data?: { code?: string } }
+      expect(body.data?.code, `plan=${plan}`).toBe('billing/workspace-plan')
+    }
+  })
+
+  it('refuses the retired Max / Ultra plans', async () => {
+    const u = await createUser()
+    const client = await loggedInClient(u.id)
+    for (const plan of ['max', 'ultra']) {
+      const res = await client.post('/api/billing/checkout', { plan })
+      expect(res.status, `plan=${plan}`).toBe(400)
     }
   })
 
@@ -60,40 +71,74 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_existing_test', u.id])
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
   })
 
-  it('upgrades IN PLACE when the user already has a live subscription', async () => {
-    // The double-subscription guard: a pro user "upgrading" to max must
-    // get a price swap on their EXISTING subscription, not a Checkout
-    // URL (which would create a second concurrent subscription).
-    // stripe-mock returns status=active for any subscription retrieve,
-    // so this exercises the live-subscription branch end to end.
+  it('swaps IN PLACE when Stripe still has a live subscription for the user', async () => {
+    // The double-subscription guard: a user whose row says free but who
+    // still has a live Stripe subscription (e.g. a lapse the webhook
+    // hasn't caught up with) must get a price swap on that EXISTING
+    // subscription, not a Checkout URL (which would create a second
+    // concurrent subscription). stripe-mock returns status=active for any
+    // subscription retrieve, so this exercises the live branch end to end.
     const u = await createUser()
     await testDb().query(
-      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, plan_valid_until = $4 WHERE id = $5',
-      ['cus_existing_test', 'sub_existing_test', 'pro', new Date(Date.now() + 20 * 24 * 3600 * 1000), u.id]
+      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3 WHERE id = $4',
+      ['cus_existing_test', 'sub_existing_test', 'free', u.id]
     )
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'max' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { updated?: boolean, plan?: string, url?: string }
     expect(body.updated).toBe(true)
-    expect(body.plan).toBe('max')
+    expect(body.plan).toBe('pro')
     // Crucially: NO checkout URL — nothing to redirect to.
     expect(body.url).toBeUndefined()
   })
 
-  it('409 when requesting the plan the user is already on', async () => {
+  it('409 when requesting the price the live subscription already has', async () => {
+    // stripe-mock's canned subscription price is mapped to annual CHF Pro
+    // (setup/env.ts#STRIPE_MOCK_PRICE_ID).
     const u = await createUser()
     await testDb().query(
-      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3 WHERE id = $4',
-      ['cus_existing_test', 'sub_existing_test', 'pro', u.id]
+      'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, billing_currency = $4 WHERE id = $5',
+      ['cus_existing_test', 'sub_existing_test', 'pro', 'chf', u.id]
     )
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', interval: 'year', currency: 'chf' })
     expect(res.status).toBe(409)
+    // Monthly ↔ annual on the same plan is a price swap, not a 409.
+    const swap = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', interval: 'month', currency: 'chf' })
+    expect(swap.status).toBe(200)
+    expect((await swap.json() as { updated?: boolean }).updated).toBe(true)
+  })
+
+  it('409 billing/currency-locked when a paying customer asks for another currency', async () => {
+    const u = await createUser()
+    await testDb().query(
+      'UPDATE users SET stripe_customer_id = $1, billing_currency = $2 WHERE id = $3',
+      ['cus_existing_test', 'eur', u.id]
+    )
+    const client = await loggedInClient(u.id)
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', currency: 'chf' })
+    expect(res.status).toBe(409)
+    const body = await res.json() as { data?: { code?: string, currency?: string } }
+    expect(body.data?.code).toBe('billing/currency-locked')
+    expect(body.data?.currency).toBe('eur')
+    // The locked currency itself still works; omitting it defaults to it.
+    expect((await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro', currency: 'eur' })).status).toBe(200)
+    expect((await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })).status).toBe(200)
+  })
+
+  it('opens Checkout for annual and CHF prices', async () => {
+    const u = await createUser()
+    const client = await loggedInClient(u.id)
+    for (const body of [{ acceptPaidTerms: true, plan: 'pro', interval: 'year' }, { acceptPaidTerms: true, plan: 'pro', currency: 'chf' }, { acceptPaidTerms: true, plan: 'pro', interval: 'year', currency: 'chf' }]) {
+      const res = await client.post('/api/billing/checkout', body)
+      expect(res.status, JSON.stringify(body)).toBe(200)
+      expect((await res.json() as { url?: string }).url).toMatch(/^https?:\/\//)
+    }
   })
 
   it('still opens Checkout for a user with a customer id but no subscription id', async () => {
@@ -102,7 +147,7 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = NULL WHERE id = $2', ['cus_existing_test', u.id])
     const client = await loggedInClient(u.id)
-    const res = await client.post('/api/billing/checkout', { plan: 'ultra' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(200)
     const body = await res.json() as { url?: string, updated?: boolean }
     expect(body.url).toMatch(/^https?:\/\//)
@@ -120,7 +165,7 @@ describe('POST /api/billing/checkout', () => {
     const u = await createUser()
     const client = await loggedInClient(u.id)
     await testDb().query('DELETE FROM users WHERE id = $1', [u.id])
-    const res = await client.post('/api/billing/checkout', { plan: 'pro' })
+    const res = await client.post('/api/billing/checkout', { acceptPaidTerms: true, plan: 'pro' })
     expect(res.status).toBe(401)
   })
 

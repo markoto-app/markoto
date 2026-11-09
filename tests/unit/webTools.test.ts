@@ -5,6 +5,12 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
 const checkRateLimit = vi.hoisted(() => vi.fn(async (_ns: string, _key: string, _max: number, _windowMs: number) => true))
 vi.mock('../../server/utils/rateLimit', () => ({ checkRateLimit }))
+// The plan's daily web-tool limit (`webToolsPerDay`); null = no plan limit.
+const planWebToolsPerDay = vi.hoisted(() => ({ value: null as number | null }))
+vi.mock('../../server/utils/entitlements', () => ({
+  resolveUserPlan: vi.fn(async () => 'free'),
+  capsFor: vi.fn(() => ({ webToolsPerDay: planWebToolsPerDay.value }))
+}))
 
 const {
   consumeWebToolQuota,
@@ -15,6 +21,7 @@ const {
 } = await import('../../server/utils/webTools')
 
 beforeEach(() => {
+  planWebToolsPerDay.value = null
   checkRateLimit.mockClear()
   checkRateLimit.mockImplementation(async () => true)
 })
@@ -40,6 +47,19 @@ describe('getWebToolLimits', () => {
     vi.stubEnv('NUXT_WEB_TOOLS_HOURLY_LIMIT', 'lots')
     vi.stubEnv('NUXT_WEB_TOOLS_DAILY_LIMIT', '-3')
     expect(getWebToolLimits()).toEqual({ hourly: 30, daily: 100 })
+  })
+
+  it('a plan daily limit narrows the operator ceiling — the stricter wins', () => {
+    vi.stubEnv('NUXT_WEB_TOOLS_HOURLY_LIMIT', '')
+    vi.stubEnv('NUXT_WEB_TOOLS_DAILY_LIMIT', '100')
+    expect(getWebToolLimits(20)).toEqual({ hourly: 30, daily: 20 })
+    expect(getWebToolLimits(500)).toEqual({ hourly: 30, daily: 100 })
+    expect(getWebToolLimits(null)).toEqual({ hourly: 30, daily: 100 })
+  })
+
+  it('an unlimited operator ceiling (0) leaves the plan limit in force', () => {
+    vi.stubEnv('NUXT_WEB_TOOLS_DAILY_LIMIT', '0')
+    expect(getWebToolLimits(20).daily).toBe(20)
   })
 })
 
@@ -92,6 +112,12 @@ describe('consumeWebToolQuota', () => {
     await consumeWebToolQuota(1)
     expect(checkRateLimit).toHaveBeenCalledTimes(1)
     expect(checkRateLimit).toHaveBeenCalledWith('web-tools-hour', '1', 3, 60 * 60 * 1000)
+  })
+
+  it('applies the user\'s plan daily limit when it is stricter', async () => {
+    planWebToolsPerDay.value = 2
+    await consumeWebToolQuota(5)
+    expect(checkRateLimit).toHaveBeenCalledWith('web-tools-day', '5', 2, 24 * 60 * 60 * 1000)
   })
 
   it('does not limit a key-less harness call (no user id)', async () => {

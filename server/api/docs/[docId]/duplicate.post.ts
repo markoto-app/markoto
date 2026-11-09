@@ -2,7 +2,7 @@ import { nanoid } from 'nanoid'
 import { getDoc } from '../../../repos/documents'
 import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/duplicateDocument'
 import { withIdempotency } from '../../../utils/idempotency'
-import { imageQuotaError, resolveImageQuotaBytes } from '../../../utils/imageQuota'
+import { imageQuotaError, resolveImageQuota } from '../../../utils/imageQuota'
 import { flushSyncDocument } from '../../../utils/syncNotify'
 
 // Duplicate a document into a new docId. The duplicator becomes the
@@ -52,8 +52,9 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   return withIdempotency(event, `duplicate:${sourceDocId}`, session.user.id, async () => {
     const newDocId = nanoid(10)
-    // The copied images count against the duplicator's image quota.
-    const imageQuotaBytes = await resolveImageQuotaBytes(session.user.id)
+    // The copied images count against the target Team / Business
+    // workspace's pool, else the duplicator's personal quota.
+    const imageQuota = await resolveImageQuota(session.user.id, null, targetWorkspaceId)
     // The clone reads the persisted Y.js rows; edits from the last
     // couple of seconds may still sit in the sync-server's debounced
     // store. Persist them first so the copy matches what the user sees.
@@ -61,7 +62,7 @@ export default defineEventHandler(async (event) => {
     try {
       await duplicateDocument(
         { sourceDocId, newDocId, ownerId: session.user.id, workspaceId: targetWorkspaceId, title },
-        { s3: useS3Client(), bucket: config.s3.bucket, imageQuotaBytes }
+        { s3: useS3Client(), bucket: config.s3.bucket, imageQuota }
       )
     } catch (e) {
       if (e instanceof ImageQuotaExceededError) throw imageQuotaError(e.limitBytes)

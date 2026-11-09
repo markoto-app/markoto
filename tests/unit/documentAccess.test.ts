@@ -27,8 +27,6 @@ function row(overrides: Partial<DocAuthzRow>): DocAuthzRow {
     accessMode: 'private',
     theme: null,
     workspaceRole: null,
-    workspaceAiEnabled: null,
-    workspaceBillingOwner: null,
     title: 'Doc',
     description: '',
     audience: 'technical',

@@ -121,7 +121,7 @@ services:
     tmpfs:
       - /data
     volumes:
-      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
 
   # Official Stripe mock server. Implements Stripe's full REST API
   # surface from their OpenAPI spec, so our code can use the real SDK
@@ -160,6 +160,8 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+      # Podman can't take this profile through Compose — see
+      # docker-compose.test.podman.yml.
       - seccomp=./renderer/seccomp.json
     pids_limit: 2048
     environment:
@@ -190,7 +192,8 @@ services:
       # MUST match ALLOWED_PORT in that test.
       - RENDERER_ALLOWED_ORIGINS=http://host.docker.internal:3187
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # CONTAINER_HOST_ADDRESS: see docs/CONTAINER-ENGINES.md (VPNs, Podman).
+      - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
     ports:
       - "127.0.0.1:9101:9000"
     depends_on:
@@ -239,7 +242,7 @@ services:
       - LITELLM_DB_USER=litellm_test
       - LITELLM_DB_PASSWORD=litellmtestpassword
     volumes:
-      - ./infra/postgres/db-init.sh:/db-init.sh:ro
+      - ./infra/postgres/db-init.sh:/db-init.sh:ro,z
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm-test:
@@ -268,8 +271,8 @@ services:
       - LITELLM_LOG=ERROR
       - DISABLE_ADMIN_UI=True
     volumes:
-      - ./infra/litellm/config.yaml:/app/config.yaml:ro
-      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
+      - ./infra/litellm/config.yaml:/app/config.yaml:ro,z
+      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
     user: "65534:65534"
@@ -315,10 +318,13 @@ services:
     environment:
       - PORT=8090
     volumes:
-      - ./tests/fixtures/fake-openai:/fake:ro
+      - ./tests/fixtures/fake-openai:/fake:ro,z
     ports:
       - "127.0.0.1:4120:8090"
-      - "${TEST_NETWORK_GATEWAY:-10.213.47.1}:4120:8090"
+      # Docker: the bridge gateway is a host address. Rootless Podman: it
+      # lives in Podman's network namespace, so publish on a private host
+      # address instead (TEST_FAKE_OPENAI_HOST, docs/CONTAINER-ENGINES.md).
+      - "${TEST_FAKE_OPENAI_HOST:-${TEST_NETWORK_GATEWAY:-10.213.47.1}}:4120:8090"
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request, sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8090/health', timeout=2).status == 200 else 1)"]
       interval: 2s
@@ -410,7 +416,8 @@ services:
       - SYNC_MAX_PREAUTH_BYTES=4194304
       - SYNC_AUTH_TIMEOUT_MS=3000
     extra_hosts:
-      - "host.docker.internal:host-gateway"
+      # CONTAINER_HOST_ADDRESS: see docs/CONTAINER-ENGINES.md (VPNs, Podman).
+      - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
     ports:
       - "127.0.0.1:4002:4001"
     depends_on:

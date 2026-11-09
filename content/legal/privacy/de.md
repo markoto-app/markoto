@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: de
-version: 8
-effectiveDate: 2026-11-03
+version: 9
+effectiveDate: 2026-11-09
 translationStatus: machine-translated
 ---
 
@@ -34,6 +34,7 @@ Kurz zusammengefasst verarbeiten wir:
 - **Inhalte:** Dokumente, Kommentare, Bilder, Dateien der Wissensdatenbank, Themes und wer was bearbeitet hat.
 - **KI-Nutzung:** Eingaben, Dokumentkontext und KI-Ergebnisse, wenn Sie die KI-Funktionen nutzen.
 - **Technische Daten:** IP-Adressen (kurzzeitig für Ratenbegrenzungen verwendet und in Protokollen nur gekürzt gespeichert), Browsertyp, Fehlerberichte.
+- **Abrechnungsdaten, erst wenn kostenpflichtige Pläne angeboten werden:** Ihr Plan, dessen Periode und Währung, die Kunden- und Abonnementkennungen bei Stripe, Rechnungen, Käufe von KI-Guthaben und dessen Verbrauch sowie Ihr Akzeptieren der Bedingungen für kostenpflichtige Pläne ([/legal/paid-terms](/legal/paid-terms)). Für einen Team- oder Business-Workspace speichern wir zudem die Anzahl der Plätze und wer der Abrechnungsadmin ist. Die Admins des Workspace sehen die KI-Ausgaben jedes Mitglieds in diesem Workspace für den laufenden Monat und können ein Limit pro Mitglied festlegen; Eingaben oder KI-Ergebnisse sehen sie nicht. Kartendaten gehen nur an Stripe; wir erhalten sie nie.
 
 ## 2b. Anonyme Dokumente, die Bot-Prüfung und Missbrauchsmeldungen
 
@@ -246,6 +247,7 @@ Dies ist **Version {{currentVersion}}**, gültig ab **{{effectiveDate}}**. Wesen
 
 ### Änderungsverlauf
 
+- **v9 (2026-11-09).** Die Abrechnungsdaten beschrieben, die wir verarbeiten, sobald kostenpflichtige Pläne angeboten werden (§2): Pläne, Team- und Business-Workspaces mit ihren Plätzen und ihrem Abrechnungsadmin, KI-Guthaben sowie das Akzeptieren der neuen Bedingungen für kostenpflichtige Pläne. Die Admins eines Team- oder Business-Workspace sehen die monatlichen KI-Ausgaben jedes Mitglieds in diesem Workspace (nicht Eingaben oder Ergebnisse) und können ein Limit pro Mitglied festlegen.
 - **v8 (2026-11-03).** Die Zwecke «Produktanalyse» und «Sitzungsaufzeichnung» sowie das Cookie-Banner entfernt: Beides war nie im Einsatz, und markoto verwendet nur unbedingt erforderlichen Speicher (aufgeführt in §9). Das Schweizer DSG neben der DSGVO sowie die Länder, in die Daten übermittelt werden (§4), ergänzt. Anonyme Dokumente (Akzeptieren der Nutzungsbedingungen, Bot-Prüfung, Löschung 30 Tage nach der letzten Bearbeitung; bisher 180 Tage), noindex für Dokumente und Missbrauchsmeldungen ohne Konto, mit Eingangsbestätigung, Mitteilung des Entscheids und Begründung, beschrieben (§2b). Die Aufbewahrung von Sicherungskopien (etwa 30 Tage), von Audit-Protokolleinträgen (2 Jahre) und von Missbrauchsmeldungen (1 Jahr nach Abschluss des Falls) angegeben. Die Angaben zum Passwort-Hashing, zur Altersregel (überall 16 Jahre), zur Beschreibung der KI-Kennzeichnung und zum KI-Training je Anbieter korrigiert. Kostenloses KI-Kontingent für angemeldete Nutzerinnen und Nutzer ergänzt (GLM-5.3 Flash von Z.ai, bereitgestellt und verarbeitet von Mistral AI über deren EU-Endpunkt; Z.ai erhält keine Daten), mit monatlichem Limit pro Konto und gemeinsamem Monatstopf, sowie die Aufbewahrung der KI-Kostendaten, die auch nach der Löschung eines Kontos 90 Tage lang aufbewahrt werden (§5, §5b, §8). Alle Anfragen an Mistral AI, einschliesslich Sprachtranskription und Live-Diktat, gehen an deren EU-Endpunkt (§8). Profilbilder von GitHub, Google oder der Anmeldung Ihrer Organisation werden nicht mehr gespeichert oder angezeigt: Avatare werden in Ihrem Browser aus Ihrer Kontonummer gezeichnet, Besucherinnen und Besucher ohne Konto erhalten einen zufälligen (`markoto-anon-avatar`, §9).
 - **v7 (2026-10-27).** Verarbeitungszweck `workspace_invitations` hinzugefügt (berechtigtes Interesse): Lädt ein Admin eines Arbeitsbereichs jemanden per E-Mail ein, speichern wir diese E-Mail-Adresse, die angebotene Rolle und die einladende Person in einer offenen Einladung, bis die Person sie annimmt oder ablehnt, ein Admin sie zurückzieht oder sie nach 14 Tagen abläuft. Niemand tritt einem Arbeitsbereich ohne Zustimmung bei. Ist E-Mail eingerichtet, wird pro Einladung eine Einladungs-E-Mail über Resend versendet (höchstens drei pro Adresse und Tag). Gespeichert bei OVHcloud (EU).
 - **v6 (2026-10-26), redaktionelle Anpassung an den ausschliesslich kostenlosen Dienst.** Stripe und die Abrechnung werden als erst relevant beschrieben, sobald kostenpflichtige Pläne angeboten werden (die Liste der Unterauftragsverarbeiter und das Verzeichnis lassen Stripe aus, solange die Abrechnung ausgeschaltet ist). Das Verzeichnis der Verarbeitungszwecke wird nun tatsächlich in Ziffer 13 angezeigt. Angaben zur Aufbewahrung der Audit-Protokolle, zur Bereinigung anonymer Dokumente (180 Tage Inaktivität), zum abgeschafften Interaktionszähler und zur (nicht vorhandenen) kontoweiten KI-Abmeldung wurden korrigiert.

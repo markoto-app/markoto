@@ -96,6 +96,8 @@ function cancelEdit(): void {
 function sourceLabel(): string {
   if (props.status.source === 'user') return t('aiProvider.status.own')
   if (props.status.source === 'instance') return t('aiProvider.status.instance')
+  // The platform offers it, but not on this plan (WP5).
+  if (props.status.locked === 'plan') return t('aiProvider.status.locked')
   return t('aiProvider.status.none')
 }
 

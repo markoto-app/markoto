@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../shared/ai/providers'
 import { byokUrlPolicyErrors } from '../../server/utils/aiProviders/config'
+import { resolveTiersFromEnv } from '../../shared/config/tiers'
 
 // The hosted SaaS shape is pure configuration: infra/render-env.sh (CI
 // deploys) and infra/templates/env.j2 (Ansible) render the .env that the
@@ -83,15 +84,53 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('NUXT_FREE_TIER_TOTAL_BUDGET_USD')).toBe('500')
   })
 
+  it('narrows the free tier\'s plan limits (Phase A entitlements)', () => {
+    expect(vars.get('TIER_FREE_MEMBERS_PER_WORKSPACE')).toBe('3')
+    expect(vars.get('TIER_FREE_HISTORY_DAYS')).toBe('30')
+    expect(vars.get('TIER_FREE_SAVED_THEMES')).toBe('3')
+    expect(vars.get('TIER_FREE_IMPORT_MAX_BYTES')).toBe(String(10 * 1024 * 1024))
+    expect(vars.get('TIER_FREE_WEB_TOOLS_PER_DAY')).toBe('20')
+    expect(vars.get('TIER_FREE_MCP_TOOL_CALLS_PER_DAY')).toBe('100')
+    expect(vars.get('TIER_FREE_FEATURE_CUSTOM_CSS')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_MCP_WRITE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_IMAGE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_VOICE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_STRONG_MODEL')).toBe('false')
+  })
+
+  it('every hosted free-tier limit parses into the resolved tier map', () => {
+    const env = Object.fromEntries([...vars].filter(([k]) => k.startsWith('TIER_')))
+    const free = resolveTiersFromEnv(env).free
+    expect(free).toMatchObject({
+      membersPerWorkspace: 3,
+      historyDays: 30,
+      savedThemes: 3,
+      importMaxBytes: 10 * 1024 * 1024,
+      webToolsPerDay: 20,
+      mcpToolCallsPerDay: 100,
+      customCss: false,
+      mcpWrite: false
+    })
+  })
+
   it('the chat default is a deployment in infra/litellm/config.yaml', () => {
     const config = readFileSync(resolve(ROOT, 'infra/litellm/config.yaml'), 'utf8')
     expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
   })
 
-  it('sets no image or transcription default (those stay BYOK)', () => {
-    const defaults = [...vars].filter(([k]) => /^NUXT_AI_DEFAULT_(IMAGE|TRANSCRIBE)_/.test(k))
-    expect(defaults.length).toBe(6)
-    for (const [k, v] of defaults) expect(v, k).toBe('')
+  it('image / voice / strong-model defaults are platform aliases, locked for the free tier (WP5)', () => {
+    expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-2-pro')
+    expect(vars.get('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL')).toBe('voxtral-mini-transcribe')
+    expect(vars.get('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL')).toBe('mistral-small-2603')
+    // Aliases only: never an operator endpoint + key for these.
+    for (const k of ['IMAGE', 'TRANSCRIBE']) {
+      expect(vars.get(`NUXT_AI_DEFAULT_${k}_BASE_URL`), k).toBe('')
+      expect(vars.get(`NUXT_AI_DEFAULT_${k}_API_KEY`), k).toBe('')
+    }
+    // With billing off everyone is on the free tier: nobody gets them
+    // on markoto.app without their own key.
+    expect(vars.get('TIER_FREE_FEATURE_AI_IMAGE')).toBe('false')
+    expect(vars.get('TIER_FREE_FEATURE_AI_VOICE')).toBe('false')
   })
 
   it('each free-allowance default can be overridden by an Environment variable', () => {
@@ -117,6 +156,18 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
 
 describe('Ansible env.j2 hosted defaults', () => {
   const template = readFileSync(resolve(ROOT, 'infra/templates/env.j2'), 'utf8')
+
+  it('renders the same free-tier plan limits as render-env.sh', () => {
+    const vars = renderHostedEnv()
+    for (const name of [
+      'TIER_FREE_MEMBERS_PER_WORKSPACE', 'TIER_FREE_HISTORY_DAYS', 'TIER_FREE_SAVED_THEMES',
+      'TIER_FREE_IMPORT_MAX_BYTES', 'TIER_FREE_WEB_TOOLS_PER_DAY', 'TIER_FREE_MCP_TOOL_CALLS_PER_DAY',
+      'TIER_FREE_FEATURE_CUSTOM_CSS', 'TIER_FREE_FEATURE_MCP_WRITE',
+      'TIER_FREE_FEATURE_AI_IMAGE', 'TIER_FREE_FEATURE_AI_VOICE', 'TIER_FREE_FEATURE_AI_STRONG_MODEL'
+    ]) {
+      expect(template, name).toContain(`${name}={{ ${name.toLowerCase()} | default('${vars.get(name)}') }}`)
+    }
+  })
 
   it('uses the same free-allowance defaults as render-env.sh', () => {
     expect(template).toContain('NUXT_AI_DEFAULT_CHAT_MODEL={{ nuxt_ai_default_chat_model | default(\'zai-glm-5-3-flash\') }}')

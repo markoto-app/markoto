@@ -1,17 +1,20 @@
 import { eq } from 'drizzle-orm'
-import { users, workspaces } from '../db/schema'
+import { users } from '../db/schema'
 import { useDatabase } from './database'
 import type { PlanName } from '~~/shared/config/tiers'
 import { ensureUserKey } from './litellmKeys'
 import { isBillingEnabled } from './billingMode'
-import { planSupportsTeamBilling } from '~~/shared/config/sponsorship'
+import { getPooledWorkspace } from './workspaceBilling'
+import { ensureMemberKey } from './litellm/workspaceTeams'
+import { resolveUserPlan } from './entitlements'
+import { getWorkspaceRole } from './workspaceAccess'
 
 /**
  * Phase 6 billing context resolution. Every AI call site calls
  * `resolveBillingContext` once and threads the result through:
  *
  *   1. WHICH plan applies (capacity caps, tier display).
- *   2. WHO gets charged — the caller or a `(+)` workspace's sponsor.
+ *   2. WHO gets charged (today always the caller; Team workspaces in WP3).
  *   3. WHICH virtual key the LLM call should use as its bearer token.
  *
  * Phase 6 architecture: AI usage is gated SOLELY by per-user LiteLLM
@@ -61,18 +64,17 @@ export interface BillingContext {
    */
   virtualKey: string
   /**
-   * For diagnostics: `'workspace'` = `(+)` active and sponsor covers
-   * the caller; `'user'` = self-bill.
+   * `'user'` = the caller's own key; `'workspace'` = the caller's key in a
+   * Team / Business workspace's LiteLLM team (member limit + pool).
    */
   attribution: 'user' | 'workspace'
   /**
    * The user-id whose virtual key + spend the AI Points UI should
-   * read. Equals `userId` for self-bill; equals the workspace
-   * `billingOwnerId` (sponsor) when `(+)` is active. Lets credits.get
-   * call `getUserKeyInfo(billingUserId, plan)` without re-deriving
-   * the sponsor.
+   * read. Equals `userId` for self-bill.
    */
   billingUserId: number
+  /** The paying workspace when `attribution === 'workspace'`. */
+  workspaceId?: string
 }
 
 /**
@@ -143,20 +145,7 @@ function isPaidAndActive(
   return true
 }
 
-/**
- * Whether a plan can sponsor `(+)` team-billing. Only Max and Ultra —
- * Pro is personal-only. Free is never a sponsor target.
- */
-function supportsTeamBilling(plan: PlanName): boolean {
-  return planSupportsTeamBilling(plan)
-}
-
-/**
- * Same check as `isPaidAndActive` but exposed as a plain predicate on
- * the plan + expiry alone (used when resolving (+) sponsor
- * eligibility — we still want a valid Stripe anchor implied by the
- * sponsor's non-lapsed state).
- */
+/** Whether a stored plan is still active (free never lapses). */
 function planActive(plan: PlanName, planValidUntil: Date | null, now: Date): boolean {
   if (plan === 'free') return true
   if (planValidUntil === null) return false
@@ -183,29 +172,14 @@ async function getUserPlan(userId: number): Promise<{
   }
 }
 
-async function getWorkspaceBilling(workspaceId: string): Promise<
-  { aiEnabled: boolean, billingOwnerId: number | null } | null
-> {
-  const db = useDatabase()
-  const rows = await db.select({
-    aiEnabled: workspaces.aiEnabled,
-    billingOwnerId: workspaces.billingOwnerId
-  }).from(workspaces).where(eq(workspaces.workspaceId, workspaceId)).limit(1)
-  return rows[0] ?? null
-}
-
 /**
- * Resolve the billing context for an AI call.
+ * Resolve the billing context for an AI call: the caller's own virtual
+ * key at their effective personal plan. Lapsed paid users collapse to
+ * Free caps + Free's budget. (The retired `(+)` workspace sponsorship
+ * path is gone; Team billing replaces it in WP3.)
  *
- * Precedence:
- *   1. Workspace with `aiEnabled=true`, `billingOwnerId` set, and the
- *      sponsor's plan is max/ultra + not lapsed → bill the workspace
- *      at the sponsor's virtual key (sponsor's $ budget).
- *   2. Otherwise → bill the caller at their own virtual key. Lapsed
- *      paid users collapse to Free caps + Free's $1.00 budget.
- *
- * Lazy virtual-key creation: if either the caller or the (+) sponsor
- * doesn't have a LiteLLM key yet, `ensureUserKey` creates one inline.
+ * Lazy virtual-key creation: if the caller doesn't have a LiteLLM key
+ * yet, `ensureUserKey` creates one inline.
  * One round-trip to LiteLLM admin per user lifetime.
  *
  * Throws if `userId` doesn't match any row — all callers go through
@@ -223,8 +197,7 @@ export async function resolveBillingContext(
     throw new Error(`[billing] resolveBillingContext: user ${userId} not found`)
   }
   // Billing off (self-hosted / free-only SaaS): nobody can hold a paid
-  // plan and there is no `(+)` sponsorship — everyone self-bills at the
-  // free tier (whose budget operators raise via TIER_FREE_* env vars).
+  // plan — everyone self-bills at the free tier (whose budget operators raise via TIER_FREE_* env vars).
   const billingOn = isBillingEnabled()
   const callerActive = planActive(caller.plan, caller.planValidUntil, now)
   // A lapsed paid user reverts to Free caps until the plan-lapse
@@ -232,43 +205,29 @@ export async function resolveBillingContext(
   // from still getting Pro quota.
   const effectiveCallerPlan: PlanName = billingOn && callerActive ? caller.plan : 'free'
 
-  // (+) path: kicks in only when every precondition aligns.
-  if (billingOn && workspaceId) {
-    const ws = await getWorkspaceBilling(workspaceId)
-    if (ws && ws.aiEnabled && ws.billingOwnerId !== null) {
-      const sponsor = await getUserPlan(ws.billingOwnerId)
-      if (sponsor
-        && supportsTeamBilling(sponsor.plan)
-        && planActive(sponsor.plan, sponsor.planValidUntil, now)) {
-        // Period follows the SPONSOR's cycle — every member of a
-        // (+) workspace shares the sponsor's virtual key, so the
-        // period window the UI displays should be theirs too.
-        const sponsorPeriodStart = effectivePeriodStart({
-          plan: sponsor.plan,
-          stripeCurrentPeriodStart: sponsor.stripeCurrentPeriodStart,
-          planValidUntil: sponsor.planValidUntil,
-          now
-        })
-        const sponsorPeriodEnd = effectivePeriodEnd({
-          plan: sponsor.plan,
-          stripeCurrentPeriodStart: sponsor.stripeCurrentPeriodStart,
-          planValidUntil: sponsor.planValidUntil,
-          now
-        })
-        const sponsorKey = await ensureUserKey(ws.billingOwnerId, sponsor.plan)
-        return {
-          plan: sponsor.plan,
-          attributedTo: `workspace:${workspaceId}` as const,
-          periodStart: sponsorPeriodStart,
-          periodEnd: sponsorPeriodEnd,
-          virtualKey: sponsorKey.token,
-          attribution: 'workspace',
-          billingUserId: ws.billingOwnerId
-        }
+  // TODO(WP3, Team billing): a member of a Team / Business workspace
+  // bills to that workspace's pooled budget through their per-workspace
+  // key. Until then every caller self-bills; `workspaceId` is accepted so
+  // call sites don't change when that lands.
+  // Team / Business (WP3): inside a workspace with an entitled
+  // subscription a member's AI runs on their key in the workspace's
+  // LiteLLM team (member limit + pooled team budget). Non-members (e.g.
+  // someone editing an open-edit document of the workspace) keep their
+  // own budget, as do members outside the workspace.
+  const pool = billingOn ? await getPooledWorkspace(workspaceId, now) : null
+  if (pool) {
+    const memberKey = await ensureMemberKey(pool, userId)
+    if (memberKey) {
+      return {
+        plan: pool.plan,
+        attributedTo: `workspace:${pool.workspaceId}` as const,
+        periodStart: pool.subscription.currentPeriodStart ?? currentPeriodStart(now),
+        periodEnd: pool.subscription.validUntil ?? nextCalendarMonthStart(now),
+        virtualKey: memberKey.token,
+        attribution: 'workspace',
+        billingUserId: userId,
+        workspaceId: pool.workspaceId
       }
-      // Fall through to self-bill. Safety net: a lapsed sponsor or
-      // ineligible plan (pro toggled (+) somehow) doesn't burn a
-      // stale key — the caller pays from their own budget instead.
     }
   }
 
@@ -294,4 +253,15 @@ export async function resolveBillingContext(
     attribution: 'user',
     billingUserId: userId
   }
+}
+
+/**
+ * The plan that pays for AI here, without touching LiteLLM: a Team /
+ * Business workspace's plan for its members inside it, else the user's
+ * effective personal plan. Same rule as `resolveBillingContext`.
+ */
+export async function resolvePayingPlan(userId: number, workspaceId: string | null | undefined): Promise<PlanName> {
+  const pool = isBillingEnabled() ? await getPooledWorkspace(workspaceId) : null
+  if (pool && (await getWorkspaceRole(userId, pool.workspaceId)) !== null) return pool.plan
+  return resolveUserPlan(userId)
 }

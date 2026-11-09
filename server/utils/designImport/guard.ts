@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { AI_SETTINGS_PATH, requireAiProviders } from '../aiProviders/guard'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
 import { useValkey } from '../valkey'
+import { resolvePayingPlan } from '../billing'
 import type { DesignImportExt } from '~~/shared/config/designImport'
 
 // Shared gates of the design-import endpoints.
@@ -15,7 +16,9 @@ export const DESIGN_IMPORT_NO_VISION_CODE = 'design-import/no-vision'
  * settings.
  */
 export async function requireVisionChatProvider(userId: number): Promise<ResolvedAiProvider> {
-  const providers = await requireAiProviders(userId, 'chat')
+  // No document / workspace here (the theme panel saves a personal
+  // design), so the person's own plan decides (AI by plan, WP5).
+  const providers = await requireAiProviders(userId, 'chat', await resolvePayingPlan(userId, null))
   const chat = providers.chat
   if (!chat?.supportsVision) {
     throw createError({

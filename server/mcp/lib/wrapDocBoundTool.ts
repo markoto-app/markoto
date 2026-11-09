@@ -14,7 +14,7 @@ import {
   type MetaToolName,
   type ToolName
 } from '../../utils/agentic/toolHandlers'
-import { hasScope, requireMcpAuth } from './mcpToolContext'
+import { requireMcpAuth, hasScope, toolEnabled } from './mcpToolContext'
 import { resolveBillingContext } from '../../utils/billing'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import type { ToolResult } from '../../utils/aiToolAdapter'
@@ -23,6 +23,9 @@ import type { McpAuthContext, McpScope } from '../../utils/mcpAuth'
 import { checkRateLimit } from '../../utils/rateLimit'
 import { consumeRenderAllowance } from '../../utils/renderRateLimit'
 import { MCP_RATE_LIMITS, type RateLimitRule } from './mcpGate'
+import { mcpToolAllowed } from './toolClasses'
+import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
+import { limitRecovery } from '../../utils/billingMode'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
@@ -73,9 +76,30 @@ export async function admitToolCall(event: H3Event, name: string, scope: McpScop
   if (!hasScope(event, scope)) {
     throw createError({ statusCode: 404, message: `Tool ${name} not found`, data: { code: 'mcp/tool-not-found' } })
   }
+  // Plan: without `mcpWrite` only read tools run (lib/toolClasses.ts).
+  const plan = event.context.mcpPlan
+  if (plan && !mcpToolAllowed(name, plan.mcpWrite)) {
+    throw createError({
+      statusCode: 409,
+      message: `${name} changes content or costs platform resources, which your plan doesn't include over MCP. Read-only tools still work.`,
+      data: { code: PLAN_FEATURE_UNAVAILABLE_CODE, feature: 'mcpWrite', messageKey: 'plan.feature.mcpWrite', recovery: limitRecovery() }
+    })
+  }
   const perUser = MCP_RATE_LIMITS.toolCallsPerUser
   if (!(await checkRateLimit(perUser.namespace, String(auth.userId), perUser.max, perUser.windowMs))) {
     throw createError({ statusCode: 429, message: 'Too many tool calls. Try again in a minute.', data: { code: 'mcp/rate-limited' } })
+  }
+  // Plan: daily tool-call allowance (`mcpToolCallsPerDay`, null = none).
+  const daily = plan?.mcpToolCallsPerDay ?? null
+  if (daily !== null) {
+    const rule = MCP_RATE_LIMITS.toolCallsPerUserDaily
+    if (!(await checkRateLimit(rule.namespace, String(auth.userId), daily, rule.windowMs))) {
+      throw createError({
+        statusCode: 429,
+        message: `Your plan includes ${daily} MCP tool calls per day. Try again tomorrow.`,
+        data: { code: PLAN_LIMIT_REACHED_CODE, field: 'mcpToolCallsPerDay', limit: daily, messageKey: 'plan.limit.mcpToolCallsPerDay', recovery: limitRecovery() }
+      })
+    }
   }
   if (limit === 'render') {
     if (!(await consumeRenderAllowance(event))) {
@@ -129,7 +153,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
     description: opts.description,
     inputSchema: opts.inputSchema,
     annotations: opts.annotations ?? {},
-    enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
+    enabled: (event: H3Event): boolean => toolEnabled(event, opts.scope, opts.name),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
       const auth = await admitToolCall(event, opts.name, opts.scope, opts.limit)
@@ -204,7 +228,7 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
     description: opts.description,
     inputSchema: opts.inputSchema,
     annotations: opts.annotations ?? {},
-    enabled: (event: H3Event): boolean => hasScope(event, opts.scope),
+    enabled: (event: H3Event): boolean => toolEnabled(event, opts.scope, opts.name),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
       const auth = await admitToolCall(event, opts.name, opts.scope)
@@ -268,7 +292,7 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
     description: opts.description,
     inputSchema: opts.inputSchema,
     annotations: opts.annotations ?? {},
-    enabled: (event: H3Event): boolean => hasScope(event, opts.scope) && (opts.available?.() ?? true),
+    enabled: (event: H3Event): boolean => toolEnabled(event, opts.scope, opts.name) && (opts.available?.() ?? true),
     handler: (async (args: ShapeOutput<Schema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
       const event = useEvent()
       const auth = await admitToolCall(event, opts.name, opts.scope)
@@ -385,7 +409,7 @@ async function buildStubContext(
   mcpSessionId: string | null
 ): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
   const billingContext = await resolveBillingContext(userId, workspaceId)
-  const aiProviders = await resolveAiProviders(userId)
+  const aiProviders = await resolveAiProviders(userId, billingContext.plan)
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
 
   const ctx: MetaToolContext = {

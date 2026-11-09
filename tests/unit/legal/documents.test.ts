@@ -5,6 +5,7 @@ import {
   ABUSE_POLICY_VERSION,
   DPA_VERSION,
   LEGAL_DOCUMENT_LOCALES,
+  PAID_TERMS_VERSION,
   PRIVACY_VERSION,
   TOS_VERSION
 } from '../../../shared/legal/versions'
@@ -17,6 +18,7 @@ const ROOT = join(__dirname, '..', '..', '..', 'content', 'legal')
 const DOCS = [
   { slug: 'privacy', version: PRIVACY_VERSION },
   { slug: 'terms', version: TOS_VERSION },
+  { slug: 'paid-terms', version: PAID_TERMS_VERSION },
   { slug: 'dpa', version: DPA_VERSION },
   { slug: 'abuse-policy', version: ABUSE_POLICY_VERSION }
 ] as const

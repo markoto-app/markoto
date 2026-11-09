@@ -3,14 +3,12 @@ import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { resolveBillingContext } from '../../server/utils/billing'
 
-// Base resolver shape. The (+) cascade lives in
-// billingContextSponsorLapse.test.ts; this file pins the
-// non-sponsorship paths:
+// Base resolver shape:
 //   - free user, no workspace → self-bill, calendar-month period
 //   - active paid user → self-bill, Stripe-anchored period
 //   - lapsed paid user → defensive downgrade to free caps
-//   - workspace with ai_enabled=false → self-bill (no sponsorship even
-//     if the workspace has a billing_owner_id set)
+//   - workspace docs self-bill too (the `(+)` sponsorship is retired;
+//     Team billing arrives in WP3)
 //
 // These were originally in `billingResolver.test.ts` (deleted with the
 // pre-Phase-6 ai_usage_period table); resurrected here without the
@@ -95,53 +93,27 @@ describe('resolveBillingContext — base shape', () => {
     expect(ctx.periodStart.toISOString()).toBe(expectedStart.toISOString())
   })
 
-  it('workspace with ai_enabled=false → self-bill, no sponsorship', async () => {
-    const sponsor = await createUser()
+  it('a workspace doc still self-bills until Team billing exists (WP3)', async () => {
+    const owner = await createUser()
     const member = await createUser()
     const db = testDb()
-    // Sponsor IS on a sponsoring tier and has plan_valid_until in the
-    // future — the only thing turning sponsorship OFF is the workspace
-    // flag. Test that the resolver respects ai_enabled=false even
-    // when every other (+) precondition is met.
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     await db.query(
       'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
-      ['max', future, sponsor.id]
+      ['pro', future, owner.id]
     )
-    const ws = await createWorkspace(sponsor.id)
+    const ws = await createWorkspace(owner.id)
     await setMemberRole(ws.workspaceId, member.id, 'editor')
-    // ai_enabled stays false (the default); billing_owner_id is null.
-    // The resolver should NOT treat this as a (+) workspace.
+    // Even a leftover row of the retired `(+)` sponsorship changes nothing.
+    await db.query(
+      'UPDATE workspaces SET billing_owner_id = $1, ai_enabled = true WHERE workspace_id = $2',
+      [owner.id, ws.workspaceId]
+    )
 
     const ctx = await resolveBillingContext(member.id, ws.workspaceId)
     expect(ctx.attribution).toBe('user')
     expect(ctx.billingUserId).toBe(member.id)
     expect(ctx.plan).toBe('free')
-  })
-
-  it('workspace with billing_owner_id set but ai_enabled=false → still self-bill', async () => {
-    // Belt-and-braces variant of the above. The (+) check is `aiEnabled
-    // AND billingOwnerId !== null AND sponsor active`. All three must
-    // be true; ai_enabled=false short-circuits.
-    const sponsor = await createUser()
-    const member = await createUser()
-    const db = testDb()
-    const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    await db.query(
-      'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
-      ['max', future, sponsor.id]
-    )
-    const ws = await createWorkspace(sponsor.id)
-    await setMemberRole(ws.workspaceId, member.id, 'editor')
-    // billing_owner_id set but ai_enabled stays FALSE.
-    await db.query(
-      'UPDATE workspaces SET billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
-    )
-
-    const ctx = await resolveBillingContext(member.id, ws.workspaceId)
-    expect(ctx.attribution).toBe('user')
-    expect(ctx.billingUserId).toBe(member.id)
   })
 
   it('throws when userId does not exist (caller is responsible for session validation)', async () => {

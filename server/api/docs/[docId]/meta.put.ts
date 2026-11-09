@@ -2,7 +2,9 @@ import { getDoc, updateDocMeta, type MetaUpdate } from '../../../repos/documents
 import { appendAuditEvent } from '../../../repos/audit'
 import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
+import { assertPlanFeature, resolveDocPlan } from '../../../utils/entitlements'
 import { resolveTemplateId } from '~~/shared/templates'
+import { ownCustomCss } from '~~/shared/utils/themePresets'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
@@ -34,6 +36,7 @@ export default defineEventHandler(async (event) => {
   // referenced) and the request origin, so it is checked here rather
   // than in the pure field parsers.
   assertValidThemeCustomCss(updates.theme, docId, event)
+  await assertCustomCssAllowedByPlan(updates.theme, docId)
   // Same for theme images: the schema checks the shape, but only this
   // document's uploads (or a bundled asset) may be referenced.
   if (updates.theme && themeImagesForDoc(updates.theme, docId).dropped.length > 0) {
@@ -179,4 +182,23 @@ function parseTemplateId(raw: unknown): string | null {
     throw createError({ statusCode: 400, message: 'Invalid template id' })
   }
   return id
+}
+
+/**
+ * Plan gate for custom CSS: refuse a theme write that sets NEW custom CSS
+ * on a document whose plan doesn't include it (409
+ * `plan/feature-unavailable`). CSS identical to what is already stored
+ * passes, so the editor can keep saving other theme changes of a doc
+ * whose CSS is paused. Y.js `ymeta` writes bypass this endpoint — the
+ * renderers drop the CSS for such documents (render-bootstrap +
+ * `EditorLayout`'s `renderTheme`), which is the authoritative check.
+ */
+async function assertCustomCssAllowedByPlan(theme: MetaUpdate['theme'] | undefined, docId: string): Promise<void> {
+  // Only the author's own CSS counts: a built-in preset's unchanged
+  // template CSS (arXiv, IEEE, …) is part of the preset on every plan.
+  const css = ownCustomCss(theme?.customCss)
+  if (css === '') return
+  const stored = (await getDoc(docId))?.theme as { customCss?: string } | null | undefined
+  if (ownCustomCss(stored?.customCss) === css) return
+  assertPlanFeature(await resolveDocPlan(docId), 'customCss', 'Custom CSS is not included in this document\'s plan.')
 }

@@ -66,15 +66,15 @@ describe('server billing-mode helpers', () => {
   it('effectivePlan: billing off forces free even for a stored paid plan', () => {
     vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
     const future = new Date(Date.now() + 86_400_000)
-    expect(effectivePlan('ultra', future)).toBe('free')
+    expect(effectivePlan('pro', future)).toBe('free')
     expect(effectivePlan('pro', null)).toBe('free')
   })
 
   it('effectivePlan: billing on keeps an active paid plan and lapses an expired one', () => {
     vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
     const now = new Date('2026-10-26T12:00:00Z')
-    expect(effectivePlan('max', new Date('2026-11-01T00:00:00Z'), now)).toBe('max')
-    expect(effectivePlan('max', new Date('2026-10-01T00:00:00Z'), now)).toBe('free')
+    expect(effectivePlan('pro', new Date('2026-11-01T00:00:00Z'), now)).toBe('pro')
+    expect(effectivePlan('pro', new Date('2026-10-01T00:00:00Z'), now)).toBe('free')
     expect(effectivePlan('free', null, now)).toBe('free')
   })
 

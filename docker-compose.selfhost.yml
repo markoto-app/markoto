@@ -89,7 +89,8 @@ services:
       - VERSION=1
       - POST=0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/CONTAINER-ENGINES.md.
+      - ${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro
     # Runs as root only to open the socket (root:docker 0660); no
     # capabilities, read-only (it renders its haproxy config into /tmp).
     read_only: true
@@ -100,6 +101,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+      # SELinux hosts (Fedora/RHEL, Docker or Podman): a confined container
+      # may not connect to the engine socket. Only this proxy touches it.
+      - label=disable
     networks:
       - docker-api
 
@@ -129,6 +133,10 @@ services:
     # net.ipv4.ip_unprivileged_port_start=0 in the container), and the only
     # file it writes is acme.json on its own volume (TLS overlay).
     read_only: true
+    # Docker sets this in every container's network namespace; Podman does
+    # not. Without it Traefik (no capabilities) can't bind :80 / :443.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
     cap_drop:
       - ALL
     security_opt:
@@ -294,6 +302,14 @@ services:
       - storage
 
   app:
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=5 http://127.0.0.1:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-app:${IMAGE_TAG:-latest}
     restart: unless-stopped
     stop_grace_period: 30s
@@ -380,6 +396,7 @@ services:
       - NUXT_AI_DEFAULT_CHAT_BASE_URL=${NUXT_AI_DEFAULT_CHAT_BASE_URL:-}
       - NUXT_AI_DEFAULT_CHAT_API_KEY=${NUXT_AI_DEFAULT_CHAT_API_KEY:-}
       - NUXT_AI_DEFAULT_CHAT_VISION=${NUXT_AI_DEFAULT_CHAT_VISION:-}
+      - NUXT_AI_DEFAULT_CHAT_STRONG_MODEL=${NUXT_AI_DEFAULT_CHAT_STRONG_MODEL:-}
       # Global monthly ceiling (USD) on platform-paid AI for all free-tier
       # users together (LiteLLM team budget); empty / 0 = none.
       - NUXT_FREE_TIER_TOTAL_BUDGET_USD=${NUXT_FREE_TIER_TOTAL_BUDGET_USD:-}
@@ -419,6 +436,17 @@ services:
       - TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE=${TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE:-1073741824}
       - TIER_FREE_KNOWLEDGE_BYTES_PER_USER=${TIER_FREE_KNOWLEDGE_BYTES_PER_USER:-10737418240}
       - TIER_FREE_IMAGE_BYTES_PER_USER=${TIER_FREE_IMAGE_BYTES_PER_USER:-10737418240}
+      - TIER_FREE_MEMBERS_PER_WORKSPACE=${TIER_FREE_MEMBERS_PER_WORKSPACE:-}
+      - TIER_FREE_HISTORY_DAYS=${TIER_FREE_HISTORY_DAYS:-}
+      - TIER_FREE_SAVED_THEMES=${TIER_FREE_SAVED_THEMES:-}
+      - TIER_FREE_IMPORT_MAX_BYTES=${TIER_FREE_IMPORT_MAX_BYTES:-}
+      - TIER_FREE_WEB_TOOLS_PER_DAY=${TIER_FREE_WEB_TOOLS_PER_DAY:-}
+      - TIER_FREE_MCP_TOOL_CALLS_PER_DAY=${TIER_FREE_MCP_TOOL_CALLS_PER_DAY:-}
+      - TIER_FREE_FEATURE_CUSTOM_CSS=${TIER_FREE_FEATURE_CUSTOM_CSS:-}
+      - TIER_FREE_FEATURE_MCP_WRITE=${TIER_FREE_FEATURE_MCP_WRITE:-}
+      - TIER_FREE_FEATURE_AI_IMAGE=${TIER_FREE_FEATURE_AI_IMAGE:-}
+      - TIER_FREE_FEATURE_AI_VOICE=${TIER_FREE_FEATURE_AI_VOICE:-}
+      - TIER_FREE_FEATURE_AI_STRONG_MODEL=${TIER_FREE_FEATURE_AI_STRONG_MODEL:-}
       # Days an unreferenced doc image is kept before the image GC deletes
       # it. Empty = 30, 0 = GC off.
       - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}

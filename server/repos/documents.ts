@@ -1,8 +1,7 @@
 import { and, eq, sql } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
-import { documents, workspaceMembers, workspaces, users } from '../db/schema'
-import { alias } from 'drizzle-orm/pg-core'
+import { documents, workspaceMembers } from '../db/schema'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import { useDatabase } from '../utils/database'
 import { NotFoundError } from './errors'
@@ -51,23 +50,6 @@ export interface DocAuthzRow {
   anonCreatorKeyHash: string | null
   theme: DocTheme | null
   workspaceRole: WorkspaceRole | null
-  /**
-   * Whether the parent workspace (if any) has `(+)` AI-workspace
-   * billing enabled. Carried alongside the authz fields so the
-   * editor can surface an "AI workspace" banner on load without a
-   * second round-trip. NULL for standalone docs.
-   */
-  workspaceAiEnabled: boolean | null
-  /**
-   * Display info for the `(+)` sponsor when AI-workspace billing is
-   * on. Lets the editor render the sponsor's avatar (seeded by id) + name without a
-   * second round-trip. NULL when AI is off, the workspace has no
-   * billing owner, or the sponsor row is missing.
-   */
-  workspaceBillingOwner: {
-    id: number
-    name: string
-  } | null
   /**
    * Document context fields. Surfaced through the token endpoint so the
    * editor can hydrate the Document tab + new-doc-derived UI before the
@@ -178,10 +160,6 @@ export async function getDocWithActorRole(
 ): Promise<DocAuthzRow | null> {
   const db = useDatabase()
 
-  // Alias `users` so we can pull the `(+)` billing owner without
-  // colliding with any future join against `users` for doc.ownerId.
-  const sponsor = alias(users, 'sponsor')
-
   const row = (await db
     .select({
       ownerId: documents.ownerId,
@@ -194,10 +172,7 @@ export async function getDocWithActorRole(
       audience: documents.audience,
       language: documents.language,
       templateId: documents.templateId,
-      role: workspaceMembers.role,
-      workspaceAiEnabled: workspaces.aiEnabled,
-      sponsorId: sponsor.id,
-      sponsorName: sponsor.name
+      role: workspaceMembers.role
     })
     .from(documents)
     .leftJoin(
@@ -212,23 +187,10 @@ export async function getDocWithActorRole(
             eq(workspaceMembers.userId, actorUserId)
           )
     )
-    // Second leftJoin to pull `(+)` state for the doc's parent workspace
-    // (if any). Standalone docs get NULL here — the editor-side check
-    // treats null as "no AI-workspace banner", which is correct.
-    .leftJoin(workspaces, eq(workspaces.workspaceId, documents.workspaceId))
-    // Third leftJoin: the billing owner's profile for the AI-workspace
-    // indicator. NULL when the workspace is off or has no sponsor.
-    .leftJoin(sponsor, eq(sponsor.id, workspaces.billingOwnerId))
     .where(eq(documents.docId, docId))
     .limit(1))[0]
 
   if (!row) return null
-  // Only surface the sponsor when `(+)` is actually on — otherwise the
-  // client would render an "AI workspace by X" badge for a disabled
-  // state, which reads as a bug.
-  const billingOwner = row.workspaceAiEnabled && row.sponsorId !== null && row.sponsorName !== null
-    ? { id: row.sponsorId, name: row.sponsorName }
-    : null
 
   return {
     ownerId: row.ownerId,
@@ -237,8 +199,6 @@ export async function getDocWithActorRole(
     anonCreatorKeyHash: row.anonCreatorKeyHash,
     theme: row.theme,
     workspaceRole: (row.role ?? null),
-    workspaceAiEnabled: row.workspaceAiEnabled,
-    workspaceBillingOwner: billingOwner,
     title: row.title,
     description: row.description,
     audience: row.audience,

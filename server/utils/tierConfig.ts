@@ -10,13 +10,13 @@
 // per case.
 
 import { resolveTiersFromEnv, type TiersMap } from '~~/shared/config/tiers'
-import { resolvePlanPricesFromEnv, type PlanPrices } from '~~/shared/config/pricing'
+import { resolvePlanPricesFromEnv, type PlanPriceTable } from '~~/shared/config/pricing'
 
 export function getTiers(): TiersMap {
   return resolveTiersFromEnv(process.env)
 }
 
-/** Effective monthly plan prices (committed defaults + `TIER_*_PRICE_USD`). */
-export function getPlanPrices(): PlanPrices {
+/** Effective planned prices (committed defaults + `TIER_<PLAN>_PRICE_<CUR>[_YEAR]`). */
+export function getPlanPrices(): PlanPriceTable {
   return resolvePlanPricesFromEnv(process.env)
 }

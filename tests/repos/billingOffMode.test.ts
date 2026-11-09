@@ -7,9 +7,9 @@ import { DEFAULT_TIERS } from '../../shared/config/tiers'
 
 // Billing OFF (the default: self-hosted + free-only SaaS). Nobody can
 // buy a plan, so every account resolves to the FREE tier — even a row
-// that still says `pro` (e.g. left over from a test period) — and `(+)`
-// workspace sponsorship never applies. Limits are raised for everyone
-// via TIER_FREE_* env vars instead.
+// that still says `pro` (e.g. left over from a test period), and a
+// workspace subscription row never applies. Limits are raised for
+// everyone via TIER_FREE_* env vars instead.
 
 beforeAll(() => {
   vi.stubEnv('NUXT_BILLING_ENABLED', 'false')
@@ -18,7 +18,7 @@ afterAll(() => {
   vi.unstubAllEnvs()
 })
 
-async function setActivePaidPlan(userId: number, plan: 'pro' | 'max' | 'ultra'): Promise<{ past: Date, future: Date }> {
+async function setActivePaidPlan(userId: number, plan: 'pro'): Promise<{ past: Date, future: Date }> {
   const past = new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)
   const future = new Date(Date.now() + 25 * 24 * 60 * 60 * 1000)
   await testDb().query(
@@ -45,15 +45,16 @@ describe('billing off — resolveBillingContext', () => {
     expect(ctx.periodStart.getUTCDate()).toBe(1)
   })
 
-  it('(+) sponsorship is ignored: a member of a Max-sponsored workspace self-bills at free', async () => {
-    const sponsor = await createUser()
+  it('a member of a workspace with a Team subscription self-bills at free', async () => {
+    const owner = await createUser()
     const member = await createUser()
-    await setActivePaidPlan(sponsor.id, 'max')
-    const ws = await createWorkspace(sponsor.id)
+    await setActivePaidPlan(owner.id, 'pro')
+    const ws = await createWorkspace(owner.id)
     await setMemberRole(ws.workspaceId, member.id, 'editor')
     await testDb().query(
-      'UPDATE workspaces SET ai_enabled = TRUE, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, valid_until)
+       VALUES ($1, 'team', 3, 'active', NOW() + interval '30 days')`,
+      [ws.workspaceId]
     )
 
     const ctx = await resolveBillingContext(member.id, ws.workspaceId)
@@ -74,15 +75,14 @@ describe('billing off — knowledge caps', () => {
     vi.stubEnv('TIER_FREE_KNOWLEDGE_BYTES_PER_USER', '')
   })
 
-  it('stored paid plans (uploader AND sponsor) still get free caps', async () => {
+  it('a stored paid plan and a workspace subscription still get free caps', async () => {
     const creator = await createUser()
-    const sponsor = await createUser()
-    await setActivePaidPlan(creator.id, 'ultra')
-    await setActivePaidPlan(sponsor.id, 'max')
+    await setActivePaidPlan(creator.id, 'pro')
     const ws = await createWorkspace(creator.id)
     await testDb().query(
-      'UPDATE workspaces SET ai_enabled = true, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
+      `INSERT INTO workspace_subscriptions (workspace_id, plan, seats, status, valid_until)
+       VALUES ($1, 'business', 3, 'active', NOW() + interval '30 days')`,
+      [ws.workspaceId]
     )
 
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })

@@ -9,6 +9,7 @@ import type { TabName } from './tabBarTypes'
 import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
+import { customCssForPlan } from '~~/shared/utils/themePresets'
 
 const props = defineProps<{
   docId: string
@@ -38,8 +39,8 @@ const {
   accessMode,
   workspaceId: docWorkspaceId,
   workspaceRole: docWorkspaceRole,
-  workspaceAiEnabled: docWorkspaceAiEnabled,
-  workspaceBillingOwner: docWorkspaceSponsor,
+  customCssAllowed,
+  workspacePlan,
   undoManager,
   title,
   theme,
@@ -55,6 +56,16 @@ const {
   setAccessMode,
   getDocJwt
 } = useDocument(props.docId)
+
+// What the preview and the browser print render: the theme without the
+// author's own custom CSS when the document's plan doesn't include it (a
+// built-in preset's template CSS stays — customCssForPlan). The CSS stays
+// in the theme (and in Y.js), so upgrading applies it again; the server
+// renderer drops it the same way (render-bootstrap).
+const renderTheme = computed(() => {
+  const css = customCssForPlan(theme.value.customCss, customCssAllowed.value)
+  return css === theme.value.customCss ? theme.value : { ...theme.value, customCss: css }
+})
 
 // Track whether the user has ever focused the editor in this session.
 // Consumed by the AI prompt path so "cursor not in the doc at all" can
@@ -286,6 +297,16 @@ function flashEditorComment(id: string) {
 // either. The doc composable already resolves workspace membership
 // (`docWorkspaceRole` is non-null iff the viewer is a member).
 const hasKnowledgeAccess = computed(() => Boolean(docWorkspaceId.value) && docWorkspaceRole.value !== null)
+
+// AI availability + voice follow the document's workspace (a Team /
+// Business plan may unlock what the personal plan doesn't, WP5).
+const aiWorkspaceContext = useAiWorkspaceContext()
+watch(() => (docWorkspaceRole.value !== null ? docWorkspaceId.value : null), (ws) => {
+  aiWorkspaceContext.value = ws ?? null
+}, { immediate: true })
+onUnmounted(() => {
+  aiWorkspaceContext.value = null
+})
 // If the user has knowledge open and the doc moves to a workspace they
 // aren't in (or out of a workspace entirely), close the panel so the
 // layout doesn't leave an empty column.
@@ -339,7 +360,7 @@ async function exportPdf() {
     // Read content fresh from ytext — shallowRef may be stale after HMR.
     await printDocumentAsPdf({
       source: ytext.toString(),
-      theme: theme.value,
+      theme: renderTheme.value,
       title: title.value,
       docId: props.docId,
       language: language.value,
@@ -1041,31 +1062,18 @@ const _statusIcon = computed(() => {
         >
           {{ title }}
         </button>
-
-        <!-- AI workspace indicator. Every member of a (+) workspace
-             should know at-a-glance that AI work here is billed to the
-             sponsor. Muted palette (neutral border, subtle tint) — it
-             shouldn't compete with the title or status badges for
-             attention. Sponsor avatar inline so members can see *who*
-             pays without opening the workspace page. Click → workspace
-             page's AI tab. -->
-        <NuxtLink
-          v-if="docWorkspaceAiEnabled && docWorkspaceId"
-          :to="`/w/${docWorkspaceId}`"
-          class="hidden sm:inline-flex items-center gap-1.5 pl-1 pr-2 py-0.5 rounded-full border border-default bg-default/60 text-xs text-muted hover:text-default hover:bg-muted/40 transition-colors"
-          :title="docWorkspaceSponsor ? t('editor.aiWorkspaceSponsoredBy', { name: docWorkspaceSponsor.name }) : t('editor.aiWorkspaceBadgeTooltip')"
+        <!-- Team / Business plan of the doc's workspace (WP6): which plan
+             this document's features and AI follow. -->
+        <UBadge
+          v-if="workspacePlan"
+          size="xs"
+          color="neutral"
+          variant="outline"
+          class="hidden sm:inline-flex shrink-0"
+          data-testid="doc-plan-badge"
         >
-          <CommonUserAvatar
-            v-if="docWorkspaceSponsor"
-            :seed="avatarSeedFor({ id: docWorkspaceSponsor.id })"
-            :size="16"
-          />
-          <CommonSeal
-            v-else
-            :size="8"
-          />
-          <span>{{ t('editor.aiWorkspaceBadge') }}</span>
-        </NuxtLink>
+          {{ workspacePlan === 'team' ? 'Team' : 'Business' }}
+        </UBadge>
 
         <!-- Collaborators next to title -->
         <CollabPresenceBar
@@ -1509,7 +1517,7 @@ const _statusIcon = computed(() => {
             :source="textContent"
             :title="title"
             :language="language"
-            :theme="theme"
+            :theme="renderTheme"
             :doc-id="docId"
             :get-doc-jwt="getDocJwt"
             :zoom-control="!isMobile"
@@ -1595,6 +1603,7 @@ const _statusIcon = computed(() => {
             :theme="theme"
             :doc-id="docId"
             :can-edit="canEditTheme"
+            :custom-css-allowed="customCssAllowed"
             @update:theme="setTheme"
             @reset="resetTheme"
             @close="closeSidebar"
@@ -1668,6 +1677,7 @@ const _statusIcon = computed(() => {
         <AIPromptBar
           v-if="!isReadOnly && viewMode !== 'preview'"
           :ai="ai"
+          :workspace-id="docWorkspaceId"
         />
 
         <!-- Mobile bottom tab bar — the single navigation surface for

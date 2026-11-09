@@ -50,14 +50,14 @@ describe('GET /api/user/billing', () => {
     const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
     await db.query(
       'UPDATE users SET plan = $1, plan_valid_until = $2 WHERE id = $3',
-      ['max', future, u.id]
+      ['pro', future, u.id]
     )
     const client = await loggedInClient(u.id)
     const res = await client.get('/api/user/billing')
     expect(res.status).toBe(200)
     const body = await res.json() as { plan: string, workspacesOwnedLimit: number }
-    expect(body.plan).toBe('max')
-    expect(body.workspacesOwnedLimit).toBe(TIERS.max.workspacesOwned)
+    expect(body.plan).toBe('pro')
+    expect(body.workspacesOwnedLimit).toBe(TIERS.pro.workspacesOwned)
   })
 
   it('reports a lapsed paid plan as free (defensive downgrade)', async () => {

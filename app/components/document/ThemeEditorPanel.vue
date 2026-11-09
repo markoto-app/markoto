@@ -5,7 +5,7 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
-import { themeFromPreset, type ThemePreset } from '~~/shared/utils/themePresets'
+import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isIsoDate } from '~~/shared/utils/documentLocale'
@@ -24,6 +24,12 @@ const props = defineProps<{
   theme: DocTheme
   docId: string
   canEdit: boolean
+  /**
+   * The document's plan includes custom CSS. False → the CSS section
+   * shows the plan notice instead of the editor; any stored CSS is kept
+   * but not applied. Optional so other callers default to "allowed".
+   */
+  customCssAllowed?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -2307,7 +2313,13 @@ function deleteSaved(saved: SavedTheme) {
 
           <!-- Custom CSS (documents only — preview, print, PDF) -->
           <template #customCss-body>
+            <CommonPlanLimitNotice
+              v-if="props.customCssAllowed === false"
+              :message-key="ownCustomCss(draft.customCss) ? 'plan.feature.customCssPaused' : 'plan.feature.customCss'"
+              data-testid="theme-custom-css-plan-notice"
+            />
             <DocumentThemeCustomCssSection
+              v-else
               :model-value="draft.customCss"
               :doc-id="docId"
               @update:model-value="setCustomCss"

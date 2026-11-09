@@ -102,21 +102,19 @@ export function useDocToken(docId: string) {
   // render, and by MoveWorkspaceModal to preselect "current workspace".
   const workspaceId = ref<string | null>(null)
   const workspaceRole = ref<'admin' | 'editor' | 'viewer' | null>(null)
-  // Whether the parent workspace is an "AI workspace" (`(+)` toggle on).
-  // Drives the editor's "AI workspace" banner — every member of a
-  // sponsored workspace sees that their AI use here bills to the owner,
-  // not to them.
-  const workspaceAiEnabled = ref<boolean>(false)
-  // Sponsor profile (billing owner) for the AI-workspace indicator.
-  // Null when `workspaceAiEnabled` is false. Carries just the display
-  // bits — no plan / no email / no stripe ids leak through here.
-  interface BillingOwner { id: number, name: string }
-  const workspaceBillingOwner = ref<BillingOwner | null>(null)
   // DB-stored theme (or null = use defaultTheme). Initial value comes back
   // on the same /token round-trip so the preview can paint immediately,
   // before Y.js sync settles. Once synced, ymeta.theme takes over as the
   // live source — `useDocument` bridges the two.
   const initialTheme = ref<DocTheme | null>(null)
+  // Plan features of this document (server: `utils/entitlements.ts`).
+  // `customCss: false` = the doc's plan doesn't include custom CSS: the
+  // stored CSS stays in the theme but is left out of the preview and the
+  // browser print (the server-side PDF renderer drops it too). Defaults
+  // to true so nothing flickers before /token answers.
+  const customCssAllowed = ref<boolean>(true)
+  /** Team / Business plan covering the doc's workspace (header badge, WP6). */
+  const workspacePlan = ref<'team' | 'business' | null>(null)
   // Document context — description (what the doc is about), audience
   // (writing register), language (output language). Same dual-source
   // pattern as theme: the /token round-trip seeds an initial value so
@@ -155,8 +153,6 @@ export function useDocToken(docId: string) {
         ownerId: number | null
         workspaceId: string | null
         workspaceRole: 'admin' | 'editor' | 'viewer' | null
-        workspaceAiEnabled?: boolean | null
-        workspaceBillingOwner?: BillingOwner | null
         theme?: DocTheme | null
         title?: string
         description?: string
@@ -165,6 +161,8 @@ export function useDocToken(docId: string) {
         initialBody?: string | null
         templateId?: string
         canDelete?: boolean
+        planFeatures?: { customCss?: boolean } | null
+        workspacePlan?: 'team' | 'business' | null
       }>(`/api/docs/${docId}/token`)
 
       tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
@@ -175,9 +173,9 @@ export function useDocToken(docId: string) {
       accessMode.value = data.accessMode
       workspaceId.value = data.workspaceId
       workspaceRole.value = data.workspaceRole
-      workspaceAiEnabled.value = data.workspaceAiEnabled ?? false
-      workspaceBillingOwner.value = data.workspaceBillingOwner ?? null
       initialTheme.value = data.theme ?? null
+      customCssAllowed.value = data.planFeatures?.customCss !== false
+      workspacePlan.value = data.workspacePlan ?? null
       if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
@@ -323,10 +321,10 @@ export function useDocToken(docId: string) {
     accessMode,
     workspaceId,
     workspaceRole,
-    workspaceAiEnabled,
-    workspaceBillingOwner,
     pendingPasswordUnlock,
     initialTheme,
+    customCssAllowed,
+    workspacePlan,
     initialTitle,
     initialDescription,
     initialAudience,

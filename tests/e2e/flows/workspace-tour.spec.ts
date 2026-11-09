@@ -11,9 +11,8 @@ import { test, expect } from '../fixtures/flow'
 // What this flow is NOT: a full tour of workspaces. It does not cover
 // inviting members (covered separately by `password-protect`'s
 // permission story shape, and by future invite-flow tier-2 work),
-// admin/editor/viewer roles (separate flow candidate), the AI
-// sponsoring `(+)` mechanic (billing-tier-dependent, deferred),
-// or moving a doc INTO a workspace (covered indirectly by
+// admin/editor/viewer roles (separate flow candidate), Team billing
+// (billing-dependent, deferred), or moving a doc INTO a workspace (covered indirectly by
 // `knowledge-grounded-ai` which creates a workspace doc).
 //
 // Why a Tier-1 flow: workspace creation is the most-requested

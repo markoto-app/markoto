@@ -29,6 +29,8 @@ import { useStripeClient } from './stripeClient'
 import { isBillingEnabled } from './billingMode'
 import { AUDIT_ACCOUNT_DELETE_EXECUTED } from '../legal/auditActions'
 import type { AccountDeletionSummary } from './accountDeletionPlan'
+import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from './workspaceBillingLifecycle'
+import { deleteCreditsForSubject } from '../repos/aiCreditGrants'
 
 // Cascading account deletion executor. Implements the locked policy:
 //
@@ -88,9 +90,18 @@ export async function executeAccountDeletion(
   summary.commentsAnonymised = await anonymiseCommentsByAuthor(userId)
   summary.activityAnonymised = await anonymiseActivityByUser(userId)
   const cascadeWorkspaceIds = await processWorkspaceMemberships(userId, summary)
+  // Team / Business (WP3): billing-admin role → longest-serving other
+  // admin (after the promotion above), else the subscription ends at the
+  // period end. Cascade-deleted workspaces cancel instead.
+  summary.billingAdminHandovers = await handOverBillingAdmin(userId, cascadeWorkspaceIds)
   await cascadeDeleteWorkspaces(cascadeWorkspaceIds, summary)
   await deleteOwnedDocs(userId, summary)
 
+  // The user's keys in workspace LiteLLM teams (the tokens live on the
+  // membership rows, so before they go).
+  summary.workspaceKeysDeleted = await deleteAllMemberKeys(userId)
+  // Personal AI credit top-ups (WP4; no FK to users).
+  summary.creditGrantsDeleted = await deleteCreditsForSubject({ type: 'user', id: String(userId) })
   const removed = await removeAllMemberships(userId)
   summary.workspaceMembershipsRemoved = removed.length
 
@@ -210,7 +221,9 @@ async function cascadeDeleteWorkspaces(
     }
   }
   // Drop the workspace rows themselves — workspace_members cascade via FK.
+  // A Team / Business subscription is cancelled first (WP3).
   for (const wsId of cascadeWorkspaceIds) {
+    await endWorkspaceBilling(wsId, null)
     await deleteWorkspaceRow(wsId)
   }
 }
@@ -324,6 +337,9 @@ function emptySummary(): AccountDeletionSummary {
     litellmKeyDeleted: false,
     themesDeleted: 0,
     aiProvidersDeleted: 0,
-    workspaceInvitesDeleted: 0
+    workspaceInvitesDeleted: 0,
+    billingAdminHandovers: 0,
+    workspaceKeysDeleted: 0,
+    creditGrantsDeleted: 0
   }
 }

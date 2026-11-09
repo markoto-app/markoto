@@ -17,6 +17,7 @@ For the in-app AI loop these tools originally served, see `server/utils/agentic/
 | `lib/wrapDocBoundTool.ts` | The three wrapper builders + `admitToolCall` (per-call scope re-check, per-user tool-call limit, optional render / image limit). Bake per-class boilerplate (scope guard, authz, context construction, dispatch, cleanup). |
 | `lib/mcpGate.ts` | `evaluateMcpRequest` (pure decision logic for the middleware, unit-tested) + `MCP_RATE_LIMITS` + `jsonRpcErrorResponse`. |
 | `lib/mcpToolContext.ts` | `hasScope(event, scope)` + `requireMcpAuth(event)` request helpers. |
+| `lib/toolClasses.ts` | Plan class per tool (`read` / `write` / `cost`). A plan without `mcpWrite` gets read-only MCP: the `enabled` guard (`toolEnabled`) hides non-read tools, `admitToolCall` refuses them (409 `plan/feature-unavailable`) and counts the plan's `mcpToolCallsPerDay` (429 `plan/limit-reached`). The middleware resolves the token owner's plan once per request into `event.context.mcpPlan`. Unknown tool = `write`; `tests/unit/mcpToolClasses.test.ts` requires a class for every tool file. |
 | `lib/stripWrapperArgs.ts` | Removes wrapper-injected `doc_id` / `workspace_id` before dispatch (pure, unit-tested in isolation). |
 
 **Shared with the loop** (live in `server/utils/`, NOT here):

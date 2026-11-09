@@ -3,6 +3,7 @@ import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
 import { appendAuditEvent } from '../../../../repos/audit'
+import { deleteMemberKey } from '../../../../utils/litellm/workspaceTeams'
 
 // Remove a member OR leave the workspace. Same endpoint because "remove"
 // and "leave" are the same underlying row deletion — only the
@@ -32,6 +33,12 @@ export default defineEventHandler(async (event) => {
   // row can record what they had. Cheap extra query — this endpoint
   // isn't hot-path.
   const targetRoleBefore = await getMemberRole(wsId, targetUserId)
+
+  // Team / Business (WP3): the member's key in the workspace's LiteLLM
+  // team goes with the membership. Deleted first (the row holds the
+  // token); if the removal is then refused the key is simply re-created
+  // on the next AI use.
+  if (targetRoleBefore !== null) await deleteMemberKey(wsId, targetUserId)
 
   try {
     await removeMember(wsId, targetUserId)

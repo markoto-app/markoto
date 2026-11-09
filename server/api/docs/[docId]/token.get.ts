@@ -4,6 +4,8 @@ import { decideDocDelete, decideTokenAccess, type DocState, type ActorState } fr
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
 import { renderTemplate } from '../../../utils/templateRenderer'
+import { planHasFeature, resolveDocPlanFor } from '../../../utils/entitlements'
+import { pooledPlansFor } from '../../../utils/workspaceBilling'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -42,7 +44,7 @@ export default defineEventHandler(async (event) => {
 
   // Denied (private / password-gated, caller not entitled): return only
   // what the editor needs to draw the gate. No title-derived template
-  // body, description, owner, workspace, theme or `(+)` sponsor — a
+  // body, description, owner, workspace or theme — a
   // leaked link to a private doc must not leak its metadata.
   if (decision.outcome === 'forbidden' || decision.outcome === 'password-required') {
     return {
@@ -54,13 +56,20 @@ export default defineEventHandler(async (event) => {
       ownerId: null,
       workspaceId: null,
       workspaceRole: null,
-      workspaceAiEnabled: false,
-      workspaceBillingOwner: null,
       theme: null,
       initialBody: null,
-      canDelete: false
+      canDelete: false,
+      planFeatures: null,
+      workspacePlan: null
     }
   }
+
+  // Plan features of THIS document (its workspace's plan, else its
+  // owner's — server/utils/entitlements.ts). The editor uses them to
+  // leave paused features out of the preview and the browser print, and
+  // to show the plan notice in the theme panel. The renderer and the
+  // write paths check the plan themselves; this is UI hydration only.
+  const docPlan = await resolveDocPlanFor({ ownerId: row.ownerId, workspaceId: row.workspaceId })
 
   // workspaceId + workspaceRole leak to the client so the editor UI can
   // decide which File-menu items to render without a second round-trip.
@@ -72,13 +81,6 @@ export default defineEventHandler(async (event) => {
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
     workspaceRole: row.workspaceRole,
-    // `(+)` AI-workspace state on the parent workspace (if any). Lets
-    // the editor render the "AI workspace" indicator on first paint
-    // without a second round-trip to `/api/workspaces/:id`. The
-    // sponsor block carries the billing owner's profile so the editor
-    // can render their avatar + name inline.
-    workspaceAiEnabled: row.workspaceAiEnabled,
-    workspaceBillingOwner: row.workspaceBillingOwner,
     theme: row.theme,
     // Title as stored on the row (set by the new-document dialog). The
     // editor shows it until the live Y.js title (`ymeta.title`) exists —
@@ -103,6 +105,9 @@ export default defineEventHandler(async (event) => {
       language: row.language
     }),
     templateId: row.templateId,
+    planFeatures: { customCss: planHasFeature(docPlan, 'customCss') },
+    // The Team / Business plan covering the doc's workspace (header badge).
+    workspacePlan: row.workspaceId ? (await pooledPlansFor([row.workspaceId])).get(row.workspaceId) ?? null : null,
     // Whether DELETE /api/docs/:id would succeed for this caller — the
     // File menu shows "Delete" only then. For an anonymous doc that's
     // only the creating browser (creator-key cookie).

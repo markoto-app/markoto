@@ -6,7 +6,8 @@
  */
 export const SAVED_THEME_NAME_MAX = 80
 export const SAVED_THEME_DESCRIPTION_MAX = 200
-export const SAVED_THEMES_PER_USER_MAX = 20
+// How many presets a user may save is a plan limit: `savedThemes` in
+// shared/config/tiers.ts.
 
 export type SavedThemeTextIssue = 'required' | 'too-long' | 'not-a-string'
 

@@ -42,15 +42,17 @@ export default defineEventHandler(async (event) => {
     usage: {
       count,
       totalBytes,
-      // Workspace-scoped caps — reflect the (+) billing owner's tier
-      // if enabled, else the workspace creator's tier.
+      // Workspace-scoped caps: the Team / Business pool (seats × per
+      // seat) when the workspace has a subscription, else the
+      // workspace creator's tier.
       maxFiles: caps.maxFilesPerWorkspace,
       maxBytes: caps.maxTotalBytesPerWorkspace,
       maxFileBytes: caps.maxFileBytes,
       // Diagnostic: which plan's caps are being applied. Lets the UI
       // show "Billed to {owner} at Max tier" without a separate call.
       workspacePlan: caps.workspacePlan,
-      uploaderPlan: caps.uploaderPlan
+      uploaderPlan: caps.uploaderPlan,
+      pooled: caps.pooled
     }
   }
 })

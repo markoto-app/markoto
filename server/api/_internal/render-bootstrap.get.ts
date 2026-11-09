@@ -4,7 +4,9 @@ import { getDoc } from '../../repos/documents'
 import { reconstructDocAtYjsId } from '../../utils/historyReplay'
 import { resolveDocProperties } from '../../utils/docProperties'
 import { listConfirmedUploadsForDoc } from '../../repos/uploads'
+import { planHasFeature, resolveDocPlanFor } from '../../utils/entitlements'
 import { DESIGN_SAMPLE_ID_RE, loadDesignSample } from '../../utils/designImport/sampleRender'
+import { customCssForPlan } from '~~/shared/utils/themePresets'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -100,10 +102,20 @@ export default defineEventHandler(async (event) => {
   // short enough to be useless if it leaks. See server/utils/fileAccessToken.ts.
   const fileAccessToken = mintFileAccessToken(docId, 5 * 60).token
 
+  // Plan gate (authoritative): custom CSS reaches the PDF only when the
+  // document's plan includes it. Y.js writes bypass the API's write-time
+  // check, so the render path decides. The stored CSS stays untouched.
+  // A built-in preset's template CSS is not gated (customCssForPlan).
+  const customCssAllowed = planHasFeature(await resolveDocPlanFor(doc), 'customCss')
+  const css = customCssForPlan(properties.theme?.customCss, customCssAllowed)
+  const theme = !properties.theme || css === properties.theme.customCss
+    ? properties.theme
+    : { ...properties.theme, customCss: css }
+
   return {
     snapshotId: payload.snapshotId,
     markdown,
-    theme: properties.theme,
+    theme,
     title: properties.title,
     description: properties.description,
     audience: properties.audience,

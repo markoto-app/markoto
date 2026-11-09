@@ -72,6 +72,17 @@ export const AUDIT_WORKSPACE_INVITE_REVOKED = 'workspace.invite_revoked'
 export const AUDIT_WORKSPACE_INVITE_ACCEPTED = 'workspace.invite_accepted'
 export const AUDIT_WORKSPACE_INVITE_DECLINED = 'workspace.invite_declined'
 
+// Team / Business workspace billing (WP3). `scope` is `billing`,
+// `scope_id` the workspace id. Metadata: plan / seats / interval /
+// currency, the affected member id for limits — never card data (Stripe
+// holds that).
+export const AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED = 'workspace.billing_checkout_started'
+export const AUDIT_WORKSPACE_BILLING_PLAN_CHANGED = 'workspace.billing_plan_changed'
+export const AUDIT_WORKSPACE_BILLING_SEATS_CHANGED = 'workspace.billing_seats_changed'
+export const AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED = 'workspace.billing_admin_changed'
+export const AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED = 'workspace.member_ai_limit_changed'
+export const AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED = 'workspace.subscription_cancelled'
+
 // "Create a design from a document" started: an uploaded PDF / Word file
 // went to the sandboxed extractor and its design facts to the user's AI
 // provider. `scope` user, `scope_id` the user id; metadata: format and
@@ -106,4 +117,10 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_INVITE_REVOKED
     | typeof AUDIT_WORKSPACE_INVITE_ACCEPTED
     | typeof AUDIT_WORKSPACE_INVITE_DECLINED
+    | typeof AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED
+    | typeof AUDIT_WORKSPACE_BILLING_PLAN_CHANGED
+    | typeof AUDIT_WORKSPACE_BILLING_SEATS_CHANGED
+    | typeof AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED
+    | typeof AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED
+    | typeof AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED
     | typeof AUDIT_DESIGN_IMPORT_STARTED

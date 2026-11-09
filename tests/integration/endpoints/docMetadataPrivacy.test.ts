@@ -8,7 +8,7 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 // `GET /api/docs/:id/meta` and the denied branch of `GET /token` apply
 // the same decision (`decideTokenAccess`): a forbidden / password-gated
 // caller learns only what the editor needs to draw the gate — never the
-// title, description, owner, workspace, theme or `(+)` sponsor.
+// title, description, owner, workspace or theme.
 
 const SECRET_TITLE = 'Secret merger plan'
 const SECRET_DESCRIPTION = 'Acquisition of a competitor in Q3'
@@ -102,7 +102,7 @@ describe('GET /api/docs/:id/token — denied responses carry no metadata', () =>
     await resetDb()
   })
 
-  it('forbidden private doc: no title-derived body, description, owner, workspace, theme or sponsor', async () => {
+  it('forbidden private doc: no title-derived body, description, owner, workspace or theme', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     const doc = await createDoc({
@@ -121,7 +121,6 @@ describe('GET /api/docs/:id/token — denied responses carry no metadata', () =>
       ownerId: null,
       workspaceId: null,
       workspaceRole: null,
-      workspaceBillingOwner: null,
       theme: null,
       initialBody: null,
       canDelete: false

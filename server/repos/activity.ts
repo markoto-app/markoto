@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, inArray, lte, sql } from 'drizzle-orm'
+import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { activityLog, users, aiSessions, mcpSessions } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
@@ -234,7 +234,7 @@ export async function pruneActivity(docId: string): Promise<void> {
   `)
 }
 
-export async function listRecentActivity(docId: string, limit = 50): Promise<ActivityEntry[]> {
+export async function listRecentActivity(docId: string, limit = 50, since: Date | null = null): Promise<ActivityEntry[]> {
   const db = useDatabase()
   // The agent enrichment (resolving actorPrincipal → session table → initiator user) runs
   // as a separate batch step after the base select — keeps the SQL
@@ -258,10 +258,26 @@ export async function listRecentActivity(docId: string, limit = 50): Promise<Act
       createdAt: activityLog.createdAt
     })
     .from(activityLog)
-    .where(eq(activityLog.docId, docId))
+    .where(since
+      ? and(eq(activityLog.docId, docId), gte(activityLog.createdAt, since))
+      : eq(activityLog.docId, docId))
     .orderBy(desc(activityLog.createdAt))
     .limit(limit)
   return enrichActivityAgentFields(rows as RawActivityRow[])
+}
+
+/**
+ * Whether the doc has activity rows older than `before` — lets the
+ * activity endpoint tell the UI that a plan's history window hides some.
+ */
+export async function hasActivityBefore(docId: string, before: Date): Promise<boolean> {
+  const db = useDatabase()
+  const rows = await db
+    .select({ id: activityLog.id })
+    .from(activityLog)
+    .where(and(eq(activityLog.docId, docId), lt(activityLog.createdAt, before)))
+    .limit(1)
+  return rows.length > 0
 }
 
 /**

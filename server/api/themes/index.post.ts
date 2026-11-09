@@ -1,11 +1,12 @@
 import { nanoid } from 'nanoid'
 import { DocThemeSchema } from '~~/shared/types/theme'
-import { SAVED_THEMES_PER_USER_MAX } from '~~/shared/config/savedThemes'
 import { countThemesByUser, createTheme } from '../../repos/themes'
 import { readSavedThemeDescription, readSavedThemeName } from '../../utils/savedThemeFields'
+import { assertPlanLimit, resolveUserPlan } from '../../utils/entitlements'
 
 // Save a theme as a personal preset. Body: `{ name: string, description?: string, theme: DocTheme }`.
-// Per-user cap is 20 (parity with the workspaces-owned cap on Free/Pro/Max).
+// Per-user cap = the plan's `savedThemes` (shared/config/tiers.ts):
+// 20 by default on self-hosted instances, narrowed on the hosted free tier.
 // Validation reuses `DocThemeSchema` — the same Zod schema that gates
 // `documents.theme` writes — so any theme that's valid in a doc is
 // valid as a preset. Name / description limits: shared/config/savedThemes.ts.
@@ -33,13 +34,12 @@ export default defineEventHandler(async (event) => {
   assertValidThemeCustomCss(parsed.data, null, event)
 
   const owned = await countThemesByUser(userId)
-  if (owned >= SAVED_THEMES_PER_USER_MAX) {
-    throw createError({
-      statusCode: 409,
-      message: `You've reached the saved-theme limit (${SAVED_THEMES_PER_USER_MAX}). Delete one to save a new theme.`,
-      data: { cap: SAVED_THEMES_PER_USER_MAX }
-    })
-  }
+  assertPlanLimit(
+    await resolveUserPlan(userId),
+    'savedThemes',
+    owned,
+    'You\'ve reached the saved-theme limit of your plan. Delete one to save a new theme.'
+  )
 
   const themeId = nanoid(10)
   const row = await createTheme({

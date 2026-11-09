@@ -1,11 +1,13 @@
 import { eq } from 'drizzle-orm'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/paidTerms'
 import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
 import { useDatabase } from '../../utils/database'
 import { useStripeClient } from '../../utils/stripeClient'
 import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/stripePlanChange'
-import type { PlanName } from '~~/shared/config/tiers'
 import { assertBillingEnabled } from '../../utils/billingMode'
+import { stripePriceIdFor } from '../../utils/stripePrices'
+import { isBillingInterval, isCurrency } from '~~/shared/config/pricing'
 
 // POST /api/billing/checkout — plan purchase/upgrade endpoint. Two
 // outcomes depending on the caller's current Stripe state:
@@ -30,11 +32,10 @@ import { assertBillingEnabled } from '../../utils/billingMode'
 // the resulting subscription with our user row. We also pass
 // `customer_email` so Stripe pre-fills the payment form.
 
-const PLAN_TO_PRICE_KEY: Record<Exclude<PlanName, 'free'>, 'pricePro' | 'priceMax' | 'priceUltra'> = {
-  pro: 'pricePro',
-  max: 'priceMax',
-  ultra: 'priceUltra'
-}
+// Personal checkout sells Pro only — monthly or annual, in EUR or CHF
+// (the Stripe price catalogue, server/utils/stripePrices.ts). Team /
+// Business are workspace subscriptions bought by a workspace admin
+// (pricing plan WP3).
 
 function customerOrEmailFields(stripeCustomerId: string | null, email: string | null): { customer: string } | { customer_email: string } | Record<string, never> {
   if (stripeCustomerId) return { customer: stripeCustomerId }
@@ -59,22 +60,32 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<{ plan?: unknown }>(event)
+  const body = await readBody<{ plan?: unknown, interval?: unknown, currency?: unknown }>(event)
   const requestedPlan = typeof body?.plan === 'string' ? body.plan : ''
-  if (requestedPlan !== 'pro' && requestedPlan !== 'max' && requestedPlan !== 'ultra') {
-    throw createError({ statusCode: 400, message: 'Invalid plan. Must be pro/max/ultra.' })
+  if (requestedPlan === 'team' || requestedPlan === 'business') {
+    throw createError({
+      statusCode: 400,
+      message: 'Team and Business are bought for a workspace, from its billing settings.',
+      data: { code: 'billing/workspace-plan' }
+    })
+  }
+  if (requestedPlan !== 'pro') {
+    throw createError({ statusCode: 400, message: 'Invalid plan. Must be pro.' })
   }
   const plan = requestedPlan
+  const interval = body?.interval === undefined ? 'month' : body.interval
+  if (!isBillingInterval(interval)) {
+    throw createError({ statusCode: 400, message: 'Invalid interval. Must be month or year.' })
+  }
+  if (body?.currency !== undefined && !isCurrency(body.currency)) {
+    throw createError({ statusCode: 400, message: 'Invalid currency. Must be eur or chf.' })
+  }
 
   const stripe = useStripeClient()
   if (!stripe) {
     throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
   }
   const config = useRuntimeConfig()
-  const priceId = config.stripe[PLAN_TO_PRICE_KEY[plan]]
-  if (!priceId) {
-    throw createError({ statusCode: 503, message: `No price ID configured for ${plan} plan` })
-  }
 
   // Pull user's email + existing Stripe anchors. If they've subscribed
   // before (e.g. subscribed → cancelled → now upgrading again), reuse
@@ -84,18 +95,34 @@ export default defineEventHandler(async (event) => {
     email: users.email,
     stripeCustomerId: users.stripeCustomerId,
     stripeSubscriptionId: users.stripeSubscriptionId,
-    currentPlan: users.plan
+    billingCurrency: users.billingCurrency
   }).from(users).where(eq(users.id, userId)).limit(1)
   const userRow = rows[0]
   if (!userRow) {
     throw createError({ statusCode: 404, message: 'User not found' })
   }
-  const { email, stripeCustomerId, stripeSubscriptionId, currentPlan } = userRow
+  const { email, stripeCustomerId, stripeSubscriptionId, billingCurrency } = userRow
+
+  // A Stripe customer keeps one currency for life: once a user has paid in
+  // EUR they can't check out in CHF (Stripe would refuse mid-checkout).
+  const currency = isCurrency(body?.currency) ? body.currency : (billingCurrency ?? 'eur')
+  if (billingCurrency && stripeCustomerId && currency !== billingCurrency) {
+    throw createError({
+      statusCode: 409,
+      message: `Your subscription is billed in ${billingCurrency.toUpperCase()}; it can't switch currency.`,
+      data: { code: 'billing/currency-locked', currency: billingCurrency, messageKey: 'pricing.currencyLocked' }
+    })
+  }
+  const priceId = await stripePriceIdFor(stripe, plan, interval, currency)
+  if (!priceId) {
+    throw createError({ statusCode: 503, message: `No Stripe price is set up for ${plan} (${interval}, ${currency.toUpperCase()}).` })
+  }
+  requirePaidTermsAccepted(body)
 
   // ── In-place plan change ────────────────────────────────────────────
   // A Checkout Session in `mode: 'subscription'` ALWAYS creates a NEW
-  // subscription. If this user already has a live one (upgrade path:
-  // pro → max/ultra), that would leave them with TWO concurrent
+  // subscription. If this user already has a live one (monthly ↔ annual,
+  // or a row the webhook hasn't caught up with), that would leave them with TWO concurrent
   // subscriptions billing the same customer. Probe the recorded
   // subscription and, when it's live, swap its price in place instead —
   // the `customer.subscription.updated` webhook applies the plan +
@@ -114,8 +141,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 502, message: 'Could not verify your current subscription. Please try again.' })
   }
   if (liveSub) {
-    if (currentPlan === plan) {
-      throw createError({ statusCode: 409, message: `You are already on the ${plan} plan.` })
+    const current = liveSub.items.data[0]?.price
+    if (current?.id === priceId) {
+      throw createError({ statusCode: 409, message: `You are already on the ${plan} plan (${interval === 'year' ? 'annual' : 'monthly'}).` })
     }
     try {
       await changeSubscriptionPrice(stripe, liveSub, priceId)
@@ -132,6 +160,7 @@ export default defineEventHandler(async (event) => {
     // The webhook is the source of truth for users.plan; the client
     // just shows success + refetches billing (which may briefly still
     // read the old plan until the webhook lands — acceptable).
+    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { updated: true, plan }
   }
 
@@ -172,6 +201,10 @@ export default defineEventHandler(async (event) => {
       mode: 'subscription',
       client_reference_id: String(userId),
       line_items: [{ price: priceId, quantity: 1 }],
+      // The webhook routes by customer; the metadata names the subject
+      // explicitly as well (pricing plan WP2).
+      metadata: { subject_type: 'user', subject_id: String(userId) },
+      subscription_data: { metadata: { subject_type: 'user', subject_id: String(userId) } },
       success_url: successUrl,
       cancel_url: cancelUrl,
       // Pass the customer if we have one; else pass email so Stripe
@@ -182,6 +215,7 @@ export default defineEventHandler(async (event) => {
     if (!checkoutSession.url) {
       throw createError({ statusCode: 502, message: 'Stripe did not return a Checkout URL' })
     }
+    await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { url: checkoutSession.url, sessionId: checkoutSession.id }
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'Stripe error'

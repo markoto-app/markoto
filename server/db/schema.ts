@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 
@@ -22,11 +22,13 @@ export const users = pgTable('users', {
   login: text('login'),
   name: text('name').notNull(),
   email: text('email'),
-  // Subscription tier. Defaults to `free`; paid tiers are set by
-  // the Stripe webhook when `invoice.paid` / `subscription.updated`
-  // lands. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
+  // PERSONAL subscription tier: `free` or `pro`. Team / Business are
+  // workspace subscriptions (`workspace_subscriptions`). Set by the
+  // Stripe webhook when `invoice.paid` / `subscription.updated` lands.
+  // The retired `max` / `ultra` values were mapped to `pro` by migration
+  // 0028. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
   // server/utils/AGENTS.md.
-  plan: text('plan', { enum: ['free', 'pro', 'max', 'ultra'] }).notNull().default('free'),
+  plan: text('plan', { enum: ['free', 'pro'] }).notNull().default('free'),
   // Paid-tier expiry = Stripe's `current_period_end`. NULL for free
   // users (free never lapses). Set by the Stripe webhook; the
   // plan-lapse sweep flips the row back to `free` + disables any
@@ -39,6 +41,14 @@ export const users = pgTable('users', {
   stripeCurrentPeriodStart: timestamp('stripe_current_period_start', { withTimezone: true }),
   stripeCustomerId: text('stripe_customer_id').unique(),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  // Currency of the personal subscription. A Stripe customer keeps one
+  // currency for life, so checkout refuses a different one (409
+  // `billing/currency-locked`). NULL until the first subscription.
+  billingCurrency: text('billing_currency', { enum: ['eur', 'chf'] }),
+  // Platform chat model the user picked (WP5): 'fast' = the instance chat
+  // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL — only applied
+  // while the plan includes `aiStrongModel`. Own keys are unaffected.
+  aiModelTier: text('ai_model_tier', { enum: ['fast', 'strong'] }).notNull().default('fast'),
   // Phase 6 LiteLLM virtual-key handle. ONE source of truth for the
   // user's AI budget — every billable AI call routes through
   // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the
@@ -214,13 +224,10 @@ export const workspaces = pgTable('workspaces', {
   ownerId: integer('owner_id').notNull().references(() => users.id),
   name: text('name').notNull().default('My Workspace'),
   description: text('description'),
-  // `(+)` team-billing target. NULL means "each member pays their own
-  // interactions" (the default). Set by the workspace admin when they
-  // toggle `(+)` on and their plan is max/ultra. `aiEnabled` is the
-  // boolean twin — redundant with `billingOwnerId IS NOT NULL` but kept
-  // as an explicit column so admin UI + filter queries don't need to
-  // NULL-check. Plan-lapse sweep flips both back to (null, false) when
-  // the billing owner's subscription expires.
+  // DEPRECATED — the retired `(+)` workspace AI sponsorship (replaced by
+  // Team / Business workspace subscriptions, `workspace_subscriptions`).
+  // No code reads or writes them any more; they stay one release so a
+  // code rollback still finds them, then a migration drops them.
   billingOwnerId: integer('billing_owner_id').references(() => users.id, { onDelete: 'set null' }),
   aiEnabled: boolean('ai_enabled').notNull().default(false),
   // Default theme applied to NEW documents created in this workspace.
@@ -234,6 +241,82 @@ export const workspaces = pgTable('workspaces', {
   // Billing resolver reads `(+)` state by workspace id; sweep scans by
   // billing owner. Both benefit from an index on billingOwnerId.
   index('idx_workspaces_billing_owner').on(table.billingOwnerId)
+])
+
+// Team / Business subscription of a workspace (pricing plan WS2). One row
+// per workspace that ever had one; Stripe drives every column through the
+// webhook (WP2/WP3). `resolveWorkspacePlan` (server/utils/entitlements.ts)
+// counts a row only while billing is on, `status` is live and
+// `valid_until` is in the future; otherwise the workspace falls back to
+// its creator's personal plan.
+export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
+  workspaceId: text('workspace_id').primaryKey().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
+  plan: text('plan', { enum: ['team', 'business'] }).notNull(),
+  // Paid seats. Members + open invitations may not exceed it (WP3).
+  seats: integer('seats').notNull(),
+  // Stripe subscription status, verbatim (active, trialing, past_due,
+  // canceled, unpaid, incomplete, incomplete_expired, paused).
+  status: text('status').notNull(),
+  // The member who pays and manages billing. SET NULL when their account
+  // is deleted; the account-deletion flow hands the role to the
+  // longest-serving workspace admin first (WP3).
+  billingAdminId: integer('billing_admin_id').references(() => users.id, { onDelete: 'set null' }),
+  stripeCustomerId: text('stripe_customer_id'),
+  stripeSubscriptionId: text('stripe_subscription_id').unique(),
+  currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
+  validUntil: timestamp('valid_until', { withTimezone: true }),
+  // LiteLLM team holding the workspace's pooled AI budget (WP3).
+  litellmTeamId: text('litellm_team_id'),
+  // Stripe customers keep one currency for life.
+  currency: text('currency', { enum: ['eur', 'chf'] }).notNull().default('eur'),
+  interval: text('interval', { enum: ['month', 'year'] }).notNull().default('month'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_workspace_subscriptions_billing_admin').on(table.billingAdminId),
+  index('idx_workspace_subscriptions_customer').on(table.stripeCustomerId)
+])
+
+// AI credit top-ups (pricing plan WP4): one row per paid top-up, for a
+// user (Pro) or a workspace (Team / Business). `subject_id` is the user
+// id or the workspace id as text (no FK: two subject kinds; account and
+// workspace deletion delete the rows explicitly). `remaining_usd` goes
+// down as the subject's AI spend passes its plan budget (monthly
+// settlement, `server/utils/aiCredits.ts`) and with refunds; a grant
+// expires 12 months after purchase. `stripe_payment_intent_id` is unique
+// so a repeated webhook adds nothing.
+export const aiCreditGrants = pgTable('ai_credit_grants', {
+  id: serial('id').primaryKey(),
+  subjectType: text('subject_type', { enum: ['user', 'workspace'] }).notNull(),
+  subjectId: text('subject_id').notNull(),
+  pack: text('pack').notNull(),
+  amountUsd: doublePrecision('amount_usd').notNull(),
+  remainingUsd: doublePrecision('remaining_usd').notNull(),
+  refundedUsd: doublePrecision('refunded_usd').notNull().default(0),
+  // What was paid, in the currency's minor units (cents / Rappen).
+  amountPaid: integer('amount_paid').notNull(),
+  currency: text('currency', { enum: ['eur', 'chf'] }).notNull(),
+  stripePaymentIntentId: text('stripe_payment_intent_id').notNull().unique(),
+  stripeCheckoutSessionId: text('stripe_checkout_session_id'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_ai_credit_grants_subject').on(table.subjectType, table.subjectId)
+])
+
+// How much of a subject's credits one calendar month (UTC — LiteLLM's
+// monthly budget reset) used: the month's AI spend above the plan
+// budget, deducted from the grants once. Lets the settlement run
+// repeatedly without deducting twice.
+export const aiCreditSettlements = pgTable('ai_credit_settlements', {
+  subjectType: text('subject_type', { enum: ['user', 'workspace'] }).notNull(),
+  subjectId: text('subject_id').notNull(),
+  // 'YYYY-MM'
+  period: text('period').notNull(),
+  consumedUsd: doublePrecision('consumed_usd').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.subjectType, table.subjectId, table.period] })
 ])
 
 // User-saved theme presets. Per-user, not shared across workspaces. A
@@ -271,7 +354,18 @@ export const workspaceMembers = pgTable('workspace_members', {
   workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   role: text('role', { enum: ['admin', 'editor', 'viewer'] }).notNull().default('editor'),
-  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow()
+  joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
+  // Team / Business (WP3): the member's monthly AI limit inside the
+  // workspace's pooled budget, in USD. NULL = the default (2 × the
+  // per-seat budget); `ai_unlimited` = no member limit (the team budget
+  // still applies). Set by workspace admins.
+  aiLimitUsd: doublePrecision('ai_limit_usd'),
+  aiUnlimited: boolean('ai_unlimited').notNull().default(false),
+  // The member's LiteLLM key inside the workspace's LiteLLM team, created
+  // on first AI use there (`server/utils/litellm/workspaceTeams.ts`).
+  // Token AES-256-GCM-encrypted like `users.litellm_key_token`.
+  litellmKeyId: text('litellm_key_id'),
+  litellmKeyToken: text('litellm_key_token')
 }, table => [
   primaryKey({ columns: [table.workspaceId, table.userId] }),
   index('idx_workspace_members_user').on(table.userId)

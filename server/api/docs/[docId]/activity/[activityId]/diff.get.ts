@@ -1,5 +1,6 @@
 import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
+import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/entitlements'
 import { decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/docTokenVerify'
 import { reconstructTextAtYjsId } from '../../../../../utils/historyReplay'
@@ -78,6 +79,9 @@ export default defineEventHandler(async (event): Promise<DiffResponse> => {
   if (!activity) {
     throw createError({ statusCode: 404, message: 'Activity row not found' })
   }
+  // Rows older than the document's plan history window stay stored but
+  // can't be opened (409 `plan/limit-reached`, field `historyDays`).
+  assertWithinHistory(await resolveDocPlanFor(docRow), activity.createdAt)
 
   // Boundary check: rows from before this feature have neither id; we
   // can't compute a diff retrospectively (the snapshot is gone if

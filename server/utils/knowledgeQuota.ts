@@ -1,16 +1,24 @@
-import { eq } from 'drizzle-orm'
 import {
   countWorkspaceKnowledge,
   sumWorkspaceKnowledgeBytes,
   countKnowledgeByUploader,
   sumKnowledgeBytesByUploader
 } from '../repos/knowledge'
-import { users, workspaces } from '../db/schema'
-import { useDatabase } from './database'
 import { reserveInflightSlot, releaseInflightSlot } from './rateLimit'
 import { KNOWLEDGE_PLATFORM_LIMITS, type PlanName } from '~~/shared/config/tiers'
 import { getTiers } from '~~/server/utils/tierConfig'
-import { effectivePlan, limitRecovery } from '~~/server/utils/billingMode'
+import { limitRecovery } from '~~/server/utils/billingMode'
+import { resolveUserPlan, resolveWorkspacePlan } from './entitlements'
+import { isBillingEnabled } from './billingMode'
+import { getPooledWorkspace, workspacePoolCaps } from './workspaceBilling'
+
+/**
+ * Per-user caps don't apply inside a pooled (Team / Business) workspace;
+ * this stands in for "no per-user limit" there. Also bounds the per-user
+ * inflight slots (Valkey wants a finite max).
+ */
+const POOLED_PER_USER_SENTINEL = Number.MAX_SAFE_INTEGER
+const POOLED_USER_SLOT_MAX = 1000
 
 /**
  * Centralised cap enforcement for the workspace knowledge base.
@@ -76,55 +84,26 @@ export interface KnowledgeCaps {
   workspacePlan: PlanName
   /** Plan whose caps we're using for the per-user portion. Diagnostic only. */
   uploaderPlan: PlanName
+  /**
+   * Team / Business workspace (WP3): the workspace caps are the pool
+   * (seats × per-seat), the uploader's personal caps don't apply, and
+   * the files don't count against the uploader's personal storage.
+   */
+  pooled: boolean
 }
 
-async function getEffectivePlan(userId: number | null): Promise<PlanName> {
-  if (userId === null) return 'free'
-  const db = useDatabase()
-  const rows = await db.select({
-    plan: users.plan,
-    planValidUntil: users.planValidUntil
-  }).from(users).where(eq(users.id, userId)).limit(1)
-  const row = rows[0]
-  if (!row) return 'free'
-  // Lapsed paid plans AND billing-off deployments both resolve to free.
-  return effectivePlan(row.plan, row.planValidUntil)
-}
-
-/**
- * Resolve the tier whose per-workspace caps apply to this workspace's
- * knowledge base. If `(+)` team-billing is active and the billing
- * owner's plan is still valid → use the billing owner's plan. Else
- * fall back to the workspace creator's plan.
- *
- * If the creator's account has also lapsed (or was deleted), we end up
- * at `free` — the most restrictive option — which is correct: we don't
- * want an abandoned Max workspace to retain 10 GB of storage room
- * indefinitely after the creator stopped paying.
- */
-async function getWorkspacePlan(workspaceId: string): Promise<PlanName> {
-  const db = useDatabase()
-  const rows = await db.select({
-    ownerId: workspaces.ownerId,
-    billingOwnerId: workspaces.billingOwnerId,
-    aiEnabled: workspaces.aiEnabled
-  }).from(workspaces).where(eq(workspaces.workspaceId, workspaceId)).limit(1)
-  const ws = rows[0]
-  if (!ws) return 'free'
-
-  if (ws.aiEnabled && ws.billingOwnerId !== null) {
-    const ownerPlan = await getEffectivePlan(ws.billingOwnerId)
-    // `(+)` with a pro/free billing owner (e.g. owner downgraded and
-    // sweep hasn't run) defensively falls through to the creator.
-    // Pro is personal-only; only max/ultra can team-bill.
-    if (ownerPlan === 'max' || ownerPlan === 'ultra') return ownerPlan
-  }
-  return await getEffectivePlan(ws.ownerId)
-}
+// Plan resolution is shared with every other plan limit
+// (server/utils/entitlements.ts): the uploader's personal plan for the
+// per-user caps, the workspace's plan (Team / Business subscription,
+// else its creator's plan) for the per-workspace caps. A lapsed or
+// deleted creator lands on `free` — an abandoned workspace doesn't keep
+// paid storage room after its owner stopped paying.
+const getEffectivePlan = resolveUserPlan
+const getWorkspacePlan = resolveWorkspacePlan
 
 /**
  * Resolve the full cap set for an upload. Per-workspace caps read the
- * workspace's effective plan (billing owner if `(+)`, else creator);
+ * workspace's effective plan (Team / Business subscription, else creator);
  * per-user caps read the uploader's own plan. `maxFileBytes` is a
  * platform constant (markitdown conversion throughput + S3
  * single-part upload ceiling), not a tier knob.
@@ -138,6 +117,20 @@ export async function resolveCaps(args: {
     getWorkspacePlan(args.workspaceId)
   ])
   const tiers = getTiers()
+  const pool = await getPooledWorkspace(args.workspaceId)
+  if (pool) {
+    const poolCaps = workspacePoolCaps(pool.plan, pool.seats, tiers)
+    return {
+      maxFileBytes: KNOWLEDGE_PLATFORM_LIMITS.maxFileBytes,
+      maxFilesPerWorkspace: poolCaps.knowledgeFiles,
+      maxTotalBytesPerWorkspace: poolCaps.knowledgeBytes,
+      maxFilesPerUser: POOLED_PER_USER_SENTINEL,
+      maxTotalBytesPerUser: POOLED_PER_USER_SENTINEL,
+      workspacePlan: pool.plan,
+      uploaderPlan,
+      pooled: true
+    }
+  }
   const wsTier = tiers[workspacePlan]
   const userTier = tiers[uploaderPlan]
   return {
@@ -147,7 +140,8 @@ export async function resolveCaps(args: {
     maxFilesPerUser: userTier.knowledgeFiles,
     maxTotalBytesPerUser: userTier.knowledgeBytesPerUser,
     workspacePlan,
-    uploaderPlan
+    uploaderPlan,
+    pooled: false
   }
 }
 
@@ -180,8 +174,8 @@ export async function reserveUploadSlot(args: {
   const [wsCount, wsBytes, userCount, userBytes] = await Promise.all([
     countWorkspaceKnowledge(args.workspaceId),
     sumWorkspaceKnowledgeBytes(args.workspaceId),
-    countKnowledgeByUploader(args.userId),
-    sumKnowledgeBytesByUploader(args.userId)
+    countKnowledgeByUploader(args.userId, { excludePooled: isBillingEnabled() }),
+    sumKnowledgeBytesByUploader(args.userId, { excludePooled: isBillingEnabled() })
   ])
 
   if (wsCount >= caps.maxFilesPerWorkspace) {
@@ -228,7 +222,7 @@ export async function reserveUploadSlot(args: {
   // Reserve BOTH slots. If the second reservation fails, release the
   // first so the partial reservation doesn't pin a slot for the TTL.
   const wsSlotMax = Math.max(1, caps.maxFilesPerWorkspace - wsCount)
-  const userSlotMax = Math.max(1, caps.maxFilesPerUser - userCount)
+  const userSlotMax = caps.pooled ? POOLED_USER_SLOT_MAX : Math.max(1, caps.maxFilesPerUser - userCount)
 
   // The member's own share of the workspace's slots is reserved FIRST, so
   // a member at their share never consumes a workspace slot.
@@ -295,8 +289,8 @@ export async function assertCapsOnConfirm(args: {
   const [wsCount, wsBytes, userCount, userBytes] = await Promise.all([
     countWorkspaceKnowledge(args.workspaceId),
     sumWorkspaceKnowledgeBytes(args.workspaceId),
-    countKnowledgeByUploader(args.userId),
-    sumKnowledgeBytesByUploader(args.userId)
+    countKnowledgeByUploader(args.userId, { excludePooled: isBillingEnabled() }),
+    sumKnowledgeBytesByUploader(args.userId, { excludePooled: isBillingEnabled() })
   ])
   if (wsCount >= caps.maxFilesPerWorkspace) {
     throw createError({ statusCode: 409, message: 'Workspace knowledge limit reached' })

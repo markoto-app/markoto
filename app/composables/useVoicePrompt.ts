@@ -89,6 +89,9 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   // path. We read `locale.value` lazily at send time so language
   // changes still propagate without a re-invocation.
   const { locale } = useI18n()
+  // The open document's workspace: its Team / Business plan may include
+  // voice where the personal plan doesn't (WP5).
+  const aiWorkspace = useAiWorkspaceContext()
 
   // Reactive mic permission. Lets the UI gray out the button + show
   // "Mic blocked in browser settings" without the user having to click
@@ -364,7 +367,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       // UI. `locale` was captured at setup-time (see top of composable).
       const res = await $fetch<{ text: string, inaudible: boolean }>('/api/ai/transcribe', {
         method: 'POST',
-        body: { audio: audioB64, mimeType, languageCode: locale.value }
+        body: { audio: audioB64, mimeType, languageCode: locale.value, ...(aiWorkspace.value ? { workspaceId: aiWorkspace.value } : {}) }
       })
       if (res.inaudible || !res.text) {
         resetState()

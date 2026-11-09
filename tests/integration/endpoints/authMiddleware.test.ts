@@ -94,19 +94,23 @@ describe('auth middleware whitelist', () => {
       const res = await anonClient().get('/api/billing/tiers')
       expect(res.status).toBe(200)
       const body = await res.json() as Record<string, { litellmBudgetUsd: number }>
-      for (const plan of ['free', 'pro', 'max', 'ultra']) {
+      for (const plan of ['free', 'pro', 'team', 'business']) {
         expect(body[plan]?.litellmBudgetUsd, `${plan} missing`).toBeGreaterThan(0)
       }
     })
 
-    it('GET /api/billing/prices is public and returns USD prices for every plan', async () => {
+    it('GET /api/billing/prices is public and returns EUR + CHF prices for every paid plan', async () => {
       const res = await anonClient().get('/api/billing/prices')
       expect(res.status).toBe(200)
-      const body = await res.json() as { currency?: string, monthly?: Record<string, number> }
-      expect(body.currency).toBe('USD')
-      expect(body.monthly?.free).toBe(0)
-      for (const plan of ['pro', 'max', 'ultra']) {
-        expect(body.monthly?.[plan], `${plan} missing`).toBeGreaterThan(0)
+      const body = await res.json() as { currencies?: string[], prices?: Record<string, Record<string, { month: number, year: number }>>, source?: string }
+      expect(body.currencies).toEqual(['eur', 'chf'])
+      // Billing on: Stripe (id overrides carry no amount → planned fallback).
+      expect(body.source).toBe('stripe')
+      for (const currency of ['eur', 'chf']) {
+        for (const plan of ['pro', 'team', 'business']) {
+          expect(body.prices?.[currency]?.[plan]?.month, `${currency} ${plan}`).toBeGreaterThan(0)
+          expect(body.prices?.[currency]?.[plan]?.year, `${currency} ${plan}`).toBeGreaterThan(0)
+        }
       }
     })
   })

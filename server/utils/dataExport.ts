@@ -25,6 +25,8 @@ import { listAiProviders } from '../repos/aiProviders'
 import { listAiSessionProvenanceForUser } from '../repos/aiSessionProvenance'
 import { listInvitesForExport } from '../repos/workspaceInvites'
 import { normaliseInviteEmail } from './workspaceInvites'
+import { listGrants } from '../repos/aiCreditGrants'
+import { listSubscriptionsByBillingAdmin } from '../repos/workspaceSubscriptions'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
@@ -108,6 +110,11 @@ Contents:
   billing/customer.json  your Stripe customer record (if billing was
                          set up).
   billing/invoices.ndjson  your Stripe invoice history (if any).
+  billing/workspace_subscriptions.json  Team / Business subscriptions of
+                         workspaces you manage as billing admin (plan,
+                         seats, status, currency, dates).
+  billing/ai_credits.json  AI credits you bought for yourself (pack,
+                         credit, what's left, amount paid, expiry).
 
 If a section is empty, the file still exists but contains zero rows.
 `
@@ -132,6 +139,7 @@ export interface BuildExportZipResult {
     moderationNotices: number
     aiProviders: number
     invoices: number
+    workspaceSubscriptions: number
   }
 }
 
@@ -177,6 +185,8 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const ownerNoticesCount = await addOwnerNoticesEntry(entries, db, userId)
   const aiProvidersCount = await addAiProvidersEntry(entries, userId)
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
+  const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, userId)
+  await addCreditGrantsEntry(entries, userId)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -195,7 +205,8 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
       abuseReports: abuseReportsCount,
       moderationNotices: ownerNoticesCount,
       aiProviders: aiProvidersCount,
-      invoices: invoicesCount
+      invoices: invoicesCount,
+      workspaceSubscriptions: workspaceSubscriptionsCount
     }
   }
 }
@@ -222,6 +233,7 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
     oidcIssuer: userRow.oidcIssuer,
     plan: userRow.plan,
     planValidUntil: userRow.planValidUntil?.toISOString() ?? null,
+    billingCurrency: userRow.billingCurrency,
     locale: userRow.locale,
     ageConfirmedAt: userRow.ageConfirmedAt?.toISOString() ?? null,
     deletionRequestedAt: userRow.deletionRequestedAt?.toISOString() ?? null,
@@ -630,6 +642,38 @@ async function addAiProvidersEntry(entries: Entries, userId: number): Promise<nu
  * placeholders for layout stability. Invoices capped at 100 to
  * survive malicious / weird state without blowing the export.
  */
+/** Workspace subscriptions the user manages as billing admin (always written). */
+async function addWorkspaceSubscriptionsEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await listSubscriptionsByBillingAdmin(userId)
+  entries['billing/workspace_subscriptions.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    workspaceId: r.workspaceId,
+    plan: r.plan,
+    seats: r.seats,
+    status: r.status,
+    validUntil: r.validUntil?.toISOString() ?? null,
+    currency: r.currency,
+    interval: r.interval,
+    createdAt: r.createdAt.toISOString()
+  })), null, 2))
+  return rows.length
+}
+
+/** Personal AI credit top-ups (always written; WP4). */
+async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await listGrants({ type: 'user', id: String(userId) })
+  entries['billing/ai_credits.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    pack: r.pack,
+    creditUsd: r.amountUsd,
+    remainingUsd: r.remainingUsd,
+    refundedUsd: r.refundedUsd,
+    amountPaid: r.amountPaid,
+    currency: r.currency,
+    expiresAt: r.expiresAt.toISOString(),
+    createdAt: r.createdAt.toISOString()
+  })), null, 2))
+  return rows.length
+}
+
 async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {
   // Billing off → no Stripe client exists on this deployment; emit the
   // same empty placeholders as "no Stripe customer" so the layout stays

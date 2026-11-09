@@ -36,6 +36,11 @@ export const MCP_RATE_LIMITS = {
   sessionsPerUser: { namespace: 'mcp-session-user', max: 60, windowMs: 60 * 60_000 },
   /** Tool calls per user, across all their tokens and sessions. */
   toolCallsPerUser: { namespace: 'mcp-tool-user', max: 120, windowMs: 60_000 },
+  /**
+   * Tool calls per user per day — only enforced when the plan sets
+   * `mcpToolCallsPerDay` (the plan's number replaces `max`).
+   */
+  toolCallsPerUserDaily: { namespace: 'mcp-tool-user-day', max: 0, windowMs: 24 * 60 * 60_000 },
   /** `generate_image` per user (each call costs a paid image generation). */
   generateImagePerUser: { namespace: 'mcp-generate-image', max: 20, windowMs: 60 * 60_000 }
 } as const satisfies Record<string, RateLimitRule>

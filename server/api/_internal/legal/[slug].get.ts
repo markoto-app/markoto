@@ -17,6 +17,8 @@ import {
   PRIVACY_EFFECTIVE_DATE,
   PRIVACY_VERSION,
   TOS_EFFECTIVE_DATE,
+  PAID_TERMS_EFFECTIVE_DATE,
+  PAID_TERMS_VERSION,
   TOS_VERSION
 } from '~~/shared/legal/versions'
 
@@ -46,7 +48,7 @@ import {
 // links, headings, blockquotes, inline code). The renderer's
 // `linkify: true` auto-links bare URLs in the body for convenience.
 
-const ALLOWED_SLUGS = ['privacy', 'terms', 'dpa', 'abuse-policy', 'imprint'] as const
+const ALLOWED_SLUGS = ['privacy', 'terms', 'paid-terms', 'dpa', 'abuse-policy', 'imprint'] as const
 type LegalSlug = (typeof ALLOWED_SLUGS)[number]
 
 interface SlugMetadata {
@@ -69,6 +71,11 @@ const SLUG_META: Record<LegalSlug, SlugMetadata> = {
     version: TOS_VERSION,
     effectiveDate: TOS_EFFECTIVE_DATE,
     defaultTitle: 'Terms of Service'
+  },
+  'paid-terms': {
+    version: PAID_TERMS_VERSION,
+    effectiveDate: PAID_TERMS_EFFECTIVE_DATE,
+    defaultTitle: 'Paid Plans Terms'
   },
   'dpa': {
     version: DPA_VERSION,

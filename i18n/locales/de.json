@@ -42,9 +42,6 @@
       "invalidMeta": "Eine Dokumenteinstellung (Titel, Theme oder Angaben) hatte einen Wert, den der Server nicht annehmen konnte. Laden Sie neu, um weiterzuarbeiten.",
       "invalidUpdate": "Der Server konnte eine Änderung aus diesem Tab nicht verarbeiten. Laden Sie neu, um weiterzuarbeiten."
     },
-    "aiWorkspaceBadge": "markoto-Workspace",
-    "aiWorkspaceBadgeTooltip": "Dieses Dokument befindet sich in einem markoto-Workspace — die Arbeit von markoto nutzt hier das Guthaben des Sponsors, nicht Ihres.",
-    "aiWorkspaceSponsoredBy": "markoto-Workspace gesponsert von {name}",
     "bold": "Fett",
     "italic": "Kursiv",
     "heading": "Überschrift",
@@ -593,8 +590,8 @@
     "budgetExhaustedDescription": "Sie haben alle Ihre KI-Credits für diesen Abrechnungszeitraum aufgebraucht. Führen Sie ein Upgrade durch, um weiterzumachen.",
     "exhaustedPlaceholder": "Keine KI-Credits mehr — für Fortsetzung upgraden",
     "workspaceBudgetExhaustedTitle": "Workspace-KI-Budget aufgebraucht",
-    "workspaceBudgetExhaustedDescription": "Das gemeinsame KI-Budget dieses Workspace ist für den aktuellen Abrechnungszeitraum aufgebraucht. Wenden Sie sich an den Workspace-Eigentümer, um es aufzufüllen oder ein Upgrade durchzuführen.",
-    "workspaceExhaustedPlaceholder": "Workspace-KI-Budget aufgebraucht — Eigentümer kontaktieren",
+    "workspaceBudgetExhaustedDescription": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "workspaceExhaustedPlaceholder": "KI-Budget des Arbeitsbereichs aufgebraucht – fragen Sie einen Admin",
     "upgradeCta": "Upgrade",
     "remainingLabel": "{remaining} von {limit} KI-Credits diesen Monat verbleibend",
     "responseLabel": "markoto sagt",
@@ -613,7 +610,21 @@
     "freeAllowanceExhaustedTitle": "Kostenloses KI-Kontingent aufgebraucht",
     "freeAllowanceExhausted": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht. Hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel, um weiterzumachen.",
     "freeAllowanceCta": "Eigenen Schlüssel hinterlegen",
-    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlegen Sie Ihren eigenen Schlüssel"
+    "freeAllowanceExhaustedPlaceholder": "Das kostenlose KI-Kontingent für diesen Monat ist aufgebraucht – hinterlegen Sie Ihren eigenen Schlüssel",
+    "memberLimitReachedTitle": "Ihr KI-Limit ist erreicht",
+    "memberLimitReachedDescription": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat aufgebraucht. Bitten Sie einen Admin des Arbeitsbereichs, es zu erhöhen.",
+    "memberLimitPlaceholder": "Ihr KI-Limit hier ist aufgebraucht – fragen Sie einen Admin",
+    "teamBudgetExhausted": "Das KI-Budget dieses Arbeitsbereichs ist für diesen Monat aufgebraucht. Bitten Sie einen Admin, Plätze oder Guthaben hinzuzufügen.",
+    "memberLimitReached": "Sie haben Ihr KI-Limit in diesem Arbeitsbereich für diesen Monat erreicht. Bitten Sie einen Admin, es zu erhöhen.",
+    "locked": {
+      "aiVoice": "Spracheingabe ist in diesem Plan nicht enthalten",
+      "aiImage": "Bildgenerierung ist in diesem Plan nicht enthalten",
+      "askAdmin": "Fragen Sie einen Admin des Arbeitsbereichs nach dessen Plan, oder verwenden Sie Ihren eigenen Anbieter-Schlüssel.",
+      "upgrade": "Upgraden Sie auf Pro, oder verwenden Sie Ihren eigenen Anbieter-Schlüssel.",
+      "comingSoon": "Das kommt mit den bezahlten Plänen, die bald verfügbar sind. Mit Ihrem eigenen Anbieter-Schlüssel geht es schon jetzt.",
+      "operator": "Diese Instanz bietet das für Ihr Konto nicht an. Sie können Ihren eigenen Anbieter-Schlüssel verwenden.",
+      "ownKey": "Eigenen Schlüssel hinzufügen"
+    }
   },
   "mobileTabBar": {
     "label": "Dokument-Panels",
@@ -652,7 +663,6 @@
     "subtitle": "Wählen Sie den passenden Tarif. Tarife legen Ihre Limits fest: KI-Punkte, Workspaces und Speicher. KI über Ihren eigenen Anbieterschlüssel ist durch keinen Tarif begrenzt.",
     "metaDescription": "markoto-Tarife im Vergleich: KI-Punkte, Workspaces und Speicher pro Tarif. KI über Ihren eigenen Anbieterschlüssel ist nie begrenzt.",
     "creditsHint": "KI-Punkte decken KI ab, die die Instanz bezahlt: 1000 Punkte = 1 $ Modellnutzung. KI über Ihren eigenen Anbieterschlüssel rechnet Ihr Anbieter ab; sie verbraucht keine Punkte.",
-    "teamBilling": "Workspace-Sponsoring: die KI-Punkte aller Mitglieder eines Workspace übernehmen",
     "currentPlan": "Aktueller Tarif",
     "manageSubscription": "Abonnement verwalten",
     "upgrade": "Upgrade",
@@ -670,15 +680,18 @@
     "tiers": {
       "free": "Alle Schreibfunktionen und ein Startkontingent an KI-Punkten.",
       "pro": "Für Einzelpersonen: mehr KI-Punkte, Workspaces und Speicher.",
-      "max": "Für kleine Teams: Übernehmen Sie die KI-Punkte aller Mitglieder eines Ihrer Workspaces.",
-      "ultra": "Für grössere Teams: Workspace-Sponsoring mit dem grössten Kontingent."
+      "team": "Für Teams: pro Platz, gemeinsame AI Points und Speicher, Verwaltung für Admins.",
+      "business": "Für Organisationen: Team plus Single Sign-on, Audit-Export und eigene Limits."
     },
     "freeAllowanceNote": "Das kostenlose KI-Kontingent läuft auf einem Modell, das Mistral AI in der EU betreibt, und steht zur Verfügung, solange der gemeinsame Topf dieses Monats reicht. Für mehr hinterlegen Sie unter Einstellungen → KI-Anbieter Ihren eigenen Schlüssel.",
     "price": {
       "free": "Kostenlos",
       "perMonth": "pro Monat",
+      "perSeatPerMonth": "pro Platz / Monat",
+      "perYear": "pro Jahr",
+      "perSeatPerYear": "pro Platz / Jahr",
       "planned": "Geplanter Preis",
-      "plannedNote": "Geplante Preise in US-Dollar. Preise und Limits können sich bis zum Start der Bezahlpläne noch ändern; kaufen kann man noch nichts."
+      "plannedNote": "Geplante Preise. Preise und Limits können sich bis zum Start der Bezahlpläne ändern; noch kann nichts gekauft werden."
     },
     "selfHosted": {
       "title": "Selbst gehostet",
@@ -708,7 +721,9 @@
       "title": "Bezahlt",
       "tagline": "Mehr KI-Punkte, Workspaces und Speicher.",
       "tabsLabel": "Bezahlpläne",
-      "joinWaitlist": "Auf die Warteliste"
+      "joinWaitlist": "Auf die Warteliste",
+      "setUpInWorkspace": "In einem Workspace einrichten",
+      "setUpInWorkspaceHint": "Öffnen Sie den Arbeitsbereich und dort den Tab «Abrechnung». Nur Admins des Arbeitsbereichs können kaufen."
     },
     "instance": {
       "title": "Jedes Konto"
@@ -738,11 +753,20 @@
       "knowledgeFiles": "Wissensdateien",
       "knowledgeStorage": "Wissensspeicher",
       "imageStorage": "Bildspeicher",
-      "sponsoring": "KI-Sponsoring für Workspaces",
       "mcp": "MCP-Server für KI-Clients",
+      "members": "Personen pro Workspace",
+      "history": "Versionsverlauf",
+      "days": "{n} Tag | {n} Tage",
+      "customCss": "Eigenes CSS für Dokumente",
+      "readOnly": "Nur Lesen",
       "setByYou": "Legen Sie fest",
       "included": "Enthalten",
-      "notIncluded": "Nicht enthalten"
+      "notIncluded": "Nicht enthalten",
+      "perSeat": "{value} pro Platz",
+      "aiImage": "KI-Bildgenerierung",
+      "aiVoice": "Spracheingabe und Live-Diktat",
+      "aiStrongModel": "Wahl eines stärkeren KI-Modells",
+      "ownKeyOnly": "Mit eigenem Schlüssel"
     },
     "faq": {
       "title": "Fragen",
@@ -758,7 +782,25 @@
       "anonKeptA": "Jeder mit dem Link kann sie lesen und bearbeiten, und nur der Browser, der ein Dokument erstellt hat, kann es löschen. Melden Sie sich an, um Dokumente privat zu stellen oder mit einem Passwort zu schützen.",
       "selfHostQ": "Kann ich markoto auf meinem eigenen Server betreiben?",
       "selfHostA": "Ja. Der Code ist source-available unter der Lizenz FSL-1.1, die nach zwei Jahren zu Apache-2.0 wird. Eine selbst gehostete Instanz hat alle Funktionen und keine Tarife: Sie legen die Limits fest und verbinden Ihren eigenen KI-Anbieter oder ein lokales Modell. Die Anleitung zum Selbsthosten in der Dokumentation beschreibt die Installation."
-    }
+    },
+    "interval": {
+      "label": "Abrechnungszeitraum",
+      "month": "Monatlich",
+      "year": "Jährlich · 2 Monate gratis"
+    },
+    "currencyLabel": "Währung",
+    "currencyLocked": "Ihr Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wählen Sie diese Währung, um fortzufahren.",
+    "countPerSeat": {
+      "aiPoints": "{n} KI-Punkt pro Platz und Monat, gemeinsam | {n} KI-Punkte pro Platz und Monat, gemeinsam",
+      "workspaces": "{n} eigener Arbeitsbereich | {n} eigene Arbeitsbereiche",
+      "knowledgeFiles": "{n} Wissensdatei pro Platz, gemeinsam | {n} Wissensdateien pro Platz, gemeinsam",
+      "knowledgeStorage": "{size} Wissensspeicher pro Platz, gemeinsam",
+      "imageStorage": "{size} Bildspeicher pro Platz, gemeinsam"
+    },
+    "seatTotalMonth": "{total} pro Monat für {seats} Plätze",
+    "seatTotalYear": "{total} pro Jahr für {seats} Plätze",
+    "seatsLabel": "Plätze",
+    "creditsSection": "KI-Guthaben ergänzt das monatliche KI-Budget von Pro und von Team- / Business-Arbeitsbereichen. Es wird erst verbraucht, wenn das Monatsbudget aufgebraucht ist, und verfällt {months} Monate nach dem Kauf."
   },
   "topbar": {
     "planBadge": "Tarif: {plan}",
@@ -1243,7 +1285,8 @@
     "success": "Dokument verschoben",
     "successToPersonal": "\"{title}\" ist jetzt ein persönliches Dokument.",
     "successToWorkspace": "\"{title}\" befindet sich jetzt in {workspace}.",
-    "failed": "Dokument konnte nicht verschoben werden"
+    "failed": "Dokument konnte nicht verschoben werden",
+    "leavesPlan": "Dieses Dokument verlässt einen Arbeitsbereich mit dem Plan {plan}. Danach gilt der Plan am neuen Ort: Funktionen, die dort fehlen (etwa eigenes CSS oder ältere Versionen), pausieren. Es wird nichts gelöscht."
   },
   "delete": {
     "title": "Dokument löschen",
@@ -1264,8 +1307,8 @@
     "tabs": {
       "documents": "Dokumente",
       "knowledge": "Wissen",
-      "ai": "markoto",
-      "settings": "Einstellungen"
+      "settings": "Einstellungen",
+      "billing": "Abrechnung"
     },
     "settings": {
       "title": "Workspace-Einstellungen",
@@ -1374,29 +1417,67 @@
         "declined": "Einladung abgelehnt.",
         "missingToken": "Dieser Einladungslink ist unvollständig. Öffnen Sie ihn erneut aus der E-Mail.",
         "home": "Zum Dashboard"
-      }
+      },
+      "planIncluded": "{name} hat den Plan {plan}: Darin gelten seine Funktionen und sein KI-Budget auch für Sie."
     },
     "actions": "Workspace-Aktionen",
-    "sponsorship": {
-      "description": "Machen Sie diesen Workspace zu einem markoto-Workspace: Die KI-Nutzung aller Mitglieder in seinen Dokumenten läuft dann über das Guthaben Ihres Plans. Erfordert Max oder Ultra.",
-      "banner": "Dies ist ein markoto-Workspace: Die KI-Nutzung hier läuft über das Guthaben des Sponsors.",
-      "memberSponsored": "Dies ist ein markoto-Workspace. Ein Admin übernimmt die KI-Nutzung hier.",
-      "memberRegular": "Dies ist ein normaler Workspace. Mitglieder nutzen ihr eigenes KI-Guthaben. Ein Admin kann ihn zu einem markoto-Workspace machen und die Nutzung übernehmen.",
-      "memberComingSoon": "Das Sponsern der KI-Nutzung eines Workspace kommt mit den bezahlten Plänen.",
-      "onYourPlan": "über Ihren Plan · Mitglieder sehen den Hinweis im Editor",
-      "sponsoredByOther": "von einem anderen Admin gesponsert",
-      "takeOver": "Sponsoring übernehmen",
-      "needsUpgrade": "Mit Ihrem Plan {plan} können Sie keinen Workspace sponsern. Dafür brauchen Sie Max oder Ultra.",
-      "upgrade": "Plan upgraden",
-      "comingSoon": "Kommt mit den bezahlten Plänen.",
-      "seePlans": "Pläne ansehen",
-      "off": "aus · Mitglieder nutzen ihr eigenes KI-Guthaben",
-      "toggleLabel": "KI-Nutzung in diesem Workspace sponsern",
-      "enabledToast": "KI-Workspace aktiviert",
-      "enabledToastDescription": "Die KI-Nutzung der Mitglieder in diesem Workspace läuft jetzt über Ihren Plan.",
-      "disabledToast": "KI-Workspace deaktiviert",
-      "disabledToastDescription": "Mitglieder nutzen wieder ihr eigenes KI-Guthaben.",
-      "updateFailed": "Der KI-Workspace konnte nicht geändert werden"
+    "billing": {
+      "title": "Abrechnung",
+      "loading": "Abrechnung wird geladen…",
+      "loadFailed": "Abrechnung konnte nicht geladen werden",
+      "paymentProblemTitle": "Zahlungsproblem",
+      "paymentProblemBody": "Die letzte Zahlung für diesen Arbeitsbereich ist fehlgeschlagen. Stripe versucht es erneut; aktualisieren Sie die Zahlungsmethode unter «Abrechnung verwalten», damit die Team-Funktionen erhalten bleiben.",
+      "buyTitle": "Diesen Arbeitsbereich upgraden",
+      "buyBody": "Team und Business werden pro Platz bezahlt. Alle im Arbeitsbereich erhalten darin die Funktionen des Plans, mit einem gemeinsamen monatlichen KI-Budget.",
+      "planLabel": "Plan",
+      "seatsLabel": "Plätze",
+      "seatsHint": "Mindestens {min} (alle im Arbeitsbereich, Einladungen eingeschlossen)",
+      "totalPerMonth": "{total} pro Monat ({seats} Plätze × {price})",
+      "totalPerYear": "{total} pro Jahr ({seats} Plätze × {price})",
+      "continueToPayment": "Weiter zur Zahlung",
+      "buyFootnote": "Sie bezahlen mit Stripe. Sie werden Abrechnungsadmin dieses Arbeitsbereichs und können Plätze jederzeit ändern oder kündigen.",
+      "currentPlan": "Aktueller Plan",
+      "annual": "jährlich",
+      "monthly": "monatlich",
+      "renews": "Verlängert sich am {date}",
+      "manage": "Abrechnung verwalten",
+      "seatCounter": "{used} von {seats} Plätzen belegt",
+      "updateSeats": "Plätze ändern",
+      "seatsFootnote": "Zusätzliche Plätze werden anteilig auf der nächsten Rechnung berechnet, weniger Plätze gutgeschrieben. Es kann nicht weniger Plätze als Personen im Arbeitsbereich geben.",
+      "switchToBusiness": "Zu Business wechseln",
+      "switchToTeam": "Zu Team wechseln",
+      "switchToAnnual": "Zu jährlicher Abrechnung wechseln",
+      "switchToMonthly": "Zu monatlicher Abrechnung wechseln",
+      "aiTitle": "KI in diesem Monat",
+      "teamSpend": "{spent} von {budget} verbraucht",
+      "resets": "wird am {date} zurückgesetzt",
+      "storage": "Gemeinsamer Speicher: {knowledge} für Wissensdateien, {images} für Bilder.",
+      "memberSpend": "{spent} verbraucht · Limit {limit}",
+      "noLimitShort": "keines",
+      "limitDefault": "Standardlimit",
+      "limitCustom": "Eigenes Limit",
+      "limitNone": "Kein Limit",
+      "limitSaved": "Limit gespeichert",
+      "limitSaveFailed": "Limit konnte nicht gespeichert werden",
+      "limitFootnote": "Standardmässig darf jedes Mitglied bis zu {amount} pro Monat verbrauchen. «Kein Limit» endet trotzdem am Budget des Arbeitsbereichs.",
+      "checkoutFailed": "Zahlung konnte nicht gestartet werden",
+      "planChanged": "Plan geändert",
+      "planChangeFailed": "Plan konnte nicht geändert werden",
+      "seatsChanged": "Plätze auf {seats} geändert",
+      "seatsChangeFailed": "Plätze konnten nicht geändert werden",
+      "portalFailed": "Abrechnung konnte nicht geöffnet werden",
+      "checkoutSuccess": "Zahlung erhalten",
+      "checkoutSuccessBody": "Der Plan ist aktiv, sobald Stripe ihn bestätigt, meist innert weniger Sekunden.",
+      "checkoutCancelled": "Zahlung abgebrochen",
+      "addSeatTitle": "Alle {seats} Plätze sind belegt",
+      "addSeatBody": "Wenn Sie {email} einladen, kommt ein Platz zum Plan dieses Arbeitsbereichs hinzu, anteilig auf der nächsten Rechnung berechnet.",
+      "addSeatConfirm": "Platz hinzufügen und einladen",
+      "pricePerSeatMonth": "Ein Platz kostet {price} pro Monat.",
+      "pricePerSeatYear": "Ein Platz kostet {price} pro Jahr.",
+      "errors": {
+        "seatsFull": "Alle bezahlten Plätze sind belegt. Fügen Sie einen Platz hinzu, um jemanden einzuladen.",
+        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entfernen Sie jemanden oder behalten Sie mehr Plätze."
+      }
     }
   },
   "knowledge": {
@@ -1651,7 +1732,8 @@
       "navLabel": "Dokumentation und Rechtliches",
       "product": "Produkt",
       "legal": "Rechtliches",
-      "tagline": "Gemeinsam Markdown schreiben, als Seiten gesetzt."
+      "tagline": "Gemeinsam Markdown schreiben, als Seiten gesetzt.",
+      "paidTerms": "Bedingungen für bezahlte Pläne"
     },
     "documentPage": {
       "translationNoticeTitle": "Übersetzung zur Bequemlichkeit bereitgestellt",
@@ -1677,7 +1759,12 @@
       "spending": {
         "heading": "Ausgaben und Nutzung",
         "comingSoon": "Bald verfügbar — Ihre KI-Credit-Nutzung, Tarifverlauf und Rechnungen werden hier angezeigt. Verwalten Sie die Abrechnung vorerst über die Preisseite.",
-        "viewPricing": "Preise ansehen"
+        "viewPricing": "Preise ansehen",
+        "plan": "Aktueller Plan: {plan}",
+        "manage": "Abrechnung verwalten",
+        "portalFailed": "Abrechnung konnte nicht geöffnet werden",
+        "coveringTitle": "Arbeitsbereiche, die Sie abdecken",
+        "coveringHint": "In diesen Arbeitsbereichen gilt deren Plan auch für Sie, einschliesslich des gemeinsamen KI-Budgets. Überall sonst gilt Ihr eigener Plan."
       },
       "data": {
         "heading": "Ihre Daten",
@@ -1723,7 +1810,34 @@
   },
   "billing": {
     "comingSoonCta": "Bezahlpläne folgen in Kürze",
-    "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze."
+    "comingSoonHint": "Bezahlpläne mit höheren Limits folgen in Kürze.",
+    "paidTerms": {
+      "consentPlan": "Ich akzeptiere die {terms} und verlange, dass mein Plan sofort beginnt. Widerrufe ich als Konsument in der EU innert 14 Tagen, bezahle ich die genutzte Zeit.",
+      "consentTopup": "Ich akzeptiere die {terms} und verlange das Guthaben sofort. Mein Widerrufsrecht endet, sobald ich es nutze.",
+      "link": "Bedingungen für kostenpflichtige Pläne",
+      "required": "Akzeptieren Sie die Bedingungen für kostenpflichtige Pläne, um fortzufahren."
+    }
+  },
+  "plan": {
+    "limitTitle": "Planlimit erreicht",
+    "feature": {
+      "customCss": "Eigenes CSS ist im Plan dieses Dokuments nicht enthalten.",
+      "customCssPaused": "Das eigene CSS dieses Dokuments ist pausiert, weil sein Plan kein eigenes CSS enthält. Das CSS bleibt gespeichert und wirkt wieder, sobald der Plan es enthält.",
+      "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält.",
+      "aiImage": "Bildgenerierung über die KI von markoto ist in diesem Plan nicht enthalten.",
+      "aiVoice": "Spracheingabe über die KI von markoto ist in diesem Plan nicht enthalten.",
+      "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten."
+    },
+    "limit": {
+      "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
+      "savedThemes": "Sie haben die Grenze Ihres Plans für gespeicherte Themes erreicht. Löschen Sie eines, um ein neues zu speichern.",
+      "importMaxBytes": "Diese Datei ist grösser, als Ihr Plan für Importe erlaubt.",
+      "historyEntry": "Diese Änderung ist älter als der Verlauf, den der Plan dieses Dokuments enthält.",
+      "mcpToolCallsPerDay": "Sie haben die MCP-Werkzeugaufrufe Ihres Plans für heute aufgebraucht. Versuchen Sie es morgen wieder."
+    },
+    "notice": {
+      "historyHidden": "Aktivitäten, die älter als {days} Tage sind, werden im Plan dieses Dokuments ausgeblendet. Sie bleiben gespeichert und erscheinen wieder, sobald der Plan mehr Verlauf enthält."
+    }
   },
   "waitlist": {
     "title": "Auf die Warteliste",
@@ -1789,7 +1903,8 @@
       "lastVerified": "Zuletzt geprüft am {date}",
       "keyEnding": "endet auf {last4}",
       "noToolSupport": "Dieses Modell hat das Test-Tool nicht aufgerufen; der Schreibassistent funktioniert damit vielleicht nicht. Wähle ein Modell mit Tool-Aufrufen.",
-      "liveDictation": "Live-Diktat ist verfügbar."
+      "liveDictation": "Live-Diktat ist verfügbar.",
+      "locked": "Nicht in Ihrem Plan – Ihr eigener Schlüssel funktioniert"
     },
     "form": {
       "preset": "Anbieter",
@@ -1851,7 +1966,17 @@
       "openSettings": "KI-Anbieter-Einstellungen öffnen"
     },
     "ownProviderBadge": "Eigener KI-Anbieter",
-    "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet."
+    "freeAllowanceNote": "Ohne eigenen Schlüssel erhält dein Konto ein monatliches kostenloses KI-Kontingent auf dem Standardmodell dieser Instanz – solange der gemeinsame Monatstopf reicht. Sobald du einen eigenen Schlüssel hinterlegst, wird dieser verwendet.",
+    "modelTier": {
+      "title": "KI-Modell",
+      "description": "Welches Modell dieser Instanz die KI für Sie verwendet. Ein eigener Chat-Schlüssel hat immer Vorrang.",
+      "fast": "Schnell",
+      "fastHint": "Schnelle Antworten und Änderungen. Braucht weniger von Ihrem KI-Budget.",
+      "strong": "Stark",
+      "strongHint": "Besser bei langen, sorgfältigen Texten und kniffligen Änderungen. Braucht mehr von Ihrem KI-Budget.",
+      "locked": "Das starke Modell gehört zu den bezahlten Plänen.",
+      "saveFailed": "Modell konnte nicht gespeichert werden"
+    }
   },
   "tour": {
     "label": "Produkttour",
@@ -2109,5 +2234,17 @@
     "actions": "Dokumentaktionen",
     "open": "Öffnen",
     "openNewTab": "In neuem Tab öffnen"
+  },
+  "credits": {
+    "title": "KI-Guthaben",
+    "balance": "{amount} KI-Guthaben übrig",
+    "usedThisMonth": "{amount} in diesem Monat verbraucht",
+    "explainer": "Guthaben ergänzt das monatliche KI-Budget Ihres Plans. Es wird erst verbraucht, wenn das Monatsbudget des Plans aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
+    "pack": "{price} → {credit} Guthaben",
+    "grantLeft": "{left} übrig · verfällt am {date}",
+    "needsPlan": "KI-Guthaben ergänzt einen bezahlten Plan. Upgraden Sie auf Pro, um es zu kaufen.",
+    "buyFailed": "Kauf konnte nicht gestartet werden",
+    "purchased": "Guthaben gekauft",
+    "purchasedBody": "Es wird gutgeschrieben, sobald Stripe die Zahlung bestätigt, meist innert weniger Sekunden."
   }
 }

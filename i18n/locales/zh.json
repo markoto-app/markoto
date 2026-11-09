@@ -42,9 +42,6 @@
       "invalidMeta": "某个文档设置（标题、主题或详细信息）的值无法被服务器接受。请重新加载以继续。",
       "invalidUpdate": "服务器无法处理来自此标签页的更改。请重新加载以继续。"
     },
-    "aiWorkspaceBadge": "markoto 工作区",
-    "aiWorkspaceBadgeTooltip": "本文档位于 markoto 工作区 — markoto 在此的工作使用赞助者的额度池，而非你的额度。",
-    "aiWorkspaceSponsoredBy": "markoto 工作区由 {name} 赞助",
     "bold": "加粗",
     "italic": "斜体",
     "heading": "标题",
@@ -593,8 +590,8 @@
     "budgetExhaustedDescription": "你已用完本计费周期的全部 AI 额度。升级套餐即可继续。",
     "exhaustedPlaceholder": "AI 额度已用尽 — 升级以继续",
     "workspaceBudgetExhaustedTitle": "工作区 AI 额度已用尽",
-    "workspaceBudgetExhaustedDescription": "本工作区在当前计费周期的共享 AI 额度已用尽。请联系工作区所有者充值或升级。",
-    "workspaceExhaustedPlaceholder": "工作区 AI 额度已用尽 — 请联系所有者",
+    "workspaceBudgetExhaustedDescription": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
+    "workspaceExhaustedPlaceholder": "工作区 AI 预算已用完——请联系管理员",
     "upgradeCta": "升级",
     "remainingLabel": "本月剩余 {remaining}/{limit} AI 额度",
     "responseLabel": "markoto 说",
@@ -613,7 +610,21 @@
     "freeAllowanceExhaustedTitle": "免费 AI 额度已用完",
     "freeAllowanceExhausted": "本月的免费 AI 额度已用完。请在 设置 → AI 服务商 中添加你自己的密钥以继续使用。",
     "freeAllowanceCta": "添加自己的密钥",
-    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完——添加你自己的密钥即可继续"
+    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完——添加你自己的密钥即可继续",
+    "memberLimitReachedTitle": "已达到你的 AI 上限",
+    "memberLimitReachedDescription": "你本月在此工作区的 AI 上限已用完。请让工作区管理员提高上限。",
+    "memberLimitPlaceholder": "你在此处的 AI 上限已用完——请联系管理员",
+    "teamBudgetExhausted": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
+    "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。",
+    "locked": {
+      "aiVoice": "此方案不包含语音输入",
+      "aiImage": "此方案不包含图像生成",
+      "askAdmin": "请向工作区管理员询问工作区的方案，或使用你自己的提供商密钥。",
+      "upgrade": "升级到 Pro 即可使用，或使用你自己的提供商密钥。",
+      "comingSoon": "它包含在即将推出的付费方案中。使用你自己的提供商密钥现在即可使用。",
+      "operator": "此实例未为你的账户提供该功能。你可以使用自己的提供商密钥。",
+      "ownKey": "添加自己的密钥"
+    }
   },
   "mobileTabBar": {
     "label": "文档面板",
@@ -652,7 +663,6 @@
     "subtitle": "选择合适的套餐。套餐决定你的上限：AI 点数、工作区和存储空间。使用你自己服务商密钥的 AI 不受任何套餐限制。",
     "metaDescription": "比较 markoto 套餐：AI 点数、工作区和存储空间的上限。使用你自己服务商密钥的 AI 不受任何套餐限制。",
     "creditsHint": "AI 点数用于由实例付费的 AI：1000 点 = 1 美元模型用量。使用你自己服务商密钥的 AI 由服务商计费，不消耗点数。",
-    "teamBilling": "工作区赞助：为工作区中的每个人承担 AI 点数",
     "currentPlan": "当前套餐",
     "manageSubscription": "管理订阅",
     "upgrade": "升级",
@@ -670,15 +680,18 @@
     "tiers": {
       "free": "全部写作功能，外加一份起步 AI 点数。",
       "pro": "面向个人：更多 AI 点数、工作区和存储空间。",
-      "max": "面向小团队：为你拥有的工作区中的每个人承担 AI 点数。",
-      "ultra": "面向更大的团队：额度最大的工作区赞助。"
+      "team": "适合团队：按席位计费，共享 AI Points 和存储，管理员控制。",
+      "business": "适合组织：在 Team 基础上增加单点登录、审计导出和自定义上限。"
     },
     "freeAllowanceNote": "免费 AI 额度使用由 Mistral AI 在欧盟托管的模型，在本月共享额度用完之前可用。如需更多，请在 设置 → AI 服务商 中添加你自己的密钥。",
     "price": {
       "free": "免费",
       "perMonth": "/ 月",
+      "perSeatPerMonth": "每席位 / 月",
+      "perYear": "每年",
+      "perSeatPerYear": "每席位 / 年",
       "planned": "计划价格",
-      "plannedNote": "计划价格以美元计。付费套餐推出前，价格和上限仍可能变化；目前无法购买。"
+      "plannedNote": "计划价格。付费套餐推出前，价格和上限可能会变化；目前还无法购买。"
     },
     "selfHosted": {
       "title": "自托管",
@@ -708,7 +721,9 @@
       "title": "付费",
       "tagline": "更多 AI 点数、工作区和存储空间。",
       "tabsLabel": "付费套餐",
-      "joinWaitlist": "加入候补名单"
+      "joinWaitlist": "加入候补名单",
+      "setUpInWorkspace": "在工作区中设置",
+      "setUpInWorkspaceHint": "打开工作区，然后进入其账单标签页。只有工作区管理员可以购买。"
     },
     "instance": {
       "title": "每个账户"
@@ -738,11 +753,20 @@
       "knowledgeFiles": "知识文件",
       "knowledgeStorage": "知识存储",
       "imageStorage": "图片存储",
-      "sponsoring": "工作区 AI 赞助",
       "mcp": "面向 AI 客户端的 MCP 服务器",
+      "members": "每个工作区的人数",
+      "history": "版本历史",
+      "days": "{n} 天",
+      "customCss": "文档自定义 CSS",
+      "readOnly": "只读",
       "setByYou": "由你设定",
       "included": "包含",
-      "notIncluded": "不包含"
+      "notIncluded": "不包含",
+      "perSeat": "每个席位 {value}",
+      "aiImage": "AI 图像生成",
+      "aiVoice": "语音输入和实时听写",
+      "aiStrongModel": "选择更强大的 AI 模型",
+      "ownKeyOnly": "使用自己的密钥"
     },
     "faq": {
       "title": "常见问题",
@@ -758,7 +782,25 @@
       "anonKeptA": "任何拥有链接的人都可以阅读和编辑，只有创建文档的浏览器才能删除它。登录后可以设为私有或用密码保护。",
       "selfHostQ": "我可以在自己的服务器上运行 markoto 吗？",
       "selfHostA": "可以。代码以 FSL-1.1 许可证 source-available 发布，两年后转为 Apache-2.0。自托管实例拥有全部功能，没有套餐：上限由你设定，并连接你自己的 AI 服务商或本地模型。安装步骤见文档中的自托管指南。"
-    }
+    },
+    "interval": {
+      "label": "计费周期",
+      "month": "按月",
+      "year": "按年 · 免 2 个月"
+    },
+    "currencyLabel": "货币",
+    "currencyLocked": "你的订阅使用另一种货币计费，无法更改。请选择该货币以继续。",
+    "countPerSeat": {
+      "aiPoints": "每个席位每月 {n} AI 点数（共享）",
+      "workspaces": "你拥有的 {n} 个工作区",
+      "knowledgeFiles": "每个席位 {n} 个知识文件（共享）",
+      "knowledgeStorage": "每个席位 {size} 知识存储（共享）",
+      "imageStorage": "每个席位 {size} 图片存储（共享）"
+    },
+    "seatTotalMonth": "{seats} 个席位每月 {total}",
+    "seatTotalYear": "{seats} 个席位每年 {total}",
+    "seatsLabel": "席位",
+    "creditsSection": "AI 额度用于补充 Pro 以及 Team / Business 工作区的每月 AI 预算。只有在当月预算用完后才会使用，并在购买 {months} 个月后过期。"
   },
   "topbar": {
     "planBadge": "套餐：{plan}",
@@ -1243,7 +1285,8 @@
     "success": "文档已移动",
     "successToPersonal": "“{title}”现在是一个个人文档。",
     "successToWorkspace": "“{title}”现在位于 {workspace}。",
-    "failed": "无法移动文档"
+    "failed": "无法移动文档",
+    "leavesPlan": "此文档将离开使用 {plan} 方案的工作区。移动后将遵循新位置的方案：该方案没有的功能（如自定义 CSS 或较早的历史记录）会暂停。不会删除任何内容。"
   },
   "delete": {
     "title": "删除文档",
@@ -1264,8 +1307,8 @@
     "tabs": {
       "documents": "文档",
       "knowledge": "知识库",
-      "ai": "markoto",
-      "settings": "设置"
+      "settings": "设置",
+      "billing": "账单"
     },
     "settings": {
       "title": "工作区设置",
@@ -1374,29 +1417,67 @@
         "declined": "已拒绝邀请。",
         "missingToken": "此邀请链接不完整。请从邮件中重新打开。",
         "home": "前往控制台"
-      }
+      },
+      "planIncluded": "{name} 使用 {plan} 方案：在其中，该方案的功能和 AI 预算同样适用于你。"
     },
     "actions": "工作区操作",
-    "sponsorship": {
-      "description": "将此工作区设为 markoto 工作区后，所有成员在其文档中的 AI 使用都从你套餐的额度中扣除。需要 Max 或 Ultra。",
-      "banner": "这是一个 markoto 工作区：此处的 AI 使用从赞助者的额度中扣除。",
-      "memberSponsored": "这是一个 markoto 工作区。此处的 AI 使用由管理员赞助。",
-      "memberRegular": "这是一个普通工作区。成员使用自己的 AI 额度。管理员可以将其设为 markoto 工作区来赞助使用。",
-      "memberComingSoon": "赞助工作区的 AI 使用将随付费套餐推出。",
-      "onYourPlan": "由你的套餐赞助 · 成员会在编辑器中看到提示",
-      "sponsoredByOther": "由另一位管理员赞助",
-      "takeOver": "接管赞助",
-      "needsUpgrade": "你的 {plan} 套餐无法赞助工作区，需要 Max 或 Ultra。",
-      "upgrade": "升级套餐",
-      "comingSoon": "将随付费套餐推出。",
-      "seePlans": "查看套餐",
-      "off": "关闭 · 成员使用自己的 AI 额度",
-      "toggleLabel": "赞助此工作区的 AI 使用",
-      "enabledToast": "已启用 AI 工作区",
-      "enabledToastDescription": "成员在此工作区中的 AI 使用现在由你的套餐赞助。",
-      "disabledToast": "已停用 AI 工作区",
-      "disabledToastDescription": "成员重新使用自己的 AI 额度。",
-      "updateFailed": "无法更改 AI 工作区"
+    "billing": {
+      "title": "账单",
+      "loading": "正在加载账单…",
+      "loadFailed": "无法加载账单",
+      "paymentProblemTitle": "付款问题",
+      "paymentProblemBody": "此工作区的上一次付款失败。Stripe 会重试；请在“管理账单”中更新付款方式，以保留 Team 功能。",
+      "buyTitle": "升级此工作区",
+      "buyBody": "Team 和 Business 按席位付费。工作区中的每个人都能在其中使用该方案的功能，并共享每月的 AI 预算。",
+      "planLabel": "方案",
+      "seatsLabel": "席位",
+      "seatsHint": "至少 {min} 个（工作区中的所有人，包括待接受的邀请）",
+      "totalPerMonth": "每月 {total}（{seats} 个席位 × {price}）",
+      "totalPerYear": "每年 {total}（{seats} 个席位 × {price}）",
+      "continueToPayment": "继续付款",
+      "buyFootnote": "通过 Stripe 付款。你将成为此工作区的账单管理员，可随时更改席位或取消。",
+      "currentPlan": "当前方案",
+      "annual": "按年",
+      "monthly": "按月",
+      "renews": "将于 {date} 续订",
+      "manage": "管理账单",
+      "seatCounter": "已使用 {used} / {seats} 个席位",
+      "updateSeats": "更改席位",
+      "seatsFootnote": "增加的席位按比例计入下一张账单，减少的席位会抵扣。席位数不能少于工作区中的人数。",
+      "switchToBusiness": "改为 Business",
+      "switchToTeam": "改为 Team",
+      "switchToAnnual": "改为按年付费",
+      "switchToMonthly": "改为按月付费",
+      "aiTitle": "本月 AI",
+      "teamSpend": "已使用 {spent} / {budget}",
+      "resets": "{date} 重置",
+      "storage": "共享存储：知识文件 {knowledge}，图片 {images}。",
+      "memberSpend": "已使用 {spent} · 上限 {limit}",
+      "noLimitShort": "无",
+      "limitDefault": "默认上限",
+      "limitCustom": "自定义上限",
+      "limitNone": "无上限",
+      "limitSaved": "已保存上限",
+      "limitSaveFailed": "无法保存上限",
+      "limitFootnote": "默认情况下，每位成员每月最多可使用 {amount}。“无上限”仍受工作区预算限制。",
+      "checkoutFailed": "无法开始付款",
+      "planChanged": "方案已更改",
+      "planChangeFailed": "无法更改方案",
+      "seatsChanged": "席位已改为 {seats}",
+      "seatsChangeFailed": "无法更改席位",
+      "portalFailed": "无法打开账单",
+      "checkoutSuccess": "已收到付款",
+      "checkoutSuccessBody": "Stripe 确认后方案即生效，通常只需几秒钟。",
+      "checkoutCancelled": "付款已取消",
+      "addSeatTitle": "{seats} 个席位已全部占用",
+      "addSeatBody": "邀请 {email} 会为此工作区的方案增加一个席位，按比例计入下一张账单。",
+      "addSeatConfirm": "增加席位并邀请",
+      "pricePerSeatMonth": "每个席位每月 {price}。",
+      "pricePerSeatYear": "每个席位每年 {price}。",
+      "errors": {
+        "seatsFull": "所有付费席位都已占用。请增加一个席位以邀请其他人。",
+        "seatsBelowMembers": "此工作区的人数多于席位数。请移除成员或保留更多席位。"
+      }
     }
   },
   "knowledge": {
@@ -1651,7 +1732,8 @@
       "navLabel": "文档与法律信息",
       "product": "产品",
       "legal": "法律信息",
-      "tagline": "协作编写 Markdown，排版成页面。"
+      "tagline": "协作编写 Markdown，排版成页面。",
+      "paidTerms": "付费方案条款"
     },
     "documentPage": {
       "translationNoticeTitle": "此翻译仅供参考",
@@ -1677,7 +1759,12 @@
       "spending": {
         "heading": "消费与使用",
         "comingSoon": "即将推出 — 你的 AI 额度使用情况、套餐历史和发票将显示在这里。目前，请从定价页面管理账单。",
-        "viewPricing": "查看定价"
+        "viewPricing": "查看定价",
+        "plan": "当前方案：{plan}",
+        "manage": "管理账单",
+        "portalFailed": "无法打开账单",
+        "coveringTitle": "为你提供方案的工作区",
+        "coveringHint": "在这些工作区内，其方案（包括共享 AI 预算）同样适用于你。在其他地方适用你自己的方案。"
       },
       "data": {
         "heading": "你的数据",
@@ -1723,7 +1810,34 @@
   },
   "billing": {
     "comingSoonCta": "付费方案即将推出",
-    "comingSoonHint": "额度更高的付费方案即将推出。"
+    "comingSoonHint": "额度更高的付费方案即将推出。",
+    "paidTerms": {
+      "consentPlan": "我接受{terms}，并要求方案立即开始。如果我作为欧盟消费者在 14 天内撤回，需支付已使用期间的费用。",
+      "consentTopup": "我接受{terms}，并要求立即获得额度。一旦开始使用，我的撤回权即告终止。",
+      "link": "付费方案条款",
+      "required": "请接受付费方案条款以继续。"
+    }
+  },
+  "plan": {
+    "limitTitle": "已达到套餐上限",
+    "feature": {
+      "customCss": "此文档的套餐不包含自定义 CSS。",
+      "customCssPaused": "此文档的套餐不包含自定义 CSS，因此自定义 CSS 已暂停。CSS 会被保留，套餐包含该功能后将重新生效。",
+      "mcpWrite": "你的套餐中，通过 MCP 连接的 AI 客户端只有只读权限。编辑、渲染和网络工具需要包含这些功能的套餐。",
+      "aiImage": "此方案不包含使用 markoto AI 生成图像。",
+      "aiVoice": "此方案不包含使用 markoto AI 进行语音输入。",
+      "aiStrongModel": "此方案不包含强大的 AI 模型。"
+    },
+    "limit": {
+      "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
+      "savedThemes": "你已达到套餐的已保存主题上限。请删除一个后再保存新主题。",
+      "importMaxBytes": "此文件超出了你的套餐允许导入的大小。",
+      "historyEntry": "此更改早于此文档套餐所包含的历史记录。",
+      "mcpToolCallsPerDay": "你已用完套餐中今天的 MCP 工具调用次数。请明天再试。"
+    },
+    "notice": {
+      "historyHidden": "在此文档的套餐下，超过 {days} 天的活动已隐藏。这些记录会被保留，套餐包含更长的历史记录后会再次显示。"
+    }
   },
   "waitlist": {
     "title": "加入候补名单",
@@ -1789,7 +1903,8 @@
       "lastVerified": "上次验证：{date}",
       "keyEnding": "尾号 {last4}",
       "noToolSupport": "该模型没有调用测试工具，写作助手可能无法正常工作。请选择支持工具调用的模型。",
-      "liveDictation": "可以使用实时听写。"
+      "liveDictation": "可以使用实时听写。",
+      "locked": "不在你的方案中——你自己的密钥可用"
     },
     "form": {
       "preset": "服务商",
@@ -1851,7 +1966,17 @@
       "openSettings": "打开 AI 服务商设置"
     },
     "ownProviderBadge": "你自己的 AI 服务商",
-    "freeAllowanceNote": "没有自己的密钥时，你的账户每月可在本实例的默认模型上获得免费 AI 额度，直至共享的月度额度用完。添加自己的密钥后即改用该密钥。"
+    "freeAllowanceNote": "没有自己的密钥时，你的账户每月可在本实例的默认模型上获得免费 AI 额度，直至共享的月度额度用完。添加自己的密钥后即改用该密钥。",
+    "modelTier": {
+      "title": "AI 模型",
+      "description": "AI 为你使用此实例的哪个模型。如果你添加了自己的聊天密钥，始终优先使用它。",
+      "fast": "快速",
+      "fastHint": "快速回答和编辑，消耗较少 AI 预算。",
+      "strong": "强大",
+      "strongHint": "更擅长长篇、细致的写作和复杂编辑，消耗较多 AI 预算。",
+      "locked": "强大模型属于付费方案。",
+      "saveFailed": "无法保存模型"
+    }
   },
   "tour": {
     "label": "产品导览",
@@ -2109,5 +2234,17 @@
     "actions": "文档操作",
     "open": "打开",
     "openNewTab": "在新标签页中打开"
+  },
+  "credits": {
+    "title": "AI 额度",
+    "balance": "剩余 AI 额度 {amount}",
+    "usedThisMonth": "本月已使用 {amount}",
+    "explainer": "额度用于补充方案的每月 AI 预算。只有在当月方案预算用完后才会使用，并在购买 {months} 个月后过期。",
+    "pack": "{price} → {credit} 额度",
+    "grantLeft": "剩余 {left} · {date} 过期",
+    "needsPlan": "AI 额度用于补充付费方案。升级到 Pro 即可购买。",
+    "buyFailed": "无法开始购买",
+    "purchased": "已购买额度",
+    "purchasedBody": "Stripe 确认付款后即会到账，通常只需几秒钟。"
   }
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
+import { isPaymentProblem } from '~/utils/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
-import { sponsorshipTabVisible } from '~~/shared/config/sponsorship'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -20,12 +20,16 @@ interface WorkspaceDetail {
     createdAt: string
     myRole: 'admin' | 'editor' | 'viewer'
     ownerId: number
-    aiEnabled: boolean
-    billingOwnerId: number | null
+    // Effective plan (Team / Business subscription, else the creator's plan).
+    plan: import('~~/shared/config/tiers').PlanName
     // NEW: workspace default theme. NULL = use the markoto preset.
     // Read by NewDocumentDialog when seeding the theme card grid for
     // docs created in this workspace.
     defaultTheme: import('~~/shared/types/theme').DocTheme | null
+    // A Team / Business subscription currently covers the workspace.
+    pooled?: boolean
+    // Admins only: seats + status of the subscription (WP3).
+    billing?: import('~/utils/workspaceBilling').WorkspaceSeatBilling | null
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -83,25 +87,15 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-const activeTab = ref<'documents' | 'knowledge' | 'ai' | 'settings'>('documents')
-const { mode: billingMode, billingEnabled, plansComingSoon } = useBillingMode()
+type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing'
+const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : 'documents'
+const activeTab = ref<WorkspaceTab>(initialTab)
+const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
-  const items: Array<{ label: string, icon?: string, slot: 'documents' | 'knowledge' | 'ai' | 'settings', value: string }> = [
+  const items: Array<{ label: string, icon?: string, slot: WorkspaceTab, value: string }> = [
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
-  // The AI-workspace tab is `(+)` sponsorship — a paid-plan feature.
-  // Billing on → the real toggle. Hosted free SaaS (plans coming soon) →
-  // shown, but disabled with a "coming with paid plans" note, so people
-  // see the option exists. Self-hosted (no upgrade path) → hidden.
-  // No `icon` for the AI tab — UTabs would render it as a Lucide
-  // glyph, but the seal is a Vue component, not an Iconify name. The
-  // seal sits inside the Fraunces-titled section header within the
-  // tab content instead, where it carries equal weight without
-  // needing to squeeze into the icon slot.
-  if (sponsorshipTabVisible(billingMode.value)) {
-    items.push({ label: t('workspace.tabs.ai'), slot: 'ai', value: 'ai' })
-  }
   // Admin-only Settings tab. Hidden for editors / viewers — there's
   // nothing actionable for them there. Putting the gate at tab-list
   // level (rather than inside the slot) means the tab strip is the
@@ -109,7 +103,35 @@ const tabItems = computed(() => {
   if (isAdmin.value) {
     items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
   }
+  // Team / Business billing (WP3): admins, and only where something can
+  // be bought. Members never see prices.
+  if (isAdmin.value && billingEnabled.value) {
+    items.push({ label: t('workspace.tabs.billing'), icon: 'i-lucide-credit-card', slot: 'billing', value: 'billing' })
+  }
   return items
+})
+
+// Badge next to the workspace name: which plan covers it.
+const planBadge = computed(() => {
+  const plan = data.value?.workspace.plan
+  if (!data.value?.workspace.pooled || (plan !== 'team' && plan !== 'business')) return null
+  return plan === 'team' ? 'Team' : 'Business'
+})
+const paymentProblem = computed(() => isPaymentProblem(data.value?.workspace.billing?.status))
+
+// Back from Stripe Checkout (`?billing=success|cancelled`): say so once,
+// then drop the query so a reload doesn't repeat it.
+tryOnMounted(() => {
+  if (route.query.credits === 'success') {
+    toast.add({ title: t('credits.purchased'), description: t('credits.purchasedBody'), icon: 'i-lucide-check', color: 'neutral' })
+  }
+  const outcome = route.query.billing
+  if (outcome === 'success') {
+    toast.add({ title: t('workspace.billing.checkoutSuccess'), description: t('workspace.billing.checkoutSuccessBody'), icon: 'i-lucide-check', color: 'neutral' })
+  } else if (outcome === 'cancelled') {
+    toast.add({ title: t('workspace.billing.checkoutCancelled'), icon: 'i-lucide-x', color: 'neutral' })
+  }
+  if (route.query.billing || route.query.tab || route.query.credits) void router.replace({ query: {} })
 })
 
 // Same dialog flow as the home page; just pass our workspaceId so the
@@ -374,7 +396,26 @@ async function leaveWorkspace() {
               >
                 {{ myRole === 'editor' ? t('workspace.roles.editor') : t('workspace.roles.viewer') }}
               </UBadge>
+              <UBadge
+                v-if="planBadge"
+                size="xs"
+                color="neutral"
+                variant="outline"
+                data-testid="workspace-plan-badge"
+              >
+                {{ planBadge }}
+              </UBadge>
             </div>
+            <UAlert
+              v-if="isAdmin && paymentProblem"
+              class="mt-3"
+              color="error"
+              variant="subtle"
+              icon="i-lucide-alert-triangle"
+              :title="t('workspace.billing.paymentProblemTitle')"
+              :description="t('workspace.billing.paymentProblemBody')"
+              data-testid="workspace-payment-problem"
+            />
             <p
               v-if="data.workspace.description"
               class="text-sm text-muted mt-2 whitespace-pre-line"
@@ -418,21 +459,6 @@ async function leaveWorkspace() {
               />
             </UDropdownMenu>
           </div>
-        </div>
-
-        <!-- AI workspace banner — visible to every member when the
-             admin has turned the toggle on. The seal stands in for
-             the old sparkle icon; this banner is genuine AI presence
-             so it's the one place a small shu accent is correct. -->
-        <div
-          v-if="billingEnabled && data.workspace.aiEnabled"
-          class="flex items-center gap-2.5 rounded-lg border border-default bg-default px-3 py-2 text-sm text-muted"
-        >
-          <CommonSeal
-            :size="10"
-            class="shrink-0"
-          />
-          <span>{{ t('workspace.sponsorship.banner') }}</span>
         </div>
 
         <!--
@@ -528,58 +554,6 @@ async function leaveWorkspace() {
             />
           </template>
 
-          <template #ai>
-            <!-- AI workspace tab — same header pattern as Documents
-                 and Knowledge: seal anchor (this is the one place
-                 where shu is correct — genuine AI presence) + Fraunces
-                 title + description, then the toggle/state below. -->
-            <section class="space-y-3">
-              <div class="flex items-center justify-between gap-3 flex-wrap">
-                <div class="flex items-center gap-2.5 min-w-0">
-                  <CommonSeal
-                    :size="14"
-                    class="shrink-0"
-                  />
-                  <h2 class="font-serif text-2xl font-normal tracking-tight">
-                    markoto
-                  </h2>
-                </div>
-              </div>
-              <p class="text-xs text-muted">
-                {{ t('workspace.sponsorship.description') }}
-              </p>
-
-              <!-- Admin-only toggle — non-admins see the read-only
-                   explanation so they understand the feature without
-                   being able to flip it. While paid plans are only
-                   "coming soon" the toggle shows disabled with a note
-                   (WorkspaceBillingToggle). -->
-              <div class="pt-2">
-                <WorkspaceBillingToggle
-                  v-if="isAdmin"
-                  :workspace-id="data.workspace.workspaceId"
-                  :ai-enabled="data.workspace.aiEnabled"
-                  :billing-owner-id="data.workspace.billingOwnerId"
-                  @updated="() => loadWorkspace()"
-                />
-                <div
-                  v-else
-                  class="border border-default rounded-lg p-4 bg-default text-sm text-muted"
-                >
-                  <p v-if="!billingEnabled && plansComingSoon">
-                    {{ t('workspace.sponsorship.memberComingSoon') }}
-                  </p>
-                  <p v-else-if="data.workspace.aiEnabled">
-                    {{ t('workspace.sponsorship.memberSponsored') }}
-                  </p>
-                  <p v-else>
-                    {{ t('workspace.sponsorship.memberRegular') }}
-                  </p>
-                </div>
-              </div>
-            </section>
-          </template>
-
           <template #settings>
             <!-- Workspace settings — admin-only. Currently houses the
                  default-theme picker; future workspace-wide settings
@@ -588,6 +562,12 @@ async function leaveWorkspace() {
               :workspace-id="data.workspace.workspaceId"
               :default-theme="data.workspace.defaultTheme"
               @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
+            />
+          </template>
+          <template #billing>
+            <WorkspaceBillingPanel
+              :workspace-id="data.workspace.workspaceId"
+              @changed="loadWorkspace()"
             />
           </template>
         </UTabs>
@@ -621,6 +601,8 @@ async function leaveWorkspace() {
       :my-role="data.workspace.myRole"
       :my-user-id="myUserId"
       :focus-invite="membersFocusInvite"
+      :billing="data.workspace.billing ?? null"
+      @billing-changed="loadWorkspace()"
       @updated="onMembersUpdated"
       @leave="onLeftWorkspace"
     />

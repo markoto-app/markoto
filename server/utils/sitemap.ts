@@ -21,7 +21,8 @@ import {
   DPA_EFFECTIVE_DATE,
   IMPRINT_EFFECTIVE_DATE,
   PRIVACY_EFFECTIVE_DATE,
-  TOS_EFFECTIVE_DATE
+  TOS_EFFECTIVE_DATE,
+  PAID_TERMS_EFFECTIVE_DATE
 } from '../../shared/legal/versions'
 
 type Env = Record<string, string | undefined>
@@ -45,6 +46,7 @@ export interface SitemapEntry {
 export const LEGAL_SITEMAP_PATHS = [
   '/legal/privacy',
   '/legal/terms',
+  '/legal/paid-terms',
   '/legal/dpa',
   '/legal/abuse-policy',
   '/legal/imprint',
@@ -59,6 +61,7 @@ export const LEGAL_SITEMAP_PATHS = [
 export const LEGAL_LASTMOD: Readonly<Record<string, string>> = Object.freeze({
   '/legal/privacy': PRIVACY_EFFECTIVE_DATE,
   '/legal/terms': TOS_EFFECTIVE_DATE,
+  '/legal/paid-terms': PAID_TERMS_EFFECTIVE_DATE,
   '/legal/dpa': DPA_EFFECTIVE_DATE,
   '/legal/abuse-policy': ABUSE_POLICY_EFFECTIVE_DATE,
   '/legal/imprint': IMPRINT_EFFECTIVE_DATE,

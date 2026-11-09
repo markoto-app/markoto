@@ -117,12 +117,22 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
 
   await flow.heading('Upgrade to Pro', 3)
   await flow.narrate(
-    'Pro lifts the AI credits cap from 100 to 1,500 a month and '
-    + 'gives you 5 owned workspaces (up from 1). The upgrade is a '
-    + 'two-step click: "Upgrade" on the Pro card opens Stripe '
+    'Pro raises your monthly AI Points, adds more owned workspaces '
+    + 'and lets you buy AI credits when a month runs short. The upgrade is a '
+    + 'short path: tick the box to accept the Paid Plans Terms, then '
+    + '"Upgrade" on the Pro card opens Stripe '
     + 'Checkout, you pay, Stripe redirects you back. The plan '
     + 'flips the moment Stripe sends us the webhook.'
   )
+
+  // ─── Accept the Paid Plans Terms, then Upgrade ─────────────────
+  // Every purchase needs the box (WP6b); Upgrade stays disabled until then.
+  await flow.click(
+    'Tick the box to accept the Paid Plans Terms',
+    page.getByTestId('pricing-paid-terms-pro').getByRole('checkbox'),
+    { result: 'The box also asks for the plan to start right away; the terms are linked next to it.' }
+  )
+  await expect(page.getByTestId('pricing-buy-pro')).toBeEnabled()
 
   // ─── Click Upgrade on Pro ───────────────────────────────────────
   // The CTA button doesn't carry its own testid; scope by the Pro
@@ -177,17 +187,17 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   // To make the plan land as `pro` (not just stamp the customer id),
   // the webhook needs the price id to map to Pro. The
   // checkout.session.completed handler fetches the subscription
-  // from Stripe; stripe-mock returns its own canned price id which
-  // doesn't map to ours, so the plan stays Free. Drive a separate
-  // subscription.updated event with our Pro price to nudge the
-  // mapping. (Same pattern the stripeWebhook integration tests
+  // from Stripe; stripe-mock returns its own canned price id (mapped to
+  // annual CHF Pro by NUXT_STRIPE_PRICE_IDS in the test stack). Drive a
+  // separate subscription.updated event with the monthly EUR Pro price so
+  // the flow ends on the plan the user picked. (Same pattern the stripeWebhook integration tests
   // use to exercise the price-mapping branch.)
   const subEvent = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
   subEvent.id = `evt_test_sub_updated_pro_${eventSuffix}`
   const subObj = (subEvent.data as { object: Record<string, unknown> }).object
   subObj.id = subscriptionId
   subObj.customer = customerId
-  // The price id in the fixture should match `NUXT_STRIPE_PRICE_PRO`.
+  // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`.
   // The integration tests rely on the same env-var-driven mapping;
   // the fixture's price id is `price_test_pro` which is the value
   // wired into the test stack (see docker-compose.test.yml).
@@ -215,8 +225,8 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   await flow.narrate(
     'Stripe redirects you to markoto. The pricing page reloads, '
     + 'reads your new plan from your session, and the "Current '
-    + 'plan" badge has moved from Free to Pro. Your AI credits jump '
-    + 'from 100 to 1,500 in the same render.'
+    + 'plan" badge has moved from Free to Pro, and your monthly AI '
+    + 'Points follow in the same render.'
   )
 
   await page.goto('/pricing')

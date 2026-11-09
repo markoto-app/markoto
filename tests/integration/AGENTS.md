@@ -7,10 +7,12 @@ REST + WebSocket tests that hit a real Nitro production build against a real Pos
 The shared infra lives in `docker-compose.test.yml`. Bringing it up is a one-time per test run:
 
 ```bash
-docker compose -f docker-compose.test.yml up -d --wait
+bun run test:integration:up     # scripts/test-compose.sh: + docker-compose.test.podman.yml on Podman
 bun run test:integration
-docker compose -f docker-compose.test.yml down -v
+bun run test:integration:down
 ```
+
+Rootless Podman works too (renderer seccomp overlay, `TEST_FAKE_OPENAI_HOST`, `CONTAINER_HOST_ADDRESS` behind some VPNs): `docs/CONTAINER-ENGINES.md`.
 
 `bun run test:integration` does NOT manage docker — it expects the stack to already be up. CI handles up + down separately so the same compose file can serve both `test:integration` and `flows:test` (the flow stack adds `--profile flows`; `sync-test` and `markitdown-test` always run — `endpoints/importLimits.test.ts` calls markitdown-test on host port 8081 directly).
 

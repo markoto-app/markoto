@@ -113,6 +113,18 @@ export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/
 // known up front, and publishes the port on that address (plus loopback)
 // only — never on all interfaces. Override with TEST_NETWORK_GATEWAY
 // (set it for `docker compose up` too) or TEST_FAKE_OPENAI_BASE_URL.
+/**
+ * Stripe price catalogue for the test stack (stripe-mock has no lookup
+ * keys): every plan / interval / currency → a fixed test price id. The
+ * monthly EUR Pro price stays `price_test_pro`, the id the webhook
+ * fixtures carry. Annual CHF Pro is stripe-mock's canned price
+ * (`STRIPE_MOCK_PRICE_ID`, what every subscription retrieve answers), so
+ * the checkout's "already on this price" 409 is reachable.
+ * server/utils/stripePrices.ts reads it from NUXT_STRIPE_PRICE_IDS.
+ */
+export const STRIPE_MOCK_PRICE_ID = 'price_1PgafmB7WZ01zgkW6dKueIc5'
+export const TEST_STRIPE_PRICE_IDS = 'markoto_pro_month_eur=price_test_pro,markoto_pro_year_eur=price_test_pro_year,markoto_team_month_eur=price_test_team,markoto_team_year_eur=price_test_team_year,markoto_business_month_eur=price_test_business,markoto_business_year_eur=price_test_business_year,markoto_pro_month_chf=price_test_pro_chf,markoto_pro_year_chf=price_1PgafmB7WZ01zgkW6dKueIc5,markoto_team_month_chf=price_test_team_chf,markoto_team_year_chf=price_test_team_year_chf,markoto_business_month_chf=price_test_business_chf,markoto_business_year_chf=price_test_business_year_chf'
+
 export const TEST_FAKE_OPENAI_PORT = 4120
 export const TEST_FAKE_OPENAI_HOST_URL = `http://127.0.0.1:${TEST_FAKE_OPENAI_PORT}`
 /** MUST match the `networks.default` gateway default in docker-compose.test.yml. */
@@ -121,8 +133,10 @@ export const TEST_NETWORK_GATEWAY_DEFAULT = '10.213.47.1'
 export function fakeOpenAiBaseUrl(): string {
   const override = process.env.TEST_FAKE_OPENAI_BASE_URL
   if (override) return override
-  const gateway = process.env.TEST_NETWORK_GATEWAY || TEST_NETWORK_GATEWAY_DEFAULT
-  return `http://${gateway}:${TEST_FAKE_OPENAI_PORT}/v1`
+  // TEST_FAKE_OPENAI_HOST: where the stack published it (rootless Podman:
+  // a private host address — the bridge gateway isn't on the host there).
+  const host = process.env.TEST_FAKE_OPENAI_HOST || process.env.TEST_NETWORK_GATEWAY || TEST_NETWORK_GATEWAY_DEFAULT
+  return `http://${host}:${TEST_FAKE_OPENAI_PORT}/v1`
 }
 
 // LiteLLM's own Postgres role in the test stack (litellm-test-db-init in

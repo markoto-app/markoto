@@ -60,7 +60,7 @@ services:
       # used to create the `litellm` DB alongside the app DB. For
       # already-initialised volumes, the litellm-db-init one-shot service
       # below ensures the DB exists.
-      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro,z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -114,7 +114,7 @@ services:
       - LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}
       - LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
     volumes:
-      - ./infra/postgres/db-init.sh:/db-init.sh:ro
+      - ./infra/postgres/db-init.sh:/db-init.sh:ro,z
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
@@ -161,12 +161,12 @@ services:
       # No admin UI (see general_settings in infra/litellm/config.yaml).
       - DISABLE_ADMIN_UI=True
     volumes:
-      - ./infra/litellm/config.yaml:/app/config.yaml:ro
+      - ./infra/litellm/config.yaml:/app/config.yaml:ro,z
       # custom_handlers.py is loaded by litellm_settings.custom_provider_map
       # in config.yaml. Ready for Phase 3 (BFL) + Phase 5 (Voxtral tick) —
       # imported eagerly on every boot so any regression in the file
       # surfaces immediately, not at cutover.
-      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
+      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
     # LiteLLM reads its config once at boot, and the single-file bind
@@ -266,6 +266,14 @@ services:
     # instead of OOMing the whole box. Sticky sessions keep a doc's clients
     # pinned to one instance, so per-instance memory scales with local load.
     mem_limit: 1g
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:4001/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
     environment:
       - PORT=4001
       # The app role (shared with the app: both write the app database).
@@ -315,6 +323,14 @@ services:
     # malicious/huge upload from taking the box down (the app also enforces
     # a 50 MB import size limit upstream).
     mem_limit: 1g
+    # Same as the image's HEALTHCHECK, declared here because Podman builds
+    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status==200 else 1)"]
+      interval: 30s
+      timeout: 5s
+      start_period: 5s
+      retries: 3
     # Image user `app`. Parses untrusted files, so it gets the tightest
     # shape: read-only, no capabilities, and (per env file) a network that
     # reaches nothing but the app.

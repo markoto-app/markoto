@@ -1,5 +1,6 @@
 import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
+import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/entitlements'
 import { getCommentThreadByEntryId } from '../../../../../repos/comments'
 import { decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/docTokenVerify'
@@ -85,6 +86,9 @@ export default defineEventHandler(async (event): Promise<CommentContextResponse>
   if (!activity) {
     throw createError({ statusCode: 404, message: 'Activity row not found' })
   }
+  // Rows older than the document's plan history window stay stored but
+  // can't be opened (409 `plan/limit-reached`, field `historyDays`).
+  assertWithinHistory(await resolveDocPlanFor(docRow), activity.createdAt)
   if (!COMMENT_ACTIONS.has(activity.action)) {
     throw createError({ statusCode: 410, message: 'Activity row is not a comment event' })
   }

@@ -520,9 +520,20 @@ async function handleAuth(
   // hits LiteLLM with this key; if the user's $ budget is already 0,
   // the FIRST tick (fired on first audio chunk) returns 4xx and the
   // WS closes cleanly with `budget_exhausted` code 1011.
+  // Resolve the doc's workspace first: it tags the spend AND decides
+  // which plan pays (a Team / Business workspace's member key, WP3/WP5). Best-effort — a doc that
+  // disappeared mid-handshake just means we tag with no workspace
+  // dimension, which is harmless (the call still bills correctly).
+  try {
+    const doc = await getDoc(payload.docId)
+    ctx.workspaceId = doc?.workspaceId ?? null
+  } catch {
+    ctx.workspaceId = null
+  }
+
   let billing: Awaited<ReturnType<typeof resolveBillingContext>>
   try {
-    billing = await resolveBillingContext(payload.userId, null)
+    billing = await resolveBillingContext(payload.userId, ctx.workspaceId)
   } catch (e) {
     console.error('[dictate] billing resolve failed:', e)
     Sentry.captureException(e, {
@@ -540,7 +551,7 @@ async function handleAuth(
   // is the server-side backstop.
   let target: LiveDictationTarget | null
   try {
-    target = liveDictationTarget((await resolveAiProviders(payload.userId)).transcription)
+    target = liveDictationTarget((await resolveAiProviders(payload.userId, billing.plan)).transcription)
   } catch (e) {
     console.error('[dictate] provider resolve failed:', e instanceof Error ? e.message : e)
     target = null
@@ -552,16 +563,6 @@ async function handleAuth(
   }
   ctx.virtualKey = billing.virtualKey
   ctx.voiceTickBilling = target.platformBilled
-
-  // Resolve workspaceId for spend tagging. Best-effort — a doc that
-  // disappeared mid-handshake just means we tag with no workspace
-  // dimension, which is harmless (the call still bills correctly).
-  try {
-    const doc = await getDoc(payload.docId)
-    ctx.workspaceId = doc?.workspaceId ?? null
-  } catch {
-    ctx.workspaceId = null
-  }
 
   const client = createDictateRealtimeClient(target.apiKey, target.model, target.serverURL)
 

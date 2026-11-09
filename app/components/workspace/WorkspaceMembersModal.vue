@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
+import type { WorkspaceSeatBilling } from '~/utils/workspaceBilling'
+import { formatPrice } from '~/utils/pricing'
+import type { PlanPricesResponse } from '~~/shared/config/pricing'
 
 // Members management modal. Single modal for admin + member views; the role
 // gates feature visibility:
@@ -23,6 +26,9 @@ const props = defineProps<{
   // Opened from the workspace header's "Invite people" button: focus
   // the email field so the admin can type straight away.
   focusInvite?: boolean
+  // Team / Business subscription (WP3, admins only): paid seats and seats
+  // in use (members + open invitations). Null = no seat limit.
+  billing?: WorkspaceSeatBilling | null
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
@@ -30,9 +36,11 @@ const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{
   updated: [members: WorkspaceMember[]]
   leave: []
+  // Seats or seats in use changed (an invite, a revoke, a bought seat).
+  billingChanged: []
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const toast = useToast()
 
 const localMembers = ref<WorkspaceMember[]>([])
@@ -87,6 +95,7 @@ async function revokeInvite(invite: PendingInvite) {
   try {
     await $fetch(`/api/workspaces/${props.workspaceId}/invites/${invite.inviteId}`, { method: 'DELETE' })
     invites.value = invites.value.filter(i => i.inviteId !== invite.inviteId)
+    emit('billingChanged')
   } catch (e) {
     showError('workspace.members.revokeFailed', e)
   } finally {
@@ -106,15 +115,45 @@ function roleLabel(role: WorkspaceMember['role']) {
   return t('workspace.roles.viewer')
 }
 
-async function addMember() {
-  const email = newEmail.value.trim()
+// "This adds a seat" (WP3): an invite into a workspace whose paid seats
+// are all taken is refused (409 billing/seats-full); the admin confirms
+// and the invite is sent again with `addSeat: true`, which buys one seat.
+const seatConfirm = ref<{ email: string, seats: number } | null>(null)
+const seatPrice = ref<string | null>(null)
+const seatsLabel = computed(() => props.billing
+  ? t('workspace.billing.seatCounter', { used: props.billing.seatsUsed, seats: props.billing.seats })
+  : null)
+
+async function loadSeatPrice() {
+  const billing = props.billing
+  seatPrice.value = null
+  if (!billing) return
+  try {
+    const prices = await $fetch<PlanPricesResponse>('/api/billing/prices')
+    const row = prices.prices[billing.currency]?.[billing.plan]
+    if (!row) return
+    const amount = formatPrice(row[billing.interval], billing.currency.toUpperCase(), locale.value)
+    seatPrice.value = t(billing.interval === 'year' ? 'workspace.billing.pricePerSeatYear' : 'workspace.billing.pricePerSeatMonth', { price: amount })
+  } catch {
+    seatPrice.value = null
+  }
+}
+
+function errorCode(e: unknown): string | undefined {
+  return (e as { data?: { data?: { code?: string } } })?.data?.data?.code
+}
+
+async function addMember(addSeat = false) {
+  const email = (addSeat && seatConfirm.value ? seatConfirm.value.email : newEmail.value).trim()
   if (!email) return
   adding.value = true
   try {
     await $fetch(`/api/workspaces/${props.workspaceId}/members`, {
       method: 'POST',
-      body: { email, role: newRole.value }
+      body: { email, role: newRole.value, ...(addSeat ? { addSeat: true } : {}) }
     })
+    seatConfirm.value = null
+    emit('billingChanged')
     toast.add({
       title: t('workspace.members.invitedToast'),
       description: t('workspace.members.invitedToastDescription', { email }),
@@ -125,7 +164,12 @@ async function addMember() {
     newRole.value = 'editor'
     await loadInvites()
   } catch (e) {
-    showError('workspace.members.addFailed', e)
+    if (!addSeat && errorCode(e) === 'billing/seats-full' && props.billing) {
+      seatConfirm.value = { email, seats: props.billing.seats }
+      void loadSeatPrice()
+    } else {
+      showError('workspace.members.addFailed', e)
+    }
   } finally {
     adding.value = false
   }
@@ -339,6 +383,13 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
           <p class="text-xs text-muted">
             {{ t('workspace.members.addHint') }}
           </p>
+          <p
+            v-if="seatsLabel"
+            class="font-mono text-[10.5px] tracking-[0.04em] text-muted"
+            data-testid="workspace-seat-counter"
+          >
+            {{ seatsLabel }}
+          </p>
           <div class="flex gap-2">
             <UInput
               v-model="newEmail"
@@ -348,7 +399,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               :ui="{ base: 'w-full' }"
               :autofocus="focusInvite"
               data-testid="workspace-invite-email"
-              @keydown.enter="addMember"
+              @keydown.enter="addMember()"
             />
             <USelectMenu
               v-model="newRole"
@@ -365,10 +416,42 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
               :disabled="!newEmail.trim()"
               icon="i-lucide-plus"
               data-testid="workspace-invite-submit"
-              @click="addMember"
+              @click="addMember()"
             >
               {{ t('workspace.members.add') }}
             </UButton>
+          </div>
+          <div
+            v-if="seatConfirm"
+            class="rounded-md border border-default bg-elevated p-3 space-y-2"
+            data-testid="workspace-add-seat-confirm"
+          >
+            <p class="text-sm">
+              {{ t('workspace.billing.addSeatTitle', { seats: seatConfirm.seats }) }}
+            </p>
+            <p class="text-xs text-muted">
+              {{ t('workspace.billing.addSeatBody', { email: seatConfirm.email }) }}
+              <span v-if="seatPrice"> {{ seatPrice }}</span>
+            </p>
+            <div class="flex justify-end gap-2">
+              <UButton
+                variant="ghost"
+                color="neutral"
+                size="sm"
+                @click="seatConfirm = null"
+              >
+                {{ t('common.cancel') }}
+              </UButton>
+              <UButton
+                color="neutral"
+                size="sm"
+                :loading="adding"
+                data-testid="workspace-add-seat-submit"
+                @click="addMember(true)"
+              >
+                {{ t('workspace.billing.addSeatConfirm') }}
+              </UButton>
+            </div>
           </div>
         </div>
       </div>

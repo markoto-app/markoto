@@ -40,7 +40,7 @@ describe('teamIdForPlan', () => {
     expect(teamIdForPlan('free', on)).toBe(FREE_TIER_TEAM_ID)
   })
   it('paid plans never do (they must not spend or be capped by the free pool)', () => {
-    for (const plan of ['pro', 'max', 'ultra'] as const) expect(teamIdForPlan(plan, on)).toBeNull()
+    for (const plan of ['pro', 'team', 'business'] as const) expect(teamIdForPlan(plan, on)).toBeNull()
   })
   it('no ceiling → no team at all', () => {
     expect(teamIdForPlan('free', {})).toBeNull()

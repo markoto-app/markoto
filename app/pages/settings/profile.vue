@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
 import { formatBytes, usageFill } from '~/utils/usageMeter'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
@@ -151,7 +152,32 @@ async function onRequestExport(): Promise<void> {
 }
 
 // ─────────── Storage ───────────
-const { billing } = useBilling()
+const { billing, refresh: refreshBilling } = useBilling()
+
+// ─────────── Spending (WP4) ───────────
+// Pro: manage the subscription in the Stripe portal and buy AI credits.
+const creditCurrency = ref<'eur' | 'chf'>('eur')
+const openingPortal = ref(false)
+async function openPortal(): Promise<void> {
+  openingPortal.value = true
+  try {
+    const res = await $fetch<{ url: string }>('/api/billing/portal', { method: 'POST' })
+    goToExternal(res.url)
+  } catch (e) {
+    showError('settings.profile.spending.portalFailed', e)
+  } finally {
+    openingPortal.value = false
+  }
+}
+const route = useRoute()
+onMounted(() => {
+  creditCurrency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
+  if (route.query.credits === 'success') {
+    toast.add({ title: t('credits.purchased'), description: t('credits.purchasedBody'), icon: 'i-lucide-check', color: 'neutral' })
+    void refreshBilling()
+  }
+  if (route.query.credits) void router.replace({ query: {} })
+})
 const imageStoragePercent = computed(() => {
   const b = billing.value
   if (!b) return 0
@@ -401,19 +427,72 @@ const policies = computed(() => {
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
           {{ t('settings.profile.spending.heading') }}
         </h2>
-        <div class="border border-default rounded-lg px-4 py-4">
-          <p class="text-sm text-muted mb-3">
-            {{ t('settings.profile.spending.comingSoon') }}
-          </p>
-          <UButton
-            size="sm"
-            color="neutral"
-            variant="outline"
-            icon="i-lucide-credit-card"
-            to="/pricing"
+        <div class="border border-default rounded-lg px-4 py-4 space-y-4">
+          <div class="flex items-center justify-between gap-3 flex-wrap">
+            <p class="text-sm">
+              {{ t('settings.profile.spending.plan', { plan: billing?.plan === 'pro' ? 'Pro' : 'Free' }) }}
+            </p>
+            <div class="flex gap-2">
+              <UButton
+                size="sm"
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-credit-card"
+                to="/pricing"
+              >
+                {{ t('settings.profile.spending.viewPricing') }}
+              </UButton>
+              <UButton
+                v-if="billing?.plan === 'pro'"
+                size="sm"
+                color="neutral"
+                variant="outline"
+                icon="i-lucide-external-link"
+                :loading="openingPortal"
+                data-testid="profile-billing-portal"
+                @click="openPortal"
+              >
+                {{ t('settings.profile.spending.manage') }}
+              </UButton>
+            </div>
+          </div>
+          <div
+            v-if="billing?.coveringWorkspaces?.length"
+            class="border-t border-default pt-4"
+            data-testid="profile-covering-workspaces"
           >
-            {{ t('settings.profile.spending.viewPricing') }}
-          </UButton>
+            <p class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
+              {{ t('settings.profile.spending.coveringTitle') }}
+            </p>
+            <ul class="text-sm space-y-1">
+              <li
+                v-for="ws in billing.coveringWorkspaces"
+                :key="ws.workspaceId"
+              >
+                <NuxtLink
+                  :to="`/w/${ws.workspaceId}`"
+                  class="underline"
+                >{{ ws.name }}</NuxtLink>
+                <span class="text-muted"> · {{ ws.plan === 'team' ? 'Team' : 'Business' }}</span>
+              </li>
+            </ul>
+            <p class="text-xs text-muted mt-2">
+              {{ t('settings.profile.spending.coveringHint') }}
+            </p>
+          </div>
+          <div class="border-t border-default pt-4">
+            <p class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
+              {{ t('credits.title') }}
+            </p>
+            <CommonAiCreditsCard
+              :credits="billing?.credits ?? null"
+              :currency="creditCurrency"
+              endpoint="/api/billing/topup"
+              :can-buy="billing?.plan === 'pro'"
+              :blocked-reason="t('credits.needsPlan')"
+              testid-prefix="profile"
+            />
+          </div>
         </div>
       </section>
 

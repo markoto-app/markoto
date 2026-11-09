@@ -1,14 +1,24 @@
-// GET /api/billing/prices — monthly plan prices for the pricing page
-// (committed defaults + any TIER_<PLAN>_PRICE_USD override).
+// GET /api/billing/prices — plan prices for the pricing page, in every
+// currency (EUR, CHF) and interval (month, year).
+//
+//   - billing ON: the live Stripe prices (server/utils/stripePrices.ts),
+//     so the page shows exactly what Stripe charges. `source: 'stripe'`.
+//   - billing OFF: the planned prices (shared/config/pricing.ts + any
+//     `TIER_<PLAN>_PRICE_<CUR>[_YEAR]` override). `source: 'planned'`.
 //
 // PUBLIC, like /api/billing/tiers: the pricing page shows these to
-// logged-out visitors. Served whatever the billing mode — with plans
-// "coming soon" the page shows them as planned prices. Whitelisted in
-// server/middleware/auth.ts.
+// logged-out visitors. Whitelisted in server/middleware/auth.ts.
 
 import { getPlanPrices } from '~~/server/utils/tierConfig'
-import { PRICE_CURRENCY, type PlanPricesResponse } from '~~/shared/config/pricing'
+import { isBillingEnabled } from '~~/server/utils/billingMode'
+import { useStripeClient } from '~~/server/utils/stripeClient'
+import { livePlanPriceTable } from '~~/server/utils/stripePrices'
+import { CURRENCIES, type PlanPricesResponse } from '~~/shared/config/pricing'
 
-export default defineEventHandler((): PlanPricesResponse => {
-  return { currency: PRICE_CURRENCY, monthly: getPlanPrices() }
+export default defineEventHandler(async (): Promise<PlanPricesResponse> => {
+  const stripe = isBillingEnabled() ? useStripeClient() : null
+  if (stripe) {
+    return { currencies: CURRENCIES, prices: await livePlanPriceTable(stripe), source: 'stripe' }
+  }
+  return { currencies: CURRENCIES, prices: getPlanPrices(), source: 'planned' }
 })

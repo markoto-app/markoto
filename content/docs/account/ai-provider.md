@@ -4,7 +4,7 @@ description: Settings -> AI provider. Connect your own Mistral, OpenAI or other 
 category: account
 order: 6
 featured: true
-updated: '2026-11-03'
+updated: '2026-11-09'
 ---
 
 # Use your own AI provider
@@ -58,6 +58,16 @@ Tips:
 - **Image generation** works with providers that offer an OpenAI-style images endpoint (for example OpenAI's `gpt-image-1`).
 - **Transcription** works with providers that offer an OpenAI-style audio transcription endpoint (for example Mistral's `voxtral-mini-2602`, OpenAI's `gpt-4o-mini-transcribe`, Groq's Whisper).
 - On a **self-hosted** instance the operator can also allow providers on the local network, such as **Ollama**; the page then says so. Without that setting, private addresses are refused.
+
+## Fast or strong model
+
+Where markoto's own AI runs your chat (you haven't added a chat key), the
+page offers **Fast** and **Strong**. Fast answers quickly and uses less of
+your AI budget; Strong is better at long, careful writing and tricky edits
+and uses more. The strong model, image generation and voice input on
+markoto's AI depend on your plan: where your plan doesn't include them,
+the controls show a lock and explain how to get them. Your own key always
+works for them.
 
 ## What happens to your key and your data
 

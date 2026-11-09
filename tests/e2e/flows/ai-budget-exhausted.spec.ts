@@ -107,8 +107,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
 
   await flow.shot(
     'You land on /pricing with every plan side by side. '
-    + 'Free is your current plan; Pro lifts the cap from 100 to '
-    + '1,500 credits a month.',
+    + 'Free is your current plan; Pro raises the monthly AI Points.',
     {
       highlights: [
         { label: 'Current plan — Free', selector: '[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]' }

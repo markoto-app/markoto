@@ -42,9 +42,6 @@
       "invalidMeta": "Un ajuste del documento (título, tema o detalles) tenía un valor que el servidor no puede aceptar. Recarga para continuar.",
       "invalidUpdate": "El servidor no pudo procesar un cambio de esta pestaña. Recarga para continuar."
     },
-    "aiWorkspaceBadge": "espacio de trabajo de markoto",
-    "aiWorkspaceBadgeTooltip": "Este documento está en un espacio de trabajo de markoto — el trabajo de markoto aquí usa el fondo de créditos del patrocinador, no el tuyo.",
-    "aiWorkspaceSponsoredBy": "espacio de trabajo de markoto patrocinado por {name}",
     "bold": "Negrita",
     "italic": "Cursiva",
     "heading": "Encabezado",
@@ -593,8 +590,8 @@
     "budgetExhaustedDescription": "Has usado todos tus créditos de IA de este período de facturación. Mejora tu plan para seguir.",
     "exhaustedPlaceholder": "Sin créditos de IA — mejora tu plan para continuar",
     "workspaceBudgetExhaustedTitle": "Presupuesto de IA del espacio de trabajo agotado",
-    "workspaceBudgetExhaustedDescription": "El presupuesto de IA compartido de este espacio de trabajo está agotado para el período de facturación actual. Contacta con el propietario del espacio de trabajo para recargar o mejorar el plan.",
-    "workspaceExhaustedPlaceholder": "Presupuesto de IA del espacio de trabajo agotado — contacta con el propietario",
+    "workspaceBudgetExhaustedDescription": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
+    "workspaceExhaustedPlaceholder": "Presupuesto de IA del espacio agotado; pide a un admin",
     "upgradeCta": "Mejorar plan",
     "remainingLabel": "Quedan {remaining} de {limit} créditos de IA este mes",
     "responseLabel": "markoto dice",
@@ -613,7 +610,21 @@
     "freeAllowanceExhaustedTitle": "Asignación gratuita de IA agotada",
     "freeAllowanceExhausted": "La asignación gratuita de IA de este mes se ha agotado. Añade tu propia clave en Ajustes → Proveedor de IA para continuar.",
     "freeAllowanceCta": "Añadir tu clave",
-    "freeAllowanceExhaustedPlaceholder": "La asignación gratuita de IA de este mes se ha agotado: añade tu propia clave para continuar"
+    "freeAllowanceExhaustedPlaceholder": "La asignación gratuita de IA de este mes se ha agotado: añade tu propia clave para continuar",
+    "memberLimitReachedTitle": "Has alcanzado tu límite de IA",
+    "memberLimitReachedDescription": "Has usado tu límite de IA en este espacio este mes. Pide a un admin del espacio que lo aumente.",
+    "memberLimitPlaceholder": "Tu límite de IA aquí está agotado; pide a un admin",
+    "teamBudgetExhausted": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
+    "memberLimitReached": "Has alcanzado tu límite de IA en este espacio este mes. Pide a un admin que lo aumente.",
+    "locked": {
+      "aiVoice": "La entrada por voz no está incluida en este plan",
+      "aiImage": "La generación de imágenes no está incluida en este plan",
+      "askAdmin": "Pregunta a un admin del espacio de trabajo por su plan, o usa tu propia clave de proveedor.",
+      "upgrade": "Pasa a Pro para usarla, o usa tu propia clave de proveedor.",
+      "comingSoon": "Llega con los planes de pago, que estarán disponibles pronto. Con tu propia clave de proveedor funciona ya.",
+      "operator": "Esta instancia no la ofrece para tu cuenta. Puedes usar tu propia clave de proveedor.",
+      "ownKey": "Añadir tu propia clave"
+    }
   },
   "mobileTabBar": {
     "label": "Paneles del documento",
@@ -652,7 +663,6 @@
     "subtitle": "Elige el plan que mejor se adapte. Los planes fijan tus límites: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave de proveedor nunca está limitada por un plan.",
     "metaDescription": "Compara los planes de markoto: puntos de IA, espacios de trabajo y almacenamiento. La IA con tu propia clave nunca está limitada.",
     "creditsHint": "Los puntos de IA cubren la IA que paga la instancia: 1000 puntos = 1 $ de uso del modelo. La IA con tu propia clave la factura tu proveedor y no consume puntos.",
-    "teamBilling": "Patrocinio de espacio de trabajo: cubre los puntos de IA de todos los miembros de un espacio de trabajo",
     "currentPlan": "Plan actual",
     "manageSubscription": "Gestionar suscripción",
     "upgrade": "Mejorar plan",
@@ -670,15 +680,18 @@
     "tiers": {
       "free": "Todas las funciones de escritura y una asignación inicial de puntos de IA.",
       "pro": "Para quien escribe en solitario: más puntos de IA, espacios de trabajo y almacenamiento.",
-      "max": "Para equipos pequeños: cubre los puntos de IA de todos los miembros de un espacio de trabajo tuyo.",
-      "ultra": "Para equipos más grandes: patrocinio de espacios de trabajo con la mayor asignación."
+      "team": "Para equipos: por puesto, AI Points y almacenamiento compartidos, controles de administración.",
+      "business": "Para organizaciones: Team con inicio de sesión único, exportación de auditoría y límites a medida."
     },
     "freeAllowanceNote": "La asignación gratuita de IA funciona con un modelo alojado por Mistral AI en la UE y está disponible mientras dure la reserva compartida de este mes. Para más, añade tu propia clave en Ajustes → Proveedor de IA.",
     "price": {
       "free": "Gratis",
       "perMonth": "al mes",
+      "perSeatPerMonth": "por puesto / mes",
+      "perYear": "al año",
+      "perSeatPerYear": "por puesto / año",
       "planned": "Precio previsto",
-      "plannedNote": "Precios previstos en dólares estadounidenses. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
+      "plannedNote": "Precios previstos. Los precios y los límites pueden cambiar antes del lanzamiento de los planes de pago; todavía no se puede comprar nada."
     },
     "selfHosted": {
       "title": "Autoalojado",
@@ -708,7 +721,9 @@
       "title": "De pago",
       "tagline": "Más puntos de IA, espacios de trabajo y almacenamiento.",
       "tabsLabel": "Planes de pago",
-      "joinWaitlist": "Unirse a la lista de espera"
+      "joinWaitlist": "Unirse a la lista de espera",
+      "setUpInWorkspace": "Configurar en un espacio de trabajo",
+      "setUpInWorkspaceHint": "Abre el espacio de trabajo y luego su pestaña Facturación. Solo los admins del espacio pueden comprar."
     },
     "instance": {
       "title": "Cada cuenta"
@@ -738,11 +753,20 @@
       "knowledgeFiles": "Archivos de conocimiento",
       "knowledgeStorage": "Almacenamiento de conocimiento",
       "imageStorage": "Almacenamiento de imágenes",
-      "sponsoring": "Patrocinio de IA en espacios de trabajo",
       "mcp": "Servidor MCP para clientes de IA",
+      "members": "Personas por espacio de trabajo",
+      "history": "Historial de versiones",
+      "days": "{n} día | {n} días",
+      "customCss": "CSS personalizado para documentos",
+      "readOnly": "Solo lectura",
       "setByYou": "Lo decides tú",
       "included": "Incluido",
-      "notIncluded": "No incluido"
+      "notIncluded": "No incluido",
+      "perSeat": "{value} por puesto",
+      "aiImage": "Generación de imágenes con IA",
+      "aiVoice": "Entrada por voz y dictado en directo",
+      "aiStrongModel": "Elegir un modelo de IA más potente",
+      "ownKeyOnly": "Con tu propia clave"
     },
     "faq": {
       "title": "Preguntas",
@@ -758,7 +782,25 @@
       "anonKeptA": "Cualquiera con el enlace puede leerlos y editarlos, y solo el navegador que creó un documento puede borrarlo. Inicia sesión para hacer tus documentos privados o protegerlos con contraseña.",
       "selfHostQ": "¿Puedo ejecutar markoto en mi propio servidor?",
       "selfHostA": "Sí. El código es source-available con la licencia FSL-1.1, que pasa a Apache-2.0 a los dos años. Una instancia autoalojada tiene todas las funciones y ningún plan: tú fijas los límites y conectas tu propio proveedor de IA o un modelo local. La guía de autoalojamiento de la documentación explica la instalación."
-    }
+    },
+    "interval": {
+      "label": "Periodo de facturación",
+      "month": "Mensual",
+      "year": "Anual · 2 meses gratis"
+    },
+    "currencyLabel": "Moneda",
+    "currencyLocked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar.",
+    "countPerSeat": {
+      "aiPoints": "{n} punto de IA por puesto al mes, compartido | {n} puntos de IA por puesto al mes, compartidos",
+      "workspaces": "{n} espacio de trabajo propio | {n} espacios de trabajo propios",
+      "knowledgeFiles": "{n} archivo de conocimiento por puesto, compartido | {n} archivos de conocimiento por puesto, compartidos",
+      "knowledgeStorage": "{size} de almacenamiento de conocimiento por puesto, compartido",
+      "imageStorage": "{size} de almacenamiento de imágenes por puesto, compartido"
+    },
+    "seatTotalMonth": "{total} al mes por {seats} puestos",
+    "seatTotalYear": "{total} al año por {seats} puestos",
+    "seatsLabel": "Puestos",
+    "creditsSection": "Los créditos de IA amplían el presupuesto mensual de IA de Pro y de los espacios Team / Business. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra."
   },
   "topbar": {
     "planBadge": "Plan: {plan}",
@@ -1243,7 +1285,8 @@
     "success": "Documento movido",
     "successToPersonal": "«{title}» ahora es un documento personal.",
     "successToWorkspace": "«{title}» ahora está en {workspace}.",
-    "failed": "No se pudo mover el documento"
+    "failed": "No se pudo mover el documento",
+    "leavesPlan": "Este documento sale de un espacio de trabajo con {plan}. Después del traslado sigue el plan del nuevo lugar: las funciones que ese plan no incluye (como CSS propio o el historial antiguo) quedan en pausa. No se borra nada."
   },
   "delete": {
     "title": "Eliminar documento",
@@ -1264,8 +1307,8 @@
     "tabs": {
       "documents": "Documentos",
       "knowledge": "Conocimiento",
-      "ai": "markoto",
-      "settings": "Configuración"
+      "settings": "Configuración",
+      "billing": "Facturación"
     },
     "settings": {
       "title": "Configuración del espacio de trabajo",
@@ -1374,29 +1417,67 @@
         "declined": "Invitación rechazada.",
         "missingToken": "Este enlace de invitación está incompleto. Ábrelo de nuevo desde el correo.",
         "home": "Ir al panel"
-      }
+      },
+      "planIncluded": "{name} está en {plan}: dentro, las funciones y el presupuesto de IA del plan también se aplican a ti."
     },
     "actions": "Acciones del espacio de trabajo",
-    "sponsorship": {
-      "description": "Convierte este espacio en un espacio markoto: el uso de la IA de todos los miembros en sus documentos se descuenta del crédito de tu plan. Requiere Max o Ultra.",
-      "banner": "Este es un espacio markoto: el uso de la IA aquí se descuenta del crédito del patrocinador.",
-      "memberSponsored": "Este es un espacio markoto. Un administrador patrocina el uso de la IA aquí.",
-      "memberRegular": "Este es un espacio normal. Los miembros usan su propio crédito de IA. Un administrador puede convertirlo en un espacio markoto para patrocinarlo.",
-      "memberComingSoon": "Patrocinar el uso de la IA de un espacio llegará con los planes de pago.",
-      "onYourPlan": "con tu plan · los miembros ven el aviso en el editor",
-      "sponsoredByOther": "patrocinado por otro administrador",
-      "takeOver": "Asumir el patrocinio",
-      "needsUpgrade": "Tu plan {plan} no permite patrocinar un espacio. Se necesita Max o Ultra.",
-      "upgrade": "Mejorar tu plan",
-      "comingSoon": "Llegará con los planes de pago.",
-      "seePlans": "Ver planes",
-      "off": "desactivado · los miembros usan su propio crédito de IA",
-      "toggleLabel": "Patrocinar el uso de la IA en este espacio",
-      "enabledToast": "Espacio de IA activado",
-      "enabledToastDescription": "El uso de la IA de los miembros en este espacio ahora lo patrocina tu plan.",
-      "disabledToast": "Espacio de IA desactivado",
-      "disabledToastDescription": "Los miembros vuelven a usar su propio crédito de IA.",
-      "updateFailed": "No se pudo cambiar el espacio de IA"
+    "billing": {
+      "title": "Facturación",
+      "loading": "Cargando la facturación…",
+      "loadFailed": "No se pudo cargar la facturación",
+      "paymentProblemTitle": "Problema con el pago",
+      "paymentProblemBody": "El último pago de este espacio de trabajo falló. Stripe lo volverá a intentar; actualiza el método de pago en «Gestionar facturación» para conservar las funciones de Team.",
+      "buyTitle": "Mejorar este espacio de trabajo",
+      "buyBody": "Team y Business se pagan por puesto. Todas las personas del espacio tienen dentro de él las funciones del plan, con un presupuesto mensual de IA compartido.",
+      "planLabel": "Plan",
+      "seatsLabel": "Puestos",
+      "seatsHint": "Al menos {min} (todas las personas del espacio, invitaciones incluidas)",
+      "totalPerMonth": "{total} al mes ({seats} puestos × {price})",
+      "totalPerYear": "{total} al año ({seats} puestos × {price})",
+      "continueToPayment": "Continuar al pago",
+      "buyFootnote": "Pagas con Stripe. Pasas a ser admin de facturación de este espacio y puedes cambiar los puestos o cancelar en cualquier momento.",
+      "currentPlan": "Plan actual",
+      "annual": "anual",
+      "monthly": "mensual",
+      "renews": "Se renueva el {date}",
+      "manage": "Gestionar facturación",
+      "seatCounter": "{used} de {seats} puestos ocupados",
+      "updateSeats": "Cambiar puestos",
+      "seatsFootnote": "Los puestos adicionales se cobran de forma proporcional en la próxima factura; los que quitas se abonan. No puede haber menos puestos que personas en el espacio.",
+      "switchToBusiness": "Cambiar a Business",
+      "switchToTeam": "Cambiar a Team",
+      "switchToAnnual": "Cambiar a facturación anual",
+      "switchToMonthly": "Cambiar a facturación mensual",
+      "aiTitle": "IA este mes",
+      "teamSpend": "{spent} de {budget} usados",
+      "resets": "se reinicia el {date}",
+      "storage": "Almacenamiento compartido: {knowledge} para archivos de conocimiento, {images} para imágenes.",
+      "memberSpend": "{spent} usados · límite {limit}",
+      "noLimitShort": "ninguno",
+      "limitDefault": "Límite por defecto",
+      "limitCustom": "Límite propio",
+      "limitNone": "Sin límite",
+      "limitSaved": "Límite guardado",
+      "limitSaveFailed": "No se pudo guardar el límite",
+      "limitFootnote": "Por defecto, cada miembro puede usar hasta {amount} al mes. «Sin límite» se detiene igualmente en el presupuesto del espacio.",
+      "checkoutFailed": "No se pudo iniciar el pago",
+      "planChanged": "Plan cambiado",
+      "planChangeFailed": "No se pudo cambiar el plan",
+      "seatsChanged": "Puestos cambiados a {seats}",
+      "seatsChangeFailed": "No se pudieron cambiar los puestos",
+      "portalFailed": "No se pudo abrir la facturación",
+      "checkoutSuccess": "Pago recibido",
+      "checkoutSuccessBody": "El plan se activa en cuanto Stripe lo confirma, normalmente en pocos segundos.",
+      "checkoutCancelled": "Pago cancelado",
+      "addSeatTitle": "Los {seats} puestos están ocupados",
+      "addSeatBody": "Invitar a {email} añade un puesto al plan de este espacio, cobrado de forma proporcional en la próxima factura.",
+      "addSeatConfirm": "Añadir un puesto e invitar",
+      "pricePerSeatMonth": "Un puesto cuesta {price} al mes.",
+      "pricePerSeatYear": "Un puesto cuesta {price} al año.",
+      "errors": {
+        "seatsFull": "Todos los puestos pagados están ocupados. Añade un puesto para invitar a alguien más.",
+        "seatsBelowMembers": "Hay más personas que puestos en este espacio. Quita a alguien o mantén más puestos."
+      }
     }
   },
   "knowledge": {
@@ -1651,7 +1732,8 @@
       "navLabel": "Documentación y avisos legales",
       "product": "Producto",
       "legal": "Legal",
-      "tagline": "Markdown colaborativo, maquetado en páginas."
+      "tagline": "Markdown colaborativo, maquetado en páginas.",
+      "paidTerms": "Condiciones de los planes de pago"
     },
     "documentPage": {
       "translationNoticeTitle": "Traducción proporcionada por comodidad",
@@ -1677,7 +1759,12 @@
       "spending": {
         "heading": "Gasto y uso",
         "comingSoon": "Próximamente — tu uso de créditos de IA, historial de planes y facturas estarán aquí. Por ahora, gestiona la facturación desde la página de Precios.",
-        "viewPricing": "Ver precios"
+        "viewPricing": "Ver precios",
+        "plan": "Plan actual: {plan}",
+        "manage": "Gestionar facturación",
+        "portalFailed": "No se pudo abrir la facturación",
+        "coveringTitle": "Espacios de trabajo que te cubren",
+        "coveringHint": "Dentro de estos espacios se aplica su plan, incluido el presupuesto de IA compartido. En todo lo demás se aplica tu propio plan."
       },
       "data": {
         "heading": "Tus datos",
@@ -1723,7 +1810,34 @@
   },
   "billing": {
     "comingSoonCta": "Planes de pago muy pronto",
-    "comingSoonHint": "Muy pronto habrá planes de pago con límites más altos."
+    "comingSoonHint": "Muy pronto habrá planes de pago con límites más altos.",
+    "paidTerms": {
+      "consentPlan": "Acepto las {terms} y pido que mi plan empiece de inmediato. Si desisto en un plazo de 14 días como consumidor de la UE, pago el tiempo utilizado.",
+      "consentTopup": "Acepto las {terms} y pido los créditos de inmediato. Mi derecho de desistimiento termina en cuanto los uso.",
+      "link": "Condiciones de los planes de pago",
+      "required": "Acepte las Condiciones de los planes de pago para continuar."
+    }
+  },
+  "plan": {
+    "limitTitle": "Límite del plan alcanzado",
+    "feature": {
+      "customCss": "El CSS personalizado no está incluido en el plan de este documento.",
+      "customCssPaused": "El CSS personalizado de este documento está en pausa: su plan no incluye CSS personalizado. El CSS se conserva y vuelve a aplicarse cuando el plan lo incluya.",
+      "mcpWrite": "Tu plan incluye acceso de solo lectura para clientes de IA mediante MCP. Editar, renderizar y las herramientas web requieren un plan que las incluya.",
+      "aiImage": "La generación de imágenes con la IA de markoto no está incluida en este plan.",
+      "aiVoice": "La entrada por voz con la IA de markoto no está incluida en este plan.",
+      "aiStrongModel": "El modelo de IA potente no está incluido en este plan."
+    },
+    "limit": {
+      "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
+      "savedThemes": "Has alcanzado el límite de temas guardados de tu plan. Elimina uno para guardar uno nuevo.",
+      "importMaxBytes": "Este archivo supera el tamaño que tu plan permite para importaciones.",
+      "historyEntry": "Este cambio es más antiguo que el historial incluido en el plan de este documento.",
+      "mcpToolCallsPerDay": "Has usado las llamadas a herramientas MCP de hoy incluidas en tu plan. Inténtalo de nuevo mañana."
+    },
+    "notice": {
+      "historyHidden": "La actividad de hace más de {days} días está oculta con el plan de este documento. Se conserva y vuelve a mostrarse cuando el plan incluya más historial."
+    }
   },
   "waitlist": {
     "title": "Únete a la lista de espera",
@@ -1789,7 +1903,8 @@
       "lastVerified": "Última verificación: {date}",
       "keyEnding": "termina en {last4}",
       "noToolSupport": "Este modelo no llamó a la herramienta de prueba, así que el asistente de escritura podría no funcionar. Elige un modelo con llamadas a herramientas.",
-      "liveDictation": "El dictado en directo está disponible."
+      "liveDictation": "El dictado en directo está disponible.",
+      "locked": "No está en tu plan; tu propia clave funciona"
     },
     "form": {
       "preset": "Proveedor",
@@ -1851,7 +1966,17 @@
       "openSettings": "Abrir ajustes del proveedor de IA"
     },
     "ownProviderBadge": "Tu propio proveedor de IA",
-    "freeAllowanceNote": "Sin clave propia, tu cuenta recibe una asignación gratuita mensual de IA en el modelo predeterminado de esta instancia, mientras dure la reserva mensual compartida. En cuanto añades tu propia clave, se usa esa."
+    "freeAllowanceNote": "Sin clave propia, tu cuenta recibe una asignación gratuita mensual de IA en el modelo predeterminado de esta instancia, mientras dure la reserva mensual compartida. En cuanto añades tu propia clave, se usa esa.",
+    "modelTier": {
+      "title": "Modelo de IA",
+      "description": "Qué modelo de esta instancia usa la IA para ti. Tu propia clave de chat, si añades una, siempre tiene prioridad.",
+      "fast": "Rápido",
+      "fastHint": "Respuestas y cambios rápidos. Usa menos de tu presupuesto de IA.",
+      "strong": "Potente",
+      "strongHint": "Mejor para textos largos y cuidados y cambios difíciles. Usa más de tu presupuesto de IA.",
+      "locked": "El modelo potente forma parte de los planes de pago.",
+      "saveFailed": "No se pudo guardar el modelo"
+    }
   },
   "tour": {
     "label": "Recorrido del producto",
@@ -2109,5 +2234,17 @@
     "actions": "Acciones del documento",
     "open": "Abrir",
     "openNewTab": "Abrir en una pestaña nueva"
+  },
+  "credits": {
+    "title": "Créditos de IA",
+    "balance": "Te quedan {amount} en créditos de IA",
+    "usedThisMonth": "{amount} usados este mes",
+    "explainer": "Los créditos amplían el presupuesto mensual de IA de tu plan. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra.",
+    "pack": "{price} → {credit} de crédito",
+    "grantLeft": "Quedan {left} · caduca el {date}",
+    "needsPlan": "Los créditos de IA amplían un plan de pago. Pasa a Pro para comprarlos.",
+    "buyFailed": "No se pudo iniciar la compra",
+    "purchased": "Créditos comprados",
+    "purchasedBody": "Se añaden en cuanto Stripe confirma el pago, normalmente en pocos segundos."
   }
 }

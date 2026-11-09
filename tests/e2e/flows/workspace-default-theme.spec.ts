@@ -56,7 +56,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
       annotations: [
         { label: 'Settings tab', selector: '[role="tab"]:has-text("Settings")', kind: 'arrow' }
       ],
-      result: 'The settings panel opens — workspace name, default theme, AI sponsoring.',
+      result: 'The settings panel opens with the workspace default theme.',
       after: () => page.locator('[data-testid="workspace-default-theme-clear"]').waitFor({ state: 'visible', timeout: 5_000 })
     }
   )

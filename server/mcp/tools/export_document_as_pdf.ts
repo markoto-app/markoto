@@ -6,7 +6,7 @@ import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxt
 import { renderDocument } from '../../utils/renderClient'
 import { useS3Client } from '../../utils/s3'
 import { getDocAuthz } from '../../utils/workspaceAccess'
-import { hasScope } from '../lib/mcpToolContext'
+import { toolEnabled } from '../lib/mcpToolContext'
 import { admitToolCall } from '../lib/wrapDocBoundTool'
 
 // MCP-only tool. The in-app agentic loop has no use for a PDF blob —
@@ -42,7 +42,7 @@ export default defineMcpTool({
   description: 'Render a document to PDF and return the bytes as an attached file. Each cache miss runs the Playwright sidecar (~5-15s); cache hits are sub-second. Use to deliver a polished snapshot to the user — for AI inspection of a specific page, use view_pages instead.',
   inputSchema,
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
-  enabled: event => hasScope(event, 'documents:read'),
+  enabled: event => toolEnabled(event, 'documents:read', 'export_document_as_pdf'),
   handler: (async (args: ShapeOutput<typeof inputSchema>, _extra: McpRequestExtra): Promise<CallToolResult> => {
     const event = useEvent()
     // Scope re-check + per-user call limit + the render allowance shared

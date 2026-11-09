@@ -1,6 +1,7 @@
 import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
-import { uploads } from '../db/schema'
+import { documents, uploads } from '../db/schema'
 import { useDatabase } from '../utils/database'
+import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
 
 // Uploads repository. Powers the presigned-URL upload flow:
 //   request → recordPending (row inserted as unconfirmed)
@@ -29,31 +30,57 @@ export async function recordPending(input: PendingUploadInput): Promise<void> {
   await db.insert(uploads).values(input)
 }
 
-// ─── Per-user image storage quota ──────────────────────────────────────
+// ─── Image storage quota ──────────────────────────────────────────────
 //
-// Every upload row — pending or confirmed — counts against its uploader's
-// quota, so a reservation is made the moment a presigned URL is issued.
-// Check + insert run in ONE transaction holding a per-user advisory lock,
-// so N parallel requests are serialised and can't all pass a "used + size
-// <= max" check that only one of them should pass.
+// Every upload row — pending or confirmed — counts against a quota, so a
+// reservation is made the moment a presigned URL is issued. Check +
+// insert run in ONE transaction holding an advisory lock on the quota's
+// scope, so N parallel requests are serialised and can't all pass a
+// "used + size <= max" check that only one of them should pass.
+//
+// Scope (WP3): images in a Team / Business workspace's documents count
+// against that WORKSPACE's pool (`{kind: 'workspace'}`, joined through
+// `documents.workspace_id` — no column on `uploads`, so a moved document
+// takes its images along); everything else against the uploader
+// (`{kind: 'user'}`), leaving out pooled workspaces' images while
+// billing is on (`excludePooled`).
+
+export type ImageQuotaScope
+  = | { kind: 'user', uploaderId: number, excludePooled: boolean }
+    | { kind: 'workspace', workspaceId: string }
 
 type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
 
-async function lockUploaderQuota(tx: Tx, uploaderId: number): Promise<void> {
-  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`image-quota:${uploaderId}`}))`)
+async function lockQuotaScope(tx: Tx, scope: ImageQuotaScope): Promise<void> {
+  const key = scope.kind === 'user' ? `image-quota:${scope.uploaderId}` : `image-quota:ws:${scope.workspaceId}`
+  await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${key}))`)
 }
 
-async function sumUploaderBytes(tx: Tx | ReturnType<typeof useDatabase>, uploaderId: number): Promise<number> {
+function docsOfWorkspaces(workspaceIds: ReturnType<typeof sql>) {
+  return sql`(select ${documents.docId} from ${documents} where ${documents.workspaceId} in ${workspaceIds})`
+}
+
+async function sumScopeBytes(tx: Tx | ReturnType<typeof useDatabase>, scope: ImageQuotaScope): Promise<number> {
+  const where = scope.kind === 'workspace'
+    ? sql`${uploads.docId} in ${docsOfWorkspaces(sql`(${scope.workspaceId})`)}`
+    : scope.excludePooled
+      ? and(eq(uploads.uploaderId, scope.uploaderId), sql`${uploads.docId} not in ${docsOfWorkspaces(pooledWorkspaceIdsSubquery())}`)
+      : eq(uploads.uploaderId, scope.uploaderId)
   const rows = await tx
     .select({ total: sql<string | null>`coalesce(sum(${uploads.sizeBytes}), 0)` })
     .from(uploads)
-    .where(eq(uploads.uploaderId, uploaderId))
+    .where(where)
   return Number(rows[0]?.total ?? 0)
 }
 
-/** Bytes counted against the user's image quota (pending + confirmed rows). */
-export async function sumImageBytesByUploader(uploaderId: number): Promise<number> {
-  return sumUploaderBytes(useDatabase(), uploaderId)
+/** Bytes counted against the user's personal image quota (pending + confirmed rows). */
+export async function sumImageBytesByUploader(uploaderId: number, opts: { excludePooled?: boolean } = {}): Promise<number> {
+  return sumScopeBytes(useDatabase(), { kind: 'user', uploaderId, excludePooled: opts.excludePooled === true })
+}
+
+/** Bytes counted against a quota scope. */
+export async function sumImageBytesInScope(scope: ImageQuotaScope): Promise<number> {
+  return sumScopeBytes(useDatabase(), scope)
 }
 
 export interface QuotaReservation {
@@ -66,11 +93,11 @@ export interface QuotaReservation {
  * Insert a pending upload row if it fits the uploader's quota. Atomic per
  * uploader (advisory lock + sum + insert in one transaction).
  */
-export async function reservePendingUpload(input: PendingUploadInput, maxBytes: number): Promise<QuotaReservation> {
+export async function reservePendingUpload(input: PendingUploadInput, maxBytes: number, scope: ImageQuotaScope): Promise<QuotaReservation> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
-    await lockUploaderQuota(tx, input.uploaderId)
-    const usedBytes = await sumUploaderBytes(tx, input.uploaderId)
+    await lockQuotaScope(tx, scope)
+    const usedBytes = await sumScopeBytes(tx, scope)
     if (usedBytes + input.sizeBytes > maxBytes) return { reserved: false, usedBytes }
     await tx.insert(uploads).values(input)
     return { reserved: true, usedBytes }
@@ -88,11 +115,12 @@ export type ConfirmOutcome = 'confirmed' | 'already-confirmed' | 'over-quota' | 
 export async function confirmOwnUploadWithinQuota(
   s3Key: string,
   uploaderId: number,
-  maxBytes: number
+  maxBytes: number,
+  scope: ImageQuotaScope
 ): Promise<ConfirmOutcome> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
-    await lockUploaderQuota(tx, uploaderId)
+    await lockQuotaScope(tx, scope)
     const rows = await tx
       .select({ confirmedAt: uploads.confirmedAt })
       .from(uploads)
@@ -101,7 +129,7 @@ export async function confirmOwnUploadWithinQuota(
     const row = rows[0]
     if (!row) return 'missing'
     if (row.confirmedAt) return 'already-confirmed'
-    if (await sumUploaderBytes(tx, uploaderId) > maxBytes) return 'over-quota'
+    if (await sumScopeBytes(tx, scope) > maxBytes) return 'over-quota'
     await tx
       .update(uploads)
       .set({ confirmedAt: new Date() })
@@ -279,19 +307,19 @@ function toConfirmedValues(rows: InsertConfirmedUpload[]) {
 }
 
 /**
- * Insert already-confirmed rows attributed to `uploaderId` if their total
- * fits that user's image quota (same advisory lock as uploads). Returns
+ * Insert already-confirmed rows (a duplicate's image copies) if their
+ * total fits the quota scope (same advisory lock as uploads). Returns
  * false — inserting nothing — when it doesn't.
  */
 export async function insertConfirmedUploadsWithinQuota(
   rows: InsertConfirmedUpload[],
-  uploaderId: number,
-  maxBytes: number
+  maxBytes: number,
+  scope: ImageQuotaScope
 ): Promise<QuotaReservation> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
-    await lockUploaderQuota(tx, uploaderId)
-    const usedBytes = await sumUploaderBytes(tx, uploaderId)
+    await lockQuotaScope(tx, scope)
+    const usedBytes = await sumScopeBytes(tx, scope)
     const adding = rows.reduce((n, r) => n + r.sizeBytes, 0)
     if (usedBytes + adding > maxBytes) return { reserved: false, usedBytes }
     if (rows.length > 0) await tx.insert(uploads).values(toConfirmedValues(rows))

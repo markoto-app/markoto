@@ -21,6 +21,11 @@ const props = defineProps<{
     abort: ReturnType<typeof useAI>['abort']
     clearLastError: ReturnType<typeof useAI>['clearLastError']
   }
+  /**
+   * The document's workspace: inside a Team / Business workspace the AI
+   * budget is the workspace's (member limit + team pool, WP3).
+   */
+  workspaceId?: string | null
 }>()
 
 const { t } = useI18n()
@@ -43,12 +48,15 @@ const { refresh: refreshBilling } = useBilling()
 // Phase 6: AI exhaustion comes from /api/ai/credits (LiteLLM /key/info).
 // `refreshAiCredits` runs after a session ends so the AI Points badge
 // ticks down live without the user navigating away.
-const { isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, refresh: refreshAiCredits } = useAiCredits()
+const { isExhausted: pointsExhausted, isFreeAllowanceExhausted, isWorkspaceShared: creditsAreShared, isTeamBudgetExhausted, refresh: refreshAiCredits } = useAiCredits(() => props.workspaceId)
 // Bring your own key (WP4): which capabilities this user can use, and
 // whether chat is paid by the platform. AI Points only gate the bar when
 // chat actually spends them — a user on their own key is never blocked
 // by an empty platform budget.
-const { chatMissing, transcriptionAvailable, chatPlatformBilled } = useAiAvailability()
+const { chatMissing, transcriptionAvailable, transcriptionLocked, chatPlatformBilled } = useAiAvailability()
+// Voice the platform offers but the paying plan doesn't include (WP5):
+// the mic stays, locked, and explains the way forward.
+const { explainLocked } = useAiLockedPrompt()
 // Hosted free tier: the shared monthly pool can run dry before the
 // user's own points do. Only platform-paid chat is affected — an own key
 // keeps working.
@@ -112,7 +120,7 @@ const placeholder = computed(() => {
   // "contact the workspace owner", not /pricing.
   if (creditsExhausted.value) {
     if (freePoolExhausted.value) return t('ai.freeAllowanceExhaustedPlaceholder')
-    if (creditsAreShared.value) return t('ai.workspaceExhaustedPlaceholder')
+    if (creditsAreShared.value) return isTeamBudgetExhausted.value ? t('ai.workspaceExhaustedPlaceholder') : t('ai.memberLimitPlaceholder')
     return billingEnabled.value ? t('ai.exhaustedPlaceholder') : t('ai.exhaustedPlaceholderFree')
   }
   // Active session → mirror the session's status message. Bar doubles
@@ -143,6 +151,18 @@ function onCapReached() {
   }
   // Self-hosted: nothing to buy — re-explain instead of a dead link.
   showPersonalBudgetToast()
+}
+
+// Team / Business workspace: the team pool or the member's own limit is
+// used up. Only an admin can change either — never "upgrade" (WP3).
+function showWorkspaceBudgetToast() {
+  const team = isTeamBudgetExhausted.value
+  toast.add({
+    title: team ? t('ai.workspaceBudgetExhaustedTitle') : t('ai.memberLimitReachedTitle'),
+    description: team ? t('ai.workspaceBudgetExhaustedDescription') : t('ai.memberLimitReachedDescription'),
+    icon: 'i-lucide-credit-card',
+    color: 'warning'
+  })
 }
 
 // Shared free-tier pool used up: the way forward is the user's own key
@@ -212,12 +232,7 @@ watch(creditsExhausted, (now, prev) => {
     // matters. Swap copy + drop the upgrade CTA so we don't push them
     // onto a self-pricing page that won't help.
     if (creditsAreShared.value) {
-      toast.add({
-        title: t('ai.workspaceBudgetExhaustedTitle'),
-        description: t('ai.workspaceBudgetExhaustedDescription'),
-        icon: 'i-lucide-credit-card',
-        color: 'warning'
-      })
+      showWorkspaceBudgetToast()
       return
     }
     showPersonalBudgetToast()
@@ -306,12 +321,7 @@ watch(() => props.ai.lastError.value, (err) => {
     // need an obvious path forward — a generic "AI request failed"
     // toast doesn't tell them what to do.
     if (creditsAreShared.value) {
-      toast.add({
-        title: t('ai.workspaceBudgetExhaustedTitle'),
-        description: t('ai.workspaceBudgetExhaustedDescription'),
-        icon: 'i-lucide-credit-card',
-        color: 'warning'
-      })
+      showWorkspaceBudgetToast()
       return
     }
     showPersonalBudgetToast()
@@ -593,6 +603,17 @@ onUnmounted(() => {
         data-testid="ai-prompt-bar-mic"
         class="ai-prompt-bar__secondary"
         @click="voice.toggle()"
+      />
+      <UButton
+        v-else-if="!isActive && transcriptionLocked && !chatMissing"
+        color="neutral"
+        variant="ghost"
+        icon="i-lucide-mic"
+        :aria-label="t('ai.locked.aiVoice')"
+        :title="t('ai.locked.aiVoice')"
+        data-testid="ai-prompt-bar-mic-locked"
+        class="ai-prompt-bar__secondary opacity-50"
+        @click="explainLocked('aiVoice')"
       />
 
       <!-- Primary slot: send. Stays blue across idle + recording so the

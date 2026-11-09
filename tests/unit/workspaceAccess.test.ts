@@ -29,8 +29,6 @@ function ctx(overrides: Partial<NonNullable<Ctx>> = {}): NonNullable<Ctx> {
     accessMode: 'private',
     theme: null,
     workspaceRole: null,
-    workspaceAiEnabled: false,
-    billingOwner: null,
     ...overrides
   } as NonNullable<Ctx>
 }

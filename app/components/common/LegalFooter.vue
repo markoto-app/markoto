@@ -26,7 +26,7 @@ const { t } = useI18n()
 // configured — never the hosted operator on a self-hosted instance
 // (shared/config/instance.ts).
 const { legalSurfaces, operatorName, marketingSite } = useInstanceConfig()
-const { pricingVisible } = useBillingMode()
+const { pricingVisible, billingEnabled } = useBillingMode()
 const nav = useMarketingNav()
 
 // Layout on top of Nuxt UI's footer: the same 72rem column as the
@@ -74,6 +74,8 @@ const columns = computed<FooterColumn[]>(() => {
     ? [
         { to: '/legal/privacy', label: t('legal.footer.privacy') },
         { to: '/legal/terms', label: t('legal.footer.terms') },
+        // Only where something can be bought (billing on).
+        ...(billingEnabled.value ? [{ to: '/legal/paid-terms', label: t('legal.footer.paidTerms'), testid: 'footer-paid-terms-link' }] : []),
         { to: '/legal/imprint', label: t('legal.footer.imprint') },
         { to: '/legal/abuse-policy', label: t('legal.footer.abuse') },
         { to: '/legal/dpa', label: t('legal.footer.dpaShort'), fullName: t('legal.footer.dpa') },

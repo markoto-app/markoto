@@ -10,7 +10,7 @@ import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 
 async function setUserPlan(
   userId: number,
-  plan: 'free' | 'pro' | 'max' | 'ultra'
+  plan: 'free' | 'pro'
 ): Promise<void> {
   const db = testDb()
   const future = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
@@ -27,9 +27,8 @@ describe('POST /api/workspaces — tier-aware workspacesOwned cap', () => {
 
   // Parameterised: one scenario per tier. Creating (cap-1) workspaces
   // via the repo fixture + one more via the endpoint asserts the cap
-  // boundary. We don't test at-limit-succeeds for Ultra (100 is too
-  // many fixture inserts); the per-tier read is exercised by Free/Pro.
-  const scenarios: Array<{ plan: 'free' | 'pro' | 'max', cap: number }> = [
+  // boundary for each personal plan.
+  const scenarios: Array<{ plan: 'free' | 'pro', cap: number }> = [
     { plan: 'free', cap: TIERS.free.workspacesOwned },
     { plan: 'pro', cap: TIERS.pro.workspacesOwned }
   ]

@@ -4,6 +4,7 @@ import { checkRateLimit } from '../utils/rateLimit'
 import { getClientRateLimitKey } from '../utils/clientIp'
 import { useMcpSessionBindings } from '../utils/mcpSessionBinding'
 import { evaluateMcpRequest, jsonRpcErrorResponse } from './lib/mcpGate'
+import { capsFor, resolveUserPlan } from '../utils/entitlements'
 
 // Default MCP handler. The middleware is the gate in front of the MCP
 // toolkit (`lib/mcpGate.ts` holds the decision logic):
@@ -35,6 +36,12 @@ declare module 'h3' {
   interface H3EventContext {
     /** MCP-PAT-resolved auth context. Set for every request that reaches the toolkit. */
     mcp?: McpAuthContext
+    /**
+     * The token owner's plan limits for MCP (shared/config/tiers.ts),
+     * resolved once per request so the synchronous tool `enabled` check
+     * can hide tools the plan doesn't include (`lib/toolClasses.ts`).
+     */
+    mcpPlan?: { mcpWrite: boolean, mcpToolCallsPerDay: number | null }
   }
 }
 
@@ -97,6 +104,8 @@ export default defineMcpHandler({
 
     const auth = decision.auth
     event.context.mcp = auth
+    const caps = capsFor(await resolveUserPlan(auth.userId))
+    event.context.mcpPlan = { mcpWrite: caps.mcpWrite, mcpToolCallsPerDay: caps.mcpToolCallsPerDay }
     const userAgent = getHeader(event, 'user-agent') ?? null
 
     if (!decision.opensSession) {

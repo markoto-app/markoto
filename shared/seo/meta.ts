@@ -55,6 +55,7 @@ export const DOCS_LANDING_SEO = Object.freeze({
 export const LEGAL_PAGE_DESCRIPTIONS: Readonly<Record<string, string>> = Object.freeze({
   'privacy': 'How markoto handles personal data: what is processed, why, for how long, by which sub-processors, and your rights under the GDPR and Swiss law.',
   'terms': 'The terms of use for markoto: accounts, documents without an account, acceptable use, AI features, liability and how the terms change.',
+  'paid-terms': 'The terms for Pro, Team and Business plans and AI credits: seats, renewal and cancellation, credits, refunds and your right of withdrawal.',
   'dpa': 'The data processing addendum for workspace owners: markoto processes workspace content on your behalf under GDPR Article 28.',
   'abuse-policy': 'What is not allowed on markoto, how to report illegal content or abuse, and how reports are handled and decided.',
   'imprint': 'Legal notice for markoto: the operating company, its address and how to contact it.',
