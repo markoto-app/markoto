@@ -51,3 +51,4 @@ logs
 openrc.sh
 *openrc*
 .env.staging-openrc
+.eslintcache
