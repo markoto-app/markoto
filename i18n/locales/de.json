@@ -11,7 +11,8 @@
     "newDocument": "Neues Dokument",
     "openDocument": "Dokument öffnen",
     "recentDocuments": "Zuletzt verwendete Dokumente",
-    "noRecent": "Keine zuletzt verwendeten Dokumente"
+    "noRecent": "Keine zuletzt verwendeten Dokumente",
+    "sharedWithYou": "Mit Ihnen geteilt"
   },
   "auth": {
     "login": "Anmelden",
@@ -101,7 +102,18 @@
     "enterPassword": "Passwort",
     "invalidPassword": "Falsches Passwort. Bitte versuchen Sie es erneut.",
     "unlock": "Entsperren",
-    "viewOnly": "Nur ansehen"
+    "viewOnly": "Nur ansehen",
+    "guests": {
+      "title": "Gäste",
+      "hint": "Gäste dieses Arbeitsbereichs sehen nur die Dokumente, die mit ihnen geteilt wurden.",
+      "view": "Darf ansehen",
+      "edit": "Darf bearbeiten",
+      "remove": "Teilen beenden",
+      "pick": "Gast auswählen",
+      "add": "Teilen",
+      "loadFailed": "Gäste konnten nicht geladen werden",
+      "saveFailed": "Freigabe konnte nicht geändert werden"
+    }
   },
   "access": {
     "privateTitle": "Dieses Dokument ist privat",
@@ -1308,7 +1320,10 @@
       "documents": "Dokumente",
       "knowledge": "Wissen",
       "settings": "Einstellungen",
-      "billing": "Abrechnung"
+      "billing": "Abrechnung",
+      "sso": "Single Sign-on",
+      "audit": "Audit-Log",
+      "usage": "Nutzung"
     },
     "settings": {
       "title": "Workspace-Einstellungen",
@@ -1362,7 +1377,8 @@
     "roles": {
       "admin": "Administrator",
       "editor": "Bearbeiter",
-      "viewer": "Betrachter"
+      "viewer": "Betrachter",
+      "guest": "Gast"
     },
     "members": {
       "title": "Mitglieder von {name}",
@@ -1391,9 +1407,11 @@
       "errors": {
         "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
         "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
-        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück."
+        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück.",
+        "guestCap": "Dieser Arbeitsbereich hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entfernen Sie einen Gast oder fügen Sie einen Platz hinzu."
       },
-      "invitePeople": "Personen einladen"
+      "invitePeople": "Personen einladen",
+      "guestHint": "Ein Gast sieht nur die Dokumente, die Sie mit ihm teilen, belegt keinen Platz und nutzt sein eigenes KI-Budget."
     },
     "capReachedFree": "{used} von {limit} Workspaces genutzt. Löschen Sie einen, um einen neuen anzulegen.",
     "capReachedShortFree": "Workspace-Limit erreicht",
@@ -1826,7 +1844,10 @@
       "mcpWrite": "Ihr Plan enthält für KI-Clients über MCP nur Lesezugriff. Bearbeiten, Rendern und Web-Werkzeuge brauchen einen Plan, der sie enthält.",
       "aiImage": "Bildgenerierung über die KI von markoto ist in diesem Plan nicht enthalten.",
       "aiVoice": "Spracheingabe über die KI von markoto ist in diesem Plan nicht enthalten.",
-      "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten."
+      "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten.",
+      "sso": "Single Sign-on ist im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "auditLog": "Das Audit-Log ist im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
@@ -2246,5 +2267,183 @@
     "buyFailed": "Kauf konnte nicht gestartet werden",
     "purchased": "Guthaben gekauft",
     "purchasedBody": "Es wird gutgeschrieben, sobald Stripe die Zahlung bestätigt, meist innert weniger Sekunden."
+  },
+  "sso": {
+    "title": "Single Sign-on (SSO)",
+    "loading": "Single Sign-on wird geladen…",
+    "loadFailed": "Die Einstellungen für Single Sign-on konnten nicht geladen werden.",
+    "planNotice": "Single Sign-on mit Ihrem eigenen Identitätsanbieter ist Teil des Business-Plans.",
+    "intro": "Mitglieder melden sich bei diesem Workspace über den Identitätsanbieter Ihrer Organisation an (OpenID Connect oder SAML). Sobald es eingeschaltet ist, müssen sich alle auf diese Weise anmelden, um den Workspace zu öffnen; Admins können jederzeit hierher zurückkehren, um es zu ändern oder zu entfernen.",
+    "enforcedNotice": "Single Sign-on ist eingeschaltet: Mitglieder öffnen diesen Workspace erst nach der Anmeldung über Ihren Identitätsanbieter (gültig für 12 Stunden).",
+    "idpTitle": "Identitätsanbieter",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "Issuer-URL",
+      "issuerHint": "Die Adresse, unter der /.well-known/openid-configuration Ihres Anbieters liegt.",
+      "clientId": "Client-ID",
+      "clientSecret": "Client-Secret",
+      "secretKept": "Leer lassen, um das gespeicherte Secret zu behalten."
+    },
+    "saml": {
+      "entityId": "Entity-ID des Identitätsanbieters",
+      "ssoUrl": "Single-Sign-on-URL",
+      "certificate": "Signaturzertifikat",
+      "certificateKept": "Gespeichert: {subject}, gültig bis {date}. Fügen Sie ein neues ein, um es zu ersetzen."
+    },
+    "defaultRole": "Rolle für neue Mitglieder",
+    "defaultRoleHint": "Für Personen, die durch Anmelden oder über Provisioning beitreten.",
+    "save": "Speichern",
+    "saved": "Einstellungen für Single Sign-on gespeichert",
+    "saveFailed": "Die Einstellungen für Single Sign-on konnten nicht gespeichert werden.",
+    "testAndActivate": "Anmeldung testen und einschalten",
+    "testAgain": "Anmeldung testen",
+    "draftHint": "Noch nicht eingeschaltet. Testen Sie die Anmeldung mit Ihrem eigenen Konto beim Identitätsanbieter; wenn sie funktioniert, wird Single Sign-on für den Workspace eingeschaltet.",
+    "testActivated": "Anmeldung funktioniert — Single Sign-on ist jetzt für diesen Workspace eingeschaltet",
+    "testOk": "Anmeldung funktioniert",
+    "status": {
+      "active": "Eingeschaltet",
+      "draft": "Nicht eingeschaltet"
+    },
+    "sp": {
+      "title": "Diese Werte beim Identitätsanbieter eintragen",
+      "body": "Ihr Identitätsanbieter braucht diese Werte, um Personen zu markoto zurückzuleiten.",
+      "callbackUrl": "Redirect-URI",
+      "entityId": "Entity-ID (Audience)",
+      "acsUrl": "Antwort-URL (ACS)",
+      "metadataUrl": "Metadaten-URL",
+      "loginUrl": "Anmeldelink"
+    },
+    "copy": "Kopieren",
+    "copied": "Kopiert",
+    "domains": {
+      "title": "E-Mail-Domains",
+      "body": "Bestätigen Sie die Domains, die die E-Mail-Adressen Ihrer Organisation verwenden. Nur Adressen in einer bestätigten Domain werden mit bestehenden markoto-Konten verknüpft oder treten dem Workspace bei ihrer ersten Anmeldung bei.",
+      "verified": "Bestätigt",
+      "unverified": "Nicht bestätigt",
+      "verify": "Jetzt prüfen",
+      "remove": "Domain entfernen",
+      "txtHint": "Fügen Sie auf {name} einen TXT-Eintrag mit diesem Wert hinzu und prüfen Sie dann:",
+      "add": "Domain hinzufügen"
+    },
+    "domainVerified": "{domain} ist bestätigt",
+    "domainAddFailed": "Die Domain konnte nicht hinzugefügt werden.",
+    "domainVerifyFailed": "Die Domain konnte nicht bestätigt werden.",
+    "domainRemoveFailed": "Die Domain konnte nicht entfernt werden.",
+    "scim": {
+      "title": "Provisioning (SCIM)",
+      "body": "Lassen Sie Ihren Identitätsanbieter Mitglieder automatisch hinzufügen und entfernen. Tragen Sie die Basis-URL und das Token in dessen SCIM-Einstellungen ein. Wenn Sie dort jemanden entfernen, wird die Person sofort aus diesem Workspace entfernt.",
+      "baseUrl": "SCIM-Basis-URL",
+      "tokenOnce": "Kopieren Sie dieses Token jetzt — es wird nicht noch einmal angezeigt.",
+      "create": "Token erstellen",
+      "rotate": "Token ersetzen",
+      "revoke": "Provisioning ausschalten"
+    },
+    "scimFailed": "Das Provisioning-Token konnte nicht geändert werden.",
+    "remove": "Single Sign-on entfernen",
+    "removeConfirm": "Mitglieder melden sich wieder wie zuvor an.",
+    "removed": "Single Sign-on entfernt",
+    "removeFailed": "Single Sign-on konnte nicht entfernt werden.",
+    "requiredTitle": "Über Ihre Organisation anmelden",
+    "requiredBody": "Dieser Workspace verwendet Single Sign-on. Melden Sie sich über den Identitätsanbieter Ihrer Organisation an, um ihn zu öffnen.",
+    "required": "Dieser Workspace verwendet Single Sign-on. Melden Sie sich über Ihre Organisation an, um fortzufahren.",
+    "signIn": "Mit Ihrer Organisation anmelden",
+    "error": {
+      "title": "Die Anmeldung hat nicht funktioniert",
+      "not-provisioned": "Ihr Konto ist für diesen Workspace nicht eingerichtet. Bitten Sie einen Workspace-Admin, Sie hinzuzufügen.",
+      "deactivated": "Ihre Organisation hat Ihren Zugriff auf diesen Workspace entfernt.",
+      "not-active": "Single Sign-on ist für diesen Workspace noch nicht eingeschaltet.",
+      "test-not-admin": "Nur ein Workspace-Admin kann die Anmeldung testen.",
+      "test-mismatch": "Dieses Konto beim Identitätsanbieter ist mit einem anderen markoto-Konto verknüpft. Testen Sie mit Ihrem eigenen Konto.",
+      "no-seat": "Alle bezahlten Plätze dieses Workspace sind belegt. Bitten Sie einen Admin, einen Platz hinzuzufügen.",
+      "member-limit": "Dieser Workspace hat das Mitgliederlimit seines Plans erreicht.",
+      "idp-unavailable": "Der Identitätsanbieter war nicht erreichbar. Versuchen Sie es gleich noch einmal.",
+      "failed": "Die Anmeldung konnte nicht abgeschlossen werden. Beginnen Sie erneut über den Anmeldelink.",
+      "unknown": "Diesen Anmeldelink gibt es nicht.",
+      "toWorkspace": "Zurück zum Workspace"
+    },
+    "discover": {
+      "button": "Mit Ihrer Organisation anmelden",
+      "placeholder": "Geschäftliche E-Mail-Adresse",
+      "continue": "Weiter",
+      "notFound": "Für diese E-Mail-Adresse ist kein Single Sign-on eingerichtet.",
+      "failed": "Etwas ist schiefgelaufen. Versuchen Sie es noch einmal."
+    }
+  },
+  "audit": {
+    "title": "Audit-Log",
+    "intro": "Wer in diesem Workspace was wann geändert hat: Mitglieder und Rollen, Einladungen, Freigaben und Löschungen, Abrechnung und Single Sign-on. Die Netzwerkadresse ist gekürzt (der letzte Teil entfernt).",
+    "retention": "Ereignisse werden {days} Tage lang aufbewahrt.",
+    "filter": "Anzeigen",
+    "from": "Von",
+    "to": "Bis",
+    "empty": "Keine Ereignisse für diese Auswahl.",
+    "older": "Ältere Ereignisse anzeigen",
+    "loadFailed": "Der Audit-Log konnte nicht geladen werden.",
+    "system": "markoto",
+    "deletedUser": "Gelöschter Benutzer",
+    "ipHint": "Gekürzte Netzwerkadresse der Person, die die Aktion ausgeführt hat",
+    "kind": {
+      "all": "Alle Ereignisse",
+      "members": "Mitglieder und Rollen",
+      "invites": "Einladungen",
+      "documents": "Dokumente",
+      "billing": "Abrechnung",
+      "sso": "Single Sign-on"
+    },
+    "actions": {
+      "workspace_member_removed": "Mitglied entfernt",
+      "workspace_member_role_changed": "Rolle geändert",
+      "workspace_invite_created": "Einladung gesendet",
+      "workspace_invite_revoked": "Einladung zurückgezogen",
+      "workspace_invite_accepted": "Einladung angenommen",
+      "workspace_invite_declined": "Einladung abgelehnt",
+      "workspace_deleted": "Workspace gelöscht",
+      "workspace_audit_exported": "Audit-Log heruntergeladen",
+      "workspace_member_ai_limit_changed": "KI-Limit eines Mitglieds geändert",
+      "workspace_billing_checkout_started": "Plankauf gestartet",
+      "workspace_billing_plan_changed": "Plan geändert",
+      "workspace_billing_seats_changed": "Plätze geändert",
+      "workspace_billing_admin_changed": "Abrechnungsadmin geändert",
+      "workspace_subscription_cancelled": "Abo gekündigt",
+      "doc_access_mode_changed": "Freigabe des Dokuments geändert",
+      "doc_password_set": "Dokumentpasswort gesetzt",
+      "doc_password_removed": "Dokumentpasswort entfernt",
+      "doc_workspace_moved": "Dokument an anderen Ort verschoben",
+      "doc_deleted": "Dokument gelöscht",
+      "policy_accepted": "Bedingungen akzeptiert",
+      "sso_connection_saved": "Einstellungen für Single Sign-on geändert",
+      "sso_connection_activated": "Single Sign-on eingeschaltet",
+      "sso_connection_deleted": "Single Sign-on entfernt",
+      "sso_domain_added": "Domain hinzugefügt",
+      "sso_domain_verified": "Domain bestätigt",
+      "sso_domain_removed": "Domain entfernt",
+      "sso_sign_in": "Anmeldung über den Identitätsanbieter",
+      "sso_identity_linked": "Konto beim Identitätsanbieter verknüpft",
+      "sso_member_joined": "Mitglied über Single Sign-on beigetreten",
+      "sso_scim_token_rotated": "Provisioning-Token geändert",
+      "sso_scim_user_created": "Mitglied bereitgestellt (Provisioning)",
+      "sso_scim_user_deactivated": "Mitglied entfernt (Deprovisioning)",
+      "doc_shared": "Dokument mit einem Gast geteilt",
+      "doc_unshared": "Dokument nicht mehr mit einem Gast geteilt"
+    },
+    "planNotice": "Der Audit-Log ist Teil des Business-Plans."
+  },
+  "usage": {
+    "title": "Nutzung",
+    "intro": "Was jede Person in diesem Arbeitsbereich speichert: eigene Dokumente, hinzugefügte Wissensdateien und Bilder sowie – bei einem Team- oder Business-Plan – die KI-Ausgaben vom gemeinsamen Budget in diesem Zeitraum. Nichts darüber, wann oder wie oft jemand arbeitet.",
+    "person": "Person",
+    "documents": "Dokumente",
+    "knowledge": "Wissen",
+    "images": "Bilder",
+    "aiSpend": "KI in diesem Zeitraum",
+    "files": "keine Dateien | {n} Datei · {size} | {n} Dateien · {size}",
+    "empty": "Noch keine Mitglieder.",
+    "guestsTitle": "Gäste",
+    "sharedDocs": "keine geteilten Dokumente | {n} geteiltes Dokument | {n} geteilte Dokumente",
+    "guestsHint": "Gäste nutzen ihr eigenes KI-Budget, daher werden ihre Ausgaben hier nicht angezeigt.",
+    "loadFailed": "Nutzung konnte nicht geladen werden"
   }
 }

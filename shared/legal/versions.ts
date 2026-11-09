@@ -34,7 +34,13 @@
 // v9 (2026-11-09): billing data once paid plans are offered: Team /
 // Business seats + billing admin, admins see members' monthly AI spend
 // (not content), AI credits, Paid Plans Terms acceptance (WP6b).
-export const PRIVACY_VERSION = 9
+// v10 (2026-11-09): single sign-on through a workspace's own IdP + SCIM
+// provisioning (WP14): identifier, link, last sign-in, active state.
+// v11 (2026-11-09): workspace admins (audit-log plan feature) see and
+// export that workspace's audit entries incl. names + truncated IPs (WP15).
+// v12 (2026-11-09): workspace guests + document shares, per-person usage
+// view for workspace admins (WP11).
+export const PRIVACY_VERSION = 12
 export const PRIVACY_EFFECTIVE_DATE = '2026-11-09'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.

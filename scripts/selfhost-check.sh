@@ -307,11 +307,14 @@ echo "ok: renderer keeps Chromium's sandbox"
 # docker-compose.test.yml).
 check_loopback() { # check_loopback LABEL CONFIG_JSON
   local out
-  # fake-openai-test may also use TEST_FAKE_OPENAI_HOST (rootless Podman,
-  # docs/CONTAINER-ENGINES.md).
+  # Exception: fake-openai-test (BYOK) and oidc-test (per-workspace SSO
+  # mock IdP) are also published on the test network's gateway
+  # (10.213.47.x), or on TEST_FAKE_OPENAI_HOST (rootless Podman,
+  # docs/CONTAINER-ENGINES.md): the app refuses loopback provider / IdP
+  # URLs, so they must sit on a private address it and the containers reach.
   out="$(jq -r --arg fakehost "${TEST_FAKE_OPENAI_HOST:-}" '
     .services | to_entries[] | .key as $s | (.value.ports // [])[]
-    | select((.host_ip // "") as $ip | ($ip != "127.0.0.1") and (($s == "fake-openai-test" and (($ip | startswith("10.213.47.")) or ($fakehost != "" and $ip == $fakehost))) | not))
+    | select((.host_ip // "") as $ip | ($ip != "127.0.0.1") and ((($s == "fake-openai-test" or $s == "oidc-test") and (($ip | startswith("10.213.47.")) or ($fakehost != "" and $ip == $fakehost))) | not))
     | "\($s) publishes \(.published) on \(.host_ip // "all interfaces")"' "$2")"
   if [ -n "$out" ]; then
     printf 'FAIL (%s): %s\n' "$1" "$out" >&2

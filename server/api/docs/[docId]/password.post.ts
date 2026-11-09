@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import { getDoc, getDocWithActorRole, setDocPassword, clearDocPassword, type DocSnapshot } from '../../../repos/documents'
 import { appendAuditEvent } from '../../../repos/audit'
 import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/docPasswordLimits'
-import { decideTokenAccess } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
 
 export default defineEventHandler(async (event) => {
@@ -53,6 +53,7 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
     scope: 'doc',
     scopeId: docId,
     action: 'doc.password_set',
+    workspaceId: doc.workspaceId,
     before: { accessMode: doc.accessMode, hasPassword: !!doc.passwordHash },
     after: { accessMode: 'password-protected', hasPassword: true }
   })
@@ -118,7 +119,7 @@ async function passwordGrantReadOnly(event: H3Event, docId: string): Promise<boo
   const row = await getDocWithActorRole(docId, userId)
   if (!row) throw createError({ statusCode: 404, message: 'Document not found' })
   const decision = decideTokenAccess(
-    { ownerId: row.ownerId, workspaceId: row.workspaceId, accessMode: row.accessMode },
+    docStateOf(row),
     { userId, workspaceRole: row.workspaceRole }
   )
   return decision.outcome === 'allow' ? decision.readOnly : false
@@ -160,6 +161,7 @@ async function handleRemove(event: H3Event, docId: string, doc: DocSnapshot) {
     scope: 'doc',
     scopeId: docId,
     action: 'doc.password_removed',
+    workspaceId: doc.workspaceId,
     before: { accessMode: doc.accessMode, hasPassword: !!doc.passwordHash },
     after: { accessMode: 'open-edit', hasPassword: false }
   })

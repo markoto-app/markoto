@@ -6,8 +6,9 @@ import {
   upsertWorkspaceInvite
 } from '../../../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../../../repos/audit'
-import { countMembers } from '../../../../repos/workspaceMembers'
-import { assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/entitlements'
+import { countGuests, countMembers } from '../../../../repos/workspaceMembers'
+import { assertPlanFeature, assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/entitlements'
+import { GUESTS_PER_SEAT } from '~~/shared/config/workspaceSeats'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED, AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
 import { getPooledWorkspace, seatsFullError } from '../../../../utils/workspaceBilling'
 import { changeWorkspaceSeats } from '../../../../utils/workspaceStripe'
@@ -102,26 +103,49 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const plan = await resolveWorkspacePlan(wsId)
+  const pool = await getPooledWorkspace(wsId, now)
+
+  if (newRole === 'guest') {
+    // Guests (WP11): a plan feature; no seat and no member limit, but at
+    // most GUESTS_PER_SEAT per paid seat in a Team / Business workspace.
+    assertPlanFeature(plan, 'guests', 'Guests are part of the Team and Business plans.')
+    if (pool) {
+      const guests = await countGuests(wsId) + await countOpenWorkspaceInvites(wsId, now, email, 'guests')
+      const cap = GUESTS_PER_SEAT * pool.seats
+      if (guests >= cap) {
+        throw createError({
+          statusCode: 409,
+          message: `This workspace can have at most ${cap} guests (${GUESTS_PER_SEAT} per paid seat).`,
+          data: { code: 'workspace/guest-cap', messageKey: 'workspace.members.errors.guestCap', limit: cap }
+        })
+      }
+    }
+  }
+
   // Plan limit: people in the workspace = members + open invitations
   // (re-inviting the same address doesn't count twice — the count above
   // excludes it). Invitations count from the moment they're sent, so an
   // accepted invite never pushes a workspace past its limit and accepting
   // needs no second check. A workspace already above the limit (e.g.
   // after a downgrade) keeps everyone; only new invitations are refused.
+  // Guests and guest invitations don't count (WP11).
   const membersNow = await countMembers(wsId)
-  assertPlanLimit(
-    await resolveWorkspacePlan(wsId),
-    'membersPerWorkspace',
-    membersNow + openInvites,
-    'This workspace has reached the member limit of its plan.'
-  )
+  const memberInvites = await countOpenWorkspaceInvites(wsId, now, email, 'members')
+  if (newRole !== 'guest') {
+    assertPlanLimit(
+      plan,
+      'membersPerWorkspace',
+      membersNow + memberInvites,
+      'This workspace has reached the member limit of its plan.'
+    )
+  }
 
   // Team / Business (WP3): members + open invitations may not exceed the
   // paid seats. With `addSeat: true` (the invite dialog's "This adds a
   // seat" confirmation) one seat is bought first, prorated.
-  const pool = await getPooledWorkspace(wsId, now)
-  if (pool) {
-    const used = membersNow + openInvites
+  if (pool && newRole !== 'guest') {
+    const used = membersNow + memberInvites
     if (used >= pool.seats) {
       if (body?.addSeat !== true) throw seatsFullError(pool.seats, used)
       const stripe = useStripeClient()

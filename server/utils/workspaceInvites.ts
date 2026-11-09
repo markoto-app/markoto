@@ -32,10 +32,11 @@ export const WORKSPACE_INVITE_EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000
 /** RFC 5321 caps a forward-path at 254 characters. */
 const EMAIL_MAX_LENGTH = 254
 
-export type InviteRole = 'admin' | 'editor' | 'viewer'
+// `guest` (WP11): sees only documents shared with them; takes no seat.
+export type InviteRole = 'admin' | 'editor' | 'viewer' | 'guest'
 
 export function isInviteRole(value: unknown): value is InviteRole {
-  return value === 'admin' || value === 'editor' || value === 'viewer'
+  return value === 'admin' || value === 'editor' || value === 'viewer' || value === 'guest'
 }
 
 /**
@@ -95,7 +96,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   en: {
     subject: w => `You're invited to the workspace "${w}" on markoto`,
     intro: (i, w, r) => `${i} invited you to join the workspace "${w}" on markoto as ${r}.`,
-    roles: { admin: 'an admin', editor: 'an editor', viewer: 'a viewer' },
+    roles: { admin: 'an admin', editor: 'an editor', viewer: 'a viewer', guest: 'a guest (you see only the documents shared with you)' },
     acceptLabel: 'Accept the invitation:',
     account: 'You\'ll be asked to sign in (or create an account) first. Signed in with this email address, you can also accept or decline from your markoto dashboard.',
     expiry: 'The invitation expires in 14 days.',
@@ -104,7 +105,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   de: {
     subject: w => `Einladung in den Arbeitsbereich «${w}» auf markoto`,
     intro: (i, w, r) => `${i} hat Sie in den Arbeitsbereich «${w}» auf markoto eingeladen, als ${r}.`,
-    roles: { admin: 'Admin', editor: 'Bearbeiter:in', viewer: 'Betrachter:in' },
+    roles: { admin: 'Admin', editor: 'Bearbeiter:in', viewer: 'Betrachter:in', guest: 'Gast (Sie sehen nur die Dokumente, die mit Ihnen geteilt werden)' },
     acceptLabel: 'Einladung annehmen:',
     account: 'Sie werden zuerst gebeten, sich anzumelden (oder ein Konto zu erstellen). Mit dieser E-Mail-Adresse angemeldet, können Sie die Einladung auch im markoto-Dashboard annehmen oder ablehnen.',
     expiry: 'Die Einladung läuft in 14 Tagen ab.',
@@ -113,7 +114,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   fr: {
     subject: w => `Invitation à l'espace de travail « ${w} » sur markoto`,
     intro: (i, w, r) => `${i} vous invite à rejoindre l'espace de travail « ${w} » sur markoto en tant que ${r}.`,
-    roles: { admin: 'administrateur', editor: 'éditeur', viewer: 'lecteur' },
+    roles: { admin: 'administrateur', editor: 'éditeur', viewer: 'lecteur', guest: 'invité (vous ne voyez que les documents partagés avec vous)' },
     acceptLabel: 'Accepter l\'invitation :',
     account: 'Vous devrez d\'abord vous connecter (ou créer un compte). Connecté avec cette adresse e-mail, vous pouvez aussi accepter ou refuser depuis votre tableau de bord markoto.',
     expiry: 'L\'invitation expire dans 14 jours.',
@@ -122,7 +123,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   es: {
     subject: w => `Invitación al espacio de trabajo «${w}» en markoto`,
     intro: (i, w, r) => `${i} te ha invitado a unirte al espacio de trabajo «${w}» en markoto como ${r}.`,
-    roles: { admin: 'administrador', editor: 'editor', viewer: 'lector' },
+    roles: { admin: 'administrador', editor: 'editor', viewer: 'lector', guest: 'invitado (solo ves los documentos compartidos contigo)' },
     acceptLabel: 'Aceptar la invitación:',
     account: 'Primero tendrás que iniciar sesión (o crear una cuenta). Con la sesión iniciada con esta dirección de correo, también puedes aceptar o rechazar desde tu panel de markoto.',
     expiry: 'La invitación caduca en 14 días.',
@@ -131,7 +132,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   ja: {
     subject: w => `markoto のワークスペース「${w}」への招待`,
     intro: (i, w, r) => `${i} さんが markoto のワークスペース「${w}」に${r}として招待しました。`,
-    roles: { admin: '管理者', editor: '編集者', viewer: '閲覧者' },
+    roles: { admin: '管理者', editor: '編集者', viewer: '閲覧者', guest: 'ゲスト（共有されたドキュメントのみ表示されます）' },
     acceptLabel: '招待を承認する:',
     account: '最初にサインイン（またはアカウント作成）を求められます。このメールアドレスでサインインしていれば、markoto のダッシュボードから承認または辞退することもできます。',
     expiry: 'この招待は 14 日後に期限切れになります。',
@@ -140,7 +141,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   zh: {
     subject: w => `邀请您加入 markoto 上的工作区“${w}”`,
     intro: (i, w, r) => `${i} 邀请您以${r}身份加入 markoto 上的工作区“${w}”。`,
-    roles: { admin: '管理员', editor: '编辑者', viewer: '查看者' },
+    roles: { admin: '管理员', editor: '编辑者', viewer: '查看者', guest: '访客（只能看到与你共享的文档）' },
     acceptLabel: '接受邀请：',
     account: '您需要先登录（或创建账户）。使用此邮箱地址登录后，您也可以在 markoto 控制台中接受或拒绝邀请。',
     expiry: '此邀请将在 14 天后过期。',

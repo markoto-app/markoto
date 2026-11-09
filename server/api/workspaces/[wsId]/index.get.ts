@@ -1,10 +1,12 @@
 import { getWorkspace } from '../../../repos/workspaces'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
-import { resolveWorkspacePlan } from '../../../utils/entitlements'
+import { planHasFeature, resolveWorkspacePlan } from '../../../utils/entitlements'
+import { getSsoConnectionForWorkspace } from '../../../repos/sso'
 import { countSeatsUsed, getPooledWorkspace } from '../../../utils/workspaceBilling'
 import { getWorkspaceSubscription } from '../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../utils/billingMode'
+import { ssoRequiredError } from '../../../utils/sso/required'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
 // row, the complete doc list (every doc in the workspace — not just the
@@ -24,6 +26,10 @@ export default defineEventHandler(async (event) => {
 
   const myRole = await getWorkspaceRole(userId, wsId)
   if (myRole === null) {
+    // A member of a workspace that enforces single sign-on, without a
+    // current sign-in through it: tell the UI where to sign in (WP14).
+    const sso = await ssoRequiredError(wsId, userId, `/w/${wsId}`)
+    if (sso) throw sso
     // Not a member. Return 404 rather than 403 so membership itself isn't
     // enumerable by an outsider who only knows the workspace id.
     throw createError({ statusCode: 404, message: 'Workspace not found' })
@@ -50,6 +56,21 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Single sign-on (WP14), admins only: whether the SSO tab is shown
+  // (the plan includes it, or a connection exists to switch off).
+  let sso: { available: boolean, status: 'none' | 'draft' | 'active' } | null = null
+  // Audit log (WP15), admins only: whether the plan includes the viewer.
+  let auditLog: { available: boolean } | null = null
+  // Guests (WP11), admins only: whether guests can be invited.
+  let guests: { available: boolean } | null = null
+  if (myRole === 'admin') {
+    const plan = await resolveWorkspacePlan(wsId)
+    const connection = await getSsoConnectionForWorkspace(wsId)
+    sso = { available: planHasFeature(plan, 'sso'), status: connection?.status ?? 'none' }
+    auditLog = { available: planHasFeature(plan, 'auditLog') }
+    guests = { available: planHasFeature(plan, 'guests') }
+  }
+
   return {
     workspace: {
       workspaceId: ws.workspaceId,
@@ -68,7 +89,10 @@ export default defineEventHandler(async (event) => {
       defaultTheme: ws.defaultTheme,
       // Whether a Team / Business subscription currently covers it.
       pooled: pool !== null,
-      billing
+      billing,
+      sso,
+      auditLog,
+      guests
     },
     documents,
     members

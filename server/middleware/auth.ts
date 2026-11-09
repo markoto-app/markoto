@@ -106,6 +106,9 @@ export default defineEventHandler(async (event) => {
     // at rest. Sign-up 404s unless the waitlist is open (billing off +
     // NUXT_PLANS_COMING_SOON).
     { path: /^\/api\/waitlist$/, methods: ['POST'] },
+    // "Sign in with your organisation" (WP14): email → the SSO sign-in
+    // link of the workspace that verified its domain. Rate-limited.
+    { path: /^\/api\/auth\/sso\/discover$/, methods: ['POST'] },
     { path: /^\/api\/waitlist\/(?:confirm|unsubscribe)$/, methods: ['POST'] },
     // Stripe webhooks: auth'd via `Stripe-Signature` header + our
     // webhook secret. No user session — Stripe's servers don't have

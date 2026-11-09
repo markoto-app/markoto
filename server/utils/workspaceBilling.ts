@@ -84,7 +84,8 @@ export function memberLimitUsd(member: { aiLimitUsd: number | null, aiUnlimited:
 export async function countSeatsUsed(workspaceId: string, now: Date = new Date(), exceptInviteEmail?: string): Promise<number> {
   const [members, invites] = await Promise.all([
     countMembers(workspaceId),
-    countOpenWorkspaceInvites(workspaceId, now, exceptInviteEmail)
+    // Guests and their invitations take no seat (WP11).
+    countOpenWorkspaceInvites(workspaceId, now, exceptInviteEmail, 'members')
   ])
   return members + invites
 }

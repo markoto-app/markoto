@@ -43,7 +43,8 @@
 //
 // Pure — takes an env-shaped record so every test tier can drive it.
 
-import { parseBooleanFlag } from './billingMode'
+import { parseBooleanFlag, resolveBillingMode } from './billingMode'
+import { resolveTiersFromEnv } from './tiers'
 import { resolveLegalEntity } from '../legal/entity'
 import { DEFAULT_ANON_DOC_TTL_DAYS, resolveAnonDocTtlDays, resolveAnonGateEnabled } from './anonGate'
 
@@ -104,6 +105,13 @@ export interface InstanceConfig {
   anonGate: boolean
   /** Days without activity after which anonymous documents are deleted (0 = never). */
   anonDocTtlDays: number
+  /**
+   * Per-workspace single sign-on can exist here (WP14): a plan that can
+   * be on this instance includes it — with billing off only the free
+   * tier, with billing on any plan. Shows "Sign in with your
+   * organisation" on the sign-in screen.
+   */
+  workspaceSso: boolean
 }
 
 /** Where self-hosted instances point their `/docs/**` canonicals. */
@@ -119,7 +127,8 @@ export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   siteUrl: '',
   docsCanonicalBase: DEFAULT_DOCS_CANONICAL_BASE,
   anonGate: false,
-  anonDocTtlDays: DEFAULT_ANON_DOC_TTL_DAYS
+  anonDocTtlDays: DEFAULT_ANON_DOC_TTL_DAYS,
+  workspaceSso: false
 })
 
 type Env = Record<string, string | undefined>
@@ -224,8 +233,16 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
     siteUrl: resolveCanonicalSiteUrl(env),
     docsCanonicalBase: resolveDocsCanonicalBase(env),
     anonGate: resolveAnonGateEnabled(env),
-    anonDocTtlDays: resolveAnonDocTtlDays(env)
+    anonDocTtlDays: resolveAnonDocTtlDays(env),
+    workspaceSso: resolveWorkspaceSsoAvailable(env)
   }
+}
+
+/** See `InstanceConfig.workspaceSso`. */
+export function resolveWorkspaceSsoAvailable(env: Env): boolean {
+  const tiers = resolveTiersFromEnv(env)
+  if (!resolveBillingMode(env).billingEnabled) return tiers.free.sso
+  return Object.values(tiers).some(caps => caps.sso)
 }
 
 /** Path that starts the sign-in flow for a provider. */

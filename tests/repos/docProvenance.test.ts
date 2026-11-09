@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { createDoc, createUser } from '../integration/setup/fixtures'
-import { hasForeignContentActivity } from '../../server/repos/docProvenance'
+import { createDoc, createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
+import { countOtherWorkspaceEditors, hasForeignContentActivity } from '../../server/repos/docProvenance'
 import {
   listAiSessionProvenanceForUser,
   markAiSessionProvenanceClean,
@@ -113,5 +113,58 @@ describe('hasForeignContentActivity — AI session provenance', () => {
     await testDb().query('DELETE FROM users WHERE id = $1', [bob.id])
     const left = await testDb().query('SELECT 1 FROM ai_session_provenance WHERE session_id = $1', ['s-gone'])
     expect(left.rows).toHaveLength(0)
+  })
+})
+
+describe('countOtherWorkspaceEditors — guests with an edit share (WP11)', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function share(docId: string, userId: number, access: 'view' | 'edit'): Promise<void> {
+    await testDb().query('INSERT INTO document_shares (doc_id, user_id, access) VALUES ($1, $2, $3)', [docId, userId, access])
+  }
+
+  it('a single-admin workspace has no other editors until a guest gets an edit share', async () => {
+    const admin = await createUser({ name: 'Maya Admin' })
+    const ws = await createWorkspace(admin.id)
+    const guest = await createUser({ name: 'Gus Guest' })
+    await setMemberRole(ws.workspaceId, guest.id, 'guest')
+    const doc = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId })
+    expect(await countOtherWorkspaceEditors(ws.workspaceId, admin.id)).toBe(0)
+
+    // A view share can't change any text.
+    await share(doc.docId, guest.id, 'view')
+    expect(await countOtherWorkspaceEditors(ws.workspaceId, admin.id)).toBe(0)
+
+    // An edit share can (text, title, description) — the admin's AI
+    // reading workspace titles must now ask first.
+    await testDb().query('UPDATE document_shares SET access = \'edit\' WHERE doc_id = $1 AND user_id = $2', [doc.docId, guest.id])
+    expect(await countOtherWorkspaceEditors(ws.workspaceId, admin.id)).toBe(1)
+  })
+
+  it('counts each person once, never the invoker, and only shares on the workspace\'s own documents', async () => {
+    const admin = await createUser({ name: 'Maya Admin' })
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser({ name: 'Ed Editor' })
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const guest = await createUser({ name: 'Gus Guest' })
+    await setMemberRole(ws.workspaceId, guest.id, 'guest')
+    const docA = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId })
+    const docB = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId })
+    await share(docA.docId, guest.id, 'edit')
+    await share(docB.docId, guest.id, 'edit')
+    expect(await countOtherWorkspaceEditors(ws.workspaceId, admin.id)).toBe(2)
+    // From the guest's own point of view, their shares don't count.
+    expect(await countOtherWorkspaceEditors(ws.workspaceId, guest.id)).toBe(2)
+
+    // An edit share in ANOTHER workspace doesn't make this one shared.
+    const otherAdmin = await createUser({ name: 'Olga Other' })
+    const otherWs = await createWorkspace(otherAdmin.id)
+    const otherDoc = await createDoc({ ownerId: otherAdmin.id, workspaceId: otherWs.workspaceId })
+    const outsider = await createUser({ name: 'Out Sider' })
+    await setMemberRole(otherWs.workspaceId, outsider.id, 'guest')
+    await share(otherDoc.docId, outsider.id, 'edit')
+    expect(await countOtherWorkspaceEditors(ws.workspaceId, admin.id)).toBe(2)
   })
 })

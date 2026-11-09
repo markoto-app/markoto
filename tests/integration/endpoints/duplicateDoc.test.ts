@@ -184,12 +184,11 @@ describe('POST /api/docs/:docId/duplicate', () => {
       expect((await readDoc(docId))!.workspace_id).toBe(targetWs.workspaceId)
     })
 
-    it('same-workspace duplicate doesn\'t re-check target membership (actor already passed source)', async () => {
-      // A workspace editor duplicating inside the workspace must NOT
-      // be rejected for "not admin/editor of target" — they're
-      // literally the editor of that workspace. The handler
-      // short-circuits target-membership when the target matches the
-      // source's workspace; pin that behaviour.
+    it('same-workspace duplicate by a workspace editor passes the target-membership check', async () => {
+      // The target-membership check also runs for the source's own
+      // workspace (a guest's edit share must not let them create
+      // documents there — workspaceGuests.test.ts); a real editor of
+      // that workspace must still pass it.
       const creator = await createUser()
       const editor = await createUser()
       const ws = await createWorkspace(creator.id)

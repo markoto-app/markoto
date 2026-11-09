@@ -9,9 +9,12 @@ import {
   auditLog,
   consentLog,
   documentComments,
+  documentShares,
   documents,
   moderationNotices,
+  ssoConnections,
   themes,
+  userIdentities,
   users,
   workspaceMembers,
   workspaces
@@ -85,6 +88,11 @@ Contents:
                          email ("received") and ones you sent
                          ("sent": the address you typed, role, dates).
   themes.json            saved themes you've created.
+  sso_identities.json    workspace identity providers (single sign-on)
+                         your account is linked to.
+  document_shares.json   documents shared with you as a workspace guest
+                         ("received") and ones you shared with guests
+                         ("granted"), with view / edit access.
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
   ai/edit-provenance.ndjson  which AI sessions you started on which
@@ -187,6 +195,8 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
   const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, userId)
   await addCreditGrantsEntry(entries, userId)
+  await addSsoIdentitiesEntry(entries, userId)
+  await addDocumentSharesEntry(entries, userId)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -672,6 +682,60 @@ async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<n
     createdAt: r.createdAt.toISOString()
   })), null, 2))
   return rows.length
+}
+
+/**
+ * Single sign-on (WP14): the workspace identity providers this account
+ * is linked to — which workspace, the protocol, the subject the IdP
+ * knows you by, whether provisioning (SCIM) disabled it, last sign-in.
+ */
+async function addSsoIdentitiesEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await useDatabase().select({
+    workspaceId: ssoConnections.workspaceId,
+    protocol: ssoConnections.protocol,
+    subject: userIdentities.subject,
+    active: userIdentities.active,
+    createdAt: userIdentities.createdAt,
+    lastLoginAt: userIdentities.lastLoginAt
+  }).from(userIdentities)
+    .innerJoin(ssoConnections, eq(ssoConnections.id, userIdentities.connectionId))
+    .where(eq(userIdentities.userId, userId))
+  entries['sso_identities.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    workspaceId: r.workspaceId,
+    protocol: r.protocol,
+    subject: r.subject,
+    active: r.active,
+    linkedAt: r.createdAt.toISOString(),
+    lastSignInAt: r.lastLoginAt?.toISOString() ?? null
+  })), null, 2))
+  return rows.length
+}
+
+/**
+ * Workspace guests (WP11): documents shared with this account as a
+ * guest, and the shares this account granted to guests.
+ */
+async function addDocumentSharesEntry(entries: Entries, userId: number): Promise<void> {
+  const db = useDatabase()
+  const cols = {
+    docId: documentShares.docId,
+    title: documents.title,
+    workspaceId: documents.workspaceId,
+    userId: documentShares.userId,
+    access: documentShares.access,
+    grantedByUserId: documentShares.grantedByUserId,
+    createdAt: documentShares.createdAt
+  }
+  const [received, granted] = await Promise.all([
+    db.select(cols).from(documentShares).innerJoin(documents, eq(documents.docId, documentShares.docId)).where(eq(documentShares.userId, userId)),
+    db.select(cols).from(documentShares).innerJoin(documents, eq(documents.docId, documentShares.docId)).where(eq(documentShares.grantedByUserId, userId))
+  ])
+  const view = (r: typeof received[number]) => ({ docId: r.docId, title: r.title, workspaceId: r.workspaceId, access: r.access, sharedAt: r.createdAt.toISOString() })
+  entries['document_shares.json'] = strToU8(JSON.stringify({
+    received: received.map(view),
+    // The guest's account id only — their profile isn't yours to export.
+    granted: granted.map(r => ({ ...view(r), guestUserId: r.userId }))
+  }, null, 2))
 }
 
 async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {

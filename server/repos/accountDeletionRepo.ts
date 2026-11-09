@@ -1,4 +1,4 @@
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { and, eq, inArray, ne, sql } from 'drizzle-orm'
 import {
   activityLog,
   aiSessions,
@@ -230,7 +230,8 @@ export async function deleteUserRow(userId: number): Promise<void> {
  */
 export interface UserMembershipRow {
   workspaceId: string
-  role: 'admin' | 'editor' | 'viewer'
+  // `guest` (WP11): the account-deletion plan just removes the membership.
+  role: 'admin' | 'editor' | 'viewer' | 'guest'
   ownerId: number
   name: string
 }
@@ -263,7 +264,7 @@ export async function listMembershipsForUser(userId: number): Promise<UserMember
 export async function listOtherMembers(
   workspaceId: string,
   excludeUserId: number
-): Promise<{ userId: number, role: 'admin' | 'editor' | 'viewer', joinedAt: Date }[]> {
+): Promise<{ userId: number, role: 'admin' | 'editor' | 'viewer' | 'guest', joinedAt: Date }[]> {
   const db = useDatabase()
   const rows = await db
     .select({
@@ -274,7 +275,10 @@ export async function listOtherMembers(
     .from(workspaceMembers)
     .where(and(
       eq(workspaceMembers.workspaceId, workspaceId),
-      sql`${workspaceMembers.userId} <> ${excludeUserId}`
+      sql`${workspaceMembers.userId} <> ${excludeUserId}`,
+      // Guests (WP11) are not the team: never promoted, and a workspace
+      // left with only guests is deleted with its last member.
+      ne(workspaceMembers.role, 'guest')
     ))
     .orderBy(workspaceMembers.joinedAt)
   return rows.map(r => ({

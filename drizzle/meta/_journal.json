@@ -232,6 +232,27 @@
       "when": 1794233994635,
       "tag": "0032_grey_cannonball",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794239007981,
+      "tag": "0033_stiff_pride",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794242713808,
+      "tag": "0034_far_onslaught",
+      "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794256694974,
+      "tag": "0035_mushy_morlocks",
+      "breakpoints": true
     }
   ]
 }

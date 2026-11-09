@@ -92,15 +92,29 @@ export async function hasForeignContentActivity(docId: string, userId: number): 
   return result.rows.length > 0
 }
 
-/** Number of OTHER workspace members who can edit documents (admin / editor). */
+/**
+ * Number of OTHER people who can edit documents in the workspace: its
+ * admins / editors plus every guest holding an `edit` share on one of
+ * its documents (WP11) — a guest can change that document's text, title
+ * and description, which the invoker's AI then reads.
+ */
 export async function countOtherWorkspaceEditors(workspaceId: string, userId: number): Promise<number> {
   const db = useDatabase()
   const result = await db.execute(sql`
-    SELECT count(*)::int AS n
-    FROM workspace_members
-    WHERE workspace_id = ${workspaceId}
-      AND user_id <> ${userId}
-      AND role IN ('admin', 'editor')
+    SELECT count(*)::int AS n FROM (
+      SELECT user_id
+      FROM workspace_members
+      WHERE workspace_id = ${workspaceId}
+        AND user_id <> ${userId}
+        AND role IN ('admin', 'editor')
+      UNION
+      SELECT ds.user_id
+      FROM document_shares ds
+      JOIN documents d ON d.doc_id = ds.doc_id
+      WHERE d.workspace_id = ${workspaceId}
+        AND ds.user_id <> ${userId}
+        AND ds.access = 'edit'
+    ) editors
   `)
   const n = result.rows[0]?.n
   return typeof n === 'number' ? n : Number(n ?? 0)

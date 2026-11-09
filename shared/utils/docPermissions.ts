@@ -14,11 +14,25 @@
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
 export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
+/**
+ * A row in `workspace_members` (WP11): a role, or `guest` — someone who
+ * reaches only the documents shared with them. Never passed to the
+ * access decisions as a role: `getMemberRole` returns null for a guest,
+ * and the document query maps a share to `editor` / `viewer`.
+ */
+export type MembershipRole = WorkspaceRole | 'guest'
 
 export interface DocState {
   ownerId: number | null
   workspaceId: string | null
   accessMode: AccessMode
+  // True when the actor owns the doc but the ownership must not count:
+  // the doc is in a workspace that enforces single sign-on (WP14) and
+  // the actor has no effective role there (no current SSO grant, or
+  // removed / deactivated via SCIM). The actor is then treated as a
+  // non-owner. Computed per actor by `getDocWithActorRole`; build
+  // DocState with `docStateOf(row)` so it is never dropped.
+  ownerAccessSuspended?: boolean
 }
 
 export interface ActorState {
@@ -63,8 +77,41 @@ export interface DeleteDecision {
   reason?: string
 }
 
+/**
+ * The `DocState` of a doc row loaded with the actor's role
+ * (`getDocWithActorRole`), carrying the single sign-on ownership rule
+ * (`ownerAccessSuspended`). Every decide* call made from such a row
+ * builds its DocState through this, so the rule can't be dropped.
+ */
+export function docStateOf(row: {
+  ownerId: number | null
+  workspaceId: string | null
+  accessMode: AccessMode
+  ownerAccessSuspended: boolean
+}): DocState {
+  return {
+    ownerId: row.ownerId,
+    workspaceId: row.workspaceId,
+    accessMode: row.accessMode,
+    ownerAccessSuspended: row.ownerAccessSuspended
+  }
+}
+
+/**
+ * Whether `userId` owns the doc AND the ownership counts (not suspended
+ * by single sign-on, see `DocState.ownerAccessSuspended`). Use instead
+ * of comparing `ownerId` by hand in any authorization path.
+ */
+export function isEffectiveDocOwner(
+  row: { ownerId: number | null, ownerAccessSuspended: boolean },
+  userId: number | null
+): boolean {
+  return userId !== null && row.ownerId !== null && row.ownerId === userId && !row.ownerAccessSuspended
+}
+
 // Small helpers kept private so the decision functions read top-to-bottom.
 function isDocOwner(doc: DocState, actor: ActorState): boolean {
+  if (doc.ownerAccessSuspended === true) return false
   return doc.ownerId !== null && actor.userId !== null && doc.ownerId === actor.userId
 }
 
@@ -97,7 +144,8 @@ function isAnonymousDoc(doc: DocState): boolean {
  * - `password-required`  → return { token: null, requiresPassword: true }
  *
  * Spec (AGENTS.md §4):
- *   - Doc owner: full access, always.
+ *   - Doc owner: full access, always — except while the ownership is
+ *     suspended by single sign-on (`doc.ownerAccessSuspended`).
  *   - Workspace admin/editor: bypass `private` and `password-protected`,
  *     get full edit on all modes.
  *   - Workspace viewer: bypass `private` and `password-protected`, but

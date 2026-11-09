@@ -1,7 +1,7 @@
 import { and, asc, count, eq, gt, lte, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { users, workspaceInvites, workspaceMembers, workspaces } from '../db/schema'
-import type { WorkspaceRole } from '../../shared/utils/docPermissions'
+import type { MembershipRole } from '../../shared/utils/docPermissions'
 import { useDatabase } from '../utils/database'
 
 // `workspace_invites` repository — pending workspace invitations.
@@ -26,7 +26,7 @@ import { useDatabase } from '../utils/database'
 export interface UpsertInviteInput {
   workspaceId: string
   email: string
-  role: WorkspaceRole
+  role: MembershipRole
   invitedByUserId: number
   tokenHash: string | null
   expiresAt: Date
@@ -36,7 +36,7 @@ export interface UpsertInviteInput {
 export interface WorkspaceInviteAdminRow {
   inviteId: string
   email: string
-  role: WorkspaceRole
+  role: MembershipRole
   invitedByName: string | null
   createdAt: Date
   expiresAt: Date
@@ -47,7 +47,7 @@ export interface WorkspaceInviteInboxRow {
   inviteId: string
   workspaceId: string
   workspaceName: string
-  role: WorkspaceRole
+  role: MembershipRole
   invitedByName: string | null
   createdAt: Date
   expiresAt: Date
@@ -87,10 +87,19 @@ export async function upsertWorkspaceInvite(input: UpsertInviteInput): Promise<s
 }
 
 /** Open (unexpired) invites of a workspace, excluding `exceptEmail`. */
-export async function countOpenWorkspaceInvites(workspaceId: string, now: Date, exceptEmail?: string): Promise<number> {
+export async function countOpenWorkspaceInvites(
+  workspaceId: string,
+  now: Date,
+  exceptEmail?: string,
+  // `members` for seats + the member limit, `guests` for the guest cap,
+  // `all` for the open-invitation cap (WP11).
+  kind: 'all' | 'members' | 'guests' = 'all'
+): Promise<number> {
   const db = useDatabase()
   const conditions = [eq(workspaceInvites.workspaceId, workspaceId), gt(workspaceInvites.expiresAt, now)]
   if (exceptEmail !== undefined) conditions.push(sql`${workspaceInvites.email} <> ${exceptEmail}`)
+  if (kind === 'members') conditions.push(sql`${workspaceInvites.role} <> 'guest'`)
+  if (kind === 'guests') conditions.push(sql`${workspaceInvites.role} = 'guest'`)
   const row = (await db.select({ n: count() }).from(workspaceInvites).where(and(...conditions)))[0]
   return row?.n ?? 0
 }
@@ -129,7 +138,7 @@ export async function listWorkspaceInvites(workspaceId: string, now: Date): Prom
 }
 
 /** Revoke an invite. Keyed on (workspace, invite id). Null when nothing matched. */
-export async function deleteWorkspaceInvite(workspaceId: string, inviteId: string): Promise<{ role: WorkspaceRole } | null> {
+export async function deleteWorkspaceInvite(workspaceId: string, inviteId: string): Promise<{ role: MembershipRole } | null> {
   const db = useDatabase()
   const row = (await db
     .delete(workspaceInvites)
@@ -167,7 +176,7 @@ export interface ResolvedInvite {
   inviteId: string
   workspaceId: string
   workspaceName: string
-  role: WorkspaceRole
+  role: MembershipRole
 }
 
 function selectorCondition(selector: InviteSelector) {
@@ -257,8 +266,8 @@ export async function deleteInvitesForEmail(email: string): Promise<number> {
 
 /** Data export: invites addressed to the user and invites they sent. */
 export async function listInvitesForExport(userId: number, email: string | null): Promise<{
-  received: Array<{ workspaceName: string, role: WorkspaceRole, createdAt: Date, expiresAt: Date }>
-  sent: Array<{ workspaceId: string, email: string, role: WorkspaceRole, createdAt: Date, expiresAt: Date }>
+  received: Array<{ workspaceName: string, role: MembershipRole, createdAt: Date, expiresAt: Date }>
+  sent: Array<{ workspaceId: string, email: string, role: MembershipRole, createdAt: Date, expiresAt: Date }>
 }> {
   const db = useDatabase()
   const received = email === null

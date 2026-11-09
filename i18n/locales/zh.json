@@ -11,7 +11,8 @@
     "newDocument": "新建文档",
     "openDocument": "打开文档",
     "recentDocuments": "最近的文档",
-    "noRecent": "暂无最近的文档"
+    "noRecent": "暂无最近的文档",
+    "sharedWithYou": "与你共享"
   },
   "auth": {
     "login": "登录",
@@ -101,7 +102,18 @@
     "enterPassword": "密码",
     "invalidPassword": "密码不正确，请重试。",
     "unlock": "解锁",
-    "viewOnly": "仅查看"
+    "viewOnly": "仅查看",
+    "guests": {
+      "title": "访客",
+      "hint": "此工作区的访客只能看到与其共享的文档。",
+      "view": "可查看",
+      "edit": "可编辑",
+      "remove": "停止共享",
+      "pick": "选择访客",
+      "add": "共享",
+      "loadFailed": "无法加载访客",
+      "saveFailed": "无法更改共享设置"
+    }
   },
   "access": {
     "privateTitle": "本文档为私有",
@@ -1308,7 +1320,10 @@
       "documents": "文档",
       "knowledge": "知识库",
       "settings": "设置",
-      "billing": "账单"
+      "billing": "账单",
+      "sso": "单点登录",
+      "audit": "审计日志",
+      "usage": "用量"
     },
     "settings": {
       "title": "工作区设置",
@@ -1362,7 +1377,8 @@
     "roles": {
       "admin": "管理员",
       "editor": "编辑者",
-      "viewer": "查看者"
+      "viewer": "查看者",
+      "guest": "访客"
     },
     "members": {
       "title": "{name} 的成员",
@@ -1391,9 +1407,11 @@
       "errors": {
         "invalidEmail": "请输入有效的邮箱地址。",
         "alreadyMember": "此人已是该工作区的成员。",
-        "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。"
+        "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。",
+        "guestCap": "此工作区的访客数量已达到其套餐上限（每个付费席位 5 位）。请先移除一位访客或增加席位。"
       },
-      "invitePeople": "邀请成员"
+      "invitePeople": "邀请成员",
+      "guestHint": "访客只能看到你与其共享的文档，不占用席位，并使用自己的 AI 额度。"
     },
     "capReachedFree": "已使用 {used} / {limit} 个工作区。请删除一个后再创建新的。",
     "capReachedShortFree": "已达工作区上限",
@@ -1826,7 +1844,10 @@
       "mcpWrite": "你的套餐中，通过 MCP 连接的 AI 客户端只有只读权限。编辑、渲染和网络工具需要包含这些功能的套餐。",
       "aiImage": "此方案不包含使用 markoto AI 生成图像。",
       "aiVoice": "此方案不包含使用 markoto AI 进行语音输入。",
-      "aiStrongModel": "此方案不包含强大的 AI 模型。"
+      "aiStrongModel": "此方案不包含强大的 AI 模型。",
+      "sso": "此工作区的套餐不包含单点登录。",
+      "auditLog": "此工作区的套餐不包含审计日志。",
+      "guests": "此工作区的套餐不包含访客功能。"
     },
     "limit": {
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
@@ -2246,5 +2267,183 @@
     "buyFailed": "无法开始购买",
     "purchased": "已购买额度",
     "purchasedBody": "Stripe 确认付款后即会到账，通常只需几秒钟。"
+  },
+  "sso": {
+    "title": "单点登录（SSO）",
+    "loading": "正在加载单点登录…",
+    "loadFailed": "无法加载单点登录设置。",
+    "planNotice": "使用你自己的身份提供商进行单点登录是 Business 方案的功能。",
+    "intro": "成员通过你所在组织的身份提供商（OpenID Connect 或 SAML）登录此工作区。开启后，所有人都必须通过这种方式登录才能打开工作区；管理员随时可以回到这里更改或移除它。",
+    "enforcedNotice": "单点登录已开启：成员只有通过你的身份提供商登录后才能打开此工作区（有效期 12 小时）。",
+    "idpTitle": "身份提供商",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "颁发者 URL",
+      "issuerHint": "你的提供商的 /.well-known/openid-configuration 所在的地址。",
+      "clientId": "客户端 ID",
+      "clientSecret": "客户端密钥",
+      "secretKept": "留空以保留已保存的密钥。"
+    },
+    "saml": {
+      "entityId": "身份提供商实体 ID",
+      "ssoUrl": "单点登录 URL",
+      "certificate": "签名证书",
+      "certificateKept": "已保存：{subject}，有效期至 {date}。粘贴新证书即可替换。"
+    },
+    "defaultRole": "新成员的角色",
+    "defaultRoleHint": "适用于通过登录或预配加入的人。",
+    "save": "保存",
+    "saved": "单点登录设置已保存",
+    "saveFailed": "无法保存单点登录设置。",
+    "testAndActivate": "测试登录并开启",
+    "testAgain": "测试登录",
+    "draftHint": "尚未开启。请用你自己在身份提供商的账号测试登录；测试成功后，此工作区的单点登录即会开启。",
+    "testActivated": "登录成功 — 此工作区的单点登录现已开启",
+    "testOk": "登录成功",
+    "status": {
+      "active": "已开启",
+      "draft": "未开启"
+    },
+    "sp": {
+      "title": "在你的身份提供商中填写以下内容",
+      "body": "你的身份提供商需要这些值，才能将用户送回 markoto。",
+      "callbackUrl": "重定向 URI",
+      "entityId": "实体 ID（受众）",
+      "acsUrl": "回复 URL（ACS）",
+      "metadataUrl": "元数据 URL",
+      "loginUrl": "登录链接"
+    },
+    "copy": "复制",
+    "copied": "已复制",
+    "domains": {
+      "title": "邮箱域名",
+      "body": "验证你所在组织的邮箱地址使用的域名。只有已验证域名下的地址才会关联到现有的 markoto 账号，或在首次登录时加入工作区。",
+      "verified": "已验证",
+      "unverified": "未验证",
+      "verify": "立即检查",
+      "remove": "移除域名",
+      "txtHint": "在 {name} 上添加一条值如下的 TXT 记录，然后检查：",
+      "add": "添加域名"
+    },
+    "domainVerified": "{domain} 已验证",
+    "domainAddFailed": "无法添加域名。",
+    "domainVerifyFailed": "无法验证域名。",
+    "domainRemoveFailed": "无法移除域名。",
+    "scim": {
+      "title": "预配（SCIM）",
+      "body": "让你的身份提供商自动添加和移除成员。在其 SCIM 设置中填写基础 URL 和令牌。在那里移除某人后，此人会立即被移出此工作区。",
+      "baseUrl": "SCIM 基础 URL",
+      "tokenOnce": "请立即复制此令牌 — 它不会再次显示。",
+      "create": "创建令牌",
+      "rotate": "替换令牌",
+      "revoke": "关闭预配"
+    },
+    "scimFailed": "无法更改预配令牌。",
+    "remove": "移除单点登录",
+    "removeConfirm": "成员将恢复以前的登录方式。",
+    "removed": "单点登录已移除",
+    "removeFailed": "无法移除单点登录。",
+    "requiredTitle": "通过你的组织登录",
+    "requiredBody": "此工作区使用单点登录。请通过你所在组织的身份提供商登录以打开它。",
+    "required": "此工作区使用单点登录。请通过你的组织登录以继续。",
+    "signIn": "使用你的组织登录",
+    "error": {
+      "title": "登录失败",
+      "not-provisioned": "你的账号尚未为此工作区设置。请让工作区管理员添加你。",
+      "deactivated": "你的组织已移除你对此工作区的访问权限。",
+      "not-active": "此工作区的单点登录尚未开启。",
+      "test-not-admin": "只有工作区管理员才能测试登录。",
+      "test-mismatch": "此身份提供商账号已关联到另一个 markoto 账号。请使用你自己的账号测试。",
+      "no-seat": "此工作区的付费席位已全部占用。请让管理员增加席位。",
+      "member-limit": "此工作区已达到其方案的成员上限。",
+      "idp-unavailable": "无法连接身份提供商。请稍后重试。",
+      "failed": "无法完成登录。请从登录链接重新开始。",
+      "unknown": "此登录链接不存在。",
+      "toWorkspace": "返回工作区"
+    },
+    "discover": {
+      "button": "使用你的组织登录",
+      "placeholder": "工作邮箱",
+      "continue": "继续",
+      "notFound": "此邮箱地址未设置单点登录。",
+      "failed": "出了点问题。请重试。"
+    }
+  },
+  "audit": {
+    "title": "审计日志",
+    "intro": "记录谁在何时更改了此工作区中的什么：成员和角色、邀请、共享和删除、账单以及单点登录。网络地址已缩短（去掉了最后一部分）。",
+    "retention": "事件保留 {days} 天。",
+    "filter": "显示",
+    "from": "从",
+    "to": "至",
+    "empty": "此筛选条件下没有事件。",
+    "older": "显示更早的事件",
+    "loadFailed": "无法加载审计日志。",
+    "system": "markoto",
+    "deletedUser": "已删除的用户",
+    "ipHint": "执行操作者的缩短网络地址",
+    "kind": {
+      "all": "所有事件",
+      "members": "成员和角色",
+      "invites": "邀请",
+      "documents": "文档",
+      "billing": "账单",
+      "sso": "单点登录"
+    },
+    "actions": {
+      "workspace_member_removed": "成员已移除",
+      "workspace_member_role_changed": "角色已更改",
+      "workspace_invite_created": "邀请已发送",
+      "workspace_invite_revoked": "邀请已撤回",
+      "workspace_invite_accepted": "邀请已接受",
+      "workspace_invite_declined": "邀请已拒绝",
+      "workspace_deleted": "工作区已删除",
+      "workspace_audit_exported": "审计日志已下载",
+      "workspace_member_ai_limit_changed": "成员的 AI 限额已更改",
+      "workspace_billing_checkout_started": "已开始购买方案",
+      "workspace_billing_plan_changed": "方案已更改",
+      "workspace_billing_seats_changed": "席位已更改",
+      "workspace_billing_admin_changed": "账单管理员已更改",
+      "workspace_subscription_cancelled": "订阅已取消",
+      "doc_access_mode_changed": "文档共享已更改",
+      "doc_password_set": "已设置文档密码",
+      "doc_password_removed": "已移除文档密码",
+      "doc_workspace_moved": "文档已移至其他位置",
+      "doc_deleted": "文档已删除",
+      "policy_accepted": "已接受条款",
+      "sso_connection_saved": "单点登录设置已更改",
+      "sso_connection_activated": "单点登录已开启",
+      "sso_connection_deleted": "单点登录已移除",
+      "sso_domain_added": "已添加域名",
+      "sso_domain_verified": "域名已验证",
+      "sso_domain_removed": "已移除域名",
+      "sso_sign_in": "通过身份提供商登录",
+      "sso_identity_linked": "身份提供商账号已关联",
+      "sso_member_joined": "成员通过单点登录加入",
+      "sso_scim_token_rotated": "预配令牌已更改",
+      "sso_scim_user_created": "成员已预配",
+      "sso_scim_user_deactivated": "成员已取消预配",
+      "doc_shared": "文档已与访客共享",
+      "doc_unshared": "文档不再与访客共享"
+    },
+    "planNotice": "审计日志是 Business 方案的功能。"
+  },
+  "usage": {
+    "title": "用量",
+    "intro": "每个人在此工作区中保存的内容：其拥有的文档、添加的知识文件和图片，以及在 Team 或 Business 套餐中本期使用共享额度产生的 AI 支出。不包含任何人何时或多频繁工作的信息。",
+    "person": "成员",
+    "documents": "文档",
+    "knowledge": "知识库",
+    "images": "图片",
+    "aiSpend": "本期 AI",
+    "files": "无文件 | {n} 个文件 · {size} | {n} 个文件 · {size}",
+    "empty": "暂无成员。",
+    "guestsTitle": "访客",
+    "sharedDocs": "无共享文档 | {n} 份共享文档 | {n} 份共享文档",
+    "guestsHint": "访客使用自己的 AI 额度，因此此处不显示其支出。",
+    "loadFailed": "无法加载用量"
   }
 }

@@ -16,7 +16,8 @@ export interface WorkspaceMember {
   name: string
   email: string | null
   login: string | null
-  role: 'admin' | 'editor' | 'viewer'
+  // `guest` (WP11): sees only documents shared with them.
+  role: 'admin' | 'editor' | 'viewer' | 'guest'
 }
 
 const props = defineProps<{

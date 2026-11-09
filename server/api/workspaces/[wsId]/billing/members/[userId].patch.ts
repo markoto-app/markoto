@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { workspaceMembers } from '../../../../../db/schema'
 import { useDatabase } from '../../../../../utils/database'
 import { appendAuditEvent } from '../../../../../repos/audit'
@@ -40,7 +40,7 @@ export default defineEventHandler(async (event) => {
 
   const updated = await useDatabase().update(workspaceMembers)
     .set(next)
-    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId)))
+    .where(and(eq(workspaceMembers.workspaceId, wsId), eq(workspaceMembers.userId, targetUserId), ne(workspaceMembers.role, 'guest')))
     .returning({ userId: workspaceMembers.userId })
   if (updated.length === 0) throw createError({ statusCode: 404, message: 'Member not found' })
 

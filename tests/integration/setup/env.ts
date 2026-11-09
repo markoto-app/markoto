@@ -139,6 +139,17 @@ export function fakeOpenAiBaseUrl(): string {
   return `http://${host}:${TEST_FAKE_OPENAI_PORT}/v1`
 }
 
+/**
+ * The mock IdP (oidc-test) on the private address — what per-workspace
+ * SSO connections use (WP14): the SSRF policy refuses loopback, and the
+ * test server allows private IdPs (`NUXT_SSO_ALLOW_PRIVATE_URLS`).
+ * Every path below it is a separate issuer.
+ */
+export function ssoMockIdpBase(): string {
+  const host = process.env.TEST_FAKE_OPENAI_HOST || process.env.TEST_NETWORK_GATEWAY || TEST_NETWORK_GATEWAY_DEFAULT
+  return `http://${host}:${TEST_OIDC_PORT}`
+}
+
 // LiteLLM's own Postgres role in the test stack (litellm-test-db-init in
 // docker-compose.test.yml). The app's spend-log paths connect with it, as
 // in a deployment with separate roles (server/utils/litellm/litellmDb.ts).

@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm'
+import { and, eq, ne, sql } from 'drizzle-orm'
 import {
   aiSessions,
   aiSessionMessages,
@@ -45,9 +45,9 @@ export type WorkspaceFate
   /** User is sole member; cascade-delete the workspace + all its docs + knowledge. */
   = | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
   /** User is admin/owner with co-members; promote the longest-tenured non-user member. */
-    | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
+    | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' | 'guest' }
   /** User is a non-admin member; just remove their membership row. */
-    | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
+    | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' | 'guest' }
 
 export interface AccountDeletionPlan {
   userId: number
@@ -146,7 +146,10 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
       .innerJoin(users, eq(users.id, workspaceMembers.userId))
       .where(and(
         eq(workspaceMembers.workspaceId, m.workspaceId),
-        sql`${workspaceMembers.userId} <> ${userId}`
+        sql`${workspaceMembers.userId} <> ${userId}`,
+        // Guests (WP11) are not the team: never promoted, and a workspace
+        // left with only guests counts as having no other member.
+        ne(workspaceMembers.role, 'guest')
       ))
       .orderBy(workspaceMembers.joinedAt)
 

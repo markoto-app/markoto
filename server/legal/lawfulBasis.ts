@@ -36,10 +36,17 @@ export type ProcessingPurpose = {
 
 export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   {
+    // `workspace_sso_identity` (WP14): signing in through a workspace's
+    // own identity provider — the identifier it sends (OIDC subject /
+    // SAML NameID), the link to the account, the last sign-in, a 12-hour
+    // sign-in record per workspace, and what that workspace's SCIM
+    // provisioning sent (external id, active / deactivated). Kept until
+    // the link is removed (SCIM delete, connection removed, account
+    // deleted).
     id: 'account_authentication',
     label: 'Sign-in and account',
     basis: 'contract',
-    dataCategories: ['email', 'oauth_identifier', 'display_name'],
+    dataCategories: ['email', 'oauth_identifier', 'display_name', 'workspace_sso_identity'],
     retention: 'until_deletion',
     subProcessors: ['github_oauth', 'google_oauth']
   },
@@ -51,7 +58,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'document_storage',
     label: 'Document storage',
     basis: 'contract',
-    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution'],
+    // `guest_document_shares` (WP11): which workspace documents were
+    // shared with which guest (view / edit) and by whom.
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },
@@ -145,6 +154,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // than 2 years (`server/utils/legalRetentionSweep.ts`,
     // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
     // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
+    // Since WP15 the entries about a workspace are also shown to (and
+    // downloadable by) that workspace's admins when its plan includes
+    // the audit log — names and the truncated IPs included.
     id: 'security_audit_log',
     label: 'Security audit log',
     basis: 'legal_obligation',

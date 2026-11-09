@@ -165,7 +165,10 @@ function useErrorHandlerImpl() {
   function handleReauthRequired(err: unknown): boolean {
     const extracted = extractError(err)
     if (extracted.code !== REAUTH_REQUIRED_CODE) return false
-    const provider: LoginProvider | undefined = user.value?.provider
+    // An SSO session signs in again through its workspace's IdP, not a
+    // provider button: no direct provider link for it.
+    const sessionProvider = user.value?.provider
+    const provider: LoginProvider | undefined = sessionProvider === 'sso' ? undefined : sessionProvider
     const target = provider ? loginPath(provider) : primaryLoginPath.value
     toast.add({
       title: t('auth.reauthTitle'),

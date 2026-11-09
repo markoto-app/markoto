@@ -11,7 +11,8 @@
     "newDocument": "Nouveau document",
     "openDocument": "Ouvrir un document",
     "recentDocuments": "Documents récents",
-    "noRecent": "Aucun document récent"
+    "noRecent": "Aucun document récent",
+    "sharedWithYou": "Partagé avec vous"
   },
   "auth": {
     "login": "Se connecter",
@@ -101,7 +102,18 @@
     "enterPassword": "Mot de passe",
     "invalidPassword": "Mot de passe incorrect. Veuillez réessayer.",
     "unlock": "Déverrouiller",
-    "viewOnly": "Consultation seule"
+    "viewOnly": "Consultation seule",
+    "guests": {
+      "title": "Invités",
+      "hint": "Les invités de cet espace de travail ne voient que les documents partagés avec eux.",
+      "view": "Peut lire",
+      "edit": "Peut modifier",
+      "remove": "Arrêter le partage",
+      "pick": "Choisir un invité",
+      "add": "Partager",
+      "loadFailed": "Impossible de charger les invités",
+      "saveFailed": "Impossible de modifier le partage"
+    }
   },
   "access": {
     "privateTitle": "Ce document est privé",
@@ -1308,7 +1320,10 @@
       "documents": "Documents",
       "knowledge": "Connaissances",
       "settings": "Paramètres",
-      "billing": "Facturation"
+      "billing": "Facturation",
+      "sso": "Authentification unique",
+      "audit": "Journal d’audit",
+      "usage": "Utilisation"
     },
     "settings": {
       "title": "Paramètres de l'espace de travail",
@@ -1362,7 +1377,8 @@
     "roles": {
       "admin": "Administrateur",
       "editor": "Éditeur",
-      "viewer": "Lecteur"
+      "viewer": "Lecteur",
+      "guest": "Invité"
     },
     "members": {
       "title": "Membres de {name}",
@@ -1391,9 +1407,11 @@
       "errors": {
         "invalidEmail": "Saisissez une adresse e-mail valide.",
         "alreadyMember": "Cette personne est déjà membre de l'espace de travail.",
-        "inviteCap": "Cet espace de travail a trop d'invitations en attente. Retirez-en d'abord quelques-unes."
+        "inviteCap": "Cet espace de travail a trop d'invitations en attente. Retirez-en d'abord quelques-unes.",
+        "guestCap": "Cet espace de travail compte autant d’invités que son forfait le permet (5 par place payante). Retirez un invité ou ajoutez une place d’abord."
       },
-      "invitePeople": "Inviter des personnes"
+      "invitePeople": "Inviter des personnes",
+      "guestHint": "Un invité ne voit que les documents que vous partagez avec lui, n’occupe pas de place et utilise son propre budget IA."
     },
     "capReachedFree": "{used} espaces de travail utilisés sur {limit}. Supprimez-en un pour en créer un autre.",
     "capReachedShortFree": "Limite d'espaces de travail atteinte",
@@ -1826,7 +1844,10 @@
       "mcpWrite": "Votre forfait inclut un accès en lecture seule pour les clients d'IA via MCP. La modification, le rendu et les outils web nécessitent un forfait qui les inclut.",
       "aiImage": "La génération d’images avec l’IA de markoto n’est pas incluse dans ce plan.",
       "aiVoice": "La saisie vocale avec l’IA de markoto n’est pas incluse dans ce plan.",
-      "aiStrongModel": "Le modèle d’IA puissant n’est pas inclus dans ce plan."
+      "aiStrongModel": "Le modèle d’IA puissant n’est pas inclus dans ce plan.",
+      "sso": "L’authentification unique n’est pas incluse dans le forfait de cet espace de travail.",
+      "auditLog": "Le journal d’audit n’est pas inclus dans le forfait de cet espace de travail.",
+      "guests": "Les invités ne sont pas inclus dans le forfait de cet espace de travail."
     },
     "limit": {
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
@@ -2246,5 +2267,183 @@
     "buyFailed": "Impossible de lancer l’achat",
     "purchased": "Crédits achetés",
     "purchasedBody": "Ils sont ajoutés dès que Stripe confirme le paiement, en général en quelques secondes."
+  },
+  "sso": {
+    "title": "Authentification unique (SSO)",
+    "loading": "Chargement de l’authentification unique…",
+    "loadFailed": "Impossible de charger les paramètres d’authentification unique.",
+    "planNotice": "L’authentification unique avec votre propre fournisseur d’identité fait partie du plan Business.",
+    "intro": "Les membres se connectent à cet espace de travail via le fournisseur d’identité de votre organisation (OpenID Connect ou SAML). Une fois activée, tout le monde doit se connecter de cette façon pour ouvrir l’espace de travail ; les admins peuvent toujours revenir ici pour la modifier ou la supprimer.",
+    "enforcedNotice": "L’authentification unique est activée : les membres n’ouvrent cet espace de travail qu’après s’être connectés via votre fournisseur d’identité (valable 12 heures).",
+    "idpTitle": "Fournisseur d’identité",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "URL de l’émetteur",
+      "issuerHint": "L’adresse sous laquelle se trouve le /.well-known/openid-configuration de votre fournisseur.",
+      "clientId": "ID client",
+      "clientSecret": "Secret client",
+      "secretKept": "Laissez vide pour conserver le secret enregistré."
+    },
+    "saml": {
+      "entityId": "ID d’entité du fournisseur d’identité",
+      "ssoUrl": "URL d’authentification unique",
+      "certificate": "Certificat de signature",
+      "certificateKept": "Enregistré : {subject}, valable jusqu’au {date}. Collez-en un nouveau pour le remplacer."
+    },
+    "defaultRole": "Rôle des nouveaux membres",
+    "defaultRoleHint": "Pour les personnes qui rejoignent l’espace en se connectant ou par provisionnement.",
+    "save": "Enregistrer",
+    "saved": "Paramètres d’authentification unique enregistrés",
+    "saveFailed": "Impossible d’enregistrer les paramètres d’authentification unique.",
+    "testAndActivate": "Tester la connexion et activer",
+    "testAgain": "Tester la connexion",
+    "draftHint": "Pas encore activée. Testez la connexion avec votre propre compte chez le fournisseur d’identité ; si elle fonctionne, l’authentification unique est activée pour l’espace de travail.",
+    "testActivated": "La connexion fonctionne — l’authentification unique est maintenant activée pour cet espace de travail",
+    "testOk": "La connexion fonctionne",
+    "status": {
+      "active": "Activée",
+      "draft": "Non activée"
+    },
+    "sp": {
+      "title": "Saisissez ces valeurs chez votre fournisseur d’identité",
+      "body": "Votre fournisseur d’identité a besoin de ces valeurs pour renvoyer les personnes vers markoto.",
+      "callbackUrl": "URI de redirection",
+      "entityId": "ID d’entité (audience)",
+      "acsUrl": "URL de réponse (ACS)",
+      "metadataUrl": "URL des métadonnées",
+      "loginUrl": "Lien de connexion"
+    },
+    "copy": "Copier",
+    "copied": "Copié",
+    "domains": {
+      "title": "Domaines e-mail",
+      "body": "Vérifiez les domaines utilisés par les adresses e-mail de votre organisation. Seules les adresses d’un domaine vérifié sont associées à des comptes markoto existants ou rejoignent l’espace de travail lors de leur première connexion.",
+      "verified": "Vérifié",
+      "unverified": "Non vérifié",
+      "verify": "Vérifier maintenant",
+      "remove": "Supprimer le domaine",
+      "txtHint": "Ajoutez un enregistrement TXT sur {name} avec cette valeur, puis vérifiez :",
+      "add": "Ajouter un domaine"
+    },
+    "domainVerified": "{domain} est vérifié",
+    "domainAddFailed": "Impossible d’ajouter le domaine.",
+    "domainVerifyFailed": "Impossible de vérifier le domaine.",
+    "domainRemoveFailed": "Impossible de supprimer le domaine.",
+    "scim": {
+      "title": "Provisionnement (SCIM)",
+      "body": "Laissez votre fournisseur d’identité ajouter et retirer des membres automatiquement. Saisissez l’URL de base et le jeton dans ses paramètres SCIM. Retirer quelqu’un là-bas le retire immédiatement de cet espace de travail.",
+      "baseUrl": "URL de base SCIM",
+      "tokenOnce": "Copiez ce jeton maintenant — il ne sera plus affiché.",
+      "create": "Créer un jeton",
+      "rotate": "Remplacer le jeton",
+      "revoke": "Désactiver le provisionnement"
+    },
+    "scimFailed": "Impossible de modifier le jeton de provisionnement.",
+    "remove": "Supprimer l’authentification unique",
+    "removeConfirm": "Les membres se connecteront de nouveau comme avant.",
+    "removed": "Authentification unique supprimée",
+    "removeFailed": "Impossible de supprimer l’authentification unique.",
+    "requiredTitle": "Connectez-vous via votre organisation",
+    "requiredBody": "Cet espace de travail utilise l’authentification unique. Connectez-vous via le fournisseur d’identité de votre organisation pour l’ouvrir.",
+    "required": "Cet espace de travail utilise l’authentification unique. Connectez-vous via votre organisation pour continuer.",
+    "signIn": "Se connecter avec votre organisation",
+    "error": {
+      "title": "La connexion n’a pas abouti",
+      "not-provisioned": "Votre compte n’est pas configuré pour cet espace de travail. Demandez à un admin de l’espace de travail de vous ajouter.",
+      "deactivated": "Votre organisation a retiré votre accès à cet espace de travail.",
+      "not-active": "L’authentification unique n’est pas encore activée pour cet espace de travail.",
+      "test-not-admin": "Seul un admin de l’espace de travail peut tester la connexion.",
+      "test-mismatch": "Ce compte du fournisseur d’identité est associé à un autre compte markoto. Testez avec votre propre compte.",
+      "no-seat": "Toutes les places payées de cet espace de travail sont occupées. Demandez à un admin d’ajouter une place.",
+      "member-limit": "Cet espace de travail a atteint la limite de membres de son plan.",
+      "idp-unavailable": "Le fournisseur d’identité n’a pas pu être joint. Réessayez dans un instant.",
+      "failed": "La connexion n’a pas pu être finalisée. Recommencez depuis le lien de connexion.",
+      "unknown": "Ce lien de connexion n’existe pas.",
+      "toWorkspace": "Retour à l’espace de travail"
+    },
+    "discover": {
+      "button": "Se connecter avec votre organisation",
+      "placeholder": "E-mail professionnel",
+      "continue": "Continuer",
+      "notFound": "L’authentification unique n’est pas configurée pour cette adresse e-mail.",
+      "failed": "Une erreur s’est produite. Réessayez."
+    }
+  },
+  "audit": {
+    "title": "Journal d’audit",
+    "intro": "Qui a modifié quoi dans cet espace de travail, et quand : membres et rôles, invitations, partages et suppressions, facturation et authentification unique. L’adresse réseau est raccourcie (la dernière partie est retirée).",
+    "retention": "Les événements sont conservés {days} jours.",
+    "filter": "Afficher",
+    "from": "Du",
+    "to": "Au",
+    "empty": "Aucun événement pour cette sélection.",
+    "older": "Afficher les événements plus anciens",
+    "loadFailed": "Impossible de charger le journal d’audit.",
+    "system": "markoto",
+    "deletedUser": "Utilisateur supprimé",
+    "ipHint": "Adresse réseau raccourcie de la personne à l’origine de l’action",
+    "kind": {
+      "all": "Tous les événements",
+      "members": "Membres et rôles",
+      "invites": "Invitations",
+      "documents": "Documents",
+      "billing": "Facturation",
+      "sso": "Authentification unique"
+    },
+    "actions": {
+      "workspace_member_removed": "Membre retiré",
+      "workspace_member_role_changed": "Rôle modifié",
+      "workspace_invite_created": "Invitation envoyée",
+      "workspace_invite_revoked": "Invitation retirée",
+      "workspace_invite_accepted": "Invitation acceptée",
+      "workspace_invite_declined": "Invitation refusée",
+      "workspace_deleted": "Espace de travail supprimé",
+      "workspace_audit_exported": "Journal d’audit téléchargé",
+      "workspace_member_ai_limit_changed": "Limite IA d’un membre modifiée",
+      "workspace_billing_checkout_started": "Achat de plan commencé",
+      "workspace_billing_plan_changed": "Plan modifié",
+      "workspace_billing_seats_changed": "Places modifiées",
+      "workspace_billing_admin_changed": "Administrateur de facturation modifié",
+      "workspace_subscription_cancelled": "Abonnement résilié",
+      "doc_access_mode_changed": "Partage du document modifié",
+      "doc_password_set": "Mot de passe du document défini",
+      "doc_password_removed": "Mot de passe du document retiré",
+      "doc_workspace_moved": "Document déplacé vers un autre emplacement",
+      "doc_deleted": "Document supprimé",
+      "policy_accepted": "Conditions acceptées",
+      "sso_connection_saved": "Paramètres d’authentification unique modifiés",
+      "sso_connection_activated": "Authentification unique activée",
+      "sso_connection_deleted": "Authentification unique supprimée",
+      "sso_domain_added": "Domaine ajouté",
+      "sso_domain_verified": "Domaine vérifié",
+      "sso_domain_removed": "Domaine supprimé",
+      "sso_sign_in": "Connexion via le fournisseur d’identité",
+      "sso_identity_linked": "Compte du fournisseur d’identité lié",
+      "sso_member_joined": "Membre arrivé via l’authentification unique",
+      "sso_scim_token_rotated": "Jeton de provisionnement modifié",
+      "sso_scim_user_created": "Membre provisionné",
+      "sso_scim_user_deactivated": "Membre déprovisionné",
+      "doc_shared": "Document partagé avec un invité",
+      "doc_unshared": "Document n’est plus partagé avec un invité"
+    },
+    "planNotice": "Le journal d’audit fait partie du plan Business."
+  },
+  "usage": {
+    "title": "Utilisation",
+    "intro": "Ce que chaque personne conserve dans cet espace de travail : les documents dont elle est propriétaire, les fichiers de connaissances et les images qu’elle a ajoutés et, avec un forfait Team ou Business, ses dépenses d’IA sur le budget partagé pour cette période. Rien sur le moment ni la fréquence de travail de qui que ce soit.",
+    "person": "Personne",
+    "documents": "Documents",
+    "knowledge": "Connaissances",
+    "images": "Images",
+    "aiSpend": "IA sur cette période",
+    "files": "aucun fichier | {n} fichier · {size} | {n} fichiers · {size}",
+    "empty": "Aucun membre pour le moment.",
+    "guestsTitle": "Invités",
+    "sharedDocs": "aucun document partagé | {n} document partagé | {n} documents partagés",
+    "guestsHint": "Les invités utilisent leur propre budget IA ; leurs dépenses ne sont donc pas affichées ici.",
+    "loadFailed": "Impossible de charger l’utilisation"
   }
 }

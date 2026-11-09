@@ -32,7 +32,8 @@ export default defineEventHandler(async (event) => {
   const role = await getWorkspaceRole(userId, doc.workspaceId)
   if (role === null) return { users: [] }
 
-  const members = await listMembers(doc.workspaceId)
+  // Guests (WP11) see only documents shared with them: not offered.
+  const members = (await listMembers(doc.workspaceId)).filter(m => m.role !== 'guest')
   return {
     users: members.map(m => ({
       id: m.userId,

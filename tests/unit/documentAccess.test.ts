@@ -27,6 +27,8 @@ function row(overrides: Partial<DocAuthzRow>): DocAuthzRow {
     accessMode: 'private',
     theme: null,
     workspaceRole: null,
+    ownerAccessSuspended: false,
+    anonCreatorKeyHash: null,
     title: 'Doc',
     description: '',
     audience: 'technical',
@@ -102,4 +104,17 @@ describe('requireDocEditAccess', () => {
       })
     }
   )
+
+  it.each(['private', 'open-view', 'password-protected'] as const)(
+    'an owner whose ownership is suspended by single sign-on cannot write on a %s doc',
+    async (accessMode) => {
+      getDocWithActorRole.mockResolvedValueOnce(row({ ownerId: ACTOR, workspaceId: 'ws', accessMode, ownerAccessSuspended: true }))
+      await expect(requireDocEditAccess('d1', ACTOR)).rejects.toMatchObject({ statusCode: 403 })
+    }
+  )
+
+  it('an owner whose ownership is suspended keeps only the public edit grant of an open-edit doc', async () => {
+    getDocWithActorRole.mockResolvedValueOnce(row({ ownerId: ACTOR, workspaceId: 'ws', accessMode: 'open-edit', ownerAccessSuspended: true }))
+    await expect(requireDocEditAccess('d1', ACTOR)).resolves.toBeUndefined()
+  })
 })

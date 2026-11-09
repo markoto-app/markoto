@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm'
+import { and, eq, ne, sql } from 'drizzle-orm'
 import { workspaces, workspaceMembers, documents } from '../db/schema'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import type { DocTheme } from '~~/shared/types/theme'
@@ -145,7 +145,7 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
     .from(workspaceMembers)
     .innerJoin(workspaces, eq(workspaces.workspaceId, workspaceMembers.workspaceId))
     .leftJoin(documents, eq(documents.workspaceId, workspaces.workspaceId))
-    .where(eq(workspaceMembers.userId, userId))
+    .where(and(eq(workspaceMembers.userId, userId), ne(workspaceMembers.role, 'guest')))
     .groupBy(
       workspaces.workspaceId,
       workspaces.name,
@@ -153,5 +153,5 @@ export async function listWorkspacesForUser(userId: number): Promise<UserWorkspa
       workspaces.createdAt,
       workspaceMembers.role
     )
-    .orderBy(sql`coalesce(max(${documents.lastActive}), ${workspaces.createdAt}) desc`)
+    .orderBy(sql`coalesce(max(${documents.lastActive}), ${workspaces.createdAt}) desc`) as Promise<UserWorkspaceSummary[]>
 }

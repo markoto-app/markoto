@@ -11,7 +11,8 @@
     "newDocument": "新しいドキュメント",
     "openDocument": "ドキュメントを開く",
     "recentDocuments": "最近のドキュメント",
-    "noRecent": "最近のドキュメントはありません"
+    "noRecent": "最近のドキュメントはありません",
+    "sharedWithYou": "共有されたもの"
   },
   "auth": {
     "login": "ログイン",
@@ -101,7 +102,18 @@
     "enterPassword": "パスワード",
     "invalidPassword": "パスワードが正しくありません。もう一度お試しください。",
     "unlock": "ロック解除",
-    "viewOnly": "閲覧のみ"
+    "viewOnly": "閲覧のみ",
+    "guests": {
+      "title": "ゲスト",
+      "hint": "このワークスペースのゲストには、共有されたドキュメントだけが表示されます。",
+      "view": "閲覧可",
+      "edit": "編集可",
+      "remove": "共有を停止",
+      "pick": "ゲストを選択",
+      "add": "共有",
+      "loadFailed": "ゲストを読み込めませんでした",
+      "saveFailed": "共有を変更できませんでした"
+    }
   },
   "access": {
     "privateTitle": "このドキュメントは非公開です",
@@ -1308,7 +1320,10 @@
       "documents": "ドキュメント",
       "knowledge": "ナレッジ",
       "settings": "設定",
-      "billing": "請求"
+      "billing": "請求",
+      "sso": "シングルサインオン",
+      "audit": "監査ログ",
+      "usage": "使用状況"
     },
     "settings": {
       "title": "ワークスペース設定",
@@ -1362,7 +1377,8 @@
     "roles": {
       "admin": "管理者",
       "editor": "編集者",
-      "viewer": "閲覧者"
+      "viewer": "閲覧者",
+      "guest": "ゲスト"
     },
     "members": {
       "title": "{name}のメンバー",
@@ -1391,9 +1407,11 @@
       "errors": {
         "invalidEmail": "有効なメールアドレスを入力してください。",
         "alreadyMember": "この人はすでにワークスペースのメンバーです。",
-        "inviteCap": "このワークスペースには保留中の招待が多すぎます。先にいくつか取り消してください。"
+        "inviteCap": "このワークスペースには保留中の招待が多すぎます。先にいくつか取り消してください。",
+        "guestCap": "このワークスペースのゲスト数がプランの上限（有料シートあたり 5 人）に達しています。ゲストを削除するか、シートを追加してください。"
       },
-      "invitePeople": "メンバーを招待"
+      "invitePeople": "メンバーを招待",
+      "guestHint": "ゲストには共有したドキュメントだけが表示されます。シートは消費せず、ゲスト自身の AI 予算を使用します。"
     },
     "capReachedFree": "{limit} 件中 {used} 件のワークスペースを使用中です。新しく作成するには 1 件削除してください。",
     "capReachedShortFree": "ワークスペースの上限に達しました",
@@ -1826,7 +1844,10 @@
       "mcpWrite": "ご利用のプランでは、MCP 経由の AI クライアントは読み取り専用です。編集、レンダリング、Web ツールにはそれらを含むプランが必要です。",
       "aiImage": "markoto の AI による画像生成はこのプランに含まれていません。",
       "aiVoice": "markoto の AI による音声入力はこのプランに含まれていません。",
-      "aiStrongModel": "高性能 AI モデルはこのプランに含まれていません。"
+      "aiStrongModel": "高性能 AI モデルはこのプランに含まれていません。",
+      "sso": "シングルサインオンはこのワークスペースのプランに含まれていません。",
+      "auditLog": "監査ログはこのワークスペースのプランに含まれていません。",
+      "guests": "ゲストはこのワークスペースのプランに含まれていません。"
     },
     "limit": {
       "membersPerWorkspace": "このワークスペースはプランのメンバー上限に達しました。",
@@ -2246,5 +2267,183 @@
     "buyFailed": "購入を開始できませんでした",
     "purchased": "クレジットを購入しました",
     "purchasedBody": "Stripe が支払いを確認するとすぐに追加されます（通常は数秒以内）。"
+  },
+  "sso": {
+    "title": "シングルサインオン（SSO）",
+    "loading": "シングルサインオンを読み込んでいます…",
+    "loadFailed": "シングルサインオンの設定を読み込めませんでした。",
+    "planNotice": "独自の ID プロバイダーを使うシングルサインオンは Business プランに含まれます。",
+    "intro": "メンバーは組織の ID プロバイダー（OpenID Connect または SAML）を通じてこのワークスペースにサインインします。オンにすると、ワークスペースを開くには全員がこの方法でサインインする必要があります。管理者はいつでもここに戻って変更や削除ができます。",
+    "enforcedNotice": "シングルサインオンはオンです。メンバーは ID プロバイダーでサインインした後にのみこのワークスペースを開けます（有効期間 12 時間）。",
+    "idpTitle": "ID プロバイダー",
+    "protocol": {
+      "oidc": "OpenID Connect",
+      "saml": "SAML"
+    },
+    "oidc": {
+      "issuer": "発行者 URL",
+      "issuerHint": "プロバイダーの /.well-known/openid-configuration があるアドレスです。",
+      "clientId": "クライアント ID",
+      "clientSecret": "クライアントシークレット",
+      "secretKept": "保存済みのシークレットを使い続ける場合は空欄のままにしてください。"
+    },
+    "saml": {
+      "entityId": "ID プロバイダーのエンティティ ID",
+      "ssoUrl": "シングルサインオン URL",
+      "certificate": "署名証明書",
+      "certificateKept": "保存済み：{subject}、{date} まで有効。置き換えるには新しい証明書を貼り付けてください。"
+    },
+    "defaultRole": "新しいメンバーの役割",
+    "defaultRoleHint": "サインインまたはプロビジョニングで参加する人に適用されます。",
+    "save": "保存",
+    "saved": "シングルサインオンの設定を保存しました",
+    "saveFailed": "シングルサインオンの設定を保存できませんでした。",
+    "testAndActivate": "サインインをテストしてオンにする",
+    "testAgain": "サインインをテスト",
+    "draftHint": "まだオンになっていません。ID プロバイダーでご自身のアカウントを使ってサインインをテストしてください。成功すると、このワークスペースのシングルサインオンがオンになります。",
+    "testActivated": "サインインできました — このワークスペースのシングルサインオンがオンになりました",
+    "testOk": "サインインできました",
+    "status": {
+      "active": "オン",
+      "draft": "オフ"
+    },
+    "sp": {
+      "title": "ID プロバイダーに次の値を入力してください",
+      "body": "ID プロバイダーがユーザーを markoto に戻すために、これらの値が必要です。",
+      "callbackUrl": "リダイレクト URI",
+      "entityId": "エンティティ ID（オーディエンス）",
+      "acsUrl": "応答 URL（ACS）",
+      "metadataUrl": "メタデータ URL",
+      "loginUrl": "サインインリンク"
+    },
+    "copy": "コピー",
+    "copied": "コピーしました",
+    "domains": {
+      "title": "メールドメイン",
+      "body": "組織のメールアドレスが使うドメインを確認してください。確認済みドメインのアドレスだけが、既存の markoto アカウントに紐付けられたり、初回サインイン時にワークスペースに参加したりします。",
+      "verified": "確認済み",
+      "unverified": "未確認",
+      "verify": "今すぐ確認",
+      "remove": "ドメインを削除",
+      "txtHint": "{name} にこの値の TXT レコードを追加してから確認してください：",
+      "add": "ドメインを追加"
+    },
+    "domainVerified": "{domain} を確認しました",
+    "domainAddFailed": "ドメインを追加できませんでした。",
+    "domainVerifyFailed": "ドメインを確認できませんでした。",
+    "domainRemoveFailed": "ドメインを削除できませんでした。",
+    "scim": {
+      "title": "プロビジョニング（SCIM）",
+      "body": "ID プロバイダーがメンバーを自動で追加・削除できるようにします。ID プロバイダーの SCIM 設定にベース URL とトークンを入力してください。そこで削除された人は、すぐにこのワークスペースから外れます。",
+      "baseUrl": "SCIM ベース URL",
+      "tokenOnce": "このトークンを今すぐコピーしてください — 再表示はされません。",
+      "create": "トークンを作成",
+      "rotate": "トークンを置き換え",
+      "revoke": "プロビジョニングをオフにする"
+    },
+    "scimFailed": "プロビジョニングトークンを変更できませんでした。",
+    "remove": "シングルサインオンを削除",
+    "removeConfirm": "メンバーは以前と同じ方法でサインインするようになります。",
+    "removed": "シングルサインオンを削除しました",
+    "removeFailed": "シングルサインオンを削除できませんでした。",
+    "requiredTitle": "組織のアカウントでサインイン",
+    "requiredBody": "このワークスペースはシングルサインオンを使用しています。開くには組織の ID プロバイダーでサインインしてください。",
+    "required": "このワークスペースはシングルサインオンを使用しています。続けるには組織のアカウントでサインインしてください。",
+    "signIn": "組織のアカウントでサインイン",
+    "error": {
+      "title": "サインインできませんでした",
+      "not-provisioned": "あなたのアカウントはこのワークスペース用に設定されていません。ワークスペースの管理者に追加を依頼してください。",
+      "deactivated": "組織によって、このワークスペースへのアクセス権が削除されました。",
+      "not-active": "このワークスペースのシングルサインオンはまだオンになっていません。",
+      "test-not-admin": "サインインをテストできるのはワークスペースの管理者だけです。",
+      "test-mismatch": "この ID プロバイダーのアカウントは別の markoto アカウントに紐付けられています。ご自身のアカウントでテストしてください。",
+      "no-seat": "このワークスペースの有料席はすべて使用中です。管理者に席の追加を依頼してください。",
+      "member-limit": "このワークスペースはプランのメンバー上限に達しました。",
+      "idp-unavailable": "ID プロバイダーに接続できませんでした。しばらくしてからもう一度お試しください。",
+      "failed": "サインインを完了できませんでした。サインインリンクからやり直してください。",
+      "unknown": "このサインインリンクは存在しません。",
+      "toWorkspace": "ワークスペースに戻る"
+    },
+    "discover": {
+      "button": "組織のアカウントでサインイン",
+      "placeholder": "仕事用のメールアドレス",
+      "continue": "続ける",
+      "notFound": "このメールアドレスにはシングルサインオンが設定されていません。",
+      "failed": "問題が発生しました。もう一度お試しください。"
+    }
+  },
+  "audit": {
+    "title": "監査ログ",
+    "intro": "このワークスペースで誰がいつ何を変更したかを記録します。メンバーと役割、招待、共有と削除、請求、シングルサインオンが対象です。ネットワークアドレスは末尾を省いて短縮されています。",
+    "retention": "イベントは {days} 日間保存されます。",
+    "filter": "表示",
+    "from": "開始",
+    "to": "終了",
+    "empty": "この条件に該当するイベントはありません。",
+    "older": "古いイベントを表示",
+    "loadFailed": "監査ログを読み込めませんでした。",
+    "system": "markoto",
+    "deletedUser": "削除されたユーザー",
+    "ipHint": "操作した人の短縮されたネットワークアドレス",
+    "kind": {
+      "all": "すべてのイベント",
+      "members": "メンバーと役割",
+      "invites": "招待",
+      "documents": "ドキュメント",
+      "billing": "請求",
+      "sso": "シングルサインオン"
+    },
+    "actions": {
+      "workspace_member_removed": "メンバーを削除",
+      "workspace_member_role_changed": "役割を変更",
+      "workspace_invite_created": "招待を送信",
+      "workspace_invite_revoked": "招待を取り消し",
+      "workspace_invite_accepted": "招待を承認",
+      "workspace_invite_declined": "招待を辞退",
+      "workspace_deleted": "ワークスペースを削除",
+      "workspace_audit_exported": "監査ログをダウンロード",
+      "workspace_member_ai_limit_changed": "メンバーの AI 上限を変更",
+      "workspace_billing_checkout_started": "プランの購入を開始",
+      "workspace_billing_plan_changed": "プランを変更",
+      "workspace_billing_seats_changed": "席数を変更",
+      "workspace_billing_admin_changed": "請求管理者を変更",
+      "workspace_subscription_cancelled": "サブスクリプションを解約",
+      "doc_access_mode_changed": "ドキュメントの共有を変更",
+      "doc_password_set": "ドキュメントのパスワードを設定",
+      "doc_password_removed": "ドキュメントのパスワードを削除",
+      "doc_workspace_moved": "ドキュメントを別の場所へ移動",
+      "doc_deleted": "ドキュメントを削除",
+      "policy_accepted": "利用規約に同意",
+      "sso_connection_saved": "シングルサインオンの設定を変更",
+      "sso_connection_activated": "シングルサインオンをオンにした",
+      "sso_connection_deleted": "シングルサインオンを削除",
+      "sso_domain_added": "ドメインを追加",
+      "sso_domain_verified": "ドメインを確認",
+      "sso_domain_removed": "ドメインを削除",
+      "sso_sign_in": "ID プロバイダーでサインイン",
+      "sso_identity_linked": "ID プロバイダーのアカウントを連携",
+      "sso_member_joined": "シングルサインオンでメンバーが参加",
+      "sso_scim_token_rotated": "プロビジョニングトークンを変更",
+      "sso_scim_user_created": "メンバーをプロビジョニング",
+      "sso_scim_user_deactivated": "メンバーのプロビジョニングを解除",
+      "doc_shared": "ドキュメントをゲストに共有",
+      "doc_unshared": "ドキュメントのゲストへの共有を解除"
+    },
+    "planNotice": "監査ログは Business プランに含まれます。"
+  },
+  "usage": {
+    "title": "使用状況",
+    "intro": "このワークスペースで各メンバーが保有しているもの：所有するドキュメント、追加したナレッジファイルと画像、そして Team または Business プランでは、この期間に共有予算から使用した AI 費用です。いつ、どのくらいの頻度で作業しているかは表示されません。",
+    "person": "メンバー",
+    "documents": "ドキュメント",
+    "knowledge": "ナレッジ",
+    "images": "画像",
+    "aiSpend": "今期の AI",
+    "files": "ファイルなし | {n} ファイル · {size} | {n} ファイル · {size}",
+    "empty": "メンバーはまだいません。",
+    "guestsTitle": "ゲスト",
+    "sharedDocs": "共有ドキュメントなし | 共有ドキュメント {n} 件 | 共有ドキュメント {n} 件",
+    "guestsHint": "ゲストは自身の AI 予算を使用するため、ここには費用が表示されません。",
+    "loadFailed": "使用状況を読み込めませんでした"
   }
 }

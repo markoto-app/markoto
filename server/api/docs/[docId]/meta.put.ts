@@ -66,6 +66,7 @@ export default defineEventHandler(async (event) => {
       scope: 'doc',
       scopeId: docId,
       action: 'doc.access_mode_changed',
+      workspaceId: authz.workspaceId,
       before: { accessMode: beforeAccessMode },
       after: { accessMode: updates.accessMode }
     })
