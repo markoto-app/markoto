@@ -1,4 +1,4 @@
-import { beforeAll, describe, expect, it } from 'vitest'
+import { beforeAll, describe, expect, it, vi } from 'vitest'
 import { PAGED_HANDLERS_SCRIPT } from '../../app/utils/pagedHandlers'
 
 // The handlers reach the live preview as the STRINGIFIED function (an
@@ -9,9 +9,10 @@ import { PAGED_HANDLERS_SCRIPT } from '../../app/utils/pagedHandlers'
 // structural decisions are pinned here.
 
 interface HandlerInstance {
-  onOverflow: (overflow: Range | undefined, rendered: Element) => Range | undefined
+  onOverflow: (overflow: Range | undefined, rendered: Element, bounds?: object, layout?: object) => Range | undefined
   renderNode: (clone: Node, source: Node) => void
   layout: (rendered: Element) => void
+  afterParsed: (parsed: unknown) => void
 }
 
 const registered: unknown[] = []
@@ -31,11 +32,13 @@ function handler(source?: Element): HandlerInstance {
   const onOverflow: unknown = Reflect.get(instance, 'onOverflow')
   const renderNode: unknown = Reflect.get(instance, 'renderNode')
   const layout: unknown = Reflect.get(instance, 'layout')
-  if (typeof onOverflow !== 'function' || typeof renderNode !== 'function' || typeof layout !== 'function') throw new Error('hooks missing')
+  const afterParsed: unknown = Reflect.get(instance, 'afterParsed')
+  if (typeof onOverflow !== 'function' || typeof renderNode !== 'function' || typeof layout !== 'function' || typeof afterParsed !== 'function') throw new Error('hooks missing')
   return {
-    onOverflow: (o, r) => Reflect.apply(onOverflow, instance, [o, r]),
+    onOverflow: (o, r, b, l) => Reflect.apply(onOverflow, instance, [o, r, b, l]),
     renderNode: (c, s) => Reflect.apply(renderNode, instance, [c, s]),
-    layout: r => Reflect.apply(layout, instance, [r])
+    layout: r => Reflect.apply(layout, instance, [r]),
+    afterParsed: p => Reflect.apply(afterParsed, instance, [p])
   }
 }
 
@@ -52,6 +55,11 @@ function place(node: Element, rects: Array<[number, number, number, number]>): v
   Object.defineProperty(node, 'getClientRects', { configurable: true, value: () => list })
   const first = list[0] ?? new DOMRect()
   Object.defineProperty(node, 'getBoundingClientRect', { configurable: true, value: () => first })
+}
+
+/** A DOMRectList stand-in (happy-dom has no range geometry). */
+function rectList(rects: DOMRect[]): DOMRectList {
+  return Object.assign({ length: rects.length, item: (i: number) => rects[i] ?? null, [Symbol.iterator]: () => rects[Symbol.iterator]() }, rects)
 }
 
 function overflowFrom(node: Node, rendered: Element): Range {
@@ -248,25 +256,224 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     expect(startNode(handler(source).onOverflow(overflowFrom(second, r), r))?.nodeName).toBe('OL')
   })
 
-  it('gives a hidden node the position of the content before it (not x = 0)', () => {
-    const r = el('<div class="paged-doc"><p>Masthead.</p></div>')
+  it('shrinks a diagram in small steps until it fits the rest of the page', () => {
+    const r = el('<div class="pagedjs_page_content"><div class="paged-doc"><p data-ref="a">Text before.</p><div class="mermaid" data-ref="d"><img></div><p data-ref="b">Text after.</p></div></div>')
+    const content = r.firstElementChild
+    const [before, after] = Array.from(r.querySelectorAll('p'))
+    const diagram = r.querySelector('.mermaid')
+    if (!(content instanceof HTMLElement) || !before || !after || !(diagram instanceof HTMLElement)) throw new Error('fixture')
+    place(content, [[0, 0, 600, 740]])
+    place(before, [[0, 0, 600, 400]])
+    place(diagram, [[0, 400, 600, 380]])
+    Object.defineProperty(diagram, 'offsetHeight', { configurable: true, value: 380 })
+    // 340px of room for 380px: the estimate (0.89) is not quite enough —
+    // paged.js still finds the diagram overflowing until 0.83.
+    const layout = {
+      findOverflow: () => overflowFrom(Number.parseFloat(diagram.style.zoom) > 0.84 ? diagram : after, content)
+    }
+    const bounds = { left: 0, right: 600, top: 0, bottom: 740 }
+    // The text before the diagram ends at 400px (happy-dom has no range geometry).
+    const rects = vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(() => rectList([new DOMRect(0, 0, 600, 400)]))
+    const result = handler().onOverflow(overflowFrom(diagram, content), content, bounds, layout)
+    rects.mockRestore()
+    expect(diagram.style.zoom).toBe('0.83')
+    expect(diagram.hasAttribute('data-markoto-fit')).toBe(true)
+    expect(refOf(startNode(result))).toBe('b')
+  })
+
+  it('moves a diagram whole when it would need less than 75 %', () => {
+    const r = el('<div class="pagedjs_page_content"><div class="paged-doc"><p data-ref="a">Text before.</p><div class="mermaid" data-ref="d"><img></div></div></div>')
+    const content = r.firstElementChild
+    const before = r.querySelector('p')
+    const diagram = r.querySelector('.mermaid')
+    if (!(content instanceof HTMLElement) || !before || !(diagram instanceof HTMLElement)) throw new Error('fixture')
+    place(content, [[0, 0, 600, 740]])
+    place(before, [[0, 0, 600, 500]])
+    place(diagram, [[0, 500, 600, 380]])
+    Object.defineProperty(diagram, 'offsetHeight', { configurable: true, value: 380 })
+    const layout = { findOverflow: () => overflowFrom(diagram, content) }
+    const rects = vi.spyOn(Range.prototype, 'getClientRects').mockImplementation(() => rectList([new DOMRect(0, 0, 600, 500)]))
+    const result = handler().onOverflow(overflowFrom(diagram, content), content, { left: 0, right: 600, top: 0, bottom: 740 }, layout)
+    rects.mockRestore()
+    // 240px of room for 380px (0.63): it keeps its size and paged.js's break before it stands.
+    expect(diagram.style.zoom).toBe('')
+    expect(diagram.hasAttribute('data-markoto-fit')).toBe(false)
+    expect(result).toBeUndefined()
+  })
+
+  it('gives a hidden node in a page the position of the content before it (not x = 0)', () => {
+    const r = el('<div class="pagedjs_page"><div class="paged-doc"><p>Masthead.</p></div></div>')
     const doc = r.querySelector('.paged-doc')
     const p = r.querySelector('p')
     if (!doc || !p) throw new Error('fixture')
     place(p, [[-9000, 100, 600, 40]])
     const hr = document.createElement('hr')
     hr.style.display = 'none'
+    const hidden = document.createElement('span')
+    hidden.textContent = 'inside'
+    hr.appendChild(hidden)
     doc.appendChild(hr)
-    handler().renderNode(hr, hr)
     const rect = hr.getBoundingClientRect()
     expect(rect.left).toBe(-9000)
     expect(rect.top).toBe(140)
+    // Inside a hidden node too.
+    expect(hidden.getBoundingClientRect().top).toBe(140)
+  })
+
+  it('leaves the rect of a node outside the pages, or of a visible one, alone', () => {
+    const outside = el('<hr style="display: none">').firstElementChild
+    const visible = el('<div class="pagedjs_page"><p>Text.</p></div>').querySelector('p')
+    if (!outside || !visible) throw new Error('fixture')
+    expect(outside.getBoundingClientRect().left).toBe(0)
+    expect(visible.getBoundingClientRect().top).toBe(0)
   })
 
   it('leaves column breaks alone in a single-column document', () => {
     const r = el('<div class="pagedjs_page_content"><div class="paged-doc"><p>Body text.</p><h2>Section</h2><p>Section text.</p></div></div>')
     handler().layout(r)
     expect(r.querySelector('[data-markoto-column-break]')).toBeNull()
+  })
+})
+
+describe('multi-column: wide blocks and the columns before them', () => {
+  /** Two 300px columns with a 20px gap on a 620 × 800 page. */
+  function twoColumns(body: string): { r: HTMLElement, doc: HTMLElement } {
+    const r = el(`<div class="pagedjs_page_content"><div class="paged-doc" style="column-count: 2; column-gap: 20px">${body}</div></div>`)
+    const content = r.firstElementChild
+    const doc = r.querySelector('.paged-doc')
+    if (!(content instanceof HTMLElement) || !(doc instanceof HTMLElement)) throw new Error('fixture')
+    place(content, [[0, 0, 620, 800]])
+    place(doc, [[0, 0, 620, 800]])
+    Object.defineProperty(doc, 'offsetWidth', { configurable: true, value: 620 })
+    return { r, doc }
+  }
+
+  it('spans a table that fits its column only by breaking the code in its cells apart', () => {
+    const { r } = twoColumns('<table><tr><td><code>FERRULE_INVALIDATION_FLUSH_INTERVAL_MS</code></td></tr></table><table><tr><td>short</td></tr></table><p>After.</p>')
+    const [wide, narrow] = Array.from(r.querySelectorAll('table'))
+    if (!wide || !narrow) throw new Error('fixture')
+    // 300px with `overflow-wrap: anywhere`, 450px with nothing broken apart.
+    Object.defineProperty(wide, 'offsetWidth', { configurable: true, get: () => wide.hasAttribute('data-markoto-measure') ? 450 : 300 })
+    Object.defineProperty(narrow, 'offsetWidth', { configurable: true, get: () => narrow.hasAttribute('data-markoto-measure') ? 280 : 280 })
+    handler().layout(r)
+    expect(wide.style.getPropertyValue('column-span')).toBe('all')
+    expect(wide.hasAttribute('data-markoto-wide')).toBe(true)
+    expect(wide.hasAttribute('data-markoto-measure')).toBe(false)
+    expect(narrow.style.getPropertyValue('column-span')).toBe('')
+    // Measured once it is complete (something follows it on the page).
+    expect(narrow.hasAttribute('data-markoto-measured')).toBe(true)
+  })
+
+  it('spans a table already wider than its column and a diagram drawn wider than it', () => {
+    const { r } = twoColumns('<table><tr><td>cells</td></tr></table><div class="mermaid"><img></div><div class="mermaid"><img></div>')
+    const table = r.querySelector('table')
+    const [wide, fits] = Array.from(r.querySelectorAll('.mermaid'))
+    if (!(table instanceof HTMLElement) || !(wide instanceof HTMLElement) || !(fits instanceof HTMLElement)) throw new Error('fixture')
+    Object.defineProperty(table, 'offsetWidth', { configurable: true, value: 420 })
+    Object.defineProperty(wide, 'offsetWidth', { configurable: true, value: 300 })
+    Object.defineProperty(wide, 'scrollWidth', { configurable: true, value: 480 })
+    Object.defineProperty(fits, 'offsetWidth', { configurable: true, value: 300 })
+    Object.defineProperty(fits, 'scrollWidth', { configurable: true, value: 300 })
+    handler().layout(r)
+    expect(table.style.getPropertyValue('column-span')).toBe('all')
+    expect(wide.style.getPropertyValue('column-span')).toBe('all')
+    expect(fits.style.getPropertyValue('column-span')).toBe('')
+  })
+
+  it('keeps a heading with its text where Chromium balances the columns (before a spanning block)', () => {
+    const { r } = twoColumns('<h2>Cache sizes</h2><p>The limits below apply per node:</p><p>Plain text.</p>')
+    const h2 = r.querySelector('h2')
+    const [lead, plain] = Array.from(r.querySelectorAll('p'))
+    if (!(h2 instanceof HTMLElement) || !(lead instanceof HTMLElement) || !(plain instanceof HTMLElement)) throw new Error('fixture')
+    Object.defineProperty(lead, 'offsetHeight', { configurable: true, value: 16 })
+    handler().layout(r)
+    expect(h2.style.getPropertyValue('break-after')).toBe('avoid')
+    // A one-line lead-in ending in a colon keeps with what follows too.
+    expect(lead.style.getPropertyValue('break-after')).toBe('avoid')
+    expect(plain.style.getPropertyValue('break-after')).toBe('')
+  })
+})
+
+describe('display math wider than the column', () => {
+  /** A KaTeX display: one `.katex-base` per piece, as KaTeX splits it at its break points. */
+  function display(pieces: string[]): string {
+    const bases = pieces.map(p => `<span class="katex-base"><span class="katex-strut"></span>${p}</span>`).join('')
+    return `<p class="katex-block"><span class="katex-display"><span class="katex"><span class="katex-html">${bases}</span></span></span></p>`
+  }
+  const rel = (op: string) => `<span class="mspace"></span><span class="mrel">${op}</span><span class="mspace"></span>`
+  const bin = (op: string) => `<span class="mspace"></span><span class="mbin">${op}</span><span class="mspace"></span>`
+
+  it('breaks before a relation or binary operator in display math, not after it', () => {
+    const frag = document.createElement('div')
+    frag.innerHTML = display([`<span class="mord">E</span>${rel('=')}`, `<span class="mord">a</span>${bin('+')}`, '<span class="mord">b</span>'])
+      + '<span class="katex"><span class="katex-html"><span class="katex-base"><span class="katex-strut"></span><span class="mord">x</span><span class="mrel">=</span></span><span class="katex-base"><span class="katex-strut"></span><span class="mord">y</span></span></span></span>'
+    handler().afterParsed(frag)
+    const [first, second, third] = Array.from(frag.querySelectorAll('.katex-display .katex-base'))
+    const kids = (e: Element | undefined) => Array.from(e?.children ?? []).map(c => c.className)
+    expect(kids(first)).toEqual(['katex-strut', 'mord'])
+    expect(kids(second)).toEqual(['katex-strut', 'mspace', 'mrel', 'mspace', 'mord'])
+    expect(kids(third)).toEqual(['katex-strut', 'mspace', 'mbin', 'mspace', 'mord'])
+    // Inline math keeps TeX's in-text rule (break after the relation).
+    const inline = frag.querySelector(':scope > .katex .katex-base')
+    expect(kids(inline ?? undefined)).toEqual(['katex-strut', 'mord', 'mrel'])
+  })
+
+  it('never empties a piece that holds only the operator', () => {
+    const frag = document.createElement('div')
+    frag.innerHTML = display([rel('='), '<span class="mord">b</span>'])
+    handler().afterParsed(frag)
+    const [first] = Array.from(frag.querySelectorAll('.katex-base'))
+    expect(first?.querySelector('.mrel')).not.toBeNull()
+  })
+
+  function laidOut(pieces: string[], rects: Array<[number, number, number, number]>, width = 400): { r: HTMLElement, katex: HTMLElement, html: HTMLElement, displayEl: Element } {
+    const r = el(`<div class="pagedjs_page_content"><div class="paged-doc">${display(pieces)}</div></div>`)
+    const html = r.querySelector('.katex-html')
+    const katex = r.querySelector('.katex')
+    const displayEl = r.querySelector('.katex-display')
+    if (!(html instanceof HTMLElement) || !(katex instanceof HTMLElement) || !displayEl) throw new Error('fixture')
+    place(html, [[0, 0, width, 40]])
+    Object.defineProperty(html, 'offsetWidth', { configurable: true, value: width })
+    Array.from(r.querySelectorAll('.katex-base')).forEach((b, i) => place(b, [rects[i] ?? [0, 0, 0, 0]]))
+    return { r, katex, html, displayEl }
+  }
+
+  it('shrinks a matrix wider than the column, to 85 % at most, and keeps it on one line', () => {
+    const { r, katex, html, displayEl } = laidOut(['<span class="mord">M</span>', `${rel('=')}<span class="minner">(matrix)</span>`], [[0, 0, 20, 30], [20, 0, 600, 30]])
+    handler().layout(r)
+    expect(displayEl.getAttribute('data-markoto-math-scale')).toBe('0.85')
+    expect(katex.style.getPropertyValue('font-size')).toBe('0.85em')
+    // Still too wide (in one column): it stays together and runs into the margin.
+    expect(html.style.getPropertyValue('white-space')).toBe('nowrap')
+  })
+
+  it('shrinks the whole formula onto one line when that is enough', () => {
+    const { r, displayEl } = laidOut(['<span class="mord">s</span>', `${rel('=')}<span class="mfrac">(fraction)</span>`], [[0, 0, 20, 30], [20, 0, 420, 30]])
+    handler().layout(r)
+    // 400 / 440 → 0.9 for the whole line (not 0.95 for the fraction alone, which would strand "s").
+    expect(displayEl.getAttribute('data-markoto-math-scale')).toBe('0.9')
+  })
+
+  it('aligns the continuation lines of a wrapped display at the first relation, as a centred block', () => {
+    // E[T] | = Σ… | = n H_n   / (next line) = n ln n
+    const { r, html, displayEl } = laidOut(
+      ['<span class="mord">E[T]</span>', `${rel('=')}<span class="mord">sum</span>`, `${rel('=')}<span class="mord">nH</span>`, `${rel('=')}<span class="mord">n ln n</span>`],
+      [[0, 0, 100, 30], [100, 0, 150, 30], [250, 0, 140, 30], [100, 30, 80, 30]]
+    )
+    handler().layout(r)
+    expect(displayEl.hasAttribute('data-markoto-math-wrapped')).toBe(true)
+    expect(html.style.getPropertyValue('text-align')).toBe('left')
+    // Hanging indent = where the first relation starts (100px); the widest
+    // line reaches 390px of 400, so the block moves 5px right to centre it.
+    expect(html.style.getPropertyValue('text-indent')).toBe('-100px')
+    expect(html.style.getPropertyValue('padding-left')).toBe('105px')
+  })
+
+  it('leaves a display that fits alone', () => {
+    const { r, html, displayEl } = laidOut(['<span class="mord">E</span>', `${rel('=')}<span class="mord">mc²</span>`], [[150, 0, 20, 30], [170, 0, 80, 30]])
+    handler().layout(r)
+    expect(displayEl.hasAttribute('data-markoto-math-scale')).toBe(false)
+    expect(html.getAttribute('style')).toBeNull()
   })
 })
 

@@ -228,14 +228,14 @@ describe('captions', () => {
     expect(out).toContain('counter-increment: mk-table;')
   })
 
-  test('stacked labels: bold, upright, on their own line, no separator', () => {
+  test('stacked labels: bold, upright, in the text colour, on their own line, no separator', () => {
     const out = css(theme((t) => {
       t.tables.captionLabel = true
       t.blocks.figureLabel = true
       t.blocks.captionLabelStyle = 'stacked'
     }))
-    expect(out).toContain('.paged-doc table > caption::before { content: "Table " counter(mk-table); display: block; font-style: normal; font-weight: 700; }')
-    expect(out).toContain('.paged-doc figcaption:not(:empty)::before { content: "Figure " counter(mk-figure); display: block; font-style: normal; font-weight: 700; }')
+    expect(out).toContain('.paged-doc table > caption::before { content: "Table " counter(mk-table); display: block; font-style: normal; font-weight: 700; color: var(--doc-text); }')
+    expect(out).toContain('.paged-doc figcaption:not(:empty)::before { content: "Figure " counter(mk-figure); display: block; font-style: normal; font-weight: 700; color: var(--doc-text); }')
   })
 })
 
