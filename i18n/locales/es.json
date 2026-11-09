@@ -1642,7 +1642,10 @@
       "spending": {
         "heading": "Gasto y uso",
         "comingSoon": "Próximamente — tu uso de créditos de IA, historial de planes y facturas estarán aquí. Por ahora, gestiona la facturación desde la página de Precios.",
-        "viewPricing": "Ver precios"
+        "viewPricing": "Ver precios",
+        "plan": "Plan actual: {plan}",
+        "manage": "Gestionar facturación",
+        "portalFailed": "No se pudo abrir la facturación"
       },
       "data": {
         "heading": "Tus datos",
@@ -2092,5 +2095,17 @@
     "actions": "Acciones del documento",
     "open": "Abrir",
     "openNewTab": "Abrir en una pestaña nueva"
+  },
+  "credits": {
+    "title": "Créditos de IA",
+    "balance": "Te quedan {amount} en créditos de IA",
+    "usedThisMonth": "{amount} usados este mes",
+    "explainer": "Los créditos amplían el presupuesto mensual de IA de tu plan. Solo se usan cuando se agota el presupuesto del mes y caducan {months} meses después de la compra.",
+    "pack": "{price} → {credit} de crédito",
+    "grantLeft": "Quedan {left} · caduca el {date}",
+    "needsPlan": "Los créditos de IA amplían un plan de pago. Pasa a Pro para comprarlos.",
+    "buyFailed": "No se pudo iniciar la compra",
+    "purchased": "Créditos comprados",
+    "purchasedBody": "Se añaden en cuanto Stripe confirma el pago, normalmente en pocos segundos."
   }
 }

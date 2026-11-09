@@ -1642,7 +1642,10 @@
       "spending": {
         "heading": "支出と利用",
         "comingSoon": "近日公開 — AIクレジットの利用状況、プラン履歴、請求書がここに表示されます。当面は、料金ページから請求を管理してください。",
-        "viewPricing": "料金を見る"
+        "viewPricing": "料金を見る",
+        "plan": "現在のプラン：{plan}",
+        "manage": "請求を管理",
+        "portalFailed": "請求ページを開けませんでした"
       },
       "data": {
         "heading": "あなたのデータ",
@@ -2092,5 +2095,17 @@
     "actions": "ドキュメントの操作",
     "open": "開く",
     "openNewTab": "新しいタブで開く"
+  },
+  "credits": {
+    "title": "AI クレジット",
+    "balance": "AI クレジット残高 {amount}",
+    "usedThisMonth": "今月 {amount} を使用",
+    "explainer": "クレジットはプランの月間 AI 予算を補います。その月のプランの予算を使い切ってから使われ、購入から {months} か月後に失効します。",
+    "pack": "{price} → クレジット {credit}",
+    "grantLeft": "残り {left} · {date} に失効",
+    "needsPlan": "AI クレジットは有料プランを補うものです。購入するには Pro にアップグレードしてください。",
+    "buyFailed": "購入を開始できませんでした",
+    "purchased": "クレジットを購入しました",
+    "purchasedBody": "Stripe が支払いを確認するとすぐに追加されます（通常は数秒以内）。"
   }
 }

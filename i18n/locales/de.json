@@ -1642,7 +1642,10 @@
       "spending": {
         "heading": "Ausgaben und Nutzung",
         "comingSoon": "Bald verfügbar — Ihre KI-Credit-Nutzung, Tarifverlauf und Rechnungen werden hier angezeigt. Verwalten Sie die Abrechnung vorerst über die Preisseite.",
-        "viewPricing": "Preise ansehen"
+        "viewPricing": "Preise ansehen",
+        "plan": "Aktueller Plan: {plan}",
+        "manage": "Abrechnung verwalten",
+        "portalFailed": "Abrechnung konnte nicht geöffnet werden"
       },
       "data": {
         "heading": "Ihre Daten",
@@ -2092,5 +2095,17 @@
     "actions": "Dokumentaktionen",
     "open": "Öffnen",
     "openNewTab": "In neuem Tab öffnen"
+  },
+  "credits": {
+    "title": "KI-Guthaben",
+    "balance": "{amount} KI-Guthaben übrig",
+    "usedThisMonth": "{amount} in diesem Monat verbraucht",
+    "explainer": "Guthaben ergänzt das monatliche KI-Budget Ihres Plans. Es wird erst verbraucht, wenn das Monatsbudget des Plans aufgebraucht ist, und verfällt {months} Monate nach dem Kauf.",
+    "pack": "{price} → {credit} Guthaben",
+    "grantLeft": "{left} übrig · verfällt am {date}",
+    "needsPlan": "KI-Guthaben ergänzt einen bezahlten Plan. Upgraden Sie auf Pro, um es zu kaufen.",
+    "buyFailed": "Kauf konnte nicht gestartet werden",
+    "purchased": "Guthaben gekauft",
+    "purchasedBody": "Es wird gutgeschrieben, sobald Stripe die Zahlung bestätigt, meist innert weniger Sekunden."
   }
 }

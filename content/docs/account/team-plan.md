@@ -53,6 +53,13 @@ you and asks you to contact an admin. In your personal documents and in other wo
 use your own plan and budget, as before. Someone who isn't a member but
 edits an open document of the workspace uses their own budget too.
 
+## AI credits
+
+If the workspace needs more AI in a month, an admin can buy credits on
+the Billing tab (10, 25 or 50, in the workspace's currency). Credits are
+used only after the month's budget is spent, and they expire 12 months
+after purchase. The tab shows what's left of each purchase.
+
 ## Storage
 
 Knowledge files and images in the workspace's documents count against the

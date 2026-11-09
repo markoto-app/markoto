@@ -1642,7 +1642,10 @@
       "spending": {
         "heading": "消费与使用",
         "comingSoon": "即将推出 — 你的 AI 额度使用情况、套餐历史和发票将显示在这里。目前，请从定价页面管理账单。",
-        "viewPricing": "查看定价"
+        "viewPricing": "查看定价",
+        "plan": "当前方案：{plan}",
+        "manage": "管理账单",
+        "portalFailed": "无法打开账单"
       },
       "data": {
         "heading": "你的数据",
@@ -2092,5 +2095,17 @@
     "actions": "文档操作",
     "open": "打开",
     "openNewTab": "在新标签页中打开"
+  },
+  "credits": {
+    "title": "AI 额度",
+    "balance": "剩余 AI 额度 {amount}",
+    "usedThisMonth": "本月已使用 {amount}",
+    "explainer": "额度用于补充方案的每月 AI 预算。只有在当月方案预算用完后才会使用，并在购买 {months} 个月后过期。",
+    "pack": "{price} → {credit} 额度",
+    "grantLeft": "剩余 {left} · {date} 过期",
+    "needsPlan": "AI 额度用于补充付费方案。升级到 Pro 即可购买。",
+    "buyFailed": "无法开始购买",
+    "purchased": "已购买额度",
+    "purchasedBody": "Stripe 确认付款后即会到账，通常只需几秒钟。"
   }
 }

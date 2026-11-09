@@ -25,6 +25,7 @@ import { listAiProviders } from '../repos/aiProviders'
 import { listAiSessionProvenanceForUser } from '../repos/aiSessionProvenance'
 import { listInvitesForExport } from '../repos/workspaceInvites'
 import { normaliseInviteEmail } from './workspaceInvites'
+import { listGrants } from '../repos/aiCreditGrants'
 import { listSubscriptionsByBillingAdmin } from '../repos/workspaceSubscriptions'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
@@ -112,6 +113,8 @@ Contents:
   billing/workspace_subscriptions.json  Team / Business subscriptions of
                          workspaces you manage as billing admin (plan,
                          seats, status, currency, dates).
+  billing/ai_credits.json  AI credits you bought for yourself (pack,
+                         credit, what's left, amount paid, expiry).
 
 If a section is empty, the file still exists but contains zero rows.
 `
@@ -183,6 +186,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const aiProvidersCount = await addAiProvidersEntry(entries, userId)
   const invoicesCount = await addBillingEntries(entries, userRow.stripeCustomerId)
   const workspaceSubscriptionsCount = await addWorkspaceSubscriptionsEntry(entries, userId)
+  await addCreditGrantsEntry(entries, userId)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -649,6 +653,22 @@ async function addWorkspaceSubscriptionsEntry(entries: Entries, userId: number):
     validUntil: r.validUntil?.toISOString() ?? null,
     currency: r.currency,
     interval: r.interval,
+    createdAt: r.createdAt.toISOString()
+  })), null, 2))
+  return rows.length
+}
+
+/** Personal AI credit top-ups (always written; WP4). */
+async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<number> {
+  const rows = await listGrants({ type: 'user', id: String(userId) })
+  entries['billing/ai_credits.json'] = strToU8(JSON.stringify(rows.map(r => ({
+    pack: r.pack,
+    creditUsd: r.amountUsd,
+    remainingUsd: r.remainingUsd,
+    refundedUsd: r.refundedUsd,
+    amountPaid: r.amountPaid,
+    currency: r.currency,
+    expiresAt: r.expiresAt.toISOString(),
     createdAt: r.createdAt.toISOString()
   })), null, 2))
   return rows.length

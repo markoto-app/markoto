@@ -6,6 +6,7 @@ import { litellmAdminFetch } from './litellmAdmin'
 import { isDuplicateTeamError } from './freeTierTeam'
 import { memberLimitUsd, pooledFromRow, workspacePoolCaps, type PooledWorkspace } from '../workspaceBilling'
 import { isBillingEnabled } from '../billingMode'
+import { creditBudgetExtraUsd } from '../aiCreditBudget'
 
 // One LiteLLM team per Team / Business workspace (pricing plan WP3).
 //
@@ -93,7 +94,9 @@ export async function readWorkspaceTeam(workspaceId: string): Promise<TeamInfo |
  */
 export async function ensureWorkspaceTeam(pool: PooledWorkspace): Promise<string> {
   const teamId = workspaceTeamId(pool.workspaceId)
-  const budget = workspacePoolCaps(pool.plan, pool.seats).aiBudgetUsd
+  // Seats × per-seat + the workspace's top-up credits (WP4).
+  const budget = Math.round((workspacePoolCaps(pool.plan, pool.seats).aiBudgetUsd
+    + await creditBudgetExtraUsd({ type: 'workspace', id: pool.workspaceId })) * 10_000) / 10_000
   if (!isStubMode()) {
     let existing = await readWorkspaceTeam(pool.workspaceId)
     if (!existing) {

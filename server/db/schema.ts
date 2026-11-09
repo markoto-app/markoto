@@ -273,6 +273,48 @@ export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
   index('idx_workspace_subscriptions_customer').on(table.stripeCustomerId)
 ])
 
+// AI credit top-ups (pricing plan WP4): one row per paid top-up, for a
+// user (Pro) or a workspace (Team / Business). `subject_id` is the user
+// id or the workspace id as text (no FK: two subject kinds; account and
+// workspace deletion delete the rows explicitly). `remaining_usd` goes
+// down as the subject's AI spend passes its plan budget (monthly
+// settlement, `server/utils/aiCredits.ts`) and with refunds; a grant
+// expires 12 months after purchase. `stripe_payment_intent_id` is unique
+// so a repeated webhook adds nothing.
+export const aiCreditGrants = pgTable('ai_credit_grants', {
+  id: serial('id').primaryKey(),
+  subjectType: text('subject_type', { enum: ['user', 'workspace'] }).notNull(),
+  subjectId: text('subject_id').notNull(),
+  pack: text('pack').notNull(),
+  amountUsd: doublePrecision('amount_usd').notNull(),
+  remainingUsd: doublePrecision('remaining_usd').notNull(),
+  refundedUsd: doublePrecision('refunded_usd').notNull().default(0),
+  // What was paid, in the currency's minor units (cents / Rappen).
+  amountPaid: integer('amount_paid').notNull(),
+  currency: text('currency', { enum: ['eur', 'chf'] }).notNull(),
+  stripePaymentIntentId: text('stripe_payment_intent_id').notNull().unique(),
+  stripeCheckoutSessionId: text('stripe_checkout_session_id'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  index('idx_ai_credit_grants_subject').on(table.subjectType, table.subjectId)
+])
+
+// How much of a subject's credits one calendar month (UTC — LiteLLM's
+// monthly budget reset) used: the month's AI spend above the plan
+// budget, deducted from the grants once. Lets the settlement run
+// repeatedly without deducting twice.
+export const aiCreditSettlements = pgTable('ai_credit_settlements', {
+  subjectType: text('subject_type', { enum: ['user', 'workspace'] }).notNull(),
+  subjectId: text('subject_id').notNull(),
+  // 'YYYY-MM'
+  period: text('period').notNull(),
+  consumedUsd: doublePrecision('consumed_usd').notNull().default(0),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+}, table => [
+  primaryKey({ columns: [table.subjectType, table.subjectId, table.period] })
+])
+
 // User-saved theme presets. Per-user, not shared across workspaces. A
 // user can save up to 20 themes (parity with the workspaces-owned cap)
 // and apply them to any document they own from the theme picker.

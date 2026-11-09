@@ -1642,7 +1642,10 @@
       "spending": {
         "heading": "Spending and usage",
         "comingSoon": "Coming soon — your AI credit usage, plan history, and invoices will live here. For now, manage billing from the Pricing page.",
-        "viewPricing": "View pricing"
+        "viewPricing": "View pricing",
+        "plan": "Current plan: {plan}",
+        "manage": "Manage billing",
+        "portalFailed": "Could not open billing"
       },
       "data": {
         "heading": "Your data",
@@ -2092,5 +2095,17 @@
     "actions": "Document actions",
     "open": "Open",
     "openNewTab": "Open in new tab"
+  },
+  "credits": {
+    "title": "AI credits",
+    "balance": "{amount} in AI credits left",
+    "usedThisMonth": "{amount} used this month",
+    "explainer": "Credits top up the monthly AI budget of your plan. They are used only once the plan’s budget for the month is spent, and they expire {months} months after purchase.",
+    "pack": "{price} → {credit} credit",
+    "grantLeft": "{left} left · expires {date}",
+    "needsPlan": "AI credits extend a paid plan. Upgrade to Pro to buy them.",
+    "buyFailed": "Could not start the purchase",
+    "purchased": "Credits purchased",
+    "purchasedBody": "They are added as soon as Stripe confirms the payment, usually within a few seconds."
   }
 }

@@ -792,13 +792,13 @@ describe('POST /api/webhooks/stripe — hand-built event edge cases', () => {
 
   it('200 on event types we explicitly do NOT handle (unhandled type)', async () => {
     // Existing test covers `customer.updated`. This one stresses a
-    // distinctly different namespace (`charge.refunded`) to make sure
-    // the dispatch switch's `default` arm is genuinely unconditional.
-    const event = makeStripeEvent('charge.refunded', {
-      id: 'ch_refund_test',
-      object: 'charge',
-      amount: 1000,
-      refunded: true
+    // distinctly different namespace (`radar.early_fraud_warning.created`;
+    // `charge.refunded` is handled since WP4) to make sure the dispatch
+    // switch's `default` arm is genuinely unconditional.
+    const event = makeStripeEvent('radar.early_fraud_warning.created', {
+      id: 'issfr_test',
+      object: 'radar.early_fraud_warning',
+      charge: 'ch_refund_test'
     })
     const res = await postWebhook(event)
     expect(res.status).toBe(200)

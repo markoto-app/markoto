@@ -253,7 +253,7 @@ describe('dispatchStripeEvent — routing + unknown events', () => {
     // Cast inline since the factories only build event types we DO
     // handle (by design — adding a new factory to this module should
     // be a coordinated decision with the dispatcher's switch).
-    const event = { type: 'charge.refunded', data: { object: {} } } as unknown as Parameters<typeof dispatchStripeEvent>[0]
+    const event = { type: 'customer.tax_id.created', data: { object: {} } } as unknown as Parameters<typeof dispatchStripeEvent>[0]
     const r = await dispatchStripeEvent(event, opts)
     expect(r.handled).toBe(false)
   })

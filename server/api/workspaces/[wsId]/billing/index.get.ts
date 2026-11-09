@@ -3,6 +3,7 @@ import { users, workspaceMembers } from '../../../../db/schema'
 import { useDatabase } from '../../../../utils/database'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../../utils/billingMode'
+import { creditBalanceView } from '../../../../utils/aiCreditBudget'
 import { decryptToken } from '../../../../utils/litellm/tokenCrypto'
 import { readMemberKeySpend, readWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import {
@@ -97,6 +98,8 @@ export default defineEventHandler(async (event) => {
           resetsAt: team?.budget_reset_at ?? null
         }
       : null,
-    members
+    members,
+    // AI credit top-ups (WP4).
+    credits: billingEnabled ? await creditBalanceView({ type: 'workspace', id: wsId }) : null
   }
 })

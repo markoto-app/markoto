@@ -7,6 +7,7 @@ import { useStripeClient } from './stripeClient'
 import { isBillingEnabled } from './billingMode'
 import { cancelWorkspaceSubscriptionAtPeriodEnd, cancelWorkspaceSubscriptionNow } from './workspaceStripe'
 import { deleteKeyTokens, deleteWorkspaceTeam, listMemberKeyTokens } from './litellm/workspaceTeams'
+import { deleteCreditsForSubject } from '../repos/aiCreditGrants'
 import { AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED, AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED } from '../legal/auditActions'
 
 // Lifecycle hooks of Team / Business billing (WP3): what happens to a
@@ -19,6 +20,8 @@ import { AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED, AUDIT_WORKSPACE_SUBSCRIPTION_CAN
  * subscription row cascades with it).
  */
 export async function endWorkspaceBilling(workspaceId: string, actorUserId: number | null): Promise<void> {
+  // Top-up credits belong to the workspace and go with it (WP4).
+  await deleteCreditsForSubject({ type: 'workspace', id: workspaceId })
   const row = await getWorkspaceSubscription(workspaceId)
   if (!row) return
   if (row.stripeSubscriptionId && isBillingEnabled()) {

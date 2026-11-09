@@ -30,6 +30,7 @@ import { isBillingEnabled } from './billingMode'
 import { AUDIT_ACCOUNT_DELETE_EXECUTED } from '../legal/auditActions'
 import type { AccountDeletionSummary } from './accountDeletionPlan'
 import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from './workspaceBillingLifecycle'
+import { deleteCreditsForSubject } from '../repos/aiCreditGrants'
 
 // Cascading account deletion executor. Implements the locked policy:
 //
@@ -99,6 +100,8 @@ export async function executeAccountDeletion(
   // The user's keys in workspace LiteLLM teams (the tokens live on the
   // membership rows, so before they go).
   summary.workspaceKeysDeleted = await deleteAllMemberKeys(userId)
+  // Personal AI credit top-ups (WP4; no FK to users).
+  summary.creditGrantsDeleted = await deleteCreditsForSubject({ type: 'user', id: String(userId) })
   const removed = await removeAllMemberships(userId)
   summary.workspaceMembershipsRemoved = removed.length
 
@@ -336,6 +339,7 @@ function emptySummary(): AccountDeletionSummary {
     aiProvidersDeleted: 0,
     workspaceInvitesDeleted: 0,
     billingAdminHandovers: 0,
-    workspaceKeysDeleted: 0
+    workspaceKeysDeleted: 0,
+    creditGrantsDeleted: 0
   }
 }

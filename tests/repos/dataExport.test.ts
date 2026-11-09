@@ -64,6 +64,7 @@ describe('buildExportZip', () => {
       'ai/providers.json',
       'ai/sessions.ndjson',
       'audit.ndjson',
+      'billing/ai_credits.json',
       'billing/customer.json',
       'billing/invoices.ndjson',
       'billing/workspace_subscriptions.json',

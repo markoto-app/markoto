@@ -1,3 +1,4 @@
+import { creditBalanceView } from '../../utils/aiCreditBudget'
 import { isBillingEnabled } from '../../utils/billingMode'
 import { resolveBillingContext } from '../../utils/billing'
 import { countOwnedWorkspacesByUser } from '../../repos/workspaces'
@@ -44,6 +45,8 @@ export default defineEventHandler(async (event) => {
     // Document images (uploads + AI images + duplicate copies), pending
     // uploads included — the same sum the upload quota enforces.
     imageBytesUsed: imageBytes,
-    imageBytesPerUserLimit: tier.imageBytesPerUser
+    imageBytesPerUserLimit: tier.imageBytesPerUser,
+    // AI credit top-ups (WP4): balance + purchases. Null with billing off.
+    credits: isBillingEnabled() ? await creditBalanceView({ type: 'user', id: String(userId) }) : null
   }
 })

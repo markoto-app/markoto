@@ -46,6 +46,8 @@ export interface WorkspaceBillingOverview {
     unlimited: boolean
     spendUsd: number | null
   }>
+  /** AI credit top-ups (WP4); null with billing off. */
+  credits?: import('~/utils/aiCredits').CreditBalanceView | null
 }
 
 /** Statuses where Stripe is still trying to collect: admins see a notice. */

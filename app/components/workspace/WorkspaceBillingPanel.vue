@@ -413,6 +413,23 @@ function usd(amount: number | null | undefined): string {
           </div>
         </div>
 
+        <!-- AI credit top-ups (WP4) ─────────────────────────────────── -->
+        <div
+          class="rounded-lg border border-default bg-default p-5 space-y-3"
+          data-testid="workspace-billing-credits-card"
+        >
+          <h3 class="font-serif text-lg font-normal tracking-tight">
+            {{ t('credits.title') }}
+          </h3>
+          <CommonAiCreditsCard
+            :credits="overview.credits ?? null"
+            :currency="sub.currency"
+            :endpoint="`/api/workspaces/${workspaceId}/billing/topup`"
+            :can-buy="sub.entitled"
+            testid-prefix="workspace-billing"
+          />
+        </div>
+
         <!-- Pooled AI budget + members ─────────────────────────────── -->
         <div
           v-if="overview.pool"

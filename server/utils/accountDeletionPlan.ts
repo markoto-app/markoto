@@ -270,6 +270,8 @@ export interface AccountDeletionSummary {
   billingAdminHandovers: number
   /** The user's keys in workspace LiteLLM teams. */
   workspaceKeysDeleted: number
+  /** Personal AI credit top-ups. */
+  creditGrantsDeleted: number
 }
 
 // Also expose a small repo-shape helper to count themes (only used

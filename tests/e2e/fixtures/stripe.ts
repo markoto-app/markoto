@@ -103,3 +103,39 @@ export function subscriptionUpdatedEvent(args: {
     }
   }
 }
+
+/** A paid credit top-up's `checkout.session.completed` (WP4). */
+export function topupCompletedEvent(args: {
+  subjectType: 'user' | 'workspace'
+  subjectId: string
+  pack: '10' | '25' | '50'
+  customer?: string
+  currency?: 'eur' | 'chf'
+}): Record<string, unknown> {
+  const now = Math.floor(Date.now() / 1000)
+  const pi = `pi_flow_${args.subjectId}_${Date.now()}`
+  return {
+    id: `evt_flow_topup_${pi}`,
+    object: 'event',
+    api_version: '2025-01-27.acacia',
+    created: now,
+    livemode: false,
+    type: 'checkout.session.completed',
+    pending_webhooks: 0,
+    request: { id: null, idempotency_key: null },
+    data: {
+      object: {
+        id: `cs_${pi}`,
+        object: 'checkout.session',
+        mode: 'payment',
+        payment_status: 'paid',
+        payment_intent: pi,
+        customer: args.customer ?? null,
+        currency: args.currency ?? 'eur',
+        amount_total: Number(args.pack) * 100,
+        client_reference_id: args.subjectType === 'user' ? args.subjectId : `workspace:${args.subjectId}`,
+        metadata: { kind: 'topup', pack: args.pack, subject_type: args.subjectType, subject_id: args.subjectId }
+      }
+    }
+  }
+}

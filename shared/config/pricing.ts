@@ -140,3 +140,53 @@ export function resolvePlanPricesFromEnv(env: Record<string, string | undefined>
 export function defaultCurrencyForLocale(locale: string | null | undefined): Currency {
   return /[-_]ch$/i.test(locale ?? '') ? 'chf' : 'eur'
 }
+
+// ─── AI credit top-ups (WP4) ────────────────────────────────────────
+//
+// One-time purchases that raise a Pro user's or a Team / Business
+// workspace's AI budget. Each pack adds `creditUsd` (the AI budget is
+// metered in USD by LiteLLM) and costs `price` in the buyer's currency;
+// credits expire `TOPUP_VALIDITY_MONTHS` after purchase. Sold through
+// one-time Stripe Prices with the lookup key
+// `<prefix>_topup_<pack>_<eur|chf>` (`stripeTopupLookupKey`).
+
+export const TOPUP_PACK_IDS = ['10', '25', '50'] as const
+export type TopupPackId = typeof TOPUP_PACK_IDS[number]
+
+export interface TopupPack {
+  id: TopupPackId
+  creditUsd: number
+  price: Record<Currency, number>
+}
+
+export const TOPUP_PACKS: readonly TopupPack[] = [
+  { id: '10', creditUsd: 10, price: { eur: 10, chf: 10 } },
+  { id: '25', creditUsd: 25, price: { eur: 25, chf: 25 } },
+  { id: '50', creditUsd: 50, price: { eur: 50, chf: 50 } }
+]
+
+export const TOPUP_VALIDITY_MONTHS = 12
+
+export function isTopupPackId(value: unknown): value is TopupPackId {
+  return typeof value === 'string' && (TOPUP_PACK_IDS as readonly string[]).includes(value)
+}
+
+export function topupPack(id: TopupPackId): TopupPack {
+  return TOPUP_PACKS.find(p => p.id === id)!
+}
+
+export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, prefix = 'markoto'): string {
+  return `${prefix}_topup_${pack}_${currency}`
+}
+
+/** Parse a top-up lookup key (`null` = not a top-up key of ours). */
+export function parseStripeTopupLookupKey(key: string | null | undefined, prefix = 'markoto'): { pack: TopupPackId, currency: Currency } | null {
+  if (!key || !key.startsWith(`${prefix}_topup_`)) return null
+  const [pack, currency, ...rest] = key.slice(prefix.length + '_topup_'.length).split('_')
+  if (rest.length > 0 || !isTopupPackId(pack) || !isCurrency(currency)) return null
+  return { pack, currency }
+}
+
+export function allStripeTopupLookupKeys(prefix = 'markoto'): string[] {
+  return TOPUP_PACK_IDS.flatMap(pack => CURRENCIES.map(c => stripeTopupLookupKey(pack, c, prefix)))
+}

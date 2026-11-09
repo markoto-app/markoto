@@ -88,7 +88,7 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
 type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'billing'
-const initialTab = route.query.tab === 'billing' || route.query.billing ? 'billing' : 'documents'
+const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : 'documents'
 const activeTab = ref<WorkspaceTab>(initialTab)
 const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
@@ -122,13 +122,16 @@ const paymentProblem = computed(() => isPaymentProblem(data.value?.workspace.bil
 // Back from Stripe Checkout (`?billing=success|cancelled`): say so once,
 // then drop the query so a reload doesn't repeat it.
 tryOnMounted(() => {
+  if (route.query.credits === 'success') {
+    toast.add({ title: t('credits.purchased'), description: t('credits.purchasedBody'), icon: 'i-lucide-check', color: 'neutral' })
+  }
   const outcome = route.query.billing
   if (outcome === 'success') {
     toast.add({ title: t('workspace.billing.checkoutSuccess'), description: t('workspace.billing.checkoutSuccessBody'), icon: 'i-lucide-check', color: 'neutral' })
   } else if (outcome === 'cancelled') {
     toast.add({ title: t('workspace.billing.checkoutCancelled'), icon: 'i-lucide-x', color: 'neutral' })
   }
-  if (route.query.billing || route.query.tab) void router.replace({ query: {} })
+  if (route.query.billing || route.query.tab || route.query.credits) void router.replace({ query: {} })
 })
 
 // Same dialog flow as the home page; just pass our workspaceId so the

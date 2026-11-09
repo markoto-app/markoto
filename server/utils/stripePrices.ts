@@ -5,12 +5,14 @@ import {
   parseStripePriceLookupKey,
   resolvePlanPricesFromEnv,
   stripePriceLookupKey,
+  stripeTopupLookupKey,
   CURRENCIES,
   type BillingInterval,
   type Currency,
   type PaidPlanName,
   type PlanPriceTable,
-  type PriceIdentity
+  type PriceIdentity,
+  type TopupPackId
 } from '~~/shared/config/pricing'
 
 // The Stripe price catalogue: which Stripe Price sells which
@@ -145,4 +147,39 @@ export async function livePlanPriceTable(stripe: Stripe): Promise<PlanPriceTable
     }
   }
   return table
+}
+
+// ─── Top-up prices (WP4) ────────────────────────────────────────────
+
+const topupCache = new Map<string, { at: number, priceId: string | null }>()
+
+/** Drop cached top-up price ids (tests). */
+export function resetTopupPriceCache(): void {
+  topupCache.clear()
+}
+
+/**
+ * The one-time Stripe Price that sells a top-up pack in a currency:
+ * `NUXT_STRIPE_PRICE_IDS` (`markoto_topup_10_eur=price_…`) first, else
+ * the lookup key. Cached 10 minutes; null = not set up.
+ */
+export async function stripeTopupPriceIdFor(stripe: Stripe, pack: TopupPackId, currency: Currency, now: number = Date.now()): Promise<string | null> {
+  const prefix = lookupKeyPrefix()
+  const key = stripeTopupLookupKey(pack, currency, prefix)
+  for (const pair of (process.env.NUXT_STRIPE_PRICE_IDS ?? '').split(',')) {
+    const [k, id] = pair.split('=').map(s => s?.trim())
+    if (k === key && id) return id
+  }
+  const cached = topupCache.get(key)
+  if (cached && now - cached.at < CACHE_TTL_MS) return cached.priceId
+  let priceId: string | null = null
+  try {
+    const list = await stripe.prices.list({ lookup_keys: [key], active: true, limit: 1 })
+    priceId = list.data[0]?.id ?? null
+  } catch (e) {
+    console.warn('[stripe/prices] top-up price lookup failed:', e instanceof Error ? e.message : e)
+    Sentry.captureException(e, { tags: { component: 'stripePrices', event: 'topup_lookup_failed' } })
+  }
+  topupCache.set(key, { at: now, priceId })
+  return priceId
 }

@@ -21,6 +21,12 @@ Managing or cancelling a subscription opens Stripe's billing portal. Changes
 take effect as Stripe reports them; if a subscription lapses, you fall back
 to the free tier and nothing is deleted.
 
+On Pro you can also buy **AI credits** under Settings → Profile → Spending
+and usage (10, 25 or 50, in euros or Swiss francs). Credits top up the
+monthly AI budget: they are used only after the month's budget is spent,
+and they expire 12 months after purchase. A refunded purchase removes the
+refunded share of its credits.
+
 The checkout and portal links answer "billing is disabled" wherever billing
 is off.
 

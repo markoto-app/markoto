@@ -15,6 +15,8 @@ export interface UserBilling {
   /** Document image storage (pending uploads included) vs. the per-user quota. */
   imageBytesUsed: number
   imageBytesPerUserLimit: number
+  /** AI credit top-ups (WP4); null with billing off. */
+  credits?: import('~/utils/aiCredits').CreditBalanceView | null
 }
 
 /**

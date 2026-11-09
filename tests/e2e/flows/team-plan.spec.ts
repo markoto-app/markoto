@@ -1,6 +1,6 @@
 import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
-import { postStripeEvent, stayOnApp, subscriptionUpdatedEvent } from '../fixtures/stripe'
+import { postStripeEvent, stayOnApp, subscriptionUpdatedEvent, topupCompletedEvent } from '../fixtures/stripe'
 
 // "Put a workspace on the Team plan" (pricing plan WP3).
 //
@@ -199,6 +199,29 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
       }
     }
   )
+
+  // ─── AI credits ─────────────────────────────────────────────────
+  await flow.heading('Top up the AI budget', 3)
+  await flow.narrate(
+    'If the workspace needs more AI this month, buy credits. They are '
+    + 'used only after the month\'s budget is spent and last a year.'
+  )
+  const topupPosted = page.waitForResponse(r => r.url().includes(`/api/workspaces/${workspaceId}/billing/topup`) && r.request().method() === 'POST')
+  await flow.click(
+    'Buy €25 of AI credits',
+    page.locator('[data-testid="workspace-billing-buy-25"]'),
+    { result: 'Stripe takes the payment for the credits.' }
+  )
+  expect((await topupPosted).status()).toBe(200)
+  expect(await postStripeEvent(page, topupCompletedEvent({ subjectType: 'workspace', subjectId: workspaceId, pack: '25', customer }))).toBe(200)
+  await page.goto(`/w/${workspaceId}?tab=billing&credits=success`)
+  const creditsCard = page.locator('[data-testid="workspace-billing-credits"]')
+  await expect(creditsCard).toContainText('$25.00 in AI credits left', { timeout: 15_000 })
+  await editor.page.dismissToasts()
+  await creditsCard.scrollIntoViewIfNeeded()
+  await flow.shot('The credits are on the workspace, with the date they expire.', {
+    highlights: [{ label: 'Credits', selector: '[data-testid="workspace-billing-credits"]' }]
+  })
 
   flow.next({
     slug: 'invite-a-teammate-to-your-workspace',

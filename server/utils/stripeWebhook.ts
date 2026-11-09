@@ -1,5 +1,5 @@
 import type Stripe from 'stripe'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, isNull } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { users, processedWebhookEvents, pendingStripeEvents, workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from './database'
@@ -9,6 +9,9 @@ import { identifyStripePrice } from './stripePrices'
 import { getPooledWorkspace } from './workspaceBilling'
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from './litellm/workspaceTeams'
 import { notifyWorkspaceAdmins } from './email/workspaceBillingEmails'
+import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../repos/aiCreditGrants'
+import { recomputeCreditBudget } from './aiCredits'
+import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
 import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
 
@@ -188,6 +191,71 @@ function deferWorkspaceTeamSync(deferAfterCommit: DeferredAfterCommit | undefine
   })
 }
 
+/**
+ * A paid credit top-up (WP4): record the grant (once per payment intent)
+ * and raise the subject's AI budget after commit. The subject comes from
+ * the session metadata our checkout set (`subject_type` / `subject_id`);
+ * a personal buyer's first customer id is stamped on the user.
+ */
+async function handleTopupCheckout(
+  session: Stripe.Checkout.Session,
+  opts: { db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit }
+): Promise<{ matched: number, plan: PlanName | null }> {
+  const meta = session.metadata ?? {}
+  const pack = meta.pack
+  const subjectType = meta.subject_type
+  const subjectId = meta.subject_id
+  const paymentIntent = typeof session.payment_intent === 'string' ? session.payment_intent : session.payment_intent?.id ?? null
+  const currency = (session.currency ?? '').toLowerCase()
+  if (meta.kind !== 'topup' || !isTopupPackId(pack) || (subjectType !== 'user' && subjectType !== 'workspace') || !subjectId || !paymentIntent || !isCurrency(currency)) {
+    const msg = `[stripe/webhook] payment checkout that isn't a valid top-up: session=${session.id}`
+    console.warn(msg)
+    Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'topup_invalid' } })
+    return { matched: 0, plan: null }
+  }
+  if (session.payment_status !== 'paid') return { matched: 0, plan: null }
+  const db = opts.db ?? useDatabase()
+  const subject: CreditSubject = { type: subjectType, id: subjectId }
+  const expiresAt = new Date()
+  expiresAt.setUTCMonth(expiresAt.getUTCMonth() + TOPUP_VALIDITY_MONTHS)
+  const inserted = await insertCreditGrant({
+    subject,
+    pack,
+    amountUsd: topupPack(pack).creditUsd,
+    amountPaid: session.amount_total ?? 0,
+    currency,
+    stripePaymentIntentId: paymentIntent,
+    stripeCheckoutSessionId: session.id,
+    expiresAt
+  }, db)
+  const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
+  if (subjectType === 'user' && customerId) {
+    await db.update(users)
+      .set({ stripeCustomerId: customerId, billingCurrency: currency })
+      .where(and(eq(users.id, Number(subjectId)), isNull(users.stripeCustomerId)))
+  }
+  if (inserted) opts.deferAfterCommit?.push(() => recomputeCreditBudget(subject))
+  return { matched: inserted ? 1 : 0, plan: null }
+}
+
+/**
+ * `charge.refunded`: a refunded top-up loses the refunded share of its
+ * credit (credits already used stay used). Other charges are ignored.
+ */
+export async function handleChargeRefunded(
+  event: Stripe.ChargeRefundedEvent,
+  db?: DbOrTx,
+  deferAfterCommit?: DeferredAfterCommit
+): Promise<{ matched: number }> {
+  const charge = event.data.object
+  const paymentIntent = typeof charge.payment_intent === 'string' ? charge.payment_intent : charge.payment_intent?.id ?? null
+  if (!paymentIntent || !(charge.amount > 0)) return { matched: 0 }
+  const subject = await refundCreditGrant(paymentIntent, charge.amount_refunded / charge.amount, db ?? useDatabase())
+  if (!subject) return { matched: 0 }
+  deferAfterCommit?.push(() => recomputeCreditBudget(subject))
+  return { matched: 1 }
+}
+
 function isWorkspaceIdentity(identity: PriceIdentity | null): identity is PriceIdentity & { plan: WorkspacePlanName } {
   return identity !== null && isWorkspacePlan(identity.plan)
 }
@@ -216,6 +284,10 @@ export async function handleCheckoutSessionCompleted(
   }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const session = event.data.object
+  // One-time top-up purchase (WP4), not a subscription.
+  if (session.mode === 'payment') {
+    return handleTopupCheckout(session, opts)
+  }
   const ref = session.client_reference_id ?? ''
   const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id ?? null
   const subscriptionId = typeof session.subscription === 'string' ? session.subscription : session.subscription?.id ?? null
@@ -582,6 +654,8 @@ async function runHandler(
       return { handled: true, detail: await handleSubscriptionDeleted(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.paid':
       return { handled: true, detail: await handleInvoicePaid(event, opts.db, opts.deferAfterCommit) }
+    case 'charge.refunded':
+      return { handled: true, detail: await handleChargeRefunded(event, opts.db, opts.deferAfterCommit) }
     case 'invoice.payment_failed':
       return { handled: true, detail: await handleInvoicePaymentFailed(event, opts.db, opts.deferAfterCommit) }
     default:
