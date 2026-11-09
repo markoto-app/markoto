@@ -223,6 +223,9 @@ jobs:
           TIER_FREE_FEATURE_AI_IMAGE: ${{ vars.TIER_FREE_FEATURE_AI_IMAGE }}
           TIER_FREE_FEATURE_AI_VOICE: ${{ vars.TIER_FREE_FEATURE_AI_VOICE }}
           TIER_FREE_FEATURE_AI_STRONG_MODEL: ${{ vars.TIER_FREE_FEATURE_AI_STRONG_MODEL }}
+          TIER_FREE_FEATURE_SSO: ${{ vars.TIER_FREE_FEATURE_SSO }}
+          TIER_PRO_FEATURE_SSO: ${{ vars.TIER_PRO_FEATURE_SSO }}
+          TIER_TEAM_FEATURE_SSO: ${{ vars.TIER_TEAM_FEATURE_SSO }}
           NUXT_IMAGE_GC_RETENTION_DAYS: ${{ vars.NUXT_IMAGE_GC_RETENTION_DAYS }}
           # the tag being deployed pins IMAGE_TAG in the rendered .env
           IMAGE_TAG: ${{ inputs.tag }}

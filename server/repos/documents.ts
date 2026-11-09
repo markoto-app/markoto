@@ -2,6 +2,7 @@ import { and, eq, sql } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import { documents, workspaceMembers } from '../db/schema'
+import { ssoSatisfiedSql } from './sso'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import { useDatabase } from '../utils/database'
 import { NotFoundError } from './errors'
@@ -184,7 +185,10 @@ export async function getDocWithActorRole(
         ? sql`false`
         : and(
             eq(workspaceMembers.workspaceId, documents.workspaceId),
-            eq(workspaceMembers.userId, actorUserId)
+            eq(workspaceMembers.userId, actorUserId),
+            // Single sign-on (WP14): no role without a current SSO grant
+            // in a workspace that enforces it — same as getMemberRole.
+            ssoSatisfiedSql(workspaceMembers.workspaceId, actorUserId)
           )
     )
     .where(eq(documents.docId, docId))

@@ -89,6 +89,22 @@ export const AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED = 'workspace.subscription_ca
 // size only (never the file name or content).
 export const AUDIT_DESIGN_IMPORT_STARTED = 'design_import.started'
 
+// Per-workspace single sign-on (WP14). `scope` workspace, `scope_id` the
+// workspace id. Metadata: protocol, domain, the affected user id — never
+// a client secret, certificate body, SCIM token or assertion.
+export const AUDIT_SSO_CONNECTION_SAVED = 'sso.connection_saved'
+export const AUDIT_SSO_CONNECTION_ACTIVATED = 'sso.connection_activated'
+export const AUDIT_SSO_CONNECTION_DELETED = 'sso.connection_deleted'
+export const AUDIT_SSO_DOMAIN_ADDED = 'sso.domain_added'
+export const AUDIT_SSO_DOMAIN_VERIFIED = 'sso.domain_verified'
+export const AUDIT_SSO_DOMAIN_REMOVED = 'sso.domain_removed'
+export const AUDIT_SSO_SIGN_IN = 'sso.sign_in'
+export const AUDIT_SSO_IDENTITY_LINKED = 'sso.identity_linked'
+export const AUDIT_SSO_MEMBER_JOINED = 'sso.member_joined'
+export const AUDIT_SSO_SCIM_TOKEN_ROTATED = 'sso.scim_token_rotated'
+export const AUDIT_SSO_SCIM_USER_CREATED = 'sso.scim_user_created'
+export const AUDIT_SSO_SCIM_USER_DEACTIVATED = 'sso.scim_user_deactivated'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -124,3 +140,15 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED
     | typeof AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED
     | typeof AUDIT_DESIGN_IMPORT_STARTED
+    | typeof AUDIT_SSO_CONNECTION_SAVED
+    | typeof AUDIT_SSO_CONNECTION_ACTIVATED
+    | typeof AUDIT_SSO_CONNECTION_DELETED
+    | typeof AUDIT_SSO_DOMAIN_ADDED
+    | typeof AUDIT_SSO_DOMAIN_VERIFIED
+    | typeof AUDIT_SSO_DOMAIN_REMOVED
+    | typeof AUDIT_SSO_SIGN_IN
+    | typeof AUDIT_SSO_IDENTITY_LINKED
+    | typeof AUDIT_SSO_MEMBER_JOINED
+    | typeof AUDIT_SSO_SCIM_TOKEN_ROTATED
+    | typeof AUDIT_SSO_SCIM_USER_CREATED
+    | typeof AUDIT_SSO_SCIM_USER_DEACTIVATED

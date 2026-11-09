@@ -21,8 +21,9 @@
 //   - UserInfo (when the IdP has the endpoint) must carry the same `sub`.
 //
 // The module keeps one discovered `Configuration` per settings tuple for
-// an hour; openid-client caches the JWKS on it and refetches on an
-// unknown `kid` (key rotation).
+// an hour (up to 200 tuples: the instance IdP plus per-workspace SSO
+// connections, WP14); openid-client caches the JWKS on it and refetches
+// on an unknown `kid` (key rotation).
 
 import * as oidc from 'openid-client'
 import type { OidcSettings } from './settings'
@@ -44,10 +45,11 @@ interface CacheEntry {
   config: Promise<oidc.Configuration>
 }
 
-let cache: CacheEntry | null = null
+const MAX_CACHE_ENTRIES = 200
+const cache = new Map<string, CacheEntry>()
 
 function cacheKey(settings: OidcSettings): string {
-  return JSON.stringify([settings.issuer.href, settings.clientId, settings.clientSecret, settings.allowInsecureHttp])
+  return JSON.stringify([settings.cacheScope ?? '', settings.issuer.href, settings.clientId, settings.clientSecret, settings.allowInsecureHttp])
 }
 
 async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
@@ -57,7 +59,13 @@ async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
     settings.clientId,
     undefined,
     oidc.ClientSecretBasic(settings.clientSecret),
-    { execute, timeout: HTTP_TIMEOUT_SECONDS }
+    {
+      execute,
+      timeout: HTTP_TIMEOUT_SECONDS,
+      // Assigned to the Configuration too, so JWKS / token / UserInfo
+      // requests use it as well.
+      ...(settings.fetch ? { [oidc.customFetch]: settings.fetch as unknown as oidc.CustomFetch } : {})
+    }
   )
   // `client_secret_basic` is the OIDC default; switch to
   // `client_secret_post` only when the IdP says it doesn't take basic.
@@ -71,6 +79,7 @@ async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
       oidc.ClientSecretPost(settings.clientSecret)
     )
     config.timeout = HTTP_TIMEOUT_SECONDS
+    if (settings.fetch) config[oidc.customFetch] = settings.fetch as unknown as oidc.CustomFetch
     for (const fn of execute) fn(config)
   }
   oidc.enableNonRepudiationChecks(config)
@@ -80,18 +89,31 @@ async function discover(settings: OidcSettings): Promise<oidc.Configuration> {
 /** Discovered + cached client configuration. A failed discovery is not cached. */
 export function getOidcConfiguration(settings: OidcSettings, now = Date.now()): Promise<oidc.Configuration> {
   const key = cacheKey(settings)
-  if (cache && cache.key === key && cache.expiresAt > now) return cache.config
+  const hit = cache.get(key)
+  if (hit && hit.expiresAt > now) return hit.config
   const entry: CacheEntry = { key, expiresAt: now + DISCOVERY_TTL_MS, config: discover(settings) }
-  cache = entry
+  cache.delete(key)
+  cache.set(key, entry)
+  // Oldest first in a Map: drop the oldest beyond the bound.
+  while (cache.size > MAX_CACHE_ENTRIES) {
+    const oldest = cache.keys().next().value
+    if (oldest === undefined) break
+    cache.delete(oldest)
+  }
   entry.config.catch(() => {
-    if (cache === entry) cache = null
+    if (cache.get(key) === entry) cache.delete(key)
   })
   return entry.config
 }
 
 /** Test seam: forget the cached discovery. */
 export function resetOidcConfigurationCache(): void {
-  cache = null
+  cache.clear()
+}
+
+/** Forget one connection's discovery (after its settings changed). */
+export function forgetOidcConfiguration(settings: OidcSettings): void {
+  cache.delete(cacheKey(settings))
 }
 
 export async function buildOidcAuthorizationRequest(

@@ -3,6 +3,7 @@ import { workspaceMembers, users } from '../db/schema'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import { useDatabase } from '../utils/database'
 import { LastAdminError, NotFoundError } from './errors'
+import { ssoSatisfiedSql } from './sso'
 
 // Workspace-membership repository. This table is the authorisation source
 // of truth for workspaces; every mutation here needs to preserve the
@@ -19,7 +20,12 @@ export interface MemberRow {
 }
 
 /**
- * The caller's role in a workspace, or null if not a member.
+ * The caller's role in a workspace, or null if not a member — or if the
+ * workspace enforces single sign-on (WP14) and the caller has no current
+ * SSO grant. This is THE access check: every path into a workspace goes
+ * through it (or through `getDocWithActorRole`, which applies the same
+ * condition), so SSO enforcement holds for the editor, AI, MCP,
+ * knowledge and exports alike.
  */
 export async function getMemberRole(
   workspaceId: string,
@@ -31,8 +37,27 @@ export async function getMemberRole(
     .from(workspaceMembers)
     .where(and(
       eq(workspaceMembers.workspaceId, workspaceId),
-      eq(workspaceMembers.userId, userId)
+      eq(workspaceMembers.userId, userId),
+      ssoSatisfiedSql(workspaceMembers.workspaceId, userId)
     ))
+    .limit(1))[0]
+  return (row?.role ?? null)
+}
+
+/**
+ * The membership role WITHOUT the SSO condition. Only for the places
+ * that must see a member who hasn't signed in through the workspace's
+ * IdP: the SSO settings (admins can fix a broken IdP), the billing tab,
+ * and the "sign in with SSO" prompt. Never for content access.
+ */
+export async function getMemberRoleIgnoringSso(
+  workspaceId: string,
+  userId: number
+): Promise<WorkspaceRole | null> {
+  const row = (await useDatabase()
+    .select({ role: workspaceMembers.role })
+    .from(workspaceMembers)
+    .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId)))
     .limit(1))[0]
   return (row?.role ?? null)
 }

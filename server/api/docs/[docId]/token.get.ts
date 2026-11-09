@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import { ssoLoginUrlForMember } from '../../../utils/sso/required'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { decideDocDelete, decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
@@ -47,7 +48,13 @@ export default defineEventHandler(async (event) => {
   // body, description, owner, workspace or theme — a
   // leaked link to a private doc must not leak its metadata.
   if (decision.outcome === 'forbidden' || decision.outcome === 'password-required') {
+    // A member of a workspace that enforces single sign-on (WP14) gets the
+    // link to sign in through it; everyone else learns nothing more.
+    const ssoLoginUrl = decision.outcome === 'forbidden' && row.workspaceId && session?.user?.id
+      ? await ssoLoginUrlForMember(row.workspaceId, session.user.id, `/d/${docId}`)
+      : null
     return {
+      ssoLoginUrl,
       token: null,
       requiresPassword: decision.outcome === 'password-required',
       forbidden: decision.outcome === 'forbidden',

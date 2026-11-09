@@ -191,6 +191,8 @@ export async function startNuxt(): Promise<void> {
     NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
     NUXT_AI_BYOK_ALLOWED_BASE_URLS: '',
     NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',
+    // Per-workspace SSO (WP14): the mock IdP sits on a private address.
+    NUXT_SSO_ALLOW_PRIVATE_URLS: 'true',
     // Live dictation on the instance default needs the operator's
     // Mistral key in the app process (the realtime WS is direct). The
     // dictation tests use the in-process speech mock, so a stub works.
@@ -241,7 +243,9 @@ export const HOSTED_FREE_TIER_LIMITS = {
   TIER_FREE_SAVED_THEMES: '3',
   TIER_FREE_IMPORT_MAX_BYTES: String(10 * 1024 * 1024),
   TIER_FREE_WEB_TOOLS_PER_DAY: '20',
-  TIER_FREE_FEATURE_CUSTOM_CSS: 'false'
+  TIER_FREE_FEATURE_CUSTOM_CSS: 'false',
+  // Per-workspace SSO is Business-only on markoto.app (WP14).
+  TIER_FREE_FEATURE_SSO: 'false'
 } as const
 
 async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<void> {
@@ -260,6 +264,7 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // SaaS BYOK policy: provider allowlist, no private networks.
   env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')
   env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS = 'false'
+  env.NUXT_SSO_ALLOW_PRIVATE_URLS = 'false'
   // Hosted free-tier plan limits (infra/render-env.sh), pinned by
   // tests/integration/endpoints/planEntitlements.test.ts. The MCP ones
   // (TIER_FREE_FEATURE_MCP_WRITE / _MCP_TOOL_CALLS_PER_DAY) stay at the

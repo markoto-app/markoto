@@ -21,7 +21,9 @@ declare module '#auth-utils' {
     // No `avatar`: provider profile pictures are not stored or shown
     // (avatars are generated from `id`). Cookies sealed before this
     // change may still carry one; nothing reads it.
-    provider: 'github' | 'google' | 'oidc'
+    // `sso` = signed in through a workspace's own identity provider
+    // (WP14, `server/routes/auth/sso/`).
+    provider: 'github' | 'google' | 'oidc' | 'sso'
   }
 
   interface UserSession {
