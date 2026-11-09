@@ -92,6 +92,7 @@ const TAG_LABELS: Record<string, string> = {
   'feature:dictate-tick': 'Live dictation ticks (Voxtral Realtime)',
   'feature:image-gen': 'Image generation (BFL FLUX.2)',
   'feature:embeddings': 'Knowledge embeddings (Jina)',
+  'feature:design-import': 'Design from a document (vision)',
   'other': 'Other / untagged'
 }
 function labelFor(tag: string): string {

@@ -44,7 +44,7 @@ import time
 import zipfile
 
 from fastapi import FastAPI, Request, HTTPException
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from markitdown import MarkItDown, StreamInfo
 from markitdown._exceptions import (
     UnsupportedFormatException,
@@ -86,6 +86,8 @@ CHILD_MEMORY_BYTES = _env_int("MARKITDOWN_CHILD_MEMORY_MB", 384) * 1024 * 1024
 ZIP_EXTENSIONS = {"docx", "docm", "dotx", "pptx", "pptm", "xlsx", "xlsm", "epub", "odt", "ods", "odp", "zip"}
 ZIP_MAGIC = b"PK\x03\x04"
 _INFLATE_CHUNK = 64 * 1024
+
+import design_extract
 
 # MarkItDown is stateless and converter-routing is per-call. Building
 # once at module load avoids repeating the optional-converter discovery
@@ -175,14 +177,34 @@ def check_archive(body: bytes, time_budget: float = ARCHIVE_CHECK_TIMEOUT_SECOND
     return total
 
 
+def _cap_child_memory() -> None:
+    _soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    limit = _current_vm_bytes() + CHILD_MEMORY_BYTES
+    if hard != resource.RLIM_INFINITY:
+        limit = min(limit, hard)
+    resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+
+
+def _child_design(conn, body: bytes, ext: str, pages: int) -> None:
+    """Runs in the forked child: cap memory, extract the design facts, send the outcome."""
+    try:
+        _cap_child_memory()
+        conn.send(("ok", design_extract.extract_design(body, ext, pages)))
+    except MemoryError:
+        conn.send(("memory", ""))
+    except design_extract.ExtractError as e:
+        conn.send(("failed", str(e)[:200]))
+    except Exception as e:
+        message = str(e)
+        conn.send(("memory", "") if "MemoryError" in message else ("failed", "could not read the file"))
+    finally:
+        conn.close()
+
+
 def _child_convert(conn, body: bytes, ext: str) -> None:
     """Runs in the forked child: cap memory, convert, send the outcome."""
     try:
-        _soft, hard = resource.getrlimit(resource.RLIMIT_AS)
-        limit = _current_vm_bytes() + CHILD_MEMORY_BYTES
-        if hard != resource.RLIM_INFINITY:
-            limit = min(limit, hard)
-        resource.setrlimit(resource.RLIMIT_AS, (limit, hard))
+        _cap_child_memory()
         stream_info = StreamInfo(extension=f".{ext}", filename=f"input.{ext}")
         result = md.convert_stream(io.BytesIO(body), stream_info=stream_info)
         conn.send(("ok", result.markdown))
@@ -215,9 +237,14 @@ def _current_vm_bytes() -> int:
 
 def convert_isolated(body: bytes, ext: str) -> tuple[str, str]:
     """Convert in a child process. Returns (outcome, payload)."""
+    return run_isolated(_child_convert, body, ext)
+
+
+def run_isolated(target, *args):
+    """Run `target(conn, *args)` in a memory-capped child. Returns its (outcome, payload)."""
     with _convert_slot:
         parent_conn, child_conn = _fork.Pipe(duplex=False)
-        child = _fork.Process(target=_child_convert, args=(child_conn, body, ext), daemon=True)
+        child = _fork.Process(target=target, args=(child_conn, *args), daemon=True)
         child.start()
         child_conn.close()
         try:
@@ -292,3 +319,51 @@ async def convert(request: Request) -> PlainTextResponse:
     # whole service. Bounded — converters love to dump full stack traces
     # in their messages.
     raise HTTPException(422, f"Conversion failed: {payload}")
+
+
+DESIGN_EXTENSIONS = {"pdf", "docx"}
+
+
+@app.post(
+    "/design/extract",
+    responses={
+        400: {"description": "Empty body, or 'ext' is not pdf / docx"},
+        413: {"description": "Body too large, or the archive / extraction exceeds the resource limits"},
+        422: {"description": "The file can't be read as the claimed format"},
+        504: {"description": "Archive inspection or extraction took longer than the time limit"},
+    },
+)
+async def design_extract_endpoint(request: Request) -> JSONResponse:
+    """Design facts (styles, page pictures) for "Create a design from a document". See design_extract.py."""
+    declared = request.headers.get("content-length")
+    if declared and declared.isdigit() and int(declared) > MAX_SIZE:
+        raise HTTPException(413, "File too large")
+    body = await request.body()
+    if not body:
+        raise HTTPException(400, "Empty body")
+    if len(body) > MAX_SIZE:
+        raise HTTPException(413, "File too large")
+    ext = request.query_params.get("ext", "").strip().lower().lstrip(".")
+    if ext not in DESIGN_EXTENSIONS:
+        raise HTTPException(400, "ext must be pdf or docx")
+    try:
+        pages = int(request.query_params.get("pages", str(design_extract.MAX_PAGES)))
+    except ValueError:
+        raise HTTPException(400, "pages must be a number")
+
+    if ext == "docx" or body.startswith(ZIP_MAGIC):
+        try:
+            await asyncio.to_thread(check_archive, body)
+        except ArchiveRejected as e:
+            raise HTTPException(413, f"Archive rejected: {e}")
+        except ArchiveCheckTimeout:
+            raise HTTPException(504, "Archive inspection took too long")
+
+    outcome, payload = await asyncio.to_thread(run_isolated, _child_design, body, ext, pages)
+    if outcome == "ok":
+        return JSONResponse(payload)
+    if outcome == "memory":
+        raise HTTPException(413, "Extraction exceeded the memory limit")
+    if outcome == "timeout":
+        raise HTTPException(504, "Extraction took too long")
+    raise HTTPException(422, f"Extraction failed: {payload}")

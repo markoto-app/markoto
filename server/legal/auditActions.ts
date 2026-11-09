@@ -72,6 +72,12 @@ export const AUDIT_WORKSPACE_INVITE_REVOKED = 'workspace.invite_revoked'
 export const AUDIT_WORKSPACE_INVITE_ACCEPTED = 'workspace.invite_accepted'
 export const AUDIT_WORKSPACE_INVITE_DECLINED = 'workspace.invite_declined'
 
+// "Create a design from a document" started: an uploaded PDF / Word file
+// went to the sandboxed extractor and its design facts to the user's AI
+// provider. `scope` user, `scope_id` the user id; metadata: format and
+// size only (never the file name or content).
+export const AUDIT_DESIGN_IMPORT_STARTED = 'design_import.started'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -100,3 +106,4 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_INVITE_REVOKED
     | typeof AUDIT_WORKSPACE_INVITE_ACCEPTED
     | typeof AUDIT_WORKSPACE_INVITE_DECLINED
+    | typeof AUDIT_DESIGN_IMPORT_STARTED

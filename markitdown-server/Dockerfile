@@ -35,7 +35,7 @@ RUN pip install --no-cache-dir --only-binary=:all: \
  && pip uninstall -y pip \
  && rm -rf /usr/local/lib/python3.13/ensurepip/_bundled
 
-COPY --chown=root:root --chmod=755 server.py /app/server.py
+COPY --chown=root:root --chmod=755 server.py design_extract.py /app/
 
 USER app
 EXPOSE 8080

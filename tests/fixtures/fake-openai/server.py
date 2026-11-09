@@ -22,6 +22,11 @@ Scripted behaviour keyed on the request:
     `FAKE_DIRECTIVE <tool_name> <json-args>`, it calls exactly that tool
     with those arguments (at most 6 tool turns); otherwise it answers
     "Done." and the turn ends.
+  - When the tool `propose_design` is offered ("Create a design from a
+    document", a vision request), the reply calls it with DESIGN_PROPOSAL;
+    once the prompt carries a `<previous_proposal>` (a comparison round)
+    it adds `matches_original: true`, so a run ends after two calls. The
+    record notes how many images the request carried (`images`).
   - Otherwise, when tools are offered and the last message is NOT a tool
     result, the reply is a tool call: `insert_text` (when offered, so
     the markoto agent loop writes a marker line into the doc), else the
@@ -66,6 +71,20 @@ PNG_1X1 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwACh
 
 RECORDED = []
 
+# Canned answer to `propose_design` (design import). Fields from the
+# markoto theme vocabulary; tests assert on them.
+DESIGN_PROPOSAL = {
+    "theme": {
+        "body": {"font": "Lato", "size": 11, "color": "#1C2733"},
+        "headings": {"font": "PT Serif", "color": "#0B2545", "weight": "700"},
+        "color": {"brand": "#F28C28", "secondary": "#6B7A89"},
+        "footer": {"left": "{title}", "center": "", "right": "{page}"},
+        "customCss": "h2 { border-bottom: 1.5pt solid #F28C28; }",
+    },
+    "name": "Fake navy report",
+    "description": "PT Serif headings in navy, Lato text, orange rules.",
+}
+
 DIRECTIVE_RE = re.compile(r"FAKE_DIRECTIVE\s+([a-z_]+)\s+(\{[^\n]*\})")
 MAX_OBEDIENT_TOOL_TURNS = 6
 
@@ -96,6 +115,15 @@ def _obedient_tool_call(messages, names):
     except ValueError:
         return None
     return (match.group(1), args)
+
+
+def _image_count(messages):
+    count = 0
+    for m in messages:
+        content = m.get("content")
+        if isinstance(content, list):
+            count += sum(1 for p in content if isinstance(p, dict) and p.get("type") == "image_url")
+    return count
 
 
 def _auth_key(headers):
@@ -222,7 +250,7 @@ class Handler(BaseHTTPRequestHandler):
         # Tool results the model was given (truncated) — lets tests prove
         # what content did or did not reach the "provider".
         tool_results = [_content_text(m)[:4000] for m in messages if m.get("role") == "tool"]
-        self._record(model, {"tools": [t.get("function", {}).get("name") for t in tools], "toolResults": tool_results})
+        self._record(model, {"tools": [t.get("function", {}).get("name") for t in tools], "toolResults": tool_results, "images": _image_count(messages)})
         if not self._check_auth():
             return
         if model == "missing-model":
@@ -231,7 +259,13 @@ class Handler(BaseHTTPRequestHandler):
         last_role = messages[-1].get("role") if messages else "user"
 
         tool_call = None
-        if model == "obedient-chat":
+        names = [t.get("function", {}).get("name") for t in tools]
+        if "propose_design" in names and model != "no-tools-model":
+            proposal = dict(DESIGN_PROPOSAL)
+            if any("<previous_proposal>" in _content_text(m) for m in messages):
+                proposal["matches_original"] = True
+            tool_call = ("propose_design", proposal)
+        elif model == "obedient-chat":
             tool_call = _obedient_tool_call(messages, [t.get("function", {}).get("name") for t in tools])
         elif tools and model != "no-tools-model" and last_role != "tool":
             names = [t.get("function", {}).get("name") for t in tools]

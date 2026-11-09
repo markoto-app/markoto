@@ -294,6 +294,18 @@ export async function renderDocument(
   return promise
 }
 
+/**
+ * One uncached PNG render of a render-bootstrap id that is not a stored
+ * document — the design-import sample (`designImport/sampleRender.ts`),
+ * whose content lives in Valkey for the render's duration. No snapshot,
+ * no cache, no singleflight: every call is a different proposal. The
+ * caller deletes `renders/{id}/` afterwards (`cleanupRendersForDoc`).
+ */
+export async function renderPngUncached(id: string, round: number): Promise<{ pageCount: number, pageKeys: string[] }> {
+  const out = await callRenderer(id, round, 'png')
+  return { pageCount: out.pageCount, pageKeys: out.pageKeys }
+}
+
 function manifestSatisfies(m: RenderManifest, want: 'pdf' | 'png' | 'both'): boolean {
   if (m.format === 'both') return true
   return m.format === want

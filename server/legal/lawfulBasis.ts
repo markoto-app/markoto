@@ -77,10 +77,17 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // enforced from LiteLLM's per-request usage records (cost, model, time,
     // internal user ID), kept 90 days by `spend-logs-sweep` — the same
     // retention as the prompt / tool-call records.
+    //
+    // `uploaded_files`: "Create a design from a document" (theme panel)
+    // sends the uploaded PDF / Word file's measured styles, first page
+    // pictures and a short text sample to the AI. The file itself is read
+    // in the sandboxed markitdown container and deleted from storage as
+    // soon as the server has read it (never kept); the run's state lives
+    // 30 minutes in Valkey.
     id: 'ai_assistance',
     label: 'AI writing assistant (platform providers, incl. the free AI allowance)',
     basis: 'contract',
-    dataCategories: ['user_prompt', 'document_context', 'ai_generated_content', 'ai_usage_records'],
+    dataCategories: ['user_prompt', 'document_context', 'uploaded_files', 'ai_generated_content', 'ai_usage_records'],
     retention: 90,
     subProcessors: ['mistral_ai', 'jina_ai', 'bfl', 'staan']
   },
@@ -105,7 +112,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'user_directed_ai_provider',
     label: 'AI with your own provider (bring your own key)',
     basis: 'contract',
-    dataCategories: ['provider_config', 'encrypted_api_key', 'user_prompt', 'document_context', 'audio_recording', 'ai_generated_content'],
+    dataCategories: ['provider_config', 'encrypted_api_key', 'user_prompt', 'document_context', 'uploaded_files', 'audio_recording', 'ai_generated_content'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'staan', 'jina_ai']
   },
