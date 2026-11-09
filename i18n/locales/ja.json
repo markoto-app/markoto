@@ -1309,7 +1309,8 @@
       "knowledge": "ナレッジ",
       "settings": "設定",
       "billing": "請求",
-      "sso": "シングルサインオン"
+      "sso": "シングルサインオン",
+      "audit": "監査ログ"
     },
     "settings": {
       "title": "ワークスペース設定",
@@ -2351,5 +2352,62 @@
       "notFound": "このメールアドレスにはシングルサインオンが設定されていません。",
       "failed": "問題が発生しました。もう一度お試しください。"
     }
+  },
+  "audit": {
+    "title": "監査ログ",
+    "intro": "このワークスペースで誰がいつ何を変更したかを記録します。メンバーと役割、招待、共有と削除、請求、シングルサインオンが対象です。ネットワークアドレスは末尾を省いて短縮されています。",
+    "retention": "イベントは {days} 日間保存されます。",
+    "filter": "表示",
+    "from": "開始",
+    "to": "終了",
+    "empty": "この条件に該当するイベントはありません。",
+    "older": "古いイベントを表示",
+    "loadFailed": "監査ログを読み込めませんでした。",
+    "system": "markoto",
+    "deletedUser": "削除されたユーザー",
+    "ipHint": "操作した人の短縮されたネットワークアドレス",
+    "kind": {
+      "all": "すべてのイベント",
+      "members": "メンバーと役割",
+      "invites": "招待",
+      "documents": "ドキュメント",
+      "billing": "請求",
+      "sso": "シングルサインオン"
+    },
+    "actions": {
+      "workspace_member_removed": "メンバーを削除",
+      "workspace_member_role_changed": "役割を変更",
+      "workspace_invite_created": "招待を送信",
+      "workspace_invite_revoked": "招待を取り消し",
+      "workspace_invite_accepted": "招待を承認",
+      "workspace_invite_declined": "招待を辞退",
+      "workspace_deleted": "ワークスペースを削除",
+      "workspace_audit_exported": "監査ログをダウンロード",
+      "workspace_member_ai_limit_changed": "メンバーの AI 上限を変更",
+      "workspace_billing_checkout_started": "プランの購入を開始",
+      "workspace_billing_plan_changed": "プランを変更",
+      "workspace_billing_seats_changed": "席数を変更",
+      "workspace_billing_admin_changed": "請求管理者を変更",
+      "workspace_subscription_cancelled": "サブスクリプションを解約",
+      "doc_access_mode_changed": "ドキュメントの共有を変更",
+      "doc_password_set": "ドキュメントのパスワードを設定",
+      "doc_password_removed": "ドキュメントのパスワードを削除",
+      "doc_workspace_moved": "ドキュメントを別の場所へ移動",
+      "doc_deleted": "ドキュメントを削除",
+      "policy_accepted": "利用規約に同意",
+      "sso_connection_saved": "シングルサインオンの設定を変更",
+      "sso_connection_activated": "シングルサインオンをオンにした",
+      "sso_connection_deleted": "シングルサインオンを削除",
+      "sso_domain_added": "ドメインを追加",
+      "sso_domain_verified": "ドメインを確認",
+      "sso_domain_removed": "ドメインを削除",
+      "sso_sign_in": "ID プロバイダーでサインイン",
+      "sso_identity_linked": "ID プロバイダーのアカウントを連携",
+      "sso_member_joined": "シングルサインオンでメンバーが参加",
+      "sso_scim_token_rotated": "プロビジョニングトークンを変更",
+      "sso_scim_user_created": "メンバーをプロビジョニング",
+      "sso_scim_user_deactivated": "メンバーのプロビジョニングを解除"
+    },
+    "planNotice": "監査ログは Business プランに含まれます。"
   }
 }

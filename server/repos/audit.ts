@@ -1,6 +1,6 @@
-import { and, desc, eq, lt } from 'drizzle-orm'
+import { and, desc, eq, gte, like, lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
-import { auditLog } from '../db/schema'
+import { auditLog, users } from '../db/schema'
 import { useDatabase } from '../utils/database'
 
 // Audit-log repository. Append-only: there is no `updateAuditEvent` and
@@ -23,6 +23,12 @@ export interface AppendAuditEventArgs {
   before?: unknown
   after?: unknown
   metadata?: Record<string, unknown>
+  /**
+   * The workspace the event belongs to (WP15). Defaults to `scopeId` for
+   * `workspace` and `billing` events (their scope id IS the workspace);
+   * pass it for document events of a workspace document.
+   */
+  workspaceId?: string | null
 }
 
 export interface AuditEventRow {
@@ -112,7 +118,10 @@ export async function appendAuditEvent(args: AppendAuditEventArgs): Promise<void
       action: args.action,
       before: args.before === undefined ? null : args.before,
       after: args.after === undefined ? null : args.after,
-      metadata: args.metadata ?? null
+      metadata: args.metadata ?? null,
+      workspaceId: args.workspaceId !== undefined
+        ? args.workspaceId
+        : (args.scope === 'workspace' || args.scope === 'billing') ? args.scopeId : null
     })
   } catch (e) {
     console.error('[audit] append failed:', e instanceof Error ? e.message : e)
@@ -171,4 +180,61 @@ export async function getAuditEventsByActor(
     .orderBy(desc(auditLog.ts), desc(auditLog.id))
     .limit(limit)
   return rows as AuditEventRow[]
+}
+
+// ── Workspace audit log (WP15) ──────────────────────────────────────
+
+export interface WorkspaceAuditRow {
+  id: number
+  ts: Date
+  actorUserId: number | null
+  /** Null for system actions and deleted accounts. */
+  actorName: string | null
+  actorIp: string | null
+  scope: AuditScope
+  scopeId: string | null
+  action: string
+  before: unknown
+  after: unknown
+  metadata: Record<string, unknown> | null
+}
+
+export interface WorkspaceAuditQuery {
+  /** Rows older than this id (cursor, newest first). */
+  beforeId?: number
+  limit?: number
+  /** Action prefix, e.g. `sso.` or `workspace.member_`. */
+  actionPrefix?: string
+  from?: Date
+  to?: Date
+}
+
+/** The workspace's audit events, newest first, with the actor's name. */
+export async function listWorkspaceAuditEvents(workspaceId: string, q: WorkspaceAuditQuery = {}): Promise<WorkspaceAuditRow[]> {
+  const limit = Math.min(Math.max(q.limit ?? 50, 1), 1000)
+  const conditions = [eq(auditLog.workspaceId, workspaceId)]
+  if (q.beforeId !== undefined) conditions.push(lt(auditLog.id, q.beforeId))
+  if (q.actionPrefix) conditions.push(like(auditLog.action, `${q.actionPrefix.replace(/[%_\\]/g, m => `\\${m}`)}%`))
+  if (q.from) conditions.push(gte(auditLog.ts, q.from))
+  if (q.to) conditions.push(lt(auditLog.ts, q.to))
+  const rows = await useDatabase()
+    .select({
+      id: auditLog.id,
+      ts: auditLog.ts,
+      actorUserId: auditLog.actorUserId,
+      actorName: users.name,
+      actorIp: auditLog.actorIp,
+      scope: auditLog.scope,
+      scopeId: auditLog.scopeId,
+      action: auditLog.action,
+      before: auditLog.before,
+      after: auditLog.after,
+      metadata: auditLog.metadata
+    })
+    .from(auditLog)
+    .leftJoin(users, eq(users.id, auditLog.actorUserId))
+    .where(and(...conditions))
+    .orderBy(desc(auditLog.id))
+    .limit(limit)
+  return rows as WorkspaceAuditRow[]
 }

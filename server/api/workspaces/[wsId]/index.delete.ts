@@ -42,6 +42,7 @@ export default defineEventHandler(async (event) => {
       scope: 'doc',
       scopeId: docId,
       action: 'doc.deleted',
+      workspaceId: wsId,
       before: snapshot
         ? {
             title: snapshot.title,

@@ -1309,7 +1309,8 @@
       "knowledge": "Connaissances",
       "settings": "Paramètres",
       "billing": "Facturation",
-      "sso": "Authentification unique"
+      "sso": "Authentification unique",
+      "audit": "Journal d’audit"
     },
     "settings": {
       "title": "Paramètres de l'espace de travail",
@@ -2351,5 +2352,62 @@
       "notFound": "L’authentification unique n’est pas configurée pour cette adresse e-mail.",
       "failed": "Une erreur s’est produite. Réessayez."
     }
+  },
+  "audit": {
+    "title": "Journal d’audit",
+    "intro": "Qui a modifié quoi dans cet espace de travail, et quand : membres et rôles, invitations, partages et suppressions, facturation et authentification unique. L’adresse réseau est raccourcie (la dernière partie est retirée).",
+    "retention": "Les événements sont conservés {days} jours.",
+    "filter": "Afficher",
+    "from": "Du",
+    "to": "Au",
+    "empty": "Aucun événement pour cette sélection.",
+    "older": "Afficher les événements plus anciens",
+    "loadFailed": "Impossible de charger le journal d’audit.",
+    "system": "markoto",
+    "deletedUser": "Utilisateur supprimé",
+    "ipHint": "Adresse réseau raccourcie de la personne à l’origine de l’action",
+    "kind": {
+      "all": "Tous les événements",
+      "members": "Membres et rôles",
+      "invites": "Invitations",
+      "documents": "Documents",
+      "billing": "Facturation",
+      "sso": "Authentification unique"
+    },
+    "actions": {
+      "workspace_member_removed": "Membre retiré",
+      "workspace_member_role_changed": "Rôle modifié",
+      "workspace_invite_created": "Invitation envoyée",
+      "workspace_invite_revoked": "Invitation retirée",
+      "workspace_invite_accepted": "Invitation acceptée",
+      "workspace_invite_declined": "Invitation refusée",
+      "workspace_deleted": "Espace de travail supprimé",
+      "workspace_audit_exported": "Journal d’audit téléchargé",
+      "workspace_member_ai_limit_changed": "Limite IA d’un membre modifiée",
+      "workspace_billing_checkout_started": "Achat de plan commencé",
+      "workspace_billing_plan_changed": "Plan modifié",
+      "workspace_billing_seats_changed": "Places modifiées",
+      "workspace_billing_admin_changed": "Administrateur de facturation modifié",
+      "workspace_subscription_cancelled": "Abonnement résilié",
+      "doc_access_mode_changed": "Partage du document modifié",
+      "doc_password_set": "Mot de passe du document défini",
+      "doc_password_removed": "Mot de passe du document retiré",
+      "doc_workspace_moved": "Document déplacé vers un autre emplacement",
+      "doc_deleted": "Document supprimé",
+      "policy_accepted": "Conditions acceptées",
+      "sso_connection_saved": "Paramètres d’authentification unique modifiés",
+      "sso_connection_activated": "Authentification unique activée",
+      "sso_connection_deleted": "Authentification unique supprimée",
+      "sso_domain_added": "Domaine ajouté",
+      "sso_domain_verified": "Domaine vérifié",
+      "sso_domain_removed": "Domaine supprimé",
+      "sso_sign_in": "Connexion via le fournisseur d’identité",
+      "sso_identity_linked": "Compte du fournisseur d’identité lié",
+      "sso_member_joined": "Membre arrivé via l’authentification unique",
+      "sso_scim_token_rotated": "Jeton de provisionnement modifié",
+      "sso_scim_user_created": "Membre provisionné",
+      "sso_scim_user_deactivated": "Membre déprovisionné"
+    },
+    "planNotice": "Le journal d’audit fait partie du plan Business."
   }
 }

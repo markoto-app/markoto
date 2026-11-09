@@ -105,6 +105,10 @@ export const AUDIT_SSO_SCIM_TOKEN_ROTATED = 'sso.scim_token_rotated'
 export const AUDIT_SSO_SCIM_USER_CREATED = 'sso.scim_user_created'
 export const AUDIT_SSO_SCIM_USER_DEACTIVATED = 'sso.scim_user_deactivated'
 
+// Workspace audit log (WP15): an admin downloaded it. Metadata: format,
+// row count, date range.
+export const AUDIT_WORKSPACE_AUDIT_EXPORTED = 'workspace.audit_exported'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -152,3 +156,4 @@ export type ComplianceAuditAction
     | typeof AUDIT_SSO_SCIM_TOKEN_ROTATED
     | typeof AUDIT_SSO_SCIM_USER_CREATED
     | typeof AUDIT_SSO_SCIM_USER_DEACTIVATED
+    | typeof AUDIT_WORKSPACE_AUDIT_EXPORTED

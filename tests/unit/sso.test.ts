@@ -125,3 +125,17 @@ describe('where "Sign in with your organisation" is offered', () => {
     expect(resolveWorkspaceSsoAvailable({ NUXT_BILLING_ENABLED: 'true', TIER_FREE_FEATURE_SSO: 'false', TIER_PRO_FEATURE_SSO: 'false', TIER_TEAM_FEATURE_SSO: 'false' })).toBe(true)
   })
 })
+
+describe('audit-log CSV cells', () => {
+  it('quotes separators and neutralises spreadsheet formulas', async () => {
+    const { csvField } = await import('../../server/utils/workspaceAudit')
+    expect(csvField('plain')).toBe('plain')
+    expect(csvField('a,b')).toBe('"a,b"')
+    expect(csvField('say "hi"')).toBe('"say ""hi"""')
+    expect(csvField('=SUM(A1)')).toBe('\'=SUM(A1)')
+    expect(csvField('+1')).toBe('\'+1')
+    expect(csvField('@cmd')).toBe('\'@cmd')
+    expect(csvField(null)).toBe('')
+    expect(csvField({ a: 1 })).toBe('"{""a"":1}"')
+  })
+})

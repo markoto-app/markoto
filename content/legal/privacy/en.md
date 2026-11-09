@@ -1,7 +1,7 @@
 ---
 slug: privacy
 locale: en
-version: 10
+version: 11
 effectiveDate: 2026-11-09
 translationStatus: authoritative
 ---
@@ -93,7 +93,7 @@ Retention follows the register in §13. In general:
 - **Anonymous documents** (created without an account and not part of a workspace) are deleted automatically after **30 days** without being edited. Documents owned by an account and workspace documents are not deleted automatically.
 - **AI prompts and tool calls** (what you asked and what the AI did) are kept for 90 days for abuse review, then deleted.
 - **AI cost records** (for each AI request we pay for: cost, model, time and your internal user ID; no content) are kept by our AI gateway for 90 days, and your monthly total until the allowance resets. We use them to enforce the per-account limit and the shared monthly pool. Requests to your own provider are recorded too, at zero cost, to apply rate limits.
-- **Audit log.** Our security audit log records who changed access controls, deleted content or performed other security-relevant actions, with IP addresses shortened (IPv4 to /24, IPv6 to /48). Entries are deleted automatically after **2 years**. If you delete your account earlier, your account ID is removed from them straight away.
+- **Audit log.** Our security audit log records who changed access controls, deleted content or performed other security-relevant actions, with IP addresses shortened (IPv4 to /24, IPv6 to /48). Entries are deleted automatically after **2 years**. If you delete your account earlier, your account ID is removed from them straight away. In a workspace whose plan includes the audit log (Business), the workspace's admins can see and download the entries about that workspace — including your name and the shortened IP address for actions you took in it.
 - **Backups.** We take an encrypted backup of the database once a day and keep the last 30, so each backup is kept for about **30 days**. Data you delete therefore remains in our backups for up to 30 days before it is overwritten. Our database provider OVHcloud also keeps its own automatic backups for a limited period. We use backups only to restore the service after a failure.
 - **Billing records** do not exist while the service is free. Once paid plans are offered, they will be kept for the period required by tax law (in Switzerland 10 years).
 - **Transactional email.** Resend keeps delivery records (recipient, time, status) for 30 days. We do not keep copies of the emails we send.
@@ -248,6 +248,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v11 (2026-11-09).** Workspace admins of a plan with the audit log can see and download that workspace's audit entries, including the name and shortened IP address of the person who acted (§5).
 - **v10 (2026-11-09).** Described single sign-on through a workspace's own identity provider (OpenID Connect or SAML) and automatic provisioning (SCIM) (§2): the identifier, name and email address the provider sends, the link to your account, your last sign-in and whether your access is active. Added to your data export (`sso_identities.json`).
 - **v9 (2026-11-09).** Described the billing data we process once paid plans are offered (§2): plans, Team and Business workspaces with their seats and billing admin, AI credits, and the acceptance of the new Paid Plans Terms. Workspace admins of a Team or Business workspace see each member's monthly AI spend in that workspace (not prompts or results) and can set a per-member limit.
 - **v8 (2026-11-03).** Removed the "product analytics" and "session replay" purposes and the cookie banner: neither was ever in use, and markoto uses only strictly necessary storage (§9 lists it). Added the Swiss FADP alongside the GDPR, and the countries data is transferred to (§4). Described anonymous documents (terms acceptance, bot check, deletion 30 days after the last edit; previously 180 days), noindex on documents and abuse reports without an account, with receipt, decision and statement-of-reasons notices (§2b). Stated backup retention (about 30 days), audit-log retention (2 years) and abuse-report retention (1 year after the case is closed). Corrected the statement on password hashing, the age rule (16 everywhere), the AI labelling description and the statements on AI training per provider. Added the free AI allowance for signed-in users (GLM-5.3 Flash by Z.ai, served and processed by Mistral AI on its EU endpoint; Z.ai receives no data), its monthly per-account limit and shared monthly pool, and the retention of AI cost records, which are kept for 90 days also after an account is deleted (§5, §5b, §8). All requests to Mistral AI, including voice transcription and live dictation, go to its EU endpoint (§8). Profile pictures from GitHub, Google or your organisation's sign-in are no longer stored or shown: avatars are drawn in your browser from your account number, and visitors without an account get a random one (`markoto-anon-avatar`, §9).

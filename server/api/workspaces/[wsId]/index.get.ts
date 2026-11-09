@@ -59,12 +59,13 @@ export default defineEventHandler(async (event) => {
   // Single sign-on (WP14), admins only: whether the SSO tab is shown
   // (the plan includes it, or a connection exists to switch off).
   let sso: { available: boolean, status: 'none' | 'draft' | 'active' } | null = null
+  // Audit log (WP15), admins only: whether the plan includes the viewer.
+  let auditLog: { available: boolean } | null = null
   if (myRole === 'admin') {
+    const plan = await resolveWorkspacePlan(wsId)
     const connection = await getSsoConnectionForWorkspace(wsId)
-    sso = {
-      available: planHasFeature(await resolveWorkspacePlan(wsId), 'sso'),
-      status: connection?.status ?? 'none'
-    }
+    sso = { available: planHasFeature(plan, 'sso'), status: connection?.status ?? 'none' }
+    auditLog = { available: planHasFeature(plan, 'auditLog') }
   }
 
   return {
@@ -86,7 +87,8 @@ export default defineEventHandler(async (event) => {
       // Whether a Team / Business subscription currently covers it.
       pooled: pool !== null,
       billing,
-      sso
+      sso,
+      auditLog
     },
     documents,
     members
