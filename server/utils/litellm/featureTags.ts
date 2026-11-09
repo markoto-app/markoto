@@ -38,7 +38,9 @@ export const FEATURE_TAGS = {
   textLoop: 'feature:text-loop',
   dictateTick: 'feature:dictate-tick',
   imageGen: 'feature:image-gen',
-  embeddings: 'feature:embeddings'
+  embeddings: 'feature:embeddings',
+  // "Create a design from a document" (vision model, theme panel)
+  designImport: 'feature:design-import'
 } as const
 
 export type FeatureTag = typeof FEATURE_TAGS[keyof typeof FEATURE_TAGS]

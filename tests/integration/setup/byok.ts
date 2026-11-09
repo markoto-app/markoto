@@ -26,6 +26,8 @@ export interface FakeRequest {
   tools?: string[]
   /** Tool-result messages the model received in that request. */
   toolResults?: string[]
+  /** Images (`image_url` parts) the request carried. */
+  images?: number
 }
 
 export async function fakeRequests(): Promise<FakeRequest[]> {
