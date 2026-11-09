@@ -1,7 +1,7 @@
 import { getDocWithActorRole } from '../../../repos/documents'
 import { hasActivityBefore, listRecentActivity } from '../../../repos/activity'
 import { HISTORY_LIMITED_HEADER, capsFor, historyCutoff, resolveDocPlanFor } from '../../../utils/entitlements'
-import { decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 
 // Activity log is a view-level read. Rules mirror file access:
@@ -19,11 +19,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const doc: DocState = {
-    ownerId: row.ownerId,
-    workspaceId: row.workspaceId,
-    accessMode: row.accessMode
-  }
+  const doc: DocState = docStateOf(row)
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: row.workspaceRole,

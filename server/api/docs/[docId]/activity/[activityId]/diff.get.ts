@@ -1,7 +1,7 @@
 import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/entitlements'
-import { decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
+import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/docTokenVerify'
 import { reconstructTextAtYjsId } from '../../../../../utils/historyReplay'
 import { computeTextDiff, type DiffHunk } from '../../../../../utils/textDiff'
@@ -61,11 +61,7 @@ export default defineEventHandler(async (event): Promise<DiffResponse> => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const doc: DocState = {
-    ownerId: docRow.ownerId,
-    workspaceId: docRow.workspaceId,
-    accessMode: docRow.accessMode
-  }
+  const doc: DocState = docStateOf(docRow)
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: docRow.workspaceRole,

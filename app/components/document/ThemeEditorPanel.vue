@@ -5,7 +5,7 @@ import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
-import { themeFromPreset, type ThemePreset } from '~~/shared/utils/themePresets'
+import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isIsoDate } from '~~/shared/utils/documentLocale'
@@ -2315,7 +2315,7 @@ function deleteSaved(saved: SavedTheme) {
           <template #customCss-body>
             <CommonPlanLimitNotice
               v-if="props.customCssAllowed === false"
-              :message-key="draft.customCss?.trim() ? 'plan.feature.customCssPaused' : 'plan.feature.customCss'"
+              :message-key="ownCustomCss(draft.customCss) ? 'plan.feature.customCssPaused' : 'plan.feature.customCss'"
               data-testid="theme-custom-css-plan-notice"
             />
             <DocumentThemeCustomCssSection

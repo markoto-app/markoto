@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace, createDoc, setMemberRole } from '../integration/setup/fixtures'
-import { decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { decideTokenAccess, docStateOf } from '~~/shared/utils/docPermissions'
 import { getDocWithActorRole } from '../../server/repos/documents'
 
 // Cross-document access matrix for `view_other_document`. The handler
@@ -21,11 +21,7 @@ async function checkAccess(docId: string, actorUserId: number) {
   const ctx = await getDocWithActorRole(docId, actorUserId)
   if (!ctx) return { reachable: false, reason: 'not_found' as const }
   const decision = decideTokenAccess(
-    {
-      ownerId: ctx.ownerId,
-      workspaceId: ctx.workspaceId,
-      accessMode: ctx.accessMode
-    },
+    docStateOf(ctx),
     {
       userId: actorUserId,
       workspaceRole: ctx.workspaceRole

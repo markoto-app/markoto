@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     }
     total += rows.length
     if (rows.length < BATCH) break
-    if (total >= MAX_ROWS) {
+    if (total > MAX_ROWS) {
       throw createError({ statusCode: 413, message: `More than ${MAX_ROWS} events — choose a shorter period.`, data: { code: 'audit/too-many-rows' } })
     }
     before = rows.at(-1)!.id

@@ -9,6 +9,7 @@ import type { TabName } from './tabBarTypes'
 import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
+import { customCssForPlan } from '~~/shared/utils/themePresets'
 
 const props = defineProps<{
   docId: string
@@ -57,13 +58,15 @@ const {
   getDocJwt
 } = useDocument(props.docId)
 
-// What the preview and the browser print render: the theme without its
-// custom CSS when the document's plan doesn't include it. The CSS stays
+// What the preview and the browser print render: the theme without the
+// author's own custom CSS when the document's plan doesn't include it (a
+// built-in preset's template CSS stays — customCssForPlan). The CSS stays
 // in the theme (and in Y.js), so upgrading applies it again; the server
 // renderer drops it the same way (render-bootstrap).
-const renderTheme = computed(() => customCssAllowed.value || !theme.value.customCss
-  ? theme.value
-  : { ...theme.value, customCss: undefined })
+const renderTheme = computed(() => {
+  const css = customCssForPlan(theme.value.customCss, customCssAllowed.value)
+  return css === theme.value.customCss ? theme.value : { ...theme.value, customCss: css }
+})
 
 // Track whether the user has ever focused the editor in this session.
 // Consumed by the AI prompt path so "cursor not in the doc at all" can

@@ -1,4 +1,5 @@
-import { getDoc } from '../../../repos/documents'
+import { getDocWithActorRole } from '../../../repos/documents'
+import { isEffectiveDocOwner } from '../../../../shared/utils/docPermissions'
 import { listMembersForDoc } from '../../../repos/workspaceMembers'
 
 // Access roster for a doc. Used by the in-doc presence bar to render
@@ -18,20 +19,21 @@ export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
   const session = await getValidatedUserSession(event)
 
-  const doc = await getDoc(docId)
+  const userId = session?.user?.id ?? null
+  // One query: doc + the caller's role (SSO condition included) + whether
+  // their ownership counts (WP14 — not in an SSO-enforcing workspace
+  // without an effective role there).
+  const doc = await getDocWithActorRole(docId, userId)
   if (!doc) throw createError({ statusCode: 404, message: 'Document not found' })
 
   // No workspace ⇒ no roster to disclose.
   if (!doc.workspaceId) return { members: [] }
 
-  const userId = session?.user?.id
-  if (typeof userId !== 'number') return { members: [] }
+  if (userId === null) return { members: [] }
 
   // Must be either a workspace member or the doc owner (who may have been
-  // booted from the workspace but still owns the doc).
-  const role = await getWorkspaceRole(userId, doc.workspaceId)
-  const isDocOwner = doc.ownerId === userId
-  if (role === null && !isDocOwner) return { members: [] }
+  // booted from a workspace without SSO but still owns the doc).
+  if (doc.workspaceRole === null && !isEffectiveDocOwner(doc, userId)) return { members: [] }
 
   const members = await listMembersForDoc(doc.workspaceId, doc.ownerId)
   return { members }

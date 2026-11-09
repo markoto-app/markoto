@@ -489,3 +489,152 @@ describe('Sign in with your organisation (discover) + the workspace\'s SSO state
     expect(editorView.workspace.sso).toBeNull()
   })
 })
+
+// Ownership of a workspace document is not a way around enforcement:
+// in a workspace that enforces SSO, a member's OWN docs need the same
+// current grant (and membership) as everyone else's. Outside such
+// workspaces ownership keeps working as before.
+describe('SSO enforcement covers the documents a member owns', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  const FILE = 'abcdefghijkl.png'
+
+  /** The user a finished sign-in signed in as (fails the test otherwise). */
+  async function signedInUser(done: Finished): Promise<number> {
+    const id = done.session === null ? null : await sessionUserId(done.session)
+    if (id === null) throw new Error(`sign-in did not create a session (landed on ${done.location})`)
+    return id
+  }
+
+  /** What a member can do with a doc they own; true = allowed. */
+  async function ownerAccess(userId: number, docId: string, wsId: string) {
+    const client = await loggedInClient(userId)
+    const token = await (await client.get(`/api/docs/${docId}/token`)).json() as { token: string | null, forbidden: boolean, ssoLoginUrl?: string | null }
+    const meta = await client.get(`/api/docs/${docId}/meta`)
+    const metaBody = await meta.json() as { forbidden?: boolean, title?: string }
+    const members = await (await client.get(`/api/docs/${docId}/members`)).json() as { members: unknown[] }
+    return {
+      token: token.token !== null,
+      ssoLoginUrl: token.ssoLoginUrl ?? null,
+      metaGet: metaBody.forbidden !== true && metaBody.title !== undefined,
+      metaPut: (await client.put(`/api/docs/${docId}/meta`, { title: 'Renamed' })).status === 200,
+      files: (await client.get(`/api/files/${docId}/${FILE}`)).status === 302,
+      fileToken: (await client.get(`/api/docs/${docId}/file-token`)).status === 200,
+      activity: (await client.get(`/api/docs/${docId}/activity`)).status === 200,
+      roster: members.members.length > 0,
+      duplicate: (await client.post(`/api/docs/${docId}/duplicate`, {})).status === 200,
+      // Same workspace → no-op success when allowed, never a real move.
+      move: (await client.patch(`/api/docs/${docId}/workspace`, { workspaceId: wsId })).status === 200,
+      setPassword: (await client.post(`/api/docs/${docId}/password`, { action: 'set', password: 'long-enough-pw' })).status
+    }
+  }
+
+  async function memberWithOwnDoc() {
+    const admin = await createUser({ email: 'admin@acme.test' })
+    const ws = await createWorkspace(admin.id)
+    const member = await createUser({ email: 'ben@acme.test' })
+    await setMemberRole(ws.workspaceId, member.id, 'editor')
+    const doc = await createDoc({ ownerId: member.id, workspaceId: ws.workspaceId, accessMode: 'private' })
+    return { admin, ws, member, doc }
+  }
+
+  it('without a current grant the owner gets nothing on their private doc; with one, everything', async () => {
+    const { admin, ws, member, doc } = await memberWithOwnDoc()
+    const connectionId = await activateOidc(admin.id, ws.workspaceId)
+
+    const blocked = await ownerAccess(member.id, doc.docId, ws.workspaceId)
+    expect(blocked).toMatchObject({ token: false, metaGet: false, metaPut: false, files: false, fileToken: false, activity: false, roster: false, duplicate: false, move: false })
+    expect(blocked.setPassword).toBe(403)
+    expect(blocked.ssoLoginUrl).toContain(`/auth/sso/${connectionId}`)
+    // Nor can they delete it or get it out of the workspace.
+    const asMember = await loggedInClient(member.id)
+    expect((await asMember.patch(`/api/docs/${doc.docId}/workspace`, { workspaceId: null })).status).toBe(403)
+    expect((await asMember.delete(`/api/docs/${doc.docId}`)).status).toBe(403)
+    expect((await testDb().query('SELECT workspace_id FROM documents WHERE doc_id = $1', [doc.docId])).rows).toEqual([{ workspace_id: ws.workspaceId }])
+
+    // Signed in through the workspace's IdP: ownership counts again.
+    await verifyDomain(ws.workspaceId, 'acme.test')
+    const signedIn = await oidcSignIn(connectionId, { sub: 'ben-sub', claims: { email: 'ben@acme.test', email_verified: true, name: 'Ben' } })
+    expect(await signedInUser(signedIn)).toBe(member.id)
+    const allowed = await ownerAccess(member.id, doc.docId, ws.workspaceId)
+    expect(allowed).toMatchObject({ token: true, metaGet: true, metaPut: true, files: true, fileToken: true, activity: true, roster: true, duplicate: true, move: true })
+    expect(allowed.setPassword).toBe(200)
+
+    // An expired grant locks the owner out of their own doc again.
+    await testDb().query(`UPDATE sso_grants SET expires_at = now() - interval '1 second' WHERE user_id = $1`, [member.id])
+    const expired = await ownerAccess(member.id, doc.docId, ws.workspaceId)
+    expect(expired).toMatchObject({ token: false, metaPut: false, files: false })
+  })
+
+  it('a public-link doc stays public for its owner too — no more than any outsider gets', async () => {
+    const { admin, ws, member } = await memberWithOwnDoc()
+    const openView = await createDoc({ ownerId: member.id, workspaceId: ws.workspaceId, accessMode: 'open-view' })
+    await activateOidc(admin.id, ws.workspaceId)
+    const client = await loggedInClient(member.id)
+    const token = await (await client.get(`/api/docs/${openView.docId}/token`)).json() as { token: string | null, readOnly: boolean, canDelete: boolean }
+    expect(token).toMatchObject({ readOnly: true, canDelete: false })
+    expect(token.token).toBeTruthy()
+    expect((await client.put(`/api/docs/${openView.docId}/meta`, { title: 'x' })).status).toBe(403)
+  })
+
+  it('SCIM deactivation and deletion take the owner out of their own workspace docs at once', async () => {
+    const admin = await createUser({ email: 'admin@acme.test' })
+    const ws = await createWorkspace(admin.id)
+    const connectionId = await activateOidc(admin.id, ws.workspaceId)
+    await verifyDomain(ws.workspaceId, 'acme.test')
+    const tokenRes = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/sso/scim-token`, {})
+    const { token: scimToken } = await tokenRes.json() as { token: string }
+    const scim = (path: string, method: string, body?: unknown) => fetch(`${TEST_BASE_URL}/scim/v2${path}`, {
+      method,
+      headers: { 'authorization': `Bearer ${scimToken}`, 'content-type': 'application/scim+json' },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    })
+
+    const created = await (await scim('/Users', 'POST', { userName: 'hana@acme.test', externalId: 'ext-hana', active: true })).json() as { id: string }
+    const signIn = () => oidcSignIn(connectionId, { sub: 'hana-sub', claims: { email: 'hana@acme.test', email_verified: true, name: 'Hana' } })
+    const first = await signIn()
+    const hanaId = await signedInUser(first)
+    const doc = await createDoc({ ownerId: hanaId, workspaceId: ws.workspaceId, accessMode: 'private' })
+    expect(await ownerAccess(hanaId, doc.docId, ws.workspaceId)).toMatchObject({ token: true, metaPut: true, files: true })
+
+    // Deactivated: membership + grant gone → no access to the doc she owns.
+    expect((await scim(`/Users/${created.id}`, 'PATCH', { Operations: [{ op: 'replace', path: 'active', value: false }] })).status).toBe(200)
+    const deactivated = await ownerAccess(hanaId, doc.docId, ws.workspaceId)
+    expect(deactivated).toMatchObject({ token: false, metaGet: false, metaPut: false, files: false, fileToken: false, activity: false, roster: false, duplicate: false })
+    expect(deactivated.ssoLoginUrl).toBeNull() // no longer a member: nothing to sign in to
+    expect((await (await loggedInClient(hanaId)).delete(`/api/docs/${doc.docId}`)).status).toBe(403)
+
+    // Reactivated + signed in again: back in.
+    await scim(`/Users/${created.id}`, 'PATCH', { Operations: [{ op: 'replace', value: { active: true } }] })
+    await signIn()
+    expect(await ownerAccess(hanaId, doc.docId, ws.workspaceId)).toMatchObject({ token: true, files: true })
+
+    // Deleted via SCIM: out of the workspace, and out of her docs in it.
+    expect((await scim(`/Users/${created.id}`, 'DELETE')).status).toBe(204)
+    expect(await ownerAccess(hanaId, doc.docId, ws.workspaceId)).toMatchObject({ token: false, metaPut: false, files: false, activity: false })
+  })
+
+  it('outside SSO-enforcing workspaces ownership works as before', async () => {
+    // A workspace whose connection is still a draft enforces nothing.
+    const { admin, ws, member, doc } = await memberWithOwnDoc()
+    await setupOidc(admin.id, ws.workspaceId)
+    expect(await ownerAccess(member.id, doc.docId, ws.workspaceId)).toMatchObject({ token: true, metaPut: true, files: true, activity: true })
+
+    // A workspace without SSO: an owner who is no longer a member keeps
+    // their doc (pre-existing behaviour, unchanged by WP14).
+    const plainAdmin = await createUser()
+    const plain = await createWorkspace(plainAdmin.id)
+    const owner = await createUser()
+    await setMemberRole(plain.workspaceId, owner.id, 'editor')
+    const own = await createDoc({ ownerId: owner.id, workspaceId: plain.workspaceId, accessMode: 'private' })
+    await testDb().query('DELETE FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [plain.workspaceId, owner.id])
+    const access = await ownerAccess(owner.id, own.docId, plain.workspaceId)
+    expect(access).toMatchObject({ token: true, metaGet: true, metaPut: true, files: true, fileToken: true, activity: true, roster: true })
+    // A standalone doc is untouched by any of this.
+    const standalone = await createDoc({ ownerId: member.id, accessMode: 'private' })
+    const client = await loggedInClient(member.id)
+    expect((await (await client.get(`/api/docs/${standalone.docId}/token`)).json() as { token: string | null }).token).toBeTruthy()
+  })
+})

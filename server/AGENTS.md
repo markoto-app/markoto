@@ -25,7 +25,7 @@ Nitro API + sync notification layer for markoto. Most cross-cutting code in this
 | **Open view** | View | View | Edit + manage |
 | **Password-protected** | Enter password | Enter password | Edit + manage |
 
-Workspace membership overrides: admin/editor bypasses `private` and `password-protected`; viewer gets read-only access regardless of accessMode.
+Workspace membership overrides: admin/editor bypasses `private` and `password-protected`; viewer gets read-only access regardless of accessMode. In a workspace that enforces single sign-on, the Owner column applies only while the owner has an effective (SSO-satisfied) role there — `ownerAccessSuspended` from `getDocWithActorRole`, see `utils/sso/AGENTS.md`.
 
 **Read-only: 4 layers** — (1) token mints JWT with `readOnly: true`, (2) Hocuspocus blocks Y.js updates, (3) CM6 Compartments set `EditorView.editable + EditorState.readOnly`, (4) UI hides toolbar.
 
