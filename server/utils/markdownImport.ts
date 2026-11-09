@@ -2,7 +2,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { DocThemeSchema } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isAudienceKind } from '~~/shared/audiences'
-import { isTemplateId } from '~~/shared/templates'
+import { resolveTemplateId } from '~~/shared/templates'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { META_DESCRIPTION_MAX_LENGTH, META_TITLE_MAX_LENGTH, isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '~~/shared/utils/ymetaValidation'
 import { adaptCustomCssToDoc, sanitizeCustomCss } from '~~/shared/utils/customCss'
@@ -67,7 +67,8 @@ export function importMarkdownFile(
   if (language !== undefined) properties.language = language
   else if ('language' in data) ignored.push('language')
 
-  if (isTemplateId(data.templateId)) properties.templateId = data.templateId
+  const templateId = resolveTemplateId(data.templateId)
+  if (templateId !== null) properties.templateId = templateId
   else if ('templateId' in data) ignored.push('templateId')
 
   let droppedCustomCssRules = 0

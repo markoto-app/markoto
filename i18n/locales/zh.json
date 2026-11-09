@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "新建文档",
-    "subtitle": "起个名字就可以开始写作。内容、设计和详细信息都是可选的，现在或以后随时可以更改。",
+    "subtitle": "起个名字就可以开始写作。模板和详细信息都是可选的，现在或以后随时可以更改。",
     "titleLabel": "标题",
     "titlePlaceholder": "例如：第三季度发布计划",
     "descriptionLabel": "描述",
@@ -292,16 +292,11 @@
     "descriptionPlaceholder": "本文档的主题是什么？",
     "languageLabel": "语言",
     "audienceLabel": "受众",
-    "themeLabel": "主题",
-    "themeHelp": "设定视觉风格。你可以随时更改。",
     "themeWorkspaceDefault": "工作区默认",
-    "themeWorkspaceDefaultHelp": "使用为本工作区设定的默认主题。",
-    "templateLabel": "模板",
-    "templateHelp": "用可编辑的结构框架预填文档。每个章节都附带一条注释提示，让 markoto 了解各处应放置什么内容。",
+    "templateHelp": "模板是一段起始文字，配有与之相称的设计。文中的灰色注释说明各处该写什么，预览和 PDF 中不会显示。设计可以随时在主题面板中更改。",
     "create": "创建文档",
     "sections": {
-      "content": "内容",
-      "design": "设计",
+      "template": "模板",
       "details": "详细信息"
     },
     "detailsHelp": "帮助 AI 为你写作：文档的主题、语言和语气。",
@@ -312,44 +307,94 @@
       "business": "商务",
       "writing": "写作",
       "saved": "我的设计"
-    }
+    },
+    "blankIn": "{design} 空白文档",
+    "blankWorkspaceDescription": "采用工作区设计（{design}）的空白页。"
   },
   "templates": {
+    "demo": {
+      "label": "演示",
+      "description": "Markdown 基础和 markoto 简短导览。"
+    },
     "blank": {
       "label": "空白",
-      "description": "一张空白页，内容全由你来写。"
-    },
-    "business-plan": {
-      "label": "商业计划书",
-      "description": "执行摘要、市场、模式、路线图、财务、风险。"
-    },
-    "academic-paper": {
-      "label": "学术论文",
-      "description": "摘要、引言、相关工作、方法、结果、讨论、参考文献。"
-    },
-    "recipe": {
-      "label": "食谱",
-      "description": "速览卡片、食材、器具、步骤、变化做法。"
-    },
-    "meeting-notes": {
-      "label": "会议记录",
-      "description": "议程、讨论、决议、行动项、待解决问题。"
-    },
-    "project-readme": {
-      "label": "项目 README",
-      "description": "标语、缘由、快速上手、功能、文档、贡献、许可。"
+      "description": "一张空白页，一切由你来写。"
     },
     "resume": {
       "label": "简历",
-      "description": "一页简历：个人简介、工作经历、教育背景、技能、语言。"
+      "description": "一页简历：简介、工作经历、教育、技能、语言。"
+    },
+    "runbook": {
+      "label": "值班手册",
+      "description": "严重级别、每个告警的处理步骤和命令、升级流程、速查表。"
+    },
+    "design-doc": {
+      "label": "设计文档 / RFC",
+      "description": "状态、动机、目标、方案、备选方案、决策、上线计划、风险。"
+    },
+    "api-reference": {
+      "label": "API 参考",
+      "description": "认证、错误、速率限制，以及带端点、参数和示例的资源。"
+    },
+    "project-readme": {
+      "label": "项目 README",
+      "description": "标语、动机、快速开始、功能、配置、贡献、许可证。"
+    },
+    "arxiv": {
+      "label": "arXiv 预印本",
+      "description": "标题区内的摘要、编号章节、表格、公式、参考文献。"
+    },
+    "ieee-conference": {
+      "label": "IEEE 会议论文",
+      "description": "双栏：摘要和关键词、简短章节、编号参考文献。"
+    },
+    "thesis": {
+      "label": "学位论文",
+      "description": "封面、摘要、目录、每章另起一页、参考文献、附录。"
+    },
+    "lecture-notes": {
+      "label": "课堂讲义",
+      "description": "学习目标、定义、定理与例题、分小题的练习。"
+    },
+    "essay": {
+      "label": "APA 论文",
+      "description": "APA 封面、论点、论证、反驳、参考文献。"
     },
     "report": {
       "label": "报告",
       "description": "封面、目录、摘要、关键数据、结果、展望、附录。"
     },
-    "demo": {
-      "label": "演示",
-      "description": "Markdown 基础与 markoto 简短导览。"
+    "business-plan": {
+      "label": "商业计划书",
+      "description": "执行摘要、市场、商业模式、路线图、财务、风险。"
+    },
+    "proposal": {
+      "label": "客户提案",
+      "description": "现状、目标、分阶段方法、时间表、报价、条款、签字。"
+    },
+    "one-pager": {
+      "label": "一页概览",
+      "description": "一页纸写清卖点、问题、方案、关键数据和下一步。"
+    },
+    "memo": {
+      "label": "备忘录 / 信函",
+      "description": "收件人、发件人、日期、主题，目的、背景、建议、下一步。"
+    },
+    "meeting-notes": {
+      "label": "会议记录",
+      "description": "议程、讨论、决定、行动项、未决问题。"
+    },
+    "manuscript": {
+      "label": "小说手稿",
+      "description": "题词、每章另起一页、场景切换、扉页。"
+    },
+    "newsletter": {
+      "label": "通讯",
+      "description": "期号、带引语的头条、简讯、日程、结语。"
+    },
+    "recipe": {
+      "label": "食谱",
+      "description": "概览卡片、食材、器具、步骤、变化。"
     }
   },
   "documentPanel": {

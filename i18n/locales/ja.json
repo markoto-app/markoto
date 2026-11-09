@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "新しいドキュメント",
-    "subtitle": "名前を付けて書き始めましょう。内容・デザイン・詳細は任意で、後からいつでも変更できます。",
+    "subtitle": "名前を付けて書き始めましょう。テンプレートと詳細は任意で、後からいつでも変更できます。",
     "titleLabel": "タイトル",
     "titlePlaceholder": "例：第3四半期のローンチ計画",
     "descriptionLabel": "説明",
@@ -292,16 +292,11 @@
     "descriptionPlaceholder": "このドキュメントは何についてのものですか？",
     "languageLabel": "言語",
     "audienceLabel": "対象読者",
-    "themeLabel": "テーマ",
-    "themeHelp": "見た目のスタイルを設定します。いつでも変更できます。",
     "themeWorkspaceDefault": "ワークスペースの既定",
-    "themeWorkspaceDefaultHelp": "このワークスペースの既定として設定されたテーマを使用します。",
-    "templateLabel": "テンプレート",
-    "templateHelp": "編集可能な構造の骨組みでドキュメントを事前入力します。各セクションにはコメントヒントが付いており、markotoがどこに何が入るかを把握できます。",
+    "templateHelp": "テンプレートは、それに合ったデザインの書き出しの文章です。本文の灰色のコメントが何をどこに書くかを示します（プレビューとPDFには表示されません）。デザインはテーマパネルでいつでも変更できます。",
     "create": "ドキュメントを作成",
     "sections": {
-      "content": "内容",
-      "design": "デザイン",
+      "template": "テンプレート",
       "details": "詳細"
     },
     "detailsHelp": "AI があなたに合わせて書けるように：文書の内容、言語、トーン。",
@@ -312,44 +307,94 @@
       "business": "ビジネス",
       "writing": "執筆",
       "saved": "マイデザイン"
-    }
+    },
+    "blankIn": "{design} の白紙",
+    "blankWorkspaceDescription": "ワークスペースのデザイン（{design}）の白紙ページ。"
   },
   "templates": {
+    "demo": {
+      "label": "デモ",
+      "description": "Markdownの基本とmarkotoの簡単なツアー。"
+    },
     "blank": {
-      "label": "空白",
-      "description": "まっさらなページ。中身はすべてあなた次第。"
+      "label": "白紙",
+      "description": "空のページ。すべて自分で書きます。"
     },
-    "business-plan": {
-      "label": "事業計画",
-      "description": "エグゼクティブサマリー、市場、ビジネスモデル、ロードマップ、財務、リスク。"
+    "resume": {
+      "label": "履歴書",
+      "description": "1ページの経歴書：プロフィール、職歴、学歴、スキル、言語。"
     },
-    "academic-paper": {
-      "label": "学術論文",
-      "description": "要旨、序論、関連研究、手法、結果、考察、参考文献。"
+    "runbook": {
+      "label": "オンコール手順書",
+      "description": "重大度レベル、アラートごとのコマンド付き手順、エスカレーション、早見表。"
     },
-    "recipe": {
-      "label": "レシピ",
-      "description": "一目でわかるカード、材料、器具、手順、アレンジ。"
+    "design-doc": {
+      "label": "設計書 / RFC",
+      "description": "ステータス、動機、目標、提案、代替案、決定事項、展開計画、リスク。"
     },
-    "meeting-notes": {
-      "label": "議事録",
-      "description": "議題、議論、決定事項、アクションアイテム、未解決の課題。"
+    "api-reference": {
+      "label": "APIリファレンス",
+      "description": "認証、エラー、レート制限、エンドポイント・パラメーター・例を備えたリソース。"
     },
     "project-readme": {
       "label": "プロジェクトREADME",
-      "description": "キャッチコピー、目的、クイックスタート、機能、ドキュメント、コントリビュート、ライセンス。"
+      "description": "キャッチコピー、目的、クイックスタート、機能、設定、貢献方法、ライセンス。"
     },
-    "resume": {
-      "label": "職務経歴書",
-      "description": "1 ページの履歴書：プロフィール、職歴、学歴、スキル、語学。"
+    "arxiv": {
+      "label": "arXivプレプリント",
+      "description": "タイトルブロック内の要旨、番号付きセクション、表、数式、参考文献。"
+    },
+    "ieee-conference": {
+      "label": "IEEE会議論文",
+      "description": "2段組：要旨とキーワード、短いセクション、番号付き参考文献。"
+    },
+    "thesis": {
+      "label": "学位論文",
+      "description": "表紙、要旨、目次、章ごとの改ページ、参考文献、付録。"
+    },
+    "lecture-notes": {
+      "label": "講義ノート",
+      "description": "学習目標、定義、定理と例、小問付きの演習。"
+    },
+    "essay": {
+      "label": "APAエッセイ",
+      "description": "APA形式の表紙、主張、論証、反論、参考文献。"
     },
     "report": {
-      "label": "報告書",
-      "description": "表紙、目次、サマリー、主要指標、結果、見通し、付録。"
+      "label": "レポート",
+      "description": "表紙、目次、概要、主要指標、結果、見通し、付録。"
     },
-    "demo": {
-      "label": "デモ",
-      "description": "Markdown の基本と markoto の短いツアー。"
+    "business-plan": {
+      "label": "事業計画書",
+      "description": "エグゼクティブサマリー、市場、ビジネスモデル、ロードマップ、財務、リスク。"
+    },
+    "proposal": {
+      "label": "提案書",
+      "description": "現状、目標、段階的な進め方、スケジュール、価格、条件、署名。"
+    },
+    "one-pager": {
+      "label": "ワンページャー",
+      "description": "要点、課題、解決策、主要データ、次のステップを1ページに。"
+    },
+    "memo": {
+      "label": "メモ / 書簡",
+      "description": "宛先・差出人・日付・件名、目的、背景、提案、次のステップ。"
+    },
+    "meeting-notes": {
+      "label": "議事録",
+      "description": "アジェンダ、議論、決定事項、アクションアイテム、未解決の質問。"
+    },
+    "manuscript": {
+      "label": "小説原稿",
+      "description": "エピグラフ、改ページする章、場面転換、表紙。"
+    },
+    "newsletter": {
+      "label": "ニュースレター",
+      "description": "号数、引用付きのトップ記事、短信、予定、結び。"
+    },
+    "recipe": {
+      "label": "レシピ",
+      "description": "概要カード、材料、道具、作り方、バリエーション。"
     }
   },
   "documentPanel": {

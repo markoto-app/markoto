@@ -13,7 +13,8 @@ import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
  * The parent decides what a click means (select vs. apply) and may put
  * its own cards in front of the presets through the `before` slot (saved
  * themes, the workspace default); with `savedTab` a "My designs" tab
- * shows only that slot.
+ * shows only that slot. The cards are `PictureCard`s, like the template
+ * picker's (`TemplateGrid.vue`).
  */
 type Tab = 'all' | ThemePresetCategory | 'saved'
 
@@ -74,46 +75,18 @@ const visible = computed(() => {
         name="before"
         :tab="tab"
       />
-      <button
+      <DocumentPictureCard
         v-for="preset in visible"
         :key="preset.id"
-        type="button"
-        :data-testid="`${testidPrefix}${preset.id}`"
-        class="text-left rounded-md border p-1.5 bg-default hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        :class="selectedId === preset.id ? 'border-primary bg-elevated/40' : 'border-default'"
-        :aria-pressed="selectedId === preset.id"
+        :testid="`${testidPrefix}${preset.id}`"
+        :name="t(`theme.presets.${preset.id}.name`)"
+        :description="t(`theme.presets.${preset.id}.description`)"
+        :selected="selectedId === preset.id"
+        :image="themeThumbnailUrl(preset.id)"
+        :brand="preset.theme.color.brand"
+        :heading-font="preset.theme.headings.font"
         @click="emit('select', preset)"
-      >
-        <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white overflow-hidden flex flex-col">
-          <img
-            v-if="themeThumbnailUrl(preset.id)"
-            :src="themeThumbnailUrl(preset.id) ?? undefined"
-            alt=""
-            loading="lazy"
-            decoding="async"
-            class="w-full h-full object-cover object-top"
-          >
-          <template v-else>
-            <div
-              class="h-2 shrink-0"
-              :style="{ backgroundColor: preset.theme.color.brand }"
-            />
-            <span
-              class="m-auto text-3xl text-neutral-800"
-              :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
-            >Aa</span>
-          </template>
-        </div>
-        <div
-          class="mt-1.5 px-0.5 text-xs font-semibold truncate"
-          :style="{ fontFamily: `'${preset.theme.headings.font}', system-ui, sans-serif` }"
-        >
-          {{ t(`theme.presets.${preset.id}.name`) }}
-        </div>
-        <p class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2">
-          {{ t(`theme.presets.${preset.id}.description`) }}
-        </p>
-      </button>
+      />
     </div>
   </div>
 </template>

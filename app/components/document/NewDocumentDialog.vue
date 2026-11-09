@@ -5,7 +5,7 @@ import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/themePresets'
 import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { DEFAULT_TEMPLATE_ID, TEMPLATES, isTemplateId } from '~~/shared/templates'
+import { DEFAULT_TEMPLATE_ID, getTemplate, resolveTemplateId } from '~~/shared/templates'
 
 // Same trick as ThemeEditorPanel — link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
@@ -24,29 +24,32 @@ if (import.meta.client) {
 
 /**
  * Dialog shown when the user clicks "New document". Only the title is in
- * view; the rest sits in three collapsed rows that show the current choice
+ * view; the rest sits in two collapsed rows that show the current choice
  * as a one-line summary, so a new user sees a name field and a button —
  * and that there ARE options, without having to read them:
  *
- *   - Content — the template skeleton (`templateId`)
- *   - Design  — the theme: page thumbnails of the built-in presets in
- *               audience tabs, the user's saved themes, the workspace default
- *   - Details — description / language / audience (AI prompt context)
+ *   - Template — ONE choice of text + design (`shared/templates`): a
+ *                picture of each template's first page in audience tabs.
+ *                Blank gets the user's default design (the workspace
+ *                default, else markoto); each saved design is offered as
+ *                "Blank in <design>". The design can be changed later in
+ *                the editor's theme panel.
+ *   - Details  — description / language / audience (AI prompt context)
  *
- * Content defaults to the Demo document for the first document created in
- * this browser and to Blank afterwards (`FIRST_DOC_KEY`), or to
+ * The template defaults to Demo for the first document created in this
+ * browser and to Blank afterwards (`FIRST_DOC_KEY`), or to
  * `initialTemplateId` when the caller passes one (the "Use this template"
- * button on /templates/<slug>); `initialThemePreset` does the same for the
- * theme when no workspace default applies.
+ * button on /templates/<slug>). `initialThemePreset` (same button) puts
+ * another built-in design on that template.
  */
 
 const props = defineProps<{
   open: boolean
   /** When set, the new doc files into this workspace. */
   workspaceId?: string | null
-  /** Template card selected on open (a registered id); `demo` otherwise. */
+  /** Template selected on open (a registered id or alias); demo / blank otherwise. */
   initialTemplateId?: string | null
-  /** Built-in theme preset selected on open, unless the workspace sets a default. */
+  /** A built-in design for the initial template instead of its own. */
   initialThemePreset?: string | null
 }>()
 
@@ -66,17 +69,15 @@ const anonDoc = useAnonDocCreate()
 const title = ref('')
 const description = ref('')
 const audience = ref<AudienceKind>('casual')
-// Theme selection: a single tagged-union ref so the dialog can pick a
-// built-in preset id ('preset:modern'), one of the user's saved themes
-// ('saved:abc123'), or a workspace default that doesn't match any
-// known preset ('inherit'). The submit handler unpacks this back into
-// `themePreset` or `themeId` for the API.
-type ThemeChoice
-  = | { kind: 'preset', id: string }
+// The choice: a template (its own design; Blank → the default design), or
+// "Blank in <saved design>". `designOverride` is a built-in preset the
+// caller asked for on the initial template (marketing `::cta theme`); it
+// goes as soon as the user picks another card.
+type Choice
+  = | { kind: 'template', id: string }
     | { kind: 'saved', themeId: string }
-    | { kind: 'inherit' }
-const themeChoice = ref<ThemeChoice>({ kind: 'preset', id: 'markoto' })
-const templateId = ref<string>(DEFAULT_TEMPLATE_ID)
+const choice = ref<Choice>({ kind: 'template', id: DEFAULT_TEMPLATE_ID })
+const designOverride = ref<string | null>(null)
 
 // The first document shows what markoto can do (Demo); after that, people
 // want their own page (Blank). Remembered per browser — reset by logout,
@@ -96,15 +97,14 @@ function rememberCreatedDoc(): void {
   } catch { /* storage blocked — the demo shows again next time */ }
 }
 function defaultTemplateId(): string {
-  if (isTemplateId(props.initialTemplateId)) return props.initialTemplateId
-  return hasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID
+  return resolveTemplateId(props.initialTemplateId) ?? (hasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID)
 }
 
 // Which option row is expanded (one at a time); all closed on open.
-type Section = 'content' | 'design' | 'details'
+type Section = 'template' | 'details'
 const openSection = ref<Section | null>(null)
-type DesignTab = 'all' | ThemePresetCategory | 'saved'
-const designTab = ref<DesignTab>('all')
+type TemplateTab = 'all' | ThemePresetCategory | 'saved'
+const templateTab = ref<TemplateTab>('all')
 
 function setSection(section: Section, open: boolean) {
   openSection.value = open ? section : (openSection.value === section ? null : openSection.value)
@@ -112,9 +112,8 @@ function setSection(section: Section, open: boolean) {
 
 const { loggedIn } = useUserSession()
 
-// Caller's saved themes — only fetched for logged-in users. Used to
-// render personal preset cards alongside the built-ins below, and to
-// match a workspace default that points at one of them.
+// Caller's saved themes — only fetched for logged-in users. Each becomes a
+// "Blank in <design>" card, and names a workspace default that matches one.
 interface SavedTheme {
   themeId: string
   name: string
@@ -125,10 +124,8 @@ interface SavedTheme {
 }
 const savedThemes = ref<SavedTheme[]>([])
 
-// Workspace default theme (when filing into a workspace). Drives the
-// "inherit" choice: pre-selected on open IF the workspace has set a
-// default. Compared by deep-equal to built-ins / saved themes so the
-// matching card lights up too.
+// Workspace default theme (when filing into a workspace): the design Blank
+// gets. Without one, Blank is in the markoto design.
 const workspaceDefaultTheme = ref<DocTheme | null>(null)
 
 async function loadThemeContext() {
@@ -154,20 +151,17 @@ async function loadThemeContext() {
   }
 }
 
-// Map a theme JSONB to a known choice (built-in preset / saved theme /
-// neither). Used when pre-selecting based on the workspace default so
-// the matching card lights up if there's one.
-// Compared structurally: the workspace default comes back from a jsonb
-// column whose key order differs from the in-code preset.
-function matchThemeChoice(theme: DocTheme): ThemeChoice {
-  for (const preset of THEME_PRESETS) {
-    if (jsonEqual(preset.theme, theme)) return { kind: 'preset', id: preset.id }
-  }
-  for (const saved of savedThemes.value) {
-    if (jsonEqual(saved.theme, theme)) return { kind: 'saved', themeId: saved.themeId }
-  }
-  return { kind: 'inherit' }
+// Name of the workspace default for the summary: the built-in preset or
+// saved theme it equals, else "Workspace default". Compared structurally:
+// the default comes back from a jsonb column whose key order differs from
+// the in-code preset.
+function workspaceDesignName(theme: DocTheme): string {
+  const preset = THEME_PRESETS.find(p => jsonEqual(p.theme, theme))
+  if (preset) return t(`theme.presets.${preset.id}.name`)
+  const saved = savedThemes.value.find(s => jsonEqual(s.theme, theme))
+  return saved?.name ?? t('newDoc.themeWorkspaceDefault')
 }
+
 // Language picker mirrors the Document tab: combobox + create-item.
 interface LanguageItem { label: string, value: string, custom?: boolean }
 const isPresetLanguage = (v: string) => (LANGUAGE_PRESETS as readonly string[]).includes(v)
@@ -206,22 +200,26 @@ watch(() => props.open, async (next) => {
   title.value = ''
   description.value = ''
   audience.value = 'casual'
-  templateId.value = defaultTemplateId()
+  choice.value = { kind: 'template', id: defaultTemplateId() }
+  const override = THEME_PRESETS.find(p => p.id === props.initialThemePreset)?.id ?? null
+  designOverride.value = override !== null && override !== getTemplate(choice.value.id)?.design ? override : null
   openSection.value = null
-  designTab.value = 'all'
+  templateTab.value = 'all'
   languageModel.value = defaultLanguageItem()
   // Pull saved themes + workspace default fresh on every open so a
   // theme just-saved in the editor is immediately pickable here.
   await loadThemeContext()
-  // Pre-select the workspace default if one is set. Otherwise the
-  // caller's preset, else the markoto preset (the brand default).
-  if (workspaceDefaultTheme.value) {
-    themeChoice.value = matchThemeChoice(workspaceDefaultTheme.value)
-  } else {
-    const preset = THEME_PRESETS.find(p => p.id === props.initialThemePreset)
-    themeChoice.value = { kind: 'preset', id: preset?.id ?? 'markoto' }
-  }
 }, { immediate: true })
+
+function pickTemplate(id: string) {
+  choice.value = { kind: 'template', id }
+  designOverride.value = null
+}
+function pickSaved(themeId: string) {
+  choice.value = { kind: 'saved', themeId }
+  designOverride.value = null
+}
+const selectedTemplateId = computed(() => choice.value.kind === 'template' ? choice.value.id : null)
 
 const audienceItems = computed(() => AUDIENCE_KINDS.map(kind => ({
   label: t(`audiences.${kind}.label`),
@@ -229,17 +227,27 @@ const audienceItems = computed(() => AUDIENCE_KINDS.map(kind => ({
   value: kind
 })))
 
-// One-line summaries on the collapsed rows.
-const contentSummary = computed(() => {
-  const tpl = TEMPLATES.find(x => x.id === templateId.value)
-  return tpl ? t(tpl.labelKey) : ''
+// One-line summaries on the collapsed rows: the template, plus the design
+// where it isn't the template's own (Blank, a `::cta` override).
+const templateSummary = computed(() => {
+  const c = choice.value
+  if (c.kind === 'saved') {
+    const name = savedThemes.value.find(s => s.themeId === c.themeId)?.name ?? ''
+    return t('newDoc.blankIn', { design: name })
+  }
+  const tpl = getTemplate(c.id)
+  if (!tpl) return ''
+  const name = t(tpl.labelKey)
+  if (designOverride.value) return `${name} · ${t(`theme.presets.${designOverride.value}.name`)}`
+  if (tpl.design === null) {
+    const design = workspaceDefaultTheme.value ? workspaceDesignName(workspaceDefaultTheme.value) : t('theme.presets.markoto.name')
+    return `${name} · ${design}`
+  }
+  return name
 })
-const designSummary = computed(() => {
-  const choice = themeChoice.value
-  if (choice.kind === 'preset') return t(`theme.presets.${choice.id}.name`)
-  if (choice.kind === 'saved') return savedThemes.value.find(s => s.themeId === choice.themeId)?.name ?? ''
-  return t('newDoc.themeWorkspaceDefault')
-})
+const blankDescription = computed(() => workspaceDefaultTheme.value
+  ? t('newDoc.blankWorkspaceDescription', { design: workspaceDesignName(workspaceDefaultTheme.value) })
+  : undefined)
 const detailsSummary = computed(() => {
   const audienceLabel = t(`audiences.${audience.value}.label`)
   const lang = languageModel.value?.label?.trim()
@@ -261,16 +269,22 @@ async function submit() {
     body.audience = audience.value
     const lang = (languageModel.value?.value ?? '').trim()
     if (lang) body.language = lang
-    // Theme choice → API id. `inherit` sends nothing so the server
-    // applies the workspace default (or the markoto schema default
-    // for non-workspace docs). The two id paths are mutually
-    // exclusive — server rejects passing both.
-    if (themeChoice.value.kind === 'preset') {
-      body.themePreset = themeChoice.value.id
-    } else if (themeChoice.value.kind === 'saved') {
-      body.themeId = themeChoice.value.themeId
+    // Template + design → API. A template brings its design (sent as
+    // `themePreset`, so an older server applies it too). Blank sends no
+    // design in a workspace with a default — the server applies that
+    // default — and the markoto preset otherwise. "Blank in <saved
+    // design>" sends the saved theme. `themePreset` and `themeId` are
+    // mutually exclusive — the server rejects both.
+    const c = choice.value
+    if (c.kind === 'saved') {
+      body.templateId = 'blank'
+      body.themeId = c.themeId
+    } else {
+      body.templateId = c.id
+      const design = designOverride.value ?? getTemplate(c.id)?.design ?? null
+      if (design !== null) body.themePreset = design
+      else if (!workspaceDefaultTheme.value) body.themePreset = 'markoto'
     }
-    if (templateId.value) body.templateId = templateId.value
     const docId = await anonDoc.createDocument(body)
     rememberCreatedDoc()
     emit('update:open', false)
@@ -320,25 +334,25 @@ async function submit() {
 
         <!-- Options: collapsed rows with the current choice ────── -->
         <div class="rounded-lg border border-default divide-y divide-default">
-          <!-- Content (template) -->
+          <!-- Template: text + design, one choice -->
           <UCollapsible
-            :open="openSection === 'content'"
-            @update:open="(v: boolean) => setSection('content', v)"
+            :open="openSection === 'template'"
+            @update:open="(v: boolean) => setSection('template', v)"
           >
             <button
               type="button"
-              data-testid="newdoc-section-content"
+              data-testid="newdoc-section-template"
               class="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
             >
               <UIcon
-                name="i-lucide-file-text"
+                name="i-lucide-layout-template"
                 class="size-4 text-muted shrink-0"
               />
-              <span class="text-sm font-medium">{{ t('newDoc.sections.content') }}</span>
+              <span class="text-sm font-medium">{{ t('newDoc.sections.template') }}</span>
               <span
                 class="ms-auto text-sm text-muted truncate"
-                data-testid="newdoc-section-content-summary"
-              >{{ contentSummary }}</span>
+                data-testid="newdoc-section-template-summary"
+              >{{ templateSummary }}</span>
               <UIcon
                 name="i-lucide-chevron-down"
                 class="size-4 text-dimmed shrink-0 transition-transform group-data-[state=open]:rotate-180"
@@ -349,148 +363,36 @@ async function submit() {
                 <p class="text-xs text-toned mb-2">
                   {{ t('newDoc.templateHelp') }}
                 </p>
-                <div
-                  class="grid grid-cols-1 sm:grid-cols-2 gap-2"
-                  data-testid="newdoc-template-grid"
-                >
-                  <button
-                    v-for="tpl in TEMPLATES"
-                    :key="tpl.id"
-                    type="button"
-                    :data-testid="`newdoc-template-card-${tpl.id}`"
-                    :aria-pressed="templateId === tpl.id"
-                    class="text-left rounded-md border p-2.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    :class="templateId === tpl.id
-                      ? 'border-primary bg-elevated/40'
-                      : 'border-default'"
-                    @click="templateId = tpl.id"
-                  >
-                    <div class="flex items-center gap-2 mb-1">
-                      <UIcon
-                        :name="tpl.icon"
-                        class="size-4 text-muted shrink-0"
-                      />
-                      <span class="text-sm font-semibold truncate">
-                        {{ t(tpl.labelKey) }}
-                      </span>
-                    </div>
-                    <p class="text-xs text-muted leading-snug line-clamp-2">
-                      {{ t(tpl.descriptionKey) }}
-                    </p>
-                  </button>
-                </div>
-              </div>
-            </template>
-          </UCollapsible>
-
-          <!-- Design (theme) -->
-          <UCollapsible
-            :open="openSection === 'design'"
-            @update:open="(v: boolean) => setSection('design', v)"
-          >
-            <button
-              type="button"
-              data-testid="newdoc-section-design"
-              class="group flex w-full items-center gap-3 px-3 py-2.5 text-left hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
-            >
-              <UIcon
-                name="i-lucide-palette"
-                class="size-4 text-muted shrink-0"
-              />
-              <span class="text-sm font-medium">{{ t('newDoc.sections.design') }}</span>
-              <span
-                class="ms-auto text-sm text-muted truncate"
-                data-testid="newdoc-section-design-summary"
-              >{{ designSummary }}</span>
-              <UIcon
-                name="i-lucide-chevron-down"
-                class="size-4 text-dimmed shrink-0 transition-transform group-data-[state=open]:rotate-180"
-              />
-            </button>
-            <template #content>
-              <div class="px-3 pb-3 pt-1">
-                <p class="text-xs text-toned mb-2">
-                  {{ t('newDoc.themeHelp') }}
-                </p>
-                <DocumentThemePresetGrid
-                  v-model:tab="designTab"
-                  testid-prefix="newdoc-theme-card-"
+                <DocumentTemplateGrid
+                  v-model:tab="templateTab"
+                  testid-prefix="newdoc-template-card-"
                   :saved-tab="savedThemes.length > 0"
-                  :selected-id="themeChoice.kind === 'preset' ? themeChoice.id : null"
-                  data-testid="newdoc-theme-grid"
-                  @select="(preset) => themeChoice = { kind: 'preset', id: preset.id }"
+                  :selected-id="selectedTemplateId"
+                  :blank-theme="workspaceDefaultTheme"
+                  :blank-description="blankDescription"
+                  data-testid="newdoc-template-grid"
+                  @select="(tpl) => pickTemplate(tpl.id)"
                 >
                   <template #before="{ tab: slotTab }">
-                    <!-- Workspace-default "inherit" card. Only shown when
-                         filing into a workspace whose default matches no
-                         built-in or saved theme of this user; a match
-                         lights up that card instead. -->
-                    <button
-                      v-if="workspaceDefaultTheme && themeChoice.kind === 'inherit' && slotTab === 'all'"
-                      type="button"
-                      data-testid="newdoc-theme-card-inherit"
-                      aria-pressed="true"
-                      class="text-left rounded-md border p-1.5 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary border-primary bg-elevated/40"
-                    >
-                      <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white flex flex-col overflow-hidden">
-                        <div
-                          class="h-2 shrink-0"
-                          :style="{ backgroundColor: workspaceDefaultTheme.color.brand }"
-                        />
-                        <span
-                          class="m-auto text-3xl text-neutral-800"
-                          :style="{ fontFamily: `'${workspaceDefaultTheme.headings.font}', system-ui, sans-serif` }"
-                        >Aa</span>
-                      </div>
-                      <div class="mt-1.5 px-0.5 text-xs font-semibold truncate">
-                        {{ t('newDoc.themeWorkspaceDefault') }}
-                      </div>
-                      <p class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2">
-                        {{ t('newDoc.themeWorkspaceDefaultHelp') }}
-                      </p>
-                    </button>
-
-                    <!-- The user's saved themes: no page picture, a brand
-                         stripe + "Aa" in their heading font instead. -->
+                    <!-- The user's saved designs, each as a blank page in
+                         it: no page picture, a brand stripe + "Aa" in the
+                         heading font instead. -->
                     <template v-if="slotTab === 'all' || slotTab === 'saved'">
-                      <button
+                      <DocumentPictureCard
                         v-for="saved in savedThemes"
                         :key="saved.themeId"
-                        type="button"
-                        :data-testid="`newdoc-theme-card-saved-${saved.themeId}`"
-                        class="text-left rounded-md border p-1.5 hover:bg-elevated/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                        :class="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId
-                          ? 'border-primary bg-elevated/40'
-                          : 'border-default'"
-                        :aria-pressed="themeChoice.kind === 'saved' && themeChoice.themeId === saved.themeId"
-                        @click="themeChoice = { kind: 'saved', themeId: saved.themeId }"
-                      >
-                        <div class="aspect-[3/4] rounded-sm ring-1 ring-default bg-white flex flex-col overflow-hidden">
-                          <div
-                            class="h-2 shrink-0"
-                            :style="{ backgroundColor: saved.theme.color.brand }"
-                          />
-                          <span
-                            class="m-auto text-3xl text-neutral-800"
-                            :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
-                          >Aa</span>
-                        </div>
-                        <div
-                          class="mt-1.5 px-0.5 text-xs font-semibold truncate"
-                          :style="{ fontFamily: `'${saved.theme.headings.font}', system-ui, sans-serif` }"
-                        >
-                          {{ saved.name }}
-                        </div>
-                        <p
-                          class="px-0.5 text-[11px] text-muted leading-snug line-clamp-2 break-words"
-                          :data-testid="`newdoc-theme-card-saved-description-${saved.themeId}`"
-                        >
-                          {{ saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font }) }}
-                        </p>
-                      </button>
+                        :testid="`newdoc-template-card-saved-${saved.themeId}`"
+                        :name="t('newDoc.blankIn', { design: saved.name })"
+                        :description="saved.description || t('theme.saved.fallbackDescription', { heading: saved.theme.headings.font, body: saved.theme.body.font })"
+                        :description-testid="`newdoc-template-card-saved-description-${saved.themeId}`"
+                        :selected="choice.kind === 'saved' && choice.themeId === saved.themeId"
+                        :brand="saved.theme.color.brand"
+                        :heading-font="saved.theme.headings.font"
+                        @click="pickSaved(saved.themeId)"
+                      />
                     </template>
                   </template>
-                </DocumentThemePresetGrid>
+                </DocumentTemplateGrid>
               </div>
             </template>
           </UCollapsible>

@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Nuevo documento",
-    "subtitle": "Ponle un nombre y empieza a escribir. Contenido, diseño y detalles son opcionales: cámbialos ahora o cuando quieras.",
+    "subtitle": "Ponle un nombre y empieza a escribir. La plantilla y los detalles son opcionales: cámbialos ahora o cuando quieras.",
     "titleLabel": "Título",
     "titlePlaceholder": "p. ej. Plan de lanzamiento del T3",
     "descriptionLabel": "Descripción",
@@ -292,16 +292,11 @@
     "descriptionPlaceholder": "¿De qué trata este documento?",
     "languageLabel": "Idioma",
     "audienceLabel": "Público",
-    "themeLabel": "Tema",
-    "themeHelp": "Define el estilo visual. Puedes cambiarlo en cualquier momento.",
     "themeWorkspaceDefault": "Predeterminado del espacio de trabajo",
-    "themeWorkspaceDefaultHelp": "Usa el tema establecido como predeterminado para este espacio de trabajo.",
-    "templateLabel": "Plantilla",
-    "templateHelp": "Rellena previamente el documento con una estructura básica que puedes editar. Cada sección viene con una nota de comentario para que markoto sepa qué corresponde a cada parte.",
+    "templateHelp": "Una plantilla es un texto inicial en un diseño que le va bien. Los comentarios grises del texto dicen qué va en cada parte; la vista previa y el PDF no los muestran. Cambia el diseño cuando quieras en el panel del tema.",
     "create": "Crear documento",
     "sections": {
-      "content": "Contenido",
-      "design": "Diseño",
+      "template": "Plantilla",
       "details": "Detalles"
     },
     "detailsHelp": "Ayuda a la IA a escribir para ti: de qué trata el documento, su idioma y su tono.",
@@ -312,44 +307,94 @@
       "business": "Empresa",
       "writing": "Escritura",
       "saved": "Mis diseños"
-    }
+    },
+    "blankIn": "En blanco en {design}",
+    "blankWorkspaceDescription": "Una página vacía con el diseño de tu espacio de trabajo: {design}."
   },
   "templates": {
+    "demo": {
+      "label": "Demo",
+      "description": "Lo básico de Markdown y un breve recorrido por markoto."
+    },
     "blank": {
       "label": "En blanco",
-      "description": "Una página vacía. Tú pones todo lo demás."
-    },
-    "business-plan": {
-      "label": "Plan de negocio",
-      "description": "Resumen ejecutivo, mercado, modelo, hoja de ruta, finanzas, riesgos."
-    },
-    "academic-paper": {
-      "label": "Artículo académico",
-      "description": "Resumen, introducción, trabajos relacionados, métodos, resultados, discusión, referencias."
-    },
-    "recipe": {
-      "label": "Receta",
-      "description": "Ficha resumen, ingredientes, utensilios, instrucciones, variaciones."
-    },
-    "meeting-notes": {
-      "label": "Notas de reunión",
-      "description": "Agenda, discusión, decisiones, tareas pendientes, preguntas abiertas."
-    },
-    "project-readme": {
-      "label": "README del proyecto",
-      "description": "Eslogan, por qué, inicio rápido, funciones, documentación, contribuir, licencia."
+      "description": "Una página vacía. Tú pones todo."
     },
     "resume": {
       "label": "Currículum",
       "description": "Un CV de una página: perfil, experiencia, formación, habilidades, idiomas."
     },
+    "runbook": {
+      "label": "Runbook de guardia",
+      "description": "Niveles de gravedad, un procedimiento por alerta con comandos, escalado, referencia rápida."
+    },
+    "design-doc": {
+      "label": "Documento de diseño / RFC",
+      "description": "Cabecera de estado, motivación, objetivos, propuesta, alternativas, decisiones, despliegue, riesgos."
+    },
+    "api-reference": {
+      "label": "Referencia de API",
+      "description": "Autenticación, errores, límites de uso, un recurso con endpoints, parámetros y ejemplos."
+    },
+    "project-readme": {
+      "label": "README de proyecto",
+      "description": "Lema, por qué, inicio rápido, funciones, configuración, contribuir, licencia."
+    },
+    "arxiv": {
+      "label": "Preprint de arXiv",
+      "description": "Resumen en el bloque de título, secciones numeradas, una tabla, una ecuación, referencias."
+    },
+    "ieee-conference": {
+      "label": "Artículo de congreso IEEE",
+      "description": "Dos columnas: resumen y palabras clave, secciones cortas, referencias numeradas."
+    },
+    "thesis": {
+      "label": "Tesis",
+      "description": "Portada, resumen, índice, un capítulo por página, bibliografía, anexo."
+    },
+    "lecture-notes": {
+      "label": "Apuntes de clase",
+      "description": "Objetivos, definiciones, teorema y ejemplo, ejercicios por partes."
+    },
+    "essay": {
+      "label": "Ensayo APA",
+      "description": "Portada APA, tesis, argumentación, contraargumentos, referencias."
+    },
     "report": {
       "label": "Informe",
       "description": "Portada, índice, resumen, cifras clave, resultados, perspectivas, anexo."
     },
-    "demo": {
-      "label": "Demo",
-      "description": "Lo básico de markdown y un breve recorrido por markoto."
+    "business-plan": {
+      "label": "Plan de negocio",
+      "description": "Resumen ejecutivo, mercado, modelo, hoja de ruta, finanzas, riesgos."
+    },
+    "proposal": {
+      "label": "Propuesta comercial",
+      "description": "Tu situación, objetivos, enfoque por fases, calendario, precios, condiciones, firma."
+    },
+    "one-pager": {
+      "label": "One-pager",
+      "description": "La propuesta, el problema, la solución, los datos clave y los próximos pasos en una página."
+    },
+    "memo": {
+      "label": "Memorando / carta",
+      "description": "Para / De / Fecha / Asunto, objetivo, contexto, recomendación, próximos pasos."
+    },
+    "meeting-notes": {
+      "label": "Notas de reunión",
+      "description": "Orden del día, discusión, decisiones, tareas, preguntas abiertas."
+    },
+    "manuscript": {
+      "label": "Manuscrito de novela",
+      "description": "Epígrafe, capítulos en página nueva, cambios de escena, portada."
+    },
+    "newsletter": {
+      "label": "Boletín",
+      "description": "Línea de número, artículo principal con cita, breves, fechas, despedida."
+    },
+    "recipe": {
+      "label": "Receta",
+      "description": "Ficha resumen, ingredientes, utensilios, preparación, variantes."
     }
   },
   "documentPanel": {

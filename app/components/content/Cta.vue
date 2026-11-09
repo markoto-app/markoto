@@ -7,10 +7,11 @@
 //
 // The main button opens the new-document dialog (MarketingStartButton,
 // same gate as the home page); `label` replaces its text, `to` turns it
-// into a plain link instead. `template` + `theme` pre-select a template
-// id and a theme preset in the dialog (the template pages):
+// into a plain link instead. `template` pre-selects a template (text +
+// its design) in the dialog (the template pages); `theme` optionally puts
+// another built-in preset on it (older pages):
 //
-//   ::cta{title="Start your resume." label="Use this template" template="resume" theme="modern"}
+//   ::cta{title="Start your resume." label="Use this template" template="resume"}
 //
 // The slot is the line under the title.
 withDefaults(defineProps<{

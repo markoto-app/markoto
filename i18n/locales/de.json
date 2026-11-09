@@ -284,7 +284,7 @@
   },
   "newDoc": {
     "title": "Neues Dokument",
-    "subtitle": "Geben Sie ihm einen Namen und legen Sie los. Inhalt, Design und Details sind optional — jetzt oder jederzeit später änderbar.",
+    "subtitle": "Geben Sie ihm einen Namen und legen Sie los. Vorlage und Details sind optional — jetzt oder jederzeit später änderbar.",
     "titleLabel": "Titel",
     "titlePlaceholder": "z. B. Q3-Launch-Plan",
     "descriptionLabel": "Beschreibung",
@@ -292,16 +292,11 @@
     "descriptionPlaceholder": "Worum geht es in diesem Dokument?",
     "languageLabel": "Sprache",
     "audienceLabel": "Zielgruppe",
-    "themeLabel": "Design",
-    "themeHelp": "Legt den visuellen Stil fest. Sie können ihn jederzeit ändern.",
     "themeWorkspaceDefault": "Workspace-Standard",
-    "themeWorkspaceDefaultHelp": "Verwenden Sie das als Standard für diesen Workspace festgelegte Design.",
-    "templateLabel": "Vorlage",
-    "templateHelp": "Füllt das Dokument mit einem strukturellen Grundgerüst vor, das Sie bearbeiten können. Jeder Abschnitt enthält einen Kommentarhinweis, damit markoto weiss, was wohin gehört.",
+    "templateHelp": "Eine Vorlage ist ein Anfangstext in einem passenden Design. Die grauen Kommentare im Text sagen, was wohin gehört; Vorschau und PDF zeigen sie nicht. Das Design ändern Sie jederzeit im Theme-Panel.",
     "create": "Dokument erstellen",
     "sections": {
-      "content": "Inhalt",
-      "design": "Design",
+      "template": "Vorlage",
       "details": "Details"
     },
     "detailsHelp": "Damit die KI passend für Sie schreibt: worum es geht, in welcher Sprache und in welchem Ton.",
@@ -312,44 +307,94 @@
       "business": "Business",
       "writing": "Schreiben",
       "saved": "Meine Designs"
-    }
+    },
+    "blankIn": "Leer in {design}",
+    "blankWorkspaceDescription": "Eine leere Seite im Design Ihres Workspace: {design}."
   },
   "templates": {
+    "demo": {
+      "label": "Demo",
+      "description": "Markdown-Grundlagen und eine kurze Tour durch markoto."
+    },
     "blank": {
       "label": "Leer",
-      "description": "Eine leere Seite. Alles andere bringen Sie mit."
+      "description": "Eine leere Seite. Alles Weitere bringen Sie mit."
+    },
+    "resume": {
+      "label": "Lebenslauf",
+      "description": "Ein einseitiger Lebenslauf: Profil, Berufserfahrung, Ausbildung, Kenntnisse, Sprachen."
+    },
+    "runbook": {
+      "label": "Bereitschafts-Runbook",
+      "description": "Schweregrade, ein Ablauf pro Alarm mit Befehlen, Eskalation, Kurzreferenz."
+    },
+    "design-doc": {
+      "label": "Designdokument / RFC",
+      "description": "Statuskopf, Motivation, Ziele, Vorschlag, Alternativen, Entscheidungen, Einführung, Risiken."
+    },
+    "api-reference": {
+      "label": "API-Referenz",
+      "description": "Authentifizierung, Fehler, Rate Limits, eine Ressource mit Endpunkten, Parametern und Beispielen."
+    },
+    "project-readme": {
+      "label": "Projekt-README",
+      "description": "Kurzbeschreibung, Motivation, Schnellstart, Funktionen, Konfiguration, Mitwirken, Lizenz."
+    },
+    "arxiv": {
+      "label": "arXiv-Preprint",
+      "description": "Zusammenfassung im Titelblock, nummerierte Abschnitte, Tabelle, Formel, Literatur."
+    },
+    "ieee-conference": {
+      "label": "IEEE-Konferenzbeitrag",
+      "description": "Zweispaltig: Kurzfassung und Schlagwörter, kurze Abschnitte, nummerierte Literatur."
+    },
+    "thesis": {
+      "label": "Abschlussarbeit",
+      "description": "Titelseite, Kurzfassung, Inhaltsverzeichnis, jedes Kapitel auf neuer Seite, Literatur, Anhang."
+    },
+    "lecture-notes": {
+      "label": "Vorlesungsskript",
+      "description": "Lernziele, Definitionen, Satz und Beispiel, Übungen mit Teilaufgaben."
+    },
+    "essay": {
+      "label": "APA-Essay",
+      "description": "APA-Titelseite, These, Argumentation, Gegenargumente, Literaturverzeichnis."
+    },
+    "report": {
+      "label": "Bericht",
+      "description": "Deckblatt, Inhaltsverzeichnis, Zusammenfassung, Kennzahlen, Ergebnisse, Ausblick, Anhang."
     },
     "business-plan": {
       "label": "Businessplan",
-      "description": "Zusammenfassung, Markt, Modell, Roadmap, Finanzen, Risiken."
+      "description": "Zusammenfassung, Markt, Geschäftsmodell, Roadmap, Finanzen, Risiken."
     },
-    "academic-paper": {
-      "label": "Wissenschaftliche Arbeit",
-      "description": "Abstract, Einleitung, verwandte Arbeiten, Methoden, Ergebnisse, Diskussion, Referenzen."
+    "proposal": {
+      "label": "Angebot",
+      "description": "Ausgangslage, Ziele, Vorgehen in Phasen, Zeitplan, Preise, Bedingungen, Unterschrift."
     },
-    "recipe": {
-      "label": "Rezept",
-      "description": "Übersichtskarte, Zutaten, Ausstattung, Anleitung, Variationen."
+    "one-pager": {
+      "label": "One-Pager",
+      "description": "Kernaussage, Problem, Lösung, Eckdaten und nächste Schritte auf einer Seite."
+    },
+    "memo": {
+      "label": "Memo / Brief",
+      "description": "An / Von / Datum / Betreff, Zweck, Hintergrund, Empfehlung, nächste Schritte."
     },
     "meeting-notes": {
       "label": "Besprechungsnotizen",
       "description": "Agenda, Diskussion, Entscheidungen, Aufgaben, offene Fragen."
     },
-    "project-readme": {
-      "label": "Projekt-README",
-      "description": "Slogan, Warum, Schnellstart, Funktionen, Doku, Mitwirken, Lizenz."
+    "manuscript": {
+      "label": "Romanmanuskript",
+      "description": "Motto, Kapitel auf neuen Seiten, Szenenwechsel, eine Titelseite."
     },
-    "resume": {
-      "label": "Lebenslauf",
-      "description": "Ein einseitiger Lebenslauf: Profil, Erfahrung, Ausbildung, Kenntnisse, Sprachen."
+    "newsletter": {
+      "label": "Newsletter",
+      "description": "Ausgabezeile, Leitartikel mit Zitat, Kurzmeldungen, Termine, Abschluss."
     },
-    "report": {
-      "label": "Bericht",
-      "description": "Titelseite, Inhalt, Zusammenfassung, Kennzahlen, Ergebnisse, Ausblick, Anhang."
-    },
-    "demo": {
-      "label": "Demo",
-      "description": "Markdown-Grundlagen und ein kurzer Rundgang durch markoto."
+    "recipe": {
+      "label": "Rezept",
+      "description": "Übersicht, Zutaten, Utensilien, Zubereitung, Varianten."
     }
   },
   "documentPanel": {

@@ -17,7 +17,15 @@
  *   `shared/utils/templateGallery.manifest.json`
  *   (`tests/unit/templateGallery.test.ts`). `make template-gallery`.
  *
- *   bun scripts/render-theme-thumbs.ts --base http://127.0.0.1:3309 [--gallery] [id …]
+ * - `--templates`: the new-document dialog's template pictures — the first
+ *   page of each template's English text in its design (with its cover
+ *   placeholders and a sample title from
+ *   `tests/fixtures/theme-shots/template-thumbs.json`), 360 px,
+ *   `public/template-thumbs/<id>.webp`, hashes in
+ *   `shared/templates/templateThumbnails.manifest.json`
+ *   (`tests/unit/templateThumbnails.test.ts`). `make template-thumbs`.
+ *
+ *   bun scripts/render-theme-thumbs.ts --base http://127.0.0.1:3309 [--gallery | --templates] [id …]
  *
  * Needs what render-theme-shots needs with `--patch`: a TEST_MODE=1 app with
  * NUXT_ANON_GATE_ENABLED=false (see docs/TEMPLATE-WORKFLOW.md), plus
@@ -28,12 +36,15 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { THEME_PRESETS } from '../shared/utils/themePresets'
-import { FIXTURE_DIR, galleryHash, gallerySources, thumbnailHash, thumbnailSources } from './lib/themeThumbnailHash'
+import { FIXTURE_DIR, galleryHash, gallerySources, templateThumbnailHash, templateThumbnailSources, thumbnailHash, thumbnailSources } from './lib/themeThumbnailHash'
 
 const ROOT = resolve(import.meta.dirname, '..')
 const GALLERY = process.argv.includes('--gallery')
-const MANIFEST = resolve(ROOT, GALLERY ? 'shared/utils/templateGallery.manifest.json' : 'shared/utils/themeThumbnails.manifest.json')
-const OUT_DIR = resolve(ROOT, GALLERY ? 'public/templates' : 'public/theme-thumbs')
+const TEMPLATES = process.argv.includes('--templates')
+const MANIFEST = resolve(ROOT, GALLERY
+  ? 'shared/utils/templateGallery.manifest.json'
+  : TEMPLATES ? 'shared/templates/templateThumbnails.manifest.json' : 'shared/utils/themeThumbnails.manifest.json')
+const OUT_DIR = resolve(ROOT, GALLERY ? 'public/templates' : TEMPLATES ? 'public/template-thumbs' : 'public/theme-thumbs')
 const WIDTH = GALLERY ? 600 : 360
 
 function run(cmd: string, args: string[]): void {
@@ -45,12 +56,14 @@ const argv = process.argv.slice(2)
 const baseIdx = argv.indexOf('--base')
 const base = baseIdx >= 0 ? argv[baseIdx + 1] : undefined
 if (!base) {
-  console.error('usage: render-theme-thumbs.ts --base <url> [--gallery] [id …]')
+  console.error('usage: render-theme-thumbs.ts --base <url> [--gallery | --templates] [id …]')
   process.exit(2)
 }
-const requested = argv.filter((a, i) => i !== baseIdx && i !== baseIdx + 1 && a !== '--gallery')
+const requested = argv.filter((a, i) => i !== baseIdx && i !== baseIdx + 1 && a !== '--gallery' && a !== '--templates')
 const galleries = GALLERY ? gallerySources() : {}
-const ids = requested.length ? requested : GALLERY ? Object.keys(galleries) : THEME_PRESETS.map(p => p.id)
+const templates = TEMPLATES ? templateThumbnailSources() : {}
+const allIds = GALLERY ? Object.keys(galleries) : TEMPLATES ? Object.keys(templates) : THEME_PRESETS.map(p => p.id)
+const ids = requested.length ? requested : allIds
 
 const sources = GALLERY ? {} : thumbnailSources()
 const manifestRaw: unknown = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : {}
@@ -76,6 +89,19 @@ try {
       preset = g.theme
       page = g.pageNumber
       hash = galleryHash(g)
+    } else if (TEMPLATES) {
+      const tpl = templates[id]
+      if (!tpl) throw new Error(`no template "${id}" with a sample title in tests/fixtures/theme-shots/template-thumbs.json`)
+      const md = join(work, `${id}.md`)
+      writeFileSync(md, tpl.md)
+      shotArgs = ['--md', md, '--title', tpl.title]
+      if (tpl.patch) {
+        const patch = join(work, `${id}-patch.json`)
+        writeFileSync(patch, JSON.stringify(tpl.patch))
+        shotArgs.push('--patch', patch)
+      }
+      preset = tpl.theme
+      hash = templateThumbnailHash(tpl)
     } else {
       const source = sources[id]
       if (!source) throw new Error(`no showcase fixture for preset "${id}" in tests/fixtures/theme-shots/thumbnails.json`)
@@ -92,7 +118,7 @@ try {
     console.log(`${id}: ${OUT_DIR.slice(ROOT.length + 1)}/${id}.webp`)
   }
   // Drop pictures whose source no longer exists from the manifest.
-  const known = new Set(GALLERY ? Object.keys(galleries) : THEME_PRESETS.map(p => p.id))
+  const known = new Set(allIds)
   const sorted = Object.fromEntries(Object.entries(manifest).filter(([k]) => known.has(k)).sort(([a], [b]) => a.localeCompare(b)))
   writeFileSync(MANIFEST, `${JSON.stringify(sorted, null, 2)}\n`)
 } finally {

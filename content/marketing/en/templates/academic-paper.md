@@ -63,15 +63,16 @@ source: |
 ---
 ::
 
-::cta{title="Write your paper from this template." label="Use this template" template="academic-paper" theme="arxiv" secondary-label="All templates" secondary-to="/templates"}
-Opens the new-document dialog with the academic paper template and the arXiv preprint theme selected. It starts with the same headings and a short brief in each section.
+::cta{title="Write your paper from this template." label="Use this template" template="arxiv" secondary-label="All templates" secondary-to="/templates"}
+Opens the new-document dialog with the arXiv preprint template selected: the text and the arXiv preprint theme in one. It starts with the same headings and a short brief in each section.
 ::
 
 ## What's in it
 
-- **Title, authors and affiliations.** A note under the title says how to lay out the author line. In the arXiv preprint theme, enter the authors and their affiliations under **Cover page** in the document theme instead: they are set side by side under the title.
+- **Title, authors and affiliations.** The title block starts with placeholder authors and affiliations. Replace them under **Cover page** in the document theme: they are set side by side under the title.
 - **Abstract.** A brief for 150 to 250 words: context, gap, what you did, what you found, why it matters.
 - **Introduction, related work, methods, results, discussion, conclusion.** Each section has a note on what goes there, such as "report what you found, not what it means" under Results.
+- **A table, an equation and a footnote.** One of each, to show the syntax: a `Table:` caption line, a numbered display equation, a footnote.
 - **References.** Typed by hand in the style the venue asks for.
 
 The notes are Markdown comments: they show in the editor and to the AI assistant, never on the page or in the PDF.
@@ -108,6 +109,6 @@ items:
 ---
 ::
 
-::cta{title="Markdown in, a typeset paper out." label="Use this template" template="academic-paper" theme="arxiv"}
+::cta{title="Markdown in, a typeset paper out." label="Use this template" template="arxiv"}
 Free on markoto.app, no sign-up needed.
 ::

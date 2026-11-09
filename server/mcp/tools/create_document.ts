@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
-import { TEMPLATE_IDS } from '~~/shared/templates'
+import { TEMPLATE_IDS, TEMPLATE_TOOL_HINT } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
 
 // User-only — `create_document` doesn't operate on an existing doc;
@@ -24,8 +24,8 @@ export default buildUserOnlyTool({
     description: z.string().max(500).optional().describe('Optional one-sentence summary, ≤500 chars.'),
     audience: z.enum(AUDIENCE_KINDS as [string, ...string[]]).optional().describe(`Audience for AI tone steering. One of: ${AUDIENCE_KINDS.join(', ')}.`),
     language: z.string().trim().min(1).max(50).optional().describe('Free-form language label ("English", "Deutsch").'),
-    template_id: z.enum(TEMPLATE_IDS.length > 0 ? (TEMPLATE_IDS as [string, ...string[]]) : (['blank'] as [string, ...string[]])).optional().describe(`Template to seed the doc body with (when initial_markdown is not provided). One of: ${TEMPLATE_IDS.join(', ')}.`),
-    theme_preset: z.string().min(1).optional().describe('Built-in theme preset id. Mutually exclusive with theme_id.'),
+    template_id: z.enum(TEMPLATE_IDS.length > 0 ? (TEMPLATE_IDS as [string, ...string[]]) : (['blank'] as [string, ...string[]])).optional().describe(`Template: a starting text plus its design. Seeds the doc body (when initial_markdown is not provided) and, without theme_preset / theme_id, sets the template's design. One of: ${TEMPLATE_TOOL_HINT}.`),
+    theme_preset: z.string().min(1).optional().describe('Built-in theme preset id; overrides the template\'s design. Mutually exclusive with theme_id.'),
     theme_id: z.string().min(1).max(64).optional().describe('User-saved theme preset id (from list_themes). Mutually exclusive with theme_preset.')
   }
 })
