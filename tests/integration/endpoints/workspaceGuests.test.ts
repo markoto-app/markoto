@@ -3,6 +3,7 @@ import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
+import { clearRecentKicks, waitForKick } from '../setup/syncProbe'
 
 // Workspace guests (WP11): a guest sees ONLY the documents shared with
 // them — no workspace page, no other document, no knowledge — takes no
@@ -117,6 +118,43 @@ describe('workspace guests — access', () => {
     const left = await testDb().query('SELECT count(*)::int AS n FROM document_shares WHERE user_id = $1', [guest.id])
     expect(left.rows[0].n).toBe(0)
     expect((await tokenFor(guest.id, shared.docId)).forbidden).toBe(true)
+  })
+
+  it('moving a shared document out of the workspace closes the guests\' open editor connections', async () => {
+    const { admin, ws, editor, guest, shared } = await setup()
+    const second = await createUser({ name: 'Gia Guest' })
+    await setMemberRole(ws.workspaceId, second.id, 'guest')
+    const adminClient = await loggedInClient(admin.id)
+    await adminClient.put(`/api/docs/${shared.docId}/shares`, { userId: guest.id, access: 'edit' })
+    await adminClient.put(`/api/docs/${shared.docId}/shares`, { userId: second.id, access: 'view' })
+    await clearRecentKicks()
+
+    const target = await createWorkspace(admin.id)
+    expect((await adminClient.patch(`/api/docs/${shared.docId}/workspace`, { workspaceId: target.workspaceId })).status).toBe(200)
+    // Same kick as unsharing: every guest whose share went, for that document.
+    for (const id of [guest.id, second.id]) {
+      const kick = await waitForKick(k => k.userId === String(id))
+      expect(kick.docIds).toEqual([shared.docId])
+    }
+    // Members keep their access through the workspace, so nobody else is kicked.
+    expect(await waitForKick(k => k.userId === String(editor.id), 300).catch(() => null)).toBeNull()
+  })
+
+  it('a guest with an edit share can\'t duplicate the document into the workspace', async () => {
+    const { admin, ws, guest, shared } = await setup()
+    await (await loggedInClient(admin.id)).put(`/api/docs/${shared.docId}/shares`, { userId: guest.id, access: 'edit' })
+    const guestClient = await loggedInClient(guest.id)
+
+    // Default target (the source's workspace) and an explicit one alike.
+    for (const body of [{}, { workspaceId: ws.workspaceId }]) {
+      const res = await guestClient.post(`/api/docs/${shared.docId}/duplicate`, body)
+      expect(res.status).toBe(403)
+      expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('workspace/guest-cannot-create')
+    }
+    const docs = await testDb().query('SELECT count(*)::int AS n FROM documents WHERE workspace_id = $1', [ws.workspaceId])
+    expect(docs.rows[0].n).toBe(2)
+    const owned = await testDb().query('SELECT count(*)::int AS n FROM documents WHERE owner_id = $1', [guest.id])
+    expect(owned.rows[0].n).toBe(0)
   })
 
   it('a guest has no workspace role to change, and isn\'t counted as a member', async () => {

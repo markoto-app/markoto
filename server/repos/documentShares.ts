@@ -47,9 +47,10 @@ export async function deleteShare(docId: string, userId: number): Promise<boolea
   return rows.length > 0
 }
 
-/** Every share on a document (it left its workspace). */
-export async function deleteSharesForDoc(docId: string): Promise<number> {
-  return (await useDatabase().delete(documentShares).where(eq(documentShares.docId, docId)).returning({ docId: documentShares.docId })).length
+/** Every share on a document (it left its workspace). Returns the guests who lost one. */
+export async function deleteSharesForDoc(docId: string): Promise<number[]> {
+  const rows = await useDatabase().delete(documentShares).where(eq(documentShares.docId, docId)).returning({ userId: documentShares.userId })
+  return rows.map(r => r.userId)
 }
 
 /** A guest left (or was removed from) the workspace: their shares on its documents go. */

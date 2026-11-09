@@ -1,6 +1,7 @@
 import { moveDocToWorkspace } from '../../../repos/documents'
 import { deleteSharesForDoc } from '../../../repos/documentShares'
 import { appendAuditEvent } from '../../../repos/audit'
+import { notifySyncKickUser } from '../../../utils/syncNotify'
 
 // Move a document into, between, or out of a workspace.
 //
@@ -61,8 +62,11 @@ export default defineEventHandler(async (event) => {
   }
 
   await moveDocToWorkspace(docId, target)
-  // Guest shares belong to the workspace the document left (WP11).
-  const droppedShares = await deleteSharesForDoc(docId)
+  // Guest shares belong to the workspace the document left (WP11). The
+  // guests' open editor connections are closed, as on unshare — their
+  // token no longer authorises the document.
+  const unsharedGuestIds = await deleteSharesForDoc(docId)
+  for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])
 
   const ip = getClientIp(event)
   await appendAuditEvent({
@@ -76,7 +80,7 @@ export default defineEventHandler(async (event) => {
     workspaceId: authz.workspaceId,
     before: { workspaceId: authz.workspaceId },
     after: { workspaceId: target },
-    ...(droppedShares > 0 ? { metadata: { guestSharesRemoved: droppedShares } } : {})
+    ...(unsharedGuestIds.length > 0 ? { metadata: { guestSharesRemoved: unsharedGuestIds.length } } : {})
   })
 
   return { success: true, workspaceId: target }

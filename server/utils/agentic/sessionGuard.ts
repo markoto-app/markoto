@@ -13,9 +13,10 @@ import { isAiCommentAuthor } from '~~/shared/ai/author'
 
 /**
  * A document is "solo" for `userId` when only they can have shaped its
- * content: they own it, it isn't open for anyone to edit, no other
- * workspace member can edit it, and every content change in its activity
- * history is theirs (directly or through their own AI / MCP / restore).
+ * content: they own it, it isn't open for anyone to edit, nobody else
+ * can edit in its workspace (admin / editor / guest with an edit share),
+ * and every content change in its activity history is theirs (directly
+ * or through their own AI / MCP / restore).
  * Anything else — including an unparseable or missing reference — is
  * treated as shared.
  */
