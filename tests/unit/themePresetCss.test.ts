@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest'
-import { THEME_PRESETS, themeFromPreset } from '../../shared/utils/themePresets'
+import { THEME_PRESETS, customCssForPlan, ownCustomCss, themeFromPreset } from '../../shared/utils/themePresets'
 import { sanitizeCustomCss } from '../../shared/utils/customCss'
 import { themeToCss } from '../../shared/utils/themeToCss'
 import { isValidTheme } from '../../shared/utils/themeValidation'
@@ -83,5 +83,42 @@ describe('themeFromPreset', () => {
     const t = themeFromPreset(arxiv, undefined)
     t.body.size = 99
     expect(arxiv.theme.body.size).toBe(10)
+  })
+})
+
+// The plan feature `customCss` (hosted free tier: off) gates the author's
+// own CSS only. A built-in preset's template CSS is part of that preset's
+// look on every plan (preview + PDF: customCssForPlan; meta PUT:
+// ownCustomCss) — otherwise arXiv / IEEE would render broken on Free and
+// every theme save of such a document would be refused.
+describe('custom CSS and the plan', () => {
+  const arxiv = preset('arxiv')
+  const modern = preset('modern')
+  const template = (arxiv.theme.customCss ?? '').trim()
+  const own = '.paged-doc p { color: red; }'
+
+  test('allowed: everything renders', () => {
+    const css = themeFromPreset(arxiv, own).customCss
+    expect(customCssForPlan(css, true)).toBe(css)
+  })
+
+  test('not allowed: the template stays, the author\'s own CSS is dropped', () => {
+    expect(customCssForPlan(themeFromPreset(arxiv, own).customCss, false)).toBe(template)
+    expect(customCssForPlan(themeFromPreset(arxiv, undefined).customCss, false)).toBe(template)
+    expect(customCssForPlan(themeFromPreset(modern, own).customCss, false)).toBeUndefined()
+    expect(customCssForPlan(undefined, false)).toBeUndefined()
+  })
+
+  test('an edited template is the author\'s CSS and is gated', () => {
+    const edited = template.replace('opacity: 1', 'opacity: 0.9')
+    expect(customCssForPlan(edited, false)).toBeUndefined()
+    expect(ownCustomCss(edited)).toBe(edited)
+  })
+
+  test('ownCustomCss: only what follows an unchanged template', () => {
+    expect(ownCustomCss(themeFromPreset(arxiv, undefined).customCss)).toBe('')
+    expect(ownCustomCss(themeFromPreset(arxiv, own).customCss)).toBe(own)
+    expect(ownCustomCss(own)).toBe(own)
+    expect(ownCustomCss(undefined)).toBe('')
   })
 })

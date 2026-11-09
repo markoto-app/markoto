@@ -4,6 +4,7 @@ import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { assertPlanFeature, resolveDocPlan } from '../../../utils/entitlements'
 import { resolveTemplateId } from '~~/shared/templates'
+import { ownCustomCss } from '~~/shared/utils/themePresets'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
@@ -193,9 +194,11 @@ function parseTemplateId(raw: unknown): string | null {
  * `EditorLayout`'s `renderTheme`), which is the authoritative check.
  */
 async function assertCustomCssAllowedByPlan(theme: MetaUpdate['theme'] | undefined, docId: string): Promise<void> {
-  const css = theme?.customCss?.trim() ?? ''
+  // Only the author's own CSS counts: a built-in preset's unchanged
+  // template CSS (arXiv, IEEE, …) is part of the preset on every plan.
+  const css = ownCustomCss(theme?.customCss)
   if (css === '') return
   const stored = (await getDoc(docId))?.theme as { customCss?: string } | null | undefined
-  if ((stored?.customCss?.trim() ?? '') === css) return
+  if (ownCustomCss(stored?.customCss) === css) return
   assertPlanFeature(await resolveDocPlan(docId), 'customCss', 'Custom CSS is not included in this document\'s plan.')
 }
