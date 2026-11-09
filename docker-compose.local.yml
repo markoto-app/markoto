@@ -58,7 +58,8 @@ services:
       - VERSION=1
       - POST=0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/CONTAINER-ENGINES.md.
+      - ${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro
     read_only: true
     tmpfs:
       - /tmp:size=8m
@@ -67,6 +68,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+      # SELinux hosts (Fedora/RHEL, Docker or Podman): a confined container
+      # may not connect to the engine socket. Only this proxy touches it.
+      - label=disable
     networks:
       - docker-api
 
@@ -91,8 +95,12 @@ services:
       - "127.0.0.1:80:80"
       - "127.0.0.1:443:443"
     volumes:
-      - ./traefik/local:/etc/traefik/dynamic:ro
+      - ./traefik/local:/etc/traefik/dynamic:ro,z
     read_only: true
+    # Docker sets this in every container's network namespace; Podman does
+    # not. Without it Traefik (no capabilities) can't bind :80 / :443.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
     cap_drop:
       - ALL
     security_opt:
@@ -151,7 +159,7 @@ services:
       - "127.0.0.1:8333:8333"
     volumes:
       - seaweed_data:/data
-      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
     # The image's entrypoint chowns /data as root, then drops to `seaweed`.
     cap_drop:
       - ALL

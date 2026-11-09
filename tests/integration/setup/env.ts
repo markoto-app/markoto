@@ -121,8 +121,10 @@ export const TEST_NETWORK_GATEWAY_DEFAULT = '10.213.47.1'
 export function fakeOpenAiBaseUrl(): string {
   const override = process.env.TEST_FAKE_OPENAI_BASE_URL
   if (override) return override
-  const gateway = process.env.TEST_NETWORK_GATEWAY || TEST_NETWORK_GATEWAY_DEFAULT
-  return `http://${gateway}:${TEST_FAKE_OPENAI_PORT}/v1`
+  // TEST_FAKE_OPENAI_HOST: where the stack published it (rootless Podman:
+  // a private host address — the bridge gateway isn't on the host there).
+  const host = process.env.TEST_FAKE_OPENAI_HOST || process.env.TEST_NETWORK_GATEWAY || TEST_NETWORK_GATEWAY_DEFAULT
+  return `http://${host}:${TEST_FAKE_OPENAI_PORT}/v1`
 }
 
 // LiteLLM's own Postgres role in the test stack (litellm-test-db-init in

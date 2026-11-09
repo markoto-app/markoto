@@ -184,6 +184,27 @@ check_prereqs() {
   ok "docker $(docker version --format '{{.Server.Version}}' 2>/dev/null || echo '?'), compose $v"
 }
 
+# Podman's Docker-compatible API names itself as a server component.
+engine_is_podman() {
+  case "$(docker version --format '{{range .Server.Components}}{{.Name}};{{end}}' 2>/dev/null || true)" in
+    *[Pp]odman*) return 0 ;;
+  esac
+  return 1
+}
+
+# The engine API socket Traefik's socket proxy mounts: DOCKER_HOST when it
+# names a unix socket, else rootless Podman's per-user socket, else Docker's.
+engine_socket() {
+  case "${DOCKER_HOST:-}" in
+    unix://*) echo "${DOCKER_HOST#unix://}"; return ;;
+  esac
+  if engine_is_podman && [ -n "${XDG_RUNTIME_DIR:-}" ] && [ -S "$XDG_RUNTIME_DIR/podman/podman.sock" ]; then
+    echo "$XDG_RUNTIME_DIR/podman/podman.sock"
+  else
+    echo "/var/run/docker.sock"
+  fi
+}
+
 compose() {
   # LiteLLM reads its config only at boot: a changed hash changes the
   # litellm container's label, so `up -d` recreates it after an upgrade
@@ -280,6 +301,17 @@ configure() {
     env_set MARKOTO_BUILD "1"
     COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.build.yml"
   fi
+  # Podman: renderer seccomp overlay + the engine socket (docs/CONTAINER-ENGINES.md).
+  if engine_is_podman; then
+    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.podman.yml"
+    local unpriv
+    unpriv="$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null || echo 1024)"
+    if [ "$(id -u)" != 0 ] && [ "$(env_get MARKOTO_HTTP_PORT)" -lt "$unpriv" ]; then
+      warn "Rootless Podman can't publish port $(env_get MARKOTO_HTTP_PORT) (this host allows ports from $unpriv)."
+      warn "Lower net.ipv4.ip_unprivileged_port_start, or choose a port >= $unpriv. See docs/CONTAINER-ENGINES.md."
+    fi
+  fi
+  env_set CONTAINER_SOCKET "$(engine_socket)"
   env_set COMPOSE_FILE "$COMPOSE_FILES"
   env_set COMPOSE_PATH_SEPARATOR ":"
   set_config MARKOTO_INSTANCE "$OPT_INSTANCE" "markoto"

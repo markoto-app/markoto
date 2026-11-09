@@ -89,7 +89,8 @@ services:
       - VERSION=1
       - POST=0
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/CONTAINER-ENGINES.md.
+      - ${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro
     # Runs as root only to open the socket (root:docker 0660); no
     # capabilities, read-only (it renders its haproxy config into /tmp).
     read_only: true
@@ -100,6 +101,9 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+      # SELinux hosts (Fedora/RHEL, Docker or Podman): a confined container
+      # may not connect to the engine socket. Only this proxy touches it.
+      - label=disable
     networks:
       - docker-api
 
@@ -129,6 +133,10 @@ services:
     # net.ipv4.ip_unprivileged_port_start=0 in the container), and the only
     # file it writes is acme.json on its own volume (TLS overlay).
     read_only: true
+    # Docker sets this in every container's network namespace; Podman does
+    # not. Without it Traefik (no capabilities) can't bind :80 / :443.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
     cap_drop:
       - ALL
     security_opt:

@@ -60,7 +60,7 @@ services:
       # used to create the `litellm` DB alongside the app DB. For
       # already-initialised volumes, the litellm-db-init one-shot service
       # below ensures the DB exists.
-      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro,z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -114,7 +114,7 @@ services:
       - LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}
       - LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
     volumes:
-      - ./infra/postgres/db-init.sh:/db-init.sh:ro
+      - ./infra/postgres/db-init.sh:/db-init.sh:ro,z
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
@@ -161,12 +161,12 @@ services:
       # No admin UI (see general_settings in infra/litellm/config.yaml).
       - DISABLE_ADMIN_UI=True
     volumes:
-      - ./infra/litellm/config.yaml:/app/config.yaml:ro
+      - ./infra/litellm/config.yaml:/app/config.yaml:ro,z
       # custom_handlers.py is loaded by litellm_settings.custom_provider_map
       # in config.yaml. Ready for Phase 3 (BFL) + Phase 5 (Voxtral tick) —
       # imported eagerly on every boot so any regression in the file
       # surfaces immediately, not at cutover.
-      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro
+      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
     # LiteLLM reads its config once at boot, and the single-file bind
