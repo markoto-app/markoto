@@ -320,6 +320,14 @@ export function ssoSatisfiedSql(workspaceIdColumn: AnyPgColumn | SQL, userId: nu
   )`
 }
 
+/**
+ * SQL condition: the workspace enforces single sign-on (has an ACTIVE
+ * connection). False for a NULL workspace id (standalone documents).
+ */
+export function ssoEnforcedSql(workspaceIdColumn: AnyPgColumn | SQL): SQL {
+  return sql`exists (select 1 from ${ssoConnections} sc where sc.workspace_id = ${workspaceIdColumn} and sc.status = 'active')`
+}
+
 /** Whether the workspace has an active (enforced) connection. */
 export async function isSsoEnforced(workspaceId: string): Promise<boolean> {
   const row = (await useDatabase().select({ id: ssoConnections.id }).from(ssoConnections)

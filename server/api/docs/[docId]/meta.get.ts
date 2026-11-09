@@ -3,7 +3,7 @@ import { documents } from '../../../db/schema'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 import { renderTemplate } from '../../../utils/templateRenderer'
-import { decideTokenAccess } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
 
 // GET /api/docs/:docId/meta — document metadata.
 //
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const decision = decideTokenAccess(
-    { ownerId: authz.ownerId, workspaceId: authz.workspaceId, accessMode: authz.accessMode },
+    docStateOf(authz),
     { userId: session?.user?.id ?? null, workspaceRole: authz.workspaceRole }
   )
   if (decision.outcome !== 'allow' && !hasValidDocJwt(event, docId)) {
