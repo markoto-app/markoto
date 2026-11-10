@@ -182,7 +182,19 @@ export function makeInvoicePaidEvent(opts: {
         customer: opts.customer,
         subscription: opts.subscription,
         period_start: opts.periodStart ?? DEFAULT_PERIOD_START_S,
-        period_end: opts.periodEnd ?? DEFAULT_PERIOD_END_S
+        period_end: opts.periodEnd ?? DEFAULT_PERIOD_END_S,
+        // The service period paid for is on the line item (the handler
+        // reads it from there; the invoice's own period is when items
+        // could be added).
+        lines: {
+          object: 'list',
+          has_more: false,
+          data: [{
+            id: 'il_' + (opts.invoiceId ?? 'in_test'),
+            object: 'line_item',
+            period: { start: opts.periodStart ?? DEFAULT_PERIOD_START_S, end: opts.periodEnd ?? DEFAULT_PERIOD_END_S }
+          }]
+        }
       } as unknown as Stripe.Invoice
     }
   }

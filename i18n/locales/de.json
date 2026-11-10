@@ -1494,7 +1494,10 @@
       "pricePerSeatYear": "Ein Platz kostet {price} pro Jahr.",
       "errors": {
         "seatsFull": "Alle bezahlten Plätze sind belegt. Fügen Sie einen Platz hinzu, um jemanden einzuladen.",
-        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entfernen Sie jemanden oder behalten Sie mehr Plätze."
+        "seatsBelowMembers": "Im Arbeitsbereich sind mehr Personen als Plätze. Entfernen Sie jemanden oder behalten Sie mehr Plätze.",
+        "cancelFailed": "Das Abonnement des Arbeitsbereichs konnte nicht gekündigt werden, deshalb wurde nichts gelöscht. Bitte versuchen Sie es erneut.",
+        "subscriptionActive": "Dieser Arbeitsbereich hat noch ein laufendes Abonnement. Wenden Sie sich an den Support, um ihn zu löschen.",
+        "seatsBusy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuchen Sie es gleich noch einmal."
       }
     }
   },

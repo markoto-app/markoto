@@ -3,7 +3,8 @@ import { getWorkspaceSubscription } from '../../../../repos/workspaceSubscriptio
 import { appendAuditEvent } from '../../../../repos/audit'
 import { assertBillingEnabled } from '../../../../utils/billingMode'
 import { useStripeClient } from '../../../../utils/stripeClient'
-import { changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
+import type { H3Event } from 'h3'
+import { acquireWorkspaceSeatLock, changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
 import { countSeatsUsed, getPooledWorkspace, parseSeats, requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED } from '../../../../legal/auditActions'
@@ -30,6 +31,17 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<{ seats?: unknown }>(event)
   const seats = parseSeats(body?.seats)
+  // Same lock as invitations: the seats-in-use count and the change can't
+  // interleave with an invite taking a seat.
+  const releaseSeatLock = await acquireWorkspaceSeatLock(wsId)
+  try {
+    return await changeSeats(event, session.user, wsId, seats)
+  } finally {
+    await releaseSeatLock()
+  }
+})
+
+async function changeSeats(event: H3Event, user: { id: number, name: string }, wsId: string, seats: number): Promise<{ seats: number }> {
   const row = await getWorkspaceSubscription(wsId)
   if (!row?.stripeSubscriptionId) {
     throw createError({ statusCode: 409, message: 'This workspace has no subscription to change.', data: { code: 'billing/no-subscription' } })
@@ -59,7 +71,7 @@ export default defineEventHandler(async (event) => {
     })
   }
   await appendAuditEvent({
-    actorUserId: session.user.id,
+    actorUserId: user.id,
     actorIp: getClientIp(event),
     scope: 'billing',
     scopeId: wsId,
@@ -70,8 +82,8 @@ export default defineEventHandler(async (event) => {
   })
   // More seats bought by an admin who isn't the billing admin: tell the
   // one who pays.
-  if (seats > row.seats && row.billingAdminId !== null && row.billingAdminId !== session.user.id) {
-    void notifyWorkspaceAdmins({ workspaceId: wsId, kind: 'seat_added', onlyUserIds: [row.billingAdminId], vars: { seats, actor: session.user.name } })
+  if (seats > row.seats && row.billingAdminId !== null && row.billingAdminId !== user.id) {
+    void notifyWorkspaceAdmins({ workspaceId: wsId, kind: 'seat_added', onlyUserIds: [row.billingAdminId], vars: { seats, actor: user.name } })
   }
   return { seats }
-})
+}

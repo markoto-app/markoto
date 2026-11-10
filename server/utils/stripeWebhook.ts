@@ -1,5 +1,5 @@
 import type Stripe from 'stripe'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, eq, isNull, lt, or } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { users, processedWebhookEvents, pendingStripeEvents, workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from './database'
@@ -79,13 +79,57 @@ async function identifyItem(
   return identifyStripePrice(stripe, item?.price ?? null)
 }
 
-/** Billing period of a subscription item (API 2025-01-27: on the item). */
-function itemPeriod(item: unknown): { start: Date | null, end: Date | null } {
-  const p = item as { current_period_start?: number, current_period_end?: number } | null | undefined
+/**
+ * Unix seconds → Date, for a timestamp field read off a Stripe object
+ * whose presence depends on the API version.
+ */
+function stripeTime(value: unknown): Date | null {
+  return typeof value === 'number' && value > 0 ? new Date(value * 1000) : null
+}
+
+/**
+ * Current billing period of a subscription. API 2025-03-31.basil keeps it
+ * on the item (`items.data[].current_period_*`); the pinned
+ * 2025-01-27.acacia version has it on the subscription itself. Read both,
+ * item first, so the period is never lost to a version difference.
+ */
+function subscriptionPeriod(sub: Stripe.Subscription): { start: Date | null, end: Date | null } {
+  const item = sub.items.data[0]
+  const start = item && 'current_period_start' in item ? stripeTime(item.current_period_start) : null
+  const end = item && 'current_period_end' in item ? stripeTime(item.current_period_end) : null
   return {
-    start: p?.current_period_start ? new Date(p.current_period_start * 1000) : null,
-    end: p?.current_period_end ? new Date(p.current_period_end * 1000) : null
+    start: start ?? ('current_period_start' in sub ? stripeTime(sub.current_period_start) : null),
+    end: end ?? ('current_period_end' in sub ? stripeTime(sub.current_period_end) : null)
   }
+}
+
+/**
+ * The subscription an invoice bills, or null for a one-off invoice.
+ * basil: `parent.subscription_details.subscription`; acacia (pinned):
+ * `invoice.subscription`.
+ */
+function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
+  const parentRef = invoice.parent?.subscription_details?.subscription
+  const ref: unknown = parentRef ?? ('subscription' in invoice ? invoice.subscription : null)
+  if (typeof ref === 'string') return ref
+  if (ref && typeof ref === 'object' && 'id' in ref && typeof ref.id === 'string') return ref.id
+  return null
+}
+
+/**
+ * The service period an invoice pays for: the latest line-item period.
+ * NOT `invoice.period_start/_end` — for a renewal those describe when
+ * items could be added (the period just ended), so writing them would
+ * set `valid_until` to the renewal moment and end the plan.
+ */
+function invoiceServicePeriod(invoice: Stripe.Invoice): { start: Date, end: Date } | null {
+  let best: { start: Date, end: Date } | null = null
+  for (const line of invoice.lines?.data ?? []) {
+    const start = stripeTime(line.period?.start)
+    const end = stripeTime(line.period?.end)
+    if (start && end && (!best || end > best.end)) best = { start, end }
+  }
+  return best
 }
 
 function warnUnknownPrice(where: string, priceId: string | null | undefined, ref: string): void {
@@ -155,7 +199,7 @@ async function upsertWorkspaceSubscriptionFromStripe(
   }
 ): Promise<void> {
   const item = args.sub.items.data[0]
-  const period = itemPeriod(item)
+  const period = subscriptionPeriod(args.sub)
   const values = {
     plan: args.identity.plan,
     seats: Math.max(1, item?.quantity ?? 1),
@@ -183,6 +227,14 @@ async function rowHoldingOtherSubscription(db: DbOrTx, workspaceId: string, subs
   const row = (await db.select().from(workspaceSubscriptions)
     .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0] as WorkspaceSubscriptionRow | undefined
   return row?.stripeSubscriptionId && row.stripeSubscriptionId !== subscriptionId ? row : null
+}
+
+/** True when the workspace's row holds `subscriptionId` and it has ended (`canceled`). */
+async function isEndedSubscription(db: DbOrTx, workspaceId: string, subscriptionId: string): Promise<boolean> {
+  const row = (await db.select({ id: workspaceSubscriptions.stripeSubscriptionId, status: workspaceSubscriptions.status })
+    .from(workspaceSubscriptions)
+    .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0]
+  return row?.id === subscriptionId && row.status === 'canceled'
 }
 
 /**
@@ -412,7 +464,7 @@ export async function handleCheckoutSessionCompleted(
   // reconcile).
   const plan: PersonalPlanName | null = identity?.plan === 'pro' ? 'pro' : null
   if (!plan) warnUnknownPrice('checkout', item?.price?.id, `session=${session.id}`)
-  const period = itemPeriod(item)
+  const period = subscriptionPeriod(sub)
 
   const setFields: UpdateUserArgs['set'] = {
     stripeCustomerId: customerId,
@@ -478,12 +530,19 @@ export async function handleSubscriptionUpdated(
       console.warn(`[stripe/webhook] ignoring ${event.type} of ${sub.id}: workspace ${subject.workspaceId} is on ${holder.stripeSubscriptionId}`)
       return { matched: 0, plan: null }
     }
+    // A cancelled subscription never comes back in Stripe, so an event
+    // that says otherwise is an older one delivered late (a retry after
+    // `customer.subscription.deleted`) and must not re-entitle the workspace.
+    if (await isEndedSubscription(db, subject.workspaceId, sub.id)) {
+      console.warn(`[stripe/webhook] ignoring late ${event.type} of ended subscription ${sub.id} (workspace ${subject.workspaceId})`)
+      return { matched: 0, plan: null }
+    }
     await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId: subject.workspaceId, sub, identity, customerId })
     deferWorkspaceTeamSync(opts.deferAfterCommit, subject.workspaceId)
     // Cancelled to the period end (portal, or no billing admin left):
     // tell the admins once per subscription + period.
     if (sub.cancel_at_period_end) {
-      const end = itemPeriod(item).end
+      const end = subscriptionPeriod(sub).end
       const workspaceId = subject.workspaceId
       opts.deferAfterCommit?.push(async () => {
         await notifyWorkspaceAdmins({ workspaceId, kind: 'ending', date: end, onceKey: `ending:${sub.id}:${end?.getTime() ?? 0}` })
@@ -497,18 +556,25 @@ export async function handleSubscriptionUpdated(
     warnUnknownPrice(`subscription.${event.type.split('.').pop()}`, item?.price?.id, `sub=${sub.id}`)
     return { matched: 0, plan: null }
   }
-  const period = itemPeriod(item)
+  const period = subscriptionPeriod(sub)
   const setFields: UpdateUserArgs['set'] = {
     plan,
-    stripeSubscriptionId: sub.id,
     billingCurrency: identity!.currency
   }
   if (period.start) setFields.stripeCurrentPeriodStart = period.start
   if (period.end) setFields.planValidUntil = period.end
-  const matched = await updateUser({
-    where: { stripeCustomerId: customerId },
-    set: setFields
-  }, db)
+  // Only the user's current subscription (stamped by the checkout) is
+  // applied. `customer.subscription.deleted` clears it, so a late event
+  // of an ended subscription can't bring Pro back; a new subscription's
+  // events that beat its checkout are covered by the checkout, which
+  // reads the live subscription.
+  const matched = (await db.update(users).set(setFields)
+    .where(and(eq(users.stripeCustomerId, customerId), eq(users.stripeSubscriptionId, sub.id)))
+    .returning({ id: users.id })).length
+  if (matched === 0) {
+    console.warn(`[stripe/webhook] ignoring ${event.type} of ${sub.id}: not the customer's current subscription`)
+    return { matched: 0, plan: null }
+  }
 
   // Deferred LiteLLM key budget sync (see handleCheckoutSessionCompleted).
   if (opts.deferAfterCommit) {
@@ -612,14 +678,18 @@ async function getUserIdByCustomer(customerId: string, db?: DbOrTx): Promise<num
 }
 
 /**
- * `invoice.paid` handler. Fires on subscription renewal: advance the
- * period anchors to the new cycle (user or workspace).
+ * `invoice.paid` handler. A subscription invoice was paid (renewal, or
+ * the prorated charge for added seats): advance the period anchors to
+ * the service period it paid for (user or workspace). Only ever moves
+ * them forward — `customer.subscription.updated` carries the same period
+ * and may arrive first, and a late event of an older invoice must not
+ * pull `valid_until` back.
  *
  * No LiteLLM spend reset here: spend resets are driven by the key's
  * `budget_duration` (monthly, on the 1st) so every tier — including free,
  * which has no invoice — resets uniformly.
  *
- * Skip non-subscription invoices (one-off charges etc.).
+ * Skip non-subscription invoices (one-off charges, top-ups).
  */
 export async function handleInvoicePaid(
   event: Stripe.InvoicePaidEvent,
@@ -628,36 +698,35 @@ export async function handleInvoicePaid(
 ): Promise<{ matched: number }> {
   const handle = db ?? useDatabase()
   const invoice = event.data.object
-  // Stripe API 2025+ moved subscription off the invoice root onto
-  // `parent.subscription_details.subscription`.
-  const subscriptionRef = invoice.parent?.subscription_details?.subscription ?? null
-  if (!subscriptionRef) {
-    return { matched: 0 }
-  }
+  const subscriptionId = invoiceSubscriptionId(invoice)
+  if (!subscriptionId) return { matched: 0 }
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
   if (!customerId) return { matched: 0 }
-  const periodStart = new Date(invoice.period_start * 1000)
-  const periodEnd = new Date(invoice.period_end * 1000)
+  const period = invoiceServicePeriod(invoice)
+  if (!period) return { matched: 0 }
 
   const subject = await subjectForCustomer(customerId, handle)
   if (subject?.kind === 'workspace') {
-    const subscriptionId = typeof subscriptionRef === 'string' ? subscriptionRef : subscriptionRef.id
     if (await rowHoldingOtherSubscription(handle, subject.workspaceId, subscriptionId)) return { matched: 0 }
     const result = await handle.update(workspaceSubscriptions)
-      .set({ currentPeriodStart: periodStart, validUntil: periodEnd, updatedAt: new Date() })
-      .where(eq(workspaceSubscriptions.workspaceId, subject.workspaceId))
+      .set({ currentPeriodStart: period.start, validUntil: period.end, updatedAt: new Date() })
+      .where(and(
+        eq(workspaceSubscriptions.workspaceId, subject.workspaceId),
+        or(isNull(workspaceSubscriptions.validUntil), lt(workspaceSubscriptions.validUntil, period.end))
+      ))
       .returning({ workspaceId: workspaceSubscriptions.workspaceId })
     return { matched: result.length }
   }
 
-  const matched = await updateUser({
-    where: { stripeCustomerId: customerId },
-    set: {
-      stripeCurrentPeriodStart: periodStart,
-      planValidUntil: periodEnd
-    }
-  }, handle)
-  return { matched }
+  const result = await handle.update(users)
+    .set({ stripeCurrentPeriodStart: period.start, planValidUntil: period.end })
+    .where(and(
+      eq(users.stripeCustomerId, customerId),
+      eq(users.stripeSubscriptionId, subscriptionId),
+      or(isNull(users.planValidUntil), lt(users.planValidUntil, period.end))
+    ))
+    .returning({ id: users.id })
+  return { matched: result.length }
 }
 
 /**

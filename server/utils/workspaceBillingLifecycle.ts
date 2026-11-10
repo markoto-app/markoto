@@ -2,7 +2,7 @@ import { and, asc, eq, ne } from 'drizzle-orm'
 import { workspaceMembers, workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from './database'
 import { appendAuditEvent } from '../repos/audit'
-import { getWorkspaceSubscription, listSubscriptionsByBillingAdmin } from '../repos/workspaceSubscriptions'
+import { getWorkspaceSubscription, listSubscriptionsByBillingAdmin, type WorkspaceSubscriptionRow } from '../repos/workspaceSubscriptions'
 import { useStripeClient } from './stripeClient'
 import { isBillingEnabled } from './billingMode'
 import { cancelWorkspaceSubscriptionAtPeriodEnd, cancelWorkspaceSubscriptionNow } from './workspaceStripe'
@@ -15,17 +15,26 @@ import { AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED, AUDIT_WORKSPACE_SUBSCRIPTION_CAN
 
 /**
  * The workspace is being deleted: cancel its subscription now (annual:
- * prorated credit) and delete its LiteLLM team. Best-effort, never
- * blocks the deletion. Call BEFORE the workspace row is deleted (the
- * subscription row cascades with it).
+ * prorated credit), then drop its top-up credits and its LiteLLM team.
+ * Call FIRST, before any of the workspace's documents or its row are
+ * deleted: when the subscription can't be cancelled this throws and the
+ * deletion must stop (the subscription row cascades with the workspace,
+ * and a subscription left running would bill a workspace that is gone).
+ * Billing switched off with a subscription still running: refused too
+ * (409 `billing/subscription-active`) — no Stripe calls are made then.
  */
 export async function endWorkspaceBilling(workspaceId: string, actorUserId: number | null): Promise<void> {
-  // Top-up credits belong to the workspace and go with it (WP4).
-  await deleteCreditsForSubject({ type: 'workspace', id: workspaceId })
   const row = await getWorkspaceSubscription(workspaceId)
-  if (!row) return
-  if (row.stripeSubscriptionId && isBillingEnabled()) {
-    await cancelWorkspaceSubscriptionNow(useStripeClient(), row)
+  if (row && hasRunningSubscription(row)) {
+    const stripe = isBillingEnabled() ? useStripeClient() : null
+    if (!stripe) {
+      throw createError({
+        statusCode: 409,
+        message: 'This workspace still has a running subscription that can\'t be cancelled right now. Contact support to delete it.',
+        data: { code: 'billing/subscription-active', messageKey: 'workspace.billing.errors.subscriptionActive' }
+      })
+    }
+    await cancelWorkspaceSubscriptionNow(stripe, row)
     await appendAuditEvent({
       actorUserId,
       actorIp: null,
@@ -37,7 +46,17 @@ export async function endWorkspaceBilling(workspaceId: string, actorUserId: numb
       metadata: { reason: 'workspace_deleted' }
     })
   }
+  // Top-up credits belong to the workspace and go with it (WP4).
+  await deleteCreditsForSubject({ type: 'workspace', id: workspaceId })
   await deleteWorkspaceTeam(workspaceId)
+}
+
+/**
+ * Stripe may still bill this subscription: it has an id and hasn't
+ * ended. `incomplete` counts — its first payment can still go through.
+ */
+export function hasRunningSubscription(row: Pick<WorkspaceSubscriptionRow, 'stripeSubscriptionId' | 'status'>): boolean {
+  return row.stripeSubscriptionId !== null && row.status !== 'canceled' && row.status !== 'incomplete_expired'
 }
 
 /**

@@ -6,6 +6,7 @@ import { useDatabase } from './database'
 import { findLiveSubscription } from './stripePlanChange'
 import { changedSeatBudgetAdjust } from './workspaceBilling'
 import { readWorkspaceTeam } from './litellm/workspaceTeams'
+import { releaseSessionLock, tryAcquireSessionLock } from './rateLimit'
 import type { WorkspaceSubscriptionRow } from '../repos/workspaceSubscriptions'
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
@@ -122,6 +123,27 @@ export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscri
     .where(eq(workspaceSubscriptions.workspaceId, row.workspaceId))
 }
 
+/** How long a seat lock may be held (a Stripe charge plus the invite write). */
+const SEAT_LOCK_TTL_MS = 60_000
+
+/**
+ * Serialise everything that counts a pooled workspace's seats and acts
+ * on the count (invites, seat changes): two admins inviting at once would
+ * otherwise both see the same free seat, or both buy "seat N + 1" and end
+ * one seat over what was paid. Returns the release function; a held lock
+ * (or Valkey unreachable — the lock fails closed) is a 409 to retry.
+ */
+export async function acquireWorkspaceSeatLock(workspaceId: string): Promise<() => Promise<void>> {
+  if (!(await tryAcquireSessionLock('workspace-seats', workspaceId, SEAT_LOCK_TTL_MS))) {
+    throw createError({
+      statusCode: 409,
+      message: 'Another seat change or invitation for this workspace is in progress. Please try again in a moment.',
+      data: { code: 'billing/seats-busy', messageKey: 'workspace.billing.errors.seatsBusy' }
+    })
+  }
+  return () => releaseSessionLock('workspace-seats', workspaceId)
+}
+
 /**
  * The HTTP error for a failed `changeWorkspaceSeats`: our own errors pass
  * through, a declined payment for added seats is a 402 (nothing changed;
@@ -157,17 +179,12 @@ export async function cancelDuplicateWorkspaceSubscription(stripe: Stripe, sub: 
   let refunded = 0
   const invoiceId = typeof sub.latest_invoice === 'string' ? sub.latest_invoice : sub.latest_invoice?.id ?? null
   try {
-    if (invoiceId) {
-      for await (const payment of stripe.invoicePayments.list({ invoice: invoiceId, status: 'paid' })) {
-        const pi = payment.payment.payment_intent
-        const paymentIntent = typeof pi === 'string' ? pi : pi?.id
-        if (!paymentIntent) continue
-        await stripe.refunds.create(
-          { payment_intent: paymentIntent, metadata: { reason: 'duplicate_workspace_subscription', workspace_id: workspaceId, subscription_id: sub.id } },
-          { idempotencyKey: `markoto-duplicate-subscription-refund-${paymentIntent}` }
-        )
-        refunded++
-      }
+    for (const paymentIntent of invoiceId ? await paidInvoicePaymentIntents(stripe, invoiceId) : []) {
+      await stripe.refunds.create(
+        { payment_intent: paymentIntent, metadata: { reason: 'duplicate_workspace_subscription', workspace_id: workspaceId, subscription_id: sub.id } },
+        { idempotencyKey: `markoto-duplicate-subscription-refund-${paymentIntent}` }
+      )
+      refunded++
     }
   } catch (e) {
     console.error(`[workspaceStripe] refund of duplicate subscription ${sub.id} failed — refund it manually:`, e instanceof Error ? e.message : e)
@@ -177,6 +194,27 @@ export async function cancelDuplicateWorkspaceSubscription(stripe: Stripe, sub: 
   console.warn(msg)
   Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'billing', event: 'duplicate_subscription_cancelled', workspaceId } })
   return { refunded }
+}
+
+/**
+ * The payment intents that paid an invoice. The pinned API version
+ * (2025-01-27.acacia) names it on the invoice (`payment_intent`, only set
+ * once paid); newer versions list it under Invoice Payments.
+ */
+async function paidInvoicePaymentIntents(stripe: Stripe, invoiceId: string): Promise<string[]> {
+  const invoice = await stripe.invoices.retrieve(invoiceId)
+  if ('payment_intent' in invoice) {
+    const pi: unknown = invoice.payment_intent
+    const id = typeof pi === 'string' ? pi : pi && typeof pi === 'object' && 'id' in pi && typeof pi.id === 'string' ? pi.id : null
+    return id && invoice.status === 'paid' ? [id] : []
+  }
+  const ids: string[] = []
+  for await (const payment of stripe.invoicePayments.list({ invoice: invoiceId, status: 'paid' })) {
+    const pi = payment.payment.payment_intent
+    const id = typeof pi === 'string' ? pi : pi?.id
+    if (id) ids.push(id)
+  }
+  return ids
 }
 
 /**
@@ -205,16 +243,38 @@ export async function expireOpenWorkspaceCheckouts(stripe: Stripe, customerId: s
  * Cancel a workspace's subscription now (the workspace is being
  * deleted). Annual plans get a prorated credit on the customer
  * (`prorate: true`; refunds to the card stay a manual Stripe action).
- * Best-effort: a Stripe failure is logged, never blocks the deletion.
+ * An already-gone subscription counts as cancelled; any other Stripe
+ * failure throws, so the deletion stops before anything is deleted —
+ * otherwise the subscription would keep billing a workspace that no
+ * longer exists, with no row left to find it by.
  */
-export async function cancelWorkspaceSubscriptionNow(stripe: Stripe | null, row: WorkspaceSubscriptionRow | null): Promise<void> {
-  if (!stripe || !row?.stripeSubscriptionId) return
+export async function cancelWorkspaceSubscriptionNow(stripe: Stripe, row: WorkspaceSubscriptionRow): Promise<void> {
+  if (!row.stripeSubscriptionId) return
   try {
     await stripe.subscriptions.cancel(row.stripeSubscriptionId, { prorate: row.interval === 'year', invoice_now: false })
   } catch (e) {
-    if (isMissing(e)) return
+    if (isMissing(e) || await hasEnded(stripe, row.stripeSubscriptionId)) return
     console.error('[workspaceStripe] cancel on workspace delete failed:', e instanceof Error ? e.message : e)
     Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_cancel_failed', workspaceId: row.workspaceId } })
+    throw createError({
+      statusCode: 502,
+      message: 'The workspace\'s subscription could not be cancelled, so nothing was deleted. Please try again.',
+      data: { code: 'billing/cancel-failed', messageKey: 'workspace.billing.errors.cancelFailed' }
+    })
+  }
+}
+
+/**
+ * The subscription has already ended on Stripe's side (a deletion that is
+ * retried after its cancel went through but a later step failed, before
+ * the `deleted` webhook updated the row). Stripe refuses to cancel twice.
+ */
+async function hasEnded(stripe: Stripe, subscriptionId: string): Promise<boolean> {
+  try {
+    const status = (await stripe.subscriptions.retrieve(subscriptionId)).status
+    return status === 'canceled' || status === 'incomplete_expired'
+  } catch {
+    return false
   }
 }
 

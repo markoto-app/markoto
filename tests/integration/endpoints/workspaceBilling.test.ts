@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
-import { resetDb, testDb } from '../setup/db'
+import { getValkeyKey, resetDb, setValkeyKey, testDb } from '../setup/db'
 import { loggedInClient, anonClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
@@ -181,6 +181,41 @@ describe('invites against the paid seats', () => {
     expect((await readSub(ws.workspaceId))?.seats).toBe(4)
   })
 
+  it('two invites at once can\'t both take the last free seat', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await addMembers(ws.workspaceId, 1)
+    await seedSubscription(ws.workspaceId, { seats: 3, adminId: admin.id })
+    const client = await loggedInClient(admin.id)
+    const results = await Promise.all(['a@example.com', 'b@example.com', 'c@example.com'].map(email =>
+      client.post(`/api/workspaces/${ws.workspaceId}/members`, { email })))
+    // One free seat: exactly one invite gets it; the others are told the
+    // seats are full or that another invite is in progress.
+    expect(results.filter(r => r.status === 202)).toHaveLength(1)
+    for (const r of results.filter(r => r.status !== 202)) {
+      expect(r.status).toBe(409)
+      expect(['billing/seats-full', 'billing/seats-busy']).toContain((await r.json() as { data?: { code?: string } }).data?.code)
+    }
+    expect((await testDb().query('SELECT count(*)::int AS n FROM workspace_invites WHERE workspace_id = $1', [ws.workspaceId])).rows[0].n).toBe(1)
+    expect(await getValkeyKey(`lock:workspace-seats:${ws.workspaceId}`)).toBeNull()
+  })
+
+  it('a seat change in progress makes invites and seat changes wait (409 billing/seats-busy)', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { seats: 3, adminId: admin.id })
+    await setValkeyKey(`lock:workspace-seats:${ws.workspaceId}`, '1')
+    const client = await loggedInClient(admin.id)
+    for (const res of [
+      await client.post(`/api/workspaces/${ws.workspaceId}/members`, { email: 'x@example.com' }),
+      await client.post(`/api/workspaces/${ws.workspaceId}/billing/seats`, { seats: 5 })
+    ]) {
+      expect(res.status).toBe(409)
+      expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('billing/seats-busy')
+    }
+    expect((await readSub(ws.workspaceId))?.seats).toBe(3)
+  })
+
   it('a lapsed subscription doesn\'t limit invites by seats', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
@@ -270,6 +305,27 @@ describe('workspace deletion with a subscription', () => {
     expect(await readSub(ws.workspaceId)).toBeUndefined()
     const audit = (await testDb().query(`SELECT action FROM audit_log WHERE scope = 'billing' AND scope_id = $1`, [ws.workspaceId])).rows
     expect(audit.map(r => r.action)).toContain('workspace.subscription_cancelled')
+  })
+
+  it('billing switched off with a running subscription: refused, nothing deleted', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const doc = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId })
+    await seedSubscription(ws.workspaceId, { seats: 3, adminId: admin.id })
+    const res = await (await loggedInClient(admin.id, undefined, TEST_BILLING_OFF_BASE_URL)).delete(`/api/workspaces/${ws.workspaceId}`)
+    expect(res.status).toBe(409)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('billing/subscription-active')
+    expect(await readSub(ws.workspaceId)).toBeDefined()
+    expect((await testDb().query('SELECT 1 FROM documents WHERE doc_id = $1', [doc.docId])).rowCount).toBe(1)
+  })
+
+  it('an ended subscription doesn\'t hold up the deletion, even with billing off', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    await seedSubscription(ws.workspaceId, { seats: 3, adminId: admin.id, status: 'canceled' })
+    const res = await (await loggedInClient(admin.id, undefined, TEST_BILLING_OFF_BASE_URL)).delete(`/api/workspaces/${ws.workspaceId}`)
+    expect(res.status).toBe(200)
+    expect(await readSub(ws.workspaceId)).toBeUndefined()
   })
 })
 

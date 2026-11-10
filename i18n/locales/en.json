@@ -1494,7 +1494,10 @@
       "pricePerSeatYear": "One seat costs {price} per year.",
       "errors": {
         "seatsFull": "All paid seats are taken. Add a seat to invite someone else.",
-        "seatsBelowMembers": "There are more people in this workspace than seats. Remove someone or keep more seats."
+        "seatsBelowMembers": "There are more people in this workspace than seats. Remove someone or keep more seats.",
+        "cancelFailed": "The workspace's subscription could not be cancelled, so nothing was deleted. Please try again.",
+        "subscriptionActive": "This workspace still has a running subscription. Contact support to delete it.",
+        "seatsBusy": "Another seat change or invitation is in progress. Please try again in a moment."
       }
     }
   },

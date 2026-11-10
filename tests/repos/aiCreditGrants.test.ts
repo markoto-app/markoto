@@ -14,6 +14,7 @@ import {
   sumUsableCredits,
   type CreditSubject
 } from '../../server/repos/aiCreditGrants'
+import { useDatabase } from '../../server/utils/database'
 import { creditBudgetExtraUsd, creditPeriod, previousCreditPeriod } from '../../server/utils/aiCreditBudget'
 
 // AI credit top-ups (WP4): grants, using them up oldest-expiring first,
@@ -96,6 +97,26 @@ describe('AI credit grants', () => {
     await refundCreditGrant(id, 1)
     expect(await sumUsableCredits(alice)).toBe(0)
     expect(await refundCreditGrant('pi_unknown', 1)).toBeNull()
+  })
+
+  it('a settlement waits for a refund in flight instead of overwriting it', async () => {
+    const id = await grant(alice, 20)
+    let settled: Promise<number> | null = null
+    let settledEarly = false
+    await useDatabase().transaction(async (tx) => {
+      // The webhook's transaction refunds half and is still open…
+      await refundCreditGrant(id, 0.5, tx)
+      // …while the hourly settlement takes 5 from the same grant.
+      settled = consumeCredits(alice, creditPeriod(), 5)
+      void settled.then(() => {
+        settledEarly = true
+      })
+      await new Promise(resolve => setTimeout(resolve, 300))
+      expect(settledEarly).toBe(false)
+    })
+    expect(await settled).toBe(5)
+    // 20 − 10 refunded − 5 used; neither write was lost.
+    expect(await sumUsableCredits(alice)).toBe(5)
   })
 
   it('expired grants drop out and report their subject once', async () => {

@@ -129,7 +129,7 @@ describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
   it('sets plan + period anchors on a Pro subscription', async () => {
     const u = await createUser()
     // Pre-stamp customer id so the handler can find the user.
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
 
     const event = loadStripeFixture('customer.subscription.updated-pro')
     const res = await postWebhook(event)
@@ -148,8 +148,8 @@ describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
   it('scheduled downgrade (cancel_at_period_end=true): plan stays on Pro', async () => {
     const u = await createUser()
     await testDb().query(
-      `UPDATE users SET stripe_customer_id = $1, plan = 'pro' WHERE id = $2`,
-      ['cus_test_alice', u.id]
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro' WHERE id = $3`,
+      ['cus_test_alice', 'sub_test_alice_max', u.id]
     )
     const event = loadStripeFixture('customer.subscription.updated-pro-scheduled-downgrade')
     await postWebhook(event)
@@ -163,7 +163,7 @@ describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
 
   it('ignores event with an unknown price id (logs + 200)', async () => {
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
     const event = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
     // Override the price id to something we don't recognise.
     const inner = (event.data as { object: { items: { data: Array<{ price: { id: string } }> } } }).object
@@ -202,6 +202,22 @@ describe('POST /api/webhooks/stripe — customer.subscription.deleted', () => {
     // Customer id RETAINED — user may resubscribe later, we can re-use it.
     expect(row.stripe_customer_id).toBe('cus_test_alice')
   })
+
+  it('a late subscription.updated after the deletion does not bring Pro back', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro' WHERE id = $3`,
+      ['cus_test_alice', 'sub_test_alice_pro', u.id]
+    )
+    await postWebhook(loadStripeFixture('customer.subscription.deleted'))
+    // Stripe retries an older `updated` (status active) of the same subscription.
+    const late = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
+    late.id = 'evt_test_late_update'
+    expect((await postWebhook(late)).status).toBe(200)
+    const row = await readUser(u.id)
+    expect(row.plan).toBe('free')
+    expect(row.stripe_subscription_id).toBeNull()
+  })
 })
 
 describe('POST /api/webhooks/stripe — invoice.paid', () => {
@@ -215,24 +231,59 @@ describe('POST /api/webhooks/stripe — invoice.paid', () => {
     const oldStart = new Date('2026-04-15T00:00:00Z')
     const oldEnd = new Date('2026-05-15T00:00:00Z')
     await testDb().query(
-      `UPDATE users SET stripe_customer_id = $1, plan = 'pro',
-                        stripe_current_period_start = $2, plan_valid_until = $3
-       WHERE id = $4`,
-      ['cus_test_alice', oldStart, oldEnd, u.id]
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro',
+                        stripe_current_period_start = $3, plan_valid_until = $4
+       WHERE id = $5`,
+      ['cus_test_alice', 'sub_test_alice_pro', oldStart, oldEnd, u.id]
     )
 
-    // invoice.paid carries the NEW cycle's period_start/end.
+    // The fixture has the pinned API version's shape (2025-01-27.acacia:
+    // `invoice.subscription` on the root). The NEW cycle is the line
+    // item's period; the invoice's own period_start/_end is the cycle
+    // that just ended and must not be used.
     const event = loadStripeFixture('invoice.paid')
     await postWebhook(event)
 
     const row = await readUser(u.id)
-    // Fixture: period_start = 1778678400 → 2026-05-13 16:00 UTC (the
-    // exact timestamp Stripe would report; doesn't matter for the test,
-    // only that it landed on the row).
     expect(row.stripe_current_period_start!.getTime()).toBe(1778678400 * 1000)
     expect(row.plan_valid_until!.getTime()).toBe(1781356800 * 1000)
     // Plan stays — invoice.paid doesn't change plan.
     expect(row.plan).toBe('pro')
+  })
+
+  it('reads the subscription from `parent` too (newer API versions)', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro' WHERE id = $3`,
+      ['cus_test_alice', 'sub_test_alice_pro', u.id]
+    )
+    const event = loadStripeFixture('invoice.paid') as Record<string, unknown>
+    const obj = (event.data as { object: Record<string, unknown> }).object
+    delete obj.subscription
+    obj.parent = { type: 'subscription_details', subscription_details: { subscription: 'sub_test_alice_pro' } }
+    await postWebhook(event)
+    expect((await readUser(u.id)).plan_valid_until!.getTime()).toBe(1781356800 * 1000)
+  })
+
+  it('never moves the period back (a late invoice of an older cycle)', async () => {
+    const u = await createUser()
+    const later = new Date('2026-07-13T00:00:00Z')
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = 'pro', plan_valid_until = $3 WHERE id = $4`,
+      ['cus_test_alice', 'sub_test_alice_pro', later, u.id]
+    )
+    await postWebhook(loadStripeFixture('invoice.paid'))
+    expect((await readUser(u.id)).plan_valid_until!.getTime()).toBe(later.getTime())
+  })
+
+  it('ignores an invoice of a subscription the user no longer has', async () => {
+    const u = await createUser()
+    await testDb().query(
+      `UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = NULL, plan = 'free' WHERE id = $2`,
+      ['cus_test_alice', u.id]
+    )
+    await postWebhook(loadStripeFixture('invoice.paid'))
+    expect((await readUser(u.id)).plan_valid_until).toBeNull()
   })
 
   it('ignores non-subscription invoices', async () => {
@@ -293,7 +344,7 @@ describe('POST /api/webhooks/stripe — idempotency', () => {
     // Stripe retries webhooks on 5xx. Our handlers must be idempotent:
     // applying the same event twice produces the same final state.
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
     const event = loadStripeFixture('customer.subscription.updated-pro')
 
     await postWebhook(event)
@@ -358,7 +409,7 @@ describe('POST /api/webhooks/stripe — replay protection', () => {
     // must not reject otherwise-valid signatures. Uses the same
     // tolerance window in the other direction.
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
     const event = loadStripeFixture('customer.subscription.updated-pro')
     const res = await postWebhook(event, { skew: 10 })
     expect(res.status).toBe(200)
@@ -379,7 +430,7 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
     // test fires both requests in parallel and asserts the final
     // row matches ONE of the events (not a corrupted blend).
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
 
     // Event A: Pro subscription, period Apr → May.
     const eventA = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
@@ -425,7 +476,7 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
     // extreme case: fire the SAME event 5x concurrently. All
     // should 200; the row should read as if the event applied once.
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
     const event = loadStripeFixture('customer.subscription.updated-pro')
     const results = await Promise.all(
       Array.from({ length: 5 }, () => postWebhook(event))
@@ -480,7 +531,7 @@ describe('POST /api/webhooks/stripe — event.id replay protection', () => {
     // sees the conflict, short-circuits — the manual correction
     // (plan='free') is preserved.
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
     const event = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
     // Pin a stable event.id so the dedup test is deterministic.
     event.id = 'evt_replay_test_001'
@@ -522,7 +573,7 @@ describe('POST /api/webhooks/stripe — event.id replay protection', () => {
     // This is the "good" case the current handler IS robust to —
     // exactly what Stripe-retry-on-5xx normally looks like.
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
     const event = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
     event.id = 'evt_replay_sanity_001'
 
@@ -741,7 +792,7 @@ describe('POST /api/webhooks/stripe — body tampering', () => {
     // call, so a tampered body NEVER touches the user row even if
     // the contents would otherwise be applied.
     const u = await createUser()
-    await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_test_alice', u.id])
+    await testDb().query('UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2 WHERE id = $3', ['cus_test_alice', 'sub_test_alice_pro', u.id])
 
     const original = JSON.stringify(loadStripeFixture('customer.subscription.updated-pro'))
     const sig = computeStripeSig(original, TEST_WEBHOOK_SECRET)
@@ -911,6 +962,35 @@ describe('POST /api/webhooks/stripe — workspace subscriptions (Team / Business
     }))
     expect(res.status).toBe(200)
     expect((await readSub(workspaceId))?.status).toBe('canceled')
+  })
+
+  it('a late subscription.updated after the deletion does not bring the subscription back', async () => {
+    const { workspaceId } = await seedWorkspaceCustomer()
+    const older = subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team')
+    await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team'))
+    await postWebhook(makeStripeEvent('customer.subscription.deleted', {
+      id: 'sub_ws_team', object: 'subscription', customer: 'cus_ws_team', status: 'canceled'
+    }))
+    // Stripe retries an older `updated` (status active) after the deletion.
+    expect((await postWebhook(older)).status).toBe(200)
+    expect((await readSub(workspaceId))?.status).toBe('canceled')
+  })
+
+  it('invoice.paid moves the workspace period to the paid line\'s period', async () => {
+    const { workspaceId } = await seedWorkspaceCustomer()
+    await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team'))
+    const res = await postWebhook(makeStripeEvent('invoice.paid', {
+      id: 'in_ws_renewal',
+      object: 'invoice',
+      customer: 'cus_ws_team',
+      subscription: 'sub_ws_team',
+      status: 'paid',
+      period_start: 1800000000,
+      period_end: 1802678400,
+      lines: { object: 'list', has_more: false, data: [{ id: 'il_ws', object: 'line_item', period: { start: 1802678400, end: 1805356800 } }] }
+    }))
+    expect(res.status).toBe(200)
+    expect(((await readSub(workspaceId))?.valid_until as Date).getTime()).toBe(1805356800 * 1000)
   })
 
   it('events of another subscription never overwrite the live one (duplicate checkout, late events)', async () => {
