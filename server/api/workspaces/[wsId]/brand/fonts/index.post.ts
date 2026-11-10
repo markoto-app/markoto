@@ -2,7 +2,7 @@ import { inspectFont } from '../../../../../utils/brandKit/fontInspect'
 import { requireBrandKitAdmin } from '../../../../../utils/brandKit/access'
 import { newBrandAssetId, readBrandUpload } from '../../../../../utils/brandKit/upload'
 import { brandAssetKey, deleteBrandObjects, putBrandObject } from '../../../../../utils/brandKit/storage'
-import { countBrandAssets, deleteBrandAsset, insertBrandAsset } from '../../../../../repos/brandAssets'
+import { countBrandAssets, insertBrandAsset } from '../../../../../repos/brandAssets'
 import { appendAuditEvent } from '../../../../../repos/audit'
 import { DuplicateError } from '../../../../../repos/errors'
 import { AUDIT_WORKSPACE_BRAND_ASSET_ADDED } from '../../../../../legal/auditActions'
@@ -52,28 +52,27 @@ export default defineEventHandler(async (event) => {
   const rawStyle = form.get('style')
   const style = rawStyle === 'italic' || rawStyle === 'normal' ? rawStyle : (inspected.italic ? 'italic' : 'normal')
 
-  if (await countBrandAssets(wsId, 'font') >= BRAND_FONTS_PER_WORKSPACE) {
-    throw createError({ statusCode: 409, message: `A workspace can have up to ${BRAND_FONTS_PER_WORKSPACE} font files.`, data: { code: 'brand/too-many-fonts', limit: BRAND_FONTS_PER_WORKSPACE } })
-  }
+  if (await countBrandAssets(wsId, 'font') >= BRAND_FONTS_PER_WORKSPACE) throw tooManyFonts()
 
   const id = newBrandAssetId()
   const key = brandAssetKey(wsId, id, inspected.format)
-  // Row first (the unique face index refuses a duplicate before anything
-  // is stored), then the object; a failed upload takes the row back.
+  // Object first, then the row: a render that sees the row (and so the
+  // new brand fingerprint) can always load the file. The insert enforces
+  // the cap and refuses a duplicate face; either way the object goes.
+  await putBrandObject(key, bytes, inspected.format)
+  let inserted: 'inserted' | 'limit'
   try {
-    await insertBrandAsset({ id, workspaceId: wsId, kind: 'font', format: inspected.format, name: family, weight, style, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: userId, licenceConfirmedAt: new Date() })
+    inserted = await insertBrandAsset({ id, workspaceId: wsId, kind: 'font', format: inspected.format, name: family, weight, style, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: userId, licenceConfirmedAt: new Date() }, BRAND_FONTS_PER_WORKSPACE)
   } catch (e) {
+    await deleteBrandObjects([key])
     if (e instanceof DuplicateError) {
       throw createError({ statusCode: 409, message: `The workspace already has ${family} ${weight}${style === 'italic' ? ' italic' : ''}. Delete it first to replace it.`, data: { code: 'brand/font-exists' } })
     }
     throw e
   }
-  try {
-    await putBrandObject(key, bytes, inspected.format)
-  } catch (e) {
-    await deleteBrandAsset(wsId, id)
+  if (inserted === 'limit') {
     await deleteBrandObjects([key])
-    throw e
+    throw tooManyFonts()
   }
   await appendAuditEvent({
     actorUserId: userId,
@@ -87,3 +86,7 @@ export default defineEventHandler(async (event) => {
   setResponseStatus(event, 201)
   return { id, file: `${id}.${inspected.format}`, kind: 'font', family, weight, style, format: inspected.format, sizeBytes: bytes.byteLength }
 })
+
+function tooManyFonts() {
+  return createError({ statusCode: 409, message: `A workspace can have up to ${BRAND_FONTS_PER_WORKSPACE} font files.`, data: { code: 'brand/too-many-fonts', limit: BRAND_FONTS_PER_WORKSPACE } })
+}

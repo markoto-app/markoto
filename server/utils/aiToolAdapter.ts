@@ -1645,9 +1645,11 @@ export async function handleViewPages(
   const captions: string[] = []
 
   for (const n of requestedPages) {
-    // Manifest's pageKeys is 1-indexed by `page-${n}.png` — derive the key
-    // from the convention rather than trusting array order.
-    const key = `renders/${session.docId}/${manifest.snapshotId}/page-${n}.png`
+    // The render folder is the snapshot id plus, for documents with brand
+    // inputs, the brand fingerprint — take the key the renderer reported
+    // (matched by file name rather than trusting array order).
+    const key = manifest.pageKeys.find(k => k.endsWith(`/page-${n}.png`))
+    if (!key) return err(`Error: failed to fetch page ${n}: not in the render`)
     try {
       const got = await s3.send(new GetObjectCommand({
         Bucket: config.s3.bucket,
