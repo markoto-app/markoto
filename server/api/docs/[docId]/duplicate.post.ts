@@ -1,3 +1,4 @@
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../../utils/shareSettings'
 import { nanoid } from 'nanoid'
 import { getDoc } from '../../../repos/documents'
 import { getMembershipRole } from '../../../repos/workspaceMembers'
@@ -92,6 +93,10 @@ async function assertCanDuplicate(userId: number, sourceDocId: string): Promise<
   }
   if (!authz.canEdit) {
     throw createError({ statusCode: 403, message: 'Not authorized to duplicate this document' })
+  }
+  // View only (WP9): a copy is a download — a guest can't take one.
+  if (!(await userMayDownload(sourceDocId, userId))) {
+    throw createError({ statusCode: 403, message: DOWNLOAD_DISABLED_MESSAGE, data: { code: 'share/download-disabled' } })
   }
 }
 

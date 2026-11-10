@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/shareSettings'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -66,6 +67,11 @@ export default defineMcpTool({
         message: 'export_document_as_pdf: document not found',
         data: { code: 'mcp/doc-not-found' }
       })
+    }
+
+    // View only (WP9): a visitor (e.g. a guest) gets no PDF, as on GET /pdf.
+    if (!(await userMayDownload(docId, auth.userId))) {
+      return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
     }
 
     let result

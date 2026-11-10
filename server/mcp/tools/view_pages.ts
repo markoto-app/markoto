@@ -12,6 +12,8 @@ export default buildDocBoundTool({
   access: 'view',
   // Server render on a cache miss — shares the REST PDF route's allowance.
   limit: 'render',
+  // Page images carry the document out — refused on a view-only doc for visitors.
+  download: true,
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   inputSchema: {
     doc_id: z.string().min(1).describe('The doc id whose rendered pages to fetch.'),

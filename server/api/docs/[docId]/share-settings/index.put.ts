@@ -2,6 +2,10 @@ import { requireShareManager, SHARE_EXPIRY_MAX_DAYS } from '../../../../utils/sh
 import { getDocWithActorRole, setShareSettings } from '../../../../repos/documents'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { assertPlanFeature, resolveDocPlanFor } from '../../../../utils/entitlements'
+import { AUDIT_DOC_SHARE_SETTINGS_CHANGED } from '../../../../legal/auditActions'
+
+// An ISO 8601 date-time with a zone (what the client sends: toISOString()).
+const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/
 
 // PUT /api/docs/:docId/share-settings — {expiresAt: ISO | null, noDownload:
 // boolean} (WP9). Owner and workspace admins. Setting an expiry or
@@ -17,7 +21,7 @@ export default defineEventHandler(async (event) => {
   if (body?.expiresAt !== undefined) {
     if (body.expiresAt === null) {
       expiresAt = null
-    } else if (typeof body.expiresAt === 'string' && Number.isFinite(Date.parse(body.expiresAt))) {
+    } else if (typeof body.expiresAt === 'string' && ISO_DATE_TIME.test(body.expiresAt) && Number.isFinite(Date.parse(body.expiresAt))) {
       expiresAt = new Date(body.expiresAt)
       if (expiresAt.getTime() <= Date.now()) {
         throw createError({ statusCode: 400, message: 'The expiry must be in the future.', data: { code: 'share/invalid', field: 'expiresAt' } })
@@ -47,7 +51,7 @@ export default defineEventHandler(async (event) => {
       scope: 'doc',
       scopeId: docId,
       workspaceId: doc.workspaceId,
-      action: 'doc.share_settings_changed',
+      action: AUDIT_DOC_SHARE_SETTINGS_CHANGED,
       before: { expiresAt: before.shareExpiresAt?.toISOString() ?? null, noDownload: before.shareNoDownload },
       after: { expiresAt: expiresAt?.toISOString() ?? null, noDownload }
     })

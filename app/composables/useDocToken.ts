@@ -234,8 +234,9 @@ export function useDocToken(docId: string) {
    */
   async function refetchTokenOnly(): Promise<string | null> {
     try {
+      // `refresh`: not a new open of the doc (WP9 view counts skip it).
       const data = await $fetch<{ token: string | null, readOnly: boolean }>(
-        `/api/docs/${docId}/token`
+        `/api/docs/${docId}/token`, { query: { refresh: '1' } }
       )
       if (!data.token) return null
       tokenData.value = { token: data.token, readOnly: data.readOnly }

@@ -34,8 +34,10 @@ export default defineEventHandler(async (event) => {
   if (decision.outcome !== 'allow' && (state.shareExpired || !hasValidDocJwt(event, docId))) {
     return {
       docId,
-      accessMode: authz.accessMode,
-      hasPassword: authz.accessMode === 'password-protected',
+      // The effective mode: once a link has expired it reads `private`,
+      // never what it was before.
+      accessMode: state.accessMode,
+      hasPassword: state.accessMode === 'password-protected',
       requiresPassword: decision.outcome === 'password-required',
       forbidden: decision.outcome === 'forbidden'
     }

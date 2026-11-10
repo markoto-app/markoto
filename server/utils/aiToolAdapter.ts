@@ -63,7 +63,8 @@ import {
 import { resolveDocBrand } from './brandKit/docBrand'
 import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/brandLock'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
-import { canDownload, docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from './shareSettings'
 import { openTrustedCommentClient } from './commentsServerClient'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../repos/uploads'
 import { imageQuotaMessage, resolveImageQuota } from './imageQuota'
@@ -865,6 +866,10 @@ export async function handleDuplicateDocument(
   if (!(await canEditDoc(session.initiatorUserId, input.source_doc_id))) {
     return err(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
   }
+  // View only (WP9): a copy is a download.
+  if (!(await userMayDownload(input.source_doc_id, session.initiatorUserId))) {
+    return err(`Error: ${DOWNLOAD_DISABLED_MESSAGE} Tell the user.`)
+  }
 
   // Resolve target workspace. `''` from the schema means "park as
   // personal" (null); `undefined` means "inherit source"; a non-empty
@@ -921,9 +926,8 @@ export async function handleExportDocumentAsMarkdown(
   const doc = await getDoc(session.docId)
   if (!doc) return err('Error: document not found.')
   // Share-link controls (WP9): a visitor may not download a view-only doc.
-  const ctx = await getDocWithActorRole(session.docId, session.initiatorUserId)
-  if (ctx && !canDownload(docStateOf(ctx), { userId: session.initiatorUserId, workspaceRole: ctx.workspaceRole, isGuest: ctx.isGuest }, ctx.shareNoDownload)) {
-    return err('Error: the owner turned off downloading this document — it can be read but not exported. Tell the user.')
+  if (!(await userMayDownload(session.docId, session.initiatorUserId))) {
+    return err(`Error: ${DOWNLOAD_DISABLED_MESSAGE} Tell the user.`)
   }
   // Same file the editor's "Download Markdown" writes: markoto YAML
   // frontmatter (theme + properties, live ymeta first, row as fallback)

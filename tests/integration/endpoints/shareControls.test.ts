@@ -109,4 +109,68 @@ describe('share-link controls', () => {
     expect((await (await anonClient(TEST_BILLING_OFF_BASE_URL).get(`/api/docs/${doc.docId}/token`)).json() as { noDownload: boolean }).noDownload).toBe(true)
     expect((await hosted.put(`/api/docs/${doc.docId}/share-settings`, { noDownload: false })).status).toBe(200)
   })
+
+  it('an expired password link: the password no longer unlocks it, and an earlier unlock stops opening files', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
+    const ownerClient = await loggedInClient(owner.id)
+    expect((await ownerClient.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: 'correct horse' })).status).toBe(200)
+    const expiresAt = new Date(Date.now() + 30 * 60_000)
+    expect((await ownerClient.put(`/api/docs/${doc.docId}/share-settings`, { expiresAt: expiresAt.toISOString() })).status).toBe(200)
+
+    const unlocked = await anonClient().post(`/api/docs/${doc.docId}/password`, { action: 'verify', password: 'correct horse' })
+    expect(unlocked.status).toBe(200)
+    const { token } = await unlocked.json() as { token: string }
+    // The token never outlives the link (30 min here, not 2 h).
+    const exp = (JSON.parse(Buffer.from(token.split('.')[1]!, 'base64url').toString()) as { exp: number }).exp
+    expect(exp).toBeLessThanOrEqual(Math.ceil(expiresAt.getTime() / 1000))
+    const bearer = { headers: { authorization: `Bearer ${token}` } }
+    expect((await anonClient().get(`/api/docs/${doc.docId}/activity`, bearer)).status).toBe(200)
+
+    await expire(doc.docId)
+    const again = await anonClient().post(`/api/docs/${doc.docId}/password`, { action: 'verify', password: 'correct horse' })
+    expect(again.status).toBe(403)
+    expect((await again.json() as { data: { code: string } }).data.code).toBe('share/expired')
+    // The token from before the expiry no longer opens anything.
+    expect((await anonClient().get(`/api/docs/${doc.docId}/activity`, bearer)).status).toBe(403)
+    const meta = await (await anonClient().get(`/api/docs/${doc.docId}/meta`, bearer)).json() as Record<string, unknown>
+    expect(meta).toMatchObject({ forbidden: true, accessMode: 'private', hasPassword: false })
+  })
+
+  it('view-only: a guest can\'t take a copy (REST duplicate or the AI tool)', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const guest = await createUser()
+    await setMemberRole(ws.workspaceId, guest.id, 'guest')
+    const doc = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId, accessMode: 'private' })
+    const adminClient = await loggedInClient(admin.id)
+    expect((await adminClient.put(`/api/docs/${doc.docId}/shares`, { userId: guest.id, access: 'edit' })).status).toBe(200)
+    expect((await adminClient.put(`/api/docs/${doc.docId}/share-settings`, { noDownload: true })).status).toBe(200)
+
+    const guestClient = await loggedInClient(guest.id)
+    const dup = await guestClient.post(`/api/docs/${doc.docId}/duplicate`, { workspaceId: null })
+    expect(dup.status).toBe(403)
+    expect((await dup.json() as { data: { code: string } }).data.code).toBe('share/download-disabled')
+    const tool = await guestClient.post('/api/_test/exec-ai-tool', { docId: doc.docId, name: 'duplicate_document', args: { source_doc_id: doc.docId, workspace_id: '' } })
+    const toolBody = await tool.json() as { isError: boolean, content: string }
+    expect(toolBody.isError).toBe(true)
+    expect(toolBody.content).toMatch(/turned off downloading/)
+    const md = await guestClient.post('/api/_test/exec-ai-tool', { docId: doc.docId, name: 'export_document_as_markdown', args: {} })
+    expect((await md.json() as { isError: boolean }).isError).toBe(true)
+    // The workspace admin still can.
+    expect((await adminClient.post(`/api/docs/${doc.docId}/duplicate`, {})).status).toBeLessThan(300)
+  })
+
+  it('a token refresh is not counted as another open', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view' })
+    await anonClient().get(`/api/docs/${doc.docId}/token`)
+    await anonClient().get(`/api/docs/${doc.docId}/token?refresh=1`)
+    await anonClient().get(`/api/docs/${doc.docId}/token?refresh=1`)
+    const ownerClient = await loggedInClient(owner.id)
+    await expect.poll(async () => (await (await ownerClient.get(`/api/docs/${doc.docId}/share-settings`)).json() as { views: { total: number } }).views.total, { timeout: 5000 }).toBe(1)
+    // Give a late (wrongly counted) refresh time to land, then re-check.
+    await new Promise(r => setTimeout(r, 500))
+    expect((await (await ownerClient.get(`/api/docs/${doc.docId}/share-settings`)).json() as { views: { total: number } }).views.total).toBe(1)
+  })
 })

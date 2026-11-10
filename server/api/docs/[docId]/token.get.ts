@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { ssoLoginUrlForMember } from '../../../utils/sso/required'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { canDownload, docStateOf, decideDocDelete, decideTokenAccess, isVisitor, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
 import { recordDocumentOpen } from '../../../repos/documentViews'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
@@ -145,12 +146,14 @@ export default defineEventHandler(async (event) => {
     userName: session?.user?.name ?? null,
     readOnly: decision.readOnly
   } satisfies SessionJwtPayload
-  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '2h' })
+  // ≤ 2 h, and never past the share link's expiry (WP9).
+  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: docJwtLifetimeSeconds(row.shareExpiresAt) })
 
   // View counts (WP9): an open by someone other than the owner and the
   // workspace members, on a plan with share controls. Aggregate per day,
-  // best-effort — never fails the open.
-  if (isVisitor(doc, actor) && planHasFeature(docPlan, 'shareControls')) {
+  // best-effort — never fails the open. A token refresh (`?refresh=1`, the
+  // editor's reconnect path) is not a new open.
+  if (getQuery(event).refresh !== '1' && isVisitor(doc, actor) && planHasFeature(docPlan, 'shareControls')) {
     void recordDocumentOpen(docId).catch(() => {})
   }
 

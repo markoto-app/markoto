@@ -250,7 +250,9 @@ export function decideFileAccess(doc: DocState, actor: ActorState): ViewDecision
   // private or password-protected
   if (isDocOwner(doc, actor)) return { outcome: 'allow' }
   if (actor.workspaceRole !== null) return { outcome: 'allow' }
-  if (actor.hasValidDocJwt) return { outcome: 'allow' }
+  // A doc JWT from before the share link expired (WP9) no longer counts:
+  // after the expiry only the owner and workspace members get in.
+  if (actor.hasValidDocJwt && !doc.shareExpired) return { outcome: 'allow' }
   return { outcome: 'deny' }
 }
 
