@@ -1,8 +1,8 @@
 ---
 slug: privacy
 locale: en
-version: 12
-effectiveDate: 2026-11-09
+version: 13
+effectiveDate: 2026-11-10
 translationStatus: authoritative
 ---
 
@@ -36,6 +36,7 @@ In brief, we process:
 - **Technical data:** IP addresses (used in short-lived form for rate limiting and stored only shortened in logs), browser type, error reports.
 - **Single sign-on through your organisation, if your workspace uses it:** when a Team or Business workspace connects its own identity provider, we receive from it the identifier it uses for you, your name and email address, and — if the workspace uses automatic provisioning (SCIM) — whether your access is active. We keep the link to your account and the time of your last sign-in until the workspace removes you or its sign-in setup, or you delete your account. Your organisation decides who gets access; we act for it as described in our Data Processing Addendum.
 - **Guests of a workspace:** if a workspace invites you as a guest, its admins and editors see your name and email address among its guests, and we record which of its documents were shared with you, with view or edit access, and by whom, until the share ends, you leave the workspace or you delete your account. Workspace admins also see, per person, how many documents, knowledge files and images each member and guest keeps in the workspace (not their content, and not when anyone works).
+- **Published pages and custom domains:** when you publish a document as a web page, we store a copy of it as it was at that moment (text, design, images and fonts), its address and who published it, and anyone with the address can read it. It isn't listed in search engines unless you allow that. If you show a page on your own domain, we store the domain name, a verification code and when we last checked your domain's DNS records. To serve the domain over HTTPS we request a certificate for it from Let's Encrypt (Internet Security Research Group, United States); like every publicly trusted certificate, it is entered in public Certificate Transparency logs, so the domain name becomes publicly visible. A document's content never reaches Let's Encrypt.
 - **Billing data, only once paid plans are offered:** your plan, its period and currency, the Stripe customer and subscription identifiers, invoices, AI credit purchases and their use, and your acceptance of the Paid Plans Terms ([/legal/paid-terms](/legal/paid-terms)). For a Team or Business workspace we also keep the seat count and who the billing admin is. The workspace's admins see each member's AI spend in that workspace for the current month and can set a limit per member; they don't see prompts or AI results. Card details go to Stripe only; we never receive them.
 
 ## 2b. Anonymous documents, the bot check and abuse reports
@@ -99,6 +100,7 @@ Retention follows the register in §13. In general:
 - **Billing records** do not exist while the service is free. Once paid plans are offered, they will be kept for the period required by tax law (in Switzerland 10 years).
 - **Transactional email.** Resend keeps delivery records (recipient, time, status) for 30 days. We do not keep copies of the emails we send.
 - **Paid-plans waitlist.** If you join the waitlist on the pricing page, we store your email address, the language you signed up in, which version of the consent text you agreed to, when you signed up and confirmed, and, if you were signed in, a link to your account. We do not store your IP address. We use this only to tell you when paid plans launch. Your entry counts only after you click the confirmation link we email you (double opt-in); unconfirmed entries are deleted after 7 days. Every email contains an unsubscribe link that deletes your entry immediately; otherwise we delete the list at the latest 3 months after sending the launch announcement. Deleting your account also deletes a linked entry, and your data export includes it.
+- **Published pages** are kept until you unpublish them or delete the document; their copied images and fonts are deleted with them, at the latest an hour later. **Custom domains** are kept until you remove them or delete your account.
 - **Workspace invitations.** When a workspace admin invites someone by email, we keep the address they typed, the offered role and who invited on a pending invitation. Nobody becomes a member without accepting it. The invitation is deleted when it is accepted, declined or revoked, and at the latest after 14 days. If email is set up, one invitation email with a single-use link is sent via Resend. Deleting your account deletes invitations addressed to you, and your data export lists the open invitations you received and sent.
 
 ## 5b. What happens when you delete your account
@@ -249,6 +251,7 @@ This is **version {{currentVersion}}**, effective **{{effectiveDate}}**. Materia
 
 ### Change log
 
+- **v13 (2026-11-10).** Described publishing a document as a web page and showing it on your own domain (§2, §5): the published copy and its address, the domain name, its verification and DNS checks, and the HTTPS certificate requested from Let's Encrypt, which makes the domain name public in Certificate Transparency logs. Added to your data export (`published_pages.json`, `custom_domains.json`).
 - **v12 (2026-11-09).** Described workspace guests (§2): who sees a guest's name and email address, the record of which documents were shared with them, and the per-person usage view for workspace admins. Added to your data export (`document_shares.json`).
 - **v11 (2026-11-09).** Workspace admins of a plan with the audit log can see and download that workspace's audit entries, including the name and shortened IP address of the person who acted (§5).
 - **v10 (2026-11-09).** Described single sign-on through a workspace's own identity provider (OpenID Connect or SAML) and automatic provisioning (SCIM) (§2): the identifier, name and email address the provider sends, the link to your account, your last sign-in and whether your access is active. Added to your data export (`sso_identities.json`).

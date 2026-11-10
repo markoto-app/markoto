@@ -89,10 +89,14 @@ onMounted(async () => {
   // theme; image URLs that don't belong to this document are dropped.
   const { isValidTheme } = await import('~~/shared/utils/themeValidation')
   const stored = bootstrap.value?.theme
-  const theme: DocTheme = themeImagesForDoc(
+  const validTheme: DocTheme = themeImagesForDoc(
     looksLikeTheme(stored) && isValidTheme(stored) ? stored : defaultTheme,
     docId
   ).theme
+  // Web snapshot for a published page (WP13): the same pipeline, but no
+  // cover page and no pagination — the page shows the title itself.
+  const webMode = route.query.mode === 'web'
+  const theme: DocTheme = webMode ? { ...validTheme, cover: { ...validTheme.cover, enabled: false } } : validTheme
   const title = bootstrap.value?.title ?? ''
   const markdown = bootstrap.value?.markdown ?? ''
   // Cover date, `{date}` token, TOC title and chart number formats follow
@@ -173,6 +177,29 @@ onMounted(async () => {
   // therefore use the EXPLICIT API: Previewer.preview(html, [{ name:
   // cssText }], mount) bypasses document scanning entirely. The Nuxt
   // UI styles can stay in the head; paged.js will never look at them.
+
+  // Web snapshot (WP13 publish): hand the composed, sanitised HTML + the
+  // theme CSS back to the renderer instead of paginating. Mermaid
+  // diagrams are inlined as sanitised SVG like after pagination; the
+  // file-access token is taken off every URL — the app rewrites them to
+  // the published page's own file routes.
+  if (webMode) {
+    const container = document.createElement('div')
+    container.innerHTML = html
+    inlineMermaidSvgs(container)
+    const stripTokens = (text: string) => text.replace(/\?token=[^"'()\s&<>]*/g, '')
+    const hljsWeb = hljsTheme(theme.code.theme)
+    ;(globalThis as unknown as { __webSnapshot?: unknown }).__webSnapshot = {
+      html: stripTokens(container.innerHTML),
+      css: stripTokens(themeCss),
+      fontsImport: stripTokens(fontsImport),
+      hljsTheme: theme.code.theme,
+      hljsUrl: hljsWeb.url ?? null,
+      language: texts.locale
+    }
+    ;(globalThis as unknown as { __webReady?: boolean }).__webReady = true
+    return
+  }
 
   // Mount target. paged.js writes the paginated DOM into this container.
   const placeholder = document.getElementById('render-mount')

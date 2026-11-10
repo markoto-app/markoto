@@ -11,6 +11,7 @@ const { status: accountStatus } = useAccountStatus()
 // NUXT_ADMIN_USER_EMAILS, exposed through /api/user/account-status).
 type MenuItem = { label: string, icon: string, to?: string, onSelect?: () => unknown }
 const { pricingVisible } = useBillingMode()
+const { customDomains } = useInstanceConfig()
 const menuItems = computed<MenuItem[]>(() => {
   const items: MenuItem[] = []
   // Pricing only when there's something to show: live plans, or the
@@ -38,6 +39,15 @@ const menuItems = computed<MenuItem[]>(() => {
     icon: 'i-lucide-plug',
     to: '/settings/integrations'
   })
+  // Custom domains for published pages (WP13) — only where the operator
+  // set them up.
+  if (customDomains.value) {
+    items.push({
+      label: t('customDomains.menu'),
+      icon: 'i-lucide-globe',
+      to: '/settings/domains'
+    })
+  }
   items.push({
     label: t('common.documentation'),
     icon: 'i-lucide-book-open',

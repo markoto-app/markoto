@@ -1,3 +1,4 @@
+import { docIdForPublishedUrl } from '../utils/publish/takeDown'
 import { createHash } from 'node:crypto'
 import { nanoid } from 'nanoid'
 import { abuseReports } from '../db/schema'
@@ -131,7 +132,8 @@ export default defineEventHandler(async (event) => {
     await requireBotCheck(event, input.altcha, 'abuse-report')
   }
 
-  const docId = docIdFromReportedLocation(contentUrl)
+  // A published page (WP13) is reported by its own address: /p/<slug> or a custom domain.
+  const docId = docIdFromReportedLocation(contentUrl) ?? await docIdForPublishedUrl(contentUrl)
   const locale = normaliseNoticeLocale(input.locale)
   const rawIp = getClientIp(event)
   const userAgent = getRequestHeader(event, 'user-agent') ?? ''

@@ -126,6 +126,18 @@ export const AUDIT_WORKSPACE_BRAND_LOCK_CHANGED = 'workspace.brand_lock_changed'
 export const AUDIT_WORKSPACE_TEMPLATE_ADDED = 'workspace.template_added'
 export const AUDIT_WORKSPACE_TEMPLATE_REMOVED = 'workspace.template_removed'
 
+// Publish as a web page + custom domains (WP13). Published / unpublished:
+// metadata page id + slug; settings: before / after {slug, indexable};
+// custom domains: metadata hostname (+ page id).
+export const AUDIT_DOC_PUBLISHED = 'doc.published'
+export const AUDIT_DOC_UNPUBLISHED = 'doc.unpublished'
+export const AUDIT_DOC_PUBLISH_SETTINGS_CHANGED = 'doc.publish_settings_changed'
+export const AUDIT_CUSTOM_DOMAIN_ADDED = 'custom_domain.added'
+export const AUDIT_CUSTOM_DOMAIN_VERIFIED = 'custom_domain.verified'
+export const AUDIT_CUSTOM_DOMAIN_REMOVED = 'custom_domain.removed'
+// A live domain whose DNS stayed wrong past the grace period stops (system).
+export const AUDIT_CUSTOM_DOMAIN_DROPPED = 'custom_domain.dropped'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -182,3 +194,10 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_BRAND_LOCK_CHANGED
     | typeof AUDIT_WORKSPACE_TEMPLATE_ADDED
     | typeof AUDIT_WORKSPACE_TEMPLATE_REMOVED
+    | typeof AUDIT_DOC_PUBLISHED
+    | typeof AUDIT_DOC_UNPUBLISHED
+    | typeof AUDIT_DOC_PUBLISH_SETTINGS_CHANGED
+    | typeof AUDIT_CUSTOM_DOMAIN_ADDED
+    | typeof AUDIT_CUSTOM_DOMAIN_VERIFIED
+    | typeof AUDIT_CUSTOM_DOMAIN_REMOVED
+    | typeof AUDIT_CUSTOM_DOMAIN_DROPPED

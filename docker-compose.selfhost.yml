@@ -452,6 +452,7 @@ services:
       - TIER_FREE_FEATURE_GUESTS=${TIER_FREE_FEATURE_GUESTS:-}
       - TIER_FREE_FEATURE_BRAND_KIT=${TIER_FREE_FEATURE_BRAND_KIT:-}
       - TIER_FREE_FEATURE_SHARE_CONTROLS=${TIER_FREE_FEATURE_SHARE_CONTROLS:-}
+      - TIER_FREE_FEATURE_CUSTOM_DOMAINS=${TIER_FREE_FEATURE_CUSTOM_DOMAINS:-}
       # Days an unreferenced doc image is kept before the image GC deletes
       # it. Empty = 30, 0 = GC off.
       - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
@@ -475,6 +476,13 @@ services:
       # other. Set NUXT_DOCS_CANONICAL_BASE= (empty) to make your copy
       # self-canonical, or another https origin. Unset = markoto.app.
       - NUXT_DOCS_CANONICAL_BASE=${NUXT_DOCS_CANONICAL_BASE-https://markoto.app}
+      # Custom domains of published pages (WP13, HTTPS overlay only):
+      # NUXT_PUBLISH_DOMAINS_TARGET = the host your users CNAME to,
+      # NUXT_PUBLISH_TRAEFIK_TOKEN = ≥ 32 random characters.
+      - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
+      - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
+      - NUXT_PUBLISH_TRAEFIK_SERVICE=markoto-app@docker
+      - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=markoto-headers@docker,markoto-compress@docker
       # false = keep the whole instance out of search engines (robots.txt
       # Disallow: / + X-Robots-Tag: noindex). Empty = indexable.
       - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-}

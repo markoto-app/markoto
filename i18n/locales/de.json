@@ -1868,7 +1868,8 @@
       "auditLog": "Das Audit-Log ist im Plan dieses Arbeitsbereichs nicht enthalten.",
       "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten.",
       "brandKit": "Das Brand-Kit ist im Plan dieses Arbeitsbereichs nicht enthalten.",
-      "shareControls": "Link-Ablauf, reine Ansicht und Aufrufzahlen sind im Plan dieses Dokuments nicht enthalten."
+      "shareControls": "Link-Ablauf, reine Ansicht und Aufrufzahlen sind im Plan dieses Dokuments nicht enthalten.",
+      "customDomains": "Eigene Domains sind in Ihrem Plan nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
@@ -2525,5 +2526,68 @@
       "no-embedding": "Die Lizenz dieser Schrift erlaubt das Einbetten in Dokumente nicht.",
       "damaged": "Diese Schriftdatei ist beschädigt oder unvollständig."
     }
+  },
+  "publish": {
+    "title": "Als Webseite veröffentlichen",
+    "help": "Eine statische Kopie dieses Dokuments unter einer eigenen öffentlichen Adresse. Jede Person mit der Adresse kann sie lesen; das Dokument selbst bleibt so geteilt, wie es jetzt ist. Veröffentlichen Sie erneut, um die Seite zu aktualisieren.",
+    "publish": "Veröffentlichen",
+    "update": "Seite aktualisieren",
+    "unpublish": "Veröffentlichung aufheben",
+    "copy": "Adresse kopieren",
+    "open": "Seite öffnen",
+    "updatedAt": "zuletzt veröffentlicht {date}",
+    "address": "Adresse",
+    "addressHelp": "3–60 Kleinbuchstaben, Ziffern und Bindestriche. Die alte Adresse funktioniert nach einer Änderung nicht mehr.",
+    "indexable": "Von Suchmaschinen auflisten lassen",
+    "indexableHelp": "Aus: Die Seite bittet Suchmaschinen, sie nicht zu indexieren.",
+    "failed": "Die Seite konnte nicht veröffentlicht werden",
+    "saveFailed": "Die Änderung konnte nicht gespeichert werden",
+    "unpublishFailed": "Die Veröffentlichung konnte nicht aufgehoben werden",
+    "domain": {
+      "label": "Auf Ihrer Domain anzeigen",
+      "none": "Keine Domain",
+      "manage": "Ihre Domains verwalten",
+      "add": "Eigene Domain verwenden"
+    }
+  },
+  "customDomains": {
+    "menu": "Domains",
+    "title": "Eigene Domains",
+    "intro": "Zeigen Sie eine veröffentlichte Seite unter Ihrer eigenen Adresse an, zum Beispiel docs.example.com. Fügen Sie die Domain hinzu, setzen Sie die beiden unten angezeigten DNS-Einträge bei Ihrem DNS-Anbieter und wählen Sie die Seite im Teilen-Dialog des Dokuments aus. Ein HTTPS-Zertifikat besorgen wir automatisch.",
+    "notOnInstance": "Eigene Domains sind auf dieser Instanz nicht eingerichtet.",
+    "placeholder": "docs.example.com",
+    "add": "Domain hinzufügen",
+    "empty": "Noch keine Domains.",
+    "loading": "Lädt…",
+    "loadFailed": "Ihre Domains konnten nicht geladen werden",
+    "addFailed": "Die Domain konnte nicht hinzugefügt werden",
+    "checkFailed": "Die Domain konnte nicht geprüft werden",
+    "removeFailed": "Die Domain konnte nicht entfernt werden",
+    "status": {
+      "pending": "Wartet auf DNS",
+      "verified": "Aktiv",
+      "failed": "Gestoppt"
+    },
+    "problem": {
+      "txt-missing": "Der TXT-Eintrag ist noch nicht vorhanden. DNS-Änderungen können ein paar Minuten dauern, manchmal länger.",
+      "txt-mismatch": "Es gibt einen TXT-Eintrag, aber nicht mit diesem Wert. Kopieren Sie den unten angezeigten Wert genau.",
+      "not-pointing": "Die Domain zeigt noch nicht auf uns. Setzen Sie den unten angezeigten CNAME-Eintrag.",
+      "lookup-failed": "Wir konnten die DNS-Einträge der Domain nicht abfragen. Wir versuchen es in ein paar Minuten erneut.",
+      "in-use": "Diese Domain ist bereits mit einem anderen Konto verbunden. Wenn sie Ihnen gehört, entfernen Sie sie zuerst dort."
+    },
+    "problemWhileLive": "Die letzte Prüfung ist fehlgeschlagen. Die Domain bleibt drei Tage aktiv; sind die Einträge dann immer noch falsch, wird sie gestoppt.",
+    "dnsIntro": "Fügen Sie diese beiden Einträge bei Ihrem DNS-Anbieter hinzu. Wir prüfen sie eine Woche lang alle paar Minuten, oder sofort mit «Jetzt prüfen».",
+    "dns": {
+      "type": "Typ",
+      "name": "Name",
+      "value": "Wert"
+    },
+    "apexHelp": "Für eine Domain ohne Subdomain (example.com), die keinen CNAME-Eintrag haben kann, verwenden Sie ALIAS oder CNAME-Flattening (CNAME-Auflösung auf Serverseite) Ihres Anbieters auf {target}.",
+    "shows": "Zeigt",
+    "untitled": "Ohne Titel",
+    "noPage": "Aktiv, aber es wird noch keine Seite angezeigt. Wählen Sie im Teilen-Dialog eines veröffentlichten Dokuments eine aus.",
+    "check": "Jetzt prüfen",
+    "remove": "Entfernen",
+    "lastChecked": "geprüft {date}"
   }
 }

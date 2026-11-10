@@ -50,6 +50,17 @@ interface RendererSuccess {
   pageCount: number
   pdfKey?: string
   pageKeys: string[]
+  web?: WebSnapshot
+}
+
+/** The web snapshot a published page is made of (renderer format 'html', WP13). */
+export interface WebSnapshot {
+  html: string
+  css: string
+  fontsImport: string
+  hljsTheme: string
+  hljsUrl: string | null
+  language: string
 }
 
 const RENDER_TIMEOUT_MS = 90_000
@@ -206,7 +217,7 @@ async function readManifest(docId: string, snapshotId: number, variant: string |
 async function callRenderer(
   docId: string,
   snapshotId: number,
-  format: RenderFormat,
+  format: RenderFormat | 'html',
   variant: string | null = null
 ): Promise<RendererSuccess> {
   const config = useRuntimeConfig()
@@ -327,6 +338,20 @@ export async function renderDocument(
 export async function renderPngUncached(id: string, round: number): Promise<{ pageCount: number, pageKeys: string[] }> {
   const out = await callRenderer(id, round, 'png')
   return { pageCount: out.pageCount, pageKeys: out.pageKeys }
+}
+
+/**
+ * The document's current state as a web snapshot (WP13 publish): the
+ * print page's sanitised HTML + theme CSS without pagination or cover.
+ * Uncached — publishing is an explicit, rate-limited action and the
+ * result is stored in `published_pages` by the caller.
+ */
+export async function renderWebSnapshot(docId: string): Promise<WebSnapshot> {
+  await flushSyncDocument(docId)
+  const snapshotId = await getLatestSnapshotId(docId)
+  const out = await callRenderer(docId, snapshotId, 'html')
+  if (!out.web || typeof out.web.html !== 'string') throw new Error('Renderer returned no web snapshot')
+  return out.web
 }
 
 function manifestSatisfies(m: RenderManifest, want: 'pdf' | 'png' | 'both'): boolean {

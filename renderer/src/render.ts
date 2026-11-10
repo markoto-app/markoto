@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { chromium, type Browser, type BrowserContext } from 'playwright'
+import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import { putBytes } from './s3'
 import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 
@@ -144,7 +144,8 @@ const pool = new Semaphore(POOL_SIZE)
 export interface RenderInput {
   docId: string
   snapshotId: number
-  format: 'pdf' | 'png' | 'both'
+  /** 'html' (WP13): the web snapshot for a published page — returned, not stored. */
+  format: 'pdf' | 'png' | 'both' | 'html'
   /** Brand-kit fingerprint (16 hex chars) — appended to the output folder. */
   variant?: string
 }
@@ -153,7 +154,21 @@ export interface RenderOutput {
   pageCount: number
   pdfKey?: string
   pageKeys: string[]
+  /** format 'html' only: the print page's web snapshot. */
+  web?: WebSnapshot
 }
+
+export interface WebSnapshot {
+  html: string
+  css: string
+  fontsImport: string
+  hljsTheme: string
+  hljsUrl: string | null
+  language: string
+}
+
+/** A published page's snapshot can't exceed this (the app checks again). */
+const MAX_WEB_SNAPSHOT_CHARS = 8 * 1024 * 1024
 
 /**
  * Mint the render-JWT the app's middleware accepts on /_internal/render/*.
@@ -227,6 +242,34 @@ async function lockDownNetwork(context: BrowserContext, docId: string): Promise<
   await context.routeWebSocket(/.*/, ws => ws.close())
 }
 
+/**
+ * The web snapshot (WP13 publish): the print page in `mode=web` renders the
+ * markdown with the document's theme but without paged.js, and leaves the
+ * result on `window.__webSnapshot`. Nothing is uploaded — the app stores it.
+ */
+async function readWebSnapshot(page: Page): Promise<WebSnapshot> {
+  await page.waitForFunction(
+    () => (globalThis as { __webReady?: boolean }).__webReady === true,
+    null,
+    { timeout: PAGED_READY_TIMEOUT_MS }
+  )
+  const raw = await page.evaluate(() => (globalThis as { __webSnapshot?: unknown }).__webSnapshot)
+  const snap = raw as Partial<WebSnapshot> | undefined
+  const str = (v: unknown): string => (typeof v === 'string' ? v : '')
+  const web: WebSnapshot = {
+    html: str(snap?.html),
+    css: str(snap?.css),
+    fontsImport: str(snap?.fontsImport),
+    hljsTheme: str(snap?.hljsTheme),
+    hljsUrl: typeof snap?.hljsUrl === 'string' ? snap.hljsUrl : null,
+    language: str(snap?.language)
+  }
+  if (web.html.length + web.css.length + web.fontsImport.length > MAX_WEB_SNAPSHOT_CHARS) {
+    throw Object.assign(new Error('Document too large to publish'), { statusCode: 413 })
+  }
+  return web
+}
+
 async function doRender(
   input: RenderInput,
   browser: Browser,
@@ -248,9 +291,11 @@ async function doRender(
   page.setDefaultTimeout(NAV_TIMEOUT_MS)
 
   const token = mintRenderToken(docId, snapshotId)
-  const url = `${APP_URL}/_internal/render/${encodeURIComponent(docId)}?t=${encodeURIComponent(token)}`
+  const url = `${APP_URL}/_internal/render/${encodeURIComponent(docId)}?t=${encodeURIComponent(token)}${format === 'html' ? '&mode=web' : ''}`
 
   await page.goto(url, { waitUntil: 'load', timeout: NAV_TIMEOUT_MS })
+
+  if (format === 'html') return { pageCount: 0, pageKeys: [], web: await readWebSnapshot(page) }
 
   // The print page (app/pages/_internal/render/[docId].vue) renders paged.js
   // at the TOP level (not inside an iframe — different from the editor's

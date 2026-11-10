@@ -331,6 +331,83 @@ services:
       timeout: 2s
       retries: 15
 
+  # ─── Custom domains (WP13) ─────────────────────────────────────────
+  # Let's Encrypt's test CA + DNS test server, and a Traefik that polls the
+  # app's provider endpoint exactly like prod's does. The app (on the host)
+  # checks a domain's TXT / A records against challtestsrv (published on
+  # 127.0.0.1:8053); pebble resolves the domain there too and validates
+  # TLS-ALPN-01 against traefik-test's fixed address. See
+  # tests/fixtures/pebble/README.md + endpoints/customDomains.test.ts.
+  challtestsrv-test:
+    image: ghcr.io/letsencrypt/pebble-challtestsrv:2.10.1@sha256:12ce21884def456bcf9786542113949e1f19dc7738d2c70e156c2d0c38a1405b
+    restart: unless-stopped
+    # No default answers: a name resolves only to what a test added.
+    command: ["-defaultIPv4", "", "-defaultIPv6", "", "-http01", "", "-https01", "", "-tlsalpn01", "", "-doh", ""]
+    ports:
+      - "127.0.0.1:8053:8053/udp"
+      - "127.0.0.1:8053:8053/tcp"
+      - "127.0.0.1:8055:8055"
+    networks:
+      default:
+        ipv4_address: ${TEST_CHALLTESTSRV_IP:-10.213.47.42}
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  pebble-test:
+    image: ghcr.io/letsencrypt/pebble:2.10.1@sha256:ddf230642b1a584f519f32e347de1b05a6e4c1f6c35c1863b33effeab5f78199
+    restart: unless-stopped
+    command: ["-config", "/config/pebble-config.json", "-dnsserver", "${TEST_CHALLTESTSRV_IP:-10.213.47.42}:8053"]
+    environment:
+      - PEBBLE_VA_NOSLEEP=1
+      - PEBBLE_WFE_NONCEREJECT=0
+    volumes:
+      - ./tests/fixtures/pebble/pebble-config.json:/config/pebble-config.json:ro,z
+    depends_on:
+      - challtestsrv-test
+    networks:
+      default:
+        aliases: [pebble]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
+  traefik-test:
+    image: traefik:v3@sha256:c8a121e4bb1347e8fd52657fab12f2cb70b68f8a018895e2068f92c9e519b9c2
+    restart: unless-stopped
+    command:
+      - "--global.sendAnonymousUsage=false"
+      - "--log.level=INFO"
+      - "--entrypoints.websecure.address=:443"
+      - "--providers.http.endpoint=http://host.docker.internal:3101/api/internal/traefik/custom-domains"
+      - "--providers.http.pollInterval=1s"
+      - "--providers.http.headers.X-Markoto-Provider-Token=test-provider-token-0123456789abcdef0123"
+      - "--certificatesresolvers.pebble.acme.caserver=https://pebble:14000/dir"
+      - "--certificatesresolvers.pebble.acme.cacertificates=/pebble/pebble.minica.pem"
+      - "--certificatesresolvers.pebble.acme.tlschallenge=true"
+      - "--certificatesresolvers.pebble.acme.email=ops@markoto.test"
+      - "--certificatesresolvers.pebble.acme.storage=/tmp/acme.json"
+      - "--certificatesresolvers.pebble.acme.keytype=EC256"
+    volumes:
+      - ./tests/fixtures/pebble/pebble.minica.pem:/pebble/pebble.minica.pem:ro,z
+    tmpfs:
+      - /tmp
+    ports:
+      - "127.0.0.1:8443:443"
+    extra_hosts:
+      # CONTAINER_HOST_ADDRESS: see docs/CONTAINER-ENGINES.md (VPNs, Podman).
+      - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
+    depends_on:
+      - pebble-test
+    networks:
+      default:
+        ipv4_address: ${TEST_TRAEFIK_IP:-10.213.47.40}
+    # Docker sets this in containers; rootless engines don't. Without it
+    # Traefik (no capabilities) can't bind :443.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+
   # Real OpenID Connect provider for the generic-OIDC sign-in tests
   # (WP7b, tests/integration/endpoints/oidcLogin.test.ts). NAV's
   # mock-oauth2-server: discovery, JWKS (one RSA key per issuer path),

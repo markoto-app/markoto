@@ -40,8 +40,11 @@
 // export that workspace's audit entries incl. names + truncated IPs (WP15).
 // v12 (2026-11-09): workspace guests + document shares, per-person usage
 // view for workspace admins (WP11).
-export const PRIVACY_VERSION = 12
-export const PRIVACY_EFFECTIVE_DATE = '2026-11-09'
+// v13 (2026-11-10): publish as a web page + custom domains (WP13): the
+// published copy, domain names, DNS checks, Let's Encrypt certificates
+// (domain name public in Certificate Transparency logs).
+export const PRIVACY_VERSION = 13
+export const PRIVACY_EFFECTIVE_DATE = '2026-11-10'
 
 // v2 (2026-10-26): free-only service, BYOK responsibilities, as-is/discontinuation clauses.
 // v3 (2026-11-03): anonymous documents, acceptable-use section, DSA

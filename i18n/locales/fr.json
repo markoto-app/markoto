@@ -1868,7 +1868,8 @@
       "auditLog": "Le journal d’audit n’est pas inclus dans le forfait de cet espace de travail.",
       "guests": "Les invités ne sont pas inclus dans le forfait de cet espace de travail.",
       "brandKit": "Le kit de marque n’est pas inclus dans le forfait de cet espace de travail.",
-      "shareControls": "L’expiration du lien, le partage en lecture seule et le nombre de vues ne sont pas inclus dans le forfait de ce document."
+      "shareControls": "L’expiration du lien, le partage en lecture seule et le nombre de vues ne sont pas inclus dans le forfait de ce document.",
+      "customDomains": "Les domaines personnalisés ne sont pas inclus dans votre forfait."
     },
     "limit": {
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
@@ -2525,5 +2526,68 @@
       "no-embedding": "La licence de cette police n’autorise pas son intégration dans les documents.",
       "damaged": "Ce fichier de police est endommagé ou incomplet."
     }
+  },
+  "publish": {
+    "title": "Publier en tant que page web",
+    "help": "Une copie statique de ce document à sa propre adresse publique. Toute personne disposant de l’adresse peut le lire ; le partage du document lui-même reste inchangé. Publiez à nouveau pour mettre la page à jour.",
+    "publish": "Publier",
+    "update": "Mettre à jour la page",
+    "unpublish": "Dépublier",
+    "copy": "Copier l’adresse",
+    "open": "Ouvrir la page",
+    "updatedAt": "dernière publication le {date}",
+    "address": "Adresse",
+    "addressHelp": "3 à 60 lettres minuscules, chiffres et traits d’union. L’ancienne adresse cesse de fonctionner si vous la modifiez.",
+    "indexable": "Autoriser les moteurs de recherche à la référencer",
+    "indexableHelp": "Désactivé : la page demande aux moteurs de recherche de ne pas l’indexer.",
+    "failed": "Impossible de publier la page",
+    "saveFailed": "Impossible d’enregistrer la modification",
+    "unpublishFailed": "Impossible de dépublier la page",
+    "domain": {
+      "label": "Afficher sur votre domaine",
+      "none": "Aucun domaine",
+      "manage": "Gérer vos domaines",
+      "add": "Utiliser votre propre domaine"
+    }
+  },
+  "customDomains": {
+    "menu": "Domaines",
+    "title": "Domaines personnalisés",
+    "intro": "Affichez une page publiée à votre propre adresse, par exemple docs.example.com. Ajoutez le domaine, définissez les deux enregistrements DNS indiqués ci-dessous chez votre fournisseur DNS, puis choisissez la page dans la boîte de dialogue de partage du document. Nous obtenons automatiquement un certificat HTTPS pour ce domaine.",
+    "notOnInstance": "Les domaines personnalisés ne sont pas configurés sur cette instance.",
+    "placeholder": "docs.example.com",
+    "add": "Ajouter le domaine",
+    "empty": "Aucun domaine pour l’instant.",
+    "loading": "Chargement…",
+    "loadFailed": "Impossible de charger vos domaines",
+    "addFailed": "Impossible d’ajouter le domaine",
+    "checkFailed": "Impossible de vérifier le domaine",
+    "removeFailed": "Impossible de supprimer le domaine",
+    "status": {
+      "pending": "En attente du DNS",
+      "verified": "En ligne",
+      "failed": "Arrêté"
+    },
+    "problem": {
+      "txt-missing": "L’enregistrement TXT n’est pas encore là. Les modifications DNS peuvent prendre quelques minutes, parfois plus.",
+      "txt-mismatch": "Il existe un enregistrement TXT, mais avec une autre valeur. Copiez exactement la valeur ci-dessous.",
+      "not-pointing": "Le domaine ne pointe pas encore vers nous. Définissez l’enregistrement CNAME ci-dessous.",
+      "lookup-failed": "Nous n’avons pas pu consulter les enregistrements DNS du domaine. Nous réessaierons dans quelques minutes.",
+      "in-use": "Ce domaine est déjà relié à un autre compte. S'il vous appartient, retirez-le d'abord de ce compte."
+    },
+    "problemWhileLive": "La dernière vérification a échoué. Le domaine reste en ligne pendant trois jours ; si les enregistrements sont toujours incorrects à ce moment-là, il s’arrête.",
+    "dnsIntro": "Ajoutez ces deux enregistrements chez votre fournisseur DNS. Nous les vérifions toutes les quelques minutes pendant une semaine, ou tout de suite avec « Vérifier maintenant ».",
+    "dns": {
+      "type": "Type",
+      "name": "Nom",
+      "value": "Valeur"
+    },
+    "apexHelp": "Pour un domaine sans sous-domaine (example.com), qui ne peut pas avoir d’enregistrement CNAME, utilisez plutôt l’ALIAS ou le CNAME flattening (aplatissement CNAME) de votre fournisseur vers {target}.",
+    "shows": "Affiche",
+    "untitled": "Sans titre",
+    "noPage": "En ligne, mais aucune page n’est encore affichée. Choisissez-en une dans la boîte de dialogue de partage d’un document publié.",
+    "check": "Vérifier maintenant",
+    "remove": "Supprimer",
+    "lastChecked": "vérifié le {date}"
   }
 }

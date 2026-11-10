@@ -59,6 +59,8 @@ export async function resetDb(): Promise<void> {
       workspace_brand_assets,
       workspace_templates,
       document_view_days,
+      custom_domains,
+      published_pages,
       sso_grants,
       user_identities,
       sso_domains,

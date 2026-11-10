@@ -1868,7 +1868,8 @@
       "auditLog": "El registro de auditoría no está incluido en el plan de este espacio de trabajo.",
       "guests": "Los invitados no están incluidos en el plan de este espacio de trabajo.",
       "brandKit": "El kit de marca no está incluido en el plan de este espacio de trabajo.",
-      "shareControls": "La caducidad del enlace, el uso compartido de solo lectura y el recuento de vistas no están incluidos en el plan de este documento."
+      "shareControls": "La caducidad del enlace, el uso compartido de solo lectura y el recuento de vistas no están incluidos en el plan de este documento.",
+      "customDomains": "Los dominios personalizados no están incluidos en tu plan."
     },
     "limit": {
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
@@ -2525,5 +2526,68 @@
       "no-embedding": "La licencia de esta fuente no permite incrustarla en documentos.",
       "damaged": "Este archivo de fuente está dañado o incompleto."
     }
+  },
+  "publish": {
+    "title": "Publicar como página web",
+    "help": "Una copia estática de este documento en su propia dirección pública. Cualquiera que tenga la dirección puede leerla; el documento sigue compartido exactamente como ahora. Vuelve a publicar para actualizar la página.",
+    "publish": "Publicar",
+    "update": "Actualizar página",
+    "unpublish": "Despublicar",
+    "copy": "Copiar dirección",
+    "open": "Abrir la página",
+    "updatedAt": "última publicación {date}",
+    "address": "Dirección",
+    "addressHelp": "De 3 a 60 letras minúsculas, dígitos y guiones. La dirección anterior deja de funcionar si la cambias.",
+    "indexable": "Permitir que los buscadores la indexen",
+    "indexableHelp": "Desactivado: la página pide a los buscadores que no la indexen.",
+    "failed": "No se pudo publicar la página",
+    "saveFailed": "No se pudo guardar el cambio",
+    "unpublishFailed": "No se pudo despublicar la página",
+    "domain": {
+      "label": "Mostrar en tu dominio",
+      "none": "Sin dominio",
+      "manage": "Gestionar tus dominios",
+      "add": "Usar tu propio dominio"
+    }
+  },
+  "customDomains": {
+    "menu": "Dominios",
+    "title": "Dominios personalizados",
+    "intro": "Muestra una página publicada en tu propia dirección, como docs.example.com. Añade el dominio, configura los dos registros DNS que se indican abajo en tu proveedor de DNS y elige la página en el cuadro de compartir del documento. Obtenemos automáticamente un certificado HTTPS para él.",
+    "notOnInstance": "Los dominios personalizados no están configurados en esta instancia.",
+    "placeholder": "docs.example.com",
+    "add": "Añadir dominio",
+    "empty": "Aún no hay dominios.",
+    "loading": "Cargando…",
+    "loadFailed": "No se pudieron cargar tus dominios",
+    "addFailed": "No se pudo añadir el dominio",
+    "checkFailed": "No se pudo comprobar el dominio",
+    "removeFailed": "No se pudo quitar el dominio",
+    "status": {
+      "pending": "Esperando al DNS",
+      "verified": "Activo",
+      "failed": "Detenido"
+    },
+    "problem": {
+      "txt-missing": "Todavía no existe el registro TXT. Los cambios de DNS pueden tardar unos minutos, a veces más.",
+      "txt-mismatch": "Hay un registro TXT, pero con otro valor. Copia exactamente el valor de abajo.",
+      "not-pointing": "El dominio aún no apunta a nosotros. Configura el registro CNAME de abajo.",
+      "lookup-failed": "No pudimos consultar los registros DNS del dominio. Lo intentaremos de nuevo en unos minutos.",
+      "in-use": "Este dominio ya está conectado a otra cuenta. Si es suyo, elimínelo primero de esa cuenta."
+    },
+    "problemWhileLive": "La última comprobación falló. El dominio sigue activo durante tres días; si los registros siguen mal pasado ese plazo, se detiene.",
+    "dnsIntro": "Añade estos dos registros en tu proveedor de DNS. Los comprobamos cada pocos minutos durante una semana, o ahora mismo con «Comprobar ahora».",
+    "dns": {
+      "type": "Tipo",
+      "name": "Nombre",
+      "value": "Valor"
+    },
+    "apexHelp": "Para un dominio sin subdominio (example.com), que no puede tener un registro CNAME, usa el ALIAS o el CNAME flattening (aplanamiento de CNAME) de tu proveedor hacia {target}.",
+    "shows": "Muestra",
+    "untitled": "Sin título",
+    "noPage": "Activo, pero aún no se muestra ninguna página. Elige una en el cuadro de compartir de un documento publicado.",
+    "check": "Comprobar ahora",
+    "remove": "Quitar",
+    "lastChecked": "comprobado {date}"
   }
 }

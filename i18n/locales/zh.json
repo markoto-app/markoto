@@ -1868,7 +1868,8 @@
       "auditLog": "此工作区的套餐不包含审计日志。",
       "guests": "此工作区的套餐不包含访客功能。",
       "brandKit": "此工作区的套餐不包含品牌套件。",
-      "shareControls": "链接有效期、仅查看共享和查看次数不包含在此文档的套餐中。"
+      "shareControls": "链接有效期、仅查看共享和查看次数不包含在此文档的套餐中。",
+      "customDomains": "你的套餐不包含自定义域名。"
     },
     "limit": {
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
@@ -2525,5 +2526,68 @@
       "no-embedding": "此字体的许可不允许将其嵌入文档。",
       "damaged": "此字体文件已损坏或不完整。"
     }
+  },
+  "publish": {
+    "title": "发布为网页",
+    "help": "在独立的公开地址上提供此文档的静态副本。任何拿到地址的人都可以阅读；文档本身的分享设置保持不变。再次发布即可更新页面。",
+    "publish": "发布",
+    "update": "更新页面",
+    "unpublish": "取消发布",
+    "copy": "复制地址",
+    "open": "打开页面",
+    "updatedAt": "最近发布于 {date}",
+    "address": "地址",
+    "addressHelp": "3–60 个小写字母、数字和连字符。更改后，旧地址将失效。",
+    "indexable": "允许搜索引擎收录",
+    "indexableHelp": "关闭：页面会请求搜索引擎不要将其编入索引。",
+    "failed": "无法发布页面",
+    "saveFailed": "无法保存更改",
+    "unpublishFailed": "无法取消发布页面",
+    "domain": {
+      "label": "在你的域名上显示",
+      "none": "无域名",
+      "manage": "管理你的域名",
+      "add": "使用你自己的域名"
+    }
+  },
+  "customDomains": {
+    "menu": "域名",
+    "title": "自定义域名",
+    "intro": "让已发布的页面显示在你自己的地址上，例如 docs.example.com。添加域名后，在你的 DNS 服务商处设置下方显示的两条 DNS 记录，然后在文档的分享对话框中选择该页面。我们会自动为它获取 HTTPS 证书。",
+    "notOnInstance": "此实例未设置自定义域名。",
+    "placeholder": "docs.example.com",
+    "add": "添加域名",
+    "empty": "还没有域名。",
+    "loading": "加载中…",
+    "loadFailed": "无法加载你的域名",
+    "addFailed": "无法添加域名",
+    "checkFailed": "无法检查域名",
+    "removeFailed": "无法移除域名",
+    "status": {
+      "pending": "等待 DNS 生效",
+      "verified": "已上线",
+      "failed": "已停止"
+    },
+    "problem": {
+      "txt-missing": "尚未找到 TXT 记录。DNS 更改可能需要几分钟，有时更久。",
+      "txt-mismatch": "存在 TXT 记录，但值不一致。请原样复制下方的值。",
+      "not-pointing": "该域名尚未指向我们。请设置下方的 CNAME 记录。",
+      "lookup-failed": "我们无法查询该域名的 DNS 记录，几分钟后会再次尝试。",
+      "in-use": "此域名已连接到另一个账户。如果它属于您，请先在那个账户中将其移除。"
+    },
+    "problemWhileLive": "上次检查失败。该域名将继续保持上线三天；如果届时记录仍然有误，它将停止服务。",
+    "dnsIntro": "请在你的 DNS 服务商处添加这两条记录。我们会在一周内每隔几分钟检查一次，你也可以点击“立即检查”。",
+    "dns": {
+      "type": "类型",
+      "name": "名称",
+      "value": "值"
+    },
+    "apexHelp": "对于没有子域名的域名（example.com），无法设置 CNAME 记录，请改用你的服务商提供的 ALIAS 或 CNAME 扁平化功能，指向 {target}。",
+    "shows": "显示",
+    "untitled": "无标题",
+    "noPage": "已上线，但尚未显示任何页面。请在已发布文档的分享对话框中选择一个页面。",
+    "check": "立即检查",
+    "remove": "移除",
+    "lastChecked": "检查于 {date}"
   }
 }
