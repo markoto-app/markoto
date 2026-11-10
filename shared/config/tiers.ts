@@ -139,12 +139,19 @@ export interface TierCaps {
    * markoto.app: Team + Business.
    */
   brandKit: boolean
+  /**
+   * Feature switch: share-link controls (WP9) — link expiry, view-only
+   * without download / print, view counts. Judged against the DOCUMENT's
+   * plan (workspace plan, else the owner's). On in every committed tier;
+   * markoto.app: Pro and up.
+   */
+  shareControls: boolean
 }
 
 /** Numeric cap fields that accept `unlimited` (stored as `null`). */
 export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay'
 /** On/off feature switches. */
-export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog' | 'guests' | 'brandKit'
+export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog' | 'guests' | 'brandKit' | 'shareControls'
 /** Plain positive-number cap fields. */
 export type NumericCapField = Exclude<keyof TierCaps, UnlimitedCapField | FeatureField>
 
@@ -155,7 +162,7 @@ export const UNLIMITED_CAP_FIELDS: readonly UnlimitedCapField[] = [
   'mcpToolCallsPerDay'
 ]
 
-export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog', 'guests', 'brandKit']
+export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog', 'guests', 'brandKit', 'shareControls']
 
 /**
  * Whether `used` more units still fit under `limit` (`null` = no limit).
@@ -214,7 +221,8 @@ export const DEFAULT_TIERS = {
     sso: true,
     auditLog: true,
     guests: true,
-    brandKit: true
+    brandKit: true,
+    shareControls: true
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
@@ -227,7 +235,8 @@ export const DEFAULT_TIERS = {
     sso: true,
     auditLog: true,
     guests: true,
-    brandKit: true
+    brandKit: true,
+    shareControls: true
   },
   // Team / Business: AI budget, knowledge and image storage are per seat.
   // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
@@ -245,7 +254,8 @@ export const DEFAULT_TIERS = {
     sso: true,
     auditLog: true,
     guests: true,
-    brandKit: true
+    brandKit: true,
+    shareControls: true
   },
   business: {
     litellmBudgetUsd: 5,
@@ -258,7 +268,8 @@ export const DEFAULT_TIERS = {
     sso: true,
     auditLog: true,
     guests: true,
-    brandKit: true
+    brandKit: true,
+    shareControls: true
   }
 } as const satisfies Record<PlanName, TierCaps>
 
@@ -290,7 +301,8 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   sso: 'FEATURE_SSO',
   auditLog: 'FEATURE_AUDIT_LOG',
   guests: 'FEATURE_GUESTS',
-  brandKit: 'FEATURE_BRAND_KIT'
+  brandKit: 'FEATURE_BRAND_KIT',
+  shareControls: 'FEATURE_SHARE_CONTROLS'
 }
 
 const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])

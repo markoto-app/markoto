@@ -68,6 +68,10 @@ export interface DocAuthzRow {
    * (`shared/utils/docPermissions.ts`) so the rule applies everywhere.
    */
   ownerAccessSuspended: boolean
+  /** Share-link controls (WP9): when public access ends (null = never). `docStateOf` applies it. */
+  shareExpiresAt: Date | null
+  /** Share-link controls (WP9): no PDF / Markdown download or print for visitors. */
+  shareNoDownload: boolean
   /**
    * Document context fields. Surfaced through the token endpoint so the
    * editor can hydrate the Document tab + new-doc-derived UI before the
@@ -183,6 +187,8 @@ export async function getDocWithActorRole(
       ownerId: documents.ownerId,
       workspaceId: documents.workspaceId,
       accessMode: documents.accessMode,
+      shareExpiresAt: documents.shareExpiresAt,
+      shareNoDownload: documents.shareNoDownload,
       anonCreatorKeyHash: documents.anonCreatorKeyHash,
       theme: documents.theme,
       title: documents.title,
@@ -237,6 +243,8 @@ export async function getDocWithActorRole(
     workspaceRole: (row.role ?? null),
     isGuest: row.isGuest === true,
     ownerAccessSuspended: row.ownerAccessSuspended === true,
+    shareExpiresAt: row.shareExpiresAt,
+    shareNoDownload: row.shareNoDownload,
     title: row.title,
     description: row.description,
     audience: row.audience,
@@ -361,6 +369,14 @@ export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void
  * Set the password hash AND flip accessMode to password-protected in one
  * write. Called by /password action=set.
  */
+/** Share-link controls (WP9). */
+export async function setShareSettings(docId: string, settings: { shareExpiresAt: Date | null, shareNoDownload: boolean }): Promise<void> {
+  const result = await useDatabase().update(documents).set(settings)
+    .where(eq(documents.docId, docId))
+    .returning({ docId: documents.docId })
+  if (result.length === 0) throw new NotFoundError('Document')
+}
+
 export async function setDocPassword(docId: string, passwordHash: string): Promise<void> {
   const db = useDatabase()
   await db

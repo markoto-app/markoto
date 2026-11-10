@@ -33,6 +33,10 @@ export interface DocState {
   // non-owner. Computed per actor by `getDocWithActorRole`; build
   // DocState with `docStateOf(row)` so it is never dropped.
   ownerAccessSuspended?: boolean
+  // The share link's expiry (WP9) has passed: `accessMode` was a public
+  // mode and is now `private` (set by `docStateOf`). Lets the token
+  // endpoint tell a visitor the link expired instead of "forbidden".
+  shareExpired?: boolean
 }
 
 export interface ActorState {
@@ -53,6 +57,9 @@ export interface ActorState {
   // Only read by `decideDocDelete`: anonymous docs can be deleted only
   // by their creating browser.
   isAnonCreator?: boolean
+  // A workspace GUEST (WP11): `workspaceRole` comes from their share of
+  // this one document. Read by `canDownload` (guests are visitors there).
+  isGuest?: boolean
 }
 
 export type TokenOutcome = 'allow' | 'forbidden' | 'password-required'
@@ -88,13 +95,43 @@ export function docStateOf(row: {
   workspaceId: string | null
   accessMode: AccessMode
   ownerAccessSuspended: boolean
-}): DocState {
+  /** Share-link expiry (WP9); absent / null = never. */
+  shareExpiresAt?: Date | string | null
+}, now: Date = new Date()): DocState {
+  // Share-link expiry (WP9): after it, a public mode (open-edit, open-view,
+  // password) acts as `private` — the owner and workspace members keep
+  // their access, everyone else is refused. Applied here, so every
+  // decide* call on a row sees it.
+  const expired = row.accessMode !== 'private' && isShareExpired(row.shareExpiresAt, now)
   return {
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
-    accessMode: row.accessMode,
-    ownerAccessSuspended: row.ownerAccessSuspended
+    accessMode: expired ? 'private' : row.accessMode,
+    ownerAccessSuspended: row.ownerAccessSuspended,
+    ...(expired ? { shareExpired: true } : {})
   }
+}
+
+/** Whether a share link with this expiry has ended at `now`. */
+export function isShareExpired(expiresAt: Date | string | null | undefined, now: Date = new Date()): boolean {
+  if (expiresAt === null || expiresAt === undefined) return false
+  const t = typeof expiresAt === 'string' ? Date.parse(expiresAt) : expiresAt.getTime()
+  return Number.isFinite(t) && t <= now.getTime()
+}
+
+/**
+ * Share-link controls (WP9): this caller may download (PDF, Markdown) and
+ * print. Visitors — not the owner, not a workspace member — may not while
+ * `shareNoDownload` is on. Guests (WP11) count as visitors.
+ */
+export function canDownload(doc: DocState, actor: ActorState, noDownload: boolean): boolean {
+  if (!noDownload) return true
+  return !isVisitor(doc, actor)
+}
+
+/** Neither the (effective) owner nor a workspace member — someone the link was shared with. Guests count as visitors. */
+export function isVisitor(doc: DocState, actor: ActorState): boolean {
+  return !isDocOwner(doc, actor) && (actor.workspaceRole === null || actor.isGuest === true)
 }
 
 /**

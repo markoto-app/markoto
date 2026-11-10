@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { canDownload, docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 import { renderDocument } from '../../../utils/renderClient'
 import { consumeRenderAllowance } from '../../../utils/renderRateLimit'
@@ -55,6 +55,10 @@ export default defineEventHandler(async (event) => {
   const decision = decideFileAccess(doc, actor)
   if (decision.outcome === 'deny') {
     throw createError({ statusCode: 403, message: 'Access denied' })
+  }
+  // Share-link controls (WP9): view-only without download for visitors.
+  if (!canDownload(doc, { ...actor, isGuest: row.isGuest }, row.shareNoDownload)) {
+    throw createError({ statusCode: 403, message: 'The owner turned off downloading this document.', data: { code: 'share/download-disabled', messageKey: 'share.controls.downloadDisabled' } })
   }
 
   let result

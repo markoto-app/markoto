@@ -113,6 +113,20 @@
       "add": "Teilen",
       "loadFailed": "Gäste konnten nicht geladen werden",
       "saveFailed": "Freigabe konnte nicht geändert werden"
+    },
+    "controls": {
+      "title": "Link-Einstellungen",
+      "expires": "Link funktioniert bis",
+      "expiresHelp": "Danach können nur noch Sie und die Mitglieder des Workspace das Dokument öffnen. Leer lassen, damit der Link weiter funktioniert.",
+      "clearExpiry": "Enddatum entfernen",
+      "noDownload": "Nur ansehen – kein Download, kein Druck",
+      "noDownloadHelp": "Personen mit dem Link können das Dokument lesen, aber nicht als PDF oder Markdown herunterladen oder drucken. Text auf dem Bildschirm lässt sich weiterhin kopieren.",
+      "views": "In den letzten 30 Tagen nicht geöffnet | In den letzten 30 Tagen einmal geöffnet | In den letzten 30 Tagen {n}-mal geöffnet",
+      "lastViewed": "zuletzt am {date}",
+      "saveFailed": "Link-Einstellungen konnten nicht geändert werden",
+      "downloadDisabled": "Die Eigentümerin oder der Eigentümer hat Download und Druck dieses Dokuments deaktiviert.",
+      "expiredTitle": "Dieser Link ist abgelaufen",
+      "expiredBody": "Die Eigentümerin oder der Eigentümer hat diesen Link befristet. Bitten Sie um Zugriff, falls Sie das Dokument weiterhin benötigen."
     }
   },
   "access": {
@@ -1853,7 +1867,8 @@
       "sso": "Single Sign-on ist im Plan dieses Arbeitsbereichs nicht enthalten.",
       "auditLog": "Das Audit-Log ist im Plan dieses Arbeitsbereichs nicht enthalten.",
       "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten.",
-      "brandKit": "Das Brand-Kit ist im Plan dieses Arbeitsbereichs nicht enthalten."
+      "brandKit": "Das Brand-Kit ist im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "shareControls": "Link-Ablauf, reine Ansicht und Aufrufzahlen sind im Plan dieses Dokuments nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
@@ -2438,7 +2453,8 @@
       "workspace_brand_asset_removed": "Brand-Kit-Datei entfernt",
       "workspace_brand_lock_changed": "Design-Sperre des Arbeitsbereichs geändert",
       "workspace_template_added": "Vorlage hinzugefügt",
-      "workspace_template_removed": "Vorlage entfernt"
+      "workspace_template_removed": "Vorlage entfernt",
+      "doc_share_settings_changed": "Link-Einstellungen geändert"
     },
     "planNotice": "Der Audit-Log ist Teil des Business-Plans."
   },

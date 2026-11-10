@@ -63,7 +63,7 @@ import {
 import { resolveDocBrand } from './brandKit/docBrand'
 import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/brandLock'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
-import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { canDownload, docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../repos/uploads'
 import { imageQuotaMessage, resolveImageQuota } from './imageQuota'
@@ -920,6 +920,11 @@ export async function handleExportDocumentAsMarkdown(
   // entry, so session.ytext / ymeta are the live synced doc.
   const doc = await getDoc(session.docId)
   if (!doc) return err('Error: document not found.')
+  // Share-link controls (WP9): a visitor may not download a view-only doc.
+  const ctx = await getDocWithActorRole(session.docId, session.initiatorUserId)
+  if (ctx && !canDownload(docStateOf(ctx), { userId: session.initiatorUserId, workspaceRole: ctx.workspaceRole, isGuest: ctx.isGuest }, ctx.shareNoDownload)) {
+    return err('Error: the owner turned off downloading this document — it can be read but not exported. Tell the user.')
+  }
   // Same file the editor's "Download Markdown" writes: markoto YAML
   // frontmatter (theme + properties, live ymeta first, row as fallback)
   // on top of the raw body. NO line-number prefixes — view_document is

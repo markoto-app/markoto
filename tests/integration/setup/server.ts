@@ -248,7 +248,8 @@ export const HOSTED_FREE_TIER_LIMITS = {
   TIER_FREE_FEATURE_SSO: 'false',
   TIER_FREE_FEATURE_AUDIT_LOG: 'false',
   TIER_FREE_FEATURE_GUESTS: 'false',
-  TIER_FREE_FEATURE_BRAND_KIT: 'false'
+  TIER_FREE_FEATURE_BRAND_KIT: 'false',
+  TIER_FREE_FEATURE_SHARE_CONTROLS: 'false'
 } as const
 
 async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<void> {

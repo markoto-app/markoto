@@ -113,6 +113,20 @@
       "add": "Partager",
       "loadFailed": "Impossible de charger les invités",
       "saveFailed": "Impossible de modifier le partage"
+    },
+    "controls": {
+      "title": "Paramètres du lien",
+      "expires": "Le lien cesse de fonctionner le",
+      "expiresHelp": "Passé ce délai, seuls vous et les membres de l’espace de travail pourrez ouvrir le document. Laissez vide pour que le lien continue de fonctionner.",
+      "clearExpiry": "Supprimer la date de fin",
+      "noDownload": "Lecture seule – ni téléchargement ni impression",
+      "noDownloadHelp": "Les personnes disposant du lien peuvent lire le document, mais pas le télécharger en PDF ou en Markdown, ni l’imprimer. Le texte affiché à l’écran peut toujours être copié.",
+      "views": "Non ouvert au cours des 30 derniers jours | Ouvert une fois au cours des 30 derniers jours | Ouvert {n} fois au cours des 30 derniers jours",
+      "lastViewed": "dernière fois le {date}",
+      "saveFailed": "Impossible de modifier les paramètres du lien",
+      "downloadDisabled": "Le propriétaire a désactivé le téléchargement et l’impression de ce document.",
+      "expiredTitle": "Ce lien a expiré",
+      "expiredBody": "Le propriétaire a limité la durée de ce lien. Demandez-lui l’accès si vous avez encore besoin du document."
     }
   },
   "access": {
@@ -1853,7 +1867,8 @@
       "sso": "L’authentification unique n’est pas incluse dans le forfait de cet espace de travail.",
       "auditLog": "Le journal d’audit n’est pas inclus dans le forfait de cet espace de travail.",
       "guests": "Les invités ne sont pas inclus dans le forfait de cet espace de travail.",
-      "brandKit": "Le kit de marque n’est pas inclus dans le forfait de cet espace de travail."
+      "brandKit": "Le kit de marque n’est pas inclus dans le forfait de cet espace de travail.",
+      "shareControls": "L’expiration du lien, le partage en lecture seule et le nombre de vues ne sont pas inclus dans le forfait de ce document."
     },
     "limit": {
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
@@ -2438,7 +2453,8 @@
       "workspace_brand_asset_removed": "Fichier du kit de marque supprimé",
       "workspace_brand_lock_changed": "Verrouillage du design de l’espace de travail modifié",
       "workspace_template_added": "Modèle ajouté",
-      "workspace_template_removed": "Modèle supprimé"
+      "workspace_template_removed": "Modèle supprimé",
+      "doc_share_settings_changed": "Paramètres du lien modifiés"
     },
     "planNotice": "Le journal d’audit fait partie du plan Business."
   },

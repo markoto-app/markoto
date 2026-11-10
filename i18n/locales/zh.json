@@ -113,6 +113,20 @@
       "add": "共享",
       "loadFailed": "无法加载访客",
       "saveFailed": "无法更改共享设置"
+    },
+    "controls": {
+      "title": "链接设置",
+      "expires": "链接失效日期",
+      "expiresHelp": "此后只有您和工作区成员可以打开该文档。留空则链接持续有效。",
+      "clearExpiry": "移除截止日期",
+      "noDownload": "仅可查看，不可下载或打印",
+      "noDownloadHelp": "持有链接的人可以阅读文档，但无法将其下载为 PDF 或 Markdown，也无法打印。屏幕上的文字仍可复制。",
+      "views": "过去 30 天内未被打开 | 过去 30 天内被打开 1 次 | 过去 30 天内被打开 {n} 次",
+      "lastViewed": "最近一次：{date}",
+      "saveFailed": "无法更改链接设置",
+      "downloadDisabled": "所有者已关闭此文档的下载和打印功能。",
+      "expiredTitle": "此链接已失效",
+      "expiredBody": "所有者已将此链接设为限时有效。如果仍需要该文档，请向所有者申请访问权限。"
     }
   },
   "access": {
@@ -1853,7 +1867,8 @@
       "sso": "此工作区的套餐不包含单点登录。",
       "auditLog": "此工作区的套餐不包含审计日志。",
       "guests": "此工作区的套餐不包含访客功能。",
-      "brandKit": "此工作区的套餐不包含品牌套件。"
+      "brandKit": "此工作区的套餐不包含品牌套件。",
+      "shareControls": "链接有效期、仅查看共享和查看次数不包含在此文档的套餐中。"
     },
     "limit": {
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
@@ -2438,7 +2453,8 @@
       "workspace_brand_asset_removed": "已删除品牌套件文件",
       "workspace_brand_lock_changed": "工作区设计锁定已更改",
       "workspace_template_added": "已添加模板",
-      "workspace_template_removed": "已删除模板"
+      "workspace_template_removed": "已删除模板",
+      "doc_share_settings_changed": "链接设置已更改"
     },
     "planNotice": "审计日志是 Business 方案的功能。"
   },

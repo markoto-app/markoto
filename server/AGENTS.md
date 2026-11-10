@@ -27,6 +27,8 @@ Nitro API + sync notification layer for markoto. Most cross-cutting code in this
 
 Workspace membership overrides: admin/editor bypasses `private` and `password-protected`; viewer gets read-only access regardless of accessMode. In a workspace that enforces single sign-on, the Owner column applies only while the owner has an effective (SSO-satisfied) role there — `ownerAccessSuspended` from `getDocWithActorRole`, see `utils/sso/AGENTS.md`.
 
+**Share-link controls (WP9).** `share_expires_at`: `docStateOf` turns a public mode into `private` once it passed (owner + workspace members unaffected; `DocState.shareExpired`), so every decide* path enforces it. `share_no_download`: `canDownload(doc, actor, noDownload)` — visitors (not owner, no member role; guests count as visitors) get no PDF, Markdown export or print. Set via `/api/docs/:id/share-settings` (`canManage`).
+
 **Read-only: 4 layers** — (1) token mints JWT with `readOnly: true`, (2) Hocuspocus blocks Y.js updates, (3) CM6 Compartments set `EditorView.editable + EditorState.readOnly`, (4) UI hides toolbar.
 
 **Password-protected: 3 layers** — (1) token returns `token: null`, (2) Hocuspocus rejects, (3) `v-if="!requiresPassword"` blocks editor mount.

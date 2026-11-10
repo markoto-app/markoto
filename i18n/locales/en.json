@@ -113,6 +113,20 @@
       "add": "Share",
       "loadFailed": "Couldn't load guests",
       "saveFailed": "Couldn't change sharing"
+    },
+    "controls": {
+      "title": "Link settings",
+      "expires": "Link stops working on",
+      "expiresHelp": "After this, only you and members of the workspace can open the document. Leave empty to keep the link working.",
+      "clearExpiry": "Remove the end date",
+      "noDownload": "View only — no download or print",
+      "noDownloadHelp": "People with the link can read the document but not download it as PDF or Markdown or print it. Text on screen can still be copied.",
+      "views": "Not opened in the last 30 days | Opened once in the last 30 days | Opened {n} times in the last 30 days",
+      "lastViewed": "last on {date}",
+      "saveFailed": "Couldn't change the link settings",
+      "downloadDisabled": "The owner turned off downloading and printing this document.",
+      "expiredTitle": "This link has expired",
+      "expiredBody": "The owner set this link to stop working. Ask them for access if you still need the document."
     }
   },
   "access": {
@@ -1853,7 +1867,8 @@
       "sso": "Single sign-on isn't included in this workspace's plan.",
       "auditLog": "The audit log isn't included in this workspace's plan.",
       "guests": "Guests aren't included in this workspace's plan.",
-      "brandKit": "The brand kit isn't included in this workspace's plan."
+      "brandKit": "The brand kit isn't included in this workspace's plan.",
+      "shareControls": "Link expiry, view-only sharing and view counts aren't included in this document's plan."
     },
     "limit": {
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
@@ -2438,7 +2453,8 @@
       "workspace_brand_asset_removed": "Brand kit file removed",
       "workspace_brand_lock_changed": "Workspace design lock changed",
       "workspace_template_added": "Template added",
-      "workspace_template_removed": "Template removed"
+      "workspace_template_removed": "Template removed",
+      "doc_share_settings_changed": "Link settings changed"
     },
     "planNotice": "The audit log is part of the Business plan."
   },
