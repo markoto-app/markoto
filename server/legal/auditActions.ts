@@ -114,6 +114,9 @@ export const AUDIT_WORKSPACE_AUDIT_EXPORTED = 'workspace.audit_exported'
 export const AUDIT_DOC_SHARED = 'doc.shared'
 export const AUDIT_DOC_UNSHARED = 'doc.unshared'
 
+// Share-link controls changed (WP9). Before / after: expiresAt, noDownload.
+export const AUDIT_DOC_SHARE_SETTINGS_CHANGED = 'doc.share_settings_changed'
+
 // Workspace brand kit (WP10). Metadata: asset id, kind, name (font family
 // or file name), weight/style; lock: before/after; templates: template id
 // + document id.
@@ -173,6 +176,7 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_AUDIT_EXPORTED
     | typeof AUDIT_DOC_SHARED
     | typeof AUDIT_DOC_UNSHARED
+    | typeof AUDIT_DOC_SHARE_SETTINGS_CHANGED
     | typeof AUDIT_WORKSPACE_BRAND_ASSET_ADDED
     | typeof AUDIT_WORKSPACE_BRAND_ASSET_REMOVED
     | typeof AUDIT_WORKSPACE_BRAND_LOCK_CHANGED

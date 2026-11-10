@@ -113,6 +113,20 @@
       "add": "Compartir",
       "loadFailed": "No se pudieron cargar los invitados",
       "saveFailed": "No se pudo cambiar el uso compartido"
+    },
+    "controls": {
+      "title": "Ajustes del enlace",
+      "expires": "El enlace deja de funcionar el",
+      "expiresHelp": "Después, solo usted y los miembros del espacio de trabajo podrán abrir el documento. Déjelo vacío para que el enlace siga funcionando.",
+      "clearExpiry": "Quitar la fecha de finalización",
+      "noDownload": "Solo lectura: sin descarga ni impresión",
+      "noDownloadHelp": "Las personas con el enlace pueden leer el documento, pero no descargarlo como PDF o Markdown ni imprimirlo. El texto en pantalla aún se puede copiar.",
+      "views": "No se ha abierto en los últimos 30 días | Se abrió una vez en los últimos 30 días | Se abrió {n} veces en los últimos 30 días",
+      "lastViewed": "última vez el {date}",
+      "saveFailed": "No se pudieron cambiar los ajustes del enlace",
+      "downloadDisabled": "El propietario desactivó la descarga y la impresión de este documento.",
+      "expiredTitle": "Este enlace ha caducado",
+      "expiredBody": "El propietario configuró este enlace para que dejara de funcionar. Pídale acceso si aún necesita el documento."
     }
   },
   "access": {
@@ -1853,7 +1867,8 @@
       "sso": "El inicio de sesión único no está incluido en el plan de este espacio de trabajo.",
       "auditLog": "El registro de auditoría no está incluido en el plan de este espacio de trabajo.",
       "guests": "Los invitados no están incluidos en el plan de este espacio de trabajo.",
-      "brandKit": "El kit de marca no está incluido en el plan de este espacio de trabajo."
+      "brandKit": "El kit de marca no está incluido en el plan de este espacio de trabajo.",
+      "shareControls": "La caducidad del enlace, el uso compartido de solo lectura y el recuento de vistas no están incluidos en el plan de este documento."
     },
     "limit": {
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
@@ -2438,7 +2453,8 @@
       "workspace_brand_asset_removed": "Archivo del kit de marca eliminado",
       "workspace_brand_lock_changed": "Bloqueo del diseño del espacio de trabajo modificado",
       "workspace_template_added": "Plantilla añadida",
-      "workspace_template_removed": "Plantilla eliminada"
+      "workspace_template_removed": "Plantilla eliminada",
+      "doc_share_settings_changed": "Ajustes del enlace modificados"
     },
     "planNotice": "El registro de auditoría forma parte del plan Business."
   },

@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision } from 'drizzle-orm/pg-core'
+import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueIndex, jsonb, vector, boolean, customType, check, doublePrecision, date } from 'drizzle-orm/pg-core'
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 
@@ -150,6 +150,13 @@ export const documents = pgTable('documents', {
     enum: ['private', 'open-edit', 'open-view', 'password-protected']
   }).notNull().default('open-edit'),
   passwordHash: text('password_hash'),
+  // Share-link controls (WP9). After `share_expires_at` a public access
+  // mode (open-edit / open-view / password) acts as `private` for
+  // everyone but the owner and workspace members (`docStateOf`).
+  // `share_no_download`: those visitors get no PDF / Markdown download and
+  // no print. NULL / false = off.
+  shareExpiresAt: timestamp('share_expires_at', { withTimezone: true }),
+  shareNoDownload: boolean('share_no_download').notNull().default(false),
   sizeBytes: integer('size_bytes').default(0),
   wordCount: integer('word_count').default(0),
   // Per-doc theme (page size, fonts, colors, headers/footers, etc).
@@ -441,6 +448,17 @@ export const documentShares = pgTable('document_shares', {
 }, table => [
   primaryKey({ columns: [table.docId, table.userId] }),
   index('idx_document_shares_user').on(table.userId)
+])
+
+// Opens of a shared document per day (WP9 view counts): pages opened by
+// people other than the owner and workspace members. Aggregate counts
+// only — no visitor, address or cookie is recorded.
+export const documentViewDays = pgTable('document_view_days', {
+  docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
+  day: date('day', { mode: 'string' }).notNull(),
+  opens: integer('opens').notNull().default(0)
+}, table => [
+  primaryKey({ columns: [table.docId, table.day] })
 ])
 
 // ── Workspace brand kit (WP10) ───────────────────────────────────────

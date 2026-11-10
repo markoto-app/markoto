@@ -44,6 +44,8 @@ const {
   customCssAllowed,
   brandFonts,
   brandLockedTheme,
+  noDownload,
+  shareExpired,
   workspacePlan,
   ssoLoginUrl,
   undoManager,
@@ -364,7 +366,16 @@ const LOCKED_MODES = new Set(['private', 'password-protected'])
 const accessIcon = computed(() => LOCKED_MODES.has(accessMode.value) ? 'i-lucide-lock' : 'i-lucide-lock-open')
 const accessLabelKey = computed(() => ACCESS_LABELS[accessMode.value] ?? 'share.openEdit')
 
+// Share-link controls (WP9): a view-only link — no print, PDF or Markdown
+// download for this viewer (the server refuses the PDF too).
+function refuseDownload(): boolean {
+  if (!noDownload.value) return false
+  toast.add({ title: t('share.controls.downloadDisabled'), icon: 'i-lucide-ban', color: 'neutral' })
+  return true
+}
+
 async function exportPdf() {
+  if (refuseDownload()) return
   exporting.value = true
   try {
     // Read content fresh from ytext — shallowRef may be stale after HMR.
@@ -387,6 +398,7 @@ async function exportPdf() {
 // The file carries the theme + document properties as YAML frontmatter
 // (shared/utils/markdownFrontmatter.ts) so importing it restores them.
 async function exportMarkdown() {
+  if (refuseDownload()) return
   const { buildMarkdownExport } = await import('~~/shared/utils/markdownFrontmatter')
   const content = buildMarkdownExport(textContent.value, {
     title: title.value,
@@ -440,6 +452,7 @@ function applyImportedProperties(
 // the canonical "this came from a user click" signal browsers honour,
 // the same pattern `downloadFile()` uses for the markdown export.
 function openServerPdf() {
+  if (refuseDownload()) return
   const a = document.createElement('a')
   a.href = `/api/docs/${props.docId}/pdf?inline=1`
   a.target = '_blank'
@@ -760,21 +773,25 @@ const mobileMenuItems = computed(() => {
       icon: 'i-lucide-upload',
       onSelect: () => { showImportModal.value = true }
     },
-    {
-      label: t('menubar.file.export'),
-      icon: 'i-lucide-file-down',
-      onSelect: () => exportMarkdown()
-    },
-    {
-      label: t('menubar.file.print'),
-      icon: 'i-lucide-printer',
-      onSelect: () => exportPdf()
-    },
-    {
-      label: t('export.pdf'),
-      icon: 'i-lucide-file-output',
-      onSelect: () => openServerPdf()
-    },
+    ...(noDownload.value
+      ? []
+      : [
+          {
+            label: t('menubar.file.export'),
+            icon: 'i-lucide-file-down',
+            onSelect: () => exportMarkdown()
+          },
+          {
+            label: t('menubar.file.print'),
+            icon: 'i-lucide-printer',
+            onSelect: () => exportPdf()
+          },
+          {
+            label: t('export.pdf'),
+            icon: 'i-lucide-file-output',
+            onSelect: () => openServerPdf()
+          }
+        ]),
     ...(canManageDoc.value
       ? [
           {
@@ -985,10 +1002,10 @@ const _statusIcon = computed(() => {
         />
       </div>
       <h1 class="text-xl font-semibold">
-        {{ t('access.privateTitle') }}
+        {{ shareExpired ? t('share.controls.expiredTitle') : t('access.privateTitle') }}
       </h1>
       <p class="text-sm text-muted">
-        {{ ssoLoginUrl ? t('sso.requiredBody') : loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
+        {{ shareExpired ? t('share.controls.expiredBody') : ssoLoginUrl ? t('sso.requiredBody') : loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
       </p>
       <div class="flex justify-center gap-2 pt-2">
         <UButton
@@ -1250,6 +1267,7 @@ const _statusIcon = computed(() => {
           :logged-in="loggedIn"
           :can-manage="canManageDoc"
           :can-delete="canDelete"
+          :no-download="noDownload"
           :right-sidebar="rightSidebar"
           :has-knowledge-access="hasKnowledgeAccess"
           :view-mode="viewMode"
@@ -1863,6 +1881,7 @@ const _statusIcon = computed(() => {
       :doc-title="title"
       :is-owner="isOwner"
       :current-access-mode="accessMode"
+      :can-manage="canManageDoc"
       :can-share-with-guests="!!docWorkspaceId && (docWorkspaceRole === 'admin' || docWorkspaceRole === 'editor')"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
     />

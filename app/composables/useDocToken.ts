@@ -117,6 +117,10 @@ export function useDocToken(docId: string) {
   // Workspace brand kit (WP10): fonts every render declares, and the
   // locked workspace design (null = the document's own design).
   const brandFonts = ref<BrandFont[]>([])
+  // Share-link controls (WP9): this viewer may not download or print;
+  // the public link has expired (shown on the "no access" page).
+  const noDownload = ref(false)
+  const shareExpired = ref(false)
   const brandLockedTheme = ref<DocTheme | null>(null)
   /** Team / Business plan covering the doc's workspace (header badge, WP6). */
   const workspacePlan = ref<'team' | 'business' | null>(null)
@@ -171,6 +175,8 @@ export function useDocToken(docId: string) {
         canDelete?: boolean
         planFeatures?: { customCss?: boolean } | null
         brandKit?: { fonts?: BrandFont[], lockedTheme?: DocTheme | null } | null
+        noDownload?: boolean
+        shareExpired?: boolean
         workspacePlan?: 'team' | 'business' | null
         ssoLoginUrl?: string | null
       }>(`/api/docs/${docId}/token`)
@@ -187,6 +193,8 @@ export function useDocToken(docId: string) {
       customCssAllowed.value = data.planFeatures?.customCss !== false
       brandFonts.value = data.brandKit?.fonts ?? []
       brandLockedTheme.value = data.brandKit?.lockedTheme ?? null
+      noDownload.value = data.noDownload === true
+      shareExpired.value = data.shareExpired === true
       workspacePlan.value = data.workspacePlan ?? null
       ssoLoginUrl.value = data.ssoLoginUrl ?? null
       if (typeof data.title === 'string') initialTitle.value = data.title
@@ -226,8 +234,9 @@ export function useDocToken(docId: string) {
    */
   async function refetchTokenOnly(): Promise<string | null> {
     try {
+      // `refresh`: not a new open of the doc (WP9 view counts skip it).
       const data = await $fetch<{ token: string | null, readOnly: boolean }>(
-        `/api/docs/${docId}/token`
+        `/api/docs/${docId}/token`, { query: { refresh: '1' } }
       )
       if (!data.token) return null
       tokenData.value = { token: data.token, readOnly: data.readOnly }
@@ -286,10 +295,12 @@ export function useDocToken(docId: string) {
         language?: string
         initialBody?: string | null
         brandKit?: { fonts?: BrandFont[], lockedTheme?: DocTheme | null } | null
+        noDownload?: boolean
       }>(`/api/docs/${docId}/meta`, { headers: { Authorization: `Bearer ${newToken}` } })
       initialTheme.value = data.theme ?? null
       brandFonts.value = data.brandKit?.fonts ?? []
       brandLockedTheme.value = data.brandKit?.lockedTheme ?? null
+      noDownload.value = data.noDownload === true
       if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
@@ -342,6 +353,8 @@ export function useDocToken(docId: string) {
     customCssAllowed,
     brandFonts,
     brandLockedTheme,
+    noDownload,
+    shareExpired,
     workspacePlan,
     ssoLoginUrl,
     initialTitle,

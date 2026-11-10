@@ -2,7 +2,9 @@ import { docBrandForClient } from '../../../utils/brandKit/docBrand'
 import jwt from 'jsonwebtoken'
 import { ssoLoginUrlForMember } from '../../../utils/sso/required'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { docStateOf, decideDocDelete, decideTokenAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { canDownload, docStateOf, decideDocDelete, decideTokenAccess, isVisitor, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
+import { recordDocumentOpen } from '../../../repos/documentViews'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
 import { renderTemplate } from '../../../utils/templateRenderer'
@@ -35,7 +37,8 @@ export default defineEventHandler(async (event) => {
   const doc: DocState = docStateOf(row)
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
-    workspaceRole: row.workspaceRole
+    workspaceRole: row.workspaceRole,
+    isGuest: row.isGuest
   }
 
   const decision = decideTokenAccess(doc, actor)
@@ -52,6 +55,9 @@ export default defineEventHandler(async (event) => {
       : null
     return {
       ssoLoginUrl,
+      // Share-link controls (WP9): the public link ended — the page says
+      // so instead of "no access". Nothing else about the doc is revealed.
+      shareExpired: doc.shareExpired === true,
       token: null,
       requiresPassword: decision.outcome === 'password-required',
       forbidden: decision.outcome === 'forbidden',
@@ -117,6 +123,8 @@ export default defineEventHandler(async (event) => {
     // while the workspace design is locked, that design (the editor
     // renders with it, keeping only the document's cover text).
     brandKit: await docBrandForClient(row.workspaceId),
+    // Share-link controls (WP9): this viewer may not download or print.
+    noDownload: !canDownload(doc, actor, row.shareNoDownload),
     // The Team / Business plan covering the doc's workspace (header badge).
     workspacePlan: row.workspaceId ? (await pooledPlansFor([row.workspaceId])).get(row.workspaceId) ?? null : null,
     // Whether DELETE /api/docs/:id would succeed for this caller — the
@@ -138,7 +146,16 @@ export default defineEventHandler(async (event) => {
     userName: session?.user?.name ?? null,
     readOnly: decision.readOnly
   } satisfies SessionJwtPayload
-  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '2h' })
+  // ≤ 2 h, and never past the share link's expiry (WP9).
+  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: docJwtLifetimeSeconds(row.shareExpiresAt) })
+
+  // View counts (WP9): an open by someone other than the owner and the
+  // workspace members, on a plan with share controls. Aggregate per day,
+  // best-effort — never fails the open. A token refresh (`?refresh=1`, the
+  // editor's reconnect path) is not a new open.
+  if (getQuery(event).refresh !== '1' && isVisitor(doc, actor) && planHasFeature(docPlan, 'shareControls')) {
+    void recordDocumentOpen(docId).catch(() => {})
+  }
 
   return { token, requiresPassword: false, forbidden: false, ...responseBase }
 })
