@@ -56,6 +56,9 @@ describe('brand kit — fonts and logos', () => {
     expect(await ok.json()).toMatchObject({ kind: 'font', family: 'Acme Sans', weight: 400, style: 'normal', format: 'woff2' })
     const again = await upload(adminClient, path, { file: fontFile(STATIC_WOFF2), licence: 'true', family: 'Acme Sans' })
     expect(again.status).toBe(409)
+    // CSS matches family names regardless of case: "acme sans" is the same face.
+    const otherCase = await upload(adminClient, path, { file: fontFile(STATIC_WOFF2), licence: 'true', family: 'acme sans' })
+    expect(otherCase.status).toBe(409)
     // Another weight of the same family is fine.
     expect((await upload(adminClient, path, { file: fontFile(STATIC_WOFF2), licence: 'true', family: 'Acme Sans', weight: '700' })).status).toBe(201)
 
@@ -72,6 +75,20 @@ describe('brand kit — fonts and logos', () => {
     const body = await ok.json() as { url: string, name: string }
     expect(body.name).toBe('Northwind logo')
     expect(body.url).toMatch(/^\/api\/brand\/[A-Za-z0-9_-]{16}\.png$/)
+  })
+
+  it('parallel uploads never go past the per-workspace limit', async () => {
+    const { ws, adminClient } = await setup()
+    const path = `/api/workspaces/${ws.workspaceId}/brand/images`
+    for (let i = 0; i < 18; i++) {
+      expect((await upload(adminClient, path, { file: new File([PNG], `logo-${i}.png`) })).status).toBe(201)
+    }
+    // 2 slots left; 6 at once → exactly 2 land.
+    const results = await Promise.all(Array.from({ length: 6 }, (_, i) => upload(adminClient, path, { file: new File([PNG], `burst-${i}.png`) })))
+    const statuses = results.map(r => r.status).sort()
+    expect(statuses).toEqual([201, 201, 409, 409, 409, 409])
+    const rows = await testDb().query(`SELECT count(*)::int AS n FROM workspace_brand_assets WHERE workspace_id = $1 AND kind = 'image'`, [ws.workspaceId])
+    expect(rows.rows[0].n).toBe(20)
   })
 
   it('only admins change the kit; members read it; markoto.app free refuses it', async () => {

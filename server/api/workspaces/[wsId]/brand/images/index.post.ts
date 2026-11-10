@@ -2,7 +2,7 @@ import { fileTypeFromBuffer } from 'file-type'
 import { requireBrandKitAdmin } from '../../../../../utils/brandKit/access'
 import { newBrandAssetId, readBrandUpload } from '../../../../../utils/brandKit/upload'
 import { brandAssetKey, deleteBrandObjects, putBrandObject } from '../../../../../utils/brandKit/storage'
-import { countBrandAssets, deleteBrandAsset, insertBrandAsset } from '../../../../../repos/brandAssets'
+import { countBrandAssets, insertBrandAsset } from '../../../../../repos/brandAssets'
 import { appendAuditEvent } from '../../../../../repos/audit'
 import { AUDIT_WORKSPACE_BRAND_ASSET_ADDED } from '../../../../../legal/auditActions'
 import { BRAND_IMAGE_MAX_BYTES, BRAND_IMAGES_PER_WORKSPACE, type BrandImageFormat } from '~~/shared/config/brandKit'
@@ -23,21 +23,24 @@ export default defineEventHandler(async (event) => {
   if (!format) {
     throw createError({ statusCode: 415, message: 'Upload a PNG, JPEG or WebP image.', data: { code: 'brand/image-type' } })
   }
-  if (await countBrandAssets(wsId, 'image') >= BRAND_IMAGES_PER_WORKSPACE) {
-    throw createError({ statusCode: 409, message: `A workspace can have up to ${BRAND_IMAGES_PER_WORKSPACE} brand images.`, data: { code: 'brand/too-many-images', limit: BRAND_IMAGES_PER_WORKSPACE } })
-  }
+  if (await countBrandAssets(wsId, 'image') >= BRAND_IMAGES_PER_WORKSPACE) throw tooManyImages()
   // Display name only (never part of a path or URL): the file name
   // without its extension, plain characters, ≤ 80.
   const name = fileName.replace(/\.[A-Za-z0-9]{1,5}$/, '').replace(/[^\p{L}\p{N} ._-]+/gu, ' ').replace(/\s+/g, ' ').trim().slice(0, 80) || 'Logo'
   const id = newBrandAssetId()
   const key = brandAssetKey(wsId, id, format)
-  await insertBrandAsset({ id, workspaceId: wsId, kind: 'image', format, name, weight: null, style: null, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: userId, licenceConfirmedAt: null })
+  // Object first, then the row (see fonts/index.post.ts).
+  await putBrandObject(key, bytes, format)
+  let inserted: 'inserted' | 'limit'
   try {
-    await putBrandObject(key, bytes, format)
+    inserted = await insertBrandAsset({ id, workspaceId: wsId, kind: 'image', format, name, weight: null, style: null, sizeBytes: bytes.byteLength, s3Key: key, uploadedBy: userId, licenceConfirmedAt: null }, BRAND_IMAGES_PER_WORKSPACE)
   } catch (e) {
-    await deleteBrandAsset(wsId, id)
     await deleteBrandObjects([key])
     throw e
+  }
+  if (inserted === 'limit') {
+    await deleteBrandObjects([key])
+    throw tooManyImages()
   }
   await appendAuditEvent({
     actorUserId: userId,
@@ -51,3 +54,7 @@ export default defineEventHandler(async (event) => {
   setResponseStatus(event, 201)
   return { id, file: `${id}.${format}`, kind: 'image', name, format, sizeBytes: bytes.byteLength, url: `/api/brand/${id}.${format}` }
 })
+
+function tooManyImages() {
+  return createError({ statusCode: 409, message: `A workspace can have up to ${BRAND_IMAGES_PER_WORKSPACE} brand images.`, data: { code: 'brand/too-many-images', limit: BRAND_IMAGES_PER_WORKSPACE } })
+}

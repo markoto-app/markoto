@@ -1,4 +1,4 @@
-import { DeleteObjectsCommand, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3'
+import { DeleteObjectsCommand, GetObjectCommand, NoSuchKey, PutObjectCommand } from '@aws-sdk/client-s3'
 import type { H3Event } from 'h3'
 import { BRAND_ASSET_CONTENT_TYPES, type BrandAssetFormat } from '~~/shared/config/brandKit'
 import { listBrandAssetKeys, type BrandAssetRow } from '../../repos/brandAssets'
@@ -49,8 +49,17 @@ export async function collectBrandObjectKeys(workspaceId: string): Promise<strin
  * on the URL's token, never on credentials.
  */
 export async function sendBrandAsset(event: H3Event, row: BrandAssetRow, opts: { crossOrigin: boolean }): Promise<Uint8Array> {
-  const res = await useS3Client().send(new GetObjectCommand({ Bucket: useRuntimeConfig().s3.bucket, Key: row.s3Key }))
-  const bytes = await res.Body!.transformToByteArray()
+  let bytes: Uint8Array
+  try {
+    const res = await useS3Client().send(new GetObjectCommand({ Bucket: useRuntimeConfig().s3.bucket, Key: row.s3Key }))
+    if (!res.Body) throw new NoSuchKey({ message: 'empty body', $metadata: {} })
+    bytes = await res.Body.transformToByteArray()
+  } catch (e) {
+    // The row exists but the object doesn't (lost, or deleted under us):
+    // the file is gone, not a server fault.
+    if (e instanceof NoSuchKey) throw createError({ statusCode: 404, message: 'File not found' })
+    throw e
+  }
   setHeader(event, 'content-type', BRAND_ASSET_CONTENT_TYPES[row.format])
   setHeader(event, 'content-length', bytes.byteLength)
   setHeader(event, 'x-content-type-options', 'nosniff')

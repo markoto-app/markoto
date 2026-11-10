@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { getWorkspace } from '../../repos/workspaces'
-import { listBrandFonts } from '../../repos/brandAssets'
+import { brandFontsOf, listBrandAssets } from '../../repos/brandAssets'
 import { brandKitAvailable } from './access'
 import { isValidTheme } from '~~/shared/utils/themeValidation'
 import type { BrandFont } from '~~/shared/config/brandKit'
@@ -17,7 +17,7 @@ export interface DocBrand {
   /** The workspace design the document must render with; null = its own. */
   lockedTheme: DocTheme | null
   /**
-   * Changes whenever the fonts or the locked design change — part of the
+   * Changes whenever the fonts, the logos or the locked design change — part of the
    * server render cache key (a brand change makes no new Y.js row, so the
    * snapshot id alone would serve a stale PDF). Null when the document has
    * no brand inputs (cache key unchanged from before WP10).
@@ -29,14 +29,18 @@ const NONE: DocBrand = { fonts: [], lockedTheme: null, fingerprint: null }
 
 export async function resolveDocBrand(workspaceId: string | null): Promise<DocBrand> {
   if (!workspaceId) return NONE
-  const [workspace, fonts] = await Promise.all([getWorkspace(workspaceId), listBrandFonts(workspaceId)])
+  const [workspace, assets] = await Promise.all([getWorkspace(workspaceId), listBrandAssets(workspaceId)])
   if (!workspace) return NONE
+  const fonts = brandFontsOf(assets)
+  // Logos count too: deleting one a document's own theme still points at
+  // must re-render its cached PDF without it.
+  const images = assets.filter(a => a.kind === 'image').map(a => a.id).sort()
   let lockedTheme: DocTheme | null = null
   if (workspace.brandLocked && workspace.defaultTheme && isValidTheme(workspace.defaultTheme) && await brandKitAvailable(workspaceId)) {
     lockedTheme = workspace.defaultTheme
   }
-  if (fonts.length === 0 && !lockedTheme) return NONE
-  const fingerprint = createHash('sha256').update(JSON.stringify({ fonts, lockedTheme })).digest('hex').slice(0, 16)
+  if (fonts.length === 0 && images.length === 0 && !lockedTheme) return NONE
+  const fingerprint = createHash('sha256').update(JSON.stringify({ fonts, images, lockedTheme })).digest('hex').slice(0, 16)
   return { fonts, lockedTheme, fingerprint }
 }
 
