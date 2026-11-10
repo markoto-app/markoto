@@ -11,7 +11,7 @@ import { assertPlanFeature, assertPlanLimit, resolveWorkspacePlan } from '../../
 import { GUESTS_PER_SEAT } from '~~/shared/config/workspaceSeats'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED, AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
 import { getPooledWorkspace, seatsFullError } from '../../../../utils/workspaceBilling'
-import { changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
+import { acquireWorkspaceSeatLock, changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { useStripeClient } from '../../../../utils/stripeClient'
 import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
@@ -104,103 +104,115 @@ export default defineEventHandler(async (event) => {
   }
 
   const plan = await resolveWorkspacePlan(wsId)
-  const pool = await getPooledWorkspace(wsId, now)
 
-  if (newRole === 'guest') {
-    // Guests (WP11): a plan feature; no seat and no member limit, but at
-    // most GUESTS_PER_SEAT per paid seat in a Team / Business workspace.
-    assertPlanFeature(plan, 'guests', 'Guests are part of the Team and Business plans.')
-    if (pool) {
-      const guests = await countGuests(wsId) + await countOpenWorkspaceInvites(wsId, now, email, 'guests')
-      const cap = GUESTS_PER_SEAT * pool.seats
-      if (guests >= cap) {
-        throw createError({
-          statusCode: 409,
-          message: `This workspace can have at most ${cap} guests (${GUESTS_PER_SEAT} per paid seat).`,
-          data: { code: 'workspace/guest-cap', messageKey: 'workspace.members.errors.guestCap', limit: cap }
-        })
-      }
-    }
-  }
-
-  // Plan limit: people in the workspace = members + open invitations
-  // (re-inviting the same address doesn't count twice — the count above
-  // excludes it). Invitations count from the moment they're sent, so an
-  // accepted invite never pushes a workspace past its limit and accepting
-  // needs no second check. A workspace already above the limit (e.g.
-  // after a downgrade) keeps everyone; only new invitations are refused.
-  // Guests and guest invitations don't count (WP11).
-  const membersNow = await countMembers(wsId)
-  const memberInvites = await countOpenWorkspaceInvites(wsId, now, email, 'members')
-  if (newRole !== 'guest') {
-    assertPlanLimit(
-      plan,
-      'membersPerWorkspace',
-      membersNow + memberInvites,
-      'This workspace has reached the member limit of its plan.'
-    )
-  }
-
-  // Team / Business (WP3): members + open invitations may not exceed the
-  // paid seats. With `addSeat: true` (the invite dialog's "This adds a
-  // seat" confirmation) one seat is bought and paid first, pro rata.
-  if (pool && newRole !== 'guest') {
-    const used = membersNow + memberInvites
-    if (used >= pool.seats) {
-      if (body?.addSeat !== true) throw seatsFullError(pool.seats, used)
-      const stripe = useStripeClient()
-      if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
-      const seats = used + 1
-      try {
-        await changeWorkspaceSeats(stripe, pool.subscription, seats)
-      } catch (e) {
-        throw seatChangeError(e, wsId)
-      }
-      const updated = await getPooledWorkspace(wsId)
-      if (updated) {
-        await ensureWorkspaceTeam(updated).catch((e: unknown) => {
-          console.warn(`[invite] team budget sync failed: ${e instanceof Error ? e.message : e}`)
-        })
-      }
-      await appendAuditEvent({
-        actorUserId: session.user.id,
-        actorIp: getClientIp(event),
-        scope: 'billing',
-        scopeId: wsId,
-        action: AUDIT_WORKSPACE_BILLING_SEATS_CHANGED,
-        before: { seats: pool.seats },
-        after: { seats },
-        metadata: { reason: 'invite' }
-      })
-      // The billing admin pays: tell them when another admin added a seat.
-      const billingAdminId = pool.subscription.billingAdminId
-      if (billingAdminId !== null && billingAdminId !== session.user.id) {
-        void notifyWorkspaceAdmins({
-          workspaceId: wsId,
-          kind: 'seat_added',
-          onlyUserIds: [billingAdminId],
-          vars: { seats, actor: session.user.name }
-        })
-      }
-    }
-  }
-
-  // Email link only when the deployment has a configured site URL (links
-  // are never built from the request Host) and the per-address daily
-  // budget isn't spent. Without it the invite is in-app only.
+  // Team / Business: counting the seats and acting on the count (buying
+  // one, writing the invite) happen under one lock per workspace, so two
+  // admins inviting at once can't both take the last seat or both buy the
+  // same one. The pool is re-read under the lock.
+  const releaseSeatLock = await getPooledWorkspace(wsId, now) ? await acquireWorkspaceSeatLock(wsId) : null
   const baseUrl = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
-  const sendEmail = baseUrl !== null
-    && await checkRateLimit('workspace-invite-email', hashInviteSecret(email), WORKSPACE_INVITE_EMAILS_PER_ADDRESS, WORKSPACE_INVITE_EMAIL_WINDOW_MS)
-  const token = sendEmail ? generateInviteToken() : null
+  let inviteId: string
+  let token: string | null
+  try {
+    const pool = await getPooledWorkspace(wsId, now)
 
-  const inviteId = await upsertWorkspaceInvite({
-    workspaceId: wsId,
-    email,
-    role: newRole,
-    invitedByUserId: session.user.id,
-    tokenHash: token === null ? null : hashInviteSecret(token),
-    expiresAt: new Date(now.getTime() + WORKSPACE_INVITE_TTL_MS)
-  })
+    if (newRole === 'guest') {
+      // Guests (WP11): a plan feature; no seat and no member limit, but at
+      // most GUESTS_PER_SEAT per paid seat in a Team / Business workspace.
+      assertPlanFeature(plan, 'guests', 'Guests are part of the Team and Business plans.')
+      if (pool) {
+        const guests = await countGuests(wsId) + await countOpenWorkspaceInvites(wsId, now, email, 'guests')
+        const cap = GUESTS_PER_SEAT * pool.seats
+        if (guests >= cap) {
+          throw createError({
+            statusCode: 409,
+            message: `This workspace can have at most ${cap} guests (${GUESTS_PER_SEAT} per paid seat).`,
+            data: { code: 'workspace/guest-cap', messageKey: 'workspace.members.errors.guestCap', limit: cap }
+          })
+        }
+      }
+    }
+
+    // Plan limit: people in the workspace = members + open invitations
+    // (re-inviting the same address doesn't count twice — the count above
+    // excludes it). Invitations count from the moment they're sent, so an
+    // accepted invite never pushes a workspace past its limit and accepting
+    // needs no second check. A workspace already above the limit (e.g.
+    // after a downgrade) keeps everyone; only new invitations are refused.
+    // Guests and guest invitations don't count (WP11).
+    const membersNow = await countMembers(wsId)
+    const memberInvites = await countOpenWorkspaceInvites(wsId, now, email, 'members')
+    if (newRole !== 'guest') {
+      assertPlanLimit(
+        plan,
+        'membersPerWorkspace',
+        membersNow + memberInvites,
+        'This workspace has reached the member limit of its plan.'
+      )
+    }
+
+    // Team / Business (WP3): members + open invitations may not exceed the
+    // paid seats. With `addSeat: true` (the invite dialog's "This adds a
+    // seat" confirmation) one seat is bought and paid first, pro rata.
+    if (pool && newRole !== 'guest') {
+      const used = membersNow + memberInvites
+      if (used >= pool.seats) {
+        if (body?.addSeat !== true) throw seatsFullError(pool.seats, used)
+        const stripe = useStripeClient()
+        if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
+        const seats = used + 1
+        try {
+          await changeWorkspaceSeats(stripe, pool.subscription, seats)
+        } catch (e) {
+          throw seatChangeError(e, wsId)
+        }
+        const updated = await getPooledWorkspace(wsId)
+        if (updated) {
+          await ensureWorkspaceTeam(updated).catch((e: unknown) => {
+            console.warn(`[invite] team budget sync failed: ${e instanceof Error ? e.message : e}`)
+          })
+        }
+        await appendAuditEvent({
+          actorUserId: session.user.id,
+          actorIp: getClientIp(event),
+          scope: 'billing',
+          scopeId: wsId,
+          action: AUDIT_WORKSPACE_BILLING_SEATS_CHANGED,
+          before: { seats: pool.seats },
+          after: { seats },
+          metadata: { reason: 'invite' }
+        })
+        // The billing admin pays: tell them when another admin added a seat.
+        const billingAdminId = pool.subscription.billingAdminId
+        if (billingAdminId !== null && billingAdminId !== session.user.id) {
+          void notifyWorkspaceAdmins({
+            workspaceId: wsId,
+            kind: 'seat_added',
+            onlyUserIds: [billingAdminId],
+            vars: { seats, actor: session.user.name }
+          })
+        }
+      }
+    }
+
+    // Email link only when the deployment has a configured site URL (links
+    // are never built from the request Host) and the per-address daily
+    // budget isn't spent. Without it the invite is in-app only.
+    const sendEmail = baseUrl !== null
+      && await checkRateLimit('workspace-invite-email', hashInviteSecret(email), WORKSPACE_INVITE_EMAILS_PER_ADDRESS, WORKSPACE_INVITE_EMAIL_WINDOW_MS)
+    token = sendEmail ? generateInviteToken() : null
+
+    inviteId = await upsertWorkspaceInvite({
+      workspaceId: wsId,
+      email,
+      role: newRole,
+      invitedByUserId: session.user.id,
+      tokenHash: token === null ? null : hashInviteSecret(token),
+      expiresAt: new Date(now.getTime() + WORKSPACE_INVITE_TTL_MS)
+    })
+  } finally {
+    await releaseSeatLock?.()
+  }
 
   if (token !== null && baseUrl !== null) {
     const [inviter, workspace] = await Promise.all([findUserById(session.user.id), getWorkspace(wsId)])

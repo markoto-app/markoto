@@ -1494,7 +1494,10 @@
       "pricePerSeatYear": "每个席位每年 {price}。",
       "errors": {
         "seatsFull": "所有付费席位都已占用。请增加一个席位以邀请其他人。",
-        "seatsBelowMembers": "此工作区的人数多于席位数。请移除成员或保留更多席位。"
+        "seatsBelowMembers": "此工作区的人数多于席位数。请移除成员或保留更多席位。",
+        "cancelFailed": "无法取消此工作区的订阅，因此未删除任何内容。请重试。",
+        "subscriptionActive": "此工作区仍有进行中的订阅。请联系支持以删除它。",
+        "seatsBusy": "另一项席位变更或邀请正在进行中。请稍后再试。"
       }
     }
   },

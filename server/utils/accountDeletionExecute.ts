@@ -206,6 +206,12 @@ async function cascadeDeleteWorkspaces(
   summary: AccountDeletionSummary
 ): Promise<void> {
   if (cascadeWorkspaceIds.length === 0) return
+  // Team / Business (WP3): cancel every subscription FIRST. A
+  // subscription Stripe won't cancel throws here, before anything of
+  // these workspaces is deleted; the sweep retries the account later.
+  for (const wsId of cascadeWorkspaceIds) {
+    await endWorkspaceBilling(wsId, null)
+  }
   const docIds = await listDocIdsInWorkspaces(cascadeWorkspaceIds)
   for (const docId of docIds) {
     await deleteOneDoc(docId, 'cascade_doc_failed', summary)
@@ -221,9 +227,7 @@ async function cascadeDeleteWorkspaces(
     }
   }
   // Drop the workspace rows themselves — workspace_members cascade via FK.
-  // A Team / Business subscription is cancelled first (WP3).
   for (const wsId of cascadeWorkspaceIds) {
-    await endWorkspaceBilling(wsId, null)
     await deleteWorkspaceRow(wsId)
   }
 }

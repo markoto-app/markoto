@@ -1494,7 +1494,10 @@
       "pricePerSeatYear": "Une place coûte {price} par an.",
       "errors": {
         "seatsFull": "Toutes les places payées sont occupées. Ajoutez une place pour inviter quelqu’un.",
-        "seatsBelowMembers": "Il y a plus de personnes que de places dans cet espace. Retirez quelqu’un ou gardez plus de places."
+        "seatsBelowMembers": "Il y a plus de personnes que de places dans cet espace. Retirez quelqu’un ou gardez plus de places.",
+        "cancelFailed": "L’abonnement de l’espace n’a pas pu être résilié, rien n’a donc été supprimé. Veuillez réessayer.",
+        "subscriptionActive": "Cet espace a encore un abonnement en cours. Contactez le support pour le supprimer.",
+        "seatsBusy": "Une autre modification des places ou invitation est en cours. Réessayez dans un instant."
       }
     }
   },

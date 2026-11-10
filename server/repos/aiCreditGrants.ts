@@ -133,6 +133,11 @@ export async function getPeriodPlanBudget(subject: CreditSubject, period: string
   return row?.planBudgetUsd ?? null
 }
 
+/** Advisory-lock key serialising every change to one subject's grants. */
+function creditLockKey(subject: CreditSubject): string {
+  return `ai-credits:${subject.type}:${subject.id}`
+}
+
 /**
  * Take `amountUsd` from the subject's usable grants (soonest-expiring
  * first) and add what was actually taken to the month's settlement, in
@@ -142,7 +147,7 @@ export async function getPeriodPlanBudget(subject: CreditSubject, period: string
 export async function consumeCredits(subject: CreditSubject, period: string, amountUsd: number, now: Date = new Date()): Promise<number> {
   if (!(amountUsd > 0)) return 0
   return useDatabase().transaction(async (tx) => {
-    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${`ai-credits:${subject.type}:${subject.id}`}))`)
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtext(${creditLockKey(subject)}))`)
     let left = amountUsd
     for (const grant of await listUsableGrants(subject, now, tx)) {
       if (left <= 0) break
@@ -178,6 +183,14 @@ export async function settleMonth(subject: CreditSubject, period: string, target
  * used). Returns the subject, or null for an unknown payment.
  */
 export async function refundCreditGrant(paymentIntentId: string, refundedFraction: number, db: DbOrTx = useDatabase()): Promise<CreditSubject | null> {
+  const found = (await db.select({ subjectType: aiCreditGrants.subjectType, subjectId: aiCreditGrants.subjectId })
+    .from(aiCreditGrants).where(eq(aiCreditGrants.stripePaymentIntentId, paymentIntentId)).limit(1))[0]
+  if (!found) return null
+  // Same per-subject lock as `consumeCredits` (held until the caller's
+  // transaction ends), and the grant re-read under it: otherwise a
+  // settlement taking from this grant at the same moment and this refund
+  // each write `remaining_usd` from a stale read, and one write is lost.
+  await db.execute(sql`select pg_advisory_xact_lock(hashtext(${creditLockKey({ type: found.subjectType, id: found.subjectId })}))`)
   const grant = (await db.select().from(aiCreditGrants).where(eq(aiCreditGrants.stripePaymentIntentId, paymentIntentId)).limit(1))[0] as CreditGrantRow | undefined
   if (!grant) return null
   const fraction = Math.min(1, Math.max(0, refundedFraction))

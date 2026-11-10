@@ -31,6 +31,11 @@ export default defineEventHandler(async (event) => {
 
   const ip = getClientIp(event)
 
+  // Team / Business (WP3): cancel the subscription first (annual:
+  // prorated credit) and delete the workspace's LiteLLM team. If Stripe
+  // can't cancel it, this throws and nothing has been deleted yet.
+  await endWorkspaceBilling(wsId, session.user.id)
+
   const childDocIds = await listDocIdsInWorkspace(wsId)
   for (const docId of childDocIds) {
     // Snapshot per-doc before the cascade for audit forensics.
@@ -63,10 +68,6 @@ export default defineEventHandler(async (event) => {
   for (const row of knowledgeRows) {
     await deleteKnowledgeArtifact(row.knowledgeId)
   }
-
-  // Team / Business (WP3): cancel the subscription (annual: prorated
-  // credit) and delete the workspace's LiteLLM team. Best-effort.
-  await endWorkspaceBilling(wsId, session.user.id)
 
   // workspace_members rows are removed automatically by the ON DELETE
   // CASCADE foreign key.
