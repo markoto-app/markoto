@@ -72,6 +72,13 @@ uploader's personal storage.
 
 - **Switch to Business / Team** or **to annual / monthly billing** on the
   Billing tab. The change applies straight away, prorated.
+- **Add seats** on the Billing tab (or by confirming "This adds a seat" when
+  you invite someone). Added seats are charged straight away for the rest
+  of the billing period, and their AI budget covers the days left in the
+  current monthly budget period.
+- **Remove seats** on the Billing tab. There's no credit for the current
+  period: the removed seats keep their AI budget until the budget period
+  ends, and the next invoice bills the new number.
 - **Manage billing** opens Stripe's billing portal: invoices, payment
   method, cancelling.
 - If a payment fails, admins get an email and see a notice in the

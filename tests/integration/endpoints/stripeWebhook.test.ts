@@ -913,6 +913,21 @@ describe('POST /api/webhooks/stripe — workspace subscriptions (Team / Business
     expect((await readSub(workspaceId))?.status).toBe('canceled')
   })
 
+  it('events of another subscription never overwrite the live one (duplicate checkout, late events)', async () => {
+    const { workspaceId } = await seedWorkspaceCustomer()
+    await postWebhook(subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_team'))
+    expect(await readSub(workspaceId)).toMatchObject({ status: 'active', seats: 5, stripe_subscription_id: 'sub_ws_team' })
+
+    // A second subscription on the same customer (being cancelled as a duplicate).
+    const dup = subscriptionEvent('customer.subscription.updated', 'cus_ws_team', 'price_test_business_year_chf')
+    ;(dup.data as { object: Record<string, unknown> }).object.id = 'sub_ws_dup'
+    expect((await postWebhook(dup)).status).toBe(200)
+    expect((await postWebhook(makeStripeEvent('customer.subscription.deleted', {
+      id: 'sub_ws_dup', object: 'subscription', customer: 'cus_ws_team', status: 'canceled'
+    }))).status).toBe(200)
+    expect(await readSub(workspaceId)).toMatchObject({ plan: 'team', status: 'active', seats: 5, stripe_subscription_id: 'sub_ws_team' })
+  })
+
   it('checkout for workspace:<id> whose subscription is not a workspace price writes nothing', async () => {
     // stripe-mock's canned subscription price is annual CHF Pro, so the
     // workspace path must refuse it rather than sell Pro to a workspace.

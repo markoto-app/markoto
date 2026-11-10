@@ -105,6 +105,35 @@ export async function getSettledUsd(subject: CreditSubject, period: string, db: 
 }
 
 /**
+ * Record the subject's plan budget for an OPEN month and return the
+ * highest one recorded for it (a plan that ended mid-month still covered
+ * the spend made while it ran). Upsert; never lowers the stored value.
+ */
+export async function recordPeriodPlanBudget(subject: CreditSubject, period: string, planBudgetUsd: number, db: DbOrTx = useDatabase()): Promise<number> {
+  const budget = roundUsd(Math.max(0, planBudgetUsd))
+  const rows = await db.insert(aiCreditSettlements)
+    .values({ subjectType: subject.type, subjectId: subject.id, period, planBudgetUsd: budget })
+    .onConflictDoUpdate({
+      target: [aiCreditSettlements.subjectType, aiCreditSettlements.subjectId, aiCreditSettlements.period],
+      set: { planBudgetUsd: sql`greatest(coalesce(${aiCreditSettlements.planBudgetUsd}, 0), ${budget})`, updatedAt: new Date() }
+    })
+    .returning({ planBudgetUsd: aiCreditSettlements.planBudgetUsd })
+  return rows[0]?.planBudgetUsd ?? budget
+}
+
+/** The plan budget recorded for a month, or null when no settlement ran while it was open. */
+export async function getPeriodPlanBudget(subject: CreditSubject, period: string, db: DbOrTx = useDatabase()): Promise<number | null> {
+  const row = (await db.select({ planBudgetUsd: aiCreditSettlements.planBudgetUsd })
+    .from(aiCreditSettlements)
+    .where(and(
+      eq(aiCreditSettlements.subjectType, subject.type),
+      eq(aiCreditSettlements.subjectId, subject.id),
+      eq(aiCreditSettlements.period, period)
+    )).limit(1))[0]
+  return row?.planBudgetUsd ?? null
+}
+
+/**
  * Take `amountUsd` from the subject's usable grants (soonest-expiring
  * first) and add what was actually taken to the month's settlement, in
  * one transaction with a per-subject advisory lock. Returns the USD

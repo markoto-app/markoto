@@ -50,6 +50,8 @@ describe('HANDLED_STRIPE_EVENT_TYPES', () => {
     // either side, this test failing is the canary.
     expect(HANDLED_STRIPE_EVENT_TYPES).toEqual([
       'checkout.session.completed',
+      'checkout.session.async_payment_succeeded',
+      'checkout.session.async_payment_failed',
       'customer.subscription.created',
       'customer.subscription.updated',
       'customer.subscription.deleted',

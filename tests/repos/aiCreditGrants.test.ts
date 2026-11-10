@@ -4,9 +4,11 @@ import {
   consumeCredits,
   deleteCreditsForSubject,
   expireGrants,
+  getPeriodPlanBudget,
   getSettledUsd,
   insertCreditGrant,
   listUsableGrants,
+  recordPeriodPlanBudget,
   refundCreditGrant,
   settleMonth,
   sumUsableCredits,
@@ -67,6 +69,20 @@ describe('AI credit grants', () => {
     // Budget extra = what's left + what this month already used: stays 10
     // through the month, so spend never exceeds the budget.
     expect(await creditBudgetExtraUsd(alice)).toBe(10)
+  })
+
+  it('records the highest plan budget of an open month and keeps settlements', async () => {
+    const period = '2027-04'
+    expect(await getPeriodPlanBudget(alice, period)).toBeNull()
+    expect(await recordPeriodPlanBudget(alice, period, 5)).toBe(5)
+    await grant(alice, 10)
+    await settleMonth(alice, period, 2)
+    // The plan ends: today's budget is lower, the month keeps the higher one.
+    expect(await recordPeriodPlanBudget(alice, period, 1)).toBe(5)
+    expect(await recordPeriodPlanBudget(alice, period, 7.5)).toBe(7.5)
+    expect(await getPeriodPlanBudget(alice, period)).toBe(7.5)
+    expect(await getSettledUsd(alice, period)).toBe(2)
+    expect(await getPeriodPlanBudget(ws, period)).toBeNull()
   })
 
   it('a refund removes the refunded share of what is left', async () => {

@@ -4,6 +4,8 @@ import { eq } from 'drizzle-orm'
 import { workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from './database'
 import { findLiveSubscription } from './stripePlanChange'
+import { changedSeatBudgetAdjust } from './workspaceBilling'
+import { readWorkspaceTeam } from './litellm/workspaceTeams'
 import type { WorkspaceSubscriptionRow } from '../repos/workspaceSubscriptions'
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
@@ -69,11 +71,24 @@ export async function ensureWorkspaceCustomer(stripe: Stripe, args: {
 }
 
 /**
- * Change the paid seats of a live subscription (prorated). The local row
- * is updated right away so an invite that adds a seat can go through;
- * the `customer.subscription.updated` webhook writes the same value.
+ * Change the paid seats of a live subscription.
+ *
+ * - More seats: invoiced and paid NOW (`always_invoice` +
+ *   `error_if_incomplete`, like a plan upgrade). A failed payment throws
+ *   and changes nothing — seats bought on credit used to unlock the
+ *   pooled AI budget before anything was paid.
+ * - Fewer seats: no credit for the running period
+ *   (`proration_behavior: 'none'`); the next invoice bills the new count.
+ *   A credit would let an admin add seats, spend their budget and get
+ *   the money back by removing them again.
+ *
+ * The pooled budget follows `changedSeatBudgetAdjust`: added seats unlock
+ * budget for the days left in the LiteLLM budget window, removed seats
+ * keep theirs until the window ends. The local row is written right away
+ * (an invite that adds a seat can go through); the
+ * `customer.subscription.updated` webhook writes the same seat count.
  */
-export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscriptionRow, seats: number): Promise<void> {
+export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscriptionRow, seats: number, now: Date = new Date()): Promise<void> {
   const sub = await findLiveSubscription(stripe, row.stripeSubscriptionId)
   const item = sub?.items.data[0]
   if (!sub || !item) {
@@ -83,13 +98,107 @@ export async function changeWorkspaceSeats(stripe: Stripe, row: WorkspaceSubscri
       data: { code: 'billing/no-subscription' }
     })
   }
+  // The budget window has to be known BEFORE anything is charged: without
+  // it the added seats' budget can't be prorated.
+  let windowEnd: Date | null
+  try {
+    const resetAt = (await readWorkspaceTeam(row.workspaceId))?.budget_reset_at
+    windowEnd = resetAt ? new Date(resetAt) : null
+  } catch (e) {
+    Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_team_read_failed', workspaceId: row.workspaceId } })
+    throw createError({ statusCode: 503, message: 'Could not read the workspace\'s AI budget. Nothing was changed; please try again.' })
+  }
+  const from = item.quantity ?? row.seats
+  const adding = seats > from
   await stripe.subscriptions.update(sub.id, {
     items: [{ id: item.id, quantity: seats }],
-    proration_behavior: 'create_prorations'
+    ...(adding
+      ? { proration_behavior: 'always_invoice' as const, payment_behavior: 'error_if_incomplete' as const }
+      : { proration_behavior: 'none' as const })
   })
+  const budget = changedSeatBudgetAdjust({ current: row, from, to: seats, windowEnd, now })
   await useDatabase().update(workspaceSubscriptions)
-    .set({ seats, updatedAt: new Date() })
+    .set({ seats, budgetSeatAdjust: budget.adjust, budgetSeatAdjustUntil: budget.until, updatedAt: new Date() })
     .where(eq(workspaceSubscriptions.workspaceId, row.workspaceId))
+}
+
+/**
+ * The HTTP error for a failed `changeWorkspaceSeats`: our own errors pass
+ * through, a declined payment for added seats is a 402 (nothing changed;
+ * the admin updates the card in the billing portal), anything else a 502.
+ */
+export function seatChangeError(e: unknown, workspaceId: string): Error {
+  if ((e as { statusCode?: number })?.statusCode) return e as Error
+  const msg = e instanceof Error ? e.message : 'Stripe error'
+  if ((e as { type?: string })?.type === 'StripeCardError') {
+    return createError({
+      statusCode: 402,
+      message: `The payment for the added seats failed, so nothing was changed: ${msg}`,
+      data: { code: 'billing/payment-failed' }
+    })
+  }
+  Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_seats_failed', workspaceId } })
+  return createError({ statusCode: 502, message: `Could not change the seats: ${msg}` })
+}
+
+/**
+ * A second subscription for a workspace that already has a live one (two
+ * admins, or two tabs, each completed a Checkout). Cancel it at once and
+ * refund what its first invoice took — the workspace keeps the first
+ * subscription. Safe to repeat (a webhook retry): a cancelled
+ * subscription is not cancelled again, and each refund carries an
+ * idempotency key per payment. A refund that fails is reported (error
+ * level) for a manual refund instead of failing the webhook.
+ */
+export async function cancelDuplicateWorkspaceSubscription(stripe: Stripe, sub: Stripe.Subscription, workspaceId: string): Promise<{ refunded: number }> {
+  if (sub.status !== 'canceled' && sub.status !== 'incomplete_expired') {
+    await stripe.subscriptions.cancel(sub.id, { prorate: false, invoice_now: false })
+  }
+  let refunded = 0
+  const invoiceId = typeof sub.latest_invoice === 'string' ? sub.latest_invoice : sub.latest_invoice?.id ?? null
+  try {
+    if (invoiceId) {
+      for await (const payment of stripe.invoicePayments.list({ invoice: invoiceId, status: 'paid' })) {
+        const pi = payment.payment.payment_intent
+        const paymentIntent = typeof pi === 'string' ? pi : pi?.id
+        if (!paymentIntent) continue
+        await stripe.refunds.create(
+          { payment_intent: paymentIntent, metadata: { reason: 'duplicate_workspace_subscription', workspace_id: workspaceId, subscription_id: sub.id } },
+          { idempotencyKey: `markoto-duplicate-subscription-refund-${paymentIntent}` }
+        )
+        refunded++
+      }
+    }
+  } catch (e) {
+    console.error(`[workspaceStripe] refund of duplicate subscription ${sub.id} failed — refund it manually:`, e instanceof Error ? e.message : e)
+    Sentry.captureException(e, { level: 'error', tags: { component: 'billing', event: 'duplicate_subscription_refund_failed', workspaceId } })
+  }
+  const msg = `[workspaceStripe] duplicate subscription ${sub.id} for workspace ${workspaceId} cancelled, ${refunded} payment(s) refunded`
+  console.warn(msg)
+  Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'billing', event: 'duplicate_subscription_cancelled', workspaceId } })
+  return { refunded }
+}
+
+/**
+ * Expire the workspace customer's other open Checkout Sessions before a
+ * new one is created, so only the newest can still be paid (two admins,
+ * or two tabs, would otherwise each buy a subscription). The webhook
+ * still cancels a duplicate that slips through
+ * (`cancelDuplicateWorkspaceSubscription`).
+ */
+export async function expireOpenWorkspaceCheckouts(stripe: Stripe, customerId: string): Promise<number> {
+  let expired = 0
+  for await (const session of stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 20 })) {
+    if (session.mode !== 'subscription') continue
+    try {
+      await stripe.checkout.sessions.expire(session.id)
+      expired++
+    } catch (e) {
+      // Completed or expired in the meantime: nothing left to expire.
+      if ((e as { type?: string })?.type !== 'StripeInvalidRequestError') throw e
+    }
+  }
+  return expired
 }
 
 /**

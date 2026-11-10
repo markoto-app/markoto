@@ -8,6 +8,8 @@ vi.mock('../../server/repos/workspaceMembers', () => ({ countMembers: vi.fn() })
 vi.mock('../../server/repos/workspaceInvites', () => ({ countOpenWorkspaceInvites: vi.fn() }))
 
 const {
+  budgetSeats,
+  changedSeatBudgetAdjust,
   memberLimitUsd,
   parseSeats,
   pooledFromRow,
@@ -56,7 +58,7 @@ describe('parseSeats', () => {
 describe('pooledFromRow', () => {
   const base = {
     workspaceId: 'ws1', plan: 'team' as const, seats: 5, billingAdminId: 1, stripeCustomerId: 'cus', stripeSubscriptionId: 'sub',
-    currentPeriodStart: null, litellmTeamId: null, currency: 'eur' as const, interval: 'month' as const, createdAt: new Date(), updatedAt: new Date()
+    currentPeriodStart: null, litellmTeamId: null, budgetSeatAdjust: 0, budgetSeatAdjustUntil: null, currency: 'eur' as const, interval: 'month' as const, createdAt: new Date(), updatedAt: new Date()
   }
   const now = new Date('2027-01-01T00:00:00Z')
   it('pools active, trialing and past_due subscriptions that haven\'t expired', () => {
@@ -80,5 +82,45 @@ describe('workspace team budget errors', () => {
     expect(isWorkspaceTeamBudgetError(key)).toBe(false)
     expect(isWorkspaceTeamBudgetError(free)).toBe(false)
     expect(isWorkspaceTeamBudgetError(null)).toBe(false)
+  })
+})
+
+describe('seat changes and the pooled AI budget', () => {
+  const now = new Date('2027-03-10T00:00:00Z')
+  const days = (n: number) => new Date(now.getTime() + n * 24 * 60 * 60 * 1000)
+  const none = { budgetSeatAdjust: 0, budgetSeatAdjustUntil: null }
+
+  it('added seats unlock budget only for the days left in the window', () => {
+    // 3 of 30 days left: each added seat is worth a tenth of a seat's budget.
+    const r = changedSeatBudgetAdjust({ current: none, from: 3, to: 1003, windowEnd: days(3), now })
+    expect(r.until).toEqual(days(3))
+    expect(budgetSeats({ seats: 1003, budgetSeatAdjust: r.adjust, budgetSeatAdjustUntil: r.until }, now)).toBeCloseTo(103)
+  })
+
+  it('a seat added at the start of a window unlocks its full budget', () => {
+    const r = changedSeatBudgetAdjust({ current: none, from: 3, to: 4, windowEnd: days(30), now })
+    expect(budgetSeats({ seats: 4, budgetSeatAdjust: r.adjust, budgetSeatAdjustUntil: r.until }, now)).toBe(4)
+  })
+
+  it('removed seats keep their budget until the window ends', () => {
+    const r = changedSeatBudgetAdjust({ current: none, from: 10, to: 4, windowEnd: days(12), now })
+    const row = { seats: 4, budgetSeatAdjust: r.adjust, budgetSeatAdjustUntil: r.until }
+    expect(budgetSeats(row, now)).toBe(10)
+    expect(budgetSeats(row, days(12))).toBe(4)
+  })
+
+  it('add-then-remove in one window never yields more budget than was paid for', () => {
+    const add = changedSeatBudgetAdjust({ current: none, from: 3, to: 1003, windowEnd: days(3), now })
+    const remove = changedSeatBudgetAdjust({
+      current: { budgetSeatAdjust: add.adjust, budgetSeatAdjustUntil: add.until }, from: 1003, to: 3, windowEnd: days(3), now
+    })
+    expect(budgetSeats({ seats: 3, budgetSeatAdjust: remove.adjust, budgetSeatAdjustUntil: remove.until }, now)).toBeCloseTo(103)
+  })
+
+  it('an adjustment from an ended window is dropped; no window means no adjustment', () => {
+    const stale = { budgetSeatAdjust: 50, budgetSeatAdjustUntil: days(-1) }
+    expect(budgetSeats({ seats: 5, ...stale }, now)).toBe(5)
+    expect(changedSeatBudgetAdjust({ current: stale, from: 5, to: 6, windowEnd: days(15), now }).adjust).toBeCloseTo(-0.5)
+    expect(changedSeatBudgetAdjust({ current: none, from: 5, to: 6, windowEnd: null, now })).toEqual({ adjust: 0, until: null })
   })
 })

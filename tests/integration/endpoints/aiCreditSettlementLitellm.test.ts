@@ -22,6 +22,8 @@ process.env.LITELLM_TEST_STUB = ''
 process.env.NUXT_BILLING_ENABLED = 'true'
 // A Pro plan budget so small that every tick is paid from credits.
 process.env.TIER_PRO_LITELLM_BUDGET_USD = '0.001'
+// Free below Pro, so a cancellation lowers today's plan budget.
+process.env.TIER_FREE_LITELLM_BUDGET_USD = '0'
 process.env.NUXT_LITELLM_DB_NAME = 'litellm_test'
 process.env.NUXT_LITELLM_DB_USER = TEST_LITELLM_DB_USER
 process.env.NUXT_LITELLM_DB_PASSWORD = TEST_LITELLM_DB_PASSWORD
@@ -93,6 +95,13 @@ describe('credit settlement (real LiteLLM)', () => {
     expect(Number((await keyInfo(token)).max_budget)).toBeCloseTo(1.001, 6)
 
     // A second run settles nothing more.
+    await settleSubject(subject)
+    expect(await sumUsableCredits(subject)).toBeCloseTo(1 - (spend - 0.001), 6)
+
+    // The plan is cancelled mid-month: the spend Pro already covered is
+    // still measured against the Pro budget recorded for this month, not
+    // today's (lower) Free budget — no further credits are taken.
+    await testDb().query(`UPDATE users SET plan = 'free', plan_valid_until = NULL WHERE id = $1`, [u.id])
     await settleSubject(subject)
     expect(await sumUsableCredits(subject)).toBeCloseTo(1 - (spend - 0.001), 6)
   }, 150_000)

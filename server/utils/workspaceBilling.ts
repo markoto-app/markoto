@@ -71,6 +71,58 @@ export function workspacePoolCaps(plan: WorkspacePlanName, seats: number, tiers 
   }
 }
 
+/** LiteLLM's budget window of a workspace team (`budget_duration: 30d`). */
+export const WORKSPACE_BUDGET_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
+
+type BudgetSeatFields = Pick<WorkspaceSubscriptionRow, 'seats' | 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
+
+/**
+ * Pure: the seats the pooled AI budget counts right now — the paid seats,
+ * adjusted for seat changes inside the current budget window until that
+ * window ends (`changedSeatBudgetAdjust`).
+ */
+export function budgetSeats(sub: BudgetSeatFields, now: Date = new Date()): number {
+  const seats = Math.max(1, sub.seats)
+  if (!sub.budgetSeatAdjustUntil || sub.budgetSeatAdjustUntil.getTime() <= now.getTime()) return seats
+  return Math.max(0, seats + sub.budgetSeatAdjust)
+}
+
+/** The workspace's pooled AI budget for the current window, USD (without credits). */
+export function workspaceAiBudgetUsd(pool: PooledWorkspace, now: Date = new Date(), tiers = getTiers()): number {
+  return roundUsd(tiers[pool.plan].litellmBudgetUsd * budgetSeats({ ...pool.subscription, seats: pool.seats }, now))
+}
+
+/**
+ * Pure: the budget-seat adjustment after the paid seats change from
+ * `from` to `to` while the LiteLLM budget window runs until `windowEnd`.
+ *
+ * - More seats are charged pro rata (`always_invoice`), so each added
+ *   seat unlocks only the share of a seat's budget for the days left in
+ *   the window: adjust −= added × (1 − left).
+ * - Fewer seats are not credited (`proration_behavior: 'none'`), so the
+ *   removed seats keep their budget until the window ends:
+ *   adjust += removed.
+ *
+ * With no window (no LiteLLM team yet, or it already ended) the next
+ * window starts fresh and counts the paid seats: no adjustment.
+ */
+export function changedSeatBudgetAdjust(args: {
+  current: Pick<WorkspaceSubscriptionRow, 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
+  from: number
+  to: number
+  windowEnd: Date | null
+  now?: Date
+}): { adjust: number, until: Date | null } {
+  const now = args.now ?? new Date()
+  if (!args.windowEnd || args.windowEnd.getTime() <= now.getTime()) return { adjust: 0, until: null }
+  const until = args.current.budgetSeatAdjustUntil
+  const prior = until && until.getTime() > now.getTime() ? args.current.budgetSeatAdjust : 0
+  const delta = args.to - args.from
+  const left = Math.min(1, Math.max(0, (args.windowEnd.getTime() - now.getTime()) / WORKSPACE_BUDGET_WINDOW_MS))
+  const adjust = delta > 0 ? prior - delta * (1 - left) : prior - delta
+  return { adjust: Math.round(adjust * 10_000) / 10_000, until: args.windowEnd }
+}
+
 /**
  * Pure: a member's effective AI limit in USD, `null` = no member limit
  * (the team budget still applies).

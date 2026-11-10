@@ -1461,7 +1461,7 @@
       "manage": "請求を管理",
       "seatCounter": "{seats} 席中 {used} 席を使用中",
       "updateSeats": "席数を変更",
-      "seatsFootnote": "追加した席は次回の請求で日割り計算され、減らした席はクレジットされます。ワークスペースの人数より少なくはできません。",
+      "seatsFootnote": "追加した席はすぐに日割りで請求され、そのAI予算は今の予算月の残り日数分です。減らした席はクレジットされませんが、月末までAI予算を保持します。ワークスペースの人数より少なくはできません。",
       "switchToBusiness": "Business に変更",
       "switchToTeam": "Team に変更",
       "switchToAnnual": "年払いに変更",

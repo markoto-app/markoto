@@ -253,6 +253,13 @@
       "when": 1794256694974,
       "tag": "0035_mushy_morlocks",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794293505547,
+      "tag": "0036_nifty_talisman",
+      "breakpoints": true
     }
   ]
 }
