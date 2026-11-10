@@ -113,6 +113,20 @@
       "add": "Share",
       "loadFailed": "Couldn't load guests",
       "saveFailed": "Couldn't change sharing"
+    },
+    "controls": {
+      "title": "Link settings",
+      "expires": "Link stops working on",
+      "expiresHelp": "After this, only you and members of the workspace can open the document. Leave empty to keep the link working.",
+      "clearExpiry": "Remove the end date",
+      "noDownload": "View only — no download or print",
+      "noDownloadHelp": "People with the link can read the document but not download it as PDF or Markdown or print it. Text on screen can still be copied.",
+      "views": "Not opened in the last 30 days | Opened once in the last 30 days | Opened {n} times in the last 30 days",
+      "lastViewed": "last on {date}",
+      "saveFailed": "Couldn't change the link settings",
+      "downloadDisabled": "The owner turned off downloading and printing this document.",
+      "expiredTitle": "This link has expired",
+      "expiredBody": "The owner set this link to stop working. Ask them for access if you still need the document."
     }
   },
   "access": {
@@ -315,7 +329,8 @@
       "academic": "Academic",
       "business": "Business",
       "writing": "Writing",
-      "saved": "My designs"
+      "saved": "My designs",
+      "workspace": "This workspace"
     },
     "blankIn": "Blank in {design}",
     "blankWorkspaceDescription": "An empty page in your workspace’s design, {design}."
@@ -1323,7 +1338,8 @@
       "billing": "Billing",
       "sso": "Single sign-on",
       "audit": "Audit log",
-      "usage": "Usage"
+      "usage": "Usage",
+      "brand": "Brand kit"
     },
     "settings": {
       "title": "Workspace settings",
@@ -1850,7 +1866,9 @@
       "aiStrongModel": "The strong AI model isn't included in this plan.",
       "sso": "Single sign-on isn't included in this workspace's plan.",
       "auditLog": "The audit log isn't included in this workspace's plan.",
-      "guests": "Guests aren't included in this workspace's plan."
+      "guests": "Guests aren't included in this workspace's plan.",
+      "brandKit": "The brand kit isn't included in this workspace's plan.",
+      "shareControls": "Link expiry, view-only sharing and view counts aren't included in this document's plan."
     },
     "limit": {
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
@@ -2430,7 +2448,13 @@
       "sso_scim_user_created": "Member provisioned",
       "sso_scim_user_deactivated": "Member deprovisioned",
       "doc_shared": "Document shared with a guest",
-      "doc_unshared": "Document no longer shared with a guest"
+      "doc_unshared": "Document no longer shared with a guest",
+      "workspace_brand_asset_added": "Brand kit file added",
+      "workspace_brand_asset_removed": "Brand kit file removed",
+      "workspace_brand_lock_changed": "Workspace design lock changed",
+      "workspace_template_added": "Template added",
+      "workspace_template_removed": "Template removed",
+      "doc_share_settings_changed": "Link settings changed"
     },
     "planNotice": "The audit log is part of the Business plan."
   },
@@ -2448,5 +2472,58 @@
     "sharedDocs": "no shared documents | {n} shared document | {n} shared documents",
     "guestsHint": "Guests use their own AI budget, so their spend is not shown here.",
     "loadFailed": "Couldn't load usage"
+  },
+  "brandKit": {
+    "title": "Brand kit",
+    "intro": "Your organisation's fonts, logos and design for every document in this workspace, and templates your members start new documents from.",
+    "loadFailed": "Couldn't load the brand kit",
+    "uploadFailed": "Couldn't upload the file",
+    "deleteFailed": "Couldn't delete the file",
+    "fonts": "Fonts",
+    "fontsHint": "Upload one file per weight and style (WOFF2, WOFF or TTF). They appear under \"This workspace\" in the font pickers of every document here, and in its PDFs. Variable fonts and fonts with PostScript (CFF) outlines print badly and are not accepted — use the static TrueType cuts.",
+    "noFonts": "No fonts yet.",
+    "chooseFont": "Choose a font file",
+    "fontName": "Font name",
+    "fontNameHelp": "Leave empty to use the name in the file. Upload all styles of a family under the same name.",
+    "fontNamePlaceholder": "e.g. Acme Sans",
+    "licence": "Our licence allows embedding this font in documents and PDFs.",
+    "uploadFont": "Upload font",
+    "fontAdded": "{name} added",
+    "italic": "italic",
+    "delete": "Delete",
+    "logos": "Logos",
+    "logosHint": "PNG, JPEG or WebP. Every document in the workspace can use them as its cover logo or header image.",
+    "uploadLogo": "Upload a logo",
+    "workspaceLogos": "Workspace logos",
+    "workspaceFonts": "This workspace",
+    "design": "Workspace design",
+    "designHint": "The design new documents in this workspace start with. Lock it to use it for every document: authors then only fill in their cover text.",
+    "noDesign": "No workspace design yet. Take it from a document, or choose a default design in Settings.",
+    "pickDocument": "Choose a document",
+    "useDesign": "Use this document's design",
+    "designSet": "Workspace design updated",
+    "designImagesDropped": "Images uploaded to that document were left out — choose a workspace logo for the shared design.",
+    "designFailed": "Couldn't set the workspace design",
+    "lockLabel": "Lock the design for all documents",
+    "lockDescription": "Every document in the workspace uses the workspace design; only its cover text (subtitle, date, authors) stays its own. Unlocking gives each document its own design back.",
+    "lockFailed": "Couldn't change the lock",
+    "lockedTitle": "The workspace design is locked",
+    "lockedBody": "This document uses the design of its workspace. You can still change the cover text below.",
+    "openBrandKit": "Open the brand kit",
+    "templates": "Templates",
+    "templatesHint": "Turn a workspace document into a template. New documents made from it copy its current text and design, so changes to the document change the template.",
+    "templateName": "Template name",
+    "templateDescription": "Short description (optional)",
+    "addTemplate": "Add template",
+    "removeTemplate": "Remove template",
+    "templateFailed": "Couldn't change the templates",
+    "fontRefused": {
+      "not-a-font": "This is not a font file. Upload a WOFF2, WOFF or TTF file.",
+      "collection": "This file holds several fonts. Upload each style as its own file.",
+      "variable": "Variable fonts print badly in PDFs. Upload the static cuts (one file per weight and style) instead.",
+      "cff": "Fonts with PostScript (CFF) outlines print badly in PDFs. Upload the TrueType (TTF or WOFF2) version instead.",
+      "no-embedding": "This font's licence does not allow embedding it in documents.",
+      "damaged": "This font file is damaged or incomplete."
+    }
   }
 }

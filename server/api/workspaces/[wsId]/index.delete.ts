@@ -1,3 +1,4 @@
+import { collectBrandObjectKeys, deleteBrandObjects } from '../../../utils/brandKit/storage'
 import { deleteWorkspaceRow } from '../../../repos/workspaces'
 import { getDoc, listDocIdsInWorkspace } from '../../../repos/documents'
 import { listKnowledge } from '../../../repos/knowledge'
@@ -69,9 +70,14 @@ export default defineEventHandler(async (event) => {
     await deleteKnowledgeArtifact(row.knowledgeId)
   }
 
+  // Brand-kit objects (WP10): the rows cascade with the workspace; read
+  // their keys first, delete the objects after.
+  const brandKeys = await collectBrandObjectKeys(wsId)
+
   // workspace_members rows are removed automatically by the ON DELETE
   // CASCADE foreign key.
   await deleteWorkspaceRow(wsId)
+  await deleteBrandObjects(brandKeys)
 
   await appendAuditEvent({
     actorUserId: session.user.id,

@@ -45,6 +45,8 @@ const props = defineProps<{
    * dictation" and show a check mark while active.
    */
   dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
+  /** Share-link controls (WP9): the owner made this a view-only link — no export or print. */
+  noDownload?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -128,7 +130,7 @@ const fileItems = computed(() => {
   if (!props.isReadOnly) {
     items.push({ label: t('menubar.file.import'), icon: 'i-lucide-file-up', onSelect: () => emit('open-import') })
   }
-  items.push(
+  if (!props.noDownload) items.push(
     {
       label: t('menubar.file.export'),
       icon: 'i-lucide-download',

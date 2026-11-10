@@ -3,6 +3,7 @@ import { getDoc, getDocWithActorRole, setDocPassword, clearDocPassword, type Doc
 import { appendAuditEvent } from '../../../repos/audit'
 import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/docPasswordLimits'
 import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
+import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
 
 export default defineEventHandler(async (event) => {
@@ -103,30 +104,34 @@ async function handleVerify(event: H3Event, docId: string, doc: DocSnapshot, pas
     })
   }
 
-  const readOnly = await passwordGrantReadOnly(event, docId)
-  return { success: true, token: await mintPasswordToken(event, docId, readOnly), readOnly }
+  const grant = await passwordGrant(event, docId)
+  return { success: true, token: await mintPasswordToken(event, docId, grant.readOnly, grant.shareExpiresAt), readOnly: grant.readOnly }
 }
 
 /**
  * Read-only flag for a verified caller, derived from `decideTokenAccess`
  * so the two token surfaces can't disagree: a member who already has
- * access keeps exactly that access (viewer → read-only); anyone else is
- * treated as the password's audience and gets edit.
+ * access keeps exactly that access (viewer → read-only); the password's
+ * audience ("password-required") gets edit. Anyone else — above all a
+ * visitor once the share link has expired (WP9), when the doc counts as
+ * private — is refused: the password no longer opens it.
  */
-async function passwordGrantReadOnly(event: H3Event, docId: string): Promise<boolean> {
+async function passwordGrant(event: H3Event, docId: string): Promise<{ readOnly: boolean, shareExpiresAt: Date | null }> {
   const session = await getValidatedUserSession(event)
   const userId = session?.user?.id ?? null
   const row = await getDocWithActorRole(docId, userId)
   if (!row) throw createError({ statusCode: 404, message: 'Document not found' })
-  const decision = decideTokenAccess(
-    docStateOf(row),
-    { userId, workspaceRole: row.workspaceRole }
-  )
-  return decision.outcome === 'allow' ? decision.readOnly : false
+  const state = docStateOf(row)
+  const decision = decideTokenAccess(state, { userId, workspaceRole: row.workspaceRole })
+  if (decision.outcome === 'allow') return { readOnly: decision.readOnly, shareExpiresAt: row.shareExpiresAt }
+  if (decision.outcome === 'password-required') return { readOnly: false, shareExpiresAt: row.shareExpiresAt }
+  throw createError(state.shareExpired
+    ? { statusCode: 403, message: 'This link has expired', data: { code: 'share/expired' } }
+    : { statusCode: 403, message: 'No access to this document' })
 }
 
-/** Mint a 2h doc JWT for a verified caller. Carries name for sync-server attribution — matches token.get.ts. */
-async function mintPasswordToken(event: H3Event, docId: string, readOnly: boolean): Promise<string> {
+/** Mint a doc JWT (≤ 2h, never past the share link's expiry) for a verified caller. Carries name for sync-server attribution — matches token.get.ts. */
+async function mintPasswordToken(event: H3Event, docId: string, readOnly: boolean, shareExpiresAt: Date | null): Promise<string> {
   const jwt = await import('jsonwebtoken')
   const config = useRuntimeConfig()
   if (!config.jwtSecret) {
@@ -141,7 +146,7 @@ async function mintPasswordToken(event: H3Event, docId: string, readOnly: boolea
       readOnly
     },
     config.jwtSecret,
-    { expiresIn: '2h' }
+    { expiresIn: docJwtLifetimeSeconds(shareExpiresAt) }
   )
 }
 

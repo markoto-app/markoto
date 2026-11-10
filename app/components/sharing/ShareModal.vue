@@ -10,6 +10,8 @@ const props = defineProps<{
   // Admin / editor of the document's workspace (WP11): may share it
   // with the workspace's guests.
   canShareWithGuests?: boolean
+  /** Owner or workspace admin (WP9 share-link controls). */
+  canManage?: boolean
 }>()
 
 const open = defineModel<boolean>('open', { required: true })
@@ -309,6 +311,11 @@ async function setPassword() {
             {{ t(accessOptions.find(o => o.value === accessMode)?.label || 'share.openEdit') }}
           </UBadge>
         </div>
+
+        <SharingShareControls
+          v-if="canManage && accessMode !== 'private'"
+          :doc-id="docId"
+        />
 
         <SharingGuestShares
           v-if="canShareWithGuests"

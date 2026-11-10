@@ -27,6 +27,8 @@ Nitro API + sync notification layer for markoto. Most cross-cutting code in this
 
 Workspace membership overrides: admin/editor bypasses `private` and `password-protected`; viewer gets read-only access regardless of accessMode. In a workspace that enforces single sign-on, the Owner column applies only while the owner has an effective (SSO-satisfied) role there — `ownerAccessSuspended` from `getDocWithActorRole`, see `utils/sso/AGENTS.md`.
 
+**Share-link controls (WP9).** `share_expires_at`: `docStateOf` turns a public mode into `private` once it passed (owner + workspace members unaffected; `DocState.shareExpired`), so every decide* path enforces it. `share_no_download`: `canDownload(doc, actor, noDownload)` — visitors (not owner, no member role; guests count as visitors) get no PDF, Markdown export or print. Set via `/api/docs/:id/share-settings` (`canManage`).
+
 **Read-only: 4 layers** — (1) token mints JWT with `readOnly: true`, (2) Hocuspocus blocks Y.js updates, (3) CM6 Compartments set `EditorView.editable + EditorState.readOnly`, (4) UI hides toolbar.
 
 **Password-protected: 3 layers** — (1) token returns `token: null`, (2) Hocuspocus rejects, (3) `v-if="!requiresPassword"` blocks editor mount.
@@ -45,7 +47,7 @@ Workspace membership overrides: admin/editor bypasses `private` and `password-pr
 |---|---|---|---|
 | `GET /api/docs/:id/token` | implicit doc — `{docId, userId, readOnly}` | 2h | Hocuspocus `onAuthenticate` (rejects mismatched `documentName`) |
 | `server/utils/renderTokens.ts` | `'render'` + `{docId, snapshotId}` | 60s | `app/pages/_internal/render/[docId].vue` (renderer-only path) |
-| `server/utils/fileAccessToken.ts` (render-bootstrap: 5 min; `GET /api/docs/:id/file-token`: 15 min) | `'file-access'` + `{docId, readOnly: true}` | 5–15 min | `/api/files` ONLY (`hasValidDocJwt(event, docId, ['file-access'])`); every other `hasValidDocJwt` caller refuses scoped tokens, Hocuspocus refuses any scope. Used by the server render page and the sandboxed (opaque-origin, cookie-less) preview/print iframes |
+| `server/utils/fileAccessToken.ts` (render-bootstrap: 5 min; `GET /api/docs/:id/file-token`: 15 min) | `'file-access'` + `{docId, readOnly: true}` | 5–15 min | `/api/files` and the document's brand-kit files `/api/docs/:id/brand/:file` (WP10) ONLY (`hasValidDocJwt(event, docId, ['file-access'])`); every other `hasValidDocJwt` caller refuses scoped tokens, Hocuspocus refuses any scope. Used by the server render page and the sandboxed (opaque-origin, cookie-less) preview/print iframes |
 | `POST /api/ai/dictate/token` | dictate — `{userId}` (separate `dictateJwtSecret`, falls back to `jwtSecret`) | 60s | first WS message on `/api/ai/dictate` |
 | `server/utils/aiClient.ts` (AI joins as Y.js client) | `userId='ai:assistant:{sessionId}'` | 10m | Hocuspocus, same path as user tokens |
 | `server/utils/restoreDoc.ts` (synthetic restore client) | same | 5m | Hocuspocus |

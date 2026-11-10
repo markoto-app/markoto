@@ -44,6 +44,12 @@ export interface DuplicateInput {
   ownerId: number | null
   workspaceId: string | null
   title: string
+  /**
+   * A new document made from a workspace template (WP10c): it starts
+   * private (never the template document's sharing or password) and its
+   * live title (ymeta) is `title`, not the template document's.
+   */
+  fromTemplate?: boolean
 }
 
 export interface DuplicateDeps {
@@ -96,10 +102,10 @@ export async function duplicateDocument(
     ownerId: input.ownerId,
     workspaceId: input.workspaceId,
     title: input.title,
-    accessMode: source.accessMode,
+    accessMode: input.fromTemplate ? 'private' : source.accessMode,
     // Only a password-protected source carries its hash over; a hash
     // left on a doc in another mode is dead state and must not travel.
-    passwordHash: source.accessMode === 'password-protected' ? source.passwordHash : null,
+    passwordHash: !input.fromTemplate && source.accessMode === 'password-protected' ? source.passwordHash : null,
     // Custom CSS and theme images may reference the source's uploads;
     // point them at the copies (same fileIds, new docId) like the
     // markdown body rewrite.
@@ -144,7 +150,7 @@ export async function duplicateDocument(
     }
 
     // Phase 3: Y.js state with URL rewrite.
-    await cloneYjsStateWithUrlRewrite(input.sourceDocId, input.newDocId)
+    await cloneYjsStateWithUrlRewrite(input.sourceDocId, input.newDocId, input.fromTemplate ? { title: input.title } : undefined)
   } catch (e) {
     // Roll back the DB side. Stray S3 objects under the new prefix
     // will be caught by the orphan-cleanup sweep once the documents

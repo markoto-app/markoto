@@ -6,6 +6,7 @@ import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { documentTexts } from '~~/shared/utils/documentLocale'
 import { sanitizeCustomCssForRender, currentAppOrigins } from './customCssLoader'
+import type { BrandFont } from '~~/shared/config/brandKit'
 import {
   PRINT_SANDBOX,
   buildPreviewSrcdoc,
@@ -53,6 +54,8 @@ export async function printDocumentAsPdf(opts: {
   language?: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
+  /** The workspace's brand-kit fonts (WP10). */
+  brandFonts?: readonly BrandFont[] | null
 }): Promise<void> {
   // Re-validate the theme here: it comes from `ymeta.theme`, which any
   // editor can write over Y.js. Invalid → default theme; image URLs that
@@ -69,7 +72,7 @@ export async function printDocumentAsPdf(opts: {
   // document's own upload URLs get the short-lived file-access token, as
   // in the live preview.
   let fileToken = ''
-  if (mayReferenceOwnUploads({ html, theme, rawCustomCss: theme.customCss, docId: opts.docId })) {
+  if (mayReferenceOwnUploads({ html, theme, rawCustomCss: theme.customCss, docId: opts.docId, brandFonts: opts.brandFonts })) {
     const tokens = createFileTokenSource(() => opts.docId, opts.getDocJwt)
     await tokens.refresh()
     fileToken = tokens.current() ?? ''
@@ -90,7 +93,8 @@ export async function printDocumentAsPdf(opts: {
     customCss,
     docId: opts.docId,
     fileToken,
-    print: true
+    print: true,
+    brandFonts: opts.brandFonts
   })
 
   return new Promise<void>((resolve, reject) => {

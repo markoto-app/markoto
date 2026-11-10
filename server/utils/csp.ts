@@ -138,10 +138,19 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  *     versioned static files; they also get `Access-Control-Allow-Origin: *`
  *     (server/utils/vendorAssetHeaders.ts) because the iframe loads them
  *     in CORS mode (SRI, fonts).
+ *   - `/api/docs/<docId>/brand/<file>` — the workspace brand kit's fonts
+ *     and logos (WP10), authorised by the file-access token like
+ *     `/api/files`; sent with `Access-Control-Allow-Origin: *` (fonts load
+ *     in CORS mode).
  * Everything else stays `same-site`. (Chromium happens to let plain
  * `localhost` through, which is why the blocked cover logo only showed on
  * real host names.)
  */
+const DOC_BRAND_ASSET_PATH = /^\/api\/docs\/[^/]+\/brand\/[^/]+$/
+
 export function crossOriginResourcePolicyFor(path: string): 'cross-origin' | 'same-site' {
-  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) ? 'cross-origin' : 'same-site'
+  const pathname = path.split('?')[0] ?? ''
+  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) || DOC_BRAND_ASSET_PATH.test(pathname)
+    ? 'cross-origin'
+    : 'same-site'
 }

@@ -93,6 +93,14 @@ model_list:
   # Caller wraps the audio in a chat message: see custom_handlers.py
   # for the convention. server/api/ai/transcribe.post.ts is the only
   # consumer.
+  # Budget reservation (LiteLLM ≥ 1.10x): before every call the proxy
+  # reserves the call's worst-case cost — max_output_tokens (default
+  # 16384) × output_cost_per_token — against the key / team budget and
+  # settles it after the call. The billing-wrapped models below report
+  # their price in completion_tokens, so without a real ceiling one call
+  # reserved $0.9–1.8, i.e. a free user's whole budget, and every other
+  # request of that user was refused until it settled. Each sets
+  # max_output_tokens to what it can actually report.
   - model_name: voxtral-mini-transcribe
     litellm_params:
       model: mistral-transcribe/voxtral-mini-2602
@@ -100,6 +108,9 @@ model_list:
     model_info:
       input_cost_per_token: 0.0
       output_cost_per_token: 0.000055  # × seconds reported = $0.0033/min (EU: 1.1 x $0.003)
+      # Budget reservation ceiling (see "Budget reservation" above): a
+      # clip is ≤ 60 s, so ≤ 60 "tokens" — 120 leaves room.
+      max_output_tokens: 120
 
   # ---- Phase 4: Mistral Small 4.0 (text agentic loop + vision) ----
   # Native mistral/ provider — no custom wrapper needed; Mistral's
@@ -232,6 +243,8 @@ model_list:
     model_info:
       input_cost_per_token: 0.0
       output_cost_per_token: 0.0001        # × completion_tokens (= cost_usd / 0.0001)
+      # Budget reservation ceiling: a 2048² image is ~$0.12 = 1200 tokens.
+      max_output_tokens: 1500
 
   # ---- Phase 5: voice-tick metering for live dictation ----
   # Billing-only stub via custom_handlers.py:VoxtralTickProvider. Hit
@@ -249,6 +262,8 @@ model_list:
     model_info:
       input_cost_per_token: 0.0
       output_cost_per_token: 0.00011       # × 60 reported tokens = $0.0066/tick (EU: 1.1 x $0.006/min)
+      # Budget reservation ceiling: a tick is exactly 60 tokens.
+      max_output_tokens: 60
 
   # ---- WP4: bring-your-own-key (BYOK) passthrough ----
   # Every BYOK call (chat / agent loop, web-tool synthesis, image

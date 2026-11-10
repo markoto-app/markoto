@@ -60,8 +60,11 @@ import {
   checkSavedThemeDescription,
   checkSavedThemeName
 } from '~~/shared/config/savedThemes'
+import { resolveDocBrand } from './brandKit/docBrand'
+import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/brandLock'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from './shareSettings'
 import { openTrustedCommentClient } from './commentsServerClient'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../repos/uploads'
 import { imageQuotaMessage, resolveImageQuota } from './imageQuota'
@@ -358,12 +361,28 @@ export function summarizePatch(patch: UpdateThemeInput): string {
   return parts.length ? parts.join(' + ') : '(no changes)'
 }
 
+async function checkBrandLock(docId: string, input: UpdateThemeInput): Promise<ToolResult | null> {
+  const doc = await getDoc(docId)
+  if (!(await resolveDocBrand(doc?.workspaceId ?? null)).lockedTheme) return null
+  const entries = Object.entries(input as Record<string, unknown>).filter(([, v]) => v !== undefined && v !== null && v !== false)
+  const outside = entries.filter(([k]) => k !== 'cover').map(([k]) => k)
+  const cover = (input as { cover?: Record<string, unknown> }).cover
+  const coverOutside = cover ? Object.keys(cover).filter(k => cover[k] !== undefined && !(DOC_OWNED_COVER_FIELDS as readonly string[]).includes(k)) : []
+  if (outside.length === 0 && coverOutside.length === 0) return null
+  return err(`Error: this workspace's admins locked the design — nothing was changed. Every document in the workspace uses the workspace design; only the cover ${DOC_OWNED_COVER_FIELDS.join(', ')} can be changed per document. Tell the user to ask a workspace admin to change the workspace design (Brand kit) if they need a different look.`)
+}
+
 export async function handleUpdateTheme(
   session: DocToolContext,
   input: UpdateThemeInput
 ): Promise<ToolResult> {
   const conflictErr = checkBaseSourceConflict(input)
   if (conflictErr) return conflictErr
+
+  // Brand kit (WP10): a locked workspace design — only the cover text is
+  // the document's own. Anything else would be stored but never shown.
+  const lockErr = await checkBrandLock(session.docId, input)
+  if (lockErr) return lockErr
 
   const baseResult = await resolveBaseTheme(session, input)
   if (!baseResult.ok) return baseResult.error
@@ -847,6 +866,10 @@ export async function handleDuplicateDocument(
   if (!(await canEditDoc(session.initiatorUserId, input.source_doc_id))) {
     return err(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
   }
+  // View only (WP9): a copy is a download.
+  if (!(await userMayDownload(input.source_doc_id, session.initiatorUserId))) {
+    return err(`Error: ${DOWNLOAD_DISABLED_MESSAGE} Tell the user.`)
+  }
 
   // Resolve target workspace. `''` from the schema means "park as
   // personal" (null); `undefined` means "inherit source"; a non-empty
@@ -902,6 +925,10 @@ export async function handleExportDocumentAsMarkdown(
   // entry, so session.ytext / ymeta are the live synced doc.
   const doc = await getDoc(session.docId)
   if (!doc) return err('Error: document not found.')
+  // Share-link controls (WP9): a visitor may not download a view-only doc.
+  if (!(await userMayDownload(session.docId, session.initiatorUserId))) {
+    return err(`Error: ${DOWNLOAD_DISABLED_MESSAGE} Tell the user.`)
+  }
   // Same file the editor's "Download Markdown" writes: markoto YAML
   // frontmatter (theme + properties, live ymeta first, row as fallback)
   // on top of the raw body. NO line-number prefixes — view_document is
@@ -1618,9 +1645,11 @@ export async function handleViewPages(
   const captions: string[] = []
 
   for (const n of requestedPages) {
-    // Manifest's pageKeys is 1-indexed by `page-${n}.png` — derive the key
-    // from the convention rather than trusting array order.
-    const key = `renders/${session.docId}/${manifest.snapshotId}/page-${n}.png`
+    // The render folder is the snapshot id plus, for documents with brand
+    // inputs, the brand fingerprint — take the key the renderer reported
+    // (matched by file name rather than trusting array order).
+    const key = manifest.pageKeys.find(k => k.endsWith(`/page-${n}.png`))
+    if (!key) return err(`Error: failed to fetch page ${n}: not in the render`)
     try {
       const got = await s3.send(new GetObjectCommand({
         Bucket: config.s3.bucket,

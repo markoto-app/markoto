@@ -68,6 +68,10 @@ export default defineEventHandler(async (event) => {
     // load images through this route; a session requirement here would
     // break every image in anonymously-shared docs.
     { path: /^\/api\/files\/[^/]+\/[^/]+$/, methods: ['GET'] },
+    // Workspace brand-kit fonts + logos of a document (WP10) — same
+    // decideFileAccess gate as /api/files (session, or the file-access
+    // token the preview / print iframes and the renderer carry).
+    { path: /^\/api\/docs\/[^/]+\/brand\/[^/]+$/, methods: ['GET'] },
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
     { path: /^\/api\/internal\//, methods: ['POST'] }, // Internal endpoints auth via shared secret header (not user session)
     // Renderer-container bootstrap: GET-only, gated by a render-token JWT

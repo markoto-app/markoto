@@ -4,6 +4,7 @@ import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxtjs/mcp-toolkit/server'
 import { stripWrapperArgs } from './stripWrapperArgs'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/shareSettings'
 import { getDocAuthz } from '../../utils/workspaceAccess'
 import { getMemberRole } from '../../repos/workspaceMembers'
 import { findUserNameById } from '../../repos/users'
@@ -137,6 +138,9 @@ export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
   annotations?: ToolAnnotations
   /** Extra per-call allowance (render tools, image generation). */
   limit?: ToolCallLimit
+  /** The result carries the document out (page images): refused to
+   *  visitors of a view-only document (WP9 share controls). */
+  download?: boolean
 }
 
 export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBoundToolOpts<Schema>) {
@@ -171,6 +175,9 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
       // having that helper re-query `getDoc`. One DB round-trip per
       // tool call, not two.
       const authz = await assertDocAccess(opts.name, auth.userId, docId, opts.access)
+      if (opts.download && !(await userMayDownload(docId, auth.userId))) {
+        return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
+      }
 
       const userName = (await findUserNameById(auth.userId)) ?? `user-${auth.userId}`
       const mcpSessionId = mcpSessionIdFromEvent(event) ?? `oneshot-${Date.now()}`

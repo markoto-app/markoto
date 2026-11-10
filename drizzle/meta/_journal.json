@@ -260,6 +260,20 @@
       "when": 1794293505547,
       "tag": "0036_nifty_talisman",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794316765404,
+      "tag": "0037_happy_the_renegades",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794321103361,
+      "tag": "0038_worried_red_hulk",
+      "breakpoints": true
     }
   ]
 }

@@ -22,6 +22,7 @@ import * as Y from 'yjs'
 import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
+import { TEST_BASE_URL } from '../setup/env'
 import { defaultTheme } from '../../../shared/utils/defaultTheme'
 import { THEME_PRESETS } from '../../../shared/utils/themePresets'
 import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
@@ -344,6 +345,47 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
 
       await wipeRendersFor(doc.docId)
     }, 90_000)
+
+    // Brand kit (WP10): a font uploaded to the workspace (the bundled TeX
+    // Gyre Heros file under another name) reaches the server PDF through
+    // the locked workspace design, embedded as a real TrueType font, and
+    // the render is cached under the brand fingerprint (a lock / font
+    // change makes no new Y.js row).
+    it('embeds a workspace brand font from the locked workspace design', async () => {
+      const admin = await createUser()
+      const ws = await createWorkspace(admin.id)
+      const doc = await createDoc({ ownerId: admin.id, workspaceId: ws.workspaceId, accessMode: 'private' })
+      const snapId = await insertYjsRow(doc.docId, '# Brand\n\nBody text in the workspace font, **bold too**.\n')
+      const client = await loggedInClient(admin.id)
+      const form = new FormData()
+      form.append('file', new File([readFileSync(fileURLToPath(new URL('../../../fonts/tex-gyre-heros/heros-regular.woff2', import.meta.url)))], 'acme.woff2'))
+      form.append('licence', 'true')
+      form.append('family', 'Acme Sans')
+      const up = await fetch(`${TEST_BASE_URL}/api/workspaces/${ws.workspaceId}/brand/fonts`, { method: 'POST', body: form, headers: { cookie: client.cookieHeader() } })
+      expect(up.status, await up.clone().text()).toBe(201)
+      const design = { ...defaultTheme, body: { ...defaultTheme.body, font: 'Acme Sans' } }
+      expect((await client.put(`/api/workspaces/${ws.workspaceId}`, { defaultTheme: design })).status).toBe(200)
+      expect((await client.put(`/api/workspaces/${ws.workspaceId}/brand/lock`, { locked: true })).status).toBe(200)
+
+      const res = await client.get(`/api/docs/${doc.docId}/pdf`)
+      expect(res.status).toBe(302)
+      const pdfKey = (await listRenderKeys(doc.docId)).find(k => k.endsWith('/document.pdf'))!
+      expect(pdfKey).toMatch(new RegExp(`^renders/${doc.docId}/${snapId}-[a-f0-9]{16}/document\\.pdf$`))
+      const pdf = new TextDecoder('latin1').decode(await fetchRenderBytes(pdfKey))
+      const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
+        .map(m => ({ subtype: m[1] ?? m[4] ?? '', name: m[2] ?? m[3] ?? '' }))
+      const summary = fonts.map(f => `${f.name}:${f.subtype}`).join(', ')
+      const heros = fonts.filter(f => /TeXGyreHeros/.test(f.name))
+      expect(heros.length, summary).toBeGreaterThan(0)
+      for (const f of heros) expect(f.subtype, summary).not.toBe('Type3')
+
+      // Unlocking renders the document's own design again — a new cache entry.
+      expect((await client.put(`/api/workspaces/${ws.workspaceId}/brand/lock`, { locked: false })).status).toBe(200)
+      expect((await client.get(`/api/docs/${doc.docId}/pdf`)).status).toBe(302)
+      const pdfs = (await listRenderKeys(doc.docId)).filter(k => k.endsWith('/document.pdf'))
+      expect(pdfs.length).toBe(2)
+      await wipeRendersFor(doc.docId)
+    }, 120_000)
 
     // The arXiv preprint preset end to end: Letter pages, title block,
     // running head with its rule, the preset's template CSS (sanitised at

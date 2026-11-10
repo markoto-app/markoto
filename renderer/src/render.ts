@@ -145,6 +145,8 @@ export interface RenderInput {
   docId: string
   snapshotId: number
   format: 'pdf' | 'png' | 'both'
+  /** Brand-kit fingerprint (16 hex chars) — appended to the output folder. */
+  variant?: string
 }
 
 export interface RenderOutput {
@@ -272,7 +274,7 @@ async function doRender(
     )
   }
 
-  const prefix = `renders/${docId}/${snapshotId}`
+  const prefix = `renders/${docId}/${snapshotId}${input.variant ? `-${input.variant}` : ''}`
   const uploads: Promise<unknown>[] = []
   let pdfKey: string | undefined
   const pageKeys: string[] = []

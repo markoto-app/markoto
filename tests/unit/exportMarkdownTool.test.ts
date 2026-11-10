@@ -16,7 +16,12 @@ import { defaultTheme } from '../../shared/utils/defaultTheme'
 
 vi.mock('../../server/repos/documents', async (importOriginal) => {
   const actual = await importOriginal<object>()
-  return { ...actual, getDoc: vi.fn() }
+  return {
+    ...actual,
+    getDoc: vi.fn(),
+    // Share-link controls (WP9): the caller may download (no view-only link).
+    getDocWithActorRole: vi.fn(async () => ({ ownerId: null, workspaceId: null, accessMode: 'open-edit', ownerAccessSuspended: false, workspaceRole: null, isGuest: false, shareExpiresAt: null, shareNoDownload: false }))
+  }
 })
 const mockedGetDoc = vi.mocked(getDoc)
 

@@ -1,9 +1,10 @@
+import { docBrandForClient } from '../../../utils/brandKit/docBrand'
 import { eq } from 'drizzle-orm'
 import { documents } from '../../../db/schema'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { hasValidDocJwt } from '../../../utils/docTokenVerify'
 import { renderTemplate } from '../../../utils/templateRenderer'
-import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
+import { canDownload, docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
 
 // GET /api/docs/:docId/meta — document metadata.
 //
@@ -25,15 +26,18 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
 
-  const decision = decideTokenAccess(
-    docStateOf(authz),
-    { userId: session?.user?.id ?? null, workspaceRole: authz.workspaceRole }
-  )
-  if (decision.outcome !== 'allow' && !hasValidDocJwt(event, docId)) {
+  const state = docStateOf(authz)
+  const actor = { userId: session?.user?.id ?? null, workspaceRole: authz.workspaceRole, isGuest: authz.isGuest }
+  const decision = decideTokenAccess(state, actor)
+  // An expired share link (WP9) also ends what an earlier password unlock
+  // (its JWT) gave — only the owner and members keep seeing the metadata.
+  if (decision.outcome !== 'allow' && (state.shareExpired || !hasValidDocJwt(event, docId))) {
     return {
       docId,
-      accessMode: authz.accessMode,
-      hasPassword: authz.accessMode === 'password-protected',
+      // The effective mode: once a link has expired it reads `private`,
+      // never what it was before.
+      accessMode: state.accessMode,
+      hasPassword: state.accessMode === 'password-protected',
       requiresPassword: decision.outcome === 'password-required',
       forbidden: decision.outcome === 'forbidden'
     }
@@ -55,6 +59,7 @@ export default defineEventHandler(async (event) => {
       audience: documents.audience,
       language: documents.language,
       templateId: documents.templateId,
+      workspaceId: documents.workspaceId,
       createdAt: documents.createdAt,
       lastActive: documents.lastActive
     })
@@ -68,8 +73,15 @@ export default defineEventHandler(async (event) => {
 
   // Boolean is safe to expose; the hash itself is not.
   const hasPassword = doc.accessMode === 'password-protected'
+  // The workspace id is read for the brand kit only — not part of this
+  // public shape (unchanged since before WP10).
+  const { workspaceId, ...publicDoc } = doc
   return {
-    ...doc,
+    ...publicDoc,
+    // Share-link controls (WP9): this viewer may not download or print.
+    noDownload: !canDownload(state, actor, authz.shareNoDownload),
+    // Workspace brand kit (WP10), as on the token endpoint.
+    brandKit: await docBrandForClient(workspaceId),
     hasPassword,
     requiresPassword: false,
     forbidden: false,

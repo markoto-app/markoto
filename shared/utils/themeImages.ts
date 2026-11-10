@@ -18,9 +18,29 @@
 const ID_PART = '[A-Za-z0-9_-]{1,64}'
 const UPLOAD_PATH = String.raw`/api/files/(${ID_PART})/(${ID_PART}\.(?:png|jpe?g|gif|webp))`
 const BUNDLED_ASSET = String.raw`/markoto-logos/[a-z0-9-]{1,64}\.(?:svg|png)`
+// A workspace brand-kit image (WP10): `/api/brand/<assetId>.<ext>`. Not
+// tied to a document — it stays valid in the workspace design and in
+// every document made from it; whether the asset belongs to the
+// document's workspace is checked where it is served
+// (`/api/docs/:docId/brand/:file`), which is also what the renderers
+// load (`brandAssetDocUrl`).
+const BRAND_ASSET = String.raw`/api/brand/([A-Za-z0-9_-]{16}\.(?:png|jpg|webp))`
 
-/** `''` (no image), an upload path, or a bundled brand asset. */
-export const THEME_IMAGE_URL_RE = new RegExp(String.raw`^(?:${UPLOAD_PATH}|${BUNDLED_ASSET})?$`)
+/** `''` (no image), an upload path, a bundled brand asset or a workspace brand image. */
+export const THEME_IMAGE_URL_RE = new RegExp(String.raw`^(?:${UPLOAD_PATH}|${BUNDLED_ASSET}|${BRAND_ASSET})?$`)
+
+const BRAND_ASSET_RE = new RegExp(String.raw`^${BRAND_ASSET}$`)
+
+/** The brand-kit file name (`<assetId>.<ext>`) when `url` is exactly a workspace brand image URL; else null. */
+export function brandImageFile(url: unknown): string | null {
+  if (typeof url !== 'string') return null
+  return BRAND_ASSET_RE.exec(url)?.[1] ?? null
+}
+
+/** Where a document's renderers load a brand-kit file from (access checked per document). */
+export function brandAssetDocUrl(docId: string, file: string): string {
+  return `/api/docs/${docId}/brand/${file}`
+}
 
 const UPLOAD_PATH_RE = new RegExp(String.raw`^${UPLOAD_PATH}$`)
 

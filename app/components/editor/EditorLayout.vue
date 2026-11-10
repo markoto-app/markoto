@@ -10,6 +10,8 @@ import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
 import { customCssForPlan } from '~~/shared/utils/themePresets'
+import { applyBrandLock } from '~~/shared/utils/brandLock'
+import type { DocTheme } from '~~/shared/types/theme'
 
 const props = defineProps<{
   docId: string
@@ -40,6 +42,10 @@ const {
   workspaceId: docWorkspaceId,
   workspaceRole: docWorkspaceRole,
   customCssAllowed,
+  brandFonts,
+  brandLockedTheme,
+  noDownload,
+  shareExpired,
   workspacePlan,
   ssoLoginUrl,
   undoManager,
@@ -63,9 +69,14 @@ const {
 // built-in preset's template CSS stays — customCssForPlan). The CSS stays
 // in the theme (and in Y.js), so upgrading applies it again; the server
 // renderer drops it the same way (render-bootstrap).
+//
+// A locked workspace design (brand kit, WP10) replaces everything but the
+// document's cover text — same rule as the server renderer
+// (shared/utils/brandLock.ts).
 const renderTheme = computed(() => {
-  const css = customCssForPlan(theme.value.customCss, customCssAllowed.value)
-  return css === theme.value.customCss ? theme.value : { ...theme.value, customCss: css }
+  const base = applyBrandLock(theme.value as DocTheme, brandLockedTheme.value as DocTheme | null)
+  const css = customCssForPlan(base.customCss, customCssAllowed.value)
+  return css === base.customCss ? base : { ...base, customCss: css }
 })
 
 // Track whether the user has ever focused the editor in this session.
@@ -355,7 +366,16 @@ const LOCKED_MODES = new Set(['private', 'password-protected'])
 const accessIcon = computed(() => LOCKED_MODES.has(accessMode.value) ? 'i-lucide-lock' : 'i-lucide-lock-open')
 const accessLabelKey = computed(() => ACCESS_LABELS[accessMode.value] ?? 'share.openEdit')
 
+// Share-link controls (WP9): a view-only link — no print, PDF or Markdown
+// download for this viewer (the server refuses the PDF too).
+function refuseDownload(): boolean {
+  if (!noDownload.value) return false
+  toast.add({ title: t('share.controls.downloadDisabled'), icon: 'i-lucide-ban', color: 'neutral' })
+  return true
+}
+
 async function exportPdf() {
+  if (refuseDownload()) return
   exporting.value = true
   try {
     // Read content fresh from ytext — shallowRef may be stale after HMR.
@@ -365,7 +385,8 @@ async function exportPdf() {
       title: title.value,
       docId: props.docId,
       language: language.value,
-      getDocJwt
+      getDocJwt,
+      brandFonts: brandFonts.value
     })
   } catch (e) {
     showError('error.pdfExportFailedTitle', e)
@@ -377,6 +398,7 @@ async function exportPdf() {
 // The file carries the theme + document properties as YAML frontmatter
 // (shared/utils/markdownFrontmatter.ts) so importing it restores them.
 async function exportMarkdown() {
+  if (refuseDownload()) return
   const { buildMarkdownExport } = await import('~~/shared/utils/markdownFrontmatter')
   const content = buildMarkdownExport(textContent.value, {
     title: title.value,
@@ -430,6 +452,7 @@ function applyImportedProperties(
 // the canonical "this came from a user click" signal browsers honour,
 // the same pattern `downloadFile()` uses for the markdown export.
 function openServerPdf() {
+  if (refuseDownload()) return
   const a = document.createElement('a')
   a.href = `/api/docs/${props.docId}/pdf?inline=1`
   a.target = '_blank'
@@ -750,21 +773,25 @@ const mobileMenuItems = computed(() => {
       icon: 'i-lucide-upload',
       onSelect: () => { showImportModal.value = true }
     },
-    {
-      label: t('menubar.file.export'),
-      icon: 'i-lucide-file-down',
-      onSelect: () => exportMarkdown()
-    },
-    {
-      label: t('menubar.file.print'),
-      icon: 'i-lucide-printer',
-      onSelect: () => exportPdf()
-    },
-    {
-      label: t('export.pdf'),
-      icon: 'i-lucide-file-output',
-      onSelect: () => openServerPdf()
-    },
+    ...(noDownload.value
+      ? []
+      : [
+          {
+            label: t('menubar.file.export'),
+            icon: 'i-lucide-file-down',
+            onSelect: () => exportMarkdown()
+          },
+          {
+            label: t('menubar.file.print'),
+            icon: 'i-lucide-printer',
+            onSelect: () => exportPdf()
+          },
+          {
+            label: t('export.pdf'),
+            icon: 'i-lucide-file-output',
+            onSelect: () => openServerPdf()
+          }
+        ]),
     ...(canManageDoc.value
       ? [
           {
@@ -975,10 +1002,10 @@ const _statusIcon = computed(() => {
         />
       </div>
       <h1 class="text-xl font-semibold">
-        {{ t('access.privateTitle') }}
+        {{ shareExpired ? t('share.controls.expiredTitle') : t('access.privateTitle') }}
       </h1>
       <p class="text-sm text-muted">
-        {{ ssoLoginUrl ? t('sso.requiredBody') : loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
+        {{ shareExpired ? t('share.controls.expiredBody') : ssoLoginUrl ? t('sso.requiredBody') : loggedIn ? t('access.privateDescLoggedIn') : t('access.privateDescAnon') }}
       </p>
       <div class="flex justify-center gap-2 pt-2">
         <UButton
@@ -1240,6 +1267,7 @@ const _statusIcon = computed(() => {
           :logged-in="loggedIn"
           :can-manage="canManageDoc"
           :can-delete="canDelete"
+          :no-download="noDownload"
           :right-sidebar="rightSidebar"
           :has-knowledge-access="hasKnowledgeAccess"
           :view-mode="viewMode"
@@ -1531,6 +1559,7 @@ const _statusIcon = computed(() => {
             :theme="renderTheme"
             :doc-id="docId"
             :get-doc-jwt="getDocJwt"
+            :brand-fonts="brandFonts"
             :zoom-control="!isMobile"
             @print-shortcut="exportPdf"
           />
@@ -1615,6 +1644,9 @@ const _statusIcon = computed(() => {
             :doc-id="docId"
             :can-edit="canEditTheme"
             :custom-css-allowed="customCssAllowed"
+            :workspace-id="docWorkspaceRole ? docWorkspaceId : null"
+            :brand-locked="brandLockedTheme !== null"
+            :can-manage-brand="docWorkspaceRole === 'admin'"
             @update:theme="setTheme"
             @reset="resetTheme"
             @close="closeSidebar"
@@ -1849,6 +1881,7 @@ const _statusIcon = computed(() => {
       :doc-title="title"
       :is-owner="isOwner"
       :current-access-mode="accessMode"
+      :can-manage="canManageDoc"
       :can-share-with-guests="!!docWorkspaceId && (docWorkspaceRole === 'admin' || docWorkspaceRole === 'editor')"
       @updated="(mode: string) => { setAccessMode(mode); showShareModal = false }"
     />

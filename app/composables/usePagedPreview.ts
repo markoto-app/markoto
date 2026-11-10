@@ -6,6 +6,7 @@ import { isValidTheme } from '~~/shared/utils/themeValidation'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { documentTexts } from '~~/shared/utils/documentLocale'
 import type { CustomCssResult } from '~~/shared/types/customCss'
+import type { BrandFont } from '~~/shared/config/brandKit'
 import { sanitizeCustomCssForRender, currentAppOrigins } from '~/utils/customCssLoader'
 import type { PreviewZoomCommand } from '~/composables/usePreviewZoom'
 import {
@@ -67,6 +68,8 @@ export function usePagedPreview(opts: {
    *  '' = no document (marketing `::try-it`): no file token is fetched. */
   docId: Ref<string>
   container: Ref<HTMLElement | null>
+  /** The workspace's brand-kit fonts (WP10); none outside a workspace. */
+  brandFonts?: Ref<readonly BrandFont[] | null>
   /**
    * Fired when the user presses Cmd/Ctrl+P while focus is INSIDE the
    * preview iframe. The parent's document-level handler doesn't see
@@ -274,7 +277,8 @@ export function usePagedPreview(opts: {
     const rawCustomCss = theme.customCss ?? ''
     // No document (the marketing `::try-it` block): there are no uploads to
     // authorise, so never ask for a file token.
-    const fileToken = fileTokenFor(docId !== '' && mayReferenceOwnUploads({ html, theme, rawCustomCss, docId }))
+    const brandFonts = opts.brandFonts?.value ?? null
+    const fileToken = fileTokenFor(docId !== '' && mayReferenceOwnUploads({ html, theme, rawCustomCss, docId, brandFonts }))
     if (fileToken === null) return
     if (!customCssReady(rawCustomCss, fileToken)) return
     isPaginating.value = true
@@ -286,7 +290,8 @@ export function usePagedPreview(opts: {
       customCss,
       docId,
       fileToken,
-      print: false
+      print: false,
+      brandFonts
     }))
   }
 
@@ -303,7 +308,7 @@ export function usePagedPreview(opts: {
   const debouncedRender = useDebounceFn(render, 250)
 
   let firstRender = true
-  watch([opts.html, opts.theme, opts.title, () => opts.language?.value], () => {
+  watch([opts.html, opts.theme, opts.title, () => opts.language?.value, () => opts.brandFonts?.value], () => {
     if (firstRender) {
       firstRender = false
       render() // immediate first paint after sync

@@ -14,7 +14,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { loggedInClient } from '../setup/client'
-import { createUser, createDoc } from '../setup/fixtures'
+import { createUser, createDoc, createWorkspace } from '../setup/fixtures'
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 
 const s3 = new S3Client({
@@ -130,6 +130,31 @@ describe('view_pages tool — real renderer', () => {
       // we used in the stub would fail here, which is the point.
       expect(bytes.byteLength).toBeGreaterThan(5_000)
     }
+
+    await wipeRendersFor(doc.docId)
+  }, 90_000)
+
+  it('reads the pages of a document whose workspace has brand inputs (fingerprinted render folder)', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const doc = await createDoc({ ownerId: owner.id, workspaceId: ws.workspaceId })
+    await insertYjsRow(doc.docId, multiPageBody())
+    // A workspace logo is enough to give the document a brand fingerprint,
+    // so the render lands in renders/<doc>/<snapshot>-<fingerprint>/.
+    await testDb().query(
+      `INSERT INTO workspace_brand_assets (id, workspace_id, kind, format, name, size_bytes, s3_key)
+       VALUES ('logoAAAAAAAAAAAA', $1, 'image', 'png', 'Logo', 68, $2)`,
+      [ws.workspaceId, `workspaces/${ws.workspaceId}/brand/logoAAAAAAAAAAAA.png`]
+    )
+    const client = await loggedInClient(owner.id)
+
+    const { body } = await execTool(client, doc.docId, 'view_pages', { pages: [1] })
+
+    expect(body.content).not.toMatch(/failed/i)
+    expect(body.isError).toBe(false)
+    expect(body.extraParts).toHaveLength(1)
+    const list = await s3.send(new ListObjectsV2Command({ Bucket: 'ypad', Prefix: `renders/${doc.docId}/` }))
+    expect((list.Contents ?? []).some(o => /\/\d+-[0-9a-f]{16}\/page-1\.png$/.test(o.Key ?? ''))).toBe(true)
 
     await wipeRendersFor(doc.docId)
   }, 90_000)

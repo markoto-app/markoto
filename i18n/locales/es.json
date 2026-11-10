@@ -113,6 +113,20 @@
       "add": "Compartir",
       "loadFailed": "No se pudieron cargar los invitados",
       "saveFailed": "No se pudo cambiar el uso compartido"
+    },
+    "controls": {
+      "title": "Ajustes del enlace",
+      "expires": "El enlace deja de funcionar el",
+      "expiresHelp": "Después, solo usted y los miembros del espacio de trabajo podrán abrir el documento. Déjelo vacío para que el enlace siga funcionando.",
+      "clearExpiry": "Quitar la fecha de finalización",
+      "noDownload": "Solo lectura: sin descarga ni impresión",
+      "noDownloadHelp": "Las personas con el enlace pueden leer el documento, pero no descargarlo como PDF o Markdown ni imprimirlo. El texto en pantalla aún se puede copiar.",
+      "views": "No se ha abierto en los últimos 30 días | Se abrió una vez en los últimos 30 días | Se abrió {n} veces en los últimos 30 días",
+      "lastViewed": "última vez el {date}",
+      "saveFailed": "No se pudieron cambiar los ajustes del enlace",
+      "downloadDisabled": "El propietario desactivó la descarga y la impresión de este documento.",
+      "expiredTitle": "Este enlace ha caducado",
+      "expiredBody": "El propietario configuró este enlace para que dejara de funcionar. Pídale acceso si aún necesita el documento."
     }
   },
   "access": {
@@ -315,7 +329,8 @@
       "academic": "Académico",
       "business": "Empresa",
       "writing": "Escritura",
-      "saved": "Mis diseños"
+      "saved": "Mis diseños",
+      "workspace": "Este espacio de trabajo"
     },
     "blankIn": "En blanco en {design}",
     "blankWorkspaceDescription": "Una página vacía con el diseño de tu espacio de trabajo: {design}."
@@ -1323,7 +1338,8 @@
       "billing": "Facturación",
       "sso": "Inicio de sesión único",
       "audit": "Registro de auditoría",
-      "usage": "Uso"
+      "usage": "Uso",
+      "brand": "Kit de marca"
     },
     "settings": {
       "title": "Configuración del espacio de trabajo",
@@ -1850,7 +1866,9 @@
       "aiStrongModel": "El modelo de IA potente no está incluido en este plan.",
       "sso": "El inicio de sesión único no está incluido en el plan de este espacio de trabajo.",
       "auditLog": "El registro de auditoría no está incluido en el plan de este espacio de trabajo.",
-      "guests": "Los invitados no están incluidos en el plan de este espacio de trabajo."
+      "guests": "Los invitados no están incluidos en el plan de este espacio de trabajo.",
+      "brandKit": "El kit de marca no está incluido en el plan de este espacio de trabajo.",
+      "shareControls": "La caducidad del enlace, el uso compartido de solo lectura y el recuento de vistas no están incluidos en el plan de este documento."
     },
     "limit": {
       "membersPerWorkspace": "Este espacio de trabajo ha alcanzado el límite de miembros de su plan.",
@@ -2430,7 +2448,13 @@
       "sso_scim_user_created": "Miembro aprovisionado",
       "sso_scim_user_deactivated": "Miembro desaprovisionado",
       "doc_shared": "Documento compartido con un invitado",
-      "doc_unshared": "Documento que ya no se comparte con un invitado"
+      "doc_unshared": "Documento que ya no se comparte con un invitado",
+      "workspace_brand_asset_added": "Archivo del kit de marca añadido",
+      "workspace_brand_asset_removed": "Archivo del kit de marca eliminado",
+      "workspace_brand_lock_changed": "Bloqueo del diseño del espacio de trabajo modificado",
+      "workspace_template_added": "Plantilla añadida",
+      "workspace_template_removed": "Plantilla eliminada",
+      "doc_share_settings_changed": "Ajustes del enlace modificados"
     },
     "planNotice": "El registro de auditoría forma parte del plan Business."
   },
@@ -2448,5 +2472,58 @@
     "sharedDocs": "sin documentos compartidos | {n} documento compartido | {n} documentos compartidos",
     "guestsHint": "Los invitados usan su propio presupuesto de IA, por lo que su gasto no se muestra aquí.",
     "loadFailed": "No se pudo cargar el uso"
+  },
+  "brandKit": {
+    "title": "Kit de marca",
+    "intro": "Las fuentes, logotipos y el diseño de tu organización para todos los documentos de este espacio de trabajo, y las plantillas con las que tus miembros empiezan documentos nuevos.",
+    "loadFailed": "No se pudo cargar el kit de marca",
+    "uploadFailed": "No se pudo subir el archivo",
+    "deleteFailed": "No se pudo eliminar el archivo",
+    "fonts": "Fuentes",
+    "fontsHint": "Sube un archivo por grosor y estilo (WOFF2, WOFF o TTF). Aparecen en «Este espacio de trabajo» en los selectores de fuentes de todos los documentos de aquí y en sus PDF. Las fuentes variables y las de contornos PostScript (CFF) se imprimen mal y no se aceptan: usa los cortes TrueType estáticos.",
+    "noFonts": "Aún no hay fuentes.",
+    "chooseFont": "Elegir un archivo de fuente",
+    "fontName": "Nombre de la fuente",
+    "fontNameHelp": "Déjalo vacío para usar el nombre del archivo. Sube todos los estilos de una familia con el mismo nombre.",
+    "fontNamePlaceholder": "p. ej. Acme Sans",
+    "licence": "Nuestra licencia permite incrustar esta fuente en documentos y PDF.",
+    "uploadFont": "Subir fuente",
+    "fontAdded": "{name} añadida",
+    "italic": "cursiva",
+    "delete": "Eliminar",
+    "logos": "Logotipos",
+    "logosHint": "PNG, JPEG o WebP. Cualquier documento del espacio de trabajo puede usarlos como logotipo de portada o imagen de encabezado.",
+    "uploadLogo": "Subir un logotipo",
+    "workspaceLogos": "Logotipos del espacio de trabajo",
+    "workspaceFonts": "Este espacio de trabajo",
+    "design": "Diseño del espacio de trabajo",
+    "designHint": "El diseño con el que empiezan los documentos nuevos de este espacio de trabajo. Bloquéalo para usarlo en todos los documentos: los autores solo rellenan el texto de la portada.",
+    "noDesign": "Aún no hay diseño del espacio de trabajo. Tómalo de un documento o elige un diseño predeterminado en Configuración.",
+    "pickDocument": "Elegir un documento",
+    "useDesign": "Usar el diseño de este documento",
+    "designSet": "Diseño del espacio de trabajo actualizado",
+    "designImagesDropped": "Las imágenes subidas a ese documento se omitieron: elige un logotipo del espacio de trabajo para el diseño compartido.",
+    "designFailed": "No se pudo establecer el diseño del espacio de trabajo",
+    "lockLabel": "Bloquear el diseño para todos los documentos",
+    "lockDescription": "Todos los documentos del espacio de trabajo usan el diseño del espacio de trabajo; solo el texto de la portada (subtítulo, fecha, autores) sigue siendo propio. Al desbloquear, cada documento recupera su propio diseño.",
+    "lockFailed": "No se pudo cambiar el bloqueo",
+    "lockedTitle": "El diseño del espacio de trabajo está bloqueado",
+    "lockedBody": "Este documento usa el diseño de su espacio de trabajo. Aún puedes cambiar el texto de la portada más abajo.",
+    "openBrandKit": "Abrir el kit de marca",
+    "templates": "Plantillas",
+    "templatesHint": "Convierte un documento del espacio de trabajo en plantilla. Los documentos nuevos creados a partir de ella copian su texto y diseño actuales, así que los cambios en el documento cambian la plantilla.",
+    "templateName": "Nombre de la plantilla",
+    "templateDescription": "Descripción breve (opcional)",
+    "addTemplate": "Añadir plantilla",
+    "removeTemplate": "Quitar plantilla",
+    "templateFailed": "No se pudieron modificar las plantillas",
+    "fontRefused": {
+      "not-a-font": "Este no es un archivo de fuente. Sube un archivo WOFF2, WOFF o TTF.",
+      "collection": "Este archivo contiene varias fuentes. Sube cada estilo como un archivo independiente.",
+      "variable": "Las fuentes variables se imprimen mal en los PDF. Sube en su lugar los cortes estáticos (un archivo por grosor y estilo).",
+      "cff": "Las fuentes con contornos PostScript (CFF) se imprimen mal en los PDF. Sube en su lugar la versión TrueType (TTF o WOFF2).",
+      "no-embedding": "La licencia de esta fuente no permite incrustarla en documentos.",
+      "damaged": "Este archivo de fuente está dañado o incompleto."
+    }
   }
 }

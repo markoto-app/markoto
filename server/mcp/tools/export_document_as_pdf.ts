@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/shareSettings'
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js'
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
@@ -68,6 +69,11 @@ export default defineMcpTool({
       })
     }
 
+    // View only (WP9): a visitor (e.g. a guest) gets no PDF, as on GET /pdf.
+    if (!(await userMayDownload(docId, auth.userId))) {
+      return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
+    }
+
     let result
     try {
       result = await renderDocument(docId, { format: 'pdf' })
@@ -110,8 +116,10 @@ export default defineMcpTool({
     const base64 = Buffer.from(bytes).toString('base64')
 
     // Embedded resource. The URI uses a synthetic `doc:///` scheme
-    // so MCP hosts can dedupe / cache by stable identity (snapshotId
-    // changes per content edit, so the URI is content-addressed).
+    // so MCP hosts can dedupe / cache by stable identity. The render
+    // folder is the snapshot id (changes per content edit) plus the brand
+    // fingerprint (changes with the workspace fonts / logos / locked
+    // design), so the URI is content-addressed.
     return {
       content: [
         {
@@ -121,7 +129,7 @@ export default defineMcpTool({
         {
           type: 'resource',
           resource: {
-            uri: `doc:///${docId}/${result.manifest.snapshotId}.pdf`,
+            uri: `doc:///${docId}/${renderFolderOf(pdfKey)}.pdf`,
             mimeType: 'application/pdf',
             blob: base64
           }
@@ -131,3 +139,8 @@ export default defineMcpTool({
     }
   }) as McpToolCallback<typeof inputSchema>
 })
+
+/** `renders/<docId>/<folder>/<file>.pdf` → `<folder>`. */
+function renderFolderOf(pdfKey: string): string {
+  return pdfKey.split('/').at(-2) ?? pdfKey
+}

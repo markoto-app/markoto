@@ -3,6 +3,7 @@ import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { appendAuditEvent } from '../repos/audit'
 import { listKnowledge } from '../repos/knowledge'
 import { deleteWorkspaceRow } from '../repos/workspaces'
+import { collectBrandObjectKeys, deleteBrandObjects } from './brandKit/storage'
 import {
   anonymiseCommentsByAuthor,
   anonymiseActivityByUser,
@@ -227,8 +228,11 @@ async function cascadeDeleteWorkspaces(
     }
   }
   // Drop the workspace rows themselves — workspace_members cascade via FK.
+  // Brand-kit objects (WP10): keys read before the rows cascade away.
   for (const wsId of cascadeWorkspaceIds) {
+    const brandKeys = await collectBrandObjectKeys(wsId)
     await deleteWorkspaceRow(wsId)
+    await deleteBrandObjects(brandKeys)
   }
 }
 

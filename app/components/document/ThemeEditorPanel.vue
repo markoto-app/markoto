@@ -3,11 +3,13 @@ import type { DocTheme, CaptionLabelStyle, CaptionNumbering, CaptionPosition, Co
 import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { brandFontFaceCss, brandFontFamilies } from '~~/shared/utils/brandFonts'
+import { brandAssetDocUrl, brandImageFile, themeImagesForDoc } from '~~/shared/utils/themeImages'
+import type { BrandFont } from '~~/shared/config/brandKit'
 import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
 import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils/themePresets'
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
-import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { isIsoDate } from '~~/shared/utils/documentLocale'
 
 /**
@@ -30,6 +32,19 @@ const props = defineProps<{
    * but not applied. Optional so other callers default to "allowed".
    */
   customCssAllowed?: boolean
+  /**
+   * The document's workspace (WP10 brand kit): its fonts join the font
+   * pickers and its logos the logo / header-image fields. Null outside a
+   * workspace, and for guests (who don't see the workspace's kit).
+   */
+  workspaceId?: string | null
+  /**
+   * The workspace design is locked (WP10): the document renders with it
+   * and keeps only its cover text, so the panel shows just that.
+   */
+  brandLocked?: boolean
+  /** The viewer can unlock / change the workspace design (admin). */
+  canManageBrand?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -68,6 +83,36 @@ if (import.meta.client) {
       href
     }))
   })
+}
+
+// Workspace brand kit (WP10): fonts + logos the members can pick. Loaded
+// once per panel; a failure just leaves the built-in choices.
+interface BrandKitResponse {
+  fonts: BrandFont[]
+  images: Array<{ file: string, name: string, url: string }>
+}
+const brandKit = ref<BrandKitResponse | null>(null)
+onMounted(async () => {
+  if (!props.workspaceId) return
+  try {
+    brandKit.value = await $fetch<BrandKitResponse>(`/api/workspaces/${encodeURIComponent(props.workspaceId)}/brand`)
+  } catch {
+    brandKit.value = null
+  }
+})
+const brandImages = computed(() => brandKit.value?.images ?? [])
+const brandFamilies = computed(() => brandFontFamilies(brandKit.value?.fonts))
+// Declare the workspace fonts in the app too, so the picker items show
+// in their own face (the document route answers members by session).
+useHead(() => ({
+  style: brandKit.value?.fonts.length
+    ? [{ key: 'theme-brand-fonts', textContent: brandFontFaceCss(brandKit.value.fonts, file => brandAssetDocUrl(props.docId, file)) }]
+    : []
+}))
+/** Where the panel previews a theme image (a brand URL loads through the document's brand route). */
+function imagePreviewSrc(url: string): string {
+  const file = brandImageFile(url)
+  return file ? brandAssetDocUrl(props.docId, file) : url
 }
 
 // `slot` enables per-item template overrides — Nuxt UI v4 then exposes
@@ -616,6 +661,12 @@ const coverDate = computed({
 // exist on every item variant). Nuxt UI skips `type: 'label'` items for
 // selection, so the empty string is never surfaced as a picked value.
 const fontPickerItems = computed(() => [
+  ...(brandFamilies.value.length
+    ? [
+        { type: 'label' as const, label: t('brandKit.workspaceFonts'), value: '' },
+        ...brandFamilies.value.map(name => ({ label: name, value: name }))
+      ]
+    : []),
   { type: 'label' as const, label: t('theme.fonts.sans'), value: '' },
   ...THEME_FONTS.filter(f => f.category === 'sans').map(f => ({ label: f.name, value: f.name })),
   { type: 'label' as const, label: t('theme.fonts.serif'), value: '' },
@@ -866,6 +917,101 @@ function deleteSaved(saved: SavedTheme) {
         class="text-sm text-muted"
       >
         {{ t('theme.readOnly') }}
+      </div>
+
+      <!-- Locked workspace design (brand kit, WP10): only the cover text
+           is the document's own. -->
+      <div
+        v-else-if="brandLocked"
+        class="space-y-4"
+        data-testid="theme-brand-locked"
+      >
+        <div class="rounded-md border border-default bg-default p-3 space-y-2">
+          <div class="flex items-center gap-2">
+            <UIcon
+              name="i-lucide-lock"
+              class="size-4 text-muted"
+            />
+            <p class="text-sm font-medium">
+              {{ t('brandKit.lockedTitle') }}
+            </p>
+          </div>
+          <p class="text-xs text-muted">
+            {{ t('brandKit.lockedBody') }}
+          </p>
+          <UButton
+            v-if="canManageBrand && workspaceId"
+            :to="`/w/${workspaceId}?tab=brand`"
+            color="neutral"
+            variant="outline"
+            size="xs"
+            icon="i-lucide-palette"
+          >
+            {{ t('brandKit.openBrandKit') }}
+          </UButton>
+        </div>
+        <UFormField :label="t('theme.cover.subtitle')">
+          <UInput
+            v-model="draft.cover.subtitle"
+            maxlength="200"
+            class="w-full"
+            data-testid="theme-locked-subtitle"
+          />
+        </UFormField>
+        <UFormField
+          :label="t('theme.cover.date')"
+          :help="t('theme.cover.dateHelp')"
+        >
+          <UInput
+            v-model="coverDate"
+            type="date"
+            class="w-full"
+          />
+        </UFormField>
+        <UFormField :label="t('theme.cover.authors')">
+          <div class="space-y-2">
+            <div
+              v-for="(_, idx) in draft.cover.authors"
+              :key="idx"
+              class="flex gap-2"
+            >
+              <div class="flex-1 space-y-1">
+                <UInput
+                  v-model="draft.cover.authors[idx]"
+                  :placeholder="t('theme.cover.authorPlaceholder')"
+                  maxlength="100"
+                  class="w-full"
+                />
+                <UTextarea
+                  :model-value="affiliationAt(idx)"
+                  :placeholder="t('theme.cover.affiliationPlaceholder')"
+                  :rows="2"
+                  autoresize
+                  maxlength="300"
+                  class="w-full"
+                  @update:model-value="setAffiliation(idx, $event)"
+                />
+              </div>
+              <UButton
+                color="neutral"
+                variant="ghost"
+                icon="i-lucide-x"
+                :aria-label="t('theme.cover.removeAuthor')"
+                @click="removeAuthor(idx)"
+              />
+            </div>
+            <UButton
+              v-if="draft.cover.authors.length < 10"
+              color="neutral"
+              variant="outline"
+              icon="i-lucide-plus"
+              block
+              @click="addAuthor"
+            >
+              {{ t('theme.cover.addAuthor') }}
+            </UButton>
+          </div>
+        </UFormField>
       </div>
 
       <template v-else>
@@ -1157,7 +1303,7 @@ function deleteSaved(saved: SavedTheme) {
                       class="flex items-center gap-3 p-2 border border-default rounded"
                     >
                       <img
-                        :src="draft.brand.logoUrl"
+                        :src="imagePreviewSrc(draft.brand.logoUrl)"
                         alt="Logo preview"
                         class="border border-default rounded bg-default"
                         :style="{ height: `${draft.brand.logoHeight}px`, maxWidth: '120px', objectFit: 'contain' }"
@@ -1196,6 +1342,13 @@ function deleteSaved(saved: SavedTheme) {
                     >
                       {{ logoError }}
                     </p>
+                    <DocumentThemeBrandImagePicker
+                      v-if="brandImages.length"
+                      :images="brandImages"
+                      :doc-id="docId"
+                      :selected="draft.brand.logoUrl"
+                      @select="url => { draft.brand.logoUrl = url }"
+                    />
                   </div>
                 </UFormField>
                 <UFormField
@@ -1882,7 +2035,7 @@ function deleteSaved(saved: SavedTheme) {
                     class="flex items-center gap-3 p-2 border border-default rounded"
                   >
                     <img
-                      :src="draft.header.imageUrl"
+                      :src="imagePreviewSrc(draft.header.imageUrl)"
                       alt="Header preview"
                       class="border border-default rounded bg-default"
                       :style="{ height: `${draft.header.imageHeight * 1.5}px`, maxWidth: '120px', objectFit: 'contain' }"
@@ -1921,6 +2074,13 @@ function deleteSaved(saved: SavedTheme) {
                   >
                     {{ headerImageError }}
                   </p>
+                  <DocumentThemeBrandImagePicker
+                    v-if="brandImages.length"
+                    :images="brandImages"
+                    :doc-id="docId"
+                    :selected="draft.header.imageUrl"
+                    @select="url => { draft.header.imageUrl = url }"
+                  />
                 </div>
               </UFormField>
               <UFormField
@@ -2330,7 +2490,7 @@ function deleteSaved(saved: SavedTheme) {
     </div>
 
     <div
-      v-if="canEdit"
+      v-if="canEdit && !brandLocked"
       class="p-3 border-t border-default shrink-0"
     >
       <UButton

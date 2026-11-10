@@ -76,6 +76,7 @@ const audience = ref<AudienceKind>('casual')
 type Choice
   = | { kind: 'template', id: string }
     | { kind: 'saved', themeId: string }
+    | { kind: 'workspace', templateId: string }
 const choice = ref<Choice>({ kind: 'template', id: DEFAULT_TEMPLATE_ID })
 const designOverride = ref<string | null>(null)
 
@@ -103,7 +104,7 @@ function defaultTemplateId(): string {
 // Which option row is expanded (one at a time); all closed on open.
 type Section = 'template' | 'details'
 const openSection = ref<Section | null>(null)
-type TemplateTab = 'all' | ThemePresetCategory | 'saved'
+type TemplateTab = 'all' | ThemePresetCategory | 'saved' | 'workspace'
 const templateTab = ref<TemplateTab>('all')
 
 function setSection(section: Section, open: boolean) {
@@ -127,6 +128,10 @@ const savedThemes = ref<SavedTheme[]>([])
 // Workspace default theme (when filing into a workspace): the design Blank
 // gets. Without one, Blank is in the markoto design.
 const workspaceDefaultTheme = ref<DocTheme | null>(null)
+// The workspace's own templates (WP10c, brand kit): a copy of a workspace
+// document's current text + design. Only when filing into a workspace.
+interface WorkspaceTemplate { id: string, name: string, description: string, docTitle: string }
+const workspaceTemplates = ref<WorkspaceTemplate[]>([])
 
 async function loadThemeContext() {
   // 1. The user's saved themes — only meaningful when logged in.
@@ -146,8 +151,13 @@ async function loadThemeContext() {
       )
       workspaceDefaultTheme.value = res.workspace.defaultTheme
     } catch { workspaceDefaultTheme.value = null }
+    try {
+      const res = await $fetch<{ templates: WorkspaceTemplate[] }>(`/api/workspaces/${props.workspaceId}/templates`)
+      workspaceTemplates.value = res.templates
+    } catch { workspaceTemplates.value = [] }
   } else {
     workspaceDefaultTheme.value = null
+    workspaceTemplates.value = []
   }
 }
 
@@ -209,10 +219,16 @@ watch(() => props.open, async (next) => {
   // Pull saved themes + workspace default fresh on every open so a
   // theme just-saved in the editor is immediately pickable here.
   await loadThemeContext()
+  // A workspace with its own templates opens on them.
+  if (workspaceTemplates.value.length > 0 && !props.initialTemplateId) templateTab.value = 'workspace'
 }, { immediate: true })
 
 function pickTemplate(id: string) {
   choice.value = { kind: 'template', id }
+  designOverride.value = null
+}
+function pickWorkspaceTemplate(templateId: string) {
+  choice.value = { kind: 'workspace', templateId }
   designOverride.value = null
 }
 function pickSaved(themeId: string) {
@@ -235,6 +251,7 @@ const templateSummary = computed(() => {
     const name = savedThemes.value.find(s => s.themeId === c.themeId)?.name ?? ''
     return t('newDoc.blankIn', { design: name })
   }
+  if (c.kind === 'workspace') return workspaceTemplates.value.find(w => w.id === c.templateId)?.name ?? ''
   const tpl = getTemplate(c.id)
   if (!tpl) return ''
   const name = t(tpl.labelKey)
@@ -276,10 +293,22 @@ async function submit() {
     // design>" sends the saved theme. `themePreset` and `themeId` are
     // mutually exclusive — the server rejects both.
     const c = choice.value
+    if (c.kind === 'workspace' && props.workspaceId) {
+      // A workspace template copies its document (text + design + images);
+      // the title is the one typed here, else the template's name.
+      const res = await $fetch<{ docId: string }>(`/api/workspaces/${props.workspaceId}/templates/${c.templateId}/documents`, {
+        method: 'POST',
+        body: trimmedTitle ? { title: trimmedTitle } : {}
+      })
+      rememberCreatedDoc()
+      emit('update:open', false)
+      emit('created', res.docId)
+      return
+    }
     if (c.kind === 'saved') {
       body.templateId = 'blank'
       body.themeId = c.themeId
-    } else {
+    } else if (c.kind === 'template') {
       body.templateId = c.id
       const design = designOverride.value ?? getTemplate(c.id)?.design ?? null
       if (design !== null) body.themePreset = design
@@ -367,6 +396,7 @@ async function submit() {
                   v-model:tab="templateTab"
                   testid-prefix="newdoc-template-card-"
                   :saved-tab="savedThemes.length > 0"
+                  :workspace-tab="workspaceTemplates.length > 0"
                   :selected-id="selectedTemplateId"
                   :blank-theme="workspaceDefaultTheme"
                   :blank-description="blankDescription"
@@ -374,6 +404,20 @@ async function submit() {
                   @select="(tpl) => pickTemplate(tpl.id)"
                 >
                   <template #before="{ tab: slotTab }">
+                    <!-- The workspace's own templates (WP10c). -->
+                    <template v-if="slotTab === 'workspace'">
+                      <DocumentPictureCard
+                        v-for="wt in workspaceTemplates"
+                        :key="wt.id"
+                        :testid="`newdoc-template-card-workspace-${wt.id}`"
+                        :name="wt.name"
+                        :description="wt.description || wt.docTitle"
+                        :selected="choice.kind === 'workspace' && choice.templateId === wt.id"
+                        :brand="workspaceDefaultTheme?.color.brand ?? '#000000'"
+                        :heading-font="workspaceDefaultTheme?.headings.font ?? 'Inter'"
+                        @click="pickWorkspaceTemplate(wt.id)"
+                      />
+                    </template>
                     <!-- The user's saved designs, each as a blank page in
                          it: no page picture, a brand stripe + "Aa" in the
                          heading font instead. -->

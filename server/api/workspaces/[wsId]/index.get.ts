@@ -1,3 +1,5 @@
+import { countBrandAssets } from '../../../repos/brandAssets'
+import { countWorkspaceTemplates } from '../../../repos/workspaceTemplates'
 import { getWorkspace } from '../../../repos/workspaces'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
@@ -63,12 +65,19 @@ export default defineEventHandler(async (event) => {
   let auditLog: { available: boolean } | null = null
   // Guests (WP11), admins only: whether guests can be invited.
   let guests: { available: boolean } | null = null
+  // Brand kit (WP10), admins only: the tab shows where the plan includes
+  // it, or where something is set up that can still be removed.
+  let brandKit: { available: boolean, inUse: boolean } | null = null
   if (myRole === 'admin') {
     const plan = await resolveWorkspacePlan(wsId)
     const connection = await getSsoConnectionForWorkspace(wsId)
     sso = { available: planHasFeature(plan, 'sso'), status: connection?.status ?? 'none' }
     auditLog = { available: planHasFeature(plan, 'auditLog') }
     guests = { available: planHasFeature(plan, 'guests') }
+    brandKit = {
+      available: planHasFeature(plan, 'brandKit'),
+      inUse: ws.brandLocked || (await countBrandAssets(wsId, 'font')) + (await countBrandAssets(wsId, 'image')) + (await countWorkspaceTemplates(wsId)) > 0
+    }
   }
 
   return {
@@ -92,7 +101,9 @@ export default defineEventHandler(async (event) => {
       billing,
       sso,
       auditLog,
-      guests
+      guests,
+      brandKit,
+      brandLocked: ws.brandLocked
     },
     documents,
     members

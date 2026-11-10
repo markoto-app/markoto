@@ -1,4 +1,4 @@
-import { ownUploadFileId } from '~~/shared/utils/themeImages'
+import { brandAssetDocUrl, brandImageFile, ownUploadFileId } from '~~/shared/utils/themeImages'
 
 /**
  * File-access token handling for the server render page
@@ -20,10 +20,24 @@ export interface RenderFileAccess {
   fileIds: ReadonlySet<string>
   /** The bootstrap's file-access JWT. */
   token: string
+  /**
+   * Brand-kit files (`<assetId>.<ext>`) of the document's workspace (WP10).
+   * A theme's `/api/brand/<file>` image loads through
+   * `/api/docs/<docId>/brand/<file>` with the token — only for these.
+   */
+  brandFiles?: ReadonlySet<string>
+}
+
+/** The URL a brand-kit file (font or logo) of this document loads from, with the token; null when unknown. */
+export function renderBrandFileUrl(file: string, access: RenderFileAccess): string | null {
+  if (!access.brandFiles?.has(file)) return null
+  return `${brandAssetDocUrl(access.docId, file)}?token=${encodeURIComponent(access.token)}`
 }
 
 /** `url` with the file token appended when it is one of the document's own uploads; otherwise unchanged. */
 export function withRenderFileToken(url: string, access: RenderFileAccess): string {
+  const brand = brandImageFile(url)
+  if (brand !== null) return renderBrandFileUrl(brand, access) ?? url
   const fileId = ownUploadFileId(url, access.docId)
   if (fileId === null || !access.fileIds.has(fileId)) return url
   return `${url}?token=${encodeURIComponent(access.token)}`

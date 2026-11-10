@@ -1,3 +1,6 @@
+import { resolveDocBrand } from '../../utils/brandKit/docBrand'
+import { listBrandAssets } from '../../repos/brandAssets'
+import { applyBrandLock } from '~~/shared/utils/brandLock'
 import { mintFileAccessToken } from '../../utils/fileAccessToken'
 import { verifyRenderToken } from '../../utils/renderTokens'
 import { getDoc } from '../../repos/documents'
@@ -58,6 +61,8 @@ export default defineEventHandler(async (event) => {
       language: sample.language,
       fileAccessToken: '',
       fileIds: [],
+      brandFonts: [],
+      brandFiles: [],
       appOrigins: customCssAppOrigins()
     }
   }
@@ -106,11 +111,17 @@ export default defineEventHandler(async (event) => {
   // document's plan includes it. Y.js writes bypass the API's write-time
   // check, so the render path decides. The stored CSS stays untouched.
   // A built-in preset's template CSS is not gated (customCssForPlan).
+  //
+  // Brand kit (WP10): a locked workspace design replaces everything but the
+  // document's cover text (shared/utils/brandLock.ts) — before the CSS
+  // gate, which then judges the workspace design's CSS like any other.
+  const brand = await resolveDocBrand(doc.workspaceId)
+  const ownTheme = brand.lockedTheme ? applyBrandLock(properties.theme, brand.lockedTheme) : properties.theme
   const customCssAllowed = planHasFeature(await resolveDocPlanFor(doc), 'customCss')
-  const css = customCssForPlan(properties.theme?.customCss, customCssAllowed)
-  const theme = !properties.theme || css === properties.theme.customCss
-    ? properties.theme
-    : { ...properties.theme, customCss: css }
+  const css = customCssForPlan(ownTheme?.customCss, customCssAllowed)
+  const theme = !ownTheme || css === ownTheme.customCss
+    ? ownTheme
+    : { ...ownTheme, customCss: css }
 
   return {
     snapshotId: payload.snapshotId,
@@ -126,6 +137,11 @@ export default defineEventHandler(async (event) => {
     // (app/utils/renderFileTokens.ts), never to arbitrary URLs in the
     // content.
     fileIds: (await listConfirmedUploadsForDoc(docId)).map(u => u.fileId),
+    // Workspace brand kit (WP10): the fonts to declare, and the brand-kit
+    // files (fonts + logos) the token may go to — `/api/brand/<file>`
+    // URLs in the theme load through `/api/docs/<docId>/brand/<file>`.
+    brandFonts: brand.fonts,
+    brandFiles: doc.workspaceId ? (await listBrandAssets(doc.workspaceId)).map(a => `${a.id}.${a.format}`) : [],
     // Public app origin(s) — absolute `https://<app>/api/files/…` URLs in
     // custom CSS are treated as this app's (the print page itself is
     // served from the internal container origin, so it can't tell).
