@@ -17,7 +17,7 @@ import type { DocTheme } from '~~/shared/types/theme'
  * cards in front ("Blank in <saved design>"); with `savedTab` a "My designs"
  * tab shows only that slot.
  */
-type Tab = 'all' | ThemePresetCategory | 'saved'
+type Tab = 'all' | ThemePresetCategory | 'saved' | 'workspace'
 
 const props = withDefaults(defineProps<{
   /** Template shown as chosen (border + aria-pressed). */
@@ -25,11 +25,13 @@ const props = withDefaults(defineProps<{
   /** data-testid of each card: `${testidPrefix}${template.id}`. */
   testidPrefix: string
   savedTab?: boolean
+  /** A "This workspace" tab (WP10c workspace templates) — shows only the `before` slot, first in the row. */
+  workspaceTab?: boolean
   /** The design Blank gets when it is not markoto (a workspace default). */
   blankTheme?: DocTheme | null
   /** Description of the Blank card when `blankTheme` is set. */
   blankDescription?: string
-}>(), { selectedId: null, savedTab: false, blankTheme: null, blankDescription: undefined })
+}>(), { selectedId: null, savedTab: false, workspaceTab: false, blankTheme: null, blankDescription: undefined })
 
 const emit = defineEmits<{ select: [template: TemplateMeta] }>()
 
@@ -38,6 +40,7 @@ const { t } = useI18n()
 const tab = defineModel<Tab>('tab', { default: 'all' })
 
 const tabs = computed<TabsItem[]>(() => [
+  ...(props.workspaceTab ? [{ label: t('newDoc.designTabs.workspace'), value: 'workspace' }] : []),
   { label: t('newDoc.designTabs.all'), value: 'all' },
   ...THEME_PRESET_CATEGORIES
     .filter(c => TEMPLATES.some(tpl => tpl.category === c))
@@ -48,9 +51,12 @@ const tabs = computed<TabsItem[]>(() => [
 watch(() => props.savedTab, (has) => {
   if (!has && tab.value === 'saved') tab.value = 'all'
 })
+watch(() => props.workspaceTab, (has) => {
+  if (!has && tab.value === 'workspace') tab.value = 'all'
+})
 
 const visible = computed(() => {
-  if (tab.value === 'saved') return []
+  if (tab.value === 'saved' || tab.value === 'workspace') return []
   if (tab.value === 'all') return TEMPLATES
   return TEMPLATES.filter(tpl => tpl.category === tab.value)
 })

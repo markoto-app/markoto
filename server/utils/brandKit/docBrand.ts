@@ -1,0 +1,47 @@
+import { createHash } from 'node:crypto'
+import { getWorkspace } from '../../repos/workspaces'
+import { listBrandFonts } from '../../repos/brandAssets'
+import { brandKitAvailable } from './access'
+import { isValidTheme } from '~~/shared/utils/themeValidation'
+import type { BrandFont } from '~~/shared/config/brandKit'
+import type { DocTheme } from '~~/shared/types/theme'
+
+// What a document's renderers need from its workspace's brand kit (WP10):
+// the fonts to declare and, while the design is locked (and the plan
+// includes the kit), the locked design (shared/utils/brandLock.ts). Read
+// by the token endpoint (editor preview + browser print) and the render
+// bootstrap (server PDF / page images, the AI's page views).
+
+export interface DocBrand {
+  fonts: BrandFont[]
+  /** The workspace design the document must render with; null = its own. */
+  lockedTheme: DocTheme | null
+  /**
+   * Changes whenever the fonts or the locked design change — part of the
+   * server render cache key (a brand change makes no new Y.js row, so the
+   * snapshot id alone would serve a stale PDF). Null when the document has
+   * no brand inputs (cache key unchanged from before WP10).
+   */
+  fingerprint: string | null
+}
+
+const NONE: DocBrand = { fonts: [], lockedTheme: null, fingerprint: null }
+
+export async function resolveDocBrand(workspaceId: string | null): Promise<DocBrand> {
+  if (!workspaceId) return NONE
+  const [workspace, fonts] = await Promise.all([getWorkspace(workspaceId), listBrandFonts(workspaceId)])
+  if (!workspace) return NONE
+  let lockedTheme: DocTheme | null = null
+  if (workspace.brandLocked && workspace.defaultTheme && isValidTheme(workspace.defaultTheme) && await brandKitAvailable(workspaceId)) {
+    lockedTheme = workspace.defaultTheme
+  }
+  if (fonts.length === 0 && !lockedTheme) return NONE
+  const fingerprint = createHash('sha256').update(JSON.stringify({ fonts, lockedTheme })).digest('hex').slice(0, 16)
+  return { fonts, lockedTheme, fingerprint }
+}
+
+/** The client shape (token + meta endpoints). */
+export async function docBrandForClient(workspaceId: string | null): Promise<{ fonts: BrandFont[], lockedTheme: DocTheme | null }> {
+  const brand = await resolveDocBrand(workspaceId)
+  return { fonts: brand.fonts, lockedTheme: brand.lockedTheme }
+}

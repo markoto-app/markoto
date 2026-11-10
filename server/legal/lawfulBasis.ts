@@ -60,7 +60,9 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     basis: 'contract',
     // `guest_document_shares` (WP11): which workspace documents were
     // shared with which guest (view / edit) and by whom.
-    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares'],
+    // `workspace_brand_kit` (WP10): fonts + logos a workspace's admins
+    // uploaded (and who), workspace templates.
+    dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },

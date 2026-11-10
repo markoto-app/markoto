@@ -4,6 +4,8 @@ import { useS3Client } from './s3'
 import { useValkey } from './valkey'
 import { injectTraceHeaders } from './traceHeaders'
 import { flushSyncDocument } from './syncNotify'
+import { resolveDocBrand } from './brandKit/docBrand'
+import { getDoc } from '../repos/documents'
 import * as Sentry from '@sentry/nuxt'
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
@@ -129,15 +131,31 @@ async function releaseRenderLock(key: string): Promise<void> {
 async function pollManifestUntilReady(
   docId: string,
   snapshotId: number,
-  wantFormat: RenderFormat
+  wantFormat: RenderFormat,
+  variant: string | null = null
 ): Promise<RenderManifest | null> {
   const deadline = Date.now() + RENDER_POLL_CEILING_MS
   while (Date.now() < deadline) {
     await new Promise(resolve => setTimeout(resolve, RENDER_POLL_INTERVAL_MS))
-    const m = await readManifest(docId, snapshotId)
+    const m = await readManifest(docId, snapshotId, variant)
     if (m && manifestSatisfies(m, wantFormat)) return m
   }
   return null
+}
+
+/** `renders/<docId>/<folder>/`: the snapshot id, plus the brand fingerprint when there is one. */
+function renderFolder(snapshotId: number, variant: string | null): string {
+  return variant ? `${snapshotId}-${variant}` : String(snapshotId)
+}
+
+/** The document's brand-kit fingerprint (null outside a workspace / without brand inputs). */
+async function brandRenderVariant(docId: string): Promise<string | null> {
+  try {
+    const doc = await getDoc(docId)
+    return (await resolveDocBrand(doc?.workspaceId ?? null)).fingerprint
+  } catch {
+    return null
+  }
 }
 
 /**
@@ -159,10 +177,10 @@ async function getLatestSnapshotId(docId: string): Promise<number> {
  * or any error (we re-render rather than fail closed — the renderer is
  * idempotent so a wasteful re-render is preferable to a confusing 500).
  */
-async function readManifest(docId: string, snapshotId: number): Promise<RenderManifest | null> {
+async function readManifest(docId: string, snapshotId: number, variant: string | null = null): Promise<RenderManifest | null> {
   const config = useRuntimeConfig()
   const s3 = useS3Client()
-  const key = `renders/${docId}/${snapshotId}/manifest.json`
+  const key = `renders/${docId}/${renderFolder(snapshotId, variant)}/manifest.json`
   try {
     await s3.send(new HeadObjectCommand({ Bucket: config.s3.bucket, Key: key }))
   } catch {
@@ -188,7 +206,8 @@ async function readManifest(docId: string, snapshotId: number): Promise<RenderMa
 async function callRenderer(
   docId: string,
   snapshotId: number,
-  format: RenderFormat
+  format: RenderFormat,
+  variant: string | null = null
 ): Promise<RendererSuccess> {
   const config = useRuntimeConfig()
   if (!config.rendererInternalUrl) {
@@ -204,7 +223,7 @@ async function callRenderer(
       'Content-Type': 'application/json',
       'X-Internal-Secret': config.internalApiSecret
     }),
-    body: JSON.stringify({ docId, snapshotId, format }),
+    body: JSON.stringify(variant ? { docId, snapshotId, format, variant } : { docId, snapshotId, format }),
     signal: AbortSignal.timeout(RENDER_TIMEOUT_MS)
   })
 
@@ -237,16 +256,20 @@ export async function renderDocument(
   // them first; on failure render what is stored, as before.
   await flushSyncDocument(docId)
   const snapshotId = await getLatestSnapshotId(docId)
+  // Brand kit (WP10): a change to the workspace's fonts or locked design
+  // writes no Y.js row, so the snapshot id alone would serve a stale
+  // render — the brand fingerprint is part of the cache folder.
+  const variant = await brandRenderVariant(docId)
 
   // First, check the cache. If a usable manifest exists for the requested
   // format (or a superset 'both'), reuse it. e.g. asking for PNG can
   // reuse a 'both' render.
-  const cached = await readManifest(docId, snapshotId)
+  const cached = await readManifest(docId, snapshotId, variant)
   if (cached && manifestSatisfies(cached, opts.format)) {
     return { cached: true, manifest: cached }
   }
 
-  const key = `${docId}:${snapshotId}:${opts.format}`
+  const key = `${docId}:${renderFolder(snapshotId, variant)}:${opts.format}`
   const existing = inflight.get(key)
   if (existing) return existing
 
@@ -258,7 +281,7 @@ export async function renderDocument(
       // call the renderer.
       acquired = await tryAcquireRenderLock(key)
       if (!acquired) {
-        const polled = await pollManifestUntilReady(docId, snapshotId, opts.format)
+        const polled = await pollManifestUntilReady(docId, snapshotId, opts.format, variant)
         if (polled) return { cached: true, manifest: polled }
         // Polling timed out without a manifest. The lock has either
         // expired (winner crashed) or is still held by a slow render
@@ -267,7 +290,7 @@ export async function renderDocument(
         // render than an opaque timeout to the user.
         console.warn(`[renderClient] poll timeout for ${key}, attempting own render`)
       }
-      const out = await callRenderer(docId, snapshotId, opts.format)
+      const out = await callRenderer(docId, snapshotId, opts.format, variant)
       const manifest: RenderManifest = {
         snapshotId,
         pageCount: out.pageCount,

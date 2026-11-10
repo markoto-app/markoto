@@ -60,6 +60,8 @@ import {
   checkSavedThemeDescription,
   checkSavedThemeName
 } from '~~/shared/config/savedThemes'
+import { resolveDocBrand } from './brandKit/docBrand'
+import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/brandLock'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../repos/documents'
 import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
 import { openTrustedCommentClient } from './commentsServerClient'
@@ -358,12 +360,28 @@ export function summarizePatch(patch: UpdateThemeInput): string {
   return parts.length ? parts.join(' + ') : '(no changes)'
 }
 
+async function checkBrandLock(docId: string, input: UpdateThemeInput): Promise<ToolResult | null> {
+  const doc = await getDoc(docId)
+  if (!(await resolveDocBrand(doc?.workspaceId ?? null)).lockedTheme) return null
+  const entries = Object.entries(input as Record<string, unknown>).filter(([, v]) => v !== undefined && v !== null && v !== false)
+  const outside = entries.filter(([k]) => k !== 'cover').map(([k]) => k)
+  const cover = (input as { cover?: Record<string, unknown> }).cover
+  const coverOutside = cover ? Object.keys(cover).filter(k => cover[k] !== undefined && !(DOC_OWNED_COVER_FIELDS as readonly string[]).includes(k)) : []
+  if (outside.length === 0 && coverOutside.length === 0) return null
+  return err(`Error: this workspace's admins locked the design — nothing was changed. Every document in the workspace uses the workspace design; only the cover ${DOC_OWNED_COVER_FIELDS.join(', ')} can be changed per document. Tell the user to ask a workspace admin to change the workspace design (Brand kit) if they need a different look.`)
+}
+
 export async function handleUpdateTheme(
   session: DocToolContext,
   input: UpdateThemeInput
 ): Promise<ToolResult> {
   const conflictErr = checkBaseSourceConflict(input)
   if (conflictErr) return conflictErr
+
+  // Brand kit (WP10): a locked workspace design — only the cover text is
+  // the document's own. Anything else would be stored but never shown.
+  const lockErr = await checkBrandLock(session.docId, input)
+  if (lockErr) return lockErr
 
   const baseResult = await resolveBaseTheme(session, input)
   if (!baseResult.ok) return baseResult.error

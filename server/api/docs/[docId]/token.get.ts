@@ -1,3 +1,4 @@
+import { docBrandForClient } from '../../../utils/brandKit/docBrand'
 import jwt from 'jsonwebtoken'
 import { ssoLoginUrlForMember } from '../../../utils/sso/required'
 import { getDocWithActorRole } from '../../../repos/documents'
@@ -112,6 +113,10 @@ export default defineEventHandler(async (event) => {
     }),
     templateId: row.templateId,
     planFeatures: { customCss: planHasFeature(docPlan, 'customCss') },
+    // Workspace brand kit (WP10): the fonts every render declares and,
+    // while the workspace design is locked, that design (the editor
+    // renders with it, keeping only the document's cover text).
+    brandKit: await docBrandForClient(row.workspaceId),
     // The Team / Business plan covering the doc's workspace (header badge).
     workspacePlan: row.workspaceId ? (await pooledPlansFor([row.workspaceId])).get(row.workspaceId) ?? null : null,
     // Whether DELETE /api/docs/:id would succeed for this caller — the

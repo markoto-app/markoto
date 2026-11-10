@@ -315,7 +315,8 @@
       "academic": "Wissenschaft",
       "business": "Business",
       "writing": "Schreiben",
-      "saved": "Meine Designs"
+      "saved": "Meine Designs",
+      "workspace": "Dieser Arbeitsbereich"
     },
     "blankIn": "Leer in {design}",
     "blankWorkspaceDescription": "Eine leere Seite im Design Ihres Workspace: {design}."
@@ -1323,7 +1324,8 @@
       "billing": "Abrechnung",
       "sso": "Single Sign-on",
       "audit": "Audit-Log",
-      "usage": "Nutzung"
+      "usage": "Nutzung",
+      "brand": "Brand-Kit"
     },
     "settings": {
       "title": "Workspace-Einstellungen",
@@ -1850,7 +1852,8 @@
       "aiStrongModel": "Das starke KI-Modell ist in diesem Plan nicht enthalten.",
       "sso": "Single Sign-on ist im Plan dieses Arbeitsbereichs nicht enthalten.",
       "auditLog": "Das Audit-Log ist im Plan dieses Arbeitsbereichs nicht enthalten.",
-      "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten."
+      "guests": "Gäste sind im Plan dieses Arbeitsbereichs nicht enthalten.",
+      "brandKit": "Das Brand-Kit ist im Plan dieses Arbeitsbereichs nicht enthalten."
     },
     "limit": {
       "membersPerWorkspace": "Dieser Workspace hat die Mitgliedergrenze seines Plans erreicht.",
@@ -2430,7 +2433,12 @@
       "sso_scim_user_created": "Mitglied bereitgestellt (Provisioning)",
       "sso_scim_user_deactivated": "Mitglied entfernt (Deprovisioning)",
       "doc_shared": "Dokument mit einem Gast geteilt",
-      "doc_unshared": "Dokument nicht mehr mit einem Gast geteilt"
+      "doc_unshared": "Dokument nicht mehr mit einem Gast geteilt",
+      "workspace_brand_asset_added": "Brand-Kit-Datei hinzugefügt",
+      "workspace_brand_asset_removed": "Brand-Kit-Datei entfernt",
+      "workspace_brand_lock_changed": "Design-Sperre des Arbeitsbereichs geändert",
+      "workspace_template_added": "Vorlage hinzugefügt",
+      "workspace_template_removed": "Vorlage entfernt"
     },
     "planNotice": "Der Audit-Log ist Teil des Business-Plans."
   },
@@ -2448,5 +2456,58 @@
     "sharedDocs": "keine geteilten Dokumente | {n} geteiltes Dokument | {n} geteilte Dokumente",
     "guestsHint": "Gäste nutzen ihr eigenes KI-Budget, daher werden ihre Ausgaben hier nicht angezeigt.",
     "loadFailed": "Nutzung konnte nicht geladen werden"
+  },
+  "brandKit": {
+    "title": "Brand-Kit",
+    "intro": "Schriftarten, Logos und Design Ihrer Organisation für jedes Dokument in diesem Arbeitsbereich sowie Vorlagen, mit denen Ihre Mitglieder neue Dokumente beginnen.",
+    "loadFailed": "Das Brand-Kit konnte nicht geladen werden",
+    "uploadFailed": "Die Datei konnte nicht hochgeladen werden",
+    "deleteFailed": "Die Datei konnte nicht gelöscht werden",
+    "fonts": "Schriftarten",
+    "fontsHint": "Laden Sie pro Schnitt und Stil eine Datei hoch (WOFF2, WOFF oder TTF). Sie erscheinen unter «Dieser Arbeitsbereich» in den Schriftauswahlen aller Dokumente hier und in deren PDFs. Variable Schriften und Schriften mit PostScript-Konturen (CFF) drucken schlecht und werden nicht akzeptiert – verwenden Sie die statischen TrueType-Schnitte.",
+    "noFonts": "Noch keine Schriftarten.",
+    "chooseFont": "Schriftdatei auswählen",
+    "fontName": "Schriftname",
+    "fontNameHelp": "Leer lassen, um den Namen aus der Datei zu verwenden. Laden Sie alle Stile einer Familie unter demselben Namen hoch.",
+    "fontNamePlaceholder": "z. B. Acme Sans",
+    "licence": "Unsere Lizenz erlaubt es, diese Schrift in Dokumente und PDFs einzubetten.",
+    "uploadFont": "Schriftart hochladen",
+    "fontAdded": "{name} hinzugefügt",
+    "italic": "kursiv",
+    "delete": "Löschen",
+    "logos": "Logos",
+    "logosHint": "PNG, JPEG oder WebP. Jedes Dokument im Arbeitsbereich kann sie als Titelseiten-Logo oder Kopfbild verwenden.",
+    "uploadLogo": "Logo hochladen",
+    "workspaceLogos": "Logos des Arbeitsbereichs",
+    "workspaceFonts": "Dieser Arbeitsbereich",
+    "design": "Design des Arbeitsbereichs",
+    "designHint": "Das Design, mit dem neue Dokumente in diesem Arbeitsbereich beginnen. Sperren Sie es, um es für jedes Dokument zu verwenden: Autorinnen und Autoren füllen dann nur noch den Text der Titelseite aus.",
+    "noDesign": "Noch kein Design des Arbeitsbereichs. Übernehmen Sie es aus einem Dokument oder wählen Sie in den Einstellungen ein Standarddesign.",
+    "pickDocument": "Dokument auswählen",
+    "useDesign": "Design dieses Dokuments verwenden",
+    "designSet": "Design des Arbeitsbereichs aktualisiert",
+    "designImagesDropped": "Bilder, die in dieses Dokument hochgeladen wurden, wurden weggelassen – wählen Sie für das gemeinsame Design ein Logo des Arbeitsbereichs.",
+    "designFailed": "Das Design des Arbeitsbereichs konnte nicht festgelegt werden",
+    "lockLabel": "Design für alle Dokumente sperren",
+    "lockDescription": "Jedes Dokument im Arbeitsbereich verwendet das Design des Arbeitsbereichs; nur der Text der Titelseite (Untertitel, Datum, Autoren) bleibt eigen. Beim Entsperren erhält jedes Dokument sein eigenes Design zurück.",
+    "lockFailed": "Die Sperre konnte nicht geändert werden",
+    "lockedTitle": "Das Design des Arbeitsbereichs ist gesperrt",
+    "lockedBody": "Dieses Dokument verwendet das Design seines Arbeitsbereichs. Den Text der Titelseite können Sie unten weiterhin ändern.",
+    "openBrandKit": "Brand-Kit öffnen",
+    "templates": "Vorlagen",
+    "templatesHint": "Machen Sie aus einem Dokument des Arbeitsbereichs eine Vorlage. Neue Dokumente daraus übernehmen dessen aktuellen Text und Design, Änderungen am Dokument ändern also die Vorlage.",
+    "templateName": "Name der Vorlage",
+    "templateDescription": "Kurze Beschreibung (optional)",
+    "addTemplate": "Vorlage hinzufügen",
+    "removeTemplate": "Vorlage entfernen",
+    "templateFailed": "Die Vorlagen konnten nicht geändert werden",
+    "fontRefused": {
+      "not-a-font": "Dies ist keine Schriftdatei. Laden Sie eine WOFF2-, WOFF- oder TTF-Datei hoch.",
+      "collection": "Diese Datei enthält mehrere Schriften. Laden Sie jeden Stil als eigene Datei hoch.",
+      "variable": "Variable Schriften drucken in PDFs schlecht. Laden Sie stattdessen die statischen Schnitte hoch (eine Datei pro Schnitt und Stil).",
+      "cff": "Schriften mit PostScript-Konturen (CFF) drucken in PDFs schlecht. Laden Sie stattdessen die TrueType-Version (TTF oder WOFF2) hoch.",
+      "no-embedding": "Die Lizenz dieser Schrift erlaubt das Einbetten in Dokumente nicht.",
+      "damaged": "Diese Schriftdatei ist beschädigt oder unvollständig."
+    }
   }
 }

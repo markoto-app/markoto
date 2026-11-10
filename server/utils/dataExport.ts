@@ -16,6 +16,7 @@ import {
   themes,
   userIdentities,
   users,
+  workspaceBrandAssets,
   workspaceMembers,
   workspaces
 } from '../db/schema'
@@ -93,6 +94,8 @@ Contents:
   document_shares.json   documents shared with you as a workspace guest
                          ("received") and ones you shared with guests
                          ("granted"), with view / edit access.
+  brand_assets.json      fonts and logos you uploaded to a workspace's
+                         brand kit (the files stay with the workspace).
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
   ai/edit-provenance.ndjson  which AI sessions you started on which
@@ -197,6 +200,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   await addCreditGrantsEntry(entries, userId)
   await addSsoIdentitiesEntry(entries, userId)
   await addDocumentSharesEntry(entries, userId)
+  await addBrandAssetsEntry(entries, userId)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -736,6 +740,20 @@ async function addDocumentSharesEntry(entries: Entries, userId: number): Promise
     // The guest's account id only — their profile isn't yours to export.
     granted: granted.map(r => ({ ...view(r), guestUserId: r.userId }))
   }, null, 2))
+}
+
+/** Brand kit (WP10): the fonts and logos this account uploaded to a workspace. */
+async function addBrandAssetsEntry(entries: Entries, userId: number): Promise<void> {
+  const rows = await useDatabase().select({
+    workspaceId: workspaceBrandAssets.workspaceId,
+    kind: workspaceBrandAssets.kind,
+    name: workspaceBrandAssets.name,
+    weight: workspaceBrandAssets.weight,
+    style: workspaceBrandAssets.style,
+    format: workspaceBrandAssets.format,
+    createdAt: workspaceBrandAssets.createdAt
+  }).from(workspaceBrandAssets).where(eq(workspaceBrandAssets.uploadedBy, userId))
+  entries['brand_assets.json'] = strToU8(JSON.stringify(rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })), null, 2))
 }
 
 async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {

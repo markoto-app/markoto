@@ -114,6 +114,15 @@ export const AUDIT_WORKSPACE_AUDIT_EXPORTED = 'workspace.audit_exported'
 export const AUDIT_DOC_SHARED = 'doc.shared'
 export const AUDIT_DOC_UNSHARED = 'doc.unshared'
 
+// Workspace brand kit (WP10). Metadata: asset id, kind, name (font family
+// or file name), weight/style; lock: before/after; templates: template id
+// + document id.
+export const AUDIT_WORKSPACE_BRAND_ASSET_ADDED = 'workspace.brand_asset_added'
+export const AUDIT_WORKSPACE_BRAND_ASSET_REMOVED = 'workspace.brand_asset_removed'
+export const AUDIT_WORKSPACE_BRAND_LOCK_CHANGED = 'workspace.brand_lock_changed'
+export const AUDIT_WORKSPACE_TEMPLATE_ADDED = 'workspace.template_added'
+export const AUDIT_WORKSPACE_TEMPLATE_REMOVED = 'workspace.template_removed'
+
 // Tagged union of every compliance audit action — useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
@@ -164,3 +173,8 @@ export type ComplianceAuditAction
     | typeof AUDIT_WORKSPACE_AUDIT_EXPORTED
     | typeof AUDIT_DOC_SHARED
     | typeof AUDIT_DOC_UNSHARED
+    | typeof AUDIT_WORKSPACE_BRAND_ASSET_ADDED
+    | typeof AUDIT_WORKSPACE_BRAND_ASSET_REMOVED
+    | typeof AUDIT_WORKSPACE_BRAND_LOCK_CHANGED
+    | typeof AUDIT_WORKSPACE_TEMPLATE_ADDED
+    | typeof AUDIT_WORKSPACE_TEMPLATE_REMOVED

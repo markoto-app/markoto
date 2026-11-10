@@ -315,7 +315,8 @@
       "academic": "Académique",
       "business": "Entreprise",
       "writing": "Écriture",
-      "saved": "Mes designs"
+      "saved": "Mes designs",
+      "workspace": "Cet espace de travail"
     },
     "blankIn": "Vide en {design}",
     "blankWorkspaceDescription": "Une page vide dans le design de votre espace de travail : {design}."
@@ -1323,7 +1324,8 @@
       "billing": "Facturation",
       "sso": "Authentification unique",
       "audit": "Journal d’audit",
-      "usage": "Utilisation"
+      "usage": "Utilisation",
+      "brand": "Kit de marque"
     },
     "settings": {
       "title": "Paramètres de l'espace de travail",
@@ -1850,7 +1852,8 @@
       "aiStrongModel": "Le modèle d’IA puissant n’est pas inclus dans ce plan.",
       "sso": "L’authentification unique n’est pas incluse dans le forfait de cet espace de travail.",
       "auditLog": "Le journal d’audit n’est pas inclus dans le forfait de cet espace de travail.",
-      "guests": "Les invités ne sont pas inclus dans le forfait de cet espace de travail."
+      "guests": "Les invités ne sont pas inclus dans le forfait de cet espace de travail.",
+      "brandKit": "Le kit de marque n’est pas inclus dans le forfait de cet espace de travail."
     },
     "limit": {
       "membersPerWorkspace": "Cet espace de travail a atteint la limite de membres de son forfait.",
@@ -2430,7 +2433,12 @@
       "sso_scim_user_created": "Membre provisionné",
       "sso_scim_user_deactivated": "Membre déprovisionné",
       "doc_shared": "Document partagé avec un invité",
-      "doc_unshared": "Document n’est plus partagé avec un invité"
+      "doc_unshared": "Document n’est plus partagé avec un invité",
+      "workspace_brand_asset_added": "Fichier du kit de marque ajouté",
+      "workspace_brand_asset_removed": "Fichier du kit de marque supprimé",
+      "workspace_brand_lock_changed": "Verrouillage du design de l’espace de travail modifié",
+      "workspace_template_added": "Modèle ajouté",
+      "workspace_template_removed": "Modèle supprimé"
     },
     "planNotice": "Le journal d’audit fait partie du plan Business."
   },
@@ -2448,5 +2456,58 @@
     "sharedDocs": "aucun document partagé | {n} document partagé | {n} documents partagés",
     "guestsHint": "Les invités utilisent leur propre budget IA ; leurs dépenses ne sont donc pas affichées ici.",
     "loadFailed": "Impossible de charger l’utilisation"
+  },
+  "brandKit": {
+    "title": "Kit de marque",
+    "intro": "Les polices, logos et le design de votre organisation pour chaque document de cet espace de travail, ainsi que les modèles à partir desquels vos membres créent de nouveaux documents.",
+    "loadFailed": "Impossible de charger le kit de marque",
+    "uploadFailed": "Impossible d’importer le fichier",
+    "deleteFailed": "Impossible de supprimer le fichier",
+    "fonts": "Polices",
+    "fontsHint": "Importez un fichier par graisse et par style (WOFF2, WOFF ou TTF). Elles apparaissent sous « Cet espace de travail » dans les sélecteurs de police de tous les documents ici, et dans leurs PDF. Les polices variables et celles à contours PostScript (CFF) s’impriment mal et sont refusées : utilisez les coupes TrueType statiques.",
+    "noFonts": "Aucune police pour l’instant.",
+    "chooseFont": "Choisir un fichier de police",
+    "fontName": "Nom de la police",
+    "fontNameHelp": "Laissez vide pour utiliser le nom du fichier. Importez tous les styles d’une famille sous le même nom.",
+    "fontNamePlaceholder": "p. ex. Acme Sans",
+    "licence": "Notre licence autorise l’intégration de cette police dans les documents et les PDF.",
+    "uploadFont": "Importer la police",
+    "fontAdded": "{name} ajoutée",
+    "italic": "italique",
+    "delete": "Supprimer",
+    "logos": "Logos",
+    "logosHint": "PNG, JPEG ou WebP. Chaque document de l’espace de travail peut s’en servir comme logo de couverture ou image d’en-tête.",
+    "uploadLogo": "Importer un logo",
+    "workspaceLogos": "Logos de l’espace de travail",
+    "workspaceFonts": "Cet espace de travail",
+    "design": "Design de l’espace de travail",
+    "designHint": "Le design avec lequel démarrent les nouveaux documents de cet espace de travail. Verrouillez-le pour l’imposer à tous les documents : les auteurs ne renseignent alors que le texte de la couverture.",
+    "noDesign": "Pas encore de design d’espace de travail. Reprenez-le d’un document, ou choisissez un design par défaut dans les paramètres.",
+    "pickDocument": "Choisir un document",
+    "useDesign": "Utiliser le design de ce document",
+    "designSet": "Design de l’espace de travail mis à jour",
+    "designImagesDropped": "Les images importées dans ce document ont été écartées : choisissez un logo de l’espace de travail pour le design partagé.",
+    "designFailed": "Impossible de définir le design de l’espace de travail",
+    "lockLabel": "Verrouiller le design pour tous les documents",
+    "lockDescription": "Chaque document de l’espace de travail utilise le design de l’espace de travail ; seul le texte de sa couverture (sous-titre, date, auteurs) reste le sien. Le déverrouillage rend à chaque document son propre design.",
+    "lockFailed": "Impossible de modifier le verrouillage",
+    "lockedTitle": "Le design de l’espace de travail est verrouillé",
+    "lockedBody": "Ce document utilise le design de son espace de travail. Vous pouvez toujours modifier le texte de la couverture ci-dessous.",
+    "openBrandKit": "Ouvrir le kit de marque",
+    "templates": "Modèles",
+    "templatesHint": "Transformez un document de l’espace de travail en modèle. Les nouveaux documents créés à partir de lui copient son texte et son design actuels : modifier le document modifie donc le modèle.",
+    "templateName": "Nom du modèle",
+    "templateDescription": "Brève description (facultatif)",
+    "addTemplate": "Ajouter un modèle",
+    "removeTemplate": "Supprimer le modèle",
+    "templateFailed": "Impossible de modifier les modèles",
+    "fontRefused": {
+      "not-a-font": "Ce n’est pas un fichier de police. Importez un fichier WOFF2, WOFF ou TTF.",
+      "collection": "Ce fichier contient plusieurs polices. Importez chaque style dans son propre fichier.",
+      "variable": "Les polices variables s’impriment mal dans les PDF. Importez plutôt les coupes statiques (un fichier par graisse et par style).",
+      "cff": "Les polices à contours PostScript (CFF) s’impriment mal dans les PDF. Importez plutôt la version TrueType (TTF ou WOFF2).",
+      "no-embedding": "La licence de cette police n’autorise pas son intégration dans les documents.",
+      "damaged": "Ce fichier de police est endommagé ou incomplet."
+    }
   }
 }

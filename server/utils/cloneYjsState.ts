@@ -40,7 +40,9 @@ import { isValidTheme } from '~~/shared/utils/themeValidation'
 // the sync-server and call it before this runs.
 export async function cloneYjsStateWithUrlRewrite(
   sourceDocId: string,
-  targetDocId: string
+  targetDocId: string,
+  /** `title`: the copy's live title (ymeta) — a document made from a template (WP10c). */
+  overrides?: { title?: string }
 ): Promise<void> {
   const pool = useDatabasePool()
 
@@ -90,6 +92,8 @@ export async function cloneYjsStateWithUrlRewrite(
     }
     targetMeta.set(key, value)
   })
+
+  if (overrides?.title !== undefined && targetMeta.has('title')) targetMeta.set('title', overrides.title)
 
   const update = Buffer.from(Y.encodeStateAsUpdate(targetDoc))
   await pool.query(

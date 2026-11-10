@@ -39,7 +39,7 @@ const server = Bun.serve({
 
       // Light validation — the calling app already validated upstream, this
       // is a sanity net for stray callers.
-      const { docId, snapshotId, format } = body
+      const { docId, snapshotId, format, variant } = body
       if (typeof docId !== 'string' || !/^[A-Za-z0-9_-]{1,64}$/.test(docId)) {
         return jsonResponse({ error: 'invalid docId' }, 400)
       }
@@ -48,6 +48,11 @@ const server = Bun.serve({
       }
       if (format !== 'pdf' && format !== 'png' && format !== 'both') {
         return jsonResponse({ error: 'invalid format' }, 400)
+      }
+      // Brand-kit fingerprint (WP10): part of the output folder, so a
+      // workspace font / locked-design change gets its own cache entry.
+      if (variant !== undefined && (typeof variant !== 'string' || !/^[a-f0-9]{16}$/.test(variant))) {
+        return jsonResponse({ error: 'invalid variant' }, 400)
       }
 
       // Distributed-tracing continuation. The app calls this endpoint from
@@ -66,7 +71,7 @@ const server = Bun.serve({
           async () => {
             const t0 = Date.now()
             try {
-              const out = await renderDocument({ docId, snapshotId, format })
+              const out = await renderDocument({ docId, snapshotId, format, variant })
               console.log(`[renderer] docId=${docId} snap=${snapshotId} format=${format} `
                 + `pages=${out.pageCount} ms=${Date.now() - t0}`)
               return jsonResponse(out, 200)

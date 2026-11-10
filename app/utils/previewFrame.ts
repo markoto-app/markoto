@@ -2,7 +2,9 @@ import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/page
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexAssets'
 import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidAssets'
 import { hljsTheme } from '~~/shared/utils/hljsAssets'
-import { ownUploadFileId } from '~~/shared/utils/themeImages'
+import { brandAssetDocUrl, brandImageFile, ownUploadFileId } from '~~/shared/utils/themeImages'
+import { brandFontFaceCss } from '~~/shared/utils/brandFonts'
+import type { BrandFont } from '~~/shared/config/brandKit'
 import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
 import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
 import { documentTexts } from '~~/shared/utils/documentLocale'
@@ -229,8 +231,22 @@ function jsStringSafe(value: string): string {
  * URL that merely contains the path, or another document's file.
  */
 export function withOwnUploadToken(url: string, docId: string, token: string): string {
+  // A workspace brand-kit image (WP10, `/api/brand/<file>`) loads through
+  // the document's own brand route, which checks the asset belongs to the
+  // document's workspace.
+  const brand = brandImageFile(url)
+  if (brand !== null && docId) return withToken(brandAssetDocUrl(docId, brand), token)
   if (!token || ownUploadFileId(url, docId) === null) return url
   return `${url}?token=${encodeURIComponent(token)}`
+}
+
+function withToken(url: string, token: string): string {
+  return token ? `${url}?token=${encodeURIComponent(token)}` : url
+}
+
+/** Where this document's renderers load a brand-kit font from (WP10). */
+export function brandFontUrl(docId: string, file: string, token: string): string {
+  return withToken(brandAssetDocUrl(docId, file), token)
 }
 
 /** Add the file token to every `<img src>` in `html` that is one of the document's own uploads. */
@@ -260,11 +276,15 @@ export function mayReferenceOwnUploads(opts: {
   theme: Pick<DocTheme, 'brand' | 'header' | 'footer'>
   rawCustomCss: string | undefined
   docId: string
+  /** The workspace's brand-kit fonts (WP10) — declared in every render. */
+  brandFonts?: readonly BrandFont[] | null
 }): boolean {
   const { html, theme, rawCustomCss, docId } = opts
   return html.includes('/api/files/')
+    || html.includes('/api/brand/')
     || (rawCustomCss ?? '').includes('/api/files/')
-    || [theme.brand.logoUrl, theme.header.imageUrl, theme.footer.imageUrl].some(u => ownUploadFileId(u, docId) !== null)
+    || (opts.brandFonts?.length ?? 0) > 0
+    || [theme.brand.logoUrl, theme.header.imageUrl, theme.footer.imageUrl].some(u => ownUploadFileId(u, docId) !== null || brandImageFile(u) !== null)
 }
 
 /**
@@ -282,6 +302,8 @@ export function buildRenderMessage(opts: {
   docId: string
   fileToken: string
   print: boolean
+  /** The workspace's brand-kit fonts (WP10). */
+  brandFonts?: readonly BrandFont[] | null
 }): RenderMessage {
   const texts = documentTexts(opts.theme, opts.language)
   const themeCss = themeToCss(opts.theme, {
@@ -297,7 +319,10 @@ export function buildRenderMessage(opts: {
     type: 'render',
     html: attachOwnUploadTokens(opts.html, opts.docId, opts.fileToken),
     themeCss,
-    fontsImport: themeFontsImport(opts.theme),
+    fontsImport: [
+      themeFontsImport(opts.theme),
+      brandFontFaceCss(opts.brandFonts, file => brandFontUrl(opts.docId, file, opts.fileToken))
+    ].filter(Boolean).join('\n'),
     hljsUrl: hljs.url,
     hljsSri: hljs.sri,
     mermaidConfig: JSON.stringify(buildMermaidConfig(opts.theme)),

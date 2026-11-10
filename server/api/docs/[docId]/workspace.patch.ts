@@ -1,5 +1,6 @@
 import { moveDocToWorkspace } from '../../../repos/documents'
 import { deleteSharesForDoc } from '../../../repos/documentShares'
+import { deleteTemplatesForDoc } from '../../../repos/workspaceTemplates'
 import { appendAuditEvent } from '../../../repos/audit'
 import { notifySyncKickUser } from '../../../utils/syncNotify'
 
@@ -67,6 +68,9 @@ export default defineEventHandler(async (event) => {
   // token no longer authorises the document.
   const unsharedGuestIds = await deleteSharesForDoc(docId)
   for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])
+  // A workspace template (WP10c) is a link to a document IN the
+  // workspace: it goes when the document leaves.
+  const templatesRemoved = await deleteTemplatesForDoc(docId)
 
   const ip = getClientIp(event)
   await appendAuditEvent({
@@ -80,7 +84,9 @@ export default defineEventHandler(async (event) => {
     workspaceId: authz.workspaceId,
     before: { workspaceId: authz.workspaceId },
     after: { workspaceId: target },
-    ...(unsharedGuestIds.length > 0 ? { metadata: { guestSharesRemoved: unsharedGuestIds.length } } : {})
+    ...(unsharedGuestIds.length > 0 || templatesRemoved > 0
+      ? { metadata: { ...(unsharedGuestIds.length > 0 ? { guestSharesRemoved: unsharedGuestIds.length } : {}), ...(templatesRemoved > 0 ? { templatesRemoved } : {}) } }
+      : {})
   })
 
   return { success: true, workspaceId: target }

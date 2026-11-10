@@ -13,7 +13,9 @@ import { isPagedRuntime, registerPagedHandlers } from '~/utils/pagedHandlers'
 import { documentTexts } from '~~/shared/utils/documentLocale'
 import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
-import { attachRenderFileTokens, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
+import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
+import { brandFontFaceCss } from '~~/shared/utils/brandFonts'
+import type { BrandFont } from '~~/shared/config/brandKit'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -64,6 +66,8 @@ const { data: bootstrap, error: bootstrapError } = await useFetch<{
   language: string
   fileAccessToken: string
   fileIds?: string[]
+  brandFonts?: BrandFont[]
+  brandFiles?: string[]
   appOrigins?: string[]
 }>('/api/_internal/render-bootstrap', {
   query: { docId, t },
@@ -94,7 +98,24 @@ onMounted(async () => {
   // Cover date, `{date}` token, TOC title and chart number formats follow
   // the document language (same helper as the live preview).
   const texts = documentTexts(theme, bootstrap.value?.language)
-  const fontsImport = themeFontsImport(theme)
+  // File-access token (5-min, doc-scoped, read-only JWT from the
+  // bootstrap) so private / password-gated / workspace-only docs' images
+  // load — the renderer's Chromium has no session cookie. It goes ONLY to
+  // exact `/api/files/<docId>/<fileId>` URLs of this document's confirmed
+  // uploads and to the workspace's brand-kit files (WP10): `<img src>` in
+  // the body + cover logo, the header/footer images (themeToCss
+  // `imageUrl`), own-upload url()s in custom CSS and the brand fonts.
+  // Nothing in the content can make the page attach it to another URL.
+  const fileAccess: RenderFileAccess = {
+    docId,
+    fileIds: new Set(bootstrap.value?.fileIds ?? []),
+    token: bootstrap.value?.fileAccessToken ?? '',
+    brandFiles: new Set(bootstrap.value?.brandFiles ?? [])
+  }
+  const fontsImport = [
+    themeFontsImport(theme),
+    brandFontFaceCss(bootstrap.value?.brandFonts, file => renderBrandFileUrl(file, fileAccess) ?? '')
+  ].filter(Boolean).join('\n')
 
   // Fonts first: Mermaid measures label widths with the body font, and
   // paged.js measures every line. Bounded at 3s so a slow font load
@@ -117,18 +138,6 @@ onMounted(async () => {
     date: texts.date,
     bodyHtml
   })
-  // File-access token (5-min, doc-scoped, read-only JWT from the
-  // bootstrap) so private / password-gated / workspace-only docs' images
-  // load — the renderer's Chromium has no session cookie. It goes ONLY to
-  // exact `/api/files/<docId>/<fileId>` URLs of this document's confirmed
-  // uploads: `<img src>` in the body + cover logo, the header/footer
-  // images (themeToCss `imageUrl`) and own-upload url()s in custom CSS.
-  // Nothing in the content can make the page attach it to another URL.
-  const fileAccess: RenderFileAccess = {
-    docId,
-    fileIds: new Set(bootstrap.value?.fileIds ?? []),
-    token: bootstrap.value?.fileAccessToken ?? ''
-  }
   html = attachRenderFileTokens(html, fileAccess)
 
   // Custom CSS: sanitized again here (the stored theme may have arrived

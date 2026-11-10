@@ -127,6 +127,10 @@ describe('crossOriginResourcePolicyFor', () => {
   // The preview iframes are opaque-origin: what they load must be cross-origin.
   it('lets the preview iframe load uploads, the bundled cover logos and the vendored assets', () => {
     expect(crossOriginResourcePolicyFor('/api/files/abc/def')).toBe('cross-origin')
+    // Brand-kit fonts + logos of a document (WP10), with the token query.
+    expect(crossOriginResourcePolicyFor('/api/docs/abc/brand/AbCdEfGhIjKlMnOp.woff2?token=x')).toBe('cross-origin')
+    expect(crossOriginResourcePolicyFor('/api/docs/abc/brand')).toBe('same-site')
+    expect(crossOriginResourcePolicyFor('/api/docs/abc/token')).toBe('same-site')
     expect(crossOriginResourcePolicyFor('/markoto-logos/primary-lockup-light.svg')).toBe('cross-origin')
     expect(crossOriginResourcePolicyFor(MERMAID_URL)).toBe('cross-origin')
     expect(crossOriginResourcePolicyFor('/vendor/fonts/inter.css')).toBe('cross-origin')

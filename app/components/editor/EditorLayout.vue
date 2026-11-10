@@ -10,6 +10,8 @@ import { useProvideComments } from '~/composables/useComments'
 import type { CommentRange } from '~/utils/commentDecorations'
 import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
 import { customCssForPlan } from '~~/shared/utils/themePresets'
+import { applyBrandLock } from '~~/shared/utils/brandLock'
+import type { DocTheme } from '~~/shared/types/theme'
 
 const props = defineProps<{
   docId: string
@@ -40,6 +42,8 @@ const {
   workspaceId: docWorkspaceId,
   workspaceRole: docWorkspaceRole,
   customCssAllowed,
+  brandFonts,
+  brandLockedTheme,
   workspacePlan,
   ssoLoginUrl,
   undoManager,
@@ -63,9 +67,14 @@ const {
 // built-in preset's template CSS stays — customCssForPlan). The CSS stays
 // in the theme (and in Y.js), so upgrading applies it again; the server
 // renderer drops it the same way (render-bootstrap).
+//
+// A locked workspace design (brand kit, WP10) replaces everything but the
+// document's cover text — same rule as the server renderer
+// (shared/utils/brandLock.ts).
 const renderTheme = computed(() => {
-  const css = customCssForPlan(theme.value.customCss, customCssAllowed.value)
-  return css === theme.value.customCss ? theme.value : { ...theme.value, customCss: css }
+  const base = applyBrandLock(theme.value as DocTheme, brandLockedTheme.value as DocTheme | null)
+  const css = customCssForPlan(base.customCss, customCssAllowed.value)
+  return css === base.customCss ? base : { ...base, customCss: css }
 })
 
 // Track whether the user has ever focused the editor in this session.
@@ -365,7 +374,8 @@ async function exportPdf() {
       title: title.value,
       docId: props.docId,
       language: language.value,
-      getDocJwt
+      getDocJwt,
+      brandFonts: brandFonts.value
     })
   } catch (e) {
     showError('error.pdfExportFailedTitle', e)
@@ -1531,6 +1541,7 @@ const _statusIcon = computed(() => {
             :theme="renderTheme"
             :doc-id="docId"
             :get-doc-jwt="getDocJwt"
+            :brand-fonts="brandFonts"
             :zoom-control="!isMobile"
             @print-shortcut="exportPdf"
           />
@@ -1615,6 +1626,9 @@ const _statusIcon = computed(() => {
             :doc-id="docId"
             :can-edit="canEditTheme"
             :custom-css-allowed="customCssAllowed"
+            :workspace-id="docWorkspaceRole ? docWorkspaceId : null"
+            :brand-locked="brandLockedTheme !== null"
+            :can-manage-brand="docWorkspaceRole === 'admin'"
             @update:theme="setTheme"
             @reset="resetTheme"
             @close="closeSidebar"

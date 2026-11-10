@@ -315,7 +315,8 @@
       "academic": "学术",
       "business": "商务",
       "writing": "写作",
-      "saved": "我的设计"
+      "saved": "我的设计",
+      "workspace": "此工作区"
     },
     "blankIn": "{design} 空白文档",
     "blankWorkspaceDescription": "采用工作区设计（{design}）的空白页。"
@@ -1323,7 +1324,8 @@
       "billing": "账单",
       "sso": "单点登录",
       "audit": "审计日志",
-      "usage": "用量"
+      "usage": "用量",
+      "brand": "品牌套件"
     },
     "settings": {
       "title": "工作区设置",
@@ -1850,7 +1852,8 @@
       "aiStrongModel": "此方案不包含强大的 AI 模型。",
       "sso": "此工作区的套餐不包含单点登录。",
       "auditLog": "此工作区的套餐不包含审计日志。",
-      "guests": "此工作区的套餐不包含访客功能。"
+      "guests": "此工作区的套餐不包含访客功能。",
+      "brandKit": "此工作区的套餐不包含品牌套件。"
     },
     "limit": {
       "membersPerWorkspace": "此工作区已达到其套餐的成员上限。",
@@ -2430,7 +2433,12 @@
       "sso_scim_user_created": "成员已预配",
       "sso_scim_user_deactivated": "成员已取消预配",
       "doc_shared": "文档已与访客共享",
-      "doc_unshared": "文档不再与访客共享"
+      "doc_unshared": "文档不再与访客共享",
+      "workspace_brand_asset_added": "已添加品牌套件文件",
+      "workspace_brand_asset_removed": "已删除品牌套件文件",
+      "workspace_brand_lock_changed": "工作区设计锁定已更改",
+      "workspace_template_added": "已添加模板",
+      "workspace_template_removed": "已删除模板"
     },
     "planNotice": "审计日志是 Business 方案的功能。"
   },
@@ -2448,5 +2456,58 @@
     "sharedDocs": "无共享文档 | {n} 份共享文档 | {n} 份共享文档",
     "guestsHint": "访客使用自己的 AI 额度，因此此处不显示其支出。",
     "loadFailed": "无法加载用量"
+  },
+  "brandKit": {
+    "title": "品牌套件",
+    "intro": "您的组织在此工作区所有文档中使用的字体、徽标和设计，以及成员新建文档时使用的模板。",
+    "loadFailed": "无法加载品牌套件",
+    "uploadFailed": "无法上传文件",
+    "deleteFailed": "无法删除文件",
+    "fonts": "字体",
+    "fontsHint": "每种字重和样式上传一个文件（WOFF2、WOFF 或 TTF）。它们会显示在此处所有文档字体选择器的“此工作区”下，并用于这些文档的 PDF。可变字体和 PostScript（CFF）轮廓的字体打印效果不佳，不予接受，请使用静态 TrueType 字体。",
+    "noFonts": "还没有字体。",
+    "chooseFont": "选择字体文件",
+    "fontName": "字体名称",
+    "fontNameHelp": "留空则使用文件中的名称。同一字体家族的所有样式请使用相同名称上传。",
+    "fontNamePlaceholder": "例如 Acme Sans",
+    "licence": "我们的许可允许将此字体嵌入文档和 PDF。",
+    "uploadFont": "上传字体",
+    "fontAdded": "已添加 {name}",
+    "italic": "斜体",
+    "delete": "删除",
+    "logos": "徽标",
+    "logosHint": "PNG、JPEG 或 WebP。工作区中的每个文档都可以将其用作封面徽标或页眉图片。",
+    "uploadLogo": "上传徽标",
+    "workspaceLogos": "工作区徽标",
+    "workspaceFonts": "此工作区",
+    "design": "工作区设计",
+    "designHint": "此工作区中新建文档默认使用的设计。锁定后所有文档都使用该设计，作者只需填写封面文字。",
+    "noDesign": "还没有工作区设计。可从某个文档获取，或在设置中选择默认设计。",
+    "pickDocument": "选择文档",
+    "useDesign": "使用此文档的设计",
+    "designSet": "工作区设计已更新",
+    "designImagesDropped": "上传到该文档的图片已被略去，请为共享设计选择工作区徽标。",
+    "designFailed": "无法设置工作区设计",
+    "lockLabel": "为所有文档锁定设计",
+    "lockDescription": "工作区中的每个文档都使用工作区设计，只有封面文字（副标题、日期、作者）仍属于各自文档。解除锁定后，每个文档恢复自己的设计。",
+    "lockFailed": "无法更改锁定",
+    "lockedTitle": "工作区设计已锁定",
+    "lockedBody": "此文档使用其工作区的设计。您仍可在下方修改封面文字。",
+    "openBrandKit": "打开品牌套件",
+    "templates": "模板",
+    "templatesHint": "将工作区中的文档转为模板。由它新建的文档会复制其当前文字和设计，因此修改该文档就会修改模板。",
+    "templateName": "模板名称",
+    "templateDescription": "简短说明（可选）",
+    "addTemplate": "添加模板",
+    "removeTemplate": "移除模板",
+    "templateFailed": "无法更改模板",
+    "fontRefused": {
+      "not-a-font": "这不是字体文件。请上传 WOFF2、WOFF 或 TTF 文件。",
+      "collection": "此文件包含多种字体。请将每种样式分别作为单独的文件上传。",
+      "variable": "可变字体在 PDF 中打印效果不佳。请改为上传静态字体（每种字重和样式一个文件）。",
+      "cff": "PostScript（CFF）轮廓的字体在 PDF 中打印效果不佳。请改为上传 TrueType 版本（TTF 或 WOFF2）。",
+      "no-embedding": "此字体的许可不允许将其嵌入文档。",
+      "damaged": "此字体文件已损坏或不完整。"
+    }
   }
 }

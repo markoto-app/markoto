@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
+import type { BrandFont } from '~~/shared/config/brandKit'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { isMacPlatform, zoomShortcutAction } from '~/utils/previewZoom'
 
@@ -13,6 +14,8 @@ const props = defineProps<{
   docId: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
+  /** The workspace's brand-kit fonts (WP10). */
+  brandFonts?: readonly BrandFont[] | null
   /** Show the zoom pill in the pane (desktop; mobile has it in the view-mode bar). */
   zoomControl?: boolean
 }>()
@@ -44,6 +47,7 @@ const { pageCount: pgCount, isReady, error } = usePagedPreview({
   language: languageRef,
   docId: computed(() => props.docId),
   container: iframeHost,
+  brandFonts: computed(() => props.brandFonts ?? null),
   onPrintShortcut: () => emit('printShortcut'),
   getDocJwt: props.getDocJwt,
   zoom: {

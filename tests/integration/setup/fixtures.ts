@@ -77,6 +77,8 @@ export interface CreateDocExtras {
   audience?: 'technical' | 'marketing' | 'academic' | 'casual' | 'business' | 'creative'
   language?: string
   templateId?: string
+  /** Stored theme (documents.theme JSONB). */
+  theme?: unknown
 }
 
 export async function createDoc(overrides: Partial<TestDoc> & CreateDocExtras = {}): Promise<TestDoc> {
@@ -95,6 +97,10 @@ export async function createDoc(overrides: Partial<TestDoc> & CreateDocExtras = 
   // template_id='blank') — same shape as the real POST handler.
   const cols: string[] = ['doc_id', 'owner_id', 'workspace_id', 'access_mode', 'password_hash', 'title']
   const vals: unknown[] = [docId, ownerId, workspaceId, accessMode, passwordHash, title]
+  if (overrides.theme !== undefined) {
+    cols.push('theme')
+    vals.push(JSON.stringify(overrides.theme))
+  }
   if (overrides.description !== undefined) {
     cols.push('description')
     vals.push(overrides.description)

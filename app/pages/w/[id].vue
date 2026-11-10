@@ -35,6 +35,8 @@ interface WorkspaceDetail {
     /** Admins only (WP15). */
     auditLog?: { available: boolean } | null
     guests?: { available: boolean } | null
+    brandKit?: { available: boolean, inUse: boolean } | null
+    brandLocked?: boolean
   }
   documents: WorkspaceDoc[]
   members: WorkspaceMember[]
@@ -100,8 +102,8 @@ const myUserId = computed(() => (user.value as { id?: number } | null)?.id)
 // Tabs split the workspace into three concerns. Default is Documents
 // since that's what most visits are about. Nuxt UI v4's UTabs needs
 // `value` on each item for v-model binding; `slot` picks the template.
-type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'usage' | 'billing' | 'sso' | 'audit'
-const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : route.query.tab === 'audit' ? 'audit' : route.query.tab === 'usage' ? 'usage' : 'documents'
+type WorkspaceTab = 'documents' | 'knowledge' | 'settings' | 'usage' | 'brand' | 'billing' | 'sso' | 'audit'
+const initialTab = route.query.tab === 'billing' || route.query.billing || route.query.credits ? 'billing' : route.query.tab === 'sso' ? 'sso' : route.query.tab === 'audit' ? 'audit' : route.query.tab === 'usage' ? 'usage' : route.query.tab === 'brand' ? 'brand' : 'documents'
 const activeTab = ref<WorkspaceTab>(initialTab)
 const { billingEnabled } = useBillingMode()
 const tabItems = computed(() => {
@@ -117,6 +119,12 @@ const tabItems = computed(() => {
     items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
     // Usage per person (WP11), every plan.
     items.push({ label: t('workspace.tabs.usage'), icon: 'i-lucide-chart-no-axes-column', slot: 'usage', value: 'usage' })
+  }
+  // Brand kit (WP10): admins, where the plan includes it or something is
+  // set up (so it can be cleared after a downgrade).
+  const brand = data.value?.workspace.brandKit
+  if (isAdmin.value && brand && (brand.available || brand.inUse)) {
+    items.push({ label: t('workspace.tabs.brand'), icon: 'i-lucide-palette', slot: 'brand', value: 'brand' })
   }
   // Team / Business billing (WP3): admins, and only where something can
   // be bought. Members never see prices.
@@ -624,6 +632,15 @@ async function leaveWorkspace() {
               :workspace-id="data.workspace.workspaceId"
               :default-theme="data.workspace.defaultTheme"
               @updated="(theme) => { if (data) data.workspace.defaultTheme = theme }"
+            />
+          </template>
+          <template #brand>
+            <WorkspaceBrandKitPanel
+              :workspace-id="data.workspace.workspaceId"
+              :documents="data.documents"
+              :default-theme="data.workspace.defaultTheme"
+              :locked="data.workspace.brandLocked ?? false"
+              @changed="loadWorkspace()"
             />
           </template>
           <template #usage>

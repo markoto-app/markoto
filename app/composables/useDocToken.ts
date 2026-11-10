@@ -1,4 +1,5 @@
 import type { DocTheme } from '~~/shared/types/theme'
+import type { BrandFont } from '~~/shared/config/brandKit'
 
 /**
  * Owns the auth/access-mode side of a document: fetching the Hocuspocus JWT,
@@ -113,6 +114,10 @@ export function useDocToken(docId: string) {
   // browser print (the server-side PDF renderer drops it too). Defaults
   // to true so nothing flickers before /token answers.
   const customCssAllowed = ref<boolean>(true)
+  // Workspace brand kit (WP10): fonts every render declares, and the
+  // locked workspace design (null = the document's own design).
+  const brandFonts = ref<BrandFont[]>([])
+  const brandLockedTheme = ref<DocTheme | null>(null)
   /** Team / Business plan covering the doc's workspace (header badge, WP6). */
   const workspacePlan = ref<'team' | 'business' | null>(null)
   // Denied because the doc's workspace enforces single sign-on (WP14):
@@ -165,6 +170,7 @@ export function useDocToken(docId: string) {
         templateId?: string
         canDelete?: boolean
         planFeatures?: { customCss?: boolean } | null
+        brandKit?: { fonts?: BrandFont[], lockedTheme?: DocTheme | null } | null
         workspacePlan?: 'team' | 'business' | null
         ssoLoginUrl?: string | null
       }>(`/api/docs/${docId}/token`)
@@ -179,6 +185,8 @@ export function useDocToken(docId: string) {
       workspaceRole.value = data.workspaceRole
       initialTheme.value = data.theme ?? null
       customCssAllowed.value = data.planFeatures?.customCss !== false
+      brandFonts.value = data.brandKit?.fonts ?? []
+      brandLockedTheme.value = data.brandKit?.lockedTheme ?? null
       workspacePlan.value = data.workspacePlan ?? null
       ssoLoginUrl.value = data.ssoLoginUrl ?? null
       if (typeof data.title === 'string') initialTitle.value = data.title
@@ -277,8 +285,11 @@ export function useDocToken(docId: string) {
         audience?: string
         language?: string
         initialBody?: string | null
+        brandKit?: { fonts?: BrandFont[], lockedTheme?: DocTheme | null } | null
       }>(`/api/docs/${docId}/meta`, { headers: { Authorization: `Bearer ${newToken}` } })
       initialTheme.value = data.theme ?? null
+      brandFonts.value = data.brandKit?.fonts ?? []
+      brandLockedTheme.value = data.brandKit?.lockedTheme ?? null
       if (typeof data.title === 'string') initialTitle.value = data.title
       if (typeof data.description === 'string') initialDescription.value = data.description
       if (typeof data.audience === 'string') initialAudience.value = data.audience
@@ -329,6 +340,8 @@ export function useDocToken(docId: string) {
     pendingPasswordUnlock,
     initialTheme,
     customCssAllowed,
+    brandFonts,
+    brandLockedTheme,
     workspacePlan,
     ssoLoginUrl,
     initialTitle,

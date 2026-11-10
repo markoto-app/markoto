@@ -1,3 +1,4 @@
+import { docBrandForClient } from '../../../utils/brandKit/docBrand'
 import { eq } from 'drizzle-orm'
 import { documents } from '../../../db/schema'
 import { getDocWithActorRole } from '../../../repos/documents'
@@ -55,6 +56,7 @@ export default defineEventHandler(async (event) => {
       audience: documents.audience,
       language: documents.language,
       templateId: documents.templateId,
+      workspaceId: documents.workspaceId,
       createdAt: documents.createdAt,
       lastActive: documents.lastActive
     })
@@ -68,8 +70,13 @@ export default defineEventHandler(async (event) => {
 
   // Boolean is safe to expose; the hash itself is not.
   const hasPassword = doc.accessMode === 'password-protected'
+  // The workspace id is read for the brand kit only — not part of this
+  // public shape (unchanged since before WP10).
+  const { workspaceId, ...publicDoc } = doc
   return {
-    ...doc,
+    ...publicDoc,
+    // Workspace brand kit (WP10), as on the token endpoint.
+    brandKit: await docBrandForClient(workspaceId),
     hasPassword,
     requiresPassword: false,
     forbidden: false,
