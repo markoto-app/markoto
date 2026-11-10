@@ -1868,7 +1868,8 @@
       "auditLog": "The audit log isn't included in this workspace's plan.",
       "guests": "Guests aren't included in this workspace's plan.",
       "brandKit": "The brand kit isn't included in this workspace's plan.",
-      "shareControls": "Link expiry, view-only sharing and view counts aren't included in this document's plan."
+      "shareControls": "Link expiry, view-only sharing and view counts aren't included in this document's plan.",
+      "customDomains": "Custom domains aren't included in your plan."
     },
     "limit": {
       "membersPerWorkspace": "This workspace has reached the member limit of its plan.",
@@ -2525,5 +2526,68 @@
       "no-embedding": "This font's licence does not allow embedding it in documents.",
       "damaged": "This font file is damaged or incomplete."
     }
+  },
+  "publish": {
+    "title": "Publish as a web page",
+    "help": "A static copy of this document at its own public address. Anyone with the address can read it; the document itself stays shared exactly as it is now. Publish again to update the page.",
+    "publish": "Publish",
+    "update": "Update page",
+    "unpublish": "Unpublish",
+    "copy": "Copy address",
+    "open": "Open the page",
+    "updatedAt": "last published {date}",
+    "address": "Address",
+    "addressHelp": "3–60 lowercase letters, digits and hyphens. The old address stops working when you change it.",
+    "indexable": "Let search engines list it",
+    "indexableHelp": "Off: the page asks search engines not to index it.",
+    "failed": "Could not publish the page",
+    "saveFailed": "Could not save the change",
+    "unpublishFailed": "Could not unpublish the page",
+    "domain": {
+      "label": "Show on your domain",
+      "none": "No domain",
+      "manage": "Manage your domains",
+      "add": "Use your own domain"
+    }
+  },
+  "customDomains": {
+    "menu": "Domains",
+    "title": "Custom domains",
+    "intro": "Show a published page at your own address, such as docs.example.com. Add the domain, set the two DNS records shown below at your DNS provider, and choose the page in the document's share dialog. We get an HTTPS certificate for it automatically.",
+    "notOnInstance": "Custom domains are not set up on this instance.",
+    "placeholder": "docs.example.com",
+    "add": "Add domain",
+    "empty": "No domains yet.",
+    "loading": "Loading…",
+    "loadFailed": "Could not load your domains",
+    "addFailed": "Could not add the domain",
+    "checkFailed": "Could not check the domain",
+    "removeFailed": "Could not remove the domain",
+    "status": {
+      "pending": "Waiting for DNS",
+      "verified": "Live",
+      "failed": "Stopped"
+    },
+    "problem": {
+      "txt-missing": "The TXT record isn't there yet. DNS changes can take a few minutes, sometimes longer.",
+      "txt-mismatch": "There is a TXT record, but not with this value. Copy the value below exactly.",
+      "not-pointing": "The domain doesn't point to us yet. Set the CNAME record below.",
+      "lookup-failed": "We couldn't look up the domain's DNS records. We'll try again in a few minutes.",
+      "in-use": "This domain is already connected to another account. If it's yours, remove it there first."
+    },
+    "problemWhileLive": "The last check failed. The domain stays live for three days; if the records are still wrong then, it stops.",
+    "dnsIntro": "Add these two records at your DNS provider. We check them every few minutes for a week, or now with \"Check now\".",
+    "dns": {
+      "type": "Type",
+      "name": "Name",
+      "value": "Value"
+    },
+    "apexHelp": "For a domain without a subdomain (example.com), which can't have a CNAME record, use your provider's ALIAS or CNAME flattening to {target} instead.",
+    "shows": "Shows",
+    "untitled": "Untitled",
+    "noPage": "Live, but no page is shown yet. Choose one in a published document's share dialog.",
+    "check": "Check now",
+    "remove": "Remove",
+    "lastChecked": "checked {date}"
   }
 }

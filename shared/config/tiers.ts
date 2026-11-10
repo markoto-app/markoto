@@ -146,12 +146,19 @@ export interface TierCaps {
    * markoto.app: Pro and up.
    */
   shareControls: boolean
+  /**
+   * Feature switch: custom domains for published web pages (WP13).
+   * Judged against the plan of the user who adds the domain. Publishing at
+   * `/p/<slug>` is free; a domain of one's own is not. On in every
+   * committed tier; markoto.app: Pro and up.
+   */
+  customDomains: boolean
 }
 
 /** Numeric cap fields that accept `unlimited` (stored as `null`). */
 export type UnlimitedCapField = 'membersPerWorkspace' | 'historyDays' | 'webToolsPerDay' | 'mcpToolCallsPerDay'
 /** On/off feature switches. */
-export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog' | 'guests' | 'brandKit' | 'shareControls'
+export type FeatureField = 'customCss' | 'mcpWrite' | 'aiImage' | 'aiVoice' | 'aiStrongModel' | 'sso' | 'auditLog' | 'guests' | 'brandKit' | 'shareControls' | 'customDomains'
 /** Plain positive-number cap fields. */
 export type NumericCapField = Exclude<keyof TierCaps, UnlimitedCapField | FeatureField>
 
@@ -162,7 +169,7 @@ export const UNLIMITED_CAP_FIELDS: readonly UnlimitedCapField[] = [
   'mcpToolCallsPerDay'
 ]
 
-export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog', 'guests', 'brandKit', 'shareControls']
+export const FEATURE_FIELDS: readonly FeatureField[] = ['customCss', 'mcpWrite', 'aiImage', 'aiVoice', 'aiStrongModel', 'sso', 'auditLog', 'guests', 'brandKit', 'shareControls', 'customDomains']
 
 /**
  * Whether `used` more units still fit under `limit` (`null` = no limit).
@@ -222,7 +229,8 @@ export const DEFAULT_TIERS = {
     auditLog: true,
     guests: true,
     brandKit: true,
-    shareControls: true
+    shareControls: true,
+    customDomains: true
   },
   pro: {
     litellmBudgetUsd: 5, // 5000 AI Points
@@ -236,7 +244,8 @@ export const DEFAULT_TIERS = {
     auditLog: true,
     guests: true,
     brandKit: true,
-    shareControls: true
+    shareControls: true,
+    customDomains: true
   },
   // Team / Business: AI budget, knowledge and image storage are per seat.
   // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
@@ -255,7 +264,8 @@ export const DEFAULT_TIERS = {
     auditLog: true,
     guests: true,
     brandKit: true,
-    shareControls: true
+    shareControls: true,
+    customDomains: true
   },
   business: {
     litellmBudgetUsd: 5,
@@ -269,7 +279,8 @@ export const DEFAULT_TIERS = {
     auditLog: true,
     guests: true,
     brandKit: true,
-    shareControls: true
+    shareControls: true,
+    customDomains: true
   }
 } as const satisfies Record<PlanName, TierCaps>
 
@@ -302,7 +313,8 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   auditLog: 'FEATURE_AUDIT_LOG',
   guests: 'FEATURE_GUESTS',
   brandKit: 'FEATURE_BRAND_KIT',
-  shareControls: 'FEATURE_SHARE_CONTROLS'
+  shareControls: 'FEATURE_SHARE_CONTROLS',
+  customDomains: 'FEATURE_CUSTOM_DOMAINS'
 }
 
 const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])

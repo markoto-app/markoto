@@ -46,7 +46,7 @@ const server = Bun.serve({
       if (typeof snapshotId !== 'number' || !Number.isFinite(snapshotId) || snapshotId < 0) {
         return jsonResponse({ error: 'invalid snapshotId' }, 400)
       }
-      if (format !== 'pdf' && format !== 'png' && format !== 'both') {
+      if (format !== 'pdf' && format !== 'png' && format !== 'both' && format !== 'html') {
         return jsonResponse({ error: 'invalid format' }, 400)
       }
       // Brand-kit fingerprint (WP10): part of the output folder, so a

@@ -4,6 +4,8 @@ import { getDoc, updateDocMeta } from '../repos/documents'
 import { findUserById } from '../repos/users'
 import { appendAuditEvent } from '../repos/audit'
 import { deleteDocument } from './documentLifecycle'
+import { AUDIT_DOC_UNPUBLISHED } from '../legal/auditActions'
+import { takeDownPublishedPage } from './publish/takeDown'
 import { emailLinkBaseUrl } from './siteUrl'
 import { abuseNotificationRecipient } from './instanceConfig'
 import { buildDecisionNotice, buildStatementOfReasons, deliverNotice, type NoticeStatus } from './moderationNotices'
@@ -63,6 +65,19 @@ async function applyToContent(
   }
   if (action === 'access_restricted') {
     await updateDocMeta(docId, { accessMode: 'private' })
+    // The web page is a separate public copy (WP13): restricting the
+    // document takes it down too. (Removal deletes it with the document.)
+    const page = await takeDownPublishedPage(docId)
+    if (page) {
+      await appendAuditEvent({
+        actorUserId: meta.adminUserId,
+        actorIp: meta.adminIp,
+        scope: 'doc',
+        scopeId: docId,
+        action: AUDIT_DOC_UNPUBLISHED,
+        metadata: { pageId: page.id, reason: 'moderation', reportId: meta.reportId }
+      })
+    }
     await appendAuditEvent({
       actorUserId: meta.adminUserId,
       actorIp: meta.adminIp,

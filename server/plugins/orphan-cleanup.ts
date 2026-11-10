@@ -1,3 +1,5 @@
+import { sweepPublishedOrphans } from '../utils/publish/orphanSweep'
+import { listPublishedPageIds } from '../repos/publishedPages'
 import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
 import { listAllDocIds } from '../repos/documents'
@@ -79,6 +81,13 @@ export default defineNitroPlugin((nitroApp) => {
       } catch (e) {
         console.error('[orphan-cleanup] Design-import sweep failed:', e instanceof Error ? e.message : e)
         Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
+      }
+      try {
+        const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: listPublishedPageIds, now })
+        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} object(s) of unpublished pages`)
+      } catch (e) {
+        console.error('[orphan-cleanup] Published-page sweep failed:', e instanceof Error ? e.message : e)
+        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'published_sweep_failed' } })
       }
     } finally {
       await releaseSweepLock('orphan-cleanup')

@@ -322,6 +322,11 @@ async function setPassword() {
           :doc-id="docId"
         />
 
+        <SharingPublishPanel
+          v-if="canManage"
+          :doc-id="docId"
+        />
+
         <!-- Close -->
         <div class="flex justify-end pt-2">
           <UButton

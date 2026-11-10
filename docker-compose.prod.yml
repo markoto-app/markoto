@@ -86,6 +86,12 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL required}"
       - "--certificatesresolvers.le.acme.storage=/acme.json"
+      # Custom domains of published pages (WP13): the app lists the
+      # verified ones as routers with a certificate from `le`. Answers an
+      # empty config while NUXT_PUBLISH_TRAEFIK_TOKEN is unset.
+      - "--providers.http.endpoint=http://app:3000/api/internal/traefik/custom-domains"
+      - "--providers.http.pollInterval=15s"
+      - "--providers.http.headers.X-Markoto-Provider-Token=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}"
     ports:
       - "80:80"
       - "443:443"
@@ -246,6 +252,14 @@ services:
       # Search-engine indexing. Staging renders false (robots.txt
       # Disallow: / + X-Robots-Tag: noindex on every response).
       - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-true}
+      # Custom domains (WP13): the host customers CNAME to (empty = off)
+      # and the token Traefik's HTTP provider sends.
+      - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
+      - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
+      # Customer domains get their own headers: HSTS without
+      # includeSubDomains / preload (those would bind the customer's other
+      # subdomains and put their domain on the browser preload list).
+      - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=custom-domain-headers@docker,app-compress@docker
       # Origin for canonical / og:url / JSON-LD / sitemap; empty = the
       # site URL. Staging renders https://markoto.app.
       - NUXT_CANONICAL_SITE_URL=${NUXT_CANONICAL_SITE_URL:-}
@@ -293,6 +307,7 @@ services:
       - TIER_FREE_FEATURE_GUESTS=${TIER_FREE_FEATURE_GUESTS:-}
       - TIER_FREE_FEATURE_BRAND_KIT=${TIER_FREE_FEATURE_BRAND_KIT:-}
       - TIER_FREE_FEATURE_SHARE_CONTROLS=${TIER_FREE_FEATURE_SHARE_CONTROLS:-}
+      - TIER_FREE_FEATURE_CUSTOM_DOMAINS=${TIER_FREE_FEATURE_CUSTOM_DOMAINS:-}
       - TIER_PRO_FEATURE_SSO=${TIER_PRO_FEATURE_SSO:-}
       - TIER_PRO_FEATURE_AUDIT_LOG=${TIER_PRO_FEATURE_AUDIT_LOG:-}
       - TIER_PRO_FEATURE_GUESTS=${TIER_PRO_FEATURE_GUESTS:-}
@@ -377,6 +392,12 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
       - "traefik.http.routers.app.middlewares=security-headers,app-compress"
+      # Published pages on customers' own domains (WP13, routers from the
+      # app's HTTP provider): HSTS for that host only, never its subdomains.
+      - "traefik.http.middlewares.custom-domain-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.custom-domain-headers.headers.contentTypeNosniff=true"
+      - "traefik.http.middlewares.custom-domain-headers.headers.frameDeny=true"
+      - "traefik.http.middlewares.custom-domain-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       # Compress dynamic responses (SSR HTML, API JSON, i18n messages).
       # Static assets already arrive precompressed from Nitro
       # (compressPublicAssets) and keep their Content-Encoding; media and

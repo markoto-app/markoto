@@ -1,5 +1,7 @@
 import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-sdk/client-s3'
 import { cleanupRendersForDoc } from './renderClient'
+import { prunePublishedObjects } from './publish/publishDocument'
+import { getPublishedPageSummary } from '../repos/publishedPages'
 import * as Sentry from '@sentry/nuxt'
 import { captureExceptionThrottled } from './throttledSentry'
 import { deleteActivityForDoc } from '../repos/activity'
@@ -131,6 +133,10 @@ export function notifySyncDeleted(
  * this; tests drive the phases directly for finer-grained assertions.
  */
 export async function deleteDocument(docId: string): Promise<void> {
+  // A published web page (WP13) goes with the document (FK cascade); its
+  // copied files are read first and deleted after (the orphan sweep is the
+  // backstop).
+  const published = await getPublishedPageSummary(docId)
   await deleteDocDbRows(docId)
 
   const config = useRuntimeConfig()
@@ -139,6 +145,7 @@ export async function deleteDocument(docId: string): Promise<void> {
   // semantics as cleanupDocS3 — orphaned render objects cost nothing
   // material and the bucket lifecycle policy will reap them eventually.
   await cleanupRendersForDoc(docId)
+  if (published) await prunePublishedObjects(published.id)
   notifySyncDeleted(docId, {
     syncInternalUrl: config.syncInternalUrl,
     internalApiSecret: config.internalApiSecret

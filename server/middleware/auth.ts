@@ -72,8 +72,13 @@ export default defineEventHandler(async (event) => {
     // decideFileAccess gate as /api/files (session, or the file-access
     // token the preview / print iframes and the renderer carry).
     { path: /^\/api\/docs\/[^/]+\/brand\/[^/]+$/, methods: ['GET'] },
+    // Files of a published web page (WP13) — public like the page itself;
+    // copies under the page's own S3 prefix, nothing of the document.
+    { path: /^\/api\/published\/[^/]+\/(?:files|brand)\/[^/]+$/, methods: ['GET'] },
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
     { path: /^\/api\/internal\//, methods: ['POST'] }, // Internal endpoints auth via shared secret header (not user session)
+    // Traefik's HTTP provider (WP13) — token header checked in the handler.
+    { path: /^\/api\/internal\/traefik\/custom-domains$/, methods: ['GET'] },
     // Renderer-container bootstrap: GET-only, gated by a render-token JWT
     // (verifyRenderToken) carried in the query string. No session expected.
     { path: /^\/api\/_internal\/render-bootstrap$/, methods: ['GET'] },

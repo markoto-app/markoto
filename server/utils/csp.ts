@@ -150,7 +150,7 @@ const DOC_BRAND_ASSET_PATH = /^\/api\/docs\/[^/]+\/brand\/[^/]+$/
 
 export function crossOriginResourcePolicyFor(path: string): 'cross-origin' | 'same-site' {
   const pathname = path.split('?')[0] ?? ''
-  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) || DOC_BRAND_ASSET_PATH.test(pathname)
+  return path.startsWith('/api/files/') || path.startsWith('/api/published/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) || DOC_BRAND_ASSET_PATH.test(pathname)
     ? 'cross-origin'
     : 'same-site'
 }

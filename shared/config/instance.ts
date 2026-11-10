@@ -112,6 +112,12 @@ export interface InstanceConfig {
    * organisation" on the sign-in screen.
    */
   workspaceSso: boolean
+  /**
+   * The operator set up custom domains for published pages (WP13,
+   * `NUXT_PUBLISH_DOMAINS_TARGET`). Whether a user may add one is a
+   * separate, per-plan question (`customDomains` feature).
+   */
+  customDomains: boolean
 }
 
 /** Where self-hosted instances point their `/docs/**` canonicals. */
@@ -128,7 +134,8 @@ export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   docsCanonicalBase: DEFAULT_DOCS_CANONICAL_BASE,
   anonGate: false,
   anonDocTtlDays: DEFAULT_ANON_DOC_TTL_DAYS,
-  workspaceSso: false
+  workspaceSso: false,
+  customDomains: false
 })
 
 type Env = Record<string, string | undefined>
@@ -234,7 +241,8 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
     docsCanonicalBase: resolveDocsCanonicalBase(env),
     anonGate: resolveAnonGateEnabled(env),
     anonDocTtlDays: resolveAnonDocTtlDays(env),
-    workspaceSso: resolveWorkspaceSsoAvailable(env)
+    workspaceSso: resolveWorkspaceSsoAvailable(env),
+    customDomains: (env.NUXT_PUBLISH_DOMAINS_TARGET ?? '').trim() !== ''
   }
 }
 

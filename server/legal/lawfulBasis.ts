@@ -67,6 +67,21 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },
   {
+    // WP13: a document published as a web page — the copy as published
+    // (text, design, images, fonts), its address, who published it; and
+    // custom domains (name, verification token, DNS check results). The
+    // certificate for a custom domain comes from Let's Encrypt (the
+    // domain name only; public in Certificate Transparency logs) — the
+    // customer's own request for a public HTTPS site, not processing of
+    // document content.
+    id: 'published_pages',
+    label: 'Published web pages and custom domains',
+    basis: 'contract',
+    dataCategories: ['document_content', 'images', 'published_page_address', 'custom_domain'],
+    retention: 'until_deletion',
+    subProcessors: ['ovh_postgres', 'ovh_object_storage']
+  },
+  {
     id: 'collaboration_sync',
     label: 'Real-time collaboration',
     basis: 'contract',

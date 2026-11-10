@@ -60,8 +60,8 @@ export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
   'app', 'markoto-app', 'backup', 'litellm', 'litellm-db-init', 'db-init', 'markitdown', 'postgres', 'renderer',
   's3-init', 'seaweedfs', 'socket-proxy', 'sync', 'traefik', 'valkey', 'redis',
   // test stack
-  'fake-openai-test', 'litellm-test', 'litellm-test-db-init', 'markitdown-test', 'oidc-test', 'postgres-test',
-  'renderer-test', 'seaweedfs-test', 'stripe-mock', 'sync-test', 'valkey-test',
+  'challtestsrv-test', 'fake-openai-test', 'litellm-test', 'litellm-test-db-init', 'markitdown-test', 'oidc-test', 'pebble-test', 'postgres-test',
+  'renderer-test', 'seaweedfs-test', 'stripe-mock', 'sync-test', 'traefik-test', 'valkey-test',
   // cloud metadata
   'metadata', 'metadata.google.internal'
 ])

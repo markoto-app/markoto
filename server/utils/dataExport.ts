@@ -31,6 +31,8 @@ import { listInvitesForExport } from '../repos/workspaceInvites'
 import { normaliseInviteEmail } from './workspaceInvites'
 import { listGrants } from '../repos/aiCreditGrants'
 import { listSubscriptionsByBillingAdmin } from '../repos/workspaceSubscriptions'
+import { listPublishedPagesForOwner } from '../repos/publishedPages'
+import { listCustomDomainsForUser } from '../repos/customDomains'
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
@@ -96,6 +98,10 @@ Contents:
                          ("granted"), with view / edit access.
   brand_assets.json      fonts and logos you uploaded to a workspace's
                          brand kit (the files stay with the workspace).
+  published_pages.json   your documents published as web pages: address,
+                         indexing, when (the page is your document's text).
+  custom_domains.json    your custom domains, their check status and the
+                         page each shows.
   ai/sessions.ndjson     AI sessions you initiated.
   ai/messages.ndjson     AI prompt + tool-call history (NDJSON).
   ai/edit-provenance.ndjson  which AI sessions you started on which
@@ -201,6 +207,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   await addSsoIdentitiesEntry(entries, userId)
   await addDocumentSharesEntry(entries, userId)
   await addBrandAssetsEntry(entries, userId)
+  await addPublishingEntries(entries, userId)
 
   return {
     bytes: zipSync(entries, { level: 6 }),
@@ -754,6 +761,30 @@ async function addBrandAssetsEntry(entries: Entries, userId: number): Promise<vo
     createdAt: workspaceBrandAssets.createdAt
   }).from(workspaceBrandAssets).where(eq(workspaceBrandAssets.uploadedBy, userId))
   entries['brand_assets.json'] = strToU8(JSON.stringify(rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })), null, 2))
+}
+
+/** Publishing (WP13): web pages of documents you own, your custom domains. */
+async function addPublishingEntries(entries: Entries, userId: number): Promise<void> {
+  const pages = await listPublishedPagesForOwner(userId)
+  entries['published_pages.json'] = strToU8(JSON.stringify(pages.map(p => ({
+    docId: p.docId,
+    slug: p.slug,
+    title: p.title,
+    indexable: p.indexable,
+    publishedAt: p.publishedAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString()
+  })), null, 2))
+  const domains = await listCustomDomainsForUser(userId)
+  // No verification token: it's a credential for the domain check.
+  entries['custom_domains.json'] = strToU8(JSON.stringify(domains.map(d => ({
+    hostname: d.hostname,
+    status: d.status,
+    lastCheckProblem: d.lastError,
+    verifiedAt: d.verifiedAt?.toISOString() ?? null,
+    lastCheckedAt: d.lastCheckedAt?.toISOString() ?? null,
+    createdAt: d.createdAt.toISOString(),
+    showsDocument: d.pageDocId
+  })), null, 2))
 }
 
 async function addBillingEntries(entries: Entries, stripeCustomerId: string | null): Promise<number> {

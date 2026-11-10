@@ -30,6 +30,11 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL required}"
       - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
+      # Custom domains of published pages (WP13) — see docs/SELF-HOSTING.md.
+      # Empty config while NUXT_PUBLISH_TRAEFIK_TOKEN is unset.
+      - "--providers.http.endpoint=http://app:3000/api/internal/traefik/custom-domains"
+      - "--providers.http.pollInterval=15s"
+      - "--providers.http.headers.X-Markoto-Provider-Token=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}"
     ports:
       - "${MARKOTO_HTTPS_BIND:-0.0.0.0}:${MARKOTO_HTTPS_PORT:-443}:443"
     # No Docker socket here: Traefik reads the Docker API through the
