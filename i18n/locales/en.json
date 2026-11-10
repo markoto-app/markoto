@@ -1461,7 +1461,7 @@
       "manage": "Manage billing",
       "seatCounter": "{used} of {seats} seats used",
       "updateSeats": "Update seats",
-      "seatsFootnote": "More seats are charged pro rata on the next invoice; fewer seats are credited. Seats can’t go below the people in the workspace.",
+      "seatsFootnote": "More seats are charged pro rata right away, and their AI budget covers the days left this budget month. Fewer seats aren’t credited; they keep their AI budget until the month ends. Seats can’t go below the people in the workspace.",
       "switchToBusiness": "Switch to Business",
       "switchToTeam": "Switch to Team",
       "switchToAnnual": "Switch to annual billing",

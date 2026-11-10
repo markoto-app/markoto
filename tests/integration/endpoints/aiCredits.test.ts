@@ -133,6 +133,25 @@ describe('webhook: top-ups', () => {
     expect(await grants('user', String(u.id))).toEqual([])
   })
 
+  it('a delayed payment (SEPA) grants the credit when it succeeds, not before', async () => {
+    const u = await createUser()
+    await makePro(u.id)
+    const completed = topupCompleted({ subjectType: 'user', subjectId: String(u.id), pack: '10', paymentIntent: 'pi_sepa', status: 'unpaid' })
+    expect((await postWebhook(completed)).status).toBe(200)
+    expect(await grants('user', String(u.id))).toEqual([])
+
+    const failedPi = topupCompleted({ subjectType: 'user', subjectId: String(u.id), pack: '10', paymentIntent: 'pi_sepa_failed', status: 'unpaid' })
+    const failed = makeStripeEvent('checkout.session.async_payment_failed', (failedPi.data as { object: Record<string, unknown> }).object)
+    expect((await postWebhook(failed)).status).toBe(200)
+    expect(await grants('user', String(u.id))).toEqual([])
+
+    const paidSession = { ...(completed.data as { object: Record<string, unknown> }).object, payment_status: 'paid' }
+    expect((await postWebhook(makeStripeEvent('checkout.session.async_payment_succeeded', paidSession))).status).toBe(200)
+    // Redelivered with a new event id: still one grant.
+    expect((await postWebhook(makeStripeEvent('checkout.session.async_payment_succeeded', paidSession))).status).toBe(200)
+    expect(await grants('user', String(u.id))).toEqual([{ amount_usd: 10, remaining_usd: 10, refunded_usd: 0 }])
+  })
+
   it('a workspace top-up lands on the workspace; a refund takes the refunded share', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)

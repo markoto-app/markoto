@@ -1461,7 +1461,7 @@
       "manage": "Gérer la facturation",
       "seatCounter": "{used} places utilisées sur {seats}",
       "updateSeats": "Modifier les places",
-      "seatsFootnote": "Les places supplémentaires sont facturées au prorata sur la prochaine facture ; les places en moins sont créditées. Il ne peut y avoir moins de places que de personnes dans l’espace.",
+      "seatsFootnote": "Les places supplémentaires sont facturées au prorata immédiatement, et leur budget IA couvre les jours restants du mois de budget. Les places en moins ne sont pas créditées ; elles gardent leur budget IA jusqu’à la fin du mois. Il ne peut y avoir moins de places que de personnes dans l’espace.",
       "switchToBusiness": "Passer à Business",
       "switchToTeam": "Passer à Team",
       "switchToAnnual": "Passer à la facturation annuelle",

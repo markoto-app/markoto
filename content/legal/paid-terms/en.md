@@ -22,7 +22,7 @@ These terms apply when you buy a paid plan (Pro, Team or Business) or AI credits
 
 - **Pro** is a personal plan. It applies to you: your documents, your workspaces and your AI use outside Team and Business workspaces.
 - **Team** and **Business** are bought for one workspace. They apply inside that workspace, to every member, whatever their own plan is. The person who buys is the workspace's **billing admin**; another workspace admin can take over that role.
-- **Seats.** Team and Business are billed per seat, with at least **3 seats**. Members and open invitations each use a seat. Adding a seat beyond the paid number raises the subscription at once; Stripe charges the share of the current period. Removing seats takes effect at once with a credit for the unused share on the next invoice.
+- **Seats.** Team and Business are billed per seat, with at least **3 seats**. Members and open invitations each use a seat. Adding a seat beyond the paid number raises the subscription at once and charges the share of the current period right away; the added seat's AI budget likewise covers only the days left in the current monthly budget period. Removing seats gives no credit for the current period; the removed seats' AI budget stays until the budget period ends, and the next invoice bills the new number.
 - **What a plan includes** is the list on the pricing page at the time you buy or renew. Limits that are given per seat (AI budget, knowledge and image storage) are pooled for the whole workspace.
 
 ## 3. Prices, payment and taxes

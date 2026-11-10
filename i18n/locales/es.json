@@ -1461,7 +1461,7 @@
       "manage": "Gestionar facturación",
       "seatCounter": "{used} de {seats} puestos ocupados",
       "updateSeats": "Cambiar puestos",
-      "seatsFootnote": "Los puestos adicionales se cobran de forma proporcional en la próxima factura; los que quitas se abonan. No puede haber menos puestos que personas en el espacio.",
+      "seatsFootnote": "Los puestos adicionales se cobran de forma proporcional al momento y su presupuesto de IA cubre los días que quedan del mes de presupuesto. Los que quitas no se abonan; conservan su presupuesto de IA hasta que termina el mes. No puede haber menos puestos que personas en el espacio.",
       "switchToBusiness": "Cambiar a Business",
       "switchToTeam": "Cambiar a Team",
       "switchToAnnual": "Cambiar a facturación anual",

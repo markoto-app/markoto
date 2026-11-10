@@ -1461,7 +1461,7 @@
       "manage": "管理账单",
       "seatCounter": "已使用 {used} / {seats} 个席位",
       "updateSeats": "更改席位",
-      "seatsFootnote": "增加的席位按比例计入下一张账单，减少的席位会抵扣。席位数不能少于工作区中的人数。",
+      "seatsFootnote": "增加的席位立即按比例收费，其 AI 预算覆盖本预算月剩余的天数。减少的席位不予抵扣，但在月底前保留其 AI 预算。席位数不能少于工作区中的人数。",
       "switchToBusiness": "改为 Business",
       "switchToTeam": "改为 Team",
       "switchToAnnual": "改为按年付费",

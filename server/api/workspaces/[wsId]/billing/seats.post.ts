@@ -3,7 +3,7 @@ import { getWorkspaceSubscription } from '../../../../repos/workspaceSubscriptio
 import { appendAuditEvent } from '../../../../repos/audit'
 import { assertBillingEnabled } from '../../../../utils/billingMode'
 import { useStripeClient } from '../../../../utils/stripeClient'
-import { changeWorkspaceSeats } from '../../../../utils/workspaceStripe'
+import { changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
 import { countSeatsUsed, getPooledWorkspace, parseSeats, requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED } from '../../../../legal/auditActions'
@@ -11,10 +11,13 @@ import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingE
 
 // POST /api/workspaces/:wsId/billing/seats — change the paid seat count
 // of a live Team / Business subscription (WP3). Workspace admins only.
-// Body: {seats}. Prorated (`create_prorations`: more seats are charged on
-// the next invoice, fewer are credited). Seats can't go below members +
-// open invitations (409 `billing/seats-below-members`). The pooled AI
-// budget follows at once.
+// Body: {seats}. More seats are charged now, pro rata (402
+// `billing/payment-failed` when the payment fails — nothing changes);
+// fewer seats are not credited for the running period
+// (`workspaceStripe.ts#changeWorkspaceSeats`). Seats can't go below
+// members + open invitations (409 `billing/seats-below-members`). The
+// pooled AI budget follows at once: added seats for the days left in the
+// budget window, removed seats keep theirs until it ends.
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   assertBillingEnabled()
@@ -46,9 +49,7 @@ export default defineEventHandler(async (event) => {
   try {
     await changeWorkspaceSeats(stripe, row, seats)
   } catch (e) {
-    if ((e as { statusCode?: number })?.statusCode) throw e
-    Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_seats_failed', workspaceId: wsId } })
-    throw createError({ statusCode: 502, message: `Could not change the seats: ${e instanceof Error ? e.message : 'Stripe error'}` })
+    throw seatChangeError(e, wsId)
   }
 
   const pool = await getPooledWorkspace(wsId)

@@ -7,6 +7,9 @@ import { isWorkspacePlan, type PersonalPlanName, type PlanName, type WorkspacePl
 import type { Currency, PriceIdentity } from '~~/shared/config/pricing'
 import { identifyStripePrice } from './stripePrices'
 import { getPooledWorkspace } from './workspaceBilling'
+import { cancelDuplicateWorkspaceSubscription } from './workspaceStripe'
+import { findLiveSubscription } from './stripePlanChange'
+import { subscriptionGrantsPlan, type WorkspaceSubscriptionRow } from '../repos/workspaceSubscriptions'
 import { ensureWorkspaceTeam, syncAllMemberKeyLimits } from './litellm/workspaceTeams'
 import { notifyWorkspaceAdmins } from './email/workspaceBillingEmails'
 import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../repos/aiCreditGrants'
@@ -172,6 +175,17 @@ async function upsertWorkspaceSubscriptionFromStripe(
 }
 
 /**
+ * The workspace's subscription row when it holds a DIFFERENT subscription
+ * than `subscriptionId`, else null. Only one subscription per workspace
+ * is tracked; events of any other one must not overwrite it.
+ */
+async function rowHoldingOtherSubscription(db: DbOrTx, workspaceId: string, subscriptionId: string): Promise<WorkspaceSubscriptionRow | null> {
+  const row = (await db.select().from(workspaceSubscriptions)
+    .where(eq(workspaceSubscriptions.workspaceId, workspaceId)).limit(1))[0] as WorkspaceSubscriptionRow | undefined
+  return row?.stripeSubscriptionId && row.stripeSubscriptionId !== subscriptionId ? row : null
+}
+
+/**
  * After commit: bring the workspace's LiteLLM team budget (seats ×
  * per-seat) and every member key's default limit in line with the
  * subscription the webhook just wrote. No-op unless entitled. Errors are
@@ -213,6 +227,8 @@ async function handleTopupCheckout(
     Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'topup_invalid' } })
     return { matched: 0, plan: null }
   }
+  // Delayed methods (SEPA Direct Debit, …) complete the Checkout with
+  // `unpaid`; the credit is granted on `checkout.session.async_payment_succeeded`.
   if (session.payment_status !== 'paid') return { matched: 0, plan: null }
   const db = opts.db ?? useDatabase()
   const subject: CreditSubject = { type: subjectType, id: subjectId }
@@ -236,6 +252,36 @@ async function handleTopupCheckout(
   }
   if (inserted) opts.deferAfterCommit?.push(() => recomputeCreditBudget(subject))
   return { matched: inserted ? 1 : 0, plan: null }
+}
+
+/**
+ * `checkout.session.async_payment_succeeded`: a top-up paid with a
+ * delayed method (e.g. SEPA Direct Debit) has been paid — grant it now.
+ * `checkout.session.completed` saw `payment_status: 'unpaid'` and
+ * granted nothing. Idempotent like every grant (unique payment intent).
+ * Subscription Checkouts need nothing here: their state comes from the
+ * subscription events.
+ */
+export async function handleCheckoutAsyncPaymentSucceeded(
+  event: Stripe.CheckoutSessionAsyncPaymentSucceededEvent,
+  opts: { db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit }
+): Promise<{ matched: number, plan: PlanName | null }> {
+  const session = event.data.object
+  if (session.mode !== 'payment') return { matched: 0, plan: null }
+  return handleTopupCheckout(session, opts)
+}
+
+/**
+ * `checkout.session.async_payment_failed`: a delayed top-up payment
+ * failed. Nothing was granted; logged for support.
+ */
+export function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAsyncPaymentFailedEvent): { matched: number } {
+  const session = event.data.object
+  if (session.mode !== 'payment') return { matched: 0 }
+  const msg = `[stripe/webhook] delayed top-up payment failed: session=${session.id}`
+  console.warn(msg)
+  Sentry.captureMessage(msg, { level: 'warning', tags: { component: 'stripeWebhook', event: 'topup_async_payment_failed' } })
+  return { matched: 0 }
 }
 
 /**
@@ -304,6 +350,13 @@ export async function handleCheckoutSessionCompleted(
     const identity = await identifyItem(opts.stripe, sub.items.data[0])
     if (!isWorkspaceIdentity(identity)) {
       warnUnknownPrice('checkout (workspace)', sub.items.data[0]?.price?.id, `session=${session.id}`)
+      return { matched: 0, plan: null }
+    }
+    // A second completed Checkout while the first subscription is still
+    // live: cancel + refund the new one, keep the first.
+    const holder = await rowHoldingOtherSubscription(opts.db ?? useDatabase(), workspaceId, sub.id)
+    if (holder && await findLiveSubscription(opts.stripe, holder.stripeSubscriptionId)) {
+      await cancelDuplicateWorkspaceSubscription(opts.stripe, sub, workspaceId)
       return { matched: 0, plan: null }
     }
     const adminRaw = Number(session.metadata?.billing_admin_id)
@@ -418,6 +471,13 @@ export async function handleSubscriptionUpdated(
       warnUnknownPrice(`subscription.${event.type.split('.').pop()} (workspace)`, item?.price?.id, `sub=${sub.id}`)
       return { matched: 0, plan: null }
     }
+    // Another subscription is the workspace's live one (this is a
+    // duplicate being cancelled, or a late event of an old one).
+    const holder = await rowHoldingOtherSubscription(db, subject.workspaceId, sub.id)
+    if (holder && subscriptionGrantsPlan(holder)) {
+      console.warn(`[stripe/webhook] ignoring ${event.type} of ${sub.id}: workspace ${subject.workspaceId} is on ${holder.stripeSubscriptionId}`)
+      return { matched: 0, plan: null }
+    }
     await upsertWorkspaceSubscriptionFromStripe(db, { workspaceId: subject.workspaceId, sub, identity, customerId })
     deferWorkspaceTeamSync(opts.deferAfterCommit, subject.workspaceId)
     // Cancelled to the period end (portal, or no billing admin left):
@@ -489,6 +549,9 @@ export async function handleSubscriptionDeleted(
   const subject = await subjectForCustomer(customerId, handle)
 
   if (subject?.kind === 'workspace') {
+    // Only the tracked subscription ends the workspace's plan (not a
+    // cancelled duplicate, not an old subscription's late event).
+    if (await rowHoldingOtherSubscription(handle, subject.workspaceId, sub.id)) return { matched: 0 }
     const result = await handle.update(workspaceSubscriptions)
       .set({ status: 'canceled', updatedAt: new Date() })
       .where(eq(workspaceSubscriptions.workspaceId, subject.workspaceId))
@@ -578,6 +641,8 @@ export async function handleInvoicePaid(
 
   const subject = await subjectForCustomer(customerId, handle)
   if (subject?.kind === 'workspace') {
+    const subscriptionId = typeof subscriptionRef === 'string' ? subscriptionRef : subscriptionRef.id
+    if (await rowHoldingOtherSubscription(handle, subject.workspaceId, subscriptionId)) return { matched: 0 }
     const result = await handle.update(workspaceSubscriptions)
       .set({ currentPeriodStart: periodStart, validUntil: periodEnd, updatedAt: new Date() })
       .where(eq(workspaceSubscriptions.workspaceId, subject.workspaceId))
@@ -647,6 +712,10 @@ async function runHandler(
   switch (event.type) {
     case 'checkout.session.completed':
       return { handled: true, detail: await handleCheckoutSessionCompleted(event, opts) }
+    case 'checkout.session.async_payment_succeeded':
+      return { handled: true, detail: await handleCheckoutAsyncPaymentSucceeded(event, opts) }
+    case 'checkout.session.async_payment_failed':
+      return { handled: true, detail: handleCheckoutAsyncPaymentFailed(event) }
     case 'customer.subscription.created':
     case 'customer.subscription.updated':
       return { handled: true, detail: await handleSubscriptionUpdated(event, opts) }

@@ -267,6 +267,15 @@ export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
   validUntil: timestamp('valid_until', { withTimezone: true }),
   // LiteLLM team holding the workspace's pooled AI budget (WP3).
   litellmTeamId: text('litellm_team_id'),
+  // Seat changes inside the current LiteLLM budget window (30 days).
+  // Added seats are charged pro rata, so they unlock budget only for the
+  // days left in the window; removed seats were paid for the whole
+  // window, so their budget stays until it ends. The pooled AI budget
+  // counts `seats + budget_seat_adjust` seats until
+  // `budget_seat_adjust_until` (the window end), then `seats` again
+  // (`workspaceBilling.ts#budgetSeats`).
+  budgetSeatAdjust: doublePrecision('budget_seat_adjust').notNull().default(0),
+  budgetSeatAdjustUntil: timestamp('budget_seat_adjust_until', { withTimezone: true }),
   // Stripe customers keep one currency for life.
   currency: text('currency', { enum: ['eur', 'chf'] }).notNull().default('eur'),
   interval: text('interval', { enum: ['month', 'year'] }).notNull().default('month'),
@@ -314,6 +323,12 @@ export const aiCreditSettlements = pgTable('ai_credit_settlements', {
   // 'YYYY-MM'
   period: text('period').notNull(),
   consumedUsd: doublePrecision('consumed_usd').notNull().default(0),
+  // The highest plan budget (USD, without credits) the subject had while
+  // this month was open, recorded by every settlement run. A closed month
+  // is settled against it, never against today's plan (a cancelled plan
+  // would otherwise turn the whole month's spend into credit use).
+  // NULL = no settlement ran while the month was open.
+  planBudgetUsd: doublePrecision('plan_budget_usd'),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   primaryKey({ columns: [table.subjectType, table.subjectId, table.period] })

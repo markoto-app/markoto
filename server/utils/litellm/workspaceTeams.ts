@@ -4,7 +4,7 @@ import { useDatabase } from '../database'
 import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
 import { isDuplicateTeamError } from './freeTierTeam'
-import { memberLimitUsd, pooledFromRow, workspacePoolCaps, type PooledWorkspace } from '../workspaceBilling'
+import { memberLimitUsd, pooledFromRow, workspaceAiBudgetUsd, workspacePoolCaps, type PooledWorkspace } from '../workspaceBilling'
 import { isBillingEnabled } from '../billingMode'
 import { creditBudgetExtraUsd } from '../aiCreditBudget'
 
@@ -94,8 +94,9 @@ export async function readWorkspaceTeam(workspaceId: string): Promise<TeamInfo |
  */
 export async function ensureWorkspaceTeam(pool: PooledWorkspace): Promise<string> {
   const teamId = workspaceTeamId(pool.workspaceId)
-  // Seats × per-seat + the workspace's top-up credits (WP4).
-  const budget = Math.round((workspacePoolCaps(pool.plan, pool.seats).aiBudgetUsd
+  // Seats × per-seat (adjusted for seat changes in the current window)
+  // + the workspace's top-up credits (WP4).
+  const budget = Math.round((workspaceAiBudgetUsd(pool)
     + await creditBudgetExtraUsd({ type: 'workspace', id: pool.workspaceId })) * 10_000) / 10_000
   if (!isStubMode()) {
     let existing = await readWorkspaceTeam(pool.workspaceId)

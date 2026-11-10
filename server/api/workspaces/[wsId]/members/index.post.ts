@@ -11,7 +11,7 @@ import { assertPlanFeature, assertPlanLimit, resolveWorkspacePlan } from '../../
 import { GUESTS_PER_SEAT } from '~~/shared/config/workspaceSeats'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED, AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
 import { getPooledWorkspace, seatsFullError } from '../../../../utils/workspaceBilling'
-import { changeWorkspaceSeats } from '../../../../utils/workspaceStripe'
+import { changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { useStripeClient } from '../../../../utils/stripeClient'
 import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
@@ -143,7 +143,7 @@ export default defineEventHandler(async (event) => {
 
   // Team / Business (WP3): members + open invitations may not exceed the
   // paid seats. With `addSeat: true` (the invite dialog's "This adds a
-  // seat" confirmation) one seat is bought first, prorated.
+  // seat" confirmation) one seat is bought and paid first, pro rata.
   if (pool && newRole !== 'guest') {
     const used = membersNow + memberInvites
     if (used >= pool.seats) {
@@ -151,10 +151,17 @@ export default defineEventHandler(async (event) => {
       const stripe = useStripeClient()
       if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
       const seats = used + 1
-      await changeWorkspaceSeats(stripe, pool.subscription, seats)
-      await ensureWorkspaceTeam({ ...pool, seats }).catch((e: unknown) => {
-        console.warn(`[invite] team budget sync failed: ${e instanceof Error ? e.message : e}`)
-      })
+      try {
+        await changeWorkspaceSeats(stripe, pool.subscription, seats)
+      } catch (e) {
+        throw seatChangeError(e, wsId)
+      }
+      const updated = await getPooledWorkspace(wsId)
+      if (updated) {
+        await ensureWorkspaceTeam(updated).catch((e: unknown) => {
+          console.warn(`[invite] team budget sync failed: ${e instanceof Error ? e.message : e}`)
+        })
+      }
       await appendAuditEvent({
         actorUserId: session.user.id,
         actorIp: getClientIp(event),

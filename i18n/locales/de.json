@@ -1461,7 +1461,7 @@
       "manage": "Abrechnung verwalten",
       "seatCounter": "{used} von {seats} Plätzen belegt",
       "updateSeats": "Plätze ändern",
-      "seatsFootnote": "Zusätzliche Plätze werden anteilig auf der nächsten Rechnung berechnet, weniger Plätze gutgeschrieben. Es kann nicht weniger Plätze als Personen im Arbeitsbereich geben.",
+      "seatsFootnote": "Zusätzliche Plätze werden sofort anteilig belastet, ihr KI-Budget deckt die restlichen Tage des Budgetmonats. Entfernte Plätze werden nicht gutgeschrieben, behalten ihr KI-Budget aber bis zum Monatsende. Es kann nicht weniger Plätze als Personen im Arbeitsbereich geben.",
       "switchToBusiness": "Zu Business wechseln",
       "switchToTeam": "Zu Team wechseln",
       "switchToAnnual": "Zu jährlicher Abrechnung wechseln",

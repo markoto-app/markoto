@@ -67,6 +67,8 @@ export const STRIPE_API_VERSION = '2025-01-27.acacia'
  */
 export const HANDLED_STRIPE_EVENT_TYPES = [
   'checkout.session.completed',
+  'checkout.session.async_payment_succeeded',
+  'checkout.session.async_payment_failed',
   'customer.subscription.created',
   'customer.subscription.updated',
   'customer.subscription.deleted',

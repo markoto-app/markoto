@@ -19,6 +19,8 @@ export interface WorkspaceSubscriptionRow {
   currentPeriodStart: Date | null
   validUntil: Date | null
   litellmTeamId: string | null
+  budgetSeatAdjust: number
+  budgetSeatAdjustUntil: Date | null
   currency: 'eur' | 'chf'
   interval: 'month' | 'year'
   createdAt: Date
@@ -52,7 +54,7 @@ export async function getWorkspaceSubscription(workspaceId: string): Promise<Wor
   return row ?? null
 }
 
-export type WorkspaceSubscriptionUpsert = Omit<WorkspaceSubscriptionRow, 'createdAt' | 'updatedAt'>
+export type WorkspaceSubscriptionUpsert = Omit<WorkspaceSubscriptionRow, 'createdAt' | 'updatedAt' | 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
 
 /** Insert or replace a workspace's subscription (Stripe webhook). */
 export async function upsertWorkspaceSubscription(input: WorkspaceSubscriptionUpsert): Promise<void> {

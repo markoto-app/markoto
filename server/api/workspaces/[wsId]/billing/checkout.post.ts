@@ -8,7 +8,7 @@ import { assertBillingEnabled } from '../../../../utils/billingMode'
 import { useStripeClient } from '../../../../utils/stripeClient'
 import { stripePriceIdFor } from '../../../../utils/stripePrices'
 import { findLiveSubscription } from '../../../../utils/stripePlanChange'
-import { ensureWorkspaceCustomer, requestBaseUrl } from '../../../../utils/workspaceStripe'
+import { ensureWorkspaceCustomer, requestBaseUrl, expireOpenWorkspaceCheckouts } from '../../../../utils/workspaceStripe'
 import { countSeatsUsed, parseSeats, requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
 import { WORKSPACE_REF_PREFIX } from '../../../../utils/stripeWebhook'
 import {
@@ -146,6 +146,8 @@ export default defineEventHandler(async (event) => {
   const taxEnabled = ['1', 'true', 'yes'].includes(String(useRuntimeConfig(event).stripe.automaticTax || '').toLowerCase())
   const metadata = { subject_type: 'workspace', subject_id: wsId, billing_admin_id: String(userId) }
   try {
+    // Only the newest Checkout of a workspace can be paid.
+    await expireOpenWorkspaceCheckouts(stripe, customerId)
     const checkout = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer: customerId,
