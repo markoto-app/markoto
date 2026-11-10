@@ -1067,6 +1067,13 @@ const _statusIcon = computed(() => {
         >
           <CommonWordmark :size="18" />
         </NuxtLink>
+        <!-- Managed instance (WP16): the customer's logo; the name only
+             on wide screens, the title needs the room. -->
+        <CommonInstanceBrand
+          class="hidden md:inline-flex"
+          :size="18"
+          :show-name="false"
+        />
         <USeparator
           orientation="vertical"
           class="h-5"

@@ -1,0 +1,30 @@
+import { readFile, stat } from 'node:fs/promises'
+import { INSTANCE_BRAND_LOGO_TYPES, instanceBrandLogoExt } from '~~/shared/config/instanceBrand'
+
+// GET /instance-brand/logo.<ext> — the customer logo of a managed private
+// instance (WP16): the file the operator names in NUXT_INSTANCE_BRAND_LOGO
+// (a path inside the container, e.g. a read-only mount). Only shown as an
+// <img>; served with a sandbox CSP so an SVG opened directly can't run
+// script on the app's origin.
+
+const MAX_BYTES = 1024 * 1024
+
+export default defineEventHandler(async (event) => {
+  const path = (process.env.NUXT_INSTANCE_BRAND_LOGO ?? '').trim()
+  const ext = instanceBrandLogoExt(path)
+  if (!ext || getRouterParam(event, 'file') !== `logo.${ext}`) throw createError({ statusCode: 404, message: 'Not found' })
+  let bytes: Buffer
+  try {
+    const info = await stat(path)
+    if (!info.isFile() || info.size > MAX_BYTES) throw new Error('not a usable file')
+    bytes = await readFile(path)
+  } catch (e) {
+    console.warn('[instance-brand] logo not readable:', e instanceof Error ? e.message : e)
+    throw createError({ statusCode: 404, message: 'Not found' })
+  }
+  setHeader(event, 'content-type', INSTANCE_BRAND_LOGO_TYPES[ext]!)
+  setHeader(event, 'x-content-type-options', 'nosniff')
+  setHeader(event, 'content-security-policy', `default-src 'none'; style-src 'unsafe-inline'; sandbox`)
+  setHeader(event, 'cache-control', 'public, max-age=300')
+  return bytes
+})

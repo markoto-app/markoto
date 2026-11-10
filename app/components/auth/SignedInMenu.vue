@@ -12,6 +12,7 @@ const { status: accountStatus } = useAccountStatus()
 type MenuItem = { label: string, icon: string, to?: string, onSelect?: () => unknown }
 const { pricingVisible } = useBillingMode()
 const { customDomains } = useInstanceConfig()
+const { supportHref } = useInstanceSupport()
 const menuItems = computed<MenuItem[]>(() => {
   const items: MenuItem[] = []
   // Pricing only when there's something to show: live plans, or the
@@ -46,6 +47,14 @@ const menuItems = computed<MenuItem[]>(() => {
       label: t('customDomains.menu'),
       icon: 'i-lucide-globe',
       to: '/settings/domains'
+    })
+  }
+  // Managed instance (WP16): the customer's own service desk.
+  if (supportHref.value) {
+    items.push({
+      label: t('instanceBrand.support'),
+      icon: 'i-lucide-life-buoy',
+      to: supportHref.value
     })
   }
   items.push({

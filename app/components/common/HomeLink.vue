@@ -16,10 +16,11 @@ withDefaults(defineProps<Props>(), { size: 20 })
 <template>
   <NuxtLink
     to="/"
-    class="absolute top-4 left-4 z-10 hover:opacity-80 transition-opacity"
+    class="absolute top-4 left-4 z-10 inline-flex items-center gap-2.5 hover:opacity-80 transition-opacity"
     aria-label="markoto — home"
     data-testid="page-home-link"
   >
     <CommonWordmark :size="size" />
+    <CommonInstanceBrand :size="size" />
   </NuxtLink>
 </template>

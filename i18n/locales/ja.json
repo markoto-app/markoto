@@ -2589,5 +2589,8 @@
     "check": "今すぐ確認",
     "remove": "削除",
     "lastChecked": "確認日時: {date}"
+  },
+  "instanceBrand": {
+    "support": "ヘルプとサポート"
   }
 }

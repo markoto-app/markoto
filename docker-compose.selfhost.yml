@@ -483,6 +483,12 @@ services:
       - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
       - NUXT_PUBLISH_TRAEFIK_SERVICE=markoto-app@docker
       - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=markoto-headers@docker,markoto-compress@docker
+      # Managed private instance (WP16): the customer's name beside the
+      # markoto wordmark and their service desk in the account menu +
+      # footer. The logo needs docker-compose.selfhost.brand.yml.
+      - NUXT_INSTANCE_BRAND_NAME=${NUXT_INSTANCE_BRAND_NAME:-}
+      - NUXT_INSTANCE_SUPPORT_URL=${NUXT_INSTANCE_SUPPORT_URL:-}
+      - NUXT_INSTANCE_SUPPORT_EMAIL=${NUXT_INSTANCE_SUPPORT_EMAIL:-}
       # false = keep the whole instance out of search engines (robots.txt
       # Disallow: / + X-Robots-Tag: noindex). Empty = indexable.
       - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-}

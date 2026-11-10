@@ -4,6 +4,7 @@ import {
   resolveInstanceConfig,
   type InstanceConfig
 } from '~~/shared/config/instance'
+import { EMPTY_INSTANCE_BRAND } from '~~/shared/config/instanceBrand'
 
 /**
  * The instance shape on the client (see `shared/config/instance.ts`):
@@ -33,10 +34,11 @@ export function useInstanceConfig() {
   /** Per-workspace single sign-on can exist on this instance (WP14). */
   const workspaceSso = computed(() => config.value.workspaceSso === true)
   const customDomains = computed(() => config.value.customDomains === true)
+  const brand = computed(() => config.value.brand ?? EMPTY_INSTANCE_BRAND)
   /** Start of the login flow — the first configured provider, or null when login is off. */
   const primaryLoginPath = computed(() => {
     const first = config.value.loginProviders[0]
     return first ? loginPath(first) : null
   })
-  return { config, loginProviders, legalSurfaces, operatorName, marketingSite, siteUrl, docsCanonicalBase, anonGate, anonDocTtlDays, workspaceSso, customDomains, primaryLoginPath }
+  return { config, loginProviders, legalSurfaces, operatorName, marketingSite, siteUrl, docsCanonicalBase, anonGate, anonDocTtlDays, workspaceSso, customDomains, brand, primaryLoginPath }
 }

@@ -78,6 +78,7 @@ check "http + backup" "docker-compose.selfhost.yml" "backup"
 check "tls" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml"
 check "tls + build + backup" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml:docker-compose.selfhost.build.yml" "backup"
 check "http + build" "docker-compose.selfhost.yml:docker-compose.selfhost.build.yml"
+check "tls + brand" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml:docker-compose.selfhost.brand.yml"
 
 # ─── Backup sidecar ───────────────────────────────────────────────────
 # 1. Backup credentials (BACKUP_S3_*) reach the backup service only: the app

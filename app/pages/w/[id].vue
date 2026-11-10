@@ -346,6 +346,11 @@ async function leaveWorkspace() {
         >
           <CommonWordmark :size="20" />
         </NuxtLink>
+        <CommonInstanceBrand
+          class="hidden sm:inline-flex"
+          :size="20"
+          :show-name="false"
+        />
         <span
           class="block w-px h-5 bg-default/60 shrink-0"
           aria-hidden="true"
