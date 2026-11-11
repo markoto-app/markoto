@@ -55,3 +55,6 @@ openrc.sh
 
 # Managed private instance: the customer logo (docker-compose.selfhost.brand.yml)
 /branding/
+
+__pycache__/
+*.pyc

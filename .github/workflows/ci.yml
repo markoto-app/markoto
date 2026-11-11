@@ -94,7 +94,6 @@ jobs:
               - '!**/AGENTS.md'
               - '!.github/**/*.md'
               - '!.github/ISSUE_TEMPLATE/**'
-              - '!.agents/**'
               - '!LICENSE'
               - '!NOTICE'
 

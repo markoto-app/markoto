@@ -18,6 +18,7 @@ import {
   legalSurfacesEnabled,
   LEGAL_DISABLED_CODE
 } from '../../server/utils/instanceConfig'
+import { legalEntityErrors, resolveLegalEntity } from '../../shared/legal/entity'
 
 // Instance shape (WP7): which login providers are offered and whether the
 // hosted service's legal surfaces exist. Self-hosted is the default; the
@@ -190,5 +191,22 @@ describe('server instance helpers', () => {
     vi.stubEnv('NUXT_LEGAL_SURFACES_ENABLED', 'true')
     vi.stubEnv('NUXT_LEGAL_ABUSE_CONTACT_EMAIL', '')
     expect(abuseNotificationRecipient()).toBe('abuse@markoto.app')
+  })
+})
+
+describe('legal entity defaults', () => {
+  it('ships no personal name or street address as a default', () => {
+    const entity = resolveLegalEntity({})
+    expect(entity.controllerAddress).toBe('')
+    expect(entity.representedBy).toBe('')
+    expect(entity.controllerName).toBe('LatentSpace Labs GmbH')
+  })
+
+  it('requires address and representative from the environment', () => {
+    expect(legalEntityErrors({})).toHaveLength(2)
+    expect(legalEntityErrors({
+      NUXT_LEGAL_CONTROLLER_ADDRESS: '1 Example Street, 8000 Zurich',
+      NUXT_LEGAL_REPRESENTED_BY: 'Jane Doe'
+    })).toEqual([])
   })
 })

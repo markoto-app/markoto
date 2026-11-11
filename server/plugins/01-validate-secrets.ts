@@ -4,6 +4,7 @@ import { stripeStartupErrors } from '../utils/stripeStartupCheck'
 import { oidcRedirectErrors, resolveOidcSettings } from '../utils/oidc/settings'
 import { byokUrlPolicyErrors } from '../utils/aiProviders/config'
 import { legalSurfacesEnabled } from '../utils/instanceConfig'
+import { legalEntityErrors } from '../../shared/legal/entity'
 import { isTestModeEnabled, testModeBootError } from '../../shared/utils/testMode'
 import { siteUrlErrors } from '../utils/siteUrl'
 import { anonGateEnabled } from '../utils/anonGate/gate'
@@ -56,6 +57,7 @@ export default defineNitroPlugin(() => {
   errors.push(...oidcRedirectErrors(oidc.settings, config.siteUrl))
   // BYOK provider URLs: the hosted shape must run with an allowlist.
   errors.push(...byokUrlPolicyErrors(process.env, legalSurfacesEnabled()))
+  if (legalSurfacesEnabled()) errors.push(...legalEntityErrors(process.env))
   checkUrlFields(config, errors)
   errors.push(...siteUrlErrors(config.siteUrl, process.env.NODE_ENV === 'production'))
   // Stripe is only validated when billing is switched on. With

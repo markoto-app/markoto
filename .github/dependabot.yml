@@ -1,7 +1,7 @@
 # Dependabot keeps the supply-chain pins current: workflow actions are pinned by
 # commit SHA (with a `# vX.Y.Z` comment) and base images by digest, so nothing
-# moves unless one of these PRs is merged. JavaScript dependencies (Bun
-# lockfiles) are handled by Renovate (renovate.json), not here.
+# moves unless one of these PRs is merged. JavaScript dependencies are
+# tracked through the Bun lockfile of each workspace.
 #
 # Updates are grouped and weekly to keep the PR volume (and the Actions budget
 # each PR consumes) low. Security updates still arrive immediately.
@@ -38,4 +38,21 @@ updates:
       prefix: "build"
     groups:
       docker-base-images:
+        patterns: ["*"]
+
+  - package-ecosystem: bun
+    directories:
+      - "/"
+      - "/shared"
+      - "/sync-server"
+      - "/renderer"
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "build"
+    groups:
+      bun-dependencies:
         patterns: ["*"]
