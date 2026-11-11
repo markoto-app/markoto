@@ -4,7 +4,7 @@ import { publishedObjectKey } from '../../../../utils/publish/snapshotAssets'
 import { PUBLISHED_FILE_RE, PUBLISHED_PAGE_ID_RE } from '~~/shared/config/publish'
 
 // GET /api/published/:pageId/(files|brand)/:file — an image or font of a
-// published web page (WP13): the copy made when it was published, served
+// published web page: the copy made when it was published, served
 // only while the page exists. Public, like the page. Streamed by the app
 // (no presigned redirect) so the page's CSP stays `'self'`, also on a
 // custom domain. The body is piped from S3, never buffered: a page can
@@ -50,8 +50,10 @@ export default defineEventHandler(async (event) => {
   setHeader(event, 'x-content-type-options', 'nosniff')
   // Short: an unpublished page's files should stop loading soon.
   setHeader(event, 'cache-control', 'public, max-age=300')
-  setHeader(event, 'access-control-allow-origin', '*')
-  setHeader(event, 'cross-origin-resource-policy', 'cross-origin')
+  // Loaded only by the page itself, from the host it is served on (pages
+  // host, custom domain, or the instance when there is no pages host) —
+  // same-origin, also for fonts (CORS mode). No other site may embed them.
+  setHeader(event, 'cross-origin-resource-policy', 'same-origin')
   setHeader(event, 'x-robots-tag', 'noindex')
   return body
 })

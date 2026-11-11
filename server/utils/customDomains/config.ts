@@ -1,6 +1,6 @@
 import { isTestModeEnabled } from '~~/shared/utils/testMode'
 
-// Instance configuration of custom domains (WP13), read per call so tests
+// Instance configuration of custom domains, read per call so tests
 // can stub it. The feature is on only when the operator names the host
 // customers point their domain at (`NUXT_PUBLISH_DOMAINS_TARGET`, e.g.
 // `pages.markoto.app`) — that host must reach this instance's Traefik.
@@ -30,6 +30,13 @@ export interface TraefikProviderSettings {
   /** … or an upstream URL the endpoint declares a service for (test stacks). */
   upstream: string | null
   middlewares: string[]
+  /**
+   * Also emit the router of the pages host (NUXT_PUBLISH_PAGES_HOST). On
+   * for the self-host HTTPS overlay, where the pages host is optional and
+   * compose labels can't express an optional router; the hosted stack
+   * declares its pages router as a compose label instead.
+   */
+  pagesRouter: boolean
 }
 
 /** Settings of the Traefik HTTP-provider endpoint; null = endpoint off (404). */
@@ -43,6 +50,7 @@ export function traefikProviderSettings(env: NodeJS.ProcessEnv = process.env): T
     certResolver: env.NUXT_PUBLISH_TRAEFIK_CERT_RESOLVER?.trim() || 'le',
     service: env.NUXT_PUBLISH_TRAEFIK_SERVICE?.trim() || 'app@docker',
     upstream: env.NUXT_PUBLISH_TRAEFIK_UPSTREAM?.trim() || null,
-    middlewares: list(env.NUXT_PUBLISH_TRAEFIK_MIDDLEWARES)
+    middlewares: list(env.NUXT_PUBLISH_TRAEFIK_MIDDLEWARES),
+    pagesRouter: ['1', 'true', 'yes', 'on'].includes((env.NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER ?? '').trim().toLowerCase())
   }
 }

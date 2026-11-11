@@ -43,6 +43,12 @@ services:
       - letsencrypt:/letsencrypt
 
   app:
+    environment:
+      # Traefik learns the router + certificate of the optional pages host
+      # (NUXT_PUBLISH_PAGES_HOST) from the HTTP provider above — compose
+      # labels can't declare a router only when a variable is set. Needs
+      # NUXT_PUBLISH_TRAEFIK_TOKEN.
+      - NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER=true
     labels:
       - "traefik.http.routers.markoto-app.rule=Host(`${MARKOTO_DOMAIN:?MARKOTO_DOMAIN required}`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
       - "traefik.http.routers.markoto-app.entrypoints=websecure"

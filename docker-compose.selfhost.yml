@@ -486,6 +486,12 @@ services:
       - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
       - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
       - NUXT_PUBLISH_TRAEFIK_SERVICE=markoto-app@docker
+      # Published pages on their own hostname (recommended for a public
+      # instance; empty = <your URL>/p/<slug>). HTTPS overlay: routed with
+      # its certificate by Traefik's HTTP provider, which needs
+      # NUXT_PUBLISH_TRAEFIK_TOKEN. Plain HTTP: any hostname reaching this
+      # Traefik is served. docs/SELF-HOSTING.md → Published pages.
+      - NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST:-}
       - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=markoto-headers@docker,markoto-compress@docker
       # Managed private instance (WP16): the customer's name beside the
       # markoto wordmark and their service desk in the account menu +

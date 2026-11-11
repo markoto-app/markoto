@@ -512,6 +512,9 @@ next_steps() {
     note "Login:       not configured (anonymous-only). Add an IdP or OAuth app: docs/SELF-HOSTING.md#login"
   fi
   note "Configure:   edit $ENV_FILE, then: docker compose up -d   (from $ROOT)"
+  if [ -z "$(env_get NUXT_PUBLISH_PAGES_HOST)" ]; then
+    note "Public?      serve published pages from their own hostname: docs/SELF-HOSTING.md#published-pages"
+  fi
   note "Upgrade:     ./install.sh upgrade [--tag vX.Y.Z]"
   note "Backups:     docs/SELF-HOSTING.md#backups (copy them off this machine)"
   note "Status:      ./install.sh status"

@@ -28,6 +28,8 @@ nuxt_legal_controller_address: ""
 nuxt_legal_represented_by: ""
 # Comma-separated emails promoted to instance admin at their next sign-in.
 nuxt_admin_user_emails: ""
+# Hostname that serves published pages, separate from the app (e.g. pages.example.org). Required.
+nuxt_publish_pages_host: ""
 
 # ─── Backup sidecar tunables ───
 backup_interval_seconds: 86400

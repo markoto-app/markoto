@@ -240,6 +240,7 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 | `SYNC_MAX_MESSAGE_BYTES` / `SYNC_MAX_UPDATE_BYTES` / `SYNC_MAX_DOCUMENT_BYTES` | 17 MiB / 16 MiB / 16 MiB | Largest WebSocket message, single change and document (encoded size) the collaboration server accepts, in bytes. A refused change shows the editor a "changes were not saved" banner; deleting content is always allowed. |
 | `SYNC_MAX_PREAUTH_BYTES` / `SYNC_MAX_PREAUTH_TOTAL_BYTES` / `SYNC_AUTH_TIMEOUT_MS` | 32 MiB / 256 MiB / 15000 | Memory the collaboration server spends on messages sent before a connection has logged in to a document: per connection and across all connections (bytes), and how long a connection may send messages for a document without its login token (ms). Over the limit the connection is closed. |
 | `NUXT_PUBLISH_DOMAINS_TARGET` / `NUXT_PUBLISH_TRAEFIK_TOKEN` | (off) | HTTPS mode only: custom domains for published pages. The target is the host your users point a CNAME at (it must resolve to this server); the token (≥ 32 random characters, e.g. `openssl rand -hex 32`) is what Traefik sends when it asks the app which domains to route. Verified domains get their certificates from Let's Encrypt through the same resolver as your own domain. Publishing at `/p/<slug>` works without either. |
+| `NUXT_PUBLISH_PAGES_HOST` | (off) | The hostname published pages are served from, e.g. `pages.docs.example.org` (a bare name means `https://`; an origin like `http://pages.lan:8080` is accepted when the instance itself runs on plain HTTP). Empty: pages live at `<public URL>/p/<slug>`. Recommended for any public instance — see [Published pages](#published-pages). Required when `NUXT_LEGAL_SURFACES_ENABLED=true`. |
 | `MARKOTO_INSTANCE` | `markoto` | Instance name: compose project, network names, Traefik routing scope. Run several instances on one host with different names and ports. |
 | `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`, `COMPOSE_PROFILES` | set by `install.sh` | Which compose files and profiles `docker compose` uses. |
 | `REGISTRY` / `IMAGE_TAG` | `ghcr.io/joelbarmettleruzh` / release tag | Image source. |
@@ -364,7 +365,7 @@ All but the two egress networks and `edge` are internal (no route off the host).
 | Mode | Published | Routes on one origin |
 |---|---|---|
 | Plain HTTP | `${MARKOTO_HTTP_BIND}:${MARKOTO_HTTP_PORT}` → 80 | `/` app, `/sync` collaboration WebSocket, `/<bucket>/…` storage |
-| HTTPS | 80 (redirects to HTTPS) and 443 | same, restricted to `Host(MARKOTO_DOMAIN)` |
+| HTTPS | 80 (redirects to HTTPS) and 443 | same, restricted to `Host(MARKOTO_DOMAIN)`; plus the [pages host](#published-pages) and verified custom domains (published pages only) |
 
 Storage is reached by browsers directly with short-lived signed URLs (image upload and display, knowledge uploads, PDF and export downloads). Those URLs are signed for `MARKOTO_PUBLIC_URL`, so that URL must be exactly what users type.
 
@@ -385,6 +386,18 @@ and in `.env` optionally `MARKOTO_HTTP_BIND=127.0.0.1` when the proxy runs on th
 - Allow request bodies up to 50 MB (imports).
 - Append to `X-Forwarded-For`. With `--trusted-proxy CIDR`, `install.sh` sets `TRAEFIK_TRUSTED_IPS` to the proxy's address range (as Traefik sees it) and `NUXT_TRUSTED_PROXY_HOPS=2`.
 
+### Published pages
+
+Users can publish a document as a web page: a static, script-free snapshot anyone with the link can read. By default it lives on your instance's own origin, at `<public URL>/p/<slug>`. That works, but the page is HTML a user wrote, shown under your trusted hostname: a phishing page would look like it belongs to your instance, and the page shares an origin with the editor.
+
+**For a public instance, serve published pages from a hostname of their own** — usually a subdomain, such as `pages.docs.example.org` next to `docs.example.org`:
+
+1. **DNS.** Point the new name at the same server (an `A`/`AAAA` record, or a `CNAME` to your instance's domain).
+2. **`.env`.** Set `NUXT_PUBLISH_PAGES_HOST=pages.docs.example.org`. In HTTPS mode also set `NUXT_PUBLISH_TRAEFIK_TOKEN` (≥ 32 random characters, `openssl rand -hex 32`) if custom domains haven't already: Traefik learns the pages host's route and requests its Let's Encrypt certificate through the same HTTP provider the custom domains use (`docker-compose.selfhost.tls.yml` switches that router on). In plain-HTTP mode Traefik already forwards every hostname, so only DNS (or your own proxy) is needed.
+3. **Apply.** `docker compose up -d`. The first request to the new name may take a minute while the certificate is issued.
+
+Afterwards pages are at `https://pages.docs.example.org/p/<slug>`, the publish dialog shows that address, and old `<public URL>/p/<slug>` links redirect there permanently. The pages host serves only published pages, their images and fonts, and `robots.txt` — no editor, no API, no sign-in — and it never sets or receives your instance's session cookie (that cookie is bound to your instance's exact hostname). The report link on a page still points at your instance. Custom domains keep working as before; they are unaffected by this setting.
+
 ## Upgrades
 
 ```sh
@@ -404,6 +417,7 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **Published pages can have their own hostname.** New optional `NUXT_PUBLISH_PAGES_HOST`; with it set, `<public URL>/p/<slug>` redirects to the pages host. Published images and fonts now refuse to be embedded by other sites (`Cross-Origin-Resource-Policy: same-origin`). Required when `NUXT_LEGAL_SURFACES_ENABLED=true`. | Public instances (recommended); instances with the legal surfaces on (required) | See [Published pages](#published-pages). |
 | **The document converter (markitdown) requires a shared secret.** The app sends `NUXT_MARKITDOWN_API_SECRET` with every import, knowledge upload and design extraction; markitdown answers 401 without it, and `docker compose up` refuses to start while it is unset. | Everyone | Run `./install.sh upgrade` (it generates the secret). If you start the stack with plain `docker compose`, add `NUXT_MARKITDOWN_API_SECRET=` with the output of `openssl rand -hex 32` to `.env` first. |
 | **With the legal surfaces on, the operator's address and representative are required.** `NUXT_LEGAL_CONTROLLER_ADDRESS` and `NUXT_LEGAL_REPRESENTED_BY` no longer fall back to the hosted operator's details; the app refuses to start without them while `NUXT_LEGAL_SURFACES_ENABLED=true`. | Instances with `NUXT_LEGAL_SURFACES_ENABLED=true` | Set both in `.env` ([Legal pages](#legal-pages)). |
 | **Rootless Podman is supported.** `install.sh` detects Podman, adds `docker-compose.podman.yml` and sets `CONTAINER_SOCKET`. The compose files now declare service healthchecks, relabel bind mounts for SELinux (`:z`), and Traefik sets the low-port sysctl itself; on Docker nothing changes. | Podman hosts; SELinux hosts | Re-run `./install.sh` once on Podman. See [CONTAINER-ENGINES.md](./CONTAINER-ENGINES.md). |

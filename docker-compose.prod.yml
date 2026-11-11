@@ -276,6 +276,12 @@ services:
       # and the token Traefik's HTTP provider sends.
       - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
       - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
+      # Published pages' own hostname (e.g. pages.markoto.app): user-written
+      # HTML never shares the app's origin. Required for the hosted shape
+      # (boot check); routed with its certificate by the HTTP provider
+      # above, so it needs NUXT_PUBLISH_TRAEFIK_TOKEN. <app>/p/<slug>
+      # redirects there.
+      - NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST:-}
       # Customer domains get their own headers: HSTS without
       # includeSubDomains / preload (those would bind the customer's other
       # subdomains and put their domain on the browser preload list).
@@ -438,6 +444,17 @@ services:
       - "traefik.http.middlewares.custom-domain-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.custom-domain-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.custom-domain-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
+      # Published pages on their own hostname (NUXT_PUBLISH_PAGES_HOST,
+      # e.g. pages.markoto.app): only the paths of a published page reach
+      # the app — no app route, no internal route — and the app answers
+      # anything else there with 404 (server/middleware/00.custom-domain.ts).
+      # Same path list as the self-host router in
+      # server/utils/customDomains/traefikConfig.ts.
+      - "traefik.http.routers.pages.rule=Host(`${NUXT_PUBLISH_PAGES_HOST:?NUXT_PUBLISH_PAGES_HOST required}`) && (PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`))"
+      - "traefik.http.routers.pages.entrypoints=websecure"
+      - "traefik.http.routers.pages.tls.certresolver=le"
+      - "traefik.http.routers.pages.service=app"
+      - "traefik.http.routers.pages.middlewares=custom-domain-headers,app-compress"
       # Compress dynamic responses (SSR HTML, API JSON, i18n messages).
       # Static assets already arrive precompressed from Nitro
       # (compressPublicAssets) and keep their Content-Encoding; media and

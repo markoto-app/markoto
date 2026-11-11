@@ -8,6 +8,7 @@ import { legalEntityErrors } from '../../shared/legal/entity'
 import { isTestModeEnabled, testModeBootError } from '../../shared/utils/testMode'
 import { siteUrlErrors } from '../utils/siteUrl'
 import { anonGateEnabled } from '../utils/anonGate/gate'
+import { publishPagesErrors } from '../utils/publish/pagesHost'
 
 // Fail-fast at boot if any critical config is missing or malformed. Runs
 // right after `00-db-migrate` so a misconfigured deploy crashes visibly
@@ -63,6 +64,8 @@ export default defineNitroPlugin(() => {
   // BYOK provider URLs: the hosted shape must run with an allowlist.
   errors.push(...byokUrlPolicyErrors(process.env, legalSurfacesEnabled()))
   if (legalSurfacesEnabled()) errors.push(...legalEntityErrors(process.env))
+  // Published pages: their own hostname, required for the hosted shape.
+  errors.push(...publishPagesErrors(process.env, legalSurfacesEnabled()))
   checkUrlFields(config, errors)
   errors.push(...siteUrlErrors(config.siteUrl, process.env.NODE_ENV === 'production'))
   // Stripe is only validated when billing is switched on. With

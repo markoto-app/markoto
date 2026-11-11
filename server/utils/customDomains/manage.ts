@@ -6,6 +6,7 @@ import { recordCustomDomainCheck, type CustomDomainRow, type CustomDomainWithPag
 import { planHasFeature, resolveUserPlan } from '../entitlements'
 import { emailLinkBaseUrl } from '../siteUrl'
 import { publicBaseUrl, publishedPageUrl } from '../publish/access'
+import { publishPagesSettings } from '../publish/pagesHost'
 import {
   CUSTOM_DOMAIN_ERROR_CODES, CUSTOM_DOMAIN_GRACE_MS, customDomainVerifyName, customDomainVerifyValue, normalizeCustomHostname
 } from '~~/shared/config/customDomains'
@@ -13,7 +14,7 @@ import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_CUSTOM_DOMAIN_DROPPED, AUDIT_CUSTOM_DOMAIN_VERIFIED } from '../../legal/auditActions'
 
-// Custom domains (WP13): the signed-in user's own domains. Adding one
+// Custom domains: the signed-in user's own domains. Adding one
 // needs the plan feature `customDomains`; the domain is routed only once
 // its DNS check passed (TXT ownership + CNAME / same addresses).
 
@@ -33,7 +34,7 @@ export function validateNewHostname(event: H3Event, input: unknown, settings: Cu
   const invalid = (message: string) => createError({ statusCode: 400, message, data: { code: CUSTOM_DOMAIN_ERROR_CODES.invalid, field: 'hostname' } })
   if (!host) throw invalid('Enter a domain name such as docs.example.com.')
   const site = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
-  const own = [settings.target, site ? new URL(site).hostname : null, new URL(publicBaseUrl(event)).hostname].filter((h): h is string => !!h)
+  const own = [settings.target, site ? new URL(site).hostname : null, new URL(publicBaseUrl(event)).hostname, publishPagesSettings()?.hostname ?? null].filter((h): h is string => !!h)
   if (own.some(o => host === o || host.endsWith(`.${o}`))) throw invalid('This domain belongs to this service.')
   if (isInternalHostname(host)) throw invalid('Enter a domain name such as docs.example.com.')
   return host
@@ -53,7 +54,7 @@ export function customDomainView(event: H3Event, d: CustomDomainWithPage, settin
       cnameTarget: settings.target
     },
     page: d.pageId && d.pageSlug
-      ? { docId: d.pageDocId, title: d.pageTitle, slug: d.pageSlug, url: publishedPageUrl(publicBaseUrl(event), d.pageSlug) }
+      ? { docId: d.pageDocId, title: d.pageTitle, slug: d.pageSlug, url: publishedPageUrl(event, d.pageSlug) }
       : null,
     url: `https://${d.hostname}/`
   }

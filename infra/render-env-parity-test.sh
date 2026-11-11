@@ -17,6 +17,7 @@ nuxt_altcha_hmac_key=v_altcha
 nuxt_markitdown_api_secret=v_markitdown
 nuxt_publish_domains_target=pages.example.test
 nuxt_publish_traefik_token=v_traefik_token
+nuxt_publish_pages_host=pages.example.org
 nuxt_legal_controller_name=v_controller
 nuxt_legal_controller_address=Street 1, 8000 Zurich
 nuxt_legal_privacy_contact_email=privacy@example.test
@@ -264,7 +265,8 @@ NASTY="a b\$home #c\"d\\e\`f\`g"
 declare -a NASTYARGS=()
 for kv in "${ENVARGS[@]}"; do
   case "$kv" in
-    DOMAIN=*|NUXT_BILLING_ENABLED=*) NASTYARGS+=("$kv") ;;
+    # Hostnames spliced into URLs / Traefik rules are validated instead.
+    DOMAIN=*|NUXT_PUBLISH_PAGES_HOST=*|NUXT_BILLING_ENABLED=*) NASTYARGS+=("$kv") ;;
     *) NASTYARGS+=("${kv%%=*}=$NASTY") ;;
   esac
 done
@@ -332,4 +334,12 @@ if env -i "${ENVARGS[@]}" "DOMAIN=evil.test\$(id)" bash infra/render-env.sh >/de
   echo "VALUE SAFETY FAILED - a non-hostname DOMAIN must fail the render"
   exit 1
 fi
-echo "VALUE SAFETY OK - spaces quoted, trailing newline stripped, newline/quote/bad DOMAIN rejected"
+if env -i "${ENVARGS[@]}" "NUXT_PUBLISH_PAGES_HOST=pages.example.org\`) || Host(\`evil.test" bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "VALUE SAFETY FAILED - a non-hostname NUXT_PUBLISH_PAGES_HOST must fail the render"
+  exit 1
+fi
+if env -i "${ENVARGS[@]}" "NUXT_PUBLISH_PAGES_HOST=" bash infra/render-env.sh >/dev/null 2>&1; then
+  echo "VALUE SAFETY FAILED - an empty NUXT_PUBLISH_PAGES_HOST must fail the render"
+  exit 1
+fi
+echo "VALUE SAFETY OK - spaces quoted, trailing newline stripped, newline/quote/bad DOMAIN/pages host rejected"

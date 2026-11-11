@@ -1,12 +1,14 @@
 import { readFileSync } from 'node:fs'
+import { request as httpRequest } from 'node:http'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import { S3Client, PutObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3'
 import { ensureYjsTable, resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_PUBLISH_PAGES_HOST } from '../setup/env'
 
-// Publish as a web page (WP13): the owner / workspace admins publish a
+// Publish as a web page: the owner / workspace admins publish a
 // static snapshot at /p/<slug>; it runs no script, its images are copies,
 // the document itself keeps its access mode.
 
@@ -65,6 +67,8 @@ describe('publish as a web page', () => {
     expect(view.published).toBe(true)
     expect(view.page!.slug).toMatch(/^field-notes-[a-z0-9]{6}$/)
     expect(view.page!.url).toMatch(new RegExp(`/p/${view.page!.slug}$`))
+    // No pages host on this server: the page lives on the instance's own origin.
+    expect(view.page!.url.startsWith(TEST_BASE_URL)).toBe(true)
 
     const page = await anonClient().get(`/p/${view.page!.slug}`)
     expect(page.status).toBe(200)
@@ -267,5 +271,105 @@ describe('publish as a web page', () => {
     expect((await client.post(`/api/docs/${doc.docId}/publish`, {})).status).toBe(200)
     // The copy is still restricted.
     await refused(await client.put(`/api/docs/${copyId}/meta`, { accessMode: 'open-view' }))
+  })
+})
+
+/** A plain HTTP request to the hosted-shaped server with a chosen Host header (fetch can't set Host). */
+function onTwin(host: string, path: string, opts: { method?: string, cookie?: string } = {}): Promise<{ status: number, headers: Record<string, string | string[] | undefined>, body: string }> {
+  const url = new URL(TEST_BILLING_OFF_BASE_URL)
+  const headers: Record<string, string> = { host }
+  if (opts.cookie) headers.cookie = opts.cookie
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({ host: url.hostname, port: url.port, path, method: opts.method ?? 'GET', headers }, (res) => {
+      let body = ''
+      res.setEncoding('utf8')
+      res.on('data', (c: string) => {
+        body += c
+      })
+      res.on('end', () => resolve({ status: res.statusCode ?? 0, headers: res.headers, body }))
+    })
+    req.on('error', reject)
+    req.end()
+  })
+}
+
+// The hosted-shaped server serves published pages from their own host
+// (NUXT_PUBLISH_PAGES_HOST): user-written HTML never shares the app's
+// origin, the app's /p/<slug> redirects there, and the pages host is
+// nothing but published pages — no app, no API, no cookie.
+describe('publish on a separate pages host', () => {
+  const appHost = new URL(TEST_BILLING_OFF_BASE_URL).host
+
+  beforeEach(async () => {
+    await resetDb()
+    await ensureYjsTable()
+  })
+
+  async function published(): Promise<{ ownerId: number, docId: string, slug: string, pageId: string }> {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'private', title: 'Ferry times' })
+    const fileId = await addImage(doc.docId, owner.id)
+    await setContent(doc.docId, `# Ferry times\n\nThe ferry leaves at seven.\n\n![ferry](/api/files/${doc.docId}/${fileId})\n`)
+    // Rendered by the primary (same database); served by the twin.
+    const res = await (await loggedInClient(owner.id)).post(`/api/docs/${doc.docId}/publish`, {})
+    expect(res.status, await res.clone().text()).toBe(200)
+    const slug = (await res.json() as PublishView).page!.slug
+    const pageId = (await testDb().query<{ id: string }>(`SELECT id FROM published_pages WHERE doc_id = $1`, [doc.docId])).rows[0]!.id
+    return { ownerId: owner.id, docId: doc.docId, slug, pageId }
+  }
+
+  it('names the pages host as the page\'s address and redirects the app\'s /p/<slug> there', async () => {
+    const { ownerId, docId, slug, pageId } = await published()
+    const view = await (await (await loggedInClient(ownerId, undefined, TEST_BILLING_OFF_BASE_URL)).get(`/api/docs/${docId}/publish`)).json() as PublishView
+    expect(view.page!.url).toBe(`https://${TEST_PUBLISH_PAGES_HOST}/p/${slug}`)
+
+    const onApp = await onTwin(appHost, `/p/${slug}?utm_source=x`)
+    expect(onApp.status).toBe(301)
+    expect(onApp.headers.location).toBe(`https://${TEST_PUBLISH_PAGES_HOST}/p/${slug}`)
+    expect(onApp.body).not.toContain('seven.')
+    const file = await onTwin(appHost, `/api/published/${pageId}/files/nothing.png`)
+    expect(file.status).toBe(301)
+    expect(file.headers.location).toBe(`https://${TEST_PUBLISH_PAGES_HOST}/api/published/${pageId}/files/nothing.png`)
+    // An address that can't be a page stays the app's (its own 404).
+    expect((await onTwin(appHost, '/p/X')).status).toBe(404)
+  })
+
+  it('serves the page on the pages host under the published CSP, with no cookie', async () => {
+    const { slug, pageId } = await published()
+    // A stale session cookie sent to the pages host must not be answered with a fresh one.
+    const page = await onTwin(TEST_PUBLISH_PAGES_HOST, `/p/${slug}`, { cookie: 'nuxt-session=stale; markoto-anon=x' })
+    expect(page.status).toBe(200)
+    expect(page.body).toContain('seven.</p>')
+    expect(page.body).not.toMatch(/<script/i)
+    expect(String(page.headers['content-security-policy'])).toContain(`default-src 'none'`)
+    expect(String(page.headers['content-security-policy'])).toContain('sandbox')
+    expect(page.headers['set-cookie']).toBeUndefined()
+    expect(page.body).toContain('<meta name="robots" content="noindex, nofollow">')
+
+    // Its images load from the same host, same-origin only.
+    const src = new RegExp(`src="(/api/published/${pageId}/files/[^"]+)"`).exec(page.body)![1]!
+    const img = await onTwin(TEST_PUBLISH_PAGES_HOST, src, { cookie: 'nuxt-session=stale' })
+    expect(img.status).toBe(200)
+    expect(img.headers['content-type']).toBe('image/png')
+    expect(img.headers['cross-origin-resource-policy']).toBe('same-origin')
+    expect(img.headers['access-control-allow-origin']).toBeUndefined()
+    expect(img.headers['set-cookie']).toBeUndefined()
+
+    const robots = await onTwin(TEST_PUBLISH_PAGES_HOST, '/robots.txt')
+    expect(robots.status).toBe(200)
+    expect(robots.body).toContain('Disallow: /api/')
+  })
+
+  it('the pages host serves nothing of the app', async () => {
+    const { slug } = await published()
+    for (const path of ['/', '/api/health', '/api/_auth/session', '/d/x', '/pricing', '/_nuxt/x.js', '/auth/github', '/api/internal/traefik/custom-domains', '/p/', '/p/no-such-page', `/p/${slug}/x`]) {
+      const res = await onTwin(TEST_PUBLISH_PAGES_HOST, path, { cookie: 'nuxt-session=stale' })
+      expect(res.status, path).toBe(404)
+      expect(res.headers['set-cookie'], path).toBeUndefined()
+    }
+    for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
+      expect((await onTwin(TEST_PUBLISH_PAGES_HOST, `/p/${slug}`, { method })).status, method).toBe(404)
+      expect((await onTwin(TEST_PUBLISH_PAGES_HOST, '/api/_auth/session', { method })).status, method).toBe(404)
+    }
   })
 })

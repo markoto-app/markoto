@@ -27,12 +27,18 @@ const REQUIRED = [
   'LITELLM_MASTER_KEY', 'LITELLM_SALT_KEY',
   'JINA_AI_API_KEY', 'STAAN_API_KEY', 'MISTRAL_API_KEY', 'BFL_API_KEY',
   'BACKUP_GPG_PASSPHRASE', 'DOMAIN', 'ACME_EMAIL', 'REGISTRY', 'IMAGE_TAG',
-  'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY'
+  'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY',
+  'NUXT_PUBLISH_PAGES_HOST'
 ]
+
+/** Sample value of a required var (hostnames must look like hostnames). */
+function sample(name: string): string {
+  return name === 'NUXT_PUBLISH_PAGES_HOST' ? 'pages.example.org' : `test-${name.toLowerCase()}`
+}
 
 function renderEnv(omit?: string) {
   const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
-  for (const name of REQUIRED) if (name !== omit) env[name] = `test-${name.toLowerCase()}`
+  for (const name of REQUIRED) if (name !== omit) env[name] = sample(name)
   return spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
 }
 
@@ -64,7 +70,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('NUXT_ALTCHA_HMAC_KEY')).toBe('test-nuxt_altcha_hmac_key')
   })
 
-  it.each(['NUXT_ALTCHA_HMAC_KEY', 'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY'])(
+  it.each(['NUXT_ALTCHA_HMAC_KEY', 'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY', 'NUXT_PUBLISH_PAGES_HOST'])(
     'refuses to render without %s',
     (name) => {
       const out = renderEnv(name)
@@ -72,6 +78,16 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
       expect(out.stderr).toContain(name)
     }
   )
+
+  it('serves published pages from their own host, a plain hostname only', () => {
+    expect(vars.get('NUXT_PUBLISH_PAGES_HOST')).toBe('pages.example.org')
+    const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
+    for (const name of REQUIRED) env[name] = sample(name)
+    env.NUXT_PUBLISH_PAGES_HOST = 'pages.example.org`) || Host(`evil.example'
+    const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
+    expect(out.status).not.toBe(0)
+    expect(out.stderr).toContain('NUXT_PUBLISH_PAGES_HOST must be a plain hostname')
+  })
 
   it('carries the markitdown secret', () => {
     expect(vars.get('NUXT_MARKITDOWN_API_SECRET')).toBe('test-nuxt_markitdown_api_secret')
@@ -151,7 +167,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
 
   it('each free-allowance default can be overridden by an Environment variable', () => {
     const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
-    for (const name of REQUIRED) env[name] = `test-${name.toLowerCase()}`
+    for (const name of REQUIRED) env[name] = sample(name)
     Object.assign(env, { NUXT_AI_DEFAULT_CHAT_MODEL: 'mistral-small-2603', TIER_FREE_LITELLM_BUDGET_USD: '2', NUXT_FREE_TIER_TOTAL_BUDGET_USD: '0' })
     const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
     expect(out.status, out.stderr).toBe(0)

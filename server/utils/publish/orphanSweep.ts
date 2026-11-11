@@ -6,7 +6,7 @@ import type { ObjectStore } from '../objectStore'
 // failed. One hour of grace: a first publish copies the files before it
 // inserts the row.
 
-export const PUBLISHED_ORPHAN_GRACE_MS = 60 * 60 * 1000
+const PUBLISHED_ORPHAN_GRACE_MS = 60 * 60 * 1000
 
 const PUBLISHED_KEY_RE = /^published\/([A-Za-z0-9_-]{16})\/(?:files|brand)\/[^/]+$/
 

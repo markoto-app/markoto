@@ -202,6 +202,9 @@ services:
       - NUXT_ALTCHA_HMAC_KEY=local-altcha-hmac-key-change-me-at-least-32-chars
       # Required in production builds (email links are built from it only).
       - NUXT_SITE_URL=https://ypad.127.0.0.1.nip.io
+      # Published pages on their own host, like prod (covered by the
+      # *.ypad.127.0.0.1.nip.io mkcert wildcard). Empty = <app>/p/<slug>.
+      - NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST-pages.ypad.127.0.0.1.nip.io}
       - NUXT_SESSION_PASSWORD=local-session-password-at-least-32-characters-long
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET}
@@ -298,6 +301,11 @@ services:
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
       - "traefik.http.services.app.loadbalancer.server.port=3000"
+      # The published-pages host, as in docker-compose.prod.yml.
+      - "traefik.http.routers.pages.rule=Host(`pages.ypad.127.0.0.1.nip.io`) && (PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`))"
+      - "traefik.http.routers.pages.entrypoints=websecure"
+      - "traefik.http.routers.pages.tls=true"
+      - "traefik.http.routers.pages.service=app"
     depends_on:
       postgres:
         condition: service_healthy

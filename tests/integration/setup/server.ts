@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_INSTANCE_BRAND_NAME } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_PUBLISH_PAGES_HOST, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_INSTANCE_BRAND_NAME } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
@@ -283,6 +283,10 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   env.NUXT_AI_BYOK_ALLOWED_BASE_URLS = RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',')
   env.NUXT_AI_BYOK_ALLOW_PRIVATE_URLS = 'false'
   env.NUXT_SSO_ALLOW_PRIVATE_URLS = 'false'
+  // Hosted shape: published pages on their own host (pinned by
+  // endpoints/publish.test.ts → "pages host"). The primary keeps the
+  // single-origin default.
+  env.NUXT_PUBLISH_PAGES_HOST = TEST_PUBLISH_PAGES_HOST
   // Hosted free-tier plan limits (infra/render-env.sh), pinned by
   // tests/integration/endpoints/planEntitlements.test.ts. The MCP ones
   // (TIER_FREE_FEATURE_MCP_WRITE / _MCP_TOOL_CALLS_PER_DAY) stay at the

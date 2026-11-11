@@ -32,7 +32,7 @@
 import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
 
 /** Origin of an absolute http(s)/ws(s) URL, or null. */
-export function urlOrigin(value: string | undefined | null, schemes: readonly string[] = ['http:', 'https:']): string | null {
+function urlOrigin(value: string | undefined | null, schemes: readonly string[] = ['http:', 'https:']): string | null {
   if (!value) return null
   try {
     const parsed = new URL(value.trim())
@@ -142,15 +142,19 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  *     and logos (WP10), authorised by the file-access token like
  *     `/api/files`; sent with `Access-Control-Allow-Origin: *` (fonts load
  *     in CORS mode).
+ * Published pages' files (`/api/published/…`) are `same-origin`.
  * Everything else stays `same-site`. (Chromium happens to let plain
  * `localhost` through, which is why the blocked cover logo only showed on
  * real host names.)
  */
 const DOC_BRAND_ASSET_PATH = /^\/api\/docs\/[^/]+\/brand\/[^/]+$/
 
-export function crossOriginResourcePolicyFor(path: string): 'cross-origin' | 'same-site' {
+export function crossOriginResourcePolicyFor(path: string): 'cross-origin' | 'same-site' | 'same-origin' {
   const pathname = path.split('?')[0] ?? ''
-  return path.startsWith('/api/files/') || path.startsWith('/api/published/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) || DOC_BRAND_ASSET_PATH.test(pathname)
+  // A published page's files are loaded only by that page, from the host
+  // that serves it (the pages host, a custom domain, or the instance).
+  if (path.startsWith('/api/published/')) return 'same-origin'
+  return path.startsWith('/api/files/') || path.startsWith('/markoto-logos/') || path.startsWith(VENDOR_BASE) || DOC_BRAND_ASSET_PATH.test(pathname)
     ? 'cross-origin'
     : 'same-site'
 }

@@ -4,7 +4,7 @@ import { checkCustomDomainDns, type DnsLookups } from '../../server/utils/custom
 import { buildTraefikDynamicConfig } from '../../server/utils/customDomains/traefikConfig'
 import { customDomainSettings, traefikProviderSettings, type TraefikProviderSettings } from '../../server/utils/customDomains/config'
 
-// Custom domains (WP13): hostname rules, the DNS check (ownership TXT +
+// Custom domains: hostname rules, the DNS check (ownership TXT +
 // CNAME or same addresses), the Traefik dynamic config, the settings.
 
 describe('normalizeCustomHostname', () => {

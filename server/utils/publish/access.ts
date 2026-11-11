@@ -2,10 +2,11 @@ import type { H3Event } from 'h3'
 import { getDocAuthz } from '../workspaceAccess'
 import { getDoc } from '../../repos/documents'
 import { emailLinkBaseUrl } from '../siteUrl'
-import { PUBLISH_ERROR_CODES, PUBLISH_SLUG_RE, PUBLISHED_PAGE_PREFIX } from '~~/shared/config/publish'
+import { PUBLISH_ERROR_CODES, PUBLISH_SLUG_RE } from '~~/shared/config/publish'
+import { publishedPageAddress } from './pagesHost'
 import type { PublishedPageSummary } from '../../repos/publishedPages'
 
-// Who may publish a document as a web page (WP13): its owner and the
+// Who may publish a document as a web page: its owner and the
 // workspace's admins (`canManage`, like the access mode) — publishing
 // makes the content public, whatever the document's own access mode.
 
@@ -26,8 +27,9 @@ export function publicBaseUrl(event: H3Event): string {
   return emailLinkBaseUrl(useRuntimeConfig(event).siteUrl) ?? getRequestURL(event).origin
 }
 
-export function publishedPageUrl(base: string, slug: string): string {
-  return `${base.replace(/\/+$/, '')}${PUBLISHED_PAGE_PREFIX}${slug}`
+/** Address of a page at `/p/<slug>`: on the pages host when configured, else on the instance. */
+export function publishedPageUrl(event: H3Event, slug: string): string {
+  return publishedPageAddress(slug, publicBaseUrl(event))
 }
 
 export function publishView(event: H3Event, page: PublishedPageSummary | null) {
@@ -36,7 +38,7 @@ export function publishView(event: H3Event, page: PublishedPageSummary | null) {
     published: true as const,
     page: {
       slug: page.slug,
-      url: publishedPageUrl(publicBaseUrl(event), page.slug),
+      url: publishedPageUrl(event, page.slug),
       indexable: page.indexable,
       publishedAt: page.publishedAt.toISOString(),
       updatedAt: page.updatedAt.toISOString()

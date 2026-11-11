@@ -166,6 +166,7 @@ BACKUP_GPG_PASSPHRASE=placeholder
 BACKUP_INTERVAL_SECONDS=86400
 BACKUP_RETENTION_COUNT=14
 NUXT_ALTCHA_HMAC_KEY=placeholder-placeholder-placeholder-0000
+NUXT_PUBLISH_PAGES_HOST=pages.docs.example.org
 EOF3
 
 render_config() { # render_config OUT ENVFILE FILES [PROFILES]
@@ -370,6 +371,52 @@ render_config "$tmp/edge-selfhost-tls.json" "$tmp/selfhost.env" "docker-compose.
 check_internal_routes "selfhost tls" "$tmp/edge-selfhost-tls.json"
 check_internal_routes "prod" "$tmp/salt-prod.json"
 check_internal_routes "local" "$tmp/local.json"
+
+# ─── Published pages on their own host ────────────────────────────────
+# User-written HTML never shares the app's origin. The pages-host router
+# admits only a published page's paths (never `/`, never an internal
+# route); the app 404s anything else there too. Hosted: required (compose
+# refuses without it). Self-host HTTPS: optional, routed through the HTTP
+# provider, so the overlay must switch that router on.
+# shellcheck disable=SC2016 # Traefik rule syntax, backticks are literal
+pages_paths='(PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`))'
+check_pages_router() { # check_pages_router LABEL CONFIG_JSON HOST
+  local rule
+  rule="$(jq -r '.services.app.labels["traefik.http.routers.pages.rule"] // ""' "$2")"
+  if [ "$rule" != "Host(\`$3\`) && $pages_paths" ]; then
+    printf 'FAIL (%s): pages router rule is "%s"\n' "$1" "$rule" >&2
+    exit 1
+  fi
+}
+check_pages_router "prod" "$tmp/salt-prod.json" "pages.docs.example.org"
+check_pages_router "local" "$tmp/local.json" "pages.ypad.127.0.0.1.nip.io"
+if ! jq -e '.services.app.environment.NUXT_PUBLISH_PAGES_HOST == "pages.docs.example.org"' "$tmp/salt-prod.json" > /dev/null; then
+  echo "FAIL: prod must pass NUXT_PUBLISH_PAGES_HOST to the app" >&2
+  exit 1
+fi
+grep -v '^NUXT_PUBLISH_PAGES_HOST=' "$tmp/prod.env" > "$tmp/prod-nopages.env"
+if COMPOSE_FILE="docker-compose.prod.yml" docker compose --env-file "$tmp/prod-nopages.env" -p markoto-ci config > /dev/null 2>&1; then
+  echo "FAIL: prod compose must require NUXT_PUBLISH_PAGES_HOST" >&2
+  exit 1
+fi
+if ! jq -e '.services.app.environment.NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER == "true"' "$tmp/edge-selfhost-tls.json" > /dev/null; then
+  echo "FAIL: the self-host HTTPS overlay must ask the HTTP provider for the pages-host router" >&2
+  exit 1
+fi
+# Prod declares the router as a label; a second one from the provider would
+# race it for the host and its certificate.
+for cfg in edge-selfhost salt-prod; do
+  if jq -e '.services.app.environment.NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER != null' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: only the self-host HTTPS overlay asks the HTTP provider for the pages-host router ($cfg)" >&2
+    exit 1
+  fi
+done
+pages_inner="${pages_paths#(}"
+if ! grep -qF "${pages_inner%)}" server/utils/customDomains/traefikConfig.ts; then
+  echo "FAIL: the HTTP-provider pages router must admit the same paths as the compose routers" >&2
+  exit 1
+fi
+echo "ok: published pages have their own host (prod required, local, self-host HTTPS via provider)"
 
 # ─── Dev + test stacks publish on loopback only ───────────────────────
 # Throwaway credentials (devpassword, the committed seaweedfs/s3.json keys)

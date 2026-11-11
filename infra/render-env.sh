@@ -44,6 +44,20 @@ for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
   fi
 done
 
+# Published pages are served from their own hostname (the app refuses to
+# boot in the hosted shape without it, and prod compose routes it with its
+# own certificate). It is spliced into a Traefik rule, so: plain hostname.
+if [ -z "${NUXT_PUBLISH_PAGES_HOST:-}" ]; then
+  echo "render-env: 'NUXT_PUBLISH_PAGES_HOST' is empty: published pages need their own hostname, e.g. pages.\${DOMAIN} (set it as a GitHub Environment variable and add its DNS record, see docs/LAUNCH-CHECKLIST.md)" >&2
+  exit 1
+fi
+case "$NUXT_PUBLISH_PAGES_HOST" in
+  *[!A-Za-z0-9.-]*)
+    echo "render-env: NUXT_PUBLISH_PAGES_HOST must be a plain hostname (letters, digits, '.', '-')" >&2
+    exit 1
+    ;;
+esac
+
 # Billing mode (shared/config/billingMode.ts). The hosted deployment runs
 # free-only with paid plans advertised as "coming soon": billing OFF,
 # coming-soon ON. Stripe secrets are only required once billing is on —
@@ -194,7 +208,7 @@ for n in \
   NUXT_JWT_SECRET NUXT_JWT_SECRET_PREVIOUS NUXT_LITELLM_EMBEDDINGS_DIMS \
   NUXT_LITELLM_EMBEDDINGS_MODEL NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS NUXT_LITELLM_EMBEDDINGS_TASK_HINTS \
   NUXT_OAUTH_GITHUB_CLIENT_ID NUXT_OAUTH_GITHUB_CLIENT_SECRET NUXT_OAUTH_GOOGLE_CLIENT_ID \
-  NUXT_OAUTH_GOOGLE_CLIENT_SECRET NUXT_PLANS_COMING_SOON NUXT_PUBLIC_SENTRY_DSN NUXT_PUBLISH_DOMAINS_TARGET NUXT_PUBLISH_TRAEFIK_TOKEN \
+  NUXT_OAUTH_GOOGLE_CLIENT_SECRET NUXT_PLANS_COMING_SOON NUXT_PUBLIC_SENTRY_DSN NUXT_PUBLISH_DOMAINS_TARGET NUXT_PUBLISH_PAGES_HOST NUXT_PUBLISH_TRAEFIK_TOKEN \
   NUXT_S3_ACCESS_KEY NUXT_S3_BUCKET NUXT_S3_ENDPOINT \
   NUXT_S3_SECRET_KEY NUXT_SESSION_PASSWORD NUXT_SITE_INDEXABLE NUXT_STRIPE_AUTOMATIC_TAX \
   NUXT_STRIPE_LOOKUP_KEY_PREFIX NUXT_STRIPE_PRICE_IDS \
@@ -256,6 +270,9 @@ NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET}
 # (empty = off) and the token Traefik's HTTP provider sends (>= 32 chars).
 NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
 NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
+# Published pages' own hostname (e.g. pages.markoto.app). Required by the
+# hosted shape's boot check; needs the token above (Traefik routes it).
+NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST:-}
 
 # ─── Postgres ───
 POSTGRES_USER=${POSTGRES_USER}

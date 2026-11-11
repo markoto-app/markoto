@@ -159,6 +159,11 @@ export const TEST_LITELLM_DB_PASSWORD = 'litellmtestpassword'
 // the token traefik-test sends (docker-compose.test.yml has the same one).
 export const TEST_PUBLISH_DOMAINS_TARGET = 'pages.markoto.test'
 export const TEST_TRAEFIK_PROVIDER_TOKEN = 'test-provider-token-0123456789abcdef0123'
+/**
+ * Published pages' own host — set on the billing-off (hosted-shaped)
+ * server only; the primary keeps pages on its own origin.
+ */
+export const TEST_PUBLISH_PAGES_HOST = 'published.markoto.test'
 /** challtestsrv-test's management API and traefik-test's published TLS port. */
 export const TEST_CHALLTESTSRV_URL = 'http://127.0.0.1:8055'
 export const TEST_TRAEFIK_TLS_PORT = 8443

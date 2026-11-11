@@ -139,6 +139,10 @@ jobs:
           # people's email addresses.
           NUXT_ADMIN_USER_EMAILS: ${{ secrets.NUXT_ADMIN_USER_EMAILS }}
           NUXT_PUBLISH_DOMAINS_TARGET: ${{ vars.NUXT_PUBLISH_DOMAINS_TARGET }}
+          # Published pages' own hostname (pages.markoto.app on prod, its
+          # staging twin on staging). Required: the app refuses to boot
+          # in the hosted shape without it.
+          NUXT_PUBLISH_PAGES_HOST: ${{ vars.NUXT_PUBLISH_PAGES_HOST }}
           NUXT_PUBLISH_TRAEFIK_TOKEN: ${{ secrets.NUXT_PUBLISH_TRAEFIK_TOKEN }}
           POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
           # Separate DB roles (optional; empty = POSTGRES_USER for everything).
