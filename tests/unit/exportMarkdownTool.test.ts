@@ -43,6 +43,8 @@ function row(overrides: Partial<DocSnapshot> = {}): DocSnapshot {
     audience: 'business',
     language: 'fr',
     templateId: 'blank',
+    moderationRestrictedAt: null,
+    moderationReportId: null,
     createdAt: new Date(),
     lastActive: new Date(),
     ...overrides

@@ -5,12 +5,15 @@ import { uploads } from '../../db/schema'
 import { useDatabase } from '../database'
 import { renderWebSnapshot, type WebSnapshot } from '../renderClient'
 import { listBrandAssets } from '../../repos/brandAssets'
+import { getModerationRestriction } from '../../repos/documents'
+import { moderationRestrictedError } from '../moderationRestriction'
 import {
   getPublishedPageSummary, insertPublishedPage, isSlugTaken, updatePublishedSnapshot,
   type PublishedPageSummary
 } from '../../repos/publishedPages'
 import { HLJS_THEMES, hljsTheme } from '~~/shared/utils/hljsAssets'
 import { PUBLISH_ERROR_CODES, PUBLISH_MAX_SNAPSHOT_CHARS, slugFromTitle } from '~~/shared/config/publish'
+import { sanitizeSnapshotHtml } from './sanitizeSnapshot'
 import { collectSnapshotAssets, publishedObjectKey, publishedPrefix, rewriteSnapshotAssets, type SnapshotAssetRefs } from './snapshotAssets'
 
 // Publish a document as a web page (WP13): render the web snapshot, copy
@@ -152,11 +155,13 @@ async function publishLocked(input: PublishInput): Promise<PublishedPageSummary>
   const { docId } = input
   if (input.slug) await slugConflict(input.slug, docId)
   const snap = await renderOrFail(docId)
+  // A render takes seconds; a moderator may have restricted the document meanwhile.
+  if (await getModerationRestriction(docId)) throw moderationRestrictedError()
 
   const existing = await getPublishedPageSummary(docId)
   const pageId = existing?.id ?? nanoid(16)
 
-  const texts = [snap.html, snap.css, snap.fontsImport]
+  const texts = [sanitizeSnapshotHtml(snap.html), snap.css, snap.fontsImport]
   const refs = collectSnapshotAssets(texts, docId)
   const copied: SnapshotAssetRefs = { files: new Set(), brand: new Set() }
   await copyAll(pageId, 'files', await uploadKeys(docId, refs.files), copied.files)

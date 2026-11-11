@@ -7,7 +7,11 @@ import { PUBLISHED_FILE_RE, PUBLISHED_PAGE_ID_RE } from '~~/shared/config/publis
 // published web page (WP13): the copy made when it was published, served
 // only while the page exists. Public, like the page. Streamed by the app
 // (no presigned redirect) so the page's CSP stays `'self'`, also on a
-// custom domain.
+// custom domain. The body is piped from S3, never buffered: a page can
+// reference many files of up to 10 MB each.
+
+/** Per client (/64 for IPv6) and minute — a page view loads every image and font of the page. */
+export const PUBLISHED_FILE_RATE_PER_MINUTE = 300
 
 const CONTENT_TYPES: Record<string, string> = {
   png: 'image/png',
@@ -27,21 +31,27 @@ export default defineEventHandler(async (event) => {
   if (!PUBLISHED_PAGE_ID_RE.test(pageId) || (kind !== 'files' && kind !== 'brand') || !PUBLISHED_FILE_RE.test(file)) {
     throw createError({ statusCode: 404, message: 'Not found' })
   }
+  if (!(await checkRateLimit('published-file', getClientRateLimitKey(event), PUBLISHED_FILE_RATE_PER_MINUTE, 60_000))) {
+    throw createError({ statusCode: 429, message: 'Too many requests. Try again in a minute.', data: { code: 'published/rate-limited', messageKey: 'error.rateLimited' } })
+  }
   if (!await publishedPageExists(pageId)) throw createError({ statusCode: 404, message: 'Not found' })
-  let bytes: Uint8Array
+  let body: ReadableStream
+  let length: number | undefined
   try {
     const res = await useS3Client().send(new GetObjectCommand({ Bucket: useRuntimeConfig().s3.bucket, Key: publishedObjectKey(pageId, kind, file) }))
-    bytes = await res.Body!.transformToByteArray()
+    if (!res.Body) throw new Error('empty body')
+    body = res.Body.transformToWebStream()
+    length = res.ContentLength
   } catch {
     throw createError({ statusCode: 404, message: 'Not found' })
   }
   setHeader(event, 'content-type', CONTENT_TYPES[file.slice(file.lastIndexOf('.') + 1).toLowerCase()] ?? 'application/octet-stream')
-  setHeader(event, 'content-length', bytes.byteLength)
+  if (length !== undefined) setHeader(event, 'content-length', length)
   setHeader(event, 'x-content-type-options', 'nosniff')
   // Short: an unpublished page's files should stop loading soon.
   setHeader(event, 'cache-control', 'public, max-age=300')
   setHeader(event, 'access-control-allow-origin', '*')
   setHeader(event, 'cross-origin-resource-policy', 'cross-origin')
   setHeader(event, 'x-robots-tag', 'noindex')
-  return bytes
+  return body
 })

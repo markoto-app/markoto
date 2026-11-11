@@ -12,7 +12,10 @@ import { NOINDEX_VALUE } from '../utils/robots'
 // customer's domain can never act as a second origin of the editor (no
 // session cookies are scoped to it anyway). Runs first (`00.`).
 
-const PASS_THROUGH = [/^\/api\/published\/[^/]+\/(?:files|brand)\/[^/]+$/, /^\/vendor\//, /^\/favicon\.ico$/]
+const PASS_THROUGH = [/^\/vendor\//, /^\/favicon\.ico$/]
+// Only the files of the page bound to this domain: another page's files
+// on a customer's domain would let anyone serve their uploads under it.
+const PUBLISHED_FILE_PATH = /^\/api\/published\/([^/]+)\/(?:files|brand)\/[^/]+$/
 
 function notFound(event: Parameters<typeof setResponseStatus>[0], text = 'Not found'): string {
   setResponseStatus(event, 404)
@@ -39,8 +42,10 @@ export default defineEventHandler(async (event) => {
   }
 
   const path = (event.path.split('?')[0] ?? '/')
-  if (PASS_THROUGH.some(re => re.test(path)) && (event.method === 'GET' || event.method === 'HEAD')) return
   if (event.method !== 'GET' && event.method !== 'HEAD') return notFound(event)
+  if (PASS_THROUGH.some(re => re.test(path))) return
+  const fileOf = PUBLISHED_FILE_PATH.exec(path)
+  if (fileOf) return fileOf[1] === domain.pageId ? undefined : notFound(event)
 
   const page = domain.pageId ? await getPublishedPageById(domain.pageId) : null
   if (path === '/robots.txt') {

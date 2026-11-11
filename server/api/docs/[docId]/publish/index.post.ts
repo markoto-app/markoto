@@ -3,6 +3,7 @@ import { publishDocument } from '../../../../utils/publish/publishDocument'
 import { getPublishedPageSummary } from '../../../../repos/publishedPages'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_DOC_PUBLISHED } from '../../../../legal/auditActions'
+import { assertNotModerationRestricted } from '../../../../utils/moderationRestriction'
 import { PUBLISH_RATE_PER_HOUR } from '~~/shared/config/publish'
 
 // POST /api/docs/:docId/publish — {slug?, indexable?}. Publishes the
@@ -11,6 +12,7 @@ import { PUBLISH_RATE_PER_HOUR } from '~~/shared/config/publish'
 // plan. Audited `doc.published`.
 export default defineEventHandler(async (event) => {
   const { userId, docId, doc } = await requirePublishManager(event)
+  assertNotModerationRestricted(doc)
   const fields = readPublishFields(await readBody(event).catch(() => ({})))
   if (!(await checkRateLimit('publish', String(userId), PUBLISH_RATE_PER_HOUR, 3_600_000))) {
     throw createError({ statusCode: 429, message: 'Too many publishes. Try again later.', data: { code: 'publish/rate-limited' } })

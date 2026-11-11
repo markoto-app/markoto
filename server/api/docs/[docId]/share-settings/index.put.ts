@@ -5,6 +5,9 @@ import { assertPlanFeature, resolveDocPlanFor } from '../../../../utils/entitlem
 import { AUDIT_DOC_SHARE_SETTINGS_CHANGED } from '../../../../legal/auditActions'
 
 // An ISO 8601 date-time with a zone (what the client sends: toISOString()).
+/** Changes per user per 10 minutes — a person sets these by hand. */
+export const SHARE_SETTINGS_RATE_LIMIT = 30
+
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/
 
 // PUT /api/docs/:docId/share-settings — {expiresAt: ISO | null, noDownload:
@@ -14,6 +17,9 @@ const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-
 // they only restrict). Audited `doc.share_settings_changed`.
 export default defineEventHandler(async (event) => {
   const { userId, docId, doc } = await requireShareManager(event)
+  if (!(await checkRateLimit('share-settings', String(userId), SHARE_SETTINGS_RATE_LIMIT, 10 * 60_000))) {
+    throw createError({ statusCode: 429, message: 'Too many changes. Try again in a few minutes.', data: { code: 'share/rate-limited', messageKey: 'error.rateLimited' } })
+  }
   const body = await readBody<{ expiresAt?: unknown, noDownload?: unknown }>(event)
   const before = (await getDocWithActorRole(docId, userId))!
 

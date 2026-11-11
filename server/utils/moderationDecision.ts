@@ -1,11 +1,13 @@
 import * as Sentry from '@sentry/nuxt'
 import type { abuseReports } from '../db/schema'
-import { getDoc, updateDocMeta } from '../repos/documents'
+import { getDoc, setModerationRestriction } from '../repos/documents'
 import { findUserById } from '../repos/users'
 import { appendAuditEvent } from '../repos/audit'
 import { deleteDocument } from './documentLifecycle'
 import { AUDIT_DOC_UNPUBLISHED } from '../legal/auditActions'
 import { takeDownPublishedPage } from './publish/takeDown'
+import { deleteSharesForDoc } from '../repos/documentShares'
+import { notifySyncKickUser } from './syncNotify'
 import { emailLinkBaseUrl } from './siteUrl'
 import { abuseNotificationRecipient } from './instanceConfig'
 import { buildDecisionNotice, buildStatementOfReasons, deliverNotice, type NoticeStatus } from './moderationNotices'
@@ -13,7 +15,8 @@ import { actionRestrictsContent, type ModerationAction, type ModerationRule } fr
 
 // Carries out a moderator's decision on an abuse report:
 //   1. snapshot the reported document (owner, title) BEFORE touching it,
-//   2. apply the action to the content (delete / set private),
+//   2. apply the action to the content (delete / restrict: private, and
+//      kept so until an admin lifts it),
 //   3. statement of reasons to the owner (DSA Art.17) when the content
 //      was removed or restricted — or a recorded "could not be delivered"
 //      for an anonymous document (no owner to contact),
@@ -64,9 +67,16 @@ async function applyToContent(
     return 'removed'
   }
   if (action === 'access_restricted') {
-    await updateDocMeta(docId, { accessMode: 'private' })
-    // The web page is a separate public copy (WP13): restricting the
-    // document takes it down too. (Removal deletes it with the document.)
+    // Private, no password, no guest shares — and marked, so the owner
+    // can't widen it again (utils/moderationRestriction.ts); only an
+    // admin lifts it (DELETE /api/admin/documents/:docId/moderation-restriction).
+    await setModerationRestriction(docId, { reportId: meta.reportId })
+    // Guests reach a document through their share whatever its access
+    // mode; close their open editors too.
+    const unsharedGuestIds = await deleteSharesForDoc(docId)
+    for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])
+    // The web page is a separate public copy: restricting the document
+    // takes it down too. (Removal deletes it with the document.)
     const page = await takeDownPublishedPage(docId)
     if (page) {
       await appendAuditEvent({
@@ -85,8 +95,8 @@ async function applyToContent(
       scopeId: docId,
       action: 'doc.access_mode_changed',
       before: { accessMode: meta.before.accessMode ?? null },
-      after: { accessMode: 'private' },
-      metadata: { reason: 'moderation', reportId: meta.reportId }
+      after: { accessMode: 'private', moderationRestricted: true },
+      metadata: { reason: 'moderation', reportId: meta.reportId, ...(unsharedGuestIds.length > 0 ? { guestSharesRemoved: unsharedGuestIds.length } : {}) }
     })
     return 'restricted'
   }

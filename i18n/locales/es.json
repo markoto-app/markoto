@@ -1611,7 +1611,8 @@
     "shareAccessModeFailed": "No se pudo actualizar la configuración de uso compartido",
     "sharePasswordFailed": "No se pudo establecer la contraseña del documento",
     "activityLoadFailed": "No se pudo cargar la actividad",
-    "retry": "Reintentar"
+    "retry": "Reintentar",
+    "moderationRestricted": "Este documento se restringió tras una denuncia. No se puede compartir, hacer público ni publicar hasta que se levante la restricción."
   },
   "legal": {
     "ageGate": {

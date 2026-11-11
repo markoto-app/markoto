@@ -1611,7 +1611,8 @@
     "shareAccessModeFailed": "共有設定を更新できませんでした",
     "sharePasswordFailed": "ドキュメントのパスワードを設定できませんでした",
     "activityLoadFailed": "アクティビティを読み込めませんでした",
-    "retry": "再試行"
+    "retry": "再試行",
+    "moderationRestricted": "このドキュメントは報告を受けて制限されています。制限が解除されるまで、共有、公開設定、ウェブページとしての公開はできません。"
   },
   "legal": {
     "ageGate": {

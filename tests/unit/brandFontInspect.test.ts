@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { inflateSync } from 'node:zlib'
+import { brotliCompressSync, deflateSync, inflateSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { inspectFont, sanitizeFamily } from '../../server/utils/brandKit/fontInspect'
 
@@ -64,6 +64,61 @@ function renameTable(ttf: Uint8Array, from: string, to: string): Uint8Array {
     const at = 12 + i * 16
     if (String.fromCharCode(...out.subarray(at, at + 4)) === from) out.set([...to].map(c => c.charCodeAt(0)), at)
   }
+  return out
+}
+
+const REQUIRED_TAGS = ['cmap', 'head', 'hhea', 'hmtx', 'maxp', 'glyf', 'loca']
+
+/** A minimal WOFF whose `name` table is `nameData` claiming `nameOrigLength` bytes once inflated. */
+function craftWoff(nameData: Uint8Array, nameOrigLength: number): Uint8Array {
+  const tags = [...REQUIRED_TAGS, 'name']
+  const dirEnd = 44 + tags.length * 20
+  const out = new Uint8Array(dirEnd + REQUIRED_TAGS.length * 4 + nameData.byteLength)
+  const v = new DataView(out.buffer)
+  v.setUint32(0, 0x774F4646)
+  v.setUint32(4, 0x00010000)
+  v.setUint32(8, out.byteLength)
+  v.setUint16(12, tags.length)
+  let dataAt = dirEnd
+  tags.forEach((tag, i) => {
+    const at = 44 + i * 20
+    out.set([...tag].map(c => c.charCodeAt(0)), at)
+    const data = tag === 'name' ? nameData : new Uint8Array(4)
+    v.setUint32(at + 4, dataAt)
+    v.setUint32(at + 8, data.byteLength)
+    v.setUint32(at + 12, tag === 'name' ? nameOrigLength : 4)
+    out.set(data, dataAt)
+    dataAt += data.byteLength
+  })
+  return out
+}
+
+function base128(n: number): number[] {
+  const bytes = [n & 0x7F]
+  for (let rest = Math.floor(n / 128); rest > 0; rest = Math.floor(rest / 128)) bytes.unshift((rest & 0x7F) | 0x80)
+  return bytes
+}
+
+/** WOFF2 known-table indices (spec §5.1) for the tables the crafted fonts carry. */
+const WOFF2_INDEX: Record<string, number> = { cmap: 0, head: 1, hhea: 2, hmtx: 3, maxp: 4, name: 5, glyf: 10, loca: 11 }
+
+/** A minimal WOFF2: the given (untransformed) table lengths, followed by `stream` as the Brotli data. */
+function craftWoff2(lengths: Record<string, number>, stream: Uint8Array): Uint8Array {
+  const dir: number[] = []
+  for (const [tag, length] of Object.entries(lengths)) {
+    // glyf / loca: transform version 3 = untransformed; others: version 0.
+    const version = tag === 'glyf' || tag === 'loca' ? 3 : 0
+    dir.push((version << 6) | WOFF2_INDEX[tag]!, ...base128(length))
+  }
+  const out = new Uint8Array(48 + dir.length + stream.byteLength)
+  const v = new DataView(out.buffer)
+  v.setUint32(0, 0x774F4632)
+  v.setUint32(4, 0x00010000)
+  v.setUint32(8, out.byteLength)
+  v.setUint16(12, Object.keys(lengths).length)
+  v.setUint32(20, stream.byteLength)
+  out.set(dir, 48)
+  out.set(stream, 48 + dir.length)
   return out
 }
 
@@ -139,6 +194,35 @@ describe('inspectFont', () => {
     const junk = new Uint8Array(4096).map((_, i) => (i * 7919) & 0xFF)
     junk.set([0x77, 0x4F, 0x46, 0x32], 0)
     expect(inspectFont(junk).ok).toBe(false)
+  })
+
+  it('refuses a WOFF whose name table claims more than a name table can address', () => {
+    // 32 MB of zeros deflate to ~32 KB: the inflater must never be asked for them.
+    const bomb = new Uint8Array(deflateSync(new Uint8Array(32 * 1024 * 1024)))
+    expect(inspectFont(craftWoff(bomb, 32 * 1024 * 1024))).toEqual({ ok: false, reason: 'damaged' })
+    // Declares a small table but inflates to far more: the output cap holds.
+    expect(inspectFont(craftWoff(bomb, 1000))).toEqual({ ok: false, reason: 'damaged' })
+  })
+
+  it('refuses a WOFF2 that claims far more data than its Brotli stream can honestly hold', () => {
+    const tables = { cmap: 4, head: 4, hhea: 4, hmtx: 4, maxp: 4, glyf: 48 * 1024 * 1024, loca: 4, name: 64 }
+    const total = Object.values(tables).reduce((a, b) => a + b, 0)
+    // A few hundred bytes of Brotli that really do expand to the declared 48 MB.
+    const bomb = new Uint8Array(brotliCompressSync(new Uint8Array(total)))
+    expect(bomb.byteLength).toBeLessThan(4096)
+    expect(inspectFont(craftWoff2(tables, bomb))).toEqual({ ok: false, reason: 'damaged' })
+  })
+
+  it('refuses a WOFF2 whose stream inflates past the declared table sizes', () => {
+    const tables = { cmap: 4, head: 4, hhea: 4, hmtx: 4, maxp: 4, glyf: 4, loca: 4, name: 64 }
+    const bomb = new Uint8Array(brotliCompressSync(new Uint8Array(8 * 1024 * 1024)))
+    expect(inspectFont(craftWoff2(tables, bomb))).toEqual({ ok: false, reason: 'damaged' })
+  })
+
+  it('refuses a WOFF2 name table larger than a name table can address', () => {
+    const tables = { cmap: 4, head: 4, hhea: 4, hmtx: 4, maxp: 4, glyf: 4, loca: 4, name: 2 * 1024 * 1024 }
+    // Enough stream bytes to pass the ratio check, so the per-table cap is what refuses.
+    expect(inspectFont(craftWoff2(tables, new Uint8Array(256 * 1024)))).toEqual({ ok: false, reason: 'damaged' })
   })
 
   it('keeps family names to what a theme font name may contain', () => {

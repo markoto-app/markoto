@@ -1611,7 +1611,8 @@
     "shareAccessModeFailed": "Freigabeeinstellungen konnten nicht aktualisiert werden",
     "sharePasswordFailed": "Dokumentpasswort konnte nicht festgelegt werden",
     "activityLoadFailed": "Aktivität konnte nicht geladen werden",
-    "retry": "Erneut versuchen"
+    "retry": "Erneut versuchen",
+    "moderationRestricted": "Dieses Dokument wurde nach einer Meldung eingeschränkt. Es kann nicht geteilt, öffentlich gemacht oder veröffentlicht werden, bis die Einschränkung aufgehoben ist."
   },
   "legal": {
     "ageGate": {

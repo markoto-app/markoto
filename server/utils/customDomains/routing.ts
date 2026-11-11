@@ -4,7 +4,10 @@ import { customDomainSettings } from './config'
 
 // Which custom domains are live (WP13): verified, and their owner's plan
 // still includes custom domains — a downgrade takes them off the routing
-// table (nothing is deleted; they come back with the plan). Shared by the
+// table (nothing is deleted; they come back with the plan). A domain
+// whose owner can no longer manage the attached document stays live but
+// shows nothing (`pageId` null) until the right returns or the owner
+// attaches another page. Shared by the
 // Traefik provider endpoint, the host middleware and the canonical URL of
 // a page. Cached briefly: the middleware asks on every request to a host
 // that isn't the instance's own.
@@ -30,7 +33,7 @@ async function load(): Promise<Snapshot> {
   const planOk = new Map<number, boolean>()
   for (const d of await listVerifiedCustomDomains()) {
     if (!planOk.has(d.userId)) planOk.set(d.userId, planHasFeature(await resolveUserPlan(d.userId), 'customDomains'))
-    if (planOk.get(d.userId)) byHost.set(d.hostname, { id: d.id, hostname: d.hostname, pageId: d.pageId })
+    if (planOk.get(d.userId)) byHost.set(d.hostname, { id: d.id, hostname: d.hostname, pageId: d.pageManageable ? d.pageId : null })
   }
   return { byHost, known: await listOnceVerifiedHostnames() }
 }

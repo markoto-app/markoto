@@ -4,7 +4,7 @@ import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
 import { ensureYjsTable, resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
-import { createDoc, createUser } from '../setup/fixtures'
+import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import {
   TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_CHALLTESTSRV_URL, TEST_PUBLISH_DOMAINS_TARGET,
   TEST_TRAEFIK_IP, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_TRAEFIK_TLS_PORT
@@ -71,8 +71,8 @@ function viaTraefik(host: string): Promise<{ cert: PeerCertificate, status: numb
   })
 }
 
-async function publishedDoc(ownerId: number, text: string): Promise<string> {
-  const doc = await createDoc({ ownerId, title: 'Harbour guide' })
+async function publishedDoc(ownerId: number, text: string, workspaceId: string | null = null): Promise<string> {
+  const doc = await createDoc({ ownerId, title: 'Harbour guide', workspaceId })
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, text)
   await testDb().query(`INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1')`, [doc.docId, Buffer.from(Y.encodeStateAsUpdate(ydoc))])
@@ -240,6 +240,48 @@ describe('custom domains', () => {
     expect((await client.delete(`/api/user/custom-domains/${domain.id}`)).status).toBe(200)
     expect((await providerConfig()).http?.routers ?? {}).toEqual({})
   })
+
+  it('on the domain only that page\'s files load, not another page\'s', async () => {
+    const user = await createUser()
+    const domain = await verifiedDomain(user.id)
+    const shown = await publishedDoc(user.id, '# Shown\n')
+    const other = await publishedDoc(user.id, '# Other\n')
+    await (await loggedInClient(user.id)).patch(`/api/user/custom-domains/${domain.id}`, { docId: shown })
+    const ids = await testDb().query<{ id: string, doc_id: string }>(`SELECT id, doc_id FROM published_pages`)
+    const shownId = ids.rows.find(r => r.doc_id === shown)!.id
+    const otherId = ids.rows.find(r => r.doc_id === other)!.id
+    // The middleware decides before the handler looks for the file: the
+    // bound page reaches the handler (404 for a file that doesn't exist,
+    // 'Not found' JSON), another page never does (plain-text 404).
+    const own = await getWithHost(domain.hostname, `/api/published/${shownId}/files/nothing.png`)
+    expect(own.status).toBe(404)
+    expect(String(own.headers['content-type'])).not.toContain('text/plain')
+    const foreign = await getWithHost(domain.hostname, `/api/published/${otherId}/files/nothing.png`)
+    expect(foreign.status).toBe(404)
+    expect(String(foreign.headers['content-type'])).toContain('text/plain')
+  })
+
+  it('a domain stops showing a page once its owner may no longer manage the document', async () => {
+    const owner = await createUser()
+    const admin = await createUser()
+    const ws = await createWorkspace(owner.id)
+    await setMemberRole(ws.workspaceId, admin.id, 'admin')
+    const domain = await verifiedDomain(admin.id)
+    const docId = await publishedDoc(owner.id, '# Harbour guide\n\nThe ferry leaves at seven.\n', ws.workspaceId)
+    expect((await (await loggedInClient(admin.id)).patch(`/api/user/custom-domains/${domain.id}`, { docId })).status).toBe(200)
+    expect((await getWithHost(domain.hostname, '/')).body).toContain('seven.</p>')
+
+    await setMemberRole(ws.workspaceId, admin.id, 'editor')
+    // Other changes reach the routing table within its 15-second cache.
+    const deadline = Date.now() + 25_000
+    let body = ''
+    while (Date.now() < deadline) {
+      body = (await getWithHost(domain.hostname, '/')).body
+      if (body.includes('Nothing is published on this domain yet.')) break
+      await new Promise(r => setTimeout(r, 1000))
+    }
+    expect(body).toContain('Nothing is published on this domain yet.')
+  }, 40_000)
 
   it('Traefik gets a certificate for a verified domain and serves the page over HTTPS', async () => {
     const user = await createUser()

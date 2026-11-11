@@ -39,6 +39,9 @@ export interface DocSnapshot {
   language: string
   /** Provenance of the structural skeleton picked at creation time. */
   templateId: string
+  /** Restricted by a moderation decision: may not be shared or published (null = not restricted). */
+  moderationRestrictedAt: Date | null
+  moderationReportId: string | null
   createdAt: Date
   lastActive: Date
 }
@@ -149,6 +152,8 @@ export async function getDoc(docId: string): Promise<DocSnapshot | null> {
     audience: row.audience,
     language: row.language,
     templateId: row.templateId,
+    moderationRestrictedAt: row.moderationRestrictedAt,
+    moderationReportId: row.moderationReportId,
     createdAt: row.createdAt,
     lastActive: row.lastActive
   }
@@ -344,6 +349,9 @@ export interface DuplicateDocInput {
   audience: AudienceKind
   language: string
   templateId: string
+  /** A copy of restricted content is restricted too (see `documents.moderation_restricted_at`). */
+  moderationRestrictedAt: Date | null
+  moderationReportId: string | null
 }
 
 export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void> {
@@ -361,8 +369,31 @@ export async function insertDuplicateDoc(input: DuplicateDocInput): Promise<void
     description: input.description,
     audience: input.audience,
     language: input.language,
-    templateId: input.templateId
+    templateId: input.templateId,
+    moderationRestrictedAt: input.moderationRestrictedAt,
+    moderationReportId: input.moderationReportId
   })
+}
+
+/** The report behind a document's moderation restriction, if it has one. */
+export async function getModerationRestriction(docId: string): Promise<{ restrictedAt: Date, reportId: string | null } | null> {
+  const row = (await useDatabase().select({ at: documents.moderationRestrictedAt, reportId: documents.moderationReportId })
+    .from(documents).where(eq(documents.docId, docId)).limit(1))[0]
+  return row?.at ? { restrictedAt: row.at, reportId: row.reportId } : null
+}
+
+/**
+ * Restrict (moderation decision) or lift (platform admin). Restricting
+ * also makes the document private and drops its password in the same
+ * statement; lifting changes nothing else (the owner re-shares).
+ */
+export async function setModerationRestriction(docId: string, restriction: { reportId: string } | null): Promise<void> {
+  const set = restriction === null
+    ? { moderationRestrictedAt: null, moderationReportId: null }
+    : { accessMode: 'private' as const, passwordHash: null, moderationRestrictedAt: new Date(), moderationReportId: restriction.reportId }
+  const result = await useDatabase().update(documents).set(set)
+    .where(eq(documents.docId, docId)).returning({ docId: documents.docId })
+  if (result.length === 0) throw new NotFoundError('Document')
 }
 
 /**

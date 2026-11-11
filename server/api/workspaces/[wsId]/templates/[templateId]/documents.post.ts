@@ -13,11 +13,19 @@ import { TITLE_MAX_LENGTH } from '../../../../../utils/createDocument'
 // the caller's, starts private, images count against the workspace pool
 // or the caller's quota). Admins and editors (like creating any document
 // there); templates keep working after a downgrade — only adding new
-// ones needs the plan.
+// ones needs the plan. Rate-limited per user: each copy duplicates the
+// template's Y.js state and copies its images in storage.
+
+/** Documents from templates per user per hour. */
+export const TEMPLATE_DOCUMENTS_PER_HOUR = 60
+
 export default defineEventHandler(async (event) => {
   const { userId, wsId, role } = await requireBrandKitMember(event)
   if (role !== 'admin' && role !== 'editor') {
     throw createError({ statusCode: 403, message: 'Viewers can\'t create documents in this workspace.', data: { code: 'workspace/role-required' } })
+  }
+  if (!(await checkRateLimit('template-document', String(userId), TEMPLATE_DOCUMENTS_PER_HOUR, 3_600_000))) {
+    throw createError({ statusCode: 429, message: 'Too many new documents from templates. Try again later.', data: { code: 'workspace/template-rate-limited', messageKey: 'error.rateLimited' } })
   }
   const template = await getWorkspaceTemplate(wsId, requireRouteParam(event, 'templateId'))
   if (!template) throw createError({ statusCode: 404, message: 'Template not found' })

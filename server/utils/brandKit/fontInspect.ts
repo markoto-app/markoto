@@ -34,6 +34,25 @@ const TAG_WOF2 = 0x774F4632 // 'wOF2'
 /** Upper bound for decompressed font data (a CJK font is ~20 MB). */
 const MAX_DECOMPRESSED = 64 * 1024 * 1024
 const MAX_TABLES = 200
+/**
+ * Upper bound for the declared size of a table this module reads. Every
+ * offset and length inside `name` is a uint16, so no byte past
+ * ~6 + 12·2000 + 3·65535 ≈ 220 KB is ever addressed; OS/2 is ≤ 100 bytes
+ * in every version. A larger declaration only serves to make the inflater
+ * allocate, so it is refused.
+ */
+const MAX_READ_TABLE = 1024 * 1024
+/**
+ * WOFF2: the whole Brotli stream has to be decompressed to reach `name`
+ * (encoders sort it after `glyf`), so the declared total is bounded by
+ * the stream it comes from as well as absolutely. Real fonts stay below
+ * 6:1 (≈ 4.1 across the bundled Fontsource cuts, ≈ 5.8 across a few
+ * thousand web and icon fonts); 16:1 leaves room for outliers while a
+ * few hundred bytes of Brotli can no longer claim tens of megabytes.
+ */
+const MAX_WOFF2_RATIO = 16
+/** Below this, the ratio is not checked (tiny fonts, tiny allocations). */
+const WOFF2_RATIO_FLOOR = 1024 * 1024
 
 /** WOFF2 known-table tags, by index (WOFF2 spec §5.1). */
 const WOFF2_KNOWN_TAGS = [
@@ -187,7 +206,7 @@ function woffTables(r: Reader): Tables {
     get(tag) {
       const e = entries.get(tag)
       if (!e) return null
-      if (e.origLength > MAX_DECOMPRESSED) throw new Damaged('table size')
+      if (e.origLength > MAX_READ_TABLE) throw new Damaged('table size')
       const data = r.slice(e.offset, e.compLength)
       if (e.compLength === e.origLength) return data
       if (e.compLength > e.origLength) throw new Damaged('table size')
@@ -246,6 +265,11 @@ function woff2Tables(r: Reader): Tables {
   }
   const total = entries.reduce((n, e) => n + e.length, 0)
   if (total > MAX_DECOMPRESSED) throw new Damaged('decompressed size')
+  if (totalCompressed === 0 || totalCompressed > r.length - at) throw new Damaged('compressed size')
+  if (total > Math.max(WOFF2_RATIO_FLOOR, totalCompressed * MAX_WOFF2_RATIO)) throw new Damaged('compression ratio')
+  for (const e of entries) {
+    if ((e.tag === 'name' || e.tag === 'OS/2') && e.length > MAX_READ_TABLE) throw new Damaged('table size')
+  }
   let decompressed: Uint8Array | null = null
   const stream = (): Uint8Array => {
     if (!decompressed) {

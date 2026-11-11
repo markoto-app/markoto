@@ -1611,7 +1611,8 @@
     "shareAccessModeFailed": "Impossible de mettre à jour les paramètres de partage",
     "sharePasswordFailed": "Impossible de définir le mot de passe du document",
     "activityLoadFailed": "Impossible de charger l'activité",
-    "retry": "Réessayer"
+    "retry": "Réessayer",
+    "moderationRestricted": "Ce document a été restreint à la suite d'un signalement. Il ne peut être ni partagé, ni rendu public, ni publié tant que la restriction n'est pas levée."
   },
   "legal": {
     "ageGate": {

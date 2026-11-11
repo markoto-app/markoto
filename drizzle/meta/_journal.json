@@ -281,6 +281,13 @@
       "when": 1794346722103,
       "tag": "0039_smart_harrier",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794392923224,
+      "tag": "0040_young_sandman",
+      "breakpoints": true
     }
   ]
 }

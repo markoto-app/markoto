@@ -7,7 +7,7 @@ import { listBrandAssetKeys, type BrandAssetRow } from '../../repos/brandAssets'
 // `workspaces/{wsId}/brand/{id}.{format}`. The app streams them itself
 // (no presigned redirect): fonts load in CORS mode from the sandboxed,
 // opaque-origin preview iframe, and an S3 redirect would need CORS on the
-// bucket. Files are small (≤ 10 MB fonts, ≤ 5 MB images).
+// bucket. Bodies are piped, not buffered (fonts up to 10 MB, images 5 MB).
 
 export function brandAssetKey(workspaceId: string, id: string, format: BrandAssetFormat): string {
   return `workspaces/${workspaceId}/brand/${id}.${format}`
@@ -48,12 +48,14 @@ export async function collectBrandObjectKeys(workspaceId: string): Promise<strin
  * `Access-Control-Allow-Origin: *` and CORP `cross-origin`; access rides
  * on the URL's token, never on credentials.
  */
-export async function sendBrandAsset(event: H3Event, row: BrandAssetRow, opts: { crossOrigin: boolean }): Promise<Uint8Array> {
-  let bytes: Uint8Array
+export async function sendBrandAsset(event: H3Event, row: BrandAssetRow, opts: { crossOrigin: boolean }): Promise<ReadableStream> {
+  let body: ReadableStream
+  let length: number | undefined
   try {
     const res = await useS3Client().send(new GetObjectCommand({ Bucket: useRuntimeConfig().s3.bucket, Key: row.s3Key }))
     if (!res.Body) throw new NoSuchKey({ message: 'empty body', $metadata: {} })
-    bytes = await res.Body.transformToByteArray()
+    body = res.Body.transformToWebStream()
+    length = res.ContentLength
   } catch (e) {
     // The row exists but the object doesn't (lost, or deleted under us):
     // the file is gone, not a server fault.
@@ -61,7 +63,7 @@ export async function sendBrandAsset(event: H3Event, row: BrandAssetRow, opts: {
     throw e
   }
   setHeader(event, 'content-type', BRAND_ASSET_CONTENT_TYPES[row.format])
-  setHeader(event, 'content-length', bytes.byteLength)
+  if (length !== undefined) setHeader(event, 'content-length', length)
   setHeader(event, 'x-content-type-options', 'nosniff')
   // Private: the URL may carry a viewer's token; assets are immutable per
   // id (a re-upload gets a new id), so an hour of browser cache is safe.
@@ -70,5 +72,5 @@ export async function sendBrandAsset(event: H3Event, row: BrandAssetRow, opts: {
     setHeader(event, 'access-control-allow-origin', '*')
     setHeader(event, 'cross-origin-resource-policy', 'cross-origin')
   }
-  return bytes
+  return body
 }

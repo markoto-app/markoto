@@ -2,7 +2,9 @@ import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
 import { HLJS_THEMES, HLJS_STYLES_BASE } from '~~/shared/utils/hljsAssets'
 
 // The HTML of a published page (WP13). The body is the stored snapshot:
-// markdown rendered and DOMPurify-sanitised by the print page, theme CSS
+// markdown rendered and DOMPurify-sanitised by the print page, stripped
+// again of active elements before it was stored (`sanitizeSnapshot.ts`),
+// theme CSS
 // from `themeToCss` with the sanitised custom CSS. The page itself runs
 // no script at all (`publishedPageCsp`), so even a sanitiser bypass in the
 // stored HTML can't execute.

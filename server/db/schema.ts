@@ -157,6 +157,13 @@ export const documents = pgTable('documents', {
   // no print. NULL / false = off.
   shareExpiresAt: timestamp('share_expires_at', { withTimezone: true }),
   shareNoDownload: boolean('share_no_download').notNull().default(false),
+  // Set when a moderator restricts the document on an abuse report: it
+  // stays private and unpublished — no access mode but `private`, no
+  // password, no guest share, no web page, no move into a workspace —
+  // until a platform admin lifts it. Copies made from it (duplicate,
+  // workspace template) carry it, so a copy can't undo the decision.
+  moderationRestrictedAt: timestamp('moderation_restricted_at', { withTimezone: true }),
+  moderationReportId: text('moderation_report_id'),
   sizeBytes: integer('size_bytes').default(0),
   wordCount: integer('word_count').default(0),
   // Per-doc theme (page size, fonts, colors, headers/footers, etc).

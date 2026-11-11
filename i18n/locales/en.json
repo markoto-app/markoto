@@ -1611,7 +1611,8 @@
     "shareAccessModeFailed": "Could not update sharing settings",
     "sharePasswordFailed": "Could not set document password",
     "activityLoadFailed": "Could not load activity",
-    "retry": "Retry"
+    "retry": "Retry",
+    "moderationRestricted": "This document was restricted after a report. It can't be shared, made public or published until the restriction is lifted."
   },
   "legal": {
     "ageGate": {

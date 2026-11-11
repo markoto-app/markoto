@@ -31,6 +31,12 @@ export const AUDIT_ABUSE_DISMISSED = 'abuse.dismissed'
 // `scope_id` = report id; metadata: kind, recipient role, status. The text
 // itself lives in `moderation_notices`, never in the audit row.
 export const AUDIT_ABUSE_NOTICE_RECORDED = 'abuse.notice_recorded'
+// A platform admin lifted a document's moderation restriction (set by an
+// `access_restricted` decision, which itself is audited as
+// `doc.access_mode_changed` with reason `moderation`). `scope` doc,
+// `scope_id` the document id; metadata: the report the restriction came
+// from and the admin's note.
+export const AUDIT_DOC_MODERATION_RESTRICTION_LIFTED = 'doc.moderation_restriction_lifted'
 
 // Platform-admin grants. Granted via the env allowlist bootstrap
 // or (forthcoming) via an admin-management UI; revoked the same way.
@@ -155,6 +161,7 @@ export type ComplianceAuditAction
     | typeof AUDIT_ABUSE_ACTIONED
     | typeof AUDIT_ABUSE_DISMISSED
     | typeof AUDIT_ABUSE_NOTICE_RECORDED
+    | typeof AUDIT_DOC_MODERATION_RESTRICTION_LIFTED
     | typeof AUDIT_ADMIN_GRANTED
     | typeof AUDIT_ADMIN_REVOKED
     | typeof AUDIT_MCP_TOKEN_ISSUED

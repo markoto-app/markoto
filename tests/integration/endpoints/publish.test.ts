@@ -206,4 +206,66 @@ describe('publish as a web page', () => {
     const row = await testDb().query<{ access_mode: string }>(`SELECT access_mode FROM documents WHERE doc_id = $1`, [doc.docId])
     expect(row.rows[0]!.access_mode).toBe('private')
   })
+
+  it('a moderation restriction sticks until an admin lifts it — also on copies', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const guest = await createUser()
+    await setMemberRole(ws.workspaceId, guest.id, 'guest')
+    const otherWs = await createWorkspace(owner.id)
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view', title: 'Reported page', workspaceId: ws.workspaceId })
+    await setContent(doc.docId, '# Reported page\n\nSpam.\n')
+    const client = await loggedInClient(owner.id)
+    await testDb().query(`INSERT INTO document_shares (doc_id, user_id, access, granted_by_user_id) VALUES ($1, $2, 'view', $3)`, [doc.docId, guest.id, owner.id])
+    expect((await client.post(`/api/docs/${doc.docId}/publish`, {})).status).toBe(200)
+
+    const reporter = await createUser()
+    await (await loggedInClient(reporter.id)).request('/api/abuse-reports', {
+      method: 'POST',
+      body: { contentUrl: `/d/${doc.docId}`, category: 'illegal_content', body: 'This page breaks the rules.', goodFaith: true }
+    })
+    const report = await testDb().query<{ report_id: string }>(`SELECT report_id FROM abuse_reports`)
+    const admin = await createUser()
+    await testDb().query(`UPDATE users SET is_admin = true WHERE id = $1`, [admin.id])
+    const adminClient = await loggedInClient(admin.id)
+    const decided = await adminClient.request(`/api/admin/abuse-reports/${report.rows[0]!.report_id}`, {
+      method: 'PATCH',
+      body: { status: 'actioned', decision: { action: 'access_restricted', rule: 'spam_or_seo', explanation: 'Spam page, access restricted.' } }
+    })
+    expect(decided.status, await decided.clone().text()).toBe(200)
+    const shares = await testDb().query(`SELECT 1 FROM document_shares WHERE doc_id = $1`, [doc.docId])
+    expect(shares.rowCount).toBe(0)
+
+    const refused = async (res: Response) => {
+      expect(res.status, await res.clone().text()).toBe(403)
+      expect((await res.json() as { data?: { code?: string, messageKey?: string } }).data).toMatchObject({ code: 'moderation/restricted', messageKey: 'error.moderationRestricted' })
+    }
+    await refused(await client.post(`/api/docs/${doc.docId}/publish`, {}))
+    await refused(await client.put(`/api/docs/${doc.docId}/meta`, { accessMode: 'open-view' }))
+    await refused(await client.put(`/api/docs/${doc.docId}/meta`, { accessMode: 'open-edit' }))
+    await refused(await client.post(`/api/docs/${doc.docId}/password`, { action: 'set', password: 'correct horse battery' }))
+    await refused(await client.post(`/api/docs/${doc.docId}/password`, { action: 'remove' }))
+    await refused(await client.put(`/api/docs/${doc.docId}/shares`, { userId: guest.id, access: 'view' }))
+    await refused(await client.patch(`/api/docs/${doc.docId}/workspace`, { workspaceId: otherWs.workspaceId }))
+    // Narrowing and ordinary edits still work.
+    expect((await client.put(`/api/docs/${doc.docId}/meta`, { accessMode: 'private', title: 'Renamed' })).status).toBe(200)
+    expect((await client.patch(`/api/docs/${doc.docId}/workspace`, { workspaceId: null })).status).toBe(200)
+
+    // A copy carries the restriction.
+    const copy = await client.post(`/api/docs/${doc.docId}/duplicate`, { workspaceId: null })
+    expect(copy.status, await copy.clone().text()).toBe(200)
+    const copyId = (await copy.json() as { docId: string }).docId
+    await refused(await client.put(`/api/docs/${copyId}/meta`, { accessMode: 'open-view' }))
+
+    // Only a platform admin lifts it, with a note; then the owner may publish again.
+    expect((await client.request(`/api/admin/documents/${doc.docId}/moderation-restriction`, { method: 'DELETE', body: { note: 'x' } })).status).toBe(403)
+    expect((await adminClient.request(`/api/admin/documents/${doc.docId}/moderation-restriction`, { method: 'DELETE', body: {} })).status).toBe(400)
+    const lifted = await adminClient.request(`/api/admin/documents/${doc.docId}/moderation-restriction`, { method: 'DELETE', body: { note: 'Appeal upheld.' } })
+    expect(lifted.status, await lifted.clone().text()).toBe(200)
+    const audit = await testDb().query<{ action: string }>(`SELECT action FROM audit_log WHERE scope_id = $1 AND action = 'doc.moderation_restriction_lifted'`, [doc.docId])
+    expect(audit.rowCount).toBe(1)
+    expect((await client.post(`/api/docs/${doc.docId}/publish`, {})).status).toBe(200)
+    // The copy is still restricted.
+    await refused(await client.put(`/api/docs/${copyId}/meta`, { accessMode: 'open-view' }))
+  })
 })

@@ -5,6 +5,7 @@ import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { assertPlanFeature, resolveDocPlan } from '../../../utils/entitlements'
 import { resolveTemplateId } from '~~/shared/templates'
 import { ownCustomCss } from '~~/shared/utils/themePresets'
+import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
@@ -54,6 +55,7 @@ export default defineEventHandler(async (event) => {
   let beforeAccessMode: string | null = null
   if (updates.accessMode !== undefined) {
     const snap = await getDoc(docId)
+    if (updates.accessMode !== 'private') assertNotModerationRestricted(snap)
     beforeAccessMode = snap?.accessMode ?? null
   }
 

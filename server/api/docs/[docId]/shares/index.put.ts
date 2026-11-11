@@ -3,12 +3,15 @@ import { upsertShare } from '../../../../repos/documentShares'
 import { AUDIT_DOC_SHARED } from '../../../../legal/auditActions'
 import { requireDocSharingAccess, requireWorkspaceGuest } from '../../../../utils/documentSharing'
 import { notifySyncKickUser } from '../../../../utils/syncNotify'
+import { assertNotModerationRestricted } from '../../../../utils/moderationRestriction'
+import { getDoc } from '../../../../repos/documents'
 
 // PUT /api/docs/:docId/shares — {userId, access: 'view' | 'edit'}: share
 // the document with a guest of its workspace, or change their access
 // (WP11). Audited (`doc.shared`).
 export default defineEventHandler(async (event) => {
   const { userId: actorId, docId, workspaceId } = await requireDocSharingAccess(event)
+  assertNotModerationRestricted(await getDoc(docId))
   const body = await readBody<{ userId?: unknown, access?: unknown }>(event)
   if (body?.access !== 'view' && body?.access !== 'edit') throw createError({ statusCode: 400, message: 'Access is view or edit.', data: { code: 'share/invalid' } })
   const guestId = await requireWorkspaceGuest(workspaceId, body.userId)

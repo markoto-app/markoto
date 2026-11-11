@@ -115,7 +115,11 @@ export async function duplicateDocument(
     description: source.description,
     audience: source.audience,
     language: source.language,
-    templateId: source.templateId
+    templateId: source.templateId,
+    // The copy is the same content: a moderation restriction travels with
+    // it, or duplicating would undo the decision.
+    moderationRestrictedAt: source.moderationRestrictedAt,
+    moderationReportId: source.moderationReportId
   })
 
   try {

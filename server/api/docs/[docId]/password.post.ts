@@ -5,6 +5,7 @@ import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/docP
 import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
 import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
+import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
@@ -32,6 +33,8 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
   if (!(await canManageDoc(session.user.id, docId))) {
     throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
   }
+  // A password opens the document to whoever has it.
+  assertNotModerationRestricted(doc)
   // Minimum length applies when a password is SET; passwords set under
   // an older, shorter minimum keep verifying.
   if (typeof password !== 'string' || password.length < DOC_PASSWORD_MIN_LENGTH) {
@@ -156,6 +159,8 @@ async function handleRemove(event: H3Event, docId: string, doc: DocSnapshot) {
   if (!(await canManageDoc(session.user.id, docId))) {
     throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
   }
+  // Removing the password makes the document open-edit.
+  assertNotModerationRestricted(doc)
 
   await clearDocPassword(docId)
 

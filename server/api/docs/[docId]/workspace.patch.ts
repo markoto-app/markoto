@@ -1,4 +1,5 @@
-import { moveDocToWorkspace } from '../../../repos/documents'
+import { getDoc, moveDocToWorkspace } from '../../../repos/documents'
+import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
 import { deleteSharesForDoc } from '../../../repos/documentShares'
 import { deleteTemplatesForDoc } from '../../../repos/workspaceTemplates'
 import { appendAuditEvent } from '../../../repos/audit'
@@ -47,6 +48,8 @@ export default defineEventHandler(async (event) => {
   }
 
   if (target !== null) {
+    // Another workspace's members would gain access.
+    assertNotModerationRestricted(await getDoc(docId))
     const targetRole = await getWorkspaceRole(session.user.id, target)
     if (targetRole === null) {
       throw createError({ statusCode: 403, message: 'Not a member of the target workspace' })

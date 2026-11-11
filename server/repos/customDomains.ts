@@ -1,6 +1,7 @@
 import { and, asc, eq, isNotNull, or, sql } from 'drizzle-orm'
-import { customDomains, publishedPages } from '../db/schema'
+import { customDomains, documents, publishedPages, workspaceMembers } from '../db/schema'
 import { useDatabase } from '../utils/database'
+import { ssoEnforcedSql } from './sso'
 
 // Custom domains of published pages (WP13).
 
@@ -96,9 +97,51 @@ export async function recordCustomDomainCheck(id: string, result: { ok: true } |
   return (await useDatabase().update(customDomains).set(set).where(eq(customDomains.id, id)).returning())[0] ?? null
 }
 
-/** Verified domains (Traefik routers, host middleware). */
-export async function listVerifiedCustomDomains(): Promise<CustomDomainRow[]> {
-  return useDatabase().select().from(customDomains).where(eq(customDomains.status, 'verified'))
+export interface VerifiedCustomDomain extends CustomDomainRow {
+  /**
+   * The domain's owner may still manage the document behind `pageId`
+   * (true when no page is attached). The owner's right was checked when
+   * the page was attached; it can be lost later (removed from the
+   * workspace, demoted, the document moved or handed over).
+   */
+  pageManageable: boolean
+}
+
+/**
+ * Verified domains (Traefik routers, host middleware), each with whether
+ * its owner may still manage the attached page's document — one query
+ * for the whole table, as it is rebuilt every few seconds.
+ *
+ * Mirrors `getDocAuthz(...).canManage` (owner, or workspace admin; an
+ * owner in a workspace that enforces single sign-on counts only as a
+ * member) with one deliberate difference: SSO grant freshness is not
+ * required. A grant lasts 12 hours, and a page must not go dark whenever
+ * its owner hasn't signed in for that long; deprovisioning removes the
+ * membership, which this does honour.
+ */
+export async function listVerifiedCustomDomains(): Promise<VerifiedCustomDomain[]> {
+  const owner = sql`${customDomains.userId}`
+  const pageManageable = sql<boolean>`(
+    ${customDomains.pageId} is null or exists (
+      select 1 from ${publishedPages} pp join ${documents} d on d.doc_id = pp.doc_id
+      where pp.id = ${customDomains.pageId} and (
+        exists (
+          select 1 from ${workspaceMembers} wa
+          where wa.workspace_id = d.workspace_id and wa.user_id = ${owner} and wa.role = 'admin'
+        )
+        or (d.owner_id = ${owner} and (
+          not ${ssoEnforcedSql(sql`d.workspace_id`)}
+          or exists (
+            select 1 from ${workspaceMembers} wo
+            where wo.workspace_id = d.workspace_id and wo.user_id = ${owner} and wo.role <> 'guest'
+          )
+        ))
+      )
+    )
+  )`
+  const rows = await useDatabase().select({ domain: customDomains, pageManageable }).from(customDomains)
+    .where(eq(customDomains.status, 'verified'))
+  return rows.map(r => ({ ...r.domain, pageManageable: r.pageManageable === true }))
 }
 
 /** Domains due for an automatic re-check. */

@@ -1611,7 +1611,8 @@
     "shareAccessModeFailed": "无法更新分享设置",
     "sharePasswordFailed": "无法设置文档密码",
     "activityLoadFailed": "无法加载活动",
-    "retry": "重试"
+    "retry": "重试",
+    "moderationRestricted": "此文档因举报已被限制。在限制解除之前，无法共享、公开或发布。"
   },
   "legal": {
     "ageGate": {
