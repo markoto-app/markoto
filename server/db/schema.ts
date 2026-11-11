@@ -197,9 +197,6 @@ export const workspaces = pgTable('workspaces', {
   ownerId: integer('owner_id').notNull().references(() => users.id),
   name: text('name').notNull().default('My Workspace'),
   description: text('description'),
-  // Unused: nothing reads or writes these two columns.
-  billingOwnerId: integer('billing_owner_id').references(() => users.id, { onDelete: 'set null' }),
-  aiEnabled: boolean('ai_enabled').notNull().default(false),
   // Theme applied to NEW documents in this workspace. NULL = the built-in
   // preset. Snapshotted at creation: changing it doesn't retheme existing
   // docs.
@@ -211,8 +208,7 @@ export const workspaces = pgTable('workspaces', {
   brandLocked: boolean('brand_locked').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  index('idx_workspaces_owner').on(table.ownerId),
-  index('idx_workspaces_billing_owner').on(table.billingOwnerId)
+  index('idx_workspaces_owner').on(table.ownerId)
 ])
 
 // Team / Business subscription of a workspace. One row

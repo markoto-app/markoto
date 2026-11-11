@@ -1,2 +1,0 @@
-ALTER TABLE "activity_log" ADD COLUMN "actor_principal" text;--> statement-breakpoint
-CREATE INDEX "idx_activity_actor_principal" ON "activity_log" USING btree ("actor_principal") WHERE actor_principal IS NOT NULL;
