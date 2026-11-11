@@ -71,7 +71,8 @@ if (import.meta.client) {
   })
 }
 
-const filter = ref<'open' | 'acknowledged' | 'actioned' | 'dismissed' | 'open+acknowledged' | 'all'>('open+acknowledged')
+type StatusFilter = 'open' | 'acknowledged' | 'actioned' | 'dismissed' | 'open+acknowledged' | 'all'
+const filter = ref<StatusFilter>('open+acknowledged')
 const reports = ref<AbuseReport[]>([])
 const loading = ref(false)
 const noteDrafts = ref<Record<string, string>>({})
@@ -225,14 +226,14 @@ const CATEGORY_LABEL: Record<string, string> = {
   other: 'Other'
 }
 
-const FILTER_OPTIONS = [
+const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
   { value: 'open+acknowledged', label: 'Active queue' },
   { value: 'open', label: 'Open' },
   { value: 'acknowledged', label: 'Acknowledged' },
   { value: 'actioned', label: 'Actioned' },
   { value: 'dismissed', label: 'Dismissed' },
   { value: 'all', label: 'All' }
-] as const
+]
 </script>
 
 <template>

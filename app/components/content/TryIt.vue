@@ -128,13 +128,14 @@ onBeforeUnmount(() => {
 // Stylesheets the static result needs (same as `::sample`).
 const CODE_THEME = hljsTheme('github-dark')
 const ANONYMOUS = 'anonymous' as const
+const STYLESHEET = 'stylesheet' as const
 useHead(() => ({
   link: [
     ...(staticHtml.value.includes('class="katex')
-      ? [{ key: 'katex-css', rel: 'stylesheet', href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: ANONYMOUS }]
+      ? [{ key: 'katex-css', rel: STYLESHEET, href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: ANONYMOUS }]
       : []),
     ...(staticHtml.value.includes('class="hljs')
-      ? [{ key: 'hljs-css', rel: 'stylesheet', href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: ANONYMOUS }]
+      ? [{ key: 'hljs-css', rel: STYLESHEET, href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: ANONYMOUS }]
       : [])
   ]
 }))

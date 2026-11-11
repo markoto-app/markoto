@@ -407,7 +407,7 @@ async function exportMarkdown() {
     language: language.value,
     templateId: templateId.value,
     // Plain copy: the theme ref is a readonly proxy.
-    theme: structuredClone(toRaw(theme.value))
+    theme: structuredClone(toRaw(theme.value)) as DocTheme
   })
   downloadMarkdown(content, title.value)
 }
@@ -1647,7 +1647,7 @@ const _statusIcon = computed(() => {
           </div>
           <DocumentThemeEditorPanel
             v-else-if="rightSidebar === 'theme'"
-            :theme="theme"
+            :theme="theme as DocTheme"
             :doc-id="docId"
             :can-edit="canEditTheme"
             :custom-css-allowed="customCssAllowed"
@@ -1691,7 +1691,7 @@ const _statusIcon = computed(() => {
               <WorkspaceKnowledgePanel
                 :workspace-id="docWorkspaceId"
                 :my-role="docWorkspaceRole"
-                :my-user-id="(sessionUser.value as { id?: number } | null)?.id ?? null"
+                :my-user-id="sessionUser?.id ?? null"
                 compact
               />
             </div>

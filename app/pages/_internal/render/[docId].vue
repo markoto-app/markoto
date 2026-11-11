@@ -317,11 +317,8 @@ onMounted(async () => {
   }
   await preloadImages(customCss?.urls ?? [])
 
-  ;(globalThis as Window & {
-    __pagedReady?: boolean
-    __pagedPageCount?: number
-  }).__pagedPageCount = result?.total ?? document.querySelectorAll('.pagedjs_page').length
-  ;(globalThis as Window & { __pagedReady?: boolean }).__pagedReady = true
+  window.__pagedPageCount = result?.total ?? document.querySelectorAll('.pagedjs_page').length
+  window.__pagedReady = true
 })
 
 /** Fetch + decode each URL as an image; failures are ignored (a broken

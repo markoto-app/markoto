@@ -38,10 +38,10 @@ function lineNumber(hunk: DiffHunk, lineIndex: number): string {
   // Walk from hunk.newStart, incrementing for any line that exists in
   // the new file (context + add). Remove lines show `-` instead.
   let n = hunk.newStart
-  for (let i = 0; i < lineIndex; i++) {
-    if (hunk.lines[i].kind !== 'remove') n += 1
+  for (const line of hunk.lines.slice(0, lineIndex)) {
+    if (line.kind !== 'remove') n += 1
   }
-  return hunk.lines[lineIndex].kind === 'remove' ? '−' : String(n)
+  return hunk.lines[lineIndex]?.kind === 'remove' ? '−' : String(n)
 }
 </script>
 

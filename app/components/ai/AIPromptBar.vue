@@ -390,8 +390,8 @@ function onPanelExpandedChange(v: boolean) {
 const keyboardOffset = ref(0)
 
 function updateKeyboardOffset() {
-  if (globalThis.window === undefined || !globalThis.visualViewport) return
-  const vv = window.visualViewport
+  const vv = globalThis.window?.visualViewport
+  if (!vv) return
   const gap = window.innerHeight - vv.height - vv.offsetTop
   keyboardOffset.value = gap > 80 ? gap : 0
 }
@@ -419,16 +419,18 @@ const bottomOffset = computed(() => {
 })
 
 onMounted(() => {
-  if (globalThis.window === undefined || !globalThis.visualViewport) return
-  window.visualViewport.addEventListener('resize', updateKeyboardOffset)
-  window.visualViewport.addEventListener('scroll', updateKeyboardOffset)
+  const vv = globalThis.window?.visualViewport
+  if (!vv) return
+  vv.addEventListener('resize', updateKeyboardOffset)
+  vv.addEventListener('scroll', updateKeyboardOffset)
   updateKeyboardOffset()
 })
 
 onUnmounted(() => {
-  if (globalThis.window === undefined || !globalThis.visualViewport) return
-  window.visualViewport.removeEventListener('resize', updateKeyboardOffset)
-  window.visualViewport.removeEventListener('scroll', updateKeyboardOffset)
+  const vv = globalThis.window?.visualViewport
+  if (!vv) return
+  vv.removeEventListener('resize', updateKeyboardOffset)
+  vv.removeEventListener('scroll', updateKeyboardOffset)
 })
 </script>
 

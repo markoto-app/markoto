@@ -40,8 +40,10 @@ const sources = computed(() => (props.metadata.sources ?? [])
   .filter((src): src is Source => src.uri !== undefined))
 const pageUrl = computed(() => safeLinkUrl(props.metadata.url))
 const images = computed(() => (props.metadata.images ?? [])
-  .map(img => ({ description: img.description, url: safeLinkUrl(img.url) }))
-  .filter((img): img is FetchImage => img.url !== undefined))
+  .flatMap((img): FetchImage[] => {
+    const url = safeLinkUrl(img.url)
+    return url === undefined ? [] : [{ description: img.description, url }]
+  }))
 const viewedSrc = computed(() => safeLinkUrl(props.metadata.src))
 
 const { t } = useI18n()

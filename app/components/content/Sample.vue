@@ -84,10 +84,10 @@ const CODE_THEME = hljsTheme('github-dark')
 useHead(() => ({
   link: [
     ...(html.value.includes('class="katex')
-      ? [{ key: 'katex-css', rel: 'stylesheet', href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: 'anonymous' as const }]
+      ? [{ key: 'katex-css', rel: 'stylesheet' as const, href: KATEX_CSS_URL, integrity: KATEX_CSS_SRI, crossorigin: 'anonymous' as const }]
       : []),
     ...(html.value.includes('class="hljs')
-      ? [{ key: 'hljs-css', rel: 'stylesheet', href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: 'anonymous' as const }]
+      ? [{ key: 'hljs-css', rel: 'stylesheet' as const, href: CODE_THEME.url, integrity: CODE_THEME.sri, crossorigin: 'anonymous' as const }]
       : [])
   ]
 }))

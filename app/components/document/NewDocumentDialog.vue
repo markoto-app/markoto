@@ -506,7 +506,6 @@ async function submit() {
                       :placeholder="t('documentPanel.language.placeholder')"
                       :create-item="true"
                       :create-item-position="'bottom'"
-                      value-key="value"
                       data-testid="newdoc-language-input"
                       class="w-full"
                       @create="(text: string) => languageModel = onCreateLanguage(text)"

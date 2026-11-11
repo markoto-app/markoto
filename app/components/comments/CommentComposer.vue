@@ -1,16 +1,7 @@
 <script setup lang="ts">
 import { useFuse } from '@vueuse/integrations/useFuse'
 import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/commentBody'
-
-// Mentionable items in the typeahead. Two kinds:
-//   - `user` — a workspace member; inserts `@[Name](user:N)`.
-//   - `ai`   — the AI assistant pseudo-user; inserts the literal `@ai`
-//     trigger token. Synthesized by `CommentsPanel` and prepended to
-//     the typeahead source so users can type "@" + arrow-down to
-//     summon the AI without remembering the bare `@ai` syntax.
-type MentionableEntry
-  = | { kind: 'user', id: number, name: string, email: string | null }
-    | { kind: 'ai', id: 'ai', name: string, email: null, description: string, aliases?: readonly string[] }
+import type { MentionableEntry } from '~/utils/mentionable'
 
 const props = withDefaults(defineProps<{
   mentionableUsers: readonly MentionableEntry[]

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
+import type { TabName } from './tabBarTypes'
 import { SOURCE_REPO_NEW_ISSUE_URL, SOURCE_REPO_URL } from '~~/shared/config/links'
 import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment,
@@ -32,7 +33,7 @@ const props = defineProps<{
   canDelete: boolean
   // Right-sidebar state — used to render check marks next to "Activity"
   // and "Theme" in the View menu so the user can see what's currently open.
-  rightSidebar: 'document' | 'activity' | 'theme' | 'knowledge' | 'comments' | null
+  rightSidebar: TabName | null
   // Whether the current doc belongs to a workspace the viewer is a
   // member of. Only then is the Knowledge panel meaningful — gate the
   // menu entry on this so non-workspace docs don't show a disabled item.

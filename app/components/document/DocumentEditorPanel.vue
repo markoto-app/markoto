@@ -126,7 +126,8 @@ function onCreateLanguage(text: string): string {
   return text.trim().slice(0, LANGUAGE_MAX_LENGTH)
 }
 
-const audienceItems = AUDIENCE_KINDS.map(kind => ({
+// `value` is a plain string: the stored audience may predate the closed enum.
+const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: string, value: string } => ({
   label: t(`audiences.${kind}.label`),
   description: t(`audiences.${kind}.description`),
   value: kind

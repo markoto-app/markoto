@@ -32,6 +32,7 @@
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
     "typecheck": "nuxt typecheck",
+    "typecheck:guard": "node scripts/check-typecheck-covers-vue.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:check-migrations": "bun scripts/check-destructive-migrations.ts",

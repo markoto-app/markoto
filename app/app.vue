@@ -27,7 +27,7 @@ useHead({
     // handles the wordmark, display headlines, and the AI's italic
     // voice. Served from our own origin (shared/utils/themeFonts.ts) —
     // no request leaves for Google Fonts.
-    ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet', href }))
+    ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet' as const, href }))
   ],
   htmlAttrs: {
     // The active UI language (cookie / Accept-Language, `no_prefix`).

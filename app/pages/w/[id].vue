@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
 import { isPaymentProblem } from '~/utils/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
@@ -272,16 +273,9 @@ function onLeftWorkspace() {
 
 // Admin vs non-admin see different workspace-level actions. Computed so the
 // dropdown content swaps based on role without two separate templates.
-interface MenuItem {
-  label: string
-  icon: string
-  color?: string
-  onSelect: () => void
-}
-
-const workspaceMenuItems = computed(() => {
+const workspaceMenuItems = computed<DropdownMenuItem[][]>(() => {
   if (!data.value) return []
-  const items: MenuItem[] = [
+  const items: DropdownMenuItem[] = [
     {
       label: t('workspace.members.manageTitle'),
       icon: 'i-lucide-users',

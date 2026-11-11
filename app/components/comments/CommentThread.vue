@@ -3,12 +3,7 @@ import CommentItem from '~/components/comments/CommentItem.vue'
 import CommentComposer from '~/components/comments/CommentComposer.vue'
 import { REPLY_BODY_MAX } from '~/utils/commentBody'
 import type { DerivedComment } from '~/composables/useComments'
-
-interface MentionableUser {
-  id: number
-  name: string
-  email: string | null
-}
+import type { MentionableEntry } from '~/utils/mentionable'
 
 const props = withDefaults(defineProps<{
   comment: DerivedComment
@@ -16,7 +11,7 @@ const props = withDefaults(defineProps<{
   readOnly?: boolean
   /** Greyed out — applied for orphaned and resolved threads in the sidebar. */
   muted?: boolean
-  mentionableUsers?: readonly MentionableUser[]
+  mentionableUsers?: readonly MentionableEntry[]
   /** Highlighted — applied when the user clicked the matching anchor in the doc. */
   focused?: boolean
   /**

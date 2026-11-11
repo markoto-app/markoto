@@ -7,21 +7,7 @@ import CommentComposer from '~/components/comments/CommentComposer.vue'
 import { useCommentsContext } from '~/composables/useComments'
 import { serializeAnchor, type SerializedAnchor } from '~/utils/commentAnchors'
 import { hasAiMention } from '~/utils/commentBody'
-
-interface MentionableUser {
-  id: number
-  name: string
-  email: string | null
-}
-
-// Discriminated union shipped to CommentComposer. The AI entry is a
-// synthetic row injected here (not by the API) so users see "@ai" in
-// the typeahead even on standalone docs without workspace members. The
-// composer then decides at insertion time which token shape to write —
-// `@ai` literal vs `@[Name](user:N)`.
-type MentionableEntry
-  = | { kind: 'user', id: number, name: string, email: string | null }
-    | { kind: 'ai', id: 'ai', name: string, email: null, description: string, aliases?: readonly string[] }
+import type { MentionableEntry, MentionableUser } from '~/utils/mentionable'
 
 const props = defineProps<{
   ytext: YText
