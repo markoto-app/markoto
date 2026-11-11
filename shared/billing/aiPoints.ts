@@ -24,11 +24,6 @@ export function dollarsToPoints(usd: number): number {
   return Math.round(usd * POINTS_PER_DOLLAR)
 }
 
-/** 5000 AI Points → $5.00. */
-export function pointsToDollars(points: number): number {
-  return points / POINTS_PER_DOLLAR
-}
-
 /**
  * The full monthly USD budget for a plan. Used at virtual-key creation
  * time and on Stripe webhook plan changes.

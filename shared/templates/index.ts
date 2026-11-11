@@ -206,7 +206,7 @@ export const TEMPLATE_IDS = TEMPLATES.map(t => t.id)
  * template they became. `academic-paper` was folded into the arXiv
  * preprint template.
  */
-export const TEMPLATE_ALIASES: Readonly<Record<string, string>> = {
+const TEMPLATE_ALIASES: Readonly<Record<string, string>> = {
   'academic-paper': 'arxiv'
 }
 

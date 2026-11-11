@@ -143,4 +143,9 @@ describe('crossOriginResourcePolicyFor', () => {
     expect(crossOriginResourcePolicyFor('/_nuxt/entry.js')).toBe('same-site')
     expect(crossOriginResourcePolicyFor('/vendorX/a.js')).toBe('same-site')
   })
+
+  it('keeps a published page\'s files to the host that serves the page', () => {
+    expect(crossOriginResourcePolicyFor('/api/published/PageId0123456789/files/a.png')).toBe('same-origin')
+    expect(crossOriginResourcePolicyFor('/api/published/PageId0123456789/brand/f.woff2?x=1')).toBe('same-origin')
+  })
 })

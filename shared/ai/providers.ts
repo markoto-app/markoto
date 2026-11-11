@@ -180,7 +180,7 @@ export const RECOMMENDED_SAAS_ALLOWED_BASE_URLS: readonly string[] = PROVIDER_PR
   .map(p => p.baseUrl)
 
 /** Host whose transcription key also unlocks Voxtral Realtime live dictation. */
-export const MISTRAL_API_HOST = 'api.mistral.ai'
+const MISTRAL_API_HOST = 'api.mistral.ai'
 
 /**
  * Mistral's EU regional endpoint (inference in EU / EFTA data centres;

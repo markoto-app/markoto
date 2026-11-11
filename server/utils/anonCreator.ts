@@ -20,7 +20,7 @@ import { getCookie, getRequestProtocol, setCookie } from 'h3'
 // Docs created before the key existed have a NULL hash and can't be
 // deleted anonymously; the inactive-doc sweep removes them as before.
 
-export const ANON_CREATOR_COOKIE = 'markoto-anon-creator'
+const ANON_CREATOR_COOKIE = 'markoto-anon-creator'
 // Scoped to the doc API: create (POST /api/docs), delete
 // (DELETE /api/docs/:id) and the token endpoint (which reports whether
 // this browser may delete). Never sent to other routes.

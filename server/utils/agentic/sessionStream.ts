@@ -39,12 +39,12 @@ export interface SessionStreamOptions {
   maxLifetimeMs?: number
 }
 
-export const STREAM_REFRESH_MS = 5_000
-export const STREAM_FALLBACK_REFRESH_MS = 1_000
-export const STREAM_TERMINAL_GRACE_MS = 3_000
-export const STREAM_MAX_LIFETIME_MS = 10 * 60_000
+const STREAM_REFRESH_MS = 5_000
+const STREAM_FALLBACK_REFRESH_MS = 1_000
+const STREAM_TERMINAL_GRACE_MS = 3_000
+const STREAM_MAX_LIFETIME_MS = 10 * 60_000
 /** Browser reconnect delay after a dropped stream (SSE `retry:` field). */
-export const STREAM_RETRY_MS = 2_000
+const STREAM_RETRY_MS = 2_000
 
 const TERMINAL_PHASES = new Set(['done', 'error'])
 

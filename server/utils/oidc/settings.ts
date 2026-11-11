@@ -21,7 +21,7 @@ import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 type Env = Record<string, string | undefined>
 
-export const OIDC_DEFAULT_SCOPES = ['openid', 'email', 'profile'] as const
+const OIDC_DEFAULT_SCOPES = ['openid', 'email', 'profile'] as const
 
 export interface OidcSettings {
   issuer: URL

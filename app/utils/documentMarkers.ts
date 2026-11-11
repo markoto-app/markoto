@@ -18,8 +18,8 @@ import { capParagraph } from './dropcapWrap'
  * - `body.dropCap: 'every-chapter'`: the drop cap on each of those
  *   chapter-opening paragraphs (same rules as the single drop cap).
  */
-export const LEAD_CLASS = 'markoto-lead'
-export const OPENING_CLASS = 'markoto-opening'
+const LEAD_CLASS = 'markoto-lead'
+const OPENING_CLASS = 'markoto-opening'
 
 /** Top-level blocks skipped when looking for the lead. */
 const BEFORE_LEAD = new Set(['NAV', 'HR'])

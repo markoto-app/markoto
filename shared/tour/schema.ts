@@ -39,7 +39,7 @@ export type TourVideo = z.infer<typeof TourVideoSchema>
 const perMode = <T extends z.ZodTypeAny>(schema: T) => z.object({ light: schema, dark: schema })
 
 /** The same scene in a phone cut: cropped to `focus`, smaller encodes. */
-export const TourPhoneCutSchema = z.object({
+const TourPhoneCutSchema = z.object({
   poster: perMode(TourImageSchema),
   video: perMode(TourVideoSchema).optional()
 })
@@ -103,5 +103,3 @@ export function parseTourManifest(raw: unknown): TourManifest {
   }
   return result.data
 }
-
-export type TourPhoneCut = z.infer<typeof TourPhoneCutSchema>

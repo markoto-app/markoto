@@ -73,7 +73,7 @@ function firstTextNode(parent: Node): Text | null {
 export const DROPCAP_MIN_CHARS = 220
 
 /** Class on the paragraph that holds the cap; theme CSS makes it contain the float. */
-export const DROPCAP_PARAGRAPH_CLASS = 'markoto-dropcap-p'
+const DROPCAP_PARAGRAPH_CLASS = 'markoto-dropcap-p'
 
 /** Labels ("**Date:** …") and inline-formatted openers aren't prose to decorate. */
 const NO_CAP_INSIDE = new Set(['b', 'strong', 'code'])

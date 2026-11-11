@@ -33,8 +33,7 @@
 //    the JSON-LD on `/` and the `marketing-pages` route middleware for
 //    hosted-only pages. OFF by default; markoto.app sets
 //    NUXT_MARKETING_SITE_ENABLED=true. Self-hosted instances keep the
-//    plain hero + "new document" page. The former name
-//    NUXT_PRODUCT_TOUR_ENABLED is still read as an alias (one release).
+//    plain hero + "new document" page.
 //
 // 4. SEO facts — the public origin for canonical / og:url / JSON-LD
 //    (`NUXT_CANONICAL_SITE_URL`, else `NUXT_SITE_URL`), where `/docs/**` canonicals point (`NUXT_DOCS_CANONICAL_BASE`)
@@ -56,10 +55,10 @@ export type LoginProvider = 'oidc' | 'github' | 'google'
  * configured one wants it to be the primary sign-in (it is also what
  * `primaryLoginPath` picks for "log in to continue" redirects).
  */
-export const LOGIN_PROVIDERS: readonly LoginProvider[] = ['oidc', 'github', 'google']
+const LOGIN_PROVIDERS: readonly LoginProvider[] = ['oidc', 'github', 'google']
 
 /** Upper bound for `NUXT_OAUTH_OIDC_NAME` on the sign-in button. */
-export const OIDC_PROVIDER_NAME_MAX_LENGTH = 40
+const OIDC_PROVIDER_NAME_MAX_LENGTH = 40
 
 export interface InstanceConfig {
   /** Login providers with complete credentials, in display order. */
@@ -156,7 +155,7 @@ export function resolveLoginProviders(env: Env): LoginProvider[] {
   })
 }
 
-export function resolveOidcProviderName(env: Env): string {
+function resolveOidcProviderName(env: Env): string {
   return (env.NUXT_OAUTH_OIDC_NAME ?? '').trim().slice(0, OIDC_PROVIDER_NAME_MAX_LENGTH)
 }
 
@@ -164,13 +163,8 @@ export function resolveLegalSurfacesEnabled(env: Env): boolean {
   return parseBooleanFlag(env.NUXT_LEGAL_SURFACES_ENABLED)
 }
 
-/**
- * `NUXT_MARKETING_SITE_ENABLED`; while it is unset, the former
- * `NUXT_PRODUCT_TOUR_ENABLED` is honoured (alias, kept for one release).
- */
 export function resolveMarketingSiteEnabled(env: Env): boolean {
-  const raw = env.NUXT_MARKETING_SITE_ENABLED
-  return parseBooleanFlag(isSet(raw) ? raw : env.NUXT_PRODUCT_TOUR_ENABLED)
+  return parseBooleanFlag(env.NUXT_MARKETING_SITE_ENABLED)
 }
 
 /** http(s) origin of a URL string, or '' when empty / invalid. */

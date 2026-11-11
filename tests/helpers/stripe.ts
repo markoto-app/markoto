@@ -15,8 +15,8 @@
  *   - Returns the SDK's discriminated `Stripe.<X>Event` so
  *     `dispatchStripeEvent`'s switch narrows correctly.
  *
- * **PROD CODE MUST NOT IMPORT FROM `shared/test-helpers/`.** See the
- * note in `shared/test-helpers/jwt.ts` for enforcement details.
+ * **PROD CODE MUST NOT IMPORT FROM `tests/`.** See the
+ * note in `tests/helpers/jwt.ts` for enforcement details.
  *
  * **What this module does NOT cover:** every Stripe field. The SDK's
  * event types have hundreds of fields each; we stamp ONLY the ones

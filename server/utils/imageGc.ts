@@ -43,10 +43,10 @@ const DAY_MS = 24 * 60 * 60 * 1000
 
 export const IMAGE_GC_DEFAULT_RETENTION_DAYS = 30
 /** Freshly confirmed images are not looked at for a day. */
-export const IMAGE_GC_CONFIRM_GRACE_MS = DAY_MS
+const IMAGE_GC_CONFIRM_GRACE_MS = DAY_MS
 /** Each doc is checked at most about once a day. */
-export const IMAGE_GC_RECHECK_MS = 20 * 60 * 60 * 1000
-export const IMAGE_GC_MAX_DOCS_PER_RUN = 50
+const IMAGE_GC_RECHECK_MS = 20 * 60 * 60 * 1000
+const IMAGE_GC_MAX_DOCS_PER_RUN = 50
 
 /**
  * `NUXT_IMAGE_GC_RETENTION_DAYS`: days an image must stay unreferenced

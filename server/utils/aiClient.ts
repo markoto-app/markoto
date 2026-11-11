@@ -8,11 +8,6 @@ import type { ToolContext, ToolStatusPhase } from './agentic/toolContext'
 import type { ResolvedAiProviders } from './aiProviders/resolve'
 import type { AiSessionChannel } from './agentic/sessionChannel'
 
-// Re-export for callers that still import `AiStatusPhase` from this
-// module. Going forward they should import `ToolStatusPhase` from
-// `./agentic/toolContext` directly.
-export type AiStatusPhase = ToolStatusPhase
-
 // AiSession = ToolContext + the loop-only lifecycle plumbing the
 // runLoop needs (`provider` for telemetry, `destroy()` for the
 // finally-block teardown). Tool handlers see only the `ToolContext`

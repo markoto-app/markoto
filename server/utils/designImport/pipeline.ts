@@ -15,7 +15,7 @@ import type { DesignImportResult } from './job'
 // The model can end early with `matches_original: true`.
 
 /** Total tokens over all rounds; the loop stops once a round crosses it. */
-export const DESIGN_IMPORT_TOKEN_BUDGET = 160_000
+const DESIGN_IMPORT_TOKEN_BUDGET = 160_000
 
 export interface ModelAnswer {
   message: { content?: string | null, tool_calls?: Array<{ type?: string, function?: { name?: string, arguments?: string } }> } | undefined

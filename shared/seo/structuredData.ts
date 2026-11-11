@@ -176,7 +176,7 @@ export interface SiteIds {
 }
 
 /** The site-wide node ids, as the home page defines them. */
-export function siteIds(siteUrl: string): SiteIds {
+function siteIds(siteUrl: string): SiteIds {
   const home = `${siteUrl}/`
   return { home, organization: `${home}#organization`, website: `${home}#website`, app: `${home}#app` }
 }
@@ -241,7 +241,7 @@ function absolute(siteUrl: string, path: string): string {
 }
 
 /** BreadcrumbList node for a trail (positions from 1, absolute URLs). */
-export function breadcrumbNode(siteUrl: string, pageUrl: string, crumbs: Crumb[]): Record<string, unknown> {
+function breadcrumbNode(siteUrl: string, pageUrl: string, crumbs: Crumb[]): Record<string, unknown> {
   return {
     '@type': 'BreadcrumbList',
     '@id': `${pageUrl}#breadcrumb`,

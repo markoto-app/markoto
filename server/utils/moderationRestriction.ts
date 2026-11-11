@@ -6,7 +6,7 @@
 // publishing as a web page. Copies inherit the restriction
 // (`duplicateDocument`), so duplicating cannot undo it either.
 
-export const MODERATION_RESTRICTED_CODE = 'moderation/restricted'
+const MODERATION_RESTRICTED_CODE = 'moderation/restricted'
 
 export function moderationRestrictedError() {
   return createError({

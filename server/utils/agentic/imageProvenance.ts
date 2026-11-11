@@ -25,7 +25,7 @@ export function markdownImageUrls(markdown: string): string[] {
   return [...urls]
 }
 
-export const UNSEEN_IMAGE_ERROR_PREFIX = 'Error: image URL not from this session'
+const UNSEEN_IMAGE_ERROR_PREFIX = 'Error: image URL not from this session'
 
 /**
  * Text this session has seen. An image URL is allowed when it occurs in

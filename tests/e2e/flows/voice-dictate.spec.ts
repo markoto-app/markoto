@@ -13,8 +13,7 @@ import { test, expect } from '../fixtures/flow'
 // caret, finals commit to Y.js with origin `dictation:{userId}`.
 //
 // Mock-driven test: the prod test stack runs with TEST_MODE=1 +
-// NUXT_GOOGLE_SPEECH_MOCK=1 (set in scripts/flows-ephemeral.ts; env
-// var name carried over from pre-Phase-5 Cloud STT mock). The fake
+// NUXT_VOXTRAL_REALTIME_MOCK=1 (set in scripts/flows-ephemeral.ts). The fake
 // SpeechClient (`server/utils/agentic/dictateSpeechClient.ts`) counts
 // incoming audio chunks and emits canned interim/final responses at
 // fixed thresholds — the real Voxtral Realtime API is never called. The audio chunks come from Chromium's

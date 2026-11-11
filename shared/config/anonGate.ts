@@ -71,8 +71,6 @@ export const ANON_GATE_CODES = {
   unavailable: 'anon-gate/unavailable'
 } as const
 
-export type AnonGateCode = typeof ANON_GATE_CODES[keyof typeof ANON_GATE_CODES]
-
 /** Codes after which the client should fetch a fresh challenge and retry once. */
 export const ANON_GATE_RETRYABLE_CODES: readonly string[] = [
   ANON_GATE_CODES.botCheckExpired,

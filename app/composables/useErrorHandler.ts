@@ -21,7 +21,7 @@ import { loginPath, type LoginProvider } from '~~/shared/config/instance'
 import { isPlanErrorCode } from '~~/shared/config/planErrors'
 
 /** Server code for "this action needs a fresh sign-in" (server/utils/sessionPolicy.ts). */
-export const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
+const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
 
 interface FetchErrorLike {
   statusCode?: number

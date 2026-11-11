@@ -41,12 +41,12 @@ export function anonGateEnabled(): boolean {
 }
 
 /** NUXT_ALTCHA_HMAC_KEY when usable (≥ 32 chars), else null. */
-export function altchaMasterKey(): string | null {
+function altchaMasterKey(): string | null {
   const key = process.env.NUXT_ALTCHA_HMAC_KEY?.trim() ?? ''
   return key.length >= SECRET_MIN_LENGTH ? key : null
 }
 
-export function powDifficulty(): PowDifficulty {
+function powDifficulty(): PowDifficulty {
   return isTestModeEnabled() ? TEST_DIFFICULTY : PRODUCTION_DIFFICULTY
 }
 
@@ -55,7 +55,7 @@ export function powDifficulty(): PowDifficulty {
  * gate fails CLOSED (an anonymous create is refused while Valkey is
  * down) — failing open would let one solution create unlimited docs.
  */
-export const valkeyReplayStore: ReplayStore = {
+const valkeyReplayStore: ReplayStore = {
   async claimOnce(id, ttlSeconds) {
     const res = await useValkey().set(id, '1', 'EX', ttlSeconds, 'NX')
     return res === 'OK'
@@ -123,7 +123,7 @@ export async function requireBotCheck(event: H3Event, raw: unknown, purpose: Ano
  * (then the cookie is set) or a valid remembered one. Throws 403
  * `anon-gate/terms-required` otherwise.
  */
-export function requireTermsAcceptance(event: H3Event, acceptTerms: unknown): AnonTermsAcceptance {
+function requireTermsAcceptance(event: H3Event, acceptTerms: unknown): AnonTermsAcceptance {
   const key = requireMasterKey()
   const remembered = readAcceptance(event, key)
   if (acceptTerms === true) {

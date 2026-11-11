@@ -83,7 +83,7 @@ async function loadMermaid(config: Record<string, unknown>): Promise<MermaidModu
  * diagram out. Load the body font first (bounded), or the boxes are sized
  * for a fallback font and the inlined labels overflow them.
  */
-export async function loadMermaidFont(config: Record<string, unknown>, timeoutMs = 2000): Promise<void> {
+async function loadMermaidFont(config: Record<string, unknown>, timeoutMs = 2000): Promise<void> {
   const family = typeof config.fontFamily === 'string' ? config.fontFamily : ''
   if (!family || typeof document === 'undefined' || !document.fonts) return
   const loads = ['400', '600'].map(w => document.fonts.load(`${w} 12px ${family}`).catch(() => []))

@@ -51,10 +51,8 @@ import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
 
 export const SCIM_USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User'
 export const SCIM_LIST_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
-export const SCIM_ERROR_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:Error'
-export const SCIM_PATCH_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:PatchOp'
+const SCIM_ERROR_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:Error'
 
-export { SCIM_PLACEHOLDER_PREFIX }
 const MAX_PAGE = 200
 
 export function hashScimToken(token: string): string {
@@ -74,7 +72,7 @@ export function scimError(status: number, detail: string, scimType?: string): Er
  * Bearer token → connection. 401 without a valid token, 403 when the
  * workspace's plan no longer includes SSO. Rate limit: 600 / min / token.
  */
-export async function requireScimConnection(event: H3Event): Promise<SsoConnectionRow> {
+async function requireScimConnection(event: H3Event): Promise<SsoConnectionRow> {
   const auth = getHeader(event, 'authorization') ?? ''
   const match = /^Bearer\s+(\S{20,200})$/i.exec(auth)
   const connection = match ? await getSsoConnectionByScimTokenHash(hashScimToken(match[1]!)) : null
@@ -160,7 +158,7 @@ export async function listScimUsers(connectionId: string, opts: { filter: Return
 }
 
 /** The user's email from a SCIM User body: primary email, else userName when it is an address. */
-export function emailFromScimBody(body: Record<string, unknown>): string | null {
+function emailFromScimBody(body: Record<string, unknown>): string | null {
   const emails = Array.isArray(body.emails) ? body.emails as Array<Record<string, unknown>> : []
   const primary = emails.find(e => e?.primary === true) ?? emails[0]
   const candidates = [primary?.value, body.userName]
@@ -179,7 +177,7 @@ function nameFromScimBody(body: Record<string, unknown>, email: string): string 
 }
 
 /** SCIM booleans arrive as true / "True" / "false" (Entra ID sends strings). */
-export function scimBoolean(v: unknown): boolean | undefined {
+function scimBoolean(v: unknown): boolean | undefined {
   if (typeof v === 'boolean') return v
   if (typeof v === 'string' && /^(true|false)$/i.test(v)) return v.toLowerCase() === 'true'
   return undefined
@@ -237,7 +235,7 @@ async function removeFromWorkspace(connection: SsoConnectionRow, userId: number)
   await deleteSsoGrant(userId, connection.workspaceId)
 }
 
-export async function setScimUserActive(connection: SsoConnectionRow, identity: UserIdentityRow, active: boolean): Promise<void> {
+async function setScimUserActive(connection: SsoConnectionRow, identity: UserIdentityRow, active: boolean): Promise<void> {
   if (active === identity.active) {
     if (!active) await removeFromWorkspace(connection, identity.userId)
     return

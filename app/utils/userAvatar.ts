@@ -19,14 +19,14 @@
 import { AWARENESS_PALETTE } from './colors'
 
 /** Seed for a signed-in user. Stable everywhere the user appears. */
-export function userAvatarSeed(userId: number): string {
+function userAvatarSeed(userId: number): string {
   return `u-${userId}`
 }
 
 /** Seed for an anonymous visitor's random per-session token. A
  *  separate prefix so an anonymous peer can never pick a token that
  *  renders as a signed-in user's face. */
-export function anonAvatarSeed(token: string): string {
+function anonAvatarSeed(token: string): string {
   return `a-${token}`
 }
 
@@ -62,7 +62,7 @@ export const POSITIVE_MOUTHS = [
  *  `@media (prefers-reduced-motion: no-preference)`, which the browser
  *  evaluates inside the SVG image too — so reduced-motion viewers get a
  *  still face without any JS on our side. */
-export const AVATAR_ANIMATIONS = ['fast', 'medium', 'slow'] as const
+const AVATAR_ANIMATIONS = ['fast', 'medium', 'slow'] as const
 
 /** Dark sumi ink (sumi-950) for eyes + mouth, in both colour modes —
  *  it always sits on the light face tint. */
@@ -76,7 +76,7 @@ const FACE_TINT = 0.6
 const BACKGROUNDS = [...new Set(AWARENESS_PALETTE)]
 
 /** FNV-1a 32-bit. Small, dependency-free, same result on server + client. */
-export function hashSeed(seed: string): number {
+function hashSeed(seed: string): number {
   let h = 0x811C9DC5
   for (let i = 0; i < seed.length; i++) {
     h ^= seed.charCodeAt(i)

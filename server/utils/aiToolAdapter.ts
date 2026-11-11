@@ -207,7 +207,7 @@ const EDIT_ECHO_MAX_CHARS = 2400
  *
  * @internal exported for unit tests; not part of the public API.
  */
-export function describeEditedRegion(full: string, start: number, length: number): string {
+function describeEditedRegion(full: string, start: number, length: number): string {
   const lines = full.split('\n')
   const firstLine = full.slice(0, start).split('\n').length
   const insertedNewlines = full.slice(start, start + length).split('\n').length - 1

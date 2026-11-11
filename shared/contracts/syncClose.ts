@@ -59,7 +59,7 @@ export function isReauthClose(event: { reason?: unknown } | null | undefined): b
 export const SYNC_AUTH_TIMEOUT_REASON = 'auth-timeout'
 
 /** RFC 6455 "message too big" — sent by the `ws` server on frames above maxPayload. */
-export const WS_CLOSE_MESSAGE_TOO_BIG = 1009
+const WS_CLOSE_MESSAGE_TOO_BIG = 1009
 
 /**
  * Map a provider close event to a sync-rejection reason, or null for an

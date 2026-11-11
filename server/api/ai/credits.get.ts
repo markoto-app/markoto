@@ -1,5 +1,5 @@
 import { resolveBillingContext } from '../../utils/billing'
-import { getUserKeyInfo } from '../../utils/litellmKeys'
+import { getUserKeyInfo } from '../../utils/litellm/userKeys'
 import { getWorkspaceRole } from '../../utils/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/tierConfig'

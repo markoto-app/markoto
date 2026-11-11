@@ -40,7 +40,7 @@ import { safeSendTransactionalEmail } from './email/sendEmail'
 // provider error. The in-product "scheduled for deletion" banner is
 // the load-bearing UX, not the email.
 
-export const DEFAULT_DELETION_GRACE_DAYS = 30
+const DEFAULT_DELETION_GRACE_DAYS = 30
 
 export interface RequestAccountDeletionArgs {
   userId: number

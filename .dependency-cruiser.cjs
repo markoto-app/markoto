@@ -9,7 +9,7 @@
  */
 
 // Files that exist only for tests / dev tooling, never in a production bundle.
-const TEST_ONLY = '^(tests/|shared/test-helpers/)'
+const TEST_ONLY = '^tests/'
 
 // Files outside server/repos that still import drizzle-orm / server/db/schema directly.
 // Move their queries into a repo, then delete the entry.
@@ -86,7 +86,7 @@ module.exports = {
       name: 'shared-imports-nothing-above',
       comment: 'shared/** is used by app, server, sync-server and renderer; it may not depend on any of them (or on tests).',
       severity: 'error',
-      from: { path: '^shared/', pathNot: '^shared/test-helpers/' },
+      from: { path: '^shared/' },
       to: { path: '^(app|server|sync-server|renderer|tests|scripts|modules)/' }
     },
 
@@ -144,7 +144,7 @@ module.exports = {
     // ---------- production vs test code ----------
     {
       name: 'prod-never-imports-tests',
-      comment: 'Production code must not import tests/ or shared/test-helpers/.',
+      comment: 'Production code must not import tests/.',
       severity: 'error',
       from: { pathNot: TEST_ONLY + '|\\.(test|spec)\\.[cm]?[jt]s$|^scripts/' },
       to: { path: TEST_ONLY }

@@ -11,7 +11,7 @@ import { ssoSatisfiedSql } from './sso'
 // transactional or do their own count-then-mutate bookkeeping.
 
 /** setRole on a guest (WP11): invite them as a member instead. */
-export class GuestRoleChangeError extends ConflictError {
+class GuestRoleChangeError extends ConflictError {
   constructor() {
     super('Guests can\'t get a team role. Remove them and invite them as a member instead.')
     this.name = 'GuestRoleChangeError'

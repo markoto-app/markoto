@@ -20,7 +20,7 @@ import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_INTERNAL_SECRET } from '../setup/env'
 import { defaultTheme } from '~~/shared/utils/defaultTheme'
 import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
-import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
+import { mintRenderJwt } from '~~/tests/helpers/jwt'
 
 const OFF = TEST_BILLING_OFF_BASE_URL
 

@@ -18,10 +18,15 @@
         // MDC components used from content/**/*.md as <flow />, <sub-processors /> ...
         "app/components/content/**/*.vue",
         // read by @nuxt/content, not imported
-        "content.config.ts"
+        "content.config.ts",
+        // wired as `nitro.errorHandler: '~~/server/error.ts'` (a string in
+        // nuxt.config.ts), so its default export has no importer
+        "server/error.ts",
+        // run with `uvx` from markitdown-server's PDF fixtures, never imported
+        "tests/fixtures/design-import/make_pdf.ts"
       ],
       "project": [
-        "app/**/*.{ts,vue}",
+        "app/**/*.{ts,vue,css}",
         "server/**/*.ts",
         "shared/**/*.ts",
         "modules/**/*.ts",
@@ -31,7 +36,7 @@
       ],
       // all three playwright configs (flows, smoke, tour capture)
       "playwright": { "config": ["playwright*.config.ts"] },
-            "ignoreDependencies": [
+      "ignoreDependencies": [
         // Vendored assets: modules/vendor-assets.ts + scripts/lib/vendorAssets.ts
         // read files out of node_modules by path (fonts, pagedjs, mermaid IIFE
         // build, katex css/fonts, highlight.js themes) instead of importing them.
@@ -43,14 +48,13 @@
         // class names at build time, never imported.
         "@iconify-json/lucide",
         "@iconify-json/simple-icons",
-        // Loaded by nuxt.config.ts modules[] but not used yet; will be adopted.
-        "@pinia/nuxt",
-        "@pinia/colada-nuxt",
-        // Invoked by `nuxt typecheck`, not imported.
-        "vue-tsc"
+        // Pinned directly, but nothing imports it: @nuxt/eslint-config pulls in
+        // @typescript-eslint/{parser,eslint-plugin} itself. Dropping the pin
+        // reshuffles the hoisted transitive dependencies in bun.lock.
+        "typescript-eslint"
       ],
-      // System binaries called from scripts / test setup.
-      "ignoreBinaries": ["pdftoppm", "openssl"]
+      // System binaries called from scripts / test setup / package.json checks.
+      "ignoreBinaries": ["pdftoppm", "openssl", "uvx", "shellcheck", "hadolint", "lychee"]
     },
     // sync-server and renderer are NOT Bun workspaces; knip reads their own
     // package.json and bun.lock-installed node_modules.
@@ -60,6 +64,16 @@
     "renderer": {
       "project": ["src/**/*.ts"]
     }
+  },
+  "ignoreIssues": {
+    // `bun scripts/flows-ephemeral.ts` in a spawnSync argument list is not an import.
+    "scripts/flows-test-changed.ts": ["unresolved"],
+    // `#nitro-internal-pollyfills` is a Nitro virtual module, resolved by the bundler.
+    "server/runtime/bunEntry.ts": ["unresolved"],
+    // Byte-identical copy of shared/utils/internalSecret.ts: the renderer image
+    // is built from renderer/ alone (pinned by tests/unit/internalSecret.test.ts),
+    // so the exports its own code does not call must stay.
+    "renderer/src/internalSecret.ts": ["exports"]
   },
   "ignoreExportsUsedInFile": { "interface": true, "type": true }
 }

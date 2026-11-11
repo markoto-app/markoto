@@ -69,7 +69,7 @@ export const LEGAL_LASTMOD: Readonly<Record<string, string>> = Object.freeze({
 })
 
 /** Fixed top-level pages of the marketing site. */
-export const STATIC_SITEMAP_PATHS = ['/', '/pricing', '/docs'] as const
+const STATIC_SITEMAP_PATHS = ['/', '/pricing', '/docs'] as const
 
 /**
  * A marketing page with language versions (the `marketing` content

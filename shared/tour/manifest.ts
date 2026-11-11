@@ -18,7 +18,7 @@
 // only needs these helpers and the types) never ships zod.
 import type { TourImage } from './schema'
 
-export type { TourBeat, TourImage, TourManifest, TourPhoneCut, TourScene, TourVideo } from './schema'
+export type { TourBeat, TourImage, TourManifest, TourScene, TourVideo } from './schema'
 
 /** Scene ids, in page order. The copy for each lives under `tour.scenes.<id>` in i18n. */
 export const TOUR_SCENE_IDS = [
@@ -45,9 +45,9 @@ export type TourBeatId = typeof TOUR_BEAT_IDS[number]
 /** Scroll length of each scene section, in viewport heights. */
 export const SCENE_HEIGHT_VH = 160
 /** Height of the hero inside the pinned layout, in viewport heights. */
-export const HERO_HEIGHT_VH = 100
+const HERO_HEIGHT_VH = 100
 
-export function clamp01(n: number): number {
+function clamp01(n: number): number {
   if (Number.isNaN(n)) return 0
   return Math.min(1, Math.max(0, n))
 }

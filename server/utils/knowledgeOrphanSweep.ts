@@ -21,7 +21,7 @@ export const KNOWLEDGE_ORPHAN_GRACE_MS = 60 * 60 * 1000
 // else under `workspaces/` is not ours to judge and is never touched.
 const KNOWLEDGE_OBJECT_RE = /^workspaces\/[A-Za-z0-9_-]+\/knowledge\/(?:staging\/)?[A-Za-z0-9_-]+\.[A-Za-z0-9]+$/
 
-export function isKnowledgeObjectKey(key: string): boolean {
+function isKnowledgeObjectKey(key: string): boolean {
   return KNOWLEDGE_OBJECT_RE.test(key)
 }
 

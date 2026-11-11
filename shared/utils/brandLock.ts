@@ -31,10 +31,3 @@ export function applyBrandLock(docTheme: DocTheme | null | undefined, brandTheme
   else delete cover.affiliations
   return { ...brandTheme, cover }
 }
-
-/** Theme-panel sections that the lock takes over (read-only while locked). */
-export function isLockedThemePath(path: string): boolean {
-  const [section, field] = path.split('.')
-  if (section !== 'cover') return true
-  return !(DOC_OWNED_COVER_FIELDS as readonly string[]).includes(field ?? '')
-}

@@ -23,9 +23,6 @@ export type PlanName = 'free' | 'pro' | 'team' | 'business'
 export type PersonalPlanName = 'free' | 'pro'
 export type WorkspacePlanName = 'team' | 'business'
 
-export const PERSONAL_PLAN_NAMES: readonly PersonalPlanName[] = ['free', 'pro']
-export const WORKSPACE_PLAN_NAMES: readonly WorkspacePlanName[] = ['team', 'business']
-
 export function isWorkspacePlan(plan: PlanName): plan is WorkspacePlanName {
   return plan === 'team' || plan === 'business'
 }

@@ -36,9 +36,9 @@ import type { ToolStatusPhase } from './toolContext'
 // blip only hides progress text). A confirmation that cannot be stored
 // or read is DENIED — the gate fails closed.
 
-export const CHANNEL_TTL_MS = 15 * 60_000
+const CHANNEL_TTL_MS = 15 * 60_000
 /** How long the loop waits for an answer before treating it as "deny". */
-export const CONFIRMATION_TIMEOUT_MS = 90_000
+const CONFIRMATION_TIMEOUT_MS = 90_000
 const ANSWER_POLL_MS = 300
 
 export interface ChannelStore {

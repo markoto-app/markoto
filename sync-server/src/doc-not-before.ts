@@ -16,7 +16,7 @@ import { useValkey } from './valkey'
 // of every document; the token's own expiry still bounds the access.
 
 const KEY = (docId: string) => `sync:not-before:${docId}`
-export const NOT_BEFORE_TTL_SECONDS = 3 * 60 * 60
+const NOT_BEFORE_TTL_SECONDS = 3 * 60 * 60
 
 export async function readDocNotBefore(docId: string): Promise<number | null> {
   try {

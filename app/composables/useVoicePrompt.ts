@@ -414,5 +414,3 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     clearError
   }
 }
-
-export type UseVoicePromptReturn = ReturnType<typeof useVoicePrompt>

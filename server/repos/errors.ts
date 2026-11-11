@@ -21,13 +21,6 @@ export class NotFoundError extends RepoError {
   }
 }
 
-export class ForbiddenError extends RepoError {
-  constructor(message = 'Forbidden') {
-    super(message, 403)
-    this.name = 'ForbiddenError'
-  }
-}
-
 export class ConflictError extends RepoError {
   constructor(message: string) {
     super(message, 409)
@@ -46,13 +39,6 @@ export class LastAdminError extends ConflictError {
   constructor(message = 'Workspace must have at least one admin — promote someone else first, or delete the workspace.') {
     super(message)
     this.name = 'LastAdminError'
-  }
-}
-
-export class ValidationError extends RepoError {
-  constructor(message: string) {
-    super(message, 400)
-    this.name = 'ValidationError'
   }
 }
 

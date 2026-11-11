@@ -1,12 +1,9 @@
 # AI presence primitives + AIPromptBar
 
-Seven components, two roles:
+Four components, two roles:
 
 | Component | Role |
 |---|---|
-| `Cursor.vue` | The 2px shu caret — drops inline anywhere the AI's edit position is rendered OUTSIDE CodeMirror (status bar, awareness dot, comment thread). The in-document yCollab cursor is themed separately in the editor extension. |
-| `Tag.vue` | The hot-stamp pill with the AI's name. Companion to `Cursor` for awareness UI. White-on-shu in both modes — the "hot stamp" feel is intentional. |
-| `GutterMark.vue` | The shu vertical hairline rendered in the editor gutter for lines the AI has touched. Wired up via a CM6 line decoration that reads from awareness. |
 | `Thinking.vue` | The italic-serif observational line. **The only place in the product Fraunces italic appears** — burning that scarcity is what makes the AI's voice land. |
 | `AIPromptBar.vue` | The bottom-of-editor input. Renders the `is-active` shu pulse, the count chip from `useBilling`, voice-input toggle, send affordance. The whole state-machine for "AI is responding" lives here + in `useAI` (awareness for the public phase, the initiator's session channel for status text / answers / confirmations). |
 | `AIConfirmPanel.vue` | The inline "markoto wants to read 'Q3 plan' — Allow / Deny" card above the prompt bar (taint gate, `server/utils/agentic/crossBoundary.ts`). Initiator only. The question is the AI voice (Fraunces italic, seal), the target is the exact title / query / URL, buttons are neutral, the border is shu. No answer within the server timeout = deny. |
@@ -16,14 +13,14 @@ Seven components, two roles:
 
 Every component above wears shu. Every component represents AI. There is no AI-related component in this repo that isn't shu, and no shu surface anywhere else in the app (with the explicit exception of the brand mark itself, which is the same seal). When tempted to introduce a new AI primitive:
 
-1. Re-use one of these six. Multiple variants of the same primitive in different contexts always look incoherent.
+1. Re-use one of these. Multiple variants of the same primitive in different contexts always look incoherent.
 2. If a new primitive is genuinely needed, add it HERE (not under another folder) and make it shu-by-default with no color prop. Compositional flexibility is for layout, not for "is this AI or not."
 
 Lucide `i-lucide-sparkles` is **banned in user-facing AI chrome**. If you reach for it, you're missing one of the primitives above. Push back in code review.
 
 ## How they compose with awareness
 
-The four in-document primitives (`Cursor`, `Tag`, `GutterMark`, `Thinking`) are driven by Y.js awareness state, NOT by props passed top-down through the editor tree. The contract:
+The in-document primitive (`Thinking`) is driven by Y.js awareness state, NOT by props passed top-down through the editor tree. The contract:
 
 - The AI joins the doc as a real Y.js client (see `server/utils/agentic/AGENTS.md`). Its awareness state has `{ user: { name, color, isAI: true }, aiSession: { sessionId, initiatorName, initiatorUserId, commentThreadId? }, aiStatus: { phase, message: null } }` — public fields only, because awareness reaches every participant. The prompt, the live status text, `message_to_user` answers and confirmation requests reach only the initiator, via the SSE stream `GET /api/ai/sessions/:id/stream` followed by `useAI` (polling `GET /api/ai/sessions/:id` as the fallback). Never add session details to awareness.
 - The editor's awareness watcher resolves `isAI === true` clients into shu rendering + the primitive components. Human collaborators (any `isAI !== true` awareness entry) render via the standard cool-slate yCollab path.

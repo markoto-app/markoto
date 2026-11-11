@@ -33,6 +33,18 @@ function setCookies(event: H3Event): string[] {
 }
 
 describe('dropUnusedSessionCookie (real h3 sessions)', () => {
+  it('sets no cookie at all on the pages host or a custom domain', async () => {
+    for (const kind of ['pages', 'custom-domain'] as const) {
+      // A stale cookie sent to such a host: h3 answers it with a fresh one.
+      const event = eventWith('nuxt-session=stale')
+      event.context.publicPageHost = kind
+      event.node.res.setHeader('set-cookie', ['ypad_locale=de; Path=/', 'markoto-anon=x; Path=/'])
+      await useSession(event, CONFIG)
+      dropUnusedSessionCookie(event)
+      expect(setCookies(event), kind).toEqual([])
+    }
+  })
+
   it('strips the cookie a mere read creates on a cookieless request', async () => {
     const event = eventWith()
     await useSession(event, CONFIG)

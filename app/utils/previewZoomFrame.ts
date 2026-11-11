@@ -43,7 +43,7 @@ export interface PreviewZoomEngine {
   overviewGrid: (available: number, pageWidth: number, pageCount: number) => { cols: number, zoom: number }
 }
 
-export function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): PreviewZoomEngine {
+function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): PreviewZoomEngine {
   /** Free-zoom range — keep in sync with PREVIEW_ZOOM_MIN / MAX (previewZoom.ts). */
   const MIN = 0.3
   const MAX = 3

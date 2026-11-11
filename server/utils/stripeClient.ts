@@ -72,11 +72,3 @@ export function buildHostOverride(apiBase: string): Partial<NonNullable<Construc
     protocol: u.protocol.replace(':', '') as 'http' | 'https'
   }
 }
-
-/**
- * Reset the cached client — for tests that change the apiBase
- * between cases. Not used in production.
- */
-export function resetStripeClient(): void {
-  client = null
-}

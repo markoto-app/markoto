@@ -26,7 +26,7 @@ import { MAX_WORKSPACE_SEATS, MIN_WORKSPACE_SEATS } from '~~/shared/config/works
 
 export { MIN_WORKSPACE_SEATS, MAX_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 /** A member's default AI limit = this many seats' worth of the pooled budget. */
-export const DEFAULT_MEMBER_LIMIT_SEAT_SHARES = 2
+const DEFAULT_MEMBER_LIMIT_SEAT_SHARES = 2
 
 export interface PooledWorkspace {
   workspaceId: string
@@ -72,7 +72,7 @@ export function workspacePoolCaps(plan: WorkspacePlanName, seats: number, tiers 
 }
 
 /** LiteLLM's budget window of a workspace team (`budget_duration: 30d`). */
-export const WORKSPACE_BUDGET_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
+const WORKSPACE_BUDGET_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
 
 type BudgetSeatFields = Pick<WorkspaceSubscriptionRow, 'seats' | 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
 

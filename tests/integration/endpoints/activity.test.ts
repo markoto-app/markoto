@@ -8,7 +8,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
 // GET /api/docs/:docId/activity — returns up to 50 edit/join/leave entries.
 // Bug-fix regression target: pre-fix the endpoint had NO auth check.

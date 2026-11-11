@@ -8,7 +8,7 @@ import { computeStripeSig } from '../../integration/setup/stripeHelpers'
 // payoff (plan active, seats changed) is real.
 
 /** The flow stack's webhook secret (`scripts/flows-ephemeral.ts`). */
-export const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
+const FLOWS_WEBHOOK_SECRET = 'whsec_test_flows'
 
 /**
  * Keep the page on the app's origin: cross-origin `location.href`

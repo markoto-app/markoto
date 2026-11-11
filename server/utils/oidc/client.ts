@@ -111,11 +111,6 @@ export function resetOidcConfigurationCache(): void {
   cache.clear()
 }
 
-/** Forget one connection's discovery (after its settings changed). */
-export function forgetOidcConfiguration(settings: OidcSettings): void {
-  cache.delete(cacheKey(settings))
-}
-
 export async function buildOidcAuthorizationRequest(
   config: oidc.Configuration,
   settings: OidcSettings,

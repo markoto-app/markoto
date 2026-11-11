@@ -41,15 +41,15 @@ const POOLED_USER_SLOT_MAX = 1000
 // plus a safety margin so that an abandoned upload-request (user never
 // PUTs) frees its slot soon after the URL is useless anyway — the margin
 // covers clock skew + a slow upload + the confirm roundtrip.
-export const INFLIGHT_SLOT_TTL_MS = 180 * 1000
+const INFLIGHT_SLOT_TTL_MS = 180 * 1000
 
 // Namespaces for the inflight counters. Keep them stable — they key
 // into Valkey under `inflight:{namespace}:{key}`, so renaming would
 // orphan live counters in production.
-export const INFLIGHT_NS_WORKSPACE = 'knowledge-upload-ws'
-export const INFLIGHT_NS_USER = 'knowledge-upload-user'
+const INFLIGHT_NS_WORKSPACE = 'knowledge-upload-ws'
+const INFLIGHT_NS_USER = 'knowledge-upload-user'
 // One member's share of a workspace's slots (key `{wsId}:{userId}`).
-export const INFLIGHT_NS_WORKSPACE_MEMBER = 'knowledge-upload-ws-member'
+const INFLIGHT_NS_WORKSPACE_MEMBER = 'knowledge-upload-ws-member'
 
 /**
  * How many of a workspace's `wsSlots` free inflight slots one member may
@@ -61,7 +61,7 @@ export function memberShareOfWorkspaceSlots(wsSlots: number): number {
   return Math.max(1, Math.ceil(wsSlots / 2))
 }
 
-export function workspaceMemberSlotKey(workspaceId: string, userId: number): string {
+function workspaceMemberSlotKey(workspaceId: string, userId: number): string {
   return `${workspaceId}:${userId}`
 }
 

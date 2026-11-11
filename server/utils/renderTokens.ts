@@ -11,11 +11,6 @@
 import jwt from 'jsonwebtoken'
 import { RENDER_JWT_FIXED_CLAIMS, type RenderJwtPayload } from '~~/shared/contracts/jwt'
 
-// Re-export for back-compat with existing call sites that import
-// `RenderTokenPayload` from this module. New code should import
-// `RenderJwtPayload` directly from shared/contracts/jwt.
-export type RenderTokenPayload = RenderJwtPayload
-
 const TOKEN_TTL_SECONDS = 60
 
 export function mintRenderToken(docId: string, snapshotId: number): string {

@@ -182,17 +182,6 @@ export const KNOWN_TOOL_NAMES: readonly string[] = Object.freeze(
   [...Object.keys(DOC_TOOL_HANDLERS), ...Object.keys(META_TOOL_HANDLERS)].sort((a, b) => a.localeCompare(b))
 )
 
-/** Convenience guards. */
-export function isKnownToolName(name: string): name is ToolName {
-  return Object.prototype.hasOwnProperty.call(TOOL_HANDLERS, name)
-}
-export function isDocToolName(name: string): name is DocToolName {
-  return Object.prototype.hasOwnProperty.call(DOC_TOOL_HANDLERS, name)
-}
-export function isMetaToolName(name: string): name is MetaToolName {
-  return Object.prototype.hasOwnProperty.call(META_TOOL_HANDLERS, name)
-}
-
 // MCP tool calls don't have an in-flight abort signal (no equivalent
 // of the loop's 5-min deadline). The toolkit may add one in a future
 // version; until then, web_search / fetch_url get a never-aborts

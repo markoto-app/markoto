@@ -25,7 +25,7 @@ import { resetDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
-import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
+import { mintRenderJwt } from '~~/tests/helpers/jwt'
 
 function mintRenderToken(docId: string, opts: {
   scope?: string

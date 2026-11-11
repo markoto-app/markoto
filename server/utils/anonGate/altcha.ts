@@ -31,7 +31,7 @@ import type { AnonGatePurpose } from '~~/shared/config/anonGate'
 //     signature, terms cookie), so a value signed for one use can never
 //     verify for another.
 
-export const ALTCHA_ALGORITHM = 'PBKDF2/SHA-256'
+const ALTCHA_ALGORITHM = 'PBKDF2/SHA-256'
 export const CHALLENGE_TTL_SECONDS = 20 * 60
 
 /**

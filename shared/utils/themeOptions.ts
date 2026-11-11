@@ -159,7 +159,7 @@ export interface ResolvedCaptions {
   labelStyle: CaptionLabelStyle
 }
 
-export const CAPTION_DEFAULTS: ResolvedCaptions = {
+const CAPTION_DEFAULTS: ResolvedCaptions = {
   tablePosition: 'above',
   tableLabel: false,
   figureLabel: false,

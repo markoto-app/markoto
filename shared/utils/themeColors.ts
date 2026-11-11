@@ -82,7 +82,7 @@ export function mixHex(a: string, b: string, t: number): string {
 }
 
 /** WCAG relative luminance (0 = black, 1 = white). */
-export function relativeLuminance(hex: string): number {
+function relativeLuminance(hex: string): number {
   const { r, g, b } = hexToRgb(hex)
   return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b)
 }

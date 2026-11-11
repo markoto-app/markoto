@@ -14,7 +14,7 @@ import {
   makeSubscriptionDeletedEvent,
   makeInvoicePaidEvent,
   makeInvoicePaymentFailedEvent
-} from '~~/shared/test-helpers/stripe'
+} from '~~/tests/helpers/stripe'
 
 // Pure-function unit tests for the Stripe webhook helpers. These
 // complement the integration tests (which send signed HTTP payloads

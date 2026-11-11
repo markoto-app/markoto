@@ -101,4 +101,3 @@ export const AUTHORITATIVE_LOCALE = 'en'
 // banner. UI strings are translated for all 6 locales independently
 // in i18n/locales/.
 export const LEGAL_DOCUMENT_LOCALES = ['en', 'fr', 'de', 'es'] as const
-export type LegalDocumentLocale = (typeof LEGAL_DOCUMENT_LOCALES)[number]

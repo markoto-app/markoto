@@ -99,7 +99,7 @@ describe('POST /api/billing/checkout', () => {
 
   it('409 when requesting the price the live subscription already has', async () => {
     // stripe-mock's canned subscription price is mapped to annual CHF Pro
-    // (setup/env.ts#STRIPE_MOCK_PRICE_ID).
+    // (the annual CHF Pro entry of setup/env.ts#TEST_STRIPE_PRICE_IDS).
     const u = await createUser()
     await testDb().query(
       'UPDATE users SET stripe_customer_id = $1, stripe_subscription_id = $2, plan = $3, billing_currency = $4 WHERE id = $5',

@@ -23,7 +23,7 @@ import { THEME_PRESETS } from '~~/shared/utils/themePresets'
 import { anonClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
-import { mintRenderJwt } from '~~/shared/test-helpers/jwt'
+import { mintRenderJwt } from '~~/tests/helpers/jwt'
 
 function mintRenderToken(docId: string, snapshotId: number, opts: {
   scope?: string

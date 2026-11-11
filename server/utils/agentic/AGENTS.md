@@ -171,7 +171,7 @@ A session ends when the model replies **without a tool call** (system prompt: "F
 
 **Straggler-chunk guard:** `stt.end()` on `{type:'stop'}` sets `ctx.sttEnded = true`. Audio chunks already queued by the browser's worklet → postMessage queue → WS pipeline (~128 ms window) land post-end; the flag drops them before they hit `stt.write()`. Second defense: SpeechClient's error listener silently swallows "write after end" when the flag is set.
 
-**Mock for tests:** `createDictateSpeechClient(apiKey)` returns a real Mistral Realtime client or, when `TEST_MODE=1` + `NUXT_GOOGLE_SPEECH_MOCK=1` (env-name retained for compat with existing CI configs even though the upstream is now Mistral), a fake that emits canned interim → final responses on fixed chunk thresholds.
+**Mock for tests:** `createDictateSpeechClient(apiKey)` returns a real Mistral Realtime client or, when `TEST_MODE=1` + `NUXT_VOXTRAL_REALTIME_MOCK=1`, a fake that emits canned interim → final responses on fixed chunk thresholds.
 
 ## Gotchas
 

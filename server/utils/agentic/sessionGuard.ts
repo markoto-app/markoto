@@ -20,7 +20,7 @@ import { isAiCommentAuthor } from '~~/shared/ai/author'
  * Anything else — including an unparseable or missing reference — is
  * treated as shared.
  */
-export async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean> {
+async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean> {
   const docId = parseDocIdFromInput(docRef)
   if (!docId) return false
   const doc = await getDoc(docId)

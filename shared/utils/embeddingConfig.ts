@@ -9,13 +9,6 @@ export const DEFAULT_EMBEDDINGS_MODEL = 'jina-embeddings-v5-text-nano'
 export const DEFAULT_EMBEDDINGS_DIMS = 768
 
 /**
- * LiteLLM model_name of the operator-configurable deployment in
- * `infra/litellm/config.yaml`. Its upstream model / api_base / api_key come
- * from the proxy's `EMBEDDINGS_UPSTREAM_*` environment variables.
- */
-export const CUSTOM_EMBEDDINGS_MODEL = 'custom-embeddings'
-
-/**
  * pgvector indexes a `vector` column with HNSW up to 2000 dimensions. The
  * column can hold more, but without an index every search is a sequential
  * scan, so we refuse to go beyond the limit. (`halfvec` indexes up to 4000
@@ -76,7 +69,7 @@ export function isJinaModel(model: string): boolean {
  * RETRIEVAL_QUERY    -> retrieval.query   (search-time query)
  * Other task types fall back to text-matching, Jina's symmetric default.
  */
-export function mapTaskToJina(task: EmbeddingTaskType): string {
+function mapTaskToJina(task: EmbeddingTaskType): string {
   switch (task) {
     case 'RETRIEVAL_DOCUMENT': return 'retrieval.passage'
     case 'RETRIEVAL_QUERY': return 'retrieval.query'
@@ -85,7 +78,7 @@ export function mapTaskToJina(task: EmbeddingTaskType): string {
 }
 
 /** Resolve a tri-state against the "auto" default for the model. */
-export function resolveTriState(value: TriState, autoValue: boolean): boolean {
+function resolveTriState(value: TriState, autoValue: boolean): boolean {
   if (value === 'auto') return autoValue
   return value === 'true'
 }

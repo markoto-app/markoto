@@ -37,7 +37,7 @@ import { useValkey } from './valkey'
 // no in-memory layer, no problem.
 
 export const MCP_TOKEN_PREFIX = 'mkt_'
-export const MCP_TOKEN_BODY_BYTES = 20 // 20 bytes → 32 base32 chars
+const MCP_TOKEN_BODY_BYTES = 20 // 20 bytes → 32 base32 chars
 
 /** Per-user cap on active (non-revoked, non-expired) PATs. Mirrors the
  *  themes per-user cap (20) and the workspaces-per-user cap (20). The
@@ -61,13 +61,6 @@ export interface McpAuthContext {
   // and per-token rate limiting. Distinct from the PK so URL surfaces
   // don't disclose row count.
   tokenId: string
-}
-
-export interface IssuedMcpToken {
-  tokenId: string
-  plaintext: string // Returned to the user EXACTLY ONCE — never persisted.
-  hash: string
-  createdAt: Date
 }
 
 // RFC 4648 base32 alphabet (no padding). Avoids 0/O/1/I confusion versus

@@ -25,16 +25,16 @@
  */
 
 /** Heading texts recognised as an abstract (lower case, trailing colon/period ignored). */
-export const ABSTRACT_HEADINGS: ReadonlySet<string> = new Set([
+const ABSTRACT_HEADINGS: ReadonlySet<string> = new Set([
   'abstract', 'zusammenfassung', 'kurzfassung', 'résumé', 'resume', 'resumen', 'riassunto',
   '概要', '要旨', '摘要', '内容提要'
 ])
 
 export const ABSTRACT_HEADING_CLASS = 'markoto-abstract-heading'
-export const ABSTRACT_ENTRY_CLASS = 'markoto-abstract-entry'
+const ABSTRACT_ENTRY_CLASS = 'markoto-abstract-entry'
 /** Pandoc's class for a heading without a number (`# References {.unnumbered}`, or `{-}`). */
 export const UNNUMBERED_CLASS = 'unnumbered'
-export const UNNUMBERED_ENTRY_CLASS = 'markoto-unnumbered-entry'
+const UNNUMBERED_ENTRY_CLASS = 'markoto-unnumbered-entry'
 
 const HEADING = /^H([1-6])$/
 

@@ -19,9 +19,9 @@ import type { VerifiedDocToken } from './auth'
 // drive it with fake connections and timers.
 
 /** How long before expiry the server asks for a fresh token. Covers the client's round trip to the token endpoint. */
-export const TOKEN_RENEW_LEAD_MS = 45_000
+const TOKEN_RENEW_LEAD_MS = 45_000
 /** Clock-skew allowance between the app that stamps `exp` and this server. */
-export const TOKEN_EXPIRY_GRACE_MS = 5_000
+const TOKEN_EXPIRY_GRACE_MS = 5_000
 
 /** The parts of a Hocuspocus `Connection` this module touches. */
 export interface ReauthConnection {

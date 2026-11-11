@@ -15,11 +15,11 @@ import type { ImageQuotaScope } from '../repos/uploads'
 //   - AI generate_image          (reservePendingUpload before the S3 PUT)
 //   - POST /api/docs/:id/duplicate (copies count against the duplicator)
 
-export const IMAGE_QUOTA_CODE = 'upload/storage-quota'
-export const IMAGE_QUOTA_MESSAGE_KEY = 'image.storageQuotaReached'
+const IMAGE_QUOTA_CODE = 'upload/storage-quota'
+const IMAGE_QUOTA_MESSAGE_KEY = 'image.storageQuotaReached'
 
 /** The user's image byte quota under their effective plan. */
-export async function resolveImageQuotaBytes(userId: number): Promise<number> {
+async function resolveImageQuotaBytes(userId: number): Promise<number> {
   const db = useDatabase()
   const rows = await db
     .select({ plan: users.plan, planValidUntil: users.planValidUntil })
@@ -65,7 +65,7 @@ export async function resolveImageQuota(userId: number, docId: string | null, ta
   }
 }
 
-export function formatMegabytes(bytes: number): string {
+function formatMegabytes(bytes: number): string {
   return `${Math.round(bytes / (1024 * 1024))} MB`
 }
 

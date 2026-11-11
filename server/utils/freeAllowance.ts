@@ -14,7 +14,7 @@ import {
 } from './litellm/freeTierTeam'
 
 /** "Add your own key" — the only way past an exhausted pool until the reset. */
-export const FREE_ALLOWANCE_RECOVERY: LimitRecovery = {
+const FREE_ALLOWANCE_RECOVERY: LimitRecovery = {
   kind: 'link',
   href: '/settings/ai',
   labelKey: 'ai.freeAllowanceCta'

@@ -64,8 +64,8 @@ export function stepTarget(rests: readonly number[], y: number, dir: 1 | -1, tol
 
 /** Settle duration: a base plus a share per viewport travelled, clamped.
  *  Half a scene (0.8 viewports) takes ~0.75 s; a whole scene ~1.1 s. */
-export const SETTLE_BASE_MS = 380
-export const SETTLE_MS_PER_VIEWPORT = 460
+const SETTLE_BASE_MS = 380
+const SETTLE_MS_PER_VIEWPORT = 460
 export const SETTLE_MIN_MS = 350
 export const SETTLE_MAX_MS = 1300
 
@@ -78,7 +78,7 @@ export function settleDuration(distance: number, viewport: number): number {
 
 /** Start slope cap: a settle may start at most this many times faster
  *  than its average speed (higher would overshoot the rest). */
-export const SETTLE_MAX_START_SLOPE = 2
+const SETTLE_MAX_START_SLOPE = 2
 
 /**
  * Easing for a settle that starts while the page is still moving: a cubic

@@ -19,7 +19,7 @@ export function isBillingEnabled(): boolean {
 }
 
 /** Stable machine code for every "billing is switched off" refusal. */
-export const BILLING_DISABLED_CODE = 'billing/disabled'
+const BILLING_DISABLED_CODE = 'billing/disabled'
 
 /**
  * Guard for every billing-only HTTP surface (checkout, portal, Stripe

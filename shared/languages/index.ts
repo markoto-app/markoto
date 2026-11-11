@@ -13,7 +13,6 @@
  */
 
 export const LANGUAGE_PRESETS = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const
-export type LanguagePreset = typeof LANGUAGE_PRESETS[number]
 
 export const LANGUAGE_MAX_LENGTH = 50
 

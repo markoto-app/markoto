@@ -282,7 +282,3 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['sentry']
   }
 ]
-
-export function getProcessingPurpose(id: string): ProcessingPurpose | undefined {
-  return PROCESSING_PURPOSES.find(p => p.id === id)
-}

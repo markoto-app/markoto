@@ -9,7 +9,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
 // GET /api/docs/:docId/activity/:activityId/diff
 //

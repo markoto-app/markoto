@@ -9,7 +9,7 @@ const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
 // Mirror of the app-side ActivityAction union. Kept in lockstep with
 // server/repos/activity.ts; the internal endpoint validates the action
 // against its own allowlist.
-export type ActivityAction
+type ActivityAction
   = | 'edit' | 'join' | 'leave'
     | 'comment.added' | 'comment.replied'
     | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'

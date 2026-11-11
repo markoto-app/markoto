@@ -71,7 +71,7 @@ export const TEST_VALKEY_PASSWORD = 'testpassword'
 // Generic OIDC (WP7b): the `oidc-test` mock IdP (navikt mock-oauth2-server)
 // in docker-compose.test.yml. Every path is its own issuer with its own
 // signing key; the app trusts exactly TEST_OIDC_ISSUER.
-export const TEST_OIDC_PORT = 4130
+const TEST_OIDC_PORT = 4130
 export const TEST_OIDC_BASE_URL = `http://127.0.0.1:${TEST_OIDC_PORT}`
 export const TEST_OIDC_ISSUER = `${TEST_OIDC_BASE_URL}/markoto`
 export const TEST_OIDC_CLIENT_ID = 'markoto-test-client'
@@ -118,17 +118,16 @@ export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/
  * keys): every plan / interval / currency → a fixed test price id. The
  * monthly EUR Pro price stays `price_test_pro`, the id the webhook
  * fixtures carry. Annual CHF Pro is stripe-mock's canned price
- * (`STRIPE_MOCK_PRICE_ID`, what every subscription retrieve answers), so
+ * (`price_1PgafmB7WZ01zgkW6dKueIc5`, what every subscription retrieve answers), so
  * the checkout's "already on this price" 409 is reachable.
  * server/utils/stripePrices.ts reads it from NUXT_STRIPE_PRICE_IDS.
  */
-export const STRIPE_MOCK_PRICE_ID = 'price_1PgafmB7WZ01zgkW6dKueIc5'
 export const TEST_STRIPE_PRICE_IDS = 'markoto_pro_month_eur=price_test_pro,markoto_pro_year_eur=price_test_pro_year,markoto_team_month_eur=price_test_team,markoto_team_year_eur=price_test_team_year,markoto_business_month_eur=price_test_business,markoto_business_year_eur=price_test_business_year,markoto_pro_month_chf=price_test_pro_chf,markoto_pro_year_chf=price_1PgafmB7WZ01zgkW6dKueIc5,markoto_team_month_chf=price_test_team_chf,markoto_team_year_chf=price_test_team_year_chf,markoto_business_month_chf=price_test_business_chf,markoto_business_year_chf=price_test_business_year_chf'
 
-export const TEST_FAKE_OPENAI_PORT = 4120
+const TEST_FAKE_OPENAI_PORT = 4120
 export const TEST_FAKE_OPENAI_HOST_URL = `http://127.0.0.1:${TEST_FAKE_OPENAI_PORT}`
 /** MUST match the `networks.default` gateway default in docker-compose.test.yml. */
-export const TEST_NETWORK_GATEWAY_DEFAULT = '10.213.47.1'
+const TEST_NETWORK_GATEWAY_DEFAULT = '10.213.47.1'
 
 export function fakeOpenAiBaseUrl(): string {
   const override = process.env.TEST_FAKE_OPENAI_BASE_URL

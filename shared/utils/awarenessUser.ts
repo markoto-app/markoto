@@ -103,7 +103,7 @@ export function normalizeAwarenessUser(raw: unknown): NormalizedAwarenessUser | 
 
 /** True when `normalizeAwarenessUser` would return the input unchanged
  *  (same keys, same values) — lets callers skip a needless write. */
-export function isNormalizedAwarenessUser(raw: unknown, normalized: NormalizedAwarenessUser | null): boolean {
+function isNormalizedAwarenessUser(raw: unknown, normalized: NormalizedAwarenessUser | null): boolean {
   if (normalized === null) return raw === undefined
   if (typeof raw !== 'object' || raw === null) return false
   const user = raw as Record<string, unknown>

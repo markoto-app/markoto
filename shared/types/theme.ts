@@ -77,14 +77,11 @@ export type PageSize = z.infer<typeof PageSizeSchema>
 export const PageOrientationSchema = z.enum(['portrait', 'landscape'])
 export type PageOrientation = z.infer<typeof PageOrientationSchema>
 
-export const ColumnCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
-export type ColumnCount = z.infer<typeof ColumnCountSchema>
+const ColumnCountSchema = z.union([z.literal(1), z.literal(2), z.literal(3)])
 
 export const TextAlignSchema = z.enum(['left', 'justify'])
-export type TextAlign = z.infer<typeof TextAlignSchema>
 
 export const BlockquoteStyleSchema = z.enum(['border', 'background', 'none'])
-export type BlockquoteStyle = z.infer<typeof BlockquoteStyleSchema>
 
 /**
  * `<hr>` rendering. Markdown source `---` produces an `<hr>`; what we
@@ -96,17 +93,14 @@ export type BlockquoteStyle = z.infer<typeof BlockquoteStyleSchema>
  *  - `none`     — invisible separator (still consumes vertical space)
  */
 export const HrStyleSchema = z.enum(['rule', 'dashed', 'dotted', 'asterism', 'none'])
-export type HrStyle = z.infer<typeof HrStyleSchema>
 
-export const HeadingWeightSchema = z.union([
+const HeadingWeightSchema = z.union([
   z.literal(400), z.literal(500), z.literal(600),
   z.literal(700), z.literal(800), z.literal(900)
 ])
-export type HeadingWeight = z.infer<typeof HeadingWeightSchema>
 
 /** Any CSS font weight on the 100-step grid (per-level heading weight, cover title weight). */
 export const FontWeightSchema = z.number().int().min(100).max(900).multipleOf(100)
-export type FontWeight = z.infer<typeof FontWeightSchema>
 
 export const HeadingStyleSchema = z.enum(['normal', 'italic'])
 export type HeadingStyle = z.infer<typeof HeadingStyleSchema>
@@ -225,17 +219,13 @@ export type SectionMode = z.infer<typeof SectionModeSchema>
 
 /** Drop cap: off, on the document's first paragraph, or on the first paragraph of every top-level section. */
 export const DropCapSchema = z.union([z.boolean(), z.literal('every-chapter')])
-export type DropCap = z.infer<typeof DropCapSchema>
 
 export const TableHeaderBgSchema = z.enum(['brand', 'muted', 'none'])
-export type TableHeaderBg = z.infer<typeof TableHeaderBgSchema>
 
 /** `auto` picks black/white based on the chosen header bg's luminance. */
 export const TableHeaderColorSchema = z.enum(['auto', 'inherit'])
-export type TableHeaderColor = z.infer<typeof TableHeaderColorSchema>
 
 export const TableBordersSchema = z.enum(['all', 'horizontal', 'minimal', 'none'])
-export type TableBorders = z.infer<typeof TableBordersSchema>
 
 /** Where a table caption (`Table: …` in the Markdown) sits. */
 export const CaptionPositionSchema = z.enum(['above', 'below'])
@@ -286,22 +276,19 @@ export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
  *                  `app/utils/titleBlock.ts`.
  */
 export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal', 'title-block'])
-export type CoverLayout = z.infer<typeof CoverLayoutSchema>
 
 /**
  * Cover text alignment. Drives `text-align` and the horizontal alignment
  * inside the layout's grid track.
  */
-export const CoverAlignSchema = z.enum(['left', 'center', 'right'])
-export type CoverAlign = z.infer<typeof CoverAlignSchema>
+const CoverAlignSchema = z.enum(['left', 'center', 'right'])
 
 /**
  * Header image position. Renders into the corresponding `@top-X` margin
  * box on every BODY page; the cover page's named `@page cover-page`
  * already nulls these so it stays clean.
  */
-export const HeaderImagePositionSchema = z.enum(['left', 'center', 'right'])
-export type HeaderImagePosition = z.infer<typeof HeaderImagePositionSchema>
+const HeaderImagePositionSchema = z.enum(['left', 'center', 'right'])
 
 /**
  * Header/footer slot. Templates support these tokens:
@@ -350,13 +337,12 @@ export type RunningSlots = z.infer<typeof RunningSlotsSchema>
  * The header carries the document-wide options of the `{section}` token
  * (they apply wherever the token is used, header or footer).
  */
-export const HeaderSlotsSchema = RunningSlotsSchema.extend({
+const HeaderSlotsSchema = RunningSlotsSchema.extend({
   /** `{section}` shows the section number before the title ("3 Procedures"). Optional: absent = title only. */
   sectionNumber: z.boolean().optional(),
   /** Which section heading `{section}` names (`SectionModeSchema`). Optional: absent = `first`. */
   sectionMode: SectionModeSchema.optional()
 }).strict()
-export type HeaderSlots = z.infer<typeof HeaderSlotsSchema>
 
 // ── DocTheme ────────────────────────────────────────────────────────────
 

@@ -7,11 +7,10 @@ import {
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 import { MISTRAL_EU_API_HOST } from '../../../shared/ai/providers'
 
-// Factory for the dictate streaming client. Phase 7: cloud-stt path
-// removed — voxtral realtime is the only path. The mock-streaming
-// fixture stays so integration tests can drive the WS handshake
-// without a real upstream (gated on `TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1`,
-// or for backwards-compat the legacy `NUXT_GOOGLE_SPEECH_MOCK=1`).
+// Factory for the dictate streaming client. Voxtral realtime is the only
+// real path; the mock-streaming fixture lets integration tests drive the
+// WS handshake without a real upstream (gated on
+// `TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1`).
 
 export interface StreamingRecognizeRequest {
   config: {
@@ -111,7 +110,7 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
 // quirk) may disappear under Voxtral — verify in a future safari pass.
 
 /** Mistral's EU regional endpoint — the default for every platform-paid realtime stream. */
-export const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
+const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
 
 /**
  * `apiKey` is the Mistral key that pays for the stream: the user's own
@@ -123,10 +122,7 @@ export const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
  * which makes no location commitment, so it is always passed explicitly.
  */
 export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL, serverURL: string = MISTRAL_EU_SERVER_URL): SpeechClientLike {
-  if (isTestModeEnabled() && (
-    process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1'
-    || process.env.NUXT_GOOGLE_SPEECH_MOCK === '1'
-  )) {
+  if (isTestModeEnabled() && process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1') {
     return new MockRealtimeClient()
   }
   return new VoxtralRealtimeClient(apiKey, model, serverURL)

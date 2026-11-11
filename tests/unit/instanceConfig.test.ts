@@ -108,14 +108,6 @@ describe('resolveInstanceConfig', () => {
     expect(resolveInstanceConfig({ NUXT_MARKETING_SITE_ENABLED: '1' }).marketingSite).toBe(true)
   })
 
-  it('still honours the former NUXT_PRODUCT_TOUR_ENABLED while the new flag is unset (alias)', () => {
-    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'true' })).toBe(true)
-    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'true', NUXT_MARKETING_SITE_ENABLED: '' })).toBe(true)
-    // The new name wins when both are set.
-    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'true', NUXT_MARKETING_SITE_ENABLED: 'false' })).toBe(false)
-    expect(resolveMarketingSiteEnabled({ NUXT_PRODUCT_TOUR_ENABLED: 'false', NUXT_MARKETING_SITE_ENABLED: 'true' })).toBe(true)
-  })
-
   it('site URL is the origin of NUXT_SITE_URL, empty when unset or invalid', () => {
     expect(resolveSiteUrl({})).toBe('')
     expect(resolveSiteUrl({ NUXT_SITE_URL: 'https://markoto.app/' })).toBe('https://markoto.app')

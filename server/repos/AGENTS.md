@@ -1,6 +1,6 @@
 # server/repos
 
-Drizzle-backed repositories. One file per table family — `documents.ts`, `users.ts`, `workspaces.ts`, `workspaceMembers.ts`, `uploads.ts`, `comments.ts`, `activity.ts`, `audit.ts`, `themes.ts`, `knowledge.ts`, `health.ts`, `accountDeletionRepo.ts`, `dataExportJobs.ts`, `consentLog.ts`, `abuseReports.ts`. Anything cross-table (e.g. cascading delete logic) lives in `server/utils/` and calls into multiple repos.
+Drizzle-backed repositories. One file per table family — `documents.ts`, `users.ts`, `workspaces.ts`, `workspaceMembers.ts`, `uploads.ts`, `comments.ts`, `activity.ts`, `audit.ts`, `themes.ts`, `knowledge.ts`, `accountDeletionRepo.ts`, `dataExportJobs.ts`, `consentLog.ts`, `abuseReports.ts`. Anything cross-table (e.g. cascading delete logic) lives in `server/utils/` and calls into multiple repos.
 
 ## Conventions
 
@@ -16,11 +16,9 @@ Repo functions return either a valid domain value or throw one of the classes in
 | Class | HTTP | When |
 |---|---|---|
 | `NotFoundError` | 404 | row missing |
-| `ForbiddenError` | 403 | caller authorised but action not allowed (e.g. last-admin demotion) |
 | `ConflictError` | 409 | state conflict (already exists, in-flight) |
 | `DuplicateError` extends ConflictError | 409 | uniqueness violation |
 | `LastAdminError` extends ConflictError | 409 | the workspace ≥1-admin invariant |
-| `ValidationError` | 400 | repo-level shape rejection |
 
 Endpoints catch these and translate via `toHttpError(e)` at the end of the handler, so individual endpoints no longer spell out "throw 404 if not found" for every operation. **Never throw an HTTP status from inside a repo, never leak a `pg` error code outward** — those details stop at the repo boundary.
 

@@ -167,7 +167,3 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://resend.com/legal/dpa'
   }
 ] as const
-
-export function getSubProcessor(id: string): SubProcessor | undefined {
-  return SUB_PROCESSORS.find(p => p.id === id)
-}

@@ -17,7 +17,7 @@
 // trips on `spend >= max_budget`, so 0.0 always works whether the key
 // has already been used or not.
 
-import { setUserKeyMaxBudget } from '../../utils/litellmKeys'
+import { setUserKeyMaxBudget } from '../../utils/litellm/userKeys'
 import { resolveBillingContext } from '../../utils/billing'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 

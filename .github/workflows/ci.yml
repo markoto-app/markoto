@@ -455,7 +455,7 @@ jobs:
     env:
       # Test stack defaults — match docker-compose.test.yml.
       TEST_MODE: "1"
-      NUXT_GOOGLE_SPEECH_MOCK: "1"
+      NUXT_VOXTRAL_REALTIME_MOCK: "1"
       # No live-AI provider keys + no Playwright flow suite here: the PR gate
       # is coverage + integration only. The full flow suite (incl. live AI)
       # runs in release.yml (release:*-labeled merges only).

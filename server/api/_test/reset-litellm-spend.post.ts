@@ -5,7 +5,7 @@
 //
 // 404 unless TEST_MODE === '1'. Body: `{ userId: number }`.
 
-import { resetUserKeySpend, getUserKeyInfo } from '../../utils/litellmKeys'
+import { resetUserKeySpend, getUserKeyInfo } from '../../utils/litellm/userKeys'
 import { resolveBillingContext } from '../../utils/billing'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 

@@ -4,7 +4,7 @@ import {
   mintSessionJwt,
   mintDictateJwt,
   mintRenderJwt
-} from '~~/shared/test-helpers/jwt'
+} from '~~/tests/helpers/jwt'
 import {
   DICTATE_JWT_FIXED_CLAIMS,
   RENDER_JWT_FIXED_CLAIMS,

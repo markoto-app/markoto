@@ -20,7 +20,7 @@ import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } fro
 
 export type InternalRouteKind = 'internal-api' | 'traefik-provider' | 'render'
 
-export const TRAEFIK_PROVIDER_PATH = '/api/internal/traefik/custom-domains'
+const TRAEFIK_PROVIDER_PATH = '/api/internal/traefik/custom-domains'
 
 /**
  * Canonical form for the prefix test: decoded, lower-cased, repeated

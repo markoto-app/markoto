@@ -28,7 +28,7 @@ export const INSTANCE_BRAND_LOGO_TYPES: Record<string, string> = {
   jpeg: 'image/jpeg'
 }
 
-export const INSTANCE_BRAND_NAME_MAX = 60
+const INSTANCE_BRAND_NAME_MAX = 60
 
 /** Extension of the configured logo file, or null when it isn't a supported image. */
 export function instanceBrandLogoExt(path: string | undefined): string | null {

@@ -17,7 +17,7 @@
  */
 
 /** Heading texts recognised as a reference list (lower case, trailing colon/period ignored). */
-export const REFERENCE_HEADINGS: ReadonlySet<string> = new Set([
+const REFERENCE_HEADINGS: ReadonlySet<string> = new Set([
   'references', 'reference list', 'bibliography', 'works cited', 'literature', 'literature cited', 'sources',
   'literatur', 'literaturverzeichnis', 'quellen', 'quellenverzeichnis', 'referenzen', 'bibliographie',
   'références', 'références bibliographiques',
@@ -28,8 +28,8 @@ export const REFERENCE_HEADINGS: ReadonlySet<string> = new Set([
   '参考文献', '参考資料', '引用文献'
 ])
 
-export const REFERENCES_CLASS = 'markoto-references'
-export const REFERENCES_HEADING_CLASS = 'markoto-references-heading'
+const REFERENCES_CLASS = 'markoto-references'
+const REFERENCES_HEADING_CLASS = 'markoto-references-heading'
 
 const HEADING = /^H([1-6])$/
 const ENTRY_TAGS = new Set(['OL', 'UL', 'P'])
@@ -39,7 +39,7 @@ function headingLevel(el: Element): number {
   return m ? Number(m[1]) : 0
 }
 
-export function isReferencesHeading(el: Element): boolean {
+function isReferencesHeading(el: Element): boolean {
   const text = (el.textContent ?? '').trim().toLowerCase().replace(/[:.：。]+$/u, '').trim()
   return REFERENCE_HEADINGS.has(text)
 }

@@ -4,8 +4,8 @@
 
 import type { Crumb } from './structuredData'
 
-export const HOME_CRUMB: Crumb = Object.freeze({ name: 'Home', path: '/' })
-export const DOCS_CRUMB_NAME = 'Docs'
+const HOME_CRUMB: Crumb = Object.freeze({ name: 'Home', path: '/' })
+const DOCS_CRUMB_NAME = 'Docs'
 
 /** `getting-started` → `Getting started` (sentence case, like the docs sidebar). */
 export function slugLabel(segment: string): string {

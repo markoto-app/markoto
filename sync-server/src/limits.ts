@@ -23,9 +23,9 @@
 const MIB = 1024 * 1024
 
 export const DEFAULT_MAX_DOCUMENT_BYTES = 16 * MIB
-export const DEFAULT_MAX_UPDATE_BYTES = 16 * MIB
+const DEFAULT_MAX_UPDATE_BYTES = 16 * MIB
 /** Frame overhead on top of the update: document name + message framing. */
-export const DEFAULT_MAX_MESSAGE_BYTES = 17 * MIB
+const DEFAULT_MAX_MESSAGE_BYTES = 17 * MIB
 
 export interface SyncLimits {
   maxMessageBytes: number

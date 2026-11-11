@@ -11,7 +11,7 @@ import { getClientRateLimitKey } from './clientIp'
 // Keyed on the client address like the REST route always was. Fails open
 // on Valkey errors and is bypassed in TEST_MODE (see `rateLimit.ts`).
 
-export const RENDER_RATE_LIMIT = {
+const RENDER_RATE_LIMIT = {
   namespace: 'pdf-download',
   max: 10,
   windowMs: 60_000

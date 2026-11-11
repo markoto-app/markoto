@@ -15,7 +15,7 @@ import { useValkey } from './valkey'
 // a second confirm of the same upload finds nothing and touches no S3
 // object. Fails CLOSED: a Valkey error means no claim, i.e. a 404.
 
-export const KNOWLEDGE_PENDING_TTL_MS = 6 * 60 * 1000
+const KNOWLEDGE_PENDING_TTL_MS = 6 * 60 * 1000
 
 export interface PendingKnowledgeRef {
   workspaceId: string

@@ -28,14 +28,10 @@ export type PaidPlanName = Exclude<PlanName, 'free'>
 export const PAID_PLAN_NAMES: readonly PaidPlanName[] = ['pro', 'team', 'business']
 
 /** Plans priced per seat (workspace subscriptions). */
-export const PER_SEAT_PLANS: readonly PaidPlanName[] = ['team', 'business']
+const PER_SEAT_PLANS: readonly PaidPlanName[] = ['team', 'business']
 
 export function isPerSeatPlan(plan: PlanName): boolean {
   return (PER_SEAT_PLANS as readonly PlanName[]).includes(plan)
-}
-
-export function isPaidPlan(plan: PlanName): plan is PaidPlanName {
-  return plan !== 'free'
 }
 
 export function isCurrency(value: unknown): value is Currency {
@@ -177,18 +173,6 @@ export function topupPack(id: TopupPackId): TopupPack {
 
 export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, prefix = 'markoto'): string {
   return `${prefix}_topup_${pack}_${currency}`
-}
-
-/** Parse a top-up lookup key (`null` = not a top-up key of ours). */
-export function parseStripeTopupLookupKey(key: string | null | undefined, prefix = 'markoto'): { pack: TopupPackId, currency: Currency } | null {
-  if (!key || !key.startsWith(`${prefix}_topup_`)) return null
-  const [pack, currency, ...rest] = key.slice(prefix.length + '_topup_'.length).split('_')
-  if (rest.length > 0 || !isTopupPackId(pack) || !isCurrency(currency)) return null
-  return { pack, currency }
-}
-
-export function allStripeTopupLookupKeys(prefix = 'markoto'): string[] {
-  return TOPUP_PACK_IDS.flatMap(pack => CURRENCIES.map(c => stripeTopupLookupKey(pack, c, prefix)))
 }
 
 /** 400 code of a purchase sent without accepting the Paid Plans Terms (WP6b). */

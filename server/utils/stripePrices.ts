@@ -153,11 +153,6 @@ export async function livePlanPriceTable(stripe: Stripe): Promise<PlanPriceTable
 
 const topupCache = new Map<string, { at: number, priceId: string | null }>()
 
-/** Drop cached top-up price ids (tests). */
-export function resetTopupPriceCache(): void {
-  topupCache.clear()
-}
-
 /**
  * The one-time Stripe Price that sells a top-up pack in a currency:
  * `NUXT_STRIPE_PRICE_IDS` (`markoto_topup_10_eur=price_…`) first, else

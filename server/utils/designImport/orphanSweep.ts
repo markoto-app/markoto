@@ -8,7 +8,7 @@ import { DESIGN_IMPORT_OBJECT_RE } from './guard'
 // was never started (or a re-used presigned URL), a render whose
 // clean-up failed. Only these exact key shapes are touched.
 
-export const DESIGN_IMPORT_ORPHAN_GRACE_MS = 60 * 60 * 1000
+const DESIGN_IMPORT_ORPHAN_GRACE_MS = 60 * 60 * 1000
 
 const SAMPLE_RENDER_RE = /^renders\/design-sample-[A-Za-z0-9]{20}\//
 

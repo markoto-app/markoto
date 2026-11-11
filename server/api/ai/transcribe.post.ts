@@ -14,7 +14,7 @@ import * as Sentry from '@sentry/nuxt'
 import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
 import { useLitellmForUser } from '../../utils/litellmClient'
 import { resolveBillingContext } from '../../utils/billing'
-import { isBudgetExceededError } from '../../utils/litellmKeys'
+import { isBudgetExceededError } from '../../utils/litellm/userKeys'
 import { isFreeAllowanceExhaustedError } from '../../utils/litellm/freeTierTeam'
 import { freeAllowanceExhaustedHttpError } from '../../utils/freeAllowance'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
 
   // Phase 6: app-side rate limit dropped. LiteLLM enforces an
   // rpm_limit (60/min) at the per-user-virtual-key level — see
-  // `createUserKey` in `litellmKeys.ts`.
+  // `createUserKey` in `litellm/userKeys.ts`.
 
   const body = await readBody<{
     audio?: string

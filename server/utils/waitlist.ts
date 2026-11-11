@@ -11,7 +11,7 @@ import { getBillingMode } from './billingMode'
 export const WAITLIST_CONFIRM_TTL_MS = 7 * 24 * 60 * 60 * 1000
 
 /** RFC 5321 caps a forward-path at 254 characters. */
-export const WAITLIST_EMAIL_MAX_LENGTH = 254
+const WAITLIST_EMAIL_MAX_LENGTH = 254
 
 export const WAITLIST_LOCALES = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const
 export type WaitlistLocale = (typeof WAITLIST_LOCALES)[number]

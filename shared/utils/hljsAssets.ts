@@ -63,8 +63,3 @@ export function hljsTheme(theme: CodeTheme): { url: string, sri: string } {
   const entry = HLJS_THEMES[theme]
   return { url: `${HLJS_STYLES_BASE}${entry.path}.min.css`, sri: entry.sri }
 }
-
-/** URL-only shorthand for `hljsTheme(theme).url`. */
-export function hljsThemeUrl(theme: CodeTheme): string {
-  return hljsTheme(theme).url
-}

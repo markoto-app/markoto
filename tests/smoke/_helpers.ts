@@ -8,7 +8,7 @@ import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 // Global fetch with an absolute URL sidesteps it entirely and is all the
 // smoke suite needs (stateless, anonymous). Page navigations still use the
 // `page` fixture with the config's baseURL.
-export const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://staging.markoto.app'
+const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://staging.markoto.app'
 
 export function api(path: string): string {
   return new URL(path, BASE_URL).toString()

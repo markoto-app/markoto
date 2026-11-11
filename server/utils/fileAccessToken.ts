@@ -16,7 +16,7 @@ import jwt from 'jsonwebtoken'
 // dictate relay requires its own scope. Anyone holding one learns nothing
 // beyond the document's own images.
 
-export const FILE_ACCESS_SCOPE = 'file-access'
+const FILE_ACCESS_SCOPE = 'file-access'
 
 export interface FileAccessToken {
   token: string

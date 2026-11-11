@@ -5,7 +5,7 @@
 export const CUSTOM_DOMAINS_PER_USER = 10
 
 /** The TXT record proving the domain is the user's: `<VERIFY_LABEL>.<hostname>`. */
-export const CUSTOM_DOMAIN_VERIFY_LABEL = '_markoto-verify'
+const CUSTOM_DOMAIN_VERIFY_LABEL = '_markoto-verify'
 
 export function customDomainVerifyName(hostname: string): string {
   return `${CUSTOM_DOMAIN_VERIFY_LABEL}.${hostname}`

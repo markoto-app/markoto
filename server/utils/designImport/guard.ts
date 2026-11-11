@@ -7,7 +7,7 @@ import type { DesignImportExt } from '~~/shared/config/designImport'
 
 // Shared gates of the design-import endpoints.
 
-export const DESIGN_IMPORT_NO_VISION_CODE = 'design-import/no-vision'
+const DESIGN_IMPORT_NO_VISION_CODE = 'design-import/no-vision'
 
 /**
  * The user's chat provider, which must read images (the original's pages
@@ -38,7 +38,7 @@ export async function requireVisionChatProvider(userId: number): Promise<Resolve
 // ever reads an object it presigned for them (same idea as
 // `knowledgePendingUpload.ts`). Claimed atomically (GETDEL); fails closed.
 
-export const DESIGN_IMPORT_PENDING_TTL_MS = 6 * 60 * 1000
+const DESIGN_IMPORT_PENDING_TTL_MS = 6 * 60 * 1000
 
 export interface PendingDesignUpload {
   stagingKey: string

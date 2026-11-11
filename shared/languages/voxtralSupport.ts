@@ -29,8 +29,6 @@ export const VOXTRAL_SUPPORTED_LANGUAGES = [
   'nl' // Dutch
 ] as const
 
-export type VoxtralLanguage = typeof VOXTRAL_SUPPORTED_LANGUAGES[number]
-
 /**
  * Predicate: does Voxtral support this language? Accepts either a
  * bare ISO 639-1 code (`en`, `de`) or a full BCP-47 tag (`en-US`,

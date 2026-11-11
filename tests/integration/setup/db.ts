@@ -131,7 +131,7 @@ async function getValkey() {
   return _valkey
 }
 
-export async function resetValkey(): Promise<void> {
+async function resetValkey(): Promise<void> {
   const client = await getValkey()
   await client.flushdb()
 }

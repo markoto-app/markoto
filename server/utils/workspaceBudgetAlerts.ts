@@ -13,7 +13,7 @@ import { notifyWorkspaceAdmins } from './email/workspaceBillingEmails'
 // every 15 minutes; LiteLLM is the source of the spend. The same run ends
 // expired seat-change budget adjustments (`endSeatAdjustment`).
 
-export const BUDGET_ALERT_LEVELS = [1, 0.8] as const
+const BUDGET_ALERT_LEVELS = [1, 0.8] as const
 
 /** Pure: the highest alert level a spend has reached, or null. */
 export function budgetAlertLevel(spend: number, budget: number): 0.8 | 1 | null {

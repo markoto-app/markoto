@@ -56,6 +56,13 @@ function sessionDataOf(event: H3Event, name: string): Record<string, unknown> | 
 export function dropUnusedSessionCookie(event: H3Event, name: string = DEFAULT_SESSION_COOKIE): void {
   const res = event.node?.res
   if (!res || res.headersSent) return
+  // The pages host and custom domains serve user-written pages: no cookie
+  // of any kind is ever set there (a stale or forged session cookie sent
+  // to such a host would otherwise be answered with a fresh one).
+  if (event.context?.publicPageHost) {
+    res.removeHeader('set-cookie')
+    return
+  }
   const data = sessionDataOf(event, name)
   if (data === undefined) return
   const cookieHeader = event.node.req.headers.cookie

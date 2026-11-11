@@ -4,7 +4,7 @@ import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
 // GET /api/docs/:docId/file-token — the image-access token for the live
 // preview / print iframes, which run sandboxed in an opaque origin and so

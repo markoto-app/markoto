@@ -22,9 +22,9 @@ import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 const LABEL_END = /[.:!?]$/
 const ENDPOINT = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)[ \t]+(\/\S*)$/
 
-export const LABELLED_CLASS = 'markoto-labelled'
-export const ALERT_LABELLED_CLASS = 'markoto-alert-labelled'
-export const ENDPOINT_CLASS = 'markoto-endpoint'
+const LABELLED_CLASS = 'markoto-labelled'
+const ALERT_LABELLED_CLASS = 'markoto-alert-labelled'
+const ENDPOINT_CLASS = 'markoto-endpoint'
 
 /** Text of inline tokens (text, code, nested emphasis). */
 function inlineText(tokens: Token[]): string {
@@ -32,7 +32,7 @@ function inlineText(tokens: Token[]): string {
 }
 
 /** Does this inline token (a paragraph's content) open with a bold run-in label followed by more text? */
-export function opensWithLabel(inline: Token | undefined): boolean {
+function opensWithLabel(inline: Token | undefined): boolean {
   const children = inline?.children ?? []
   let i = 0
   while (children[i]?.type === 'text' && children[i]?.content.trim() === '') i++

@@ -19,8 +19,6 @@ export type PreviewZoomSetting
     | { mode: 'scale', scale: number }
     | { mode: 'overview' }
 
-export type PreviewZoomMode = PreviewZoomSetting['mode']
-
 /** Fixed steps offered in the menu and walked by zoom in / out. */
 export const PREVIEW_ZOOM_STEPS: readonly number[] = [0.5, 0.75, 1, 1.25, 1.5, 2]
 
@@ -32,7 +30,7 @@ export const PREVIEW_ZOOM_MAX = 3
  * A pinch / Ctrl+wheel that ends this far below the minimum zoom pulls
  * back into the overview instead of stopping at the minimum.
  */
-export const PREVIEW_OVERVIEW_GESTURE_THRESHOLD = PREVIEW_ZOOM_MIN * 0.85
+const PREVIEW_OVERVIEW_GESTURE_THRESHOLD = PREVIEW_ZOOM_MIN * 0.85
 
 /** localStorage key — one setting per browser, not per document. */
 export const PREVIEW_ZOOM_STORAGE_KEY = 'markoto:preview-zoom'
@@ -108,7 +106,7 @@ export function parseStoredZoom(raw: string | null): PreviewZoomSetting {
   return DEFAULT_PREVIEW_ZOOM
 }
 
-export function serializeZoom(setting: PreviewZoomSetting): string {
+function serializeZoom(setting: PreviewZoomSetting): string {
   return JSON.stringify(setting)
 }
 

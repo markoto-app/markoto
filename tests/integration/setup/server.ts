@@ -134,9 +134,8 @@ export async function startNuxt(): Promise<void> {
     // Substitutes a fake SpeechClient for the dictation WS route so
     // integration tests can drive the full handshake and message
     // flow without hitting Voxtral Realtime or paying per-minute.
-    // (Env var name carried over from pre-Phase-5 Cloud STT mock.)
     // See `server/utils/agentic/dictateSpeechClient.ts`.
-    NUXT_GOOGLE_SPEECH_MOCK: '1',
+    NUXT_VOXTRAL_REALTIME_MOCK: '1',
     // The markitdown-test container (host port 8081): the design-from-a-
     // document pipeline reads its uploads there (`POST /design/extract`).
     NUXT_MARKITDOWN_URL: process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081',
@@ -251,7 +250,7 @@ export async function startNuxt(): Promise<void> {
  * NUXT_STRIPE_* var removed — the app must boot and serve without them.
  */
 /** The hosted free tier's plan limits applied to the billing-off server. */
-export const HOSTED_FREE_TIER_LIMITS = {
+const HOSTED_FREE_TIER_LIMITS = {
   TIER_FREE_MEMBERS_PER_WORKSPACE: '3',
   TIER_FREE_HISTORY_DAYS: '30',
   TIER_FREE_SAVED_THEMES: '3',

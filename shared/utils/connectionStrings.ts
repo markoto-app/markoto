@@ -46,13 +46,13 @@ export interface ValkeyClientConfig {
   options?: { tls?: { ca?: Buffer } }
 }
 
-export function buildPostgresUrl(p: PostgresParts): string {
+function buildPostgresUrl(p: PostgresParts): string {
   const user = encodeURIComponent(p.user)
   const password = encodeURIComponent(p.password)
   return `postgres://${user}:${password}@${p.host}:${p.port}/${p.database}`
 }
 
-export function buildValkeyUrl(p: ValkeyParts): string {
+function buildValkeyUrl(p: ValkeyParts): string {
   const auth = p.password ? `:${encodeURIComponent(p.password)}@` : ''
   const db = p.db ?? '0'
   // `rediss://` (double-s) is the standard scheme for TLS-wrapped Redis;
@@ -62,7 +62,7 @@ export function buildValkeyUrl(p: ValkeyParts): string {
   return `${scheme}://${auth}${p.host}:${p.port}/${db}`
 }
 
-export const POSTGRES_REQUIRED_VARS = [
+const POSTGRES_REQUIRED_VARS = [
   'POSTGRES_USER',
   'POSTGRES_PASSWORD',
   'POSTGRES_HOST',
@@ -70,7 +70,7 @@ export const POSTGRES_REQUIRED_VARS = [
   'POSTGRES_DB'
 ] as const
 
-export const VALKEY_REQUIRED_VARS = ['VALKEY_HOST', 'VALKEY_PORT'] as const
+const VALKEY_REQUIRED_VARS = ['VALKEY_HOST', 'VALKEY_PORT'] as const
 
 export function postgresUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
   const missing = POSTGRES_REQUIRED_VARS.filter(k => !env[k])
@@ -93,7 +93,7 @@ export function postgresUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string
   })
 }
 
-export function valkeyUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
+function valkeyUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
   const missing = VALKEY_REQUIRED_VARS.filter(k => !env[k])
   if (missing.length > 0) {
     throw new Error(`[valkey] missing required env vars: ${missing.join(', ')}`)

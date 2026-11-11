@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import * as Y from 'yjs'
-import { LitellmBudgetExhausted } from '../../server/utils/litellmKeys'
+import { LitellmBudgetExhausted } from '../../server/utils/litellm/userKeys'
 import { soloSessionGuard } from './fixtures/crossBoundary'
 
 // Phase 7: pin the runLoop's mid-loop budget-exhaustion catch path

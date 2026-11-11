@@ -5,7 +5,7 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
 import { openWs, closeAllWs } from '../setup/ws'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintDictateJwt } from '~~/shared/test-helpers/jwt'
+import { mintDictateJwt } from '~~/tests/helpers/jwt'
 
 // WS integration tests for /api/ai/dictate. The upstream realtime
 // transcription call (Mistral Voxtral Realtime) is stubbed by a mock

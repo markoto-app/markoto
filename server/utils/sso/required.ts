@@ -1,7 +1,7 @@
 import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
 import { getSsoConnectionForWorkspace } from '../../repos/sso'
 
-export const SSO_REQUIRED_CODE = 'sso/required'
+const SSO_REQUIRED_CODE = 'sso/required'
 
 /**
  * For a caller who got no role in a workspace: if they ARE a member and

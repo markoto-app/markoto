@@ -45,7 +45,7 @@ function text(v: unknown, field: string, max = MAX_TEXT): string {
 }
 
 /** One PEM certificate (BEGIN/END lines optional), currently valid. */
-export function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
+function normalizeIdpCertificate(raw: unknown, now = new Date()): string {
   const input = text(raw, 'samlIdpCert', MAX_CERT)
   const body = input.replace(/-----(BEGIN|END) CERTIFICATE-----/g, '').replace(/\s+/g, '')
   if (!/^[A-Za-z0-9+/]+=*$/.test(body)) throw invalid('samlIdpCert', 'Paste the IdP signing certificate (PEM or Base64).')

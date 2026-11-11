@@ -121,7 +121,7 @@ export type Variant
     | 'light-mobile'
     | 'dark-mobile'
 
-export function isMobileVariant(v: Variant): boolean {
+function isMobileVariant(v: Variant): boolean {
   return v.endsWith('mobile')
 }
 
@@ -1043,17 +1043,6 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 })
 
 export const expect = baseExpect
-
-export function skipVariants(
-  info: { project: { metadata?: Record<string, unknown> } },
-  variants: Variant[],
-  reason: string
-): void {
-  const v = info.project.metadata?.variant as Variant | undefined
-  if (v && variants.includes(v)) {
-    base.skip(true, `${reason} (skipping variant=${v})`)
-  }
-}
 
 /**
  * Require the live AI upstream to be wired. Phase 5 retired Gemini —

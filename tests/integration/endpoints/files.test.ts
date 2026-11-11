@@ -10,7 +10,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
-import { mintSessionJwt } from '~~/shared/test-helpers/jwt'
+import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
 // GET /api/files/:docId/:fileId — returns 302 → presigned S3 URL when
 // allowed, 403 when denied. Critical bug-fix regression target: pre-fix,

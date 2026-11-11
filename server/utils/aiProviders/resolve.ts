@@ -36,7 +36,7 @@ import {
 } from '~~/shared/ai/providers'
 
 /** LiteLLM deployment prefix for clientside-credential (BYOK) calls. */
-export const BYOK_MODEL_PREFIX = 'byok/'
+const BYOK_MODEL_PREFIX = 'byok/'
 
 export interface ResolvedAiProvider {
   capability: AiCapability
@@ -103,7 +103,7 @@ export const CAPABILITY_PLAN_FEATURE: Partial<Record<AiCapability, FeatureField>
 }
 
 /** The stronger platform chat model (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`), or null. */
-export function strongChatModel(env: Record<string, string | undefined> = process.env): string | null {
+function strongChatModel(env: Record<string, string | undefined> = process.env): string | null {
   const v = (env.NUXT_AI_DEFAULT_CHAT_STRONG_MODEL ?? '').trim()
   return v === '' ? null : v
 }
@@ -165,10 +165,6 @@ export async function resolveAiAccess(userId: number, plan: PlanName): Promise<A
 
 export async function resolveAiProviders(userId: number, plan: PlanName): Promise<ResolvedAiProviders> {
   return (await resolveAiAccess(userId, plan)).providers
-}
-
-export async function resolveAiProvider(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProvider | null> {
-  return (await resolveAiProviders(userId, plan))[capability]
 }
 
 export interface LiveDictationTarget {

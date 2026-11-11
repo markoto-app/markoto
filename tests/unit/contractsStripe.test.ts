@@ -12,7 +12,7 @@ import {
   makeSubscriptionDeletedEvent,
   makeInvoicePaidEvent,
   makeInvoicePaymentFailedEvent
-} from '~~/shared/test-helpers/stripe'
+} from '~~/tests/helpers/stripe'
 
 // Contract tests for the Stripe pinning. The point of these is the
 // same as the JWT contract tests: catch a drift between

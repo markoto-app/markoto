@@ -94,7 +94,7 @@ function variable(slug: string, axis: 'wght' | 'opsz' = 'wght'): FontsourceSourc
  * weights 400–900 (`HeadingWeightSchema`), definition terms 600. A
  * weight a family doesn't ship falls back to the nearest one it does.
  */
-export const DOCUMENT_FONT_WEIGHTS = [400, 500, 600, 700, 800, 900] as const
+const DOCUMENT_FONT_WEIGHTS = [400, 500, 600, 700, 800, 900] as const
 
 /** Static font: one file per subset, weight and style. */
 function staticWeights(slug: string, weights: readonly number[] = DOCUMENT_FONT_WEIGHTS): FontsourceSource {

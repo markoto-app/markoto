@@ -676,7 +676,7 @@ function codeFontStack(theme: DocTheme): string {
  * split between lines. `renderMarkdown` wraps every code line in a
  * `<span class="code-line">`, so the count is a selector.
  */
-export const CODE_KEEP_TOGETHER_LINES = 15
+const CODE_KEEP_TOGETHER_LINES = 15
 
 /**
  * Code blocks: one box for every highlight theme. The `<pre>` carries the

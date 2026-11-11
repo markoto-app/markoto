@@ -8,7 +8,7 @@ import { performReauthDocument } from './connection-expiry'
 import { writeDocNotBefore } from './doc-not-before'
 import { Sentry } from './sentry'
 
-export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
+export type { HocuspocusInstance } from './kickUser'
 
 // TEST_MODE-only ring buffer for kick-user observation. Lets integration
 // tests assert "the workspace mutation actually dispatched a kick" — the
@@ -137,7 +137,7 @@ async function handleInternalRequestInner(
  * `X-Internal-Secret` header must match the current or previous secret.
  * Returns false (and writes the error response) on failure.
  */
-export function authenticateInternalRequest(request: IncomingMessage, response: ServerResponse): boolean {
+function authenticateInternalRequest(request: IncomingMessage, response: ServerResponse): boolean {
   if (cameThroughEdgeProxy(name => request.headers[name])) {
     sendJson(response, 404, { error: 'Not found' })
     return false

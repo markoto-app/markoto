@@ -16,7 +16,7 @@ import { insertCreditGrant, refundCreditGrant, type CreditSubject } from '../rep
 import { recomputeCreditBudget } from './aiCredits'
 import { isCurrency, isTopupPackId, topupPack, TOPUP_VALIDITY_MONTHS } from '~~/shared/config/pricing'
 import { isOrderSensitiveStripeEvent } from '~~/shared/contracts/stripe'
-import { updateUserKeyBudget, resetUserKeySpend } from './litellmKeys'
+import { updateUserKeyBudget, resetUserKeySpend } from './litellm/userKeys'
 
 /** `client_reference_id` prefix of a workspace (Team / Business) checkout. */
 export const WORKSPACE_REF_PREFIX = 'workspace:'
@@ -314,7 +314,7 @@ async function handleTopupCheckout(
  * Subscription Checkouts need nothing here: their state comes from the
  * subscription events.
  */
-export async function handleCheckoutAsyncPaymentSucceeded(
+async function handleCheckoutAsyncPaymentSucceeded(
   event: Stripe.CheckoutSessionAsyncPaymentSucceededEvent,
   opts: { db?: DbOrTx, deferAfterCommit?: DeferredAfterCommit }
 ): Promise<{ matched: number, plan: PlanName | null }> {
@@ -327,7 +327,7 @@ export async function handleCheckoutAsyncPaymentSucceeded(
  * `checkout.session.async_payment_failed`: a delayed top-up payment
  * failed. Nothing was granted; logged for support.
  */
-export function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAsyncPaymentFailedEvent): { matched: number } {
+function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAsyncPaymentFailedEvent): { matched: number } {
   const session = event.data.object
   if (session.mode !== 'payment') return { matched: 0 }
   const msg = `[stripe/webhook] delayed top-up payment failed: session=${session.id}`
@@ -340,7 +340,7 @@ export function handleCheckoutAsyncPaymentFailed(event: Stripe.CheckoutSessionAs
  * `charge.refunded`: a refunded top-up loses the refunded share of its
  * credit (credits already used stay used). Other charges are ignored.
  */
-export async function handleChargeRefunded(
+async function handleChargeRefunded(
   event: Stripe.ChargeRefundedEvent,
   db?: DbOrTx,
   deferAfterCommit?: DeferredAfterCommit

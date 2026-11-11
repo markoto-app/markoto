@@ -76,7 +76,7 @@ export default defineConfig({
     // Pre-grant clipboard + microphone. Microphone is what unblocks
     // the voice-dictate flow's `getUserMedia` call without a system
     // dialog. The fake media stream below provides synthetic audio
-    // so the prod server's mock STT (NUXT_GOOGLE_SPEECH_MOCK=1)
+    // so the prod server's mock STT (NUXT_VOXTRAL_REALTIME_MOCK=1)
     // sees real chunks land and emits its canned transcript.
     permissions: ['clipboard-read', 'clipboard-write', 'microphone'],
     launchOptions: {

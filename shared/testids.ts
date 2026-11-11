@@ -100,36 +100,6 @@ export const TESTID = {
 } as const
 
 /**
- * Parametric testid factories. The prefix is part of the name so a
- * spec can do `[data-testid^="${PREFIX}-"]` for "any of" matches.
- * Each factory returns a `data-testid="..."` string ready to bind.
- */
-export const TESTID_FOR = {
-  /** Activity feed per-row Restore button. id = activity row id. */
-  activityRowRestore: (id: number) => `activity-row-restore-${id}`,
-  /** Share modal access-mode button. mode = 'private' | 'open-edit' | 'open-view' | 'password-protected'. */
-  shareAccess: (mode: string) => `share-access-${mode}`,
-  /** Mobile alert kind picker. kind = 'note' | 'tip' | 'important' | 'warning' | 'caution' (lowercased). */
-  ecpAlert: (kind: string) => `ecp-alert-${kind.toLowerCase()}`,
-  /** Mobile diagram kind picker. kind = 'flowchart' | 'sequence' | 'class' | 'er' | 'gantt' | 'pie'. */
-  ecpDiagram: (kind: string) => `ecp-diagram-${kind}`,
-  /** Knowledge panel file row. knowledgeId = the workspace_knowledge.id. */
-  knowledgeFileRow: (knowledgeId: string) => `knowledge-file-row-${knowledgeId}`,
-  /** Workspace dashboard list card. workspaceId = the workspace nanoid. */
-  workspaceListItem: (workspaceId: string) => `workspace-list-item-${workspaceId}`,
-  /** Pricing tier card. plan = 'free' | 'pro' | 'team' | 'business'. */
-  pricingTier: (plan: string) => `pricing-tier-${plan}`,
-  /** New-document dialog template card. id = template id. */
-  newDocTemplateCard: (id: string) => `newdoc-template-card-${id}`,
-  /** New-document dialog theme card. id = theme preset id. */
-  newDocThemeCard: (id: string) => `newdoc-theme-card-${id}`,
-  /** Theme panel preset card. id = preset id. */
-  themePreset: (id: string) => `theme-preset-${id}`,
-  /** Theme panel saved-preset card. themeId = saved theme uuid. */
-  themeSaved: (themeId: string) => `theme-saved-${themeId}`
-} as const
-
-/**
  * Convenience: build a `[data-testid="..."]` CSS selector from a
  * registry key. Spec files use this when they reach for
  * `page.locator(...)` directly (rather than going through the

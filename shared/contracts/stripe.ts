@@ -76,8 +76,6 @@ export const HANDLED_STRIPE_EVENT_TYPES = [
   'invoice.payment_failed'
 ] as const
 
-export type HandledStripeEventType = typeof HANDLED_STRIPE_EVENT_TYPES[number]
-
 /**
  * The subset of handled events whose ordering matters — those that
  * can arrive BEFORE `checkout.session.completed` binds the

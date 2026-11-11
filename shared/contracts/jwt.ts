@@ -100,8 +100,6 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
   'mcp:'
 ] as const
 
-export type SyntheticUserIdPrefix = typeof SYNTHETIC_USER_ID_PREFIXES[number]
-
 /** Build the synthetic userId for an AI client session. Used by
  *  `server/utils/aiClient.ts`. */
 export function aiClientUserId(sessionId: string): `ai:assistant:${string}` {

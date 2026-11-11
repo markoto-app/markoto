@@ -8,7 +8,7 @@ import en from '../../i18n/locales/en.json'
 // caught here at unit-time.
 //
 // Whenever you add or rename a key referenced by an AI component
-// (AIPromptBar, UsageBadge, AiPointsBadge, useAI, useAiCredits,
+// (AIPromptBar, UsageBadge, useAI, useAiCredits,
 // EditorLayout's onBudgetExhausted), add it to the list below.
 
 const EXPECTED_KEYS: string[] = [

@@ -1,5 +1,5 @@
 import { eq, inArray, sql, type SQL } from 'drizzle-orm'
-import { workspaceSubscriptions, workspaceMembers } from '../db/schema'
+import { workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from '../utils/database'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
 
@@ -33,7 +33,7 @@ export interface WorkspaceSubscriptionRow {
  * the admins see a banner meanwhile. `unpaid`, `canceled`, `incomplete*`
  * and `paused` do not.
  */
-export const ENTITLED_SUBSCRIPTION_STATUSES = ['active', 'trialing', 'past_due'] as const
+const ENTITLED_SUBSCRIPTION_STATUSES = ['active', 'trialing', 'past_due'] as const
 
 /** Whether a subscription row currently grants its plan. */
 export function subscriptionGrantsPlan(
@@ -52,21 +52,6 @@ export async function getWorkspaceSubscription(workspaceId: string): Promise<Wor
     .where(eq(workspaceSubscriptions.workspaceId, workspaceId))
     .limit(1))[0]
   return row ?? null
-}
-
-export type WorkspaceSubscriptionUpsert = Omit<WorkspaceSubscriptionRow, 'createdAt' | 'updatedAt' | 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
-
-/** Insert or replace a workspace's subscription (Stripe webhook). */
-export async function upsertWorkspaceSubscription(input: WorkspaceSubscriptionUpsert): Promise<void> {
-  const db = useDatabase()
-  const { workspaceId, ...rest } = input
-  await db
-    .insert(workspaceSubscriptions)
-    .values({ ...input, updatedAt: new Date() })
-    .onConflictDoUpdate({
-      target: workspaceSubscriptions.workspaceId,
-      set: { ...rest, updatedAt: new Date() }
-    })
 }
 
 /**
@@ -88,21 +73,6 @@ export async function listSubscriptionsByBillingAdmin(userId: number): Promise<A
     })
     .from(workspaceSubscriptions)
     .where(eq(workspaceSubscriptions.billingAdminId, userId))
-}
-
-/** Subscriptions of every workspace the user is a member of ("workspaces that cover you"). */
-export async function listSubscribedWorkspacesForMember(userId: number): Promise<Array<{ workspaceId: string, plan: WorkspacePlanName, status: string, validUntil: Date | null }>> {
-  const db = useDatabase()
-  return db
-    .select({
-      workspaceId: workspaceSubscriptions.workspaceId,
-      plan: workspaceSubscriptions.plan,
-      status: workspaceSubscriptions.status,
-      validUntil: workspaceSubscriptions.validUntil
-    })
-    .from(workspaceSubscriptions)
-    .innerJoin(workspaceMembers, eq(workspaceMembers.workspaceId, workspaceSubscriptions.workspaceId))
-    .where(eq(workspaceMembers.userId, userId))
 }
 
 /**

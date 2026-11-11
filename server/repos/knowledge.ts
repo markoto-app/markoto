@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, sql, cosineDistance } from 'drizzle-orm'
+import { and, desc, eq, sql, cosineDistance } from 'drizzle-orm'
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
 import { useDatabase } from '../utils/database'
 import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
@@ -362,17 +362,4 @@ export async function searchKnowledge(args: {
   return [...byKey.values()]
     .sort((a, b) => b.rrfScore - a.rrfScore)
     .slice(0, args.topK)
-}
-
-/** Exposed so tests / administrative endpoints can walk chunks by id. */
-export async function listChunkIdsForKnowledge(knowledgeIds: string[]): Promise<{ knowledgeId: string, chunkCount: number }[]> {
-  if (knowledgeIds.length === 0) return []
-  const db = useDatabase()
-  const rows = await db.select({
-    knowledgeId: workspaceKnowledgeChunks.knowledgeId,
-    chunkCount: sql<number>`count(*)::int`
-  }).from(workspaceKnowledgeChunks)
-    .where(inArray(workspaceKnowledgeChunks.knowledgeId, knowledgeIds))
-    .groupBy(workspaceKnowledgeChunks.knowledgeId)
-  return rows
 }

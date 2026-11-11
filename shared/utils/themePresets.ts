@@ -812,7 +812,7 @@ function stripPresetCss(css: string): string {
  * preset (an unchanged copy at the start, as `themeFromPreset` writes it)
  * and the author's own CSS after it.
  */
-export function splitPresetCss(css: string | undefined): { template: string, own: string } {
+function splitPresetCss(css: string | undefined): { template: string, own: string } {
   const text = (css ?? '').trimStart()
   for (const p of THEME_PRESETS) {
     const template = p.theme.customCss?.trim()

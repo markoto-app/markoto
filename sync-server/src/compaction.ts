@@ -95,7 +95,7 @@ export interface CompactionResult {
  * of the file for why the ceiling read and the delete bound are what they
  * are — do not "simplify" them to the library's `flushDocument` shape.
  */
-export async function compactDocument(docName: string): Promise<CompactionResult | null> {
+async function compactDocument(docName: string): Promise<CompactionResult | null> {
   // 1) Snapshot the concurrency boundary BEFORE reading. Anything a live
   //    writer appends after this has id > ceiling and must survive untouched.
   const ceilRes = await getPool().query<{ max_id: number | null }>(
@@ -145,7 +145,7 @@ export async function compactDocument(docName: string): Promise<CompactionResult
  * safe even if two raced, but the lock avoids the wasted work). Per-doc
  * failures are logged + captured and don't abort the run.
  */
-export async function runCompactionSweep(): Promise<void> {
+async function runCompactionSweep(): Promise<void> {
   const lockClient = await getPool().connect()
   try {
     const got = await lockClient.query<{ locked: boolean }>(

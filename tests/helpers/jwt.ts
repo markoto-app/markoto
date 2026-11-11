@@ -1,13 +1,10 @@
 /**
  * Test-side JWT mint helpers.
  *
- * Lives in `shared/` so any test (unit, integration, e2e) can import
- * it without reaching across package boundaries. **PROD CODE MUST NOT
- * IMPORT FROM `shared/test-helpers/`.** ESLint enforces this in
- * `.eslintrc` (no-restricted-imports against `shared/test-helpers`),
- * the Nuxt server bundle never includes `shared/test-helpers/*` (no
- * route imports from here), and the file path itself is a strong
- * convention signal for human reviewers.
+ * Shared by every test tier (unit, integration, e2e). **PROD CODE MUST
+ * NOT IMPORT FROM `tests/`.** The `prod-never-imports-tests` rule in
+ * `.dependency-cruiser.cjs` enforces it, and the Nuxt server bundle
+ * never includes `tests/*` (no route imports from here).
  *
  * Why this module exists: the `aiDictateWs scope-mismatch` incident.
  * The test mint helper for dictate-tokens drifted from the prod mint
@@ -42,7 +39,7 @@ import {
   type DictateJwtPayload,
   type RenderJwtPayload,
   type SessionJwtPayload
-} from '../contracts/jwt'
+} from '~~/shared/contracts/jwt'
 
 interface BaseOpts {
   secret: string

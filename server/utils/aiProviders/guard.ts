@@ -9,7 +9,7 @@ import { assertPlanFeature } from '../entitlements'
 import type { AiCapability } from '~~/shared/ai/providers'
 import type { PlanName } from '~~/shared/config/tiers'
 
-export const AI_PROVIDER_MISSING_CODE = 'ai/provider-missing'
+const AI_PROVIDER_MISSING_CODE = 'ai/provider-missing'
 
 /** Where the user configures providers. Kept in one place for every recovery hint. */
 export const AI_SETTINGS_PATH = '/settings/ai'

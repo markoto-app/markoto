@@ -22,8 +22,8 @@ import { LANGUAGE_MAX_LENGTH } from '../languages'
 
 export const META_TITLE_MAX_LENGTH = 255
 export const META_DESCRIPTION_MAX_LENGTH = 500
-export const META_LANGUAGE_MAX_LENGTH = LANGUAGE_MAX_LENGTH
-export const META_TEMPLATE_ID_MAX_LENGTH = 64
+const META_LANGUAGE_MAX_LENGTH = LANGUAGE_MAX_LENGTH
+const META_TEMPLATE_ID_MAX_LENGTH = 64
 
 /** Structural bounds for JSON values. A DocTheme is three levels deep
  *  with a few hundred leaves; anything far beyond that is not a theme. */
@@ -31,9 +31,9 @@ export const META_THEME_MAX_DEPTH = 8
 export const META_THEME_MAX_NODES = 2000
 /** Bounds for keys this version doesn't know (forward compatibility with
  *  newer clients — see the ymeta migration playbook in sync-server/AGENTS.md). */
-export const META_UNKNOWN_MAX_DEPTH = 4
-export const META_UNKNOWN_MAX_NODES = 64
-export const META_UNKNOWN_MAX_STRING_LENGTH = 4096
+const META_UNKNOWN_MAX_DEPTH = 4
+const META_UNKNOWN_MAX_NODES = 64
+const META_UNKNOWN_MAX_STRING_LENGTH = 4096
 
 interface JsonBounds {
   maxDepth: number

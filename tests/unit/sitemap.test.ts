@@ -23,8 +23,6 @@ describe('sitemapBaseUrl', () => {
     expect(sitemapBaseUrl({ NUXT_SITE_URL: BASE })).toBeNull()
     expect(sitemapBaseUrl({ NUXT_MARKETING_SITE_ENABLED: 'true' })).toBeNull()
     expect(sitemapBaseUrl({ NUXT_MARKETING_SITE_ENABLED: 'true', NUXT_SITE_URL: 'https://markoto.app/' })).toBe(BASE)
-    // Former flag name still works for one release.
-    expect(sitemapBaseUrl({ NUXT_PRODUCT_TOUR_ENABLED: 'true', NUXT_SITE_URL: BASE })).toBe(BASE)
   })
 })
 

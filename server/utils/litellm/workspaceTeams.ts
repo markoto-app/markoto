@@ -28,16 +28,12 @@ import { creditBudgetExtraUsd } from '../aiCreditBudget'
 // 401 "workspace_id is not allowed in request body". Ours travels as
 // `markoto_workspace`.
 
-export const WORKSPACE_TEAM_PREFIX = 'markoto-ws-'
-export const WORKSPACE_TEAM_BUDGET_DURATION = '30d'
+const WORKSPACE_TEAM_PREFIX = 'markoto-ws-'
+const WORKSPACE_TEAM_BUDGET_DURATION = '30d'
 const TEST_STUB_TOKEN = 'sk-fake-test-workspace-key'
 
-export const TEAM_BUDGET_EXHAUSTED_CODE = 'ai/team-budget-exhausted'
-export const TEAM_BUDGET_EXHAUSTED_MESSAGE_KEY = 'ai.teamBudgetExhausted'
 export const TEAM_BUDGET_EXHAUSTED_MESSAGE
   = 'This workspace\'s AI budget is used up for this month. Ask a workspace admin to add seats or credits.'
-export const MEMBER_LIMIT_REACHED_CODE = 'ai/member-limit-reached'
-export const MEMBER_LIMIT_REACHED_MESSAGE_KEY = 'ai.memberLimitReached'
 export const MEMBER_LIMIT_REACHED_MESSAGE
   = 'You\'ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.'
 

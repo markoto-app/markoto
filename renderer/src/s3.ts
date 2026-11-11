@@ -6,7 +6,7 @@ import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 const endpoint = required('S3_ENDPOINT')
 const accessKey = required('S3_ACCESS_KEY')
 const secretKey = required('S3_SECRET_KEY')
-export const BUCKET = required('S3_BUCKET')
+const BUCKET = required('S3_BUCKET')
 
 function required(name: string): string {
   const v = process.env[name]
@@ -23,7 +23,7 @@ function required(name: string): string {
 const sseValue = process.env.S3_SSE ?? 'AES256'
 const useSse = sseValue !== '' && sseValue.toLowerCase() !== 'none'
 
-export const s3 = new S3Client({
+const s3 = new S3Client({
   endpoint,
   region: 'us-east-1',
   credentials: { accessKeyId: accessKey, secretAccessKey: secretKey },

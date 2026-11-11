@@ -30,7 +30,7 @@ import type { HeadingNumbering } from '~~/shared/types/theme'
  * base.
  */
 export const SECTION_HEADING_CLASS = 'markoto-section-heading'
-export const FIRST_SECTION_CLASS = 'markoto-first-section'
+const FIRST_SECTION_CLASS = 'markoto-first-section'
 
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6'
 

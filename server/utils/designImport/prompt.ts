@@ -24,7 +24,7 @@ const ThemePatchBase = UpdateThemeArgs.omit({ preset: true, theme_id: true, from
 const CoverPatch = UpdateThemeArgs.shape.cover.unwrap().omit({ authors: true, affiliations: true, subtitle: true, date: true })
 
 /** Name when the model sends none (English; the user renames it in the dialog). */
-export const DEFAULT_DESIGN_NAME = 'Imported design'
+const DEFAULT_DESIGN_NAME = 'Imported design'
 
 export const DesignThemePatch = ThemePatchBase.extend({ cover: CoverPatch.optional() })
 export type DesignThemePatch = z.infer<typeof DesignThemePatch>

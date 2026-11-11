@@ -27,11 +27,11 @@ import type { PinnedRequestInit } from '../safeFetch'
 import { parseBooleanFlag } from '~~/shared/config/billingMode'
 
 export const SSO_FETCH_MAX_BYTES = 1024 * 1024
-export const SSO_FETCH_TIMEOUT_MS = 10_000
+const SSO_FETCH_TIMEOUT_MS = 10_000
 
 export type SsoResolver = (host: string) => Promise<string[]>
 
-export const systemSsoResolver: SsoResolver = async (host) => {
+const systemSsoResolver: SsoResolver = async (host) => {
   const answers = await lookup(host, { all: true, verbatim: true })
   return answers.map(a => a.address)
 }

@@ -42,7 +42,7 @@ function isAssertionKey(key: string): boolean {
  * makes every OTHER request id invisible, which ties the response to the
  * browser that started the sign-in.
  */
-export function samlCacheProvider(boundRequestId?: string): CacheProvider & {
+function samlCacheProvider(boundRequestId?: string): CacheProvider & {
   saveIfAbsentAsync(key: string, value: string, expiresAtMs: number): Promise<boolean>
 } {
   const valkey = useValkey()

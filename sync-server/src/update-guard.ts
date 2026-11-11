@@ -35,7 +35,7 @@ import { SYNC_CLOSE_CODES, SYNC_CLOSE_REASONS, type SyncCloseReason } from '../.
 import type { SyncLimits } from './limits'
 import { ByteReader, MESSAGE_TYPE, readFrameHeader } from './frame'
 
-export const META_ROOT = 'meta'
+const META_ROOT = 'meta'
 
 export class SyncRejection extends Error {
   // Hocuspocus reads `code` + `reason` off the thrown value when it
@@ -218,7 +218,7 @@ function createPlacementResolver(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.G
  * invalid value into ymeta, nests a Y type inside it, or references
  * state the server doesn't have.
  */
-export function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Skip>): void {
+function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Skip>): void {
   const placementOf = createPlacementResolver(doc, structs)
   for (const s of structs) {
     if (!(s instanceof Y.Item)) continue

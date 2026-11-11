@@ -80,7 +80,7 @@ const COMPOSE_CONTAINER_NAME = new RegExp(
  * IPv6 brackets dropped, trailing dots removed (`litellm.` is the same
  * name as `litellm` to a resolver).
  */
-export function normalizeHostname(raw: string): string {
+function normalizeHostname(raw: string): string {
   return raw.toLowerCase().replace(/^\[|\]$/g, '').replace(/\.+$/, '')
 }
 
@@ -94,7 +94,7 @@ export function isInternalHostname(raw: string): boolean {
 
 export type Resolver = (host: string) => Promise<string[]>
 
-export const systemResolver: Resolver = async (host) => {
+const systemResolver: Resolver = async (host) => {
   const rows = await lookup(host, { all: true })
   return rows.map(r => r.address)
 }

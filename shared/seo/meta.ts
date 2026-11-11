@@ -1,15 +1,13 @@
 // Page-metadata constants shared by the title template (app/app.vue),
 // useMarketingSeo and the meta-length tests.
 
-import { OG_IMAGES } from './ogImages'
-
 export const SITE_NAME = 'markoto'
 
 /** `<title>` when a page sets none (and the home page's own title). */
 export const DEFAULT_TITLE = 'markoto — Collaborative Markdown'
 
 /** Separator the title template puts between page title and site name. */
-export const TITLE_SUFFIX = ` · ${SITE_NAME}`
+const TITLE_SUFFIX = ` · ${SITE_NAME}`
 
 /**
  * `%s · markoto`; pages without a title get DEFAULT_TITLE. On a managed
@@ -24,13 +22,6 @@ export function applyTitleTemplate(title: string | null | undefined, brandName =
 /** Search-result limits the meta-length tests enforce. */
 export const MAX_TITLE_LENGTH = 60
 export const MAX_DESCRIPTION_LENGTH = 160
-
-/**
- * Default Open Graph / Twitter card image (built by
- * scripts/build-og-images.ts from a tour poster; JPEG because some
- * unfurlers ignore WebP). Per-group cards: `shared/seo/ogImages.ts`.
- */
-export const DEFAULT_OG_IMAGE = OG_IMAGES.default
 
 /**
  * `robots` meta of every indexable public page: large image previews in

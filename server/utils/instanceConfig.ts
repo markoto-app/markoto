@@ -5,12 +5,8 @@
 // tests flip the flags per case, and helpers work outside Nitro.
 
 import { createError } from 'h3'
-import { resolveInstanceConfig, resolveLegalSurfacesEnabled, type InstanceConfig } from '~~/shared/config/instance'
+import { resolveLegalSurfacesEnabled } from '~~/shared/config/instance'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
-
-export function getInstanceConfig(): InstanceConfig {
-  return resolveInstanceConfig(process.env)
-}
 
 export function legalSurfacesEnabled(): boolean {
   return resolveLegalSurfacesEnabled(process.env)

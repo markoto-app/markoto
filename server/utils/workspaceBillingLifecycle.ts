@@ -55,7 +55,7 @@ export async function endWorkspaceBilling(workspaceId: string, actorUserId: numb
  * Stripe may still bill this subscription: it has an id and hasn't
  * ended. `incomplete` counts — its first payment can still go through.
  */
-export function hasRunningSubscription(row: Pick<WorkspaceSubscriptionRow, 'stripeSubscriptionId' | 'status'>): boolean {
+function hasRunningSubscription(row: Pick<WorkspaceSubscriptionRow, 'stripeSubscriptionId' | 'status'>): boolean {
   return row.stripeSubscriptionId !== null && row.status !== 'canceled' && row.status !== 'incomplete_expired'
 }
 

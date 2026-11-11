@@ -122,7 +122,7 @@ function isSafeStyleValue(property: string, value: string): boolean {
  * `var()`, unknown functions, unknown properties) is dropped one
  * declaration at a time. Returns `''` when nothing survives.
  */
-export function filterInlineStyle(style: string): string {
+function filterInlineStyle(style: string): string {
   // Escapes and quotes could hide a `;` or a function name from the
   // split below; no legitimate value here needs either.
   if (/[\\"'<>]/.test(style)) return ''

@@ -7,7 +7,7 @@
 // only (tab-scoped, cleared on logout); every access is guarded because
 // storage can be disabled.
 
-export const PENDING_INVITE_KEY = 'markoto-pending-invite'
+const PENDING_INVITE_KEY = 'markoto-pending-invite'
 
 export function storePendingInviteToken(token: string): void {
   try {

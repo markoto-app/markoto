@@ -63,11 +63,10 @@ describe('live dictation target', () => {
 
 describe('realtime client', () => {
   it('passes the server URL to the Mistral SDK — the EU endpoint by default (the SDK\'s own default is global)', async () => {
-    // The CI coverage job runs with TEST_MODE=1 + NUXT_GOOGLE_SPEECH_MOCK=1,
+    // The CI coverage job runs with TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1,
     // which makes the factory return the canned mock client (it never
     // constructs the SDK and never ends on its own). This test is about
     // the real client, so switch the mocks off for it.
-    vi.stubEnv('NUXT_GOOGLE_SPEECH_MOCK', '')
     vi.stubEnv('NUXT_VOXTRAL_REALTIME_MOCK', '')
     const { createDictateRealtimeClient } = await import('../../server/utils/agentic/dictateSpeechClient')
     const req = { config: { encoding: 'LINEAR16', sampleRateHertz: 16000, languageCode: 'en-US' }, interimResults: true }

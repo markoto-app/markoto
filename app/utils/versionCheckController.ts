@@ -42,10 +42,10 @@ export interface VersionCheckController {
   dispose: () => void
 }
 
-export const DEFAULT_POLL_INTERVAL_MS = 5 * 60 * 1000
-export const DEFAULT_GRACE_MS = 30 * 1000
-export const DEFAULT_SNOOZE_MS = 5 * 60 * 1000
-export const DEFAULT_VISIBILITY_THROTTLE_MS = 60 * 1000
+const DEFAULT_POLL_INTERVAL_MS = 5 * 60 * 1000
+const DEFAULT_GRACE_MS = 30 * 1000
+const DEFAULT_SNOOZE_MS = 5 * 60 * 1000
+const DEFAULT_VISIBILITY_THROTTLE_MS = 60 * 1000
 
 export function createVersionCheckController(
   deps: VersionCheckDeps,

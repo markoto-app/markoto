@@ -12,7 +12,7 @@ import {
 import { useLitellmForUser } from '../../../utils/litellmClient'
 import { liveDictationTarget, resolveAiProviders, type LiveDictationTarget } from '../../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../../utils/billing'
-import { isBudgetExceededError } from '../../../utils/litellmKeys'
+import { isBudgetExceededError } from '../../../utils/litellm/userKeys'
 import { FEATURE_TAGS, featureMetadata } from '../../../utils/litellm/featureTags'
 import { litellmCompletion } from '../../../utils/litellm/createCompletion'
 import { getDoc } from '../../../repos/documents'

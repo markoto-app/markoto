@@ -32,7 +32,7 @@ import { isIP } from 'node:net'
 const ALLOWED_SCHEMES = new Set(['http:', 'https:'])
 
 /** Longest URL the URL-taking tools accept (fetch_url, view_image). */
-export const MAX_TOOL_URL_LENGTH = 2000
+const MAX_TOOL_URL_LENGTH = 2000
 
 /**
  * Address classes, from most to least restrictive:
@@ -136,7 +136,7 @@ function parseHextetGroups(part: string): number[] | null {
 }
 
 /** Parse any valid IPv6 text form (zone id stripped) into 16 bytes. */
-export function parseIPv6(raw: string): number[] | null {
+function parseIPv6(raw: string): number[] | null {
   const ip = raw.split('%')[0] ?? ''
   if (isIP(ip) !== 6) return null
   let text = ip.toLowerCase()

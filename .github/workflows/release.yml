@@ -411,7 +411,7 @@ jobs:
     env:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
       TEST_MODE: "1"
-      NUXT_GOOGLE_SPEECH_MOCK: "1"
+      NUXT_VOXTRAL_REALTIME_MOCK: "1"
       # The live-AI provider keys are deliberately NOT job-level env: they are
       # bound only to the two steps that use them (test-stack bring-up passes
       # them into the litellm container; `flows:test` reads them), so

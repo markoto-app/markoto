@@ -61,7 +61,7 @@ export async function waitFor<T>(probe: () => Promise<T | null>, timeoutMs: numb
  * virtual key, so provision one through the proxy's admin API and store
  * it exactly like `createUserKey` does (encrypted token + key id).
  */
-export async function provisionVirtualKey(userId: number): Promise<void> {
+async function provisionVirtualKey(userId: number): Promise<void> {
   const res = await fetch(`${LITELLM_URL}/key/generate`, {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${LITELLM_MASTER_KEY}`, 'Content-Type': 'application/json' },

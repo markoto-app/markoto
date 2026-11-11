@@ -840,7 +840,7 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
 
 // Phase 6 retired the per-period interaction counter. AI usage is now
 // gated solely by per-user LiteLLM virtual-key budgets — see
-// `users.litellmKeyToken` + `server/utils/litellmKeys.ts`. The single
+// `users.litellmKeyToken` + `server/utils/litellm/userKeys.ts`. The single
 // source of truth for "how much AI budget does this user have left" is
 // LiteLLM's `/key/info` endpoint, surfaced to the UI as AI Points via
 // `/api/ai/credits`.

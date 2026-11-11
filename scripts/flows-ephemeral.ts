@@ -65,8 +65,7 @@ const FLOWS_ENV: Record<string, string> = {
   // voice-dictate.spec.ts depends on this — without it, the live STT
   // API receives the synthetic 16 kHz tone and returns nothing
   // recognisable, the dictation session times out, and the flow fails.
-  // Env-var name retained from pre-Phase-5 (Gemini-era Cloud STT mock).
-  NUXT_GOOGLE_SPEECH_MOCK: '1',
+  NUXT_VOXTRAL_REALTIME_MOCK: '1',
   // Atomic Postgres parts — `postgresUrlFromEnv` reads these. Without
   // them, the Nitro subprocess inherits the parent shell's .env-loaded
   // dev vars and migrates the DEV database. (Same lesson as the
@@ -180,7 +179,7 @@ const FLOWS_ENV: Record<string, string> = {
   // Live dictation on the alias default needs the operator's Mistral key
   // in the APP process (the realtime WS is direct, not via LiteLLM) —
   // without it the dictation button is hidden. The flow stack swaps the
-  // realtime client for the canned mock (NUXT_GOOGLE_SPEECH_MOCK above),
+  // realtime client for the canned mock (NUXT_VOXTRAL_REALTIME_MOCK above),
   // so a placeholder is enough on the key-less PR gate; a real key from
   // the host env is kept when present.
   MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'flows-placeholder-mistral-key'

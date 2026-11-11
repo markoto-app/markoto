@@ -1,4 +1,4 @@
-import { and, eq, gt, isNotNull, sql, type SQL } from 'drizzle-orm'
+import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { ssoConnections, ssoDomains, ssoGrants, userIdentities, users } from '../db/schema'
 import { useDatabase } from '../utils/database'
@@ -279,7 +279,7 @@ export async function setIdentityScimExternalId(id: number, externalId: string |
 // ── Grants ───────────────────────────────────────────────────────────
 
 /** How long a sign-in through the workspace's IdP lets the member in. */
-export const SSO_GRANT_TTL_MS = 12 * 60 * 60 * 1000
+const SSO_GRANT_TTL_MS = 12 * 60 * 60 * 1000
 
 export async function writeSsoGrant(userId: number, workspaceId: string, sessionEpoch: number, now = new Date(), db: DbOrTx = useDatabase()): Promise<void> {
   const expiresAt = new Date(now.getTime() + SSO_GRANT_TTL_MS)
@@ -289,18 +289,6 @@ export async function writeSsoGrant(userId: number, workspaceId: string, session
 
 export async function deleteSsoGrant(userId: number, workspaceId: string, db: DbOrTx = useDatabase()): Promise<void> {
   await db.delete(ssoGrants).where(and(eq(ssoGrants.userId, userId), eq(ssoGrants.workspaceId, workspaceId)))
-}
-
-export async function hasValidSsoGrant(userId: number, workspaceId: string): Promise<boolean> {
-  const row = (await useDatabase().select({ userId: ssoGrants.userId }).from(ssoGrants)
-    .innerJoin(users, eq(users.id, ssoGrants.userId))
-    .where(and(
-      eq(ssoGrants.userId, userId),
-      eq(ssoGrants.workspaceId, workspaceId),
-      gt(ssoGrants.expiresAt, new Date()),
-      eq(ssoGrants.sessionEpoch, users.sessionEpoch)
-    )).limit(1))[0]
-  return row !== undefined
 }
 
 /**
@@ -326,11 +314,4 @@ export function ssoSatisfiedSql(workspaceIdColumn: AnyPgColumn | SQL, userId: nu
  */
 export function ssoEnforcedSql(workspaceIdColumn: AnyPgColumn | SQL): SQL {
   return sql`exists (select 1 from ${ssoConnections} sc where sc.workspace_id = ${workspaceIdColumn} and sc.status = 'active')`
-}
-
-/** Whether the workspace has an active (enforced) connection. */
-export async function isSsoEnforced(workspaceId: string): Promise<boolean> {
-  const row = (await useDatabase().select({ id: ssoConnections.id }).from(ssoConnections)
-    .where(and(eq(ssoConnections.workspaceId, workspaceId), eq(ssoConnections.status, 'active'))).limit(1))[0]
-  return row !== undefined
 }

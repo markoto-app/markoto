@@ -75,7 +75,7 @@ export interface ResponsePanelState {
   onPointerLeave: () => void
 }
 
-export const DEFAULT_COLLAPSE_AFTER_MS = 10_000
+const DEFAULT_COLLAPSE_AFTER_MS = 10_000
 
 export function useResponsePanelState<T extends { ts: number }>(
   input: ResponsePanelStateInput<T>

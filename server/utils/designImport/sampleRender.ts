@@ -22,14 +22,14 @@ const SAMPLE_TTL_SECONDS = 180
 /** Cover + the first text pages, so a cover that runs over still leaves text pages in view. */
 const SAMPLE_PAGES = 3
 
-export const DESIGN_SAMPLE_TITLE = 'Quarterly update'
+const DESIGN_SAMPLE_TITLE = 'Quarterly update'
 
 /**
  * A short document that shows every part of a design on two pages:
  * headings h1–h3, text, emphasis, a link, a list, a table, a quote, an
  * alert. Neutral English text — the model judges the design, not the words.
  */
-export const DESIGN_SAMPLE_MARKDOWN = `# Summary
+const DESIGN_SAMPLE_MARKDOWN = `# Summary
 
 This quarter we finished the move to the new platform and opened two offices. Revenue grew by **18 %**, and costs grew more slowly than revenue for the third quarter in a row. The [full figures](https://example.com) follow below.
 

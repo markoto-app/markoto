@@ -339,29 +339,11 @@ body { min-height: 100svh; }
   100% { background-color: rgba(181, 55, 31, 0.0); }
 }
 
-/* AI cursor blink — used by components/ai/Cursor.vue. Lives at document
-   scope for the same reason as the keyframes above. */
-@keyframes mk-ai-cursor-blink {
-  50% { opacity: 0; }
-}
-
 /* AI thinking-line entrance — fade + 8px upward translate, 240ms ease. */
 @keyframes mk-ai-thinking-enter {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
 }
-
-/* Gutter-mark fade-out used after a human accepts the AI's edit:
-   200ms color shift to sumi-300, 600ms hold, then 200ms opacity fade.
-   The component drives the timing; the keyframes only describe the
-   shapes. */
-@keyframes mk-gutter-mark-merge {
-  0%   { background: var(--color-shu-500); opacity: 1; }
-  20%  { background: var(--color-sumi-300); opacity: 1; }
-  80%  { background: var(--color-sumi-300); opacity: 1; }
-  100% { background: var(--color-sumi-300); opacity: 0; }
-}
-
 
 /* Select / combobox popovers (USelectMenu / UInputMenu) opened from INSIDE
    the mobile bottom sheet must render ABOVE it. BottomSheet's `.mk-sheet-host`

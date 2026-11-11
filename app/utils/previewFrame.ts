@@ -245,7 +245,7 @@ function withToken(url: string, token: string): string {
 }
 
 /** Where this document's renderers load a brand-kit font from (WP10). */
-export function brandFontUrl(docId: string, file: string, token: string): string {
+function brandFontUrl(docId: string, file: string, token: string): string {
   return withToken(brandAssetDocUrl(docId, file), token)
 }
 

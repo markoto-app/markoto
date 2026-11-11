@@ -67,7 +67,7 @@ describe('checkCustomDomainDns', () => {
 })
 
 describe('Traefik dynamic config', () => {
-  const settings: TraefikProviderSettings = { token: 'x'.repeat(32), entryPoint: 'websecure', certResolver: 'le', service: 'app@docker', upstream: null, middlewares: ['security-headers@docker'] }
+  const settings: TraefikProviderSettings = { token: 'x'.repeat(32), entryPoint: 'websecure', certResolver: 'le', service: 'app@docker', upstream: null, middlewares: ['security-headers@docker'], pagesRouter: false }
 
   it('one TLS router per live domain to the app service', () => {
     const cfg = buildTraefikDynamicConfig([{ id: 'Ab_cd-12', hostname: 'docs.acme.com', pageId: 'p' }], settings)
@@ -93,6 +93,17 @@ describe('Traefik dynamic config', () => {
     expect(buildTraefikDynamicConfig([], settings)).toEqual({})
     expect(buildTraefikDynamicConfig([{ id: 'b', hostname: 'a.com`) || Host(`evil.com', pageId: null }], settings)).toEqual({})
   })
+
+  it('the pages host gets a router that admits only the published-page paths', () => {
+    const cfg = buildTraefikDynamicConfig([], settings, 'pages.example.org') as { http: { routers: Record<string, { rule: string, tls: unknown, service: string }> } }
+    const router = cfg.http.routers['markoto-pages-host']!
+    expect(router.rule).toBe('Host(`pages.example.org`) && (PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`))')
+    expect(router.tls).toEqual({ certResolver: 'le' })
+    expect(router.service).toBe('app@docker')
+    // Neither the app root nor any internal route matches it.
+    expect(router.rule).not.toMatch(/PathPrefix\(`\/`\)|\/api\/internal|_internal/)
+    expect(buildTraefikDynamicConfig([], settings, 'a.com`) || Host(`evil.com')).toEqual({})
+  })
 })
 
 describe('settings', () => {
@@ -100,6 +111,7 @@ describe('settings', () => {
     expect(customDomainSettings({})).toBeNull()
     expect(customDomainSettings({ NUXT_PUBLISH_DOMAINS_TARGET: 'Pages.Markoto.App.', NUXT_PUBLISH_DNS_SERVERS: '1.1.1.1, 9.9.9.9:53' })).toEqual({ target: 'pages.markoto.app', dnsServers: ['1.1.1.1', '9.9.9.9:53'], allowTestNames: false })
     expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'short' })).toBeNull()
-    expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'y'.repeat(32) })).toMatchObject({ entryPoint: 'websecure', certResolver: 'le', service: 'app@docker', upstream: null, middlewares: [] })
+    expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'y'.repeat(32) })).toMatchObject({ entryPoint: 'websecure', certResolver: 'le', service: 'app@docker', upstream: null, middlewares: [], pagesRouter: false })
+    expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'y'.repeat(32), NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER: 'true' })?.pagesRouter).toBe(true)
   })
 })

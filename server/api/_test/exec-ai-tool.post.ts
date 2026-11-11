@@ -28,8 +28,7 @@ import { executeFunctionByName } from '../../utils/aiToolAdapter'
 import { getDoc } from '../../repos/documents'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../utils/billing'
-import type { AiStatusPhase } from '../../utils/aiClient'
-import type { DocToolContext } from '../../utils/agentic/toolContext'
+import type { DocToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 export default defineEventHandler(async (event) => {
@@ -91,7 +90,7 @@ export default defineEventHandler(async (event) => {
     // Real resolution so BYOK tests can drive e.g. generate_image with
     // the caller's configured image provider.
     aiProviders: await resolveAiProviders(session.user.id, billing.plan),
-    updateStatus: (_phase: AiStatusPhase, _message?: string) => { /* swallow */ }
+    updateStatus: (_phase: ToolStatusPhase, _message?: string) => { /* swallow */ }
   }
 
   const result = await executeFunctionByName(aiSession, name, args)

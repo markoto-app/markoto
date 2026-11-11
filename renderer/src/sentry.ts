@@ -25,4 +25,3 @@ if (dsn) {
 }
 
 export { Sentry }
-export const captureException = Sentry.captureException.bind(Sentry)
