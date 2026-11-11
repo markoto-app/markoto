@@ -290,7 +290,7 @@ Valkey-backed rate limits are bypassed under test mode — `TEST_MODE=1` on an i
 
 **S3 bucket policy (prod deployment requirement):** the production S3 bucket MUST deny public `ListBucket`. Our code never issues a presigned GET for knowledge keys, but if the bucket is list-enabled an attacker who guesses one `workspaces/{wsId}/knowledge/` prefix could enumerate by key. OVH defaults buckets to private; verify with `aws s3api get-bucket-acl --bucket $BUCKET` post-deploy.
 
-**Mid-session membership drift:** see `server/utils/AGENTS.md` (knowledge tools re-check role per invocation). Documents themselves rely on the Hocuspocus JWT expiring for revocation — accepted tradeoff (≤2 h).
+**Mid-session membership drift:** see `server/utils/AGENTS.md` (knowledge tools re-check role per invocation). An open sync connection lasts only as long as its doc JWT (≤ 2 h; renewed in place through the token endpoint, closed otherwise — `sync-server/src/connection-expiry.ts`); member removal / role change kicks the member's connections, and making a document stricter closes all its connections and refuses older JWTs (`notifySyncReauthDocument`). A removed member who kept a copy of their JWT can still open a new connection until it expires (≤ 2 h) — accepted tradeoff.
 
 **Stripe webhook security:** signature-verified per request; event IDs deduplicated via `processed_webhook_events`; out-of-order events stashed and re-applied. See `server/utils/stripeWebhook.ts`.
 
@@ -544,7 +544,7 @@ For feature-specific gotchas see the sub-AGENTS.md for that area.
 - **`y-postgresql` 1.0.1** — force `useIndex: false` (SQL bug in index-creation branch).
 - **Workspace authz: one helper per concern.** `canEditDoc` (content), `canManageDoc` (sharing/delete), `canManageWorkspace` (admin actions). Mixing leaks permissions.
 - **`workspaces.ownerId` vs `workspace_members.role='admin'` vs `workspace_subscriptions.billing_admin_id`** — `ownerId` is provenance only, never used for authz (entitlements use it as the fallback plan source). Authz goes through `role`. Paying for a Team / Business workspace goes through `workspace_subscriptions.billing_admin_id`. `workspaces.billing_owner_id` / `ai_enabled` belong to the retired `(+)` sponsorship and are read by nothing.
-- **Removing a workspace member doesn't revoke active JWTs** — valid until next token refresh (up to 2h). Acceptable for now.
+- **Removing a workspace member doesn't revoke the JWT itself** — their open connections are kicked and the editor refetches (and is refused) a token, but a copied JWT opens a new connection until it expires (up to 2h). Acceptable for now.
 - **`useColorMode()` at template top level causes hydration mismatch** — defer to `onMounted` with a neutral default ref, wrap in `<ClientOnly>`, or render both variants and CSS-toggle. See `app/AGENTS.md` for the Wordmark pattern.
 - **PR description quality directly equals release notes quality** — `release.yml` builds the GH Release body from the PR title + body verbatim. A single-line "fix typo" PR title produces a single-line release. Worth the small social pressure to write proper PR descriptions.
 - **`vi.mock` paths resolve relative to the TEST FILE, not the source file.** Use `vi.mock('../../server/utils/database', ...)` from a test in `tests/unit/`. Symptom is opaque: tests "passing" but with phantom assertions because the mock never engaged.

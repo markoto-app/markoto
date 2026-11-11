@@ -39,7 +39,8 @@ vi.mock('../../server/utils/traceHeaders', () => ({
 }))
 
 // Re-import after mocks so module under test sees the stubbed deps.
-const { notifySyncKickUser } = await import('../../server/utils/syncNotify')
+const { notifySyncKickUser, notifySyncReauthDocument } = await import('../../server/utils/syncNotify')
+const { captureExceptionThrottled } = await import('../../server/utils/throttledSentry')
 
 describe('notifySyncKickUser — dispatch contract', () => {
   beforeEach(() => {
@@ -123,6 +124,48 @@ describe('notifySyncKickUser — config gating', () => {
   it('short-circuits when internalApiSecret is missing', async () => {
     runtimeConfigStub.internalApiSecret = ''
     notifySyncKickUser(42, ['doc-a'])
+    await new Promise(r => setImmediate(r))
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+})
+
+describe('notifySyncReauthDocument — dispatch contract', () => {
+  beforeEach(() => {
+    fetchSpy.mockClear()
+    fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 200 })))
+    runtimeConfigStub.syncInternalUrl = SYNC_URL
+    runtimeConfigStub.internalApiSecret = SECRET
+    vi.mocked(captureExceptionThrottled).mockClear()
+  })
+
+  it('POSTs {docId, notBefore = now in whole seconds} with the internal secret', async () => {
+    const before = Math.floor(Date.now() / 1000)
+    notifySyncReauthDocument('doc-a')
+    await new Promise(r => setImmediate(r))
+    const [url, init] = fetchSpy.mock.calls[0]! as unknown as [string, RequestInit]
+    expect(url).toBe(`${SYNC_URL}/internal/reauth-document`)
+    expect(init.method).toBe('POST')
+    expect((init.headers as Record<string, string>)['X-Internal-Secret']).toBe(SECRET)
+    expect(init.signal).toBeInstanceOf(AbortSignal)
+    const body = JSON.parse(String(init.body)) as { docId: string, notBefore: number }
+    expect(body.docId).toBe('doc-a')
+    expect(Number.isInteger(body.notBefore)).toBe(true)
+    expect(body.notBefore).toBeGreaterThanOrEqual(before)
+    expect(body.notBefore).toBeLessThanOrEqual(Math.floor(Date.now() / 1000))
+  })
+
+  it('never throws and reports a failed or refused call', async () => {
+    fetchSpy.mockImplementationOnce(() => Promise.reject(new Error('network down')))
+    expect(() => notifySyncReauthDocument('doc-a')).not.toThrow()
+    fetchSpy.mockImplementationOnce(() => Promise.resolve(new Response(null, { status: 500 })))
+    notifySyncReauthDocument('doc-b')
+    await new Promise(r => setTimeout(r, 10))
+    expect(captureExceptionThrottled).toHaveBeenCalledTimes(2)
+  })
+
+  it('short-circuits without sync config', async () => {
+    runtimeConfigStub.syncInternalUrl = ''
+    notifySyncReauthDocument('doc-a')
     await new Promise(r => setImmediate(r))
     expect(fetchSpy).not.toHaveBeenCalled()
   })

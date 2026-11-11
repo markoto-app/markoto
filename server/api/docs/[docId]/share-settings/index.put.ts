@@ -3,6 +3,7 @@ import { getDocWithActorRole, setShareSettings } from '../../../../repos/documen
 import { appendAuditEvent } from '../../../../repos/audit'
 import { assertPlanFeature, resolveDocPlanFor } from '../../../../utils/entitlements'
 import { AUDIT_DOC_SHARE_SETTINGS_CHANGED } from '../../../../legal/auditActions'
+import { notifySyncReauthDocument } from '../../../../utils/syncNotify'
 
 // An ISO 8601 date-time with a zone (what the client sends: toISOString()).
 /** Changes per user per 10 minutes — a person sets these by hand. */
@@ -50,6 +51,10 @@ export default defineEventHandler(async (event) => {
   if (adds) assertPlanFeature(await resolveDocPlanFor(doc), 'shareControls', 'Link expiry and view-only sharing are part of the paid plans.')
 
   await setShareSettings(docId, { shareExpiresAt: expiresAt, shareNoDownload: noDownload })
+  // An earlier expiry or view-only applies to visitors already in the
+  // editor too: they re-authenticate and get a token (and download
+  // rights) matching the new settings.
+  if (tightensShareLink(before, expiresAt, noDownload)) notifySyncReauthDocument(docId)
   if (expiresAt?.getTime() !== before.shareExpiresAt?.getTime() || noDownload !== before.shareNoDownload) {
     await appendAuditEvent({
       actorUserId: userId,
@@ -64,3 +69,13 @@ export default defineEventHandler(async (event) => {
   }
   return { expiresAt: expiresAt?.toISOString() ?? null, noDownload }
 })
+
+function tightensShareLink(
+  before: { shareExpiresAt: Date | null, shareNoDownload: boolean },
+  expiresAt: Date | null,
+  noDownload: boolean
+): boolean {
+  const earlierExpiry = expiresAt !== null
+    && (before.shareExpiresAt === null || expiresAt.getTime() < before.shareExpiresAt.getTime())
+  return earlierExpiry || (noDownload && !before.shareNoDownload)
+}

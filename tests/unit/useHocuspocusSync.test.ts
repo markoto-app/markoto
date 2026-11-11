@@ -528,3 +528,53 @@ describe('useHocuspocusSync — sync rejection', () => {
     expect(h.instances[0]?.disconnects).toBe(0)
   })
 })
+
+// ═══════════════════════════════════════════════════════════════════════
+// Re-authentication: the server closed the connection because the token
+// expired or the document's access became stricter. Not a rejection —
+// the provider reconnects, and the caller makes that reconnect fetch a
+// fresh token.
+// ═══════════════════════════════════════════════════════════════════════
+
+describe('useHocuspocusSync — re-authentication', () => {
+  it('a re-authenticate close asks the caller for a fresh token and keeps reconnecting', () => {
+    const h = rejectionHarness()
+    const onReauthRequired = vi.fn()
+    const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory, onReauthRequired })
+    sync.connect()
+    const config = h.instances[0]?.config
+    // Document-level CLOSE message, then the socket close.
+    config?.onClose?.({ event: closeEvent(1000, 'reauthenticate') })
+    config?.onClose?.({ event: closeEvent(4419, 'reauthenticate') })
+    config?.onStatus?.({ status: WebSocketStatus.Connecting })
+    expect(onReauthRequired).toHaveBeenCalledTimes(2)
+    expect(sync.syncRejection.value).toBe(null)
+    expect(h.instances[0]?.disconnects).toBe(0)
+  })
+
+  it('tells getToken whether the server is asking for a renewal on the open connection', async () => {
+    const calls: Array<{ renewal: boolean }> = []
+    let authenticated = false
+    const factory = (config: HocuspocusProviderConfiguration) => ({
+      config,
+      destroy() {},
+      get isAuthenticated() { return authenticated }
+    })
+    const sync = useHocuspocusSync({
+      ...baseOpts(makeHarness()),
+      providerFactory: factory,
+      getToken: (opts: { renewal: boolean }) => {
+        calls.push(opts)
+        return 'jwt'
+      }
+    })
+    sync.connect()
+    const token = (sync.provider.value as unknown as { config: { token: () => Promise<string> } }).config.token
+    // (Re)connect: the provider resets isAuthenticated before asking.
+    await token()
+    // Server's token request on an authenticated connection.
+    authenticated = true
+    await token()
+    expect(calls).toEqual([{ renewal: false }, { renewal: true }])
+  })
+})

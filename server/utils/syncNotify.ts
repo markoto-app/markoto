@@ -45,6 +45,42 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
 }
 
 /**
+ * Make everyone connected to `docId` re-authenticate. Call after any
+ * change that makes a document's access stricter (access mode, password,
+ * link expiry / view-only, moderation restriction, workspace move): the
+ * sync-server refuses every doc token issued before now and closes the
+ * document's connections, so each editor fetches a fresh token — and an
+ * editor that no longer gets one lands on the no-access screen.
+ *
+ * Call it AFTER the access change is written: the cutoff is this
+ * second, and a token minted before the write would still carry the old
+ * access. Fire-and-forget like the kick above; with several sync-server
+ * instances only the one behind `syncInternalUrl` closes its connections
+ * (the token cutoff applies on all of them).
+ */
+export function notifySyncReauthDocument(docId: string): void {
+  const config = useRuntimeConfig()
+  if (!config.syncInternalUrl || !config.internalApiSecret) return
+
+  fetch(`${config.syncInternalUrl}/internal/reauth-document`, {
+    method: 'POST',
+    headers: injectTraceHeaders({
+      'Content-Type': 'application/json',
+      'X-Internal-Secret': config.internalApiSecret
+    }),
+    body: JSON.stringify({ docId, notBefore: Math.floor(Date.now() / 1000) }),
+    signal: AbortSignal.timeout(3000)
+  }).then((res) => {
+    if (!res.ok) throw new Error(`reauth-document answered ${res.status}`)
+  }).catch((e) => {
+    console.warn(`[syncNotify] reauth-document for ${docId} failed:`, e instanceof Error ? e.message : e)
+    captureExceptionThrottled('syncNotify.reauth-document', e, {
+      tags: { component: 'syncNotify', event: 'reauth_document_failed' }
+    })
+  })
+}
+
+/**
  * Ask the sync-server to persist a document's pending edits NOW (its
  * store is debounced 2–10 s) and wait until it has. Call before reading
  * a live document's `yjs_documents` rows — `duplicateDocument` clones

@@ -228,6 +228,25 @@ export function decideTokenAccess(doc: DocState, actor: ActorState): TokenDecisi
   }
 }
 
+// How much a non-member may do under each access mode (higher = more).
+// A password admits only those who enter it, so it sits below open-view.
+const ACCESS_MODE_OPENNESS: Record<AccessMode, number> = {
+  'private': 0,
+  'password-protected': 1,
+  'open-view': 2,
+  'open-edit': 3
+}
+
+/**
+ * Whether switching from `before` to `after` takes something away from a
+ * non-member — the cue to make connected editors re-authenticate. An
+ * unknown previous mode counts as tightened (fail toward re-checking).
+ */
+export function accessModeTightened(before: string | null, after: AccessMode): boolean {
+  const prev = before !== null && before in ACCESS_MODE_OPENNESS ? ACCESS_MODE_OPENNESS[before as AccessMode] : Infinity
+  return ACCESS_MODE_OPENNESS[after] < prev
+}
+
 /**
  * Decide whether to issue a presigned S3 URL for a file on this doc.
  *

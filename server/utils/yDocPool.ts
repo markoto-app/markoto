@@ -52,8 +52,14 @@ export interface PoolKey {
 }
 
 export interface PoolCheckoutOpts {
-  /** Pre-minted JWT signed with `config.jwtSecret` carrying the principal's claims. */
-  jwt: string
+  /**
+   * JWT signed with `config.jwtSecret` carrying the principal's claims, or
+   * a function minting one. Pass a function for anything that may stay
+   * connected longer than one token lives: the provider calls it on every
+   * (re)connect and when the sync server asks for a fresh token before
+   * expiry (it closes connections whose token runs out).
+   */
+  jwt: string | (() => string)
   /** Awareness `user` field broadcast to other clients. */
   awarenessUser: {
     name: string

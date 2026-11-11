@@ -4,6 +4,8 @@ import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } fro
 import { isTestModeEnabled } from '../../shared/utils/testMode'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
 import { flushPendingStore } from './flushDocument'
+import { performReauthDocument } from './connection-expiry'
+import { writeDocNotBefore } from './doc-not-before'
 import { Sentry } from './sentry'
 
 export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
@@ -102,6 +104,9 @@ async function handleInternalRequestInner(
     }
     if (url === '/internal/flush-document' && request.method === 'POST') {
       return await handleFlushDocument(request, response, instance)
+    }
+    if (url === '/internal/reauth-document' && request.method === 'POST') {
+      return await handleReauthDocument(request, response, instance)
     }
     // TEST_MODE-only inspection endpoints. The path includes `_test`
     // so it's grep-distinguishable from production paths in any audit.
@@ -246,5 +251,35 @@ async function handleKickUser(
   // Record for TEST_MODE inspection — no-op in prod.
   recordKick(targetUserId, targetDocIds)
   sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
+  return true
+}
+
+/**
+ * A document's access just became stricter (access mode, password, share
+ * settings, moderation, workspace move). Refuse every token issued before
+ * `notBefore` (the app's clock, epoch seconds) and close the document's
+ * connections so each client re-authenticates: an entitled one fetches a
+ * fresh token and reconnects, anyone else lands on the no-access screen.
+ * Only this instance's connections are closed; the cutoff (in Valkey)
+ * applies on every instance.
+ */
+async function handleReauthDocument(
+  request: IncomingMessage,
+  response: ServerResponse,
+  instance: HocuspocusInstance
+): Promise<boolean> {
+  const body: unknown = await readJsonBody(request)
+  const fields = typeof body === 'object' && body !== null ? body as Record<string, unknown> : {}
+  const { docId, notBefore } = fields
+  if (typeof docId !== 'string' || docId.length === 0
+    || typeof notBefore !== 'number' || !Number.isInteger(notBefore) || notBefore <= 0) {
+    sendJson(response, 400, { error: 'docId (string) and notBefore (epoch seconds) required' })
+    return true
+  }
+  // Cutoff first: a client closed below reconnects within a second and
+  // must already be refused if it presents its old token.
+  const cutoffStored = await writeDocNotBefore(docId, notBefore)
+  const closed = performReauthDocument(instance.documents?.get(docId))
+  sendJson(response, 200, { success: true, closed, cutoffStored })
   return true
 }

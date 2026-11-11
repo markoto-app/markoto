@@ -6,6 +6,8 @@ import { assertPlanFeature, resolveDocPlan } from '../../../utils/entitlements'
 import { resolveTemplateId } from '~~/shared/templates'
 import { ownCustomCss } from '~~/shared/utils/themePresets'
 import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
+import { notifySyncReauthDocument } from '../../../utils/syncNotify'
+import { accessModeTightened } from '../../../../shared/utils/docPermissions'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255
@@ -72,6 +74,8 @@ export default defineEventHandler(async (event) => {
       before: { accessMode: beforeAccessMode },
       after: { accessMode: updates.accessMode }
     })
+    // Open editors keep their token's access until they re-authenticate.
+    if (accessModeTightened(beforeAccessMode, updates.accessMode)) notifySyncReauthDocument(docId)
   }
 
   return { success: true }

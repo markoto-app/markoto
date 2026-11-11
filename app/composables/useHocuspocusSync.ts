@@ -1,7 +1,7 @@
 import * as Y from 'yjs'
 import { HocuspocusProvider, WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspocus/provider'
 import type { Awareness } from 'y-protocols/awareness'
-import { syncRejectionFromClose, type SyncCloseReason } from '~~/shared/contracts/syncClose'
+import { isReauthClose, syncRejectionFromClose, type SyncCloseReason } from '~~/shared/contracts/syncClose'
 
 /**
  * Minimal shape the composable needs from a "provider". Real
@@ -40,8 +40,14 @@ export interface HocuspocusSyncOptions {
    *  (and refreshes it when near expiry) is what keeps a long-lived
    *  session's reconnect from presenting a dead JWT (F5). May be async
    *  (the provider awaits it). Changes over the doc's lifetime (anonymous
-   *  → password-verified → refreshed), so it must be read lazily. */
-  getToken: () => string | Promise<string>
+   *  → password-verified → refreshed), so it must be read lazily.
+   *  `renewal` is true when the sync server asked for a fresh token on the
+   *  open connection (shortly before the current one expires). */
+  getToken: (opts: { renewal: boolean }) => string | Promise<string>
+  /** The sync server closed the connection for re-authentication; the
+   *  provider reconnects by itself, the caller makes sure that reconnect
+   *  presents a freshly fetched token. */
+  onReauthRequired?: () => void
   /** Fires on every successful sync (initial load + later reconnects). */
   onSynced?: () => void
   /** Fires on disconnect; receives whether we ever synced in this provider's
@@ -80,6 +86,10 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
   // a banner asking the user to reload.
   const syncRejection = ref<SyncCloseReason | null>(null)
 
+  function isAuthenticated(): boolean {
+    return (provider.value as { isAuthenticated?: unknown } | null)?.isAuthenticated === true
+  }
+
   function stopReconnecting() {
     provider.value?.disconnect?.()
     status.value = 'disconnected'
@@ -109,7 +119,10 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       // reconnects authenticated instead of replaying a dead JWT (F5).
       // `Promise.resolve` normalises the sync-or-async accessor to the
       // provider's `() => Promise<string>` shape.
-      token: () => Promise.resolve(opts.getToken()),
+      // An authenticated provider asking for a token is answering the
+      // server's renewal request; on a (re)connect the provider has
+      // reset `isAuthenticated` before it asks.
+      token: () => Promise.resolve(opts.getToken({ renewal: isAuthenticated() })),
       onConnect: () => { status.value = 'connected' },
       onDisconnect: () => {
         status.value = 'disconnected'
@@ -122,6 +135,10 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       },
       onAuthenticationFailed: () => { opts.onAuthFailed?.() },
       onClose: ({ event }) => {
+        if (isReauthClose(event)) {
+          opts.onReauthRequired?.()
+          return
+        }
         const rejection = syncRejectionFromClose(event)
         if (!rejection) return
         syncRejection.value = rejection

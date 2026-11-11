@@ -6,6 +6,7 @@ import {
   decideDocDelete,
   docStateOf,
   isEffectiveDocOwner,
+  accessModeTightened,
   type DocState,
   type ActorState,
   type AccessMode,
@@ -470,5 +471,27 @@ describe('suspended ownership (single sign-on)', () => {
     expect(isEffectiveDocOwner({ ownerId: 42, ownerAccessSuspended: false }, 7)).toBe(false)
     expect(isEffectiveDocOwner({ ownerId: 42, ownerAccessSuspended: false }, null)).toBe(false)
     expect(isEffectiveDocOwner({ ownerId: null, ownerAccessSuspended: false }, null)).toBe(false)
+  })
+})
+
+describe('accessModeTightened (connected editors must re-authenticate)', () => {
+  it('flags every change that takes something away from a non-member', () => {
+    expect(accessModeTightened('open-edit', 'open-view')).toBe(true)
+    expect(accessModeTightened('open-edit', 'private')).toBe(true)
+    expect(accessModeTightened('open-view', 'password-protected')).toBe(true)
+    expect(accessModeTightened('password-protected', 'private')).toBe(true)
+  })
+
+  it('does not flag a loosening or a no-op', () => {
+    expect(accessModeTightened('private', 'open-edit')).toBe(false)
+    expect(accessModeTightened('open-view', 'open-edit')).toBe(false)
+    expect(accessModeTightened('private', 'password-protected')).toBe(false)
+    expect(accessModeTightened('open-view', 'open-view')).toBe(false)
+  })
+
+  it('treats an unknown previous mode as tightened', () => {
+    expect(accessModeTightened(null, 'open-edit')).toBe(true)
+    expect(accessModeTightened(null, 'open-view')).toBe(true)
+    expect(accessModeTightened('legacy', 'private')).toBe(true)
   })
 })

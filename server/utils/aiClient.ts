@@ -110,7 +110,7 @@ export async function createAiSession(
   // before sync completed). The pool's own 10s sync timeout is the
   // other terminating condition.
   const checkoutPromise = checkout(key, {
-    jwt: mintLoopJwt(docId, meta.sessionId),
+    jwt: () => mintLoopJwt(docId, meta.sessionId),
     awarenessUser: {
       name: 'markoto',
       color: meta.initiatorColor,

@@ -7,7 +7,7 @@ import { deleteDocument } from './documentLifecycle'
 import { AUDIT_DOC_UNPUBLISHED } from '../legal/auditActions'
 import { takeDownPublishedPage } from './publish/takeDown'
 import { deleteSharesForDoc } from '../repos/documentShares'
-import { notifySyncKickUser } from './syncNotify'
+import { notifySyncKickUser, notifySyncReauthDocument } from './syncNotify'
 import { emailLinkBaseUrl } from './siteUrl'
 import { abuseNotificationRecipient } from './instanceConfig'
 import { buildDecisionNotice, buildStatementOfReasons, deliverNotice, type NoticeStatus } from './moderationNotices'
@@ -75,6 +75,9 @@ async function applyToContent(
     // mode; close their open editors too.
     const unsharedGuestIds = await deleteSharesForDoc(docId)
     for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])
+    // Everyone else who had it open through the link (or a password)
+    // re-authenticates against the now private document.
+    notifySyncReauthDocument(docId)
     // The web page is a separate public copy: restricting the document
     // takes it down too. (Removal deletes it with the document.)
     const page = await takeDownPublishedPage(docId)

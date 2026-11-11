@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import jwt from 'jsonwebtoken'
-import { createAuth, type DocJwtPayload } from '../../sync-server/src/auth'
+import { createAuth, createTokenVerifier, type DocJwtPayload } from '../../sync-server/src/auth'
 
 // Sync-server `onAuthenticate` hook — the second line of defence for every
 // Y.js WebSocket connection. If this ever accepts a token it shouldn't,
@@ -38,10 +38,13 @@ describe('createAuth / onAuthenticate', () => {
     it('accepts a valid token and returns the auth context', async () => {
       const token = sign({ docId: 'doc-1', userId: 42, userName: 'Alice', readOnly: false })
       const ctx = await auth({ documentName: 'doc-1', token })
+      const { exp } = jwt.decode(token) as { exp: number }
       expect(ctx).toEqual({
         readOnly: false,
         userId: 42,
-        userName: 'Alice'
+        userName: 'Alice',
+        // The connection is closed at this moment unless renewed.
+        tokenExpiresAt: exp * 1000
       })
     })
 
@@ -297,6 +300,41 @@ describe('createAuth / onAuthenticate', () => {
       )
       await expect(authWithRotation({ documentName: 'doc-1', token }))
         .rejects.toThrow('Invalid token')
+    })
+  })
+
+  describe('expiry and not-before (open connections must not outlive their access)', () => {
+    it('rejects a token without exp: it would authorize a connection forever', async () => {
+      const token = jwt.sign({ docId: 'doc-1', userId: 1, readOnly: false }, SECRET)
+      await expect(auth({ documentName: 'doc-1', token })).rejects.toThrow('Invalid token')
+    })
+
+    it('rejects a token issued before the document\'s not-before cutoff', async () => {
+      const nowSec = Math.floor(Date.now() / 1000)
+      const guarded = createAuth({ secret: SECRET, notBeforeFor: async () => nowSec })
+      const old = jwt.sign({ docId: 'doc-1', userId: 1, readOnly: false, iat: nowSec - 60 }, SECRET, { expiresIn: '2h' })
+      await expect(guarded({ documentName: 'doc-1', token: old })).rejects.toThrow('Token revoked')
+      // Minted in the cutoff second (after the access change was written): accepted.
+      const fresh = jwt.sign({ docId: 'doc-1', userId: 1, readOnly: false, iat: nowSec }, SECRET, { expiresIn: '2h' })
+      expect((await guarded({ documentName: 'doc-1', token: fresh })).userId).toBe(1)
+    })
+
+    it('asks for the cutoff of the document being opened, and ignores a missing one', async () => {
+      const asked: string[] = []
+      const guarded = createAuth({ secret: SECRET, notBeforeFor: async (docId) => {
+        asked.push(docId)
+        return null
+      } })
+      const token = sign({ docId: 'doc-1', userId: 1, readOnly: false })
+      expect((await guarded({ documentName: 'doc-1', token })).userId).toBe(1)
+      expect(asked).toEqual(['doc-1'])
+    })
+
+    it('createTokenVerifier applies the same rules as the handshake (used for renewals)', async () => {
+      const verify = createTokenVerifier({ secret: SECRET })
+      await expect(verify(sign({ docId: 'doc-2', userId: 1 }), 'doc-1')).rejects.toThrow('Token scope mismatch')
+      const ok = await verify(sign({ docId: 'doc-1', userId: 1, readOnly: true }), 'doc-1')
+      expect(ok.readOnly).toBe(true)
     })
   })
 })

@@ -223,24 +223,52 @@ export function useDocToken(docId: string) {
     }
   }
 
+  // Set when the sync server closed the connection for re-authentication
+  // (the document's access became stricter, or the token wasn't renewed):
+  // the token we hold may still look valid but no longer opens the doc.
+  let tokenStale = false
+
   /**
    * Fetch a fresh JWT from `/token` WITHOUT disturbing the rest of the doc
    * state (theme, doc-context, ownership) — a pure token refresh for the
-   * reconnect path. Updates `tokenData` + `isReadOnly` only when the server
-   * issues a usable token. A password-gated doc (non-owner) returns
-   * `token: null` here — its usable JWT came from `/password`, which we
-   * can't re-mint without the password — so we DON'T clobber the existing
-   * token to empty; we return null and let the caller keep what it has.
+   * reconnect and renewal paths. Updates `tokenData` + `isReadOnly` +
+   * `noDownload` when the server issues a usable token.
+   *
+   * When it issues none, the access ended while the editor was open (link
+   * expired, made private, password set, membership removed): flip to the
+   * same gate a fresh page load would show — the orchestrator tears the
+   * connection down on that. A password-gated visitor lands back on the
+   * password prompt: its JWT came from `/password` and can't be re-minted
+   * without the password. A failed fetch (offline, 5xx) changes nothing
+   * and returns null, so the caller keeps what it has.
    */
   async function refetchTokenOnly(): Promise<string | null> {
     try {
-      // `refresh`: not a new open of the doc (WP9 view counts skip it).
-      const data = await $fetch<{ token: string | null, readOnly: boolean }>(
-        `/api/docs/${docId}/token`, { query: { refresh: '1' } }
-      )
-      if (!data.token) return null
+      // `refresh`: not a new open of the doc (view counts skip it).
+      const data = await $fetch<{
+        token: string | null
+        readOnly: boolean
+        requiresPassword?: boolean
+        forbidden?: boolean
+        noDownload?: boolean
+        shareExpired?: boolean
+        ssoLoginUrl?: string | null
+      }>(`/api/docs/${docId}/token`, { query: { refresh: '1' } })
+      if (!data.token) {
+        if (data.forbidden || data.requiresPassword) {
+          shareExpired.value = data.shareExpired === true
+          ssoLoginUrl.value = data.ssoLoginUrl ?? null
+          tokenData.value = { token: '', readOnly: true }
+          isReadOnly.value = true
+          if (data.forbidden) forbidden.value = true
+          if (data.requiresPassword) requiresPassword.value = true
+        }
+        return null
+      }
       tokenData.value = { token: data.token, readOnly: data.readOnly }
       isReadOnly.value = data.readOnly
+      if (typeof data.noDownload === 'boolean') noDownload.value = data.noDownload
+      tokenStale = false
       return data.token
     } catch {
       return null
@@ -249,20 +277,27 @@ export function useDocToken(docId: string) {
 
   /**
    * Token accessor handed to the sync provider. HocuspocusProvider calls
-   * this on every (re)connect. Returns the current JWT while it's still
-   * comfortably valid; refetches a fresh one when it's near/at expiry so a
-   * long-lived (>2h) session's reconnect doesn't present a dead token and
-   * get bounced to read-only (F5). Falls back to the current token when a
-   * refetch can't issue a new one (offline, or a password-gated doc whose
-   * JWT can't be silently reminted) — that reconnect may still fail auth,
-   * exactly as it did before, so this is never worse than the old path.
+   * this on every (re)connect, and when the sync server asks for a fresh
+   * token shortly before the current one expires (`renewal`). Returns the
+   * current JWT while it's still comfortably valid; refetches when it's
+   * near/at expiry, marked stale, or the server asked — the server only
+   * asks near expiry, so trusting the request rather than our own clock
+   * keeps renewal working when the browser's clock is off. Falls back to
+   * the current token when a refetch can't issue a new one (offline): the
+   * server then closes the connection at expiry and the reconnect tries
+   * again. Returns '' once access has ended.
    */
-  async function getFreshToken(): Promise<string> {
+  async function getFreshToken(opts: { renewal?: boolean } = {}): Promise<string> {
     const current = tokenData.value?.token || ''
     if (!current) return '' // no token yet / forbidden / password-gated pre-unlock
-    if (!isTokenExpiringSoon(current)) return current
+    if (!opts.renewal && !tokenStale && !isTokenExpiringSoon(current)) return current
     const refreshed = await refetchTokenOnly()
-    return refreshed ?? current
+    return refreshed ?? (tokenData.value?.token || '')
+  }
+
+  /** The sync server asked us to re-authenticate: refetch on the next connect. */
+  function invalidateToken() {
+    tokenStale = true
   }
 
   /**
@@ -275,6 +310,7 @@ export function useDocToken(docId: string) {
     pendingPasswordUnlock.value = true
     isReadOnly.value = false
     tokenData.value = { token: newToken, readOnly: false }
+    tokenStale = false
   }
 
   /**
@@ -367,6 +403,7 @@ export function useDocToken(docId: string) {
     fetchToken,
     hydrateAfterUnlock,
     getFreshToken,
+    invalidateToken,
     onPasswordVerified,
     clearPendingUnlock,
     markReadOnly,

@@ -5,6 +5,7 @@ import {
   type HocuspocusDocument,
   type HocuspocusInstance
 } from '../../sync-server/src/kickUser'
+import { SYNC_CLOSE_CODES, SYNC_REAUTH_REASON } from '../../shared/contracts/syncClose'
 
 // Fake Hocuspocus instance builder. We don't need a real Y.Doc here — the
 // kick-user logic only touches `documents.get()` + `doc.getConnections()`.
@@ -158,5 +159,14 @@ describe('performKickUser', () => {
     const instance: HocuspocusInstance = {}
     const result = performKickUser(instance, '42', ['doc-1'])
     expect(result).toEqual({ kicked: 0, missing: 1 })
+  })
+
+  it('closes with the re-authenticate reason and drops the socket, so the editor refetches its token', () => {
+    const close = vi.fn()
+    const socketClose = vi.fn()
+    const instance = makeInstance({ 'doc-1': [{ context: { userId: 42 }, close, webSocket: { close: socketClose } }] })
+    performKickUser(instance, '42', ['doc-1'])
+    expect(close).toHaveBeenCalledWith({ code: SYNC_CLOSE_CODES.reauthenticate, reason: SYNC_REAUTH_REASON })
+    expect(socketClose).toHaveBeenCalledWith(SYNC_CLOSE_CODES.reauthenticate, SYNC_REAUTH_REASON)
   })
 })

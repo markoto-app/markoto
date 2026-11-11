@@ -12,25 +12,31 @@ const sentry = vi.hoisted(() => ({
 }))
 vi.mock('../../sync-server/src/sentry', () => ({ Sentry: sentry }))
 vi.mock('../../sync-server/src/persistence', () => ({ ypgPersistence: { clearDocument: vi.fn(() => Promise.resolve()) } }))
+const notBefore = vi.hoisted(() => ({ write: vi.fn(async (_docId: string, _sec: number) => true) }))
+vi.mock('../../sync-server/src/doc-not-before', () => ({ writeDocNotBefore: notBefore.write }))
 
 const { handleInternalRequest } = await import('../../sync-server/src/internal-http')
 
-function request(url: string, headers: Record<string, string>, method = 'POST') {
+function request(url: string, headers: Record<string, string>, method = 'POST', body?: unknown) {
   const req = new IncomingMessage(new Socket())
   req.url = url
   req.method = method
   for (const [k, v] of Object.entries(headers)) req.headers[k] = v
-  // An empty body for handlers that read one.
+  if (body !== undefined) req.push(Buffer.from(JSON.stringify(body)))
   req.push(null)
   const res = new ServerResponse(req)
   let status = 0
+  let sent = ''
   const writeHead = res.writeHead.bind(res)
   res.writeHead = ((code: number, ...rest: unknown[]) => {
     status = code
     return writeHead(code, ...(rest as []))
   }) as typeof res.writeHead
-  res.end = (() => res) as typeof res.end
-  return { req, res, status: () => status }
+  res.end = ((chunk?: unknown) => {
+    if (typeof chunk === 'string') sent = chunk
+    return res
+  }) as typeof res.end
+  return { req, res, status: () => status, json: () => JSON.parse(sent) as Record<string, unknown> }
 }
 
 const instance = { documents: new Map() }
@@ -79,5 +85,72 @@ describe('handleInternalRequest', () => {
     expect(r.status()).toBe(404)
     expect(sentry.continueTrace).toHaveBeenCalledOnce()
     expect(sentry.startSpan).toHaveBeenCalledOnce()
+  })
+})
+
+describe('/internal/reauth-document', () => {
+  const SECRET_HEADER = { 'x-internal-secret': 'current-secret' }
+
+  function connection(userId: string | number) {
+    return { context: { userId }, close: vi.fn(), webSocket: { close: vi.fn() } }
+  }
+
+  beforeEach(() => {
+    vi.stubEnv('INTERNAL_API_SECRET', 'current-secret')
+    notBefore.write.mockClear()
+  })
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('requires the internal secret and stores nothing without it', async () => {
+    const r = request('/internal/reauth-document', { 'x-internal-secret': 'wrong' }, 'POST', { docId: 'doc-1', notBefore: 1 })
+    await handleInternalRequest(r.req, r.res, instance as never)
+    expect(r.status()).toBe(401)
+    expect(notBefore.write).not.toHaveBeenCalled()
+  })
+
+  it('is refused when it came through the edge proxy', async () => {
+    const r = request('/internal/reauth-document', { ...SECRET_HEADER, 'x-real-ip': '203.0.113.7' }, 'POST', { docId: 'doc-1', notBefore: 1 })
+    await handleInternalRequest(r.req, r.res, instance as never)
+    expect(r.status()).toBe(404)
+    expect(notBefore.write).not.toHaveBeenCalled()
+  })
+
+  it('400s without a docId or a whole-second cutoff', async () => {
+    for (const body of [{ notBefore: 1 }, { docId: 'doc-1' }, { docId: 'doc-1', notBefore: 1.5 }, { docId: '', notBefore: 1 }]) {
+      const r = request('/internal/reauth-document', SECRET_HEADER, 'POST', body)
+      await handleInternalRequest(r.req, r.res, instance as never)
+      expect(r.status()).toBe(400)
+    }
+    expect(notBefore.write).not.toHaveBeenCalled()
+  })
+
+  it('stores the cutoff and closes the document\'s connections, sparing the app\'s own clients', async () => {
+    const alice = connection(42)
+    const anon = connection('anonymous')
+    const ai = connection('ai:assistant:s1')
+    const other = connection(7)
+    const docs = new Map([
+      ['doc-1', { getConnections: () => [alice, anon, ai] }],
+      ['doc-2', { getConnections: () => [other] }]
+    ])
+    const r = request('/internal/reauth-document', SECRET_HEADER, 'POST', { docId: 'doc-1', notBefore: 1_800_000_000 })
+    const loaded = { documents: docs }
+    await handleInternalRequest(r.req, r.res, loaded as never)
+    expect(r.status()).toBe(200)
+    expect(r.json()).toEqual({ success: true, closed: 2, cutoffStored: true })
+    expect(notBefore.write).toHaveBeenCalledWith('doc-1', 1_800_000_000)
+    expect(alice.webSocket.close).toHaveBeenCalledOnce()
+    expect(anon.webSocket.close).toHaveBeenCalledOnce()
+    expect(ai.close).not.toHaveBeenCalled()
+    expect(other.close).not.toHaveBeenCalled()
+  })
+
+  it('stores the cutoff for a document not loaded here (another instance may hold it)', async () => {
+    const r = request('/internal/reauth-document', SECRET_HEADER, 'POST', { docId: 'doc-x', notBefore: 1_800_000_000 })
+    await handleInternalRequest(r.req, r.res, instance as never)
+    expect(r.json()).toEqual({ success: true, closed: 0, cutoffStored: true })
+    expect(notBefore.write).toHaveBeenCalledOnce()
   })
 })

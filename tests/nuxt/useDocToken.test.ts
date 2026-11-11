@@ -39,6 +39,8 @@ interface TokenPayload {
   theme?: unknown
   title?: string
   canDelete?: boolean
+  noDownload?: boolean
+  shareExpired?: boolean
 }
 
 const response: { current: TokenPayload | Error } = {
@@ -440,6 +442,57 @@ describe('useDocToken — getFreshToken (F5)', () => {
   it('returns empty string when there is no token to refresh (forbidden / pre-fetch)', async () => {
     const t = useDocToken('doc-123')
     expect(await t.getFreshToken()).toBe('')
+  })
+})
+
+// The sync server asks for a fresh token before expiry (renewal) and closes
+// connections whose access must be re-checked (invalidateToken). Either way
+// the token is refetched even though it still looks valid, and a refetch
+// that finds access ended flips to the same gate a page load would show.
+describe('useDocToken — renewal and re-authentication', () => {
+  it('a renewal refetches even a comfortably valid token', async () => {
+    response.current = { token: makeJwt(3600, 'valid'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    const renewed = makeJwt(7200, 'renewed')
+    response.current = { token: renewed, readOnly: true, accessMode: 'open-view', ownerId: null, noDownload: true }
+    expect(await t.getFreshToken({ renewal: true })).toBe(renewed)
+    expect(t.isReadOnly.value).toBe(true)
+    expect(t.noDownload.value).toBe(true)
+  })
+
+  it('invalidateToken makes the next connect refetch, once', async () => {
+    response.current = { token: makeJwt(3600, 'valid'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    t.invalidateToken()
+    const fresh = makeJwt(7200, 'fresh')
+    response.current = { token: fresh, readOnly: false, accessMode: 'open-edit', ownerId: null }
+    expect(await t.getFreshToken()).toBe(fresh)
+    response.current = { token: makeJwt(7200, 'unwanted'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    expect(await t.getFreshToken()).toBe(fresh)
+  })
+
+  it('access ended (made private / link expired): forbidden gate, no token handed out', async () => {
+    response.current = { token: makeJwt(3600, 'visitor'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    t.invalidateToken()
+    response.current = { token: null, readOnly: true, forbidden: true, shareExpired: true, accessMode: 'private', ownerId: null }
+    expect(await t.getFreshToken()).toBe('')
+    expect(t.forbidden.value).toBe(true)
+    expect(t.shareExpired.value).toBe(true)
+    expect(t.isReadOnly.value).toBe(true)
+  })
+
+  it('a password set while a visitor was in: back to the password prompt', async () => {
+    response.current = { token: makeJwt(3600, 'visitor'), readOnly: false, accessMode: 'open-edit', ownerId: null }
+    const t = useDocToken('doc-123')
+    await t.fetchToken()
+    response.current = { token: null, readOnly: true, requiresPassword: true, accessMode: 'password-protected', ownerId: null }
+    expect(await t.getFreshToken({ renewal: true })).toBe('')
+    expect(t.requiresPassword.value).toBe(true)
+    expect(t.forbidden.value).toBe(false)
   })
 })
 

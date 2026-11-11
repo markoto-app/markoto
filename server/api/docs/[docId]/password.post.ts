@@ -6,6 +6,7 @@ import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermi
 import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
 import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
+import { notifySyncReauthDocument } from '../../../utils/syncNotify'
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
@@ -47,6 +48,8 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
 
   const hash = await hashPassword(password)
   await setDocPassword(docId, hash)
+  // Visitors connected without the (new) password must not stay in.
+  notifySyncReauthDocument(docId)
 
   // Never log the password itself — record presence + access-mode
   // transition only. `setDocPassword` flips access_mode to

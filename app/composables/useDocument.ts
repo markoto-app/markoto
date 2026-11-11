@@ -103,16 +103,21 @@ export function useDocument(docId: string) {
     }
     return configured
   })()
+  // One silent retry with a refetched token per sync (see onAuthFailed).
+  let authRetried = false
   const sync = useHocuspocusSync({
     docId,
     ydoc,
     awareness,
     syncUrl,
-    // Refreshing accessor — the provider calls this on every reconnect;
-    // it refetches a fresh JWT when the current one is near expiry so a
-    // >2h session doesn't reconnect with a dead token (F5).
-    getToken: () => tokenState.getFreshToken(),
+    // Refreshing accessor — the provider calls this on every reconnect and
+    // when the sync server asks for a fresh token before expiry; it
+    // refetches when needed so a >2h session neither reconnects with a
+    // dead token (F5) nor gets closed at expiry.
+    getToken: opts => tokenState.getFreshToken(opts),
+    onReauthRequired: () => tokenState.invalidateToken(),
     onSynced: () => {
+      authRetried = false
       // Authoritative empty-doc seed. `onSynced` means we've received the
       // server's current state for this doc, so `ytext.length === 0` here
       // definitively means the server has NO content — safe to seed the
@@ -134,8 +139,34 @@ export function useDocument(docId: string) {
     // "disconnected" status instead: honest and non-destructive. The doc
     // seeds correctly if/when a real sync lands and finds it empty.
     onAuthFailed: () => {
+      // Access ended and the gate is already showing: nothing to report.
+      if (accessEnded()) return
+      // A refused token may just be outdated (the document's access
+      // changed while this tab was offline, or clocks disagree): retry
+      // once with a freshly fetched token before showing the banner. A
+      // refused socket can't authenticate again, hence a new provider.
+      if (!authRetried) {
+        authRetried = true
+        tokenState.invalidateToken()
+        // Not from inside the provider's own event dispatch.
+        queueMicrotask(() => sync.reconnect())
+        return
+      }
       tokenState.markReadOnly()
     }
+  })
+
+  function accessEnded(): boolean {
+    return tokenState.forbidden.value
+      || (tokenState.requiresPassword.value && !tokenState.pendingPasswordUnlock.value)
+  }
+
+  // Access can end while the editor is open (the token refetch on a
+  // renewal or re-authentication found no token). Drop the connection so
+  // the provider stops presenting a token the server refuses; a password
+  // unlock reconnects with a new provider.
+  const stopAccessWatch = watch(accessEnded, (ended) => {
+    if (ended) sync.disconnect()
   })
 
   function insertTemplateIfEmpty() {
@@ -401,6 +432,7 @@ export function useDocument(docId: string) {
   }
 
   function destroy() {
+    stopAccessWatch()
     sync.destroy()
     awareness.destroy()
     ydoc.destroy()

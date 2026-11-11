@@ -1,6 +1,7 @@
 import { verifyJwtWithRotation } from '../../shared/utils/secrets'
 import type { SessionJwtPayload } from '../../shared/contracts/jwt'
 import { captureMessage } from './sentry'
+import { readDocNotBefore } from './doc-not-before'
 
 // Hocuspocus `onAuthenticate` hook — runs on every new WS connection and
 // MUST reject anything not carrying a valid, in-scope JWT. This is the
@@ -13,6 +14,10 @@ import { captureMessage } from './sentry'
 //   - Password-protected and forbidden docs get `token: null`, which the
 //     client never forwards; Hocuspocus rejects those connections via the
 //     `if (!token)` path below.
+//   - A token authorizes a connection only until its `exp`: the connection
+//     is renewed in place or closed then (connection-expiry.ts), and a
+//     document whose access became stricter refuses tokens issued before
+//     the change (doc-not-before.ts).
 //   - Rotation: the app still issues against the current secret; we accept
 //     both current + previous during the rotation window. See
 //     docs/SECRETS-ROTATION.md and shared/utils/secrets.ts.
@@ -33,43 +38,39 @@ export interface AuthContext {
   readOnly: boolean
   userId: string | number
   userName: string | null
+  /** When the token stops authorizing this connection (epoch ms). */
+  tokenExpiresAt: number
 }
 
 export interface CreateAuthOptions {
   secret: string
   previousSecret?: string | null
+  /**
+   * The document's not-before cutoff (epoch seconds): tokens issued
+   * earlier no longer open it, because its access became stricter after
+   * they were minted. Absent in unit tests that don't exercise it.
+   */
+  notBeforeFor?: (docId: string) => Promise<number | null>
 }
 
+export type VerifiedDocToken = AuthContext
+
 /**
- * Build an `onAuthenticate` hook with explicit secrets. The production
- * instance reads from env (see the singleton export below); tests construct
- * their own without the env-var dance.
+ * Verify a session-shaped doc token for `documentName`. Used for the
+ * connection handshake AND for every in-place token renewal, so both
+ * paths apply exactly the same rules. Throws on any refusal.
  */
-export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
-  return async function onAuthenticate({
-    documentName,
-    token,
-    connectionConfig
-  }: {
-    documentName: string
-    token: string | null
-    // Hocuspocus passes the live connection config in the hook payload. We
-    // MUST mutate `connectionConfig.readOnly` here — the object returned from
-    // this hook is merged into request `context` only, which does NOT block
-    // writes. The write gate in Hocuspocus reads `connection.readOnly`, seeded
-    // from `connectionConfig.readOnly` (default `false`). Optional so unit
-    // tests can call the hook with just `{ documentName, token }`.
-    connectionConfig?: { readOnly: boolean }
-  }): Promise<AuthContext> {
+export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: CreateAuthOptions) {
+  return async function verifyDocToken(token: string | null, documentName: string): Promise<VerifiedDocToken> {
     // Always require a valid JWT — no anonymous bypass. Empty string and
     // null both count as missing.
     if (!token) {
       throw new Error('Authentication required')
     }
 
-    let payload: DocJwtPayload
+    let payload: DocJwtPayload & { iat?: unknown, exp?: unknown }
     try {
-      payload = verifyJwtWithRotation<DocJwtPayload>(
+      payload = verifyJwtWithRotation<DocJwtPayload & { iat?: unknown, exp?: unknown }>(
         token,
         secret,
         previousSecret || undefined
@@ -83,6 +84,14 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
       console.warn(`[auth] Invalid token for ${documentName}:`, e instanceof Error ? e.message : e)
       // `cause` stays server-side (logs/Sentry); callers only see the message.
       throw new Error('Invalid token', { cause: e })
+    }
+
+    // A token without an expiry would authorize a connection forever;
+    // every mint site sets one, so its absence means a forged or
+    // mis-minted token.
+    if (typeof payload.exp !== 'number') {
+      console.warn(`[auth] Token without exp for ${documentName}`)
+      throw new Error('Invalid token')
     }
 
     // Scope check — a JWT minted for doc-A must never grant access to
@@ -116,6 +125,8 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
       throw new Error('Token scope mismatch')
     }
 
+    if (notBeforeFor) await assertIssuedAfterCutoff(payload.iat, documentName, notBeforeFor)
+
     // Safe-default read-only. If the claim is missing or any non-boolean,
     // treat the connection as read-only. A JWT must EXPLICITLY carry
     // `readOnly: false` (what the Nuxt mint path sends for writable
@@ -123,7 +134,50 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
     //   - future mint changes that forget the field
     //   - hand-crafted JWTs from a leaked/rotated-out secret that omit
     //     the field to escalate from view-only to write
-    const readOnly = payload.readOnly !== false
+    return {
+      readOnly: payload.readOnly !== false,
+      userId: payload.userId,
+      userName: payload.userName ?? null,
+      tokenExpiresAt: payload.exp * 1000
+    }
+  }
+}
+
+async function assertIssuedAfterCutoff(
+  iat: unknown,
+  documentName: string,
+  notBeforeFor: (docId: string) => Promise<number | null>
+): Promise<void> {
+  const notBefore = await notBeforeFor(documentName)
+  const issuedAt = typeof iat === 'number' ? iat : 0
+  if (notBefore !== null && issuedAt < notBefore) {
+    throw new Error('Token revoked')
+  }
+}
+
+/**
+ * Build an `onAuthenticate` hook with explicit secrets. The production
+ * instance reads from env (see the singleton export below); tests construct
+ * their own without the env-var dance.
+ */
+export function createAuth(options: CreateAuthOptions) {
+  const verifyDocToken = createTokenVerifier(options)
+  return async function onAuthenticate({
+    documentName,
+    token,
+    connectionConfig
+  }: {
+    documentName: string
+    token: string | null
+    // Hocuspocus passes the live connection config in the hook payload. We
+    // MUST mutate `connectionConfig.readOnly` here — the object returned from
+    // this hook is merged into request `context` only, which does NOT block
+    // writes. The write gate in Hocuspocus reads `connection.readOnly`, seeded
+    // from `connectionConfig.readOnly` (default `false`). Optional so unit
+    // tests can call the hook with just `{ documentName, token }`.
+    connectionConfig?: { readOnly: boolean }
+  }): Promise<AuthContext> {
+    const verified = await verifyDocToken(token, documentName)
 
     // Enforce read-only server-side. This is the load-bearing line: without
     // it, a read-only JWT still yields a writable connection because
@@ -132,14 +186,10 @@ export function createAuth({ secret, previousSecret }: CreateAuthOptions) {
     // malicious client (or a devtools bypass of the CM6 read-only compartment)
     // could otherwise send Y.js updates to any doc it can open a token for.
     if (connectionConfig) {
-      connectionConfig.readOnly = readOnly
+      connectionConfig.readOnly = verified.readOnly
     }
 
-    return {
-      readOnly,
-      userId: payload.userId,
-      userName: payload.userName ?? null
-    }
+    return verified
   }
 }
 
@@ -154,10 +204,13 @@ export function authFromEnv() {
   if (!secret) {
     throw new Error('[auth] JWT_SECRET environment variable is required')
   }
+  const options: CreateAuthOptions = {
+    secret,
+    previousSecret: process.env.JWT_SECRET_PREVIOUS || undefined,
+    notBeforeFor: readDocNotBefore
+  }
   return {
-    onAuthenticate: createAuth({
-      secret,
-      previousSecret: process.env.JWT_SECRET_PREVIOUS || undefined
-    })
+    onAuthenticate: createAuth(options),
+    verifyDocToken: createTokenVerifier(options)
   }
 }

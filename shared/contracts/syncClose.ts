@@ -29,8 +29,25 @@ export const SYNC_CLOSE_CODES = {
   /** A document queued messages without sending its Auth frame in time (socket closed, reconnect). */
   authTimeout: 4408,
   payloadTooLarge: 4413,
-  unprocessable: 4422
+  unprocessable: 4422,
+  /** The connection's authorization must be checked again (see SYNC_REAUTH_REASON). */
+  reauthenticate: 4419
 } as const
+
+/**
+ * Close reason when the server ends a connection whose authorization has
+ * to be checked again: its token expired without being renewed, or the
+ * document's access just became stricter. Not a sync rejection: the
+ * editor fetches a fresh token and reconnects, and lands on the
+ * no-access screen when the token endpoint no longer issues one. The
+ * reason arrives twice — on the document-level CLOSE message and on the
+ * socket close that follows.
+ */
+export const SYNC_REAUTH_REASON = 'reauthenticate'
+
+export function isReauthClose(event: { reason?: unknown } | null | undefined): boolean {
+  return event?.reason === SYNC_REAUTH_REASON
+}
 
 /**
  * Socket close reason when a document queued messages without sending

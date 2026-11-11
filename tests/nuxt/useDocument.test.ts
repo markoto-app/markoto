@@ -58,6 +58,7 @@ const hoisted = vi.hoisted(() => {
       onPasswordVerified: vi.fn<(t: string) => void>(),
       clearPendingUnlock: vi.fn<() => void>(),
       markReadOnly: vi.fn<() => void>(),
+      invalidateToken: vi.fn<() => void>(),
       setAccessMode: vi.fn<(m: string) => void>()
     },
     syncState: {
@@ -80,10 +81,11 @@ const hoisted = vi.hoisted(() => {
     capturedSyncOpts: null as null | {
       docId: string
       syncUrl: string
-      getToken: () => string | Promise<string>
+      getToken: (opts?: { renewal: boolean }) => string | Promise<string>
       onSynced?: () => void
       onDisconnect?: (everSynced: boolean) => void
       onAuthFailed?: () => void
+      onReauthRequired?: () => void
     }
   }
 })
@@ -157,6 +159,7 @@ mockNuxtImport('useDocToken', () => {
     onPasswordVerified: hoisted.tokenMocks.onPasswordVerified,
     clearPendingUnlock: hoisted.tokenMocks.clearPendingUnlock,
     markReadOnly: hoisted.tokenMocks.markReadOnly,
+    invalidateToken: hoisted.tokenMocks.invalidateToken,
     setAccessMode: hoisted.tokenMocks.setAccessMode
   })
 })
@@ -225,6 +228,7 @@ function resetHoisted() {
   hoisted.tokenMocks.hydrateAfterUnlock.mockReset().mockImplementation(() => Promise.resolve())
   hoisted.tokenMocks.clearPendingUnlock.mockReset()
   hoisted.tokenMocks.markReadOnly.mockReset()
+  hoisted.tokenMocks.invalidateToken.mockReset()
   hoisted.tokenMocks.setAccessMode.mockReset()
   hoisted.syncState.docSizeBytes.value = 0
   hoisted.syncState.status.value = 'connecting'
@@ -439,11 +443,63 @@ describe('useDocument — sync lifecycle wiring', () => {
     doc.destroy()
   })
 
-  it('onAuthFailed calls tokenState.markReadOnly', async () => {
+  it('onAuthFailed retries once with a refetched token, then calls tokenState.markReadOnly', async () => {
     const doc = useDocument('doc-abc')
     await flushFetchToken()
     hoisted.capturedSyncOpts!.onAuthFailed!()
+    await Promise.resolve()
+    expect(hoisted.tokenMocks.invalidateToken).toHaveBeenCalledTimes(1)
+    expect(hoisted.syncMocks.reconnect).toHaveBeenCalledTimes(1)
+    expect(hoisted.tokenMocks.markReadOnly).not.toHaveBeenCalled()
+
+    hoisted.capturedSyncOpts!.onAuthFailed!()
     expect(hoisted.tokenMocks.markReadOnly).toHaveBeenCalledTimes(1)
+
+    // A successful sync re-arms the retry.
+    hoisted.capturedSyncOpts!.onSynced!()
+    hoisted.capturedSyncOpts!.onAuthFailed!()
+    await Promise.resolve()
+    expect(hoisted.syncMocks.reconnect).toHaveBeenCalledTimes(2)
+    doc.destroy()
+  })
+
+  it('onAuthFailed after access ended shows no sync-failure banner', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenState.forbidden.value = true
+    hoisted.capturedSyncOpts!.onAuthFailed!()
+    expect(hoisted.tokenMocks.markReadOnly).not.toHaveBeenCalled()
+    expect(hoisted.syncMocks.reconnect).not.toHaveBeenCalled()
+    doc.destroy()
+  })
+
+  it('a re-authenticate close marks the token stale so the reconnect refetches it', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.capturedSyncOpts!.onReauthRequired!()
+    expect(hoisted.tokenMocks.invalidateToken).toHaveBeenCalledTimes(1)
+    doc.destroy()
+  })
+
+  it('drops the connection when access ends while the editor is open', async () => {
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenState.forbidden.value = true
+    await nextTick()
+    expect(hoisted.syncMocks.disconnect).toHaveBeenCalledTimes(1)
+    doc.destroy()
+  })
+
+  it('does not drop the connection while a password unlock is pending', async () => {
+    hoisted.tokenState.requiresPassword.value = true
+    const doc = useDocument('doc-abc')
+    await flushFetchToken()
+    hoisted.tokenState.pendingPasswordUnlock.value = true
+    await nextTick()
+    hoisted.tokenState.pendingPasswordUnlock.value = false
+    hoisted.tokenState.requiresPassword.value = false
+    await nextTick()
+    expect(hoisted.syncMocks.disconnect).not.toHaveBeenCalled()
     doc.destroy()
   })
 

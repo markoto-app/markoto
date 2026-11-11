@@ -30,6 +30,7 @@ import {
   dropDocState
 } from './sync-state'
 import { closeValkey } from './valkey'
+import { createConnectionExpiry, type ReauthConnection } from './connection-expiry'
 
 // Auth singleton — wired from env here (not inside auth.ts) so unit tests
 // can import `createAuth` without tripping a top-level env guard.
@@ -58,6 +59,14 @@ const updateGuard = createUpdateGuard(syncLimits)
 // Memory cap for messages queued before a document authenticates
 // (SYNC_MAX_PREAUTH_BYTES / SYNC_MAX_PREAUTH_TOTAL_BYTES /
 // SYNC_AUTH_TIMEOUT_MS). See pre-auth-guard.ts.
+// Closes connections whose token expired without being renewed in place.
+// See connection-expiry.ts.
+const connectionExpiry = createConnectionExpiry({
+  onExpired: (conn) => {
+    console.warn(`[hocuspocus] closing connection with an expired token (user ${String(conn.context?.userId ?? '?')})`)
+  }
+})
+
 const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(process.env), {
   onReject: (reason, detail) => {
     console.warn(`[hocuspocus] closing socket before authentication: ${reason} (${detail})`)
@@ -193,9 +202,27 @@ const server = new Server({
     return auth.onAuthenticate(data)
   },
 
+  async onTokenSync(data) {
+    // The client's answer to a token request from connectionExpiry.
+    await connectionExpiry.renew(data.connection, data.token, data.documentName, auth.verifyDocToken)
+  },
+
   async connected(data) {
     // The document's pre-auth queue has been replayed: stop counting it.
     preAuthGuard.documentEstablished(data.request, data.socketId, data.documentName)
+    const conn = data.connection as ReauthConnection
+    const expiresAt = (data.context as { tokenExpiresAt?: unknown } | undefined)?.tokenExpiresAt
+    // Already gone (socket dropped while the queue replayed): its close
+    // callbacks have run, so a timer set now would never be cleared.
+    if (!data.connection.document.hasConnection(data.connection)) return
+    if (typeof expiresAt === 'number') {
+      connectionExpiry.track(conn, expiresAt)
+      data.connection.onClose(() => connectionExpiry.untrack(conn))
+    } else {
+      // onAuthenticate always sets it; a connection without one would
+      // never expire, so refuse it.
+      data.connection.close()
+    }
   },
 
   async onConnect(data) {

@@ -135,11 +135,10 @@ function mintMcpJwt(docId: string, mcpSessionId: string): string {
     userName: 'MCP',
     readOnly: false
   }
-  // 10m TTL — matches the AI loop's JWT TTL. The MCP session itself
-  // can outlive this (default 30 min); tools that fall off the JWT
-  // expiry will re-mint via a fresh pool checkout. The pool entry
-  // lifecycle and the JWT lifecycle are independent — eviction is
-  // refCount-based, not expiry-based.
+  // 10m TTL — matches the AI loop's JWT TTL. A pool entry can stay
+  // connected longer (it's evicted by refCount, not by expiry): the pool
+  // calls this minter again whenever the sync server asks for a fresh
+  // token or the provider reconnects.
   return jwt.sign(payload, config.jwtSecret, { expiresIn: '10m' })
 }
 
@@ -190,7 +189,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   let entry
   try {
     entry = await checkout(key, {
-      jwt: mintMcpJwt(input.docId, input.mcpSessionId),
+      jwt: () => mintMcpJwt(input.docId, input.mcpSessionId),
       awarenessUser: {
         name: input.userName,
         color: input.userColor ?? DEFAULT_MCP_COLOR
