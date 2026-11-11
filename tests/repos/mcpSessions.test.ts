@@ -3,9 +3,9 @@ import { eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { mcpSessions, mcpPersonalTokens } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/database'
-import { useValkey } from '../../server/utils/valkey'
-import { issueMcpToken, touchMcpSession } from '../../server/utils/mcpAuth'
+import { useDatabase } from '../../server/utils/platform/database'
+import { useValkey } from '../../server/utils/platform/valkey'
+import { issueMcpToken, touchMcpSession } from '../../server/utils/mcp/mcpAuth'
 
 // DB-backed tests for the `mcp_sessions` audit-attribution table.
 // Without this writer + table, `activity_log` rows tagged

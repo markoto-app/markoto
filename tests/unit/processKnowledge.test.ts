@@ -77,31 +77,31 @@ function makeDbChain() {
 }
 
 const db = makeDbChain()
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabase: () => db
 }))
 
 const chunkMarkdown = vi.fn<(md: string, opts: { maxChunks: number }) => Array<{ index: number, content: string, tokens: number }>>()
-vi.mock('../../server/utils/chunkMarkdown', () => ({ chunkMarkdown }))
+vi.mock('../../server/utils/knowledge/chunkMarkdown', () => ({ chunkMarkdown }))
 
 const embedDocuments = vi.fn<(chunks: string[], opts: unknown) => Promise<number[][]>>()
 const resolveEmbeddingsConfig = vi.fn(() => ({ model: 'jina-embeddings-v5-text-nano', dims: 768, apiKey: 'x' }))
 const embeddingVersionTag = vi.fn(() => 'jina/jina-embeddings-v5-text-nano:768')
-vi.mock('../../server/utils/embeddings', () => ({
+vi.mock('../../server/utils/knowledge/embeddings', () => ({
   embedDocuments,
   resolveEmbeddingsConfig,
   embeddingVersionTag
 }))
 
 const assertKnowledgeEmbeddingsReady = vi.fn<() => Promise<void>>()
-vi.mock('../../server/utils/knowledgeEmbeddingsStatus', () => ({ assertKnowledgeEmbeddingsReady }))
+vi.mock('../../server/utils/knowledge/knowledgeEmbeddingsStatus', () => ({ assertKnowledgeEmbeddingsReady }))
 
 const sentryCaptureException = vi.fn()
 vi.mock('@sentry/nuxt', () => ({ captureException: sentryCaptureException }))
 
 const tryAcquireSessionLock = vi.fn<(namespace: string, key: string, ttlMs: number) => Promise<boolean>>()
 const releaseSessionLock = vi.fn<(namespace: string, key: string) => Promise<void>>()
-vi.mock('../../server/utils/rateLimit', () => ({
+vi.mock('../../server/utils/platform/rateLimit', () => ({
   tryAcquireSessionLock,
   releaseSessionLock
 }))
@@ -119,7 +119,7 @@ vi.stubGlobal('useRuntimeConfig', () => runtimeConfig)
 const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>()
 vi.stubGlobal('fetch', fetchMock)
 
-const { processKnowledge } = await import('../../server/utils/processKnowledge')
+const { processKnowledge } = await import('../../server/utils/knowledge/processKnowledge')
 
 // ─── Helpers ──────────────────────────────────────────────────────────────
 

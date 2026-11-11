@@ -1,6 +1,6 @@
 import { and, eq } from 'drizzle-orm'
 import { userAiProviders } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import type { AiCapability } from '~~/shared/ai/providers'
 
 // `user_ai_providers` repository — bring-your-own-key provider configs.

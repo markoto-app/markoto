@@ -1,4 +1,4 @@
-import { requireShareManager } from '../../../../utils/shareSettings'
+import { requireShareManager } from '../../../../utils/documents/shareSettings'
 import { documentViews } from '../../../../repos/documentViews'
 import { getDocWithActorRole } from '../../../../repos/documents'
 

@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
-import { resolveCaps } from '../../server/utils/knowledgeQuota'
+import { resolveCaps } from '../../server/utils/knowledge/knowledgeQuota'
 import { DEFAULT_TIERS as TIERS } from '../../shared/config/tiers'
 
 // Tier-aware knowledge caps. `resolveCaps` reads the workspace's
 // effective plan (its Team / Business subscription, or its creator's
-// personal plan when that is better — server/utils/entitlements.ts) for
+// personal plan when that is better — server/utils/billing/entitlements.ts) for
 // per-workspace caps, and the uploader's own plan for per-user caps.
 
 async function setPlan(

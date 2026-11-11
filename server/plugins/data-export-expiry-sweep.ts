@@ -1,6 +1,6 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runDataExportExpirySweep } from '../utils/dataExportExpirySweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runDataExportExpirySweep } from '../utils/privacy/dataExportExpirySweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Hourly sweeper that expires `ready` data-export jobs past their
 // `expires_at` and deletes the corresponding S3 blobs.

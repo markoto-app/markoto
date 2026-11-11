@@ -19,7 +19,7 @@ import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
 import { KATEX_CSS_URL } from '../../shared/utils/katexAssets'
-import { vendorAssetHeaders } from '../../server/utils/vendorAssetHeaders'
+import { vendorAssetHeaders } from '../../server/utils/rendering/vendorAssetHeaders'
 
 // Pins for the same-origin third-party assets (shared/utils/vendorAssets.ts):
 // the version + SRI constants match the installed packages, the generator

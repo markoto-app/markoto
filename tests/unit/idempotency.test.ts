@@ -34,7 +34,7 @@ class FakeValkey {
 
 const fake = new FakeValkey()
 
-vi.mock('../../server/utils/valkey', () => ({
+vi.mock('../../server/utils/platform/valkey', () => ({
   useValkey: () => fake
 }))
 
@@ -52,7 +52,7 @@ const headerStore: { value: string | undefined } = { value: undefined }
   return e
 })
 
-const { withIdempotency } = await import('../../server/utils/idempotency')
+const { withIdempotency } = await import('../../server/utils/platform/idempotency')
 
 const FAKE_EVENT = {} as never // helper only forwards to getRequestHeader
 

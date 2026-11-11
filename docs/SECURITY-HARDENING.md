@@ -26,7 +26,7 @@ security headers. Most come from the Traefik edge (`security-headers`
 middleware in `docker-compose.prod.yml`, `markoto-headers` in
 `docker-compose.selfhost.yml`). **`Content-Security-Policy` and
 `Cross-Origin-Resource-Policy` come from the app** (`server/plugins/csp.ts`,
-policies in `server/utils/csp.ts`): the CSP carries a per-response script
+policies in `server/utils/rendering/csp.ts`): the CSP carries a per-response script
 nonce that has to match the HTML, `/api/files` needs a different CORP than the
 rest, and one builder in code means hosted, self-host, local and the test
 stacks all serve the same policy. Traefik must NOT set either header — a
@@ -61,14 +61,14 @@ Content-Security-Policy: <see §2>
 | `X-Frame-Options: DENY` | No origin can iframe markoto. Mitigates click-jacking. If we ever want third-party embeds, switch to `SAMEORIGIN` or replace with CSP `frame-ancestors`. The CSP already sets `frame-ancestors 'none'`, so DENY is duplicative-but-belt-and-braces for older browsers. |
 | `Referrer-Policy: strict-origin-when-cross-origin` | Same-origin requests carry the full URL; cross-origin requests carry only the origin (no path). External links from a doc don't leak which doc the user was reading. |
 | `Cross-Origin-Opener-Policy: same-origin` | A new tab opened from markoto cannot keep a `window.opener` reference back to markoto. Tightens postMessage / Spectre-style surfaces. |
-| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. Same for `/markoto-logos/*`, the public brand marks the default theme puts on cover pages, and `/vendor/*`, the self-hosted paged.js / Mermaid / KaTeX / highlight.js files and web fonts (`crossOriginResourcePolicyFor` in `server/utils/csp.ts`; `/vendor/*` also answers `Access-Control-Allow-Origin: *` because fonts and the SRI-locked tags load in CORS mode — `server/utils/vendorAssetHeaders.ts`). |
+| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. Same for `/markoto-logos/*`, the public brand marks the default theme puts on cover pages, and `/vendor/*`, the self-hosted paged.js / Mermaid / KaTeX / highlight.js files and web fonts (`crossOriginResourcePolicyFor` in `server/utils/rendering/csp.ts`; `/vendor/*` also answers `Access-Control-Allow-Origin: *` because fonts and the SRI-locked tags load in CORS mode — `server/utils/rendering/vendorAssetHeaders.ts`). |
 | `Permissions-Policy` | Disables camera + geolocation outright. Allows microphone (live dictation needs it) and payment (future Stripe checkout) only on our own origin. No third-party iframe can hijack any of these. |
 
 ---
 
 ## 2. Content Security Policy
 
-Built per response by `buildAppCsp()` (`server/utils/csp.ts`), sent by
+Built per response by `buildAppCsp()` (`server/utils/rendering/csp.ts`), sent by
 `server/plugins/csp.ts` on every response of the production build (the
 `nuxt dev` server sends none — Vite's HMR client would trip it). Hosted shape:
 
@@ -264,7 +264,7 @@ silently disables `requirepass` breaks tests before it ships.
 
 The runtime client config flows through `valkeyClientConfigFromEnv()` in
 `shared/utils/connectionStrings.ts` → `new Redis(url, options)` in both
-`server/utils/valkey.ts` and `sync-server/src/valkey.ts`. The `url` is
+`server/utils/platform/valkey.ts` and `sync-server/src/valkey.ts`. The `url` is
 `redis://:password@host:port/db` (or `rediss://…` for TLS — see §B.4).
 
 ## B.2 Network exposure
@@ -322,7 +322,7 @@ Plumbing today:
 Wire-up: `valkeyClientConfigFromEnv()` (in
 `shared/utils/connectionStrings.ts`) reads both vars and returns
 `{ url, options: { tls: { ca? } } | undefined }`. Both
-`server/utils/valkey.ts` and `sync-server/src/valkey.ts` spread the
+`server/utils/platform/valkey.ts` and `sync-server/src/valkey.ts` spread the
 returned options into `new Redis(url, options)`. Docs in `.env.example`.
 
 When you turn it on at the server side, you'll also need `--tls-port`,

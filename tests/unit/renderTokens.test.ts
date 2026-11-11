@@ -13,7 +13,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import jwt from 'jsonwebtoken'
-import { mintRenderToken, verifyRenderToken } from '../../server/utils/renderTokens'
+import { mintRenderToken, verifyRenderToken } from '../../server/utils/rendering/renderTokens'
 
 const CURRENT_SECRET = 'a'.repeat(64)
 const PREVIOUS_SECRET = 'b'.repeat(64)

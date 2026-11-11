@@ -46,7 +46,7 @@ export default async function globalSetup() {
   // violations 100 assertions deep. The repos under test will go
   // through this exact pool — if SELECT 1 doesn't work here, NONE
   // of the tests that follow will work either.
-  const { useDatabasePool, closeDatabase } = await import('../../../server/utils/database')
+  const { useDatabasePool, closeDatabase } = await import('../../../server/utils/platform/database')
   try {
     const probePool = useDatabasePool()
     const r = await probePool.query<{ one: number }>('SELECT 1 AS one')

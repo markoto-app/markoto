@@ -1,9 +1,9 @@
-import { requireShareManager, SHARE_EXPIRY_MAX_DAYS } from '../../../../utils/shareSettings'
+import { requireShareManager, SHARE_EXPIRY_MAX_DAYS } from '../../../../utils/documents/shareSettings'
 import { getDocWithActorRole, setShareSettings } from '../../../../repos/documents'
 import { appendAuditEvent } from '../../../../repos/audit'
-import { assertPlanFeature, resolveDocPlanFor } from '../../../../utils/entitlements'
+import { assertPlanFeature, resolveDocPlanFor } from '../../../../utils/billing/entitlements'
 import { AUDIT_DOC_SHARE_SETTINGS_CHANGED } from '../../../../legal/auditActions'
-import { notifySyncReauthDocument } from '../../../../utils/syncNotify'
+import { notifySyncReauthDocument } from '../../../../utils/documents/syncNotify'
 
 // An ISO 8601 date-time with a zone (what the client sends: toISOString()).
 /** Changes per user per 10 minutes — a person sets these by hand. */

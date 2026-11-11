@@ -4,7 +4,7 @@ import type { WorkspaceSubscriptionRow } from '../../server/repos/workspaceSubsc
 
 vi.stubGlobal('createError', (input: { statusCode: number, message: string, data?: unknown }) => Object.assign(new Error(input.message), input))
 
-const { cancelDuplicateWorkspaceSubscription, cancelWorkspaceSubscriptionNow, expireOpenWorkspaceCheckouts } = await import('../../server/utils/workspaceStripe')
+const { cancelDuplicateWorkspaceSubscription, cancelWorkspaceSubscriptionNow, expireOpenWorkspaceCheckouts } = await import('../../server/utils/billing/workspaceStripe')
 
 // Two completed Checkouts for one workspace (two admins, or two tabs):
 // the newest open Checkout is the only one that can be paid, and a

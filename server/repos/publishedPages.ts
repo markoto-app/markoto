@@ -1,6 +1,6 @@
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { publishedPages } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Published pages (WP13): one static web snapshot per document.
 

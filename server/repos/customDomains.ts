@@ -1,6 +1,6 @@
 import { and, asc, eq, isNotNull, or, sql } from 'drizzle-orm'
 import { customDomains, documents, publishedPages, workspaceMembers } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { ssoEnforcedSql } from './sso'
 
 // Custom domains of published pages (WP13).

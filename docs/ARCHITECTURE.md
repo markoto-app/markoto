@@ -104,7 +104,7 @@ Workspaces group documents and members (roles `admin`, `editor`, `viewer`; `work
 
 - Sign-in is optional. Anonymous users can create and edit public documents; ownership, workspaces, AI and settings need an account. Sessions are sealed cookies (`nuxt-auth-utils`); `SESSION_VERSION` invalidates old ones.
 - Access modes per document: private, open edit, open view, password-protected; workspace roles override them.
-- Authorization helpers are centralised in `server/utils/workspaceAccess.ts` (`canEditDoc`, `canManageDoc`, `canManageWorkspace`); do not mix their concerns.
+- Authorization helpers are centralised in `server/utils/workspaces/workspaceAccess.ts` (`canEditDoc`, `canManageDoc`, `canManageWorkspace`); do not mix their concerns.
 - Several scoped token surfaces exist (doc JWT, render token, dictation token, MCP personal access tokens), each unusable for the others.
 - Errors are sanitised in one place (`server/error.ts`): 4xx pass through, 5xx become a generic message.
 - Privacy and compliance features (consent, data export, account deletion, abuse reports, audit log) are keyed to registries in `server/legal/`. On a self-hosted instance the hosted-service legal surfaces are off by default.

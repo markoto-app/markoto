@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
-import { handleExportDocumentAsMarkdown } from '../../server/utils/aiToolAdapter'
+import { handleExportDocumentAsMarkdown } from '../../server/utils/ai/aiToolAdapter'
 import type { DocToolContext } from '../../server/utils/agentic/toolContext'
 import { FULL_AI_PROVIDERS } from './fixtures/aiProviders'
 import { getDoc, type DocSnapshot } from '../../server/repos/documents'

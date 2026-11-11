@@ -2,7 +2,7 @@ import {
   openTrustedCommentClient,
   findComment,
   readReplyAuthor
-} from '../../../../../../utils/commentsServerClient'
+} from '../../../../../../utils/documents/commentsServerClient'
 
 // DELETE /api/docs/:docId/comments/:commentId/replies/:replyId
 //

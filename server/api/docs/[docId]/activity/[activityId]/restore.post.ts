@@ -1,9 +1,9 @@
 import { nanoid } from 'nanoid'
-import { requireDocEditAccess } from '../../../../../utils/documentAccess'
+import { requireDocEditAccess } from '../../../../../utils/documents/documentAccess'
 import { getActivityById, appendActivity, pruneActivity } from '../../../../../repos/activity'
-import { restoreDocToYjsId, RestorePointCompactedError } from '../../../../../utils/restoreDoc'
+import { restoreDocToYjsId, RestorePointCompactedError } from '../../../../../utils/documents/restoreDoc'
 import { findUserNameById } from '../../../../../repos/users'
-import { assertWithinHistory, resolveDocPlan } from '../../../../../utils/entitlements'
+import { assertWithinHistory, resolveDocPlan } from '../../../../../utils/billing/entitlements'
 
 // POST /api/docs/:docId/activity/:activityId/restore
 //

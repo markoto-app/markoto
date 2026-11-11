@@ -17,19 +17,19 @@ const mockState = vi.hoisted(() => ({
   s3Send: async (): Promise<unknown> => ({})
 }))
 
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabase: () => ({
     execute: () => mockState.dbExecute()
   })
 }))
 
-vi.mock('../../server/utils/valkey', () => ({
+vi.mock('../../server/utils/platform/valkey', () => ({
   useValkey: () => ({
     ping: () => mockState.valkeyPing()
   })
 }))
 
-vi.mock('../../server/utils/s3', () => ({
+vi.mock('../../server/utils/storage/s3', () => ({
   useS3Client: () => ({
     send: () => mockState.s3Send()
   })
@@ -50,7 +50,7 @@ const {
   getCachedHealth,
   getCachedProbeResults,
   _resetHealthCache
-} = await import('../../server/utils/healthProbes')
+} = await import('../../server/utils/platform/healthProbes')
 
 // fetch helper that resolves after `delay` ms with the given status.
 function fakeFetch(status: number, delay = 0): typeof fetch {

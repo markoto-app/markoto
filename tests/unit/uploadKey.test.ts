@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildUploadKey, parseUploadKey, DOC_ID_RE } from '../../server/utils/uploadKey'
+import { buildUploadKey, parseUploadKey, DOC_ID_RE } from '../../server/utils/storage/uploadKey'
 
 describe('parseUploadKey', () => {
   const docId = 'doc-abcdefghij'

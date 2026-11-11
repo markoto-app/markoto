@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
-import { migrationsComplete } from '../utils/migrations'
-import { runAbuseReportSweep, resolveAbuseReportRetentionDays } from '../utils/legalRetentionSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runAbuseReportSweep, resolveAbuseReportRetentionDays } from '../utils/privacy/legalRetentionSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Deletes abuse reports 1 year after they were closed (actioned / dismissed),
 // as the privacy policy (§2b) and the abuse policy state

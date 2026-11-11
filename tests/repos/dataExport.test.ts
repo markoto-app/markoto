@@ -9,11 +9,11 @@ import {
 } from '../integration/setup/fixtures'
 
 // Stripe stub — we don't want the export builder hitting the network.
-vi.mock('../../server/utils/stripeClient', () => ({
+vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => null
 }))
 
-const { buildExportZip } = await import('../../server/utils/dataExport')
+const { buildExportZip } = await import('../../server/utils/privacy/dataExport')
 
 async function insertComment(args: {
   docId: string

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Provenance queries for the AI taint gate (`server/utils/agentic/crossBoundary.ts`):
 // "has anybody other than this user changed this document's content?"

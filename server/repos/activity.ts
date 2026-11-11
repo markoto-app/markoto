@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm'
 import { activityLog, users, aiSessions, mcpSessions } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Activity-log repository. Append-mostly table with a per-doc row cap
 // (most-recent 500) to keep unbounded growth in check for docs with

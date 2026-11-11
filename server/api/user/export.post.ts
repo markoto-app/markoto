@@ -1,7 +1,7 @@
 import { enqueueExportJob } from '../../repos/dataExportJobs'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_ACCOUNT_EXPORT_REQUESTED } from '../../legal/auditActions'
-import { checkRateLimit } from '../../utils/rateLimit'
+import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
 
 // GDPR Article 20 — request a data export. Enqueues a job; the

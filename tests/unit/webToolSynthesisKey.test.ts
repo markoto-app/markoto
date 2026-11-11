@@ -22,7 +22,7 @@ const litellmCompletion = vi.hoisted(() =>
   vi.fn(async (_client: unknown, _body: Record<string, unknown>, _opts?: unknown) => ({ choices: [{ message: { content: 'Synthesised answer.' } }] }))
 )
 
-vi.mock('../../server/utils/litellmClient', () => ({ useLitellmAdmin, useLitellmForUser }))
+vi.mock('../../server/utils/ai/litellmClient', () => ({ useLitellmAdmin, useLitellmForUser }))
 vi.mock('../../server/utils/litellm/createCompletion', () => ({ litellmCompletion }))
 // fetch_url routes through the SSRF guard before hitting the network —
 // stub only `assertSafeUrl` so the test doesn't do DNS resolution; the

@@ -14,10 +14,10 @@
 
 import { and, eq, gt, sql } from 'drizzle-orm'
 import { workspaceInvites, workspaceMembers } from '../../db/schema'
-import { useDatabase } from '../database'
-import { getPooledWorkspace } from '../workspaceBilling'
-import { resolveWorkspacePlan } from '../entitlements'
-import { getTiers } from '../tierConfig'
+import { useDatabase } from '../platform/database'
+import { getPooledWorkspace } from '../billing/workspaceBilling'
+import { resolveWorkspacePlan } from '../billing/entitlements'
+import { getTiers } from '../billing/tierConfig'
 import { wouldExceed } from '~~/shared/config/tiers'
 import type { MembershipRole } from '~~/shared/utils/docPermissions'
 

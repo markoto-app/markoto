@@ -1,12 +1,12 @@
 import { eq } from 'drizzle-orm'
-import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/paidTerms'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/billing/paidTerms'
 import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
-import { useStripeClient } from '../../utils/stripeClient'
-import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/stripePlanChange'
-import { assertBillingEnabled } from '../../utils/billingMode'
-import { stripePriceIdFor } from '../../utils/stripePrices'
+import { useDatabase } from '../../utils/platform/database'
+import { useStripeClient } from '../../utils/billing/stripeClient'
+import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/billing/stripePlanChange'
+import { assertBillingEnabled } from '../../utils/billing/billingMode'
+import { stripePriceIdFor } from '../../utils/billing/stripePrices'
 import { isBillingInterval, isCurrency } from '~~/shared/config/pricing'
 
 // POST /api/billing/checkout — plan purchase/upgrade endpoint. Two
@@ -33,7 +33,7 @@ import { isBillingInterval, isCurrency } from '~~/shared/config/pricing'
 // `customer_email` so Stripe pre-fills the payment form.
 
 // Personal checkout sells Pro only — monthly or annual, in EUR or CHF
-// (the Stripe price catalogue, server/utils/stripePrices.ts). Team /
+// (the Stripe price catalogue, server/utils/billing/stripePrices.ts). Team /
 // Business are workspace subscriptions bought by a workspace admin
 // (pricing plan WP3).
 

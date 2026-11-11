@@ -21,11 +21,11 @@ For the in-app AI loop these tools originally served, see `server/utils/agentic/
 | `lib/stripWrapperArgs.ts` | Removes wrapper-injected `doc_id` / `workspace_id` before dispatch (pure, unit-tested in isolation). |
 
 **Shared with the loop** (live in `server/utils/`, NOT here):
-- `utils/mcpAuth.ts` — PAT primitives (generate/hash/verify/revoke) + `mcp_sessions` touch.
-- `utils/mcpSessionBinding.ts` — `sessionId → {userId, tokenId}` binding table in **Valkey** (`mcp:binding:{sid}` = `"{userId}:{tokenId}"` + per-user ZSET `mcp:binding-user:{userId}` of last use; both with the 35-min idle TTL, refreshed by a successful check). Every operation is one Lua script: `bind` is set-if-absent (an id is never re-pointed) and enforces the per-user cap atomically (drops the least recently used), `check` verifies + renews, `releaseToken` (called by `DELETE /api/mcp/tokens/:id`) drops a revoked token's bindings. Survives restarts and is shared by every instance. Valkey error on `check` → "Session not found" (fail closed); on `bind` → the new session stays unbound (refused on its next request, client re-initializes).
-- `utils/renderRateLimit.ts` — the render allowance shared with `GET /api/docs/:id/pdf`.
-- `utils/mcpHocuspocusClient.ts` — `connectAsMcpClient()`: the MCP equivalent of `createAiSession`, builds a `DocToolContext` backed by the pool.
-- `utils/yDocPool.ts` — process-level `(docId, principalId)` HocuspocusProvider pool shared by BOTH the loop and MCP.
+- `utils/mcp/mcpAuth.ts` — PAT primitives (generate/hash/verify/revoke) + `mcp_sessions` touch.
+- `utils/mcp/mcpSessionBinding.ts` — `sessionId → {userId, tokenId}` binding table in **Valkey** (`mcp:binding:{sid}` = `"{userId}:{tokenId}"` + per-user ZSET `mcp:binding-user:{userId}` of last use; both with the 35-min idle TTL, refreshed by a successful check). Every operation is one Lua script: `bind` is set-if-absent (an id is never re-pointed) and enforces the per-user cap atomically (drops the least recently used), `check` verifies + renews, `releaseToken` (called by `DELETE /api/mcp/tokens/:id`) drops a revoked token's bindings. Survives restarts and is shared by every instance. Valkey error on `check` → "Session not found" (fail closed); on `bind` → the new session stays unbound (refused on its next request, client re-initializes).
+- `utils/rendering/renderRateLimit.ts` — the render allowance shared with `GET /api/docs/:id/pdf`.
+- `utils/mcp/mcpHocuspocusClient.ts` — `connectAsMcpClient()`: the MCP equivalent of `createAiSession`, builds a `DocToolContext` backed by the pool.
+- `utils/mcp/yDocPool.ts` — process-level `(docId, principalId)` HocuspocusProvider pool shared by BOTH the loop and MCP.
 - `utils/agentic/toolContext.ts` — the `MetaToolContext` / `DocToolContext` split.
 - `utils/agentic/toolHandlers.ts` — `DOC_TOOL_HANDLERS` / `META_TOOL_HANDLERS` dispatch tables (the one code path both callers share).
 - `api/mcp/tokens/*` — REST CRUD for issuing / listing / revoking PATs (session-authed, NOT PAT-authed).
@@ -67,7 +67,7 @@ The **context-tier split is a type-level bug prevention**: `buildWorkspaceBoundT
 
 ## YDocPool — where the pool actually pays off
 
-`utils/yDocPool.ts` keys on `(docId, principalId)`:
+`utils/mcp/yDocPool.ts` keys on `(docId, principalId)`:
 - In-app loop → principal `loop:{loopSessionId}` (unique per run — no cache hits, just a clean API boundary).
 - MCP → principal `mcp:{mcpSessionId}` (**stable across a client's whole conversation** — repeated `view_document` / `replace_text` calls on the same doc reuse ONE warm provider, saving the ~200-500 ms handshake each). Eviction 5 min after `refCount` hits 0.
 
@@ -109,7 +109,7 @@ The same column also serves `ai:assistant:%` (loop → `ai_sessions`). `server/r
 - **Per-request authz** is ALWAYS re-checked against the PAT user inside the handler — `getDocAuthz` (doc-bound, 404-shape on both missing + forbidden) or `getMemberRole` vs `minRole` (workspace-bound, same 404-shape). The scope grant is necessary, not sufficient: a `documents:write` PAT still can't touch a doc the user can't edit.
 - **Token CRUD endpoints** (`api/mcp/tokens/*`) are authed by the **normal Nitro session** (`requireValidatedUserSession`), NOT by a PAT — you manage tokens from the logged-in web UI (`app/pages/settings/integrations.vue`). Issue + revoke emit `mcp.token_issued` / `mcp.token_revoked` audit events (never logging the hash). Per-user cap: `MAX_PATS_PER_USER = 20` active.
 - **Per-user open-doc cap**: `connectAsMcpClient` reserves a Valkey set slot (`MAX_OPEN_DOCS_PER_USER = 10`, 10-min TTL) before pool checkout; 429 over cap. Fails OPEN on Valkey error (anti-abuse, not correctness — matches `checkRateLimit` polarity).
-- **Web-tool allowance**: `web_search` + `fetch_url` draw on the same per-user hourly/daily allowance as the in-app loop (`consumeWebToolQuota` in `server/utils/webTools.ts`, called inside `webSearch()` / `fetchUrl()`; 30/hour + 100/day by default, `NUXT_WEB_TOOLS_{HOURLY,DAILY}_LIMIT`). The upstream Staan/Jina call is platform-paid and never touches the user's LiteLLM budget; the synthesis runs on the caller's chat provider (BYOK → their own tokens). Over the limit → 429 `ai/web-tools-rate-limited`. The tools are not listed (`buildUserOnlyTool({ available })`) when the operator has no `STAAN_API_KEY` / `JINA_AI_API_KEY`. Fails OPEN on Valkey error.
+- **Web-tool allowance**: `web_search` + `fetch_url` draw on the same per-user hourly/daily allowance as the in-app loop (`consumeWebToolQuota` in `server/utils/ai/webTools.ts`, called inside `webSearch()` / `fetchUrl()`; 30/hour + 100/day by default, `NUXT_WEB_TOOLS_{HOURLY,DAILY}_LIMIT`). The upstream Staan/Jina call is platform-paid and never touches the user's LiteLLM budget; the synthesis runs on the caller's chat provider (BYOK → their own tokens). Over the limit → 429 `ai/web-tools-rate-limited`. The tools are not listed (`buildUserOnlyTool({ available })`) when the operator has no `STAAN_API_KEY` / `JINA_AI_API_KEY`. Fails OPEN on Valkey error.
 
 ---
 

@@ -2,7 +2,7 @@
 // reasons). Client-and-server safe: the report form, the admin queue and
 // the notice emails all read these. Labels are i18n keys
 // (`moderation.rule.<id>`, `moderation.action.<id>`); the notice emails
-// carry their own short texts (server/utils/moderationNotices.ts).
+// carry their own short texts (server/utils/privacy/moderationNotices.ts).
 
 /** Report categories the public form offers (stored on abuse_reports.category). */
 export const REPORT_CATEGORIES = ['illegal_content', 'csam', 'copyright', 'harassment', 'spam', 'other'] as const

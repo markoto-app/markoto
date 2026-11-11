@@ -8,7 +8,7 @@ import {
   sanitizeAltText,
   parseDocIdFromInput,
   resolveThemeCustomCss
-} from '../../server/utils/aiToolAdapter'
+} from '../../server/utils/ai/aiToolAdapter'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import type { HeadingLevels } from '../../shared/types/theme'
 import { UpdateThemeArgs, type UpdateThemeInput } from '../../server/utils/agentic/functionTools'

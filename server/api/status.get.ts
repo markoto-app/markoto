@@ -1,4 +1,4 @@
-import { getCachedProbeResults, isOverallHealthy, type ProbeResult } from '../utils/healthProbes'
+import { getCachedProbeResults, isOverallHealthy, type ProbeResult } from '../utils/platform/healthProbes'
 
 // Public status endpoint — purpose-built for an external status page (e.g.
 // a scheduled GitHub Actions job that polls this and publishes to GitHub

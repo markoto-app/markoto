@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../../server/utils/aiRecordsSweep'
+import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../../server/utils/ai/aiRecordsSweep'
 import { appendAiMessage } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
 

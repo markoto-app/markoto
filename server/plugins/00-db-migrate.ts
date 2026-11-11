@@ -1,6 +1,6 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
-import { useDatabase } from '../utils/database'
-import { signalMigrationsComplete } from '../utils/migrations'
+import { useDatabase } from '../utils/platform/database'
+import { signalMigrationsComplete } from '../utils/platform/migrations'
 
 // Apply Drizzle migrations at boot. Idempotent: drizzle-kit's migrator tracks
 // applied migrations in `__drizzle_migrations` and only runs new ones.

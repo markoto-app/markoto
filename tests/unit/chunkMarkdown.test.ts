@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chunkMarkdown } from '../../server/utils/chunkMarkdown'
+import { chunkMarkdown } from '../../server/utils/knowledge/chunkMarkdown'
 
 // chunkMarkdown is a pure function — no DB, no network. Covers the
 // edge cases the processor actually cares about:

@@ -1,10 +1,10 @@
 import { and, eq, isNotNull } from 'drizzle-orm'
 import { users, workspaceMembers, workspaces } from '../../db/schema'
-import { useDatabase } from '../database'
-import { useValkey } from '../valkey'
-import { emailLinkBaseUrl } from '../siteUrl'
+import { useDatabase } from '../platform/database'
+import { useValkey } from '../platform/valkey'
+import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { safeSendTransactionalEmail } from './sendEmail'
-import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaceInvites'
+import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaces/workspaceInvites'
 
 // Billing emails to a Team / Business workspace's admins (WP3):
 //   budget_80 / budget_100 — the workspace's AI budget is 80 % / fully used

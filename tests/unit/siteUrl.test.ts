@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emailLinkBaseUrl, siteUrlErrors } from '../../server/utils/siteUrl'
+import { emailLinkBaseUrl, siteUrlErrors } from '../../server/utils/platform/siteUrl'
 
 // Email links are built from NUXT_SITE_URL only — never from the
 // client-influenced request Host — so production must configure it.

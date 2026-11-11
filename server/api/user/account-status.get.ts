@@ -1,11 +1,11 @@
 import { getAccountStatus } from '../../repos/users'
-import { isAdminUser } from '../../utils/adminAccess'
+import { isAdminUser } from '../../utils/auth/adminAccess'
 import {
   DPA_VERSION,
   PRIVACY_VERSION,
   TOS_VERSION
 } from '~~/shared/legal/versions'
-import { legalSurfacesEnabled } from '../../utils/instanceConfig'
+import { legalSurfacesEnabled } from '../../utils/platform/instanceConfig'
 
 // Read the privacy-relevant state of the current user. Drives:
 //   - the deletion-grace banner (when `deletionRequestedAt` is set)
@@ -41,7 +41,7 @@ export default defineEventHandler(async (event) => {
   return {
     // Drives the "Admin" entry in the avatar dropdown. Same source as
     // `requireAdminUser` (the `users.is_admin` column); see
-    // server/utils/adminAccess.ts.
+    // server/utils/auth/adminAccess.ts.
     isAdmin: await isAdminUser(session.user.id),
     email: status.email,
     locale: status.locale,

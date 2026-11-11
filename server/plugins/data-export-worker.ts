@@ -1,6 +1,6 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runDataExportWorker } from '../utils/dataExportWorker'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runDataExportWorker } from '../utils/privacy/dataExportWorker'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Data-export worker plugin. Runs the queued-job claim → ZIP build
 // → S3 upload pipeline. Thin wrapper — the heavy lifting lives in

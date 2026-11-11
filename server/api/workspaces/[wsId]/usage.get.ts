@@ -1,8 +1,8 @@
 import { sql } from 'drizzle-orm'
-import { useDatabase } from '../../../utils/database'
+import { useDatabase } from '../../../utils/platform/database'
 import { decryptToken } from '../../../utils/litellm/tokenCrypto'
 import { readMemberKeySpend } from '../../../utils/litellm/workspaceTeams'
-import { getPooledWorkspace } from '../../../utils/workspaceBilling'
+import { getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 
 // GET /api/workspaces/:wsId/usage — per-person usage of the workspace for
 // its admins (WP11): documents they own in it, knowledge files and image

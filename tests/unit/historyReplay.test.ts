@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
-import { reconstructDocAtYjsId, reconstructTextAtYjsId } from '../../server/utils/historyReplay'
+import { reconstructDocAtYjsId, reconstructTextAtYjsId } from '../../server/utils/documents/historyReplay'
 
 // Mock useDatabasePool so we can drive reconstructDocAtYjsId without
 // a real Postgres. The implementation only ever calls pool.query —
 // we stub it to return canned y-postgresql-style rows.
 const mockQuery = vi.fn()
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({ query: mockQuery })
 }))
 

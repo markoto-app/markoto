@@ -1,5 +1,5 @@
 import { listKnowledge, countWorkspaceKnowledge, sumWorkspaceKnowledgeBytes } from '../../../../repos/knowledge'
-import { resolveCaps } from '../../../../utils/knowledgeQuota'
+import { resolveCaps } from '../../../../utils/knowledge/knowledgeQuota'
 
 /**
  * List knowledge files in a workspace. Any member role can call this.

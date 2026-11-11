@@ -1,10 +1,10 @@
 import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
-import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/entitlements'
+import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
 import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
-import { hasValidDocJwt } from '../../../../../utils/docTokenVerify'
-import { reconstructTextAtYjsId } from '../../../../../utils/historyReplay'
-import { computeTextDiff, type DiffHunk } from '../../../../../utils/textDiff'
+import { hasValidDocJwt } from '../../../../../utils/documents/docTokenVerify'
+import { reconstructTextAtYjsId } from '../../../../../utils/documents/historyReplay'
+import { computeTextDiff, type DiffHunk } from '../../../../../utils/documents/textDiff'
 
 // On-demand text diff for a single activity row. Called from the
 // activity-feed UI when the user expands a card. Replays the doc on

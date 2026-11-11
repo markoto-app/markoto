@@ -1,6 +1,6 @@
 import { and, asc, eq, isNull, sql } from 'drizzle-orm'
 import { workspaceBrandAssets } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { DuplicateError } from './errors'
 import type { BrandAssetFormat, BrandFont } from '~~/shared/config/brandKit'
 

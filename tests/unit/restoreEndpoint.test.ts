@@ -31,11 +31,11 @@ const nanoidFn = vi.fn(() => 'fixed-session-id')
 const resolveDocPlan = vi.fn(async () => 'free')
 const assertWithinHistory = vi.fn((_plan: string, _createdAt: Date) => {})
 
-vi.mock('../../server/utils/documentAccess', () => ({ requireDocEditAccess }))
+vi.mock('../../server/utils/documents/documentAccess', () => ({ requireDocEditAccess }))
 vi.mock('../../server/repos/activity', () => ({
   getActivityById, appendActivity, pruneActivity
 }))
-vi.mock('../../server/utils/restoreDoc', () => ({
+vi.mock('../../server/utils/documents/restoreDoc', () => ({
   restoreDocToYjsId,
   // Real class so the endpoint's `e instanceof RestorePointCompactedError`
   // check resolves. Generic thrown errors aren't instances → 500 path.
@@ -43,7 +43,7 @@ vi.mock('../../server/utils/restoreDoc', () => ({
 }))
 vi.mock('../../server/repos/users', () => ({ findUserNameById }))
 vi.mock('nanoid', () => ({ nanoid: nanoidFn }))
-vi.mock('../../server/utils/entitlements', () => ({ resolveDocPlan, assertWithinHistory }))
+vi.mock('../../server/utils/billing/entitlements', () => ({ resolveDocPlan, assertWithinHistory }))
 
 // h3-style globals stubbed identically to validatedSession.test.ts.
 // `defineEventHandler` is the entry point of the SUT — we capture

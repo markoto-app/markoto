@@ -9,7 +9,7 @@ import {
   workspaceMembers,
   workspaces
 } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Repo helpers used exclusively by the account-deletion executor.
 // Lives in its own file rather than spread across the existing repos

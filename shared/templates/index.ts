@@ -8,7 +8,7 @@
  *
  * THIS FILE = registry only (id, design, category, icon, i18n keys, cover
  * placeholders). The markdown bodies live in `content/<content>/<locale>.md`
- * and are loaded server-side by `server/utils/templateRenderer.ts` (via
+ * and are loaded server-side by `server/utils/documents/templateRenderer.ts` (via
  * fs.readFileSync). The client never touches the body files — the server
  * pre-renders the template and ships the result on the token endpoint.
  *

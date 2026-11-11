@@ -4,7 +4,7 @@ import {
   MAX_CONSENT_DECISIONS_IN,
   OPTIONAL_CONSENT_PURPOSES,
   normaliseConsentDecisions
-} from '../../server/utils/consentDecisions'
+} from '../../server/utils/privacy/consentDecisions'
 
 // POST /api/consent is public and append-only: one submission must not be
 // able to write more than one row per purpose.

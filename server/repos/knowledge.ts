@@ -1,6 +1,6 @@
 import { and, desc, eq, sql, cosineDistance } from 'drizzle-orm'
 import { workspaceKnowledge, workspaceKnowledgeChunks } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
 
 /**

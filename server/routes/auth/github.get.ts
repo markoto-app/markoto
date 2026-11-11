@@ -1,7 +1,7 @@
 import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
-import { SESSION_VERSION } from '../../utils/validatedSession'
-import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
-import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/oauthEmail'
+import { SESSION_VERSION } from '../../utils/auth/validatedSession'
+import { bootstrapAdminFromEnv } from '../../utils/auth/adminBootstrap'
+import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/auth/oauthEmail'
 
 export default defineOAuthGitHubEventHandler({
   config: { emailRequired: true },

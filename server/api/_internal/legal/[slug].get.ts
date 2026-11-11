@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
-import { legalMarkdown } from '~~/server/utils/legalMarkdown'
+import { legalMarkdown } from '~~/server/utils/privacy/legalMarkdown'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
-import { assertLegalSurfacesEnabled } from '../../../utils/instanceConfig'
+import { assertLegalSurfacesEnabled } from '../../../utils/platform/instanceConfig'
 import { renderProcessingPurposesMarkdown } from '~~/server/legal/registryView'
-import { isBillingEnabled } from '~~/server/utils/billingMode'
+import { isBillingEnabled } from '~~/server/utils/billing/billingMode'
 import {
   ABUSE_POLICY_EFFECTIVE_DATE,
   ABUSE_POLICY_VERSION,

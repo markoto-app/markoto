@@ -413,7 +413,7 @@ async function exportMarkdown() {
 }
 
 // Theme + properties from an imported markoto Markdown file. The server
-// already validated every field (server/utils/markdownImport.ts); the
+// already validated every field (server/utils/documents/markdownImport.ts); the
 // setters below check again (setTheme: schema; ymeta: the sync server).
 function applyImportedProperties(
   properties: ImportedDocProperties,

@@ -8,13 +8,13 @@ import {
 } from './aiTypes'
 import * as Sentry from '@sentry/nuxt'
 import { litellmStream } from '../litellm/createCompletion'
-import type { AiSession } from '../aiClient'
-import type { BillingContext } from '../billing'
-import { getWebToolAvailability } from '../webTools'
+import type { AiSession } from '../ai/aiClient'
+import type { BillingContext } from '../billing/billing'
+import { getWebToolAvailability } from '../ai/webTools'
 import { LitellmBudgetExhausted, isBudgetExceededError } from '../litellm/userKeys'
 import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from '../litellm/freeTierTeam'
 import { MEMBER_LIMIT_REACHED_MESSAGE, TEAM_BUDGET_EXHAUSTED_MESSAGE, isWorkspaceTeamBudgetError } from '../litellm/workspaceTeams'
-import { executeFunctionByName } from '../aiToolAdapter'
+import { executeFunctionByName } from '../ai/aiToolAdapter'
 import { ALL_TOOL_DECLARATIONS, TOOL_SCHEMAS, filterToolsForProviders, webSearch, fetchUrl } from './functionTools'
 import { SESSION_INTERACTION_CAP, SESSION_TOOL_CALL_CAPS } from './limits'
 import {
@@ -23,7 +23,7 @@ import {
   openAIStreamToInternalChunks,
   type StreamChunk
 } from './messageTranslation'
-import { useLitellmForUser } from '../litellmClient'
+import { useLitellmForUser } from '../ai/litellmClient'
 import { providerRequestFields, withProviderErrors, redactProviderStream } from '../aiProviders/requestFields'
 import type { CrossBoundaryGuard } from './crossBoundary'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
@@ -31,7 +31,7 @@ import { FEATURE_TAGS, featureMetadata } from '../litellm/featureTags'
 import { appendActivity, pruneActivity, type ActivityMetadata } from '../../repos/activity'
 import { aiClientUserId } from '~~/shared/contracts/jwt'
 import { docExists } from '../../repos/documents'
-import { budgetExhaustedBreadcrumb } from '../billingMode'
+import { budgetExhaustedBreadcrumb } from '../billing/billingMode'
 import {
   DOC_EDIT_TOOLS,
   EditProgressTracker,

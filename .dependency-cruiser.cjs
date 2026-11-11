@@ -36,37 +36,37 @@ const DB_OFFENDERS = [
   '^server/api/workspaces/\\[wsId\\]/usage\\.get\\.ts$',
   '^server/plugins/knowledge-sweep\\.ts$',
   '^server/plugins/mcp-sessions-sweep\\.ts$',
-  '^server/utils/accountDeletionPlan\\.ts$',
-  '^server/utils/accountDeletionSweep\\.ts$',
-  '^server/utils/aiCredits\\.ts$',
+  '^server/utils/privacy/accountDeletionPlan\\.ts$',
+  '^server/utils/privacy/accountDeletionSweep\\.ts$',
+  '^server/utils/billing/aiCredits\\.ts$',
   '^server/utils/aiProviders/resolve\\.ts$',
-  '^server/utils/aiRecordsSweep\\.ts$',
-  '^server/utils/aiSessions\\.ts$',
-  '^server/utils/billing\\.ts$',
-  '^server/utils/dataExport\\.ts$',
+  '^server/utils/ai/aiRecordsSweep\\.ts$',
+  '^server/utils/ai/aiSessions\\.ts$',
+  '^server/utils/billing/billing\\.ts$',
+  '^server/utils/privacy/dataExport\\.ts$',
   '^server/utils/email/workspaceBillingEmails\\.ts$',
-  '^server/utils/entitlements\\.ts$',
-  '^server/utils/healthProbes\\.ts$',
-  '^server/utils/imageQuota\\.ts$',
-  '^server/utils/inactiveDocSweep\\.ts$',
-  '^server/utils/legalRetentionSweep\\.ts$',
+  '^server/utils/billing/entitlements\\.ts$',
+  '^server/utils/platform/healthProbes\\.ts$',
+  '^server/utils/storage/imageQuota\\.ts$',
+  '^server/utils/documents/inactiveDocSweep\\.ts$',
+  '^server/utils/privacy/legalRetentionSweep\\.ts$',
   '^server/utils/litellm/keyReconcile\\.ts$',
   '^server/utils/litellm/userKeys\\.ts$',
   '^server/utils/litellm/workspaceTeams\\.ts$',
-  '^server/utils/mcpAuth\\.ts$',
-  '^server/utils/moderationDecision\\.ts$',
-  '^server/utils/moderationNotices\\.ts$',
-  '^server/utils/processKnowledge\\.ts$',
+  '^server/utils/mcp/mcpAuth\\.ts$',
+  '^server/utils/privacy/moderationDecision\\.ts$',
+  '^server/utils/privacy/moderationNotices\\.ts$',
+  '^server/utils/knowledge/processKnowledge\\.ts$',
   '^server/utils/publish/publishDocument\\.ts$',
-  '^server/utils/restoreDoc\\.ts$',
+  '^server/utils/documents/restoreDoc\\.ts$',
   '^server/utils/sso/completeLogin\\.ts$',
   '^server/utils/sso/membership\\.ts$',
   '^server/utils/sso/scim\\.ts$',
-  '^server/utils/stripeWebhook\\.ts$',
-  '^server/utils/webhookEventSweep\\.ts$',
-  '^server/utils/workspaceBillingLifecycle\\.ts$',
-  '^server/utils/workspaceBudgetAlerts\\.ts$',
-  '^server/utils/workspaceStripe\\.ts$'
+  '^server/utils/billing/stripeWebhook\\.ts$',
+  '^server/utils/billing/webhookEventSweep\\.ts$',
+  '^server/utils/billing/workspaceBillingLifecycle\\.ts$',
+  '^server/utils/billing/workspaceBudgetAlerts\\.ts$',
+  '^server/utils/billing/workspaceStripe\\.ts$'
 ]
 
 /** @type {import('dependency-cruiser').IConfiguration} */
@@ -137,7 +137,7 @@ module.exports = {
       from: { path: '^server/repos/' },
       to: {
         path: '^(server|app|sync-server|renderer)/',
-        pathNot: ['^server/db/', '^server/repos/', '^server/utils/database\\.ts$']
+        pathNot: ['^server/db/', '^server/repos/', '^server/utils/platform/database\\.ts$']
       }
     },
 
@@ -162,7 +162,7 @@ module.exports = {
         pathNot: [
           '^server/(repos|db)/',
           // the database handle + boot-time migration runner are the sanctioned non-repo users
-          '^server/utils/database\\.ts$',
+          '^server/utils/platform/database\\.ts$',
           '^server/plugins/00-db-migrate\\.ts$',
           // known offenders: shrink this list, never grow it
           ...DB_OFFENDERS

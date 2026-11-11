@@ -1,5 +1,5 @@
 import { listSharesForDoc } from '../../../../repos/documentShares'
-import { listWorkspaceGuests, requireDocSharingAccess } from '../../../../utils/documentSharing'
+import { listWorkspaceGuests, requireDocSharingAccess } from '../../../../utils/documents/documentSharing'
 
 // GET /api/docs/:docId/shares — guests this document is shared with, and
 // the workspace's guests to pick from (WP11). Admins + editors of the

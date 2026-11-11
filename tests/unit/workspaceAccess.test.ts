@@ -18,7 +18,7 @@ const {
   canEditDoc,
   canManageDoc,
   getDocAuthz
-} = await import('../../server/utils/workspaceAccess')
+} = await import('../../server/utils/workspaces/workspaceAccess')
 
 type Ctx = Awaited<ReturnType<typeof getDocWithActorRole>>
 

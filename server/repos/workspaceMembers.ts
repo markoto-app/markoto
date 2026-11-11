@@ -1,7 +1,7 @@
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { workspaceMembers, users } from '../db/schema'
 import type { MembershipRole, WorkspaceRole } from '../../shared/utils/docPermissions'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { ConflictError, LastAdminError, NotFoundError } from './errors'
 import { ssoSatisfiedSql } from './sso'
 

@@ -1,14 +1,14 @@
-import { resolveBillingContext } from '../../utils/billing'
+import { resolveBillingContext } from '../../utils/billing/billing'
 import { getUserKeyInfo } from '../../utils/litellm/userKeys'
-import { getWorkspaceRole } from '../../utils/workspaceAccess'
+import { getWorkspaceRole } from '../../utils/workspaces/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
-import { getTiers } from '~~/server/utils/tierConfig'
-import { freeAllowanceView } from '../../utils/freeAllowance'
+import { getTiers } from '~~/server/utils/billing/tierConfig'
+import { freeAllowanceView } from '../../utils/billing/freeAllowance'
 import { readMemberKeySpend, readWorkspaceTeam } from '../../utils/litellm/workspaceTeams'
-import { getPooledWorkspace, memberLimitUsd, workspacePoolCaps } from '../../utils/workspaceBilling'
+import { getPooledWorkspace, memberLimitUsd, workspacePoolCaps } from '../../utils/billing/workspaceBilling'
 import { and, eq } from 'drizzle-orm'
 import { workspaceMembers } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
+import { useDatabase } from '../../utils/platform/database'
 
 /**
  * GET /api/ai/credits — AI Points UI data source.

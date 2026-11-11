@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { SUB_PROCESSORS } from '../../../server/legal/subProcessors'
 import { PROCESSING_PURPOSES } from '../../../server/legal/lawfulBasis'
 import * as auditActions from '../../../server/legal/auditActions'
-import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/legalRetentionSweep'
+import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/privacy/legalRetentionSweep'
 
 // Sanity tests for the legal registries. These are constants-only
 // modules — no DB, no I/O — but they're load-bearing for the

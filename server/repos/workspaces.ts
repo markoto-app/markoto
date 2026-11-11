@@ -2,7 +2,7 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 import { workspaces, workspaceMembers, documents } from '../db/schema'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
 import type { DocTheme } from '~~/shared/types/theme'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { NotFoundError } from './errors'
 
 // Workspaces repository. Two transactional paths stand out:

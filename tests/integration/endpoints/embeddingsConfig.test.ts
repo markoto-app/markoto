@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
-import { readEmbeddingColumnDims } from '../../../server/utils/embeddingColumn'
+import { readEmbeddingColumnDims } from '../../../server/utils/knowledge/embeddingColumn'
 
 // The default (hosted) embeddings path must be unchanged by the
 // self-hoster configuration work: Jina deployment still registered in the

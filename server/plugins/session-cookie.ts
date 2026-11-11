@@ -1,4 +1,4 @@
-import { DEFAULT_SESSION_COOKIE, dropUnusedSessionCookie } from '../utils/sessionCookie'
+import { DEFAULT_SESSION_COOKIE, dropUnusedSessionCookie } from '../utils/auth/sessionCookie'
 
 // No `Set-Cookie: nuxt-session` for visitors who never signed in (static
 // assets, pages, public API answers). Why and how: utils/sessionCookie.ts.

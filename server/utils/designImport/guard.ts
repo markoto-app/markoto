@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/nuxt'
 import { AI_SETTINGS_PATH, requireAiProviders } from '../aiProviders/guard'
 import type { ResolvedAiProvider } from '../aiProviders/resolve'
-import { useValkey } from '../valkey'
-import { resolvePayingPlan } from '../billing'
+import { useValkey } from '../platform/valkey'
+import { resolvePayingPlan } from '../billing/billing'
 import type { DesignImportExt } from '~~/shared/config/designImport'
 
 // Shared gates of the design-import endpoints.

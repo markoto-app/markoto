@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { DocThemeSchema } from '~~/shared/types/theme'
 import { DESIGN_IMPORT_ERROR_CODES, DESIGN_IMPORT_PHASES } from '~~/shared/config/designImport'
-import { useValkey } from '../valkey'
+import { useValkey } from '../platform/valkey'
 
 // State of one "Create a design from a document" run, polled by the
 // dialog (`GET /api/themes/from-document/jobs/:jobId`). Valkey only: the

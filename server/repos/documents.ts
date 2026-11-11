@@ -4,7 +4,7 @@ import type { AudienceKind } from '~~/shared/audiences'
 import { documentShares, documents, workspaceMembers } from '../db/schema'
 import { ssoEnforcedSql, ssoSatisfiedSql } from './sso'
 import type { WorkspaceRole } from '../../shared/utils/docPermissions'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { NotFoundError } from './errors'
 
 // Documents repository.

@@ -15,7 +15,7 @@ import {
   type SessionJwtPayload
 } from '~~/shared/contracts/jwt'
 import { createAuth } from '../../sync-server/src/auth'
-import { verifyRenderToken } from '../../server/utils/renderTokens'
+import { verifyRenderToken } from '../../server/utils/rendering/renderTokens'
 
 // Contract tests for the JWT mint helpers. The point of these tests
 // is NOT to exercise the verifiers (those have their own coverage in

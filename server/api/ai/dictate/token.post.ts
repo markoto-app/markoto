@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken'
-import { resolveBillingContext } from '../../../utils/billing'
+import { resolveBillingContext } from '../../../utils/billing/billing'
 import { DICTATE_JWT_FIXED_CLAIMS, type DictateJwtPayload } from '../../../../shared/contracts/jwt'
 
 // Mints a short-lived JWT for the live-dictation WebSocket. We go this

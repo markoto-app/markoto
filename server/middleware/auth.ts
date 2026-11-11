@@ -1,5 +1,5 @@
 import { isTestModeEnabled } from '../../shared/utils/testMode'
-import { classifyInternalRoute, rejectIfFromEdge, requireInternalSecret } from '../utils/internalRoutes'
+import { classifyInternalRoute, rejectIfFromEdge, requireInternalSecret } from '../utils/platform/internalRoutes'
 
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
@@ -9,7 +9,7 @@ export default defineEventHandler(async (event) => {
   // whitelist check so a HEAD to a public GET route isn't 401'd.
   const method = event.method === 'HEAD' ? 'GET' : event.method
 
-  // Service-to-service routes (see server/utils/internalRoutes.ts). Checked
+  // Service-to-service routes (see server/utils/platform/internalRoutes.ts). Checked
   // here rather than in each handler so a new route under these prefixes
   // can't forget its gate: never served to the public edge, and
   // /api/internal/** needs the internal secret instead of a session. The

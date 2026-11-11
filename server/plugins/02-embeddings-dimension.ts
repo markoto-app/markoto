@@ -1,12 +1,12 @@
 import * as Sentry from '@sentry/nuxt'
-import { useDatabasePool } from '../utils/database'
-import { migrationsComplete } from '../utils/migrations'
-import { reconcileEmbeddingColumn } from '../utils/embeddingColumn'
-import { resetKnowledgeEmbeddingsStatus } from '../utils/knowledgeEmbeddingsStatus'
+import { useDatabasePool } from '../utils/platform/database'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { reconcileEmbeddingColumn } from '../utils/knowledge/embeddingColumn'
+import { resetKnowledgeEmbeddingsStatus } from '../utils/knowledge/knowledgeEmbeddingsStatus'
 import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../shared/utils/embeddingConfig'
 
 // After migrations: make the pgvector column match NUXT_LITELLM_EMBEDDINGS_DIMS
-// (see server/utils/embeddingColumn.ts for the rules). Never fails the boot:
+// (see server/utils/knowledge/embeddingColumn.ts for the rules). Never fails the boot:
 // a bad or conflicting embeddings setup only disables knowledge features,
 // reported via logs, Sentry and /api/health/deep (`checks.embeddings`).
 export default defineNitroPlugin(() => {

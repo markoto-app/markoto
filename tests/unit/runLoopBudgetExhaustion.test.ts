@@ -24,7 +24,7 @@ const executeFunctionByName = vi.fn()
 const webSearch = vi.fn()
 const fetchUrl = vi.fn()
 
-vi.mock('../../server/utils/aiToolAdapter', () => ({ executeFunctionByName }))
+vi.mock('../../server/utils/ai/aiToolAdapter', () => ({ executeFunctionByName }))
 vi.mock('../../server/utils/agentic/functionTools', async () => {
   const actual = await vi.importActual<typeof import('../../server/utils/agentic/functionTools')>(
     '../../server/utils/agentic/functionTools'

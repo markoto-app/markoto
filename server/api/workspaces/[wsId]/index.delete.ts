@@ -2,10 +2,10 @@ import { collectBrandObjectKeys, deleteBrandObjects } from '../../../utils/brand
 import { deleteWorkspaceRow } from '../../../repos/workspaces'
 import { getDoc, listDocIdsInWorkspace } from '../../../repos/documents'
 import { listKnowledge } from '../../../repos/knowledge'
-import { deleteDocument } from '../../../utils/documentLifecycle'
-import { deleteKnowledgeArtifact } from '../../../utils/knowledgeAccess'
+import { deleteDocument } from '../../../utils/documents/documentLifecycle'
+import { deleteKnowledgeArtifact } from '../../../utils/knowledge/knowledgeAccess'
 import { appendAuditEvent } from '../../../repos/audit'
-import { endWorkspaceBilling } from '../../../utils/workspaceBillingLifecycle'
+import { endWorkspaceBilling } from '../../../utils/billing/workspaceBillingLifecycle'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
 // etc via `deleteDocument`), then drop the workspace row itself. Deletes

@@ -31,7 +31,7 @@ import { soloSessionGuard, taintedSessionGuard } from './fixtures/crossBoundary'
 const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
 const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<string>>()
 
-vi.mock('../../server/utils/aiToolAdapter', () => ({
+vi.mock('../../server/utils/ai/aiToolAdapter', () => ({
   executeFunctionByName
 }))
 vi.mock('../../server/utils/agentic/functionTools', async () => {

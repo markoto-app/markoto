@@ -1,9 +1,9 @@
 import { and, asc, eq, ne } from 'drizzle-orm'
 import { users, workspaceMembers } from '../../../../db/schema'
-import { useDatabase } from '../../../../utils/database'
+import { useDatabase } from '../../../../utils/platform/database'
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../../../repos/workspaceSubscriptions'
-import { isBillingEnabled } from '../../../../utils/billingMode'
-import { creditBalanceView } from '../../../../utils/aiCreditBudget'
+import { isBillingEnabled } from '../../../../utils/billing/billingMode'
+import { creditBalanceView } from '../../../../utils/billing/aiCreditBudget'
 import { decryptToken } from '../../../../utils/litellm/tokenCrypto'
 import { readMemberKeySpend, readWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import {
@@ -12,7 +12,7 @@ import {
   requireWorkspaceBillingAdmin,
   workspacePoolCaps,
   MIN_WORKSPACE_SEATS
-} from '../../../../utils/workspaceBilling'
+} from '../../../../utils/billing/workspaceBilling'
 
 // GET /api/workspaces/:wsId/billing — the workspace billing tab (WP3).
 // Workspace admins only (404 non-member, 403 member).

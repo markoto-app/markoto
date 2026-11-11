@@ -5,7 +5,7 @@
 import type { H3Event } from 'h3'
 import { isTestModeEnabled } from '~~/shared/utils/testMode'
 import { decryptToken } from '../litellm/tokenCrypto'
-import { SESSION_VERSION } from '../validatedSession'
+import { SESSION_VERSION } from '../auth/validatedSession'
 import { getSessionEpoch } from '../../repos/users'
 import type { OidcSettings } from '../oidc/settings'
 import type { SsoConnectionRow } from '../../repos/sso'

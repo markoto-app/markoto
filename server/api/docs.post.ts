@@ -1,5 +1,5 @@
-import { createDocument } from '../utils/createDocument'
-import { ensureAnonCreatorKey, hashAnonCreatorKey } from '../utils/anonCreator'
+import { createDocument } from '../utils/documents/createDocument'
+import { ensureAnonCreatorKey, hashAnonCreatorKey } from '../utils/auth/anonCreator'
 import { enforceAnonGate } from '../utils/anonGate/gate'
 import { ANON_DOC_CREATE_LIMITS } from '~~/shared/config/anonLimits'
 import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'

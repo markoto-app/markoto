@@ -21,7 +21,7 @@ class HttpError extends Error {
 }
 vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => new HttpError(opts))
 
-const { reserveUploadSlot, memberShareOfWorkspaceSlots } = await import('../../server/utils/knowledgeQuota')
+const { reserveUploadSlot, memberShareOfWorkspaceSlots } = await import('../../server/utils/knowledge/knowledgeQuota')
 
 let savedTestMode: string | undefined
 beforeAll(() => {

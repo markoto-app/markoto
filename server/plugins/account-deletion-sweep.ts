@@ -1,6 +1,6 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runAccountDeletionSweep } from '../utils/accountDeletionSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runAccountDeletionSweep } from '../utils/privacy/accountDeletionSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Account-deletion sweep plugin. Runs the cascading-purge for users
 // whose 30-day grace window has elapsed. Thin wrapper — the heavy

@@ -20,7 +20,7 @@ import { createSharedComposable } from '@vueuse/core'
 import { loginPath, type LoginProvider } from '~~/shared/config/instance'
 import { isPlanErrorCode } from '~~/shared/config/planErrors'
 
-/** Server code for "this action needs a fresh sign-in" (server/utils/sessionPolicy.ts). */
+/** Server code for "this action needs a fresh sign-in" (server/utils/auth/sessionPolicy.ts). */
 const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
 
 interface FetchErrorLike {
@@ -133,7 +133,7 @@ function useErrorHandlerImpl() {
     if (sc === 404) return showError('error.notFound', err)
     if (sc === 429) return showError('error.rateLimited', err)
 
-    // Plan limit / feature not in the plan (server/utils/entitlements.ts):
+    // Plan limit / feature not in the plan (server/utils/billing/entitlements.ts):
     // a dedicated title plus the server's recovery link (Upgrade, or
     // "paid plans coming soon"); self-hosted instances send none.
     if (isPlanErrorCode(extracted.code)) {

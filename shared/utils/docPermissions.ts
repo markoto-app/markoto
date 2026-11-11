@@ -9,7 +9,7 @@
 // Endpoints are thin wrappers: they fetch state, call the relevant decide*
 // function, and translate the outcome to HTTP. Calling code that needs the
 // raw booleans (e.g. the workspaces invariant check) keeps using the DB
-// helpers in server/utils/workspaceAccess.ts — those exist for server-side
+// helpers in server/utils/workspaces/workspaceAccess.ts — those exist for server-side
 // convenience, not as policy authority.
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
@@ -53,7 +53,7 @@ export interface ActorState {
   // endpoint never sees this (that's where the JWT comes *from*).
   hasValidDocJwt?: boolean
   // True when the request carries the creator key of an anonymous doc
-  // (the browser that created it, see `server/utils/anonCreator.ts`).
+  // (the browser that created it, see `server/utils/auth/anonCreator.ts`).
   // Only read by `decideDocDelete`: anonymous docs can be deleted only
   // by their creating browser.
   isAnonCreator?: boolean

@@ -58,7 +58,7 @@ const server = Bun.serve({
       }
 
       // Distributed-tracing continuation. The app calls this endpoint from
-      // inside its own transaction (server/utils/renderClient.ts injects
+      // inside its own transaction (server/utils/rendering/renderClient.ts injects
       // sentry-trace + baggage). continueTrace re-creates that propagation
       // context here so startSpan opens a CHILD of the upstream root, not
       // a sibling. End result: one trace covers browser → app → renderer

@@ -134,7 +134,7 @@ const dbMock = {
   })
 }
 
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabase: () => dbMock,
   useDatabasePool: () => ({ query: vi.fn() })
 }))
@@ -145,7 +145,7 @@ vi.mock('../../server/utils/database', () => ({
 // need it to return a Y.Doc with known content so we can verify
 // the "encode + apply → live doc" pipeline.
 const replayMock = vi.fn()
-vi.mock('../../server/utils/historyReplay', () => ({
+vi.mock('../../server/utils/documents/historyReplay', () => ({
   reconstructDocAtYjsId: (...args: unknown[]) => replayMock(...args)
 }))
 
@@ -161,7 +161,7 @@ const runtimeConfigState: { value: FakeRuntimeConfig } = {
 ;(globalThis as Record<string, unknown>).useRuntimeConfig = () => runtimeConfigState.value
 
 // Now safe to import the unit under test — all mocks registered.
-const { restoreDocToYjsId, readRestorableMeta } = await import('../../server/utils/restoreDoc')
+const { restoreDocToYjsId, readRestorableMeta } = await import('../../server/utils/documents/restoreDoc')
 
 beforeEach(() => {
   providerCalls.length = 0

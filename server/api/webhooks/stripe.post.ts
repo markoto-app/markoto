@@ -1,12 +1,12 @@
 import { readRawBody } from 'h3'
 import * as Sentry from '@sentry/nuxt'
-import { useStripeClient } from '../../utils/stripeClient'
-import { dispatchStripeEvent } from '../../utils/stripeWebhook'
-import { assertBillingEnabled } from '../../utils/billingMode'
+import { useStripeClient } from '../../utils/billing/stripeClient'
+import { dispatchStripeEvent } from '../../utils/billing/stripeWebhook'
+import { assertBillingEnabled } from '../../utils/billing/billingMode'
 
 // Stripe webhook entry point. Verifies the `Stripe-Signature` header
 // against the raw body using our webhook secret, then dispatches to
-// per-event handlers in `server/utils/stripeWebhook.ts`.
+// per-event handlers in `server/utils/billing/stripeWebhook.ts`.
 //
 // CRITICAL: Stripe's signature is computed over the RAW body. Any
 // JSON parse-and-restringify would change whitespace/key order and

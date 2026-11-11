@@ -1,11 +1,11 @@
 import { randomBytes } from 'node:crypto'
 import { describe, expect, it } from 'vitest'
-import { useValkey } from '../../server/utils/valkey'
+import { useValkey } from '../../server/utils/platform/valkey'
 import {
   BINDING_IDLE_MS,
   MAX_SESSIONS_PER_USER,
   ValkeyMcpSessionBindings
-} from '../../server/utils/mcpSessionBinding'
+} from '../../server/utils/mcp/mcpSessionBinding'
 
 // MCP session ↔ token bindings (F-7d) against the REAL Valkey test
 // container. Bindings used to live in process memory; now they survive a

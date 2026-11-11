@@ -30,11 +30,11 @@ declare module '#auth-utils' {
     loggedInAt?: number
     // Bumped whenever the session shape changes (new required fields, type
     // changes, etc.). Sessions whose `v` doesn't match SESSION_VERSION are
-    // cleared on the next request — see server/utils/validatedSession.ts.
+    // cleared on the next request — see server/utils/auth/validatedSession.ts.
     v?: number
     // Session epoch at sign-in (`users.session_epoch`). A cookie whose
     // `e` no longer matches the column was revoked ("log out
-    // everywhere", deletion request); see server/utils/sessionPolicy.ts.
+    // everywhere", deletion request); see server/utils/auth/sessionPolicy.ts.
     e?: number
   }
 

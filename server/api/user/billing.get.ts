@@ -1,11 +1,11 @@
-import { creditBalanceView } from '../../utils/aiCreditBudget'
-import { pooledPlansFor } from '../../utils/workspaceBilling'
-import { isBillingEnabled } from '../../utils/billingMode'
-import { resolveBillingContext } from '../../utils/billing'
+import { creditBalanceView } from '../../utils/billing/aiCreditBudget'
+import { pooledPlansFor } from '../../utils/billing/workspaceBilling'
+import { isBillingEnabled } from '../../utils/billing/billingMode'
+import { resolveBillingContext } from '../../utils/billing/billing'
 import { countOwnedWorkspacesByUser, listWorkspacesForUser } from '../../repos/workspaces'
 import { countKnowledgeByUploader, sumKnowledgeBytesByUploader } from '../../repos/knowledge'
 import { sumImageBytesByUploader } from '../../repos/uploads'
-import { getTiers } from '~~/server/utils/tierConfig'
+import { getTiers } from '~~/server/utils/billing/tierConfig'
 
 /**
  * Session-level billing summary for the current user. Drives:

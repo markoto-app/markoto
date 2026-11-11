@@ -1,7 +1,7 @@
 import { aliasedTable, desc, eq, inArray } from 'drizzle-orm'
 import { abuseReports, moderationNotices, users } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
-import { requireAdminUser } from '../../utils/adminAccess'
+import { useDatabase } from '../../utils/platform/database'
+import { requireAdminUser } from '../../utils/auth/adminAccess'
 
 // Admin queue: list abuse reports for triage. Filterable by status
 // (default: open + acknowledged — the actionable queue).

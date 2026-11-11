@@ -1,9 +1,9 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runWorkspaceInviteSweep } from '../utils/workspaceInviteSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runWorkspaceInviteSweep } from '../utils/workspaces/workspaceInviteSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Hourly sweeper that deletes expired workspace invitations. Logic lives
-// in `server/utils/workspaceInviteSweep.ts` so tests can drive it
+// in `server/utils/workspaces/workspaceInviteSweep.ts` so tests can drive it
 // directly.
 
 const SWEEP_INTERVAL_MS = 60 * 60 * 1000 // 1h

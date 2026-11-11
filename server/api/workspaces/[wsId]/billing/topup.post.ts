@@ -1,9 +1,9 @@
-import { assertBillingEnabled } from '../../../../utils/billingMode'
-import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../../utils/paidTerms'
-import { useStripeClient } from '../../../../utils/stripeClient'
-import { requestBaseUrl } from '../../../../utils/workspaceStripe'
-import { getPooledWorkspace, requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
-import { automaticTaxEnabled, createTopupCheckout } from '../../../../utils/topupCheckout'
+import { assertBillingEnabled } from '../../../../utils/billing/billingMode'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../../../utils/billing/paidTerms'
+import { useStripeClient } from '../../../../utils/billing/stripeClient'
+import { requestBaseUrl } from '../../../../utils/billing/workspaceStripe'
+import { getPooledWorkspace, requireWorkspaceBillingAdmin } from '../../../../utils/billing/workspaceBilling'
+import { automaticTaxEnabled, createTopupCheckout } from '../../../../utils/billing/topupCheckout'
 import { isTopupPackId } from '~~/shared/config/pricing'
 
 // POST /api/workspaces/:wsId/billing/topup — buy AI credits for a Team /

@@ -1,6 +1,6 @@
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
 import { users } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { ConflictError } from './errors'
 
 // Users repository. The OAuth handlers do an "upsert by provider id",
@@ -28,7 +28,7 @@ export interface UserRow {
   tosVersionAccepted: number | null
   /** Preferred locale (NULL = never chosen). */
   locale: string | null
-  /** Session revocation counter — see `server/utils/sessionPolicy.ts`. */
+  /** Session revocation counter — see `server/utils/auth/sessionPolicy.ts`. */
   sessionEpoch: number
 }
 

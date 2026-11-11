@@ -18,7 +18,7 @@ import { isDesignImportDebris, sweepDesignImportOrphans } from '../../server/uti
 import { classifyRunError } from '../../server/utils/designImport/run'
 import { DesignExtractError } from '../../server/utils/designImport/extract'
 import { AiProviderCallError } from '../../server/utils/aiProviders/requestFields'
-import type { ObjectStore } from '../../server/utils/objectStore'
+import type { ObjectStore } from '../../server/utils/storage/objectStore'
 
 const PNG = 'iVBORw0KGgo='
 

@@ -29,7 +29,7 @@
 
 import { and, eq, sql } from 'drizzle-orm'
 import { userIdentities, users } from '../../db/schema'
-import { useDatabase } from '../database'
+import { useDatabase } from '../platform/database'
 import {
   activateSsoConnection,
   findIdentity,

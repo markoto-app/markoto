@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
-// Fail-mode regression tests for `server/utils/rateLimit.ts`.
+// Fail-mode regression tests for `server/utils/platform/rateLimit.ts`.
 //
 // The file documents two opposing fail-modes per helper, and a refactor
 // could silently flip the polarity. We pin them down here:
@@ -23,7 +23,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // alongside any nested vi.fn() — we can keep imports in their natural
 // position and grab the spy back via vi.mocked after import.
 import * as Sentry from '@sentry/nuxt'
-import { useValkey } from '../../server/utils/valkey'
+import { useValkey } from '../../server/utils/platform/valkey'
 import {
   checkRateLimit,
   consumeRateLimitBudget,
@@ -31,13 +31,13 @@ import {
   releaseSessionLock,
   reserveInflightSlot,
   releaseInflightSlot
-} from '../../server/utils/rateLimit'
+} from '../../server/utils/platform/rateLimit'
 
 vi.mock('@sentry/nuxt', () => ({
   captureException: vi.fn()
 }))
 
-vi.mock('../../server/utils/valkey', () => ({
+vi.mock('../../server/utils/platform/valkey', () => ({
   useValkey: vi.fn()
 }))
 

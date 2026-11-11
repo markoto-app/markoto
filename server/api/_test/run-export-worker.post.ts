@@ -1,4 +1,4 @@
-import { runDataExportWorker } from '../../utils/dataExportWorker'
+import { runDataExportWorker } from '../../utils/privacy/dataExportWorker'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 // Test-only worker-tick. Runs `runDataExportWorker()` once on demand

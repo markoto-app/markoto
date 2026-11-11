@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
 import * as Y from 'yjs'
-import { findFileIdsInHistory, resolveImageGcRetentionDays, IMAGE_GC_DEFAULT_RETENTION_DAYS } from '../../server/utils/imageGc'
-import { stagingKeyFor } from '../../server/utils/uploadKey'
-import { memberShareOfWorkspaceSlots } from '../../server/utils/knowledgeQuota'
+import { findFileIdsInHistory, resolveImageGcRetentionDays, IMAGE_GC_DEFAULT_RETENTION_DAYS } from '../../server/utils/storage/imageGc'
+import { stagingKeyFor } from '../../server/utils/storage/uploadKey'
+import { memberShareOfWorkspaceSlots } from '../../server/utils/knowledge/knowledgeQuota'
 
 // The pure core of the image GC: "is this fileId visible in ANY version of
 // the doc that can still be reconstructed from the stored update log?".

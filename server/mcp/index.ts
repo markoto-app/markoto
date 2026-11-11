@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/nuxt'
-import { verifyMcpPat, touchMcpSession, type McpAuthContext } from '../utils/mcpAuth'
-import { checkRateLimit } from '../utils/rateLimit'
-import { getClientRateLimitKey } from '../utils/clientIp'
-import { useMcpSessionBindings } from '../utils/mcpSessionBinding'
+import { verifyMcpPat, touchMcpSession, type McpAuthContext } from '../utils/mcp/mcpAuth'
+import { checkRateLimit } from '../utils/platform/rateLimit'
+import { getClientRateLimitKey } from '../utils/platform/clientIp'
+import { useMcpSessionBindings } from '../utils/mcp/mcpSessionBinding'
 import { evaluateMcpRequest, jsonRpcErrorResponse } from './lib/mcpGate'
-import { capsFor, resolveUserPlan } from '../utils/entitlements'
+import { capsFor, resolveUserPlan } from '../utils/billing/entitlements'
 
 // Default MCP handler. The middleware is the gate in front of the MCP
 // toolkit (`lib/mcpGate.ts` holds the decision logic):

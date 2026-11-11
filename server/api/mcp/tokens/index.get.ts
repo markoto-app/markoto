@@ -1,6 +1,6 @@
 import { eq, desc, and, isNull } from 'drizzle-orm'
 import { mcpPersonalTokens } from '../../../db/schema'
-import { useDatabase } from '../../../utils/database'
+import { useDatabase } from '../../../utils/platform/database'
 
 // List the caller's MCP Personal Access Tokens. Plaintext is never
 // reconstructed — the response carries metadata only. Revoked tokens

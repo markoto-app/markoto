@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { ensureYjsTable, resetDb, testDb } from '../integration/setup/db'
 import { createDoc, createUser } from '../integration/setup/fixtures'
-import { runImageGc } from '../../server/utils/imageGc'
+import { runImageGc } from '../../server/utils/storage/imageGc'
 import { makeFakeStore, type FakeStore } from './fakeObjectStore'
 
 // Image GC against the real DB. The property under test is SAFETY first:

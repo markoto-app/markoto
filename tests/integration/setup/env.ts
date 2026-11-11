@@ -96,7 +96,7 @@ export const TEST_INTERNAL_SECRET = 'test-internal-api-secret-isolated'
 export const TEST_ALTCHA_HMAC_KEY = 'test-altcha-hmac-key-isolated-from-dev-and-prod-x'
 
 // Valkey-compatible endpoint for the test stack. Rate limits and session
-// locks fall open/closed per `server/utils/rateLimit.ts` semantics when
+// locks fall open/closed per `server/utils/platform/rateLimit.ts` semantics when
 // Valkey is unreachable — tests that exercise those paths need a live
 // Valkey. The docker-compose.test.yml stack maps Valkey to localhost:6380
 // with `--requirepass testpassword`.
@@ -120,7 +120,7 @@ export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/
  * fixtures carry. Annual CHF Pro is stripe-mock's canned price
  * (`price_1PgafmB7WZ01zgkW6dKueIc5`, what every subscription retrieve answers), so
  * the checkout's "already on this price" 409 is reachable.
- * server/utils/stripePrices.ts reads it from NUXT_STRIPE_PRICE_IDS.
+ * server/utils/billing/stripePrices.ts reads it from NUXT_STRIPE_PRICE_IDS.
  */
 export const TEST_STRIPE_PRICE_IDS = 'markoto_pro_month_eur=price_test_pro,markoto_pro_year_eur=price_test_pro_year,markoto_team_month_eur=price_test_team,markoto_team_year_eur=price_test_team_year,markoto_business_month_eur=price_test_business,markoto_business_year_eur=price_test_business_year,markoto_pro_month_chf=price_test_pro_chf,markoto_pro_year_chf=price_1PgafmB7WZ01zgkW6dKueIc5,markoto_team_month_chf=price_test_team_chf,markoto_team_year_chf=price_test_team_year_chf,markoto_business_month_chf=price_test_business_chf,markoto_business_year_chf=price_test_business_year_chf'
 

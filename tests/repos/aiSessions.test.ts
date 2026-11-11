@@ -8,7 +8,7 @@ import {
   snapshotAiSessions,
   purgeStaleAiSessions,
   DuplicateSessionError
-} from '../../server/utils/aiSessions'
+} from '../../server/utils/ai/aiSessions'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 
 // AI session registry. Enforces the "one AI per user per doc" cap via

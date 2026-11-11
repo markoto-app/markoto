@@ -42,10 +42,10 @@ vi.mock('../../server/repos/uploads', () => ({
   sumImageBytesInScope,
   deleteUploadsForDoc
 }))
-vi.mock('../../server/utils/cloneYjsState', () => ({ cloneYjsStateWithUrlRewrite }))
+vi.mock('../../server/utils/documents/cloneYjsState', () => ({ cloneYjsStateWithUrlRewrite }))
 vi.mock('@sentry/nuxt', () => ({ captureException: sentryCaptureException }))
 
-const { duplicateDocument } = await import('../../server/utils/duplicateDocument')
+const { duplicateDocument } = await import('../../server/utils/documents/duplicateDocument')
 
 function fakeSource(overrides: Partial<Record<string, unknown>> = {}) {
   return {

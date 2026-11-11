@@ -5,10 +5,10 @@ import {
   marketingSitemapPages,
   sitemapBaseUrl,
   sitemapEntries
-} from '../utils/sitemap'
+} from '../utils/platform/sitemap'
 import { resolveLegalSurfacesEnabled } from '../../shared/config/instance'
 
-// sitemap.xml — hosted marketing site only (server/utils/sitemap.ts).
+// sitemap.xml — hosted marketing site only (server/utils/platform/sitemap.ts).
 // 404 on every other instance and while NUXT_SITE_URL is unset.
 
 export default defineEventHandler(async (event) => {

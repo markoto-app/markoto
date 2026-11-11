@@ -1,7 +1,7 @@
 import { and, eq, isNotNull, sql, type SQL } from 'drizzle-orm'
 import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { ssoConnections, ssoDomains, ssoGrants, userIdentities, users } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { DuplicateError, NotFoundError } from './errors'
 
 // Per-workspace single sign-on (WP14): connections, domains, identities

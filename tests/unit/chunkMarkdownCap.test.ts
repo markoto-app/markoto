@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { chunkMarkdown } from '../../server/utils/chunkMarkdown'
+import { chunkMarkdown } from '../../server/utils/knowledge/chunkMarkdown'
 
 // Hard-ceiling behaviour for the chunk splitter. The regular
 // chunker behaviour has its own test file (chunkMarkdown.test.ts);

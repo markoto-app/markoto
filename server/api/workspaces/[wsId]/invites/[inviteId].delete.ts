@@ -1,7 +1,7 @@
 import { deleteWorkspaceInvite } from '../../../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_INVITE_REVOKED } from '../../../../legal/auditActions'
-import { parseInviteId } from '../../../../utils/workspaceInvites'
+import { parseInviteId } from '../../../../utils/workspaces/workspaceInvites'
 
 // DELETE /api/workspaces/:wsId/invites/:inviteId — revoke an open
 // invitation. Admin-only. Keyed on (workspace, invite id): another

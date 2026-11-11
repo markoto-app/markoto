@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest'
-import { acquireSweepLock, releaseSweepLock } from '../../server/utils/sweepLock'
+import { acquireSweepLock, releaseSweepLock } from '../../server/utils/platform/sweepLock'
 
 // Postgres advisory locks are session-scoped — bound to the connection
 // that called `pg_try_advisory_lock`. Both calls in a test go through

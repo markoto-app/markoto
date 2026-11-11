@@ -1,12 +1,12 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { describe, it, expect } from 'vitest'
-import { addNonceToScripts, buildAppCsp, buildRenderCsp, crossOriginResourcePolicyFor } from '../../server/utils/csp'
+import { addNonceToScripts, buildAppCsp, buildRenderCsp, crossOriginResourcePolicyFor } from '../../server/utils/rendering/csp'
 import { MERMAID_URL, MERMAID_SRI } from '../../shared/utils/mermaidAssets'
 import { hljsTheme, HLJS_STYLES_BASE } from '../../shared/utils/hljsAssets'
 import { CodeThemeSchema } from '../../shared/types/theme'
 
-// Regression pins for the Content-Security-Policy (server/utils/csp.ts,
+// Regression pins for the Content-Security-Policy (server/utils/rendering/csp.ts,
 // applied by server/plugins/csp.ts). The exact app policy is pinned as a
 // string so any loosening shows up in review as a test diff.
 

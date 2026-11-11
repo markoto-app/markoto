@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { buildHostOverride } from '../../server/utils/stripeClient'
+import { buildHostOverride } from '../../server/utils/billing/stripeClient'
 
 // `buildHostOverride` parses the `NUXT_STRIPE_API_BASE` env var into
 // the `{host, port, protocol}` triple the Stripe SDK constructor

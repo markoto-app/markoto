@@ -1,7 +1,7 @@
 import { z } from 'zod'
-import { injectTraceHeaders } from '../traceHeaders'
+import { injectTraceHeaders } from '../platform/traceHeaders'
 import { DESIGN_IMPORT_MAX_PAGES, type DesignImportExt } from '~~/shared/config/designImport'
-import { markitdownAuthHeaders } from '../markitdownAuth'
+import { markitdownAuthHeaders } from '../platform/markitdownAuth'
 
 // Client for markitdown's `POST /design/extract` (markitdown-server/
 // design_extract.py). The uploaded file is parsed THERE — in a forked,

@@ -44,7 +44,7 @@ export const DEFAULT_ANON_DOC_TTL_DAYS = 30
 /**
  * Inactivity period after which anonymous documents are deleted
  * (NUXT_INACTIVE_DOC_TTL_DAYS; unset → 30, `0` or invalid → 0 = never).
- * Mirrors the sweep's parser (server/utils/inactiveDocSweep.ts).
+ * Mirrors the sweep's parser (server/utils/documents/inactiveDocSweep.ts).
  */
 export function resolveAnonDocTtlDays(env: Env): number {
   const raw = env.NUXT_INACTIVE_DOC_TTL_DAYS?.trim()

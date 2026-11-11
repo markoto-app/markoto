@@ -34,9 +34,9 @@ Object.assign(globalThis, {
 
 const { createUserKey, getUserKeyToken } = await import('../../../server/utils/litellm/userKeys')
 const { insertCreditGrant, sumUsableCredits } = await import('../../../server/repos/aiCreditGrants')
-const { settleSubject, monthSpendUsd } = await import('../../../server/utils/aiCredits')
-const { creditPeriod } = await import('../../../server/utils/aiCreditBudget')
-const { useLitellmForUser } = await import('../../../server/utils/litellmClient')
+const { settleSubject, monthSpendUsd } = await import('../../../server/utils/billing/aiCredits')
+const { creditPeriod } = await import('../../../server/utils/billing/aiCreditBudget')
+const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
 const { litellmDbUrl } = await import('../../../server/utils/litellm/litellmDb')
 
 async function keyInfo(token: string): Promise<Record<string, unknown>> {

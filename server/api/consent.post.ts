@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
 import { consentLog } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { truncateIp } from '../repos/audit'
 import { CONSENT_VERSION, AUTHORITATIVE_LOCALE, LEGAL_DOCUMENT_LOCALES } from '~~/shared/legal/versions'
-import { ensureAnonId } from '../utils/anonId'
-import { normaliseConsentDecisions } from '../utils/consentDecisions'
+import { ensureAnonId } from '../utils/auth/anonId'
+import { normaliseConsentDecisions } from '../utils/privacy/consentDecisions'
 
 // Append a consent decision to the audit-grade `consent_log` table.
 // One row per (subject × purpose) per submission — we never UPDATE,

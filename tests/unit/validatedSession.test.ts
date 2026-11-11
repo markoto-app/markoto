@@ -32,7 +32,7 @@ const {
   getValidatedUserSession,
   requireRecentLogin,
   requireValidatedUserSession
-} = await import('../../server/utils/validatedSession')
+} = await import('../../server/utils/auth/validatedSession')
 
 function fakeEvent(): H3Event {
   // Session cache lives on event.context; start with an empty object so

@@ -2,7 +2,7 @@ import Redis from 'ioredis'
 import { valkeyClientConfigFromEnv } from '../../shared/utils/connectionStrings'
 
 // Singleton ioredis client for the sync-server. Mirrors the pattern in
-// `server/utils/valkey.ts` (the Nuxt app's client) — the sync-server is
+// `server/utils/platform/valkey.ts` (the Nuxt app's client) — the sync-server is
 // its own Bun process, so it owns its own connection pool. Used to back
 // per-doc attribution + diff-baseline state that used to live in
 // process-local Maps; migrated so multiple sync-server instances can
@@ -17,7 +17,7 @@ let client: Redis | null = null
 export function useValkey(): Redis {
   if (client) return client
 
-  // TLS opt-in mirrors the app's client — see server/utils/valkey.ts and
+  // TLS opt-in mirrors the app's client — see server/utils/platform/valkey.ts and
   // docs/SECURITY-HARDENING.md.
   const { url, options: tlsOptions } = valkeyClientConfigFromEnv()
   client = new Redis(url, {

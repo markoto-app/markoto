@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
-import { resolveBillingContext } from '../../server/utils/billing'
+import { resolveBillingContext } from '../../server/utils/billing/billing'
 
 // Base resolver shape:
 //   - free user, no workspace → self-bill, calendar-month period

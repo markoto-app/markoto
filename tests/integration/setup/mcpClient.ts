@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { TEST_BASE_URL } from './env'
 import { testDb } from './db'
-import { generateMcpToken, type McpScope } from '../../../server/utils/mcpAuth'
+import { generateMcpToken, type McpScope } from '../../../server/utils/mcp/mcpAuth'
 
 // Reusable MCP integration-test harness. Drives /mcp end-to-end against
 // the running Nitro subprocess (started by globalSetup) using JSON-RPC.

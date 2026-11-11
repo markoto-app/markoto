@@ -9,7 +9,7 @@ import {
   deleteDocDbRows,
   cleanupDocS3,
   notifySyncDeleted
-} from '../../server/utils/documentLifecycle'
+} from '../../server/utils/documents/documentLifecycle'
 import { appendActivity } from '../../server/repos/activity'
 import { recordPending } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'

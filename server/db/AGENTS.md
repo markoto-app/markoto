@@ -109,7 +109,7 @@ Don't TRUNCATE in migrations unless you genuinely need to — almost always a fr
 
 ## Slow-query log
 
-`useDatabase()` in `server/utils/database.ts` wraps `pool.query` with a timing probe. Queries past `NUXT_DB_SLOW_QUERY_MS` (default 200ms) fire a warning-level Sentry event tagged `component=db, event=slow_query`. SQL is truncated to 500 chars; **param VALUES are NEVER logged** (PII / secrets risk) — only `paramsCount`. Override the threshold per-environment for noisier dev or tighter prod alerting.
+`useDatabase()` in `server/utils/platform/database.ts` wraps `pool.query` with a timing probe. Queries past `NUXT_DB_SLOW_QUERY_MS` (default 200ms) fire a warning-level Sentry event tagged `component=db, event=slow_query`. SQL is truncated to 500 chars; **param VALUES are NEVER logged** (PII / secrets risk) — only `paramsCount`. Override the threshold per-environment for noisier dev or tighter prod alerting.
 
 ## Privacy / compliance tables
 
@@ -129,4 +129,4 @@ Three tables back the privacy infrastructure (Workstream B). All follow the exis
 
 ## SSL
 
-Production uses OVH-managed Postgres which requires TLS. `server/utils/database.ts` calls `resolvePostgresSsl()` which reads `PGSSL` (only honoured value: `disable`, an explicit opt-out) and `PGSSLROOTCERT`, and **fails loudly** on an unreadable `PGSSLROOTCERT` path — silent fallback to no-TLS would expose credentials over the public network. Don't catch the throw; let it propagate so a misconfigured deploy fails at boot.
+Production uses OVH-managed Postgres which requires TLS. `server/utils/platform/database.ts` calls `resolvePostgresSsl()` which reads `PGSSL` (only honoured value: `disable`, an explicit opt-out) and `PGSSLROOTCERT`, and **fails loudly** on an unreadable `PGSSLROOTCERT` path — silent fallback to no-TLS would expose credentials over the public network. Don't catch the throw; let it propagate so a misconfigured deploy fails at boot.

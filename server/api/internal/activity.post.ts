@@ -1,4 +1,4 @@
-import { requireInternalSecret } from '../../utils/internalRoutes'
+import { requireInternalSecret } from '../../utils/platform/internalRoutes'
 import { docExists, bumpLastActive } from '../../repos/documents'
 import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
 import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'

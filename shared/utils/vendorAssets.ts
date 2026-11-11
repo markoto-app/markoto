@@ -17,7 +17,7 @@
  * The preview / print iframes run in an opaque origin, so these paths
  * are served with `Cross-Origin-Resource-Policy: cross-origin` and
  * `Access-Control-Allow-Origin: *` (`vendorAssetHeaders` in
- * server/utils/vendorAssetHeaders.ts).
+ * server/utils/rendering/vendorAssetHeaders.ts).
  */
 
 /** Public URL prefix of every vendored asset. */

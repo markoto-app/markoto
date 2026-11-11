@@ -63,7 +63,7 @@ describe('MCP read tools — view_document', () => {
     // PAT-authenticated MCP callers get access to docs they OWN or are
     // workspace members of, NOT every public open-edit doc on the
     // server. Stricter than the browser-side accessMode contract by
-    // design — see getDocAuthz in server/utils/workspaceAccess.ts
+    // design — see getDocAuthz in server/utils/workspaces/workspaceAccess.ts
     // (canView = isDocOwner || hasRole, accessMode is not consulted).
     // 404-shape (not 403) matches the rest of the anti-enumeration
     // policy.

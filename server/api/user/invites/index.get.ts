@@ -1,7 +1,7 @@
 import { findUserById } from '../../../repos/users'
 import { listInvitesForEmail } from '../../../repos/workspaceInvites'
-import { normaliseInviteEmail } from '../../../utils/workspaceInvites'
-import { pooledPlansFor } from '../../../utils/workspaceBilling'
+import { normaliseInviteEmail } from '../../../utils/workspaces/workspaceInvites'
+import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 
 // GET /api/user/invites — open workspace invitations addressed to the
 // signed-in user's account email (only verified addresses are stored on

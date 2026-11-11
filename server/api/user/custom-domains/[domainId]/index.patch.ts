@@ -2,7 +2,7 @@ import { customDomainView, requireCustomDomainUser } from '../../../../utils/cus
 import { invalidateCustomDomainCache } from '../../../../utils/customDomains/routing'
 import { getCustomDomainForUser, listCustomDomainsForUser, setCustomDomainPage } from '../../../../repos/customDomains'
 import { getPublishedPageSummary } from '../../../../repos/publishedPages'
-import { getDocAuthz } from '../../../../utils/workspaceAccess'
+import { getDocAuthz } from '../../../../utils/workspaces/workspaceAccess'
 import { CUSTOM_DOMAIN_ERROR_CODES } from '~~/shared/config/customDomains'
 
 // PATCH /api/user/custom-domains/:domainId — {docId | null}: which

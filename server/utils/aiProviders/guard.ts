@@ -5,7 +5,7 @@
 // generic failure.
 
 import { CAPABILITY_PLAN_FEATURE, resolveAiAccess, type ResolvedAiProviders } from './resolve'
-import { assertPlanFeature } from '../entitlements'
+import { assertPlanFeature } from '../billing/entitlements'
 import type { AiCapability } from '~~/shared/ai/providers'
 import type { PlanName } from '~~/shared/config/tiers'
 

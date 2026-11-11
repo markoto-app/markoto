@@ -18,7 +18,7 @@
 // has already been used or not.
 
 import { setUserKeyMaxBudget } from '../../utils/litellm/userKeys'
-import { resolveBillingContext } from '../../utils/billing'
+import { resolveBillingContext } from '../../utils/billing/billing'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 export default defineEventHandler(async (event) => {

@@ -1,5 +1,5 @@
-import { acceptInviteForUser, declineInviteForUser } from '../../../utils/workspaceInviteActions'
-import { hashInviteSecret, parseInviteToken } from '../../../utils/workspaceInvites'
+import { acceptInviteForUser, declineInviteForUser } from '../../../utils/workspaces/workspaceInviteActions'
+import { hashInviteSecret, parseInviteToken } from '../../../utils/workspaces/workspaceInvites'
 
 // POST /api/user/invites/by-token — act on an invitation from its
 // emailed link (`/invites/accept?token=…`). Sign-in required (the

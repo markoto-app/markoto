@@ -1,6 +1,6 @@
 import { and, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm'
 import { documents, uploads } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
 
 // Uploads repository. Powers the presigned-URL upload flow:
@@ -327,7 +327,7 @@ export async function insertConfirmedUploadsWithinQuota(
   })
 }
 
-// ─── Image garbage collection (see server/utils/imageGc.ts) ─────────────
+// ─── Image garbage collection (see server/utils/storage/imageGc.ts) ─────────────
 
 export interface GcCandidate {
   id: number

@@ -3,14 +3,14 @@ import { eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { mcpPersonalTokens } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/database'
-import { useValkey } from '../../server/utils/valkey'
+import { useDatabase } from '../../server/utils/platform/database'
+import { useValkey } from '../../server/utils/platform/valkey'
 import {
   issueMcpToken,
   verifyMcpPat,
   invalidateMcpPatCache,
   hashToken
-} from '../../server/utils/mcpAuth'
+} from '../../server/utils/mcp/mcpAuth'
 
 // DB-backed tests for the Personal Access Token verifier. The pure-
 // function bits (token format, header parsing, hash stability, scope

@@ -1,7 +1,7 @@
 import { getDoc, getDocWithActorRole } from '../../../repos/documents'
-import { deleteDocument } from '../../../utils/documentLifecycle'
+import { deleteDocument } from '../../../utils/documents/documentLifecycle'
 import { appendAuditEvent } from '../../../repos/audit'
-import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
+import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/auth/anonCreator'
 import { docStateOf, decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
 
 // Delete a document. Authorisation is decided by `decideDocDelete`:

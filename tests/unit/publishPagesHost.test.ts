@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   isPagesHostRequest, pagesHostRedirect, publishPagesErrors, publishPagesSettings, publishedPageAddress, requestHostname
 } from '../../server/utils/publish/pagesHost'
-import { isRequestOriginAllowed } from '../../server/utils/csrf'
+import { isRequestOriginAllowed } from '../../server/utils/auth/csrf'
 
 // Published pages on their own hostname (NUXT_PUBLISH_PAGES_HOST): the
 // setting, the boot check, host matching, the app-origin redirects and

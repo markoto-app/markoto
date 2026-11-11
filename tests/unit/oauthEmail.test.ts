@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { githubVerifiedEmail, googleVerifiedEmail, type GitHubEmailEntry } from '../../server/utils/oauthEmail'
+import { githubVerifiedEmail, googleVerifiedEmail, type GitHubEmailEntry } from '../../server/utils/auth/oauthEmail'
 
 // Only VERIFIED provider emails may be stored / merged / matched against
 // the admin allowlist. An unverified address equal to the admin's would

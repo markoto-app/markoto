@@ -1,5 +1,5 @@
 // Stable error codes for plan limits and feature switches
-// (`server/utils/entitlements.ts`). Shared so the client can recognise
+// (`server/utils/billing/entitlements.ts`). Shared so the client can recognise
 // them (`useErrorHandler`) without importing server code.
 
 /** A numeric plan limit is full (members, saved presets, MCP calls, …). */

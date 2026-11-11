@@ -4,7 +4,7 @@ import {
   findComment,
   readCommentAuthor,
   readReplyAuthor
-} from '../../server/utils/commentsServerClient'
+} from '../../server/utils/documents/commentsServerClient'
 
 // Pure helpers from `commentsServerClient.ts` — `openTrustedCommentClient`
 // itself needs a live Hocuspocus and is exercised in the integration

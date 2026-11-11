@@ -4,7 +4,7 @@ import {
   isRecentLogin,
   sessionEpochMatches,
   sessionEpochOf
-} from '../../server/utils/sessionPolicy'
+} from '../../server/utils/auth/sessionPolicy'
 
 // Revocable sessions: the epoch sealed into the cookie must equal the
 // user's current `session_epoch`; sensitive actions need a recent

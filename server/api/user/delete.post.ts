@@ -1,6 +1,6 @@
-import { requestAccountDeletionByUser } from '../../utils/accountDeletion'
+import { requestAccountDeletionByUser } from '../../utils/privacy/accountDeletion'
 import { bumpSessionEpoch } from '../../repos/users'
-import { checkRateLimit } from '../../utils/rateLimit'
+import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
 
 // GDPR Article 17 — request account deletion. Marks the user with a

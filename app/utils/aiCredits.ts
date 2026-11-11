@@ -1,5 +1,5 @@
 // Client shape of AI credit top-ups (WP4) — mirrors
-// `server/utils/aiCreditBudget.ts#creditBalanceView`.
+// `server/utils/billing/aiCreditBudget.ts#creditBalanceView`.
 
 export interface CreditBalanceView {
   usableUsd: number

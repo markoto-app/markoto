@@ -1,5 +1,5 @@
-import { closeDatabase } from '../utils/database'
-import { closeValkey } from '../utils/valkey'
+import { closeDatabase } from '../utils/platform/database'
+import { closeValkey } from '../utils/platform/valkey'
 
 // Closes long-lived network handles when Nitro shuts down. Numeric `99-`
 // prefix forces this to load LAST so other plugins are still set up when

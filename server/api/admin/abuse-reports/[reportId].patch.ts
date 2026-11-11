@@ -1,7 +1,7 @@
 import { eq, sql } from 'drizzle-orm'
 import { abuseReports } from '../../../db/schema'
-import { useDatabase } from '../../../utils/database'
-import { requireAdminUser } from '../../../utils/adminAccess'
+import { useDatabase } from '../../../utils/platform/database'
+import { requireAdminUser } from '../../../utils/auth/adminAccess'
 import { appendAuditEvent } from '../../../repos/audit'
 import {
   AUDIT_ABUSE_ACKNOWLEDGED,
@@ -16,7 +16,7 @@ import {
   type ModerationAction,
   type ModerationRule
 } from '~~/shared/config/moderation'
-import { applyModerationDecision } from '../../../utils/moderationDecision'
+import { applyModerationDecision } from '../../../utils/privacy/moderationDecision'
 
 // Admin status transitions for abuse reports. Allowed flows:
 //   open → acknowledged   (we have eyes on it)

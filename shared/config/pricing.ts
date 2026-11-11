@@ -7,7 +7,7 @@
 // Two sources, one shape (`PlanPriceTable`):
 //   - billing ON: the live Stripe Prices, found by LOOKUP KEY
 //     (`stripePriceLookupKey`, e.g. `markoto_pro_year_chf`) —
-//     server/utils/stripePrices.ts. The amounts on the page are then
+//     server/utils/billing/stripePrices.ts. The amounts on the page are then
 //     exactly what Stripe charges.
 //   - billing OFF ("coming soon"): the PLANNED prices below, labelled as
 //     planned on the page and left out of the JSON-LD (nothing can be

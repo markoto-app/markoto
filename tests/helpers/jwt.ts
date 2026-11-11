@@ -88,7 +88,7 @@ export function mintDictateJwt(
 
 /**
  * Mint a render token. Matches the shape minted by
- * `server/utils/renderTokens.ts` AND `renderer/src/render.ts`. The
+ * `server/utils/rendering/renderTokens.ts` AND `renderer/src/render.ts`. The
  * `scope` claim comes from `RENDER_JWT_FIXED_CLAIMS` so callers
  * cannot drift.
  *

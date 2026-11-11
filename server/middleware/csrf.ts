@@ -1,7 +1,7 @@
-import { CSRF_ORIGIN_CODE, isRequestOriginAllowed } from '../utils/csrf'
+import { CSRF_ORIGIN_CODE, isRequestOriginAllowed } from '../utils/auth/csrf'
 
 // Origin / Sec-Fetch-Site check for state-changing `/api` requests — see
-// `server/utils/csrf.ts` for the rules and exemptions.
+// `server/utils/auth/csrf.ts` for the rules and exemptions.
 
 export default defineEventHandler((event) => {
   const configuredSiteUrl: unknown = useRuntimeConfig(event).siteUrl

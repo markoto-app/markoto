@@ -2,11 +2,11 @@ import { CopyObjectCommand, DeleteObjectsCommand, ListObjectsV2Command } from '@
 import { and, eq, inArray, isNotNull } from 'drizzle-orm'
 import { customAlphabet, nanoid } from 'nanoid'
 import { uploads } from '../../db/schema'
-import { useDatabase } from '../database'
-import { renderWebSnapshot, type WebSnapshot } from '../renderClient'
+import { useDatabase } from '../platform/database'
+import { renderWebSnapshot, type WebSnapshot } from '../rendering/renderClient'
 import { listBrandAssets } from '../../repos/brandAssets'
 import { getModerationRestriction } from '../../repos/documents'
-import { moderationRestrictedError } from '../moderationRestriction'
+import { moderationRestrictedError } from '../privacy/moderationRestriction'
 import {
   getPublishedPageSummary, insertPublishedPage, isSlugTaken, updatePublishedSnapshot,
   type PublishedPageSummary

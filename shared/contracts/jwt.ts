@@ -90,7 +90,7 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
   'comments-server:',
   'ai-cross-doc-read:',
   // MCP tool calls — issued by `connectAsMcpClient` in
-  // `server/utils/mcpHocuspocusClient.ts`. Each MCP session
+  // `server/utils/mcp/mcpHocuspocusClient.ts`. Each MCP session
   // (one Claude Desktop / Cursor connection) has a stable id;
   // every tool call from that session uses the same principal so
   // the YDocPool can dedupe per-session connections and so
@@ -101,19 +101,19 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
 ] as const
 
 /** Build the synthetic userId for an AI client session. Used by
- *  `server/utils/aiClient.ts`. */
+ *  `server/utils/ai/aiClient.ts`. */
 export function aiClientUserId(sessionId: string): `ai:assistant:${string}` {
   return `ai:assistant:${sessionId}`
 }
 
 /** Build the synthetic userId for a restore client session. Used by
- *  `server/utils/restoreDoc.ts`. */
+ *  `server/utils/documents/restoreDoc.ts`. */
 export function restoreClientUserId(actorUserId: number, sessionId: string): `restore:${number}:${string}` {
   return `restore:${actorUserId}:${sessionId}`
 }
 
 /** Build the synthetic userId for an MCP client session. Used by
- *  `server/utils/mcpHocuspocusClient.ts`. The mcpSessionId comes from
+ *  `server/utils/mcp/mcpHocuspocusClient.ts`. The mcpSessionId comes from
  *  the MCP toolkit's `Mcp-Session-Id` header (one per Claude Desktop
  *  / Cursor connection). */
 export function mcpClientUserId(mcpSessionId: string): `mcp:${string}` {
@@ -123,7 +123,7 @@ export function mcpClientUserId(mcpSessionId: string): `mcp:${string}` {
 // ─── Scoped HTTP tokens ──────────────────────────────────────────────
 
 /**
- * Render token. Minted by `server/utils/renderTokens.ts` so the
+ * Render token. Minted by `server/utils/rendering/renderTokens.ts` so the
  * renderer container can fetch the doc's bootstrap state (Y.js +
  * theme) over HTTP. Verified by the same module. The `scope: 'render'`
  * claim is REJECTED by the sync-server's WS auth — a leaked render

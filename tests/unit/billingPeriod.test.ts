@@ -3,7 +3,7 @@ import {
   currentPeriodStart,
   effectivePeriodStart,
   effectivePeriodEnd
-} from '../../server/utils/billing'
+} from '../../server/utils/billing/billing'
 
 // Small pure-function test for the period-start helper. The function
 // is simple but load-bearing: it picks the row key in

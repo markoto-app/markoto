@@ -29,9 +29,9 @@ Object.assign(globalThis, {
 })
 
 const teams = await import('../../../server/utils/litellm/workspaceTeams')
-const { getPooledWorkspace } = await import('../../../server/utils/workspaceBilling')
+const { getPooledWorkspace } = await import('../../../server/utils/billing/workspaceBilling')
 const { isBudgetExceededError } = await import('../../../server/utils/litellm/userKeys')
-const { useLitellmForUser } = await import('../../../server/utils/litellmClient')
+const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
 
 async function admin(path: string, body?: unknown): Promise<{ status: number, json: Record<string, unknown> }> {
   const res = await fetch(`${LITELLM_URL}${path}`, {

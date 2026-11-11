@@ -1,8 +1,8 @@
-import { migrationsComplete } from '../utils/migrations'
+import { migrationsComplete } from '../utils/platform/migrations'
 import { reconcileUserKeys } from '../utils/litellm/keyReconcile'
 import { reconcileWorkspaceTeams } from '../utils/litellm/workspaceTeams'
 import { freeTierTotalBudgetProblems } from '../utils/litellm/freeTierTeam'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Brings every existing LiteLLM virtual key in line with its user's plan:
 // free-tier pool membership (NUXT_FREE_TIER_TOTAL_BUDGET_USD), max_budget

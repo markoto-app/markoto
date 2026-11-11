@@ -30,7 +30,7 @@ vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => 
   return err
 })
 
-const { requireContentMatchesExtension } = await import('../../server/utils/fileTypeGuard')
+const { requireContentMatchesExtension } = await import('../../server/utils/storage/fileTypeGuard')
 
 beforeEach(() => {
   mockBytes.mockReset()

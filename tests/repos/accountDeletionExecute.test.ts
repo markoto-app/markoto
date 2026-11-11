@@ -16,22 +16,22 @@ const deleteDocumentMock = vi.fn(async () => {})
 const deleteKnowledgeArtifactMock = vi.fn(async () => {})
 const stripeCustomersDelMock = vi.fn(async () => ({ id: 'cus_x', deleted: true }))
 
-vi.mock('../../server/utils/documentLifecycle', () => ({
+vi.mock('../../server/utils/documents/documentLifecycle', () => ({
   deleteDocument: deleteDocumentMock
 }))
 
-vi.mock('../../server/utils/knowledgeAccess', () => ({
+vi.mock('../../server/utils/knowledge/knowledgeAccess', () => ({
   deleteKnowledgeArtifact: deleteKnowledgeArtifactMock
 }))
 
-vi.mock('../../server/utils/stripeClient', () => ({
+vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => ({
     customers: { del: stripeCustomersDelMock }
   })
 }))
 
 // Import AFTER the mocks so the executor binds the mocked symbols.
-const { executeAccountDeletion } = await import('../../server/utils/accountDeletionExecute')
+const { executeAccountDeletion } = await import('../../server/utils/privacy/accountDeletionExecute')
 
 async function insertComment(args: {
   docId: string

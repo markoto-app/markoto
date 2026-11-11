@@ -7,7 +7,7 @@ import {
   parseTrustedProxyHops,
   resolveClientIp
 } from '../../shared/utils/clientIp'
-import { getClientIp } from '../../server/utils/clientIp'
+import { getClientIp } from '../../server/utils/platform/clientIp'
 
 // Client-IP resolution: rate-limit keys + the truncated IP on audit /
 // consent / abuse rows. The security property under test is that a

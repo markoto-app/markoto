@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { computeTextDiff } from '../../server/utils/textDiff'
+import { computeTextDiff } from '../../server/utils/documents/textDiff'
 
 describe('computeTextDiff', () => {
   it('returns no hunks when inputs are identical', () => {

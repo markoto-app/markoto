@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { safeFetch, type PinnedFetch, type PinnedRequestInit } from '../../server/utils/safeFetch'
-import { fetchExternalImage } from '../../server/utils/externalImage'
+import { safeFetch, type PinnedFetch, type PinnedRequestInit } from '../../server/utils/platform/safeFetch'
+import { fetchExternalImage } from '../../server/utils/storage/externalImage'
 
 // Outbound fetch for URLs the model / a page / a document controls
 // (`view_image`). Regression cases for the redirect + DNS-rebinding gap:

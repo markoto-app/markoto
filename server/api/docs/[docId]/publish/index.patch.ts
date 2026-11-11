@@ -3,7 +3,7 @@ import { slugConflict } from '../../../../utils/publish/publishDocument'
 import { getPublishedPageSummary, updatePublishSettings } from '../../../../repos/publishedPages'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_DOC_PUBLISH_SETTINGS_CHANGED } from '../../../../legal/auditActions'
-import { assertNotModerationRestricted } from '../../../../utils/moderationRestriction'
+import { assertNotModerationRestricted } from '../../../../utils/privacy/moderationRestriction'
 import { PUBLISH_ERROR_CODES } from '~~/shared/config/publish'
 
 // PATCH /api/docs/:docId/publish — {slug?, indexable?} without

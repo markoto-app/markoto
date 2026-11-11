@@ -2,7 +2,7 @@
 // IPv6 /64 — `getClientRateLimitKey`). Applied on top of the ALTCHA bot
 // check (server/utils/anonGate/). Signed-in users are exempt from the
 // doc-creation limits; their abuse reports keep the per-user limit.
-// All are sliding windows in Valkey (server/utils/rateLimit.ts, fail open).
+// All are sliding windows in Valkey (server/utils/platform/rateLimit.ts, fail open).
 
 export interface RateLimitRule {
   namespace: string

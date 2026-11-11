@@ -1,11 +1,11 @@
 import * as Sentry from '@sentry/nuxt'
 import { and, eq, lt } from 'drizzle-orm'
 import { workspaceKnowledge } from '../db/schema'
-import { useDatabase } from '../utils/database'
-import { migrationsComplete } from '../utils/migrations'
-import { processKnowledge } from '../utils/processKnowledge'
-import { deleteKnowledgeArtifact } from '../utils/knowledgeAccess'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { useDatabase } from '../utils/platform/database'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { processKnowledge } from '../utils/knowledge/processKnowledge'
+import { deleteKnowledgeArtifact } from '../utils/knowledge/knowledgeAccess'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the

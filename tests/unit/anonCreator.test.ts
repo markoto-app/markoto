@@ -3,7 +3,7 @@ import {
   anonCreatorKeyMatches,
   hashAnonCreatorKey,
   parseAnonCreatorKey
-} from '../../server/utils/anonCreator'
+} from '../../server/utils/auth/anonCreator'
 
 // Creator key for anonymous documents: only the browser holding the key
 // whose hash is stored on the doc row may delete it.

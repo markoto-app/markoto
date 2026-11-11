@@ -31,7 +31,7 @@ describe('injectTraceHeaders', () => {
 
   it('passes the caller headers through when no span is active', async () => {
     getTraceDataMock.mockReturnValue({})
-    const { injectTraceHeaders } = await import('../../server/utils/traceHeaders')
+    const { injectTraceHeaders } = await import('../../server/utils/platform/traceHeaders')
     const out = injectTraceHeaders({
       'Content-Type': 'application/json',
       'X-Internal-Secret': 'secret123'
@@ -47,7 +47,7 @@ describe('injectTraceHeaders', () => {
       'sentry-trace': '1234abcd5678efgh-0000abcd1234efgh-1',
       'baggage': 'sentry-environment=development,sentry-public_key=abc'
     })
-    const { injectTraceHeaders } = await import('../../server/utils/traceHeaders')
+    const { injectTraceHeaders } = await import('../../server/utils/platform/traceHeaders')
     const out = injectTraceHeaders({
       'Content-Type': 'application/json',
       'X-Internal-Secret': 'secret123'
@@ -62,7 +62,7 @@ describe('injectTraceHeaders', () => {
     getTraceDataMock.mockImplementation(() => {
       throw new Error('Sentry SDK exploded')
     })
-    const { injectTraceHeaders } = await import('../../server/utils/traceHeaders')
+    const { injectTraceHeaders } = await import('../../server/utils/platform/traceHeaders')
     const out = injectTraceHeaders({
       'X-Internal-Secret': 'secret123'
     })

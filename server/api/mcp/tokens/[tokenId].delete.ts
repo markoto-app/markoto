@@ -1,8 +1,8 @@
 import { eq, and, isNull } from 'drizzle-orm'
 import { mcpPersonalTokens } from '../../../db/schema'
-import { useDatabase } from '../../../utils/database'
-import { invalidateMcpPatCache } from '../../../utils/mcpAuth'
-import { useMcpSessionBindings } from '../../../utils/mcpSessionBinding'
+import { useDatabase } from '../../../utils/platform/database'
+import { invalidateMcpPatCache } from '../../../utils/mcp/mcpAuth'
+import { useMcpSessionBindings } from '../../../utils/mcp/mcpSessionBinding'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_MCP_TOKEN_REVOKED } from '../../../legal/auditActions'
 

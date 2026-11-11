@@ -30,7 +30,7 @@ const s3 = new S3Client({
   forcePathStyle: true,
   // Checksums only when an operation requires them — the pre-@aws-sdk-3.729
   // request shape, which every S3-compatible backend (OVH, SeaweedFS)
-  // accepts. Same setting as the app's client (server/utils/s3.ts).
+  // accepts. Same setting as the app's client (server/utils/storage/s3.ts).
   requestChecksumCalculation: 'WHEN_REQUIRED',
   responseChecksumValidation: 'WHEN_REQUIRED'
 })

@@ -135,7 +135,7 @@ export default defineNuxtConfig({
       // URLs when it differs from `endpoint` (self-host compose: SeaweedFS
       // is `http://seaweedfs:8333` inside the stack and published through
       // Traefik on the public origin). Empty = same as `endpoint`. See
-      // server/utils/s3.ts#usePresignS3Client.
+      // server/utils/storage/s3.ts#usePresignS3Client.
       publicEndpoint: '',
       accessKey: '',
       secretKey: '',
@@ -164,7 +164,7 @@ export default defineNuxtConfig({
       embeddingsModel: 'jina-embeddings-v5-text-nano', // NUXT_LITELLM_EMBEDDINGS_MODEL
       embeddingsDims: 768, // NUXT_LITELLM_EMBEDDINGS_DIMS
       // Self-hosters: swap the model/size via env. The pgvector column is
-      // re-typed to match at boot when empty (server/utils/embeddingColumn.ts);
+      // re-typed to match at boot when empty (server/utils/knowledge/embeddingColumn.ts);
       // max 2000 dims (HNSW). See docs/AI-MODELS.md#embeddings.
       embeddingsSendDimensions: 'auto', // NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS — auto|true|false (auto = Jina only)
       embeddingsTaskHints: 'auto', // NUXT_LITELLM_EMBEDDINGS_TASK_HINTS — Jina `task` param; auto|true|false (auto = Jina only)
@@ -212,7 +212,7 @@ export default defineNuxtConfig({
     // policy promise; self-hosters may pick another period.
     inactiveDocTtlDays: 30,
     // Per-tier caps are NOT mirrored here: enforcement resolves them
-    // via `server/utils/tierConfig.ts#getTiers()` (committed defaults
+    // via `server/utils/billing/tierConfig.ts#getTiers()` (committed defaults
     // in `shared/config/tiers.ts` + TIER_* env overrides), and the
     // client fetches the resolved map from GET /api/billing/tiers.
     // Knowledge-upload platform limits that don't vary by plan
@@ -225,7 +225,7 @@ export default defineNuxtConfig({
     // runtimeConfig keys: they're parsed from the environment by
     // `shared/config/billingMode.ts` (server guards + SSR-hydrated
     // `useBillingMode()`), so enforcement utils that run outside Nitro
-    // (repos tests) see the same value. See server/utils/billingMode.ts.
+    // (repos tests) see the same value. See server/utils/billing/billingMode.ts.
     stripe: STRIPE_CONFIG_DEFAULTS,
     // Public origin of this deployment (e.g. https://markoto.app), used
     // to build absolute links in emails (waitlist confirm/unsubscribe).

@@ -1,12 +1,12 @@
 import { and, eq, isNotNull, isNull, ne } from 'drizzle-orm'
 import { workspaceMembers, workspaceSubscriptions } from '../../db/schema'
-import { useDatabase } from '../database'
+import { useDatabase } from '../platform/database'
 import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
 import { isDuplicateTeamError } from './freeTierTeam'
-import { memberLimitUsd, pooledFromRow, workspaceAiBudgetUsd, workspacePoolCaps, type PooledWorkspace } from '../workspaceBilling'
-import { isBillingEnabled } from '../billingMode'
-import { creditBudgetExtraUsd } from '../aiCreditBudget'
+import { memberLimitUsd, pooledFromRow, workspaceAiBudgetUsd, workspacePoolCaps, type PooledWorkspace } from '../billing/workspaceBilling'
+import { isBillingEnabled } from '../billing/billingMode'
+import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 
 // One LiteLLM team per Team / Business workspace (pricing plan WP3).
 //

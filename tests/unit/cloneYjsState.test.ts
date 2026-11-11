@@ -15,11 +15,11 @@ import * as Y from 'yjs'
 // Coverage loss is zero — we cover the same lines via the repo test.
 
 const mockQuery = vi.fn()
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({ query: mockQuery })
 }))
 
-const { cloneYjsStateWithUrlRewrite } = await import('../../server/utils/cloneYjsState')
+const { cloneYjsStateWithUrlRewrite } = await import('../../server/utils/documents/cloneYjsState')
 
 function rowFromDoc(doc: Y.Doc): { value: Buffer } {
   return { value: Buffer.from(Y.encodeStateAsUpdate(doc)) }

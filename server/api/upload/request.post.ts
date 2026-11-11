@@ -2,9 +2,9 @@ import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
 import { reservePendingUpload } from '../../repos/uploads'
-import { requireDocEditAccess } from '../../utils/documentAccess'
-import { imageQuotaError, resolveImageQuota } from '../../utils/imageQuota'
-import { buildUploadKey, DOC_ID_RE, stagingKeyFor } from '../../utils/uploadKey'
+import { requireDocEditAccess } from '../../utils/documents/documentAccess'
+import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
+import { buildUploadKey, DOC_ID_RE, stagingKeyFor } from '../../utils/storage/uploadKey'
 
 // Presigned PUT lifetime. S3 checks expiry when the request STARTS, so a
 // slow 10 MB upload that begins in time still completes; a short window

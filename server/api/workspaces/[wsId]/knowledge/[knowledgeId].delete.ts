@@ -1,5 +1,5 @@
 import { getKnowledge } from '../../../../repos/knowledge'
-import { deleteKnowledgeArtifact, requireKnowledgeDeleteAccess } from '../../../../utils/knowledgeAccess'
+import { deleteKnowledgeArtifact, requireKnowledgeDeleteAccess } from '../../../../utils/knowledge/knowledgeAccess'
 
 /**
  * Delete a knowledge file. Chunks cascade with the row via FK; the S3

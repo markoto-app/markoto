@@ -26,7 +26,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { and, eq, ilike, sql } from 'drizzle-orm'
 import { userIdentities, users } from '../../db/schema'
-import { useDatabase } from '../database'
+import { useDatabase } from '../platform/database'
 import {
   deleteSsoGrant,
   findIdentityById,
@@ -42,8 +42,8 @@ import { getMemberRoleIgnoringSso, removeMember } from '../../repos/workspaceMem
 import { LastAdminError } from '../../repos/errors'
 import { deleteMemberKey } from '../litellm/workspaceTeams'
 import { listDocIdsInWorkspace } from '../../repos/documents'
-import { notifySyncKickUser } from '../syncNotify'
-import { planHasFeature, resolveWorkspacePlan } from '../entitlements'
+import { notifySyncKickUser } from '../documents/syncNotify'
+import { planHasFeature, resolveWorkspacePlan } from '../billing/entitlements'
 import { emailDomain } from './domains'
 import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import { ssoBaseUrl } from './http'

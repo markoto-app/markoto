@@ -1,4 +1,4 @@
-import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/healthProbes'
+import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/platform/healthProbes'
 
 // Auth-gated deep healthcheck. Same probes as `/api/health` but returns
 // per-component latencies + (when down) the underlying error string.

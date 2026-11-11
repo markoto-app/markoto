@@ -1,8 +1,8 @@
 import { and, eq, ne } from 'drizzle-orm'
 import { workspaceMembers } from '../../../../../db/schema'
-import { useDatabase } from '../../../../../utils/database'
+import { useDatabase } from '../../../../../utils/platform/database'
 import { appendAuditEvent } from '../../../../../repos/audit'
-import { getPooledWorkspace, requireWorkspaceBillingAdmin } from '../../../../../utils/workspaceBilling'
+import { getPooledWorkspace, requireWorkspaceBillingAdmin } from '../../../../../utils/billing/workspaceBilling'
 import { syncMemberKeyLimit } from '../../../../../utils/litellm/workspaceTeams'
 import { AUDIT_WORKSPACE_MEMBER_AI_LIMIT_CHANGED } from '../../../../../legal/auditActions'
 

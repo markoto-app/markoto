@@ -1,7 +1,7 @@
 import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
-import { SESSION_VERSION } from '../../utils/validatedSession'
-import { bootstrapAdminFromEnv } from '../../utils/adminBootstrap'
-import { googleVerifiedEmail } from '../../utils/oauthEmail'
+import { SESSION_VERSION } from '../../utils/auth/validatedSession'
+import { bootstrapAdminFromEnv } from '../../utils/auth/adminBootstrap'
+import { googleVerifiedEmail } from '../../utils/auth/oauthEmail'
 
 export default defineOAuthGoogleEventHandler({
   config: { scope: ['openid', 'email', 'profile'] },

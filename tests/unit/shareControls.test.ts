@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { canDownload, decideFileAccess, decideTokenAccess, docStateOf, isShareExpired, isVisitor } from '../../shared/utils/docPermissions'
-import { DOC_JWT_MAX_SECONDS, docJwtLifetimeSeconds } from '../../server/utils/docJwt'
+import { DOC_JWT_MAX_SECONDS, docJwtLifetimeSeconds } from '../../server/utils/documents/docJwt'
 
 // Share-link controls (WP9) in the decision layer: an expired public link
 // acts as private for everyone but the owner and workspace members;

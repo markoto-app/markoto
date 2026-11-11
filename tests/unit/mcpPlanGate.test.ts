@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
-import { MCP_SCOPES } from '../../server/utils/mcpAuth'
+import { MCP_SCOPES } from '../../server/utils/mcp/mcpAuth'
 import { mcpToolClass } from '../../server/mcp/lib/toolClasses'
 
 // Read-only MCP for plans without `mcpWrite` + the daily tool-call
@@ -15,8 +15,8 @@ import { mcpToolClass } from '../../server/mcp/lib/toolClasses'
 vi.mock('@nuxtjs/mcp-toolkit/server', () => ({ defineMcpTool: (d: unknown) => d }))
 
 const checkRateLimit = vi.hoisted(() => vi.fn(async (_ns: string, _key: string, _max: number, _windowMs: number) => true))
-vi.mock('../../server/utils/rateLimit', () => ({ checkRateLimit }))
-vi.mock('../../server/utils/renderRateLimit', () => ({ consumeRenderAllowance: vi.fn(async () => true) }))
+vi.mock('../../server/utils/platform/rateLimit', () => ({ checkRateLimit }))
+vi.mock('../../server/utils/rendering/renderRateLimit', () => ({ consumeRenderAllowance: vi.fn(async () => true) }))
 
 vi.stubGlobal('createError', (opts: { statusCode: number, message?: string, data?: unknown }) =>
   Object.assign(new Error(opts.message ?? ''), { statusCode: opts.statusCode, data: opts.data }))

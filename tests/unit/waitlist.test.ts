@@ -8,7 +8,7 @@ import {
   normaliseWaitlistEmail,
   normaliseWaitlistLocale,
   parseWaitlistToken
-} from '../../server/utils/waitlist'
+} from '../../server/utils/privacy/waitlist'
 
 afterEach(() => {
   vi.unstubAllEnvs()

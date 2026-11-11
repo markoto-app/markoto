@@ -1,5 +1,5 @@
 import { Pool } from 'pg'
-import { requireAdminUser } from '../../utils/adminAccess'
+import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmDbUrl } from '../../utils/litellm/litellmDb'
 import { ALL_FEATURE_TAGS, type FeatureTag } from '../../utils/litellm/featureTags'
 

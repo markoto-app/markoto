@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
-import { evictIdle, getPoolStats, closeAll } from '../utils/yDocPool'
+import { evictIdle, getPoolStats, closeAll } from '../utils/mcp/yDocPool'
 
 // Idle-eviction sweeper for the YDocPool.
 //

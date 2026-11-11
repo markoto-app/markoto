@@ -2,11 +2,11 @@ import { docExists } from '../../repos/documents'
 import type { CommentSnapshotRow } from '../../repos/comments'
 import { eq, sql } from 'drizzle-orm'
 import { documentComments } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
+import { useDatabase } from '../../utils/platform/database'
 import { appendActivity, pruneActivity } from '../../repos/activity'
-import { diffCommentsSnapshot } from '../../utils/commentsSnapshotDiff'
+import { diffCommentsSnapshot } from '../../utils/documents/commentsSnapshotDiff'
 import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
-import { requireInternalSecret } from '../../utils/internalRoutes'
+import { requireInternalSecret } from '../../utils/platform/internalRoutes'
 
 // Internal endpoint called by the sync-server on every persisted save
 // of a doc that has a non-empty `comments` Y.Array. The body carries

@@ -1,9 +1,9 @@
 import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
-import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/entitlements'
+import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
 import { getCommentThreadByEntryId } from '../../../../../repos/comments'
 import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
-import { hasValidDocJwt } from '../../../../../utils/docTokenVerify'
+import { hasValidDocJwt } from '../../../../../utils/documents/docTokenVerify'
 
 // On-demand fetch of the full conversation thread for a comment-row
 // activity. The activity row stores only a body preview — when the

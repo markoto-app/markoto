@@ -2,8 +2,8 @@ import { docBrandForClient } from '../../../utils/brandKit/docBrand'
 import { eq } from 'drizzle-orm'
 import { documents } from '../../../db/schema'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { hasValidDocJwt } from '../../../utils/docTokenVerify'
-import { renderTemplate } from '../../../utils/templateRenderer'
+import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
+import { renderTemplate } from '../../../utils/documents/templateRenderer'
 import { canDownload, docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
 
 // GET /api/docs/:docId/meta — document metadata.

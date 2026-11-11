@@ -7,7 +7,7 @@ import {
   normalizeInternalPath,
   rejectIfFromEdge,
   requireInternalSecret
-} from '../../server/utils/internalRoutes'
+} from '../../server/utils/platform/internalRoutes'
 
 // Which app routes only other containers may call, and the gates the auth
 // middleware applies to them (server/middleware/auth.ts).

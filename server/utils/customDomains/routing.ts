@@ -1,5 +1,5 @@
 import { listOnceVerifiedHostnames, listVerifiedCustomDomains } from '../../repos/customDomains'
-import { planHasFeature, resolveUserPlan } from '../entitlements'
+import { planHasFeature, resolveUserPlan } from '../billing/entitlements'
 import { customDomainSettings } from './config'
 
 // Which custom domains are live (WP13): verified, and their owner's plan

@@ -1,6 +1,6 @@
 import { asc, eq } from 'drizzle-orm'
 import { aiSessionProvenance } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Provenance of in-editor AI sessions for the taint gate
 // (`server/repos/docProvenance.ts`). One row per session, written when

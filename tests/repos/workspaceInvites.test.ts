@@ -8,7 +8,7 @@ import {
   listInvitesForEmail,
   upsertWorkspaceInvite
 } from '../../server/repos/workspaceInvites'
-import { runWorkspaceInviteSweep } from '../../server/utils/workspaceInviteSweep'
+import { runWorkspaceInviteSweep } from '../../server/utils/workspaces/workspaceInviteSweep'
 
 const DAY = 24 * 60 * 60 * 1000
 

@@ -14,8 +14,8 @@ import {
   sumUsableCredits,
   type CreditSubject
 } from '../../server/repos/aiCreditGrants'
-import { useDatabase } from '../../server/utils/database'
-import { creditBudgetExtraUsd, creditPeriod, previousCreditPeriod } from '../../server/utils/aiCreditBudget'
+import { useDatabase } from '../../server/utils/platform/database'
+import { creditBudgetExtraUsd, creditPeriod, previousCreditPeriod } from '../../server/utils/billing/aiCreditBudget'
 
 // AI credit top-ups (WP4): grants, using them up oldest-expiring first,
 // monthly settlement, refunds, expiry.

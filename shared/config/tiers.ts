@@ -1,6 +1,6 @@
 // Subscription tier caps. Single source of truth for what each plan
 // grants; consumed by server enforcement (via
-// `server/utils/tierConfig.ts#getTiers()`), the unit tests, and the
+// `server/utils/billing/tierConfig.ts#getTiers()`), the unit tests, and the
 // client-side pricing page (via `GET /api/billing/tiers`).
 //
 // Phase 6 architecture: AI usage is gated SOLELY by per-user LiteLLM
@@ -58,7 +58,7 @@ export interface TierCaps {
   /**
    * People in one workspace: accepted members plus open invitations.
    * Judged against the WORKSPACE's plan (see
-   * `server/utils/entitlements.ts#resolveWorkspacePlan`). `null` = no
+   * `server/utils/billing/entitlements.ts#resolveWorkspacePlan`). `null` = no
    * plan limit (the platform-wide invite caps still apply).
    */
   membersPerWorkspace: number | null
@@ -201,7 +201,7 @@ const PAID_PLAN_ENTITLEMENTS = {
 // can override any individual cap at runtime via `TIER_*` env vars
 // (see `resolveTiersFromEnv` below) without a code change — e.g.
 // `TIER_PRO_LITELLM_BUDGET_USD=8`. Server enforcement resolves through
-// `server/utils/tierConfig.ts#getTiers()`; the client fetches the
+// `server/utils/billing/tierConfig.ts#getTiers()`; the client fetches the
 // resolved map from `GET /api/billing/tiers`.
 export const DEFAULT_TIERS = {
   free: {
@@ -248,7 +248,7 @@ export const DEFAULT_TIERS = {
   // Team / Business: `litellmBudgetUsd`, `knowledgeFiles`,
   // `knowledgeBytesPerWorkspace` and `imageBytesPerUser` are PER SEAT;
   // a subscribed workspace pools seats × these values
-  // (`server/utils/workspaceBilling.ts#workspacePoolCaps`).
+  // (`server/utils/billing/workspaceBilling.ts#workspacePoolCaps`).
   team: {
     litellmBudgetUsd: 5,
     workspacesOwned: 100,

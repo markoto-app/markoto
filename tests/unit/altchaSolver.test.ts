@@ -15,7 +15,7 @@ import {
   deriveAltchaSecrets,
   verifyAnonSolution
 } from '../../server/utils/anonGate/altcha'
-import { buildAppCsp } from '../../server/utils/csp'
+import { buildAppCsp } from '../../server/utils/rendering/csp'
 
 // Browser solver (app/utils/altchaSolver.ts) against the real server
 // verifier: an in-process stand-in speaks the ALTCHA worker protocol

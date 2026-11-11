@@ -26,7 +26,7 @@ export const captureMessage = Sentry.captureMessage.bind(Sentry)
 export { Sentry }
 
 /**
- * Outbound trace propagation helper. Mirrors `server/utils/traceHeaders.ts`
+ * Outbound trace propagation helper. Mirrors `server/utils/platform/traceHeaders.ts`
  * on the app side — the sync-server doesn't share that file because it's
  * a standalone Bun container with its own `node_modules`. When the
  * sync-server POSTs to the app's `/api/internal/activity` or

@@ -42,7 +42,7 @@ COPY --from=builder --chown=bun:bun /app/drizzle ./drizzle
 # (fs reads aren't traced by Nitro's NFT, so they must be COPYed explicitly
 # — same rationale as drizzle/). Both are read via process.cwd():
 #   - content/legal/*.md    → server/api/_internal/legal/[slug].get.ts
-#   - shared/templates/...  → server/utils/templateRenderer.ts
+#   - shared/templates/...  → server/utils/documents/templateRenderer.ts
 # Missing them 500s every /legal/* page and drops every template body.
 COPY --from=builder --chown=bun:bun /app/content ./content
 COPY --from=builder --chown=bun:bun /app/shared/templates/content ./shared/templates/content

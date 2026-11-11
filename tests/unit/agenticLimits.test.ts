@@ -22,7 +22,7 @@ const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unkno
 const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>()
 const fetchUrl = vi.fn<(ai: unknown, model: string, url: string, signal: AbortSignal) => Promise<{ text: string, url: string, summary: string, images: Array<{ url: string, description?: string }> }>>()
 
-vi.mock('../../server/utils/aiToolAdapter', () => ({ executeFunctionByName }))
+vi.mock('../../server/utils/ai/aiToolAdapter', () => ({ executeFunctionByName }))
 vi.mock('../../server/utils/agentic/functionTools', async () => {
   const actual = await vi.importActual<typeof import('../../server/utils/agentic/functionTools')>(
     '../../server/utils/agentic/functionTools'

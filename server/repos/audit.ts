@@ -1,7 +1,7 @@
 import { and, desc, eq, gte, like, lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { auditLog, users } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Audit-log repository. Append-only: there is no `updateAuditEvent` and
 // no `deleteAuditEvent` on purpose — once written, a row is immutable.

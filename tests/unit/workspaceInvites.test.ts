@@ -15,7 +15,7 @@ import {
   normaliseInviteLocale,
   parseInviteId,
   parseInviteToken
-} from '../../server/utils/workspaceInvites'
+} from '../../server/utils/workspaces/workspaceInvites'
 
 describe('workspace invite helpers', () => {
   it('normalises addresses (trim + lower-case) and rejects implausible ones', () => {

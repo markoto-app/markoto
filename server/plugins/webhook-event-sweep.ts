@@ -1,10 +1,10 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runWebhookEventSweep } from '../utils/webhookEventSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
-import { isBillingEnabled } from '../utils/billingMode'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runWebhookEventSweep } from '../utils/billing/webhookEventSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { isBillingEnabled } from '../utils/billing/billingMode'
 
 // Webhook event-table sweep plugin. Thin wrapper — the query logic
-// lives in `server/utils/webhookEventSweep.ts` so tests can drive it
+// lives in `server/utils/billing/webhookEventSweep.ts` so tests can drive it
 // directly without pulling in the `defineNitroPlugin` auto-import.
 //
 // Runs daily. The handler's correctness doesn't depend on this sweep

@@ -55,7 +55,7 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
  * was handled (caller should not fall through); `false` otherwise.
  *
  * Distributed tracing: the app injects sentry-trace + baggage on every
- * outbound POST to the sync-server (server/utils/traceHeaders.ts). We
+ * outbound POST to the sync-server (server/utils/platform/traceHeaders.ts). We
  * pull those headers off and feed them into Sentry.continueTrace +
  * startSpan so the sync-server's work shows up as a child of the app's
  * transaction in Sentry's Trace Explorer.

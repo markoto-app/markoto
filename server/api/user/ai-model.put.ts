@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
+import { useDatabase } from '../../utils/platform/database'
 
 // PUT /api/user/ai-model — the platform chat model the user wants (WP5):
 // {tier: 'fast' | 'strong'}. Stored either way; 'strong' is applied only

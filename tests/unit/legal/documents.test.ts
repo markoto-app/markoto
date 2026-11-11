@@ -82,7 +82,7 @@ describe('legal wording', () => {
     expect(privacy).not.toMatch(/180 days without activity/)
   })
 
-  // The periods the retention sweeps enforce (server/utils/legalRetentionSweep.ts).
+  // The periods the retention sweeps enforce (server/utils/privacy/legalRetentionSweep.ts).
   it('states the audit-log and abuse-report retention the sweeps enforce', () => {
     const privacy = read('privacy', 'en')
     expect(privacy).toMatch(/Entries are deleted automatically after \*\*2 years\*\*/)

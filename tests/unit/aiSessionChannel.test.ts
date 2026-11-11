@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from 'vitest'
 // The channel's production store is Valkey; these tests use the
 // in-memory store. Stub the Valkey module so importing it never opens a
 // connection.
-vi.mock('../../server/utils/valkey', () => ({
+vi.mock('../../server/utils/platform/valkey', () => ({
   useValkey: () => {
     throw new Error('valkey not available in unit tests')
   }

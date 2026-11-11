@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { readFileSync, readdirSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { legalMarkdown, legalSlugify } from '../../../server/utils/legalMarkdown'
+import { legalMarkdown, legalSlugify } from '../../../server/utils/privacy/legalMarkdown'
 
 const ROOT = resolve(__dirname, '../../..')
 const LEGAL = resolve(ROOT, 'content/legal')

@@ -1,7 +1,7 @@
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { dataExportJobs } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { ConflictError, NotFoundError } from './errors'
 
 // `data_export_jobs` repository. Drives the GDPR Article 20 + 15

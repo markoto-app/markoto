@@ -1,5 +1,5 @@
 import { nanoid } from 'nanoid'
-import { useValkey, useValkeySubscriber } from '../valkey'
+import { useValkey, useValkeySubscriber } from '../platform/valkey'
 import type { ToolStatusPhase } from './toolContext'
 
 // Initiator-only channel for an AI session.

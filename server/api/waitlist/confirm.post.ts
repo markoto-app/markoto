@@ -1,5 +1,5 @@
 import { confirmWaitlistSignup } from '../../repos/waitlist'
-import { hashWaitlistToken, parseWaitlistToken } from '../../utils/waitlist'
+import { hashWaitlistToken, parseWaitlistToken } from '../../utils/privacy/waitlist'
 
 // POST /api/waitlist/confirm — second step of the double opt-in.
 //

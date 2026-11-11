@@ -10,8 +10,8 @@ import {
   isModerationRule,
   isReportCategory
 } from '../../shared/config/moderation'
-import { NOTICE_COPY, NOTICE_LOCALES, normaliseNoticeLocale } from '../../server/utils/moderationNoticeCopy'
-import { buildDecisionNotice, buildReceiptNotice, buildStatementOfReasons } from '../../server/utils/moderationNotices'
+import { NOTICE_COPY, NOTICE_LOCALES, normaliseNoticeLocale } from '../../server/utils/privacy/moderationNoticeCopy'
+import { buildDecisionNotice, buildReceiptNotice, buildStatementOfReasons } from '../../server/utils/privacy/moderationNotices'
 
 // DSA notice-and-action vocabulary + the three notice texts
 // (receipt Art.16(4), decision Art.16(5), statement of reasons Art.17).

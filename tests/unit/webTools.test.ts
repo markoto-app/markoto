@@ -4,10 +4,10 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 // web_search + fetch_url, and availability from the operator's upstream keys.
 
 const checkRateLimit = vi.hoisted(() => vi.fn(async (_ns: string, _key: string, _max: number, _windowMs: number) => true))
-vi.mock('../../server/utils/rateLimit', () => ({ checkRateLimit }))
+vi.mock('../../server/utils/platform/rateLimit', () => ({ checkRateLimit }))
 // The plan's daily web-tool limit (`webToolsPerDay`); null = no plan limit.
 const planWebToolsPerDay = vi.hoisted(() => ({ value: null as number | null }))
-vi.mock('../../server/utils/entitlements', () => ({
+vi.mock('../../server/utils/billing/entitlements', () => ({
   resolveUserPlan: vi.fn(async () => 'free'),
   capsFor: vi.fn(() => ({ webToolsPerDay: planWebToolsPerDay.value }))
 }))
@@ -18,7 +18,7 @@ const {
   getWebToolAvailability,
   isWebToolAvailable,
   WEB_TOOLS_RATE_LIMITED_CODE
-} = await import('../../server/utils/webTools')
+} = await import('../../server/utils/ai/webTools')
 
 beforeEach(() => {
   planWebToolsPerDay.value = null

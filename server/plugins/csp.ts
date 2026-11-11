@@ -1,9 +1,9 @@
 import { randomBytes } from 'node:crypto'
-import { addNonceToScripts, buildAppCsp, buildRenderCsp, crossOriginResourcePolicyFor } from '../utils/csp'
+import { addNonceToScripts, buildAppCsp, buildRenderCsp, crossOriginResourcePolicyFor } from '../utils/rendering/csp'
 
 // Sets the Content-Security-Policy (with a fresh nonce per response) and
 // Cross-Origin-Resource-Policy on every response, and stamps that nonce on
-// the inline scripts Nuxt renders into the page. Policies: server/utils/csp.ts.
+// the inline scripts Nuxt renders into the page. Policies: server/utils/rendering/csp.ts.
 //
 // The app owns these headers (not Traefik) so that every deployment shape —
 // hosted, self-host, local, the test stacks — serves the same policy, and so

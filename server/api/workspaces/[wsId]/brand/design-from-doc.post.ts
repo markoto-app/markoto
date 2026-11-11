@@ -1,13 +1,13 @@
 import { requireBrandKitAdmin } from '../../../../utils/brandKit/access'
 import { getDoc } from '../../../../repos/documents'
 import { updateWorkspace } from '../../../../repos/workspaces'
-import { flushSyncDocument } from '../../../../utils/syncNotify'
-import { reconstructDocAtYjsId } from '../../../../utils/historyReplay'
-import { resolveDocProperties } from '../../../../utils/docProperties'
+import { flushSyncDocument } from '../../../../utils/documents/syncNotify'
+import { reconstructDocAtYjsId } from '../../../../utils/documents/historyReplay'
+import { resolveDocProperties } from '../../../../utils/documents/docProperties'
 import { defaultTheme as markotoTheme } from '~~/shared/utils/defaultTheme'
 import { themeImagesForDoc } from '~~/shared/utils/themeImages'
 import { adaptCustomCssToDoc } from '~~/shared/utils/customCss'
-import { customCssAppOrigins } from '../../../../utils/themeCustomCss'
+import { customCssAppOrigins } from '../../../../utils/rendering/themeCustomCss'
 
 // POST /api/workspaces/:wsId/brand/design-from-doc — {docId} (WP10): make a
 // workspace document's CURRENT design the workspace design (the default

@@ -364,7 +364,7 @@ services:
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
-      # Mirrored into the print-page CSP (server/utils/csp.ts); the renderer reads the same variable.
+      # Mirrored into the print-page CSP (server/utils/rendering/csp.ts); the renderer reads the same variable.
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       - NUXT_LITELLM_URL=http://litellm:4000
       - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}

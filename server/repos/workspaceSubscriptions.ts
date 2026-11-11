@@ -1,12 +1,12 @@
 import { eq, inArray, sql, type SQL } from 'drizzle-orm'
 import { workspaceSubscriptions } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
 
 // Team / Business subscriptions of workspaces (pricing plan WS2). Stripe
 // writes every row through the webhook (WP2/WP3); the rest of the app
 // only reads them, through `resolveWorkspacePlan`
-// (server/utils/entitlements.ts).
+// (server/utils/billing/entitlements.ts).
 
 export interface WorkspaceSubscriptionRow {
   workspaceId: string

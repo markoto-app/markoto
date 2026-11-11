@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { planHasFeature, assertPlanFeature, resolveWorkspacePlan } from '../entitlements'
+import { planHasFeature, assertPlanFeature, resolveWorkspacePlan } from '../billing/entitlements'
 import type { WorkspaceRole } from '~~/shared/utils/docPermissions'
 
 // Who may do what with a workspace's brand kit (WP10). Normal role checks

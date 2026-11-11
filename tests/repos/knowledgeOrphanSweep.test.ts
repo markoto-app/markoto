@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb } from '../integration/setup/db'
 import { createUser, createWorkspace } from '../integration/setup/fixtures'
 import { createKnowledge } from '../../server/repos/knowledge'
-import { KNOWLEDGE_ORPHAN_GRACE_MS, sweepKnowledgeOrphans } from '../../server/utils/knowledgeOrphanSweep'
+import { KNOWLEDGE_ORPHAN_GRACE_MS, sweepKnowledgeOrphans } from '../../server/utils/knowledge/knowledgeOrphanSweep'
 import { makeFakeStore } from './fakeObjectStore'
 
 // Regression: knowledge originals that were presigned + PUT but never

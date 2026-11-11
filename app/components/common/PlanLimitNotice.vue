@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Inline notice for a plan limit or a feature the current plan doesn't
- * include (server side: `server/utils/entitlements.ts`). Every gated
+ * include (server side: `server/utils/billing/entitlements.ts`). Every gated
  * control uses this one component so the wording and the link stay
  * consistent:
  *

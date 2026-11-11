@@ -17,7 +17,7 @@ import {
   assertLegalSurfacesEnabled,
   legalSurfacesEnabled,
   LEGAL_DISABLED_CODE
-} from '../../server/utils/instanceConfig'
+} from '../../server/utils/platform/instanceConfig'
 import { legalEntityErrors, resolveLegalEntity } from '../../shared/legal/entity'
 
 // Instance shape (WP7): which login providers are offered and whether the

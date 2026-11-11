@@ -20,7 +20,7 @@ const mockState = vi.hoisted(() => ({
 
 ;(globalThis as unknown as { useRuntimeConfig: () => typeof mockState.config }).useRuntimeConfig = () => mockState.config
 
-vi.mock('../../server/utils/litellmClient', () => ({
+vi.mock('../../server/utils/ai/litellmClient', () => ({
   useLitellmAdmin: () => ({
     embeddings: {
       create: async (req: Record<string, unknown>) => {
@@ -36,7 +36,7 @@ const {
   embeddingVersionTag,
   embedDocuments,
   embedQuery
-} = await import('../../server/utils/embeddings')
+} = await import('../../server/utils/knowledge/embeddings')
 
 beforeEach(() => {
   mockState.jinaCalls = []

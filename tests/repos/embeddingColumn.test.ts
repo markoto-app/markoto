@@ -6,7 +6,7 @@ import {
   readEmbeddingColumnDims,
   withEmbeddingDimensionLock,
   type EmbeddingColumnTarget
-} from '../../server/utils/embeddingColumn'
+} from '../../server/utils/knowledge/embeddingColumn'
 
 // Boot-time dimension reconciliation against a real pgvector. A scratch table
 // (same column/index shape as workspace_knowledge_chunks) keeps these tests

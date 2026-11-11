@@ -4,11 +4,11 @@ import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-
 import * as Sentry from '@sentry/nuxt'
 import { listAllDocIds } from '../repos/documents'
 import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
-import { sweepKnowledgeOrphans } from '../utils/knowledgeOrphanSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { sweepKnowledgeOrphans } from '../utils/knowledge/knowledgeOrphanSweep'
 import { sweepDesignImportOrphans } from '../utils/designImport/orphanSweep'
-import { s3ObjectStore } from '../utils/objectStore'
-import { stagingKeyFor } from '../utils/uploadKey'
+import { s3ObjectStore } from '../utils/storage/objectStore'
+import { stagingKeyFor } from '../utils/storage/uploadKey'
 
 const ONE_HOUR_MS = 60 * 60 * 1000
 const ONE_DAY_MS = 24 * ONE_HOUR_MS
@@ -34,7 +34,7 @@ const ONE_DAY_MS = 24 * ONE_HOUR_MS
 //      kept for belt-and-suspenders). Also catches staging objects
 //      (`docs/{id}/staging/…`) left over after a confirm.
 //
-//   4. Knowledge sweep (`server/utils/knowledgeOrphanSweep.ts`): objects
+//   4. Knowledge sweep (`server/utils/knowledge/knowledgeOrphanSweep.ts`): objects
 //      under `workspaces/*/knowledge/` (final or staging) older than 1 h
 //      that no `workspace_knowledge` row points at — uploads that were
 //      PUT but never confirmed, and originals of deleted rows. Runs even

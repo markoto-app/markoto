@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 
 // SSE stream of the initiator-only session channel (F-7c), driven by the
 // in-memory channel store. Stub Valkey so importing never connects.
-vi.mock('../../server/utils/valkey', () => ({
+vi.mock('../../server/utils/platform/valkey', () => ({
   useValkey: () => {
     throw new Error('valkey not available in unit tests')
   },

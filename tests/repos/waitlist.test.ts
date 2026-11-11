@@ -8,7 +8,7 @@ import {
   upsertWaitlistSignup,
   type WaitlistSignupInput
 } from '../../server/repos/waitlist'
-import { runWaitlistSweep } from '../../server/utils/waitlistSweep'
+import { runWaitlistSweep } from '../../server/utils/privacy/waitlistSweep'
 
 // Paid-plans waitlist repository (double opt-in lifecycle) + sweeper.
 

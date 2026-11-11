@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { hasScope as hasScopeRaw, type McpAuthContext, type McpScope } from '../../utils/mcpAuth'
+import { hasScope as hasScopeRaw, type McpAuthContext, type McpScope } from '../../utils/mcp/mcpAuth'
 import { mcpToolAllowed } from './toolClasses'
 
 // Per-tool helpers shared by every wrapper in server/mcp/tools/*. Keeps

@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, beforeAll, afterAll, afterEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
-import { resolveBillingContext } from '../../server/utils/billing'
-import { resolveCaps } from '../../server/utils/knowledgeQuota'
+import { resolveBillingContext } from '../../server/utils/billing/billing'
+import { resolveCaps } from '../../server/utils/knowledge/knowledgeQuota'
 import { DEFAULT_TIERS } from '../../shared/config/tiers'
 
 // Billing OFF (the default: self-hosted + free-only SaaS). Nobody can

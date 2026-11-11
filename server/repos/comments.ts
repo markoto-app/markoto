@@ -1,6 +1,6 @@
 import { and, asc, eq, or } from 'drizzle-orm'
 import { documentComments } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Postgres mirror of the doc's comment threads. See schema.ts for the
 // design rationale — Y.js stays the source of truth, this is a write-

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { diffCommentsSnapshot, type SnapshotEntry } from '../../server/utils/commentsSnapshotDiff'
+import { diffCommentsSnapshot, type SnapshotEntry } from '../../server/utils/documents/commentsSnapshotDiff'
 
 // Pure function — every test is an inputs → outputs assertion. Goal
 // is to lock down the branching that turns "comment snapshot diffs"

@@ -43,8 +43,8 @@ Object.assign(globalThis, {
 const { createUserKey, getUserKeyToken, updateUserKeyBudget } = await import('../../../server/utils/litellm/userKeys')
 const team = await import('../../../server/utils/litellm/freeTierTeam')
 const { reconcileUserKeys } = await import('../../../server/utils/litellm/keyReconcile')
-const { assertFreeAllowanceAvailable, freeAllowanceExhaustedHttpError } = await import('../../../server/utils/freeAllowance')
-const { useLitellmForUser } = await import('../../../server/utils/litellmClient')
+const { assertFreeAllowanceAvailable, freeAllowanceExhaustedHttpError } = await import('../../../server/utils/billing/freeAllowance')
+const { useLitellmForUser } = await import('../../../server/utils/ai/litellmClient')
 
 async function admin(path: string, body?: unknown): Promise<{ status: number, json: Record<string, unknown> }> {
   const res = await fetch(`${LITELLM_URL}${path}`, {

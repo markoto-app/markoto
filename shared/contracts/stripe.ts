@@ -3,8 +3,8 @@
  *
  * Centralises (a) the API-version pin and (b) the literal-union of
  * webhook event types we handle. Two consumers MUST agree on both:
- *   - `server/utils/stripeClient.ts` (constructs the SDK client)
- *   - `server/utils/stripeWebhook.ts` (the dispatcher's switch table)
+ *   - `server/utils/billing/stripeClient.ts` (constructs the SDK client)
+ *   - `server/utils/billing/stripeWebhook.ts` (the dispatcher's switch table)
  *   - `tests/**` (fixtures that produce typed minimal events)
  *
  * Why this matters: the Stripe API version dictates the wire shape

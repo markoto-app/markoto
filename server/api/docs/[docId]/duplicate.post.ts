@@ -1,11 +1,11 @@
-import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../../utils/shareSettings'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../../utils/documents/shareSettings'
 import { nanoid } from 'nanoid'
 import { getDoc } from '../../../repos/documents'
 import { getMembershipRole } from '../../../repos/workspaceMembers'
-import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/duplicateDocument'
-import { withIdempotency } from '../../../utils/idempotency'
-import { imageQuotaError, resolveImageQuota } from '../../../utils/imageQuota'
-import { flushSyncDocument } from '../../../utils/syncNotify'
+import { duplicateDocument, ImageQuotaExceededError } from '../../../utils/documents/duplicateDocument'
+import { withIdempotency } from '../../../utils/platform/idempotency'
+import { imageQuotaError, resolveImageQuota } from '../../../utils/storage/imageQuota'
+import { flushSyncDocument } from '../../../utils/documents/syncNotify'
 
 // Duplicate a document into a new docId. The duplicator becomes the
 // new owner — duplicates are "my copy of their template". Same
@@ -51,7 +51,7 @@ export default defineEventHandler(async (event) => {
   // header, behaviour is unchanged. Scope is per-user so a key reused
   // across users does not collide; the `duplicate:{sourceDocId}` scope
   // segment also keeps a key from short-circuiting a different doc's
-  // duplicate. See `server/utils/idempotency.ts` for the contract.
+  // duplicate. See `server/utils/platform/idempotency.ts` for the contract.
   const config = useRuntimeConfig()
   return withIdempotency(event, `duplicate:${sourceDocId}`, session.user.id, async () => {
     const newDocId = nanoid(10)

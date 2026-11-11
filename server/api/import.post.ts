@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
-import { importMarkdownFile } from '../utils/markdownImport'
-import { capsFor, planLimitError, resolveUserPlan } from '../utils/entitlements'
-import { markitdownAuthHeaders } from '../utils/markitdownAuth'
+import { importMarkdownFile } from '../utils/documents/markdownImport'
+import { capsFor, planLimitError, resolveUserPlan } from '../utils/billing/entitlements'
+import { markitdownAuthHeaders } from '../utils/platform/markitdownAuth'
 
 // Subset of formats markitdown handles well as document imports. Markitdown
 // also supports CSV/JSON/XML/audio/images, but those don't make sense as a
@@ -20,7 +20,7 @@ const ALLOWED_EXTENSIONS = new Set([
 ])
 // Markdown needs no conversion: read as UTF-8 here, markoto's own
 // frontmatter (theme + document properties, written by Download
-// Markdown) is split off and validated (server/utils/markdownImport.ts).
+// Markdown) is split off and validated (server/utils/documents/markdownImport.ts).
 const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
 // A Markdown body lands in one Y.Doc (sync-server cap 16 MiB per document).
 const MARKDOWN_MAX_SIZE = 10 * 1024 * 1024

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import jwt from 'jsonwebtoken'
 import type { H3Event } from 'h3'
-import { extractToken, verifyDocJwt } from '../../server/utils/docTokenVerify'
+import { extractToken, verifyDocJwt } from '../../server/utils/documents/docTokenVerify'
 
 // Unit tests for the two pure halves of docTokenVerify. The combined
 // `hasValidDocJwt` orchestrator is exercised by the files + activity

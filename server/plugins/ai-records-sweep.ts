@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
-import { migrationsComplete } from '../utils/migrations'
-import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../utils/aiRecordsSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../utils/ai/aiRecordsSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Enforces the 90-day retention the privacy policy promises for AI prompt +
 // tool-call records (`ai_session_messages`), plus reaps orphaned

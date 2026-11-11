@@ -1,4 +1,4 @@
-import type { ObjectStore } from '../objectStore'
+import type { ObjectStore } from '../storage/objectStore'
 
 // Layer of `orphan-cleanup` (WP13): objects under `published/<pageId>/`
 // whose page no longer exists — the document was deleted (the row goes

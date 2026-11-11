@@ -6,13 +6,13 @@ import {
   isRateLimitExhausted,
   recordRateLimitEvent,
   reserveInflightSlot
-} from '../../server/utils/rateLimit'
-import { DOC_PASSWORD_LIMITS, admitPasswordAttempt, recordPasswordFailure } from '../../server/utils/docPasswordLimits'
+} from '../../server/utils/platform/rateLimit'
+import { DOC_PASSWORD_LIMITS, admitPasswordAttempt, recordPasswordFailure } from '../../server/utils/documents/docPasswordLimits'
 import {
   claimPendingKnowledgeUpload,
   recordPendingKnowledgeUpload,
   restorePendingKnowledgeUpload
-} from '../../server/utils/knowledgePendingUpload'
+} from '../../server/utils/knowledge/knowledgePendingUpload'
 
 // Limiter semantics against the REAL Valkey test container (the unit
 // tests only pin fail-mode polarity with a mocked client). The headline

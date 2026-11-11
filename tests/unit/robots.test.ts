@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { NOINDEX_VALUE, robotsTagFor, robotsTxt } from '../../server/utils/robots'
+import { NOINDEX_VALUE, robotsTagFor, robotsTxt } from '../../server/utils/platform/robots'
 
 // Documents stay out of search engines; marketing, docs, pricing and
-// legal pages stay indexable (server/utils/robots.ts).
+// legal pages stay indexable (server/utils/platform/robots.ts).
 
 describe('robotsTagFor', () => {
   it('noindexes every document and the render / document API routes', () => {

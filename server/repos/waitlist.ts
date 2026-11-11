@@ -1,11 +1,11 @@
 import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { waitlistSignups } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // `waitlist_signups` repository — the paid-plans waitlist (WP3).
 //
 // Every function takes token HASHES, never raw tokens: hashing lives in
-// `server/utils/waitlist.ts` so the raw value never reaches this layer
+// `server/utils/privacy/waitlist.ts` so the raw value never reaches this layer
 // (and therefore never reaches a query log). Emails arrive already
 // normalised (`normaliseWaitlistEmail`).
 //

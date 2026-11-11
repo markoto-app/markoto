@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
-import { isWebToolAvailable } from '../../utils/webTools'
+import { isWebToolAvailable } from '../../utils/ai/webTools'
 
 // `web_search` is a 2-call pattern (Staan search → synthesis on the caller's
 // chat provider). The synthesis runs on the user's own chat model (BYOK) or

@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { documentShares, documents, users, workspaces } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Documents shared with workspace guests (WP11). A share is the ONLY way
 // a guest reaches a workspace document; `getDocWithActorRole` turns it

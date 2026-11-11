@@ -1,6 +1,6 @@
 import type * as Y from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import type { AttributedTo } from '../billing'
+import type { AttributedTo } from '../billing/billing'
 import type { PlanName } from '~~/shared/config/tiers'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 

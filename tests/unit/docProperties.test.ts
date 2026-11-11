@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import * as Y from 'yjs'
-import { resolveDocProperties, type DocPropertiesRow } from '../../server/utils/docProperties'
+import { resolveDocProperties, type DocPropertiesRow } from '../../server/utils/documents/docProperties'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 

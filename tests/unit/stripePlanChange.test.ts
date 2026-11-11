@@ -3,7 +3,7 @@ import {
   isLiveSubscriptionStatus,
   findLiveSubscription,
   changeSubscriptionPrice
-} from '../../server/utils/stripePlanChange'
+} from '../../server/utils/billing/stripePlanChange'
 import type Stripe from 'stripe'
 
 // The checkout endpoint's double-subscription guard. The invariant

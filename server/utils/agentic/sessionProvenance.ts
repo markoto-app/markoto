@@ -1,5 +1,5 @@
 import { markAiSessionProvenanceClean, recordAiSessionProvenance } from '../../repos/aiSessionProvenance'
-import { removeAiSession } from '../aiSessions'
+import { removeAiSession } from '../ai/aiSessions'
 import type { CrossBoundaryGuard } from './crossBoundary'
 
 // Lifecycle of a session's `ai_session_provenance` row (see the table

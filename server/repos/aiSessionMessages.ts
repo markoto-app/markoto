@@ -1,6 +1,6 @@
 import { and, desc, eq, gte } from 'drizzle-orm'
 import { aiSessionMessages } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // Per-(doc, user) AI conversation memory. Append-only by convention —
 // no `update`/`delete` exports, mirroring `audit.ts`. The only legitimate

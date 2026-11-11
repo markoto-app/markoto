@@ -30,7 +30,7 @@ Snap the live Y.Doc back to a past state. Click the history-icon button (sibling
 
 Authorization: edit access required. Read-only viewers can SEE Tier 1 diffs but cannot apply restores — the button is HIDDEN (not disabled) for them, mirroring the prompt-bar's hidden-not-disabled rule. Pre-Tier-1 rows (where `yjsDocIdBefore IS NULL`) also hide the button — restoring them would 410 from the endpoint.
 
-The endpoint calls `restoreDocToYjsId()` (in `server/utils/restoreDoc.ts`) then writes a new `restore` activity row with metadata `{kind, restoredFromActivityId, restoredFromTime}`. Atomicity: on helper failure, no activity row is written — the user sees a 500 toast and the doc is unchanged.
+The endpoint calls `restoreDocToYjsId()` (in `server/utils/documents/restoreDoc.ts`) then writes a new `restore` activity row with metadata `{kind, restoredFromActivityId, restoredFromTime}`. Atomicity: on helper failure, no activity row is written — the user sees a 500 toast and the doc is unchanged.
 
 ## `restoreDocToYjsId` — the execution helper
 

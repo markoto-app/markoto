@@ -3,13 +3,13 @@ import jwt from 'jsonwebtoken'
 import { ssoLoginUrlForMember } from '../../../utils/sso/required'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { canDownload, docStateOf, decideDocDelete, decideTokenAccess, isVisitor, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
-import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
+import { docJwtLifetimeSeconds } from '../../../utils/documents/docJwt'
 import { recordDocumentOpen } from '../../../repos/documentViews'
-import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/anonCreator'
+import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/auth/anonCreator'
 import type { SessionJwtPayload } from '../../../../shared/contracts/jwt'
-import { renderTemplate } from '../../../utils/templateRenderer'
-import { planHasFeature, resolveDocPlanFor } from '../../../utils/entitlements'
-import { pooledPlansFor } from '../../../utils/workspaceBilling'
+import { renderTemplate } from '../../../utils/documents/templateRenderer'
+import { planHasFeature, resolveDocPlanFor } from '../../../utils/billing/entitlements'
+import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 
 export default defineEventHandler(async (event) => {
   // Rate limit: 30 token requests per IP per minute
@@ -75,7 +75,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Plan features of THIS document (its workspace's plan, else its
-  // owner's — server/utils/entitlements.ts). The editor uses them to
+  // owner's — server/utils/billing/entitlements.ts). The editor uses them to
   // leave paused features out of the preview and the browser print, and
   // to show the plan notice in the theme panel. The renderer and the
   // write paths check the plan themselves; this is UI hydration only.

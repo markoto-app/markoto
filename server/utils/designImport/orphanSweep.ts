@@ -1,4 +1,4 @@
-import type { ObjectStore } from '../objectStore'
+import type { ObjectStore } from '../storage/objectStore'
 import { DESIGN_IMPORT_OBJECT_RE } from './guard'
 
 // Layer of `orphan-cleanup`: design-import leftovers. Nothing of a design

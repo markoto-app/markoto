@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isOnboardingGatedRequest, onboardingIncomplete } from '../../server/utils/onboardingGate'
+import { isOnboardingGatedRequest, onboardingIncomplete } from '../../server/utils/privacy/onboardingGate'
 import { PRIVACY_VERSION, TOS_VERSION } from '../../shared/legal/versions'
 
 const ACCEPTED = {

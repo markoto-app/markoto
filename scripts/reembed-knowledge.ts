@@ -16,7 +16,7 @@
  *                                              # target (same-size model swap with an unchanged tag);
  *                                              # pass once, never when resuming
  *
- * Steps (see server/utils/reembedKnowledge.ts): take the embedding-dimension
+ * Steps (see server/utils/knowledge/reembedKnowledge.ts): take the embedding-dimension
  * advisory lock; if NUXT_LITELLM_EMBEDDINGS_DIMS differs from the column's
  * dimension, drop the HNSW index and retype the column (old vectors are
  * discarded); re-embed every chunk from its stored text, file by file;
@@ -37,8 +37,8 @@
 
 import { Pool } from 'pg'
 import OpenAI from 'openai'
-import { buildEmbeddingsConfig, embedDocuments, embeddingVersionTag } from '../server/utils/embeddings'
-import { runReembed } from '../server/utils/reembedKnowledge'
+import { buildEmbeddingsConfig, embedDocuments, embeddingVersionTag } from '../server/utils/knowledge/embeddings'
+import { runReembed } from '../server/utils/knowledge/reembedKnowledge'
 import { postgresUrlFromEnv } from '../shared/utils/connectionStrings'
 import { resolvePostgresSsl } from '../shared/utils/postgresSsl'
 import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'

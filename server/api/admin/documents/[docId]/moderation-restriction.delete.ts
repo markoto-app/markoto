@@ -1,4 +1,4 @@
-import { requireAdminUser } from '../../../../utils/adminAccess'
+import { requireAdminUser } from '../../../../utils/auth/adminAccess'
 import { getModerationRestriction, setModerationRestriction } from '../../../../repos/documents'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_DOC_MODERATION_RESTRICTION_LIFTED } from '../../../../legal/auditActions'

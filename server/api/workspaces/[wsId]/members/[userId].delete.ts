@@ -2,7 +2,7 @@ import { getMembershipRole, removeMember } from '../../../../repos/workspaceMemb
 import { deleteSharesForUserInWorkspace } from '../../../../repos/documentShares'
 import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
-import { notifySyncKickUser } from '../../../../utils/syncNotify'
+import { notifySyncKickUser } from '../../../../utils/documents/syncNotify'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { deleteMemberKey } from '../../../../utils/litellm/workspaceTeams'
 

@@ -1,4 +1,4 @@
-import { getCachedHealth } from '../utils/healthProbes'
+import { getCachedHealth } from '../utils/platform/healthProbes'
 
 // Deep healthcheck for Traefik / docker-compose / on-call dashboards.
 //

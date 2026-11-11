@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createDoc } from '../integration/setup/fixtures'
 import { listRecentActivity } from '../../server/repos/activity'
-import { useDatabase } from '../../server/utils/database'
-import { issueMcpToken, touchMcpSession } from '../../server/utils/mcpAuth'
-import { useValkey } from '../../server/utils/valkey'
+import { useDatabase } from '../../server/utils/platform/database'
+import { issueMcpToken, touchMcpSession } from '../../server/utils/mcp/mcpAuth'
+import { useValkey } from '../../server/utils/platform/valkey'
 import { aiSessions } from '../../server/db/schema'
 
 // Pin the unified-attribution enrichment chain end-to-end against

@@ -264,7 +264,7 @@ export const workspaces = pgTable('workspaces', {
 
 // Team / Business subscription of a workspace (pricing plan WS2). One row
 // per workspace that ever had one; Stripe drives every column through the
-// webhook (WP2/WP3). `resolveWorkspacePlan` (server/utils/entitlements.ts)
+// webhook (WP2/WP3). `resolveWorkspacePlan` (server/utils/billing/entitlements.ts)
 // counts a row only while billing is on, `status` is live and
 // `valid_until` is in the future; otherwise the workspace falls back to
 // its creator's personal plan.
@@ -310,7 +310,7 @@ export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
 // id or the workspace id as text (no FK: two subject kinds; account and
 // workspace deletion delete the rows explicitly). `remaining_usd` goes
 // down as the subject's AI spend passes its plan budget (monthly
-// settlement, `server/utils/aiCredits.ts`) and with refunds; a grant
+// settlement, `server/utils/billing/aiCredits.ts`) and with refunds; a grant
 // expires 12 months after purchase. `stripe_payment_intent_id` is unique
 // so a repeated webhook adds nothing.
 export const aiCreditGrants = pgTable('ai_credit_grants', {
@@ -737,7 +737,7 @@ export const aiSessionMessages = pgTable('ai_session_messages', {
 // a staging key (`docs/{docId}/staging/{fileId}`) that confirm copies from,
 // so the presigned URL can never rewrite a confirmed image.
 // Every row (pending or confirmed) counts against the uploader's
-// `imageBytesPerUser` quota. The image GC (`server/utils/imageGc.ts`)
+// `imageBytesPerUser` quota. The image GC (`server/utils/storage/imageGc.ts`)
 // stamps `gc_checked_at` on every check and `unreferenced_since` when a
 // confirmed image is referenced nowhere (current doc, restorable history,
 // other docs, themes, comments); it deletes the image only once that has
@@ -1436,7 +1436,7 @@ export const mcpPersonalTokens = pgTable('mcp_personal_tokens', {
 //       → mcp_sessions.user_id       → users.id (the human)
 //       → mcp_sessions.token_id      → mcp_personal_tokens (which credential)
 //
-// Writer: `touchMcpSession` in `server/utils/mcpAuth.ts`, called from
+// Writer: `touchMcpSession` in `server/utils/mcp/mcpAuth.ts`, called from
 // the MCP middleware. INSERT … ON CONFLICT DO UPDATE bumps
 // `last_active_at`; Valkey throttles to once-per-minute so a chatty
 // MCP client doesn't write 50 UPDATEs/sec to the same row.
@@ -1492,7 +1492,7 @@ export const mcpSessions = pgTable('mcp_sessions', {
 //
 // Double opt-in: a row is written UNCONFIRMED on signup and only counts
 // once `confirmed_at` is set via the emailed confirm link. Unconfirmed
-// rows are reaped by `server/utils/waitlistSweep.ts` after the confirm
+// rows are reaped by `server/utils/privacy/waitlistSweep.ts` after the confirm
 // window. Unsubscribe DELETES the row (no suppression list — we hold
 // nothing once consent is withdrawn).
 //

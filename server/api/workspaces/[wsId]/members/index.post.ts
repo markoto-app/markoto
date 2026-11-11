@@ -7,16 +7,16 @@ import {
 } from '../../../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { countGuests, countMembers } from '../../../../repos/workspaceMembers'
-import { assertPlanFeature, assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/entitlements'
+import { assertPlanFeature, assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/billing/entitlements'
 import { GUESTS_PER_SEAT } from '~~/shared/config/workspaceSeats'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED, AUDIT_WORKSPACE_INVITE_CREATED } from '../../../../legal/auditActions'
-import { getPooledWorkspace, seatsFullError } from '../../../../utils/workspaceBilling'
-import { acquireWorkspaceSeatLock, changeWorkspaceSeats, seatChangeError } from '../../../../utils/workspaceStripe'
+import { getPooledWorkspace, seatsFullError } from '../../../../utils/billing/workspaceBilling'
+import { acquireWorkspaceSeatLock, changeWorkspaceSeats, seatChangeError } from '../../../../utils/billing/workspaceStripe'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
-import { useStripeClient } from '../../../../utils/stripeClient'
+import { useStripeClient } from '../../../../utils/billing/stripeClient'
 import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
 import { safeSendTransactionalEmail } from '../../../../utils/email/sendEmail'
-import { emailLinkBaseUrl } from '../../../../utils/siteUrl'
+import { emailLinkBaseUrl } from '../../../../utils/platform/siteUrl'
 import {
   WORKSPACE_INVITE_EMAILS_PER_ADDRESS,
   WORKSPACE_INVITE_EMAIL_WINDOW_MS,
@@ -31,7 +31,7 @@ import {
   isInviteRole,
   normaliseInviteEmail,
   normaliseInviteLocale
-} from '../../../../utils/workspaceInvites'
+} from '../../../../utils/workspaces/workspaceInvites'
 
 // POST /api/workspaces/:wsId/members — invite someone by email. Admin-only.
 //

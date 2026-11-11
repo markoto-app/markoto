@@ -3,11 +3,11 @@ import { countWorkspaceTemplates } from '../../../repos/workspaceTemplates'
 import { getWorkspace } from '../../../repos/workspaces'
 import { listWorkspaceDocsWithOwnerFlag } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
-import { planHasFeature, resolveWorkspacePlan } from '../../../utils/entitlements'
+import { planHasFeature, resolveWorkspacePlan } from '../../../utils/billing/entitlements'
 import { getSsoConnectionForWorkspace } from '../../../repos/sso'
-import { countSeatsUsed, getPooledWorkspace } from '../../../utils/workspaceBilling'
+import { countSeatsUsed, getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 import { getWorkspaceSubscription } from '../../../repos/workspaceSubscriptions'
-import { isBillingEnabled } from '../../../utils/billingMode'
+import { isBillingEnabled } from '../../../utils/billing/billingMode'
 import { ssoRequiredError } from '../../../utils/sso/required'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
       myRole,
       ownerId: ws.ownerId,
       // The workspace's effective plan (Team / Business subscription,
-      // else its creator's personal plan — server/utils/entitlements.ts).
+      // else its creator's personal plan — server/utils/billing/entitlements.ts).
       plan: await resolveWorkspacePlan(ws.workspaceId),
       // Default theme used by NewDocumentDialog when creating a doc in
       // this workspace. NULL = use the global markoto preset. Surfaced

@@ -5,7 +5,7 @@
 // so the values are public by definition. Read-only, no per-user data.
 // Whitelisted in server/middleware/auth.ts.
 
-import { getTiers } from '~~/server/utils/tierConfig'
+import { getTiers } from '~~/server/utils/billing/tierConfig'
 
 export default defineEventHandler(() => {
   return getTiers()

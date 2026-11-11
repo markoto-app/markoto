@@ -3,8 +3,8 @@ import { eq } from 'drizzle-orm'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { documents } from '../../server/db/schema'
-import { useDatabase } from '../../server/utils/database'
-import { createDocument } from '../../server/utils/createDocument'
+import { useDatabase } from '../../server/utils/platform/database'
+import { createDocument } from '../../server/utils/documents/createDocument'
 
 // Pin the validate+create flow that both POST /api/docs and the
 // `handleCreateDocument` AI tool handler share. The branches we care

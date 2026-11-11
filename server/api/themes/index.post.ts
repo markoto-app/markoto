@@ -1,8 +1,8 @@
 import { nanoid } from 'nanoid'
 import { DocThemeSchema } from '~~/shared/types/theme'
 import { countThemesByUser, createTheme } from '../../repos/themes'
-import { readSavedThemeDescription, readSavedThemeName } from '../../utils/savedThemeFields'
-import { assertPlanLimit, resolveUserPlan } from '../../utils/entitlements'
+import { readSavedThemeDescription, readSavedThemeName } from '../../utils/rendering/savedThemeFields'
+import { assertPlanLimit, resolveUserPlan } from '../../utils/billing/entitlements'
 
 // Save a theme as a personal preset. Body: `{ name: string, description?: string, theme: DocTheme }`.
 // Per-user cap = the plan's `savedThemes` (shared/config/tiers.ts):

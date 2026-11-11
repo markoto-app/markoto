@@ -1,7 +1,7 @@
-import { migrationsComplete } from '../utils/migrations'
-import { runWorkspaceBudgetAlerts } from '../utils/workspaceBudgetAlerts'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
-import { isBillingEnabled } from '../utils/billingMode'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runWorkspaceBudgetAlerts } from '../utils/billing/workspaceBudgetAlerts'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { isBillingEnabled } from '../utils/billing/billingMode'
 
 // Team / Business budget alerts (80 % / 100 % of the month's pooled AI
 // budget → email to the workspace admins). Billing on only.

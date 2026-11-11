@@ -1,4 +1,4 @@
-import { acceptInviteForUser, inAppInviteSelector } from '../../../../utils/workspaceInviteActions'
+import { acceptInviteForUser, inAppInviteSelector } from '../../../../utils/workspaces/workspaceInviteActions'
 
 // POST /api/user/invites/:inviteId/accept — accept an invitation
 // addressed to the signed-in user's account email. Creates the

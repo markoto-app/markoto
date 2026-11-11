@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
-import { planAccountDeletion } from '../../server/utils/accountDeletionPlan'
+import { planAccountDeletion } from '../../server/utils/privacy/accountDeletionPlan'
 import {
   createDoc,
   createUser,

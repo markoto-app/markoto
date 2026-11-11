@@ -15,7 +15,7 @@ vi.stubGlobal('requireValidatedUserSession', async () => ({ user: { id: 7, name:
 vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) =>
   Object.assign(new Error(opts.message), { statusCode: opts.statusCode }))
 
-const { isAdminUser, requireAdminUser } = await import('../../server/utils/adminAccess')
+const { isAdminUser, requireAdminUser } = await import('../../server/utils/auth/adminAccess')
 
 const ORIGINAL_ENV = process.env.NUXT_ADMIN_USER_EMAILS
 const incoming = new IncomingMessage(new Socket())

@@ -8,7 +8,7 @@ import {
   isUnusedSession,
   requestHasCookie,
   withoutCookie
-} from '../../server/utils/sessionCookie'
+} from '../../server/utils/auth/sessionCookie'
 
 // Visitors who never signed in get no `nuxt-session` cookie (privacy
 // policy §9: "Set only when you sign in"). h3's useSession creates and

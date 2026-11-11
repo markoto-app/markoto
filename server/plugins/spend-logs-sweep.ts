@@ -1,6 +1,6 @@
-import { migrationsComplete } from '../utils/migrations'
+import { migrationsComplete } from '../utils/platform/migrations'
 import { runSpendLogsSweep } from '../utils/litellm/spendLogsSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // LiteLLM_SpendLogs sweep plugin. Mirrors the webhook-event-sweep
 // pattern: advisory-locked, daily cadence, fire-and-forget on

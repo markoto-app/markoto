@@ -128,7 +128,7 @@ describe('where "Sign in with your organisation" is offered', () => {
 
 describe('audit-log CSV cells', () => {
   it('quotes separators and neutralises spreadsheet formulas', async () => {
-    const { csvField } = await import('../../server/utils/workspaceAudit')
+    const { csvField } = await import('../../server/utils/workspaces/workspaceAudit')
     expect(csvField('plain')).toBe('plain')
     expect(csvField('a,b')).toBe('"a,b"')
     expect(csvField('say "hi"')).toBe('"say ""hi"""')

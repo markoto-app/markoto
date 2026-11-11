@@ -1,7 +1,7 @@
 import { getDocWithActorRole } from '../../../repos/documents'
 import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
-import { hasValidDocJwt } from '../../../utils/docTokenVerify'
-import { mintFileAccessToken } from '../../../utils/fileAccessToken'
+import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
+import { mintFileAccessToken } from '../../../utils/storage/fileAccessToken'
 
 // GET /api/docs/:docId/file-token — short-lived `file-access` JWT for the
 // live preview and browser print iframes.

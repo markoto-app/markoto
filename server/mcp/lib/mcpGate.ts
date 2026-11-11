@@ -1,5 +1,5 @@
-import type { McpAuthContext } from '../../utils/mcpAuth'
-import type { BindingCheck, McpSessionBindings } from '../../utils/mcpSessionBinding'
+import type { McpAuthContext } from '../../utils/mcp/mcpAuth'
+import type { BindingCheck, McpSessionBindings } from '../../utils/mcp/mcpSessionBinding'
 
 // Request gate for `/mcp`, run by the handler middleware BEFORE the MCP
 // toolkit sees the request (so before it can create a session):

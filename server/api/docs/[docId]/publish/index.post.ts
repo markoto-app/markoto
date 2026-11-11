@@ -3,7 +3,7 @@ import { publishDocument } from '../../../../utils/publish/publishDocument'
 import { getPublishedPageSummary } from '../../../../repos/publishedPages'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_DOC_PUBLISHED } from '../../../../legal/auditActions'
-import { assertNotModerationRestricted } from '../../../../utils/moderationRestriction'
+import { assertNotModerationRestricted } from '../../../../utils/privacy/moderationRestriction'
 import { PUBLISH_RATE_PER_HOUR } from '~~/shared/config/publish'
 
 // POST /api/docs/:docId/publish — {slug?, indexable?}. Publishes the

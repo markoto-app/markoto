@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getJobForUser } from '../../../../repos/dataExportJobs'
-import { usePresignS3Client } from '../../../../utils/s3'
+import { usePresignS3Client } from '../../../../utils/storage/s3'
 
 // 302 → presigned download URL for a ready data-export ZIP. Tuple-
 // keyed on (jobId, userId) so a guess-the-jobId attempt can't 404

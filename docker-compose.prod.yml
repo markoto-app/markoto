@@ -258,7 +258,7 @@ services:
       - NUXT_LEGAL_CH_ID=${NUXT_LEGAL_CH_ID:-}
       - NUXT_LEGAL_EHRA_ID=${NUXT_LEGAL_EHRA_ID:-}
       # Comma-separated emails promoted to instance admin at their next
-      # sign-in with a verified address (server/utils/adminBootstrap.ts).
+      # sign-in with a verified address (server/utils/auth/adminBootstrap.ts).
       - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
       # Terms + bot check before anonymous documents / reports
       # (shared/config/anonGate.ts). ON for the hosted service.
@@ -359,7 +359,7 @@ services:
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
-      # Mirrored into the print-page CSP (server/utils/csp.ts); the renderer reads the same variable.
+      # Mirrored into the print-page CSP (server/utils/rendering/csp.ts); the renderer reads the same variable.
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
       # Postgres + Valkey atomic parts. HOST/PORT default to the in-stack
       # container; a managed-Postgres deployment overrides them via .env
@@ -403,7 +403,7 @@ services:
       # matches → Traefik 404s): /api/internal/** (sync → app, Traefik's own
       # provider poll goes to app:3000 directly) and the renderer's print
       # page + bootstrap. The app refuses them from the edge too
-      # (server/utils/internalRoutes.ts); scripts/selfhost-check.sh pins this.
+      # (server/utils/platform/internalRoutes.ts); scripts/selfhost-check.sh pins this.
       - "traefik.http.routers.app.rule=Host(`${DOMAIN}`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
       # Explicit lowest priority: Traefik ranks routers by rule length, and
       # the exclusions above made this catch-all longer than `app-import`.

@@ -2,17 +2,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 
-vi.mock('../../server/utils/documentLifecycle', () => ({
+vi.mock('../../server/utils/documents/documentLifecycle', () => ({
   deleteDocument: vi.fn(async () => {})
 }))
-vi.mock('../../server/utils/knowledgeAccess', () => ({
+vi.mock('../../server/utils/knowledge/knowledgeAccess', () => ({
   deleteKnowledgeArtifact: vi.fn(async () => {})
 }))
-vi.mock('../../server/utils/stripeClient', () => ({
+vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => null
 }))
 
-const { runAccountDeletionSweep } = await import('../../server/utils/accountDeletionSweep')
+const { runAccountDeletionSweep } = await import('../../server/utils/privacy/accountDeletionSweep')
 
 async function scheduleDeletion(userId: number, graceDays: number): Promise<void> {
   await testDb().query(

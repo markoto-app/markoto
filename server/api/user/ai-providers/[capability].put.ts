@@ -1,5 +1,5 @@
-import { checkRateLimit } from '../../../utils/rateLimit'
-import { resolveBillingContext } from '../../../utils/billing'
+import { checkRateLimit } from '../../../utils/platform/rateLimit'
+import { resolveBillingContext } from '../../../utils/billing/billing'
 import { saveBodySchema, saveUserProvider } from '../../../utils/aiProviders/store'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_AI_PROVIDER_SAVED } from '../../../legal/auditActions'

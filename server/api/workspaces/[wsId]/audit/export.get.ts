@@ -1,6 +1,6 @@
 import { appendAuditEvent, listWorkspaceAuditEvents } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_AUDIT_EXPORTED } from '../../../../legal/auditActions'
-import { auditCsvHeader, auditCsvLine, auditEventView, parseAuditQuery, requireAuditLogAccess } from '../../../../utils/workspaceAudit'
+import { auditCsvHeader, auditCsvLine, auditEventView, parseAuditQuery, requireAuditLogAccess } from '../../../../utils/workspaces/workspaceAudit'
 
 const BATCH = 1000
 const MAX_ROWS = 100_000

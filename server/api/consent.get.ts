@@ -1,9 +1,9 @@
 import { and, desc, eq } from 'drizzle-orm'
 import { consentLog } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { CONSENT_VERSION } from '~~/shared/legal/versions'
-import { ensureAnonId } from '../utils/anonId'
-import { CONSENT_PURPOSES, OPTIONAL_CONSENT_PURPOSES, type ConsentPurpose } from '../utils/consentDecisions'
+import { ensureAnonId } from '../utils/auth/anonId'
+import { CONSENT_PURPOSES, OPTIONAL_CONSENT_PURPOSES, type ConsentPurpose } from '../utils/privacy/consentDecisions'
 
 // Read the latest consent decision per purpose for the caller.
 // Logged-in users are keyed on userId; anonymous users on a

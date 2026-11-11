@@ -13,7 +13,7 @@ import {
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { renderTemplate } from '../../server/utils/templateRenderer'
+import { renderTemplate } from '../../server/utils/documents/templateRenderer'
 
 // Template registry + renderer contract.
 //

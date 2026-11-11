@@ -3,7 +3,7 @@ import { readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { z } from 'zod'
 import type { ZodTypeAny, ZodRawShape } from 'zod'
-import { MCP_SCOPES } from '../../server/utils/mcpAuth'
+import { MCP_SCOPES } from '../../server/utils/mcp/mcpAuth'
 
 // `@nuxtjs/mcp-toolkit/server` transitively pulls in Nitro internals that
 // can't resolve in a plain vitest environment. `defineMcpTool` itself is

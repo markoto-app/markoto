@@ -1,9 +1,9 @@
 import { PutObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { nanoid } from 'nanoid'
-import { reserveUploadSlot } from '../../../../utils/knowledgeQuota'
-import { recordPendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
-import { stagingKeyFor } from '../../../../utils/uploadKey'
+import { reserveUploadSlot } from '../../../../utils/knowledge/knowledgeQuota'
+import { recordPendingKnowledgeUpload } from '../../../../utils/knowledge/knowledgePendingUpload'
+import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
 
 /**
  * Step 1 of knowledge upload: mint a presigned PUT URL.
@@ -20,7 +20,7 @@ import { stagingKeyFor } from '../../../../utils/uploadKey'
  * upload (never PUT) doesn't create a `status='processing'` row the
  * sweep has to retry. Objects PUT but never confirmed (and staging
  * leftovers) are deleted by orphan-cleanup's knowledge pass
- * (`server/utils/knowledgeOrphanSweep.ts`) once they are older than its
+ * (`server/utils/knowledge/knowledgeOrphanSweep.ts`) once they are older than its
  * grace period and no `workspace_knowledge` row references them.
  *
  * The URL writes a STAGING key (`…/knowledge/staging/{id}.{ext}`) with

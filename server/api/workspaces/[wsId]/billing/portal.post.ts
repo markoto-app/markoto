@@ -1,9 +1,9 @@
 import * as Sentry from '@sentry/nuxt'
 import { getWorkspaceSubscription } from '../../../../repos/workspaceSubscriptions'
-import { assertBillingEnabled } from '../../../../utils/billingMode'
-import { useStripeClient } from '../../../../utils/stripeClient'
-import { requestBaseUrl } from '../../../../utils/workspaceStripe'
-import { requireWorkspaceBillingAdmin } from '../../../../utils/workspaceBilling'
+import { assertBillingEnabled } from '../../../../utils/billing/billingMode'
+import { useStripeClient } from '../../../../utils/billing/stripeClient'
+import { requestBaseUrl } from '../../../../utils/billing/workspaceStripe'
+import { requireWorkspaceBillingAdmin } from '../../../../utils/billing/workspaceBilling'
 
 // POST /api/workspaces/:wsId/billing/portal — Stripe Customer Portal for
 // the workspace's own customer (invoices, payment method, cancelling).

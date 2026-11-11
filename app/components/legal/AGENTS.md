@@ -43,7 +43,7 @@ On version bump (a published code change to `shared/legal/versions.ts`), users w
 
 What visitors see: no banner. The footer (`LegalFooter.vue`) shows "Cookies: essential only" (`legal.footer.cookieNote`) linking to `/legal/privacy`, whose §9 lists every cookie / storage key (keep it in step with the code: `nuxt-session`, `ypad_locale`, `markoto-anon-creator`, `markoto-anon-terms`, `nuxt-color-mode`, `markoto:preview-zoom`, `markoto-pending-invite`, `markoto-anon-avatar` (session storage, `app/utils/userAvatar.ts`), the PWA cache); the profile page's Legal section adds `settings.profile.legal.cookieNote`. The `consent_log` table and `GET/POST /api/consent` stay (nothing calls them; `CONSENT_PURPOSES = ['essential']`, `OPTIONAL_CONSENT_PURPOSES = []`, so `promptRequired` is always false). v1 rows stay as the Art.7(1) record (exported, anonymised on deletion).
 
-Bringing a banner back (only if non-essential storage is ever added): add the purpose to `server/utils/consentDecisions.ts` + `OPTIONAL_CONSENT_PURPOSES`, bump `CONSENT_VERSION`, add a `lawfulBasis.ts` purpose + privacy text, and build the banner with equal-prominence Reject/Accept (CNIL / EDPB), no pre-ticked boxes, no cookie wall, the `/legal/*` exemption, and publish its height as `--mk-consent-h` (the product tour reserves it). Load the script only after consent.
+Bringing a banner back (only if non-essential storage is ever added): add the purpose to `server/utils/privacy/consentDecisions.ts` + `OPTIONAL_CONSENT_PURPOSES`, bump `CONSENT_VERSION`, add a `lawfulBasis.ts` purpose + privacy text, and build the banner with equal-prominence Reject/Accept (CNIL / EDPB), no pre-ticked boxes, no cookie wall, the `/legal/*` exemption, and publish its height as `--mk-consent-h` (the product tour reserves it). Load the script only after consent.
 
 ## AccountDeletionConsequencesModal
 
@@ -65,7 +65,7 @@ On confirm:
 2. Send the "deletion scheduled" transactional email (kind `account.deletion.requested`) with the cancel-by date.
 3. Modal closes; `AccountDeletionGraceBanner` mounts.
 
-The actual purge is async — see `server/utils/accountDeletionExecute.ts` for the 10-step cascade. The modal does NOT execute the purge.
+The actual purge is async — see `server/utils/privacy/accountDeletionExecute.ts` for the 10-step cascade. The modal does NOT execute the purge.
 
 ## AccountDeletionGraceBanner
 
@@ -87,5 +87,5 @@ Dark-mode background is **flat sumi-800** (intentionally — the banner sits on 
 
 - **Legal page rendering** — that's `app/pages/legal/[slug].vue` + `server/api/_internal/legal/[slug].get.ts`. Markdown source lives in `content/legal/`.
 - **Abuse reporting form** — `app/pages/legal/abuse.vue` (open to everyone where the anonymous gate is on — ALTCHA bot check — else login-gated; posts to `/api/abuse-reports`). Not a privacy modal; it's its own page. Admin triage queue lives at `/admin/abuse-reports`.
-- **The actual deletion purge** — `server/utils/accountDeletionExecute.ts`, run by the sweep plugin. The UI only requests + cancels.
+- **The actual deletion purge** — `server/utils/privacy/accountDeletionExecute.ts`, run by the sweep plugin. The UI only requests + cancels.
 - **DPA acceptance modal** — currently piggy-backs on the new-workspace dialog (workspace-owner-only). When extracted, it'll be a fifth component here.

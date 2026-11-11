@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { isAdminEmail } from '../../server/utils/adminAccess'
+import { isAdminEmail } from '../../server/utils/auth/adminAccess'
 
 // `isAdminEmail` is the bootstrap allowlist parser. It's the
 // authority on "is this email on the env-list" — the sign-in bootstrap

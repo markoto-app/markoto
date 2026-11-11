@@ -12,7 +12,7 @@ import {
   type PoolKey,
   type PoolEntry,
   type PoolCheckoutOpts
-} from '../../server/utils/yDocPool'
+} from '../../server/utils/mcp/yDocPool'
 
 // Pool unit tests use the `_setBuildEntryForTesting` seam to avoid
 // spawning a real HocuspocusProvider. Each fake entry tracks its own

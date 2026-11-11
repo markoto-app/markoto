@@ -203,7 +203,7 @@ Results merged by `(knowledgeId, chunkIndex)` and ranked via **Reciprocal Rank F
 | Abandoned `failed` rows | TTL sweep: `status='failed'` rows older than `failedRetentionDays = 7` auto-reaped | `server/plugins/knowledge-sweep.ts` |
 | Stuck `processing` rows | TTL sweep: `status='processing'` rows older than 10 min re-process | same plugin |
 
-Tiered caps live in `shared/config/tiers.ts` (`DEFAULT_TIERS` + `KNOWLEDGE_PLATFORM_LIMITS`; enforcement resolves via `server/utils/tierConfig.ts#getTiers()`, which applies optional `TIER_*` env overrides — see `.env.example`). The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
+Tiered caps live in `shared/config/tiers.ts` (`DEFAULT_TIERS` + `KNOWLEDGE_PLATFORM_LIMITS`; enforcement resolves via `server/utils/billing/tierConfig.ts#getTiers()`, which applies optional `TIER_*` env overrides — see `.env.example`). The inflight counter fails CLOSED (correctness cap); the rate limit fails OPEN (DoS protection, not a cost cap). The advisory lock is load-bearing: without it, two concurrent confirms that both read N-1 used at upload-request time would both commit and land at N+1.
 
 ### Content-type validation
 

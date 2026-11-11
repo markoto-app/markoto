@@ -2,11 +2,11 @@ import { getDoc, updateDocMeta, type MetaUpdate } from '../../../repos/documents
 import { appendAuditEvent } from '../../../repos/audit'
 import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { assertPlanFeature, resolveDocPlan } from '../../../utils/entitlements'
+import { assertPlanFeature, resolveDocPlan } from '../../../utils/billing/entitlements'
 import { resolveTemplateId } from '~~/shared/templates'
 import { ownCustomCss } from '~~/shared/utils/themePresets'
-import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
-import { notifySyncReauthDocument } from '../../../utils/syncNotify'
+import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
+import { notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
 import { accessModeTightened } from '../../../../shared/utils/docPermissions'
 
 const DESCRIPTION_MAX_LENGTH = 500

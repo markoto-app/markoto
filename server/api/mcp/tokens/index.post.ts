@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { eq, and, isNull } from 'drizzle-orm'
 import { mcpPersonalTokens } from '../../../db/schema'
-import { useDatabase } from '../../../utils/database'
-import { MCP_SCOPES, MAX_PATS_PER_USER, issueMcpToken, type McpScope } from '../../../utils/mcpAuth'
+import { useDatabase } from '../../../utils/platform/database'
+import { MCP_SCOPES, MAX_PATS_PER_USER, issueMcpToken, type McpScope } from '../../../utils/mcp/mcpAuth'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_MCP_TOKEN_ISSUED } from '../../../legal/auditActions'
 

@@ -1,10 +1,10 @@
 import * as Sentry from '@sentry/nuxt'
-import { deleteDocument } from '../utils/documentLifecycle'
-import { migrationsComplete } from '../utils/migrations'
+import { deleteDocument } from '../utils/documents/documentLifecycle'
+import { migrationsComplete } from '../utils/platform/migrations'
 import { getDoc } from '../repos/documents'
 import { appendAuditEvent } from '../repos/audit'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
-import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/inactiveDocSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/documents/inactiveDocSweep'
 
 // Periodic cleanup of abandoned documents.
 //
@@ -18,7 +18,7 @@ import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/ina
 //     default 30 — the period the Terms + privacy policy state) once
 //     their `sweep_not_before` floor has passed (migration 0024 gave the
 //     docs that predate the 180 → 30 change a 30-day window). Candidate
-//     query: server/utils/inactiveDocSweep.ts.
+//     query: server/utils/documents/inactiveDocSweep.ts.
 //
 // `last_active` is bumped by:
 //   - `meta.put` (title / word-count updates)

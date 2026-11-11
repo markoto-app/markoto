@@ -1,9 +1,9 @@
 import { lt } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { mcpSessions } from '../db/schema'
-import { useDatabase } from '../utils/database'
-import { migrationsComplete } from '../utils/migrations'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { useDatabase } from '../utils/platform/database'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Periodic prune of stale `mcp_sessions` rows.
 //

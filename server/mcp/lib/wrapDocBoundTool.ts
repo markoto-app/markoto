@@ -4,11 +4,11 @@ import type { ShapeOutput } from '@modelcontextprotocol/sdk/server/zod-compat.js
 import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js'
 import { defineMcpTool, type McpRequestExtra, type McpToolCallback } from '@nuxtjs/mcp-toolkit/server'
 import { stripWrapperArgs } from './stripWrapperArgs'
-import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/shareSettings'
-import { getDocAuthz } from '../../utils/workspaceAccess'
+import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../../utils/documents/shareSettings'
+import { getDocAuthz } from '../../utils/workspaces/workspaceAccess'
 import { getMemberRole } from '../../repos/workspaceMembers'
 import { findUserNameById } from '../../repos/users'
-import { connectAsMcpClient } from '../../utils/mcpHocuspocusClient'
+import { connectAsMcpClient } from '../../utils/mcp/mcpHocuspocusClient'
 import {
   TOOL_HANDLERS,
   META_TOOL_HANDLERS,
@@ -16,17 +16,17 @@ import {
   type ToolName
 } from '../../utils/agentic/toolHandlers'
 import { requireMcpAuth, hasScope, toolEnabled } from './mcpToolContext'
-import { resolveBillingContext } from '../../utils/billing'
+import { resolveBillingContext } from '../../utils/billing/billing'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
-import type { ToolResult } from '../../utils/aiToolAdapter'
+import type { ToolResult } from '../../utils/ai/aiToolAdapter'
 import type { MetaToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
-import type { McpAuthContext, McpScope } from '../../utils/mcpAuth'
-import { checkRateLimit } from '../../utils/rateLimit'
-import { consumeRenderAllowance } from '../../utils/renderRateLimit'
+import type { McpAuthContext, McpScope } from '../../utils/mcp/mcpAuth'
+import { checkRateLimit } from '../../utils/platform/rateLimit'
+import { consumeRenderAllowance } from '../../utils/rendering/renderRateLimit'
 import { MCP_RATE_LIMITS, type RateLimitRule } from './mcpGate'
 import { mcpToolAllowed } from './toolClasses'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
-import { limitRecovery } from '../../utils/billingMode'
+import { limitRecovery } from '../../utils/billing/billingMode'
 
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:

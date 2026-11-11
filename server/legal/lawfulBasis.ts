@@ -168,7 +168,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   },
   {
     // `audit_log` is append-only; `audit-log-sweep` deletes rows older
-    // than 2 years (`server/utils/legalRetentionSweep.ts`,
+    // than 2 years (`server/utils/privacy/legalRetentionSweep.ts`,
     // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
     // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
     // Since WP15 the entries about a workspace are also shown to (and

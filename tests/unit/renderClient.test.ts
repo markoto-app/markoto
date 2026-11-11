@@ -14,7 +14,7 @@
 // Mocks: useRuntimeConfig, useS3Client, the database pool, Sentry.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { renderDocument, __testing } from '../../server/utils/renderClient'
+import { renderDocument, __testing } from '../../server/utils/rendering/renderClient'
 
 const RENDERER_URL = 'http://renderer:9000'
 const SECRET = 'internal-api-secret-for-test'
@@ -23,12 +23,12 @@ const BUCKET = 'ypad-test'
 // renderClient imports useS3Client from `./s3` (explicit import), so a
 // global stub doesn't intercept it — the module mock does.
 const s3Send = vi.fn()
-vi.mock('../../server/utils/s3', () => ({
+vi.mock('../../server/utils/storage/s3', () => ({
   useS3Client: () => ({ send: s3Send })
 }))
 
 const dbQuery = vi.fn(async () => ({ rows: [{ id: 100 }] }))
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({ query: dbQuery })
 }))
 
@@ -42,7 +42,7 @@ const flushSyncDocument = vi.fn(async (_docId: string) => {
   callOrder.push('flush')
   return true
 })
-vi.mock('../../server/utils/syncNotify', () => ({
+vi.mock('../../server/utils/documents/syncNotify', () => ({
   flushSyncDocument: (docId: string) => flushSyncDocument(docId)
 }))
 

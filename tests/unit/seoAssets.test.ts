@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { OG_IMAGES } from '../../shared/seo/ogImages'
-import { buildSitemapXml, LEGAL_LASTMOD, LEGAL_SITEMAP_PATHS, marketingSitemapPages, sitemapEntries } from '../../server/utils/sitemap'
+import { buildSitemapXml, LEGAL_LASTMOD, LEGAL_SITEMAP_PATHS, marketingSitemapPages, sitemapEntries } from '../../server/utils/platform/sitemap'
 import { sampleHeadingsToDivs } from '../../app/utils/sampleHeadings'
 import { LEGAL_PAGE_DESCRIPTIONS, MAX_DESCRIPTION_LENGTH } from '../../shared/seo/meta'
 

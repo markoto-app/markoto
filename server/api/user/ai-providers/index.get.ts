@@ -2,7 +2,7 @@ import { listAiProviders } from '../../../repos/aiProviders'
 import { toProviderView } from '../../../utils/aiProviders/store'
 import { readInstanceDefault, resolveByokUrlPolicy } from '../../../utils/aiProviders/config'
 import { availabilityFrom, resolveAiAccess } from '../../../utils/aiProviders/resolve'
-import { resolvePayingPlan } from '../../../utils/billing'
+import { resolvePayingPlan } from '../../../utils/billing/billing'
 import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
 
 // GET /api/user/ai-providers — everything the "AI provider" settings

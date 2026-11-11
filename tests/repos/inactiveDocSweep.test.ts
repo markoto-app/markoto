@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createDoc, createUser } from '../integration/setup/fixtures'
-import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../../server/utils/inactiveDocSweep'
+import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../../server/utils/documents/inactiveDocSweep'
 
 // Candidate query of the inactive-doc sweep: anonymous docs (no owner, no
 // workspace) inactive for the TTL (default 30 days) whose

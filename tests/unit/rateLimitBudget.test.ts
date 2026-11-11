@@ -71,7 +71,7 @@ const fake = new FakeValkey()
 // auto-imports; in unit tests we replace with the fake. We do the
 // mock via `vi.mock` at the top level so imports of rateLimit.ts
 // pick it up.
-vi.mock('../../server/utils/valkey', () => ({
+vi.mock('../../server/utils/platform/valkey', () => ({
   useValkey: () => fake
 }))
 
@@ -84,7 +84,7 @@ process.env.TEST_MODE = '0'
 
 // Import AFTER env + mock setup.
 
-const { consumeRateLimitBudget, tryAcquireSessionLock, releaseSessionLock } = await import('../../server/utils/rateLimit')
+const { consumeRateLimitBudget, tryAcquireSessionLock, releaseSessionLock } = await import('../../server/utils/platform/rateLimit')
 
 describe('consumeRateLimitBudget', () => {
   beforeEach(() => {

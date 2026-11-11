@@ -27,7 +27,7 @@ vi.mock('#imports', () => ({
 // known values without booting Nitro.
 ;(globalThis as unknown as { useRuntimeConfig: () => typeof mockState.config }).useRuntimeConfig = () => mockState.config
 
-const { useLitellmAdmin, useLitellmForUser, _resetLitellmCache } = await import('../../server/utils/litellmClient')
+const { useLitellmAdmin, useLitellmForUser, _resetLitellmCache } = await import('../../server/utils/ai/litellmClient')
 
 beforeEach(() => {
   _resetLitellmCache()

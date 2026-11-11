@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
-import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
-import type { AiSession } from '../../server/utils/aiClient'
+import { executeFunctionByName } from '../../server/utils/ai/aiToolAdapter'
+import type { AiSession } from '../../server/utils/ai/aiClient'
 
 // AI tool handlers — the functions the model uses to mutate user
 // docs (view_document, replace_text, insert_text). Wrong semantics

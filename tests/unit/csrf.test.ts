@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isRequestOriginAllowed, type OriginCheckInput } from '../../server/utils/csrf'
+import { isRequestOriginAllowed, type OriginCheckInput } from '../../server/utils/auth/csrf'
 
 // Origin check for state-changing API requests (defence in depth on top
 // of the SameSite=Lax session cookie, which does not separate a

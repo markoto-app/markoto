@@ -1,6 +1,6 @@
 import { upsertWaitlistSignup } from '../../repos/waitlist'
 import { safeSendTransactionalEmail } from '../../utils/email/sendEmail'
-import { emailLinkBaseUrl } from '../../utils/siteUrl'
+import { emailLinkBaseUrl } from '../../utils/platform/siteUrl'
 import {
   WAITLIST_CONFIRM_TTL_MS,
   WAITLIST_DISABLED_CODE,
@@ -10,7 +10,7 @@ import {
   isWaitlistOpen,
   normaliseWaitlistEmail,
   normaliseWaitlistLocale
-} from '../../utils/waitlist'
+} from '../../utils/privacy/waitlist'
 import { WAITLIST_CONSENT_TEXT_ID, WAITLIST_CONSENT_VERSION } from '~~/shared/legal/versions'
 
 // POST /api/waitlist — join the paid-plans waitlist (double opt-in).

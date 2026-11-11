@@ -6,7 +6,7 @@ import { resolvePostgresSsl } from '../../shared/utils/postgresSsl'
 import { captureException } from './sentry'
 
 const DATABASE_URL = postgresUrlFromEnv()
-// Same TLS posture as the Nuxt app's pool (server/utils/database.ts).
+// Same TLS posture as the Nuxt app's pool (server/utils/platform/database.ts).
 // Both pools land on the same managed Postgres in prod; both must
 // verify the server cert. y-postgresql's internal pool inherits this
 // because we pass the resolved config object straight through to

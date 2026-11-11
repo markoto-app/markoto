@@ -5,7 +5,7 @@ import { getPublishedPageById, getPublishedPageBySlug } from '../repos/published
 import { sendPublishedPage } from '../utils/publish/servePage'
 import { PUBLISHED_FILE_PATH, isPagesHostRequest, pagesHostRedirect, publishPagesSettings, requestHostname } from '../utils/publish/pagesHost'
 import { isInstanceHost } from '../utils/publish/publicHost'
-import { NOINDEX_VALUE } from '../utils/robots'
+import { NOINDEX_VALUE } from '../utils/platform/robots'
 import { PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { resolveSiteIndexable } from '~~/shared/config/instance'
 

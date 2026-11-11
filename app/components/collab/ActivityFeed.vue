@@ -102,7 +102,7 @@ const {
     const res = await $fetch.raw<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
     loadErrored.value = false
     // Set when the document's plan limits how far back history goes and
-    // older rows exist (server/utils/entitlements.ts#HISTORY_LIMITED_HEADER).
+    // older rows exist (server/utils/billing/entitlements.ts#HISTORY_LIMITED_HEADER).
     const limitedDays = Number(res.headers.get('x-markoto-history-limited-days'))
     historyLimitedDays.value = Number.isFinite(limitedDays) && limitedDays > 0 ? limitedDays : null
     return res._data ?? []

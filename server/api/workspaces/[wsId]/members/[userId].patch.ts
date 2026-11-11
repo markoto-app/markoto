@@ -1,7 +1,7 @@
 import { setRole } from '../../../../repos/workspaceMembers'
 import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { LastAdminError, NotFoundError, isRepoError } from '../../../../repos/errors'
-import { notifySyncKickUser } from '../../../../utils/syncNotify'
+import { notifySyncKickUser } from '../../../../utils/documents/syncNotify'
 import { appendAuditEvent } from '../../../../repos/audit'
 
 // Change a member's role. Admin-only.

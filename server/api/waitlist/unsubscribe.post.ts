@@ -1,5 +1,5 @@
 import { deleteWaitlistSignupByUnsubscribeToken } from '../../repos/waitlist'
-import { hashWaitlistToken, parseWaitlistToken } from '../../utils/waitlist'
+import { hashWaitlistToken, parseWaitlistToken } from '../../utils/privacy/waitlist'
 
 // POST /api/waitlist/unsubscribe — withdraw consent; DELETES the row.
 //

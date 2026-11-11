@@ -1,5 +1,5 @@
 import { listWorkspaceAuditEvents } from '../../../../repos/audit'
-import { auditEventView, auditRetentionDays, parseAuditQuery, requireAuditLogAccess } from '../../../../utils/workspaceAudit'
+import { auditEventView, auditRetentionDays, parseAuditQuery, requireAuditLogAccess } from '../../../../utils/workspaces/workspaceAudit'
 
 const PAGE = 50
 

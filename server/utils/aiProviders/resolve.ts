@@ -20,11 +20,11 @@
 import { decryptToken } from '../litellm/tokenCrypto'
 import { listAiProviders, type AiProviderRow } from '../../repos/aiProviders'
 import { readInstanceDefault, realtimeDictationModel } from './config'
-import { getWebToolAvailability } from '../webTools'
-import { planHasFeature } from '../entitlements'
+import { getWebToolAvailability } from '../ai/webTools'
+import { planHasFeature } from '../billing/entitlements'
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
-import { useDatabase } from '../database'
+import { useDatabase } from '../platform/database'
 import type { FeatureField, PlanName } from '~~/shared/config/tiers'
 import {
   MISTRAL_EU_API_HOST,

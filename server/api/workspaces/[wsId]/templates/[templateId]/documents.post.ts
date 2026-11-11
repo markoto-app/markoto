@@ -1,11 +1,11 @@
 import { nanoid } from 'nanoid'
 import { requireBrandKitMember } from '../../../../../utils/brandKit/access'
 import { getWorkspaceTemplate } from '../../../../../repos/workspaceTemplates'
-import { duplicateDocument, ImageQuotaExceededError } from '../../../../../utils/duplicateDocument'
-import { imageQuotaError, resolveImageQuota } from '../../../../../utils/imageQuota'
-import { flushSyncDocument } from '../../../../../utils/syncNotify'
-import { withIdempotency } from '../../../../../utils/idempotency'
-import { TITLE_MAX_LENGTH } from '../../../../../utils/createDocument'
+import { duplicateDocument, ImageQuotaExceededError } from '../../../../../utils/documents/duplicateDocument'
+import { imageQuotaError, resolveImageQuota } from '../../../../../utils/storage/imageQuota'
+import { flushSyncDocument } from '../../../../../utils/documents/syncNotify'
+import { withIdempotency } from '../../../../../utils/platform/idempotency'
+import { TITLE_MAX_LENGTH } from '../../../../../utils/documents/createDocument'
 
 // POST /api/workspaces/:wsId/templates/:templateId/documents — {title?}
 // (WP10c): a new document in the workspace from a template — a copy of

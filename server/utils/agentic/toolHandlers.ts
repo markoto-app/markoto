@@ -1,5 +1,5 @@
 import type { DocToolContext, MetaToolContext } from './toolContext'
-import type { ToolResult } from '../aiToolAdapter'
+import type { ToolResult } from '../ai/aiToolAdapter'
 import {
   handleView,
   handleStrReplace,
@@ -28,7 +28,7 @@ import {
   handleCreateDocument,
   handleDuplicateDocument,
   handleExportDocumentAsMarkdown
-} from '../aiToolAdapter'
+} from '../ai/aiToolAdapter'
 import { webSearch, fetchUrl } from './functionTools'
 import type {
   ViewDocumentInput,

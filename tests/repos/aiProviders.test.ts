@@ -22,8 +22,8 @@ import { toProviderView } from '../../server/utils/aiProviders/store'
 
 // Same stub as dataExport.test.ts (the repos project shares one module
 // registry, `isolate: false`, so mocks of shared modules must agree).
-vi.mock('../../server/utils/stripeClient', () => ({ useStripeClient: () => null }))
-const { buildExportZip } = await import('../../server/utils/dataExport')
+vi.mock('../../server/utils/billing/stripeClient', () => ({ useStripeClient: () => null }))
+const { buildExportZip } = await import('../../server/utils/privacy/dataExport')
 
 const SECRET = 'sk-user-secret-key-1234567890'
 

@@ -20,7 +20,7 @@
 // any upstream response text reaches the user (`providerErrorMessage`).
 
 import type OpenAI from 'openai'
-import { useLitellmForUser } from '../litellmClient'
+import { useLitellmForUser } from '../ai/litellmClient'
 import { litellmCompletion, litellmTranscription } from '../litellm/createCompletion'
 import { PROVIDER_ERROR_MESSAGES, classifyProviderError, logProviderFailure, providerErrorMessage, providerRequestFields } from './requestFields'
 import type { ResolvedAiProvider } from './resolve'

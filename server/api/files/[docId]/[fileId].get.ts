@@ -2,7 +2,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
-import { hasValidDocJwt } from '../../../utils/docTokenVerify'
+import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 
 // fileId is a nanoid(12) with a content-type-derived extension. Reject
 // anything else — not a security boundary (S3 keys are opaque, no

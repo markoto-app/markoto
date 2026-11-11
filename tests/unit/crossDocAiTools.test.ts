@@ -14,13 +14,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
-import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
+import { executeFunctionByName } from '../../server/utils/ai/aiToolAdapter'
 import {
   getDocWithActorRole,
   listWorkspaceDocsWithOwnerFlag
 } from '../../server/repos/documents'
-import { openTrustedCommentClient } from '../../server/utils/commentsServerClient'
-import type { AiSession } from '../../server/utils/aiClient'
+import { openTrustedCommentClient } from '../../server/utils/documents/commentsServerClient'
+import type { AiSession } from '../../server/utils/ai/aiClient'
 
 // Module-level mocks must come BEFORE importing the SUT.
 vi.mock('../../server/repos/documents', async (importOriginal) => {
@@ -39,7 +39,7 @@ vi.mock('../../server/repos/documents', async (importOriginal) => {
   }
 })
 
-vi.mock('../../server/utils/commentsServerClient', () => ({
+vi.mock('../../server/utils/documents/commentsServerClient', () => ({
   openTrustedCommentClient: vi.fn()
 }))
 

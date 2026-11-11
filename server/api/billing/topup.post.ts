@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm'
-import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/paidTerms'
+import { recordPaidTermsAcceptance, requirePaidTermsAccepted } from '../../utils/billing/paidTerms'
 import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
-import { useStripeClient } from '../../utils/stripeClient'
-import { assertBillingEnabled, effectivePlan } from '../../utils/billingMode'
-import { requestBaseUrl } from '../../utils/workspaceStripe'
-import { automaticTaxEnabled, createTopupCheckout } from '../../utils/topupCheckout'
+import { useDatabase } from '../../utils/platform/database'
+import { useStripeClient } from '../../utils/billing/stripeClient'
+import { assertBillingEnabled, effectivePlan } from '../../utils/billing/billingMode'
+import { requestBaseUrl } from '../../utils/billing/workspaceStripe'
+import { automaticTaxEnabled, createTopupCheckout } from '../../utils/billing/topupCheckout'
 import { isCurrency, isTopupPackId } from '~~/shared/config/pricing'
 
 // POST /api/billing/topup — buy AI credits for yourself (WP4). Body

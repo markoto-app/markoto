@@ -3,15 +3,15 @@ import * as Sentry from '@sentry/nuxt'
 import {
   tryAcquireSessionLock,
   releaseSessionLock
-} from '../../../utils/rateLimit'
+} from '../../../utils/platform/rateLimit'
 import { tryParseControl, normalizeLanguageCode } from '../../../utils/agentic/dictateHelpers'
 import {
   createDictateRealtimeClient,
   type SpeechStream
 } from '../../../utils/agentic/dictateSpeechClient'
-import { useLitellmForUser } from '../../../utils/litellmClient'
+import { useLitellmForUser } from '../../../utils/ai/litellmClient'
 import { liveDictationTarget, resolveAiProviders, type LiveDictationTarget } from '../../../utils/aiProviders/resolve'
-import { resolveBillingContext } from '../../../utils/billing'
+import { resolveBillingContext } from '../../../utils/billing/billing'
 import { isBudgetExceededError } from '../../../utils/litellm/userKeys'
 import { FEATURE_TAGS, featureMetadata } from '../../../utils/litellm/featureTags'
 import { litellmCompletion } from '../../../utils/litellm/createCompletion'

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
 // Tests for Item 2 — slow-query log instrumentation in
-// server/utils/database.ts. We can't import the real `useDatabase`
+// server/utils/platform/database.ts. We can't import the real `useDatabase`
 // because it spins up an actual Pool against a real DB; instead we
 // stub `pg.Pool` for a fake whose `query` method we control, then run
 // the wrapped pool's `query` and observe Sentry side effects.
@@ -59,7 +59,7 @@ beforeEach(() => {
 
 describe('slow-query log', () => {
   it('does not fire for fast queries', async () => {
-    const { useDatabase } = await import('../../server/utils/database')
+    const { useDatabase } = await import('../../server/utils/platform/database')
     useDatabase()
     const pool = lastPool!
     expect(pool).toBeTruthy()
@@ -78,7 +78,7 @@ describe('slow-query log', () => {
       return nowCalls === 1 ? 0 : 200
     })
     try {
-      const { useDatabase } = await import('../../server/utils/database')
+      const { useDatabase } = await import('../../server/utils/platform/database')
       useDatabase()
       const pool = lastPool!
       const longSql = 'SELECT '.padEnd(800, 'x')
@@ -110,7 +110,7 @@ describe('slow-query log', () => {
       return nowCalls === 1 ? 0 : 50
     })
     try {
-      const { useDatabase } = await import('../../server/utils/database')
+      const { useDatabase } = await import('../../server/utils/platform/database')
       useDatabase()
       const pool = lastPool!
       // QueryConfig form — { text, values } — used by Drizzle internally.

@@ -2,12 +2,12 @@ import { nanoid } from 'nanoid'
 import { eq } from 'drizzle-orm'
 import { createWorkspace, countOwnedWorkspacesByUser } from '../../repos/workspaces'
 import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
+import { useDatabase } from '../../utils/platform/database'
 import type { PlanName } from '~~/shared/config/tiers'
-import { getTiers } from '~~/server/utils/tierConfig'
-import { effectivePlan, limitRecovery, limitUpgradeHint } from '~~/server/utils/billingMode'
+import { getTiers } from '~~/server/utils/billing/tierConfig'
+import { effectivePlan, limitRecovery, limitUpgradeHint } from '~~/server/utils/billing/billingMode'
 import { DPA_VERSION } from '~~/shared/legal/versions'
-import { legalSurfacesEnabled } from '~~/server/utils/instanceConfig'
+import { legalSurfacesEnabled } from '~~/server/utils/platform/instanceConfig'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

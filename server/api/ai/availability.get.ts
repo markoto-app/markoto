@@ -1,5 +1,5 @@
 import { availabilityFrom, resolveAiAccess } from '../../utils/aiProviders/resolve'
-import { resolvePayingPlan } from '../../utils/billing'
+import { resolvePayingPlan } from '../../utils/billing/billing'
 
 // GET /api/ai/availability — which AI capabilities the caller can use
 // right now (own BYOK key → instance default → none), and whether each

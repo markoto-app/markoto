@@ -20,7 +20,7 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 | `PRIVACY_VERSION` | Material change to the privacy policy. Typo + translation-only edits don't bump. |
 | `TOS_VERSION` | Material change to the ToS. |
 | `DPA_VERSION` | Material change to the DPA. Workspace owners get a re-acceptance modal. |
-| `PAID_TERMS_VERSION` | Material change to the Paid Plans Terms (`content/legal/paid-terms/`, WP6b). No re-acceptance prompt: the terms are accepted per purchase (the box beside every buy button; the server refuses `acceptPaidTerms` ≠ `true` with 400 `billing/terms-required`, `server/utils/paidTerms.ts`) and each acceptance is a `policy.accepted` audit row with `document: paid-terms`, version, purchase kind and item. |
+| `PAID_TERMS_VERSION` | Material change to the Paid Plans Terms (`content/legal/paid-terms/`, WP6b). No re-acceptance prompt: the terms are accepted per purchase (the box beside every buy button; the server refuses `acceptPaidTerms` ≠ `true` with 400 `billing/terms-required`, `server/utils/billing/paidTerms.ts`) and each acceptance is a `policy.accepted` audit row with `document: paid-terms`, version, purchase kind and item. |
 | `ABUSE_POLICY_VERSION` | Material change to the abuse policy. |
 | `CONSENT_VERSION` | New processing purpose OR existing purpose materially expanded. |
 | `AUTHORITATIVE_LOCALE` | `'en'` — never bump unless the operating entity moves jurisdictions. |
@@ -34,14 +34,14 @@ Adjacent: `shared/legal/` holds the version + entity registries (client-and-serv
 
 1. Add a row to `PROCESSING_PURPOSES` with `{id, label, basis, dataCategories, retention, subProcessors, description}`. The `id` is referenced by audit / docs and must be stable.
 2. **Bump `PRIVACY_VERSION`** in `shared/legal/versions.ts`. The version-bump invalidates all prior privacy-policy acceptance, so the next visit re-prompts.
-3. If the purpose needs cookie/storage consent, also add it to `CONSENT_PURPOSES` + `OPTIONAL_CONSENT_PURPOSES` (`server/utils/consentDecisions.ts`), bump `CONSENT_VERSION` and build a consent banner (there is none today: essential storage only, `CONSENT_VERSION` 2).
+3. If the purpose needs cookie/storage consent, also add it to `CONSENT_PURPOSES` + `OPTIONAL_CONSENT_PURPOSES` (`server/utils/privacy/consentDecisions.ts`), bump `CONSENT_VERSION` and build a consent banner (there is none today: essential storage only, `CONSENT_VERSION` 2).
 4. Update `content/legal/privacy/en.md` to reflect the new row in prose. Translations follow.
 
 The 14 current purposes (truncated): `account_authentication`, `document_storage`, `collaboration_sync`, `comments_and_mentions`, `ai_assistance`, `workspace_knowledge_rag`, `billing`, `fraud_and_abuse_prevention`, `security_audit_log`, `transactional_email`, `paid_plans_waitlist`, `workspace_invitations`, `error_monitoring` (plus `user_directed_ai_provider`). Read `lawfulBasis.ts` for the full table.
 
 `workspace_invitations` (`PRIVACY_VERSION` 6 → 7): legitimate interest; the invitee email an admin typed, the role and the inviter, kept on a pending invite until accept / decline / revoke or the 14-day expiry (`workspace-invite-sweep`); optional invite email via Resend. Invites addressed to a deleted account are purged by the deletion executor; the data export lists received + sent invites (`workspace_invites.json`). The anonymous-doc creator cookie is described in privacy §9 as essential storage (no consent).
 
-`user_directed_ai_provider` (WP4, `PRIVACY_VERSION` 5 → 6): bring-your-own-key AI. Content for chat / image / transcription goes to the provider the USER picks, under the user's own agreement with it — that provider is deliberately NOT in `SUB_PROCESSORS` (markoto doesn't choose it); the purpose lists `ovh_postgres` because we store the provider config + encrypted key (`until_deletion`). Web search (Staan) and page fetch (Jina Reader) are platform-provided and rate-limited per user (`server/utils/webTools.ts`; counters in Valkey keyed by user id, timestamps only), so for BYOK users too the search query goes to `staan` and the fetched URL to `jina_ai` — both are therefore listed on this purpose, and privacy §8 says so. Audit actions `ai_provider.saved` / `ai_provider.deleted` (metadata: capability, host, model — never key material).
+`user_directed_ai_provider` (WP4, `PRIVACY_VERSION` 5 → 6): bring-your-own-key AI. Content for chat / image / transcription goes to the provider the USER picks, under the user's own agreement with it — that provider is deliberately NOT in `SUB_PROCESSORS` (markoto doesn't choose it); the purpose lists `ovh_postgres` because we store the provider config + encrypted key (`until_deletion`). Web search (Staan) and page fetch (Jina Reader) are platform-provided and rate-limited per user (`server/utils/ai/webTools.ts`; counters in Valkey keyed by user id, timestamps only), so for BYOK users too the search query goes to `staan` and the fetched URL to `jina_ai` — both are therefore listed on this purpose, and privacy §8 says so. Audit actions `ai_provider.saved` / `ai_provider.deleted` (metadata: capability, host, model — never key material).
 
 `paid_plans_waitlist` (WP3, `PRIVACY_VERSION` 4 → 5) is consent-based and uses the `until_withdrawn` retention sentinel: kept until unsubscribe, at the latest 3 months after the paid-plans launch announcement; unconfirmed sign-ups deleted after 7 days. Its consent is collected inline on the pricing page (unticked checkbox + double opt-in), NOT in the cookie banner, so `CONSENT_VERSION` was not bumped; the waitlist has its own `WAITLIST_CONSENT_VERSION` + `WAITLIST_CONSENT_TEXT_ID` in `shared/legal/versions.ts`, stored on every row.
 
@@ -106,8 +106,8 @@ Add to that test file when you add a new invariant.
 ## Related
 
 - `server/repos/audit.ts` — append-only writer; `truncateIp` lives here.
-- `server/utils/accountDeletion*.ts` — uses `AUDIT_ACCOUNT_*`.
-- `server/utils/dataExport*.ts` — uses `AUDIT_ACCOUNT_EXPORT_*`.
+- `server/utils/privacy/accountDeletion*.ts` — uses `AUDIT_ACCOUNT_*`.
+- `server/utils/privacy/dataExport*.ts` — uses `AUDIT_ACCOUNT_EXPORT_*`.
 - `server/api/abuse-reports.post.ts`, `server/api/admin/abuse-reports/[reportId].patch.ts` — use `AUDIT_ABUSE_*`.
 - `server/api/_internal/legal/[slug].get.ts` — server-side renderer with `{{...}}` substitution against `resolveLegalEntity()`.
 - `app/components/legal/AGENTS.md` — UI surfaces that read these (banner, gate, deletion modal).

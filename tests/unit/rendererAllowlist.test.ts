@@ -5,7 +5,7 @@ import {
   isAllowedUrl,
   originOf
 } from '../../renderer/src/allowlist'
-import { buildRenderCsp } from '../../server/utils/csp'
+import { buildRenderCsp } from '../../server/utils/rendering/csp'
 import { PAGEDJS_POLYFILL_URL } from '../../shared/utils/pagedjsAssets'
 import { MERMAID_URL } from '../../shared/utils/mermaidAssets'
 import { KATEX_CSS_URL } from '../../shared/utils/katexAssets'

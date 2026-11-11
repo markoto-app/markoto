@@ -22,8 +22,8 @@ import { isIP } from 'node:net'
 import { lookup } from 'node:dns/promises'
 import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
-import { readStreamWithCap } from '../streamCap'
-import type { PinnedRequestInit } from '../safeFetch'
+import { readStreamWithCap } from '../platform/streamCap'
+import type { PinnedRequestInit } from '../platform/safeFetch'
 import { parseBooleanFlag } from '~~/shared/config/billingMode'
 
 export const SSO_FETCH_MAX_BYTES = 1024 * 1024

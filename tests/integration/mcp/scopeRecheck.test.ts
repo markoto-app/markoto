@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { deleteValkeyKey, resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
-import { hashToken } from '../../../server/utils/mcpAuth'
+import { hashToken } from '../../../server/utils/mcp/mcpAuth'
 
 // A session's tool list is fixed at `initialize` from the token's scopes
 // at that moment. `admitToolCall` re-checks the scope on EVERY call, so a

@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
-import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/aiSessions'
-import { migrationsComplete } from '../utils/migrations'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/ai/aiSessions'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Every 60s, abort any AI session older than the stale threshold. Protects
 // against crashes that leave awareness entries orphaned on Hocuspocus docs.

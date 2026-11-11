@@ -12,17 +12,17 @@
 
 import * as Sentry from '@sentry/nuxt'
 import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
-import { useLitellmForUser } from '../../utils/litellmClient'
-import { resolveBillingContext } from '../../utils/billing'
+import { useLitellmForUser } from '../../utils/ai/litellmClient'
+import { resolveBillingContext } from '../../utils/billing/billing'
 import { isBudgetExceededError } from '../../utils/litellm/userKeys'
 import { isFreeAllowanceExhaustedError } from '../../utils/litellm/freeTierTeam'
-import { freeAllowanceExhaustedHttpError } from '../../utils/freeAllowance'
+import { freeAllowanceExhaustedHttpError } from '../../utils/billing/freeAllowance'
 import { FEATURE_TAGS, featureMetadata } from '../../utils/litellm/featureTags'
 import { litellmCompletion, litellmTranscription } from '../../utils/litellm/createCompletion'
 import { providerMissingError, requireAiProviders } from '../../utils/aiProviders/guard'
 import { providerRequestFields, withProviderErrors } from '../../utils/aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
-import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billingMode'
+import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/billingMode'
 import { isTestModeEnabled } from '../../../shared/utils/testMode'
 
 const ALLOWED_MIME = new Set([

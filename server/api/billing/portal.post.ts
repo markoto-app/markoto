@@ -1,9 +1,9 @@
 import { eq } from 'drizzle-orm'
 import * as Sentry from '@sentry/nuxt'
 import { users } from '../../db/schema'
-import { useDatabase } from '../../utils/database'
-import { useStripeClient } from '../../utils/stripeClient'
-import { assertBillingEnabled } from '../../utils/billingMode'
+import { useDatabase } from '../../utils/platform/database'
+import { useStripeClient } from '../../utils/billing/stripeClient'
+import { assertBillingEnabled } from '../../utils/billing/billingMode'
 
 // POST /api/billing/portal — creates a Stripe Customer Portal
 // session for the current user and returns the URL to redirect to.

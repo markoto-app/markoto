@@ -1,10 +1,10 @@
 import { CopyObjectCommand, DeleteObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3'
 import { confirmOwnUploadWithinQuota, deletePending, findOwnUpload } from '../../repos/uploads'
 import { getDocWithActorRole } from '../../repos/documents'
-import { requireContentMatchesExtension } from '../../utils/fileTypeGuard'
-import { parseUploadKey, stagingKeyFor } from '../../utils/uploadKey'
-import { canWriteDocContent } from '../../utils/documentAccess'
-import { imageQuotaError, resolveImageQuota } from '../../utils/imageQuota'
+import { requireContentMatchesExtension } from '../../utils/storage/fileTypeGuard'
+import { parseUploadKey, stagingKeyFor } from '../../utils/storage/uploadKey'
+import { canWriteDocContent } from '../../utils/documents/documentAccess'
+import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
 
 // The key is client-supplied, so it is never trusted by itself: it must have
 // the exact shape `/api/upload/request` mints AND resolve to an `uploads` row

@@ -507,7 +507,7 @@ export function adaptCustomCssToDoc(
 /**
  * Point a duplicated document's custom CSS at the copy's own uploads
  * (`/api/files/<source>/…` → `/api/files/<target>/…`), mirroring the
- * markdown-body rewrite in `server/utils/cloneYjsState.ts`.
+ * markdown-body rewrite in `server/utils/documents/cloneYjsState.ts`.
  */
 export function rewriteCustomCssDocId(css: string | undefined, sourceDocId: string, targetDocId: string): string | undefined {
   if (css === undefined) return undefined

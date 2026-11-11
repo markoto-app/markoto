@@ -1,5 +1,5 @@
-import { checkRateLimit } from '../../../../utils/rateLimit'
-import { resolveBillingContext } from '../../../../utils/billing'
+import { checkRateLimit } from '../../../../utils/platform/rateLimit'
+import { resolveBillingContext } from '../../../../utils/billing/billing'
 import { getAiProvider, markAiProviderVerified } from '../../../../repos/aiProviders'
 import { reverifyUserProvider } from '../../../../utils/aiProviders/store'
 import { isAiCapability } from '~~/shared/ai/providers'

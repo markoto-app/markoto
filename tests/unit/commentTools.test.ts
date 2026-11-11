@@ -2,14 +2,14 @@ import { describe, it, expect, vi } from 'vitest'
 import * as Y from 'yjs'
 import { nanoid } from 'nanoid'
 
-import { executeFunctionByName } from '../../server/utils/aiToolAdapter'
-import type { AiSession } from '../../server/utils/aiClient'
+import { executeFunctionByName } from '../../server/utils/ai/aiToolAdapter'
+import type { AiSession } from '../../server/utils/ai/aiClient'
 
 // Stub workspaceAccess so canManageDoc returns false by default. The
 // delete-auth tests rely on the AI's own-author / initiator's-own-author
 // branches, not the doc-manager fallback. Hoisted to module top-level
 // because vitest hoists vi.mock calls before any imports.
-vi.mock('../../server/utils/workspaceAccess', () => ({
+vi.mock('../../server/utils/workspaces/workspaceAccess', () => ({
   canManageDoc: vi.fn().mockResolvedValue(false),
   canEditDoc: vi.fn().mockResolvedValue(true),
   getWorkspaceRole: vi.fn().mockResolvedValue(null),

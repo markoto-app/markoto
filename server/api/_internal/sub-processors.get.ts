@@ -1,6 +1,6 @@
 import { visibleSubProcessors } from '../../legal/registryView'
-import { isBillingEnabled } from '../../utils/billingMode'
-import { assertLegalSurfacesEnabled } from '../../utils/instanceConfig'
+import { isBillingEnabled } from '../../utils/billing/billingMode'
+import { assertLegalSurfacesEnabled } from '../../utils/platform/instanceConfig'
 
 // Public-readable sub-processor registry. Surfaces the structured
 // data from `server/legal/subProcessors.ts` so the client-side

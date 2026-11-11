@@ -1,4 +1,4 @@
-import { requireAdminUser } from '../../utils/adminAccess'
+import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmAdminFetch } from '../../utils/litellm/litellmAdmin'
 import { ALL_FEATURE_TAGS, TAG_NAMESPACES, type FeatureTag } from '../../utils/litellm/featureTags'
 

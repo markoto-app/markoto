@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isValidEmailShape } from '../../server/utils/emailShape'
+import { isValidEmailShape } from '../../server/utils/workspaces/emailShape'
 
 // `isValidEmailShape` replaced the inline /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 // in the workspace member-invite endpoint (SonarQube S8786 — that

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { ensureYjsTable, resetDb, testDb } from '../integration/setup/db'
-import { cloneYjsStateWithUrlRewrite } from '../../server/utils/cloneYjsState'
+import { cloneYjsStateWithUrlRewrite } from '../../server/utils/documents/cloneYjsState'
 
 // `cloneYjsStateWithUrlRewrite` reads the source doc's stored Y.js
 // updates, reconstructs a Y.Doc, rewrites `/api/files/{sourceDocId}/`

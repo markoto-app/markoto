@@ -1,13 +1,13 @@
 import { resolveDocBrand } from '../../utils/brandKit/docBrand'
 import { listBrandAssets } from '../../repos/brandAssets'
 import { applyBrandLock } from '~~/shared/utils/brandLock'
-import { mintFileAccessToken } from '../../utils/fileAccessToken'
-import { verifyRenderToken } from '../../utils/renderTokens'
+import { mintFileAccessToken } from '../../utils/storage/fileAccessToken'
+import { verifyRenderToken } from '../../utils/rendering/renderTokens'
 import { getDoc } from '../../repos/documents'
-import { reconstructDocAtYjsId } from '../../utils/historyReplay'
-import { resolveDocProperties } from '../../utils/docProperties'
+import { reconstructDocAtYjsId } from '../../utils/documents/historyReplay'
+import { resolveDocProperties } from '../../utils/documents/docProperties'
 import { listConfirmedUploadsForDoc } from '../../repos/uploads'
-import { planHasFeature, resolveDocPlanFor } from '../../utils/entitlements'
+import { planHasFeature, resolveDocPlanFor } from '../../utils/billing/entitlements'
 import { DESIGN_SAMPLE_ID_RE, loadDesignSample } from '../../utils/designImport/sampleRender'
 import { customCssForPlan } from '~~/shared/utils/themePresets'
 
@@ -104,7 +104,7 @@ export default defineEventHandler(async (event) => {
   // document's own upload URLs (`fileIds` below) before paginating. Only
   // /api/files accepts the `file-access` scope (and Hocuspocus refuses any
   // scoped token); 5-minute TTL is well longer than any single render but
-  // short enough to be useless if it leaks. See server/utils/fileAccessToken.ts.
+  // short enough to be useless if it leaks. See server/utils/storage/fileAccessToken.ts.
   const fileAccessToken = mintFileAccessToken(docId, 5 * 60).token
 
   // Plan gate (authoritative): custom CSS reaches the PDF only when the

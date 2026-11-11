@@ -41,7 +41,7 @@ const {
   requireKnowledgeEditAccess,
   requireKnowledgeDeleteAccess,
   deleteKnowledgeArtifact
-} = await import('../../server/utils/knowledgeAccess')
+} = await import('../../server/utils/knowledge/knowledgeAccess')
 
 function fakeEvent(): H3Event {
   return {} as H3Event

@@ -4,10 +4,10 @@ import { createUser } from '../integration/setup/fixtures'
 import { enqueueExportJob, getJobById } from '../../server/repos/dataExportJobs'
 
 const s3SendMock = vi.fn(async () => ({}))
-vi.mock('../../server/utils/s3', () => ({
+vi.mock('../../server/utils/storage/s3', () => ({
   useS3Client: () => ({ send: s3SendMock })
 }))
-vi.mock('../../server/utils/stripeClient', () => ({
+vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => null
 }))
 // Email sender is already a no-throw stub in test mode (no provider
@@ -23,7 +23,7 @@ vi.mock('../../server/utils/email/sendEmail', () => ({
   s3: { bucket: 'test-bucket' }
 })
 
-const { runDataExportWorker } = await import('../../server/utils/dataExportWorker')
+const { runDataExportWorker } = await import('../../server/utils/privacy/dataExportWorker')
 
 describe('runDataExportWorker', () => {
   beforeEach(async () => {

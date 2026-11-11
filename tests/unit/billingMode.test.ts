@@ -15,7 +15,7 @@ const {
   isBillingEnabled,
   limitRecovery,
   limitUpgradeHint
-} = await import('../../server/utils/billingMode')
+} = await import('../../server/utils/billing/billingMode')
 
 afterEach(() => {
   vi.unstubAllEnvs()

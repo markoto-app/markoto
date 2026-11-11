@@ -1,5 +1,5 @@
-import { cancelAccountDeletionByUser } from '../../utils/accountDeletion'
-import { checkRateLimit } from '../../utils/rateLimit'
+import { cancelAccountDeletionByUser } from '../../utils/privacy/accountDeletion'
+import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
 
 // GDPR Article 17 — cancel an in-flight account deletion request.

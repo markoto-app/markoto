@@ -1,4 +1,4 @@
-import { getAiSession, removeAiSession } from '../../utils/aiSessions'
+import { getAiSession, removeAiSession } from '../../utils/ai/aiSessions'
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

@@ -13,7 +13,7 @@ const state = vi.hoisted(() => ({
 
 ;(globalThis as unknown as { useRuntimeConfig: () => typeof state.config }).useRuntimeConfig = () => state.config
 
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({
     query: async (sql: string) => {
       state.queries++
@@ -25,7 +25,7 @@ vi.mock('../../server/utils/database', () => ({
 }))
 
 const { getKnowledgeEmbeddingsStatus, assertKnowledgeEmbeddingsReady, resetKnowledgeEmbeddingsStatus }
-  = await import('../../server/utils/knowledgeEmbeddingsStatus')
+  = await import('../../server/utils/knowledge/knowledgeEmbeddingsStatus')
 
 beforeEach(() => {
   state.config = { litellm: { embeddingsDims: 768 } }

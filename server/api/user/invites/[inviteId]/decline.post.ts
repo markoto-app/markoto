@@ -1,4 +1,4 @@
-import { declineInviteForUser, inAppInviteSelector } from '../../../../utils/workspaceInviteActions'
+import { declineInviteForUser, inAppInviteSelector } from '../../../../utils/workspaces/workspaceInviteActions'
 
 // POST /api/user/invites/:inviteId/decline — decline (delete) an
 // invitation addressed to the signed-in user's account email.

@@ -1,6 +1,6 @@
 import { DocThemeSchema, type DocTheme } from '~~/shared/types/theme'
 import { getThemeById, updateTheme } from '../../../repos/themes'
-import { readSavedThemeDescription, readSavedThemeName } from '../../../utils/savedThemeFields'
+import { readSavedThemeDescription, readSavedThemeName } from '../../../utils/rendering/savedThemeFields'
 
 // Rename / describe / update a saved theme. Body:
 // `{ name?: string, description?: string, theme?: DocTheme }` — any

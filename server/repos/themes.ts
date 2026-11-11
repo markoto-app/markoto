@@ -1,7 +1,7 @@
 import { and, desc, eq, sql } from 'drizzle-orm'
 import { themes } from '../db/schema'
 import type { DocTheme } from '~~/shared/types/theme'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { NotFoundError } from './errors'
 
 // User-saved theme presets. Per-user, never shared. A user lists,

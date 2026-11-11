@@ -1,6 +1,6 @@
 import { and, desc, eq, gte, sql } from 'drizzle-orm'
 import { documentViewDays } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 
 // View counts of shared documents (WP9): opens per document and UTC day by
 // people other than the owner and workspace members. Aggregate only.

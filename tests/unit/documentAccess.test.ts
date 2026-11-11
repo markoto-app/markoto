@@ -16,7 +16,7 @@ vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) =>
 const getDocWithActorRole = vi.fn<(docId: string, userId: number | null) => Promise<DocAuthzRow | null>>()
 vi.mock('../../server/repos/documents', () => ({ getDocWithActorRole }))
 
-const { requireDocEditAccess } = await import('../../server/utils/documentAccess')
+const { requireDocEditAccess } = await import('../../server/utils/documents/documentAccess')
 
 const ACTOR = 42
 

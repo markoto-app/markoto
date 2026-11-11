@@ -1,9 +1,9 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { customAlphabet } from 'nanoid'
 import { DocThemeSchema, type DocTheme } from '~~/shared/types/theme'
-import { cleanupRendersForDoc, renderPngUncached } from '../renderClient'
-import { useS3Client } from '../s3'
-import { useValkey } from '../valkey'
+import { cleanupRendersForDoc, renderPngUncached } from '../rendering/renderClient'
+import { useS3Client } from '../storage/s3'
+import { useValkey } from '../platform/valkey'
 
 // Renders a fixed sample document in a proposed theme through the normal
 // renderer sidecar → print page path, so the model (and the dialog) see

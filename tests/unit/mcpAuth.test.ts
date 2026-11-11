@@ -8,7 +8,7 @@ import {
   extractMcpBearer,
   hasScope,
   type McpScope
-} from '../../server/utils/mcpAuth'
+} from '../../server/utils/mcp/mcpAuth'
 
 // Pure-function tests for the PAT primitives. The verifier (verifyMcpPat)
 // + cache invalidation are repo-level and need a live DB + Valkey, so

@@ -10,10 +10,10 @@ import {
   marketingSitemapPages,
   sitemapBaseUrl,
   sitemapEntries
-} from '../../server/utils/sitemap'
+} from '../../server/utils/platform/sitemap'
 
 // sitemap.xml: hosted marketing site only, absolute URLs from
-// NUXT_SITE_URL (server/utils/sitemap.ts).
+// NUXT_SITE_URL (server/utils/platform/sitemap.ts).
 
 const BASE = 'https://markoto.app'
 

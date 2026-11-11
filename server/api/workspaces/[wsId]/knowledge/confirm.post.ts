@@ -1,13 +1,13 @@
 import { CopyObjectCommand, HeadObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { sql } from 'drizzle-orm'
 import { createKnowledge, disambiguateFilename } from '../../../../repos/knowledge'
-import { useDatabase } from '../../../../utils/database'
-import { resolveEmbeddingsConfig, embeddingVersionTag } from '../../../../utils/embeddings'
-import { processKnowledge } from '../../../../utils/processKnowledge'
-import { requireContentMatchesExtension } from '../../../../utils/fileTypeGuard'
-import { assertCapsOnConfirm, releaseKnowledgeUploadSlots } from '../../../../utils/knowledgeQuota'
-import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledgePendingUpload'
-import { stagingKeyFor } from '../../../../utils/uploadKey'
+import { useDatabase } from '../../../../utils/platform/database'
+import { resolveEmbeddingsConfig, embeddingVersionTag } from '../../../../utils/knowledge/embeddings'
+import { processKnowledge } from '../../../../utils/knowledge/processKnowledge'
+import { requireContentMatchesExtension } from '../../../../utils/storage/fileTypeGuard'
+import { assertCapsOnConfirm, releaseKnowledgeUploadSlots } from '../../../../utils/knowledge/knowledgeQuota'
+import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledge/knowledgePendingUpload'
+import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
 
 /** The original's stored Content-Type must be exactly the type upload-request signed. */
 function requireStoredContentType(stored: string | undefined, expected: string): void {

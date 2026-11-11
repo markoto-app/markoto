@@ -1,9 +1,9 @@
 import { getDoc, moveDocToWorkspace } from '../../../repos/documents'
-import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
+import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
 import { deleteSharesForDoc } from '../../../repos/documentShares'
 import { deleteTemplatesForDoc } from '../../../repos/workspaceTemplates'
 import { appendAuditEvent } from '../../../repos/audit'
-import { notifySyncKickUser, notifySyncReauthDocument } from '../../../utils/syncNotify'
+import { notifySyncKickUser, notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
 
 // Move a document into, between, or out of a workspace.
 //

@@ -1,6 +1,6 @@
 // Client-IP resolution behind a known number of trusted reverse proxies.
 //
-// Used by the Nuxt app (`server/utils/clientIp.ts`) and the sync server
+// Used by the Nuxt app (`server/utils/platform/clientIp.ts`) and the sync server
 // (`sync-server/src/rate-limiter.ts`) — rate limits and the truncated IP
 // stored on audit / consent / abuse rows both key on it.
 //

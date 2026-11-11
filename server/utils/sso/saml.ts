@@ -20,7 +20,7 @@
 import { randomBytes } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { SAML, ValidateInResponseTo, generateServiceProviderMetadata, type CacheItem, type CacheProvider, type Profile } from '@node-saml/node-saml'
-import { useValkey } from '../valkey'
+import { useValkey } from '../platform/valkey'
 import type { SsoConnectionRow } from '../../repos/sso'
 import { samlAcsUrl, samlSpEntityId } from './http'
 import type { SsoAssertion } from './completeLogin'

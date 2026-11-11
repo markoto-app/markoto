@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { DEFAULT_TIERS } from '../../shared/config/tiers'
 
 vi.stubGlobal('createError', (input: { statusCode: number, message: string, data?: unknown }) => Object.assign(new Error(input.message), input))
-vi.mock('../../server/utils/tierConfig', () => ({ getTiers: () => DEFAULT_TIERS }))
+vi.mock('../../server/utils/billing/tierConfig', () => ({ getTiers: () => DEFAULT_TIERS }))
 vi.mock('../../server/repos/workspaceSubscriptions', async orig => ({ ...(await orig()), getWorkspaceSubscription: vi.fn() }))
 vi.mock('../../server/repos/workspaceMembers', () => ({ countMembers: vi.fn() }))
 vi.mock('../../server/repos/workspaceInvites', () => ({ countOpenWorkspaceInvites: vi.fn() }))
@@ -15,7 +15,7 @@ const {
   pooledFromRow,
   workspacePoolCaps,
   MIN_WORKSPACE_SEATS
-} = await import('../../server/utils/workspaceBilling')
+} = await import('../../server/utils/billing/workspaceBilling')
 const { isWorkspaceTeamBudgetError, workspaceTeamId } = await import('../../server/utils/litellm/workspaceTeams')
 
 const GB = 1024 * 1024 * 1024

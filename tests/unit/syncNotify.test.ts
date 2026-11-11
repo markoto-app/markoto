@@ -30,17 +30,17 @@ vi.stubGlobal('fetch', fetchSpy)
 const runtimeConfigStub = { syncInternalUrl: SYNC_URL, internalApiSecret: SECRET }
 vi.stubGlobal('useRuntimeConfig', () => runtimeConfigStub)
 
-vi.mock('../../server/utils/throttledSentry', () => ({
+vi.mock('../../server/utils/platform/throttledSentry', () => ({
   captureExceptionThrottled: vi.fn()
 }))
 
-vi.mock('../../server/utils/traceHeaders', () => ({
+vi.mock('../../server/utils/platform/traceHeaders', () => ({
   injectTraceHeaders: (h: Record<string, string>) => h
 }))
 
 // Re-import after mocks so module under test sees the stubbed deps.
-const { notifySyncKickUser, notifySyncReauthDocument } = await import('../../server/utils/syncNotify')
-const { captureExceptionThrottled } = await import('../../server/utils/throttledSentry')
+const { notifySyncKickUser, notifySyncReauthDocument } = await import('../../server/utils/documents/syncNotify')
+const { captureExceptionThrottled } = await import('../../server/utils/platform/throttledSentry')
 
 describe('notifySyncKickUser — dispatch contract', () => {
   beforeEach(() => {

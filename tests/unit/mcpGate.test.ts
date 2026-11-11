@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { evaluateMcpRequest, jsonRpcErrorResponse, MCP_RATE_LIMITS, type McpGateDeps, type RateLimitRule } from '../../server/mcp/lib/mcpGate'
-import type { BindingCheck, McpSessionBindings } from '../../server/utils/mcpSessionBinding'
-import type { McpAuthContext } from '../../server/utils/mcpAuth'
+import type { BindingCheck, McpSessionBindings } from '../../server/utils/mcp/mcpSessionBinding'
+import type { McpAuthContext } from '../../server/utils/mcp/mcpAuth'
 
 // /mcp request gate (A3 / A4 / A5): no session without a verified token,
 // sessions bound to the token that created them, rate limits per client

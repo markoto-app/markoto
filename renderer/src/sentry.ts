@@ -6,7 +6,7 @@ import * as Sentry from '@sentry/bun'
 // when SENTRY_DSN is empty — dev/local stay silent.
 //
 // Cross-service trace continuation: the app injects sentry-trace + baggage
-// on the POST /render call (server/utils/traceHeaders.ts). The handler in
+// on the POST /render call (server/utils/platform/traceHeaders.ts). The handler in
 // index.ts pulls those headers off req.headers and feeds them into
 // Sentry.continueTrace, which wires this renderer's transaction up as a
 // child of the app-side transaction. End result: one trace in Sentry's

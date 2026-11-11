@@ -17,7 +17,7 @@
 
 model_list:
   # ---- Embeddings: jina-embeddings-v5-text-nano (custom provider) ----
-  # Phase 1A workhorse. Used by server/utils/embeddings.ts behind the
+  # Phase 1A workhorse. Used by server/utils/knowledge/embeddings.ts behind the
   # NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER=jina feature flag.
   #
   # Why -nano: native 768-d output (perfect fit for the existing

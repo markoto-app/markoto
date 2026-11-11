@@ -1,9 +1,9 @@
 import { appendAuditEvent } from '../../../../repos/audit'
 import { upsertShare } from '../../../../repos/documentShares'
 import { AUDIT_DOC_SHARED } from '../../../../legal/auditActions'
-import { requireDocSharingAccess, requireWorkspaceGuest } from '../../../../utils/documentSharing'
-import { notifySyncKickUser } from '../../../../utils/syncNotify'
-import { assertNotModerationRestricted } from '../../../../utils/moderationRestriction'
+import { requireDocSharingAccess, requireWorkspaceGuest } from '../../../../utils/documents/documentSharing'
+import { notifySyncKickUser } from '../../../../utils/documents/syncNotify'
+import { assertNotModerationRestricted } from '../../../../utils/privacy/moderationRestriction'
 import { getDoc } from '../../../../repos/documents'
 
 // PUT /api/docs/:docId/shares — {userId, access: 'view' | 'edit'}: share

@@ -1,13 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { users } from '../../db/schema'
-import { useDatabase } from '../database'
+import { useDatabase } from '../platform/database'
 import { planToBudgetUsd } from '~~/shared/billing/aiPoints'
-import { getTiers } from '~~/server/utils/tierConfig'
+import { getTiers } from '~~/server/utils/billing/tierConfig'
 import type { PlanName } from '~~/shared/config/tiers'
 import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
-import { creditBudgetExtraUsd } from '../aiCreditBudget'
+import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 
 /** Plan budget + the user's top-up credits (WP4), USD. */
 export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<number> {

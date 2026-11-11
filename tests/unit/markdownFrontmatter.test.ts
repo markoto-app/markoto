@@ -5,7 +5,7 @@ import {
   buildMarkdownExport,
   splitMarkotoFrontmatter
 } from '../../shared/utils/markdownFrontmatter'
-import { importMarkdownFile } from '../../server/utils/markdownImport'
+import { importMarkdownFile } from '../../server/utils/documents/markdownImport'
 import { defaultTheme } from '../../shared/utils/defaultTheme'
 import { THEME_PRESETS } from '../../shared/utils/themePresets'
 import type { DocTheme } from '../../shared/types/theme'

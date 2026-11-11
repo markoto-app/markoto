@@ -1,5 +1,5 @@
 import { listWorkspacesForUser } from '../../repos/workspaces'
-import { pooledPlansFor } from '../../utils/workspaceBilling'
+import { pooledPlansFor } from '../../utils/billing/workspaceBilling'
 
 // Per-user workspace list for the dashboard. Returns every workspace the
 // user is a member of (any role), joined with the doc aggregates so the

@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { customDomainSettings } from '../customDomains/config'
 import { isKnownCustomHostname, liveCustomDomainForHost } from '../customDomains/routing'
-import { emailLinkBaseUrl } from '../siteUrl'
+import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { isPagesHostRequest, publishPagesSettings, requestHostname } from './pagesHost'
 
 // Which requests are for a host that serves user-written published pages

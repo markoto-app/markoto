@@ -7,7 +7,7 @@ import {
   handleInvoicePaid,
   handleInvoicePaymentFailed,
   dispatchStripeEvent
-} from '../../server/utils/stripeWebhook'
+} from '../../server/utils/billing/stripeWebhook'
 import {
   makeCheckoutSessionCompletedEvent,
   makeSubscriptionEvent,
@@ -67,7 +67,7 @@ function buildDbStub() {
   }
 }
 
-vi.mock('../../server/utils/database', () => ({
+vi.mock('../../server/utils/platform/database', () => ({
   useDatabase: vi.fn(() => {
     const stub = buildDbStub()
     // db.transaction(cb) just runs the callback with the same stub

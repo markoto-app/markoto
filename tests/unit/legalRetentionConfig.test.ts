@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   resolveAbuseReportRetentionDays,
   resolveAuditLogRetentionDays
-} from '../../server/utils/legalRetentionSweep'
+} from '../../server/utils/privacy/legalRetentionSweep'
 
 // Self-hoster knobs for the compliance retention sweeps. Absent or invalid
 // values fall back to the periods the hosted privacy policy states.

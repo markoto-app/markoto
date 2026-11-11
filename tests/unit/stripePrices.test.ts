@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type {
-  getStripeCatalogue } from '../../server/utils/stripePrices'
+  getStripeCatalogue } from '../../server/utils/billing/stripePrices'
 import {
   identifyStripePrice,
   livePlanPriceTable,
@@ -8,7 +8,7 @@ import {
   parsePriceIdOverrides,
   resetStripeCatalogueCache,
   stripePriceIdFor
-} from '../../server/utils/stripePrices'
+} from '../../server/utils/billing/stripePrices'
 import { DEFAULT_PLAN_PRICES } from '../../shared/config/pricing'
 
 // The Stripe price catalogue (pricing plan WP2): lookup keys, the

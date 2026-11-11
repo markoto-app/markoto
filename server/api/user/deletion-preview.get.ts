@@ -1,5 +1,5 @@
-import { planAccountDeletion } from '../../utils/accountDeletionPlan'
-import { isBillingEnabled } from '../../utils/billingMode'
+import { planAccountDeletion } from '../../utils/privacy/accountDeletionPlan'
+import { isBillingEnabled } from '../../utils/billing/billingMode'
 
 // Pre-deletion preview — surface to the user EXACTLY what will happen
 // when they confirm the deletion. Drives the consequence modal in

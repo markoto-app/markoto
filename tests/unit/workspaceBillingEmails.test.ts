@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { buildWorkspaceBillingEmail, type WorkspaceBillingEmail } from '../../server/utils/email/workspaceBillingEmails'
-import { budgetAlertLevel } from '../../server/utils/workspaceBudgetAlerts'
-import { INVITE_EMAIL_LOCALES } from '../../server/utils/workspaceInvites'
+import { budgetAlertLevel } from '../../server/utils/billing/workspaceBudgetAlerts'
+import { INVITE_EMAIL_LOCALES } from '../../server/utils/workspaces/workspaceInvites'
 
 const KINDS: WorkspaceBillingEmail[] = ['budget_80', 'budget_100', 'payment_failed', 'seat_added', 'ending', 'ended']
 

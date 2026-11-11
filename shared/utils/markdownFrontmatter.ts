@@ -24,7 +24,7 @@ import type { DocTheme } from '../types/theme'
  *   …
  *
  * This module only splits and parses (and builds on export). It never
- * decides what is valid: the server import (`server/utils/markdownImport.ts`)
+ * decides what is valid: the server import (`server/utils/documents/markdownImport.ts`)
  * runs every field through the same validators as `PUT /api/docs/:id/meta`
  * (theme schema, custom-CSS sanitizer, image rules, length limits, enums).
  *

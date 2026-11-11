@@ -1,12 +1,12 @@
 import type { H3Event } from 'h3'
 import { getDoc, getDocWithActorRole, setDocPassword, clearDocPassword, type DocSnapshot } from '../../../repos/documents'
 import { appendAuditEvent } from '../../../repos/audit'
-import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/docPasswordLimits'
+import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/documents/docPasswordLimits'
 import { docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
-import { docJwtLifetimeSeconds } from '../../../utils/docJwt'
+import { docJwtLifetimeSeconds } from '../../../utils/documents/docJwt'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
-import { assertNotModerationRestricted } from '../../../utils/moderationRestriction'
-import { notifySyncReauthDocument } from '../../../utils/syncNotify'
+import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
+import { notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)

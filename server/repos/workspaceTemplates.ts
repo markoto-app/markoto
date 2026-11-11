@@ -1,6 +1,6 @@
 import { and, asc, eq, sql } from 'drizzle-orm'
 import { documents, workspaceTemplates } from '../db/schema'
-import { useDatabase } from '../utils/database'
+import { useDatabase } from '../utils/platform/database'
 import { DuplicateError } from './errors'
 
 // Workspace templates (WP10c): a live link to one of the workspace's

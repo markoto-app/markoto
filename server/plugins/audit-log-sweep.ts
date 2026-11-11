@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
-import { migrationsComplete } from '../utils/migrations'
-import { runAuditLogSweep, resolveAuditLogRetentionDays } from '../utils/legalRetentionSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/sweepLock'
+import { migrationsComplete } from '../utils/platform/migrations'
+import { runAuditLogSweep, resolveAuditLogRetentionDays } from '../utils/privacy/legalRetentionSweep'
+import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
 // Enforces the 2-year audit-log retention stated in the privacy policy (§5)
 // and the DPA (`NUXT_AUDIT_LOG_RETENTION_DAYS`, default 730, 0 = keep forever).
