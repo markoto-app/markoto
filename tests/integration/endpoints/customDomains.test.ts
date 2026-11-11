@@ -34,10 +34,10 @@ async function challtest(path: string, body: unknown): Promise<void> {
 const fqdn = (h: string) => `${h}.`
 
 /** A plain HTTP request to the app with a chosen Host header (fetch can't set Host). */
-function getWithHost(host: string, path: string, method = 'GET'): Promise<{ status: number, headers: Record<string, string | string[] | undefined>, body: string }> {
+function getWithHost(host: string, path: string, method = 'GET', cookie?: string): Promise<{ status: number, headers: Record<string, string | string[] | undefined>, body: string }> {
   const url = new URL(TEST_BASE_URL)
   return new Promise((resolve, reject) => {
-    const req = httpRequest({ host: url.hostname, port: url.port, path, method, headers: { host } }, (res) => {
+    const req = httpRequest({ host: url.hostname, port: url.port, path, method, headers: cookie ? { host, cookie } : { host } }, (res) => {
       let body = ''
       res.setEncoding('utf8')
       res.on('data', (c: string) => {
@@ -225,9 +225,13 @@ describe('custom domains', () => {
     // The report form is on the instance; without a configured site URL
     // there is no instance address to link to from a foreign host.
     expect(page.body).not.toContain(`${domain.hostname}/legal/abuse`)
-    for (const path of ['/d/whatever', '/api/user/custom-domains', '/api/health', '/pricing', '/_nuxt/x.js', '/p/whatever']) {
-      expect((await getWithHost(domain.hostname, path)).status, path).toBe(404)
+    for (const path of ['/d/whatever', '/api/user/custom-domains', '/api/health', '/pricing', '/_nuxt/x.js', '/p/whatever', '/api/_auth/session']) {
+      // A stale session cookie sent to the domain is never answered with a fresh one.
+      const res = await getWithHost(domain.hostname, path, 'GET', 'nuxt-session=stale')
+      expect(res.status, path).toBe(404)
+      expect(res.headers['set-cookie'], path).toBeUndefined()
     }
+    expect((await getWithHost(domain.hostname, '/', 'GET', 'nuxt-session=stale')).headers['set-cookie']).toBeUndefined()
     expect((await getWithHost(domain.hostname, '/', 'POST')).status).toBe(404)
     expect((await getWithHost(domain.hostname, '/robots.txt')).body).toContain('Disallow: /')
     // The /p/ page names the domain as its address.

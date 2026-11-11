@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, beforeEach, describe, expect, it } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createDoc, createUser, createWorkspace, removeMember, setMemberRole } from '../integration/setup/fixtures'
 import { listVerifiedCustomDomains } from '../../server/repos/customDomains'
@@ -14,11 +14,16 @@ async function domainShowing(userId: number, docId: string | null): Promise<stri
   seq += 1
   let pageId: string | null = null
   if (docId) {
-    pageId = `page${seq}`
-    await testDb().query(
-      `INSERT INTO published_pages (id, doc_id, slug, title, html, css) VALUES ($1, $2, $3, 't', '', '')`,
-      [pageId, docId, `slug-${seq}`]
-    )
+    // A document has at most one published page: domains of different
+    // users that show the same document share it.
+    const existing = await testDb().query<{ id: string }>(`SELECT id FROM published_pages WHERE doc_id = $1`, [docId])
+    pageId = existing.rows[0]?.id ?? `page${seq}`
+    if (!existing.rows[0]) {
+      await testDb().query(
+        `INSERT INTO published_pages (id, doc_id, slug, title, html, css) VALUES ($1, $2, $3, 't', '', '')`,
+        [pageId, docId, `slug-${seq}`]
+      )
+    }
   }
   const id = `dom${seq}`
   await testDb().query(
@@ -36,6 +41,12 @@ async function manageable(domainId: string): Promise<boolean> {
 
 describe('listVerifiedCustomDomains — pageManageable', () => {
   beforeEach(async () => {
+    await resetDb()
+  })
+  // The integration server shares this database, and traefik-test polls
+  // its routing table every second (cached 15 s): verified domains left
+  // behind here would show up in the custom-domain suite's provider config.
+  afterAll(async () => {
     await resetDb()
   })
 

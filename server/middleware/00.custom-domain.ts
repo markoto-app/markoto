@@ -4,7 +4,7 @@ import { isKnownCustomHostname, liveCustomDomainForHost, type LiveCustomDomain }
 import { getPublishedPageById, getPublishedPageBySlug } from '../repos/publishedPages'
 import { sendPublishedPage } from '../utils/publish/servePage'
 import { PUBLISHED_FILE_PATH, isPagesHostRequest, pagesHostRedirect, publishPagesSettings, requestHostname } from '../utils/publish/pagesHost'
-import { emailLinkBaseUrl } from '../utils/siteUrl'
+import { isInstanceHost } from '../utils/publish/publicHost'
 import { NOINDEX_VALUE } from '../utils/robots'
 import { PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { resolveSiteIndexable } from '~~/shared/config/instance'
@@ -16,17 +16,10 @@ import { resolveSiteIndexable } from '~~/shared/config/instance'
 // (`/vendor/…`) and robots.txt exist — no app, no API, no sign-in, GET /
 // HEAD only — so user-written HTML never shares an origin with the editor.
 // No session cookie is scoped to these hosts, and none is set on them
-// (`event.context.publicPageHost`, utils/sessionCookie.ts). Runs first (`00.`).
+// (plugins/00-public-page-host.ts seals every response). Runs first (`00.`).
 //
 // With a pages host configured, the app's own origin answers `/p/<slug>`
 // and the published files with a permanent redirect there.
-
-declare module 'h3' {
-  interface H3EventContext {
-    /** Set when the request is for the pages host or a custom domain. */
-    publicPageHost?: 'pages' | 'custom-domain'
-  }
-}
 
 const PASS_THROUGH = [/^\/vendor\//, /^\/favicon\.ico$/]
 
@@ -82,13 +75,6 @@ async function serveCustomDomain(event: H3Event, path: string, host: string, dom
   return sendPublishedPage(event, page, `https://${host}/`)
 }
 
-/** Is `host` one of the instance's own names (not a candidate custom domain)? */
-function isInstanceHost(event: H3Event, host: string): boolean {
-  if (!host.includes('.') || /^[\d.]+$/.test(host)) return true
-  const site = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
-  return site !== null && new URL(site).hostname === host
-}
-
 export default defineEventHandler(async (event) => {
   const hostHeader = getRequestHeader(event, 'host')
   const host = requestHostname(hostHeader)
@@ -99,7 +85,7 @@ export default defineEventHandler(async (event) => {
     return servePagesHost(event, path)
   }
 
-  if (customDomainSettings() && !isInstanceHost(event, host)) {
+  if (customDomainSettings() && !isInstanceHost(host, useRuntimeConfig(event).siteUrl)) {
     const domain = await liveCustomDomainForHost(host)
     if (domain) return serveCustomDomain(event, path, host, domain)
     // A customer's domain that isn't live (pending, dropped, plan lapsed —

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs'
+import { readdirSync, readFileSync } from 'node:fs'
 import { request as httpRequest } from 'node:http'
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
@@ -93,7 +93,9 @@ describe('publish as a web page', () => {
     const img = await anonClient().get(src!)
     expect(img.status).toBe(200)
     expect(img.headers.get('content-type')).toBe('image/png')
-    expect(img.headers.get('cross-origin-resource-policy')).toBe('cross-origin')
+    // Only the page itself loads its files, from the host that serves it.
+    expect(img.headers.get('cross-origin-resource-policy')).toBe('same-origin')
+    expect(img.headers.get('access-control-allow-origin')).toBeNull()
 
     // The document is as private as before.
     const token = await (await anonClient().get(`/api/docs/${doc.docId}/token`)).json() as { token: string | null }
@@ -297,6 +299,9 @@ function onTwin(host: string, path: string, opts: { method?: string, cookie?: st
 // (NUXT_PUBLISH_PAGES_HOST): user-written HTML never shares the app's
 // origin, the app's /p/<slug> redirects there, and the pages host is
 // nothing but published pages — no app, no API, no cookie.
+/** What a browser would never send here (the session cookie is host-only on the app): forged or stale. */
+const STALE_COOKIES = 'nuxt-session=stale; markoto-anon=x; ypad_locale=de'
+
 describe('publish on a separate pages host', () => {
   const appHost = new URL(TEST_BILLING_OFF_BASE_URL).host
 
@@ -337,7 +342,7 @@ describe('publish on a separate pages host', () => {
   it('serves the page on the pages host under the published CSP, with no cookie', async () => {
     const { slug, pageId } = await published()
     // A stale session cookie sent to the pages host must not be answered with a fresh one.
-    const page = await onTwin(TEST_PUBLISH_PAGES_HOST, `/p/${slug}`, { cookie: 'nuxt-session=stale; markoto-anon=x' })
+    const page = await onTwin(TEST_PUBLISH_PAGES_HOST, `/p/${slug}`, { cookie: STALE_COOKIES })
     expect(page.status).toBe(200)
     expect(page.body).toContain('seven.</p>')
     expect(page.body).not.toMatch(/<script/i)
@@ -348,7 +353,7 @@ describe('publish on a separate pages host', () => {
 
     // Its images load from the same host, same-origin only.
     const src = new RegExp(`src="(/api/published/${pageId}/files/[^"]+)"`).exec(page.body)![1]!
-    const img = await onTwin(TEST_PUBLISH_PAGES_HOST, src, { cookie: 'nuxt-session=stale' })
+    const img = await onTwin(TEST_PUBLISH_PAGES_HOST, src, { cookie: STALE_COOKIES })
     expect(img.status).toBe(200)
     expect(img.headers['content-type']).toBe('image/png')
     expect(img.headers['cross-origin-resource-policy']).toBe('same-origin')
@@ -363,13 +368,35 @@ describe('publish on a separate pages host', () => {
   it('the pages host serves nothing of the app', async () => {
     const { slug } = await published()
     for (const path of ['/', '/api/health', '/api/_auth/session', '/d/x', '/pricing', '/_nuxt/x.js', '/auth/github', '/api/internal/traefik/custom-domains', '/p/', '/p/no-such-page', `/p/${slug}/x`]) {
-      const res = await onTwin(TEST_PUBLISH_PAGES_HOST, path, { cookie: 'nuxt-session=stale' })
+      const res = await onTwin(TEST_PUBLISH_PAGES_HOST, path, { cookie: STALE_COOKIES })
       expect(res.status, path).toBe(404)
       expect(res.headers['set-cookie'], path).toBeUndefined()
     }
     for (const method of ['POST', 'PUT', 'PATCH', 'DELETE']) {
-      expect((await onTwin(TEST_PUBLISH_PAGES_HOST, `/p/${slug}`, { method })).status, method).toBe(404)
-      expect((await onTwin(TEST_PUBLISH_PAGES_HOST, '/api/_auth/session', { method })).status, method).toBe(404)
+      for (const path of [`/p/${slug}`, '/api/_auth/session', '/_nuxt/x.js']) {
+        const res = await onTwin(TEST_PUBLISH_PAGES_HOST, path, { method, cookie: STALE_COOKIES })
+        expect(res.status, `${method} ${path}`).toBe(404)
+        expect(res.headers['set-cookie'], `${method} ${path}`).toBeUndefined()
+      }
+    }
+  })
+
+  it('no response on the pages host carries a cookie, whoever answers it', async () => {
+    const { pageId } = await published()
+    // Answered by Nitro's static-asset handler (before any middleware), by
+    // a handler's own error, or as a page — never with a cookie.
+    const asset = readdirSync('.output/public/_nuxt').find(f => f.endsWith('.js'))!
+    const cases: Array<[string, number]> = [
+      [`/_nuxt/${asset}`, 200],
+      ['/favicon.ico', 200],
+      ['/robots.txt', 200],
+      [`/api/published/${pageId}/files/nothing.png`, 404],
+      ['/api/published/not-a-page-id/files/x.png', 404]
+    ]
+    for (const [path, status] of cases) {
+      const res = await onTwin(TEST_PUBLISH_PAGES_HOST, path, { cookie: STALE_COOKIES })
+      expect(res.status, path).toBe(status)
+      expect(res.headers['set-cookie'], path).toBeUndefined()
     }
   })
 })
