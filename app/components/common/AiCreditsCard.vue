@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { TOPUP_PACKS, TOPUP_VALIDITY_MONTHS, type Currency, type TopupPackId } from '~~/shared/config/pricing'
-import { formatPrice } from '~/utils/pricing'
-import { formatUsd } from '~/utils/workspaceBilling'
-import type { CreditBalanceView } from '~/utils/aiCredits'
+import { formatPrice } from '~/utils/billing/pricing'
+import { formatUsd } from '~/utils/billing/workspaceBilling'
+import type { CreditBalanceView } from '~/utils/billing/aiCredits'
 
 // AI credit top-ups (WP4): balance, the packs, and past purchases. Used
 // on the profile page (personal, Pro) and the workspace billing tab (Team

@@ -5,7 +5,7 @@ import { mountSuspended, mockNuxtImport, registerEndpoint } from '@nuxt/test-uti
 import { flushPromises } from '@vue/test-utils'
 import { DocumentNewDocumentDialog } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { TEMPLATES } from '~~/shared/templates'
 
 // The new-document dialog keeps only the title in view: the template

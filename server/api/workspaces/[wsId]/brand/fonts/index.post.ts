@@ -7,7 +7,7 @@ import { appendAuditEvent } from '../../../../../repos/audit'
 import { DuplicateError } from '../../../../../repos/errors'
 import { AUDIT_WORKSPACE_BRAND_ASSET_ADDED } from '../../../../../legal/auditActions'
 import { BRAND_FONT_FAMILY_RE, BRAND_FONT_MAX_BYTES, BRAND_FONTS_PER_WORKSPACE } from '~~/shared/config/brandKit'
-import { selfHostedFont } from '~~/shared/utils/themeFonts'
+import { selfHostedFont } from '~~/shared/utils/theme/themeFonts'
 
 // POST /api/workspaces/:wsId/brand/fonts — upload one font file (WP10).
 // Multipart: `file` (WOFF2 / WOFF / TTF), `licence` = "true" (the admin

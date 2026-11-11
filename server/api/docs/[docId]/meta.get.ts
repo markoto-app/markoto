@@ -4,7 +4,7 @@ import { documents } from '../../../db/schema'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 import { renderTemplate } from '../../../utils/documents/templateRenderer'
-import { canDownload, docStateOf, decideTokenAccess } from '../../../../shared/utils/docPermissions'
+import { canDownload, docStateOf, decideTokenAccess } from '../../../../shared/utils/documents/docPermissions'
 
 // GET /api/docs/:docId/meta — document metadata.
 //

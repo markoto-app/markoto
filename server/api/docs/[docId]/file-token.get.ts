@@ -1,5 +1,5 @@
 import { getDocWithActorRole } from '../../../repos/documents'
-import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 import { mintFileAccessToken } from '../../../utils/storage/fileAccessToken'
 

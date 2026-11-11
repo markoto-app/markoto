@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { AiConfirmationRequest } from '~/composables/useAI'
+import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 
 // Inline "Allow / Deny" card above the prompt bar. Shown to the person
 // who started the AI session — and only to them (the request arrives

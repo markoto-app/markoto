@@ -1,6 +1,6 @@
 import { normalizeCustomHostname } from '~~/shared/config/customDomains'
 import { PUBLISHED_PAGE_PREFIX, PUBLISH_SLUG_RE } from '~~/shared/config/publish'
-import { isTestModeEnabled } from '~~/shared/utils/testMode'
+import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
 
 // The separate hostname published pages are served from

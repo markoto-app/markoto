@@ -3,7 +3,7 @@
 // The drop-cap wrapper works on parsed DOM (a `<template>`), so it runs
 // under a DOM environment; jsdom for parity with the XSS suite.
 import { describe, expect, test } from 'vitest'
-import { DROPCAP_MIN_CHARS, wrapFirstLetterAsDropCap } from '../../app/utils/dropcapWrap'
+import { DROPCAP_MIN_CHARS, wrapFirstLetterAsDropCap } from '../../app/utils/preview/dropcapWrap'
 
 // A drop cap only goes on an opening paragraph long enough to sit beside
 // it (DROPCAP_MIN_CHARS). Most cases below are about WHERE the cap goes,

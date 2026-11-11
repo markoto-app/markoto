@@ -1,6 +1,6 @@
 import type { H3Event } from 'h3'
 import { getRequestHeader, getQuery } from 'h3'
-import { verifyJwtWithRotation } from '../../../shared/utils/secrets'
+import { verifyJwtWithRotation } from '../../../shared/utils/security/secrets'
 
 // Accepts a Y.js connection JWT as an HTTP request parameter and checks
 // its `docId` claim against the doc being accessed. This is the only

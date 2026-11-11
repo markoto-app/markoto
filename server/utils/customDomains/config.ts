@@ -1,4 +1,4 @@
-import { isTestModeEnabled } from '~~/shared/utils/testMode'
+import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 
 // Instance configuration of custom domains, read per call so tests
 // can stub it. The feature is on only when the operator names the host

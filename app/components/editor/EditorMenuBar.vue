@@ -6,7 +6,7 @@ import {
   toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment,
   insertBlock, insertFootnote, insertAlert, insertMath, insertDiagram,
   insertToc, insertPageBreak, insertDefinitionList
-} from '~/utils/editorCommands'
+} from '~/utils/editor/editorCommands'
 
 /**
  * Top-level menu bar — Google-Docs-style. Replaces the assortment of
@@ -110,7 +110,7 @@ const { copy: copyToClipboard } = useClipboard()
 // ── Editor command helpers — delegate to shared utils so menu and
 // toolbar produce identical output (smart toggle, whitespace trim,
 // prefix replacement instead of dumb prepend). See
-// `app/utils/editorCommands.ts`.
+// `app/utils/editor/editorCommands.ts`.
 
 function call(fn: (v: EditorView) => void) {
   if (!props.view || props.isReadOnly) return

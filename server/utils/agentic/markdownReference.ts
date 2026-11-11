@@ -17,7 +17,7 @@
  * Every claim below has been verified against the live render pipeline
  * by `scripts/audit-markdown-pipeline.mjs` — that script runs the full
  * markdown-it + every plugin + DOMPurify chain (identical config to
- * `app/utils/renderMarkdown.ts`) and prints both raw and sanitized
+ * `app/utils/markdown/renderMarkdown.ts`) and prints both raw and sanitized
  * output for every case. Rules for edits to this file:
  *   1. Add the syntax case to the audit script first.
  *   2. Run `bun scripts/audit-markdown-pipeline.mjs` and confirm the

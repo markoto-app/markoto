@@ -23,8 +23,8 @@ import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL } from '../setup/env'
-import { defaultTheme } from '../../../shared/utils/defaultTheme'
-import { THEME_PRESETS } from '../../../shared/utils/themePresets'
+import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
 
 // Insert a Y.Doc row with REAL bytes. The renderer replays this back into

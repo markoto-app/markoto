@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { insertTable } from '~/utils/editorCommands'
+import { insertTable } from '~/utils/editor/editorCommands'
 import TableSizePicker from './TableSizePicker.vue'
 import RightPanelHost from './RightPanelHost.vue'
 import MobileTabBar from './MobileTabBar.vue'
 import EditorCommandsPanel from './EditorCommandsPanel.vue'
 import type { TabName } from './tabBarTypes'
-import { useProvideComments } from '~/composables/useComments'
-import type { CommentRange } from '~/utils/commentDecorations'
-import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
-import { customCssForPlan } from '~~/shared/utils/themePresets'
-import { applyBrandLock } from '~~/shared/utils/brandLock'
+import { useProvideComments } from '~/composables/comments/useComments'
+import type { CommentRange } from '~/utils/comments/commentDecorations'
+import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
+import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import type { DocTheme } from '~~/shared/types/theme'
 
 const props = defineProps<{
@@ -72,7 +72,7 @@ const {
 //
 // A locked workspace design (brand kit, WP10) replaces everything but the
 // document's cover text — same rule as the server renderer
-// (shared/utils/brandLock.ts).
+// (shared/utils/theme/brandLock.ts).
 const renderTheme = computed(() => {
   const base = applyBrandLock(theme.value as DocTheme, brandLockedTheme.value as DocTheme | null)
   const css = customCssForPlan(base.customCss, customCssAllowed.value)
@@ -396,10 +396,10 @@ async function exportPdf() {
 }
 
 // The file carries the theme + document properties as YAML frontmatter
-// (shared/utils/markdownFrontmatter.ts) so importing it restores them.
+// (shared/utils/markdown/markdownFrontmatter.ts) so importing it restores them.
 async function exportMarkdown() {
   if (refuseDownload()) return
-  const { buildMarkdownExport } = await import('~~/shared/utils/markdownFrontmatter')
+  const { buildMarkdownExport } = await import('~~/shared/utils/markdown/markdownFrontmatter')
   const content = buildMarkdownExport(textContent.value, {
     title: title.value,
     description: description.value,

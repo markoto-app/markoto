@@ -13,7 +13,7 @@ import {
   createAnonChallenge,
   deriveAltchaSecrets
 } from '../../../server/utils/anonGate/altcha'
-import { encodeAltchaPayload } from '../../../app/utils/altchaSolver'
+import { encodeAltchaPayload } from '../../../app/utils/platform/altchaSolver'
 
 // Anonymous document creation through the gate (server/utils/anonGate/):
 // terms acceptance + a fresh, single-use ALTCHA solution, recorded on the

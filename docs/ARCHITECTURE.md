@@ -94,7 +94,7 @@ Details: `server/utils/agentic/AGENTS.md`, `server/mcp/AGENTS.md`, [`docs/AI-MOD
 
 ## Preview, themes and PDF
 
-The preview is a paged (A4/Letter) view rendered inside a same-origin `srcdoc` iframe by paged.js. One function, `themeToCss(theme)`, compiles the document theme into the CSS that drives both the live preview and the server-rendered PDF; markdown is rendered by one markdown-it + DOMPurify pipeline (`app/utils/renderMarkdown.ts`). PDF export asks the renderer sidecar to load the internal print page and print it; there is deliberately no silent fallback to browser printing. Details: `app/utils/AGENTS.md`.
+The preview is a paged (A4/Letter) view rendered inside a same-origin `srcdoc` iframe by paged.js. One function, `themeToCss(theme)`, compiles the document theme into the CSS that drives both the live preview and the server-rendered PDF; markdown is rendered by one markdown-it + DOMPurify pipeline (`app/utils/markdown/renderMarkdown.ts`). PDF export asks the renderer sidecar to load the internal print page and print it; there is deliberately no silent fallback to browser printing. Details: `app/utils/AGENTS.md`.
 
 ## Workspaces and the knowledge base
 

@@ -4,7 +4,7 @@
 // files, image storage — and, in a Team / Business workspace, their AI
 // spend on the shared budget this period. No activity times: this is
 // usage, not monitoring. Server: `server/api/workspaces/[wsId]/usage.get.ts`.
-import { formatBytes } from '~/utils/usageMeter'
+import { formatBytes } from '~/utils/billing/usageMeter'
 
 interface UsageRow {
   userId: number

@@ -31,7 +31,7 @@
 // In dev (`buildId === 'dev'`) the poll is effectively a no-op — dev keeps
 // the same id across requests, so no mismatch is possible.
 //
-// All state-machine logic lives in `app/utils/versionCheckController.ts`
+// All state-machine logic lives in `app/utils/platform/versionCheckController.ts`
 // so it's unit-testable without booting Nuxt; this plugin is just the
 // glue (toast + $fetch + $pwa).
 
@@ -45,7 +45,7 @@ import type { PwaInjection } from '@vite-pwa/nuxt/dist/runtime/plugins/types.js'
 import {
   createVersionCheckController,
   type VersionCheckPromptHandlers
-} from '../utils/versionCheckController'
+} from '../utils/platform/versionCheckController'
 
 type Pwa = UnwrapNestedRefs<PwaInjection>
 

@@ -2,7 +2,7 @@ import { getDoc, getDocWithActorRole } from '../../../repos/documents'
 import { deleteDocument } from '../../../utils/documents/documentLifecycle'
 import { appendAuditEvent } from '../../../repos/audit'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../../../utils/auth/anonCreator'
-import { docStateOf, decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideDocDelete, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 
 // Delete a document. Authorisation is decided by `decideDocDelete`:
 //   - anonymous doc (no owner, no workspace) → only the browser that

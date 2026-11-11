@@ -1,4 +1,4 @@
-import { verifyJwtWithRotation } from '../../shared/utils/secrets'
+import { verifyJwtWithRotation } from '../../shared/utils/security/secrets'
 import type { SessionJwtPayload } from '../../shared/contracts/jwt'
 import { captureMessage } from './sentry'
 import { readDocNotBefore } from './doc-not-before'
@@ -20,7 +20,7 @@ import { readDocNotBefore } from './doc-not-before'
 //     the change (doc-not-before.ts).
 //   - Rotation: the app still issues against the current secret; we accept
 //     both current + previous during the rotation window. See
-//     docs/SECRETS-ROTATION.md and shared/utils/secrets.ts.
+//     docs/SECRETS-ROTATION.md and shared/utils/security/secrets.ts.
 
 // The verifier extends the shared `SessionJwtPayload` with an OPTIONAL
 // `scope` claim — the SessionJwtPayload contract intentionally omits

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   createVersionCheckController,
   type VersionCheckPromptHandlers
-} from '../../app/utils/versionCheckController'
+} from '../../app/utils/platform/versionCheckController'
 
 // Pure controller test — no Nuxt boot, no `$fetch`, no toast renderer.
 // We stub the three dependencies the controller needs (fetch, reload,

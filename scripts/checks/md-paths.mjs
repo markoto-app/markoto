@@ -55,7 +55,7 @@ function exists(doc, p) {
   const clean = p.replace(/\/$/, '')
   const has = c => fileSet.has(c) || dirSet.has(c)
   if (has(clean)) return true
-  // Import specifiers drop the extension (`shared/utils/secrets`).
+  // Import specifiers drop the extension (`shared/utils/security/secrets`).
   if (!EXT.test(clean) && ['.ts', '.vue', '.mjs', '.js', '.json'].some(e => has(clean + e))) return true
   for (let d = dirname(doc); ; d = dirname(d)) {
     if (d === '.') break

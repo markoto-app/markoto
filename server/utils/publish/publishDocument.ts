@@ -11,7 +11,7 @@ import {
   getPublishedPageSummary, insertPublishedPage, isSlugTaken, updatePublishedSnapshot,
   type PublishedPageSummary
 } from '../../repos/publishedPages'
-import { HLJS_THEMES, hljsTheme } from '~~/shared/utils/hljsAssets'
+import { HLJS_THEMES, hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
 import { PUBLISH_ERROR_CODES, PUBLISH_MAX_SNAPSHOT_CHARS, slugFromTitle } from '~~/shared/config/publish'
 import { sanitizeSnapshotHtml } from './sanitizeSnapshot'
 import { collectSnapshotAssets, publishedObjectKey, publishedPrefix, rewriteSnapshotAssets, type SnapshotAssetRefs } from './snapshotAssets'

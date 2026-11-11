@@ -1,9 +1,9 @@
-import { VENDOR_BASE } from '../../../shared/utils/vendorAssets'
-import { FONT_STYLESHEET_BASE } from '../../../shared/utils/themeFonts'
+import { VENDOR_BASE } from '../../../shared/utils/vendor/vendorAssets'
+import { FONT_STYLESHEET_BASE } from '../../../shared/utils/theme/themeFonts'
 
 /**
  * Response headers for the same-origin third-party assets under /vendor/
- * (shared/utils/vendorAssets.ts), or null for any other path.
+ * (shared/utils/vendor/vendorAssets.ts), or null for any other path.
  *
  *   - `Access-Control-Allow-Origin: *` — the live preview / print iframes
  *     run in an opaque origin, so for them even our own origin is

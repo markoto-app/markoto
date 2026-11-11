@@ -1,5 +1,5 @@
 import { getDocWithActorRole } from '../../../repos/documents'
-import { isEffectiveDocOwner } from '../../../../shared/utils/docPermissions'
+import { isEffectiveDocOwner } from '../../../../shared/utils/documents/docPermissions'
 import { listMembersForDoc } from '../../../repos/workspaceMembers'
 
 // Access roster for a doc. Used by the in-doc presence bar to render

@@ -10,7 +10,7 @@
 // list response anyway. Saving the round-trip here keeps the
 // expansion instant.
 
-import { safeLinkUrl } from '~/utils/activityFeedHelpers'
+import { safeLinkUrl } from '~/utils/collab/activityFeedHelpers'
 
 interface Source { title: string, uri: string }
 interface FetchImage { url: string, description?: string }

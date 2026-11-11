@@ -1,4 +1,4 @@
-import { matchesCurrentOrPrevious } from '../../../../shared/utils/internalSecret'
+import { matchesCurrentOrPrevious } from '../../../../shared/utils/security/internalSecret'
 import { traefikProviderSettings } from '../../../utils/customDomains/config'
 import { liveCustomDomains } from '../../../utils/customDomains/routing'
 import { buildTraefikDynamicConfig } from '../../../utils/customDomains/traefikConfig'

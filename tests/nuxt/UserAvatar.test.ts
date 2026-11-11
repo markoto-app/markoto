@@ -3,8 +3,8 @@ import { describe, it, expect } from 'vitest'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 import { CommonUserAvatar } from '#components'
-import { avatarColors } from '~/utils/userAvatar'
-import { renderAvatarDataUri } from '~/utils/userAvatarRender'
+import { avatarColors } from '~/utils/collab/userAvatar'
+import { renderAvatarDataUri } from '~/utils/collab/userAvatarRender'
 
 async function settle() {
   for (let i = 0; i < 10; i++) {

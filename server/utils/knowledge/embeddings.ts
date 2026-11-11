@@ -11,7 +11,7 @@ import {
   resolveRequestShape,
   type EmbeddingRequestShape,
   type EmbeddingTaskType
-} from '../../../shared/utils/embeddingConfig'
+} from '../../../shared/utils/runtime/embeddingConfig'
 
 /**
  * Embeddings wrapper for the workspace knowledge base.
@@ -30,7 +30,7 @@ import {
  *   - Pin model + dimensionality from runtimeConfig so all calls produce
  *     vectors in one space (per-call drift breaks `1 - cosineDistance`).
  *   - Provider-specific request parameters (Jina `task` hint, OpenAI
- *     `dimensions`) are decided in `shared/utils/embeddingConfig.ts`: sent
+ *     `dimensions`) are decided in `shared/utils/runtime/embeddingConfig.ts`: sent
  *     for Jina models, opt-in for everything else.
  *   - Apply the same per-input character cap (defends against pre-chunked
  *     input that exceeds the model's token window).

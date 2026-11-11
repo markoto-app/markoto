@@ -18,8 +18,8 @@ import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_INTERNAL_SECRET } from '../setup/env'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/theme/themePresets'
 import { mintRenderJwt } from '~~/tests/helpers/jwt'
 
 const OFF = TEST_BILLING_OFF_BASE_URL

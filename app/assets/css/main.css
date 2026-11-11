@@ -309,7 +309,7 @@ body { min-height: 100svh; }
 }
 
 /* The document preview now renders through paged.js inside `.paged-doc`
-   (see shared/utils/themeToCss.ts). The old `.prose` styles have been
+   (see shared/utils/theme/themeToCss.ts). The old `.prose` styles have been
    removed — theme CSS is the single source of truth for document
    presentation, shared between the live preview and the PDF print output. */
 

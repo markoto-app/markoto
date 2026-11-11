@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { fetchCompareData } from '~/utils/marketingPage'
+import { fetchCompareData } from '~/utils/marketing/marketingPage'
 
 // Trademark note at the end of a comparison page:
 //

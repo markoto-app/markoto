@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { compareTable, formatCheckedDate, oldestCheck } from '~~/shared/seo/compare'
-import { fetchCompareData } from '~/utils/marketingPage'
+import { fetchCompareData } from '~/utils/marketing/marketingPage'
 
 // Feature table of a comparison page, built from its claim data
 // (content/compare/<competitor>.yml):

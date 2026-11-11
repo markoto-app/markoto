@@ -4,7 +4,7 @@ import { mountSuspended, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { defineComponent, h, nextTick } from 'vue'
 import { CommonLegalFooter, CompareTable, Faq, FlowStrip, MarketingHeader, NuxtPage, TourClip } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
-import { fetchMarketingPage } from '~/utils/marketingPage'
+import { fetchMarketingPage } from '~/utils/marketing/marketingPage'
 
 // Marketing content pages (pages/[...marketing].vue): 404 for unknown
 // slugs (fetchMarketingPage → null) and off the marketing site (the

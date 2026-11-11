@@ -2,8 +2,8 @@
 // The workspace brand kit (WP10), admins: fonts and logos every document
 // of the workspace can use (theme panel), the locked workspace design and
 // the workspace templates. Server: `server/api/workspaces/[wsId]/brand/`.
-import { formatBytes } from '~/utils/usageMeter'
-import { brandFontFaceCss } from '~~/shared/utils/brandFonts'
+import { formatBytes } from '~/utils/billing/usageMeter'
+import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
 import type { BrandFont, BrandFontFormat } from '~~/shared/config/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
 

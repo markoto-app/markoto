@@ -2,7 +2,7 @@
   "name": "markoto-shared",
   "private": true,
   "type": "module",
-  "comment": "Self-contained package for code shared between Nuxt and sync-server. Declaring deps here means Bun's standard module resolution from `shared/utils/secrets.ts` finds them in `shared/node_modules/` (parent walk-up). Without this, the sync image — which has no top-level node_modules at /app — fails to import `jsonwebtoken` from secrets.ts at startup. The Nuxt side resolves the same import via /app/node_modules; both work because Bun follows the standard Node algorithm in both directions.",
+  "comment": "Self-contained package for code shared between Nuxt and sync-server. Declaring deps here means Bun's standard module resolution from `shared/utils/security/secrets.ts` finds them in `shared/node_modules/` (parent walk-up). Without this, the sync image — which has no top-level node_modules at /app — fails to import `jsonwebtoken` from secrets.ts at startup. The Nuxt side resolves the same import via /app/node_modules; both work because Bun follows the standard Node algorithm in both directions.",
   "dependencies": {
     "jsonwebtoken": "^9.0.3",
     "zod": "^4.6.7"

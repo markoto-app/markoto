@@ -15,7 +15,7 @@
 //
 // Design (see docs/SECURITY-HARDENING.md §2):
 //   - script-src: 'self' + the response nonce. paged.js + Mermaid are
-//     same-origin /vendor/ files (shared/utils/vendorAssets.ts), still
+//     same-origin /vendor/ files (shared/utils/vendor/vendorAssets.ts), still
 //     SRI-locked at the tag. No 'unsafe-inline' (inline event handlers
 //     and injected <script> never run), no 'unsafe-eval'. 'wasm-unsafe-eval' only on the app policy:
 //     @nuxt/content compiles its SQLite WASM for client-side docs queries.
@@ -29,7 +29,7 @@
 //     visitors' browsers and the renderer talk to this origin (+ S3, sync,
 //     Sentry when configured) only.
 
-import { VENDOR_BASE } from '../../../shared/utils/vendorAssets'
+import { VENDOR_BASE } from '../../../shared/utils/vendor/vendorAssets'
 
 /** Origin of an absolute http(s)/ws(s) URL, or null. */
 function urlOrigin(value: string | undefined | null, schemes: readonly string[] = ['http:', 'https:']): string | null {
@@ -134,7 +134,7 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  *   - `/markoto-logos/…` — the bundled brand marks the default theme puts
  *     on every cover page (`brand.logoUrl`). Public static files.
  *   - `/vendor/…` — paged.js, Mermaid, KaTeX CSS + fonts, highlight.js
- *     themes and the web fonts (shared/utils/vendorAssets.ts). Public,
+ *     themes and the web fonts (shared/utils/vendor/vendorAssets.ts). Public,
  *     versioned static files; they also get `Access-Control-Allow-Origin: *`
  *     (server/utils/rendering/vendorAssetHeaders.ts) because the iframe loads them
  *     in CORS mode (SRI, fonts).

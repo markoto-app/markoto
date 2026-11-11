@@ -39,8 +39,8 @@ import { Pool } from 'pg'
 import OpenAI from 'openai'
 import { buildEmbeddingsConfig, embedDocuments, embeddingVersionTag } from '../server/utils/knowledge/embeddings'
 import { runReembed } from '../server/utils/knowledge/reembedKnowledge'
-import { postgresUrlFromEnv } from '../shared/utils/connectionStrings'
-import { resolvePostgresSsl } from '../shared/utils/postgresSsl'
+import { postgresUrlFromEnv } from '../shared/utils/runtime/connectionStrings'
+import { resolvePostgresSsl } from '../shared/utils/runtime/postgresSsl'
 import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 function flag(argv: string[], name: string): string | undefined {

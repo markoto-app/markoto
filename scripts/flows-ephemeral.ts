@@ -38,7 +38,7 @@ const NUXT_PORT = 3001
 // screenshots are documentation. `*.localhost` is loopback by definition
 // (RFC 6761 — Chromium and systemd-resolved / Bun resolve it to 127.0.0.1
 // without any hosts entry) and still counts as a loopback NUXT_SITE_URL for
-// the TEST_MODE guard (shared/utils/testMode.ts), so nothing is faked: the
+// the TEST_MODE guard (shared/utils/security/testMode.ts), so nothing is faked: the
 // URL in a frame is the URL the browser really loaded.
 const NUXT_URL = `http://markoto.localhost:${NUXT_PORT}`
 

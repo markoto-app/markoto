@@ -1,4 +1,4 @@
-import { validateSecrets } from '../../shared/utils/validateSecrets'
+import { validateSecrets } from '../../shared/utils/security/validateSecrets'
 
 // Fail-fast at startup. Must be imported before ./auth and ./internal-http
 // so the existence/length check runs before those modules grab their own

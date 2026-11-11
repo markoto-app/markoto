@@ -1,5 +1,5 @@
 import { DocThemeSchema, type DocTheme } from '~~/shared/types/theme'
-import { formatCustomCssIssues, sanitizeCustomCss } from '~~/shared/utils/customCss'
+import { formatCustomCssIssues, sanitizeCustomCss } from '~~/shared/utils/theme/customCss'
 import { coerceThemePatch, mergeTheme } from '../ai/aiToolAdapter'
 import { DESIGN_IMPORT_BASE_THEME } from './baseTheme'
 import type { DesignThemePatch } from './prompt'

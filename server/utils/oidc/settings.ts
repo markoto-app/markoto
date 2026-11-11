@@ -17,7 +17,7 @@
 //
 // Pure — takes an env-shaped record so every test tier can drive it.
 
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 
 type Env = Record<string, string | undefined>
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { languageBadge, resolveLanguageDisplayName } from '~~/shared/languages'
 
-import { workspaceDocPermissions } from '~/utils/docRowActions'
+import { workspaceDocPermissions } from '~/utils/workspace/docRowActions'
 
 // Doc list for the workspace detail page. Every member gets a row menu
 // (Open / Open in new tab); the rest follows `docRowActionGroups`:

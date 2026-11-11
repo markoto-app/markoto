@@ -5,7 +5,7 @@ import {
   isExpandable as _isExpandable,
   expansionToggleLabelKey,
   type FilterKey
-} from '~/utils/activityFeedHelpers'
+} from '~/utils/collab/activityFeedHelpers'
 
 // Lazy-load the per-kind expansion components so their deps don't
 // ship until a user actually expands a card.
@@ -366,7 +366,7 @@ function agentBadgeText(entry: ActivityEntry): string {
 const expandedIds = ref<Set<number>>(new Set())
 
 // Branching for expansion eligibility lives in the pure helper —
-// see `app/utils/activityFeedHelpers.ts`. Keeps the SFC short AND
+// see `app/utils/collab/activityFeedHelpers.ts`. Keeps the SFC short AND
 // gives us a single test target for "every action kind maps to the
 // right behavior." This wrapper just adapts the shared type.
 function isExpandable(entry: ActivityEntry): boolean {

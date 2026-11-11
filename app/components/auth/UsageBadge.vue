@@ -23,7 +23,7 @@
 // plus the own-key note, so the limits stay reachable for them too.
 
 import type { PlanName } from '~~/shared/config/tiers'
-import { useAiCredits } from '~/composables/useAiCredits'
+import { useAiCredits } from '~/composables/ai/useAiCredits'
 
 const { t, locale } = useI18n()
 const router = useRouter()

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
-import { docRowActionGroups, type DocRowAction } from '~/utils/docRowActions'
+import { docRowActionGroups, type DocRowAction } from '~/utils/workspace/docRowActions'
 
 // The "…" menu of a document row on the dashboard and the workspace page.
 // Which actions show is decided by `docRowActionGroups` (permission

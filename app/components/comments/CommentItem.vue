@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MentionPill from '~/components/comments/MentionPill.vue'
 import AiMentionPill from '~/components/comments/AiMentionPill.vue'
-import { parseCommentBody } from '~/utils/commentBody'
+import { parseCommentBody } from '~/utils/comments/commentBody'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
 
 const props = withDefaults(defineProps<{

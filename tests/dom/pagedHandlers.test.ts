@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from 'vitest'
-import { PAGED_HANDLERS_SCRIPT } from '../../app/utils/pagedHandlers'
+import { PAGED_HANDLERS_SCRIPT } from '../../app/utils/preview/pagedHandlers'
 
 // The handlers reach the live preview as the STRINGIFIED function (an
 // inline script in the opaque-origin iframe), so this suite evaluates

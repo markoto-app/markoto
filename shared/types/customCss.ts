@@ -2,10 +2,10 @@
  * Types + limits for a document's custom CSS (`theme.customCss`).
  *
  * Kept free of any `css-tree` import so `shared/types/theme.ts` (the Zod
- * schema) and `shared/utils/themeToCss.ts` can reference them without
+ * schema) and `shared/utils/theme/themeToCss.ts` can reference them without
  * pulling the CSS parser into every bundle. The parser-backed sanitizer
- * itself lives in `shared/utils/customCss.ts`; browser code loads it
- * lazily through `app/utils/customCssLoader.ts`.
+ * itself lives in `shared/utils/theme/customCss.ts`; browser code loads it
+ * lazily through `app/utils/preview/customCssLoader.ts`.
  */
 
 /** Hard cap on stored custom CSS, in UTF-8 bytes. */

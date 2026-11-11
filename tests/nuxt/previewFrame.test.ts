@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { defineComponent, h, ref, computed } from 'vue'
 import { mountSuspended } from '@nuxt/test-utils/runtime'
-import { usePagedPreview } from '~/composables/usePagedPreview'
+import { usePagedPreview } from '~/composables/preview/usePagedPreview'
 import {
   PREVIEW_SANDBOX,
   PRINT_SANDBOX,
@@ -12,13 +12,13 @@ import {
   mayReferenceOwnUploads,
   parseFrameMessage,
   withOwnUploadToken
-} from '~/utils/previewFrame'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/pagedjsAssets'
-import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/mermaidAssets'
+} from '~/utils/preview/previewFrame'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/vendor/pagedjsAssets'
+import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/vendor/mermaidAssets'
 
 // The live preview + print iframes run in an OPAQUE origin (sandbox without
-// allow-same-origin) — see app/utils/previewFrame.ts. These tests pin the
+// allow-same-origin) — see app/utils/preview/previewFrame.ts. These tests pin the
 // host side: the sandbox flags, the srcdoc substitution and the message /
 // URL helpers. The browser-level isolation (no cookie / storage / parent
 // access from inside the preview) is pinned by the Playwright flow

@@ -6,7 +6,7 @@ import { flushPromises } from '@vue/test-utils'
 import { WorkspaceBillingPanel, WorkspaceMembersModal } from '#components'
 import { DEFAULT_PLAN_PRICES, CURRENCIES, type PlanPricesResponse } from '~~/shared/config/pricing'
 import type { H3Event } from 'h3'
-import type { WorkspaceBillingOverview } from '~/utils/workspaceBilling'
+import type { WorkspaceBillingOverview } from '~/utils/billing/workspaceBilling'
 
 // Team / Business workspace billing UI (WP3): the admin billing tab and
 // the invite dialog's "This adds a seat" confirmation.

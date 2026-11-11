@@ -290,7 +290,7 @@ services:
       # site URL. Staging renders https://markoto.app.
       - NUXT_CANONICAL_SITE_URL=${NUXT_CANONICAL_SITE_URL:-}
       # Number of trusted reverse proxies in front of the app (Traefik = 1).
-      # See shared/utils/clientIp.ts.
+      # See shared/utils/security/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
       # Stripe — only read (and only required at boot, in production) when
       # NUXT_BILLING_ENABLED=true.
@@ -365,7 +365,7 @@ services:
       # container; a managed-Postgres deployment overrides them via .env
       # (POSTGRES_HOST=<cluster-host> POSTGRES_PORT=<port> + the TLS vars
       # below). The Nuxt app composes the URL via
-      # shared/utils/connectionStrings.ts. NOTE: in managed mode the
+      # shared/utils/runtime/connectionStrings.ts. NOTE: in managed mode the
       # in-stack postgres container still runs (compose `include:` can't
       # drop a service) — it sits idle and keeps the depends_on
       # healthcheck satisfied; accepted overhead.
@@ -380,7 +380,7 @@ services:
       - VALKEY_PORT=6379
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
-      # Postgres TLS posture — see docs/DEPLOY.md and shared/utils/postgresSsl.ts.
+      # Postgres TLS posture — see docs/DEPLOY.md and shared/utils/runtime/postgresSsl.ts.
       # Empty PGSSLROOTCERT is fine: prod default is rejectUnauthorized
       # against the system CA bundle. Set it to a bind-mounted PEM path
       # (e.g. /run/secrets/managed_pg_ca.pem) for cert-pin verification.
@@ -538,7 +538,7 @@ services:
       - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
       - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
-      # Production signal for the shared test-mode guard (shared/utils/testMode.ts).
+      # Production signal for the shared test-mode guard (shared/utils/security/testMode.ts).
       - NUXT_SITE_URL=https://${DOMAIN:?DOMAIN required}
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
       - SENTRY_DSN=${SENTRY_DSN}

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app/composables/useLogout'
+import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app/composables/account/useLogout'
 
 // `useLogout`'s pipeline is the only thing standing between a logged-out
 // user and a stale tab acting on their behalf, so the tests here pin

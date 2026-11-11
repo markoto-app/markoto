@@ -1,8 +1,8 @@
 import * as Y from 'yjs'
 import { Pool } from 'pg'
 import { PostgresqlPersistence } from 'y-postgresql'
-import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
-import { resolvePostgresSsl } from '../../shared/utils/postgresSsl'
+import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings'
+import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { captureException } from './sentry'
 
 const DATABASE_URL = postgresUrlFromEnv()

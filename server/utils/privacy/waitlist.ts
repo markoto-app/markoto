@@ -4,7 +4,7 @@ import { getBillingMode } from '../billing/billingMode'
 
 // Paid-plans waitlist helpers (WP3): token minting/hashing, email
 // normalisation, the localised double-opt-in email, and the "is the
-// waitlist open" gate. Pure where possible so `tests/unit/waitlist.test.ts`
+// waitlist open" gate. Pure where possible so `tests/unit/privacy/waitlist.test.ts`
 // can pin the behaviour without a DB.
 
 /** How long a confirm link stays valid; unconfirmed rows are reaped after this. */

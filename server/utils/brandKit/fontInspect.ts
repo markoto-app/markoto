@@ -9,7 +9,7 @@ import type { BrandFontFormat, FontRefusal } from '~~/shared/config/brandKit'
 //   1. Will the font print well? Chromium's PDF backend (Skia) embeds a
 //      variable font (`fvar`) or one with CFF outlines (`OTTO`, `CFF `,
 //      `CFF2`) as Type 3 glyph procedures — the reason the built-in
-//      document fonts are static TrueType cuts (shared/utils/themeFonts.ts).
+//      document fonts are static TrueType cuts (shared/utils/theme/themeFonts.ts).
 //      Those are refused, as are collections (`ttcf`, several fonts in
 //      one file) and fonts whose OS/2 `fsType` forbids embedding
 //      (restricted licence: bit 1).

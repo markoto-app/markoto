@@ -7,7 +7,7 @@ import { createHash, timingSafeEqual } from 'node:crypto'
 //
 // Dependency-free on purpose (node:crypto only): the renderer image is
 // built from `renderer/` alone and carries a byte-identical copy at
-// `renderer/src/internalSecret.ts`, pinned by tests/unit/internalSecret.test.ts.
+// `renderer/src/internalSecret.ts`, pinned by tests/unit/platform/internalSecret.test.ts.
 
 /** Header that carries `INTERNAL_API_SECRET` on internal calls. */
 export const INTERNAL_SECRET_HEADER = 'x-internal-secret'

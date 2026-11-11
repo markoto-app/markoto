@@ -14,7 +14,7 @@ import {
 
 // DB-backed tests for the Personal Access Token verifier. The pure-
 // function bits (token format, header parsing, hash stability, scope
-// membership) are pinned in `tests/unit/mcpAuth.test.ts`; this file
+// membership) are pinned in `tests/unit/mcp/mcpAuth.test.ts`; this file
 // covers the round-trip + cache + lifecycle that requires a real DB
 // and a real Valkey.
 //

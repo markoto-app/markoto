@@ -1,11 +1,11 @@
-import { validateSecrets } from '../../shared/utils/validateSecrets'
+import { validateSecrets } from '../../shared/utils/security/validateSecrets'
 import { isBillingEnabled } from '../utils/billing/billingMode'
 import { stripeStartupErrors } from '../utils/billing/stripeStartupCheck'
 import { oidcRedirectErrors, resolveOidcSettings } from '../utils/oidc/settings'
 import { byokUrlPolicyErrors } from '../utils/aiProviders/config'
 import { legalSurfacesEnabled } from '../utils/platform/instanceConfig'
 import { legalEntityErrors } from '../../shared/legal/entity'
-import { isTestModeEnabled, testModeBootError } from '../../shared/utils/testMode'
+import { isTestModeEnabled, testModeBootError } from '../../shared/utils/security/testMode'
 import { siteUrlErrors } from '../utils/platform/siteUrl'
 import { anonGateEnabled } from '../utils/anonGate/gate'
 import { publishPagesErrors } from '../utils/publish/pagesHost'
@@ -88,7 +88,7 @@ export default defineNitroPlugin(() => {
  * runtimeConfig graph (POSTGRES_*, VALKEY_*); `config.*` for the rest.
  * Postgres + Valkey are atomic parts (user/password/host/port/db) so
  * `.env` never has to carry a composed URL alongside the parts that
- * built it; `shared/utils/connectionStrings.ts` owns the construction.
+ * built it; `shared/utils/runtime/connectionStrings.ts` owns the construction.
  */
 function checkPresenceFields(config: RuntimeCfg, errors: string[]): void {
   const fields: Array<{ name: string, value: unknown }> = [

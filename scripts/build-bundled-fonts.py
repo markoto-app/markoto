@@ -2,7 +2,7 @@
 
 Families that are not on Fontsource (TeX Gyre, Latin Modern; GUST Font
 License) are committed to the repo as WOFF2 subsets and served like every
-other theme font under /vendor/fonts/ (see shared/utils/themeFonts.ts,
+other theme font under /vendor/fonts/ (see shared/utils/theme/themeFonts.ts,
 scripts/lib/vendorAssets.ts). This script is how those files were made;
 run it again only to refresh them:
 

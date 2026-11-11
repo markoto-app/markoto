@@ -12,7 +12,7 @@
 // The scroll choreography is CSS (`animation-range` on view timelines);
 // the helpers below compute those ranges and the generated keyframes for
 // the stage that alternates sides. All pure, so the page and the unit
-// tests (`tests/unit/tourManifest.test.ts`) share them.
+// tests (`tests/unit/seo/tourManifest.test.ts`) share them.
 
 // The zod schema + parser live in ./schema.ts so the page bundle (which
 // only needs these helpers and the types) never ships zod.

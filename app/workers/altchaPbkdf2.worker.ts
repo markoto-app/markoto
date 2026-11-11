@@ -3,5 +3,5 @@
 // worker file, so it runs under `worker-src 'self'` — no CDN, no blob URL,
 // no eval. Protocol (handled by the package): `{type: 'work', challenge,
 // counterStart, counterStep, timeout}` → posts the solution or null;
-// `{type: 'abort'}` stops it. Driven by app/utils/altchaSolver.ts.
+// `{type: 'abort'}` stops it. Driven by app/utils/platform/altchaSolver.ts.
 import 'altcha/workers/pbkdf2'

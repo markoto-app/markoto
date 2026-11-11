@@ -6,13 +6,13 @@ import {
   type Currency,
   type PlanPricesResponse
 } from '~~/shared/config/pricing'
-import { formatPrice, formatPlanBytes } from '~/utils/pricing'
+import { formatPrice, formatPlanBytes } from '~/utils/billing/pricing'
 import {
   formatUsd,
   isPaymentProblem,
   minimumSeats,
   type WorkspaceBillingOverview
-} from '~/utils/workspaceBilling'
+} from '~/utils/billing/workspaceBilling'
 
 // Workspace billing tab (Team / Business, pricing plan WP3). Admins only;
 // the page shows the tab only when billing is on.

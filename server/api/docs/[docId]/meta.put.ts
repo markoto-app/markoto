@@ -4,10 +4,10 @@ import { isAudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 import { assertPlanFeature, resolveDocPlan } from '../../../utils/billing/entitlements'
 import { resolveTemplateId } from '~~/shared/templates'
-import { ownCustomCss } from '~~/shared/utils/themePresets'
+import { ownCustomCss } from '~~/shared/utils/theme/themePresets'
 import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
 import { notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
-import { accessModeTightened } from '../../../../shared/utils/docPermissions'
+import { accessModeTightened } from '../../../../shared/utils/documents/docPermissions'
 
 const DESCRIPTION_MAX_LENGTH = 500
 const TITLE_MAX_LENGTH = 255

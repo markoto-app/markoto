@@ -212,7 +212,7 @@ export default withNuxt(
   {
     name: 'markoto/size-limits-exempt',
     // Data-only modules, generated output and vendored files are long by nature.
-    files: ['shared/utils/themePresets.ts', 'drizzle/**', 'public/**', 'infra/**', 'i18n/**', '.nuxt/**'],
+    files: ['shared/utils/theme/themePresets.ts', 'drizzle/**', 'public/**', 'infra/**', 'i18n/**', '.nuxt/**'],
     rules: { 'max-lines': 'off', 'max-lines-per-function': 'off' }
   },
 

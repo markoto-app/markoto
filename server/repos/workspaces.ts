@@ -1,6 +1,6 @@
 import { and, eq, ne, sql } from 'drizzle-orm'
 import { workspaces, workspaceMembers, documents } from '../db/schema'
-import type { WorkspaceRole } from '../../shared/utils/docPermissions'
+import type { WorkspaceRole } from '../../shared/utils/documents/docPermissions'
 import type { DocTheme } from '~~/shared/types/theme'
 import { useDatabase } from '../utils/platform/database'
 import { NotFoundError } from './errors'

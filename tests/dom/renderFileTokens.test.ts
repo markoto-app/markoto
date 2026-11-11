@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { attachRenderFileTokens, withRenderFileToken, type RenderFileAccess } from '../../app/utils/renderFileTokens'
+import { attachRenderFileTokens, withRenderFileToken, type RenderFileAccess } from '../../app/utils/preview/renderFileTokens'
 
 // The server render page holds a file-access token for the document's own
 // uploads. It must reach exactly those image URLs and nothing else the

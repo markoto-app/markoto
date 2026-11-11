@@ -1,6 +1,6 @@
 import { useDatabasePool } from '../platform/database'
 import { readEmbeddingColumnDims, mismatchMessage, countStoredEmbeddings } from './embeddingColumn'
-import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../../shared/utils/embeddingConfig'
+import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../../shared/utils/runtime/embeddingConfig'
 
 /**
  * Is the knowledge base usable with the current embeddings configuration?

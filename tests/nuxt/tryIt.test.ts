@@ -23,7 +23,7 @@ const md = vi.hoisted(() => ({
   sanitised: vi.fn(async (src: string) => `<p data-sanitised="1">${src.length} chars</p>`)
 }))
 
-vi.mock('../../app/utils/renderMarkdown', () => ({
+vi.mock('../../app/utils/markdown/renderMarkdown', () => ({
   renderTrustedMarkdown: md.trusted,
   renderMarkdown: md.sanitised
 }))

@@ -5,7 +5,7 @@ import { documentComments } from '../../db/schema'
 import { useDatabase } from '../../utils/platform/database'
 import { appendActivity, pruneActivity } from '../../repos/activity'
 import { diffCommentsSnapshot } from '../../utils/documents/commentsSnapshotDiff'
-import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
+import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
 import { requireInternalSecret } from '../../utils/platform/internalRoutes'
 
 // Internal endpoint called by the sync-server on every persisted save

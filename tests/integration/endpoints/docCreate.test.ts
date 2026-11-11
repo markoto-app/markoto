@@ -9,7 +9,7 @@ import {
 } from '../setup/fixtures'
 import { createAnonDoc } from '../setup/anonGate'
 import { INITIAL_CONTENT_MAX_LENGTH } from '../../../shared/config/docCreate'
-import { THEME_PRESETS } from '../../../shared/utils/themePresets'
+import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 
 // POST /api/docs — creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'

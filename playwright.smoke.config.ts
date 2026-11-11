@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from './app/utils/editorTour'
+import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from './app/utils/editor/editorTour'
 
 // Staging/prod SMOKE suite — deliberately separate from the flow-docs
 // system (playwright.config.ts). Flows need TEST_MODE (login shim, AI
@@ -39,7 +39,7 @@ export default defineConfig({
     baseURL: BASE_URL,
     trace: 'on-first-retry',
     video: 'off',
-    // The editor's first-run tour counts as seen (app/utils/editorTour.ts):
+    // The editor's first-run tour counts as seen (app/utils/editor/editorTour.ts):
     // its popover would sit over the controls the specs click.
     storageState: {
       cookies: [],

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import CommentItem from '~/components/comments/CommentItem.vue'
 import CommentComposer from '~/components/comments/CommentComposer.vue'
-import { REPLY_BODY_MAX } from '~/utils/commentBody'
-import type { DerivedComment } from '~/composables/useComments'
-import type { MentionableEntry } from '~/utils/mentionable'
+import { REPLY_BODY_MAX } from '~/utils/comments/commentBody'
+import type { DerivedComment } from '~/composables/comments/useComments'
+import type { MentionableEntry } from '~/utils/comments/mentionable'
 
 const props = withDefaults(defineProps<{
   comment: DerivedComment

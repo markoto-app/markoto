@@ -3,8 +3,8 @@ import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
 import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/themePresets'
-import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/theme/themePresets'
+import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { DEFAULT_TEMPLATE_ID, getTemplate, resolveTemplateId } from '~~/shared/templates'
 
 // Same trick as ThemeEditorPanel — link every picker font's (same-origin)

@@ -10,7 +10,7 @@
 //           (server render, image generation, web search / page fetch).
 //
 // Every file in `server/mcp/tools/` must have an entry
-// (`tests/unit/mcpToolClasses.test.ts`); an unknown name is treated as
+// (`tests/unit/mcp/mcpToolClasses.test.ts`); an unknown name is treated as
 // `write`, so a tool added without a class is never free by accident.
 
 export type McpToolClass = 'read' | 'write' | 'cost'

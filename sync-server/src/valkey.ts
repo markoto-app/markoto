@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import { valkeyClientConfigFromEnv } from '../../shared/utils/connectionStrings'
+import { valkeyClientConfigFromEnv } from '../../shared/utils/runtime/connectionStrings'
 
 // Singleton ioredis client for the sync-server. Mirrors the pattern in
 // `server/utils/platform/valkey.ts` (the Nuxt app's client) — the sync-server is

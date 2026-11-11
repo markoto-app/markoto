@@ -19,7 +19,7 @@ import { getPooledWorkspace } from '../billing/workspaceBilling'
 import { resolveWorkspacePlan } from '../billing/entitlements'
 import { getTiers } from '../billing/tierConfig'
 import { wouldExceed } from '~~/shared/config/tiers'
-import type { MembershipRole } from '~~/shared/utils/docPermissions'
+import type { MembershipRole } from '~~/shared/utils/documents/docPermissions'
 
 export class SsoJoinRefused extends Error {
   constructor(public readonly code: 'sso/no-seat' | 'sso/member-limit', message: string) {

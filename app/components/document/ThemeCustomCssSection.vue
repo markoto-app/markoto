@@ -5,7 +5,7 @@ import {
   customCssByteLength,
   type CustomCssIssue
 } from '~~/shared/types/customCss'
-import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
+import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/preview/customCssLoader'
 
 /**
  * "Custom CSS" section of the theme panel. A small CodeMirror 6 editor

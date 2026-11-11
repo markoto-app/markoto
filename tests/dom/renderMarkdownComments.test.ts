@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown } from '../../app/utils/renderMarkdown'
+import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
 
 // Comment-stripping behaviour for `<!-- ... -->` in the markdown
 // pipeline. The contract:

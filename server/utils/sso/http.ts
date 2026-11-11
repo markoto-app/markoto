@@ -3,7 +3,7 @@
 // session, errors, and the per-connection OIDC settings.
 
 import type { H3Event } from 'h3'
-import { isTestModeEnabled } from '~~/shared/utils/testMode'
+import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 import { decryptToken } from '../litellm/tokenCrypto'
 import { SESSION_VERSION } from '../auth/validatedSession'
 import { getSessionEpoch } from '../../repos/users'

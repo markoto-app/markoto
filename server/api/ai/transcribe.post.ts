@@ -23,7 +23,7 @@ import { providerMissingError, requireAiProviders } from '../../utils/aiProvider
 import { providerRequestFields, withProviderErrors } from '../../utils/aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
 import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/billingMode'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 
 const ALLOWED_MIME = new Set([
   'audio/webm',

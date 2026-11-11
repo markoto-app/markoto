@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ypgPersistence } from './persistence'
-import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/internalSecret'
-import { isTestModeEnabled } from '../../shared/utils/testMode'
+import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/security/internalSecret'
+import { isTestModeEnabled } from '../../shared/utils/security/testMode'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
 import { flushPendingStore } from './flushDocument'
 import { performReauthDocument } from './connection-expiry'
@@ -12,7 +12,7 @@ export type { HocuspocusInstance } from './kickUser'
 
 // TEST_MODE-only ring buffer for kick-user observation. Lets integration
 // tests assert "the workspace mutation actually dispatched a kick" — the
-// dispatch shape is unit-tested in `tests/unit/syncNotify.test.ts`, but
+// dispatch shape is unit-tested in `tests/unit/sync/syncNotify.test.ts`, but
 // without this buffer there's no way to confirm the call SITES (every
 // /api/workspaces/:wsId/members/* mutation handler) didn't silently drop
 // the dispatch in a refactor. Test/prod drift guard.

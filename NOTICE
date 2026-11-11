@@ -28,13 +28,13 @@ carries its licence and manifest):
   Reserved Font Name clause)
 
 Web fonts installed from npm, devDependencies, SIL Open Font License 1.1: the
-@fontsource and @fontsource-variable packages listed in shared/utils/themeFonts.ts
+@fontsource and @fontsource-variable packages listed in shared/utils/theme/themeFonts.ts
 (https://fontsource.org), each repackaging the upstream font under its own OFL
 copyright; the licence text ships in each package and is copied next to the
 served files under /vendor/.
 
 Browser libraries served from this origin under /vendor/ (copied from the pinned
-npm packages at build time, versions in shared/utils/*Assets.ts):
+npm packages at build time, versions in shared/utils/vendor/*Assets.ts):
 - paged.js, MIT, https://github.com/pagedjs/pagedjs
 - KaTeX (stylesheet and fonts), MIT, https://github.com/KaTeX/KaTeX
 - Mermaid, MIT, https://github.com/mermaid-js/mermaid

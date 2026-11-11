@@ -1,7 +1,7 @@
 import * as Y from 'yjs'
 import { Pool } from 'pg'
-import { postgresUrlFromEnv } from '../../shared/utils/connectionStrings'
-import { resolvePostgresSsl } from '../../shared/utils/postgresSsl'
+import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings'
+import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { captureException } from './sentry'
 
 // Background compaction of the `yjs_documents` append-log.

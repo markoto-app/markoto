@@ -1,6 +1,6 @@
 import { resolveDocBrand } from '../../utils/brandKit/docBrand'
 import { listBrandAssets } from '../../repos/brandAssets'
-import { applyBrandLock } from '~~/shared/utils/brandLock'
+import { applyBrandLock } from '~~/shared/utils/theme/brandLock'
 import { mintFileAccessToken } from '../../utils/storage/fileAccessToken'
 import { verifyRenderToken } from '../../utils/rendering/renderTokens'
 import { getDoc } from '../../repos/documents'
@@ -9,7 +9,7 @@ import { resolveDocProperties } from '../../utils/documents/docProperties'
 import { listConfirmedUploadsForDoc } from '../../repos/uploads'
 import { planHasFeature, resolveDocPlanFor } from '../../utils/billing/entitlements'
 import { DESIGN_SAMPLE_ID_RE, loadDesignSample } from '../../utils/designImport/sampleRender'
-import { customCssForPlan } from '~~/shared/utils/themePresets'
+import { customCssForPlan } from '~~/shared/utils/theme/themePresets'
 
 // Called from the internal print page (`app/pages/_internal/render/[docId].vue`)
 // during SSR. Validates the render-token, replays the doc's Y.js history to
@@ -113,7 +113,7 @@ export default defineEventHandler(async (event) => {
   // A built-in preset's template CSS is not gated (customCssForPlan).
   //
   // Brand kit (WP10): a locked workspace design replaces everything but the
-  // document's cover text (shared/utils/brandLock.ts) — before the CSS
+  // document's cover text (shared/utils/theme/brandLock.ts) — before the CSS
   // gate, which then judges the workspace design's CSS like any other.
   const brand = await resolveDocBrand(doc.workspaceId)
   const ownTheme = brand.lockedTheme ? applyBrandLock(properties.theme, brand.lockedTheme) : properties.theme
@@ -134,7 +134,7 @@ export default defineEventHandler(async (event) => {
     fileAccessToken,
     // The document's confirmed uploads. The print page gives the token
     // ONLY to `/api/files/<docId>/<fileId>` URLs naming one of these
-    // (app/utils/renderFileTokens.ts), never to arbitrary URLs in the
+    // (app/utils/preview/renderFileTokens.ts), never to arbitrary URLs in the
     // content.
     fileIds: (await listConfirmedUploadsForDoc(docId)).map(u => u.fileId),
     // Workspace brand kit (WP10): the fonts to declare, and the brand-kit

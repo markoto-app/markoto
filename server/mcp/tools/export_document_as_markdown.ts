@@ -4,7 +4,7 @@ import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 // Doc-bound — handler reads ctx.ytext + ctx.ymeta. Wrapper does
 // view-access authz + YDocPool checkout to give the handler a synced
 // doc. Returns the same file the editor's "Download Markdown" writes:
-// markoto YAML frontmatter (shared/utils/markdownFrontmatter.ts) + the
+// markoto YAML frontmatter (shared/utils/markdown/markdownFrontmatter.ts) + the
 // body without line-number prefixes.
 //
 // Distinct from view_document, which is for AI inspection (line

@@ -4,10 +4,10 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentThemeEditorPanel } from '#components'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { themeThumbnailUrl } from '~~/shared/utils/theme/themeThumbnails'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // The theme panel shows the same design picker as the new-document dialog
 // (DocumentThemePresetGrid): audience tabs over a picture of each preset's

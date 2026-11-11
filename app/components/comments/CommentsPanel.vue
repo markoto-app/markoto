@@ -4,10 +4,10 @@ import type { Awareness } from 'y-protocols/awareness'
 import type { EditorView } from '@codemirror/view'
 import CommentThread from '~/components/comments/CommentThread.vue'
 import CommentComposer from '~/components/comments/CommentComposer.vue'
-import { useCommentsContext } from '~/composables/useComments'
-import { serializeAnchor, type SerializedAnchor } from '~/utils/commentAnchors'
-import { hasAiMention } from '~/utils/commentBody'
-import type { MentionableEntry, MentionableUser } from '~/utils/mentionable'
+import { useCommentsContext } from '~/composables/comments/useComments'
+import { serializeAnchor, type SerializedAnchor } from '~/utils/comments/commentAnchors'
+import { hasAiMention } from '~/utils/comments/commentBody'
+import type { MentionableEntry, MentionableUser } from '~/utils/comments/mentionable'
 
 const props = defineProps<{
   ytext: YText
@@ -280,7 +280,7 @@ defineExpose({ startDraft, focusComment })
 // per-section differences are the data source and the `muted` flag.
 // The `comment` + `muted` slot props parameterise the reuse.
 const [DefineThreadRow, ReuseThreadRow] = createReusableTemplate<{
-  comment: import('~/composables/useComments').DerivedComment
+  comment: import('~/composables/comments/useComments').DerivedComment
   muted?: boolean
 }>()
 

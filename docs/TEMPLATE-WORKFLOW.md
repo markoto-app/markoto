@@ -1,7 +1,7 @@
 # Building a design template
 
 How a design template (a built-in theme preset in
-`shared/utils/themePresets.ts`) gets made. The arXiv preprint preset was the
+`shared/utils/theme/themePresets.ts`) gets made. The arXiv preprint preset was the
 pilot; follow the same steps for the next one. The theme system itself is
 described in `app/utils/AGENTS.md` (theme system, optional fields, heading
 scale, numbering, title block, bundled fonts, custom CSS, theme shots).
@@ -70,9 +70,9 @@ for what no theme field covers, and a Markdown fixture that shows it off.
    `tests/fixtures/theme-shots/thumbnails.json` plus its picture
    (`make theme-thumbs URL=… PRESETS=<id>`), the
    fixture committed. Every optional field spelled out
-   (`tests/unit/themeFoundation.test.ts` checks it); template CSS passes
+   (`tests/unit/theme/themeFoundation.test.ts` checks it); template CSS passes
    the sanitizer without issues and follows the CSS rules below
-   (`tests/unit/themePresetCss.test.ts`).
+   (`tests/unit/theme/themePresetCss.test.ts`).
 8. **Real renderer.** Add a case to
    `tests/integration/endpoints/docPdf.test.ts`: the server PDF of the
    fixture has the expected page count and its fonts are embedded
@@ -85,7 +85,7 @@ for what no theme field covers, and a Markdown fixture that shows it off.
 ## Template CSS rules
 
 The preset's `customCss` runs through the same sanitizer as an author's
-custom CSS (`shared/utils/customCss.ts`) and is appended after the
+custom CSS (`shared/utils/theme/customCss.ts`) and is appended after the
 generated theme CSS.
 
 - **Prefix every document rule with `.paged-doc`.** The engine's own

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Awareness } from 'y-protocols/awareness'
-import { normalizeAwarenessUser } from '~~/shared/utils/awarenessUser'
+import { normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 
 // Presence bar shows:
 //   1. Live editors — currently connected, full opacity, colored ring.

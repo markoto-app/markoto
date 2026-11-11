@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { comboKeys, currentShortcutPlatform, shortcutGroups, type ShortcutPlatform } from '~/utils/keyboardShortcuts'
+import { comboKeys, currentShortcutPlatform, shortcutGroups, type ShortcutPlatform } from '~/utils/editor/keyboardShortcuts'
 
 /**
  * Help → Keyboard shortcuts. The list comes from `utils/keyboardShortcuts`

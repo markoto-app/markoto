@@ -2,8 +2,8 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool, type QueryConfig, type QueryArrayConfig } from 'pg'
 import * as Sentry from '@sentry/nuxt'
 import * as schema from '../../db/schema'
-import { postgresUrlFromEnv } from '../../../shared/utils/connectionStrings'
-import { resolvePostgresSsl } from '../../../shared/utils/postgresSsl'
+import { postgresUrlFromEnv } from '../../../shared/utils/runtime/connectionStrings'
+import { resolvePostgresSsl } from '../../../shared/utils/runtime/postgresSsl'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let pool: Pool | null = null
@@ -101,7 +101,7 @@ export function useDatabase() {
       // (rejectUnauthorized: true) against either a pinned CA from
       // PGSSLROOTCERT or the system bundle. Dev keeps TLS off so the
       // local postgres-in-docker (no TLS) keeps working. See
-      // shared/utils/postgresSsl.ts for the full rationale.
+      // shared/utils/runtime/postgresSsl.ts for the full rationale.
       ssl: resolvePostgresSsl(),
       // Default `max` is 10. On a single VPS that's tight: many of our
       // handlers hold a connection across S3 / LiteLLM / markitdown calls,

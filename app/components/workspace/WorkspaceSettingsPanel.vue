@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
-import { fontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 
 // Workspace settings tab — admin-only chrome around workspace-wide
 // preferences. Currently exposes the default-theme picker; new

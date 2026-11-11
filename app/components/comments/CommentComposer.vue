@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useFuse } from '@vueuse/integrations/useFuse'
-import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/commentBody'
-import type { MentionableEntry } from '~/utils/mentionable'
+import { formatMentionToken, COMMENT_BODY_MAX } from '~/utils/comments/commentBody'
+import type { MentionableEntry } from '~/utils/comments/mentionable'
 
 const props = withDefaults(defineProps<{
   mentionableUsers: readonly MentionableEntry[]

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
-import { hljsTheme } from '~~/shared/utils/hljsAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
+import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
 import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/marketing'
 
 // A small Markdown editor next to the live paged preview, for marketing
@@ -31,7 +31,7 @@ import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/mar
 // the normal creation flow, see the workbench.
 const props = withDefaults(defineProps<{
   source: string
-  /** Built-in theme preset id (`shared/utils/themePresets.ts`); default theme otherwise. */
+  /** Built-in theme preset id (`shared/utils/theme/themePresets.ts`); default theme otherwise. */
   theme?: string
   /** Height of the editor + preview in px (desktop). */
   height?: number | string
@@ -41,7 +41,7 @@ const { t } = useI18n()
 
 // Document language of the example = the page's language (`/de/…` → de),
 // not the visitor's UI language: TOC title, cover date and the created
-// document follow it (`shared/utils/documentLocale.ts`).
+// document follow it (`shared/utils/documents/documentLocale.ts`).
 const route = useRoute()
 const language = computed(() => parseMarketingRoute(route.path)?.locale ?? DEFAULT_MARKETING_LOCALE)
 
@@ -64,7 +64,7 @@ const { data: staticHtml } = await useAsyncData(
   `try-it:${hashOf(initial.value)}`,
   // Headings become styled <div>s (`utils/sampleHeadings.ts`): the
   // sample's "# Title" is not a heading of this page.
-  () => Promise.all([import('~/utils/renderMarkdown'), import('~/utils/sampleHeadings')])
+  () => Promise.all([import('~/utils/markdown/renderMarkdown'), import('~/utils/marketing/sampleHeadings')])
     .then(([m, h]) => m.renderTrustedMarkdown(initial.value).then(h.sampleHeadingsToDivs)),
   { default: () => '' }
 )

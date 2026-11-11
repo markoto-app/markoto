@@ -8,7 +8,7 @@
 // happy-dom, not our sanitizer. jsdom is DOMPurify's supported non-browser
 // DOM, and its output matches real Chromium for this config.
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown } from '../../app/utils/renderMarkdown'
+import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
 
 // XSS sanitization boundary for the markdown render pipeline.
 //
@@ -312,7 +312,7 @@ describe('renderMarkdown — legit features pass through', () => {
   })
 
   it('drops SVG anywhere but inside KaTeX output, and SVG attributes on HTML elements', async () => {
-    const { sanitizeRenderedHtml } = await import('../../app/utils/sanitizeHtml')
+    const { sanitizeRenderedHtml } = await import('../../app/utils/markdown/sanitizeHtml')
     const out = parseDoc(sanitizeRenderedHtml([
       '<p><svg width="10"><path d="M0 0"/></svg></p>',
       '<span class="katex"><span class="katex-html"><svg width="1em" onload="alert(1)"><path d="M0 0" fill="url(#x)" onclick="x()"/><a href="javascript:alert(1)"><text>x</text></a><use href="#p"/><script>alert(1)</script><svg><path d="M1 1"/></svg></svg></span></span>',

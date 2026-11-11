@@ -276,7 +276,7 @@ services:
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       # Postgres + Valkey atomic parts. *_HOST overridden to the docker
       # service name; .env owns user/password/db/port. The Nuxt app
-      # composes the URL via shared/utils/connectionStrings.ts.
+      # composes the URL via shared/utils/runtime/connectionStrings.ts.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
       - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
       - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}

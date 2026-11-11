@@ -1,6 +1,6 @@
 import { requireInternalSecret } from '../../utils/platform/internalRoutes'
 import { docExists, bumpLastActive } from '../../repos/documents'
-import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
+import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
 import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
 
 // Internal endpoint called by the sync-server to log user activity.

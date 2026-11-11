@@ -48,7 +48,7 @@ export interface ByokUrlPolicy {
 /**
  * Hostnames of markoto's own services: every service name, container
  * name and network alias in the `docker-compose*.yml` files (pinned by
- * `tests/unit/internalHostnames.test.ts`, which fails when a compose file
+ * `tests/unit/aiProviders/internalHostnames.test.ts`, which fails when a compose file
  * gains a name that is missing here or in the LiteLLM `api_base` regex),
  * plus cloud metadata aliases. Refused unconditionally: even a self-hoster
  * who opted into private URLs never wants the proxy to POST an API

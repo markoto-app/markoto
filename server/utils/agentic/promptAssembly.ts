@@ -25,13 +25,13 @@
 // tool definitions AFTER the system message, so anything volatile there
 // invalidates them. GLM-5.3 Flash (tools rendered first) was unaffected.
 // No ids, dates or random values anywhere in 1-4. Pinned by
-// tests/unit/promptCachePrefix.test.ts.
+// tests/unit/ai/promptCachePrefix.test.ts.
 
 import type { AgenticPart } from './aiTypes'
 import { EDITOR_STATE_INSTRUCTIONS } from './editorStatePrompt'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { UNTRUSTED_DATA_RULE } from './untrustedText'
-import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { THEME_FONTS } from '~~/shared/utils/theme/themeFonts'
 
 // System prompt bits derived from source-of-truth data — keeps them in sync
 // when fonts are added/removed without hand-editing the prompt.

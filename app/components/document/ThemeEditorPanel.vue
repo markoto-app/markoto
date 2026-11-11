@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import type { DocTheme, CaptionLabelStyle, CaptionNumbering, CaptionPosition, CodeTheme, CodeBackground, CodeFrame, DateFormat, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, NumberingDepth, ReferenceStyle, SectionMode, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/themeFonts'
-import { brandFontFaceCss, brandFontFamilies } from '~~/shared/utils/brandFonts'
-import { brandAssetDocUrl, brandImageFile, themeImagesForDoc } from '~~/shared/utils/themeImages'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
+import { brandFontFaceCss, brandFontFamilies } from '~~/shared/utils/theme/brandFonts'
+import { brandAssetDocUrl, brandImageFile, themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import type { BrandFont } from '~~/shared/config/brandKit'
-import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/themeOptions'
-import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/themeToCss'
-import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils/themePresets'
-import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/customCssLoader'
-import { isIsoDate } from '~~/shared/utils/documentLocale'
+import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/theme/themeOptions'
+import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/theme/themeToCss'
+import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils/theme/themePresets'
+import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/preview/customCssLoader'
+import { isIsoDate } from '~~/shared/utils/documents/documentLocale'
 
 /**
  * Embedded theme editor — sits in the right sidebar slot alongside the

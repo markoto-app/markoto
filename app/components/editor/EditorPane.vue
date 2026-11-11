@@ -8,10 +8,10 @@ import { defaultKeymap, indentWithTab, history, historyKeymap } from '@codemirro
 import { yCollab } from 'y-codemirror.next'
 import type { Text as YText, UndoManager } from 'yjs'
 import type { Awareness } from 'y-protocols/awareness'
-import { dictationExtensions } from '~/utils/dictationExtensions'
-import { formattingKeymap } from '~/utils/editorCommands'
-import { markotoMarkdownHighlight } from '~/utils/markdownHighlight'
-import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/commentDecorations'
+import { dictationExtensions } from '~/utils/editor/dictationExtensions'
+import { formattingKeymap } from '~/utils/editor/editorCommands'
+import { markotoMarkdownHighlight } from '~/utils/markdown/markdownHighlight'
+import { commentDecorationsExtension, setCommentRanges, setFlashRange, type CommentRange } from '~/utils/comments/commentDecorations'
 
 const props = withDefaults(defineProps<{
   ytext: YText

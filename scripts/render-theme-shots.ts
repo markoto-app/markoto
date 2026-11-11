@@ -29,7 +29,7 @@
 import { chromium, type BrowserContext } from '@playwright/test'
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { THEME_PRESETS } from '../shared/utils/themePresets'
+import { THEME_PRESETS } from '../shared/utils/theme/themePresets'
 import type { DocTheme } from '../shared/types/theme'
 
 interface Args {

@@ -97,7 +97,7 @@ export default defineContentConfig({
     }),
     // Claim data of the comparison pages (/compare/<slug>), one file per
     // competitor: content/compare/<slug>.yml. Every value carries its
-    // source and the day it was checked; tests/unit/compareClaims.test.ts
+    // source and the day it was checked; tests/unit/seo/compareClaims.test.ts
     // fails once a check is older than nine months. Rendered by
     // `::compare-facts{competitor}` + `::compare-sources{competitor}`
     // (app/components/content/CompareFacts.vue, CompareSources.vue).

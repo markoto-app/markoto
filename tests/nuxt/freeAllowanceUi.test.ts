@@ -4,9 +4,9 @@ import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { AIPromptBar, AuthUsageBadge, AuthUsageLimits } from '#components'
-import type { UserBilling } from '~/composables/useBilling'
+import type { UserBilling } from '~/composables/billing/useBilling'
 import type { AiAvailability } from '~~/shared/ai/providers'
-import type { AiCredits } from '~/composables/useAiCredits'
+import type { AiCredits } from '~/composables/ai/useAiCredits'
 
 // Free AI allowance (hosted): when the shared monthly free-tier pool is
 // used up, the prompt bar must block platform-paid chat with the "add

@@ -70,8 +70,8 @@
     "scripts/flows-test-changed.ts": ["unresolved"],
     // `#nitro-internal-pollyfills` is a Nitro virtual module, resolved by the bundler.
     "server/runtime/bunEntry.ts": ["unresolved"],
-    // Byte-identical copy of shared/utils/internalSecret.ts: the renderer image
-    // is built from renderer/ alone (pinned by tests/unit/internalSecret.test.ts),
+    // Byte-identical copy of shared/utils/security/internalSecret.ts: the renderer image
+    // is built from renderer/ alone (pinned by tests/unit/platform/internalSecret.test.ts),
     // so the exports its own code does not call must stay.
     "renderer/src/internalSecret.ts": ["exports"]
   },

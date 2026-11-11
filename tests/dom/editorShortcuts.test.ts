@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { EditorState } from '@codemirror/state'
 import { EditorView, keymap, runScopeHandlers } from '@codemirror/view'
 import { defaultKeymap } from '@codemirror/commands'
-import { formattingKeymap } from '~/utils/editorCommands'
+import { formattingKeymap } from '~/utils/editor/editorCommands'
 
 // The Format menu advertises ⌘B / ⌘I and the welcome document tells new
 // users to press Cmd/Ctrl + B / I. These pin that the editor actually

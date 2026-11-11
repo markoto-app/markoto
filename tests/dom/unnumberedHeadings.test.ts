@@ -2,10 +2,10 @@
 //
 // jsdom (not happy-dom): the pipeline runs DOMPurify — see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown } from '../../app/utils/renderMarkdown'
-import { composeFinalHtml } from '../../app/utils/composeFinalHtml'
-import { markUnnumbered } from '../../app/utils/titleBlock'
-import { defaultTheme } from '../../shared/utils/defaultTheme'
+import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
+import { composeFinalHtml } from '../../app/utils/preview/composeFinalHtml'
+import { markUnnumbered } from '../../app/utils/preview/titleBlock'
+import { defaultTheme } from '../../shared/utils/theme/defaultTheme'
 import type { DocTheme } from '../../shared/types/theme'
 
 // `# References {.unnumbered}` / `{-}` (Pandoc): no section number, the

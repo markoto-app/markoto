@@ -3,7 +3,7 @@
 // jsdom (not happy-dom): DOMPurify's checks only behave like Chromium's
 // under jsdom — see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines, wrapCodeTokens } from '../../app/utils/renderMarkdown'
+import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines, wrapCodeTokens } from '../../app/utils/markdown/renderMarkdown'
 
 function parse(html: string): DocumentFragment {
   const tpl = document.createElement('template')

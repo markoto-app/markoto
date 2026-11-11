@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
-import { useErrorHandler } from '~/composables/useErrorHandler'
+import { useErrorHandler } from '~/composables/platform/useErrorHandler'
 
 // useErrorHandler contract tests. Senior-QA review of the previous 25-
 // test suite noted ~20 were mechanical branch coverage (would catch a

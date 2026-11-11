@@ -8,7 +8,7 @@ import { Awareness } from 'y-protocols/awareness'
 import { ensureYjsTable, resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_JWT_SECRET, TEST_SYNC_URL, TEST_SYNC_PORT } from '../setup/env'
-import { defaultTheme } from '../../../shared/utils/defaultTheme'
+import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 
 // End-to-end hardening of the real sync-test container (Hocuspocus):
 //   - failed handshakes must not leak per-IP connection slots,

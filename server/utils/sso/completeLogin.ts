@@ -46,7 +46,7 @@ import { emailDomain } from './domains'
 import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import type { SsoFlow } from './flowCookie'
 import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
-import type { MembershipRole } from '~~/shared/utils/docPermissions'
+import type { MembershipRole } from '~~/shared/utils/documents/docPermissions'
 
 export interface SsoAssertion {
   /** OIDC `sub` / SAML NameID. */

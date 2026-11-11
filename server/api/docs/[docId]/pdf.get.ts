@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { canDownload, docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { canDownload, docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 import { renderDocument } from '../../../utils/rendering/renderClient'
 import { consumeRenderAllowance } from '../../../utils/rendering/renderRateLimit'

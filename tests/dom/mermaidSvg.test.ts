@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { toWellFormedSvg } from '../../app/utils/mermaidLoader'
+import { toWellFormedSvg } from '../../app/utils/markdown/mermaidLoader'
 
 // Shape of what mermaid 11 returns for `A["One<br/>Two"]`: the label sits in
 // a foreignObject and is serialised as HTML, so the line break is `<br>`.

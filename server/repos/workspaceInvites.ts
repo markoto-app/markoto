@@ -1,7 +1,7 @@
 import { and, asc, count, eq, gt, lte, sql } from 'drizzle-orm'
 import { nanoid } from 'nanoid'
 import { users, workspaceInvites, workspaceMembers, workspaces } from '../db/schema'
-import type { MembershipRole } from '../../shared/utils/docPermissions'
+import type { MembershipRole } from '../../shared/utils/documents/docPermissions'
 import { useDatabase } from '../utils/platform/database'
 
 // `workspace_invites` repository — pending workspace invitations.

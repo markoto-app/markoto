@@ -12,7 +12,7 @@
 //
 // No third-party origin is allowed by default: paged.js, Mermaid, KaTeX,
 // highlight.js and the web fonts are served by the app itself under
-// /vendor/ (shared/utils/vendorAssets.ts), so the print page needs only
+// /vendor/ (shared/utils/vendor/vendorAssets.ts), so the print page needs only
 // the app origin + the S3 host its images point at.
 
 export interface AllowlistEnv {

@@ -13,7 +13,7 @@
 //      always pass so an oversized document can still be trimmed
 //   3. `meta` map writes — every value written into ymeta must pass the
 //      same validation as `PUT /api/docs/:id/meta`
-//      (`shared/utils/ymetaValidation.ts`); nested Y types inside ymeta are
+//      (`shared/utils/documents/ymetaValidation.ts`); nested Y types inside ymeta are
 //      refused outright.
 //
 // Locating ymeta writes without applying the update. A decoded Y.js item
@@ -30,7 +30,7 @@
 // All work is synchronous so Hocuspocus keeps applying messages in order.
 
 import * as Y from 'yjs'
-import { isValidMetaValue } from '../../shared/utils/ymetaValidation'
+import { isValidMetaValue } from '../../shared/utils/documents/ymetaValidation'
 import { SYNC_CLOSE_CODES, SYNC_CLOSE_REASONS, type SyncCloseReason } from '../../shared/contracts/syncClose'
 import type { SyncLimits } from './limits'
 import { ByteReader, MESSAGE_TYPE, readFrameHeader } from './frame'

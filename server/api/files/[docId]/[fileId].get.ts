@@ -1,7 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getDocWithActorRole } from '../../../repos/documents'
-import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 
 // fileId is a nanoid(12) with a content-type-derived extension. Reject

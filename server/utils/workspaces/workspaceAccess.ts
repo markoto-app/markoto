@@ -1,6 +1,6 @@
 import { getDocWithActorRole } from '../../repos/documents'
 import { getMemberRole } from '../../repos/workspaceMembers'
-import { isEffectiveDocOwner, type WorkspaceRole } from '../../../shared/utils/docPermissions'
+import { isEffectiveDocOwner, type WorkspaceRole } from '../../../shared/utils/documents/docPermissions'
 
 // Thin authz shortcuts for workspace / document operations. Delegates to
 // the repos in server/repos/ for the actual queries.

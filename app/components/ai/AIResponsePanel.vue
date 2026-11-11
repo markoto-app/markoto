@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { toRef, watch } from 'vue'
-import type { AiResponseEntry } from '~/composables/useAI'
+import type { AiResponseEntry } from '~/composables/ai/useAI'
 import { useResponsePanelState } from './useResponsePanelState'
 
 // The AI's ephemeral response surface — sits directly above the prompt

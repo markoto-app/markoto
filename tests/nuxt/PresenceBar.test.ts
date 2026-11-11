@@ -6,7 +6,7 @@ import { TooltipProvider } from 'reka-ui'
 import * as Y from 'yjs'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import { CollabPresenceBar as PresenceBar } from '#components'
-import { AWARENESS_FALLBACK_COLOR } from '~~/shared/utils/awarenessUser'
+import { AWARENESS_FALLBACK_COLOR } from '~~/shared/utils/documents/awarenessUser'
 
 // Awareness states are chosen by each peer and relayed verbatim. A peer
 // could put CSS into `user.color` (lands in inline styles), an image URL

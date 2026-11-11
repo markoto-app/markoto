@@ -76,7 +76,7 @@ export async function startNuxt(): Promise<void> {
     ...buildTestEnv(),
     NODE_ENV: 'production',
     // The Phase-9 hardening enables Postgres TLS by default in
-    // production (resolvePostgresSsl in shared/utils/postgresSsl.ts
+    // production (resolvePostgresSsl in shared/utils/runtime/postgresSsl.ts
     // returns `{rejectUnauthorized: true}` whenever NODE_ENV=production).
     // The local test Postgres container speaks plaintext only, so the
     // prod-build subprocess would fail boot with "The server does not
@@ -159,7 +159,7 @@ export async function startNuxt(): Promise<void> {
     NUXT_BILLING_ENABLED: 'true',
     // Legal surfaces (onboarding gate, DPA step, /legal/* endpoints) ON so
     // the privacy/legal suites run; the self-hosted default (off) is
-    // covered by tests/unit/instanceConfig.test.ts. The billing-off twin
+    // covered by tests/unit/platform/instanceConfig.test.ts. The billing-off twin
     // inherits this env.
     NUXT_LEGAL_SURFACES_ENABLED: 'true',
     // Anonymous gate follows the legal surfaces (on). The suite solves the
@@ -292,7 +292,7 @@ async function startBillingOffServer(primaryEnv: NodeJS.ProcessEnv): Promise<voi
   // (TIER_FREE_FEATURE_MCP_WRITE / _MCP_TOOL_CALLS_PER_DAY) stay at the
   // self-host default here: mcp/rateLimits.test.ts drives write tools on
   // this server; read-only MCP is pinned by the unit tier
-  // (tests/unit/mcpPlanGate.test.ts).
+  // (tests/unit/mcp/mcpPlanGate.test.ts).
   Object.assign(env, HOSTED_FREE_TIER_LIMITS)
   // The MCP limits are ENFORCED on this server (test mode bypasses every
   // other limit, here and on the primary): tests/integration/mcp/rateLimits.test.ts

@@ -5,7 +5,7 @@ import type { EditorView } from '@codemirror/view'
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
-import { useImageUpload } from '~/composables/useImageUpload'
+import { useImageUpload } from '~/composables/document/useImageUpload'
 
 // Composable under test: 3-step presigned upload + placeholder-rewrite
 // helper for CodeMirror. Two surfaces:

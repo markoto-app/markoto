@@ -4,9 +4,9 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentThemeEditorPanel } from '#components'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import type { DocTheme } from '~~/shared/types/theme'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // Theme panel ↔ the document-structure fields: per-side page margins,
 // per-level alignment, table / figure caption labels, reference style.

@@ -14,9 +14,9 @@ import {
 } from '../../repos/uploads'
 import { imageQuotaMessage, type ImageQuota } from '../storage/imageQuota'
 import { cloneYjsStateWithUrlRewrite } from './cloneYjsState'
-import { withThemeDocId } from '~~/shared/utils/customCss'
-import { withThemeImagesDocId } from '~~/shared/utils/themeImages'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { withThemeDocId } from '~~/shared/utils/theme/customCss'
+import { withThemeImagesDocId } from '~~/shared/utils/theme/themeImages'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // Duplicate a document end-to-end: DB row + Y.js state (with image URL
 // rewrite) + S3 image assets.

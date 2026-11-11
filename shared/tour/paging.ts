@@ -1,5 +1,5 @@
 // Scene rests of the product page (WP11): pure helpers behind
-// app/composables/useTourScroll.ts, unit-tested in tests/unit/tourPaging.test.ts.
+// app/composables/marketing/useTourScroll.ts, unit-tested in tests/unit/seo/tourPaging.test.ts.
 //
 // The visitor scrolls the page themselves (Lenis smooths wheel and
 // trackpad input on the pinned layout); once the input stops, the page

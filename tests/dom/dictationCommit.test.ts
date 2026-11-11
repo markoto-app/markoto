@@ -4,7 +4,7 @@ import { EditorState } from '@codemirror/state'
 import { yCollab } from 'y-codemirror.next'
 import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
-import { commitDictationFinal } from '../../app/utils/dictationExtensions'
+import { commitDictationFinal } from '../../app/utils/editor/dictationExtensions'
 
 // commitDictationFinal is the bridge between Voxtral Realtime's
 // finalized transcript and the Y.js document. The logic is small

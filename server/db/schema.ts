@@ -251,7 +251,7 @@ export const workspaces = pgTable('workspaces', {
   defaultTheme: jsonb('default_theme').$type<DocTheme>(),
   // Brand kit (WP10): while true (and the plan includes `brandKit`), every
   // document in the workspace renders with `default_theme`'s design —
-  // only its cover text stays its own (shared/utils/brandLock.ts).
+  // only its cover text stays its own (shared/utils/theme/brandLock.ts).
   // Enforced at render time; the documents' own themes are untouched.
   brandLocked: boolean('brand_locked').notNull().default(false),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()

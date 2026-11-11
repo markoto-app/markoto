@@ -1,4 +1,4 @@
-import type { SentryClient, SentryErrorReport } from '~/utils/sentryClient'
+import type { SentryClient, SentryErrorReport } from '~/utils/platform/sentryClient'
 
 // Browser error reporting, loaded late.
 //
@@ -51,7 +51,7 @@ export default defineNuxtPlugin({
     window.addEventListener('unhandledrejection', onRejection)
 
     function load(): Promise<void> {
-      loading ??= import('~/utils/sentryClient').then((m) => {
+      loading ??= import('~/utils/platform/sentryClient').then((m) => {
         const started = m.startSentry({ dsn, router: nuxtApp.$router, production: !import.meta.dev })
         client = started
         for (const r of queue.splice(0)) started.report(r)

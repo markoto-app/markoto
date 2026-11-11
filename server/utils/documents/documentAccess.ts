@@ -1,5 +1,5 @@
 import { getDocWithActorRole, type DocAuthzRow } from '../../repos/documents'
-import { docStateOf, decideTokenAccess } from '../../../shared/utils/docPermissions'
+import { docStateOf, decideTokenAccess } from '../../../shared/utils/documents/docPermissions'
 
 /**
  * Can this logged-in user write to the document's CONTENT through a

@@ -4,7 +4,7 @@ import {
   isBoundedJsonValue,
   META_THEME_MAX_DEPTH,
   META_THEME_MAX_NODES
-} from '../../shared/utils/ymetaValidation'
+} from '../../shared/utils/documents/ymetaValidation'
 import type { PreviousMeta } from './sync-state'
 
 /** Stand-in hash for a theme value that can't (or mustn't) be serialised.

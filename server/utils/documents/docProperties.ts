@@ -2,8 +2,8 @@ import type * as Y from 'yjs'
 import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import { isAudienceKind } from '~~/shared/audiences'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
-import { isValidMetaValue } from '~~/shared/utils/ymetaValidation'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
+import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 
 /**
  * A document's live properties (theme + title / description / audience /

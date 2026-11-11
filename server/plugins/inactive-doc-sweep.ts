@@ -8,7 +8,7 @@ import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/doc
 
 // Periodic cleanup of abandoned documents.
 //
-// Policy (see shared/utils/inactiveDocPolicy.ts for the decision fn):
+// Policy (see shared/utils/documents/inactiveDocPolicy.ts for the decision fn):
 //   - Workspace-attached docs → never reaped.
 //   - Owner-owned docs → never reaped, regardless of inactivity. An
 //     authenticated account implies the user expects their docs to stay

@@ -1,7 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from './valkey'
-import { isRateLimitBypassed } from '../../../shared/utils/testMode'
+import { isRateLimitBypassed } from '../../../shared/utils/security/testMode'
 
 // Sliding-window-log rate limiter backed by Valkey sorted sets.
 //
@@ -101,7 +101,7 @@ export async function checkRateLimit(
   // doc-delete limits make the suite flaky and order-dependent. Limiter
   // behaviour has its own tests (unit + the real-Valkey concurrency test
   // in tests/repos/rateLimitAtomic.test.ts). Only honoured on instances
-  // that don't look like a real deployment — see shared/utils/testMode.ts.
+  // that don't look like a real deployment — see shared/utils/security/testMode.ts.
   if (isRateLimitBypassed(namespace)) return true
 
   const zkey = `rl:${namespace}:${key}`

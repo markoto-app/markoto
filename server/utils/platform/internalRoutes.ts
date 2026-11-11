@@ -1,5 +1,5 @@
 import { createError, getRequestHeader, type H3Event } from 'h3'
-import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../../shared/utils/internalSecret'
+import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../../shared/utils/security/internalSecret'
 
 // Routes that only other containers of the stack may call. The public
 // Traefik routers exclude these prefixes (asserted by

@@ -1,6 +1,6 @@
 // Full-pipeline audit: markdown-it + every plugin AS CONFIGURED + DOMPurify
 // with the SAME allow-list we ship. Catches anything sanitized away after
-// rendering. Mirrors app/utils/renderMarkdown.ts as closely as Bun permits
+// rendering. Mirrors app/utils/markdown/renderMarkdown.ts as closely as Bun permits
 // (skips the CSS side-import since that doesn't affect HTML semantics).
 //
 // Run:  bun scripts/audit-markdown-pipeline.mjs
@@ -11,7 +11,7 @@
 //     script confirms actually survive the full pipeline.
 //   - After adding a new markdown-it plugin or bumping a plugin's version.
 //   - After changing the DOMPurify ALLOWED_TAGS / ALLOWED_ATTR list in
-//     app/utils/renderMarkdown.ts — anything the sanitizer now strips
+//     app/utils/markdown/renderMarkdown.ts — anything the sanitizer now strips
 //     silently will surface as a CLEAN-vs-RAW diff.
 //
 // Reads this file as truth: if a syntax fails here, don't tell the AI it works.
@@ -41,7 +41,7 @@ const DOMPurify = createDOMPurify(win)
 
 const emoji = emojiMod.full || emojiMod.default || emojiMod
 
-// Pagebreak rule — copied verbatim from app/utils/renderMarkdown.ts
+// Pagebreak rule — copied verbatim from app/utils/markdown/renderMarkdown.ts
 function pagebreakPlugin(md) {
   const re = /^\s*<!--\s*pagebreak\s*-->\s*$/i
   md.block.ruler.before('paragraph', 'pagebreak', (state, startLine, _endLine, silent) => {
@@ -58,7 +58,7 @@ function pagebreakPlugin(md) {
   }, { alt: [] })
 }
 
-// Comment rule — copied verbatim from app/utils/renderMarkdown.ts.
+// Comment rule — copied verbatim from app/utils/markdown/renderMarkdown.ts.
 // Strips `<!-- ... -->` (block + inline) so writers can leave private
 // notes that don't surface in preview/PDF.
 function commentPlugin(md) {
@@ -120,7 +120,7 @@ const md = new MarkdownIt({ html: false, linkify: true, typographer: true, break
   .use(pagebreakPlugin)
   .use(commentPlugin)
 
-// SAME allow-list as app/utils/renderMarkdown.ts
+// SAME allow-list as app/utils/markdown/renderMarkdown.ts
 const SANITIZE_OPTS = {
   ALLOWED_TAGS: [
     'a', 'abbr', 'b', 'blockquote', 'br', 'code', 'dd', 'del', 'div', 'dl',

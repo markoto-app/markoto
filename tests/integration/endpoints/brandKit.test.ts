@@ -4,7 +4,7 @@ import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL } from '../setup/env'
-import { THEME_PRESETS } from '../../../shared/utils/themePresets'
+import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 
 // Workspace brand kit (WP10): fonts + logos (upload checks, who may, how
 // documents load them), the locked workspace design, workspace templates.

@@ -1,7 +1,7 @@
 import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
-import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
+import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/documents/docTokenVerify'
 import { reconstructTextAtYjsId } from '../../../../../utils/documents/historyReplay'
 import { computeTextDiff, type DiffHunk } from '../../../../../utils/documents/textDiff'

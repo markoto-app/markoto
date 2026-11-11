@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { parseCommentBody } from '~/utils/commentBody'
+import { parseCommentBody } from '~/utils/comments/commentBody'
 
 // Lazy fetcher for an activity-row's comment-thread context. Renders
 // every comment in the thread, with the row's focus entry visually

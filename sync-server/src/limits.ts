@@ -16,7 +16,7 @@
 //                             so an oversized document can be trimmed.
 //
 // Defaults are generous: the editor warns at 5 MB and flags 8 MB as
-// critical (`shared/utils/documentHelpers.ts#docSizeWarning`); a document
+// critical (`shared/utils/documents/documentHelpers.ts#docSizeWarning`); a document
 // can grow to twice that before writes are refused. A restore re-sends a
 // whole document as one update, so the update cap equals the doc cap.
 

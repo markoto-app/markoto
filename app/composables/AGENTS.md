@@ -40,7 +40,7 @@ Two signals, one toast:
 
 Both paths land on the same toast with two actions: **Reload now** (immediate) and **Snooze 5 min** (defer auto-reload). A 30-second auto-reload countdown runs unconditionally once the prompt is shown — we don't try to detect "mid-edit and don't reload"; Y.Doc + Hocuspocus flushes within ~2s, so 30s is comfortably safe and the explicit countdown is more honest than a silent reload.
 
-**Where the state machine lives:** `app/utils/versionCheckController.ts` is pure (no Nuxt deps) so it has unit tests. The `app/plugins/version-check.client.ts` plugin is the glue — toast renderer, `$fetch`, `$pwa` watch, focus + `visibilitychange` re-poll. In dev the comparison is a no-op (`buildId === 'dev'` doesn't change between requests).
+**Where the state machine lives:** `app/utils/platform/versionCheckController.ts` is pure (no Nuxt deps) so it has unit tests. The `app/plugins/version-check.client.ts` plugin is the glue — toast renderer, `$fetch`, `$pwa` watch, focus + `visibilitychange` re-poll. In dev the comparison is a no-op (`buildId === 'dev'` doesn't change between requests).
 
 **Why a plugin, not a composable:** the controller has to outlive any single page mount and start before the user's first interaction. A composable would couple it to a specific component tree. The unit tests reach the controller directly; the plugin is thin enough that it's covered by integration smoke.
 

@@ -2,12 +2,12 @@
 //
 // jsdom (not happy-dom): the pipeline runs DOMPurify — see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
-import { renderMarkdown } from '../../app/utils/renderMarkdown'
-import { composeFinalHtml } from '../../app/utils/composeFinalHtml'
-import { markHeadingStructure } from '../../app/utils/headingStructure'
-import { markReferences } from '../../app/utils/references'
-import { moveCaptionsBelow } from '../../app/utils/tableCaptions'
-import { defaultTheme } from '../../shared/utils/defaultTheme'
+import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
+import { composeFinalHtml } from '../../app/utils/preview/composeFinalHtml'
+import { markHeadingStructure } from '../../app/utils/preview/headingStructure'
+import { markReferences } from '../../app/utils/markdown/references'
+import { moveCaptionsBelow } from '../../app/utils/markdown/tableCaptions'
+import { defaultTheme } from '../../shared/utils/theme/defaultTheme'
 import type { DocTheme } from '../../shared/types/theme'
 
 // Engine-set document structure: Pandoc table captions, number + unit

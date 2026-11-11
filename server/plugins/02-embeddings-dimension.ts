@@ -3,7 +3,7 @@ import { useDatabasePool } from '../utils/platform/database'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { reconcileEmbeddingColumn } from '../utils/knowledge/embeddingColumn'
 import { resetKnowledgeEmbeddingsStatus } from '../utils/knowledge/knowledgeEmbeddingsStatus'
-import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../shared/utils/embeddingConfig'
+import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../shared/utils/runtime/embeddingConfig'
 
 // After migrations: make the pgvector column match NUXT_LITELLM_EMBEDDINGS_DIMS
 // (see server/utils/knowledge/embeddingColumn.ts for the rules). Never fails the boot:

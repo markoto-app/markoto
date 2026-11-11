@@ -10,7 +10,7 @@ import { isValidEmailShape } from './emailShape'
 // the same way whether or not the address has an account, and never
 // returns profile data, so it is not an account-existence oracle.
 //
-// Pure helpers live here (unit-tested in `tests/unit/workspaceInvites.test.ts`);
+// Pure helpers live here (unit-tested in `tests/unit/workspaces/workspaceInvites.test.ts`);
 // the table access is in `server/repos/workspaceInvites.ts`.
 
 /** How long an invite stays open. Expired rows are deleted by the sweeper. */

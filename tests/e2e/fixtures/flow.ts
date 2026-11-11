@@ -2,7 +2,7 @@ import { test as base, expect as baseExpect, type Locator, type Page } from '@pl
 import crypto from 'node:crypto'
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editorTour'
+import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../../app/utils/editor/editorTour'
 import sharp from 'sharp'
 import { EditorPage } from '../page-objects/Editor'
 

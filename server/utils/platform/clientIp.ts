@@ -1,5 +1,5 @@
 import { getRequestHeader, getRequestIP, type H3Event } from 'h3'
-import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../../shared/utils/clientIp'
+import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../../shared/utils/security/clientIp'
 
 /**
  * The requesting client's IP address, or `null` when it can't be told.
@@ -7,7 +7,7 @@ import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../..
  * The ONE place an endpoint may read a client address — rate-limit keys
  * and the (truncated) IP on audit / consent / abuse rows both come from
  * here. Never read `X-Forwarded-For` / `X-Real-IP` directly: the leftmost
- * XFF entry is whatever the client sent. See `shared/utils/clientIp.ts`
+ * XFF entry is whatever the client sent. See `shared/utils/security/clientIp.ts`
  * for the trusted-hop rule.
  *
  * `NUXT_TRUSTED_PROXY_HOPS` (default 1 = the Traefik in every shipped

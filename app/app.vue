@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { uiFontStylesheetUrls } from '~~/shared/utils/themeFonts'
+import { uiFontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { applyTitleTemplate } from '~~/shared/seo/meta'
 
 const { t, locale, localeProperties } = useI18n()
@@ -25,7 +25,7 @@ useHead({
     // the body/UI workhorse. JetBrains Mono is the eyebrow/meta/CTA
     // register. Fraunces (variable opsz + wght, upright + italic)
     // handles the wordmark, display headlines, and the AI's italic
-    // voice. Served from our own origin (shared/utils/themeFonts.ts) —
+    // voice. Served from our own origin (shared/utils/theme/themeFonts.ts) —
     // no request leaves for Google Fonts.
     ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet' as const, href }))
   ],

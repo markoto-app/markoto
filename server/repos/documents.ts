@@ -3,7 +3,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 import type { AudienceKind } from '~~/shared/audiences'
 import { documentShares, documents, workspaceMembers } from '../db/schema'
 import { ssoEnforcedSql, ssoSatisfiedSql } from './sso'
-import type { WorkspaceRole } from '../../shared/utils/docPermissions'
+import type { WorkspaceRole } from '../../shared/utils/documents/docPermissions'
 import { useDatabase } from '../utils/platform/database'
 import { NotFoundError } from './errors'
 
@@ -68,7 +68,7 @@ export interface DocAuthzRow {
    * Always false in workspaces without an active SSO connection and for
    * standalone docs (unchanged behaviour). Feed the row to the decide*
    * functions through `docStateOf` / `isEffectiveDocOwner`
-   * (`shared/utils/docPermissions.ts`) so the rule applies everywhere.
+   * (`shared/utils/documents/docPermissions.ts`) so the rule applies everywhere.
    */
   ownerAccessSuspended: boolean
   /** Share-link controls (WP9): when public access ends (null = never). `docStateOf` applies it. */

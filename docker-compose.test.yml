@@ -455,7 +455,7 @@ services:
     stop_grace_period: 30s
     environment:
       - PORT=4001
-      # `shared/utils/connectionStrings.ts` reads atomic POSTGRES_*
+      # `shared/utils/runtime/connectionStrings.ts` reads atomic POSTGRES_*
       # vars (not the composed URL); kept the URL here for any code
       # that still consumes the legacy form.
       - POSTGRES_USER=ypad

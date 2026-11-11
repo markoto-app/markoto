@@ -3,7 +3,7 @@
  *
  * Pins the wire shape for `/api/ai/dictate`. Both the server (under
  * `server/routes/api/ai/dictate.ts`) and the client (under
- * `app/composables/useVoiceDictation.ts`) exchange JSON control
+ * `app/composables/ai/useVoiceDictation.ts`) exchange JSON control
  * frames AND binary audio frames; this module covers the JSON frames
  * — binary audio is just `ArrayBuffer`, no contract needed.
  *

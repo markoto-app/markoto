@@ -47,7 +47,7 @@ import {
   toggleComment,
   type AlertKind,
   type MermaidKind
-} from '~/utils/editorCommands'
+} from '~/utils/editor/editorCommands'
 
 const props = defineProps<{
   view: EditorView | null

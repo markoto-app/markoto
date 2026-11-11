@@ -1,7 +1,7 @@
 import type { H3Event } from 'h3'
 import { getDocAuthz } from '../workspaces/workspaceAccess'
 import { getDoc, getDocWithActorRole } from '../../repos/documents'
-import { canDownload, docStateOf } from '~~/shared/utils/docPermissions'
+import { canDownload, docStateOf } from '~~/shared/utils/documents/docPermissions'
 import { planHasFeature, resolveDocPlanFor } from '../billing/entitlements'
 
 // Share-link controls (WP9): who may see and change them — the document's

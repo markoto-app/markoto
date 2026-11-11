@@ -2,8 +2,8 @@ import type { H3Event } from 'h3'
 import { createError, getCookie, getRequestProtocol, setCookie } from 'h3'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from '../platform/valkey'
-import { isTestModeEnabled } from '~~/shared/utils/testMode'
-import { SECRET_MIN_LENGTH } from '~~/shared/utils/validateSecrets'
+import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
+import { SECRET_MIN_LENGTH } from '~~/shared/utils/security/validateSecrets'
 import { TOS_VERSION } from '~~/shared/legal/versions'
 import {
   ANON_GATE_CODES,

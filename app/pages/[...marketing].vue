@@ -8,7 +8,7 @@ import {
   marketingRoutePath
 } from '~~/shared/seo/marketing'
 import { hubBreadcrumbs, pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
-import { fetchCompareData, fetchCompareHubItems, fetchMarketingPage } from '~/utils/marketingPage'
+import { fetchCompareData, fetchCompareHubItems, fetchMarketingPage } from '~/utils/marketing/marketingPage'
 
 // Marketing content pages of the hosted site (content/marketing/<locale>/<slug>.md):
 // `/<slug>` in English, `/de/<slug>`, `/fr/<slug>` for translations.

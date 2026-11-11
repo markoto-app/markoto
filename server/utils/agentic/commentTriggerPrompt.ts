@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { THEME_FONTS } from '~~/shared/utils/themeFonts'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { THEME_FONTS } from '~~/shared/utils/theme/themeFonts'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { fenceBlock, quoteInline, UNTRUSTED_DATA_RULE } from './untrustedText'
 import { isAiCommentAuthor } from '~~/shared/ai/author'

@@ -12,7 +12,7 @@ Cross-cutting hardening notes for the production stack. Three sections today:
   containers, the Chromium sandbox in the renderer, purpose networks,
   the Docker socket proxy, separate Postgres roles.
 
-For Postgres TLS see `shared/utils/postgresSsl.ts` (similar shape — opt-in
+For Postgres TLS see `shared/utils/runtime/postgresSsl.ts` (similar shape — opt-in
 via env, system CA by default, `PGSSLROOTCERT` for cert pinning). For
 secret rotation procedures see `docs/SECRETS-ROTATION.md`. For deploy
 prerequisites see `docs/DEPLOY.md`.
@@ -31,7 +31,7 @@ nonce that has to match the HTML, `/api/files` needs a different CORP than the
 rest, and one builder in code means hosted, self-host, local and the test
 stacks all serve the same policy. Traefik must NOT set either header — a
 Traefik CSP would be enforced in addition to the app's (pinned by
-`tests/unit/csp.test.ts`). The sync subdomain (Hocuspocus WS + `/health`)
+`tests/unit/rendering/csp.test.ts`). The sync subdomain (Hocuspocus WS + `/health`)
 carries a parallel `sync-security-headers` middleware (no HTML, no CSP).
 
 This file documents what each header is for, the CSP rationale, the isolation
@@ -99,7 +99,7 @@ from `'self'`, the S3 origin and `RENDERER_ALLOWED_ORIGINS`, `connect-src
 | Source | Why |
 |---|---|
 | `'nonce-…'` | Nuxt's own inline scripts (payload/config, color-mode) — stamped by the `render:html` hook on the head and body-edge chunks only, never on the rendered page body. The preview/print srcdoc iframes inherit the policy; their inline scripts carry the same nonce (read from `script.nonce` by `currentCspNonce()`). |
-| No CDN | paged.js, Mermaid, the KaTeX stylesheet + fonts, the highlight.js themes and every web font are served from our own origin under `/vendor/` (`shared/utils/vendorAssets.ts`, copied from the pinned npm packages at build time by `modules/vendor-assets.ts`), so `'self'` covers them and no third-party host appears in the policy. Visitors' browsers send their IP address to nobody but us. The scripts and stylesheets stay SRI-locked (`shared/utils/*Assets.ts`; the build fails when the installed package's bytes differ). |
+| No CDN | paged.js, Mermaid, the KaTeX stylesheet + fonts, the highlight.js themes and every web font are served from our own origin under `/vendor/` (`shared/utils/vendor/vendorAssets.ts`, copied from the pinned npm packages at build time by `modules/vendor-assets.ts`), so `'self'` covers them and no third-party host appears in the policy. Visitors' browsers send their IP address to nobody but us. The scripts and stylesheets stay SRI-locked (`shared/utils/*Assets.ts`; the build fails when the installed package's bytes differ). |
 | `'wasm-unsafe-eval'` | `@nuxt/content` compiles its SQLite WASM in the browser for client-side docs queries. Allows WebAssembly compilation only — not `eval`/`new Function`. |
 | `data:` in `font-src` / `img-src` | KaTeX font fallbacks; Mermaid diagrams render as `data:image/svg+xml` `<img>`s; custom CSS may use raster `data:image/*`. |
 | S3 origin | Presigned image GETs (`/api/files` 302s there) and presigned upload PUTs. |
@@ -123,9 +123,9 @@ Stripe origins are gone: billing uses the Checkout **redirect**, not Stripe.js.
   (no template compiler, no `new Function`); paged.js and Mermaid don't
   evaluate strings.
 
-Regression pins: `tests/unit/csp.test.ts` (exact policy string, no proxy CSP
+Regression pins: `tests/unit/rendering/csp.test.ts` (exact policy string, no proxy CSP
 label in any compose file, every hljs theme has an SRI hash),
-`tests/unit/pagedPreviewIframe.test.ts` (nonce on every inline script of the
+`tests/unit/rendering/pagedPreviewIframe.test.ts` (nonce on every inline script of the
 iframe bootstrap, no inline handlers), and the Playwright suite
 `tests/e2e/flows/preview-isolation.spec.ts` (no CSP violation on the editor
 with a doc using images + Mermaid + KaTeX + highlight.js, the landing page
@@ -141,8 +141,8 @@ sanitizer bypass would execute — so it executes somewhere harmless:
 
 | Iframe | `sandbox` | Origin |
 |---|---|---|
-| live preview (`app/composables/usePagedPreview.ts`) | `allow-scripts` | opaque (`null`) |
-| browser print (`app/utils/printPdf.ts`, same bootstrap) | `allow-scripts allow-modals` | opaque (`null`) |
+| live preview (`app/composables/preview/usePagedPreview.ts`) | `allow-scripts` | opaque (`null`) |
+| browser print (`app/utils/preview/printPdf.ts`, same bootstrap) | `allow-scripts allow-modals` | opaque (`null`) |
 
 No `allow-same-origin`: script inside the preview cannot read the app's
 cookies or storage (both throw), cannot touch `window.parent`'s DOM, and its
@@ -155,7 +155,7 @@ lets `window.print()` open the dialog.
 
 How the preview still works (details: `app/utils/AGENTS.md`):
 
-- **postMessage protocol** (`app/utils/previewFrame.ts`): render requests and
+- **postMessage protocol** (`app/utils/preview/previewFrame.ts`): render requests and
   the app's color mode go in; ready / page count / errors / print shortcut /
   print done come out. The parent accepts messages only from the iframe's
   window with origin `null`, validated per type; the iframe accepts them only
@@ -263,7 +263,7 @@ exercise the SAME auth code path prod uses — so a regression that
 silently disables `requirepass` breaks tests before it ships.
 
 The runtime client config flows through `valkeyClientConfigFromEnv()` in
-`shared/utils/connectionStrings.ts` → `new Redis(url, options)` in both
+`shared/utils/runtime/connectionStrings.ts` → `new Redis(url, options)` in both
 `server/utils/platform/valkey.ts` and `sync-server/src/valkey.ts`. The `url` is
 `redis://:password@host:port/db` (or `rediss://…` for TLS — see §B.4).
 
@@ -320,7 +320,7 @@ Plumbing today:
 | `VALKEY_TLS_CA_PATH` | unset | Optional path to a provider-supplied CA PEM. Only needed for providers using a private CA — most public providers issue certs from a public CA chain that the system store already trusts. |
 
 Wire-up: `valkeyClientConfigFromEnv()` (in
-`shared/utils/connectionStrings.ts`) reads both vars and returns
+`shared/utils/runtime/connectionStrings.ts`) reads both vars and returns
 `{ url, options: { tls: { ca? } } | undefined }`. Both
 `server/utils/platform/valkey.ts` and `sync-server/src/valkey.ts` spread the
 returned options into `new Redis(url, options)`. Docs in `.env.example`.
@@ -361,7 +361,7 @@ ss -ltnp | grep -E ':6379|:6380' || echo "ok: no valkey on host"
   state survives the restart via AOF in prod, and is intentionally
   ephemeral in dev/test).
 - Deploy prerequisites: `docs/DEPLOY.md`.
-- Postgres TLS counterpart: `shared/utils/postgresSsl.ts` plus the
+- Postgres TLS counterpart: `shared/utils/runtime/postgresSsl.ts` plus the
   existing TLS section in `docs/DEPLOY.md`.
 
 ---

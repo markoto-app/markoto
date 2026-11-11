@@ -24,7 +24,7 @@ import { clearRecentKicks, waitForKick, fetchRecentKicks } from '../setup/syncPr
 // in-process HTTP stub — same coverage, but now the kick goes through
 // the SAME code path prod uses (Nuxt → sync-test container → kickUser
 // handler). The dispatch SHAPE (URL, headers, body) is also pinned at
-// the unit tier in `tests/unit/syncNotify.test.ts` — defence in depth
+// the unit tier in `tests/unit/sync/syncNotify.test.ts` — defence in depth
 // against the dispatch site being silently removed.
 
 async function roleOf(workspaceId: string, userId: number): Promise<string | null> {

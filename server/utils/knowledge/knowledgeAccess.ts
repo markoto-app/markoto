@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/nuxt'
 import type { H3Event } from 'h3'
 import { getMemberRole } from '../../repos/workspaceMembers'
 import { getKnowledge, deleteKnowledgeRow } from '../../repos/knowledge'
-import type { WorkspaceRole } from '../../../shared/utils/docPermissions'
+import type { WorkspaceRole } from '../../../shared/utils/documents/docPermissions'
 
 /**
  * Knowledge-base access rules:

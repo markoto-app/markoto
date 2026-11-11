@@ -18,7 +18,7 @@
 //
 // Upgrade guard: the preset source this copy was derived from is pinned
 // in tests/fixtures/nitropack/bun-preset-entry.mjs.txt, and
-// tests/unit/bunEntryUpstream.test.ts fails as soon as the installed
+// tests/unit/platform/bunEntryUpstream.test.ts fails as soon as the installed
 // nitropack ships a different preset entry. Carry the change over here,
 // then refresh the snapshot.
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
-import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment, insertBlock, insertAlert, insertMath, insertDiagram, insertPageBreak, insertToc } from '~/utils/editorCommands'
+import { toggleWrap, toggleHeading, toggleLinePrefix, toggleOrderedList, toggleCode, toggleComment, insertBlock, insertAlert, insertMath, insertDiagram, insertPageBreak, insertToc } from '~/utils/editor/editorCommands'
 
 const { t } = useI18n()
 

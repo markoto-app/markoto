@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
-import { isPaymentProblem } from '~/utils/workspaceBilling'
+import { isPaymentProblem } from '~/utils/billing/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
 
 const { t } = useI18n()
@@ -30,7 +30,7 @@ interface WorkspaceDetail {
     // A Team / Business subscription currently covers the workspace.
     pooled?: boolean
     // Admins only: seats + status of the subscription (WP3).
-    billing?: import('~/utils/workspaceBilling').WorkspaceSeatBilling | null
+    billing?: import('~/utils/billing/workspaceBilling').WorkspaceSeatBilling | null
     /** Admins only (WP14). */
     sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
     /** Admins only (WP15). */

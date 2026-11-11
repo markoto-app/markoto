@@ -2,7 +2,7 @@ import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
 import { getCommentThreadByEntryId } from '../../../../../repos/comments'
-import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/docPermissions'
+import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/documents/docTokenVerify'
 
 // On-demand fetch of the full conversation thread for a comment-row

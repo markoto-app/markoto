@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import { renderMarkdown } from '~/utils/renderMarkdown'
-import { composeFinalHtml } from '~/utils/composeFinalHtml'
-import { themeToCss, themeFontsImport } from '~~/shared/utils/themeToCss'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { renderMarkdown } from '~/utils/markdown/renderMarkdown'
+import { composeFinalHtml } from '~/utils/preview/composeFinalHtml'
+import { themeToCss, themeFontsImport } from '~~/shared/utils/theme/themeToCss'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import type { DocTheme } from '~~/shared/types/theme'
-import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/pagedjsAssets'
-import { hljsTheme } from '~~/shared/utils/hljsAssets'
-import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/katexAssets'
-import { transformMermaid, inlineMermaidSvgs } from '~/utils/mermaidLoader'
-import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
-import { isPagedRuntime, registerPagedHandlers } from '~/utils/pagedHandlers'
-import { documentTexts } from '~~/shared/utils/documentLocale'
-import { sanitizeCustomCssForRender } from '~/utils/customCssLoader'
-import { themeImagesForDoc } from '~~/shared/utils/themeImages'
-import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/renderFileTokens'
-import { brandFontFaceCss } from '~~/shared/utils/brandFonts'
+import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/vendor/pagedjsAssets'
+import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
+import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/vendor/katexAssets'
+import { transformMermaid, inlineMermaidSvgs } from '~/utils/markdown/mermaidLoader'
+import { buildMermaidConfig } from '~~/shared/utils/markdown/mermaidConfig'
+import { isPagedRuntime, registerPagedHandlers } from '~/utils/preview/pagedHandlers'
+import { documentTexts } from '~~/shared/utils/documents/documentLocale'
+import { sanitizeCustomCssForRender } from '~/utils/preview/customCssLoader'
+import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
+import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/preview/renderFileTokens'
+import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
 import type { BrandFont } from '~~/shared/config/brandKit'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
 // shapes (e.g. {}). We deliberately DON'T import looksLikeTheme from
-// shared/utils/themeValidation because it transitively pulls zod through
+// shared/utils/theme/themeValidation because it transitively pulls zod through
 // shared/types/theme.ts, and Vite's SSR transform on this page wedges
 // on the zod import (the dev SSR resolver doesn't see `z` as a value
 // for some reason — `'undefined is not an object (evaluating
@@ -87,7 +87,7 @@ onMounted(async () => {
   // what wedges SSR, see above): the stored theme is validated at write
   // time, but render time must not depend on that. Invalid → default
   // theme; image URLs that don't belong to this document are dropped.
-  const { isValidTheme } = await import('~~/shared/utils/themeValidation')
+  const { isValidTheme } = await import('~~/shared/utils/theme/themeValidation')
   const stored = bootstrap.value?.theme
   const validTheme: DocTheme = themeImagesForDoc(
     looksLikeTheme(stored) && isValidTheme(stored) ? stored : defaultTheme,
@@ -219,7 +219,7 @@ onMounted(async () => {
   // reads them naturally as a regular browser stylesheet during render.
   const hljs = hljsTheme(theme.code.theme)
   if (hljs.url) {
-    // SRI-locked like every vendored asset (shared/utils/hljsAssets.ts).
+    // SRI-locked like every vendored asset (shared/utils/vendor/hljsAssets.ts).
     const link = document.createElement('link')
     link.rel = 'stylesheet'
     link.integrity = hljs.sri
@@ -277,7 +277,7 @@ onMounted(async () => {
     const polyfill = document.createElement('script')
     polyfill.src = PAGEDJS_POLYFILL_URL
     // SRI-locked + crossorigin="anonymous" (same-origin /vendor/ file,
-    // the hash pins its exact bytes — shared/utils/pagedjsAssets.ts).
+    // the hash pins its exact bytes — shared/utils/vendor/pagedjsAssets.ts).
     polyfill.integrity = PAGEDJS_POLYFILL_SRI
     polyfill.crossOrigin = 'anonymous'
     polyfill.onload = () => resolve()

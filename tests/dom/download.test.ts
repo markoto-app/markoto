@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { downloadFile, downloadMarkdown } from '../../app/utils/download'
+import { downloadFile, downloadMarkdown } from '../../app/utils/platform/download'
 
 // Test the browser-download utilities. These need a real DOM because:
 //   - `new Blob(...)` + `URL.createObjectURL` round-trip through window.URL

@@ -1,5 +1,5 @@
 import { runDataExportWorker } from '../../utils/privacy/dataExportWorker'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 
 // Test-only worker-tick. Runs `runDataExportWorker()` once on demand
 // so flow tests don't have to poll for 60+ seconds waiting for the

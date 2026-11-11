@@ -1,6 +1,6 @@
 import { getDocWithActorRole } from '../../../../repos/documents'
 import { getBrandAsset } from '../../../../repos/brandAssets'
-import { docStateOf, decideFileAccess } from '../../../../../shared/utils/docPermissions'
+import { docStateOf, decideFileAccess } from '../../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../../utils/documents/docTokenVerify'
 import { sendBrandAsset } from '../../../../utils/brandKit/storage'
 import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'

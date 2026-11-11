@@ -3,8 +3,8 @@ import { resetDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_BASE_URL } from '../setup/env'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { buildMarkdownExport } from '~~/shared/utils/markdownFrontmatter'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { buildMarkdownExport } from '~~/shared/utils/markdown/markdownFrontmatter'
 import type { DocTheme } from '~~/shared/types/theme'
 
 // "Download Markdown" → File › Import round trip (staging feedback B/12).

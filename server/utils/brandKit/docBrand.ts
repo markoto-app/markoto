@@ -2,13 +2,13 @@ import { createHash } from 'node:crypto'
 import { getWorkspace } from '../../repos/workspaces'
 import { brandFontsOf, listBrandAssets } from '../../repos/brandAssets'
 import { brandKitAvailable } from './access'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
 
 // What a document's renderers need from its workspace's brand kit (WP10):
 // the fonts to declare and, while the design is locked (and the plan
-// includes the kit), the locked design (shared/utils/brandLock.ts). Read
+// includes the kit), the locked design (shared/utils/theme/brandLock.ts). Read
 // by the token endpoint (editor preview + browser print) and the render
 // bootstrap (server PDF / page images, the AI's page views).
 

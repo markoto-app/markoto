@@ -3,7 +3,7 @@ import * as Y from 'yjs'
 import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
-import { splitMarkotoFrontmatter } from '~~/shared/utils/markdownFrontmatter'
+import { splitMarkotoFrontmatter } from '~~/shared/utils/markdown/markdownFrontmatter'
 
 // Documents:read tools — happy paths against real DB + real Y.js
 // state. Authz failures (cross-user, cross-workspace) are pinned in

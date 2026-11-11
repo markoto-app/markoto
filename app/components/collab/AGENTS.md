@@ -8,9 +8,9 @@ Right-sidebar feed showing every meaningful change to the doc. Three tiers of de
 
 - One card per activity row. Avatar + actor + relative timestamp + action verb + optional detail line.
 - **Action vocabulary:** `edit`, `join`, `leave`, `comment.added/replied/resolved/reopened/deleted`, `theme.changed`, `title.changed`, `ai.tool` (with subtype `web_search/fetch_url/generate_image/view_image/search_knowledge/get_knowledge_file`), `restore`. Text-typed enum (adding values is TS-only). Agent rows (AI loop + MCP) render the seal disc and a per-tool icon; humans get `<CommonUserAvatar>` seeded by user id; anonymous rows by `actorAvatarSeed` (`activity_log.actor_avatar_seed`, migration 0027 — the editor's per-tab awareness token, so the row matches the presence avatar; `comment.*` rows take the comment's `authorAvatarSeed`, passed by the comments snapshot but not stored in `document_comments`), falling back to the name for older rows (see `app/AGENTS.md` → User avatars).
-- **Filter chips:** `all / edits / comments / ai / meta`. Categorisation lives in `app/utils/activityFeedHelpers.ts:categoryOf` so it can be unit-tested without mounting the SFC. Disabled chips with a 0-count remain visible but greyed out — keeps the layout from jumping as activity arrives.
+- **Filter chips:** `all / edits / comments / ai / meta`. Categorisation lives in `app/utils/collab/activityFeedHelpers.ts:categoryOf` so it can be unit-tested without mounting the SFC. Disabled chips with a 0-count remain visible but greyed out — keeps the layout from jumping as activity arrives.
 - **Actor names come from JWTs only.** The sync server attributes `edit` / `title.changed` / `theme.changed` rows from the editing connection's JWT (`userName`), never from the client-chosen awareness `user.name`. Anonymous editors land as `userName: null` + `actorPrincipal: 'anonymous'` and render as "Anonymous" — so nobody can write another person's name (or `markoto`, which the feed treats as an AI row) into the history. See `sync-server/AGENTS.md` → Activity logging.
-- **Presence data is normalised.** Awareness `user` fields (name / colour / avatarSeed / id) are normalised by the sync server before relay and again on receipt (`useDocument` + `PresenceBar`, `shared/utils/awarenessUser.ts`) — colours end up in raw style attributes. There is no avatar URL field: avatars are generated locally, anonymous visitors broadcast only a random `avatarSeed` token.
+- **Presence data is normalised.** Awareness `user` fields (name / colour / avatarSeed / id) are normalised by the sync server before relay and again on receipt (`useDocument` + `PresenceBar`, `shared/utils/documents/awarenessUser.ts`) — colours end up in raw style attributes. There is no avatar URL field: avatars are generated locally, anonymous visitors broadcast only a random `avatarSeed` token.
 - **Reactive timestamps** via `useNow({ interval: 30_000 })` — labels auto-tick from "just now" → "1 minute ago" without waiting for the 30s polling refetch. One shared interval; pauses with the tab via VueUse's internal `useIntervalFn`.
 - **Polling cadence:** 30s safety-net via `useIntervalFn` + reactive Y.Doc-update debounce (3s) so the feed catches sync-server activity within ~3s of the doc settling. `useDocumentVisibility` pauses both when the tab is hidden.
 
@@ -51,7 +51,7 @@ Restores are reversible: clicking restore on a `restore` row brings the doc back
 - The new `restore` activity row's `yjsDocIdBefore` ← `yjsDocIdBeforeRestore` (the LIVE pre-restore state).
 - The new `restore` activity row's `yjsDocIdAfter` ← `yjsDocIdAfterRestore` (the post-restore state).
 
-A future restore from this row uses `yjsDocIdBefore` as its target — i.e., restores to the LIVE state right before this restore. Stamping the SOURCE row's `yjsDocIdBefore` here would silently break this — clicking restore on the new row would re-snap to the same past state. Caught in browser validation; pinned by `tests/unit/restoreEndpoint.test.ts`.
+A future restore from this row uses `yjsDocIdBefore` as its target — i.e., restores to the LIVE state right before this restore. Stamping the SOURCE row's `yjsDocIdBefore` here would silently break this — clicking restore on the new row would re-snap to the same past state. Caught in browser validation; pinned by `tests/unit/documents/restoreEndpoint.test.ts`.
 
 ## Cross-doc isolation
 
@@ -61,21 +61,21 @@ A future restore from this row uses `yjsDocIdBefore` as its target — i.e., res
 
 | Concern | Layer | File |
 |---|---|---|
-| `restoreDocToYjsId` orchestration + reversibility-capture order | Unit (mocked WS provider + DB) | `tests/unit/restoreDoc.test.ts` |
-| `/restore` endpoint handler — boundary-id mapping, atomicity, auth gate order | Unit (mocked deps + h3 globals stubbed) | `tests/unit/restoreEndpoint.test.ts` |
+| `restoreDocToYjsId` orchestration + reversibility-capture order | Unit (mocked WS provider + DB) | `tests/unit/documents/restoreDoc.test.ts` |
+| `/restore` endpoint handler — boundary-id mapping, atomicity, auth gate order | Unit (mocked deps + h3 globals stubbed) | `tests/unit/documents/restoreEndpoint.test.ts` |
 | `/restore` endpoint via real HTTP — validation, auth, 404/410 branches | Integration | `tests/integration/endpoints/activityRestore.test.ts` |
 | `<ActivityFeed>` restore-row drawer mount + button gating | Component (mountSuspended) | `tests/nuxt/ActivityFeed.test.ts` |
 | `DiffView` rendering | Component | `tests/nuxt/DiffView.test.ts` |
-| `activityFeedHelpers` (categoryOf / isExpandable / expansionToggleLabelKey) | Unit | `tests/unit/activityFeedHelpers.test.ts` |
-| Comments-snapshot diff replay | Unit | `tests/unit/commentsSnapshotDiff.test.ts` |
+| `activityFeedHelpers` (categoryOf / isExpandable / expansionToggleLabelKey) | Unit | `tests/unit/collab/activityFeedHelpers.test.ts` |
+| Comments-snapshot diff replay | Unit | `tests/unit/comments/commentsSnapshotDiff.test.ts` |
 | Comments-snapshot concurrency (advisory lock) | Integration | `tests/integration/endpoints/commentsSnapshotConcurrency.test.ts` |
 
 The integration suite can't reach the success-path body assertions on `/restore` (no real Hocuspocus in the integration stack), so the unit-level endpoint test mocks `restoreDocToYjsId`. Real-WS happy-path coverage requires the flow-test stack (`docker-compose.test.yml --profile flows`).
 
 ## Gotchas
 
-- **Restore must capture `yjsDocIdBeforeRestore` BEFORE the WS provider is constructed.** The synthetic Hocuspocus client's first-store-document hook lands BEFORE the helper would otherwise read `MAX(id)` — reading after the WS connect would capture an id that already includes part of the restore's own update. Lock-then-read-then-construct, all inside one tx. Pinned by `tests/unit/restoreDoc.test.ts` via the `providerConstructedAtCallIndex` snapshot.
-- **The `restore` activity row's `yjsDocIdBefore` is the LIVE pre-restore state, NOT the source row's `yjsDocIdBefore`.** Stamping the source row's value here breaks reversibility. Pinned by `tests/unit/restoreEndpoint.test.ts`. Same shape applies to any future "atomic snapshot of live state" feature: the boundary id you stamp on the new row is the LIVE state, not the target you restored TO.
+- **Restore must capture `yjsDocIdBeforeRestore` BEFORE the WS provider is constructed.** The synthetic Hocuspocus client's first-store-document hook lands BEFORE the helper would otherwise read `MAX(id)` — reading after the WS connect would capture an id that already includes part of the restore's own update. Lock-then-read-then-construct, all inside one tx. Pinned by `tests/unit/documents/restoreDoc.test.ts` via the `providerConstructedAtCallIndex` snapshot.
+- **The `restore` activity row's `yjsDocIdBefore` is the LIVE pre-restore state, NOT the source row's `yjsDocIdBefore`.** Stamping the source row's value here breaks reversibility. Pinned by `tests/unit/documents/restoreEndpoint.test.ts`. Same shape applies to any future "atomic snapshot of live state" feature: the boundary id you stamp on the new row is the LIVE state, not the target you restored TO.
 - **`isExpandable()` and `expansionFor()` MUST list the same actions.** Adding `restore` to `isExpandable` but forgetting `expansionFor` returns null from the renderer — the v-if-gated drawer host never mounts and the click visibly does nothing. Symptom: the chevron rotates (because `data-expanded` flips) but no diff appears. Pinned by `tests/nuxt/ActivityFeed.test.ts`.
 - **Iconify renders `<UIcon name="i-lucide-foo">` as `class="iconify i-lucide:foo"` — colon, not hyphen.** Component tests asserting on icon presence need the colon form.
 - **Lazy `defineAsyncComponent` doesn't fully resolve in nuxt component tests.** Test the host-mount as the regression target (covers the `expansionFor` branch class of bug); test the inner content separately.

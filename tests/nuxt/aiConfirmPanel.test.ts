@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { AIPromptBar } from '#components'
 import type { AiAvailability } from '~~/shared/ai/providers'
-import type { AiConfirmationRequest } from '~/composables/useAI'
+import type { AiConfirmationRequest } from '~/composables/ai/useAI'
 
 // The inline "Allow / Deny" confirm in the prompt bar (A1). Shown when
 // the AI, after reading other people's text, wants to reach the user's

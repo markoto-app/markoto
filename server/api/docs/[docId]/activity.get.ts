@@ -1,7 +1,7 @@
 import { getDocWithActorRole } from '../../../repos/documents'
 import { hasActivityBefore, listRecentActivity } from '../../../repos/activity'
 import { HISTORY_LIMITED_HEADER, capsFor, historyCutoff, resolveDocPlanFor } from '../../../utils/billing/entitlements'
-import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/docPermissions'
+import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 
 // Activity log is a view-level read. Rules mirror file access:

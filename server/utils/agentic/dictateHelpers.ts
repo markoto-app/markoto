@@ -34,7 +34,7 @@
  *
  * Phase 7: callers also gate on `isVoxtralSupportedLanguage` to drop
  * unsupported leading codes back to en-US. The build-time test in
- * `tests/unit/voxtralSupport.test.ts` keeps shipped i18n locales
+ * `tests/unit/aiProviders/voxtralSupport.test.ts` keeps shipped i18n locales
  * inside the support set, but a power-user-supplied `tr-TR` (Turkish)
  * still shouldn't reach the upstream.
  */

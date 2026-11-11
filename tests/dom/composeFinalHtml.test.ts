@@ -3,9 +3,9 @@
 // jsdom, not happy-dom: the final pass runs DOMPurify (see the note in
 // renderMarkdownXss.test.ts).
 import { describe, it, expect } from 'vitest'
-import { composeFinalHtml } from '../../app/utils/composeFinalHtml'
-import { defaultTheme } from '../../shared/utils/defaultTheme'
-import { THEME_PRESETS } from '../../shared/utils/themePresets'
+import { composeFinalHtml } from '../../app/utils/preview/composeFinalHtml'
+import { defaultTheme } from '../../shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '../../shared/utils/theme/themePresets'
 import type { DocTheme } from '../../shared/types/theme'
 
 // composeFinalHtml is the last step before HTML reaches the preview

@@ -19,7 +19,7 @@
 
 import { setUserKeyMaxBudget } from '../../utils/litellm/userKeys'
 import { resolveBillingContext } from '../../utils/billing/billing'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 
 export default defineEventHandler(async (event) => {
   if (!isTestModeEnabled()) {

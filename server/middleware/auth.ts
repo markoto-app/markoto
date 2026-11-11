@@ -1,4 +1,4 @@
-import { isTestModeEnabled } from '../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../shared/utils/security/testMode'
 import { classifyInternalRoute, rejectIfFromEdge, requireInternalSecret } from '../utils/platform/internalRoutes'
 
 export default defineEventHandler(async (event) => {

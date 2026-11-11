@@ -25,7 +25,7 @@
  *   4. Render its picture (`make template-thumbs IDS=<id>`), with a sample
  *      title in `tests/fixtures/theme-shots/template-thumbs.json`.
  */
-import type { ThemePresetCategory } from '../utils/themePresets'
+import type { ThemePresetCategory } from '../utils/theme/themePresets'
 
 /** Cover fields a template fills in for its design (the theme's cover
  *  carries authors, affiliations and subtitle, not the text). Only applied

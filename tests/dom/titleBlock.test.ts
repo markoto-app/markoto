@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { dropTitleHeading, extractAbstract, markAbstract } from '../../app/utils/titleBlock'
-import { buildCoverHtml } from '../../app/utils/coverHtml'
-import { pruneTocDepth } from '../../app/utils/tocDepth'
-import { THEME_PRESETS } from '../../shared/utils/themePresets'
+import { dropTitleHeading, extractAbstract, markAbstract } from '../../app/utils/preview/titleBlock'
+import { buildCoverHtml } from '../../app/utils/preview/coverHtml'
+import { pruneTocDepth } from '../../app/utils/preview/tocDepth'
+import { THEME_PRESETS } from '../../shared/utils/theme/themePresets'
 import type { DocTheme } from '../../shared/types/theme'
 
 const body = '<nav class="table-of-contents"><ul><li><a href="#abstract">Abstract</a></li><li><a href="#intro">Intro</a></li></ul></nav>'

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
-import { dictationExtensions, setDictationInterim } from '../../app/utils/dictationExtensions'
+import { dictationExtensions, setDictationInterim } from '../../app/utils/editor/dictationExtensions'
 
 // CM6 ghost-text extension — drives the grey-italic "what the model
 // is hearing" overlay that sits at the caret during dictation. The

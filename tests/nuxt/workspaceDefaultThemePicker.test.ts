@@ -4,9 +4,9 @@ import { ref } from 'vue'
 import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { WorkspaceSettingsPanel } from '#components'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
-import { themeThumbnailUrl } from '~~/shared/utils/themeThumbnails'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { themeThumbnailUrl } from '~~/shared/utils/theme/themeThumbnails'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // The workspace's default design is picked with the same picker as the
 // new-document dialog and the theme panel: a picture of each design's

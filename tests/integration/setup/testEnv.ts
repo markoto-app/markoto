@@ -22,7 +22,7 @@ import {
 //
 // Why this exists: `useDatabase()` and `useValkey()` resolve their
 // connection strings via `postgresUrlFromEnv` / `valkeyUrlFromEnv` in
-// `shared/utils/connectionStrings.ts`, which read atomic POSTGRES_* /
+// `shared/utils/runtime/connectionStrings.ts`, which read atomic POSTGRES_* /
 // VALKEY_* vars rather than the composed *_URL ones. We ALSO need to
 // set DATABASE_URL / VALKEY_URL because some legacy boot paths read
 // the composed forms directly. Forgetting any of them produces

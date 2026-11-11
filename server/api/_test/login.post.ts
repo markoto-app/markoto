@@ -2,7 +2,7 @@
 //
 // ONLY active when the server is booted with `TEST_MODE=1` on an instance
 // that doesn't look like a real deployment (`isTestModeEnabled`, see
-// shared/utils/testMode.ts). In every other environment this endpoint
+// shared/utils/security/testMode.ts). In every other environment this endpoint
 // returns 404 — the guard runs before any body parsing — and a real
 // deployment with a stray `TEST_MODE=1` refuses to boot at all
 // (plugins/01-validate-secrets.ts).
@@ -11,7 +11,7 @@
 // nuxt-auth-utils helper the OAuth handlers use, and returns the session
 // data. The test client picks the Set-Cookie header off the response and
 // replays it on subsequent calls.
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { getSessionEpoch } from '../../repos/users'
 
 export default defineEventHandler(async (event) => {

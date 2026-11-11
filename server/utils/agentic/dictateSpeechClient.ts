@@ -4,7 +4,7 @@ import {
   AudioEncoding,
   RealtimeTranscription
 } from '@mistralai/mistralai/extra/realtime'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { MISTRAL_EU_API_HOST } from '../../../shared/ai/providers'
 
 // Factory for the dictate streaming client. Voxtral realtime is the only

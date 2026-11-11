@@ -6,7 +6,7 @@ import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protoc
 import type { H3Event } from 'h3'
 import { setResponseStatus } from 'h3'
 
-import { useAI as useAIComposable, type AiEventSource } from '~/composables/useAI'
+import { useAI as useAIComposable, type AiEventSource } from '~/composables/ai/useAI'
 
 // Signal to a registerEndpoint handler: respond with a non-2xx status
 // and the given body. We can't `throw createError({...})` from the
@@ -26,7 +26,7 @@ async function respond(event: H3Event, out: unknown): Promise<unknown> {
 }
 
 // Composable under test: awareness-driven AI session state + prompt /
-// abort actions. See app/composables/useAI.ts. Selection-scoped
+// abort actions. See app/composables/ai/useAI.ts. Selection-scoped
 // requests flow through `prompt()` with an editorSelection override;
 // there is no separate rewrite endpoint.
 //

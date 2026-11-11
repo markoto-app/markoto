@@ -2,8 +2,8 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { THEME_PRESETS } from '~~/shared/utils/themePresets'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 
 // /api/themes — user-saved theme presets.
 // Plus the workspace `defaultTheme` field (PUT /api/workspaces/:id) and

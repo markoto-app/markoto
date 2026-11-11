@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
-import { formatBytes, usageFill } from '~/utils/usageMeter'
+import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
 // controls (export + delete) for managing it. Spending and usage

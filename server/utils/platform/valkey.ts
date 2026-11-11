@@ -1,5 +1,5 @@
 import Redis from 'ioredis'
-import { valkeyClientConfigFromEnv } from '../../../shared/utils/connectionStrings'
+import { valkeyClientConfigFromEnv } from '../../../shared/utils/runtime/connectionStrings'
 
 // Singleton ioredis client for Valkey (Redis-compatible). Used today by
 // rate-limiting and session locks; future consumers share the same

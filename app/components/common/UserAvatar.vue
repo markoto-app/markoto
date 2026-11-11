@@ -1,5 +1,5 @@
 <script lang="ts">
-import { avatarColors } from '~/utils/userAvatar'
+import { avatarColors } from '~/utils/collab/userAvatar'
 
 // Module scope: one lazy renderer for every avatar on the page.
 type Render = (seed: string) => string
@@ -7,7 +7,7 @@ let renderer: Render | null = null
 let loading: Promise<Render> | null = null
 
 function loadRenderer(): Promise<Render> {
-  loading ??= import('~/utils/userAvatarRender').then((m) => {
+  loading ??= import('~/utils/collab/userAvatarRender').then((m) => {
     renderer = m.renderAvatarDataUri
     return renderer
   })

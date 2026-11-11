@@ -1,22 +1,22 @@
 // Build-time generator for the same-origin browser assets served under
-// `/vendor/` (see shared/utils/vendorAssets.ts for the why). Used by
+// `/vendor/` (see shared/utils/vendor/vendorAssets.ts for the why). Used by
 // modules/vendor-assets.ts (every `nuxt build` / `nuxt dev`) and by
-// tests/unit/vendorAssets.test.ts.
+// tests/unit/rendering/vendorAssets.test.ts.
 //
 // Sources are the pinned npm packages in node_modules; nothing is
 // downloaded. The versions + SRI hashes the app's runtime code uses live
-// in shared/utils/*Assets.ts — `checkVendorPackages` fails the build when
+// in shared/utils/vendor/*Assets.ts — `checkVendorPackages` fails the build when
 // the installed packages differ from them.
 
 import { createHash } from 'node:crypto'
 import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
-import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL, PAGEDJS_VERSION } from '../../shared/utils/pagedjsAssets'
-import { MERMAID_SRI, MERMAID_URL, MERMAID_VERSION } from '../../shared/utils/mermaidAssets'
-import { KATEX_CSS_SRI, KATEX_CSS_URL, KATEX_VERSION } from '../../shared/utils/katexAssets'
-import { HLJS_STYLES_BASE, HLJS_THEMES, HLJS_VERSION } from '../../shared/utils/hljsAssets'
-import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontFamilyName, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/themeFonts'
-import { VENDOR_BASE } from '../../shared/utils/vendorAssets'
+import { PAGEDJS_POLYFILL_SRI, PAGEDJS_POLYFILL_URL, PAGEDJS_VERSION } from '../../shared/utils/vendor/pagedjsAssets'
+import { MERMAID_SRI, MERMAID_URL, MERMAID_VERSION } from '../../shared/utils/vendor/mermaidAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL, KATEX_VERSION } from '../../shared/utils/vendor/katexAssets'
+import { HLJS_STYLES_BASE, HLJS_THEMES, HLJS_VERSION } from '../../shared/utils/vendor/hljsAssets'
+import { BUNDLED_FONTS_DIR, FONT_STYLESHEET_BASE, SELF_HOSTED_FONTS, uiFontFamilyName, uiFontStylesheetName, type FontsourceSource, type SelfHostedFont } from '../../shared/utils/theme/themeFonts'
+import { VENDOR_BASE } from '../../shared/utils/vendor/vendorAssets'
 
 /** One file copied from an npm package to `/vendor/…`. */
 export interface VendorFile {

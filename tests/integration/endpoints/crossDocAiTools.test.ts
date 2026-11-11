@@ -17,7 +17,7 @@ import { createUser, createDoc, createWorkspace, setMemberRole } from '../setup/
 // calls, not WebSocket Y.js sync). So the SUCCESS path for
 // `view_other_document` (which opens openTrustedCommentClient to
 // read live ytext) cannot be exercised here — those branches are
-// covered by the layer-1 unit tests in `tests/unit/crossDocAiTools.test.ts`,
+// covered by the layer-1 unit tests in `tests/unit/ai/crossDocAiTools.test.ts`,
 // which mock the trusted client and exercise the body-formatting
 // contract.
 //

@@ -1,8 +1,8 @@
 import * as Y from 'yjs'
 import { useDatabasePool } from '../platform/database'
-import { withThemeDocId } from '~~/shared/utils/customCss'
-import { withThemeImagesDocId } from '~~/shared/utils/themeImages'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
+import { withThemeDocId } from '~~/shared/utils/theme/customCss'
+import { withThemeImagesDocId } from '~~/shared/utils/theme/themeImages'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
 // Clone Y.js state from one docId to another, rewriting image URLs in
 // the process so the target doc's markdown references its own

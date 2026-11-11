@@ -45,15 +45,15 @@ import type {
 } from '../agentic/functionTools'
 import { renderDocument } from '../rendering/renderClient'
 import { resolveDocProperties } from '../documents/docProperties'
-import { buildMarkdownExport } from '~~/shared/utils/markdownFrontmatter'
+import { buildMarkdownExport } from '~~/shared/utils/markdown/markdownFrontmatter'
 import type { DocTheme } from '~~/shared/types/theme'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { isValidTheme } from '~~/shared/utils/themeValidation'
-import { themeImagesForDoc } from '~~/shared/utils/themeImages'
-import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/customCss'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
+import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
+import { adaptCustomCssToDoc, formatCustomCssIssues } from '~~/shared/utils/theme/customCss'
 import { customCssAppOrigins, themeCustomCssIssues } from '../rendering/themeCustomCss'
 import { capsFor, historyCutoff, planHasFeature, resolveDocPlan, resolveUserPlan } from '../billing/entitlements'
-import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS, themeFromPreset } from '~~/shared/utils/theme/themePresets'
 import {
   SAVED_THEME_DESCRIPTION_MAX,
   SAVED_THEME_NAME_MAX,
@@ -61,9 +61,9 @@ import {
   checkSavedThemeName
 } from '~~/shared/config/savedThemes'
 import { resolveDocBrand } from '../brandKit/docBrand'
-import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/brandLock'
+import { DOC_OWNED_COVER_FIELDS } from '~~/shared/utils/theme/brandLock'
 import { getDoc, getDocWithActorRole, updateDocMeta, listWorkspaceDocsWithOwnerFlag, listOwnedByUser } from '../../repos/documents'
-import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/docPermissions'
+import { docStateOf, isEffectiveDocOwner, decideTokenAccess } from '~~/shared/utils/documents/docPermissions'
 import { DOWNLOAD_DISABLED_MESSAGE, userMayDownload } from '../documents/shareSettings'
 import { openTrustedCommentClient } from '../documents/commentsServerClient'
 import { deletePending, markConfirmed, reservePendingUpload, sumImageBytesInScope } from '../../repos/uploads'

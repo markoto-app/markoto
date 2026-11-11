@@ -29,7 +29,7 @@ import { getDoc } from '../../repos/documents'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../utils/billing/billing'
 import type { DocToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
-import { isTestModeEnabled } from '../../../shared/utils/testMode'
+import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 
 export default defineEventHandler(async (event) => {
   if (!isTestModeEnabled()) {

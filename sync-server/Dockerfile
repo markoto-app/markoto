@@ -33,7 +33,7 @@ RUN bun install --frozen-lockfile --ignore-scripts
 
 # `shared/` is its own self-contained package — package.json declares its
 # direct npm deps (`jsonwebtoken`) so Bun's standard module resolution
-# from `shared/utils/secrets.ts` finds them in `shared/node_modules/`.
+# from `shared/utils/security/secrets.ts` finds them in `shared/node_modules/`.
 # Without this, `bun run src/index.ts` fails at startup with
 # `Cannot find package 'jsonwebtoken' from /app/shared/utils/secrets.ts`
 # because the resolver walks up only ANCESTORS of the importing file,

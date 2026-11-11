@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect } from '../fixtures/flow'
 import { showTextFile } from '../fixtures/downloadViewer'
-import { splitMarkotoFrontmatter } from '../../../shared/utils/markdownFrontmatter'
+import { splitMarkotoFrontmatter } from '../../../shared/utils/markdown/markdownFrontmatter'
 
 // Tier 1: "Save the doc as a .md file."
 //

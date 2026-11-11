@@ -10,7 +10,7 @@ import {
 } from '../../server/repos/themes'
 import { NotFoundError } from '../../server/repos/errors'
 import { createUser } from '../integration/setup/fixtures'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 // Themes repo. Covers the user-saved preset round-trips + the
 // `(themeId, userId)` cross-user isolation tuple — a row owned by user

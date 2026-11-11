@@ -1,6 +1,6 @@
 // Boot-time Stripe configuration check, called from
 // `server/plugins/01-validate-secrets.ts`. Pure (inputs in, error
-// strings out) so `tests/unit/stripeStartupCheck.test.ts` can pin the
+// strings out) so `tests/unit/billing/stripeStartupCheck.test.ts` can pin the
 // billing-mode gating without a Nitro context.
 //
 // Billing OFF (NUXT_BILLING_ENABLED unset/false — self-hosted and the

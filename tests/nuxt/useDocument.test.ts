@@ -3,9 +3,9 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 
 // — import AFTER mocks are in place ————————————————————————————————
-import { useDocument } from '~/composables/useDocument'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { ANON_AVATAR_STORAGE_KEY } from '~/utils/userAvatar'
+import { useDocument } from '~/composables/document/useDocument'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { ANON_AVATAR_STORAGE_KEY } from '~/utils/collab/userAvatar'
 
 // Orchestrator tests for `useDocument`. The strategy:
 //

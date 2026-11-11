@@ -27,7 +27,7 @@ export const TEST_BILLING_OFF_PORT = 3102
 export const TEST_BILLING_OFF_BASE_URL = `http://127.0.0.1:${TEST_BILLING_OFF_PORT}`
 
 // Rate-limit namespaces the billing-off server enforces despite test mode
-// (`TEST_ENFORCE_RATE_LIMITS`, shared/utils/testMode.ts): every MCP limit,
+// (`TEST_ENFORCE_RATE_LIMITS`, shared/utils/security/testMode.ts): every MCP limit,
 // so tests/integration/mcp/rateLimits.test.ts can exercise them.
 export const TEST_ENFORCED_MCP_RATE_LIMITS: readonly string[] = Object.values(MCP_RATE_LIMITS).map(rule => rule.namespace)
 // ...and the anonymous-visitor limits (shared/config/anonLimits.ts), driven by
@@ -46,7 +46,7 @@ export const TEST_DB_PORT = '5433'
 export const TEST_DB_URL = `postgres://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_NAME}`
 
 // Valkey atomic parts — `postgresUrlFromEnv` / `valkeyUrlFromEnv` in
-// shared/utils/connectionStrings.ts now read these instead of the
+// shared/utils/runtime/connectionStrings.ts now read these instead of the
 // composed URLs, so we have to set both for the Nuxt subprocess.
 export const TEST_VALKEY_HOST = '127.0.0.1'
 export const TEST_VALKEY_PORT = '6380'
@@ -67,7 +67,7 @@ export const TEST_VALKEY_PASSWORD = 'testpassword'
 // that recorded /internal/kick-user calls for assertion. Removed: the
 // stub couldn't speak Hocuspocus protocol, which gated every Y.js-
 // touching tool out of integration coverage. The kick-user dispatch
-// shape is now pinned by `tests/unit/syncNotify.test.ts`.
+// shape is now pinned by `tests/unit/sync/syncNotify.test.ts`.
 // Generic OIDC (WP7b): the `oidc-test` mock IdP (navikt mock-oauth2-server)
 // in docker-compose.test.yml. Every path is its own issuer with its own
 // signing key; the app trusts exactly TEST_OIDC_ISSUER.

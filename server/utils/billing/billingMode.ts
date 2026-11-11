@@ -61,7 +61,7 @@ export function effectivePlan(
   return storedPlan
 }
 
-/** Recovery hint shape understood by `app/composables/useErrorHandler.ts`. */
+/** Recovery hint shape understood by `app/composables/platform/useErrorHandler.ts`. */
 export interface LimitRecovery {
   kind: 'link'
   href: string

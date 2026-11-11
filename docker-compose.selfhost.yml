@@ -389,7 +389,7 @@ services:
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:-0}
       # Reverse proxies in front of the app: 1 = this Traefik. Behind your own
-      # TLS proxy set 2 (and TRAEFIK_TRUSTED_IPS). shared/utils/clientIp.ts.
+      # TLS proxy set 2 (and TRAEFIK_TRUSTED_IPS). shared/utils/security/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
       # ─── AI (all optional; docs/SELF-HOSTING.md#ai) ───
       # Instance defaults per capability; empty = users bring their own key.

@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm'
 import { useDatabase } from '../platform/database'
 import { reconstructDocAtYjsId } from './historyReplay'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
-import { isValidMetaValue } from '~~/shared/utils/ymetaValidation'
+import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
 
 const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
 

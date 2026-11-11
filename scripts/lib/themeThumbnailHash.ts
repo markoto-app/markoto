@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parse as parseYaml } from 'yaml'
-import { THEME_PRESETS } from '../../shared/utils/themePresets'
-import { showsTitleItself, withoutTitleHeading } from '../../shared/utils/markdownTitle'
+import { THEME_PRESETS } from '../../shared/utils/theme/themePresets'
+import { showsTitleItself, withoutTitleHeading } from '../../shared/utils/markdown/markdownTitle'
 import { TEMPLATES, templateCover } from '../../shared/templates'
 
 /**
@@ -12,7 +12,7 @@ import { TEMPLATES, templateCover } from '../../shared/templates'
  * theme plus its showcase fixture (Markdown, title, optional patch) from
  * `tests/fixtures/theme-shots/thumbnails.json`. Shared by
  * `scripts/render-theme-thumbs.ts` (writes the hash into
- * `shared/utils/themeThumbnails.manifest.json`) and `tests/unit/themeThumbnails.test.ts`
+ * `shared/utils/theme/themeThumbnails.manifest.json`) and `tests/unit/theme/themeThumbnails.test.ts`
  * (fails when a preset or its fixture changed without a new picture).
  */
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
@@ -60,7 +60,7 @@ export function thumbnailHash(presetId: string, source: ThumbnailSource): string
  * example, rendered in its theme. A source is either a fixture file with a
  * title and preset, or a marketing page whose first `::try-it` block
  * (theme + source) is the example — so editing the page's example or the
- * preset makes the picture stale (`tests/unit/templateGallery.test.ts`).
+ * preset makes the picture stale (`tests/unit/theme/templateGallery.test.ts`).
  */
 export interface GallerySource { md: string, title: string, theme: string, pageNumber: number }
 
@@ -121,7 +121,7 @@ export function galleryHash(source: GallerySource): string {
  * title (and optional `pageNumber`) from
  * `tests/fixtures/theme-shots/template-thumbs.json`. Blank
  * shows the markoto design (the default when the workspace sets none).
- * `tests/unit/templateThumbnails.test.ts` fails when the text, the
+ * `tests/unit/theme/templateThumbnails.test.ts` fails when the text, the
  * design or the placeholders changed without a new picture.
  */
 export interface TemplateThumbnailSource {

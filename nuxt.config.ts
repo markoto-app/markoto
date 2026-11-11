@@ -26,7 +26,7 @@ export default defineNuxtConfig({
     // See server/mcp/AGENTS.md.
     '@nuxtjs/mcp-toolkit',
     // Same-origin copies of paged.js / Mermaid / KaTeX / highlight.js and
-    // the web fonts under /vendor/ — see shared/utils/vendorAssets.ts.
+    // the web fonts under /vendor/ — see shared/utils/vendor/vendorAssets.ts.
     './modules/vendor-assets'
   ],
 
@@ -55,6 +55,12 @@ export default defineNuxtConfig({
     }
   },
 
+  // Nuxt scans only the top level of these dirs; the domain sub-folders are
+  // scanned too so the auto-imports stay the same.
+  imports: {
+    dirs: ['composables/**', 'utils/**', '../shared/utils/**']
+  },
+
   devtools: {
     enabled: true
   },
@@ -64,7 +70,7 @@ export default defineNuxtConfig({
   ui: {
     // No @nuxt/fonts: it downloads the CSS font families from Google Fonts
     // at build time. Every web font is self-hosted from pinned Fontsource
-    // packages instead (shared/utils/themeFonts.ts, modules/vendor-assets.ts),
+    // packages instead (shared/utils/theme/themeFonts.ts, modules/vendor-assets.ts),
     // so a build needs no network beyond the package registry.
     fonts: false
   },
@@ -268,6 +274,10 @@ export default defineNuxtConfig({
 
   compatibilityDate: '2025-01-15',
   nitro: {
+    // Nitro scans only the top level of shared/utils; scan its sub-folders too.
+    imports: {
+      dirs: [fileURLToPath(new URL('./shared/utils/**', import.meta.url))]
+    },
     // Global error sanitiser. Every uncaught error from any /api/*
     // endpoint flows through `server/error.ts` before the response
     // is sent. 5xx errors are stripped of their original message +
@@ -438,7 +448,7 @@ export default defineNuxtConfig({
       navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       cleanupOutdatedCaches: true,
       // The vendored third-party assets under /vendor/ (paged.js, Mermaid,
-      // KaTeX, highlight.js, web fonts — shared/utils/vendorAssets.ts) stay
+      // KaTeX, highlight.js, web fonts — shared/utils/vendor/vendorAssets.ts) stay
       // out of the precache: ~12 MB, and a page only ever needs a few of
       // them. They're runtime-cached on first use instead (below).
       globIgnores: ['**/node_modules/**/*', 'vendor/**'],

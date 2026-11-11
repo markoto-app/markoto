@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { CUSTOM_CSS_MAX_BYTES } from './customCss'
-import { THEME_IMAGE_URL_RE } from '../utils/themeImages'
-import { isIsoDate } from '../utils/documentLocale'
+import { THEME_IMAGE_URL_RE } from '../utils/theme/themeImages'
+import { isIsoDate } from '../utils/documents/documentLocale'
 
 /**
  * Per-document theme. Drives both the live paged preview and the printed
@@ -16,7 +16,7 @@ import { isIsoDate } from '../utils/documentLocale'
  * The Zod schemas below are the source of truth. `DocTheme` is derived
  * via `z.infer<typeof DocThemeSchema>`, and the meta.put endpoint +
  * server-side code paths validate against these schemas directly
- * (see `shared/utils/themeValidation.ts`). Every range / enum / regex
+ * (see `shared/utils/theme/themeValidation.ts`). Every range / enum / regex
  * bound lives here, so "what a valid theme looks like" has exactly one
  * definition.
  */
@@ -60,7 +60,7 @@ const fontName = z.string().regex(FONT_NAME_REGEX, 'must be a valid font name (l
  * an HTML attribute and a CSS `url()`, so nothing else is accepted.
  * Whether an upload path belongs to THE document is checked where the
  * document is known (`meta.put`, AI `update_theme`, render time) — see
- * `shared/utils/themeImages.ts`.
+ * `shared/utils/theme/themeImages.ts`.
  */
 const themeImageUrl = z.string().max(500).regex(THEME_IMAGE_URL_RE, 'must be empty or an image uploaded to the document')
 
@@ -140,7 +140,7 @@ export type HeadingLevels = z.infer<typeof HeadingLevelsSchema>
 
 /**
  * Pre-curated highlight.js stylesheet. Maps to a single same-origin /vendor/ URL via
- * `shared/utils/hljsAssets.ts`. Adding more is a matter of (a) adding
+ * `shared/utils/vendor/hljsAssets.ts`. Adding more is a matter of (a) adding
  * the variant here, (b) extending the URL map, (c) adding an i18n
  * label.
  */
@@ -233,7 +233,7 @@ export type CaptionPosition = z.infer<typeof CaptionPositionSchema>
 
 /**
  * Look of the reference list — the section headed References /
- * Bibliography / Literatur / Références … (`app/utils/references.ts`):
+ * Bibliography / Literatur / Références … (`app/utils/markdown/references.ts`):
  *  - `plain`    — like any other list / paragraphs
  *  - `hanging`  — hanging indent (author-year lists, APA)
  *  - `brackets` — numbered lists get `[1]`, `[2]` labels (IEEE); paragraphs hang
@@ -244,7 +244,7 @@ export type ReferenceStyle = z.infer<typeof ReferenceStyleSchema>
 /**
  * Diagram colours. `document` (the default for new themes) derives every
  * colour from the theme itself — accent, heading ink, text, neutral and
- * paper, incl. the pie / xy-chart palettes (`shared/utils/mermaidConfig.ts`).
+ * paper, incl. the pie / xy-chart palettes (`shared/utils/markdown/mermaidConfig.ts`).
  * The others are Mermaid's built-in themes, kept for an explicit choice.
  * Diagram text always uses the body font.
  */
@@ -273,7 +273,7 @@ export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
  *                  affiliations), date and the abstract sit at the top of
  *                  page 1 and the text starts right below (papers). The
  *                  abstract is the document's own `Abstract` section — see
- *                  `app/utils/titleBlock.ts`.
+ *                  `app/utils/preview/titleBlock.ts`.
  */
 export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal', 'title-block'])
 
@@ -499,7 +499,7 @@ export const DocThemeSchema = z.object({
     // pt — separate from body so code can be tighter
     fontSize: z.number().min(6).max(16),
     // The fields below are optional: themes stored before they existed
-    // render with the defaults in `shared/utils/themeOptions.ts`.
+    // render with the defaults in `shared/utils/theme/themeOptions.ts`.
     /** Code font; absent = the system monospace stack. */
     font: fontName.optional(),
     background: CodeBackgroundSchema.optional(),
@@ -585,7 +585,7 @@ export const DocThemeSchema = z.object({
     /**
      * Publication date the author picked (`YYYY-MM-DD`), shown on the
      * cover and by the `{date}` header/footer token, written out in the
-     * document language (`shared/utils/documentLocale.ts`). Empty or
+     * document language (`shared/utils/documents/documentLocale.ts`). Empty or
      * absent = the render date ("today"). Optional so themes stored
      * before the field existed stay valid.
      */
@@ -637,7 +637,7 @@ export const DocThemeSchema = z.object({
    * never the app chrome. Stored as typed (formatting kept).
    *
    * The schema bounds the length only (UTF-16 units; the byte cap is in
-   * the sanitizer). The content check is `shared/utils/customCss.ts`:
+   * the sanitizer). The content check is `shared/utils/theme/customCss.ts`:
    * write paths reject on any issue, and every render path sanitizes
    * again because `ymeta.theme` can be written directly over Y.js. The
    * schema deliberately does NOT run the parser, so clients can validate

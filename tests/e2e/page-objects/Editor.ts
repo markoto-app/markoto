@@ -277,7 +277,7 @@ export class EditorPage {
    */
   async setCoverEnabled(enabled: boolean): Promise<void> {
     const docId = this.currentDocId()
-    const { defaultTheme } = await import('../../../shared/utils/defaultTheme')
+    const { defaultTheme } = await import('../../../shared/utils/theme/defaultTheme')
     const metaRes = await this.page.request.get(`/api/docs/${docId}/meta`)
     const metaBody: unknown = metaRes.ok() ? await metaRes.json() : null
     const stored: unknown = typeof metaBody === 'object' && metaBody !== null ? Reflect.get(metaBody, 'theme') : null

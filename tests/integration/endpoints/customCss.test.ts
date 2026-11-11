@@ -21,7 +21,7 @@ import * as Y from 'yjs'
 import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 const FORBIDDEN = 'p { color: red }\n\n  @import "http://evil.test/x.css";'
 

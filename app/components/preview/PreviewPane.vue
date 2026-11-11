@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
 import type { BrandFont } from '~~/shared/config/brandKit'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
-import { isMacPlatform, zoomShortcutAction } from '~/utils/previewZoom'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
+import { isMacPlatform, zoomShortcutAction } from '~/utils/preview/previewZoom'
 
 const props = defineProps<{
   source: string

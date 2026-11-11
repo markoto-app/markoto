@@ -16,7 +16,7 @@
 // trustworthy. A reload is universally safe and matches what the
 // middleware will do on the next API call anyway.
 
-import { LOGOUT_CHANNEL_NAME } from '../composables/useLogout'
+import { LOGOUT_CHANNEL_NAME } from '../composables/account/useLogout'
 
 export default defineNuxtPlugin(() => {
   if (typeof BroadcastChannel === 'undefined') return

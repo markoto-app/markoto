@@ -3,7 +3,7 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { nextTick } from 'vue'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
-import type { SerializedAnchor } from '../../app/utils/commentAnchors'
+import type { SerializedAnchor } from '../../app/utils/comments/commentAnchors'
 
 // Composable wrapping the Y.Array<Y.Map> "comments" structure. Tests
 // cover:
@@ -35,7 +35,7 @@ mockNuxtImport('useUserSession', () => {
 })
 
 // eslint-disable-next-line import/first -- mockNuxtImport must be hoisted above the import it mocks
-import { useComments } from '~/composables/useComments'
+import { useComments } from '~/composables/comments/useComments'
 
 function makeYDoc() {
   const ydoc = new Y.Doc()

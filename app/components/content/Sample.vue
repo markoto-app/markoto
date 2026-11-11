@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { renderTrustedMarkdown } from '~/utils/renderMarkdown'
-import { sampleHeadingsToDivs } from '~/utils/sampleHeadings'
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
-import { hljsTheme } from '~~/shared/utils/hljsAssets'
-import { buildMermaidConfig } from '~~/shared/utils/mermaidConfig'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { renderTrustedMarkdown } from '~/utils/markdown/renderMarkdown'
+import { sampleHeadingsToDivs } from '~/utils/marketing/sampleHeadings'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
+import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
+import { buildMermaidConfig } from '~~/shared/utils/markdown/mermaidConfig'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 // Markdown source next to what markoto makes of it — for marketing
 // content (`::sample` in content/marketing/**):
@@ -56,7 +56,7 @@ const diagramHtml = ref<string | null>(null)
 const hasDiagram = computed(() => html.value.includes('language-mermaid'))
 
 async function drawDiagrams(): Promise<void> {
-  const { transformMermaid, inlineMermaidSvgs } = await import('~/utils/mermaidLoader')
+  const { transformMermaid, inlineMermaidSvgs } = await import('~/utils/markdown/mermaidLoader')
   try {
     diagramHtml.value = await transformMermaid(html.value, { config: buildMermaidConfig(defaultTheme), locale: 'en' })
   } catch {

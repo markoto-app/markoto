@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
 import * as Y from 'yjs'
-import { serializeAnchor, resolveAnchor } from '../../app/utils/commentAnchors'
+import { serializeAnchor, resolveAnchor } from '../../app/utils/comments/commentAnchors'
 
 // Y.js relative-position round-trip + orphan detection. These guarantees
 // are load-bearing for the comments feature:

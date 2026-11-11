@@ -1,5 +1,5 @@
-import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/katexAssets'
-import { HLJS_THEMES, HLJS_STYLES_BASE } from '~~/shared/utils/hljsAssets'
+import { KATEX_CSS_SRI, KATEX_CSS_URL } from '~~/shared/utils/vendor/katexAssets'
+import { HLJS_THEMES, HLJS_STYLES_BASE } from '~~/shared/utils/vendor/hljsAssets'
 
 // The HTML of a published page (WP13). The body is the stored snapshot:
 // markdown rendered and DOMPurify-sanitised by the print page, stripped

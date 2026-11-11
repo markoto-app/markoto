@@ -1,17 +1,17 @@
 import type { DocTheme } from '~~/shared/types/theme'
 import { DocThemeSchema } from '~~/shared/types/theme'
-import { defaultTheme } from '~~/shared/utils/defaultTheme'
+import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { isAudienceKind } from '~~/shared/audiences'
 import { resolveTemplateId } from '~~/shared/templates'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { META_DESCRIPTION_MAX_LENGTH, META_TITLE_MAX_LENGTH, isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '~~/shared/utils/ymetaValidation'
-import { adaptCustomCssToDoc, sanitizeCustomCss } from '~~/shared/utils/customCss'
-import { themeImagesForDoc } from '~~/shared/utils/themeImages'
-import { splitMarkotoFrontmatter, type ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
+import { META_DESCRIPTION_MAX_LENGTH, META_TITLE_MAX_LENGTH, isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '~~/shared/utils/documents/ymetaValidation'
+import { adaptCustomCssToDoc, sanitizeCustomCss } from '~~/shared/utils/theme/customCss'
+import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
+import { splitMarkotoFrontmatter, type ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 
 /**
  * Server side of the Markdown import (`POST /api/import` with a `.md`
- * file): strips markoto's own frontmatter (`shared/utils/markdownFrontmatter.ts`)
+ * file): strips markoto's own frontmatter (`shared/utils/markdown/markdownFrontmatter.ts`)
  * and turns it into document properties the editor can apply.
  *
  * The frontmatter is untrusted (anyone can write a `.md` file). Every

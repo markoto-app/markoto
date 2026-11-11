@@ -4,9 +4,9 @@ import { updateWorkspace } from '../../../../repos/workspaces'
 import { flushSyncDocument } from '../../../../utils/documents/syncNotify'
 import { reconstructDocAtYjsId } from '../../../../utils/documents/historyReplay'
 import { resolveDocProperties } from '../../../../utils/documents/docProperties'
-import { defaultTheme as markotoTheme } from '~~/shared/utils/defaultTheme'
-import { themeImagesForDoc } from '~~/shared/utils/themeImages'
-import { adaptCustomCssToDoc } from '~~/shared/utils/customCss'
+import { defaultTheme as markotoTheme } from '~~/shared/utils/theme/defaultTheme'
+import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
+import { adaptCustomCssToDoc } from '~~/shared/utils/theme/customCss'
 import { customCssAppOrigins } from '../../../../utils/rendering/themeCustomCss'
 
 // POST /api/workspaces/:wsId/brand/design-from-doc — {docId} (WP10): make a

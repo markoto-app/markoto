@@ -296,7 +296,7 @@ model_list:
   # DNS check on a clientside api_base for this path (verified).
   # The name list must cover every compose service / container / alias
   # name, each optionally followed by a trailing dot (same name to a
-  # resolver); tests/unit/internalHostnames.test.ts checks it against the
+  # resolver); tests/unit/aiProviders/internalHostnames.test.ts checks it against the
   # compose files. Redirects from the provider are NOT followed
   # (custom_handlers.py sets follow_redirects=False on LiteLLM's shared
   # HTTP clients), so the checked host is the only host contacted.

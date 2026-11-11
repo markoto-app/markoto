@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
-import type { WorkspaceSeatBilling } from '~/utils/workspaceBilling'
-import { formatPrice } from '~/utils/pricing'
+import type { WorkspaceSeatBilling } from '~/utils/billing/workspaceBilling'
+import { formatPrice } from '~/utils/billing/pricing'
 import type { PlanPricesResponse } from '~~/shared/config/pricing'
 
 // Members management modal. Single modal for admin + member views; the role

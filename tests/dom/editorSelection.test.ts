@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { EditorView } from '@codemirror/view'
 import { EditorState } from '@codemirror/state'
-import { snapshotEditorSelection } from '../../app/utils/editorSelection'
+import { snapshotEditorSelection } from '../../app/utils/editor/editorSelection'
 import { EDITOR_SELECTION_TEXT_MAX } from '../../shared/types/editorSelection'
 
 // Client-side snapshot helper. Covers the three states the AI prompt

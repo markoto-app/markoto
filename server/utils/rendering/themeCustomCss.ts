@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { sanitizeCustomCss, formatCustomCssIssues } from '~~/shared/utils/customCss'
+import { sanitizeCustomCss, formatCustomCssIssues } from '~~/shared/utils/theme/customCss'
 import { CUSTOM_CSS_INVALID_CODE, type CustomCssIssue } from '~~/shared/types/customCss'
 
 /**

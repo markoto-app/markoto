@@ -5,7 +5,7 @@
 
 import * as Y from 'yjs'
 import { injectTraceHeaders } from './sentry'
-import { normalizeAvatarSeed } from '../../shared/utils/awarenessUser'
+import { normalizeAvatarSeed } from '../../shared/utils/documents/awarenessUser'
 
 const APP_URL = process.env.APP_URL
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET

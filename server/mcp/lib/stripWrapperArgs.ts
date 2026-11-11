@@ -17,7 +17,7 @@
 //
 // Lives in its own file (no Nitro/MCP-toolkit imports) so it can be
 // unit-tested without spinning up the full server runtime — see
-// `tests/unit/mcpWrapperShapeIsolation.test.ts`. The wrapper-side
+// `tests/unit/mcp/mcpWrapperShapeIsolation.test.ts`. The wrapper-side
 // wiring is verified at the integration tier
 // (`tests/integration/mcp/tools-write.test.ts` runs `update_theme`
 // through MCP and asserts the merged theme persists correctly — if

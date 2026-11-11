@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import type { Text as YText } from 'yjs'
-import type { ImportedDocProperties } from '~~/shared/utils/markdownFrontmatter'
+import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 
 const props = defineProps<{
   ytext: YText

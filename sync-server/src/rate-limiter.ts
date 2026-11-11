@@ -9,7 +9,7 @@
 //     Protects against memory blowup when a crawler walks through random
 //     doc IDs and each one spawns a Y.Doc in RAM. Default: 5000.
 //
-// IP extraction: `shared/utils/clientIp.ts#resolveClientIp` — the
+// IP extraction: `shared/utils/security/clientIp.ts#resolveClientIp` — the
 // `TRUSTED_PROXY_HOPS`-th `x-forwarded-for` entry from the RIGHT (default
 // 1 = the Traefik in every shipped compose file), falling back to the
 // socket address when there is no header. The leftmost entry is whatever
@@ -20,7 +20,7 @@
 // with isolated Maps, which is what unit tests use. Production uses the
 // default singleton exported at the bottom.
 
-import { DEFAULT_TRUSTED_PROXY_HOPS, parseTrustedProxyHops, resolveClientIp } from '../../shared/utils/clientIp'
+import { DEFAULT_TRUSTED_PROXY_HOPS, parseTrustedProxyHops, resolveClientIp } from '../../shared/utils/security/clientIp'
 
 // Minimal shape of Hocuspocus's onConnect/onDisconnect payload — only the
 // fields we read. Avoids importing Hocuspocus's internal types (which

@@ -2,7 +2,7 @@
 import type { TabsItem } from '@nuxt/ui'
 import { TEMPLATES, type TemplateMeta } from '~~/shared/templates'
 import { templateThumbnailUrl } from '~~/shared/templates/thumbnails'
-import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePresetCategory } from '~~/shared/utils/themePresets'
+import { THEME_PRESETS, THEME_PRESET_CATEGORIES, type ThemePresetCategory } from '~~/shared/utils/theme/themePresets'
 import type { DocTheme } from '~~/shared/types/theme'
 
 /**

@@ -3,7 +3,7 @@
 // pipeline (`scripts/capture-tour.ts`) and the unit tests. Kept apart from
 // ./manifest.ts so the browser bundle of the product page never ships zod:
 // the page gets the parsed manifest from the SSR payload
-// (`app/composables/useTourManifest.ts`).
+// (`app/composables/marketing/useTourManifest.ts`).
 
 import { z } from 'zod'
 import { TOUR_BEAT_IDS, TOUR_SCENE_IDS } from './manifest'
