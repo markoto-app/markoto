@@ -37,8 +37,8 @@ export function instanceBrandLogoExt(path: string | undefined): string | null {
 }
 
 export function resolveInstanceBrand(env: Env): InstanceBrand {
-  // eslint-disable-next-line no-control-regex
-  const name = (env.NUXT_INSTANCE_BRAND_NAME ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, INSTANCE_BRAND_NAME_MAX)
+  // \p{Cc}: control characters (C0, DEL, C1) — kept out of the title and header.
+  const name = (env.NUXT_INSTANCE_BRAND_NAME ?? '').replace(/\p{Cc}/gu, '').trim().slice(0, INSTANCE_BRAND_NAME_MAX)
   const ext = instanceBrandLogoExt(env.NUXT_INSTANCE_BRAND_LOGO)
   let supportUrl = ''
   const rawUrl = (env.NUXT_INSTANCE_SUPPORT_URL ?? '').trim()
