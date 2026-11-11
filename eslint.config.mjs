@@ -6,6 +6,7 @@ import a11y from 'eslint-plugin-vuejs-accessibility'
 import vitest from '@vitest/eslint-plugin'
 import playwright from 'eslint-plugin-playwright'
 import vueI18n from '@intlify/eslint-plugin-vue-i18n'
+import { LEGACY_HANDLERS, RAW_HANDLER_EXCEPTIONS } from './tests/unit/platform/apiRoutes.legacy.ts'
 
 const ROOT = import.meta.dirname
 
@@ -83,6 +84,39 @@ const createErrorCode = {
   selector: 'CallExpression[callee.name="createError"] > ObjectExpression > Property[key.name="data"] > ObjectExpression > Property[key.name="code"][value.type="Literal"]',
   message: 'Do not inline the error code string in createError; use the shared error-code helper.'
 }
+
+// The API handler contract (docs/contributing/api-handlers.md): a route is
+// declared with `defineApiHandler`, reads its inputs through schemas, gets the
+// session from its policy and refuses with `apiError`. These selectors are
+// errors in converted handler files and warnings in the shrink-only legacy
+// list (tests/unit/platform/apiRoutes.legacy.ts).
+const handlerSelectors = [
+  {
+    selector: 'ExportDefaultDeclaration > CallExpression[callee.name=/^(defineEventHandler|eventHandler|defineCachedEventHandler|defineLazyEventHandler)$/]',
+    message: 'Declare the route with defineApiHandler({ access: allow.*(), ... }).'
+  },
+  {
+    selector: 'CallExpression[callee.name=/^(readBody|readValidatedBody|getQuery|getValidatedQuery|getRouterParam|getRouterParams|requireRouteParam|requireDocId|requireWsId)$/]',
+    message: 'Declare params / query / body as zod schemas on defineApiHandler and read them from the handler context.'
+  },
+  {
+    selector: 'CallExpression[callee.name=/^(requireValidatedUserSession|getValidatedUserSession|requireRecentLogin|requireAdminUser|getUserSession)$/]',
+    message: 'The access policy provides the user (ctx.user); use allow.user() / allow.admin() / recentLogin: true.'
+  },
+  { selector: 'CallExpression[callee.name="createError"]', message: 'Refuse with apiError(code, params): the code and its text live in the registry (shared/api/errors/).' }
+]
+
+// Client calls: route-keyed apiFetch types the response itself, and the
+// error handler translates registered codes.
+const apiClientSelectors = [
+  { selector: 'CallExpression[callee.name="$fetch"][typeArguments]', message: 'Use apiFetch(\'/api/route/:param\', { path }) — the response type comes from the route.' },
+  { selector: 'MemberExpression[property.name="message"][object.property.name="data"]', message: 'Show API errors through useErrorHandler (translated by code), not the raw data.message.' }
+]
+
+// File paths in flat-config `files` are globs: escape the brackets of `[docId]`.
+const literalPaths = paths => paths.map(p => p.replace(/[[\]]/g, '\\$&'))
+const HANDLER_GLOBS = ['server/api/**/*.ts', 'server/routes/**/*.ts']
+const legacyHandlerGlobs = literalPaths(LEGACY_HANDLERS)
 
 // Rules for stacks this project does not use (AWS IaC, React, Angular, jQuery,
 // Cypress, ...) can only produce noise.
@@ -243,6 +277,24 @@ export default withNuxt(
     files: ['**/*.{ts,mts,js,mjs,vue}'],
     ignores: ['shared/config/**', ...TESTS],
     rules: { 'no-restricted-syntax': ['warn', ...timeSelectors, createErrorCode] }
+  },
+  // Later blocks replace the rule's options instead of merging them, so each
+  // re-spreads the general selectors.
+  {
+    name: 'markoto/api-handlers',
+    files: HANDLER_GLOBS,
+    ignores: [...legacyHandlerGlobs, ...literalPaths(Object.keys(RAW_HANDLER_EXCEPTIONS))],
+    rules: { 'no-restricted-syntax': ['error', ...timeSelectors, createErrorCode, ...handlerSelectors] }
+  },
+  {
+    name: 'markoto/api-handlers-legacy',
+    files: legacyHandlerGlobs,
+    rules: { 'no-restricted-syntax': ['warn', ...timeSelectors, createErrorCode, ...handlerSelectors] }
+  },
+  {
+    name: 'markoto/api-client',
+    files: ['app/**/*.{ts,vue}'],
+    rules: { 'no-restricted-syntax': ['warn', ...timeSelectors, createErrorCode, ...apiClientSelectors] }
   },
   {
     name: 'markoto/milestone-vocabulary',

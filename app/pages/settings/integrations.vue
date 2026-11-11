@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
 // MCP integrations management. Issue, list, and revoke Personal Access
 // Tokens for external MCP clients (Claude Desktop, Cursor, ChatGPT app
 // store, ad-hoc scripts). Token plaintext is shown ONCE on creation and
@@ -8,14 +9,7 @@
 // required so deep-linking without a session lands in the 401-toast
 // surface.
 
-interface IssuedToken {
-  tokenId: string
-  name: string
-  scopes: string[]
-  createdAt: string
-  lastUsedAt: string | null
-  expiresAt: string | null
-}
+type IssuedToken = ApiResponse<'/api/mcp/tokens', 'get'>[number]
 
 interface IssueResponse extends IssuedToken {
   token: string
@@ -49,7 +43,7 @@ async function refreshTokens(): Promise<void> {
   if (!loggedIn.value) return
   tokensLoading.value = true
   try {
-    tokens.value = await $fetch<IssuedToken[]>('/api/mcp/tokens')
+    tokens.value = await apiFetch('/api/mcp/tokens')
   } catch (e) {
     const err = e as { message?: string, data?: { message?: string } }
     toast.add({

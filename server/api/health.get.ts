@@ -12,7 +12,7 @@ import { getCachedHealth } from '../utils/platform/healthProbes'
 // probed deps; degraded 2 s so a Valkey flap recovers fast.
 //
 // The body is minimal (no version, hostnames or timing); `/api/health/deep`
-// returns latencies and needs a session.
+// returns latencies and is for instance admins only.
 //
 // Public (whitelisted in `server/middleware/auth.ts`).
 

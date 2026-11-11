@@ -5,8 +5,8 @@ import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } fro
 //
 // Uncached: it is rare, and `/api/health` absorbs the Traefik traffic.
 //
-// Auth: any logged-in user, not admin-only, since the response exposes only
-// liveness booleans and latencies, no PII.
+// Admins only (`users.is_admin`): the error strings name internal hosts,
+// ports and upstream failures, which only operators need.
 
 interface DeepCheck {
   status: ProbeResult['status']
@@ -20,35 +20,36 @@ function pick(r: ProbeResult): DeepCheck {
   return out
 }
 
-export default defineEventHandler(async (event) => {
-  await requireValidatedUserSession(event)
+export default defineApiHandler({
+  access: allow.admin(),
+  handler: async ({ event }) => {
+    const config = useRuntimeConfig()
+    const embeddings = await probeEmbeddings()
+    const results = await runAllProbes({
+      syncUrl: config.syncInternalUrl,
+      rendererUrl: config.rendererInternalUrl,
+      markitdownUrl: config.markitdownUrl,
+      litellmUrl: config.litellm?.url,
+      s3Bucket: config.s3?.bucket
+    })
 
-  const config = useRuntimeConfig()
-  const embeddings = await probeEmbeddings()
-  const results = await runAllProbes({
-    syncUrl: config.syncInternalUrl,
-    rendererUrl: config.rendererInternalUrl,
-    markitdownUrl: config.markitdownUrl,
-    litellmUrl: config.litellm?.url,
-    s3Bucket: config.s3?.bucket
-  })
+    const healthy = isOverallHealthy(results)
+    setResponseStatus(event, healthy ? 200 : 503)
 
-  const healthy = isOverallHealthy(results)
-  setResponseStatus(event, healthy ? 200 : 503)
-
-  return {
-    status: healthy ? 'ok' : 'degraded',
-    checks: {
-      postgres: pick(results.postgres),
-      valkey: pick(results.valkey),
-      sync: pick(results.sync),
-      s3: pick(results.s3),
-      renderer: pick(results.renderer),
-      markitdown: pick(results.markitdown),
-      litellm: pick(results.litellm),
-      // Informational: "down" disables knowledge features only and does
-      // not change the overall status or HTTP code.
-      embeddings: pick(embeddings)
+    return {
+      status: healthy ? 'ok' : 'degraded',
+      checks: {
+        postgres: pick(results.postgres),
+        valkey: pick(results.valkey),
+        sync: pick(results.sync),
+        s3: pick(results.s3),
+        renderer: pick(results.renderer),
+        markitdown: pick(results.markitdown),
+        litellm: pick(results.litellm),
+        // Informational: "down" disables knowledge features only and does
+        // not change the overall status or HTTP code.
+        embeddings: pick(embeddings)
+      }
     }
   }
 })

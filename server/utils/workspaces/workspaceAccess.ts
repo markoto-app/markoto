@@ -77,17 +77,26 @@ export async function getDocAuthz(userId: number, docId: string): Promise<DocAut
       canManage: false
     }
   }
-  const isDocOwner = isEffectiveDocOwner(ctx, userId)
-  const hasRole = ctx.workspaceRole !== null
-  const isAdmin = ctx.workspaceRole === 'admin'
-  const isEditor = ctx.workspaceRole === 'editor'
   return {
     exists: true,
     ownerId: ctx.ownerId,
     workspaceId: ctx.workspaceId,
     workspaceRole: ctx.workspaceRole,
+    ...docAuthzOf(ctx, userId)
+  }
+}
+
+/** The membership grants of `userId` on a doc row from `getDocWithActorRole` (pure; access mode not considered). */
+export function docAuthzOf(
+  row: { ownerId: number | null, ownerAccessSuspended: boolean, workspaceRole: WorkspaceRole | null },
+  userId: number | null
+): Pick<DocAuthz, 'isDocOwner' | 'canView' | 'canEdit' | 'canManage'> {
+  const isDocOwner = isEffectiveDocOwner(row, userId)
+  const isAdmin = row.workspaceRole === 'admin'
+  const isEditor = row.workspaceRole === 'editor'
+  return {
     isDocOwner,
-    canView: isDocOwner || hasRole,
+    canView: isDocOwner || row.workspaceRole !== null,
     canEdit: isDocOwner || isAdmin || isEditor,
     canManage: isDocOwner || isAdmin
   }

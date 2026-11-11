@@ -36,8 +36,8 @@ describe('auth middleware whitelist', () => {
       // Core components are reported (postgres + valkey are live in the
       // test stack, so they should probe 'ok'); the board carries the
       // full component set a status page renders.
-      expect(body.checks.postgres.status).toBe('ok')
-      expect(body.checks.valkey.status).toBe('ok')
+      expect(body.checks.postgres?.status).toBe('ok')
+      expect(body.checks.valkey?.status).toBe('ok')
       for (const key of ['postgres', 'valkey', 'sync', 's3', 'renderer', 'markitdown', 'litellm']) {
         expect(body.checks[key]).toBeDefined()
         expect(['ok', 'down', 'skipped']).toContain(body.checks[key]!.status)
@@ -181,6 +181,13 @@ describe('auth middleware whitelist', () => {
     it('GET /api/health/deep rejects anonymous', async () => {
       const res = await anonClient().get('/api/health/deep')
       expect(res.status).toBe(401)
+    })
+
+    it('GET /api/health/deep is for instance admins only (probe errors name internal hosts)', async () => {
+      const user = await createUser()
+      const res = await (await loggedInClient(user.id)).get('/api/health/deep')
+      expect(res.status).toBe(403)
+      expect((await res.json() as { data: { code: string } }).data.code).toBe('admin/forbidden')
     })
 
     it('an UNKNOWN /api route rejects anonymous instead of falling through', async () => {

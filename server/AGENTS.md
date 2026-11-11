@@ -4,7 +4,8 @@ Nitro API, sign-in routes, middleware and background jobs. How access control, d
 
 ## Routes and middleware
 
-- `middleware/auth.ts` is default-deny for `/api/*`. A new public route needs an entry in `publicRoutes` with a comment saying why it is public and where the handler gates it. Use `[^/]+` for id segments so a malformed id reaches the handler's 400, not a 401.
+- Declare every route with `defineApiHandler` and an `allow.*` policy (`utils/api/`, `docs/contributing/api-handlers.md`); read inputs through its zod schemas and refuse with `apiError`. Never use h3's `readValidatedBody` / `getValidatedQuery`: they turn our own errors into a raw-zod 400.
+- `middleware/auth.ts` is default-deny for `/api/*`. A sessionless route needs an entry in `utils/auth/publicRoutes.ts` with a comment saying why it is public and where it is gated. Use `[^/]+` for id segments so a malformed id reaches the handler's 400, not a 401.
 - Service-to-service routes go under `/api/internal/` (needs `X-Internal-Secret`) or the render paths, classified in `utils/platform/internalRoutes.ts`. Requests to them carrying edge-proxy headers get 404. Never put a browser-facing route under `/api/internal/`; public reads use `/api/_internal/`. A new internal prefix must also be excluded from the public Traefik routers (`scripts/selfhost-check.sh` asserts the existing ones).
 - Compare shared secrets only with `shared/utils/security/internalSecret.ts` (timing-safe, accepts the previous secret during rotation). Never `===`.
 - `middleware/csrf.ts` exempts only `/api/webhooks/*` and `/api/internal/*`. Never exempt a cookie-authenticated route.
@@ -35,12 +36,12 @@ Nitro API, sign-in routes, middleware and background jobs. How access control, d
 
 - Call `appendAuditEvent` (`repos/audit.ts`) after the privileged mutation commits. It truncates the IP and swallows failures itself. Pass `workspaceId` on document events, or the workspace audit viewer misses them.
 - Wrap a POST whose double execution corrupts state (clone, copy, import) in `withIdempotency` (`utils/platform/idempotency.ts`). Not for billing correctness — that is enforced in the database.
-- Never add per-endpoint try/catch to scrub 5xx messages; `server/error.ts` does it for every route. Return client-actionable errors as 4xx with `data.code`.
+- Never add per-endpoint try/catch to scrub 5xx messages; `server/error.ts` does it for every route. Return client-actionable errors as 4xx through `apiError` with a registered code (`shared/api/errors/`).
 
 ## Plugins and background jobs
 
-- Every periodic job takes `acquireSweepLock(name)` and releases it in `finally` (`utils/platform/sweepLock.ts`). Only per-process work, like `yDocPoolSweep.ts`, skips it.
-- A plugin that queries the database at startup first awaits `migrationsComplete` (`utils/platform/migrations.ts`): Nitro does not wait for one plugin before running the next.
+- Every periodic job is a plugin that calls `defineSweeper` (`utils/platform/defineSweeper.ts`) with a row of `config/sweeps.ts`. It takes the advisory lock `acquireSweepLock(name)` (`utils/platform/sweepLock.ts`; `name` is the lock key, never rename it) and releases it in `finally`; only per-process work, like `yDocPoolSweep.ts`, sets `lock: false`. See `docs/contributing/server.md` → Background jobs.
+- A plugin that queries the database at startup first awaits `migrationsComplete` (`utils/platform/migrations.ts`): Nitro does not wait for one plugin before running the next. `defineSweeper` does this for its runs.
 - Billing jobs start only when `isBillingEnabled()`.
 
 ## Nitro

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest'
 
 // Idempotency helper. Pins three load-bearing properties:
 //   1. Header absent → behave as a no-op pass-through (don't break
@@ -42,10 +42,10 @@ vi.mock('../../../server/utils/platform/valkey', () => ({
 // throw without pulling Nitro into the unit test process.
 const headerStore: { value: string | undefined } = { value: undefined }
 
-;(globalThis as unknown as { getRequestHeader: typeof vi.fn }).getRequestHeader = vi.fn(
+;(globalThis as unknown as { getRequestHeader: Mock }).getRequestHeader = vi.fn(
   (_event: unknown, name: string) => name.toLowerCase() === 'idempotency-key' ? headerStore.value : undefined
 )
-;(globalThis as unknown as { createError: typeof vi.fn }).createError = vi.fn((opts: { statusCode?: number, message?: string, statusMessage?: string, data?: unknown }) => {
+;(globalThis as unknown as { createError: Mock }).createError = vi.fn((opts: { statusCode?: number, message?: string, statusMessage?: string, data?: unknown }) => {
   const e = new Error(opts.message ?? opts.statusMessage ?? 'Error') as Error & { statusCode?: number, data?: unknown }
   e.statusCode = opts.statusCode
   e.data = opts.data

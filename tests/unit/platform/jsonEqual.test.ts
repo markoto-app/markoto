@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { jsonEqual } from '../../../shared/utils/jsonEqual'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
+import { first } from '../../helpers/assert'
 
 describe('jsonEqual', () => {
   it('ignores object key order (a theme read back from jsonb)', () => {
@@ -8,7 +9,7 @@ describe('jsonEqual', () => {
   })
 
   it('a built-in preset equals its key-shuffled jsonb round-trip', () => {
-    const preset = THEME_PRESETS[0].theme
+    const preset = first(THEME_PRESETS).theme
     // Reverse the key order at every level, like jsonb's own ordering would.
     const reverseKeys = (v: unknown): unknown => {
       if (Array.isArray(v)) return v.map(reverseKeys)

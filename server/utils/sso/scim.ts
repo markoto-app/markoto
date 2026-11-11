@@ -72,7 +72,7 @@ export function scimError(status: number, detail: string, scimType?: string): Er
  * Bearer token → connection. 401 without a valid token, 403 when the
  * workspace's plan no longer includes SSO. Rate limit: 600 / min / token.
  */
-async function requireScimConnection(event: H3Event): Promise<SsoConnectionRow> {
+export async function requireScimConnection(event: H3Event): Promise<SsoConnectionRow> {
   const auth = getHeader(event, 'authorization') ?? ''
   const match = /^Bearer\s+(\S{20,200})$/i.exec(auth)
   const connection = match ? await getSsoConnectionByScimTokenHash(hashScimToken(match[1]!)) : null

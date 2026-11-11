@@ -6,7 +6,7 @@ import { getCachedProbeResults, isOverallHealthy, type ProbeResult } from '../ut
 //
 // Unlike the other health routes:
 //   - `/api/health` (Traefik gate) returns 200/503 and a minimal body.
-//   - `/api/health/deep` (logged-in) returns latencies + error strings.
+//   - `/api/health/deep` (admins) returns latencies + error strings.
 //   - `/api/status` (public) returns status + latency but NO error strings
 //     (they can leak internal hostnames), and ALWAYS 200: it is a report, not
 //     a liveness gate, so the poller's fetch succeeds even when a component is

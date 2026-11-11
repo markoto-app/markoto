@@ -23,7 +23,9 @@
         // nuxt.config.ts), so its default export has no importer
         "server/error.ts",
         // run with `uvx` from markitdown-server's PDF fixtures, never imported
-        "tests/fixtures/design-import/make_pdf.ts"
+        "tests/fixtures/design-import/make_pdf.ts",
+        // compile-time API contract checks, read by `bun run typecheck` (vue-tsc), never run
+        "tests/nuxt/apiContract.typecheck.ts"
       ],
       "project": [
         "app/**/*.{ts,vue,css}",
@@ -73,7 +75,9 @@
     // Byte-identical copy of shared/utils/security/internalSecret.ts: the renderer image
     // is built from renderer/ alone (pinned by tests/unit/platform/internalSecret.test.ts),
     // so the exports its own code does not call must stay.
-    "renderer/src/internalSecret.ts": ["exports"]
+    "renderer/src/internalSecret.ts": ["exports"],
+    // `ApiInputOf` is read by the generated .nuxt/types/api-inputs.d.ts (modules/api-contract.ts)
+    "shared/api/contract.ts": ["types"]
   },
   "ignoreExportsUsedInFile": { "interface": true, "type": true }
 }

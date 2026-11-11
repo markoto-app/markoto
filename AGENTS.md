@@ -54,7 +54,7 @@ Runtime and build
 
 Database
 - Drizzle uses `node-postgres`: no `.get()` / `.all()`; use `(await db.select()...limit(1))[0]`. Raw `tx.execute(sql\`…\`)` returns timestamps as strings.
-- drizzle-kit does not emit `CREATE EXTENSION`; hand-prepend it to a generated migration that needs one (see `drizzle/0000_cooing_miek.sql`).
+- drizzle-kit does not emit `CREATE EXTENSION`; hand-prepend it to a generated migration that needs one (see `drizzle/0000_baseline.sql`).
 - Enums are `text('col', { enum: [...] })`, not `pgEnum`. Migrations are forward-only.
 - `yjs_documents` is created by the sync server at start, not by Drizzle: code and migrations touching it must cope with its absence.
 - The knowledge embedding column's dimension is set at boot (`server/plugins/02-embeddings-dimension.ts`). Do not change `vector(768)` in `schema.ts` and never migrate that column's type.
@@ -66,7 +66,8 @@ Security
 - One authorization helper per concern: `canEditDoc` (content), `canManageDoc` (sharing, delete), `canManageWorkspace` (admin). `workspaces.ownerId` is provenance, never authorization.
 - Never return `passwordHash`; project columns explicitly on public endpoints.
 - Never sign a usable document JWT for a forbidden or password-gated document: return `token: null`.
-- A new public `/api` route needs an entry in the allowlist in `server/middleware/auth.ts` with a comment saying why; everything else requires a session.
+- Every route declares who may call it: `defineApiHandler({ access: allow.*(), … })` (`server/utils/api/`, guide: `docs/contributing/api-handlers.md`). Files still on `tests/unit/platform/apiRoutes.legacy.ts` are converted by batch; never add to that list.
+- A route reachable without a session (a sessionless `allow.*` policy) needs an entry in `server/utils/auth/publicRoutes.ts` with a comment saying why; the middleware requires a session for every other `/api` route, and `tests/unit/platform/apiRoutes.test.ts` keeps the two in step.
 - Internal routes (`/api/internal/**`, sync `/internal/**`, render routes) are reached container-to-container only; requests carrying edge-proxy forwarding headers get 404.
 
 Frontend
@@ -91,7 +92,7 @@ Tests
 ## Conventions
 
 - Comments say why, not what. No milestone or ticket labels, no history ("previously…"); the lint rule `markoto/no-milestone-vocabulary` and `check:vocab` flag them.
-- Errors: `createError({ statusCode, message, data: { code: 'area/reason' } })`. 4xx pass through to the client with `data.code`; 5xx are replaced by a generic message (`server/error.ts`). Add `data.messageKey` when the UI shows a translated message.
+- Errors: `throw apiError('area/reason', params)`. Every code is registered in `shared/api/errors/<area>.ts` (status + params) with its text in all six `i18n/locales/errors/<locale>.json`; the client translates it by code. 4xx pass through with `data.code`; 5xx are replaced by a generic message (`server/error.ts`).
 - New database access goes in `server/repos/`; endpoints and utils call repos (`bun run depcruise` reports the files that still query directly).
 - Put new server helpers in the matching `server/utils/<domain>/` folder (auto-imported recursively).
 - Keep this file and nested `AGENTS.md` files to rules that are not derivable from the code (budgets in `tests/unit/repoHygiene/claudeMd.test.ts`). Human documentation goes to `docs/`.
@@ -127,7 +128,7 @@ Docs (humans first, but read the relevant one before a larger change):
 |---|---|
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | System overview, security model, data stores, design decisions |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Setup, checks, coding rules, PR conventions |
-| [`docs/contributing/`](docs/contributing/) | `testing`, `flow-docs`, `server`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `TEMPLATE-WORKFLOW` (design templates), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
+| [`docs/contributing/`](docs/contributing/) | `testing`, `flow-docs`, `server`, `api-handlers`, `database`, `billing`, `knowledge-base`, `ai-tools`, `mcp`, `privacy-registries`, `sync-server`, `activity-log`, `preview-pipeline`, `design-system`, `templates`, `marketing-site`, `TEMPLATE-WORKFLOW` (design templates), `LOCAL`, `CONTAINER-ENGINES`, `CHEATSHEET` |
 | [`docs/reference/rate-limits.md`](docs/reference/rate-limits.md) | Request limits with their source files |
 | [`docs/SELF-HOSTING.md`](docs/SELF-HOSTING.md) | Install, configuration reference, upgrades, backups |
 | [`docs/AI-MODELS.md`](docs/AI-MODELS.md), [`docs/SECURITY-HARDENING.md`](docs/SECURITY-HARDENING.md), [`docs/S3-SETUP.md`](docs/S3-SETUP.md) | AI models, hardening, external S3 |

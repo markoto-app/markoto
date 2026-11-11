@@ -429,6 +429,7 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **The database migrations were squashed into one baseline.** `drizzle/` now holds a single migration that creates the whole schema; the retired workspace columns `billing_owner_id` and `ai_enabled` are gone. A database created by an earlier version cannot be upgraded across this release: the app refuses to start with `relation "…" already exists`. | Every instance installed before this release | Recreate the database: export what you need, then `docker compose down`, remove the Postgres volume (`docker volume rm <project>_pg_data`; `docker volume ls` shows the name; this also clears LiteLLM's spend records) and run `./install.sh upgrade`. There is no in-place upgrade path. |
 | **Published pages can have their own hostname.** New optional `NUXT_PUBLISH_PAGES_HOST`; with it set, `<public URL>/p/<slug>` redirects to the pages host. Published images and fonts now refuse to be embedded by other sites (`Cross-Origin-Resource-Policy: same-origin`). Required when `NUXT_LEGAL_SURFACES_ENABLED=true`. | Public instances (recommended); instances with the legal surfaces on (required) | See [Published pages](#published-pages). |
 | **The document converter (markitdown) requires a shared secret.** The app sends `NUXT_MARKITDOWN_API_SECRET` with every import, knowledge upload and design extraction; markitdown answers 401 without it, and `docker compose up` refuses to start while it is unset. | Everyone | Run `./install.sh upgrade` (it generates the secret). If you start the stack with plain `docker compose`, add `NUXT_MARKITDOWN_API_SECRET=` with the output of `openssl rand -hex 32` to `.env` first. |
 | **With the legal surfaces on, the operator's address and representative are required.** `NUXT_LEGAL_CONTROLLER_ADDRESS` and `NUXT_LEGAL_REPRESENTED_BY` no longer fall back to the hosted operator's details; the app refuses to start without them while `NUXT_LEGAL_SURFACES_ENABLED=true`. | Instances with `NUXT_LEGAL_SURFACES_ENABLED=true` | Set both in `.env` ([Legal pages](#legal-pages)). |
@@ -553,7 +554,7 @@ You are the operator of your instance. If it is open to the public you may need 
 
 ## Troubleshooting
 
-First look at `./install.sh status` (is every container up and healthy?) and `./install.sh logs <service>` (`app`, `sync`, `traefik`, `litellm`, `renderer`, `postgres`). Signed in, `/api/health/deep` shows each component's state; `/api/health` is the public pass/fail probe.
+First look at `./install.sh status` (is every container up and healthy?) and `./install.sh logs <service>` (`app`, `sync`, `traefik`, `litellm`, `renderer`, `postgres`). Signed in as an admin (`NUXT_ADMIN_USER_EMAILS`), `/api/health/deep` shows each component's state; `/api/health` is the public pass/fail probe.
 
 ### Installation and startup
 

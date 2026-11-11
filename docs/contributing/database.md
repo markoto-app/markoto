@@ -4,6 +4,7 @@ markoto keeps all application data in PostgreSQL. The schema is defined in `serv
 
 ## How migrations run
 
+- `drizzle/0000_baseline.sql` creates the whole schema in one file. The migration history before it was squashed away; a database created by an earlier version cannot be upgraded across that and has to be recreated (the boot migrator fails with `relation "…" already exists`).
 - `bun run db:generate` diffs `schema.ts` against the latest snapshot and writes `drizzle/NNNN_<name>.sql`.
 - At boot, `server/plugins/00-db-migrate.ts` applies pending files with `drizzle-orm/node-postgres/migrator`. Drizzle runs **all pending files in one transaction**. If a migration fails, the process exits.
 - Startup work that needs the migrated schema waits on `migrationsComplete` (`server/utils/platform/migrations.ts`).
@@ -27,7 +28,7 @@ Columns with a fixed set of values are `text('col', { enum: [...] })`, not `pgEn
 
 ### pgvector
 
-Drizzle does not emit `CREATE EXTENSION`. The extension is created at the top of `drizzle/0000_cooing_miek.sql`:
+Drizzle does not emit `CREATE EXTENSION`. The extension is created by a hand-written statement at the top of `drizzle/0000_baseline.sql`:
 
 ```sql
 CREATE EXTENSION IF NOT EXISTS vector;--> statement-breakpoint
@@ -49,7 +50,7 @@ The insert uses `onConflictDoNothing` so the second writer is a no-op instead of
 
 ### Indexes on populated tables
 
-`CREATE INDEX` blocks writes to the table while it builds. That is fine for new or small tables. `CREATE INDEX CONCURRENTLY` cannot run inside a transaction, and the boot migrator wraps every pending file in one, so it cannot be used in a regular migration. For a large table, build the index out of band with `CONCURRENTLY` before the release and make the migration `CREATE INDEX IF NOT EXISTS`. Leave a comment in the migration explaining the choice, as `drizzle/0034_far_onslaught.sql` does.
+`CREATE INDEX` blocks writes to the table while it builds. That is fine for new or small tables. `CREATE INDEX CONCURRENTLY` cannot run inside a transaction, and the boot migrator wraps every pending file in one, so it cannot be used in a regular migration. For a large table, build the index out of band with `CONCURRENTLY` before the release and make the migration `CREATE INDEX IF NOT EXISTS`. Leave a comment in the migration explaining the choice (table size, expected lock time).
 
 ### Foreign key on a populated table
 

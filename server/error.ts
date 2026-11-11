@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/nuxt'
 import type { NitroErrorHandler } from 'nitropack/types'
 import { dropUnusedSessionCookie } from './utils/auth/sessionCookie'
+import { isApiErrorCode } from '../shared/api/errors'
+import { isTestModeEnabled } from '../shared/utils/security/testMode'
 
 // Global error handler, wired via `nitro.errorHandler` in nuxt.config.ts.
 // Every uncaught error flows through here, so raw pg errors, SQL strings
@@ -68,6 +70,14 @@ const handler: NitroErrorHandler = async (error, event) => {
     } catch {
       // Sentry init may not be ready in test mode; ignore.
     }
+  }
+
+  // Every 4xx code belongs in the registry (shared/api/errors/). In dev and
+  // test runs, flag one that isn't, so a route conversion that invents a code
+  // without registering it shows up in the integration logs.
+  if (!isServerError && (isTestModeEnabled() || process.env.NODE_ENV === 'development')) {
+    const code = (error.data as { code?: unknown } | undefined)?.code
+    if (typeof code === 'string' && !isApiErrorCode(code)) console.warn(`[api-error] unregistered code ${code} (${statusCode} ${url})`)
   }
 
   const payload = buildSanitizedErrorPayload(error, url)

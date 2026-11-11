@@ -13,6 +13,7 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 | `server/repos/` | Drizzle queries, one file per table family (`server/repos/AGENTS.md`) |
 | `server/utils/<domain>/` | Orchestration grouped by domain (auth, documents, workspaces, billing, knowledge, storage, rendering, privacy, platform, …). Nitro auto-imports from every sub-folder |
 | `server/db/schema.ts` | The schema (`server/db/AGENTS.md`, [database.md](database.md)) |
+| `server/utils/api/` | The handler contract: `defineApiHandler`, the `allow.*` access policies, `apiError` ([api-handlers.md](api-handlers.md)) |
 | `server/error.ts` | Nitro error handler: 4xx pass through, 5xx become a generic message with `code: 'internal'` |
 
 ## Request pipeline
@@ -21,9 +22,10 @@ How the Nitro server in `server/` decides who may do what, how sessions and docu
 2. `middleware/00.custom-domain.ts` serves those hosts: only `/p/<slug>` (or the custom domain's single page), the page's files under `/api/published/…`, `/vendor/…` and `robots.txt`, GET and HEAD only. On the app's own origin it redirects `/p/<slug>` to the pages host when one is configured.
 3. `middleware/auth.ts`:
    - Internal routes (`utils/platform/internalRoutes.ts#classifyInternalRoute`): `/api/internal/**` (sync server → app), the Traefik HTTP-provider route, and the renderer's `/_internal/render/**` + `/api/_internal/render-bootstrap`. A request to any of them that carries an edge-proxy header (`X-Forwarded-Host`, `X-Forwarded-Server`, `X-Real-IP`, `Forwarded`) gets 404. `/api/internal/**` also needs `X-Internal-Secret` (`requireInternalSecret`, timing-safe, accepts the previous secret during rotation — `shared/utils/security/internalSecret.ts`). The public Traefik routers exclude these prefixes as well; `scripts/selfhost-check.sh` asserts it.
-   - Every other `/api/*` route is default-deny: it needs a validated session unless it matches an entry in `publicRoutes`. Public routes do their own gating in the handler.
+   - Every other `/api/*` route is default-deny: it needs a validated session unless it matches an entry in `utils/auth/publicRoutes.ts`. Public routes do their own gating in the handler.
 4. `middleware/csrf.ts` (rules in `utils/auth/csrf.ts`): on POST/PUT/PATCH/DELETE under `/api`, a present `Origin` must name the request host or `NUXT_SITE_URL`; otherwise `Sec-Fetch-Site` must be `same-origin`/`none`; otherwise `Referer` must match. Requests with none of the three pass (non-browser clients carry no ambient cookie). Exempt: `/api/webhooks/*`, `/api/internal/*`. Refusal: 403 `csrf/origin-mismatch`.
 5. `middleware/onboarding.ts` (legal surfaces on only): a signed-in user without age confirmation or current Privacy/ToS acceptance gets 403 `onboarding/required` on state-changing `/api` calls, except the paths listed in `utils/privacy/onboardingGate.ts`.
+6. The handler's own declaration (`defineApiHandler`, [api-handlers.md](api-handlers.md)): instance switch, the access policy (session or service credentials, then object-level access), input schemas, plan, rate limits, idempotency. Outside `/api` (sign-in, SCIM, published pages) this is the only gate.
 
 ## Document access
 
@@ -87,6 +89,10 @@ Sync connections end when their authorization ends: each connection closes when 
 
 Admin access is the `users.is_admin` column (`requireAdminUser`, `utils/auth/adminAccess.ts`). `NUXT_ADMIN_USER_EMAILS` only promotes a matching verified email at sign-in.
 
+## Errors
+
+A handler refuses with `apiError(code, params)` (`server/utils/api/apiError.ts`). Every code is registered in `shared/api/errors/<namespace>.ts` with its HTTP status and the `data` fields it carries; its text is `apiErrors.<namespace>.<slug>` in the six `i18n/locales/errors/<locale>.json` files. The response keeps the flat shape `data: { code, ...params }` and an English `message` rendered from the same catalog (for API and MCP clients, and logs); the browser shows the translated text by code (`useErrorHandler`). In dev and test runs `server/error.ts` logs `[api-error] unregistered code` for a 4xx whose code is not in the registry. `tests/unit/repoHygiene/apiErrorKeys.test.ts` keeps registry and texts in step and fails on a `code: '…'` literal under `server/` that is not registered.
+
 ## Audit log and idempotency
 
 - `appendAuditEvent` (`server/repos/audit.ts`) writes the security/admin trail. It truncates the IP (/24 IPv4, /48 IPv6) itself, never throws (failures go to Sentry), and fills `workspace_id` from the scope for `workspace` and `billing` events; document events pass `workspaceId` explicitly so the workspace audit viewer finds them.
@@ -95,7 +101,19 @@ Admin access is the `users.is_admin` column (`requireAdminUser`, `utils/auth/adm
 
 ## Background jobs
 
-Each job is a plugin in `server/plugins/`. All except the per-process `yDocPoolSweep.ts` take a cross-instance lock with `acquireSweepLock(name)` / `releaseSweepLock(name)` (`utils/platform/sweepLock.ts`), so only one app instance runs each job. Jobs that touch the database first `await migrationsComplete` (`utils/platform/migrations.ts`).
+Every periodic job is one plugin file in `server/plugins/` that calls `defineSweeper` (`utils/platform/defineSweeper.ts`). The helper implements the shared behaviour once: startup delay and interval, no overlapping runs in one process, the cross-instance advisory lock (`utils/platform/sweepLock.ts`, so only one app instance runs each job), waiting for migrations (`utils/platform/migrations.ts`), one log line per run that returns a summary, failures logged and sent to Sentry (throttled), and timers cleared on Nitro `close`. Nothing is scheduled during the build's prerender.
+
+To add a sweeper: add a row to `SWEEPS` in `server/config/sweeps.ts`, then add a plugin file:
+
+```ts
+export default defineSweeper({
+  name: 'waitlist-sweep',          // log prefix, Sentry tag AND lock key: do not rename later
+  schedule: SWEEPS.waitlist,
+  run: runWaitlistSweep            // return a summary object to have it logged
+})
+```
+
+Options for the exceptions: `enabled` (checked once at boot, e.g. `isBillingEnabled`), `setup` (boot warning when enabled), `shouldRun` (per tick, before the lock), `runAtBoot: false`, `lock: false` / `awaitMigrations: false` (process-local work like `yDocPoolSweep`), `reportErrors: false` (transient failures such as a LiteLLM that is still starting), `onClose`. Queue-style work claims rows with `SKIP LOCKED` inside its `run`; it still goes through the helper.
 
 | Plugin | Interval | Does |
 |---|---|---|

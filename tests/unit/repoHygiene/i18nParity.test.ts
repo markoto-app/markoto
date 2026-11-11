@@ -21,6 +21,9 @@ const PLURAL_FORM_EXCEPTIONS: Record<string, string> = {
 
 type Flat = Record<string, string>
 
+// Index access without `undefined`: callers only pass keys read from the same map or checked with `in`.
+const val = (m: Flat, k: string): string => m[k] ?? ''
+
 function flatten(obj: unknown, prefix = '', out: Flat = {}): Flat {
   for (const [k, v] of Object.entries(obj as Record<string, unknown>)) {
     const key = prefix ? `${prefix}.${k}` : k
@@ -31,8 +34,12 @@ function flatten(obj: unknown, prefix = '', out: Flat = {}): Flat {
 }
 
 const dir = join(__dirname, '..', '..', '..', 'i18n', 'locales')
+// Each locale is its UI strings plus its API error texts (`errors/<l>.json`, merged by @nuxtjs/i18n).
 const messages = Object.fromEntries(
-  LOCALES.map(l => [l, flatten(JSON.parse(readFileSync(join(dir, `${l}.json`), 'utf8')))])
+  LOCALES.map(l => [l, flatten({
+    ...JSON.parse(readFileSync(join(dir, `${l}.json`), 'utf8')),
+    ...JSON.parse(readFileSync(join(dir, 'errors', `${l}.json`), 'utf8'))
+  })])
 ) as Record<(typeof LOCALES)[number], Flat>
 
 const placeholders = (s: string) => [...new Set([...s.matchAll(/\{(\w+)\}/g)].map(m => m[1]))].sort()
@@ -56,23 +63,23 @@ describe('i18n locale parity', () => {
 
       it('keeps the same placeholders per key', () => {
         const bad = Object.keys(source)
-          .filter(k => k in m && placeholders(source[k]).join() !== placeholders(m[k]).join())
-          .map(k => `${k}: en {${placeholders(source[k])}} vs {${placeholders(m[k])}}`)
+          .filter(k => k in m && placeholders(val(source, k)).join() !== placeholders(val(m, k)).join())
+          .map(k => `${k}: en {${placeholders(val(source, k))}} vs {${placeholders(val(m, k))}}`)
         expect(bad).toEqual([])
       })
 
       it('keeps plural forms consistent', () => {
         const bad = Object.keys(source).filter((k) => {
           if (!(k in m) || PLURAL_FORM_EXCEPTIONS[`${locale}:${k}`]) return false
-          const want = forms(source[k])
-          const got = forms(m[k])
+          const want = forms(val(source, k))
+          const got = forms(val(m, k))
           return SINGLE_FORM_OK.has(locale) ? got !== want && got !== 1 : got !== want
         })
         expect(bad).toEqual([])
       })
 
       it('has no empty values', () => {
-        expect(Object.keys(m).filter(k => m[k].trim() === '')).toEqual([])
+        expect(Object.keys(m).filter(k => val(m, k).trim() === '')).toEqual([])
       })
     })
   }
@@ -82,12 +89,12 @@ describe('i18n locale parity', () => {
       const [locale, ...rest] = id.split(':')
       const key = rest.join(':')
       const loc = messages[locale as (typeof LOCALES)[number]]
-      return !loc || !(key in loc) || forms(loc[key]) === forms(source[key])
+      return !loc || !(key in loc) || forms(val(loc, key)) === forms(val(source, key))
     })
     expect(stale).toEqual([])
   })
 
   it('has no empty values in en.json', () => {
-    expect(Object.keys(source).filter(k => source[k].trim() === '')).toEqual([])
+    expect(Object.keys(source).filter(k => val(source, k).trim() === '')).toEqual([])
   })
 })

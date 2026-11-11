@@ -32,6 +32,8 @@ describe('embeddings configuration (default = Jina @ 768)', () => {
 
   it('GET /api/health/deep reports the embeddings component as ok', async () => {
     const u = await createUser()
+    // Instance admins only: the probe errors name internal hosts.
+    await testDb().query('UPDATE users SET is_admin = true WHERE id = $1', [u.id])
     const client = await loggedInClient(u.id)
     const res = await client.get('/api/health/deep')
     // Overall status depends on which sidecars the test stack runs; the

@@ -28,7 +28,10 @@ export default defineNuxtConfig({
     '@nuxtjs/mcp-toolkit',
     // Same-origin copies of paged.js / Mermaid / KaTeX / highlight.js and
     // the web fonts under /vendor/ — see shared/utils/vendor/vendorAssets.ts.
-    './modules/vendor-assets'
+    './modules/vendor-assets',
+    // Request types of the API handlers for the typed client
+    // (.nuxt/types/api-inputs.d.ts, read by app/utils/api/client.ts).
+    './modules/api-contract'
   ],
 
   // Nuxt Content in production builds (`nuxt dev` serves from Node and
@@ -383,16 +386,17 @@ export default defineNuxtConfig({
 
   i18n: {
     locales: [
-      { code: 'en', language: 'en-US', name: 'English', file: 'en.json' },
-      { code: 'de', language: 'de-DE', name: 'Deutsch', file: 'de.json' },
-      { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.json' },
-      { code: 'es', language: 'es-ES', name: 'Español', file: 'es.json' },
-      { code: 'ja', language: 'ja-JP', name: '日本語', file: 'ja.json' },
-      { code: 'zh', language: 'zh-CN', name: '中文', file: 'zh.json' }
+      { code: 'en', language: 'en-US', name: 'English', files: ['en.json', 'errors/en.json'] },
+      { code: 'de', language: 'de-DE', name: 'Deutsch', files: ['de.json', 'errors/de.json'] },
+      { code: 'fr', language: 'fr-FR', name: 'Français', files: ['fr.json', 'errors/fr.json'] },
+      { code: 'es', language: 'es-ES', name: 'Español', files: ['es.json', 'errors/es.json'] },
+      { code: 'ja', language: 'ja-JP', name: '日本語', files: ['ja.json', 'errors/ja.json'] },
+      { code: 'zh', language: 'zh-CN', name: '中文', files: ['zh.json', 'errors/zh.json'] }
     ],
     defaultLocale: 'en',
-    // Lazy loading is the @nuxtjs/i18n v10 default whenever `locales[].file`
-    // is set (it is, via langDir).
+    // Lazy loading is the @nuxtjs/i18n v10 default whenever `locales[].files`
+    // is set (it is, via langDir). `errors/<code>.json` holds the API error
+    // texts (`apiErrors.*`, shared/api/errors/), merged over the UI strings.
     langDir: 'locales/',
     strategy: 'no_prefix',
     detectBrowserLanguage: {

@@ -480,7 +480,7 @@ wait_healthy() {
   ok "app container healthy"
 
   # /api/health is the gating probe (Postgres, Valkey, sync, renderer,
-  # markitdown, LiteLLM). The per-component /api/health/deep needs a login.
+  # markitdown, LiteLLM). The per-component /api/health/deep needs an admin login.
   # Traefik runs its own health check on the app (every 10 s) before it
   # routes to it, and a certificate may still be being issued: retry.
   local url probe
