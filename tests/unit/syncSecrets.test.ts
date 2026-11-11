@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import jwt from 'jsonwebtoken'
-import { matchesCurrentOrPrevious, verifyJwtWithRotation } from '../../shared/utils/secrets'
+import { verifyJwtWithRotation } from '../../shared/utils/secrets'
+import { matchesCurrentOrPrevious } from '../../shared/utils/internalSecret'
 
 // Secret rotation helpers. Running in prod these gate the internal app↔sync
 // HTTP boundary (INTERNAL_API_SECRET) and Y.js JWT verification. Any false

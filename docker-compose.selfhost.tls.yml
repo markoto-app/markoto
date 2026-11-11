@@ -44,7 +44,7 @@ services:
 
   app:
     labels:
-      - "traefik.http.routers.markoto-app.rule=Host(`${MARKOTO_DOMAIN:?MARKOTO_DOMAIN required}`)"
+      - "traefik.http.routers.markoto-app.rule=Host(`${MARKOTO_DOMAIN:?MARKOTO_DOMAIN required}`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
       - "traefik.http.routers.markoto-app.entrypoints=websecure"
       - "traefik.http.routers.markoto-app.tls.certresolver=le"
       - "traefik.http.routers.markoto-import.rule=Host(`${MARKOTO_DOMAIN}`) && Path(`/api/import`)"
@@ -53,7 +53,7 @@ services:
 
   sync:
     labels:
-      - "traefik.http.routers.markoto-sync.rule=Host(`${MARKOTO_DOMAIN}`) && PathPrefix(`/sync`)"
+      - "traefik.http.routers.markoto-sync.rule=Host(`${MARKOTO_DOMAIN}`) && PathPrefix(`/sync`) && !PathPrefix(`/sync/internal/`)"
       - "traefik.http.routers.markoto-sync.entrypoints=websecure"
       - "traefik.http.routers.markoto-sync.tls.certresolver=le"
 

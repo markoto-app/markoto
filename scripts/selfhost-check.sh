@@ -13,6 +13,8 @@
 # 4. Backup sidecar credentials + cron path.
 # 5. Network segmentation and the container hardening baseline for the
 #    selfhost / prod / local stacks; dev + test publish on loopback only.
+# 6. Service-to-service routes are not routed by the public Traefik
+#    routers, and markitdown requires its shared secret.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -35,6 +37,7 @@ VALKEY_PASSWORD=placeholder
 NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
 NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
 NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_MARKITDOWN_API_SECRET=placeholder-placeholder-placeholder-0000
 NUXT_S3_ACCESS_KEY=placeholder
 NUXT_S3_SECRET_KEY=placeholder
 NUXT_S3_BUCKET=markoto-files
@@ -151,6 +154,7 @@ VALKEY_PORT=6379
 NUXT_SESSION_PASSWORD=placeholder-placeholder-placeholder-00
 NUXT_JWT_SECRET=placeholder-placeholder-placeholder-000000
 NUXT_INTERNAL_API_SECRET=placeholder-placeholder-placeholder-0000
+NUXT_MARKITDOWN_API_SECRET=placeholder-placeholder-placeholder-0000
 NUXT_S3_ENDPOINT=https://s3.example.org
 NUXT_S3_ACCESS_KEY=placeholder
 NUXT_S3_SECRET_KEY=placeholder
@@ -300,6 +304,55 @@ if ! jq -e '[.syscalls[] | select(.action == "SCMP_ACT_ALLOW" and ((.includes //
   exit 1
 fi
 echo "ok: renderer keeps Chromium's sandbox"
+
+# ─── Internal routes stay off the public edge ─────────────────────────
+# The app's /api/internal/** (sync → app), the renderer's print page +
+# bootstrap and the sync server's /internal/** control plane are reached
+# over the Docker network only. Every public router that could match them
+# must exclude them; a catch-all that carries the exclusions is longer than
+# the routers it must yield to, so it needs the explicit lowest priority.
+check_internal_routes() { # check_internal_routes LABEL CONFIG_JSON
+  local out
+  out="$(jq -r '
+    def routers($s): (.services[$s].labels // {}) | to_entries
+      | map(select(.key | test("^traefik\\.http\\.routers\\.[^.]+\\.rule$")))
+      | map({ name: (.key | split(".")[3]), rule: .value });
+    . as $c
+    | [
+        ( routers("app")[]
+          # A router with a positive path matcher other than `/` (the
+          # Path(`/api/import`) body-limit router) cannot match internal paths.
+          | select(.rule | gsub("!Path(Prefix)?\\([^)]*\\)"; "") | test("PathPrefix\\(`/`\\)") or (test("Path") | not))
+          | . as $r
+          | ( ["!PathPrefix(`/api/internal/`)", "!PathPrefix(`/_internal/render/`)", "!Path(`/api/_internal/render-bootstrap`)"][]
+              | select(. as $x | $r.rule | contains($x) | not)
+              | "app router \($r.name) does not exclude \(.)" ),
+            ( select(($c.services.app.labels["traefik.http.routers.\($r.name).priority"] // "") != "1")
+              | "app router \($r.name) needs priority 1 (its exclusions make it outrank narrower routers)" ) ),
+        ( routers("sync")[]
+          | (if (.rule | contains("PathPrefix(`/sync`)")) then "!PathPrefix(`/sync/internal/`)" else "!PathPrefix(`/internal/`)" end) as $x
+          | select(.rule | contains($x) | not)
+          | "sync router \(.name) does not exclude \($x)" ),
+        ( select($c.services.markitdown)
+          | select(($c.services.markitdown.environment.MARKITDOWN_API_SECRET // "") == "")
+          | "markitdown has no MARKITDOWN_API_SECRET" ),
+        ( select($c.services.markitdown)
+          | select($c.services.markitdown.environment.MARKITDOWN_API_SECRET != $c.services.app.environment.NUXT_MARKITDOWN_API_SECRET)
+          | "the app and markitdown disagree on the markitdown secret" )
+      ]
+    | .[]' "$2")"
+  if [ -n "$out" ]; then
+    printf 'FAIL (%s): %s\n' "$1" "$out" >&2
+    exit 1
+  fi
+  echo "ok: internal routes stay off the public edge ($1)"
+}
+render_config "$tmp/edge-selfhost.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml"
+check_internal_routes "selfhost" "$tmp/edge-selfhost.json"
+render_config "$tmp/edge-selfhost-tls.json" "$tmp/selfhost.env" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml"
+check_internal_routes "selfhost tls" "$tmp/edge-selfhost-tls.json"
+check_internal_routes "prod" "$tmp/salt-prod.json"
+check_internal_routes "local" "$tmp/local.json"
 
 # ─── Dev + test stacks publish on loopback only ───────────────────────
 # Throwaway credentials (devpassword, the committed seaweedfs/s3.json keys)

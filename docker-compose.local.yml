@@ -219,6 +219,7 @@ services:
       - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
       - NUXT_JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
       - NUXT_INTERNAL_API_SECRET=local-internal-api-secret-change-me
+      - NUXT_MARKITDOWN_API_SECRET=local-markitdown-api-secret-change-me
       - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.ypad.127.0.0.1.nip.io
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
@@ -291,7 +292,9 @@ services:
       - "3000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=Host(`ypad.127.0.0.1.nip.io`)"
+      # Internal routes off the edge, as in docker-compose.prod.yml.
+      - "traefik.http.routers.app.rule=Host(`ypad.127.0.0.1.nip.io`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
+      - "traefik.http.routers.app.priority=1"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
       - "traefik.http.services.app.loadbalancer.server.port=3000"
@@ -332,7 +335,7 @@ services:
       - "4001"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.sync.rule=Host(`sync.ypad.127.0.0.1.nip.io`)"
+      - "traefik.http.routers.sync.rule=Host(`sync.ypad.127.0.0.1.nip.io`) && !PathPrefix(`/internal/`)"
       - "traefik.http.routers.sync.entrypoints=websecure"
       - "traefik.http.routers.sync.tls=true"
       - "traefik.http.services.sync.loadbalancer.server.port=4001"
@@ -342,6 +345,8 @@ services:
 
   markitdown:
     build: ./markitdown-server
+    environment:
+      - MARKITDOWN_API_SECRET=local-markitdown-api-secret-change-me
     expose:
       - "8080"
     networks:

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { injectTraceHeaders } from '../traceHeaders'
 import { DESIGN_IMPORT_MAX_PAGES, type DesignImportExt } from '~~/shared/config/designImport'
+import { markitdownAuthHeaders } from '../markitdownAuth'
 
 // Client for markitdown's `POST /design/extract` (markitdown-server/
 // design_extract.py). The uploaded file is parsed THERE — in a forked,
@@ -67,7 +68,8 @@ export async function extractDesignFacts(bytes: Uint8Array, ext: DesignImportExt
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/octet-stream',
-      'Content-Length': String(bytes.byteLength)
+      'Content-Length': String(bytes.byteLength),
+      ...markitdownAuthHeaders()
     }),
     body: bytes as BodyInit,
     signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(EXTRACT_TIMEOUT_MS)]) : AbortSignal.timeout(EXTRACT_TIMEOUT_MS)

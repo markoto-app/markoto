@@ -25,6 +25,8 @@ import { Zip, ZipDeflate, zipSync, strToU8 } from 'fflate'
 import { TEST_PORT } from '../setup/env'
 
 const MARKITDOWN_URL = process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081'
+// MARKITDOWN_API_SECRET of markitdown-test (docker-compose.test.yml).
+const MARKITDOWN_SECRET = 'test-markitdown-api-secret-isolated'
 const BOUNDARY = '----markoto-import-limit-test'
 
 interface Outcome {
@@ -163,11 +165,22 @@ function bombDocx(megabytes: number): Promise<Uint8Array> {
 async function convert(bytes: Uint8Array, ext: string): Promise<{ status: number, text: string }> {
   const res = await fetch(`${MARKITDOWN_URL}/convert?ext=${ext}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers: { 'Content-Type': 'application/octet-stream', 'X-Markitdown-Secret': MARKITDOWN_SECRET },
     body: Buffer.from(bytes)
   })
   return { status: res.status, text: await res.text() }
 }
+
+describe('markitdown shared-secret auth', () => {
+  it('refuses /convert and /design/extract without the secret, keeps /health open', async () => {
+    const bare = { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: Buffer.from(smallDocx('x')) }
+    expect((await fetch(`${MARKITDOWN_URL}/convert?ext=docx`, bare)).status).toBe(401)
+    expect((await fetch(`${MARKITDOWN_URL}/design/extract?ext=docx`, bare)).status).toBe(401)
+    const wrong = { ...bare, headers: { ...bare.headers, 'X-Markitdown-Secret': 'wrong-secret' } }
+    expect((await fetch(`${MARKITDOWN_URL}/convert?ext=docx`, wrong)).status).toBe(401)
+    expect((await fetch(`${MARKITDOWN_URL}/health`)).status).toBe(200)
+  })
+})
 
 describe('markitdown decompression limits', () => {
   // Building a bomb is CPU-bound and blocks this process's event loop for

@@ -3,6 +3,7 @@ import { resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { createAnonDoc } from '../setup/anonGate'
+import { TEST_INTERNAL_SECRET } from '../setup/env'
 
 // server/middleware/auth.ts is the central whitelist that gates every
 // /api/* path. Regressions here have big blast radius — a stray protected
@@ -228,14 +229,28 @@ describe('auth middleware whitelist', () => {
 
   describe('internal route guard', () => {
     it('POST /api/internal/* requires X-Internal-Secret, not a user session', async () => {
-      // Anonymous — should NOT get 401 (middleware lets internal routes
-      // through for the shared-secret auth to handle).
       const res = await anonClient().post('/api/internal/activity', {})
-      // Endpoint itself rejects without the internal secret header.
-      expect([400, 401, 403, 404]).toContain(res.status)
-      // But not middleware's 401 with "Unauthorized" — that would indicate
-      // the session guard rejected it before the endpoint ran. Internal
-      // endpoints check the header inside the handler.
+      expect(res.status).toBe(401)
+    })
+
+    it('a route under /api/internal/ with no handler is still secret-gated', async () => {
+      const res = await anonClient().post('/api/internal/does-not-exist', {})
+      expect(res.status).toBe(401)
+    })
+
+    it('a valid secret passes the middleware (the handler validates the body)', async () => {
+      const res = await anonClient().post('/api/internal/activity', {}, { headers: { 'X-Internal-Secret': TEST_INTERNAL_SECRET } })
+      expect(res.status).toBe(400)
+    })
+
+    it('internal routes are 404 when the request came through the edge proxy, even with the secret', async () => {
+      const edge = { 'X-Forwarded-Host': 'markoto.example', 'X-Real-Ip': '203.0.113.7' }
+      const internal = await anonClient().post('/api/internal/activity', {}, { headers: { ...edge, 'X-Internal-Secret': TEST_INTERNAL_SECRET } })
+      expect(internal.status).toBe(404)
+      const render = await anonClient().get('/_internal/render/some-doc-id', { headers: edge })
+      expect(render.status).toBe(404)
+      const bootstrap = await anonClient().get('/api/_internal/render-bootstrap?docId=x&t=y', { headers: edge })
+      expect(bootstrap.status).toBe(404)
     })
   })
 

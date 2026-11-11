@@ -1,26 +1,14 @@
-import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
+import { requireInternalSecret } from '../../utils/internalRoutes'
 import { docExists, bumpLastActive } from '../../repos/documents'
 import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
 import { appendActivity, pruneActivity, ACTIVITY_ACTIONS, type ActivityAction, type ActivityMetadata } from '../../repos/activity'
 
 // Internal endpoint called by the sync-server to log user activity.
-// Auth: shared secret header X-Internal-Secret (must match INTERNAL_API_SECRET env var).
-// Never exposed publicly — public routes whitelist excludes /api/internal/*.
+// Auth: X-Internal-Secret, enforced for all of /api/internal/** by
+// server/middleware/auth.ts; repeated here so the handler is safe on its own.
 
 export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const providedSecret = getRequestHeader(event, 'x-internal-secret')
-
-  if (!config.internalApiSecret) {
-    throw createError({ statusCode: 500, message: 'Internal API secret not configured' })
-  }
-  if (!providedSecret || !matchesCurrentOrPrevious(
-    providedSecret,
-    config.internalApiSecret,
-    config.internalApiSecretPrevious || undefined
-  )) {
-    throw createError({ statusCode: 401, message: 'Invalid internal secret' })
-  }
+  requireInternalSecret(event)
 
   const body = await readBody<{
     docId?: string

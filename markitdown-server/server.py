@@ -17,7 +17,13 @@ Endpoints:
     Returns: text/markdown
 
   GET /health
-    Returns: 200 "ok" — used by Docker HEALTHCHECK and Traefik
+    Returns: 200 "ok" — used by the Docker / compose healthcheck
+
+Authentication: every endpoint except /health needs the
+X-Markitdown-Secret header to equal MARKITDOWN_API_SECRET (the app's
+NUXT_MARKITDOWN_API_SECRET). The service is also only reachable from the
+app's network; the secret keeps any other container that ends up on that
+network from feeding it files. The service refuses to start without it.
 
 Resource guards (anonymous users can reach /convert through /api/import):
   - Archive pre-flight: zip-based formats (docx/pptx/xlsx/epub/odt/…, and
@@ -35,6 +41,9 @@ Resource guards (anonymous users can reach /convert through /api/import):
 """
 
 import asyncio
+import contextlib
+import hashlib
+import hmac
 import io
 import multiprocessing
 import os
@@ -99,8 +108,46 @@ md = MarkItDown()
 _convert_slot = threading.Semaphore(1)
 _fork = multiprocessing.get_context("fork")
 
+SECRET_HEADER = "x-markitdown-secret"
+UNAUTHENTICATED_PATHS = {"/health"}
+
+
+def configured_secret() -> str:
+    return os.environ.get("MARKITDOWN_API_SECRET", "").strip()
+
+
+def secret_matches(provided: str | None, expected: str) -> bool:
+    """Constant-time comparison; an empty secret on either side never matches."""
+    if not provided or not expected:
+        return False
+    return hmac.compare_digest(
+        hashlib.sha256(provided.encode("utf-8")).digest(),
+        hashlib.sha256(expected.encode("utf-8")).digest(),
+    )
+
+
+@contextlib.asynccontextmanager
+async def lifespan(_app):
+    # Fail loudly at boot: a converter without a secret would either be
+    # open to every container on its network or reject every import.
+    if not configured_secret():
+        raise RuntimeError("MARKITDOWN_API_SECRET environment variable is required")
+    yield
+
+
 # disable docs/redoc — not a public API.
-app = FastAPI(title="markitdown-server", docs_url=None, redoc_url=None)
+app = FastAPI(title="markitdown-server", docs_url=None, redoc_url=None, lifespan=lifespan)
+
+
+@app.middleware("http")
+async def require_secret(request: Request, call_next):
+    # Runs before the route reads the body, so an unauthenticated caller
+    # can't make us buffer or parse anything.
+    if request.url.path not in UNAUTHENTICATED_PATHS and not secret_matches(
+        request.headers.get(SECRET_HEADER), configured_secret()
+    ):
+        return JSONResponse({"detail": "Unauthorized"}, status_code=401)
+    return await call_next(request)
 
 
 class ArchiveRejected(Exception):

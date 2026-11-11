@@ -8,6 +8,7 @@ import { embedDocuments, embeddingVersionTag, resolveEmbeddingsConfig } from './
 import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
 import { tryAcquireSessionLock, releaseSessionLock } from './rateLimit'
 import { injectTraceHeaders } from './traceHeaders'
+import { markitdownAuthHeaders } from './markitdownAuth'
 
 /**
  * End-to-end ingestion for one knowledge file:
@@ -229,7 +230,8 @@ async function runConversion(s3Key: string, ext: string): Promise<string> {
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/octet-stream',
-      'Content-Length': String(bytes.byteLength)
+      'Content-Length': String(bytes.byteLength),
+      ...markitdownAuthHeaders()
     }),
     body: bytes as BodyInit,
     signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)

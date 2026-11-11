@@ -520,6 +520,10 @@ services:
   markitdown-test:
     build: ./markitdown-server
     mem_limit: 1g
+    environment:
+      # Pinned in tests/integration/setup/server.ts (NUXT_MARKITDOWN_API_SECRET)
+      # and tests/integration/endpoints/importLimits.test.ts.
+      - MARKITDOWN_API_SECRET=test-markitdown-api-secret-isolated
     restart: unless-stopped
     ports:
       - "127.0.0.1:8081:8080"

@@ -4,6 +4,7 @@
 // use for continueTrace / startSpan inside the request handler.
 import { Sentry } from './sentry'
 import { renderDocument, type RenderInput } from './render'
+import { checkInternalSecret, INTERNAL_SECRET_HEADER } from './internalSecret'
 
 const PORT = Number.parseInt(process.env.PORT || '9000', 10)
 const INTERNAL_SECRET = (() => {
@@ -11,6 +12,7 @@ const INTERNAL_SECRET = (() => {
   if (!v) throw new Error('[renderer] INTERNAL_API_SECRET environment variable is required')
   return v
 })()
+const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || null
 
 // Bun.serve over the standalone Playwright/Bun container. Every endpoint
 // behind /render gates on the X-Internal-Secret header — the renderer is
@@ -25,8 +27,8 @@ const server = Bun.serve({
     }
 
     if (url.pathname === '/render' && req.method === 'POST') {
-      const secret = req.headers.get('X-Internal-Secret')
-      if (secret !== INTERNAL_SECRET) {
+      const verdict = checkInternalSecret(req.headers.get(INTERNAL_SECRET_HEADER), INTERNAL_SECRET, INTERNAL_SECRET_PREVIOUS)
+      if (verdict !== 'ok') {
         return jsonResponse({ error: 'forbidden' }, 403)
       }
 

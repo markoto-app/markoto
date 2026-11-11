@@ -1,7 +1,28 @@
 import { isTestModeEnabled } from '../../shared/utils/testMode'
+import { classifyInternalRoute, rejectIfFromEdge, requireInternalSecret } from '../utils/internalRoutes'
 
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
+
+  // HEAD is semantically a GET without a body — external monitors and
+  // some proxies probe /api/health with HEAD. Treat it as GET for the
+  // whitelist check so a HEAD to a public GET route isn't 401'd.
+  const method = event.method === 'HEAD' ? 'GET' : event.method
+
+  // Service-to-service routes (see server/utils/internalRoutes.ts). Checked
+  // here rather than in each handler so a new route under these prefixes
+  // can't forget its gate: never served to the public edge, and
+  // /api/internal/** needs the internal secret instead of a session. The
+  // Traefik-provider route and the render routes carry their own tokens
+  // and continue to the public-route list below.
+  const internalKind = classifyInternalRoute(path, method)
+  if (internalKind) {
+    rejectIfFromEdge(event)
+    if (internalKind === 'internal-api') {
+      requireInternalSecret(event)
+      return
+    }
+  }
 
   // Only protect /api/ routes
   if (!path.startsWith('/api/')) return
@@ -76,8 +97,8 @@ export default defineEventHandler(async (event) => {
     // copies under the page's own S3 prefix, nothing of the document.
     { path: /^\/api\/published\/[^/]+\/(?:files|brand)\/[^/]+$/, methods: ['GET'] },
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
-    { path: /^\/api\/internal\//, methods: ['POST'] }, // Internal endpoints auth via shared secret header (not user session)
-    // Traefik's HTTP provider (WP13) — token header checked in the handler.
+    // Traefik's HTTP provider — token header checked in the handler. The
+    // rest of /api/internal/** never gets here (secret-gated above).
     { path: /^\/api\/internal\/traefik\/custom-domains$/, methods: ['GET'] },
     // Renderer-container bootstrap: GET-only, gated by a render-token JWT
     // (verifyRenderToken) carried in the query string. No session expected.
@@ -130,11 +151,6 @@ export default defineEventHandler(async (event) => {
     // by POST /api/ai/dictate/token which still requires a session.
     { path: /^\/api\/ai\/dictate$/, methods: ['GET'] }
   ]
-
-  // HEAD is semantically a GET without a body — external monitors and
-  // some proxies probe /api/health with HEAD. Treat it as GET for the
-  // whitelist check so a HEAD to a public GET route isn't 401'd.
-  const method = event.method === 'HEAD' ? 'GET' : event.method
 
   const isPublic = publicRoutes.some(
     route => route.path.test(path) && route.methods.includes(method)

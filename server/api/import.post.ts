@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { importMarkdownFile } from '../utils/markdownImport'
 import { capsFor, planLimitError, resolveUserPlan } from '../utils/entitlements'
+import { markitdownAuthHeaders } from '../utils/markitdownAuth'
 
 // Subset of formats markitdown handles well as document imports. Markitdown
 // also supports CSV/JSON/XML/audio/images, but those don't make sense as a
@@ -104,7 +105,8 @@ export default defineEventHandler(async (event) => {
       method: 'POST',
       headers: injectTraceHeaders({
         'Content-Type': 'application/octet-stream',
-        'Content-Length': String(file.size)
+        'Content-Length': String(file.size),
+        ...markitdownAuthHeaders()
       }),
       body: file,
       signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)

@@ -1,14 +1,12 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { ypgPersistence } from './persistence'
-import { matchesCurrentOrPrevious } from '../../shared/utils/secrets'
+import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../shared/utils/internalSecret'
+import { isTestModeEnabled } from '../../shared/utils/testMode'
 import { performKickUser, type HocuspocusInstance } from './kickUser'
 import { flushPendingStore } from './flushDocument'
 import { Sentry } from './sentry'
 
 export type { HocuspocusConnection, HocuspocusDocument, HocuspocusInstance } from './kickUser'
-
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
-const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || undefined
 
 // TEST_MODE-only ring buffer for kick-user observation. Lets integration
 // tests assert "the workspace mutation actually dispatched a kick" — the
@@ -22,7 +20,7 @@ const INTERNAL_SECRET_PREVIOUS = process.env.INTERNAL_API_SECRET_PREVIOUS || und
 // state and clear between cases. Both endpoints require the same
 // X-Internal-Secret as the rest of /internal/*; they are NOT a public
 // surface even in test.
-const TEST_MODE = process.env.TEST_MODE === '1'
+const TEST_MODE = isTestModeEnabled()
 const RECENT_KICKS_CAP = 100
 interface RecordedKick { userId: string, docIds: string[], at: number }
 const recentKicks: RecordedKick[] = []
@@ -69,6 +67,10 @@ export async function handleInternalRequest(
 
   if (!url.startsWith('/internal/')) return false
 
+  // Authenticate before any Sentry work: an unauthenticated caller must
+  // not be able to open spans or attach itself to a trace of its choosing.
+  if (!authenticateInternalRequest(request, response)) return true
+
   // Extract upstream trace context. Both headers are case-insensitive on
   // node:http's headers object, so we read via the lowercase form.
   const sentryTrace = typeof request.headers['sentry-trace'] === 'string'
@@ -91,7 +93,6 @@ async function handleInternalRequestInner(
   instance: HocuspocusInstance,
   url: string
 ): Promise<boolean> {
-  if (!authenticateInternalRequest(request, response)) return true
   try {
     if (url === '/internal/notify-deleted' && request.method === 'POST') {
       return await handleNotifyDeleted(request, response, instance)
@@ -123,18 +124,29 @@ async function handleInternalRequestInner(
   }
 }
 
-/** Verify the `X-Internal-Secret` header against current + previous secret (rotation grace). Returns false (and writes the error response) on failure. */
-function authenticateInternalRequest(request: IncomingMessage, response: ServerResponse): boolean {
-  if (!INTERNAL_SECRET) {
+/**
+ * Gate for every `/internal/*` request. The app calls these directly on
+ * the Docker network; a request that went through the public edge proxy
+ * is refused as not found (the proxy rule already excludes the prefix,
+ * this holds if a router is ever widened). Otherwise the
+ * `X-Internal-Secret` header must match the current or previous secret.
+ * Returns false (and writes the error response) on failure.
+ */
+export function authenticateInternalRequest(request: IncomingMessage, response: ServerResponse): boolean {
+  if (cameThroughEdgeProxy(name => request.headers[name])) {
+    sendJson(response, 404, { error: 'Not found' })
+    return false
+  }
+  const verdict = checkInternalSecret(
+    request.headers[INTERNAL_SECRET_HEADER],
+    process.env.INTERNAL_API_SECRET,
+    process.env.INTERNAL_API_SECRET_PREVIOUS || null
+  )
+  if (verdict === 'unconfigured') {
     sendJson(response, 500, { error: 'Internal secret not configured' })
     return false
   }
-  const providedSecret = request.headers['x-internal-secret']
-  if (typeof providedSecret !== 'string' || !matchesCurrentOrPrevious(
-    providedSecret,
-    INTERNAL_SECRET,
-    INTERNAL_SECRET_PREVIOUS
-  )) {
+  if (verdict === 'invalid') {
     sendJson(response, 401, { error: 'Invalid internal secret' })
     return false
   }

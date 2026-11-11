@@ -1,4 +1,3 @@
-import { matchesCurrentOrPrevious } from '../../../shared/utils/secrets'
 import { docExists } from '../../repos/documents'
 import type { CommentSnapshotRow } from '../../repos/comments'
 import { eq, sql } from 'drizzle-orm'
@@ -7,6 +6,7 @@ import { useDatabase } from '../../utils/database'
 import { appendActivity, pruneActivity } from '../../repos/activity'
 import { diffCommentsSnapshot } from '../../utils/commentsSnapshotDiff'
 import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
+import { requireInternalSecret } from '../../utils/internalRoutes'
 
 // Internal endpoint called by the sync-server on every persisted save
 // of a doc that has a non-empty `comments` Y.Array. The body carries
@@ -19,8 +19,8 @@ import { normalizeAvatarSeed } from '../../../shared/utils/awarenessUser'
 // exists for cross-doc queries (mention notifications, recent
 // activity) — none of those care about sub-second freshness.
 //
-// Auth: shared X-Internal-Secret header. Same shape as
-// `internal/activity.post.ts`.
+// Auth: X-Internal-Secret, enforced for all of /api/internal/** by
+// server/middleware/auth.ts; repeated here so the handler is safe on its own.
 
 interface IncomingEntry {
   entryId?: string
@@ -45,7 +45,7 @@ interface ParsedBody {
 }
 
 export default defineEventHandler(async (event) => {
-  verifyInternalSecret(event)
+  requireInternalSecret(event)
   const body = parseSnapshotBody(await readBody(event))
 
   // Anonymous / direct-URL docs without a DB row are skipped — same
@@ -62,21 +62,6 @@ export default defineEventHandler(async (event) => {
 
   return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
 })
-
-function verifyInternalSecret(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]): void {
-  const config = useRuntimeConfig()
-  if (!config.internalApiSecret) {
-    throw createError({ statusCode: 500, message: 'Internal API secret not configured' })
-  }
-  const providedSecret = getRequestHeader(event, 'x-internal-secret')
-  if (!providedSecret || !matchesCurrentOrPrevious(
-    providedSecret,
-    config.internalApiSecret,
-    config.internalApiSecretPrevious || undefined
-  )) {
-    throw createError({ statusCode: 401, message: 'Invalid internal secret' })
-  }
-}
 
 function parseSnapshotBody(body: unknown): ParsedBody {
   const b = body as { docId?: unknown, entries?: unknown, yjsDocIdBefore?: unknown, yjsDocIdAfter?: unknown }

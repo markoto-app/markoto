@@ -140,6 +140,8 @@ export async function startNuxt(): Promise<void> {
     // The markitdown-test container (host port 8081): the design-from-a-
     // document pipeline reads its uploads there (`POST /design/extract`).
     NUXT_MARKITDOWN_URL: process.env.TEST_MARKITDOWN_URL ?? 'http://127.0.0.1:8081',
+    // Matches MARKITDOWN_API_SECRET of markitdown-test in docker-compose.test.yml.
+    NUXT_MARKITDOWN_API_SECRET: 'test-markitdown-api-secret-isolated',
     // Stripe: tests talk to the `stripe-mock` container for SDK calls
     // (checkout, portal) and construct webhook payloads locally with
     // `computeStripeSig` using this same secret.

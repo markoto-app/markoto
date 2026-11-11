@@ -362,6 +362,7 @@ services:
       # ─── Internal services ───
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
+      - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
       # Mirrored into the print-page CSP (server/utils/csp.ts); the renderer reads the same variable.
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
@@ -529,7 +530,13 @@ services:
     labels:
       - "markoto.instance=${MARKOTO_INSTANCE:-markoto}"
       - "traefik.enable=true"
-      - "traefik.http.routers.markoto-app.rule=PathPrefix(`/`)"
+      # Service-to-service routes stay off the public edge: /api/internal/**
+      # and the renderer's print page + bootstrap (see docker-compose.prod.yml).
+      - "traefik.http.routers.markoto-app.rule=PathPrefix(`/`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
+      # Explicit lowest priority: Traefik ranks routers by rule length, and
+      # the exclusions above made this catch-all longer than the /sync,
+      # /api/import and S3 routers it must yield to.
+      - "traefik.http.routers.markoto-app.priority=1"
       - "traefik.http.routers.markoto-app.entrypoints=web"
       - "traefik.http.routers.markoto-app.middlewares=markoto-headers,markoto-compress"
       # Compress dynamic responses; precompressed static assets keep their
@@ -539,8 +546,8 @@ services:
       - "traefik.http.middlewares.markoto-compress.compress.excludedcontenttypes=text/event-stream,image/png,image/jpeg,image/webp,image/avif,image/gif,video/mp4,video/webm,font/woff2,application/zip,application/pdf,application/octet-stream"
       # /api/import (anonymous document import, 50 MB file cap) gets its own
       # router with a request-body limit (51 MiB = the app's MAX_BODY), so
-      # an oversized or endless upload is cut off at the edge. Longer rule =
-      # higher priority than the catch-all router above.
+      # an oversized or endless upload is cut off at the edge. It wins over
+      # the catch-all router above, which has priority 1.
       - "traefik.http.routers.markoto-import.rule=Path(`/api/import`)"
       - "traefik.http.routers.markoto-import.entrypoints=web"
       - "traefik.http.routers.markoto-import.service=markoto-app"
@@ -593,6 +600,7 @@ services:
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
       - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS:-}
       - APP_URL=http://app:3000
+      - NUXT_SITE_URL=${MARKOTO_PUBLIC_URL:?MARKOTO_PUBLIC_URL required}
       - PGSSL=disable
       - TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
       - SENTRY_DSN=${SENTRY_DSN:-}
@@ -603,7 +611,9 @@ services:
       - "traefik.enable=true"
       # Hocuspocus accepts the WebSocket upgrade on any path; the browser
       # connects to ${MARKOTO_SYNC_URL} (= <public origin>/sync).
-      - "traefik.http.routers.markoto-sync.rule=PathPrefix(`/sync`)"
+      # The sync service answers its /internal/** control plane on the same
+      # port; only the WebSocket path is routed.
+      - "traefik.http.routers.markoto-sync.rule=PathPrefix(`/sync`) && !PathPrefix(`/sync/internal/`)"
       - "traefik.http.routers.markoto-sync.entrypoints=web"
       - "traefik.http.services.markoto-sync.loadbalancer.server.port=4001"
     networks:

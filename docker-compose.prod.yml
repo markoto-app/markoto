@@ -320,6 +320,7 @@ services:
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
+      - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
       - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
       # Mirrored into the print-page CSP (server/utils/csp.ts); the renderer reads the same variable.
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
@@ -361,7 +362,15 @@ services:
       - "3000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`)"
+      # Service-to-service routes stay off the public edge (no router
+      # matches → Traefik 404s): /api/internal/** (sync → app, Traefik's own
+      # provider poll goes to app:3000 directly) and the renderer's print
+      # page + bootstrap. The app refuses them from the edge too
+      # (server/utils/internalRoutes.ts); scripts/selfhost-check.sh pins this.
+      - "traefik.http.routers.app.rule=Host(`${DOMAIN}`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
+      # Explicit lowest priority: Traefik ranks routers by rule length, and
+      # the exclusions above made this catch-all longer than `app-import`.
+      - "traefik.http.routers.app.priority=1"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls.certresolver=le"
       - "traefik.http.services.app.loadbalancer.server.port=3000"
@@ -409,8 +418,8 @@ services:
       # /api/import (anonymous document import, 50 MB file cap) gets its own
       # router with a request-body limit, so an oversized or endless upload
       # is cut off at the edge instead of streaming into the app. 51 MiB =
-      # the app's MAX_BODY (file + multipart framing). Longer rule = higher
-      # priority than the catch-all `app` router.
+      # the app's MAX_BODY (file + multipart framing). It wins over the
+      # catch-all `app` router, which has priority 1.
       - "traefik.http.routers.app-import.rule=Host(`${DOMAIN}`) && Path(`/api/import`)"
       - "traefik.http.routers.app-import.entrypoints=websecure"
       - "traefik.http.routers.app-import.tls.certresolver=le"
@@ -481,6 +490,8 @@ services:
       - JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET}
       - INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
+      # Production signal for the shared test-mode guard (shared/utils/testMode.ts).
+      - NUXT_SITE_URL=https://${DOMAIN:?DOMAIN required}
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
@@ -512,7 +523,9 @@ services:
       - "traefik.http.services.sync.loadbalancer.sticky.cookie.name=sync_sticky"
       - "traefik.http.services.sync.loadbalancer.sticky.cookie.httpOnly=true"
       - "traefik.http.services.sync.loadbalancer.sticky.cookie.secure=true"
-      - "traefik.http.routers.sync.rule=Host(`sync.${DOMAIN}`)"
+      # /internal/** is the app → sync control plane (kick, flush,
+      # delete); the app calls http://sync:4001 directly, never via here.
+      - "traefik.http.routers.sync.rule=Host(`sync.${DOMAIN}`) && !PathPrefix(`/internal/`)"
       - "traefik.http.routers.sync.entrypoints=websecure"
       - "traefik.http.routers.sync.tls.certresolver=le"
       - "traefik.http.services.sync.loadbalancer.server.port=4001"
