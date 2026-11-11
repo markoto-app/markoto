@@ -1,0 +1,17 @@
+# Blocking mode (CI, fast, no network):
+#   lychee --config lychee.toml --offline $(git ls-files '*.md' ':!:content' ':!:tests/fixtures' ':!:CHANGELOG.md')
+# Non-blocking external pass (scheduled / continue-on-error):
+#   lychee --config lychee.toml --no-progress --offline=false --scheme https $(git ls-files '*.md' ...)
+#
+# --offline checks file paths only; --include-fragments also verifies `#anchor`s
+# against the target Markdown's headings.
+include_fragments = "anchor-only"
+offline = true
+no_progress = true
+# Fonts, mailto and localhost examples in docs are not links we can verify.
+exclude_all_private = true
+exclude_loopback = true
+exclude_path = ["node_modules", "CHANGELOG.md", "tests/fixtures", "content", "shared/templates/content"]
+accept = [200, 206, 429]
+timeout = 20
+max_retries = 2

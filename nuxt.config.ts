@@ -338,6 +338,26 @@ export default defineNuxtConfig({
     }
   },
 
+  // Compiler options for the generated .nuxt/tsconfig.{app,server,shared,node}.json
+  // (checked by `nuxt typecheck`). strict + noUncheckedIndexedAccess are already
+  // Nuxt defaults here. noUnusedLocals / noUnusedParameters are still off: they
+  // report a handful of leftovers that must be cleaned up before they can be
+  // enabled.
+  typescript: {
+    tsConfig: {
+      compilerOptions: {
+        noFallthroughCasesInSwitch: true,
+        noImplicitReturns: true
+      }
+    },
+    // Nuxt's server tsconfig does not set this one by default (app/shared/node do).
+    serverTsConfig: {
+      compilerOptions: {
+        noImplicitOverride: true
+      }
+    }
+  },
+
   hooks: {
     // Production server entry: the bun preset's entry plus a request-body
     // size limit enforced by Bun (the preset buffers every body before

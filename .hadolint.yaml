@@ -1,0 +1,13 @@
+# Run: hadolint --config .hadolint.yaml $(git ls-files "*Dockerfile")
+failure-threshold: warning
+ignored:
+  # Our healthchecks use shell form on purpose (`... || exit 1`); the JSON-form
+  # rule targets CMD/ENTRYPOINT signal handling, which HEALTHCHECK does not have.
+  - DL3025
+  # Base images are pinned by digest; distro packages are intentionally left
+  # unpinned so rebuilds pick up security fixes from the repo (Trivy gates CVEs).
+  - DL3008
+  - DL3018
+  # Info-level: named users (bun, pwuser) are what the images' own docs use.
+  - DL3066
+  - DL3059

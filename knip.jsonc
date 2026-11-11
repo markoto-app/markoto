@@ -1,0 +1,65 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  // Run from the repo root:  bunx knip --no-progress
+  // The Nuxt plugin loads nuxt.config.ts and resolves Nuxt auto-imports
+  // (components, composables, app/utils, server/utils, #shared), so nothing in
+  // those directories needs to be listed as an entry. Pages, layouts,
+  // middleware, plugins, server/api|routes|middleware|plugins and modules/ come
+  // from the Nuxt plugin; vitest / playwright / drizzle / eslint configs from
+  // their plugins.
+  "workspaces": {
+    ".": {
+      "entry": [
+        // every standalone script is a CLI entry (called from package.json,
+        // Makefile, workflows, Dockerfiles or by hand)
+        "scripts/**/*.{ts,mjs}",
+        // @nuxtjs/mcp-toolkit auto-discovers server/mcp/{tools,prompts,resources}
+        "server/mcp/**/*.ts",
+        // MDC components used from content/**/*.md as <flow />, <sub-processors /> ...
+        "app/components/content/**/*.vue",
+        // read by @nuxt/content, not imported
+        "content.config.ts"
+      ],
+      "project": [
+        "app/**/*.{ts,vue}",
+        "server/**/*.ts",
+        "shared/**/*.ts",
+        "modules/**/*.ts",
+        "scripts/**/*.{ts,mjs}",
+        "tests/**/*.{ts,mjs}",
+        "*.{ts,mjs}"
+      ],
+      // all three playwright configs (flows, smoke, tour capture)
+      "playwright": { "config": ["playwright*.config.ts"] },
+            "ignoreDependencies": [
+        // Vendored assets: modules/vendor-assets.ts + scripts/lib/vendorAssets.ts
+        // read files out of node_modules by path (fonts, pagedjs, mermaid IIFE
+        // build, katex css/fonts, highlight.js themes) instead of importing them.
+        "@fontsource/.+",
+        "@fontsource-variable/.+",
+        "pagedjs",
+        "mermaid",
+        // Icons are resolved by @nuxt/icon from `i-lucide-*` / `i-simple-icons-*`
+        // class names at build time, never imported.
+        "@iconify-json/lucide",
+        "@iconify-json/simple-icons",
+        // Loaded by nuxt.config.ts modules[] but not used yet; will be adopted.
+        "@pinia/nuxt",
+        "@pinia/colada-nuxt",
+        // Invoked by `nuxt typecheck`, not imported.
+        "vue-tsc"
+      ],
+      // System binaries called from scripts / test setup.
+      "ignoreBinaries": ["pdftoppm", "openssl"]
+    },
+    // sync-server and renderer are NOT Bun workspaces; knip reads their own
+    // package.json and bun.lock-installed node_modules.
+    "sync-server": {
+      "project": ["src/**/*.ts"]
+    },
+    "renderer": {
+      "project": ["src/**/*.ts"]
+    }
+  },
+  "ignoreExportsUsedInFile": { "interface": true, "type": true }
+}

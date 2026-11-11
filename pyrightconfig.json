@@ -1,0 +1,16 @@
+{
+  "include": [
+    "markitdown-server",
+    "infra/litellm/custom_handlers.py",
+    "tests/fixtures/fake-openai"
+  ],
+  "pythonVersion": "3.13",
+  "typeCheckingMode": "standard",
+  "reportMissingImports": "warning",
+  "reportMissingModuleSource": "none",
+  "executionEnvironments": [
+    { "root": "markitdown-server" },
+    { "root": "infra/litellm" },
+    { "root": "tests/fixtures/fake-openai" }
+  ]
+}

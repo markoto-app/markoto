@@ -1,0 +1,11 @@
+{
+  // Type-checks scripts/**. Bun globals/types come from @types/bun, which is
+  // not a root dependency yet; until it is, borrow sync-server's copy.
+  "extends": "./.nuxt/tsconfig.app.json",
+  "compilerOptions": {
+    "types": ["node", "bun"],
+    "typeRoots": ["./node_modules/@types", "./sync-server/node_modules/@types"],
+    "noEmit": true
+  },
+  "include": [".nuxt/nuxt.d.ts", "shared/**/*.d.ts", "app/types/*.d.ts", "scripts/**/*", "tests/fixtures/**/*.ts"]
+}

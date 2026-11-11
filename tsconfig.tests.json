@@ -1,0 +1,19 @@
+{
+  // Type-checks everything under tests/ except tests/nuxt (already covered by
+  // .nuxt/tsconfig.app.json) plus the root tooling configs. Same strictness as
+  // the app (extends the generated app config: aliases, auto-imports, DOM lib).
+  // Run under Node:  node node_modules/vue-tsc/bin/vue-tsc.js --noEmit -p tsconfig.tests.json
+  "extends": "./.nuxt/tsconfig.app.json",
+  "compilerOptions": { "types": ["node"], "noEmit": true },
+  "include": [
+    ".nuxt/nuxt.d.ts",
+    "shared/**/*.d.ts",
+    "app/types/*.d.ts",
+    "tests/**/*",
+    "drizzle.config.ts",
+    "playwright*.config.ts",
+    "vitest.config.ts",
+    "content.config.ts"
+  ],
+  "exclude": ["node_modules", "tests/nuxt/**", "tests/e2e/output", "tests/fixtures/**"]
+}

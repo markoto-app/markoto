@@ -1,0 +1,42 @@
+# Backticked tokens in Markdown that look like repo paths but are not.
+# Format: `path`, `dir/` (prefix match) or `file.md: path`. `#` starts a comment.
+
+# Library / file names that are not repo files
+mermaid.min.js
+highlight.js
+robots.txt          # served route
+claude_desktop_config.json   # the MCP client's own config
+.cursor/mcp.json             # the MCP client's own config
+node_modules/
+
+# Generated or runtime-only files (gitignored, created by deploy or test runs)
+acme.json
+traefik/acme.json
+tests/e2e/output/
+group_vars/all.vault.yml
+
+# Error codes / route fragments
+docs/content-too-long
+
+# Template-workflow scratch images created by the compare script
+ref-1.png
+ref-2.png
+side-N.png
+overlay-N.png
+
+# Entries inside the data-export zip and similar runtime payloads
+profile.json
+workspaces.json
+comments.json
+activity-log.json
+audit-log.json
+knowledge-metadata.json
+consent-log.json
+billing-snapshot.json
+workspace_invites.json
+clip.json
+status.json
+cors.json     # the S3 CORS file an operator writes themselves
+
+# Intentional negative references ("there is no server/auth/ dir")
+server/auth/

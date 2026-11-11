@@ -12,7 +12,7 @@ Preferred: GitHub private vulnerability reporting.
 2. Choose **Report a vulnerability** (direct link: <https://github.com/joelbarmettlerUZH/markoto.app/security/advisories/new>).
 3. Describe the issue.
 
-Alternative: email **[joel@latentspace-labs.ch](mailto:joel@latentspace-labs.ch)**.
+Alternative: email **[security@markoto.app](mailto:security@markoto.app)**.
 
 Please include:
 
