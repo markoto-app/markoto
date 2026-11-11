@@ -30,7 +30,7 @@ function eventHandlerAttrs(html: string): string[] {
 }
 
 function compose(theme: DocTheme, bodyHtml: string): string {
-  return composeFinalHtml({ theme, title: 'Title', dateIso: '2026-10-27', bodyHtml })
+  return composeFinalHtml({ theme, title: 'Title', date: '27 October 2026', bodyHtml })
 }
 
 const withLogo = (logoUrl: string): DocTheme => ({

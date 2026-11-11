@@ -5,8 +5,7 @@ import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../../server
 
 // Candidate query of the inactive-doc sweep: anonymous docs (no owner, no
 // workspace) inactive for the TTL (default 30 days) whose
-// `sweep_not_before` floor has passed. Also replays migration 0024's
-// backfill to prove the 180 → 30 change deletes nothing early.
+// `sweep_not_before` floor has passed.
 
 const DAY = 24 * 60 * 60 * 1000
 const NOW = new Date('2026-12-01T12:00:00Z')
@@ -57,34 +56,5 @@ describe('loadInactiveAnonymousDocs', () => {
     const doc = await createDoc({ docId: 'anon-old' })
     await setActivity(doc.docId, new Date(NOW.getTime() - 999 * DAY))
     expect(await candidates(0)).toEqual([])
-  })
-
-  it('migration 0024 backfill: no existing doc is deleted earlier than 30 days after the deploy, nor later than the old 180-day rule', async () => {
-    const deployAt = NOW
-    const ages = { 'age-10': 10, 'age-60': 60, 'age-170': 170, 'age-200': 200 }
-    for (const [id, days] of Object.entries(ages)) {
-      await createDoc({ docId: id })
-      await setActivity(id, new Date(deployAt.getTime() - days * DAY))
-    }
-    const owner = await createUser()
-    await createDoc({ docId: 'owned', ownerId: owner.id })
-    // The statement from drizzle/0024_*.sql, with now() pinned to the deploy time.
-    await testDb().query(
-      `UPDATE documents
-          SET sweep_not_before = LEAST($1::timestamptz + interval '30 days', last_active + interval '180 days')
-        WHERE owner_id IS NULL AND workspace_id IS NULL`,
-      [deployAt]
-    )
-    const at = (days: number) => candidates(30, new Date(deployAt.getTime() + days * DAY))
-    // Deploy day: only the doc already past the old 180-day rule.
-    expect(await at(0)).toEqual(['age-200'])
-    // 10 days later: the 170-day-old doc reaches 180 days (old rule) — same as before the change.
-    expect(await at(10)).toEqual(['age-170', 'age-200'])
-    // 29 days later: the 60-day-old doc still has its 30-day window.
-    expect(await at(29)).toEqual(['age-170', 'age-200'])
-    // 30 days after the deploy every doc idle ≥ 30 days is eligible.
-    expect(await at(30)).toEqual(['age-10', 'age-170', 'age-200', 'age-60'])
-    const floor = await testDb().query<{ sweep_not_before: Date | null }>(`SELECT sweep_not_before FROM documents WHERE doc_id = 'owned'`)
-    expect(floor.rows[0]?.sweep_not_before).toBeNull()
   })
 })

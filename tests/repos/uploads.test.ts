@@ -12,13 +12,14 @@ import {
   deleteUploadsForDoc
 } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 async function rowCount(docId?: string): Promise<number> {
   const db = testDb()
   const q = docId
     ? await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1', [docId])
     : await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM uploads')
-  return Number(q.rows[0].c)
+  return Number(first(q.rows).c)
 }
 
 async function setCreatedAt(s3Key: string, d: Date): Promise<void> {
@@ -47,7 +48,7 @@ describe('recordPending / markConfirmed', () => {
     const r = await db.query<{ confirmed_at: Date | null }>(
       'SELECT confirmed_at FROM uploads WHERE doc_id = $1', [doc.docId]
     )
-    expect(r.rows[0].confirmed_at).toBeNull()
+    expect(first(r.rows).confirmed_at).toBeNull()
   })
 
   it('markConfirmed flips confirmed_at', async () => {
@@ -63,7 +64,7 @@ describe('recordPending / markConfirmed', () => {
     const r = await db.query<{ confirmed_at: Date | null }>(
       'SELECT confirmed_at FROM uploads WHERE s3_key = $1', [key]
     )
-    expect(r.rows[0].confirmed_at).toBeInstanceOf(Date)
+    expect(first(r.rows).confirmed_at).toBeInstanceOf(Date)
   })
 
   it('markConfirmed on an unknown key is a no-op (no error)', async () => {
@@ -157,7 +158,7 @@ describe('listStaleUnconfirmed / purgeStaleUnconfirmed', () => {
     expect(await rowCount(doc.docId)).toBe(1)
     const db = testDb()
     const r = await db.query<{ s3_key: string }>('SELECT s3_key FROM uploads')
-    expect(r.rows[0].s3_key).toBe('k-old-confirmed')
+    expect(first(r.rows).s3_key).toBe('k-old-confirmed')
   })
 })
 

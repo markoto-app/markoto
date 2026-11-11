@@ -9,6 +9,7 @@ import {
   makeStripeEvent,
   TEST_WEBHOOK_SECRET
 } from '../setup/stripeHelpers'
+import { first } from '../../helpers/assert'
 
 // Webhook handler integration tests. Each test:
 //   1. Constructs an event (from a committed fixture or makeStripeEvent)
@@ -38,7 +39,7 @@ async function readUser(id: number): Promise<{
      FROM users WHERE id = $1`,
     [id]
   )
-  return r.rows[0]
+  return first(r.rows, 'users row')
 }
 
 async function postWebhook(payload: unknown, opts?: { badSig?: boolean, skew?: number }): Promise<Response> {
@@ -167,7 +168,7 @@ describe('POST /api/webhooks/stripe — customer.subscription.updated', () => {
     const event = loadStripeFixture('customer.subscription.updated-pro') as Record<string, unknown>
     // Override the price id to something we don't recognise.
     const inner = (event.data as { object: { items: { data: Array<{ price: { id: string } }> } } }).object
-    inner.items.data[0].price.id = 'price_test_unknown_tier'
+    first(inner.items.data).price.id = 'price_test_unknown_tier'
     const res = await postWebhook(event)
     expect(res.status).toBe(200) // graceful
     const row = await readUser(u.id)
@@ -401,7 +402,7 @@ describe('POST /api/webhooks/stripe — replay protection', () => {
       'SELECT stripe_customer_id FROM users WHERE id = $1',
       [u.id]
     )
-    expect(row.rows[0].stripe_customer_id).toBeNull()
+    expect(first(row.rows).stripe_customer_id).toBeNull()
   })
 
   it('accepts events with a future timestamp within tolerance (clock skew)', async () => {
@@ -457,7 +458,7 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
        FROM users WHERE id = $1`,
       [u.id]
     )
-    const row = r.rows[0]
+    const row = first(r.rows)
     // Both fixtures share the same period timestamps (1776000000 → 1778678400)
     // so the period anchors will be identical regardless of order.
     // Both events are Pro (Event B has cancel_at_period_end=true →
@@ -483,12 +484,12 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
       'SELECT plan FROM users WHERE id = $1',
       [u.id]
     )
-    expect(r.rows[0].plan).toBe('pro')
+    expect(first(r.rows).plan).toBe('pro')
     // Exactly one user row (we didn't accidentally create duplicates).
     const c = await testDb().query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE stripe_customer_id = 'cus_test_alice'`
     )
-    expect(Number(c.rows[0].c)).toBe(1)
+    expect(Number(first(c.rows).c)).toBe(1)
   })
 })
 
@@ -559,7 +560,7 @@ describe('POST /api/webhooks/stripe — event.id replay protection', () => {
       `SELECT COUNT(*)::text AS count FROM processed_webhook_events WHERE event_id = $1`,
       ['evt_replay_test_001']
     )
-    expect(Number(dedupRows.rows[0].count)).toBe(1)
+    expect(Number(first(dedupRows.rows).count)).toBe(1)
   })
 
   it('replays of the SAME event with no concurrent mutation are state-stable', async () => {
@@ -642,8 +643,8 @@ describe('POST /api/webhooks/stripe — out-of-order delivery', () => {
       ['evt_outoforder_sub_001']
     )
     expect(stashRows.rows).toHaveLength(1)
-    expect(stashRows.rows[0].customer_id).toBe('cus_test_alice')
-    expect(stashRows.rows[0].processed).toBe(false)
+    expect(first(stashRows.rows).customer_id).toBe('cus_test_alice')
+    expect(first(stashRows.rows).processed).toBe(false)
 
     // 3. checkout.session.completed arrives second. It binds the
     //    customer id to the user row via the live subscription fetch,
@@ -675,8 +676,8 @@ describe('POST /api/webhooks/stripe — out-of-order delivery', () => {
        FROM pending_stripe_events WHERE event_id = $1`,
       ['evt_outoforder_sub_001']
     )
-    expect(drained.rows[0].processed).toBe(true)
-    expect(drained.rows[0].processed_at).not.toBeNull()
+    expect(first(drained.rows).processed).toBe(true)
+    expect(first(drained.rows).processed_at).not.toBeNull()
   })
 
   it('stashed subscription.updated is replayed and reflects in final user state', async () => {

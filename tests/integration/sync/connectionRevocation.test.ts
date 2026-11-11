@@ -2,7 +2,8 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import WebSocket from 'ws'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
+import { newProvider } from '../../helpers/hocuspocus'
 import { ensureYjsTable, resetDb } from '../setup/db'
 import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
@@ -37,7 +38,7 @@ const open: Client[] = []
 function connect(docId: string, token: string | (() => string | Promise<string>)): Client {
   const doc = new Y.Doc()
   const client: Client = { provider: null as unknown as HocuspocusProvider, doc, closes: [], syncs: 0, authFailures: [], tokenCalls: 0 }
-  client.provider = new HocuspocusProvider({
+  client.provider = newProvider({
     url: WS_URL,
     name: docId,
     document: doc,

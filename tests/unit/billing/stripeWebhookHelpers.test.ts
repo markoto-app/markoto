@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, type Mock } from 'vitest'
 import type Stripe from 'stripe'
 import {
   handleCheckoutSessionCompleted,
@@ -83,6 +83,11 @@ vi.mock('../../../server/utils/platform/database', () => ({
 // by the NUXT_STRIPE_PRICE_IDS override, read per call.
 vi.stubEnv('NUXT_STRIPE_PRICE_IDS', 'markoto_pro_month_eur=price_pro_abc')
 
+// The spy `makeStripeMock` put on the fake client; the real client type doesn't expose mock APIs.
+function retrieveOf(stripe: unknown) {
+  return (stripe as { subscriptions: { retrieve: Mock } }).subscriptions.retrieve
+}
+
 // Minimal Stripe SDK mock. Only `subscriptions.retrieve` is called by
 // the checkout handler; shape it returns has to match the real SDK
 // well enough for the code path to work.
@@ -122,7 +127,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
 
     expect(result.plan).toBe('pro')
     // The SDK retrieve was called with the subscription id from the session.
-    expect((stripe as { subscriptions: { retrieve: ReturnType<typeof vi.fn> } }).subscriptions.retrieve)
+    expect(retrieveOf(stripe))
       .toHaveBeenCalledWith('sub_abc')
   })
 
@@ -143,7 +148,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
     const result = await handleCheckoutSessionCompleted(event, { stripe })
     expect(result.matched).toBe(0)
     // SDK not called — we bail before fetching.
-    expect((stripe as { subscriptions: { retrieve: ReturnType<typeof vi.fn> } }).subscriptions.retrieve)
+    expect(retrieveOf(stripe))
       .not.toHaveBeenCalled()
   })
 
@@ -158,7 +163,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
     const result = await handleCheckoutSessionCompleted(event, { stripe })
     // matched comes from the mock (returns 1 row)
     expect(result.plan).toBeNull()
-    expect((stripe as { subscriptions: { retrieve: ReturnType<typeof vi.fn> } }).subscriptions.retrieve)
+    expect(retrieveOf(stripe))
       .not.toHaveBeenCalled()
   })
 

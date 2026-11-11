@@ -16,6 +16,7 @@ import { resetDb, testDb, ensureYjsTable } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createDoc, createWorkspace } from '../setup/fixtures'
 import { S3Client, ListObjectsV2Command, DeleteObjectsCommand } from '@aws-sdk/client-s3'
+import { first } from '../../helpers/assert'
 
 const s3 = new S3Client({
   endpoint: 'http://127.0.0.1:8334',
@@ -43,7 +44,7 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
     `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
     [docname, Buffer.from(update)]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 // Multi-page fixture (paginates to 3+ pages on the default theme). Used

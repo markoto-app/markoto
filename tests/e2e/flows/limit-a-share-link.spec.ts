@@ -36,12 +36,12 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   await flow.click(
     'Open the share dialog',
     editor.page.accessLockButton,
-    { after: () => page.getByTestId('share-modal').waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId('share-modal').waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await flow.click(
     'Let anyone with the link view it',
     page.getByTestId('share-access-open-view'),
-    { after: () => page.getByTestId('share-modal').waitFor({ state: 'hidden', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId('share-modal').waitFor({ state: 'hidden', timeout: 10_000 }) }
   )
   // Choosing a mode closes the dialog; open it again for the link settings.
   await editor.page.accessLockButton.click()
@@ -76,7 +76,7 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   await visitor.flow.click(
     'They can read it, but File has no export or print',
     fileMenu,
-    { after: () => visitor.page.getByRole('menuitem', { name: /new/i }).first().waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => visitor.page.getByRole('menuitem', { name: /new/i }).first().waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await expect(visitor.page.getByRole('menuitem', { name: /^print/i })).toHaveCount(0)
   await expect(visitor.page.getByRole('menuitem', { name: /export/i })).toHaveCount(0)

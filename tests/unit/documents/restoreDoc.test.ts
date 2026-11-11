@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
+import { first } from '../../helpers/assert'
 
 // Mocks have to register BEFORE the import of `restoreDoc.ts` —
 // vitest hoists `vi.mock` calls automatically, but the factory
@@ -247,7 +248,7 @@ describe('restoreDocToYjsId', () => {
       })
       expect(providerCalls).toHaveLength(1)
       const jwtModule = await import('jsonwebtoken')
-      const decoded = jwtModule.default.decode(providerCalls[0].token) as Record<string, unknown>
+      const decoded = jwtModule.default.decode(first(providerCalls).token) as Record<string, unknown>
       expect(decoded.userId).toBe('restore:42:abc123')
       expect(decoded.userName).toBe('Joel')
       expect(decoded.docId).toBe('d')
@@ -258,7 +259,7 @@ describe('restoreDocToYjsId', () => {
       await restoreDocToYjsId({
         docId: 'doc-target', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
-      expect(providerCalls[0].name).toBe('doc-target')
+      expect(first(providerCalls).name).toBe('doc-target')
     })
 
     it('converts http:// syncInternalUrl to ws:// for the WS connection', async () => {
@@ -266,7 +267,7 @@ describe('restoreDocToYjsId', () => {
       await restoreDocToYjsId({
         docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
-      expect(providerCalls[0].url).toBe('ws://sync:4001')
+      expect(first(providerCalls).url).toBe('ws://sync:4001')
     })
 
     it('converts https:// syncInternalUrl to wss:// for TLS', async () => {
@@ -274,7 +275,7 @@ describe('restoreDocToYjsId', () => {
       await restoreDocToYjsId({
         docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
-      expect(providerCalls[0].url).toBe('wss://sync.prod:443')
+      expect(first(providerCalls).url).toBe('wss://sync.prod:443')
     })
   })
 
@@ -296,7 +297,7 @@ describe('restoreDocToYjsId', () => {
       })
       // The live doc passed to the provider IS the same instance the
       // helper applies the past update to. Inspect its content.
-      const liveDoc = providerCalls[0].document
+      const liveDoc = first(providerCalls).document
       expect(liveDoc.getText('content').toString()).toBe('specific past state')
     })
 
@@ -322,8 +323,8 @@ describe('restoreDocToYjsId', () => {
         docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(providerInstances).toHaveLength(1)
-      expect(providerInstances[0].disconnectCalls).toBe(1)
-      expect(providerInstances[0].destroyCalls).toBe(1)
+      expect(first(providerInstances).disconnectCalls).toBe(1)
+      expect(first(providerInstances).destroyCalls).toBe(1)
     })
 
     it('disconnects + destroys the provider on auth failure', async () => {
@@ -335,8 +336,8 @@ describe('restoreDocToYjsId', () => {
         })
       ).rejects.toThrow(/auth failed/)
       expect(providerInstances).toHaveLength(1)
-      expect(providerInstances[0].disconnectCalls).toBe(1)
-      expect(providerInstances[0].destroyCalls).toBe(1)
+      expect(first(providerInstances).disconnectCalls).toBe(1)
+      expect(first(providerInstances).destroyCalls).toBe(1)
     })
   })
 
@@ -350,7 +351,7 @@ describe('restoreDocToYjsId', () => {
         docId: 'doc-lock', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
       expect(txExecuteCalls.length).toBeGreaterThan(0)
-      expect(txExecuteCalls[0].kind).toBe('lock')
+      expect(first(txExecuteCalls).kind).toBe('lock')
     })
 
     it('uses pg_advisory_xact_lock(hashtext(docId)) so the lock auto-releases on commit/rollback', async () => {

@@ -3,6 +3,7 @@ import { expect } from '@playwright/test'
 import { Pool } from 'pg'
 import { TESTID, sel } from '../../../shared/testids'
 import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal/versions'
+import { at, first } from '../../helpers/assert'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
@@ -310,7 +311,7 @@ export class EditorPage {
   currentDocId(): string {
     const m = /\/d\/([^/?]+)/.exec(new URL(this.page.url()).pathname)
     if (!m) throw new Error(`[currentDocId] not on a /d/{id} route, got ${this.page.url()}`)
-    return m[1]
+    return at(m, 1, 'doc id capture')
   }
 
   /**
@@ -736,7 +737,7 @@ export class EditorPage {
          RETURNING id`,
         [githubId, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, options.email ?? null, options.locale ?? null]
       )
-      const userId = result.rows[0].id
+      const userId = first(result.rows).id
       await this.loginAsExistingUser(userId, name)
       return { userId, name }
     } finally {
@@ -778,7 +779,7 @@ export class EditorPage {
     if (!setCookie) {
       throw new Error(`[loginAsExistingUser] /api/_test/login returned no Set-Cookie header`)
     }
-    const firstChunk = setCookie.split(';')[0]
+    const firstChunk = first(setCookie.split(';'))
     const eqIdx = firstChunk.indexOf('=')
     await this.page.context().addCookies([{
       name: firstChunk.slice(0, eqIdx),

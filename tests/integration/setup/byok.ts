@@ -1,7 +1,8 @@
 import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import WebSocket from 'ws'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
+import { newProvider } from '../../helpers/hocuspocus'
 import { Awareness } from 'y-protocols/awareness'
 import { testDb } from './db'
 import { createUser, type TestUser } from './fixtures'
@@ -112,7 +113,7 @@ export function connectSync(docId: string, identity: SyncIdentity): SyncClient {
     TEST_JWT_SECRET,
     { expiresIn: '10m' }
   )
-  const provider = new HocuspocusProvider({
+  const provider = newProvider({
     url: `ws://127.0.0.1:${TEST_SYNC_PORT}`,
     name: docId,
     document: doc,

@@ -24,6 +24,12 @@ function entry(overrides: Partial<ActivityEntry>): ActivityEntry {
     metadata: null,
     yjsDocIdBefore: null,
     yjsDocIdAfter: null,
+    actorPrincipal: null,
+    actorAvatarSeed: null,
+    agentKind: null,
+    agentInitiatorUserId: null,
+    agentInitiatorName: null,
+    agentClientName: null,
     createdAt: TS_FIXED,
     ...overrides
   }

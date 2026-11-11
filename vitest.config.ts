@@ -64,7 +64,6 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'json-summary', 'lcov'],
       reportsDirectory: './coverage',
-      all: true,
       include: [
         'app/composables/**/*.ts',
         'app/utils/**/*.ts',

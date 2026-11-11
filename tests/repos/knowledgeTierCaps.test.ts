@@ -161,18 +161,4 @@ describe('resolveCaps — per-workspace tier', () => {
     const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
     expect(caps.workspacePlan).toBe('free')
   })
-
-  it('a leftover retired (+) sponsorship row changes nothing', async () => {
-    const creator = await createUser()
-    const sponsor = await createUser()
-    await setPlan(sponsor.id, 'pro')
-    const ws = await createWorkspace(creator.id)
-    await testDb().query(
-      'UPDATE workspaces SET ai_enabled = true, billing_owner_id = $1 WHERE workspace_id = $2',
-      [sponsor.id, ws.workspaceId]
-    )
-
-    const caps = await resolveCaps({ workspaceId: ws.workspaceId, uploaderId: creator.id })
-    expect(caps.workspacePlan).toBe('free')
-  })
 })

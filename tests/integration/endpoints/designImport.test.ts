@@ -55,7 +55,7 @@ async function upload(client: TestClient, filename: string, bytes: Uint8Array): 
   const res = await client.post('/api/themes/from-document/upload-request', { filename, size: bytes.byteLength })
   expect(res.status, await res.clone().text()).toBe(200)
   const ticket: UploadTicket = await res.json()
-  const put = await fetch(ticket.uploadUrl, { method: 'PUT', headers: { 'Content-Type': ticket.mimeType }, body: bytes })
+  const put = await fetch(ticket.uploadUrl, { method: 'PUT', headers: { 'Content-Type': ticket.mimeType }, body: new Uint8Array(bytes) })
   expect(put.status).toBe(200)
   return ticket
 }

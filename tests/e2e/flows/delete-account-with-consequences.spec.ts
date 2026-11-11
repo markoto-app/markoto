@@ -1,6 +1,7 @@
 import { test, expect } from '../fixtures/flow'
 import { Pool } from 'pg'
 import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal/versions'
+import { first } from '../../helpers/assert'
 
 // Tier 1 (Privacy): "Delete your account, with the consequences spelled out".
 //
@@ -92,7 +93,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
         // A real-looking address + language: the profile page shows both.
         [`flow-priv-${name.toLowerCase()}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, name, PRIVACY_VERSION, TOS_VERSION, DPA_VERSION, `${name.toLowerCase()}@studio.example`]
       )
-      return r.rows[0].id
+      return first(r.rows).id
     }
     async function insertWorkspace(ownerId: number, name: string): Promise<string> {
       const wsId = `ws-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`

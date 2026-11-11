@@ -100,11 +100,6 @@ describe('resolveBillingContext — base shape', () => {
     )
     const ws = await createWorkspace(owner.id)
     await setMemberRole(ws.workspaceId, member.id, 'editor')
-    // Even a leftover row of the retired `(+)` sponsorship changes nothing.
-    await db.query(
-      'UPDATE workspaces SET billing_owner_id = $1, ai_enabled = true WHERE workspace_id = $2',
-      [owner.id, ws.workspaceId]
-    )
 
     const ctx = await resolveBillingContext(member.id, ws.workspaceId)
     expect(ctx.attribution).toBe('user')

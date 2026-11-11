@@ -10,6 +10,7 @@ import {
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
 import { mintSessionJwt } from '~~/tests/helpers/jwt'
+import { first } from '../../helpers/assert'
 
 // GET /api/docs/:docId/activity/:activityId/diff
 //
@@ -51,7 +52,7 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
     `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
     [docname, encodeYjsUpdate(content)]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 /**
@@ -71,7 +72,7 @@ async function insertActivityRow(
      RETURNING id`,
     [docId, options.userName ?? 'Alice', options.action ?? 'edit', yjsDocIdBefore, yjsDocIdAfter]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 function mintDocJwt(docId: string): string {

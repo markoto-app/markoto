@@ -7,6 +7,7 @@ import {
   type AgenticFunctionCall as FunctionCall
 } from '../../../server/utils/agentic/aiTypes'
 import { soloSessionGuard, taintedSessionGuard } from '../fixtures/crossBoundary'
+import { at, first, last } from '../../helpers/assert'
 
 // Adversarial: budget exhaustion paths
 //
@@ -23,7 +24,7 @@ import { soloSessionGuard, taintedSessionGuard } from '../fixtures/crossBoundary
 // runs with no DB, no Y.js, no outbound HTTP. Every test can program
 // what each tool returns.
 const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
-const webSearch = vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<string>>()
+const webSearch = vi.fn<typeof import('../../../server/utils/agentic/functionTools').webSearch>()
 
 vi.mock('../../../server/utils/ai/aiToolAdapter', () => ({
   executeFunctionByName
@@ -50,7 +51,7 @@ interface StreamChunk {
   functionCalls?: FunctionCall[]
   text?: string
   finishReason?: FinishReason
-  parts?: NonNullable<GenerateContentResponse['candidates']>[number]['content']['parts']
+  parts?: NonNullable<NonNullable<GenerateContentResponse['candidates']>[number]['content']>['parts']
 }
 
 /**
@@ -65,7 +66,7 @@ interface FakeTurn {
 }
 
 function makeFakeAi(turns: FakeTurn[]): {
-  ai: Parameters<typeof runAgenticLoop>[0]['ai']
+  ai: NonNullable<Parameters<typeof runAgenticLoop>[0]['ai']>
   callsSeen: Array<{ contents: unknown[] }>
 } {
   const callsSeen: Array<{ contents: unknown[] }> = []
@@ -93,7 +94,7 @@ function makeFakeAi(turns: FakeTurn[]): {
         }
       }
     }
-  } as unknown as Parameters<typeof runAgenticLoop>[0]['ai']
+  } as unknown as NonNullable<Parameters<typeof runAgenticLoop>[0]['ai']>
   return { ai, callsSeen }
 }
 
@@ -133,6 +134,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {},
     setStatus: vi.fn(),
     billingContext: {
       attributedTo: 'user:1',
+      billingUserId: 1,
       plan: 'pro',
       periodStart: new Date('2026-04-01T00:00:00.000Z'),
       periodEnd: new Date('2026-05-01T00:00:00.000Z'),
@@ -217,7 +219,7 @@ describe('runAgenticLoop — tool dispatch', () => {
           // once — that's the model's continuation contract.
           const last = contents[contents.length - 1] as { role: string, parts: Array<{ functionResponse?: unknown }> }
           expect(last.role).toBe('user')
-          expect(last.parts[0].functionResponse).toBeDefined()
+          expect(first(last.parts).functionResponse).toBeDefined()
         }
       }
     ])
@@ -233,8 +235,8 @@ describe('runAgenticLoop — tool dispatch', () => {
     ])
     executeFunctionByName.mockResolvedValueOnce({ content: 'doc text', isError: false })
     await runAgenticLoop(makeOpts({ ai }))
-    const turn2Contents = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { id?: string, name?: string, response?: { output?: string, isError?: boolean } } }> }>
-    const fr = turn2Contents[turn2Contents.length - 1].parts[0].functionResponse!
+    const turn2Contents = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { id?: string, name?: string, response?: { output?: string, isError?: boolean } } }> }>
+    const fr = first(last(turn2Contents).parts).functionResponse!
     expect(fr.id).toBe('c1')
     expect(fr.name).toBe('view_document')
     expect(fr.response?.output).toBe('doc text')
@@ -259,8 +261,8 @@ describe('runAgenticLoop — tool dispatch', () => {
       .mockResolvedValueOnce({ content: 'inserted', isError: false })
     await runAgenticLoop(makeOpts({ ai }))
     expect(executeFunctionByName).toHaveBeenCalledTimes(2)
-    expect(executeFunctionByName.mock.calls[0][1]).toBe('view_document')
-    expect(executeFunctionByName.mock.calls[1][1]).toBe('insert_text')
+    expect(first(executeFunctionByName.mock.calls)[1]).toBe('view_document')
+    expect(at(executeFunctionByName.mock.calls, 1)[1]).toBe('insert_text')
   })
 
   it('handler throw is caught and reported as isError to model', async () => {
@@ -273,8 +275,8 @@ describe('runAgenticLoop — tool dispatch', () => {
     ])
     executeFunctionByName.mockRejectedValueOnce(new Error('ytext.delete failed'))
     await runAgenticLoop(makeOpts({ ai }))
-    const turn2 = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
-    const fr = turn2[turn2.length - 1].parts[0].functionResponse!
+    const turn2 = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
+    const fr = first(last(turn2).parts).functionResponse!
     expect(fr.response?.isError).toBe(true)
     expect(fr.response?.output).toContain('replace_text failed')
     expect(fr.response?.output).toContain('ytext.delete failed')
@@ -292,8 +294,8 @@ describe('runAgenticLoop — Zod validation of tool args', () => {
     ])
     await runAgenticLoop(makeOpts({ ai }))
     expect(executeFunctionByName).not.toHaveBeenCalled()
-    const turn2 = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
-    const fr = turn2[turn2.length - 1].parts[0].functionResponse!
+    const turn2 = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
+    const fr = first(last(turn2).parts).functionResponse!
     expect(fr.response?.isError).toBe(true)
     expect(fr.response?.output).toContain('invalid arguments for replace_text')
   })
@@ -309,8 +311,8 @@ describe('runAgenticLoop — Zod validation of tool args', () => {
     ])
     await runAgenticLoop(makeOpts({ ai }))
     expect(executeFunctionByName).not.toHaveBeenCalled()
-    const turn2 = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
-    const parts = turn2[turn2.length - 1].parts
+    const turn2 = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
+    const parts = last(turn2).parts
     expect(parts).toHaveLength(2)
     for (const p of parts) {
       expect(p.functionResponse?.response?.isError).toBe(true)
@@ -437,7 +439,7 @@ describe('runAgenticLoop — web_search routing', () => {
       { chunks: [{ functionCalls: [{ id: 'c1', name: 'web_search', args: { query: 'mistral pricing' } }], finishReason: FinishReason.STOP }] },
       { chunks: [{ text: 'based on search...', finishReason: FinishReason.STOP }] }
     ])
-    webSearch.mockResolvedValueOnce('Top answer.\n\nSources:\n  - x')
+    webSearch.mockResolvedValueOnce({ text: 'Top answer.\n\nSources:\n  - x', sources: [] })
     await runAgenticLoop(makeOpts({ ai }))
     expect(webSearch).toHaveBeenCalledWith(
       expect.anything(),
@@ -459,8 +461,8 @@ describe('runAgenticLoop — web_search routing', () => {
     ])
     webSearch.mockRejectedValueOnce(new Error('network blip'))
     await runAgenticLoop(makeOpts({ ai }))
-    const turn2 = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
-    const fr = turn2[turn2.length - 1].parts[0].functionResponse!
+    const turn2 = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { response?: { isError?: boolean, output?: string } } }> }>
+    const fr = first(last(turn2).parts).functionResponse!
     expect(fr.response?.isError).toBe(true)
     expect(fr.response?.output).toContain('web_search failed')
     expect(fr.response?.output).toContain('network blip')
@@ -497,12 +499,12 @@ describe('runAgenticLoop — conversation history', () => {
     ])
     executeFunctionByName.mockResolvedValueOnce({ content: 'doc', isError: false })
     await runAgenticLoop(makeOpts({ ai }))
-    const turn2Contents = callsSeen[1].contents as Array<{ role: string, parts: unknown[] }>
+    const turn2Contents = at(callsSeen, 1).contents as Array<{ role: string, parts: unknown[] }>
     // Layout: [initial user, model (with functionCall parts), user (functionResponse)].
     expect(turn2Contents.length).toBe(3)
-    expect(turn2Contents[0].role).toBe('user')
-    expect(turn2Contents[1].role).toBe('model')
-    expect(turn2Contents[2].role).toBe('user')
+    expect(first(turn2Contents).role).toBe('user')
+    expect(at(turn2Contents, 1).role).toBe('model')
+    expect(at(turn2Contents, 2).role).toBe('user')
   })
 })
 
@@ -569,8 +571,8 @@ describe('runAgenticLoop — degenerate function-call shapes', () => {
     // All three handlers were invoked.
     expect(executeFunctionByName).toHaveBeenCalledTimes(3)
     // The functionResponse user-block has all three entries.
-    const turn2 = callsSeen[1].contents as Array<{ role: string, parts: Array<{ functionResponse?: { name: string, response: { output: string, isError: boolean } } }> }>
-    const responseUserBlock = turn2[2]
+    const turn2 = at(callsSeen, 1).contents as Array<{ role: string, parts: Array<{ functionResponse?: { name: string, response: { output: string, isError: boolean } } }> }>
+    const responseUserBlock = at(turn2, 2)
     expect(responseUserBlock.role).toBe('user')
     expect(responseUserBlock.parts).toHaveLength(3)
     expect(responseUserBlock.parts[0]?.functionResponse?.response.isError).toBe(false)

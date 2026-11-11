@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
 import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app/composables/account/useLogout'
 
 // `useLogout`'s pipeline is the only thing standing between a logged-out
@@ -26,7 +26,7 @@ let navigateToStub: ReturnType<typeof vi.fn>
 // `navigateTo` path only runs in SSR. We stub both: the location
 // setter is what the tests primarily assert against; navigateTo
 // is kept as a fallback for the SSR contract test.
-let locationHrefSetter: ReturnType<typeof vi.fn>
+let locationHrefSetter: Mock<(href: string) => void>
 let originalLocation: Location
 
 beforeEach(() => {
@@ -43,7 +43,7 @@ beforeEach(() => {
   // Stub window.location.href so we can observe the hard-reload
   // assignment without triggering a real navigation in happy-dom.
   originalLocation = window.location
-  locationHrefSetter = vi.fn()
+  locationHrefSetter = vi.fn<(href: string) => void>()
   Object.defineProperty(window, 'location', {
     value: {
       get href() { return '/' },

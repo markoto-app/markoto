@@ -15,6 +15,7 @@ import {
   createWorkspace as seedWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 describe('getMemberRole', () => {
   beforeEach(async () => {
@@ -62,8 +63,8 @@ describe('listMembers', () => {
     const admin = await createUser({ name: 'Admin', email: 'admin@test.local' })
     const ws = await seedWorkspace(admin.id)
     const members = await listMembers(ws.workspaceId)
-    expect(members[0].name).toBe('Admin')
-    expect(members[0].email).toBe('admin@test.local')
+    expect(first(members).name).toBe('Admin')
+    expect(first(members).email).toBe('admin@test.local')
     expect(members[0]).not.toHaveProperty('avatarUrl')
   })
 })

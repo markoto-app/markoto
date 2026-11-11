@@ -5,6 +5,7 @@ import {
   newStreamState,
   type StreamStatusPhase
 } from '../../../server/utils/agentic/streamStatus'
+import { at, first } from '../../helpers/assert'
 
 // Status-string derivation + per-turn dedupe for the agentic loop.
 // Pure — no yjs, no network, no LLM. Each tool branch gets pinned so
@@ -307,8 +308,8 @@ describe('processChunk — dedupe + state machine', () => {
     processChunk({ functionCalls: [{ name: 'replace_text', args: { old_str: 'a', new_str: 'A' } }] }, state, { setStatus })
     processChunk({ functionCalls: [{ name: 'replace_text', args: { old_str: 'b', new_str: 'B' } }] }, state, { setStatus })
     expect(setStatus).toHaveBeenCalledTimes(2)
-    expect(setStatus.mock.calls[0][1]).toBe('Editing "a"')
-    expect(setStatus.mock.calls[1][1]).toBe('Editing "b"')
+    expect(first(setStatus.mock.calls)[1]).toBe('Editing "a"')
+    expect(at(setStatus.mock.calls, 1)[1]).toBe('Editing "b"')
   })
 
   it('text-only chunks never trigger setStatus', () => {

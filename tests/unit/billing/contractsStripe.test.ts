@@ -13,6 +13,7 @@ import {
   makeInvoicePaidEvent,
   makeInvoicePaymentFailedEvent
 } from '~~/tests/helpers/stripe'
+import { first } from '../../helpers/assert'
 
 // Contract tests for the Stripe pinning. The point of these is the
 // same as the JWT contract tests: catch a drift between
@@ -127,7 +128,7 @@ describe('Stripe event factories: shape assertions', () => {
       periodEnd: 1702678400
     })
     expect(event.type).toBe('customer.subscription.updated')
-    const item = (event.data.object as unknown as { items: { data: Array<{ price: { id: string }, current_period_start: number, current_period_end: number }> } }).items.data[0]
+    const item = first((event.data.object as unknown as { items: { data: Array<{ price: { id: string }, current_period_start: number, current_period_end: number }> } }).items.data)
     expect(item.price.id).toBe('price_pro_abc')
     expect(item.current_period_start).toBe(1700000000)
     expect(item.current_period_end).toBe(1702678400)

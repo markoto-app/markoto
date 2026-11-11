@@ -17,7 +17,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 const SYNC_URL = 'http://sync-test:4001'
 const SECRET = 'integration-test-internal-secret'
 
-const fetchSpy = vi.fn(() => Promise.resolve(new Response(null, { status: 200 })))
+const fetchSpy = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(() => Promise.resolve(new Response(null, { status: 200 })))
 
 vi.stubGlobal('fetch', fetchSpy)
 

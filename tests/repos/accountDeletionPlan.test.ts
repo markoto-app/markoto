@@ -7,6 +7,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 async function insertComment(args: {
   docId: string
@@ -145,7 +146,7 @@ describe('planAccountDeletion', () => {
     await setMemberRole(ws.workspaceId, daveViewer.id, 'viewer')
 
     const plan = await planAccountDeletion(alice.id)
-    const fate = plan!.workspaces[0]
+    const fate = first(plan!.workspaces)
     expect(fate.kind).toBe('promote_admin')
     expect((fate as { newAdminUserId: number }).newAdminUserId).toBe(bobAdmin.id)
   })

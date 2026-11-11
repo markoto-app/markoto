@@ -155,8 +155,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         const chooser = await chooserPromise
         await chooser.setFiles(fixture)
         await page.locator('[data-testid^="knowledge-file-row-"][data-filename="q3-launch-postmortem.html"]').first().waitFor({ state: 'visible', timeout: 10_000 })
-      },
-      { result: 'The file lands in the upload list and markoto starts reading it.' }
+      }
     )
   } else {
     const chooserPromise = page.waitForEvent('filechooser', { timeout: 10_000 })
@@ -221,8 +220,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       async () => {
         await page.keyboard.press('Escape')
         await page.locator('.mk-sheet-host').waitFor({ state: 'detached', timeout: 5_000 }).catch(() => {})
-      },
-      { result: 'The drawer slides down — the editor + AI prompt bar are visible again.' }
+      }
     )
   } else {
     // Switch back to the Documents tab and click "New document".

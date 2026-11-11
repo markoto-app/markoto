@@ -6,6 +6,7 @@ import {
   lastActivityAt
 } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // AI conversation memory repo. Append-only by convention; the cascade
 // FKs (doc + user) own the only legitimate row-deletion path. Tests
@@ -37,7 +38,7 @@ async function getLatestRowId(): Promise<number> {
   const r = await db.query<{ id: number }>(
     'SELECT id FROM ai_session_messages ORDER BY id DESC LIMIT 1'
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 describe('appendAiMessage', () => {
@@ -271,6 +272,6 @@ describe('cascade deletes', () => {
     const r = await db.query<{ c: string }>(
       'SELECT COUNT(*) AS c FROM ai_session_messages WHERE doc_id = $1', [doc.docId]
     )
-    expect(Number(r.rows[0].c)).toBe(0)
+    expect(Number(first(r.rows).c)).toBe(0)
   })
 })

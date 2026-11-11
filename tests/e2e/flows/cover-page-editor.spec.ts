@@ -120,16 +120,14 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       async () => {
         await layoutSelect.click()
         await page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
-      },
-      { result: 'The four cover layouts list.' }
+      }
     )
     await flow.step(
       'Pick "Banner"',
       async () => {
         await page.getByRole('option', { name: /banner/i }).first().click()
         await expect.poll(coverLayout).toBe('banner')
-      },
-      { result: 'The Banner layout takes effect.' }
+      }
     )
   } else {
     await flow.click(

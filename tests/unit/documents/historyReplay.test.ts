@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 
 import { reconstructDocAtYjsId, reconstructTextAtYjsId } from '../../../server/utils/documents/historyReplay'
+import { first } from '../../helpers/assert'
 
 // Mock useDatabasePool so we can drive reconstructDocAtYjsId without
 // a real Postgres. The implementation only ever calls pool.query —
@@ -80,7 +81,7 @@ describe('reconstructDocAtYjsId', () => {
     // or corrupt the doc — pin the SELECT to v1 only.
     mockQuery.mockResolvedValue({ rows: [] })
     await reconstructDocAtYjsId('doc-x', 100)
-    const callArgs = mockQuery.mock.calls[0]
+    const callArgs = first(mockQuery.mock.calls)
     expect(callArgs[0]).toContain('version = \'v1\'')
   })
 
@@ -99,7 +100,7 @@ describe('reconstructDocAtYjsId', () => {
     // y-postgresql's own load semantics. Pin the ORDER BY clause.
     mockQuery.mockResolvedValue({ rows: [] })
     await reconstructDocAtYjsId('doc-q', 50)
-    const sql = mockQuery.mock.calls[0][0] as string
+    const sql = first(mockQuery.mock.calls)[0] as string
     expect(sql).toContain('ORDER BY id ASC')
   })
 

@@ -28,13 +28,14 @@ test('Publish a document as a web page', async ({ page, flow, editor }) => {
   await flow.click(
     'Open the share dialog',
     editor.page.accessLockButton,
-    { after: () => page.getByTestId('publish-panel').waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId('publish-panel').waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await page.getByTestId('publish-panel').scrollIntoViewIfNeeded()
   await flow.click(
     'Publish',
     page.getByTestId('publish-submit'),
     {
+      chain: true,
       annotations: [{ label: 'Publish as a web page', selector: '[data-testid="publish-panel"]', kind: 'box' }],
       after: () => page.getByTestId('publish-url').waitFor({ state: 'visible', timeout: 30_000 })
     }
@@ -44,7 +45,7 @@ test('Publish a document as a web page', async ({ page, flow, editor }) => {
   await flow.click(
     'Copy the address',
     page.getByTestId('publish-copy'),
-    { after: () => expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(url) }
+    { chain: true, after: () => expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe(url) }
   )
   await editor.page.dismissToasts()
   await flow.shot('The page is published at its own address', {

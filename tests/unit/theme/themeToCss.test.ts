@@ -2,7 +2,8 @@ import { describe, expect, test } from 'vitest'
 import { mathFontScale, themeFontsImport, themeToCss } from '../../../shared/utils/theme/themeToCss'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
-import type { DocTheme, ThemeRuntime } from '../../../shared/types/theme'
+import type { DocTheme } from '../../../shared/types/theme'
+import type { ThemeRuntime } from '../../../shared/utils/theme/themeToCss'
 
 /**
  * Deterministic verification of `themeToCss` output. Independent of

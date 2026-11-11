@@ -78,6 +78,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {})
     setStatus: vi.fn(),
     billingContext: {
       attributedTo: 'user:1',
+      billingUserId: 1,
       plan: 'pro',
       periodStart: new Date('2026-04-01T00:00:00.000Z'),
       periodEnd: new Date('2026-05-01T00:00:00.000Z'),

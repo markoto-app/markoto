@@ -3,7 +3,8 @@ import * as Y from 'yjs'
 import jwt from 'jsonwebtoken'
 import WebSocket from 'ws'
 import * as encoding from 'lib0/encoding'
-import { HocuspocusProvider } from '@hocuspocus/provider'
+import type { HocuspocusProvider } from '@hocuspocus/provider'
+import { newProvider } from '../../helpers/hocuspocus'
 import { Awareness } from 'y-protocols/awareness'
 import { ensureYjsTable, resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
@@ -66,7 +67,7 @@ function connect(docId: string, identity: Identity): Client {
     resolveSynced = resolve
     rejectSynced = reject
   })
-  const provider = new HocuspocusProvider({
+  const provider = newProvider({
     url: WS_URL,
     name: docId,
     document: doc,

@@ -3,6 +3,7 @@ import { resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
+import { first } from '../../helpers/assert'
 
 // POST /api/internal/activity — cross-service boundary. Called by the
 // sync-server to persist Y.js edit/join/leave events. Auth is the shared
@@ -114,18 +115,18 @@ describe('POST /api/internal/activity', () => {
         `UPDATE documents SET last_active = now() - interval '1 day' WHERE doc_id = $1`,
         [doc.docId]
       )
-      const before = (await db.query<{ la: Date }>(
+      const before = first((await db.query<{ la: Date }>(
         'SELECT last_active AS la FROM documents WHERE doc_id = $1',
         [doc.docId]
-      )).rows[0].la
+      )).rows).la
       await anonClient().post('/api/internal/activity',
         { docId: doc.docId, action: 'edit', userName: 'Alice' },
         { headers: { 'x-internal-secret': TEST_INTERNAL_SECRET } }
       )
-      const after = (await db.query<{ la: Date }>(
+      const after = first((await db.query<{ la: Date }>(
         'SELECT last_active AS la FROM documents WHERE doc_id = $1',
         [doc.docId]
-      )).rows[0].la
+      )).rows).la
       expect(new Date(after).getTime()).toBeGreaterThan(new Date(before).getTime())
     })
 
@@ -137,18 +138,18 @@ describe('POST /api/internal/activity', () => {
         `UPDATE documents SET last_active = now() - interval '1 day' WHERE doc_id = $1`,
         [doc.docId]
       )
-      const before = (await db.query<{ la: Date }>(
+      const before = first((await db.query<{ la: Date }>(
         'SELECT last_active AS la FROM documents WHERE doc_id = $1',
         [doc.docId]
-      )).rows[0].la
+      )).rows).la
       await anonClient().post('/api/internal/activity',
         { docId: doc.docId, action: 'join', userName: 'Eve' },
         { headers: { 'x-internal-secret': TEST_INTERNAL_SECRET } }
       )
-      const after = (await db.query<{ la: Date }>(
+      const after = first((await db.query<{ la: Date }>(
         'SELECT last_active AS la FROM documents WHERE doc_id = $1',
         [doc.docId]
-      )).rows[0].la
+      )).rows).la
       expect(new Date(after).getTime()).toBe(new Date(before).getTime())
     })
   })

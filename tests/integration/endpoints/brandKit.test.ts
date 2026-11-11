@@ -22,7 +22,7 @@ async function upload(client: Client, path: string, fields: Record<string, strin
   return fetch(`${base}${path}`, { method: 'POST', body: form, headers: { cookie: client.cookieHeader() } })
 }
 
-const fontFile = (bytes: Uint8Array, name = 'font.woff2') => new File([bytes], name)
+const fontFile = (bytes: Uint8Array<ArrayBuffer>, name = 'font.woff2') => new File([bytes], name)
 
 async function setup() {
   const admin = await createUser({ name: 'Maya Admin' })

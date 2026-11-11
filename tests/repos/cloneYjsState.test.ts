@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { ensureYjsTable, resetDb, testDb } from '../integration/setup/db'
 import { cloneYjsStateWithUrlRewrite } from '../../server/utils/documents/cloneYjsState'
+import { first } from '../helpers/assert'
 
 // `cloneYjsStateWithUrlRewrite` reads the source doc's stored Y.js
 // updates, reconstructs a Y.Doc, rewrites `/api/files/{sourceDocId}/`
@@ -17,7 +18,7 @@ async function countRows(docname: string): Promise<number> {
     `SELECT COUNT(*) AS c FROM yjs_documents WHERE docname = $1`,
     [docname]
   )
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 async function fetchTargetDoc(docname: string): Promise<Y.Doc> {

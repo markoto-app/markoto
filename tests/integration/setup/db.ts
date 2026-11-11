@@ -1,5 +1,6 @@
 import { Pool } from 'pg'
 import { TEST_DB_NAME, TEST_DB_URL } from './env'
+import { first } from '../../helpers/assert'
 
 // Test-side DB access. Separate pool from the Nuxt subprocess — we talk to
 // the same database over pg directly for fixture inserts and TRUNCATEs.
@@ -93,7 +94,7 @@ export async function resetDb(): Promise<void> {
        SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'yjs_documents'
      ) AS exists`
   )
-  if (yjsExists.rows[0].exists) {
+  if (first(yjsExists.rows).exists) {
     await db.query('TRUNCATE TABLE yjs_documents RESTART IDENTITY')
   }
 

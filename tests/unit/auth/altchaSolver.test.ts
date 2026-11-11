@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { solveChallenge, type Challenge } from 'altcha-lib'
+import { toSolverChallenge } from '../../helpers/altcha'
 import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 import {
   encodeAltchaPayload,
@@ -60,10 +61,10 @@ describe('solveAltchaChallenge', () => {
   it('solves a real challenge with a worker pool and the server accepts the payload', async () => {
     const challenge = await createAnonChallenge(secrets, 'doc-create', TEST_DIFFICULTY)
     const log: string[] = []
-    const solution = await solveAltchaChallenge(challenge, { createWorker: () => inProcessWorker(log, challenge), concurrency: 3 })
+    const solution = await solveAltchaChallenge(toSolverChallenge(challenge), { createWorker: () => inProcessWorker(log, challenge), concurrency: 3 })
     expect(solution).not.toBeNull()
     if (!solution) return
-    const payload = encodeAltchaPayload(challenge, solution)
+    const payload = encodeAltchaPayload(toSolverChallenge(challenge), solution)
     const used = new Set<string>()
     const outcome = await verifyAnonSolution(payload, 'doc-create', secrets, {
       claimOnce: async (id) => {
@@ -94,7 +95,7 @@ describe('solveAltchaChallenge', () => {
       }
     }
     const challenge = await createAnonChallenge(secrets, 'doc-create', TEST_DIFFICULTY)
-    expect(await solveAltchaChallenge(challenge, { createWorker: quitter, concurrency: 2 })).toBeNull()
+    expect(await solveAltchaChallenge(toSolverChallenge(challenge), { createWorker: quitter, concurrency: 2 })).toBeNull()
   })
 
   it('picks a modest worker count', () => {

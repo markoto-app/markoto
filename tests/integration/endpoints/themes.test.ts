@@ -4,6 +4,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
+import { first } from '../../helpers/assert'
 
 // /api/themes — user-saved theme presets.
 // Plus the workspace `defaultTheme` field (PUT /api/workspaces/:id) and
@@ -123,7 +124,7 @@ describe('PATCH /api/themes/:themeId — rename / replace', () => {
     const res = await client.patch(`/api/themes/${created.themeId}`, { name: 'B' })
     expect(res.status).toBe(200)
     const list = await (await client.get('/api/themes')).json() as { themes: Array<{ name: string }> }
-    expect(list.themes[0].name).toBe('B')
+    expect(first(list.themes).name).toBe('B')
   })
 
   it('returns 404 when the theme belongs to another user', async () => {

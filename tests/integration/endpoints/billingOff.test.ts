@@ -4,6 +4,7 @@ import { resetDb, testDb } from '../setup/db'
 import { loggedInClient, anonClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
+import { at, first } from '../../helpers/assert'
 
 // Billing-off mode over real HTTP. These tests talk to the SECOND
 // Nitro subprocess (TEST_BILLING_OFF_BASE_URL), booted from the same
@@ -147,8 +148,8 @@ describe('waitlist — sign-up (billing off + plans coming soon)', () => {
       consent_text_id: 'waitlist.consentLabel',
       confirmed_at: null
     })
-    expect(rows[0].confirm_token_hash).toMatch(/^[0-9a-f]{64}$/)
-    expect(rows[0].unsubscribe_token_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(at(rows).confirm_token_hash).toMatch(/^[0-9a-f]{64}$/)
+    expect(first(rows).unsubscribe_token_hash).toMatch(/^[0-9a-f]{64}$/)
   })
 
   it('rejects a missing / non-true consent with 400 and stores nothing', async () => {
@@ -170,14 +171,14 @@ describe('waitlist — sign-up (billing off + plans coming soon)', () => {
 
   it('re-signup is idempotent and indistinguishable from a first sign-up (no oracle)', async () => {
     const first = await anonClient(OFF).post('/api/waitlist', { email: 'maya@example.com', consent: true })
-    const pendingHash = (await waitlistRows())[0].confirm_token_hash
+    const pendingHash = at(await waitlistRows()).confirm_token_hash
     const second = await anonClient(OFF).post('/api/waitlist', { email: 'MAYA@example.com', consent: true })
     expect(second.status).toBe(first.status)
     expect(await second.json()).toEqual({ ok: true })
     const rows = await waitlistRows()
     expect(rows).toHaveLength(1)
     // Unconfirmed re-signup rotates the confirm token (old link dies).
-    expect(rows[0].confirm_token_hash).not.toBe(pendingHash)
+    expect(at(rows).confirm_token_hash).not.toBe(pendingHash)
 
     // Already-confirmed address: same response, nothing changes.
     await testDb().query('UPDATE waitlist_signups SET confirmed_at = NOW(), confirm_token_hash = NULL')
@@ -193,7 +194,7 @@ describe('waitlist — sign-up (billing off + plans coming soon)', () => {
     const client = await loggedInClient(u.id, undefined, OFF)
     const res = await client.post('/api/waitlist', { email: 'linked@example.com', consent: true })
     expect(res.status).toBe(202)
-    expect((await waitlistRows())[0].user_id).toBe(u.id)
+    expect(first(await waitlistRows()).user_id).toBe(u.id)
   })
 
   it('billing on (primary server): sign-up is 404 waitlist/disabled', async () => {
@@ -218,7 +219,7 @@ describe('waitlist — confirm + unsubscribe', () => {
     const ok = await anonClient(OFF).post('/api/waitlist/confirm', { token: CONFIRM })
     expect(ok.status).toBe(200)
     expect(await ok.json()).toEqual({ confirmed: true })
-    const [row] = await waitlistRows()
+    const row = first(await waitlistRows())
     expect(row.confirmed_at).not.toBeNull()
     expect(row.confirm_token_hash).toBeNull()
 

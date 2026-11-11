@@ -13,6 +13,7 @@ import {
 import { appendActivity } from '../../server/repos/activity'
 import { recordPending } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { at, first, must } from '../helpers/assert'
 
 // Each phase is tested independently so failure-isolation is visible:
 //   - deleteDocDbRows: touches DB only, in FK-safe order
@@ -79,9 +80,9 @@ describe('deleteDocDbRows', () => {
     await deleteDocDbRows(doc.docId)
 
     const db = testDb()
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
   })
 
   it('leaves OTHER docs untouched', async () => {
@@ -94,8 +95,8 @@ describe('deleteDocDbRows', () => {
     await deleteDocDbRows(docA.docId)
 
     const db = testDb()
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [docB.docId])).rows[0].c)).toBe(1)
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [docB.docId])).rows[0].c)).toBe(1)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [docB.docId])).rows).c)).toBe(1)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [docB.docId])).rows).c)).toBe(1)
   })
 
   it('is idempotent — deleting a nonexistent doc is a no-op (no throw)', async () => {
@@ -116,7 +117,7 @@ describe('deleteDocDbRows', () => {
     await deleteDocDbRows(doc.docId)
     // Everything gone — test passes iff the FK-safe order worked.
     const db = testDb()
-    expect(Number((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows[0].c)).toBe(0)
+    expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
   })
 })
 
@@ -192,7 +193,7 @@ describe('cleanupDocS3', () => {
 
 describe('notifySyncDeleted', () => {
   it('dispatches a POST with the right shape', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
+    const fetchMock = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>().mockResolvedValue(new Response(null, { status: 200 }))
     const dispatched = notifySyncDeleted('doc-1', {
       syncInternalUrl: 'http://sync.test',
       internalApiSecret: 'secret-123',
@@ -202,11 +203,12 @@ describe('notifySyncDeleted', () => {
     // Give the fire-and-forget call a tick to actually run.
     await new Promise(r => setTimeout(r, 0))
     expect(fetchMock).toHaveBeenCalledOnce()
-    const [url, init] = fetchMock.mock.calls[0]
+    const [url, rawInit] = at(fetchMock.mock.calls)
+    const init = must(rawInit)
     expect(url).toBe('http://sync.test/internal/notify-deleted')
     expect(init.method).toBe('POST')
-    expect(init.headers['X-Internal-Secret']).toBe('secret-123')
-    expect(JSON.parse(init.body).docId).toBe('doc-1')
+    expect((init.headers as Record<string, string>)['X-Internal-Secret']).toBe('secret-123')
+    expect(JSON.parse(init.body as string).docId).toBe('doc-1')
   })
 
   it('skips dispatch when syncInternalUrl is missing (dev without sync)', async () => {

@@ -49,6 +49,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
     'Open the Brand kit tab',
     page.getByRole('tab', { name: /brand kit/i }),
     {
+      chain: true,
       annotations: [{ label: 'Brand kit', selector: '[role="tab"]:has-text("Brand kit")', kind: 'arrow' }],
       after: () => page.getByTestId('workspace-brand-kit-panel').waitFor({ state: 'visible', timeout: 10_000 })
     }
@@ -66,7 +67,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
   await flow.click(
     'Upload it',
     page.getByTestId('brand-font-upload-submit'),
-    { after: () => page.getByTestId('brand-font-family-Quaybridge Sans').waitFor({ state: 'visible', timeout: 15_000 }) }
+    { chain: true, after: () => page.getByTestId('brand-font-family-Quaybridge Sans').waitFor({ state: 'visible', timeout: 15_000 }) }
   )
   await page.getByTestId('brand-image-file').setInputFiles(fixture('../../../public/markoto-logos/app-icon-light.png'))
   await page.locator('[data-testid^="brand-image-"]:not([data-testid="brand-image-file"])').first().waitFor({ state: 'visible', timeout: 15_000 })
@@ -93,7 +94,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
   await flow.click(
     'Lock it for all documents',
     lockSwitch,
-    { after: () => expect(lockSwitch).toHaveAttribute('aria-checked', 'true', { timeout: 10_000 }) }
+    { chain: true, after: () => expect(lockSwitch).toHaveAttribute('aria-checked', 'true', { timeout: 10_000 }) }
   )
 
   // A colleague's document
@@ -105,7 +106,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
   await flow.click(
     'Open the theme panel of another document',
     editor.page.sidebar.theme,
-    { after: () => page.getByTestId('theme-brand-locked').waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId('theme-brand-locked').waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await flow.shot('It uses the workspace design — only the cover text is its own', {
     hero: true,

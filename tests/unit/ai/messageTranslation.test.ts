@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   AgenticFinishReason as FinishReason,
   type AgenticContent as Content,
+  type AgenticFunctionCall as FunctionCall,
   type AgenticFunctionDeclaration as FunctionDeclaration
 } from '../../../server/utils/agentic/aiTypes'
 import {
@@ -216,7 +217,7 @@ describe('openAIStreamToInternalChunks', () => {
       { choices: [{ finish_reason: 'tool_calls' }], usage: { prompt_tokens: 100, completion_tokens: 15 } }
     ])
     const allChunks: Array<unknown> = []
-    let finalCall: { id?: string, name?: string, args?: Record<string, unknown> } | undefined
+    let finalCall: FunctionCall | undefined
     for await (const c of openAIStreamToInternalChunks(stream as never)) {
       allChunks.push(c)
       if (c.functionCalls && c.functionCalls.length > 0) {
@@ -237,7 +238,7 @@ describe('openAIStreamToInternalChunks', () => {
       ] } }] },
       { choices: [{ finish_reason: 'tool_calls' }] }
     ])
-    let calls: Array<{ id?: string, name?: string }> = []
+    let calls: FunctionCall[] = []
     for await (const c of openAIStreamToInternalChunks(stream as never)) {
       if (c.functionCalls) calls = c.functionCalls
     }
@@ -253,7 +254,7 @@ describe('openAIStreamToInternalChunks', () => {
     ]
     for (const { input, expected } of cases) {
       const stream = mockStream([{ choices: [{ delta: { content: 'x' } }] }, { choices: [{ finish_reason: input }] }])
-      let finish: FinishReason | undefined
+      let finish: string | undefined
       for await (const c of openAIStreamToInternalChunks(stream as never)) {
         const r = c.candidates?.[0]?.finishReason
         if (r) finish = r
@@ -280,7 +281,7 @@ describe('openAIStreamToInternalChunks', () => {
       { choices: [{ delta: { tool_calls: [{ index: 0, id: 'call_x', type: 'function', function: { name: 'badtool', arguments: '{not-json' } }] } }] },
       { choices: [{ finish_reason: 'tool_calls' }] }
     ])
-    let calls: Array<{ args?: Record<string, unknown> }> = []
+    let calls: FunctionCall[] = []
     for await (const c of openAIStreamToInternalChunks(stream as never)) {
       if (c.functionCalls) calls = c.functionCalls
     }

@@ -1,5 +1,6 @@
 import { test, expect } from '../fixtures/flow'
 import { Pool } from 'pg'
+import { first } from '../../helpers/assert'
 
 // Tier 2: "Roles inside a workspace".
 //
@@ -41,7 +42,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
       // Clean display email — it is on screen in the members modal.
       [`flow-test-teammate-${Date.now()}`, 'Sam Reeves', 'sam.reeves@team.example']
     )
-    teammateUserId = r.rows[0].id
+    teammateUserId = first(r.rows).id
   } finally {
     await pool.end()
   }

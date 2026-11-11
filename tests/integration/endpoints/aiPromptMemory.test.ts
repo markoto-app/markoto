@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createDoc } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // `POST /api/ai/prompt` — conversation-memory wiring. The test
 // asserts the integration-level contract:
@@ -97,7 +98,7 @@ describe('POST /api/ai/prompt — conversation memory wiring', () => {
       `SELECT COUNT(*) AS c FROM ai_session_messages WHERE doc_id = $1 AND user_id = $2`,
       [docB.docId, u.id]
     )
-    expect(Number(r.rows[0].c)).toBe(0)
+    expect(Number(first(r.rows).c)).toBe(0)
   })
 
   // Budget enforcement lives in LiteLLM virtual keys; there is no app-side 402 pre-check on /api/ai/prompt.

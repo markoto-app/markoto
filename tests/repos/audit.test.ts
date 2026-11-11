@@ -7,11 +7,12 @@ import {
   truncateIp
 } from '../../server/repos/audit'
 import { createUser } from '../integration/setup/fixtures'
+import { first, last } from '../helpers/assert'
 
 async function auditCount(): Promise<number> {
   const db = testDb()
   const r = await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM audit_log')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('truncateIp', () => {
@@ -56,12 +57,12 @@ describe('appendAuditEvent', () => {
     expect(await auditCount()).toBe(1)
     const rows = await getAuditEventsByScope('doc', 'doc-A')
     expect(rows).toHaveLength(1)
-    expect(rows[0].action).toBe('doc.deleted')
-    expect(rows[0].actorUserId).toBe(u.id)
+    expect(first(rows).action).toBe('doc.deleted')
+    expect(first(rows).actorUserId).toBe(u.id)
     // IP stored truncated.
-    expect(rows[0].actorIp).toBe('192.168.1.0')
-    expect(rows[0].before).toEqual({ title: 'Old', accessMode: 'private' })
-    expect(rows[0].metadata).toEqual({ reason: 'user_initiated' })
+    expect(first(rows).actorIp).toBe('192.168.1.0')
+    expect(first(rows).before).toEqual({ title: 'Old', accessMode: 'private' })
+    expect(first(rows).metadata).toEqual({ reason: 'user_initiated' })
   })
 
   it('read-by-actor returns the row for that actor', async () => {
@@ -75,7 +76,7 @@ describe('appendAuditEvent', () => {
     })
     const rows = await getAuditEventsByActor(u.id)
     expect(rows).toHaveLength(1)
-    expect(rows[0].scope).toBe('workspace')
+    expect(first(rows).scope).toBe('workspace')
   })
 
   it('tuple-key isolation: scope=doc scopeId=A query never returns doc=B rows', async () => {
@@ -84,7 +85,7 @@ describe('appendAuditEvent', () => {
     await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'doc-B', action: 'doc.deleted' })
     const rowsA = await getAuditEventsByScope('doc', 'doc-A')
     expect(rowsA).toHaveLength(1)
-    expect(rowsA[0].scopeId).toBe('doc-A')
+    expect(first(rowsA).scopeId).toBe('doc-A')
   })
 
   it('accepts null actorUserId (system actions)', async () => {
@@ -103,13 +104,13 @@ describe('appendAuditEvent', () => {
     const u = await createUser()
     await appendAuditEvent({ actorUserId: u.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
     const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows[0].actorIp).toBeNull()
+    expect(first(rows).actorIp).toBeNull()
   })
 
   it('truncates IPv4 actorIp on insert', async () => {
     await appendAuditEvent({ actorUserId: null, actorIp: '203.0.113.42', scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
     const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows[0].actorIp).toBe('203.0.113.0')
+    expect(first(rows).actorIp).toBe('203.0.113.0')
   })
 
   it('truncates IPv6 actorIp on insert', async () => {
@@ -119,7 +120,7 @@ describe('appendAuditEvent', () => {
       scope: 'doc', scopeId: 'd', action: 'doc.deleted'
     })
     const rows = await getAuditEventsByScope('doc', 'd')
-    expect(rows[0].actorIp).toBe('2001:db8:85a3::')
+    expect(first(rows).actorIp).toBe('2001:db8:85a3::')
   })
 })
 
@@ -150,7 +151,7 @@ describe('getAuditEventsByScope', () => {
     }
     const page1 = await getAuditEventsByScope('doc', 'd', { limit: 2 })
     expect(page1).toHaveLength(2)
-    const page2 = await getAuditEventsByScope('doc', 'd', { limit: 2, beforeId: page1[page1.length - 1].id })
+    const page2 = await getAuditEventsByScope('doc', 'd', { limit: 2, beforeId: last(page1).id })
     expect(page2).toHaveLength(2)
     // No id overlap between pages.
     const ids1 = page1.map(r => r.id)
@@ -180,7 +181,7 @@ describe('getAuditEventsByActor', () => {
     await appendAuditEvent({ actorUserId: b.id, actorIp: null, scope: 'doc', scopeId: 'd', action: 'doc.deleted' })
     const aRows = await getAuditEventsByActor(a.id)
     expect(aRows).toHaveLength(1)
-    expect(aRows[0].actorUserId).toBe(a.id)
+    expect(first(aRows).actorUserId).toBe(a.id)
   })
 
   it('orders by ts desc and paginates via beforeId', async () => {
@@ -190,7 +191,7 @@ describe('getAuditEventsByActor', () => {
     }
     const page1 = await getAuditEventsByActor(u.id, { limit: 2 })
     expect(page1.map(r => (r.metadata as { n: number }).n)).toEqual([3, 2])
-    const page2 = await getAuditEventsByActor(u.id, { limit: 2, beforeId: page1[page1.length - 1].id })
+    const page2 = await getAuditEventsByActor(u.id, { limit: 2, beforeId: last(page1).id })
     expect(page2.map(r => (r.metadata as { n: number }).n)).toEqual([1, 0])
   })
 })

@@ -3,6 +3,7 @@ import { resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
+import { first } from '../../helpers/assert'
 
 // Concurrency + isolation properties of the comments-snapshot
 // endpoint. The endpoint reads the previous snapshot, diffs against
@@ -266,7 +267,7 @@ describe('POST /api/internal/comments-snapshot — concurrency + isolation', () 
       const events = await listActivity(doc.docId)
       const deletes = events.filter(e => e.action === 'comment.deleted')
       expect(deletes).toHaveLength(1)
-      expect(deletes[0].comment_id).toBe('b')
+      expect(first(deletes).comment_id).toBe('b')
 
       const mirror = await listMirror(doc.docId)
       expect(mirror.map(r => r.entry_id).sort()).toEqual(['a', 'c'])

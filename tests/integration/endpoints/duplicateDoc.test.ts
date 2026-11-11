@@ -11,6 +11,7 @@ import {
   setMemberRole,
   setDocPasswordHash
 } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // POST /api/docs/:docId/duplicate — clones a doc end-to-end. These
 // tests cover the DB + authz surface; the Y.js state clone + S3 copy
@@ -391,7 +392,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
       )
       // Source has title "Test Doc"; duplicate has "Copy of Test Doc".
       // Exactly ONE doc with that title means idempotency held.
-      expect(Number(r.rows[0].c)).toBe(1)
+      expect(Number(first(r.rows).c)).toBe(1)
     })
 
     it('same key for two different users → independent (no scope leak)', async () => {

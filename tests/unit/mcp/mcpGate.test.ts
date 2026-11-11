@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, type Mock } from 'vitest'
 import { evaluateMcpRequest, jsonRpcErrorResponse, MCP_RATE_LIMITS, type McpGateDeps, type RateLimitRule } from '../../../server/mcp/lib/mcpGate'
 import type { BindingCheck, McpSessionBindings } from '../../../server/utils/mcp/mcpSessionBinding'
 import type { McpAuthContext } from '../../../server/utils/mcp/mcpAuth'
@@ -49,9 +49,11 @@ function memoryBindings(): McpSessionBindings & { throwOnCheck: boolean } {
   }
 }
 
-function deps(overrides: Partial<Omit<McpGateDeps, 'bindings'>> = {}): McpGateDeps & { rateLimit: ReturnType<typeof vi.fn>, bindings: ReturnType<typeof memoryBindings> } {
+type RateLimitMock = Mock<(rule: RateLimitRule, key: string) => Promise<boolean>>
+
+function deps(overrides: Partial<Omit<McpGateDeps, 'bindings' | 'rateLimit'>> & { rateLimit?: RateLimitMock } = {}): McpGateDeps & { rateLimit: RateLimitMock, bindings: ReturnType<typeof memoryBindings> } {
   const tokens: Record<string, McpAuthContext> = { 'Bearer full': ALICE_FULL, 'Bearer ro': ALICE_RO }
-  const rateLimit = vi.fn(async (_rule: RateLimitRule, _key: string) => true)
+  const rateLimit = vi.fn<(rule: RateLimitRule, key: string) => Promise<boolean>>(async () => true)
   return {
     verifyToken: async h => (h ? tokens[h] ?? null : null),
     rateLimit,

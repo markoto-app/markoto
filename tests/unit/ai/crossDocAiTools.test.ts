@@ -92,7 +92,6 @@ function makeSession(opts: {
 type ActorCtx = NonNullable<Awaited<ReturnType<typeof getDocWithActorRole>>>
 function ctx(over: Partial<ActorCtx> = {}): ActorCtx {
   return {
-    docId: 'TARGET',
     title: 'Target doc',
     description: '',
     audience: 'casual',
@@ -103,7 +102,6 @@ function ctx(over: Partial<ActorCtx> = {}): ActorCtx {
     workspaceRole: null,
     accessMode: 'private',
     theme: null,
-    passwordHash: null,
     ...over
   } as ActorCtx
 }
@@ -113,10 +111,10 @@ function ctx(over: Partial<ActorCtx> = {}): ActorCtx {
 function makeTrustedClient(body: string) {
   const ydoc = new Y.Doc()
   ydoc.getText('content').insert(0, body)
-  const destroy = vi.fn().mockResolvedValue(undefined)
+  const destroy = vi.fn<() => Promise<void>>().mockResolvedValue(undefined)
   return {
     ydoc,
-    ycomments: ydoc.getArray('comments'),
+    ycomments: ydoc.getArray<Y.Map<unknown>>('comments'),
     destroy
   }
 }
@@ -131,7 +129,7 @@ describe('view_other_document — input parsing precedes access check', () => {
   it('parses a markoto URL down to a bare id BEFORE looking up the doc', async () => {
     // Spec: the handler MUST extract the id from a URL before calling
     // the access helper, so the user can paste a URL verbatim.
-    mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100, docId: 'xyz' }))
+    mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
     mockedOpenTrusted.mockResolvedValue(makeTrustedClient('hi'))
     const session = makeSession({ initiatorUserId: 100 })
     await executeFunctionByName(session, 'view_other_document', {
@@ -142,7 +140,7 @@ describe('view_other_document — input parsing precedes access check', () => {
   })
 
   it('accepts a bare id and forwards it unchanged', async () => {
-    mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100, docId: 'abc' }))
+    mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
     mockedOpenTrusted.mockResolvedValue(makeTrustedClient('hi'))
     const session = makeSession({ initiatorUserId: 100 })
     await executeFunctionByName(session, 'view_other_document', { doc_id: 'abc' })

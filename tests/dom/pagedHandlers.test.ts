@@ -74,6 +74,11 @@ function startNode(range: Range | undefined): Node | null {
   return range.startContainer.childNodes[range.startOffset] ?? null
 }
 
+function startElement(range: Range | undefined): Element | null {
+  const node = startNode(range)
+  return node instanceof Element ? node : null
+}
+
 function refOf(node: Node | null): string | null {
   return node instanceof Element ? node.getAttribute('data-ref') : null
 }
@@ -168,7 +173,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     const r = el('<div class="paged-doc"><p>Intro.</p><p class="table-caption">Fitted coefficients</p><table><tbody><tr><td>1</td></tr></tbody></table></div>')
     const table = r.querySelector('table')
     if (!table) throw new Error('fixture')
-    expect(startNode(handler().onOverflow(overflowFrom(table, r), r))?.className).toBe('table-caption')
+    expect(startElement(handler().onOverflow(overflowFrom(table, r), r))?.className).toBe('table-caption')
   })
 
   it('keeps a third of a short table on each side when it splits only to fill the page', () => {
@@ -239,7 +244,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     const second = r.querySelector('[data-line="2"]')
     if (!last || !second) throw new Error('fixture')
     // One line (the closing brace) would go over: three go.
-    expect(startNode(h.onOverflow(overflowFrom(last, r), r))?.getAttribute?.('data-line')).toBe('18')
+    expect(startElement(h.onOverflow(overflowFrom(last, r), r))?.getAttribute('data-line')).toBe('18')
     // Only one line would stay: the block moves whole.
     expect(startNode(h.onOverflow(overflowFrom(second, r), r))?.nodeName).toBe('PRE')
   })
@@ -536,7 +541,7 @@ describe('footnotes in multi-column pages', () => {
 describe('selectors paged.js rewrites keep their specificity', () => {
   class FakeFollowing {
     styleSheet = new CSSStyleSheet()
-    processSelectors(): void {
+    processSelectors(_parsed: ParentNode, _selectors: Record<string, [string, string]>): void {
       throw new Error('paged.js original must be replaced')
     }
   }

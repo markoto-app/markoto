@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import { testDb } from './db'
 import { DPA_VERSION, PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
+import { first } from '../../helpers/assert'
 
 // Factory helpers. Each one writes a minimal row and returns enough shape
 // for the test to use in assertions. Intended to be cheap — no validation
@@ -54,7 +55,7 @@ export async function createUser(overrides: CreateUserOpts = {}): Promise<TestUs
       ? [name, email, `gh-${nanoid(10)}`]
       : [name, email, `gh-${nanoid(10)}`, PRIVACY_VERSION, 'en', TOS_VERSION, DPA_VERSION]
   )
-  return { id: result.rows[0].id, name, email }
+  return { id: first(result.rows).id, name, email }
 }
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'

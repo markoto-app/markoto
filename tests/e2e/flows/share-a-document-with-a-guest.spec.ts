@@ -63,6 +63,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
     'Open the share dialog',
     editor.page.accessLockButton,
     {
+      chain: true,
       annotations: [{ label: 'Share', selector: '[aria-label*="access mode" i]', kind: 'arrow' }],
       after: () => page.getByTestId('share-guests').waitFor({ state: 'visible', timeout: 10_000 })
     }
@@ -78,7 +79,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
   await flow.click(
     'Share',
     page.getByTestId('share-guest-add'),
-    { after: () => page.getByTestId(`share-guest-${clientId}`).waitFor({ state: 'visible', timeout: 10_000 }) }
+    { chain: true, after: () => page.getByTestId(`share-guest-${clientId}`).waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await expect(page.getByTestId(`share-guest-${clientId}`)).toContainText('Lena Fischer')
   await flow.shot('Lena can now edit this document — and only this one', {
@@ -100,7 +101,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
   await lena.flow.click(
     'Open it',
     lena.page.getByTestId(`home-shared-document-${docId}`),
-    { after: () => lena.page.waitForURL(`**/d/${docId}`) }
+    { chain: true, after: () => lena.page.waitForURL(`**/d/${docId}`) }
   )
   await lena.editor.waitForReady()
   await lena.flow.shot('She edits it like any document')

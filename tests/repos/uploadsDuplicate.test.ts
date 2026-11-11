@@ -7,6 +7,7 @@ import {
   insertConfirmedUploads
 } from '../../server/repos/uploads'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // Repo-level tests for the new helpers used by the duplicate flow.
 // `listConfirmedUploadsForDoc` and `insertConfirmedUploads` feed the
@@ -19,7 +20,7 @@ async function rowCount(docId: string): Promise<number> {
     'SELECT COUNT(*) AS c FROM uploads WHERE doc_id = $1',
     [docId]
   )
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('listConfirmedUploadsForDoc', () => {
@@ -54,11 +55,11 @@ describe('listConfirmedUploadsForDoc', () => {
 
     const rows = await listConfirmedUploadsForDoc(doc.docId)
     expect(rows).toHaveLength(1)
-    expect(rows[0].fileId).toBe('a.png')
-    expect(rows[0].contentType).toBe('image/png')
-    expect(rows[0].sizeBytes).toBe(100)
-    expect(rows[0].uploaderId).toBe(user.id)
-    expect(rows[0].s3Key).toBe(`docs/${doc.docId}/a.png`)
+    expect(first(rows).fileId).toBe('a.png')
+    expect(first(rows).contentType).toBe('image/png')
+    expect(first(rows).sizeBytes).toBe(100)
+    expect(first(rows).uploaderId).toBe(user.id)
+    expect(first(rows).s3Key).toBe(`docs/${doc.docId}/a.png`)
   })
 
   it('scopes to the requested doc (no cross-doc leakage)', async () => {
@@ -158,6 +159,6 @@ describe('insertConfirmedUploads', () => {
       s3Key: `docs/${doc.docId}/anon.png`
     }])
     const rows = await listConfirmedUploadsForDoc(doc.docId)
-    expect(rows[0].uploaderId).toBeNull()
+    expect(first(rows).uploaderId).toBeNull()
   })
 })

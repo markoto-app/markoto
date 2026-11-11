@@ -24,7 +24,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
  * through every intermediate .from/.where/.limit/etc.
  */
 const selectQueue: unknown[][] = []
-const updateCalls: Array<{ set: unknown, whereArg?: unknown }> = []
+const updateCalls: Array<{ set: Record<string, unknown>, whereArg?: unknown }> = []
 const insertCalls: Array<{ values: unknown }> = []
 const deleteCalls: Array<{ table?: unknown, whereArg?: unknown }> = []
 
@@ -41,8 +41,8 @@ function makeDbChain() {
 
   // update(table).set(set).where(where) → resolves after `.where`.
   const update = () => ({
-    set: (setValue: unknown) => {
-      const call: { set: unknown, whereArg?: unknown } = { set: setValue }
+    set: (setValue: Record<string, unknown>) => {
+      const call: { set: Record<string, unknown>, whereArg?: unknown } = { set: setValue }
       updateCalls.push(call)
       return {
         where: (whereArg: unknown) => {

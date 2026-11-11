@@ -7,6 +7,7 @@ import {
   type ActivityMetadata
 } from '../../server/repos/activity'
 import { createUser, createDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // `search_activity_log` AI tool's repo path. Tests pin the filter
 // composition rules + doc-scoped isolation that the per-prompt
@@ -24,7 +25,7 @@ async function getLastActivityId(): Promise<number> {
   const r = await db.query<{ id: number }>(
     'SELECT id FROM activity_log ORDER BY id DESC LIMIT 1'
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 async function append(

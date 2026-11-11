@@ -4,6 +4,7 @@ import { resetDb, testDb } from '../integration/setup/db'
 import { createUser } from '../integration/setup/fixtures'
 import { abuseReports, users } from '../../server/db/schema'
 import { useDatabase } from '../../server/utils/platform/database'
+import { first } from '../helpers/assert'
 
 // Repo tests for the abuse-report table. The HTTP endpoint goes
 // through `db.insert(abuseReports).values(...)` directly (no
@@ -68,11 +69,11 @@ describe('abuse_reports — basic insert + read', () => {
       ['rep-test-1']
     )
     expect(r.rows.length).toBe(1)
-    expect(r.rows[0].reporter_user_id).toBe(reporter.id)
-    expect(r.rows[0].reporter_email).toBe(reporter.email)
-    expect(r.rows[0].category).toBe('illegal_content')
-    expect(r.rows[0].body).toBe('this is a test')
-    expect(r.rows[0].status).toBe('open')
+    expect(first(r.rows).reporter_user_id).toBe(reporter.id)
+    expect(first(r.rows).reporter_email).toBe(reporter.email)
+    expect(first(r.rows).category).toBe('illegal_content')
+    expect(first(r.rows).body).toBe('this is a test')
+    expect(first(r.rows).status).toBe('open')
   })
 
   it('accepts free-form docId text (no FK constraint)', async () => {
@@ -90,7 +91,7 @@ describe('abuse_reports — basic insert + read', () => {
       `SELECT doc_id FROM abuse_reports WHERE report_id = $1`,
       ['rep-test-freeform']
     )
-    expect(r.rows[0].doc_id).toBe('test')
+    expect(first(r.rows).doc_id).toBe('test')
   })
 
   it('accepts NULL docId for platform-wide reports', async () => {
@@ -107,7 +108,7 @@ describe('abuse_reports — basic insert + read', () => {
       `SELECT doc_id FROM abuse_reports WHERE report_id = $1`,
       ['rep-platform']
     )
-    expect(r.rows[0].doc_id).toBeNull()
+    expect(first(r.rows).doc_id).toBeNull()
   })
 })
 
@@ -215,9 +216,9 @@ describe('abuse_reports — FK on user delete', () => {
       `SELECT reporter_user_id, reporter_email FROM abuse_reports WHERE report_id = $1`,
       ['rep-doomed']
     )
-    expect(r.rows[0].reporter_user_id).toBeNull()
+    expect(first(r.rows).reporter_user_id).toBeNull()
     // Email snapshot survives so the moderator still has a
     // contact channel.
-    expect(r.rows[0].reporter_email).toBe('doomed@test.local')
+    expect(first(r.rows).reporter_email).toBe('doomed@test.local')
   })
 })

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { computeTextDiff } from '../../../server/utils/documents/textDiff'
+import { first } from '../../helpers/assert'
 
 describe('computeTextDiff', () => {
   it('returns no hunks when inputs are identical', () => {
@@ -14,7 +15,7 @@ describe('computeTextDiff', () => {
     const after = 'line one\nline TWO\nline three\n'
     const r = computeTextDiff(before, after)
     expect(r.hunks).toHaveLength(1)
-    const h = r.hunks[0]
+    const h = first(r.hunks)
     // The hunk has at least one remove (old) and one add (new).
     expect(h.lines.some(l => l.kind === 'remove' && l.text === 'line two')).toBe(true)
     expect(h.lines.some(l => l.kind === 'add' && l.text === 'line TWO')).toBe(true)
@@ -26,14 +27,14 @@ describe('computeTextDiff', () => {
   it('handles empty before (full insert)', () => {
     const r = computeTextDiff('', 'fresh content\nsecond line\n')
     expect(r.hunks).toHaveLength(1)
-    const adds = r.hunks[0].lines.filter(l => l.kind === 'add').length
+    const adds = first(r.hunks).lines.filter(l => l.kind === 'add').length
     expect(adds).toBeGreaterThanOrEqual(2)
   })
 
   it('handles empty after (full delete)', () => {
     const r = computeTextDiff('removed content\nsecond line\n', '')
     expect(r.hunks).toHaveLength(1)
-    const removes = r.hunks[0].lines.filter(l => l.kind === 'remove').length
+    const removes = first(r.hunks).lines.filter(l => l.kind === 'remove').length
     expect(removes).toBeGreaterThanOrEqual(2)
   })
 
@@ -42,7 +43,7 @@ describe('computeTextDiff', () => {
     // truncated to ~2000 chars + ellipsis.
     const longLine = 'x'.repeat(3000)
     const r = computeTextDiff('a\n', `a\n${longLine}\n`)
-    const addLine = r.hunks[0].lines.find(l => l.kind === 'add' && l.text.startsWith('xxx'))
+    const addLine = first(r.hunks).lines.find(l => l.kind === 'add' && l.text.startsWith('xxx'))
     expect(addLine).toBeDefined()
     // 2000 chars total — exact boundary check would be brittle, but
     // it MUST be smaller than the original.
@@ -92,8 +93,8 @@ describe('computeTextDiff', () => {
     const after = 'this is the ONLY line\n'
     const r = computeTextDiff(before, after)
     expect(r.hunks).toHaveLength(1)
-    const adds = r.hunks[0].lines.filter(l => l.kind === 'add')
-    const removes = r.hunks[0].lines.filter(l => l.kind === 'remove')
+    const adds = first(r.hunks).lines.filter(l => l.kind === 'add')
+    const removes = first(r.hunks).lines.filter(l => l.kind === 'remove')
     expect(adds).toHaveLength(1)
     expect(removes).toHaveLength(1)
   })
@@ -115,9 +116,9 @@ describe('computeTextDiff', () => {
     const after = '    - item one\n'
     const r = computeTextDiff(before, after)
     expect(r.hunks).toHaveLength(1)
-    const adds = r.hunks[0].lines.filter(l => l.kind === 'add')
-    expect(adds[0].text).toBe('    - item one')
-    const removes = r.hunks[0].lines.filter(l => l.kind === 'remove')
-    expect(removes[0].text).toBe('  - item one')
+    const adds = first(r.hunks).lines.filter(l => l.kind === 'add')
+    expect(first(adds).text).toBe('    - item one')
+    const removes = first(r.hunks).lines.filter(l => l.kind === 'remove')
+    expect(first(removes).text).toBe('  - item one')
   })
 })

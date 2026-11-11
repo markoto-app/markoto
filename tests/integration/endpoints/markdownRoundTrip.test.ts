@@ -40,7 +40,7 @@ interface ImportBody {
   droppedCustomCssRules?: number
 }
 
-async function importMarkdown(text: string | Uint8Array, docId: string | null, filename = 'notes.md'): Promise<Response> {
+async function importMarkdown(text: string | Uint8Array<ArrayBuffer>, docId: string | null, filename = 'notes.md'): Promise<Response> {
   const form = new FormData()
   form.append('file', new File([text], filename, { type: 'text/markdown' }))
   if (docId) form.append('docId', docId)

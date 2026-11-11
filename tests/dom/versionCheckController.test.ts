@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
 import {
   createVersionCheckController,
   type VersionCheckPromptHandlers
@@ -14,15 +14,15 @@ import {
 // 5min snooze, 60s visibility throttle, 5min poll interval.
 
 describe('versionCheckController', () => {
-  let fetchBuildId: ReturnType<typeof vi.fn>
-  let reload: ReturnType<typeof vi.fn>
-  let showPrompt: ReturnType<typeof vi.fn>
+  let fetchBuildId: Mock<() => Promise<string | null>>
+  let reload: Mock<() => void>
+  let showPrompt: Mock<(handlers: VersionCheckPromptHandlers) => void>
   let lastHandlers: VersionCheckPromptHandlers | null
 
   beforeEach(() => {
     vi.useFakeTimers()
-    fetchBuildId = vi.fn()
-    reload = vi.fn()
+    fetchBuildId = vi.fn<() => Promise<string | null>>()
+    reload = vi.fn<() => void>()
     lastHandlers = null
     showPrompt = vi.fn((h: VersionCheckPromptHandlers) => {
       lastHandlers = h

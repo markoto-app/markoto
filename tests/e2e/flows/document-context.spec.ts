@@ -105,16 +105,14 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
       async () => {
         await page.locator('#doc-audience').click()
         await page.getByRole('option', { name: /marketing/i }).first().waitFor({ state: 'visible' })
-      },
-      { result: 'The audience options appear.' }
+      }
     )
     await flow.step(
       'Pick "Marketing / SEO"',
       async () => {
         await page.getByRole('option', { name: /marketing/i }).first().click()
         await page.locator('#doc-audience').waitFor({ state: 'visible' })
-      },
-      { result: 'The audience switches to Marketing.' }
+      }
     )
   } else {
     await flow.click(
@@ -148,16 +146,14 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
         await page.locator('#doc-language').fill('')
         await page.locator('#doc-language').pressSequentially('Deutsch')
         await page.getByRole('option', { name: /deutsch/i }).first().waitFor({ state: 'visible', timeout: 5_000 })
-      },
-      { result: 'The Deutsch preset surfaces in the suggestions.' }
+      }
     )
     await flow.step(
       'Tap "Deutsch"',
       async () => {
         await page.getByRole('option', { name: /deutsch/i }).first().click()
         await expect(page.locator('#doc-language')).toHaveValue('Deutsch')
-      },
-      { result: 'The language switches to Deutsch.' }
+      }
     )
   } else {
     // Clear the current language ("English") first — typing into the

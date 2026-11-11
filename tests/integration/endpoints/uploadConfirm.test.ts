@@ -72,7 +72,7 @@ async function requestUpload(userId: number, docId: string): Promise<{ key: stri
 }
 
 async function put(uploadUrl: string, bytes: Uint8Array): Promise<void> {
-  const res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: bytes })
+  const res = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': 'image/png' }, body: new Uint8Array(bytes) })
   expect(res.status, await res.text()).toBe(200)
 }
 

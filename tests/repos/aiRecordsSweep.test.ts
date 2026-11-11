@@ -3,6 +3,7 @@ import { resetDb, testDb } from '../integration/setup/db'
 import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../../server/utils/ai/aiRecordsSweep'
 import { appendAiMessage } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // The 90-day AI-record retention sweep. Enforces the privacy policy's
 // "AI prompt and tool-call records are retained for 90 days, then purged"
@@ -17,12 +18,12 @@ async function backdateMessage(id: number, when: Date): Promise<void> {
 
 async function latestMessageId(): Promise<number> {
   const r = await testDb().query<{ id: number }>('SELECT id FROM ai_session_messages ORDER BY id DESC LIMIT 1')
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 async function messageCount(): Promise<number> {
   const r = await testDb().query<{ c: string }>('SELECT COUNT(*) AS c FROM ai_session_messages')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 async function seedSession(sessionId: string, userId: number, docId: string, startedAt: Date): Promise<void> {
@@ -35,7 +36,7 @@ async function seedSession(sessionId: string, userId: number, docId: string, sta
 
 async function sessionCount(): Promise<number> {
   const r = await testDb().query<{ c: string }>('SELECT COUNT(*) AS c FROM ai_sessions')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('runAiRecordsSweep', () => {
@@ -82,7 +83,7 @@ describe('runAiRecordsSweep', () => {
     expect(result.sessionsDeleted).toBe(1)
     expect(await sessionCount()).toBe(1)
     const r = await testDb().query<{ session_id: string }>('SELECT session_id FROM ai_sessions')
-    expect(r.rows[0].session_id).toBe('new-sess')
+    expect(first(r.rows).session_id).toBe('new-sess')
   })
 
   it('respects an injected clock for the cutoff boundary', async () => {

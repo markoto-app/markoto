@@ -21,6 +21,7 @@ import {
 } from '../../../shared/config/anonGate'
 import { ANON_ABUSE_REPORT_LIMITS, ANON_DOC_CREATE_LIMITS } from '../../../shared/config/anonLimits'
 import { encodeAltchaPayload } from '../../../app/utils/platform/altchaSolver'
+import { toSolverChallenge } from '../../helpers/altcha'
 
 // Pure cores of the anonymous gate (server/utils/anonGate/): config
 // resolution, the self-hosted ALTCHA challenge/verify round trip incl.
@@ -45,7 +46,7 @@ async function solvedPayload(purpose: 'doc-create' | 'abuse-report' = 'doc-creat
   const challenge = await createAnonChallenge(secrets, purpose, TEST_DIFFICULTY, now)
   const solution = await solveChallenge({ challenge, deriveKey })
   if (!solution) throw new Error('test challenge did not solve')
-  return { challenge, solution, payload: encodeAltchaPayload(challenge, solution) }
+  return { challenge, solution, payload: encodeAltchaPayload(toSolverChallenge(challenge), solution) }
 }
 
 describe('resolveAnonGateEnabled', () => {
@@ -139,7 +140,7 @@ describe('verifyAnonSolution', () => {
   it('rejects a wrong solution without burning the challenge', async () => {
     const store = memoryStore()
     const { challenge, solution } = await solvedPayload()
-    const wrong = encodeAltchaPayload(challenge, { counter: solution.counter + 1, derivedKey: '00'.repeat(32) })
+    const wrong = encodeAltchaPayload(toSolverChallenge(challenge), { counter: solution.counter + 1, derivedKey: '00'.repeat(32) })
     expect(await verifyAnonSolution(wrong, 'doc-create', secrets, store)).toEqual({ ok: false, reason: 'invalid' })
     expect(store.ids.size).toBe(0)
   })

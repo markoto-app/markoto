@@ -10,6 +10,7 @@ import {
   DuplicateSessionError
 } from '../../server/utils/ai/aiSessions'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // AI session registry. Enforces the "one AI per user per doc" cap via
 // a Postgres UNIQUE index; tests verify the index actually guards the
@@ -19,7 +20,7 @@ import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 async function sessionRowCount(): Promise<number> {
   const db = testDb()
   const r = await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM ai_sessions')
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 function makeEntry(overrides: Partial<Parameters<typeof addAiSession>[0]> = {}): Parameters<typeof addAiSession>[0] {

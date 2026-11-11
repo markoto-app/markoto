@@ -4,6 +4,7 @@ import { ensureYjsTable, resetDb, testDb } from '../setup/db'
 import { anonClient } from '../setup/client'
 import { createDoc } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
+import { first } from '../../helpers/assert'
 
 // End-to-end smoke test for the edit → activity → diff pipeline.
 // Doesn't actually run Hocuspocus — instead it synthesizes the same
@@ -53,7 +54,7 @@ async function stageStates(docname: string, contents: string[]): Promise<number[
       `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
       [docname, value]
     )
-    ids.push(r.rows[0].id)
+    ids.push(first(r.rows).id)
     lastContent = next
   }
   return ids
@@ -112,7 +113,7 @@ describe('edit → activity row → diff endpoint round-trip', () => {
       `SELECT id FROM activity_log WHERE doc_id = $1 ORDER BY id DESC LIMIT 1`,
       [doc.docId]
     )
-    const activityId = r.rows[0].id
+    const activityId = first(r.rows).id
 
     // Now fetch the diff.
     const diffRes = await anonClient().get(`/api/docs/${doc.docId}/activity/${activityId}/diff`)
@@ -128,11 +129,11 @@ describe('edit → activity row → diff endpoint round-trip', () => {
     // The diff captures the single added line as one `add` line in
     // some hunk — and there's no spurious removal.
     expect(body.hunks).toHaveLength(1)
-    const hunk = body.hunks[0]
+    const hunk = first(body.hunks)
     const adds = hunk.lines.filter(l => l.kind === 'add')
     const removes = hunk.lines.filter(l => l.kind === 'remove')
     expect(adds).toHaveLength(1)
-    expect(adds[0].text).toBe('line C added')
+    expect(first(adds).text).toBe('line C added')
     expect(removes).toHaveLength(0)
   })
 
@@ -158,7 +159,7 @@ describe('edit → activity row → diff endpoint round-trip', () => {
       `SELECT id FROM activity_log WHERE doc_id = $1 ORDER BY id DESC LIMIT 1`,
       [doc.docId]
     )
-    const activityId = r.rows[0].id
+    const activityId = first(r.rows).id
 
     const diffRes = await anonClient().get(`/api/docs/${doc.docId}/activity/${activityId}/diff`)
     expect(diffRes.status).toBe(200)
@@ -192,7 +193,7 @@ describe('edit → activity row → diff endpoint round-trip', () => {
       `SELECT id FROM activity_log WHERE doc_id = $1 ORDER BY id DESC LIMIT 1`,
       [doc.docId]
     )
-    const activityId = r.rows[0].id
+    const activityId = first(r.rows).id
 
     const diffRes = await anonClient().get(`/api/docs/${doc.docId}/activity/${activityId}/diff`)
     expect(diffRes.status).toBe(200)

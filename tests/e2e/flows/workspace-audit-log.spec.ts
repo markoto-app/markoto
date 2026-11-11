@@ -52,6 +52,7 @@ test('See who changed what in a workspace', async ({ page, flow, editor }) => {
     'Open the Audit log tab',
     page.getByRole('tab', { name: /audit log/i }),
     {
+      chain: true,
       annotations: [{ label: 'Audit log', selector: '[role="tab"]:has-text("Audit log")', kind: 'arrow' }],
       after: () => page.getByTestId('workspace-audit-panel').locator('[data-testid^="workspace-audit-event-"]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }

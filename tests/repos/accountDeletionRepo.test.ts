@@ -17,6 +17,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // Repo-level tests for the deletion-cascade helpers. These hit the DB
 // directly and exercise the SQL shape (FK ordering, returning clauses,
@@ -103,13 +104,13 @@ describe('promoteWorkspaceAdmin', () => {
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`,
       [ws.workspaceId]
     )
-    expect(wsRow.rows[0].owner_id).toBe(bob.id)
+    expect(first(wsRow.rows).owner_id).toBe(bob.id)
 
     const memberRow = await testDb().query<{ role: string }>(
       `SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`,
       [ws.workspaceId, bob.id]
     )
-    expect(memberRow.rows[0].role).toBe('admin')
+    expect(first(memberRow.rows).role).toBe('admin')
   })
 
   it('does not touch owner_id when the outgoing user is not the owner', async () => {
@@ -126,13 +127,13 @@ describe('promoteWorkspaceAdmin', () => {
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`,
       [ws.workspaceId]
     )
-    expect(wsRow.rows[0].owner_id).toBe(alice.id) // unchanged
+    expect(first(wsRow.rows).owner_id).toBe(alice.id) // unchanged
 
     const memberRow = await testDb().query<{ role: string }>(
       `SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2`,
       [ws.workspaceId, carol.id]
     )
-    expect(memberRow.rows[0].role).toBe('admin')
+    expect(first(memberRow.rows).role).toBe('admin')
   })
 
   it('is idempotent if the new admin already has admin role', async () => {
@@ -148,7 +149,7 @@ describe('promoteWorkspaceAdmin', () => {
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`,
       [ws.workspaceId]
     )
-    expect(wsRow.rows[0].owner_id).toBe(bob.id)
+    expect(first(wsRow.rows).owner_id).toBe(bob.id)
   })
 })
 
@@ -175,7 +176,7 @@ describe('removeAllMemberships', () => {
       `SELECT COUNT(*) AS count FROM workspace_members WHERE user_id = $1`,
       [alice.id]
     )
-    expect(Number(remaining.rows[0].count)).toBe(0)
+    expect(Number(first(remaining.rows).count)).toBe(0)
   })
 
   it('returns empty array when the user has no memberships', async () => {
@@ -209,7 +210,7 @@ describe('deleteAiSessionsByUser', () => {
     expect(removed).toBe(1)
 
     const remaining = await testDb().query<{ count: string }>(`SELECT COUNT(*) AS count FROM ai_sessions`)
-    expect(Number(remaining.rows[0].count)).toBe(1)
+    expect(Number(first(remaining.rows).count)).toBe(1)
   })
 })
 
@@ -234,7 +235,7 @@ describe('deleteThemesByUser', () => {
     expect(removed).toBe(1)
 
     const remaining = await testDb().query<{ count: string }>(`SELECT COUNT(*) AS count FROM themes`)
-    expect(Number(remaining.rows[0].count)).toBe(1)
+    expect(Number(first(remaining.rows).count)).toBe(1)
   })
 })
 

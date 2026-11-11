@@ -7,13 +7,14 @@ import {
   deleteActivityForDoc
 } from '../../server/repos/activity'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { at, first } from '../helpers/assert'
 
 async function activityCount(docId: string): Promise<number> {
   const db = testDb()
   const r = await db.query<{ c: string }>(
     'SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1', [docId]
   )
-  return Number(r.rows[0].c)
+  return Number(first(r.rows).c)
 }
 
 describe('appendActivity', () => {
@@ -46,8 +47,8 @@ describe('appendActivity', () => {
       'SELECT lines_added, lines_removed FROM activity_log WHERE doc_id = $1',
       [doc.docId]
     )
-    expect(r.rows[0].lines_added).toBe(0)
-    expect(r.rows[0].lines_removed).toBe(0)
+    expect(first(r.rows).lines_added).toBe(0)
+    expect(first(r.rows).lines_removed).toBe(0)
   })
 
   it('rounds fractional wordCount', async () => {
@@ -58,7 +59,7 @@ describe('appendActivity', () => {
     const r = await db.query<{ word_count: number | null }>(
       'SELECT word_count FROM activity_log WHERE doc_id = $1', [doc.docId]
     )
-    expect(r.rows[0].word_count).toBe(13)
+    expect(first(r.rows).word_count).toBe(13)
   })
 
   it('accepts null userName (anonymous attribution)', async () => {
@@ -104,7 +105,7 @@ describe('pruneActivity', () => {
     const min = await db.query<{ w: number }>(
       'SELECT MIN(word_count) AS w FROM activity_log WHERE doc_id = $1', [doc.docId]
     )
-    expect(Number(min.rows[0].w)).toBe(1)
+    expect(Number(first(min.rows).w)).toBe(1)
   })
 
   it('after 600 inserts, only the most-recent 500 remain', async () => {
@@ -126,8 +127,8 @@ describe('pruneActivity', () => {
       'SELECT MIN(word_count) AS mn, MAX(word_count) AS mx FROM activity_log WHERE doc_id = $1',
       [doc.docId]
     )
-    expect(Number(range.rows[0].mn)).toBe(100)
-    expect(Number(range.rows[0].mx)).toBe(599)
+    expect(Number(first(range.rows).mn)).toBe(100)
+    expect(Number(first(range.rows).mx)).toBe(599)
   })
 
   it('pruning doc A does not touch doc B (isolation)', async () => {
@@ -177,8 +178,8 @@ describe('listRecentActivity', () => {
     await new Promise(r => setTimeout(r, 5))
     await appendActivity({ docId: doc.docId, userName: 'new', action: 'edit' })
     const entries = await listRecentActivity(doc.docId, 50)
-    expect(entries[0].userName).toBe('new')
-    expect(entries[1].userName).toBe('old')
+    expect(first(entries).userName).toBe('new')
+    expect(at(entries, 1).userName).toBe('old')
   })
 
   it('respects the limit argument', async () => {

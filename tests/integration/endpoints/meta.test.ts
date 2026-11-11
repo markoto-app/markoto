@@ -7,6 +7,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // PUT /api/docs/:docId/meta — splits into two authz bands:
 //   - Content edits (title, wordCount, sizeBytes, theme) → canEdit
@@ -33,7 +34,7 @@ async function readDoc(docId: string) {
      FROM documents WHERE doc_id = $1`,
     [docId]
   )
-  return r.rows[0]
+  return first(r.rows, 'documents row')
 }
 
 describe('PUT /api/docs/:docId/meta', () => {

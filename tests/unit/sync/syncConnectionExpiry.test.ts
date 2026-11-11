@@ -223,11 +223,15 @@ describe('performReauthDocument', () => {
   })
 })
 
+// A close event as the browser reports it; built by a function so the extra `code` is not an excess property of
+// the narrower parameter types the helpers declare.
+const closeEvent = (code: number, reason: string) => ({ code, reason })
+
 describe('re-authenticate close contract', () => {
   it('is recognised by the editor and is not a sync rejection (so it reconnects)', () => {
-    expect(isReauthClose({ code: 1000, reason: SYNC_REAUTH_REASON })).toBe(true)
-    expect(isReauthClose({ code: SYNC_CLOSE_CODES.reauthenticate, reason: SYNC_REAUTH_REASON })).toBe(true)
-    expect(isReauthClose({ code: 1006, reason: '' })).toBe(false)
+    expect(isReauthClose(closeEvent(1000, SYNC_REAUTH_REASON))).toBe(true)
+    expect(isReauthClose(closeEvent(SYNC_CLOSE_CODES.reauthenticate, SYNC_REAUTH_REASON))).toBe(true)
+    expect(isReauthClose(closeEvent(1006, ''))).toBe(false)
     expect(syncRejectionFromClose({ code: SYNC_CLOSE_CODES.reauthenticate, reason: SYNC_REAUTH_REASON })).toBeNull()
   })
 })

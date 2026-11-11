@@ -6,6 +6,7 @@ import {
   type CommentSnapshotRow
 } from '../../server/repos/comments'
 import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
+import { first, must } from '../helpers/assert'
 
 // Comments repo. Mirrors the doc's Y.js comment thread into Postgres via a
 // transactional delete-then-insert (replaceCommentSnapshot), and offers a
@@ -39,7 +40,7 @@ async function countRows(docId: string): Promise<number> {
     `SELECT COUNT(*)::text AS n FROM document_comments WHERE doc_id = $1`,
     [docId]
   )
-  return Number(r.rows[0].n)
+  return Number(first(r.rows).n)
 }
 
 describe('replaceCommentSnapshot', () => {
@@ -75,7 +76,7 @@ describe('replaceCommentSnapshot', () => {
       `SELECT entry_id FROM document_comments WHERE doc_id = $1`,
       [doc.docId]
     )
-    expect(rows.rows[0].entry_id).toBe('c')
+    expect(first(rows.rows).entry_id).toBe('c')
   })
 
   it('clears the mirror when given an empty snapshot', async () => {
@@ -141,12 +142,12 @@ describe('replaceCommentSnapshot', () => {
        FROM document_comments WHERE doc_id = $1`,
       [doc.docId]
     )
-    expect(rows.rows[0].author_id).toBe(user.id)
-    expect(rows.rows[0].author_name).toBe(user.name)
-    expect(rows.rows[0].body).toBe('body content')
-    expect(rows.rows[0].created_at_ms.getTime()).toBe(created.getTime())
-    expect(rows.rows[0].updated_at_ms.getTime()).toBe(updated.getTime())
-    expect(rows.rows[0].resolved).toBe(true)
+    expect(first(rows.rows).author_id).toBe(user.id)
+    expect(first(rows.rows).author_name).toBe(user.name)
+    expect(first(rows.rows).body).toBe('body content')
+    expect(first(rows.rows).created_at_ms.getTime()).toBe(created.getTime())
+    expect(first(rows.rows).updated_at_ms.getTime()).toBe(updated.getTime())
+    expect(first(rows.rows).resolved).toBe(true)
   })
 
   it('persists null authorId for an anonymous comment', async () => {
@@ -162,7 +163,7 @@ describe('replaceCommentSnapshot', () => {
       `SELECT author_id FROM document_comments WHERE doc_id = $1`,
       [doc.docId]
     )
-    expect(rows.rows[0].author_id).toBeNull()
+    expect(first(rows.rows).author_id).toBeNull()
   })
 
   it('rejects rows for a non-existent docId via the FK constraint', async () => {
@@ -222,7 +223,7 @@ describe('replaceCommentSnapshot', () => {
       `SELECT entry_id FROM document_comments WHERE doc_id = $1`,
       [doc.docId]
     )
-    expect(rows.rows[0].entry_id).toBe('pre-existing')
+    expect(first(rows.rows).entry_id).toBe('pre-existing')
   })
 })
 
@@ -284,8 +285,8 @@ describe('getCommentThreadByEntryId', () => {
     const thread = await getCommentThreadByEntryId(doc.docId, 'solo')
     expect(thread).not.toBeNull()
     expect(thread).toHaveLength(1)
-    expect(thread![0].entryId).toBe('solo')
-    expect(thread![0].parentCommentId).toBeNull()
+    expect(first(must(thread)).entryId).toBe('solo')
+    expect(first(must(thread)).parentCommentId).toBeNull()
   })
 
   it('orders replies chronologically by createdAt ASC', async () => {
@@ -345,7 +346,7 @@ describe('getCommentThreadByEntryId', () => {
     const thread = await getCommentThreadByEntryId(doc.docId, 'only')
     expect(thread).not.toBeNull()
     expect(thread).toHaveLength(1)
-    const r = thread![0]
+    const r = first(thread!)
     expect(r.entryId).toBe('only')
     expect(r.parentCommentId).toBeNull()
     expect(r.authorId).toBe(user.id)

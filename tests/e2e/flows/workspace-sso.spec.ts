@@ -66,6 +66,7 @@ test('Set up single sign-on for a workspace', async ({ page, flow, editor }) => 
     'Open the Single sign-on tab',
     page.getByRole('tab', { name: /single sign-on/i }),
     {
+      chain: true,
       annotations: [{ label: 'Single sign-on', selector: '[role="tab"]:has-text("Single sign-on")', kind: 'arrow' }],
       after: () => page.getByTestId('workspace-sso-panel').waitFor({ state: 'visible', timeout: 10_000 })
     }

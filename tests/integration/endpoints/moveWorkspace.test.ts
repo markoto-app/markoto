@@ -7,6 +7,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // PATCH /api/docs/:docId/workspace — moves a doc into, between, or out
 // of a workspace. Authz band:
@@ -222,9 +223,9 @@ describe('PATCH /api/docs/:docId/workspace', () => {
         `UPDATE documents SET last_active = now() - interval '1 day' WHERE doc_id = $1`,
         [doc.docId]
       )
-      const beforeRow = (await db.query<{ last_active: Date }>(
+      const beforeRow = first((await db.query<{ last_active: Date }>(
         'SELECT last_active FROM documents WHERE doc_id = $1', [doc.docId]
-      )).rows[0]
+      )).rows)
 
       const client = await loggedInClient(owner.id)
       const res = await client.patch(`/api/docs/${doc.docId}/workspace`, {
@@ -232,9 +233,9 @@ describe('PATCH /api/docs/:docId/workspace', () => {
       })
       expect(res.status).toBe(200)
 
-      const afterRow = (await db.query<{ last_active: Date }>(
+      const afterRow = first((await db.query<{ last_active: Date }>(
         'SELECT last_active FROM documents WHERE doc_id = $1', [doc.docId]
-      )).rows[0]
+      )).rows)
       expect(afterRow.last_active.getTime()).toBe(beforeRow.last_active.getTime())
     })
 

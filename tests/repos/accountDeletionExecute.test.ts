@@ -6,13 +6,14 @@ import {
   createWorkspace,
   setMemberRole
 } from '../integration/setup/fixtures'
+import { first } from '../helpers/assert'
 
 // Mock the side-effects that talk to S3 / sync-server / Stripe — none
 // are reachable in the repos test environment. The executor's logic
 // (which tables get touched, what gets anonymised, what gets promoted)
 // is fully testable without them.
 
-const deleteDocumentMock = vi.fn(async () => {})
+const deleteDocumentMock = vi.fn<(docId: string) => Promise<void>>(async () => {})
 const deleteKnowledgeArtifactMock = vi.fn(async () => {})
 const stripeCustomersDelMock = vi.fn(async () => ({ id: 'cus_x', deleted: true }))
 
@@ -186,7 +187,7 @@ describe('executeAccountDeletion: full graph', () => {
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`, [wsCoadmin.workspaceId]
     )
     expect(coadminWs.rows.length).toBe(1)
-    expect(coadminWs.rows[0].owner_id).toBe(bob.id)
+    expect(first(coadminWs.rows).owner_id).toBe(bob.id)
 
     // AdminOnly workspace survived; bob is now admin.
     const adminOnlyMembers = await testDb().query<{ user_id: number, role: string }>(
@@ -202,7 +203,7 @@ describe('executeAccountDeletion: full graph', () => {
       [wsExternal.workspaceId]
     )
     expect(externalMembers.rows).toHaveLength(1)
-    expect(externalMembers.rows[0].user_id).toBe(carol.id)
+    expect(first(externalMembers.rows).user_id).toBe(carol.id)
 
     // Standalone doc gone.
     const standaloneRow = await testDb().query(
@@ -253,7 +254,7 @@ describe('executeAccountDeletion: full graph', () => {
       [String(alice.id)]
     )
     expect(auditRow.rows.length).toBe(1)
-    expect(auditRow.rows[0].actor_user_id).toBeNull()
+    expect(first(auditRow.rows).actor_user_id).toBeNull()
 
     // Audit log: account.delete_executed row landed BEFORE the user
     // row was dropped, so the FK SET NULL has fired and actor_user_id
@@ -269,9 +270,9 @@ describe('executeAccountDeletion: full graph', () => {
       [String(alice.id)]
     )
     expect(finalRow.rows.length).toBe(1)
-    expect(finalRow.rows[0].scope).toBe('user')
-    expect(finalRow.rows[0].actor_user_id).toBeNull()
-    const summary = finalRow.rows[0].metadata?.summary
+    expect(first(finalRow.rows).scope).toBe('user')
+    expect(first(finalRow.rows).actor_user_id).toBeNull()
+    const summary = first(finalRow.rows).metadata?.summary
     expect(summary).toBeTruthy()
     expect(summary!.commentsAnonymised).toBe(1)
     expect(summary!.activityAnonymised).toBe(1)
@@ -373,7 +374,7 @@ describe('executeAccountDeletion: full graph', () => {
     const wsRow = await testDb().query<{ owner_id: number }>(
       `SELECT owner_id FROM workspaces WHERE workspace_id = $1`, [ws.workspaceId]
     )
-    expect(wsRow.rows[0].owner_id).toBe(bob.id)
+    expect(first(wsRow.rows).owner_id).toBe(bob.id)
     const members = await testDb().query<{ user_id: number, role: string }>(
       `SELECT user_id, role FROM workspace_members WHERE workspace_id = $1`,
       [ws.workspaceId]

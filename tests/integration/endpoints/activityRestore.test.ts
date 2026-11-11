@@ -7,6 +7,7 @@ import {
   createWorkspace,
   setMemberRole
 } from '../setup/fixtures'
+import { first } from '../../helpers/assert'
 
 // POST /api/docs/:docId/activity/:activityId/restore
 //
@@ -42,7 +43,7 @@ async function insertActivityRow(
      RETURNING id`,
     [docId, options.userName ?? 'Alice', options.action ?? 'edit', yjsDocIdBefore, yjsDocIdAfter]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 async function insertYjsRow(docname: string, _content: string): Promise<number> {
@@ -55,7 +56,7 @@ async function insertYjsRow(docname: string, _content: string): Promise<number> 
     `INSERT INTO yjs_documents (docname, value, version) VALUES ($1, $2, 'v1') RETURNING id`,
     [docname, fakeBytes]
   )
-  return r.rows[0].id
+  return first(r.rows).id
 }
 
 describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
@@ -306,7 +307,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
           `SELECT COUNT(*) AS c FROM activity_log WHERE doc_id = $1 AND action = 'restore'`,
           [doc.docId]
         )
-        expect(Number(r.rows[0].c)).toBe(0)
+        expect(Number(first(r.rows).c)).toBe(0)
       }
     }, 30_000)
   })

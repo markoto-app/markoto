@@ -6,7 +6,7 @@ import { flushPromises } from '@vue/test-utils'
 import { DocumentNewDocumentDialog, WorkspaceSettingsPanel } from '#components'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 
-// User-saved themes carry an optional description (migration 0025). Every
+// User-saved themes carry an optional description. Every
 // place a saved theme is picked shows it under the name, like built-in
 // presets show theirs; an empty description falls back to the font
 // pairing (`theme.saved.fallbackDescription`, same as the Theme panel).

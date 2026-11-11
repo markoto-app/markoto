@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { first } from '../../helpers/assert'
 
 // duplicateDocument is the end-to-end duplicate orchestrator: one DB
 // row insert + N S3 CopyObject calls + a Y.js state clone with URL
@@ -74,7 +75,7 @@ function baseInput(overrides: Partial<Parameters<typeof duplicateDocument>[0]> =
 }
 
 function makeS3() {
-  return { send: vi.fn(async () => ({})) }
+  return { send: vi.fn<(command: { input: { CopySource: string, Key: string } }) => Promise<object>>(async () => ({})) }
 }
 
 beforeEach(() => {
@@ -181,7 +182,7 @@ describe('duplicateDocument — happy path', () => {
 
     await duplicateDocument(baseInput({ ownerId: 7, workspaceId: 'ws1' }), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })
 
-    const arg = insertDuplicateDoc.mock.calls[0][0]
+    const arg = first(insertDuplicateDoc.mock.calls)[0]
     expect(arg).toMatchObject({
       newDocId: 'TGT',
       ownerId: 7,
@@ -204,7 +205,7 @@ describe('duplicateDocument — happy path', () => {
 
     await duplicateDocument(baseInput(), { s3, bucket: 'b', imageQuota: QUOTA_SCOPE })
 
-    expect(insertDuplicateDoc.mock.calls[0][0].theme).toEqual({
+    expect(first(insertDuplicateDoc.mock.calls)[0].theme).toEqual({
       page: { marginMm: 25 },
       customCss: 'p { background: url(/api/files/TGT/a.png) } q { background: url(/api/files/OTHER/b.png) }'
     })
@@ -223,7 +224,7 @@ describe('duplicateDocument — happy path', () => {
 
     await duplicateDocument(baseInput(), { s3: makeS3(), bucket: 'b', imageQuota: QUOTA_SCOPE })
 
-    const theme = insertDuplicateDoc.mock.calls[0][0].theme
+    const theme = first(insertDuplicateDoc.mock.calls)[0].theme
     expect(theme.brand.logoUrl).toBe('/api/files/TGT/AbCdEfGhIjKl.png')
     expect(theme.header.imageUrl).toBe('/api/files/TGT/b.webp')
   })

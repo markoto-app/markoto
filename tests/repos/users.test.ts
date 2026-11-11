@@ -12,6 +12,7 @@ import {
   upsertOAuthUser
 } from '../../server/repos/users'
 import { ConflictError } from '../../server/repos/errors'
+import { at, first } from '../helpers/assert'
 
 // Users repository. Write-side hot spot is `upsertOAuthUser`, which
 // now has THREE outcomes:
@@ -148,7 +149,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
     expect(row!.login).toBe('alice-new')
     expect(row!.email).toBe('new@test.local')
     // Provider profile pictures are never stored (avatars are generated
-    // locally from the id); the column itself is gone since 0027.
+    // locally from the id); the schema has no avatar column.
     expect(row).not.toHaveProperty('avatarUrl')
   })
 
@@ -203,7 +204,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
     const r = await db.query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE github_id = 'gh-race'`
     )
-    expect(Number(r.rows[0].c)).toBe(1)
+    expect(Number(first(r.rows).c)).toBe(1)
   })
 })
 
@@ -256,7 +257,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     const rows = await testDb().query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'alice@test.local'`
     )
-    expect(Number(rows.rows[0].c)).toBe(1)
+    expect(Number(first(rows.rows).c)).toBe(1)
   })
 
   it('does NOT merge when the second provider presents an unverified email (security guard)', async () => {
@@ -280,7 +281,7 @@ describe('upsertOAuthUser — email-based merge', () => {
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'alice@test.local'`
     )
     // Two separate rows because the merge was blocked.
-    expect(Number(rows.rows[0].c)).toBe(2)
+    expect(Number(at(rows.rows).c)).toBe(2)
   })
 
   it('does NOT merge when the incoming email is null', async () => {
@@ -362,7 +363,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     const rows = await testDb().query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'race@test.local' AND google_id = 'g-race-same'`
     )
-    expect(Number(rows.rows[0].c)).toBe(1)
+    expect(Number(first(rows.rows).c)).toBe(1)
   })
 })
 

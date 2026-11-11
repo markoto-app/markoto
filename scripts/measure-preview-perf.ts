@@ -208,6 +208,7 @@ function browserPssMiB(rootPid: number): number {
 async function main() {
   const server = await chromium.launchServer({ headless: process.env.PERF_HEADED !== '1' })
   const rootPid = server.process().pid
+  if (rootPid === undefined) throw new Error('Chromium launched without a PID; cannot sample its memory')
   const browser = await chromium.connect(server.wsEndpoint())
   const context = await browser.newContext({ viewport: { width: 1600, height: 1000 } })
   const userId = await createUser()

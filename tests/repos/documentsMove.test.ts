@@ -102,6 +102,16 @@ describe('moveDocToWorkspace', () => {
   })
 })
 
+// The columns these tests don't care about, at the values the schema defaults them to.
+const COPY_DEFAULTS = {
+  description: '',
+  audience: 'casual',
+  language: 'en',
+  templateId: 'blank',
+  moderationRestrictedAt: null,
+  moderationReportId: null
+} as const
+
 describe('insertDuplicateDoc', () => {
   beforeEach(async () => {
     await resetDb()
@@ -117,6 +127,7 @@ describe('insertDuplicateDoc', () => {
     // object keeps the test independent of the DocTheme shape evolving.
 
     await insertDuplicateDoc({
+      ...COPY_DEFAULTS,
       newDocId: 'copy-doc',
       ownerId: user.id,
       workspaceId: null,
@@ -145,6 +156,7 @@ describe('insertDuplicateDoc', () => {
     // (default 0) rather than carrying the NULL forward.
     const user = await createUser()
     await insertDuplicateDoc({
+      ...COPY_DEFAULTS,
       newDocId: 'copy-nulls',
       ownerId: user.id,
       workspaceId: null,
@@ -165,6 +177,7 @@ describe('insertDuplicateDoc', () => {
     const user = await createUser()
     const ws = await createWorkspace(user.id)
     await insertDuplicateDoc({
+      ...COPY_DEFAULTS,
       newDocId: 'copy-ws',
       ownerId: user.id,
       workspaceId: ws.workspaceId,
@@ -187,6 +200,7 @@ describe('insertDuplicateDoc', () => {
     const bob = await createUser()
     await seedDoc({ ownerId: alice.id })
     await insertDuplicateDoc({
+      ...COPY_DEFAULTS,
       newDocId: 'copy-bob',
       ownerId: bob.id, // Bob duplicates Alice's doc
       workspaceId: null,

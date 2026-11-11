@@ -299,8 +299,11 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
   /** Same IdP metadata, but the ID token is checked against `jwksUri`. */
   async function configWithJwks(jwksUri: string): Promise<oidc.Configuration> {
     const real = await getOidcConfiguration(settings)
+    // openid-client types `supportsPKCE` as an own property of the metadata, but defines it non-enumerable, so
+    // the spread carries plain metadata only.
+    const metadata = { ...real.serverMetadata(), jwks_uri: jwksUri } as unknown as oidc.ServerMetadata
     const config = new oidc.Configuration(
-      { ...real.serverMetadata(), jwks_uri: jwksUri },
+      metadata,
       TEST_OIDC_CLIENT_ID,
       undefined,
       oidc.ClientSecretBasic(TEST_OIDC_CLIENT_SECRET)

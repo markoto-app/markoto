@@ -10,6 +10,7 @@ import {
 import { createAnonDoc } from '../setup/anonGate'
 import { INITIAL_CONTENT_MAX_LENGTH } from '../../../shared/config/docCreate'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
+import { first } from '../../helpers/assert'
 
 // POST /api/docs — creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'
@@ -38,7 +39,7 @@ async function readDoc(docId: string) {
      FROM documents WHERE doc_id = $1`,
     [docId]
   )
-  return r.rows[0]
+  return first(r.rows, 'documents row')
 }
 
 describe('POST /api/docs', () => {
