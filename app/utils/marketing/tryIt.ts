@@ -26,8 +26,8 @@ export function titleFromMarkdown(markdown: string): string {
 }
 
 /** Status + code of a `$fetch` error, whatever its exact shape. */
-function errorParts(e: unknown): { status: number | null, code: string | null, messageKey: string | null } {
-  if (typeof e !== 'object' || e === null) return { status: null, code: null, messageKey: null }
+function errorParts(e: unknown): { status: number | null, code: string | null } {
+  if (typeof e !== 'object' || e === null) return { status: null, code: null }
   const err = e as Record<string, unknown>
   const status = typeof err.statusCode === 'number'
     ? err.statusCode
@@ -39,7 +39,7 @@ function errorParts(e: unknown): { status: number | null, code: string | null, m
     if (inner && typeof inner[k] === 'string') return inner[k]
     return null
   }
-  return { status, code: pick('code'), messageKey: pick('messageKey') }
+  return { status, code: pick('code') }
 }
 
 /**

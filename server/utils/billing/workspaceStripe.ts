@@ -10,6 +10,7 @@ import { releaseSessionLock, tryAcquireSessionLock } from '../platform/rateLimit
 import type { WorkspaceSubscriptionRow } from '../../repos/workspaceSubscriptions'
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
+import { apiError } from '../api/apiError'
 
 // Stripe side of Team / Business workspace subscriptions.
 //
@@ -135,11 +136,7 @@ const SEAT_LOCK_TTL_MS = 60_000
  */
 export async function acquireWorkspaceSeatLock(workspaceId: string): Promise<() => Promise<void>> {
   if (!(await tryAcquireSessionLock('workspace-seats', workspaceId, SEAT_LOCK_TTL_MS))) {
-    throw createError({
-      statusCode: 409,
-      message: 'Another seat change or invitation for this workspace is in progress. Please try again in a moment.',
-      data: { code: 'billing/seats-busy', messageKey: 'workspace.billing.errors.seatsBusy' }
-    })
+    throw apiError('billing/seats-busy')
   }
   return () => releaseSessionLock('workspace-seats', workspaceId)
 }
@@ -256,11 +253,7 @@ export async function cancelWorkspaceSubscriptionNow(stripe: Stripe, row: Worksp
     if (isMissing(e) || await hasEnded(stripe, row.stripeSubscriptionId)) return
     console.error('[workspaceStripe] cancel on workspace delete failed:', e instanceof Error ? e.message : e)
     Sentry.captureException(e, { tags: { component: 'billing', event: 'workspace_cancel_failed', workspaceId: row.workspaceId } })
-    throw createError({
-      statusCode: 502,
-      message: 'The workspace\'s subscription could not be cancelled, so nothing was deleted. Please try again.',
-      data: { code: 'billing/cancel-failed', messageKey: 'workspace.billing.errors.cancelFailed' }
-    })
+    throw apiError('billing/cancel-failed')
   }
 }
 

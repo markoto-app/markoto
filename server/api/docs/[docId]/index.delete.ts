@@ -19,8 +19,9 @@ import { MINUTE_MS } from '~~/shared/config/units'
 export default defineApiHandler({
   access: allow.doc('delete', { anonymous: true, deny: 'docs/delete-forbidden' }),
   // Modest brake on anonymous-delete. Aligned with the token endpoint
-  // (30/min) — deletes are rarer, so 10/min per client is plenty.
-  rateLimit: { namespace: 'doc-delete', max: 10, windowMs: MINUTE_MS, key: 'ip' },
+  // (30/min) — deletes are rarer, so 10/min per client is plenty. Counted
+  // before the lookup, so unknown ids are throttled too.
+  rateLimit: { namespace: 'doc-delete', max: 10, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
   handler: async ({ event, user, docId }) => {
     // Snapshot the row BEFORE the delete — once `deleteDocument` runs the
     // row is gone and we can't reconstruct title/accessMode for the audit

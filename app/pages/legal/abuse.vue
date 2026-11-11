@@ -30,7 +30,7 @@ useLeanResourceHints()
 
 const route = useRoute()
 const router = useRouter()
-const { t, te, locale } = useI18n()
+const { t, locale } = useI18n()
 const { loggedIn, user } = useUserSession()
 const { anonGate, primaryLoginPath } = useInstanceConfig()
 const toast = useToast()
@@ -113,10 +113,12 @@ async function post(altcha: string | null): Promise<{ reportId: string }> {
   })
 }
 
+const { extractError } = useErrorHandler()
+
+/** The refusal's text in the reader's language (from its code); the form's own text when the request never got an answer. */
 function messageFor(e: unknown): string {
-  const key = fetchErrorMessageKey(e)
-  if (key && te(key)) return t(key)
-  return fetchErrorMessage(e) ?? t('legal.abuse.errors.generic')
+  const { code, message } = extractError(e)
+  return code !== null || fetchErrorMessage(e) ? message : t('legal.abuse.errors.generic')
 }
 
 async function onSubmit(): Promise<void> {

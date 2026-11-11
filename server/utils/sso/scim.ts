@@ -48,10 +48,10 @@ import { emailDomain } from './domains'
 import { joinWorkspaceBySso, SsoJoinRefused } from './membership'
 import { ssoBaseUrl } from './http'
 import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
+import { SCIM_CONTENT_TYPE, scimError } from './scimErrors'
 
 export const SCIM_USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User'
 export const SCIM_LIST_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
-const SCIM_ERROR_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:Error'
 
 const MAX_PAGE = 200
 
@@ -61,11 +61,6 @@ export function hashScimToken(token: string): string {
 
 export function newScimToken(): string {
   return `mkscim_${randomBytes(32).toString('base64url')}`
-}
-
-/** A SCIM error response (RFC 7644 §3.12). */
-export function scimError(status: number, detail: string, scimType?: string): Error {
-  return createError({ statusCode: status, message: detail, data: { schemas: [SCIM_ERROR_SCHEMA], status: String(status), detail, ...(scimType ? { scimType } : {}) } })
 }
 
 /**
@@ -84,7 +79,7 @@ export async function requireScimConnection(event: H3Event): Promise<SsoConnecti
   if (!planHasFeature(await resolveWorkspacePlan(connection.workspaceId), 'sso')) {
     throw scimError(403, 'Single sign-on and provisioning are not included in this workspace\'s plan.')
   }
-  setHeader(event, 'content-type', 'application/scim+json; charset=utf-8')
+  setHeader(event, 'content-type', SCIM_CONTENT_TYPE)
   return connection
 }
 
@@ -296,39 +291,9 @@ export async function replaceScimUser(connection: SsoConnectionRow, identity: Us
   if (active !== undefined) await setScimUserActive(connection, identity, active)
 }
 
-export async function requireScimIdentity(connection: SsoConnectionRow, rawId: string | undefined): Promise<UserIdentityRow> {
-  const id = Number(rawId)
-  const identity = Number.isInteger(id) && id > 0 ? await findIdentityById(connection.id, id) : null
+/** `id` is the parsed path parameter (`scimUserParams`: a positive integer). */
+export async function requireScimIdentity(connection: SsoConnectionRow, id: number): Promise<UserIdentityRow> {
+  const identity = await findIdentityById(connection.id, id)
   if (!identity) throw scimError(404, 'User not found.')
   return identity
-}
-
-/**
- * A SCIM route: errors leave as the SCIM Error object (RFC 7644 §3.12),
- * not Nitro's error envelope; anything unexpected is a generic 500
- * (details only in the server log).
- */
-export function defineScimHandler<T>(fn: (event: H3Event, connection: SsoConnectionRow) => Promise<T>) {
-  return defineEventHandler(async (event) => {
-    try {
-      const connection = await requireScimConnection(event)
-      return await fn(event, connection)
-    } catch (e) {
-      const data = (e as { data?: { schemas?: string[], status?: string } }).data
-      setHeader(event, 'content-type', 'application/scim+json; charset=utf-8')
-      if (data?.schemas?.includes(SCIM_ERROR_SCHEMA)) {
-        setResponseStatus(event, Number(data.status))
-        return data
-      }
-      console.error('[scim] request failed:', e instanceof Error ? e.message : e)
-      setResponseStatus(event, 500)
-      return { schemas: [SCIM_ERROR_SCHEMA], status: '500', detail: 'Something went wrong on our side.' }
-    }
-  })
-}
-
-export async function readScimBody(event: H3Event): Promise<Record<string, unknown>> {
-  const body = await readBody(event).catch(() => null)
-  if (typeof body !== 'object' || body === null || Array.isArray(body)) throw scimError(400, 'The request body must be a JSON object.', 'invalidSyntax')
-  return body as Record<string, unknown>
 }

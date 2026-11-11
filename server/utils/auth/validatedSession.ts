@@ -1,8 +1,8 @@
 import type { H3Event } from 'h3'
 import { findUserById } from '../../repos/users'
 import type { OnboardingState } from '../privacy/onboardingGate'
-import { REAUTH_REQUIRED_CODE, REAUTH_REQUIRED_MESSAGE_KEY } from '~~/shared/config/reauth'
 import { isRecentLogin, sessionEpochMatches } from './sessionPolicy'
+import { apiError } from '../api/apiError'
 
 /**
  * Bump this constant whenever the session shape changes (new required fields,
@@ -144,11 +144,7 @@ export async function getValidatedOnboardingState(event: H3Event): Promise<Onboa
 export async function requireRecentLogin(event: H3Event): Promise<{ user: ValidatedUser }> {
   const session = await requireValidatedUserSession(event)
   if (!isRecentLogin(getCache(event).loggedInAt)) {
-    throw createError({
-      statusCode: 401,
-      message: 'Please sign in again to continue.',
-      data: { code: REAUTH_REQUIRED_CODE, messageKey: REAUTH_REQUIRED_MESSAGE_KEY }
-    })
+    throw apiError('auth/reauth-required')
   }
   return session
 }

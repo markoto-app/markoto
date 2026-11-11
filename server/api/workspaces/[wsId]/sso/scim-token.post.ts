@@ -13,7 +13,7 @@ export default defineApiHandler({
   plan: { feature: 'sso', message: 'Single sign-on is part of the Business plan.' },
   handler: async ({ event, user, wsId }) => {
     const connection = await getSsoConnectionForWorkspace(wsId)
-    if (!connection) throw apiError('sso/no-connection', undefined, { status: 409 })
+    if (!connection) throw apiError('sso/scim-needs-connection')
     const token = newScimToken()
     await setScimTokenHash(connection.id, hashScimToken(token))
     await appendAuditEvent({ actorUserId: user.id, actorIp: getClientIp(event), scope: 'workspace', scopeId: wsId, action: AUDIT_SSO_SCIM_TOKEN_ROTATED, metadata: { revoked: false } })

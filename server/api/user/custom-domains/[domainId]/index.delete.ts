@@ -9,6 +9,7 @@ import { customDomainParams } from '~~/shared/api/account'
 // Traefik drops its router at its next poll.
 export default defineApiHandler({
   access: allow.user(),
+  instance: 'customDomains',
   params: customDomainParams,
   handler: async ({ event, user, params }) => {
     await customDomainContext(user.id)

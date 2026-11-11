@@ -48,7 +48,8 @@ export default defineApiHandler({
       }
     } catch (e) {
       if (isRepoError(e)) {
-        throw apiError('export/conflict', undefined, { status: e.httpStatus as 409 | 404, cause: e })
+        // A missing row is not "already in progress": each case keeps its own text.
+        throw e.httpStatus === 404 ? apiError('export/not-found', undefined, { cause: e }) : apiError('export/conflict', undefined, { cause: e })
       }
       throw e
     }

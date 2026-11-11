@@ -47,14 +47,6 @@ export function fetchErrorCode(e: unknown): string | null {
   return isRecord(inner) && typeof inner.code === 'string' ? inner.code : null
 }
 
-/** i18n key the server attached to a `$fetch` error (`data.data.messageKey`). */
-export function fetchErrorMessageKey(e: unknown): string | null {
-  if (!isRecord(e)) return null
-  const data = e.data
-  const inner = isRecord(data) ? data.data : null
-  return isRecord(inner) && typeof inner.messageKey === 'string' ? inner.messageKey : null
-}
-
 /** Server message from a `$fetch` error (4xx bodies pass through the sanitiser). */
 export function fetchErrorMessage(e: unknown): string | null {
   if (!isRecord(e)) return null

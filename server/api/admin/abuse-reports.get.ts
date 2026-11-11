@@ -17,7 +17,7 @@ export default defineApiHandler({
       ? ['open', 'acknowledged']
       : query.status === 'all' ? [...ALLOWED_STATUSES] : [query.status]
 
-    const limit = Math.min(query.limit ?? 50, 100)
+    const limit = query.limit
 
     const db = useDatabase()
     // Two joins to `users` (reporter, actioning admin), hence the aliases.

@@ -9,6 +9,7 @@
 // typed loosely here (`z.unknown()`) and judged by the handler; the schema only
 // guarantees the body is an object (or missing).
 import { z } from 'zod'
+import { PG_INTEGER_MAX } from './ids'
 import { ANON_GATE_PURPOSES } from '../config/anonGate'
 
 const ISO_DAY = /^\d{4}-\d{2}-\d{2}$/
@@ -31,10 +32,11 @@ export const submitAbuseReportBody = z.object({
 
 const ABUSE_REPORT_STATUS_FILTERS = ['open', 'acknowledged', 'actioned', 'dismissed', 'all'] as const
 
-/** GET /api/admin/abuse-reports. An unknown `status` shows the default queue; a non-numeric `limit` the default page. */
+/** GET /api/admin/abuse-reports. An unknown `status` shows the default queue; a non-numeric `limit` the default page (50), any other is clamped to 1–100. */
 export const listAbuseReportsQuery = z.object({
   status: z.enum(ABUSE_REPORT_STATUS_FILTERS).optional().catch(undefined),
   limit: z.coerce.number().optional().catch(undefined)
+    .transform(v => v === undefined ? 50 : Math.min(100, Math.max(1, Math.trunc(v))))
 })
 
 /** PATCH /api/admin/abuse-reports/:reportId. The decision's fields are judged by the handler (one code per rule). */
@@ -46,7 +48,9 @@ export const updateAbuseReportBody = z.object({
     action: z.unknown().optional(),
     rule: z.unknown().optional(),
     explanation: z.unknown().optional()
-  }).nullish()
+  // Not an object: no decision. Ignored for `acknowledged`; the other statuses
+  // then answer the missing-explanation code like an empty decision.
+  }).nullish().catch(null)
 })
 
 /** GET /api/admin/ai-spend. Invalid dates fall back to the last 30 days so a typo'd URL still shows a chart. */
@@ -98,7 +102,8 @@ const auditDate = z.union([
 
 /** GET /api/workspaces/:wsId/audit. `before` is the id cursor of the previous page. */
 export const listAuditEventsQuery = z.object({
-  before: z.coerce.number().int().positive().optional(),
+  // Past the largest id every row is older: the first page.
+  before: z.coerce.number().int().positive().transform(v => Math.min(v, PG_INTEGER_MAX)).optional(),
   action: auditAction,
   from: auditDate,
   to: auditDate

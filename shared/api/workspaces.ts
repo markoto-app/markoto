@@ -2,6 +2,7 @@
 // members, invites, knowledge, usage). Shared with the client, which may
 // validate a form with the same schema before sending.
 import { z } from 'zod'
+import { serialId } from './ids'
 import { DocThemeSchema } from '../types/theme'
 
 const wsId = z.string().min(1)
@@ -34,7 +35,7 @@ export const workspaceInviteParams = z.object({
 
 export const workspaceMemberParams = z.object({
   wsId,
-  userId: z.coerce.number().int().positive()
+  userId: serialId
 })
 
 /** PATCH /api/workspaces/:wsId/members/:userId. Guests are changed by sharing, not here. */
@@ -44,7 +45,8 @@ export const updateMemberRoleBody = z.object({
 
 /** POST /api/workspaces/:wsId/members. The address shape is checked by the handler (`workspace/invalid-email`). */
 export const inviteMemberBody = z.object({
-  email: z.string(),
+  // Judged by the handler (`workspace/invalid-email`, before the invite rate limits): missing or not text too.
+  email: z.string().nullish().catch(undefined),
   role: z.enum(['admin', 'editor', 'viewer', 'guest']).optional(),
   /** Buy one more seat first (Team / Business, the invite dialog's confirmation). */
   addSeat: z.boolean().optional()

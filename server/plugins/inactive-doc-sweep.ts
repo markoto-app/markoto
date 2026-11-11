@@ -15,9 +15,8 @@ import { SWEEPS } from '../config/sweeps'
 //     around until they explicitly delete them.
 //   - Anonymous docs (ownerId NULL, workspaceId NULL) → reaped after
 //     `inactiveDocTtlDays` of inactivity (NUXT_INACTIVE_DOC_TTL_DAYS,
-//     default 30 — the period the Terms + privacy policy state) once
-//     their `sweep_not_before` floor has passed. Candidate
-//     query: server/utils/documents/inactiveDocSweep.ts.
+//     default 30 — the period the Terms + privacy policy state).
+//     Candidate query: server/utils/documents/inactiveDocSweep.ts.
 //
 // `last_active` is bumped by:
 //   - `meta.put` (title / word-count updates)

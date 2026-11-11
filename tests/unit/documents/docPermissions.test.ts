@@ -493,5 +493,8 @@ describe('accessModeTightened (connected editors must re-authenticate)', () => {
     expect(accessModeTightened(null, 'open-edit')).toBe(true)
     expect(accessModeTightened(null, 'open-view')).toBe(true)
     expect(accessModeTightened('legacy', 'private')).toBe(true)
+    // Names every object inherits are unknown too, not a mode.
+    expect(accessModeTightened('constructor', 'open-view')).toBe(true)
+    expect(accessModeTightened('toString', 'private')).toBe(true)
   })
 })

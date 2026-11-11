@@ -7,6 +7,7 @@ import { HOUR_MS } from '~~/shared/config/units'
 // now (the sweeper also re-checks pending domains every 15 min).
 export default defineApiHandler({
   access: allow.user(),
+  instance: 'customDomains',
   params: customDomainParams,
   body: 'none',
   rateLimit: { namespace: 'custom-domain-verify', max: 60, windowMs: HOUR_MS, key: 'user', error: 'custom-domain/rate-limited' },

@@ -29,11 +29,16 @@ const m = vi.hoisted(() => ({
   row: null as unknown,
   memberRole: null as string | null,
   memberRoleIgnoringSso: null as string | null,
+  membership: null as string | null,
   ssoError: null as Error | null,
   rateAllowed: true,
   billingOn: true,
   planOk: true,
-  idempotencyCalls: [] as string[]
+  idempotencyCalls: [] as string[],
+  scimDeny: null as Error | null,
+  rateCalls: [] as string[],
+  customDomains: true,
+  traefik: null as { token: string } | null
 }))
 
 vi.mock('../../../server/utils/auth/validatedSession', () => ({
@@ -58,11 +63,27 @@ vi.mock('../../../server/utils/auth/adminAccess', () => ({
 vi.mock('../../../server/repos/documents', () => ({ getDocWithActorRole: vi.fn(async () => m.row) }))
 vi.mock('../../../server/repos/workspaceMembers', () => ({
   getMemberRole: vi.fn(async () => m.memberRole),
-  getMemberRoleIgnoringSso: vi.fn(async () => m.memberRoleIgnoringSso)
+  getMemberRoleIgnoringSso: vi.fn(async () => m.memberRoleIgnoringSso),
+  getMembershipRole: vi.fn(async () => m.membership)
 }))
 vi.mock('../../../server/utils/sso/required', () => ({ ssoRequiredError: vi.fn(async () => m.ssoError) }))
-vi.mock('../../../server/utils/sso/scim', () => ({ requireScimConnection: vi.fn(async () => ({ id: 'conn', workspaceId: 'w1' })) }))
-vi.mock('../../../server/utils/platform/rateLimit', () => ({ checkRateLimit: vi.fn(async () => m.rateAllowed) }))
+vi.mock('../../../server/utils/sso/scim', () => ({
+  requireScimConnection: vi.fn(async () => {
+    if (m.scimDeny) throw m.scimDeny
+    return { id: 'conn', workspaceId: 'w1' }
+  })
+}))
+vi.mock('../../../server/utils/platform/rateLimit', () => ({
+  checkRateLimit: vi.fn(async (ns: string, key: string) => {
+    m.rateCalls.push(`${ns}=${key}`)
+    return m.rateAllowed
+  })
+}))
+vi.mock('../../../server/utils/platform/clientIp', () => ({ getClientRateLimitKey: vi.fn(() => '203.0.113.7') }))
+vi.mock('../../../server/utils/customDomains/config', () => ({
+  customDomainSettings: vi.fn(() => m.customDomains ? { target: 't' } : null),
+  traefikProviderSettings: vi.fn(() => m.traefik)
+}))
 vi.mock('../../../server/utils/billing/billingMode', () => ({
   assertBillingEnabled: vi.fn(() => {
     if (!m.billingOn) throw createError({ statusCode: 404, data: { code: 'billing/disabled' } })
@@ -91,9 +112,10 @@ const SECRET = 'unit-test-jwt-secret-0123456789abcdef'
 const INTERNAL = 'unit-test-internal-secret-0123456789'
 vi.stubGlobal('useRuntimeConfig', () => ({ jwtSecret: SECRET, jwtSecretPrevious: '', internalApiSecret: INTERNAL, internalApiSecretPrevious: '' }))
 
-const { defineApiHandler } = await import('../../../server/utils/api/defineApiHandler')
+const { defineApiHandler, lenientBody } = await import('../../../server/utils/api/defineApiHandler')
 const { allow } = await import('../../../server/utils/api/policy')
 const { decideDocNeed } = await import('../../../server/utils/api/policyDoc')
+const { scimError } = await import('../../../server/utils/sso/scimErrors')
 type DocNeed = Parameters<typeof decideDocNeed>[0]
 
 async function call(handler: EventHandler, route: string, url: string, init: RequestInit = {}) {
@@ -109,13 +131,13 @@ async function call(handler: EventHandler, route: string, url: string, init: Req
   } catch {
     body = text
   }
-  return { status: res.status, body: body as { data?: Record<string, unknown>, message?: string } & Record<string, unknown> }
+  return { status: res.status, headers: res.headers, body: body as { data?: Record<string, unknown>, message?: string } & Record<string, unknown> }
 }
 
 beforeEach(() => {
   Object.assign(m, {
-    user: null, recent: true, isAdmin: false, row: null, memberRole: null, memberRoleIgnoringSso: null,
-    ssoError: null, rateAllowed: true, billingOn: true, planOk: true, idempotencyCalls: []
+    user: null, recent: true, isAdmin: false, row: null, memberRole: null, memberRoleIgnoringSso: null, membership: null,
+    ssoError: null, rateAllowed: true, billingOn: true, planOk: true, idempotencyCalls: [], scimDeny: null, rateCalls: [], customDomains: true, traefik: null
   })
   delete process.env.TEST_MODE
 })
@@ -330,6 +352,55 @@ describe('allow.workspace', () => {
     expect((await call(defineApiHandler({ access: allow.workspace('admin', { ignoreSso: true }), handler: () => 'ok' }) as EventHandler, route, url)).status).toBe(200)
     expect((await call(defineApiHandler({ access: allow.workspace('admin'), handler: () => 'ok' }) as EventHandler, route, url)).status).toBe(404)
   })
+
+  describe('orSelf (remove a member / leave)', () => {
+    const selfRoute = '/api/workspaces/:wsId/members/:userId'
+    const params = z.object({ wsId: z.string(), userId: z.coerce.number().int().positive() })
+    const handler = defineApiHandler({
+      access: allow.workspace('admin', { orSelf: 'userId', deny: 'workspace/admin-required' }),
+      params,
+      handler: ({ role, targetUserId, isSelf }) => ({ role, targetUserId, isSelf })
+    }) as EventHandler
+    // caller 7; role = their workspace role (null: no role), membership = the raw row (guest)
+    it.each([
+      ['admin removes another', 'admin', null, 8, 200],
+      ['admin leaves', 'admin', null, 7, 200],
+      ['editor removes another', 'editor', null, 8, 403],
+      ['viewer removes another', 'viewer', null, 8, 403],
+      ['editor leaves', 'editor', null, 7, 200],
+      ['viewer leaves', 'viewer', null, 7, 200],
+      ['guest leaves', null, 'guest', 7, 200],
+      ['guest removes another', null, 'guest', 8, 404],
+      ['outsider removes someone', null, null, 8, 404],
+      ['outsider "leaves"', null, null, 7, 404]
+    ] as const)('%s → %i', async (_label, role, membership, target, status) => {
+      m.user = { id: 7, name: 'U' }
+      m.memberRole = role
+      m.membership = membership
+      const res = await call(handler, selfRoute, `/api/workspaces/w1/members/${target}`, { method: 'DELETE' })
+      expect(res.status).toBe(status)
+      if (status === 200) expect(res.body).toEqual({ role: role ?? 'guest', targetUserId: target, isSelf: target === 7 })
+      if (status === 403) expect(res.body.data?.code).toBe('workspace/admin-required')
+      if (status === 404) expect(res.body.data?.code).toBe('workspace/not-found')
+    })
+
+    it('401 without a session; a bad user id is 400 before any role lookup', async () => {
+      expect((await call(handler, selfRoute, '/api/workspaces/w1/members/7', { method: 'DELETE' })).status).toBe(401)
+      m.user = { id: 7, name: 'U' }
+      const { getMemberRole } = await import('../../../server/repos/workspaceMembers')
+      vi.mocked(getMemberRole).mockClear()
+      expect((await call(handler, selfRoute, '/api/workspaces/w1/members/abc', { method: 'DELETE' })).status).toBe(400)
+      expect(getMemberRole).not.toHaveBeenCalled()
+    })
+
+    it('fails closed without a parsed (numeric) target parameter', async () => {
+      m.user = { id: 7, name: 'U' }
+      m.memberRole = 'viewer'
+      const unparsed = defineApiHandler({ access: allow.workspace('admin', { orSelf: 'userId' }), handler: () => 'ran' }) as EventHandler
+      expect((await call(unparsed, selfRoute, '/api/workspaces/w1/members/7', { method: 'DELETE' })).status).toBe(400)
+      expect(() => allow.workspace('admin', { orSelf: '' })).toThrow(/orSelf/)
+    })
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -535,5 +606,216 @@ describe('inputs, gates and order', () => {
     const h = defineApiHandler({ access: allow.doc('file', { anonymous: true }), handler: () => null })
     expect(h['~access']).toEqual({ kind: 'doc', sessionless: true, need: 'file', reason: undefined })
     expect(defineApiHandler({ access: allow.admin(), handler: () => null })['~access']).toMatchObject({ kind: 'admin', sessionless: false })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Error formats (allow.scim): every refusal in the protocol's own body
+// ---------------------------------------------------------------------------
+
+describe('error formats', () => {
+  const JSON_TYPE = { 'content-type': 'application/json' }
+  const SCIM_ERROR = 'urn:ietf:params:scim:api:messages:2.0:Error'
+  const scimRoute = (handler: (ctx: { params: { id: number }, body: Record<string, unknown> }) => unknown) => defineApiHandler({
+    access: allow.scim(),
+    params: z.object({ id: z.coerce.number().int().positive() }),
+    body: z.record(z.string(), z.unknown()),
+    handler: ctx => handler(ctx)
+  }) as EventHandler
+
+  it('a gate refusal leaves as the SCIM body with its status and content type', async () => {
+    m.scimDeny = scimError(401, 'A valid SCIM bearer token is required.')
+    const run = vi.fn()
+    const res = await call(scimRoute(run), '/scim/Users/:id', '/scim/Users/1', { method: 'PATCH', body: '{}', headers: JSON_TYPE })
+    expect(res.status).toBe(401)
+    expect(res.headers.get('content-type')).toBe('application/scim+json; charset=utf-8')
+    expect(res.body).toEqual({ schemas: [SCIM_ERROR], status: '401', detail: 'A valid SCIM bearer token is required.' })
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('schema failures use the format\'s refusals: params 404, body 400 invalidSyntax (also for broken JSON)', async () => {
+    const run = vi.fn()
+    const badId = await call(scimRoute(run), '/scim/Users/:id', '/scim/Users/abc', { method: 'PATCH', body: '{}', headers: JSON_TYPE })
+    expect(badId).toMatchObject({ status: 404, body: { schemas: [SCIM_ERROR], status: '404', detail: 'User not found.' } })
+    for (const body of ['[1]', '"x"', '{"a":']) {
+      const res = await call(scimRoute(run), '/scim/Users/:id', '/scim/Users/1', { method: 'PATCH', body, headers: { 'content-type': 'application/json' } })
+      expect(res, body).toMatchObject({ status: 400, body: { status: '400', scimType: 'invalidSyntax', detail: 'The request body must be a JSON object.' } })
+      expect(res.body.data).toBeUndefined()
+    }
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('a SCIM error thrown by the handler keeps its status and scimType; success passes through', async () => {
+    const conflict = await call(scimRoute(() => {
+      throw scimError(409, 'dup', 'uniqueness')
+    }), '/scim/Users/:id', '/scim/Users/1', { method: 'PATCH', body: '{}', headers: JSON_TYPE })
+    expect(conflict).toMatchObject({ status: 409, body: { schemas: [SCIM_ERROR], status: '409', detail: 'dup', scimType: 'uniqueness' } })
+    const ok = await call(scimRoute(({ params, body }) => ({ id: params.id, body })), '/scim/Users/:id', '/scim/Users/7', { method: 'PATCH', body: '{"a":1}', headers: JSON_TYPE })
+    expect(ok).toMatchObject({ status: 200, body: { id: 7, body: { a: 1 } } })
+  })
+
+  it('any other error (API envelope, plain Error) is a generic SCIM 500 without details', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    for (const thrown of [new Error('db down: secret'), createError({ statusCode: 403, data: { code: 'auth/forbidden' } })]) {
+      const res = await call(scimRoute(() => {
+        throw thrown
+      }), '/scim/Users/:id', '/scim/Users/1', { method: 'PATCH', body: '{}', headers: JSON_TYPE })
+      expect(res).toMatchObject({ status: 500, body: { schemas: [SCIM_ERROR], status: '500', detail: 'Something went wrong on our side.' } })
+      expect(JSON.stringify(res.body)).not.toContain('secret')
+    }
+  })
+
+  it('fails closed: a formatter cannot turn a refusal into a success, and a throwing formatter rethrows the error', async () => {
+    const base = allow.scim()
+    const run = vi.fn()
+    const lying = { ...base, errorFormat: { invalid: base.errorFormat!.invalid, respond: () => ({ status: 200, body: { ok: true }, contentType: 'application/json' }) } }
+    m.scimDeny = scimError(401, 'no')
+    const res = await call(defineApiHandler({ access: lying as never, handler: run }) as EventHandler, '/x', '/x')
+    expect(res.status).toBe(500)
+    const throwing = { ...base, errorFormat: { invalid: base.errorFormat!.invalid, respond: () => {
+      throw new Error('formatter bug')
+    } } }
+    const res2 = await call(defineApiHandler({ access: throwing as never, handler: run }) as EventHandler, '/x', '/x')
+    expect(res2.status).toBe(401)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('routes without an error format keep the API envelope', async () => {
+    const res = await call(defineApiHandler({ access: allow.public('t'), params: z.object({ id: z.coerce.number() }), handler: () => null }) as EventHandler, '/x/:id', '/x/abc')
+    expect(res).toMatchObject({ status: 400, body: { data: { code: 'request/invalid', field: 'id' } } })
+  })
+})
+
+describe('rate limits: keys and phases', () => {
+  it('user+ip keys on `<userId>:<client key>`; a key function also gets the event', async () => {
+    m.user = { id: 4, name: 'U' }
+    const handler = defineApiHandler({
+      access: allow.user(),
+      rateLimit: [
+        { namespace: 'both', max: 1, windowMs: 1, key: 'user+ip' },
+        { namespace: 'fn', max: 1, windowMs: 1, key: (ctx, event) => `${ctx.user.id}/${event.method}` }
+      ],
+      handler: () => 'ok'
+    }) as EventHandler
+    expect((await call(handler, '/x', '/x')).status).toBe(200)
+    expect(m.rateCalls).toEqual(['both=4:203.0.113.7', 'fn=4/GET'])
+  })
+
+  it('user+ip on a route without a user is refused (500), never keyed on the address alone', async () => {
+    const run = vi.fn()
+    const handler = defineApiHandler({ access: allow.public('t'), rateLimit: { namespace: 'n', max: 1, windowMs: 1, key: 'user+ip' }, handler: run }) as EventHandler
+    expect((await call(handler, '/x', '/x')).status).toBe(500)
+    expect(run).not.toHaveBeenCalled()
+  })
+
+  it('before-access limits count requests for unknown documents and run before the session and the lookup', async () => {
+    m.rateAllowed = true
+    const handler = defineApiHandler({
+      access: allow.doc('file', { anonymous: true }),
+      rateLimit: { namespace: 'early', max: 1, windowMs: 1, key: 'ip', phase: 'before-access' },
+      handler: () => 'ok'
+    }) as EventHandler
+    m.row = null
+    expect((await call(handler, '/api/docs/:docId', '/api/docs/nope')).status).toBe(404)
+    expect(m.rateCalls).toEqual(['early=203.0.113.7'])
+    // Over the limit: 429 before the session or the document is read.
+    m.rateAllowed = false
+    m.user = { id: 1, name: 'U' }
+    const { getDocWithActorRole } = await import('../../../server/repos/documents')
+    const { getValidatedUserSession } = await import('../../../server/utils/auth/validatedSession')
+    vi.mocked(getDocWithActorRole).mockClear()
+    vi.mocked(getValidatedUserSession).mockClear()
+    const res = await call(handler, '/api/docs/:docId', '/api/docs/nope')
+    expect(res.status).toBe(429)
+    expect(res.body.data?.code).toBe('rate/limited')
+    expect(getDocWithActorRole).not.toHaveBeenCalled()
+    expect(getValidatedUserSession).not.toHaveBeenCalled()
+  })
+
+  it('after-access limits (the default) do not count requests that access refuses', async () => {
+    m.row = null
+    const handler = defineApiHandler({ access: allow.doc('file', { anonymous: true }), rateLimit: { namespace: 'late', max: 1, windowMs: 1, key: 'ip' }, handler: () => 'ok' }) as EventHandler
+    expect((await call(handler, '/api/docs/:docId', '/api/docs/nope')).status).toBe(404)
+    expect(m.rateCalls).toEqual([])
+  })
+
+  it('a before-access limit keyed on anything but the client address does not build', () => {
+    expect(() => defineApiHandler({ access: allow.user(), rateLimit: { namespace: 'x', max: 1, windowMs: 1, key: 'user', phase: 'before-access' } as never, handler: () => null })).toThrow(/before-access/)
+    expect(() => defineApiHandler({ access: allow.user(), rateLimit: { namespace: 'x', max: 1, windowMs: 1, key: () => 'k', phase: 'before-access' } as never, handler: () => null })).toThrow(/before-access/)
+  })
+})
+
+describe('instance: customDomains', () => {
+  it('404 custom-domain/disabled before the session, the plan and the rate limit when the instance runs none', async () => {
+    m.customDomains = false
+    m.planOk = false
+    const run = vi.fn()
+    const handler = defineApiHandler({
+      access: allow.user(),
+      instance: 'customDomains',
+      plan: { feature: 'customDomains', message: 'x' },
+      rateLimit: { namespace: 'cd', max: 1, windowMs: 1, key: 'user' },
+      handler: run
+    }) as EventHandler
+    const res = await call(handler, '/x', '/x')
+    expect(res).toMatchObject({ status: 404, body: { data: { code: 'custom-domain/disabled' } } })
+    expect(m.rateCalls).toEqual([])
+    m.customDomains = true
+    expect((await call(handler, '/x', '/x')).status).toBe(401)
+    m.user = { id: 1, name: 'U' }
+    expect((await call(handler, '/x', '/x')).status).toBe(409)
+    expect(run).not.toHaveBeenCalled()
+  })
+})
+
+describe('allow.internal(\'traefik-token\')', () => {
+  it('a wrong provider token is 403 with cache-control: no-store; no settings = empty answer', async () => {
+    const handler = defineApiHandler({ access: allow.internal('traefik-token'), handler: ({ traefik }) => traefik ? { cfg: 1 } : {} }) as EventHandler
+    m.traefik = { token: 'right-token-right-token-right-token' }
+    const denied = await call(handler, '/api/internal/t', '/api/internal/t', { headers: { 'x-markoto-provider-token': 'wrong' } })
+    expect(denied.status).toBe(403)
+    expect(denied.headers.get('cache-control')).toBe('no-store')
+    const ok = await call(handler, '/api/internal/t', '/api/internal/t', { headers: { 'x-markoto-provider-token': 'right-token-right-token-right-token' } })
+    expect(ok).toMatchObject({ status: 200, body: { cfg: 1 } })
+    expect(ok.headers.get('cache-control')).toBe('no-store')
+    m.traefik = null
+    expect((await call(handler, '/api/internal/t', '/api/internal/t')).body).toEqual({})
+  })
+})
+
+describe('lenientBody', () => {
+  const schema = z.object({ email: z.string() })
+  const route = (seen: unknown[], before?: () => void) => defineApiHandler({
+    access: allow.public('t'),
+    body: lenientBody(schema),
+    handler: async ({ parseBody, body }) => {
+      before?.()
+      seen.push(body, await parseBody())
+      return 'ok'
+    }
+  }) as EventHandler
+
+  it('is never a 400: unreadable JSON and schema failures are null; a valid body is parsed', async () => {
+    for (const [raw, expected] of [['{"email":', null], ['[1]', null], ['{"email":5}', null], ['{"email":"a@b.test"}', { email: 'a@b.test' }]] as const) {
+      const seen: unknown[] = []
+      const res = await call(route(seen), '/x', '/x', { method: 'POST', body: raw, headers: { 'content-type': 'application/json' } })
+      expect(res.status, raw).toBe(200)
+      expect(seen, raw).toEqual([undefined, expected])
+    }
+  })
+
+  it('reads the body only when the handler asks (after its own first steps)', async () => {
+    const order: string[] = []
+    const handler = defineApiHandler({
+      access: allow.public('t'),
+      body: lenientBody(schema),
+      handler: async ({ parseBody }) => {
+        order.push('first step')
+        order.push(`body ${JSON.stringify(await parseBody())}`)
+        return 'ok'
+      }
+    }) as EventHandler
+    await call(handler, '/x', '/x', { method: 'POST', body: '{"email":"x"}', headers: { 'content-type': 'application/json' } })
+    expect(order).toEqual(['first step', 'body {"email":"x"}'])
   })
 })

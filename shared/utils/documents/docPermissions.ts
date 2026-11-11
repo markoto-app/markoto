@@ -243,7 +243,7 @@ const ACCESS_MODE_OPENNESS: Record<AccessMode, number> = {
  * unknown previous mode counts as tightened (fail toward re-checking).
  */
 export function accessModeTightened(before: string | null, after: AccessMode): boolean {
-  const prev = before !== null && before in ACCESS_MODE_OPENNESS ? ACCESS_MODE_OPENNESS[before as AccessMode] : Infinity
+  const prev = before !== null && Object.hasOwn(ACCESS_MODE_OPENNESS, before) ? ACCESS_MODE_OPENNESS[before as AccessMode] : Infinity
   return ACCESS_MODE_OPENNESS[after] < prev
 }
 

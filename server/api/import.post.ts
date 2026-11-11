@@ -32,7 +32,8 @@ const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
 export default defineApiHandler({
   access: allow.public('Importing converts a file and stores nothing; open to anonymous visitors, limited per client and by the caller\'s plan', { session: 'optional' }),
   body: 'custom',
-  rateLimit: { namespace: 'import', max: 10, windowMs: 60_000, key: 'ip', error: 'import/rate-limited' },
+  // Before the optional session lookup: anonymous floods never reach the database.
+  rateLimit: { namespace: 'import', max: 10, windowMs: 60_000, key: 'ip', phase: 'before-access', error: 'import/rate-limited' },
   handler: async ({ event, user }) => {
     // The caller's plan sets the largest file it may convert
     // (`importMaxBytes`; anonymous = free), never above the platform cap.

@@ -155,11 +155,7 @@ export function parseSeats(value: unknown): number {
 
 /** 409 when the paid seats are all taken (members + open invitations). */
 export function seatsFullError(seats: number, used: number) {
-  return createError({
-    statusCode: 409,
-    message: `All ${seats} paid seats are taken. Add a seat to invite someone else.`,
-    data: { code: 'billing/seats-full', messageKey: 'workspace.billing.errors.seatsFull', seats, used }
-  })
+  return apiError('billing/seats-full', { seats, used })
 }
 
 function roundUsd(value: number): number {

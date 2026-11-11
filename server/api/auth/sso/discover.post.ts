@@ -9,12 +9,14 @@ import { discoverSsoBody } from '~~/shared/api/sso'
 // `sso/no-connection` otherwise. Public (the sign-in screen), 20 / client / min.
 // It reveals only that a domain uses SSO here, like any "continue with SSO" box:
 // every other outcome (no address, unknown or unverified domain, draft
-// connection) is the same 404.
+// connection, unreadable body) is the same 404, and every request counts
+// against the limit.
 export default defineApiHandler({
   access: allow.public('the sign-in screen asks before anyone is signed in; rate-limited per client, answers only whether a verified domain has an active connection'),
-  body: discoverSsoBody,
-  rateLimit: { namespace: 'sso-discover', max: 20, windowMs: MINUTE_MS, key: 'ip', error: 'sso/rate-limited' },
-  handler: async ({ body }) => {
+  body: lenientBody(discoverSsoBody),
+  rateLimit: { namespace: 'sso-discover', max: 20, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access', error: 'sso/rate-limited' },
+  handler: async ({ parseBody }) => {
+    const body = await parseBody()
     const email = body?.email?.trim().slice(0, 320) ?? ''
     const domain = emailDomain(email)
     const workspaceId = domain ? await findVerifiedDomainOwner(domain) : null

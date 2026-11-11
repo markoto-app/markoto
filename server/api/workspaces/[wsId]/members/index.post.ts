@@ -7,6 +7,7 @@ import {
 } from '../../../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { inviteMemberBody } from '~~/shared/api/workspaces'
+import { checkRateLimit } from '../../../../utils/platform/rateLimit'
 import { countGuests, countMembers } from '../../../../repos/workspaceMembers'
 import { assertPlanFeature, assertPlanLimit, resolveWorkspacePlan } from '../../../../utils/billing/entitlements'
 import { GUESTS_PER_SEAT } from '~~/shared/config/workspaceSeats'
@@ -52,13 +53,16 @@ import {
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
   body: inviteMemberBody,
-  rateLimit: [
-    { namespace: 'workspace-invite-user', max: WORKSPACE_INVITE_PER_ADMIN_LIMIT, windowMs: WORKSPACE_INVITE_WINDOW_MS, key: 'user', error: 'workspace/invite-rate-limited' },
-    { namespace: 'workspace-invite-ws', max: WORKSPACE_INVITE_PER_WORKSPACE_LIMIT, windowMs: WORKSPACE_INVITE_WINDOW_MS, key: ctx => ctx.wsId, error: 'workspace/invite-rate-limited' }
-  ],
   handler: async ({ event, user, wsId, body }) => {
     const email = normaliseInviteEmail(body.email)
     if (!email) throw apiError('workspace/invalid-email')
+
+    // Inline, after the address check: a mistyped address must not spend
+    // the admin's or the workspace's hourly invite budget.
+    if (!(await checkRateLimit('workspace-invite-user', String(user.id), WORKSPACE_INVITE_PER_ADMIN_LIMIT, WORKSPACE_INVITE_WINDOW_MS))
+      || !(await checkRateLimit('workspace-invite-ws', wsId, WORKSPACE_INVITE_PER_WORKSPACE_LIMIT, WORKSPACE_INVITE_WINDOW_MS))) {
+      throw apiError('workspace/invite-rate-limited')
+    }
 
     // Default role for new invites is 'editor' — the most common case.
     const newRole = body.role ?? 'editor'

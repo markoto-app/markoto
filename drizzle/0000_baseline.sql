@@ -207,7 +207,6 @@ CREATE TABLE "documents" (
 	"anon_creator_key_hash" text,
 	"anon_terms_version" integer,
 	"anon_terms_accepted_at" timestamp with time zone,
-	"sweep_not_before" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"last_active" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "documents_doc_id_unique" UNIQUE("doc_id")

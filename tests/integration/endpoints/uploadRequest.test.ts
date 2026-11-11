@@ -35,6 +35,17 @@ describe('POST /api/upload/request', () => {
     expect(res.status).toBe(401)
   })
 
+  it('refuses content types that are names every object inherits (constructor, toString)', async () => {
+    const owner = await createUser()
+    const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
+    const client = await loggedInClient(owner.id)
+    for (const contentType of ['constructor', 'toString', '__proto__', 'image/svg+xml']) {
+      const res = await client.post('/api/upload/request', { ...reqBody(doc.docId), contentType })
+      expect(res.status, contentType).toBe(415)
+      expect((await res.json() as { data?: { code?: string } }).data?.code, contentType).toBe('upload/unsupported-format')
+    }
+  })
+
   it('404s a doc that does not exist (no presigned PUT for arbitrary ids)', async () => {
     const user = await createUser()
     const client = await loggedInClient(user.id)

@@ -145,6 +145,17 @@ describe('POST /api/workspaces/:wsId/members (invite)', () => {
     expect((await client.post(`/api/workspaces/${ws.workspaceId}/members`, { email: 'not-an-email' })).status).toBe(400)
   })
 
+  it('a missing, non-text or malformed address is workspace/invalid-email', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const client = await loggedInClient(admin.id)
+    for (const body of [{}, { email: 5 }, { email: null }, { email: 'not-an-email' }]) {
+      const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, body)
+      expect(res.status, JSON.stringify(body)).toBe(400)
+      expect((await res.json() as { data?: { code?: string } }).data?.code, JSON.stringify(body)).toBe('workspace/invalid-email')
+    }
+  })
+
   it('editors cannot invite (403); non-members get 404', async () => {
     const admin = await createUser()
     const editor = await createUser()

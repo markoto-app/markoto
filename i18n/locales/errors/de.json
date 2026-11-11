@@ -54,9 +54,9 @@
       "verify-failed": "The provider could not be verified. Check the URL, API key and model."
     },
     "anon-gate": {
-      "bot-check-expired": "The bot check expired. Please try again.",
+      "bot-check-expired": "Die Bot-Prüfung ist abgelaufen. Bitte versuchen Sie es noch einmal.",
       "bot-check-failed": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuchen Sie es noch einmal.",
-      "bot-check-replayed": "This bot check was already used. Please try again.",
+      "bot-check-replayed": "Diese Bot-Prüfung wurde bereits verwendet. Bitte versuchen Sie es noch einmal.",
       "bot-check-required": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuchen Sie es noch einmal.",
       "misconfigured": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
       "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
@@ -142,7 +142,6 @@
       "invalid": "Enter a domain name such as docs.example.com.",
       "limit": "You can add up to {limit} domains.",
       "not-found": "Domain not found.",
-      "not-verified": "This domain is not verified yet.",
       "page-not-allowed": "Only the owner and workspace admins can show this document on a domain.",
       "page-not-published": "Publish the document as a web page first.",
       "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
@@ -322,7 +321,8 @@
       "required": "Dieser Workspace verwendet Single Sign-on. Melden Sie sich über Ihre Organisation an, um fortzufahren.",
       "test-mismatch": "The test sign-in used a different account.",
       "test-not-admin": "Only an admin of the workspace can test its sign-in.",
-      "unknown": "Unknown sign-in link."
+      "unknown": "Unknown sign-in link.",
+      "scim-needs-connection": "Richten Sie zuerst Single Sign-on ein."
     },
     "template": {
       "doc-not-found": "Document not found in this workspace.",

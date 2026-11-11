@@ -30,7 +30,7 @@ vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => 
   return err
 })
 
-const { requireContentMatchesExtension } = await import('../../../server/utils/storage/fileTypeGuard')
+const { requireContentMatchesExtension, bytesMatchExtension } = await import('../../../server/utils/storage/fileTypeGuard')
 
 beforeEach(() => {
   mockBytes.mockReset()
@@ -355,5 +355,15 @@ describe('requireContentMatchesExtension — adversarial: trusted-prefix attack'
     // Verify we only request the first 4 KB.
     const call = fakeS3.send.mock.calls[0]![0] as { input: { Range?: string } }
     expect(call.input.Range).toBe('bytes=0-4095')
+  })
+})
+
+describe('extensions that are names every object inherits', () => {
+  it('are unsupported, not an allowlist entry', async () => {
+    for (const ext of ['constructor', 'toString', '__proto__']) {
+      mockBytes.mockResolvedValue(pdfBytes())
+      await expect(requireContentMatchesExtension({ s3Key: 'k', ext }), ext).rejects.toMatchObject({ statusCode: 415 })
+      expect(await bytesMatchExtension(pdfBytes(), ext), ext).toBe(false)
+    }
   })
 })

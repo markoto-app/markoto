@@ -75,6 +75,12 @@ describe('workspace guests — access', () => {
     expect((await guestClient.get(`/api/docs/${shared.docId}/shares`)).status).toBe(403)
     const mentionable = await (await guestClient.get(`/api/docs/${shared.docId}/mentionable-users`)).json() as { users: unknown[] }
     expect(mentionable.users).toEqual([])
+    // Nor the presence roster, while a real member still gets it.
+    const guestRoster = await guestClient.get(`/api/docs/${shared.docId}/members`)
+    expect(guestRoster.status).toBe(200)
+    expect(await guestRoster.json()).toEqual({ members: [] })
+    const memberRoster = await (await adminClient.get(`/api/docs/${shared.docId}/members`)).json() as { members: Array<{ userId: number }> }
+    expect(memberRoster.members.map(m => m.userId)).toContain(admin.id)
 
     // Unsharing closes it again.
     expect((await adminClient.delete(`/api/docs/${shared.docId}/shares/${guest.id}`)).status).toBe(200)

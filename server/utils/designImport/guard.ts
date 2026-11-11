@@ -5,10 +5,9 @@ import { useValkey } from '../platform/valkey'
 import { resolvePayingPlan } from '../billing/billing'
 import type { DesignImportExt } from '~~/shared/config/designImport'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { apiError } from '../api/apiError'
 
 // Shared gates of the design-import endpoints.
-
-const DESIGN_IMPORT_NO_VISION_CODE = 'design-import/no-vision'
 
 /**
  * The user's chat provider, which must read images (the original's pages
@@ -22,15 +21,7 @@ export async function requireVisionChatProvider(userId: number): Promise<Resolve
   const providers = await requireAiProviders(userId, 'chat', await resolvePayingPlan(userId, null))
   const chat = providers.chat
   if (!chat?.supportsVision) {
-    throw createError({
-      statusCode: 409,
-      message: 'Your AI provider can\'t read images. Choose a vision-capable model in Settings → AI provider.',
-      data: {
-        code: DESIGN_IMPORT_NO_VISION_CODE,
-        messageKey: 'designImport.errors.no-vision',
-        recovery: { kind: 'link', href: AI_SETTINGS_PATH, labelKey: 'designImport.openAiSettings' }
-      }
-    })
+    throw apiError('design-import/no-vision', { recovery: { kind: 'link', href: AI_SETTINGS_PATH, labelKey: 'designImport.openAiSettings' } })
   }
   return chat
 }

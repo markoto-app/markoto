@@ -1,6 +1,5 @@
 import { requestAccountDeletionByUser } from '../../utils/privacy/accountDeletion'
 import { bumpSessionEpoch } from '../../repos/users'
-import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
 import { HOUR_MS } from '~~/shared/config/units'
 
@@ -28,19 +27,15 @@ export default defineApiHandler({
   // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
   recentLogin: true,
   body: 'none',
+  // Keyed on (user, client address): user-only would let a stolen session
+  // lock the owner out, address-only would be unfair behind a shared NAT.
+  // Shared with the cancel endpoint (same namespace), so alternating
+  // requests and cancels can't pump the audit log.
+  rateLimit: { namespace: 'account-delete-request', max: 5, windowMs: HOUR_MS, key: 'user+ip', error: 'account/delete-rate-limited' },
   handler: async ({ event, user }) => {
     const userId = user.id
 
     const ip = getClientIp(event)
-
-    // Rate limit on (userId, IP) — userId-only would be DoS-able by a
-    // session-stealing attacker; IP-only would be unfair to mobile users
-    // behind shared NAT. Hash both so the key isn't a PII column. Inline:
-    // the wrapper's per-user key has no client address.
-    const rlKey = `${userId}:${getClientRateLimitKey(event)}`
-    if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
-      throw apiError('account/delete-rate-limited')
-    }
 
     try {
       const result = await requestAccountDeletionByUser({

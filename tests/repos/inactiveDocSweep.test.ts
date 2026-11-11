@@ -4,14 +4,13 @@ import { createDoc, createUser } from '../integration/setup/fixtures'
 import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../../server/utils/documents/inactiveDocSweep'
 
 // Candidate query of the inactive-doc sweep: anonymous docs (no owner, no
-// workspace) inactive for the TTL (default 30 days) whose
-// `sweep_not_before` floor has passed.
+// workspace) inactive for the TTL (default 30 days).
 
 const DAY = 24 * 60 * 60 * 1000
 const NOW = new Date('2026-12-01T12:00:00Z')
 
-async function setActivity(docId: string, lastActive: Date, sweepNotBefore: Date | null = null): Promise<void> {
-  await testDb().query('UPDATE documents SET last_active = $2, sweep_not_before = $3 WHERE doc_id = $1', [docId, lastActive, sweepNotBefore])
+async function setActivity(docId: string, lastActive: Date): Promise<void> {
+  await testDb().query('UPDATE documents SET last_active = $2 WHERE doc_id = $1', [docId, lastActive])
 }
 
 async function candidates(ttlDays = 30, now = NOW): Promise<string[]> {
@@ -45,11 +44,11 @@ describe('loadInactiveAnonymousDocs', () => {
     expect(await candidates()).toEqual(['anon-stale'])
   })
 
-  it('respects the sweep_not_before floor', async () => {
-    const doc = await createDoc({ docId: 'anon-floored' })
-    await setActivity(doc.docId, new Date(NOW.getTime() - 100 * DAY), new Date(NOW.getTime() + DAY))
+  it('honours a custom TTL', async () => {
+    const doc = await createDoc({ docId: 'anon-week' })
+    await setActivity(doc.docId, new Date(NOW.getTime() - 8 * DAY))
     expect(await candidates()).toEqual([])
-    expect(await candidates(30, new Date(NOW.getTime() + 2 * DAY))).toEqual(['anon-floored'])
+    expect(await candidates(7)).toEqual(['anon-week'])
   })
 
   it('TTL 0 disables the sweep', async () => {

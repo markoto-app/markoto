@@ -202,7 +202,10 @@ describe('custom domains', () => {
   })
 
   it('the provider endpoint wants its token', async () => {
-    expect((await fetch(`${TEST_BASE_URL}/api/internal/traefik/custom-domains`)).status).toBe(403)
+    const denied = await fetch(`${TEST_BASE_URL}/api/internal/traefik/custom-domains`)
+    expect(denied.status).toBe(403)
+    // Neither the answer nor the refusal may be cached by a proxy in between.
+    expect(denied.headers.get('cache-control')).toBe('no-store')
     expect((await fetch(`${TEST_BASE_URL}/api/internal/traefik/custom-domains`, { headers: { 'x-markoto-provider-token': 'x'.repeat(40) } })).status).toBe(403)
     expect((await anonClient().get('/api/internal/traefik/custom-domains')).status).toBe(403)
   })

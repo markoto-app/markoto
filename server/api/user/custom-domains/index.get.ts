@@ -8,6 +8,7 @@ import { CUSTOM_DOMAINS_PER_USER } from '~~/shared/config/customDomains'
 // regardless, and stop being served without it).
 export default defineApiHandler({
   access: allow.user(),
+  instance: 'customDomains',
   handler: async ({ event, user }) => {
     const { settings, available } = await customDomainContext(user.id)
     const rows = await listCustomDomainsForUser(user.id)

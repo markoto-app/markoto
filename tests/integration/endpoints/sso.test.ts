@@ -127,6 +127,29 @@ describe('SSO settings', () => {
     expect(row?.oidc_client_secret).not.toContain('idp-secret')
   })
 
+  it('a SCIM token needs a connection first (409 with its own code)', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const res = await (await loggedInClient(admin.id)).post(`/api/workspaces/${ws.workspaceId}/sso/scim-token`, {})
+    expect(res.status).toBe(409)
+    expect((await res.json() as { data?: { code?: string } }).data?.code).toBe('sso/scim-needs-connection')
+  })
+
+  it('a null client secret keeps the stored one; fields of the other protocol may be anything', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const { issuer } = await setupOidc(admin.id, ws.workspaceId)
+    const before = (await connectionRow(ws.workspaceId))?.oidc_client_secret
+    const client = await loggedInClient(admin.id)
+    const res = await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'oidc', oidcIssuer: issuer, oidcClientId: 'markoto', oidcClientSecret: null, samlIdpCert: 42, samlSsoUrl: null })
+    expect(res.status, await res.clone().text()).toBe(200)
+    expect((await connectionRow(ws.workspaceId))?.oidc_client_secret).toBe(before)
+    // A required field of the chosen protocol that isn't text is "required", not a schema error.
+    const missing = await client.put(`/api/workspaces/${ws.workspaceId}/sso`, { protocol: 'oidc', oidcIssuer: 5, oidcClientId: 'markoto' })
+    expect(missing.status).toBe(400)
+    expect(await missing.json()).toMatchObject({ data: { code: 'sso/invalid-settings', field: 'oidcIssuer' } })
+  })
+
   it('refuses IdP URLs the server must not call (SSRF) and junk certificates', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
@@ -357,6 +380,23 @@ describe('SSO with SAML', () => {
     expect((await samlPost(sp.id, second.flow, good)).location).toContain('code=sso%2Ffailed')
   })
 
+  it('an unreadable post still uses up the flow cookie and lands on the failure page', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const sp = await activateSaml(admin.id, ws.workspaceId)
+    const { flow } = await samlStart(sp.id)
+    const res = await fetch(`${TEST_BASE_URL}/auth/sso/${sp.id}/acs`, {
+      method: 'POST',
+      redirect: 'manual',
+      headers: { 'content-type': 'application/json', 'cookie': `${FLOW_COOKIE}=${flow}` },
+      body: '{"SAMLResponse":'
+    })
+    expect(res.status).toBe(302)
+    expect(res.headers.get('location')).toContain('code=sso%2Ffailed')
+    // The single-use cookie is cleared.
+    expect(cookieValue(res, FLOW_COOKIE)).toBe('')
+  })
+
   it('without a flow cookie (another browser) the response is refused', async () => {
     const admin = await createUser()
     const ws = await createWorkspace(admin.id)
@@ -386,7 +426,7 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
       headers: { 'authorization': `Bearer ${init.token ?? token}`, 'content-type': 'application/scim+json' },
       body: init.body === undefined ? undefined : JSON.stringify(init.body)
     })
-    return { admin, ws, connectionId, scim }
+    return { admin, ws, connectionId, scim, token }
   }
 
   const member = (wsId: string, userId: number) => testDb().query('SELECT role FROM workspace_members WHERE workspace_id = $1 AND user_id = $2', [wsId, userId]).then(r => r.rows[0]?.role ?? null)
@@ -452,6 +492,96 @@ describe('SCIM provisioning (/scim/v2/Users)', () => {
     const res = await scim(`/Users/${list.Resources[0]!.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: false }] } })
     expect(res.status).toBe(409)
     expect((await testDb().query('SELECT role FROM workspace_members WHERE user_id = $1', [admin.id])).rows).toEqual([{ role: 'admin' }])
+  })
+
+  // IdP clients (Okta, Entra ID) are strict about the RFC 7644 §3.12 error
+  // object: every refusal must keep its exact status, body and content type.
+  describe('exact wire format', () => {
+    const SCIM_JSON = 'application/scim+json; charset=utf-8'
+    const err = (status: number, detail: string, scimType?: string) => ({ schemas: ['urn:ietf:params:scim:api:messages:2.0:Error'], status: String(status), detail, ...(scimType ? { scimType } : {}) })
+
+    async function expectScim(res: Response, status: number, body: unknown) {
+      expect(res.status).toBe(status)
+      expect(res.headers.get('content-type')).toBe(SCIM_JSON)
+      expect(await res.json()).toEqual(body)
+    }
+
+    it('authentication and plan refusals', async () => {
+      const { scim } = await scimSetup()
+      const wrong = await scim('/Users', { token: 'mkscim_wrong-token-wrong-token-wrong' })
+      expect(wrong.headers.get('www-authenticate')).toBe('Bearer')
+      await expectScim(wrong, 401, err(401, 'A valid SCIM bearer token is required.'))
+      const none = await fetch(`${TEST_BASE_URL}/scim/v2/ServiceProviderConfig`)
+      expect(none.headers.get('www-authenticate')).toBe('Bearer')
+      await expectScim(none, 401, err(401, 'A valid SCIM bearer token is required.'))
+      await expectScim(await scim('/Users', { token: 'short' }), 401, err(401, 'A valid SCIM bearer token is required.'))
+    })
+
+    it('a workspace whose plan has no SSO gets 403', async () => {
+      const { token } = await scimSetup()
+      const res = await fetch(`${TEST_BILLING_OFF_BASE_URL}/scim/v2/Users`, { headers: { authorization: `Bearer ${token}` } })
+      await expectScim(res, 403, err(403, 'Single sign-on and provisioning are not included in this workspace\'s plan.'))
+    })
+
+    it('not found, bad filters, bad bodies and bad patch operations', async () => {
+      const { scim, token } = await scimSetup()
+      await expectScim(await scim('/Users/abc'), 404, err(404, 'User not found.'))
+      await expectScim(await scim('/Users/0'), 404, err(404, 'User not found.'))
+      await expectScim(await scim('/Users/1.5'), 404, err(404, 'User not found.'))
+      await expectScim(await scim('/Users/999999'), 404, err(404, 'User not found.'))
+      await expectScim(await scim('/Users/999999', { method: 'DELETE' }), 404, err(404, 'User not found.'))
+      await expectScim(await scim('/Users/999999', { method: 'PATCH', body: { Operations: [] } }), 404, err(404, 'User not found.'))
+      await expectScim(await scim('/Users/999999', { method: 'PUT', body: {} }), 404, err(404, 'User not found.'))
+      await expectScim(await scim(`/Users?filter=${encodeURIComponent('displayName eq "x"')}`), 400, err(400, 'Only "userName eq", "externalId eq" and "emails eq" filters are supported.', 'invalidFilter'))
+
+      const notObject = err(400, 'The request body must be a JSON object.', 'invalidSyntax')
+      await expectScim(await scim('/Users', { method: 'POST', body: [1] }), 400, notObject)
+      await expectScim(await scim('/Users', { method: 'POST', body: 'x' }), 400, notObject)
+      await expectScim(await scim('/Users', { method: 'POST' }), 400, notObject)
+      const broken = await fetch(`${TEST_BASE_URL}/scim/v2/Users`, { method: 'POST', headers: { 'authorization': `Bearer ${token}`, 'content-type': 'application/scim+json' }, body: '{"userName":' })
+      await expectScim(broken, 400, notObject)
+      await expectScim(await scim('/Users', { method: 'POST', body: { userName: 'eve@elsewhere.test' } }), 400, err(400, 'The user\'s email must be in a domain this workspace has verified.', 'invalidValue'))
+
+      const user = await (await scim('/Users', { method: 'POST', body: { userName: 'ivo@acme.test' } })).json() as { id: string }
+      await expectScim(await scim('/Users', { method: 'POST', body: { userName: 'ivo@acme.test' } }), 409, err(409, 'This user is already provisioned.', 'uniqueness'))
+      await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: [1] }), 400, notObject)
+      await expectScim(await scim(`/Users/${user.id}`, { method: 'PUT', body: [1] }), 400, notObject)
+      await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: {} }), 400, err(400, 'PATCH needs an Operations array.', 'invalidSyntax'))
+      await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: { Operations: [{ op: 'move' }] } }), 400, err(400, 'Unsupported operation "move".', 'invalidSyntax'))
+      await expectScim(await scim(`/Users/${user.id}`, { method: 'PATCH', body: { Operations: [{ op: 'replace', path: 'active', value: 'maybe' }] } }), 400, err(400, '"active" must be true or false.', 'invalidValue'))
+    })
+
+    it('the last admin: 409 mutability', async () => {
+      const { scim } = await scimSetup()
+      const list = await (await scim(`/Users?filter=${encodeURIComponent('userName eq "admin@acme.test"')}`)).json() as { Resources: Array<{ id: string }> }
+      await expectScim(await scim(`/Users/${list.Resources[0]!.id}`, { method: 'DELETE' }), 409, err(409, 'This user is the workspace\'s last admin. Make someone else admin first.', 'mutability'))
+    })
+
+    it('success responses', async () => {
+      const { scim } = await scimSetup()
+      const config = await scim('/ServiceProviderConfig')
+      expect(config.headers.get('content-type')).toBe(SCIM_JSON)
+      expect(await config.json()).toMatchObject({ schemas: ['urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig'], patch: { supported: true }, filter: { supported: true, maxResults: 200 } })
+      await expectScim(await scim('/ResourceTypes'), 200, {
+        schemas: ['urn:ietf:params:scim:api:messages:2.0:ListResponse'],
+        totalResults: 1,
+        Resources: [{ schemas: ['urn:ietf:params:scim:schemas:core:2.0:ResourceType'], id: 'User', name: 'User', endpoint: '/Users', schema: 'urn:ietf:params:scim:schemas:core:2.0:User' }]
+      })
+      // Junk paging values fall back to the defaults instead of failing.
+      const page = await scim('/Users?startIndex=abc&count=-5')
+      expect(page.headers.get('content-type')).toBe(SCIM_JSON)
+      expect(await page.json()).toMatchObject({ startIndex: 1, itemsPerPage: 0, totalResults: 1, Resources: [] })
+      const created = await scim('/Users', { method: 'POST', body: { userName: 'jo@acme.test' } })
+      expect(created.status).toBe(201)
+      expect(created.headers.get('content-type')).toBe(SCIM_JSON)
+      const { id } = await created.json() as { id: string }
+      const replaced = await scim(`/Users/${id}`, { method: 'PUT', body: { externalId: 'ext-jo' } })
+      expect(replaced.status).toBe(200)
+      expect(await replaced.json()).toMatchObject({ id, externalId: 'ext-jo', userName: 'jo@acme.test' })
+      const deleted = await scim(`/Users/${id}`, { method: 'DELETE' })
+      expect(deleted.status).toBe(204)
+      expect(await deleted.text()).toBe('')
+    })
   })
 })
 
@@ -644,5 +774,24 @@ describe('SSO enforcement covers the documents a member owns', () => {
     const standalone = await createDoc({ ownerId: member.id, accessMode: 'private' })
     const client = await loggedInClient(member.id)
     expect((await (await client.get(`/api/docs/${standalone.docId}/token`)).json() as { token: string | null }).token).toBeTruthy()
+  })
+})
+
+describe('POST /api/auth/sso/discover: every refusal looks the same', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('an unreadable body is the same 404 sso/no-connection as an unknown domain', async () => {
+    const post = (body: string, contentType = 'application/json') => fetch(`${TEST_BASE_URL}/api/auth/sso/discover`, {
+      method: 'POST',
+      headers: { 'content-type': contentType, 'origin': TEST_BASE_URL },
+      body
+    })
+    for (const body of ['{"email":', '[1]', 'null', '{"email":5}', '{"email":"x@unknown.test"}']) {
+      const res = await post(body)
+      expect(res.status, body).toBe(404)
+      expect((await res.json() as { data?: { code?: string } }).data?.code, body).toBe('sso/no-connection')
+    }
   })
 })

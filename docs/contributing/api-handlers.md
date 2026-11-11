@@ -1,6 +1,6 @@
 # API handlers: the handler contract and how to convert a route
 
-Every route in `server/api/` and `server/routes/` declares, in one object, who may call it, what it accepts and which gates it passes. The wrapper (`server/utils/api/defineApiHandler.ts`) runs those declarations in a fixed order and hands the handler a typed context. Routes not converted yet are listed in `tests/unit/platform/apiRoutes.legacy.ts`; this page is the recipe for taking them off that list.
+Every route in `server/api/` and `server/routes/` declares, in one object, who may call it, what it accepts and which gates it passes. The wrapper (`server/utils/api/defineApiHandler.ts`) runs those declarations in a fixed order and hands the handler a typed context. The only handler outside it is the dictation WebSocket (`tests/unit/platform/apiRoutes.exceptions.ts`); this page is the recipe for writing or changing a route.
 
 ```ts
 // server/api/docs/[docId]/share-settings/index.put.ts
@@ -17,15 +17,17 @@ The three reference conversions: `server/api/mcp/tokens/index.get.ts` (session o
 
 ## What the wrapper does, in order
 
-1. `instance: 'billing' | 'legalSurfaces'`: 404 `billing/disabled` / `legal/disabled` first.
+1. `instance: 'billing' | 'legalSurfaces' | 'customDomains'`: 404 `billing/disabled` / `legal/disabled` / `custom-domain/disabled` first. Then the rate limits with `phase: 'before-access'`.
 2. The policy's `gate`: session (401), admin flag (403), service credentials, test mode (404). Then `recentLogin: true` (401 `auth/reauth-required`).
 3. `params`, `query`: `safeParse`, 400.
 4. `body`: `safeParse`, 400 (invalid JSON too).
 5. The policy's `resolve`: object-level access (404 / 403).
 6. `plan: { feature, message }`: 409 `plan/feature-unavailable`; the plan is the workspace's (`ctx.wsId`), else the document's (`ctx.doc`), else the user's.
-7. `rateLimit` (one spec or a list): 429 with `error` (default `rate/limited`).
+7. `rateLimit` (one spec or a list): 429 with `error` (default `rate/limited`). `key`: `'user'`, `'ip'` (IPv4 or IPv6 /64), `'user+ip'` (`<userId>:<client key>`) or `(ctx, event) => string`. `phase: 'before-access'` (only with `key: 'ip'`) counts every request before the session and the object lookup: use it on anonymous-reachable routes whose 404 for an unknown id must not be free (`token.get`, `pdf.get`, file and brand files, `import.post`, SSO discovery).
 8. `idempotency: { scope }`: `withIdempotency` with the user's id.
-9. The handler: `ctx` = the policy's context + `params`, `query`, `body` (parsed outputs) + `event` (+ `rawBody()` for `body: 'raw'`).
+9. The handler: `ctx` = the policy's context + `params`, `query`, `body` (parsed outputs) + `event` (+ `rawBody()` for `body: 'raw'`, `parseBody()` for `body: lenientBody(schema)`: read when the handler asks, `null` instead of a 400 for unreadable JSON or a schema failure; for routes whose every answer must look the same, or that must act before reading the body, like the SAML ACS).
+
+A step that must run between two of these (a cheap input check that must not spend a rate limit, as the invite route's address check) stays inline in the handler, limit included.
 
 A validation failure answers `apiError(invalidCode ?? 'request/invalid', { field, fields })`: `field` is the first failing path, `fields` lists every issue (`path`, zod `issue` code, `minimum` / `maximum` / `format` / `expected`). The client turns `fields` into translated texts (`apiErrors.validation.<issue>`).
 
@@ -39,10 +41,10 @@ A validation failure answers `apiError(invalidCode ?? 'request/invalid', { field
 | `allow.public(reason, { session: 'optional' })` | anyone | `{ user \| null }` | yes |
 | `allow.user()` | a signed-in user | `{ user }` | no |
 | `allow.admin()` | an instance admin (`users.is_admin`); 403 `admin/forbidden` before input is read | `{ user, admin }` | no |
-| `allow.workspace('member' \| 'editor' \| 'admin', o?)` | a role in `:wsId` (viewer < editor < admin). No role: 404 `workspace/not-found`; too low: 403 `o.deny` (default `auth/forbidden`). `ignoreSso: true` for the SSO settings (break-glass); `ssoHint: true` answers 403 `sso/required` with the sign-in link (returns to `/w/:wsId`) | `{ user, wsId, role }` | no |
+| `allow.workspace('member' \| 'editor' \| 'admin', o?)` | a role in `:wsId` (viewer < editor < admin). No role: 404 `workspace/not-found`; too low: 403 `o.deny` (default `auth/forbidden`). `ignoreSso: true` for the SSO settings (break-glass); `ssoHint: true` answers 403 `sso/required` with the sign-in link (returns to `/w/:wsId`). `orSelf: '<param>'`: when the (parsed, numeric) parameter is the caller, `need` is waived and a guest passes too (leaving); context adds `targetUserId`, `isSelf`, `role` may be `'guest'` | `{ user, wsId, role }` | no |
 | `allow.doc(need, o?)` | see below | `{ user, docId, doc, state, actor, authz }` | with `anonymous: true` |
 | `allow.internal('secret' \| 'traefik-token' \| 'render-token')` | other containers: `X-Internal-Secret`; the Traefik provider token (`ctx.traefik` = settings, or null when the instance has no custom domains); a render token from `?docId=&t=` (`ctx.render`) | `{ user: null, … }` | yes |
-| `allow.scim()` | a SCIM bearer token of an SSO connection | `{ user: null, connection }` | yes |
+| `allow.scim()` | a SCIM bearer token of an SSO connection. Every refusal (token, input, handler) leaves as an RFC 7644 Error object with `application/scim+json`: the policy carries `scimErrorFormat` (`server/utils/sso/scim.ts`); throw `scimError(status, detail, scimType?)` in the handler | `{ user: null, connection }` | yes |
 | `allow.testOnly({ session? })` | test mode only, 404 otherwise | `{ user \| null }` | yes |
 | `allow.custom(reason, { sessionless, check })` | whatever `check(event, input, gate)` returns; throw to deny. A non-sessionless custom policy still requires a session first. Flag every use in the PR | `check`'s result | as declared |
 
@@ -73,7 +75,7 @@ Options: `anonymous: true` (session optional; the route must be on the public al
 4. Turn each unconditional gate into an option (`instance`, `recentLogin`, `plan`, `rateLimit`, `idempotency`). A gate that depends on the input or the current state stays inline in the handler (the share-settings plan check runs only when a restriction is added).
 5. Replace every `createError` with `apiError(code, params)`. Keep each code a test asserts; use one code per distinct user-facing sentence. Code-less 401 / 403 / 404 become `auth/required`, `auth/forbidden`, `<ns>/not-found`; developer-only 400s become `request/invalid`.
 6. Do not change the response shape and do not move database access.
-7. Delete the file's line from `tests/unit/platform/apiRoutes.legacy.ts` (only your own lines; the list is sorted by path). Delete helpers that no longer have callers (`requireShareManager`, `requirePublishManager`, … — knip reports them).
+7. Delete helpers that no longer have callers (knip reports them).
 8. Convert the route's client call sites to `apiFetch` when you touch them (the app-side wave converts the rest).
 9. Verify (below).
 
@@ -94,7 +96,7 @@ export const shareErrors = defineErrors('share', {
 - The text: add `apiErrors.<namespace>.<slug>` to **all six** `i18n/locales/errors/<locale>.json` (en, de, fr, es, ja, zh), in the namespace's block. A `{placeholder}` may only name a **required** param (the client falls back to the route's `messageKey` / message when a param is missing). vue-i18n syntax applies: no bare `@`, `|`, `{`, `}`. The English text is also the response `message` for API and MCP clients and logs.
 - Non-English texts of the seeded codes are English for now (they were raw English before); translate them in the locale's block when you touch a namespace, consistent with the terms in `i18n/locales/<locale>.json`.
 
-On the client, `useErrorHandler().extractError(err)` resolves the text: a per-occurrence key (plan feature or limit, provider refusal reason: the route's `messageKey`), the registered code's text, the route's `messageKey`, the raw message of an unregistered code, a status-based text.
+On the client, `useErrorHandler().extractError(err)` resolves the text: a per-occurrence key (plan feature or limit, provider refusal reason: the route's `messageKey`), the registered code's text, the route's `messageKey`, the raw message of an unregistered code, a status-based text. It reads a `$fetch` error's fields from the body's own `data` (`apiErrorData`, `app/utils/api/errors.ts`). A code whose text is fixed sends no `messageKey`: its text lives only under `apiErrors.<ns>.<slug>`.
 
 ## Typed client
 
@@ -105,12 +107,12 @@ const tokens = await apiFetch('/api/mcp/tokens')
 await apiFetch('/api/docs/:docId/share-settings', { method: 'put', path: { docId }, body: { noDownload: true } })
 ```
 
-The route is the pattern (`:param`), not a template literal, so the response type survives. `path` is required exactly when the pattern has parameters; the body and query types come from the handler's schemas (`modules/api-contract.ts` generates `.nuxt/types/api-inputs.d.ts`; unconverted routes accept anything). No hand-written response interfaces and no `$fetch<T>` (linted).
+The route is the pattern (`:param`), not a template literal, so the response type survives. `path` is required exactly when the pattern has parameters; the body and query types come from the handler's schemas (`modules/api-contract.ts` generates `.nuxt/types/api-inputs.d.ts`; the raw dictation WebSocket accepts anything). No hand-written response interfaces and no `$fetch<T>` (linted).
 
 ## Enforcement
 
-- `eslint.config.mjs`: in converted handler files `defineEventHandler`, `readBody` / `getQuery` / `getRouterParam` / `requireDocId` / …, `requireValidatedUserSession` / `requireAdminUser` / …, and `createError` are errors; in legacy files warnings. In `app/`, `$fetch<T>(…)` and `.data.message` reads warn.
-- `tests/unit/platform/apiRoutes.test.ts`: every handler is converted, legacy or a listed exception; a converted file still on the legacy list fails; `access` is an `allow.*` call with a reason where required; writes declare `body`; sessionless ⇔ public allowlist; no stale allowlist entry.
+- `eslint.config.mjs`: in every handler file except the raw exceptions `defineEventHandler`, `readBody` / `getQuery` / `getRouterParam` / `requireDocId` / …, `requireValidatedUserSession` / `requireAdminUser` / …, and `createError` are errors. In `app/`, `$fetch<T>(…)` and `.data.message` reads warn.
+- `tests/unit/platform/apiRoutes.test.ts`: every handler uses `defineApiHandler` or is a listed raw exception; `access` is an `allow.*` call with a reason where required; writes declare `body`; sessionless ⇔ public allowlist; no stale allowlist entry.
 - `tests/unit/repoHygiene/apiErrorKeys.test.ts`: texts in all six locales, placeholders ⊆ required params, no orphan texts, every `code: '…'` literal under `server/` registered.
 - `tests/unit/platform/defineApiHandler.test.ts`: the policy matrix against `docPermissions`, the order of the steps, fail-closed cases.
 - `tests/nuxt/apiContract.typecheck.ts`: compile-time checks of inference, request types and the secret-key guard (run by `bun run typecheck`).

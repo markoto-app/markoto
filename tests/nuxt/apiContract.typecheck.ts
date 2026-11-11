@@ -36,7 +36,7 @@ export function requestTypes(): void {
   void apiFetch('/api/docs/:docId/share-settings', { method: 'put', body: {} })
   // @ts-expect-error no options at all on a route with a path parameter
   void apiFetch('/api/docs/:docId/share-settings')
-  // An unconverted route still accepts any body.
+  // A SCIM body is any JSON object (the IdP sends its vendor's attributes).
   void apiFetch('/scim/v2/Users', { method: 'post', body: { anything: 1 } })
 }
 

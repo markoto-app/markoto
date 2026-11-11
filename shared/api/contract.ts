@@ -7,7 +7,7 @@
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- augmented by .nuxt/types/api-inputs.d.ts
 export interface ApiInputs {}
 
-/** What an unconverted (`defineEventHandler`) route accepts: anything, as before. */
+/** What a raw `defineEventHandler` route (the dictation WebSocket) accepts: anything. */
 export interface LegacyInput {
   params?: Record<string, unknown>
   query?: Record<string, unknown>

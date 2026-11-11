@@ -299,10 +299,10 @@ describe('upload() — error handling', () => {
     expect(confirmCalls).toHaveLength(0)
   })
 
-  it('shows the localised hint when the image storage quota is reached', async () => {
+  it('shows the code\'s translated text when the image storage quota is reached (no messageKey needed)', async () => {
     requestEp.handler = () => new ApiError(409, {
       message: 'English server sentence',
-      data: { code: 'upload/storage-quota', messageKey: 'image.storageQuotaReached' }
+      data: { code: 'upload/storage-quota' }
     })
     const { upload, error } = useImageUpload('doc-xyz')
     expect(await upload(makeFile())).toBe(null)

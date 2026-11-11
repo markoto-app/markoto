@@ -18,8 +18,10 @@ export default defineApiHandler({
   access: allow.public('the IdP posts the signed SAML response through the browser; it must answer the AuthnRequest id in this browser\'s single-use flow cookie'),
   params: ssoConnectionParams,
   // A form post from the IdP: no session and no Origin of ours (outside /api, so no CSRF check applies).
-  body: samlAcsBody,
-  handler: async ({ event, params, body }) => {
+  // Read only after the single-use flow cookie is taken: an unreadable post
+  // still uses the cookie up and lands on the failure page.
+  body: lenientBody(samlAcsBody),
+  handler: async ({ event, params, parseBody }) => {
     const { connectionId } = params
     const flow = takeSsoFlowCookie(event)
     const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
@@ -29,6 +31,7 @@ export default defineApiHandler({
       return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
     }
 
+    const body = await parseBody()
     const samlResponse = body?.SAMLResponse ?? ''
     if (!samlResponse || samlResponse.length > MAX_RESPONSE_BYTES) return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
 

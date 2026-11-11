@@ -42,7 +42,8 @@ export const updateTemplateBody = z.object({
 
 /** POST /api/workspaces/:wsId/templates/:templateId/documents */
 export const createDocFromTemplateBody = z.object({
-  title: z.string().trim().max(DOC_TITLE_MAX_LENGTH).optional()
+  // Not text (null, a number): the template's name, like no title. Too long is still a 400.
+  title: z.preprocess(v => typeof v === 'string' ? v : undefined, z.string().trim().max(DOC_TITLE_MAX_LENGTH).optional())
 }).nullish()
 
 export const themeParams = z.object({ themeId: z.string().min(1) })

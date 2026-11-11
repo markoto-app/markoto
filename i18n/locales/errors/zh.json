@@ -54,9 +54,9 @@
       "verify-failed": "The provider could not be verified. Check the URL, API key and model."
     },
     "anon-gate": {
-      "bot-check-expired": "The bot check expired. Please try again.",
+      "bot-check-expired": "机器人检查已过期。请重试。",
       "bot-check-failed": "自动机器人检查失败。请重试。",
-      "bot-check-replayed": "This bot check was already used. Please try again.",
+      "bot-check-replayed": "此机器人检查已被使用。请重试。",
       "bot-check-required": "自动机器人检查失败。请重试。",
       "misconfigured": "机器人检查暂时不可用。请稍后重试。",
       "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
@@ -142,7 +142,6 @@
       "invalid": "Enter a domain name such as docs.example.com.",
       "limit": "You can add up to {limit} domains.",
       "not-found": "Domain not found.",
-      "not-verified": "This domain is not verified yet.",
       "page-not-allowed": "Only the owner and workspace admins can show this document on a domain.",
       "page-not-published": "Publish the document as a web page first.",
       "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
@@ -322,7 +321,8 @@
       "required": "此工作区使用单点登录。请通过你的组织登录以继续。",
       "test-mismatch": "The test sign-in used a different account.",
       "test-not-admin": "Only an admin of the workspace can test its sign-in.",
-      "unknown": "Unknown sign-in link."
+      "unknown": "Unknown sign-in link.",
+      "scim-needs-connection": "请先设置单点登录。"
     },
     "template": {
       "doc-not-found": "Document not found in this workspace.",

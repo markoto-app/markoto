@@ -18,7 +18,7 @@ export const DOC_BRAND_FILE_RATE_PER_MINUTE = 300
 export default defineApiHandler({
   access: allow.doc('file', { anonymous: true, jwt: ['file-access'], deny: 'files/access-denied' }),
   params: brandFileParams,
-  rateLimit: { namespace: 'doc-brand-file', max: DOC_BRAND_FILE_RATE_PER_MINUTE, windowMs: MINUTE_MS, key: 'ip', error: 'brand/rate-limited' },
+  rateLimit: { namespace: 'doc-brand-file', max: DOC_BRAND_FILE_RATE_PER_MINUTE, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access', error: 'brand/rate-limited' },
   handler: async ({ event, doc, params: { file } }) => {
     const [, assetId, format] = BRAND_ASSET_FILE_RE.exec(file) ?? []
     const asset = doc.workspaceId && assetId ? await getBrandAsset(doc.workspaceId, assetId) : null

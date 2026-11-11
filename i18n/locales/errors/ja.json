@@ -54,9 +54,9 @@
       "verify-failed": "The provider could not be verified. Check the URL, API key and model."
     },
     "anon-gate": {
-      "bot-check-expired": "The bot check expired. Please try again.",
+      "bot-check-expired": "ボットチェックの有効期限が切れました。もう一度お試しください。",
       "bot-check-failed": "自動ボットチェックに失敗しました。もう一度お試しください。",
-      "bot-check-replayed": "This bot check was already used. Please try again.",
+      "bot-check-replayed": "このボットチェックはすでに使用されています。もう一度お試しください。",
       "bot-check-required": "自動ボットチェックに失敗しました。もう一度お試しください。",
       "misconfigured": "現在ボットチェックを利用できません。しばらくしてからもう一度お試しください。",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
@@ -142,7 +142,6 @@
       "invalid": "Enter a domain name such as docs.example.com.",
       "limit": "You can add up to {limit} domains.",
       "not-found": "Domain not found.",
-      "not-verified": "This domain is not verified yet.",
       "page-not-allowed": "Only the owner and workspace admins can show this document on a domain.",
       "page-not-published": "Publish the document as a web page first.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
@@ -322,7 +321,8 @@
       "required": "このワークスペースはシングルサインオンを使用しています。続けるには組織のアカウントでサインインしてください。",
       "test-mismatch": "The test sign-in used a different account.",
       "test-not-admin": "Only an admin of the workspace can test its sign-in.",
-      "unknown": "Unknown sign-in link."
+      "unknown": "Unknown sign-in link.",
+      "scim-needs-connection": "先にシングルサインオンを設定してください。"
     },
     "template": {
       "doc-not-found": "Document not found in this workspace.",

@@ -26,8 +26,7 @@
     "linkedTitle": "Konten verknüpft",
     "linkedDescription": "Ihre {provider}-Anmeldung ist jetzt mit Ihrem bestehenden Konto verbunden. Ab sofort können Sie sich mit beiden Anbietern anmelden.",
     "reauthTitle": "Erneut anmelden",
-    "reauthAction": "Erneut anmelden",
-    "reauthRequired": "Zu Ihrer Sicherheit erfordert diese Aktion eine kürzliche Anmeldung. Bitte melden Sie sich erneut an und versuchen Sie es noch einmal."
+    "reauthAction": "Erneut anmelden"
   },
   "editor": {
     "untitled": "Unbenannt",
@@ -279,8 +278,7 @@
     "loginToUpload": "Bitte melden Sie sich an, um Bilder hochzuladen.",
     "uploadFailed": "Bild-Upload fehlgeschlagen",
     "dropToUpload": "Bild zum Hochladen ablegen",
-    "uploading": "Wird hochgeladen...",
-    "storageQuotaReached": "Du hast dein Speicherlimit für Bilder erreicht. Bilder, die du aus deinen Dokumenten entfernst, geben Platz frei, sobald sie bereinigt werden."
+    "uploading": "Wird hochgeladen..."
   },
   "import": {
     "title": "Dokument importieren",
@@ -625,10 +623,6 @@
     "responseQuestionLabel": "markoto fragt",
     "responseDismiss": "Verwerfen",
     "responseShowLast": "Letzte Antwort von markoto",
-    "errors": {
-      "duplicateSession": "Sie haben bereits eine markoto-Sitzung für dieses Dokument laufen.",
-      "abortNotInitiator": "Nur die Person, die diese markoto-Sitzung gestartet hat, kann sie stoppen."
-    },
     "exhaustedPlaceholderFree": "Keine KI-Credits mehr — sie werden in der nächsten Periode aufgefüllt",
     "budgetExhaustedResetDescription": "Sie haben alle KI-Credits für diese Periode verbraucht. Sie werden zu Beginn der nächsten Periode wieder aufgefüllt.",
     "webToolsHourlyLimit": "Sie haben das stündliche Limit für Websuche und Seitenabruf erreicht. Versuchen Sie es innerhalb der nächsten Stunde erneut oder arbeiten Sie ohne Web-Werkzeuge weiter.",
@@ -816,7 +810,6 @@
       "year": "Jährlich · 2 Monate gratis"
     },
     "currencyLabel": "Währung",
-    "currencyLocked": "Ihr Abo wird in einer anderen Währung abgerechnet und kann nicht wechseln. Wählen Sie diese Währung, um fortzufahren.",
     "countPerSeat": {
       "aiPoints": "{n} KI-Punkt pro Platz und Monat, gemeinsam | {n} KI-Punkte pro Platz und Monat, gemeinsam",
       "workspaces": "{n} eigener Arbeitsbereich | {n} eigene Arbeitsbereiche",
@@ -1420,12 +1413,6 @@
       "pendingExpires": "läuft ab am {date}",
       "revoke": "Einladung zurückziehen",
       "revokeFailed": "Einladung konnte nicht zurückgezogen werden",
-      "errors": {
-        "invalidEmail": "Geben Sie eine gültige E-Mail-Adresse ein.",
-        "alreadyMember": "Diese Person ist bereits Mitglied des Arbeitsbereichs.",
-        "inviteCap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück.",
-        "guestCap": "Dieser Arbeitsbereich hat so viele Gäste, wie sein Plan erlaubt (5 pro bezahltem Platz). Entfernen Sie einen Gast oder fügen Sie einen Platz hinzu."
-      },
       "invitePeople": "Personen einladen",
       "guestHint": "Ein Gast sieht nur die Dokumente, die Sie mit ihm teilen, belegt keinen Platz und nutzt sein eigenes KI-Budget."
     },
@@ -1440,9 +1427,6 @@
       "accepted": "Sie sind {name} beigetreten",
       "acceptFailed": "Einladung konnte nicht angenommen werden",
       "declineFailed": "Einladung konnte nicht abgelehnt werden",
-      "errors": {
-        "notFound": "Diese Einladung existiert nicht mehr oder ist abgelaufen."
-      },
       "page": {
         "title": "Einladung in einen Arbeitsbereich",
         "intro": "Sie wurden in einen Arbeitsbereich auf markoto eingeladen.",
@@ -1611,8 +1595,7 @@
     "shareAccessModeFailed": "Freigabeeinstellungen konnten nicht aktualisiert werden",
     "sharePasswordFailed": "Dokumentpasswort konnte nicht festgelegt werden",
     "activityLoadFailed": "Aktivität konnte nicht geladen werden",
-    "retry": "Erneut versuchen",
-    "moderationRestricted": "Dieses Dokument wurde nach einer Meldung eingeschränkt. Es kann nicht geteilt, öffentlich gemacht oder veröffentlicht werden, bis die Einschränkung aufgehoben ist."
+    "retry": "Erneut versuchen"
   },
   "legal": {
     "ageGate": {
@@ -1741,16 +1724,7 @@
       "signIn": "Anmelden",
       "errors": {
         "title": "Meldung konnte nicht gesendet werden",
-        "generic": "Bitte versuchen Sie es noch einmal.",
-        "rateLimited": "Zu viele Meldungen aus Ihrem Netzwerk. Bitte versuchen Sie es später noch einmal.",
-        "loginRequired": "Bitte melden Sie sich an, um Inhalte zu melden.",
-        "category": "Bitte wählen Sie, was Sie melden.",
-        "urlRequired": "Bitte geben Sie die Adresse (URL) des Inhalts an.",
-        "bodyTooShort": "Bitte erklären Sie, was am Inhalt falsch ist (mindestens 10 Zeichen).",
-        "bodyTooLong": "Die Erklärung ist zu lang (höchstens 5000 Zeichen).",
-        "goodFaith": "Bitte bestätigen Sie, dass Ihre Meldung richtig ist und in gutem Glauben erfolgt.",
-        "email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
-        "contactRequired": "Bitte geben Sie Ihren Namen und Ihre E-Mail-Adresse an."
+        "generic": "Bitte versuchen Sie es noch einmal."
       }
     },
     "aiTransparency": {
@@ -1995,8 +1969,6 @@
       "unresolvable": "Dieser Hostname wurde nicht gefunden."
     },
     "errors": {
-      "keyRequired": "Gib den API-Schlüssel ein. Er ist nötig, wenn du einen Anbieter hinzufügst oder die URL änderst.",
-      "transcription": "Dein Transkriptionsanbieter hat einen Fehler gemeldet. Prüfe deine KI-Anbieter-Einstellungen.",
       "loadFailed": "Deine KI-Einstellungen konnten nicht geladen werden."
     },
     "missing": {

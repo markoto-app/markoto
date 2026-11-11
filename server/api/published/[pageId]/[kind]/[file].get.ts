@@ -28,7 +28,7 @@ const CONTENT_TYPES: Record<string, string> = {
 export default defineApiHandler({
   access: allow.public('Files of a published web page are public like the page; only a page that still exists serves them'),
   params: publishedFileParams,
-  rateLimit: { namespace: 'published-file', max: PUBLISHED_FILE_RATE_PER_MINUTE, windowMs: MINUTE_MS, key: 'ip', error: 'published/rate-limited' },
+  rateLimit: { namespace: 'published-file', max: PUBLISHED_FILE_RATE_PER_MINUTE, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access', error: 'published/rate-limited' },
   handler: async ({ event, params }) => {
     const { pageId, kind, file } = params
     if (!PUBLISHED_PAGE_ID_RE.test(pageId) || (kind !== 'files' && kind !== 'brand') || !PUBLISHED_FILE_RE.test(file)) {

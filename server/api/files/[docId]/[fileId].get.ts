@@ -2,6 +2,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { z } from 'zod'
 import { ID_PATTERN } from '~~/shared/config/identifiers'
+import { ownValue } from '~~/shared/utils/ownValue'
 
 // fileId is a nanoid(12) with a content-type-derived extension. Not a security
 // boundary (S3 keys are opaque); it just stops malformed clients from presigning
@@ -42,7 +43,7 @@ export default defineApiHandler({
       new GetObjectCommand({
         Bucket: config.s3.bucket,
         Key: key,
-        ResponseContentType: EXT_CONTENT_TYPE[ext] ?? 'application/octet-stream',
+        ResponseContentType: ownValue(EXT_CONTENT_TYPE, ext) ?? 'application/octet-stream',
         ResponseContentDisposition: `inline; filename="${fileId}"`
       }),
       { expiresIn: 120 }

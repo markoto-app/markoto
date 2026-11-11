@@ -6,7 +6,7 @@ import a11y from 'eslint-plugin-vuejs-accessibility'
 import vitest from '@vitest/eslint-plugin'
 import playwright from 'eslint-plugin-playwright'
 import vueI18n from '@intlify/eslint-plugin-vue-i18n'
-import { LEGACY_HANDLERS, RAW_HANDLER_EXCEPTIONS } from './tests/unit/platform/apiRoutes.legacy.ts'
+import { RAW_HANDLER_EXCEPTIONS } from './tests/unit/platform/apiRoutes.exceptions.ts'
 
 const ROOT = import.meta.dirname
 
@@ -88,8 +88,8 @@ const createErrorCode = {
 // The API handler contract (docs/contributing/api-handlers.md): a route is
 // declared with `defineApiHandler`, reads its inputs through schemas, gets the
 // session from its policy and refuses with `apiError`. These selectors are
-// errors in converted handler files and warnings in the shrink-only legacy
-// list (tests/unit/platform/apiRoutes.legacy.ts).
+// errors in every handler file except the raw exceptions
+// (tests/unit/platform/apiRoutes.exceptions.ts).
 const handlerSelectors = [
   {
     selector: 'ExportDefaultDeclaration > CallExpression[callee.name=/^(defineEventHandler|eventHandler|defineCachedEventHandler|defineLazyEventHandler)$/]',
@@ -116,7 +116,6 @@ const apiClientSelectors = [
 // File paths in flat-config `files` are globs: escape the brackets of `[docId]`.
 const literalPaths = paths => paths.map(p => p.replace(/[[\]]/g, '\\$&'))
 const HANDLER_GLOBS = ['server/api/**/*.ts', 'server/routes/**/*.ts']
-const legacyHandlerGlobs = literalPaths(LEGACY_HANDLERS)
 
 // Rules for stacks this project does not use (AWS IaC, React, Angular, jQuery,
 // Cypress, ...) can only produce noise.
@@ -283,13 +282,8 @@ export default withNuxt(
   {
     name: 'markoto/api-handlers',
     files: HANDLER_GLOBS,
-    ignores: [...legacyHandlerGlobs, ...literalPaths(Object.keys(RAW_HANDLER_EXCEPTIONS))],
+    ignores: literalPaths(Object.keys(RAW_HANDLER_EXCEPTIONS)),
     rules: { 'no-restricted-syntax': ['error', ...timeSelectors, createErrorCode, ...handlerSelectors] }
-  },
-  {
-    name: 'markoto/api-handlers-legacy',
-    files: legacyHandlerGlobs,
-    rules: { 'no-restricted-syntax': ['warn', ...timeSelectors, createErrorCode, ...handlerSelectors] }
   },
   {
     name: 'markoto/api-client',

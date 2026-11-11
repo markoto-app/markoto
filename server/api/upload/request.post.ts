@@ -7,6 +7,7 @@ import { buildUploadKey, stagingKeyFor } from '../../utils/storage/uploadKey'
 import { IMAGE_UPLOAD_MAX_BYTES } from '~~/shared/config/uploads'
 import { requestUploadBody } from '~~/shared/api/ai'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { ownValue } from '~~/shared/utils/ownValue'
 
 // Presigned PUT lifetime. S3 checks expiry when the request STARTS, so a
 // slow 10 MB upload that begins in time still completes; a short window
@@ -35,7 +36,7 @@ export default defineApiHandler({
   rateLimit: { namespace: 'upload-request', max: 60, windowMs: MINUTE_MS, key: 'user', error: 'upload/rate-limited' },
   handler: async ({ user, body }) => {
     const { docId, contentType, size } = body
-    const ext = CONTENT_TYPE_EXT[contentType]
+    const ext = ownValue(CONTENT_TYPE_EXT, contentType)
     if (!ext) throw apiError('upload/unsupported-format')
     if (size > IMAGE_UPLOAD_MAX_BYTES) throw apiError('upload/file-too-large')
 

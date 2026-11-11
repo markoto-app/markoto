@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import type { requireValidatedUserSession } from '../auth/validatedSession'
 import type { SsoConnectionRow } from '../../repos/sso'
+import type { FieldIssue } from '~~/shared/api/errors/define'
 
 // Types shared by the access policies (`./policy.ts`, `./policyDoc.ts`,
 // `./policyWorkspace.ts`) and the wrapper.
@@ -39,7 +40,21 @@ export interface PolicyDescriptor {
   readonly need?: string
 }
 
+/**
+ * A protocol whose clients expect their own error body instead of the API
+ * envelope (SCIM: RFC 7644 §3.12). Carried by the policy, so every route of
+ * the protocol answers in its format without each route opting in.
+ */
+export interface ErrorFormat {
+  /** The refusal for an input that fails its schema (replaces `invalidCode`). */
+  invalid(part: 'params' | 'query' | 'body', fields: FieldIssue[]): Error
+  /** The response for any error the route throws. A status outside 400–599 is answered as 500. */
+  respond(error: unknown): { status: number, body: unknown, contentType: string }
+}
+
 export interface Policy<Ctx> extends PolicyDescriptor {
+  /** Answer errors in a protocol's own format (only `allow.scim()`). */
+  readonly errorFormat?: ErrorFormat
   /** First step: session and service credentials, before input is parsed. */
   gate(event: H3Event): Promise<PolicyGate>
   /** Second step: object-level resolution, after params, query and body are parsed. */

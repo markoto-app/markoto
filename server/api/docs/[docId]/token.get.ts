@@ -23,7 +23,8 @@ export default defineApiHandler({
     reason: 'decideTokenAccess on the policy\'s DocState (share expiry, SSO owner suspension applied): a usable JWT only on allow, otherwise token: null and the gate fields'
   }),
   query: docTokenQuery,
-  rateLimit: { namespace: 'token', max: 30, windowMs: MINUTE_MS, key: 'ip' },
+  // Before the lookup: every request counts, so probing for document ids is throttled too.
+  rateLimit: { namespace: 'token', max: 30, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
   handler: async ({ event, user, docId, doc: row, state: doc, actor, query }) => {
     const config = useRuntimeConfig()
     if (!config.jwtSecret) {

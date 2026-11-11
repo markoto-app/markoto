@@ -26,8 +26,7 @@
     "linkedTitle": "Accounts linked",
     "linkedDescription": "Your {provider} login is now connected to your existing account. You can sign in with either provider from here on.",
     "reauthTitle": "Sign in again",
-    "reauthAction": "Sign in again",
-    "reauthRequired": "For your security, this action needs a recent sign-in. Please sign in again and retry."
+    "reauthAction": "Sign in again"
   },
   "editor": {
     "untitled": "Untitled",
@@ -279,8 +278,7 @@
     "loginToUpload": "Please log in to upload images.",
     "uploadFailed": "Image upload failed",
     "dropToUpload": "Drop image to upload",
-    "uploading": "Uploading...",
-    "storageQuotaReached": "You've reached your image storage limit. Images you remove from your documents free up space once they are cleaned up."
+    "uploading": "Uploading..."
   },
   "import": {
     "title": "Import Document",
@@ -625,10 +623,6 @@
     "responseQuestionLabel": "markoto is asking",
     "responseDismiss": "Dismiss",
     "responseShowLast": "Last response from markoto",
-    "errors": {
-      "duplicateSession": "You already have a markoto session running on this document.",
-      "abortNotInitiator": "Only the person who started this markoto session can stop it."
-    },
     "exhaustedPlaceholderFree": "Out of AI credits — they refill next period",
     "budgetExhaustedResetDescription": "You've used all your AI credits for this period. They refill when the next period starts.",
     "webToolsHourlyLimit": "You've reached the hourly limit for web search and page fetching. Try again within the hour, or continue without web tools.",
@@ -816,7 +810,6 @@
       "year": "Annual · 2 months free"
     },
     "currencyLabel": "Currency",
-    "currencyLocked": "Your subscription is billed in another currency and can't switch. Choose that currency to continue.",
     "countPerSeat": {
       "aiPoints": "{n} AI Point per seat a month, shared | {n} AI Points per seat a month, shared",
       "workspaces": "{n} workspace you own | {n} workspaces you own",
@@ -1420,12 +1413,6 @@
       "pendingExpires": "expires {date}",
       "revoke": "Revoke invitation",
       "revokeFailed": "Could not revoke the invitation",
-      "errors": {
-        "invalidEmail": "Enter a valid email address.",
-        "alreadyMember": "This person is already a member of the workspace.",
-        "inviteCap": "This workspace has too many open invitations. Revoke some first.",
-        "guestCap": "This workspace has as many guests as its plan allows (5 per paid seat). Remove a guest or add a seat first."
-      },
       "invitePeople": "Invite people",
       "guestHint": "A guest sees only the documents you share with them, doesn't take a seat and uses their own AI budget."
     },
@@ -1440,9 +1427,6 @@
       "accepted": "You joined {name}",
       "acceptFailed": "Could not accept the invitation",
       "declineFailed": "Could not decline the invitation",
-      "errors": {
-        "notFound": "This invitation doesn't exist any more or has expired."
-      },
       "page": {
         "title": "Workspace invitation",
         "intro": "You've been invited to join a workspace on markoto.",
@@ -1611,8 +1595,7 @@
     "shareAccessModeFailed": "Could not update sharing settings",
     "sharePasswordFailed": "Could not set document password",
     "activityLoadFailed": "Could not load activity",
-    "retry": "Retry",
-    "moderationRestricted": "This document was restricted after a report. It can't be shared, made public or published until the restriction is lifted."
+    "retry": "Retry"
   },
   "legal": {
     "ageGate": {
@@ -1741,16 +1724,7 @@
       "signIn": "Sign in",
       "errors": {
         "title": "Could not send the report",
-        "generic": "Please try again.",
-        "rateLimited": "Too many reports from your network. Please try again later.",
-        "loginRequired": "Please sign in to report content.",
-        "category": "Please choose what you are reporting.",
-        "urlRequired": "Please give the address (URL) of the content.",
-        "bodyTooShort": "Please explain what is wrong with the content (at least 10 characters).",
-        "bodyTooLong": "The explanation is too long (at most 5000 characters).",
-        "goodFaith": "Please confirm that your report is accurate and made in good faith.",
-        "email": "Please enter a valid email address.",
-        "contactRequired": "Please give your name and email address."
+        "generic": "Please try again."
       }
     },
     "aiTransparency": {
@@ -1995,8 +1969,6 @@
       "unresolvable": "This host name could not be found."
     },
     "errors": {
-      "keyRequired": "Enter the API key. It's required when you add a provider or change its URL.",
-      "transcription": "Your transcription provider returned an error. Check your AI provider settings.",
       "loadFailed": "Could not load your AI settings."
     },
     "missing": {

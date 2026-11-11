@@ -6,6 +6,7 @@ import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
 import type { ImageQuotaScope } from '../../repos/uploads'
 import { MIB } from '~~/shared/config/units'
+import { apiError } from '../api/apiError'
 
 // Per-user storage quota for document images (`imageBytesPerUser` in
 // shared/config/tiers.ts, overridable via TIER_<PLAN>_IMAGE_BYTES_PER_USER).
@@ -15,9 +16,6 @@ import { MIB } from '~~/shared/config/units'
 //   - POST /api/upload/confirm   (confirmOwnUploadWithinQuota)
 //   - AI generate_image          (reservePendingUpload before the S3 PUT)
 //   - POST /api/docs/:id/duplicate (copies count against the duplicator)
-
-const IMAGE_QUOTA_CODE = 'upload/storage-quota'
-const IMAGE_QUOTA_MESSAGE_KEY = 'image.storageQuotaReached'
 
 /** The user's image byte quota under their effective plan. */
 async function resolveImageQuotaBytes(userId: number): Promise<number> {
@@ -76,15 +74,13 @@ export function imageQuotaMessage(limitBytes: number): string {
     + `Images you remove from your documents (or deleted documents) free up space once they are cleaned up. ${limitUpgradeHint()}`
 }
 
-/** 409 with a stable code + i18n key; never mentions a purchase that doesn't exist. */
+/**
+ * 409 `upload/storage-quota` (the client shows the code's text); never
+ * mentions a purchase that doesn't exist. The limit stays in the English
+ * message for API and MCP clients.
+ */
 export function imageQuotaError(limitBytes: number) {
-  return createError({
-    statusCode: 409,
-    message: imageQuotaMessage(limitBytes),
-    data: {
-      code: IMAGE_QUOTA_CODE,
-      messageKey: IMAGE_QUOTA_MESSAGE_KEY,
-      recovery: limitRecovery()
-    }
-  })
+  const error = apiError('upload/storage-quota', { recovery: limitRecovery() })
+  error.message = imageQuotaMessage(limitBytes)
+  return error
 }

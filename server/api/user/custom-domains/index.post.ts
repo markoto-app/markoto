@@ -12,6 +12,7 @@ import { HOUR_MS } from '~~/shared/config/units'
 // its own verification token. Plan feature `customDomains`.
 export default defineApiHandler({
   access: allow.user(),
+  instance: 'customDomains',
   body: addCustomDomainBody,
   invalidCode: 'custom-domain/invalid',
   plan: { feature: 'customDomains', message: 'Custom domains are part of the paid plans.' },

@@ -9,6 +9,7 @@ import { cancelWorkspaceSubscriptionAtPeriodEnd, cancelWorkspaceSubscriptionNow 
 import { deleteKeyTokens, deleteWorkspaceTeam, listMemberKeyTokens } from '../litellm/workspaceTeams'
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 import { AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED, AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED } from '../../legal/auditActions'
+import { apiError } from '../api/apiError'
 
 // Lifecycle hooks of Team / Business billing: what happens to a
 // workspace subscription when its workspace or its billing admin goes.
@@ -28,11 +29,7 @@ export async function endWorkspaceBilling(workspaceId: string, actorUserId: numb
   if (row && hasRunningSubscription(row)) {
     const stripe = isBillingEnabled() ? useStripeClient() : null
     if (!stripe) {
-      throw createError({
-        statusCode: 409,
-        message: 'This workspace still has a running subscription that can\'t be cancelled right now. Contact support to delete it.',
-        data: { code: 'billing/subscription-active', messageKey: 'workspace.billing.errors.subscriptionActive' }
-      })
+      throw apiError('billing/subscription-active')
     }
     await cancelWorkspaceSubscriptionNow(stripe, row)
     await appendAuditEvent({

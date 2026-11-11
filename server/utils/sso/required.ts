@@ -1,7 +1,6 @@
 import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
 import { getSsoConnectionForWorkspace } from '../../repos/sso'
-
-const SSO_REQUIRED_CODE = 'sso/required'
+import { apiError } from '../api/apiError'
 
 /**
  * For a caller who got no role in a workspace: if they ARE a member and
@@ -15,11 +14,7 @@ export async function ssoRequiredError(workspaceId: string, userId: number, retu
   // Admins may still manage (and switch off) the connection: the break-glass
   // the UI shows on the sign-in screen.
   const canManageSso = (await getMemberRoleIgnoringSso(workspaceId, userId)) === 'admin'
-  return createError({
-    statusCode: 403,
-    message: 'This workspace uses single sign-on. Sign in through your organisation to continue.',
-    data: { code: SSO_REQUIRED_CODE, messageKey: 'sso.required', loginUrl, canManageSso }
-  })
+  return apiError('sso/required', { loginUrl, canManageSso })
 }
 
 /** The SSO sign-in link for a member blocked by enforcement, else null. */

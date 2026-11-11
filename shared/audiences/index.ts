@@ -57,5 +57,6 @@ export type AudienceKind = keyof typeof AUDIENCES
 export const AUDIENCE_KINDS = Object.keys(AUDIENCES) as AudienceKind[]
 
 export function isAudienceKind(value: unknown): value is AudienceKind {
-  return typeof value === 'string' && value in AUDIENCES
+  // Own keys only: `'constructor' in AUDIENCES` is true for any object.
+  return typeof value === 'string' && Object.hasOwn(AUDIENCES, value)
 }

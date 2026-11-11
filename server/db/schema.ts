@@ -176,10 +176,6 @@ export const documents = pgTable('documents', {
   // older anonymous docs, and instances with the gate off.
   anonTermsVersion: integer('anon_terms_version'),
   anonTermsAcceptedAt: timestamp('anon_terms_accepted_at', { withTimezone: true }),
-  // Earliest time the inactive-doc sweep may delete this doc, so docs
-  // that predate the 30-day anonymous retention get a full 30-day notice
-  // window. NULL = no floor.
-  sweepNotBefore: timestamp('sweep_not_before', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
 }, table => [

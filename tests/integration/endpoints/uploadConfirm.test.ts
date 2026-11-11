@@ -315,9 +315,11 @@ describe('image storage quota', () => {
     expect(refused).toHaveLength(3)
     const first = refused[0]
     if (!first) throw new Error('expected a refused request')
-    const body = await first.json() as { data?: { code?: string, messageKey?: string } }
+    const body = await first.json() as { data?: { code?: string, messageKey?: string }, message?: string }
     expect(body.data?.code).toBe('upload/storage-quota')
-    expect(body.data?.messageKey).toBe('image.storageQuotaReached')
+    expect(body.data?.messageKey).toBeUndefined()
+    // API and MCP clients still read the limit in the English message.
+    expect(body.message).toMatch(/image storage limit \(/)
 
     const usage = await (await loggedInClient(user.id)).get('/api/user/billing')
     const billing = await usage.json() as { imageBytesUsed: number, imageBytesPerUserLimit: number }

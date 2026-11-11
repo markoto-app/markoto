@@ -42,7 +42,8 @@ describe('workspace request schemas', () => {
   it('inviteMemberBody allows guests but only known roles', () => {
     expect(inviteMemberBody.parse({ email: 'a@b.c', role: 'guest' }).role).toBe('guest')
     expect(inviteMemberBody.safeParse({ email: 'a@b.c', role: 'godmode' }).success).toBe(false)
-    expect(inviteMemberBody.safeParse({ role: 'editor' }).success).toBe(false)
+    // A missing address reaches the handler, which answers workspace/invalid-email before the rate limits.
+    expect(inviteMemberBody.parse({ role: 'editor' }).email).toBeUndefined()
   })
 
   it('knowledge upload bodies', () => {

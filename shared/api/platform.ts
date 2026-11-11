@@ -2,10 +2,12 @@
 // internal, _test, published and the non-/api routes). The internal routes are
 // called by other containers, the `_test` ones only under test mode.
 import { z } from 'zod'
+import { serialId } from './ids'
 
 /** GET /api/_internal/legal/:slug. The slug allowlist stays in the handler (an unknown slug is a 404, not a 400). */
 export const legalDocumentParams = z.object({ slug: z.string() })
-export const legalDocumentQuery = z.object({ locale: z.string().optional() })
+/** A repeated or otherwise unusable `locale` falls back to English, like an unsupported one. */
+export const legalDocumentQuery = z.object({ locale: z.string().optional().catch(undefined) })
 
 /** GET /api/_internal/render-bootstrap?docId=&t=: the render token itself is verified by `allow.internal('render-token')`. */
 export const renderBootstrapQuery = z.object({
@@ -35,10 +37,10 @@ export const internalActivityBody = z.object({
   userName: z.string().nullish().catch(null),
   actorPrincipal: z.string().nullish().catch(null),
   actorAvatarSeed: z.string().nullish().catch(null),
-  wordCount: z.number().nullish(),
-  linesAdded: z.number().nullish(),
-  linesRemoved: z.number().nullish(),
-  metadata: z.custom<object>(v => typeof v === 'object').nullish(),
+  wordCount: z.number().nullish().catch(null),
+  linesAdded: z.number().nullish().catch(null),
+  linesRemoved: z.number().nullish().catch(null),
+  metadata: z.custom<object>(v => typeof v === 'object').nullish().catch(null),
   yjsDocIdBefore: z.number().nullish().catch(null),
   yjsDocIdAfter: z.number().nullish().catch(null)
 })
@@ -46,14 +48,15 @@ export const internalActivityBody = z.object({
 /** POST /api/internal/comments-snapshot. The entries are shaped one by one in the handler, so a corrupt entry only drops itself. */
 export const commentsSnapshotBody = z.object({
   docId: z.string().min(1),
-  entries: z.array(z.unknown()),
+  // Each entry an object; its fields are checked one by one (a mistyped entry is skipped, not the snapshot).
+  entries: z.array(z.record(z.string(), z.unknown())),
   yjsDocIdBefore: z.number().nullish().catch(null),
   yjsDocIdAfter: z.number().nullish().catch(null)
 })
 
 /** POST /api/_test/login. */
 export const testLoginBody = z.object({
-  userId: z.coerce.number().int().positive(),
+  userId: serialId,
   name: z.string().optional().catch(undefined),
   loggedInAt: z.number().optional().catch(undefined)
 })

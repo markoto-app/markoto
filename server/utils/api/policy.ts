@@ -1,15 +1,16 @@
 import type { H3Event } from 'h3'
-import { getHeader, getQuery } from 'h3'
+import { getHeader, getQuery, setHeader } from 'h3'
 import { getValidatedUserSession, requireValidatedUserSession } from '../auth/validatedSession'
 import { requireAdminUser } from '../auth/adminAccess'
 import { rejectIfFromEdge, requireInternalSecret } from '../platform/internalRoutes'
 import { verifyRenderToken } from '../rendering/renderTokens'
 import { traefikProviderSettings, type TraefikProviderSettings } from '../customDomains/config'
 import { requireScimConnection } from '../sso/scim'
+import { scimErrorFormat } from '../sso/scimErrors'
 import type { SsoConnectionRow } from '../../repos/sso'
 import { apiError } from './apiError'
 import { docPolicy, type DocNeed, type DocPolicyOptions, type DocCtx } from './policyDoc'
-import { workspacePolicy, type WorkspaceNeed, type WorkspacePolicyOptions, type WorkspaceCtx } from './policyWorkspace'
+import { workspacePolicy, type WorkspaceNeed, type WorkspacePolicyOptions, type WorkspaceCtx, type WorkspaceSelfOptions, type WorkspaceSelfCtx } from './policyWorkspace'
 import type { Policy, PolicyGate, ResolveInput, ValidatedUser, AdminIdentity } from './policyTypes'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 import { matchesCurrentOrPrevious } from '~~/shared/utils/security/internalSecret'
@@ -106,6 +107,8 @@ function internalPolicy(via: InternalVia): Policy<InternalCtx> {
     resolve: async (event) => {
       if (via === 'secret') return { user: null }
       if (via === 'traefik-token') {
+        // Set before the token check so the 403 is never cached either.
+        setHeader(event, 'cache-control', 'no-store')
         const settings = traefikProviderSettings()
         if (settings && !matchesCurrentOrPrevious(getHeader(event, 'x-markoto-provider-token') ?? '', settings.token)) {
           throw apiError('internal/forbidden')
@@ -130,6 +133,8 @@ function scimPolicy(): Policy<{ user: null, connection: SsoConnectionRow }> {
   return {
     kind: 'scim',
     sessionless: true,
+    // Every refusal, including the token check and input validation, leaves as a SCIM Error object.
+    errorFormat: scimErrorFormat,
     gate: async event => ({ user: null, scimConnection: await requireScimConnection(event) }),
     resolve: async (_event, gate) => {
       if (!gate.scimConnection) throw apiError('auth/required')
@@ -163,8 +168,10 @@ function customPolicy<Ctx>(reason: string, o: { sessionless: boolean, check: (ev
   }
 }
 
-function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions): Policy<WorkspaceCtx> {
-  return workspacePolicy(need, o, userGate)
+function workspace(need: WorkspaceNeed, o: WorkspaceSelfOptions): Policy<WorkspaceSelfCtx>
+function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions): Policy<WorkspaceCtx>
+function workspace(need: WorkspaceNeed, o?: WorkspacePolicyOptions | WorkspaceSelfOptions): Policy<WorkspaceCtx> | Policy<WorkspaceSelfCtx> {
+  return o && 'orSelf' in o ? workspacePolicy(need, o, userGate) : workspacePolicy(need, o, userGate)
 }
 
 function doc<const A extends boolean = false>(need: DocNeed, o?: DocPolicyOptions<A>): Policy<DocCtx<A>> {
@@ -180,7 +187,7 @@ export const allow = {
   user: userPolicy,
   /** An instance admin (`users.is_admin`). 403 `admin/forbidden` otherwise. */
   admin: adminPolicy,
-  /** A role in the workspace of `:wsId`. No role → 404 `workspace/not-found`; too low → 403 `deny`. */
+  /** A role in the workspace of `:wsId`. No role → 404 `workspace/not-found`; too low → 403 `deny`. `orSelf`: anyone in it (guests too) acting on themselves. */
   workspace,
   /** Access to the document of `:docId` (or a body / query field), decided by shared/utils/documents/docPermissions.ts. */
   doc,

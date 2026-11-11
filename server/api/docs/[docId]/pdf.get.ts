@@ -2,7 +2,7 @@ import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { canDownload } from '../../../../shared/utils/documents/docPermissions'
 import { renderDocument } from '../../../utils/rendering/renderClient'
-import { consumeRenderAllowance } from '../../../utils/rendering/renderRateLimit'
+import { RENDER_RATE_LIMIT } from '../../../utils/rendering/renderRateLimit'
 import { docPdfQuery } from '~~/shared/api/docs'
 
 // Public-facing PDF download. Authorization mirrors GET /api/files/:docId/:fileId
@@ -28,18 +28,15 @@ import { docPdfQuery } from '~~/shared/api/docs'
 export default defineApiHandler({
   access: allow.doc('file', { anonymous: true, jwt: true, deny: 'files/access-denied' }),
   query: docPdfQuery,
+  // Rate limit: 10 renders per client per minute, the same allowance as the
+  // MCP render tools (`renderRateLimit.ts`). Each cache miss spawns a
+  // Playwright render (~5-15s renderer compute), so a tight anonymous loop on
+  // an open-edit doc could saturate the renderer pool and starve real users.
+  // Cache-hit responses are sub-second and still rate-limited (the counter
+  // doesn't differentiate hit vs. miss): the limit is on REQUEST volume, not
+  // renderer load. Counted before the lookup, so unknown ids count too.
+  rateLimit: { ...RENDER_RATE_LIMIT, key: 'ip', phase: 'before-access' },
   handler: async ({ event, docId, doc: row, state: doc, actor, query }) => {
-    // Rate limit: 10 renders per client per minute, shared with the MCP
-    // render tools (`renderRateLimit.ts`, so not a `rateLimit` option here).
-    // Each cache miss spawns a Playwright render (~5-15s renderer compute), so
-    // a tight anonymous loop on an open-edit doc could saturate the renderer
-    // pool and starve real users. Cache-hit responses are sub-second and still
-    // rate-limited (the counter doesn't differentiate hit vs. miss), which
-    // is the right call: the limit is on REQUEST volume, not renderer load.
-    if (!(await consumeRenderAllowance(event))) {
-      throw apiError('rate/limited')
-    }
-
     // Share-link controls: view-only without download for visitors.
     if (!canDownload(doc, actor, row.shareNoDownload)) {
       throw apiError('share/download-disabled')

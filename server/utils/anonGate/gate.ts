@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { createError, getCookie, getRequestProtocol, setCookie } from 'h3'
+import { getCookie, getRequestProtocol, setCookie } from 'h3'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from '../platform/valkey'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
@@ -30,6 +30,8 @@ import {
   signTermsCookie,
   type AnonTermsAcceptance
 } from './termsCookie'
+import { apiError } from '../api/apiError'
+import type { ApiErrorCode } from '~~/shared/api/errors'
 
 // H3 glue around the pure ALTCHA + terms-cookie cores. Endpoints call
 // `enforceAnonGate(event, body, purpose)` for anonymous callers only.
@@ -65,11 +67,7 @@ const valkeyReplayStore: ReplayStore = {
 function requireMasterKey(): string {
   const key = altchaMasterKey()
   if (key) return key
-  throw createError({
-    statusCode: 503,
-    message: 'The bot check is not configured on this server.',
-    data: { code: ANON_GATE_CODES.misconfigured, messageKey: 'anonGate.errors.unavailable' }
-  })
+  throw apiError('anon-gate/misconfigured')
 }
 
 function readAcceptance(event: H3Event, key: string): AnonTermsAcceptance | null {
@@ -90,13 +88,13 @@ export async function issueAnonChallenge(event: H3Event, purpose: AnonGatePurpos
   }
 }
 
-const OUTCOME_ERRORS: Record<Exclude<AnonSolutionOutcome, { ok: true }>['reason'], { code: string, message: string }> = {
-  'missing': { code: ANON_GATE_CODES.botCheckRequired, message: 'Please complete the bot check first.' },
-  'malformed': { code: ANON_GATE_CODES.botCheckFailed, message: 'The bot check could not be verified. Please try again.' },
-  'invalid': { code: ANON_GATE_CODES.botCheckFailed, message: 'The bot check could not be verified. Please try again.' },
-  'wrong-purpose': { code: ANON_GATE_CODES.botCheckFailed, message: 'The bot check could not be verified. Please try again.' },
-  'expired': { code: ANON_GATE_CODES.botCheckExpired, message: 'The bot check expired. Please try again.' },
-  'replayed': { code: ANON_GATE_CODES.botCheckReplayed, message: 'This bot check was already used. Please try again.' }
+const OUTCOME_CODES: Record<Exclude<AnonSolutionOutcome, { ok: true }>['reason'], ApiErrorCode> = {
+  'missing': ANON_GATE_CODES.botCheckRequired,
+  'malformed': ANON_GATE_CODES.botCheckFailed,
+  'invalid': ANON_GATE_CODES.botCheckFailed,
+  'wrong-purpose': ANON_GATE_CODES.botCheckFailed,
+  'expired': ANON_GATE_CODES.botCheckExpired,
+  'replayed': ANON_GATE_CODES.botCheckReplayed
 }
 
 /** Verify + burn the ALTCHA solution, or throw 403 (503 when Valkey is down). */
@@ -107,15 +105,11 @@ export async function requireBotCheck(event: H3Event, raw: unknown, purpose: Ano
     outcome = await verifyAnonSolution(raw, purpose, deriveAltchaSecrets(key), valkeyReplayStore)
   } catch (e) {
     Sentry.captureException(e, { tags: { component: 'anonGate', event: 'replay_store_unavailable' } })
-    throw createError({
-      statusCode: 503,
-      message: 'The bot check is temporarily unavailable. Please try again in a moment.',
-      data: { code: ANON_GATE_CODES.unavailable, messageKey: 'anonGate.errors.unavailable' }
-    })
+    throw apiError('anon-gate/unavailable', undefined, { cause: e })
   }
   if (outcome.ok) return
-  const { code, message } = OUTCOME_ERRORS[outcome.reason]
-  throw createError({ statusCode: 403, message, data: { code, messageKey: 'anonGate.errors.botCheck' } })
+  // Every outcome code is a 403 without params.
+  throw (apiError as (c: ApiErrorCode) => Error)(OUTCOME_CODES[outcome.reason])
 }
 
 /**
@@ -139,11 +133,7 @@ function requireTermsAcceptance(event: H3Event, acceptTerms: unknown): AnonTerms
     return acceptance
   }
   if (remembered) return remembered
-  throw createError({
-    statusCode: 403,
-    message: 'Please accept the Terms and confirm your age first.',
-    data: { code: ANON_GATE_CODES.termsRequired, messageKey: 'anonGate.errors.termsRequired' }
-  })
+  throw apiError('anon-gate/terms-required')
 }
 
 export interface AnonGateInput {

@@ -2,18 +2,19 @@
 // (server/api/docs/[docId]/{shares,publish,duplicate,workspace}). The
 // share-link settings schema stays in ./docs.ts. Shared with the client.
 import { z } from 'zod'
+import { serialId } from './ids'
 
 /** PUT /api/docs/:docId/shares: share with a guest of the document's workspace, or change their access. */
 export const upsertDocShareBody = z.object({
   // Coerced: clients have sent the id as a string.
-  userId: z.coerce.number().int().positive(),
+  userId: serialId,
   access: z.enum(['view', 'edit'])
 })
 
 /** DELETE /api/docs/:docId/shares/:userId */
 export const deleteDocShareParams = z.object({
   docId: z.string().min(1),
-  userId: z.coerce.number().int().positive()
+  userId: serialId
 })
 
 /**

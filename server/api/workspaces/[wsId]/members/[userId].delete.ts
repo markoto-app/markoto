@@ -16,22 +16,8 @@ import { workspaceMemberParams } from '~~/shared/api/workspaces'
 //     last admin — the "at least one admin" invariant would otherwise
 //     be broken. `removeMember` enforces that invariant transactionally.
 export default defineApiHandler({
-  // Not `allow.workspace`: a guest has no workspace role but may still leave
-  // on their own, and a non-admin may only remove themselves.
-  access: allow.custom('a member removes someone (admin) or leaves (any member, incl. a guest)', {
-    sessionless: false,
-    check: async (_event, input, gate) => {
-      if (!gate.user) throw apiError('auth/required')
-      const { wsId, userId: targetUserId } = input.params as { wsId: string, userId: number }
-      const isSelf = targetUserId === gate.user.id
-      const myRole = await getWorkspaceRole(gate.user.id, wsId)
-      // A guest has no workspace role but may leave on their own.
-      const leavingGuest = myRole === null && isSelf && (await getMembershipRole(wsId, gate.user.id)) === 'guest'
-      if (myRole === null && !leavingGuest) throw apiError('workspace/not-found')
-      if (!isSelf && myRole !== 'admin') throw apiError('workspace/admin-required')
-      return { user: gate.user, wsId, targetUserId, isSelf }
-    }
-  }),
+  // Leaving needs no role (guests too); removing someone else needs admin.
+  access: allow.workspace('admin', { orSelf: 'userId', deny: 'workspace/admin-required' }),
   params: workspaceMemberParams,
   handler: async ({ event, user, wsId, targetUserId, isSelf }) => {
     // Capture the removed member's role BEFORE the delete so the audit

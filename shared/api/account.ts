@@ -55,13 +55,15 @@ export const acceptOnboardingBody = z.object({
   ageConfirmed: z.boolean().nullish(),
   privacyVersion: z.number().int(),
   tosVersion: z.number().int(),
-  locale: z.string().nullish()
+  // Any other value falls back to the authoritative locale (the handler checks the list).
+  locale: z.string().nullish().catch(null)
 })
 
 /** POST /api/user/dpa-accept. */
 export const acceptDpaBody = z.object({
   dpaVersion: z.number().int(),
-  locale: z.string().nullish()
+  // Any other value falls back to the authoritative locale (the handler checks the list).
+  locale: z.string().nullish().catch(null)
 })
 
 export const exportJobParams = z.object({ jobId: z.string().min(1) })

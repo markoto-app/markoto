@@ -147,6 +147,17 @@ describe('knowledge presigned PUT: signed type, staging key, immutable original'
 
   // `content-type` must be a signed header, otherwise the original could be stored under any type (e.g.
   // `text/html` for a `.md`).
+  it('refuses file extensions that are names every object inherits', async () => {
+    const owner = await createUser()
+    const ws = await createWorkspace(owner.id)
+    const client = await loggedInClient(owner.id)
+    for (const filename of ['notes.constructor', 'notes.toString', 'notes.__proto__']) {
+      const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, { filename, size: 10 })
+      expect(res.status, filename).toBe(415)
+      expect((await res.json() as { data?: { code?: string } }).data?.code, filename).toBe('knowledge/unsupported-format')
+    }
+  })
+
   it('the PUT refuses a Content-Type other than the issued one', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)

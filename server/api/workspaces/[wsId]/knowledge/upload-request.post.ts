@@ -6,6 +6,7 @@ import { recordPendingKnowledgeUpload } from '../../../../utils/knowledge/knowle
 import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { requestKnowledgeUploadBody } from '~~/shared/api/workspaces'
+import { ownValue } from '~~/shared/utils/ownValue'
 
 /**
  * Step 1 of knowledge upload: mint a presigned PUT URL.
@@ -59,7 +60,7 @@ export default defineApiHandler({
     const { filename, size } = body
 
     const ext = filename.split('.').pop()?.toLowerCase() ?? ''
-    const mimeType = EXT_TO_MIME[ext]
+    const mimeType = ownValue(EXT_TO_MIME, ext)
     if (!mimeType) {
       throw apiError('knowledge/unsupported-format', { ext, allowed: Object.keys(EXT_TO_MIME).join(', ') })
     }

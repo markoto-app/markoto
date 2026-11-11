@@ -353,3 +353,60 @@ describe('DELETE /api/workspaces/:wsId/knowledge/:id', () => {
     expect(res.status).toBe(403)
   })
 })
+
+// The role rules every knowledge route applies, one table: viewers list,
+// editors upload / confirm / delete their own, admins delete any (also an
+// upload whose uploader is gone), guests and outsiders get 404 everywhere.
+describe('knowledge role rules across the routes', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  async function codeOf(res: Response): Promise<string | undefined> {
+    return (await res.json() as { data?: { code?: string } }).data?.code
+  }
+
+  it('guests of the workspace get 404 on every knowledge route', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const guest = await createUser()
+    await setMemberRole(ws.workspaceId, guest.id, 'guest')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: guest.id })
+    const client = await loggedInClient(guest.id)
+    const base = `/api/workspaces/${ws.workspaceId}/knowledge`
+    for (const res of [
+      await client.get(base),
+      await client.post(`${base}/upload-request`, { filename: 'notes.md', size: 10 }),
+      await client.post(`${base}/confirm`, { knowledgeId: kn.knowledge_id, s3Key: `workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}.md`, filename: 'notes.md', ext: 'md', mimeType: 'text/markdown' }),
+      await client.delete(`${base}/${kn.knowledge_id}`)
+    ]) {
+      expect(res.status).toBe(404)
+      expect(await codeOf(res)).toBe('workspace/not-found')
+    }
+    expect(await countRows(ws.workspaceId)).toBe(1)
+  })
+
+  it('viewers may not confirm an upload (403 knowledge/editor-required)', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const viewer = await createUser()
+    await setMemberRole(ws.workspaceId, viewer.id, 'viewer')
+    const client = await loggedInClient(viewer.id)
+    const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, { knowledgeId: 'kn-x', s3Key: `workspaces/${ws.workspaceId}/knowledge/kn-x.md`, filename: 'notes.md', ext: 'md', mimeType: 'text/markdown' })
+    expect(res.status).toBe(403)
+    expect(await codeOf(res)).toBe('knowledge/editor-required')
+  })
+
+  it('an upload without an uploader: only an admin may delete it', async () => {
+    const admin = await createUser()
+    const ws = await createWorkspace(admin.id)
+    const editor = await createUser()
+    await setMemberRole(ws.workspaceId, editor.id, 'editor')
+    const kn = await seedKnowledge({ workspace_id: ws.workspaceId, uploader_id: null })
+    const asEditor = await (await loggedInClient(editor.id)).delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)
+    expect(asEditor.status).toBe(403)
+    expect(await codeOf(asEditor)).toBe('knowledge/not-uploader')
+    expect((await (await loggedInClient(admin.id)).delete(`/api/workspaces/${ws.workspaceId}/knowledge/${kn.knowledge_id}`)).status).toBe(200)
+    expect(await countRows(ws.workspaceId)).toBe(0)
+  })
+})

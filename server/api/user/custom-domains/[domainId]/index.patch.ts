@@ -11,6 +11,7 @@ import { customDomainParams, setCustomDomainPageBody } from '~~/shared/api/accou
 // pointed at somebody else's page.
 export default defineApiHandler({
   access: allow.user(),
+  instance: 'customDomains',
   params: customDomainParams,
   body: setCustomDomainPageBody,
   invalidCode: 'custom-domain/invalid',

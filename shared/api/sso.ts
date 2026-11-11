@@ -2,6 +2,9 @@
 // (server/api/workspaces/[wsId]/sso/**), the sign-in discovery
 // (server/api/auth/sso/discover) and the sign-in legs under server/routes/auth/**.
 import { z } from 'zod'
+import { serialId } from './ids'
+
+const optionalText = z.string().nullish().catch(undefined)
 
 /** `:wsId` routes: the workspace policy reads `wsId` from the parsed params, so every params schema keeps it. */
 const wsParams = { wsId: z.string() }
@@ -17,13 +20,15 @@ export const ssoDomainParams = z.object({ ...wsParams, domainId: z.string() })
 export const updateSsoSettingsBody = z.object({
   protocol: z.enum(['oidc', 'saml']),
   defaultRole: z.enum(['editor', 'viewer']).optional(),
-  oidcIssuer: z.string().optional(),
-  oidcClientId: z.string().optional(),
-  /** Left out: keep the stored secret. */
-  oidcClientSecret: z.string().optional(),
-  samlIdpEntityId: z.string().optional(),
-  samlSsoUrl: z.string().optional(),
-  samlIdpCert: z.string().optional()
+  // A field that isn't text reads as absent: the chosen protocol's fields are
+  // then "required" (parseSsoSettings), the other protocol's are ignored.
+  oidcIssuer: optionalText,
+  oidcClientId: optionalText,
+  /** Absent, null or empty: keep the stored secret. */
+  oidcClientSecret: optionalText,
+  samlIdpEntityId: optionalText,
+  samlSsoUrl: optionalText,
+  samlIdpCert: optionalText
 })
 
 /** POST /api/workspaces/:wsId/sso/domains. Normalised (and consumer domains refused) by `normalizeSsoDomain`. */
@@ -60,3 +65,20 @@ export const oidcSignInQuery = z.object({
   error: z.unknown().optional(),
   state: z.unknown().optional()
 })
+
+// SCIM (server/routes/scim/v2/**). IdP clients send whatever their vendor
+// sends: unknown attributes are accepted and ignored, paging values that
+// aren't numbers fall back to the defaults instead of failing.
+
+/** /scim/v2/Users/:id: the identity's numeric id; anything else names no user (404). */
+export const scimUserParams = z.object({ id: serialId })
+
+/** GET /scim/v2/Users. `filter` is parsed by `parseScimFilter` (an unsupported one is a SCIM `invalidFilter`). */
+export const listScimUsersQuery = z.object({
+  filter: z.unknown().optional().transform(v => typeof v === 'string' ? v : undefined),
+  startIndex: z.unknown().optional().transform(v => Math.max(1, Number(v) || 1)),
+  count: z.unknown().optional().transform(v => v === undefined ? 100 : Math.max(0, Number(v) || 0))
+})
+
+/** A SCIM User or PatchOp body: any JSON object; server/utils/sso/scim.ts reads the attributes it supports. */
+export const scimResourceBody = z.record(z.string(), z.unknown())

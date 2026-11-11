@@ -66,7 +66,7 @@ Security
 - One authorization helper per concern: `canEditDoc` (content), `canManageDoc` (sharing, delete), `canManageWorkspace` (admin). `workspaces.ownerId` is provenance, never authorization.
 - Never return `passwordHash`; project columns explicitly on public endpoints.
 - Never sign a usable document JWT for a forbidden or password-gated document: return `token: null`.
-- Every route declares who may call it: `defineApiHandler({ access: allow.*(), … })` (`server/utils/api/`, guide: `docs/contributing/api-handlers.md`). Files still on `tests/unit/platform/apiRoutes.legacy.ts` are converted by batch; never add to that list.
+- Every route declares who may call it: `defineApiHandler({ access: allow.*(), … })` (`server/utils/api/`, guide: `docs/contributing/api-handlers.md`). The only raw handler is the dictation WebSocket (`tests/unit/platform/apiRoutes.exceptions.ts`); never add to that list without a reason the wrapper can't express.
 - A route reachable without a session (a sessionless `allow.*` policy) needs an entry in `server/utils/auth/publicRoutes.ts` with a comment saying why; the middleware requires a session for every other `/api` route, and `tests/unit/platform/apiRoutes.test.ts` keeps the two in step.
 - Internal routes (`/api/internal/**`, sync `/internal/**`, render routes) are reached container-to-container only; requests carrying edge-proxy forwarding headers get 404.
 

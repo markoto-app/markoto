@@ -16,6 +16,7 @@ import {
   type AiProviderConfigView,
   type ProviderPreset
 } from '~~/shared/ai/providers'
+import { apiErrorData } from '~/utils/api/errors'
 
 const props = defineProps<{
   capability: AiCapability
@@ -28,7 +29,7 @@ const emit = defineEmits<{ changed: [] }>()
 
 const { t, locale } = useI18n()
 const toast = useToast()
-const { handleReauthRequired } = useErrorHandler()
+const { handleReauthRequired, extractError } = useErrorHandler()
 
 const CUSTOM = 'custom'
 const editing = ref(false)
@@ -112,26 +113,16 @@ function fmtDate(iso: string | null): string {
   }
 }
 
-function field(obj: unknown, key: string): unknown {
-  if (typeof obj !== 'object' || obj === null) return undefined
-  return (obj as Record<string, unknown>)[key]
-}
-
-function str(value: unknown): string {
-  return typeof value === 'string' ? value : ''
-}
-
 /**
- * Prefer the localised server reason (`data.messageKey`); append the
- * server's own (key-free) message as detail. `$fetch` errors carry the
- * H3 error body in `.data`, whose own `.data` holds our fields.
+ * The refusal in the reader's language (the per-reason text or the code's
+ * text, app/utils/api/errors.ts), followed by the server's own (English)
+ * detail when it says something else.
  */
 function errorText(e: unknown, fallbackKey: string): string {
-  const body = field(e, 'data')
-  const key = str(field(field(body, 'data'), 'messageKey'))
-  const localised = key ? t(key) : ''
-  const detail = str(field(body, 'message')) || str(field(e, 'message'))
-  if (localised && localised !== key) return detail && detail !== localised ? `${localised} — ${detail}` : localised
+  const { code, message } = extractError(e)
+  const raw = apiErrorData(e)?.message
+  const detail = typeof raw === 'string' ? raw : ''
+  if (code !== null) return detail && detail !== message ? `${message} — ${detail}` : message
   return detail || t(fallbackKey)
 }
 

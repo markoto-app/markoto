@@ -1,5 +1,5 @@
 {
-  "id": "dca85da6-6aef-470a-a25e-afd42fa42744",
+  "id": "6c47c32c-d31c-4e3c-97c0-018ea3ce70aa",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -1952,12 +1952,6 @@
         },
         "anon_terms_accepted_at": {
           "name": "anon_terms_accepted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "sweep_not_before": {
-          "name": "sweep_not_before",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false

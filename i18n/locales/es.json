@@ -26,8 +26,7 @@
     "linkedTitle": "Cuentas vinculadas",
     "linkedDescription": "Tu inicio de sesión con {provider} ya está conectado a tu cuenta existente. A partir de ahora puedes iniciar sesión con cualquiera de los dos proveedores.",
     "reauthTitle": "Vuelve a iniciar sesión",
-    "reauthAction": "Iniciar sesión de nuevo",
-    "reauthRequired": "Por tu seguridad, esta acción requiere un inicio de sesión reciente. Vuelve a iniciar sesión e inténtalo de nuevo."
+    "reauthAction": "Iniciar sesión de nuevo"
   },
   "editor": {
     "untitled": "Sin título",
@@ -279,8 +278,7 @@
     "loginToUpload": "Inicia sesión para subir imágenes.",
     "uploadFailed": "Error al subir la imagen",
     "dropToUpload": "Suelta la imagen para subirla",
-    "uploading": "Subiendo...",
-    "storageQuotaReached": "Has alcanzado tu límite de almacenamiento de imágenes. Las imágenes que quitas de tus documentos liberan espacio cuando se limpian."
+    "uploading": "Subiendo..."
   },
   "import": {
     "title": "Importar documento",
@@ -625,10 +623,6 @@
     "responseQuestionLabel": "markoto está preguntando",
     "responseDismiss": "Descartar",
     "responseShowLast": "Última respuesta de markoto",
-    "errors": {
-      "duplicateSession": "Ya tienes una sesión de markoto en curso en este documento.",
-      "abortNotInitiator": "Solo la persona que inició esta sesión de markoto puede detenerla."
-    },
     "exhaustedPlaceholderFree": "Sin créditos de IA — se recargan en el próximo periodo",
     "budgetExhaustedResetDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo.",
     "webToolsHourlyLimit": "Has alcanzado el límite por hora de búsqueda web y obtención de páginas. Inténtalo de nuevo dentro de una hora o continúa sin herramientas web.",
@@ -816,7 +810,6 @@
       "year": "Anual · 2 meses gratis"
     },
     "currencyLabel": "Moneda",
-    "currencyLocked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar.",
     "countPerSeat": {
       "aiPoints": "{n} punto de IA por puesto al mes, compartido | {n} puntos de IA por puesto al mes, compartidos",
       "workspaces": "{n} espacio de trabajo propio | {n} espacios de trabajo propios",
@@ -1420,12 +1413,6 @@
       "pendingExpires": "caduca el {date}",
       "revoke": "Retirar invitación",
       "revokeFailed": "No se pudo retirar la invitación",
-      "errors": {
-        "invalidEmail": "Introduce una dirección de correo válida.",
-        "alreadyMember": "Esta persona ya es miembro del espacio de trabajo.",
-        "inviteCap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero.",
-        "guestCap": "Este espacio de trabajo tiene tantos invitados como permite su plan (5 por puesto de pago). Elimina un invitado o añade un puesto primero."
-      },
       "invitePeople": "Invitar a personas",
       "guestHint": "Un invitado solo ve los documentos que compartes con él, no ocupa un puesto y usa su propio presupuesto de IA."
     },
@@ -1440,9 +1427,6 @@
       "accepted": "Te has unido a {name}",
       "acceptFailed": "No se pudo aceptar la invitación",
       "declineFailed": "No se pudo rechazar la invitación",
-      "errors": {
-        "notFound": "Esta invitación ya no existe o ha caducado."
-      },
       "page": {
         "title": "Invitación a un espacio de trabajo",
         "intro": "Te han invitado a unirte a un espacio de trabajo en markoto.",
@@ -1611,8 +1595,7 @@
     "shareAccessModeFailed": "No se pudo actualizar la configuración de uso compartido",
     "sharePasswordFailed": "No se pudo establecer la contraseña del documento",
     "activityLoadFailed": "No se pudo cargar la actividad",
-    "retry": "Reintentar",
-    "moderationRestricted": "Este documento se restringió tras una denuncia. No se puede compartir, hacer público ni publicar hasta que se levante la restricción."
+    "retry": "Reintentar"
   },
   "legal": {
     "ageGate": {
@@ -1741,16 +1724,7 @@
       "signIn": "Iniciar sesión",
       "errors": {
         "title": "No se pudo enviar la denuncia",
-        "generic": "Inténtalo de nuevo.",
-        "rateLimited": "Demasiadas denuncias desde tu red. Inténtalo más tarde.",
-        "loginRequired": "Inicia sesión para denunciar contenido.",
-        "category": "Elige qué estás denunciando.",
-        "urlRequired": "Indica la dirección (URL) del contenido.",
-        "bodyTooShort": "Explica qué problema tiene el contenido (al menos 10 caracteres).",
-        "bodyTooLong": "La explicación es demasiado larga (5000 caracteres como máximo).",
-        "goodFaith": "Confirma que tu denuncia es exacta y se hace de buena fe.",
-        "email": "Introduce una dirección de correo válida.",
-        "contactRequired": "Indica tu nombre y tu dirección de correo."
+        "generic": "Inténtalo de nuevo."
       }
     },
     "aiTransparency": {
@@ -1995,8 +1969,6 @@
       "unresolvable": "No se encontró este nombre de host."
     },
     "errors": {
-      "keyRequired": "Introduce la clave de API. Es obligatoria al añadir un proveedor o cambiar su URL.",
-      "transcription": "Tu proveedor de transcripción devolvió un error. Revisa los ajustes de tu proveedor de IA.",
       "loadFailed": "No se pudieron cargar tus ajustes de IA."
     },
     "missing": {

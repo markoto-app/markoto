@@ -11,6 +11,24 @@ export interface ApiErrorData {
   [key: string]: unknown
 }
 
+/**
+ * Our fields of a thrown API error, whatever wrapped them. A `$fetch` error
+ * carries the response body in `.data`, and the body carries our fields in
+ * its own `.data` (`{ statusCode, message, data: { code, … } }`); callers
+ * that already unwrapped pass `{ data: { code, … } }`. The body's `message`
+ * (the English text) comes along for codes the client can't translate.
+ */
+export function apiErrorData(err: unknown): ApiErrorData | undefined {
+  const outer = (err as { data?: unknown } | null | undefined)?.data
+  if (typeof outer !== 'object' || outer === null) return undefined
+  const body = outer as Record<string, unknown>
+  const inner = body.data
+  if (typeof inner === 'object' && inner !== null && !Array.isArray(inner) && typeof body.code !== 'string') {
+    return { ...(inner as Record<string, unknown>), ...(typeof body.message === 'string' ? { message: body.message } : {}) }
+  }
+  return body as ApiErrorData
+}
+
 export interface ErrorText {
   key: string
   params: Record<string, unknown>
@@ -37,8 +55,8 @@ const PER_OCCURRENCE: Record<string, (data: ApiErrorData) => string | undefined>
 function registryText(data: ApiErrorData): ErrorText | null {
   if (!isApiErrorCode(data.code)) return null
   const spec = API_ERRORS[data.code] as { params?: { shape: Record<string, { safeParse: (v: unknown) => { success: boolean } }> } }
-  // An unconverted route may send a registered code without the params the
-  // text interpolates; then its own messageKey / message is the better text.
+  // An error built outside `apiError` may carry a registered code without the
+  // params the text interpolates; then its messageKey / message is the better text.
   const shape = spec.params?.shape ?? {}
   const missing = Object.entries(shape).some(([name, field]) => !field.safeParse(undefined).success && data[name] === undefined)
   if (missing) return null
@@ -49,7 +67,8 @@ function registryText(data: ApiErrorData): ErrorText | null {
 export function apiErrorTexts(data: ApiErrorData | undefined): ErrorText[] {
   if (!data) return []
   const out: ErrorText[] = []
-  const perOccurrence = data.code ? PER_OCCURRENCE[data.code]?.(data) : undefined
+  // Own keys only: a code like "constructor" must not reach Object.prototype.
+  const perOccurrence = data.code && Object.hasOwn(PER_OCCURRENCE, data.code) ? PER_OCCURRENCE[data.code]!(data) : undefined
   if (perOccurrence) out.push({ key: perOccurrence, params: data })
   const registered = registryText(data)
   if (registered) out.push(registered)

@@ -22,7 +22,8 @@ const FILE_TOKEN_TTL_SECONDS = 15 * 60
 
 export default defineApiHandler({
   access: allow.doc('file', { anonymous: true, jwt: true, deny: 'files/access-denied' }),
-  rateLimit: { namespace: 'file-token', max: 60, windowMs: MINUTE_MS, key: 'ip' },
+  // Before the lookup: every request counts, unknown ids included.
+  rateLimit: { namespace: 'file-token', max: 60, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
   handler: async ({ event, docId }) => {
     setResponseHeader(event, 'Cache-Control', 'private, no-store')
     return mintFileAccessToken(docId, FILE_TOKEN_TTL_SECONDS)

@@ -244,7 +244,8 @@ describe('publish as a web page', () => {
 
     const refused = async (res: Response) => {
       expect(res.status, await res.clone().text()).toBe(403)
-      expect((await res.json() as { data?: { code?: string, messageKey?: string } }).data).toMatchObject({ code: 'moderation/restricted', messageKey: 'error.moderationRestricted' })
+      // The client shows the code's text (apiErrors.moderation.restricted); no per-route key.
+      expect((await res.json() as { data?: Record<string, unknown> }).data).toEqual({ code: 'moderation/restricted' })
     }
     await refused(await client.post(`/api/docs/${doc.docId}/publish`, {}))
     await refused(await client.put(`/api/docs/${doc.docId}/meta`, { accessMode: 'open-view' }))

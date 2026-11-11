@@ -9,6 +9,3 @@ export const RECENT_LOGIN_MAX_AGE_MS = 12 * HOUR_MS
 
 /** Machine code of the 401 a sensitive action answers with a stale sign-in. */
 export const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
-
-/** i18n key the client shows for `REAUTH_REQUIRED_CODE`. */
-export const REAUTH_REQUIRED_MESSAGE_KEY = 'auth.reauthRequired'

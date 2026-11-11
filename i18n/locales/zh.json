@@ -26,8 +26,7 @@
     "linkedTitle": "账号已关联",
     "linkedDescription": "你的 {provider} 登录已连接到现有账号。此后你可以使用任一登录方式登录。",
     "reauthTitle": "请重新登录",
-    "reauthAction": "重新登录",
-    "reauthRequired": "为了您的安全，此操作需要近期登录。请重新登录后再试。"
+    "reauthAction": "重新登录"
   },
   "editor": {
     "untitled": "无标题",
@@ -279,8 +278,7 @@
     "loginToUpload": "请登录以上传图片。",
     "uploadFailed": "图片上传失败",
     "dropToUpload": "拖放图片以上传",
-    "uploading": "上传中…",
-    "storageQuotaReached": "你已达到图片存储上限。从文档中删除的图片在清理后会释放空间。"
+    "uploading": "上传中…"
   },
   "import": {
     "title": "导入文档",
@@ -625,10 +623,6 @@
     "responseQuestionLabel": "markoto 询问",
     "responseDismiss": "关闭",
     "responseShowLast": "markoto 的最新回复",
-    "errors": {
-      "duplicateSession": "你在本文档上已有一个正在运行的 markoto 会话。",
-      "abortNotInitiator": "只有发起此 markoto 会话的人才能停止它。"
-    },
     "exhaustedPlaceholderFree": "AI 额度已用尽——下个周期将自动补充",
     "budgetExhaustedResetDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充。",
     "webToolsHourlyLimit": "您已达到网页搜索和页面抓取的每小时上限。请在一小时内重试，或不使用网页工具继续。",
@@ -816,7 +810,6 @@
       "year": "按年 · 免 2 个月"
     },
     "currencyLabel": "货币",
-    "currencyLocked": "你的订阅使用另一种货币计费，无法更改。请选择该货币以继续。",
     "countPerSeat": {
       "aiPoints": "每个席位每月 {n} AI 点数（共享）",
       "workspaces": "你拥有的 {n} 个工作区",
@@ -1420,12 +1413,6 @@
       "pendingExpires": "{date} 过期",
       "revoke": "撤销邀请",
       "revokeFailed": "无法撤销邀请",
-      "errors": {
-        "invalidEmail": "请输入有效的邮箱地址。",
-        "alreadyMember": "此人已是该工作区的成员。",
-        "inviteCap": "此工作区的待处理邀请过多。请先撤销一些。",
-        "guestCap": "此工作区的访客数量已达到其套餐上限（每个付费席位 5 位）。请先移除一位访客或增加席位。"
-      },
       "invitePeople": "邀请成员",
       "guestHint": "访客只能看到你与其共享的文档，不占用席位，并使用自己的 AI 额度。"
     },
@@ -1440,9 +1427,6 @@
       "accepted": "您已加入 {name}",
       "acceptFailed": "无法接受邀请",
       "declineFailed": "无法拒绝邀请",
-      "errors": {
-        "notFound": "此邀请已不存在或已过期。"
-      },
       "page": {
         "title": "工作区邀请",
         "intro": "您已被邀请加入 markoto 上的一个工作区。",
@@ -1611,8 +1595,7 @@
     "shareAccessModeFailed": "无法更新分享设置",
     "sharePasswordFailed": "无法设置文档密码",
     "activityLoadFailed": "无法加载活动",
-    "retry": "重试",
-    "moderationRestricted": "此文档因举报已被限制。在限制解除之前，无法共享、公开或发布。"
+    "retry": "重试"
   },
   "legal": {
     "ageGate": {
@@ -1741,16 +1724,7 @@
       "signIn": "登录",
       "errors": {
         "title": "无法提交举报",
-        "generic": "请重试。",
-        "rateLimited": "来自你所在网络的举报过多。请稍后再试。",
-        "loginRequired": "请登录后举报内容。",
-        "category": "请选择举报类型。",
-        "urlRequired": "请填写内容的地址（URL）。",
-        "bodyTooShort": "请说明该内容的问题（至少 10 个字符）。",
-        "bodyTooLong": "说明过长（最多 5000 个字符）。",
-        "goodFaith": "请确认你的举报准确且出于善意。",
-        "email": "请输入有效的电子邮箱地址。",
-        "contactRequired": "请填写你的姓名和电子邮箱地址。"
+        "generic": "请重试。"
       }
     },
     "aiTransparency": {
@@ -1995,8 +1969,6 @@
       "unresolvable": "找不到该主机名。"
     },
     "errors": {
-      "keyRequired": "请输入 API 密钥。添加服务商或更改 URL 时必须填写。",
-      "transcription": "你的转写服务商返回了错误，请检查 AI 服务商设置。",
       "loadFailed": "无法加载你的 AI 设置。"
     },
     "missing": {

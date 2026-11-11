@@ -1,4 +1,4 @@
-import { and, isNull, lt, lte, or } from 'drizzle-orm'
+import { and, isNull, lt } from 'drizzle-orm'
 import { documents } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { DAY_MS } from '~~/shared/config/units'
@@ -7,10 +7,7 @@ import { DAY_MS } from '~~/shared/config/units'
 //
 // An anonymous document (no owner, no workspace) is deleted once it has
 // had no activity for `ttlDays` (NUXT_INACTIVE_DOC_TTL_DAYS, default 30 —
-// the period the Terms and the privacy policy state) AND its
-// `sweep_not_before` floor, if any, has passed (migration 0024 set the
-// floor on anonymous docs that existed when the period was shortened, so
-// none is deleted sooner than the period it was created under).
+// the period the Terms and the privacy policy state).
 //
 // Owned and workspace docs are never candidates.
 
@@ -32,7 +29,6 @@ export async function loadInactiveAnonymousDocs(
     .where(and(
       isNull(documents.ownerId),
       isNull(documents.workspaceId),
-      lt(documents.lastActive, cutoff),
-      or(isNull(documents.sweepNotBefore), lte(documents.sweepNotBefore, now))
+      lt(documents.lastActive, cutoff)
     ))
 }

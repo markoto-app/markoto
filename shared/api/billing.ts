@@ -1,5 +1,6 @@
 // Request schemas of the billing routes (server/api/billing/**, server/api/workspaces/[wsId]/billing/**).
 import { z } from 'zod'
+import { serialId } from './ids'
 import { BILLING_INTERVALS, CURRENCIES, TOPUP_PACK_IDS } from '../config/pricing'
 
 /**
@@ -40,10 +41,14 @@ export const buyWorkspaceTopupBody = z.object({
 export const changeSeatsBody = z.object({ seats: z.unknown().optional() }).nullish()
 
 /** PATCH …/billing/members/:userId. */
-export const memberUserParams = z.object({ userId: z.coerce.number().int().positive() })
+export const memberUserParams = z.object({ userId: serialId })
 
-/** `{ limitUsd: number }`, `{ limitUsd: null }` (no member limit) or `{ default: true }`; the range is checked by the handler. */
+/**
+ * `{ limitUsd: number }`, `{ limitUsd: null }` (no member limit) or `{ default: true }`;
+ * the range is checked by the handler. A wrongly typed field reads as absent, so
+ * the handler answers `billing/invalid-member-limit` (with the maximum) for it.
+ */
 export const setMemberLimitBody = z.object({
-  limitUsd: z.number().nullable().optional(),
-  default: z.boolean().optional()
+  limitUsd: z.number().nullable().optional().catch(undefined),
+  default: z.boolean().optional().catch(undefined)
 }).nullish()

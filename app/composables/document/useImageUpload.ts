@@ -1,5 +1,6 @@
 import type { EditorView } from '@codemirror/view'
 import { nanoid } from 'nanoid'
+import { apiErrorData, apiErrorTexts } from '~/utils/api/errors'
 
 interface UploadResult {
   fileId: string
@@ -50,18 +51,18 @@ export function useImageUpload(docId: string) {
       const url = `/api/files/${docId}/${fileId}`
       return { fileId, url }
     } catch (e) {
-      const err = e as { statusCode?: number, status?: number, data?: { statusCode?: number, message?: string, data?: { messageKey?: string } }, message?: string }
+      const err = e as { statusCode?: number, status?: number, data?: { statusCode?: number }, message?: string }
       const statusCode = err.statusCode || err.data?.statusCode || err.status
-      // `err.data` is the error body; the server's hint sits in its `data`.
-      const messageKey = err.data?.data?.messageKey
+      const data = apiErrorData(e)
+      // The refusal's text in the reader's language, from its code (e.g. 409
+      // `upload/storage-quota`), instead of the English server message.
+      const known = apiErrorTexts(data).find(c => i18n.te(c.key))
       if (statusCode === 401) {
         error.value = 'login_required'
-      } else if (messageKey && i18n.te(messageKey)) {
-        // Localised server hint, e.g. `image.storageQuotaReached` (409
-        // `upload/storage-quota`) instead of the English server message.
-        error.value = i18n.t(messageKey)
+      } else if (known) {
+        error.value = i18n.t(known.key, known.params)
       } else {
-        error.value = err.data?.message || err.message || 'Upload failed'
+        error.value = (typeof data?.message === 'string' && data.message) || err.message || 'Upload failed'
       }
       return null
     } finally {

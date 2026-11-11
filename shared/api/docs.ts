@@ -1,6 +1,7 @@
 // Request schemas of the document routes (server/api/docs/**). Shared with the
 // client, which may validate a form with the same schema before sending.
 import { z } from 'zod'
+import { serialId } from './ids'
 import { AUDIENCE_KINDS } from '../audiences'
 import { LANGUAGE_MAX_LENGTH } from '../languages'
 import { isTemplateId, resolveTemplateId } from '../templates'
@@ -90,5 +91,5 @@ export const docPdfQuery = z.object({
 /** /api/docs/:docId/activity/:activityId/* */
 export const activityParams = z.object({
   docId: z.string().min(1),
-  activityId: z.coerce.number().int().positive()
+  activityId: serialId
 })

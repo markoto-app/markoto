@@ -1,5 +1,6 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { fileTypeFromBuffer } from 'file-type'
+import { ownValue } from '~~/shared/utils/ownValue'
 
 /**
  * Content-type guard run at confirm time, BEFORE the DB row is
@@ -123,7 +124,7 @@ export async function requireContentMatchesExtension(args: {
     return
   }
 
-  const allowed = EXT_TO_ALLOWED_MIMES[ext]
+  const allowed = ownValue(EXT_TO_ALLOWED_MIMES, ext)
   if (!allowed) {
     throw createError({ statusCode: 415, message: `Unsupported extension: .${ext}` })
   }
@@ -161,7 +162,7 @@ export async function requireContentMatchesExtension(args: {
  * Binary formats only.
  */
 export async function bytesMatchExtension(bytes: Uint8Array, ext: string): Promise<boolean> {
-  const allowed = EXT_TO_ALLOWED_MIMES[ext.toLowerCase()]
+  const allowed = ownValue(EXT_TO_ALLOWED_MIMES, ext.toLowerCase())
   if (!allowed) return false
   const detected = await fileTypeFromBuffer(bytes)
   return detected !== undefined && allowed.includes(detected.mime)

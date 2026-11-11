@@ -16,7 +16,7 @@ import { createSharedComposable } from '@vueuse/core'
 import { loginPath, type LoginProvider } from '~~/shared/config/instance'
 import { isPlanErrorCode } from '~~/shared/config/planErrors'
 import { REAUTH_REQUIRED_CODE } from '~~/shared/config/reauth'
-import { apiErrorTexts, fieldErrors, type ApiErrorData, type FieldErrorText } from '~~/app/utils/api/errors'
+import { apiErrorData, apiErrorTexts, fieldErrors, type FieldErrorText } from '~~/app/utils/api/errors'
 
 interface FetchErrorLike {
   statusCode?: number
@@ -73,15 +73,15 @@ function useErrorHandlerImpl() {
   function extractError(err: unknown): ExtractedError {
     const e = (err ?? {}) as FetchErrorLike
     const statusCode = e.statusCode ?? e.status ?? e.data?.statusCode ?? null
-    const code = e.data?.code ?? null
-    const recovery = e.data?.recovery ?? null
+    // `$fetch` nests our fields one level down (`e.data.data`); apiErrorData unwraps either shape.
+    const data = apiErrorData(e)
+    const code = typeof data?.code === 'string' ? data.code : null
+    const recovery = (data?.recovery ?? null) as ExtractedError['recovery']
 
-    const data: ApiErrorData | undefined = e.data
     // `te` (translation exists) avoids missing-key warnings when probing optional keys.
     const known = apiErrorTexts(data).find(c => te(c.key))
     // An unregistered code's raw message is English but still informative.
-    // eslint-disable-next-line no-restricted-syntax -- the one place the raw server message is read
-    const rawMessage = e.data?.message ?? e.message ?? null
+    const rawMessage = (typeof data?.message === 'string' ? data.message : null) ?? e.message ?? null
     const statusKey = statusCode === null ? undefined : STATUS_KEYS[statusCode]
     let message: string
     if (known) message = t(known.key, known.params)

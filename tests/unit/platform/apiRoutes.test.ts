@@ -4,13 +4,13 @@ import ts from 'typescript'
 import { describe, it, expect } from 'vitest'
 import { isPublicRoute, PUBLIC_ROUTES, TEST_ONLY_PUBLIC_ROUTES } from '../../../server/utils/auth/publicRoutes'
 import { classifyInternalRoute } from '../../../server/utils/platform/internalRoutes'
-import { LEGACY_HANDLERS, RAW_HANDLER_EXCEPTIONS } from './apiRoutes.legacy'
+import { RAW_HANDLER_EXCEPTIONS } from './apiRoutes.exceptions'
 
 // Every handler file declares its access structurally (docs/contributing/api-handlers.md).
 // The source is parsed, never imported: no handler code runs here.
 //
-//   - The default export is `defineApiHandler({...})` (or `defineScimHandler`),
-//     unless the file is on the shrink-only legacy list or a raw exception.
+//   - The default export is `defineApiHandler({...})`, unless the file is a
+//     listed raw exception.
 //   - `access` is an `allow.*()` call; public, custom and doc-lookup policies say why.
 //   - POST / PUT / PATCH handlers declare their `body`.
 //   - A policy is sessionless exactly when the middleware lets the route
@@ -114,23 +114,17 @@ function sessionless(access: NonNullable<Declaration['access']>): boolean {
 
 const files = [...walk(join(ROOT, 'server/api')), ...walk(join(ROOT, 'server/routes'))].map(f => relative(ROOT, f)).sort()
 const handlers = files.map(routeOf)
-const legacy = new Set(LEGACY_HANDLERS)
-
 describe('API route declarations', () => {
-  it('the legacy list is sorted, has no duplicates and names existing files only', () => {
-    expect([...LEGACY_HANDLERS]).toEqual([...new Set(LEGACY_HANDLERS)].sort())
-    expect(LEGACY_HANDLERS.filter(f => !files.includes(f))).toEqual([])
+  it('the exception list names existing files only', () => {
     expect(Object.keys(RAW_HANDLER_EXCEPTIONS).filter(f => !files.includes(f))).toEqual([])
   })
 
-  it('every handler is converted, legacy (shrink-only) or a listed exception', () => {
+  it('every handler is declared with defineApiHandler or is a listed exception', () => {
     const problems: string[] = []
     for (const { file } of handlers) {
       if (RAW_HANDLER_EXCEPTIONS[file]) continue
       const d = declarationOf(file)
-      const converted = d.callee === 'defineApiHandler' || d.callee === 'defineScimHandler'
-      if (legacy.has(file) && d.callee === 'defineApiHandler') problems.push(`${file}: converted, remove it from apiRoutes.legacy.ts`)
-      if (!legacy.has(file) && !converted) problems.push(`${file}: default export is ${d.callee ?? 'not a call'}, not defineApiHandler`)
+      if (d.callee !== 'defineApiHandler') problems.push(`${file}: default export is ${d.callee ?? 'not a call'}, not defineApiHandler`)
     }
     expect(problems).toEqual([])
   })
@@ -183,10 +177,28 @@ describe('API route declarations', () => {
     expect(stale).toEqual([])
   })
 
-  it('outside /api only converted handlers (or exceptions) exist besides the legacy ones', () => {
-    // The middleware guards /api only; elsewhere the wrapper's policy is the gate.
-    const raw = handlers.filter(h => !h.route.startsWith('/api/') && !legacy.has(h.file) && !RAW_HANDLER_EXCEPTIONS[h.file])
-      .filter(h => !['defineApiHandler', 'defineScimHandler'].includes(declarationOf(h.file).callee ?? ''))
+  it('outside /api every handler declares an allow.* policy (the middleware guards /api only)', () => {
+    const raw = handlers.filter(h => !h.route.startsWith('/api/') && !RAW_HANDLER_EXCEPTIONS[h.file])
+      .filter(h => !declarationOf(h.file).access)
     expect(raw.map(h => h.file)).toEqual([])
+  })
+
+  it('per-client limits that throttle probing count every request (before the session and the lookup)', () => {
+    // Anonymous-reachable routes whose 404 for an unknown id must not be free.
+    const probing = [
+      'server/api/docs/[docId]/token.get.ts',
+      'server/api/docs/[docId]/index.delete.ts',
+      'server/api/docs/[docId]/file-token.get.ts',
+      'server/api/docs/[docId]/pdf.get.ts',
+      'server/api/docs/[docId]/brand/[file].get.ts',
+      'server/api/published/[pageId]/[kind]/[file].get.ts',
+      'server/api/import.post.ts'
+    ]
+    const missing = probing.filter((file) => {
+      const limit = declarationOf(file).props.get('rateLimit')
+      const phase = objectProp(limit, 'phase')
+      return !phase || !ts.isStringLiteral(phase) || phase.text !== 'before-access'
+    })
+    expect(missing).toEqual([])
   })
 })

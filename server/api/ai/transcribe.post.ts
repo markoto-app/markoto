@@ -21,6 +21,7 @@ import { budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/bi
 import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { TRANSCRIBE_AUDIO_MAX_BYTES } from '~~/shared/config/uploads'
 import { transcribeBody } from '~~/shared/api/ai'
+import { ownValue } from '~~/shared/utils/ownValue'
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -106,7 +107,7 @@ async function transcribeViaByok(args: {
     const fields = await providerRequestFields(args.provider)
     const subtype = args.mimeType.split(';')[0]?.split('/')[1] ?? 'webm'
     const form = new FormData()
-    form.append('file', new Blob([Buffer.from(args.audioB64, 'base64')], { type: args.mimeType }), `voice.${MIME_EXT[subtype] ?? 'webm'}`)
+    form.append('file', new Blob([Buffer.from(args.audioB64, 'base64')], { type: args.mimeType }), `voice.${ownValue(MIME_EXT, subtype) ?? 'webm'}`)
     form.append('model', fields.model)
     form.append('language', args.isoLanguage)
     if (fields.api_key) form.append('api_key', fields.api_key)

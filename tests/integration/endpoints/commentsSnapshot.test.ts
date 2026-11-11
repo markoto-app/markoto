@@ -96,6 +96,18 @@ describe('POST /api/internal/comments-snapshot', () => {
       expect(res.status).toBe(400)
     })
 
+    it('rejects entries that are not objects (400, not a 500)', async () => {
+      const doc = await createDoc()
+      for (const entry of [null, 'x', 5, [1]]) {
+        const res = await anonClient().post(
+          '/api/internal/comments-snapshot',
+          { docId: doc.docId, entries: [entry] },
+          { headers: secretHeaders }
+        )
+        expect(res.status, JSON.stringify(entry)).toBe(400)
+      }
+    })
+
     it('rejects an entries array longer than the cap (413)', async () => {
       const doc = await createDoc()
       const huge = Array.from({ length: 5001 }, (_, i) => ({

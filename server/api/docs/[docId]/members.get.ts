@@ -11,14 +11,21 @@ import { listMembersForDoc } from '../../../repos/workspaceMembers'
 //     public-link doc shouldn't reveal the team roster. This matches
 //     Google Docs behavior (link-holders don't see the sharing list).
 //     Anonymous callers never get here (not on the public allowlist).
+//   - Guests of the workspace get an empty roster: their role on the doc
+//     row comes from their share, but guests never see the workspace's
+//     members.
 //
 // Standalone docs (no workspaceId) return an empty roster. The doc owner
 // is already implicit and showing just themselves offline is clutter.
 export default defineApiHandler({
-  access: allow.doc('lookup', { reason: 'Never refuses an existing document: callers without a role in its workspace get an empty roster.' }),
+  access: allow.doc('lookup', { reason: 'Never refuses an existing document: callers without a member role in its workspace (outsiders, guests) get an empty roster.' }),
   handler: async ({ user, doc }) => {
     // No workspace ⇒ no roster to disclose.
     if (!doc.workspaceId) return { members: [] }
+
+    // A guest's `workspaceRole` is the share mapped to editor / viewer for
+    // this document only: it never opens the roster.
+    if (doc.isGuest) return { members: [] }
 
     // `doc.workspaceRole` carries the SSO condition, and ownership doesn't
     // count in an SSO-enforcing workspace without an effective role. Must be
