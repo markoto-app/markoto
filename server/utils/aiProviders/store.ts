@@ -2,13 +2,14 @@
 // place that encrypts a provider key; the only shape that leaves the
 // server is `AiProviderConfigView` (host + last four characters).
 
-import { z } from 'zod'
+import type { z } from 'zod'
 import { encryptToken, decryptToken } from '../litellm/tokenCrypto'
 import { getAiProvider, upsertAiProvider, type AiProviderRow } from '../../repos/aiProviders'
 import { resolveByokUrlPolicy } from './config'
 import { checkProviderBaseUrl } from './urlPolicy'
 import { verifyProvider, type VerifyResult } from './verify'
 import type { ResolvedAiProvider } from './resolve'
+import type { saveAiProviderBody } from '~~/shared/api/account'
 import { apiKeyLast4, baseUrlHost, normalizeBaseUrl, type AiCapability, type AiProviderConfigView } from '~~/shared/ai/providers'
 
 export function toProviderView(row: AiProviderRow): AiProviderConfigView {
@@ -25,21 +26,7 @@ export function toProviderView(row: AiProviderRow): AiProviderConfigView {
   }
 }
 
-/**
- * Model ids across providers use letters, digits and `._:/@+-`
- * (`gpt-5.4-mini`, `mistralai/mistral-small`, `qwen3:14b`). No spaces,
- * no URL syntax.
- */
-export const saveBodySchema = z.object({
-  baseUrl: z.string().trim().min(1).max(500),
-  model: z.string().trim().min(1).max(200).regex(/^[\w.:/@+-]+$/, 'Invalid model id'),
-  // Optional on update: omitted = keep the stored key, but ONLY while the
-  // base URL is unchanged (a stored key must never be redirected to a
-  // new host without the user re-entering it).
-  apiKey: z.string().trim().min(1).max(500).regex(/^\S+$/, 'API keys contain no whitespace').optional(),
-  supportsVision: z.boolean().optional()
-})
-export type SaveBody = z.infer<typeof saveBodySchema>
+export type SaveBody = z.infer<typeof saveAiProviderBody>
 
 export type SaveOutcome
   = | { kind: 'saved', view: AiProviderConfigView, verify: VerifyResult }

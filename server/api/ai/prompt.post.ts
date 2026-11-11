@@ -34,99 +34,95 @@ import { buildSessionGuard } from '../../utils/agentic/sessionGuard'
 import type { CrossBoundaryGuard } from '../../utils/agentic/crossBoundary'
 import { finalizeSessionProvenance, recordSessionProvenance } from '../../utils/agentic/sessionProvenance'
 import { loopErrorMessage } from '../../utils/agentic/loopErrorMessage'
+import { aiPromptBody } from '~~/shared/api/ai'
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
-  const userName = session.user.name
+export default defineApiHandler({
+  access: allow.doc('write-content', { docId: { from: 'body' } }),
+  body: aiPromptBody,
+  handler: async ({ event, user, docId, body }) => {
+    const userId = user.id
+    const userName = user.name
 
-  // The text loop always runs through LiteLLM (the secret validator enforces
-  // its URL and master key at boot); its per-user-key rpm_limit is the only
-  // rate limit.
-  const { docId, prompt, wrappedPrompt } = parsePromptInputs(await readBody(event))
-  await requireDocEditAccess(docId, userId)
+    // The text loop always runs through LiteLLM (the secret validator enforces
+    // its URL and master key at boot); its per-user-key rpm_limit is the only
+    // rate limit.
+    const { prompt, wrappedPrompt } = promptInputs(body)
 
-  const doc = await getDoc(docId)
-  const wsCtx = await resolvePromptWorkspaceContext(doc?.workspaceId ?? null, userId)
-  const documentContextBlock = doc
-    ? buildDocumentContext({
-        title: doc.title,
-        description: doc.description,
-        audience: doc.audience,
-        language: doc.language
-      })
-    : ''
-  const conversationBlock = await loadConversationBlock(docId, userId)
-  // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
-  // message is static-first, and the per-prompt conversation memory opens the
-  // first USER message (`promptPreamble`) instead. Placing it in the system
-  // message invalidated the cached tool definitions on Mistral Small.
-  const systemPrompt = assemblePromptSystemPrompt(PROMPT_SYSTEM_PROMPT, {
-    documentContextBlock,
-    knowledgeBlock: buildKnowledgeBlock(wsCtx.knowledgeFiles),
-    membersBlock: buildWorkspaceMembersBlock(wsCtx.members)
-  })
+    const doc = await getDoc(docId)
+    const wsCtx = await resolvePromptWorkspaceContext(doc?.workspaceId ?? null, userId)
+    const documentContextBlock = doc
+      ? buildDocumentContext({
+          title: doc.title,
+          description: doc.description,
+          audience: doc.audience,
+          language: doc.language
+        })
+      : ''
+    const conversationBlock = await loadConversationBlock(docId, userId)
+    // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
+    // message is static-first, and the per-prompt conversation memory opens the
+    // first USER message (`promptPreamble`) instead. Placing it in the system
+    // message invalidated the cached tool definitions on Mistral Small.
+    const systemPrompt = assemblePromptSystemPrompt(PROMPT_SYSTEM_PROMPT, {
+      documentContextBlock,
+      knowledgeBlock: buildKnowledgeBlock(wsCtx.knowledgeFiles),
+      membersBlock: buildWorkspaceMembersBlock(wsCtx.members)
+    })
 
-  // Resolve billing context up-front to lazily create the LiteLLM virtual key
-  // and pick the attribution. No exhaustion pre-check: the proxy enforces
-  // `max_budget` on the first model call and runLoop catches
-  // `LitellmBudgetExhausted` / `isBudgetExceededError(...)`.
-  const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
-  // BYOK: the user's own provider (or the instance default). No chat
-  // provider → 409 `ai/provider-missing` with a link to the settings page.
-  const aiProviders = await requireAiProviders(userId, 'chat', billingContext.plan)
-  // Hosted free tier: the shared monthly pool may be used up — answer
-  // 402 `ai/free-allowance-exhausted` before opening a session (own-key
-  // users are never refused here).
-  await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
+    // Resolve billing context up-front to lazily create the LiteLLM virtual key
+    // and pick the attribution. No exhaustion pre-check: the proxy enforces
+    // `max_budget` on the first model call and runLoop catches
+    // `LitellmBudgetExhausted` / `isBudgetExceededError(...)`.
+    const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
+    // BYOK: the user's own provider (or the instance default). No chat
+    // provider → 409 `ai/provider-missing` with a link to the settings page.
+    const aiProviders = await requireAiProviders(userId, 'chat', billingContext.plan)
+    // Hosted free tier: the shared monthly pool may be used up — answer
+    // 402 `ai/free-allowance-exhausted` before opening a session (own-key
+    // users are never refused here).
+    await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
 
-  const initiatorName = (await findUserNameById(userId)) || userName
-  const initiatorColor = '#d97706'
+    const initiatorName = (await findUserNameById(userId)) || userName
+    const initiatorColor = '#d97706'
 
-  const sessionId = nanoid(12)
-  const abortController = new AbortController()
-  const req = event.node?.req
-  req?.once?.('close', () => {
-    if (!req.readableEnded) abortController.abort()
-  })
+    const sessionId = nanoid(12)
+    const abortController = new AbortController()
+    const req = event.node?.req
+    req?.once?.('close', () => {
+      if (!req.readableEnded) abortController.abort()
+    })
 
-  await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
-  const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
-  // Initiator-only channel: prompt, status text, answers, confirmations.
-  // Opened before the response so the client's first poll finds it.
-  const channel = new AiSessionChannel(sessionId)
-  await channel.open({ initiatorUserId: userId, docId, prompt, commentThreadId: null })
+    await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
+    const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
+    // Initiator-only channel: prompt, status text, answers, confirmations.
+    // Opened before the response so the client's first poll finds it.
+    const channel = new AiSessionChannel(sessionId)
+    await channel.open({ initiatorUserId: userId, docId, prompt, commentThreadId: null })
 
-  // Runs in the background; the HTTP response returns after registration and
-  // all edits reach the client over Y.js. See server/utils/agentic/AGENTS.md.
-  void runPromptLoop({
-    docId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
-    prompt,
-    wrappedPrompt,
-    promptPreamble: conversationBlock,
-    systemPrompt,
-    toolDeclarations: wsCtx.toolDeclarations,
-    workspaceId: wsCtx.workspaceId,
-    knowledgeFiles: wsCtx.knowledgeFiles,
-    channel,
-    billingContext,
-    aiProviders
-  })
+    // Runs in the background; the HTTP response returns after registration and
+    // all edits reach the client over Y.js. See server/utils/agentic/AGENTS.md.
+    void runPromptLoop({
+      docId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
+      prompt,
+      wrappedPrompt,
+      promptPreamble: conversationBlock,
+      systemPrompt,
+      toolDeclarations: wsCtx.toolDeclarations,
+      workspaceId: wsCtx.workspaceId,
+      knowledgeFiles: wsCtx.knowledgeFiles,
+      channel,
+      billingContext,
+      aiProviders
+    })
 
-  return { sessionId }
+    return { sessionId }
+  }
 })
 
-interface PromptInputs { docId: string, prompt: string, wrappedPrompt: string }
-
-/** Validates body shape + the optional editor-state snapshot; a bad snapshot falls back to `kind: 'none'` instead of failing the request. */
-function parsePromptInputs(body: { docId?: unknown, prompt?: string, editorSelection?: unknown }): PromptInputs {
-  const docId = body.docId
-  const prompt = body.prompt?.trim()
-  if (!docId || typeof docId !== 'string') throw createError({ statusCode: 400, message: 'Missing docId' })
-  if (!prompt) throw createError({ statusCode: 400, message: 'Missing prompt' })
-  if (prompt.length > 4000) throw createError({ statusCode: 400, message: 'Prompt too long (max 4000 chars)' })
+/** The prompt plus the optional editor-state snapshot; a bad snapshot falls back to `kind: 'none'` instead of failing the request. */
+function promptInputs(body: { prompt: string, editorSelection?: unknown }): { prompt: string, wrappedPrompt: string } {
   const editorSelection = validateEditorSelection(body.editorSelection)
-  return { docId, prompt, wrappedPrompt: wrapPromptWithEditorState(prompt, editorSelection) }
+  return { prompt: body.prompt, wrappedPrompt: wrapPromptWithEditorState(body.prompt, editorSelection) }
 }
 
 interface PromptWorkspaceCtx {
@@ -197,11 +193,7 @@ async function claimAiSession(args: ClaimSessionArgs): Promise<void> {
     })
   } catch (e) {
     if (e instanceof DuplicateSessionError) {
-      throw createError({
-        statusCode: 409,
-        message: 'You already have an AI session running on this document.',
-        data: { code: 'ai/duplicate-session', messageKey: 'ai.errors.duplicateSession' }
-      })
+      throw apiError('ai/duplicate-session')
     }
     throw e
   }

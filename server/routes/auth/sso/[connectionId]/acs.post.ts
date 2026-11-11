@@ -5,6 +5,7 @@ import { ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
 import { assertionFromSamlProfile, samlFor } from '../../../../utils/sso/saml'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 import { ID_RE } from '~~/shared/config/identifiers'
+import { samlAcsBody, ssoConnectionParams } from '~~/shared/api/sso'
 
 // POST /auth/sso/:connectionId/acs — SAML assertion consumer service
 // (HTTP-POST binding) for a workspace's identity provider.
@@ -13,37 +14,42 @@ import { ID_RE } from '~~/shared/config/identifiers'
 // THIS browser's flow cookie.
 const MAX_RESPONSE_BYTES = 512 * 1024
 
-export default defineEventHandler(async (event) => {
-  const connectionId = getRouterParam(event, 'connectionId') ?? ''
-  const flow = takeSsoFlowCookie(event)
-  const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
-  if (!connection || connection.protocol !== 'saml') return sendRedirect(event, ssoErrorPath('sso/unknown'))
-  if (!flow || flow.connectionId !== connection.id || !flow.requestId) {
-    console.warn('[auth/sso] SAML response without a valid flow cookie (expired, unsolicited or another browser)')
-    return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
-  }
+export default defineApiHandler({
+  access: allow.public('the IdP posts the signed SAML response through the browser; it must answer the AuthnRequest id in this browser\'s single-use flow cookie'),
+  params: ssoConnectionParams,
+  // A form post from the IdP: no session and no Origin of ours (outside /api, so no CSRF check applies).
+  body: samlAcsBody,
+  handler: async ({ event, params, body }) => {
+    const { connectionId } = params
+    const flow = takeSsoFlowCookie(event)
+    const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
+    if (!connection || connection.protocol !== 'saml') return sendRedirect(event, ssoErrorPath('sso/unknown'))
+    if (!flow || flow.connectionId !== connection.id || !flow.requestId) {
+      console.warn('[auth/sso] SAML response without a valid flow cookie (expired, unsolicited or another browser)')
+      return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+    }
 
-  const body = await readBody<Record<string, unknown>>(event).catch(() => null)
-  const samlResponse = typeof body?.SAMLResponse === 'string' ? body.SAMLResponse : ''
-  if (!samlResponse || samlResponse.length > MAX_RESPONSE_BYTES) return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+    const samlResponse = body?.SAMLResponse ?? ''
+    if (!samlResponse || samlResponse.length > MAX_RESPONSE_BYTES) return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
 
-  let assertion
-  try {
-    const saml = samlFor(event, connection, { boundRequestId: flow.requestId })
-    const { profile, loggedOut } = await saml.validatePostResponseAsync({ SAMLResponse: samlResponse })
-    if (loggedOut || !profile) throw new Error('not a sign-in response')
-    assertion = assertionFromSamlProfile(profile)
-  } catch (err) {
-    console.warn(`[auth/sso] SAML response rejected for connection ${connection.id}: ${err instanceof Error ? `${err.name}: ${err.message}` : 'unknown error'}`)
-    await appendAuditEvent({
-      actorUserId: null,
-      actorIp: getClientIp(event),
-      scope: 'workspace',
-      scopeId: connection.workspaceId,
-      action: AUDIT_SSO_SIGN_IN,
-      metadata: { protocol: 'saml', outcome: 'rejected' }
-    })
-    return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+    let assertion
+    try {
+      const saml = samlFor(event, connection, { boundRequestId: flow.requestId })
+      const { profile, loggedOut } = await saml.validatePostResponseAsync({ SAMLResponse: samlResponse })
+      if (loggedOut || !profile) throw new Error('not a sign-in response')
+      assertion = assertionFromSamlProfile(profile)
+    } catch (err) {
+      console.warn(`[auth/sso] SAML response rejected for connection ${connection.id}: ${err instanceof Error ? `${err.name}: ${err.message}` : 'unknown error'}`)
+      await appendAuditEvent({
+        actorUserId: null,
+        actorIp: getClientIp(event),
+        scope: 'workspace',
+        scopeId: connection.workspaceId,
+        action: AUDIT_SSO_SIGN_IN,
+        metadata: { protocol: 'saml', outcome: 'rejected' }
+      })
+      return sendRedirect(event, ssoErrorPath('sso/failed', connection.workspaceId))
+    }
+    return finishSsoSignIn(event, connection, flow, assertion)
   }
-  return finishSsoSignIn(event, connection, flow, assertion)
 })

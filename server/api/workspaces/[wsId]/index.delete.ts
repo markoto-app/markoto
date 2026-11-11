@@ -20,75 +20,69 @@ import { endWorkspaceBilling } from '../../../utils/billing/workspaceBillingLife
 // Admins only. Editors and viewers can't destroy the workspace; admins
 // who want to leave the workspace use the member-leave endpoint instead.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const wsId = requireWsId(event)
+export default defineApiHandler({
+  access: allow.workspace('admin', { deny: 'workspace/admin-required' }),
+  handler: async ({ event, user, wsId }) => {
+    const ip = getClientIp(event)
 
-  const role = await getWorkspaceRole(session.user.id, wsId)
-  if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
-  if (role !== 'admin') {
-    throw createError({ statusCode: 403, message: 'Only admins can delete the workspace' })
-  }
+    // Team / Business: cancel the subscription first (annual:
+    // prorated credit) and delete the workspace's LiteLLM team. If Stripe
+    // can't cancel it, this throws and nothing has been deleted yet.
+    await endWorkspaceBilling(wsId, user.id)
 
-  const ip = getClientIp(event)
+    const childDocIds = await listDocIdsInWorkspace(wsId)
+    for (const docId of childDocIds) {
+      // Snapshot per-doc before the cascade for audit forensics.
+      const snapshot = await getDoc(docId)
+      await deleteDocument(docId)
+      await appendAuditEvent({
+        actorUserId: user.id,
+        actorIp: ip,
+        scope: 'doc',
+        scopeId: docId,
+        action: 'doc.deleted',
+        workspaceId: wsId,
+        before: snapshot
+          ? {
+              title: snapshot.title,
+              accessMode: snapshot.accessMode,
+              ownerId: snapshot.ownerId,
+              workspaceId: snapshot.workspaceId
+            }
+          : null,
+        after: null,
+        metadata: { reason: 'workspace_cascade', workspaceId: wsId }
+      })
+    }
 
-  // Team / Business: cancel the subscription first (annual:
-  // prorated credit) and delete the workspace's LiteLLM team. If Stripe
-  // can't cancel it, this throws and nothing has been deleted yet.
-  await endWorkspaceBilling(wsId, session.user.id)
+    // Knowledge S3 cleanup is per-object (one key per row) — the FK on
+    // workspace_knowledge → workspaces cascades the DB row automatically,
+    // but S3 objects are orphaned without this explicit sweep.
+    const knowledgeRows = await listKnowledge(wsId)
+    for (const row of knowledgeRows) {
+      await deleteKnowledgeArtifact(row.knowledgeId)
+    }
 
-  const childDocIds = await listDocIdsInWorkspace(wsId)
-  for (const docId of childDocIds) {
-    // Snapshot per-doc before the cascade for audit forensics.
-    const snapshot = await getDoc(docId)
-    await deleteDocument(docId)
+    // Brand-kit objects: the rows cascade with the workspace; read
+    // their keys first, delete the objects after.
+    const brandKeys = await collectBrandObjectKeys(wsId)
+
+    // workspace_members rows are removed automatically by the ON DELETE
+    // CASCADE foreign key.
+    await deleteWorkspaceRow(wsId)
+    await deleteBrandObjects(brandKeys)
+
     await appendAuditEvent({
-      actorUserId: session.user.id,
+      actorUserId: user.id,
       actorIp: ip,
-      scope: 'doc',
-      scopeId: docId,
-      action: 'doc.deleted',
-      workspaceId: wsId,
-      before: snapshot
-        ? {
-            title: snapshot.title,
-            accessMode: snapshot.accessMode,
-            ownerId: snapshot.ownerId,
-            workspaceId: snapshot.workspaceId
-          }
-        : null,
+      scope: 'workspace',
+      scopeId: wsId,
+      action: 'workspace.deleted',
+      before: null,
       after: null,
-      metadata: { reason: 'workspace_cascade', workspaceId: wsId }
+      metadata: { deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
     })
+
+    return { success: true, deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
   }
-
-  // Knowledge S3 cleanup is per-object (one key per row) — the FK on
-  // workspace_knowledge → workspaces cascades the DB row automatically,
-  // but S3 objects are orphaned without this explicit sweep.
-  const knowledgeRows = await listKnowledge(wsId)
-  for (const row of knowledgeRows) {
-    await deleteKnowledgeArtifact(row.knowledgeId)
-  }
-
-  // Brand-kit objects: the rows cascade with the workspace; read
-  // their keys first, delete the objects after.
-  const brandKeys = await collectBrandObjectKeys(wsId)
-
-  // workspace_members rows are removed automatically by the ON DELETE
-  // CASCADE foreign key.
-  await deleteWorkspaceRow(wsId)
-  await deleteBrandObjects(brandKeys)
-
-  await appendAuditEvent({
-    actorUserId: session.user.id,
-    actorIp: ip,
-    scope: 'workspace',
-    scopeId: wsId,
-    action: 'workspace.deleted',
-    before: null,
-    after: null,
-    metadata: { deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
-  })
-
-  return { success: true, deletedDocs: childDocIds.length, deletedKnowledge: knowledgeRows.length }
 })

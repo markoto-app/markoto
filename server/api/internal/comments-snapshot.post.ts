@@ -6,7 +6,7 @@ import { useDatabase } from '../../utils/platform/database'
 import { appendActivity, pruneActivity } from '../../repos/activity'
 import { diffCommentsSnapshot } from '../../utils/documents/commentsSnapshotDiff'
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
-import { requireInternalSecret } from '../../utils/platform/internalRoutes'
+import { commentsSnapshotBody } from '~~/shared/api/platform'
 
 // Internal endpoint called by the sync-server on every persisted save of a doc
 // with a non-empty `comments` Y.Array. The body carries the FULL list of
@@ -18,7 +18,7 @@ import { requireInternalSecret } from '../../utils/platform/internalRoutes'
 // recent activity).
 //
 // Auth: X-Internal-Secret, enforced for all of /api/internal/** by
-// server/middleware/auth.ts; repeated here so the handler is safe on its own.
+// server/middleware/auth.ts and again by the policy.
 
 interface IncomingEntry {
   entryId?: string
@@ -42,42 +42,32 @@ interface ParsedBody {
   yjsDocIdAfter: number | null
 }
 
-export default defineEventHandler(async (event) => {
-  requireInternalSecret(event)
-  const body = parseSnapshotBody(await readBody(event))
+export default defineApiHandler({
+  access: allow.internal('secret'),
+  body: commentsSnapshotBody,
+  handler: async ({ body: input }) => {
+    if (input.entries.length > MAX_ENTRIES_PER_DOC) throw apiError('request/too-large')
+    const body: ParsedBody = {
+      docId: input.docId,
+      entries: input.entries as IncomingEntry[],
+      yjsDocIdBefore: input.yjsDocIdBefore ?? null,
+      yjsDocIdAfter: input.yjsDocIdAfter ?? null
+    }
 
-  // Anonymous / direct-URL docs without a DB row are skipped, as in the
-  // activity endpoint.
-  if (!(await docExists(body.docId))) return { ok: true, mirrored: false }
+    // Anonymous / direct-URL docs without a DB row are skipped, as in the
+    // activity endpoint.
+    if (!(await docExists(body.docId))) return { ok: true, mirrored: false }
 
-  const rows = body.entries
-    .map(buildSnapshotRow)
-    .filter((r): r is CommentSnapshotRow => r !== null)
+    const rows = body.entries
+      .map(buildSnapshotRow)
+      .filter((r): r is CommentSnapshotRow => r !== null)
 
-  const events = await replaceSnapshotInTx(body.docId, rows)
-  await recordSnapshotEvents(body, events, anonAvatarSeedsByEntry(body.entries))
+    const events = await replaceSnapshotInTx(body.docId, rows)
+    await recordSnapshotEvents(body, events, anonAvatarSeedsByEntry(body.entries))
 
-  return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
+    return { ok: true, mirrored: true, rowCount: rows.length, activityEvents: events.length }
+  }
 })
-
-function parseSnapshotBody(body: unknown): ParsedBody {
-  const b = body as { docId?: unknown, entries?: unknown, yjsDocIdBefore?: unknown, yjsDocIdAfter?: unknown }
-  if (!b.docId || typeof b.docId !== 'string') {
-    throw createError({ statusCode: 400, message: 'Missing docId' })
-  }
-  if (!Array.isArray(b.entries)) {
-    throw createError({ statusCode: 400, message: 'entries must be an array' })
-  }
-  if (b.entries.length > MAX_ENTRIES_PER_DOC) {
-    throw createError({ statusCode: 413, message: 'Too many entries in snapshot' })
-  }
-  return {
-    docId: b.docId,
-    entries: b.entries as IncomingEntry[],
-    yjsDocIdBefore: typeof b.yjsDocIdBefore === 'number' ? b.yjsDocIdBefore : null,
-    yjsDocIdAfter: typeof b.yjsDocIdAfter === 'number' ? b.yjsDocIdAfter : null
-  }
-}
 
 /**
  * Shapes one incoming entry into a `CommentSnapshotRow`, or null when a

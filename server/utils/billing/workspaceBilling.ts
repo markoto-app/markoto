@@ -1,3 +1,4 @@
+import { apiError } from '../api/apiError'
 import { getWorkspaceSubscription, listSubscriptionsForWorkspaces, subscriptionGrantsPlan, type WorkspaceSubscriptionRow } from '../../repos/workspaceSubscriptions'
 import { countMembers } from '../../repos/workspaceMembers'
 import { countOpenWorkspaceInvites } from '../../repos/workspaceInvites'
@@ -147,11 +148,7 @@ export async function countSeatsUsed(workspaceId: string, now: Date = new Date()
 export function parseSeats(value: unknown): number {
   const n = typeof value === 'number' ? value : Number(value)
   if (!Number.isInteger(n) || n < MIN_WORKSPACE_SEATS || n > MAX_WORKSPACE_SEATS) {
-    throw createError({
-      statusCode: 400,
-      message: `Seats must be a whole number from ${MIN_WORKSPACE_SEATS} to ${MAX_WORKSPACE_SEATS}.`,
-      data: { code: 'billing/invalid-seats', min: MIN_WORKSPACE_SEATS, max: MAX_WORKSPACE_SEATS }
-    })
+    throw apiError('billing/invalid-seats', { min: MIN_WORKSPACE_SEATS, max: MAX_WORKSPACE_SEATS })
   }
   return n
 }
@@ -167,22 +164,6 @@ export function seatsFullError(seats: number, used: number) {
 
 function roundUsd(value: number): number {
   return Math.round(value * 100) / 100
-}
-
-/**
- * Billing endpoints are for workspace admins only: 404 for non-members
- * (no existence oracle), 403 for members without the admin role.
- */
-export async function requireWorkspaceBillingAdmin(userId: number, workspaceId: string): Promise<void> {
-  const role = await getWorkspaceRole(userId, workspaceId)
-  if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
-  if (role !== 'admin') {
-    throw createError({
-      statusCode: 403,
-      message: 'Only workspace admins can manage billing.',
-      data: { code: 'billing/admin-required' }
-    })
-  }
 }
 
 /**

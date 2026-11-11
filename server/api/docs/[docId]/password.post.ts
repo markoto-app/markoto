@@ -1,49 +1,48 @@
 import type { H3Event } from 'h3'
-import { getDoc, getDocWithActorRole, setDocPassword, clearDocPassword, type DocSnapshot } from '../../../repos/documents'
+import jwt from 'jsonwebtoken'
+import { getDoc, setDocPassword, clearDocPassword, type DocSnapshot, type DocAuthzRow } from '../../../repos/documents'
 import { appendAuditEvent } from '../../../repos/audit'
 import { admitPasswordAttempt, recordPasswordFailure } from '../../../utils/documents/docPasswordLimits'
-import { docStateOf, decideTokenAccess } from '../../../../shared/utils/documents/docPermissions'
+import { decideTokenAccess, type ActorState, type DocState } from '../../../../shared/utils/documents/docPermissions'
 import { docJwtLifetimeSeconds } from '../../../utils/documents/docJwt'
 import { DOC_PASSWORD_MIN_LENGTH } from '../../../../shared/config/docPassword'
 import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
 import { notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
+import { docPasswordBody } from '~~/shared/api/docs'
+import type { ValidatedUser } from '../../../utils/api/policyTypes'
 
-export default defineEventHandler(async (event) => {
-  const docId = requireDocId(event)
-  const body = await readBody(event)
-  const doc = await getDoc(docId)
-  if (!doc) {
-    throw createError({ statusCode: 404, message: 'Document not found' })
+// POST /api/docs/:docId/password — `{ action: 'set' | 'verify' | 'remove', password? }`.
+// Verify is open to anyone who has the link (brute-force limited below);
+// set and remove need a session and manage rights (owner, workspace admin).
+export default defineApiHandler({
+  access: allow.doc('lookup', {
+    anonymous: true,
+    reason: 'verify: anyone, limited per client+doc, per doc and by a per-doc failure lockout; set / remove: signed in with manage rights (checked per action)'
+  }),
+  body: docPasswordBody,
+  handler: async ({ event, user, docId, doc: row, state, actor, authz, body }) => {
+    const doc = await getDoc(docId)
+    if (!doc) throw apiError('docs/not-found')
+
+    if (body.action === 'verify') return handleVerify(event, user, docId, doc, row, state, actor, body.password)
+
+    // Set and remove change who can open the document: owner or workspace
+    // admin only (`canManage`). Editors / viewers cannot.
+    if (!user) throw apiError('auth/required')
+    if (!authz.canManage) throw apiError('docs/manage-forbidden')
+    // A password opens the document to whoever has it; removing it makes the
+    // document open-edit. Neither while a moderation restriction holds.
+    assertNotModerationRestricted(doc)
+    if (body.action === 'set') return handleSet(event, user, docId, doc, body.password)
+    return handleRemove(event, user, docId, doc)
   }
-
-  const { action, password } = body as { action: 'set' | 'verify' | 'remove', password?: string }
-
-  if (action === 'set') return handleSet(event, docId, doc, password)
-  if (action === 'verify') return handleVerify(event, docId, doc, password)
-  if (action === 'remove') return handleRemove(event, docId, doc)
-  throw createError({ statusCode: 400, message: 'Invalid action' })
 })
 
-/**
- * SET password — doc owner or workspace admin. `canManageDoc`
- * encapsulates the orthogonal "doc owner vs workspace admin" branches;
- * both can change access controls. Editors / viewers cannot.
- */
-async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, password: string | undefined) {
-  const session = await requireValidatedUserSession(event)
-  if (!(await canManageDoc(session.user.id, docId))) {
-    throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
-  }
-  // A password opens the document to whoever has it.
-  assertNotModerationRestricted(doc)
+async function handleSet(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot, password: string | undefined) {
   // Minimum length applies when a password is SET; passwords set under
   // an older, shorter minimum keep verifying.
-  if (typeof password !== 'string' || password.length < DOC_PASSWORD_MIN_LENGTH) {
-    throw createError({
-      statusCode: 400,
-      message: `Password must be at least ${DOC_PASSWORD_MIN_LENGTH} characters`,
-      data: { code: 'password/too-short', minLength: DOC_PASSWORD_MIN_LENGTH }
-    })
+  if (password === undefined || password.length < DOC_PASSWORD_MIN_LENGTH) {
+    throw apiError('password/too-short', { minLength: DOC_PASSWORD_MIN_LENGTH })
   }
 
   const hash = await hashPassword(password)
@@ -55,7 +54,7 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
   // transition only. `setDocPassword` flips access_mode to
   // password-protected, so the after-state always has hasPassword=true.
   await appendAuditEvent({
-    actorUserId: session.user.id,
+    actorUserId: user.id,
     actorIp: getClientIp(event),
     scope: 'doc',
     scopeId: docId,
@@ -80,38 +79,36 @@ async function handleSet(event: H3Event, docId: string, doc: DocSnapshot, passwo
  * the token endpoint: the password stands in for "non-member on an
  * open-edit doc" (edit), while a workspace viewer stays read-only.
  */
-async function handleVerify(event: H3Event, docId: string, doc: DocSnapshot, password: string | undefined) {
+async function handleVerify(
+  event: H3Event,
+  user: ValidatedUser | null,
+  docId: string,
+  doc: DocSnapshot,
+  row: DocAuthzRow,
+  state: DocState,
+  actor: ActorState,
+  password: string | undefined
+) {
   const outcome = await admitPasswordAttempt(getClientRateLimitKey(event), docId)
   if (outcome !== 'allowed') {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many attempts. Try again later.',
-      data: {
-        code: outcome === 'locked' ? 'password/locked' : 'password/rate-limited',
-        messageKey: 'error.rateLimited'
-      }
-    })
+    throw apiError(outcome === 'locked' ? 'password/locked' : 'password/rate-limited')
   }
 
   if (!password) {
-    throw createError({ statusCode: 400, message: 'Password required' })
+    throw apiError('password/required')
   }
   if (doc.accessMode !== 'password-protected' || !doc.passwordHash) {
-    throw createError({ statusCode: 400, message: 'Document has no password' })
+    throw apiError('password/not-set')
   }
 
   const valid = await verifyPassword(doc.passwordHash, password)
   if (!valid) {
     await recordPasswordFailure(docId)
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid password',
-      data: { code: 'password/invalid' }
-    })
+    throw apiError('password/invalid')
   }
 
-  const grant = await passwordGrant(event, docId)
-  return { success: true, token: await mintPasswordToken(event, docId, grant.readOnly, grant.shareExpiresAt), readOnly: grant.readOnly }
+  const grant = passwordGrant(row, state, actor)
+  return { success: true, token: mintPasswordToken(user, docId, grant.readOnly, grant.shareExpiresAt), readOnly: grant.readOnly }
 }
 
 /**
@@ -122,33 +119,24 @@ async function handleVerify(event: H3Event, docId: string, doc: DocSnapshot, pas
  * visitor once the share link has expired, when the doc counts as
  * private — is refused: the password no longer opens it.
  */
-async function passwordGrant(event: H3Event, docId: string): Promise<{ readOnly: boolean, shareExpiresAt: Date | null }> {
-  const session = await getValidatedUserSession(event)
-  const userId = session?.user?.id ?? null
-  const row = await getDocWithActorRole(docId, userId)
-  if (!row) throw createError({ statusCode: 404, message: 'Document not found' })
-  const state = docStateOf(row)
-  const decision = decideTokenAccess(state, { userId, workspaceRole: row.workspaceRole })
+function passwordGrant(row: DocAuthzRow, state: DocState, actor: ActorState): { readOnly: boolean, shareExpiresAt: Date | null } {
+  const decision = decideTokenAccess(state, actor)
   if (decision.outcome === 'allow') return { readOnly: decision.readOnly, shareExpiresAt: row.shareExpiresAt }
   if (decision.outcome === 'password-required') return { readOnly: false, shareExpiresAt: row.shareExpiresAt }
-  throw createError(state.shareExpired
-    ? { statusCode: 403, message: 'This link has expired', data: { code: 'share/expired' } }
-    : { statusCode: 403, message: 'No access to this document' })
+  throw apiError(state.shareExpired ? 'share/expired' : 'auth/forbidden')
 }
 
 /** Mint a doc JWT (≤ 2h, never past the share link's expiry) for a verified caller. Carries name for sync-server attribution — matches token.get.ts. */
-async function mintPasswordToken(event: H3Event, docId: string, readOnly: boolean, shareExpiresAt: Date | null): Promise<string> {
-  const jwt = await import('jsonwebtoken')
+function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: boolean, shareExpiresAt: Date | null): string {
   const config = useRuntimeConfig()
   if (!config.jwtSecret) {
-    throw createError({ statusCode: 500, message: 'JWT secret not configured' })
+    throw apiError('internal')
   }
-  const session = await getValidatedUserSession(event)
-  return jwt.default.sign(
+  return jwt.sign(
     {
       docId,
-      userId: session?.user?.id || 'anonymous',
-      userName: session?.user?.name ?? null,
+      userId: user?.id || 'anonymous',
+      userName: user?.name ?? null,
       readOnly
     },
     config.jwtSecret,
@@ -157,19 +145,12 @@ async function mintPasswordToken(event: H3Event, docId: string, readOnly: boolea
 }
 
 /** REMOVE password — doc owner or workspace admin. */
-async function handleRemove(event: H3Event, docId: string, doc: DocSnapshot) {
-  const session = await requireValidatedUserSession(event)
-  if (!(await canManageDoc(session.user.id, docId))) {
-    throw createError({ statusCode: 403, message: 'Not authorized to manage this document' })
-  }
-  // Removing the password makes the document open-edit.
-  assertNotModerationRestricted(doc)
-
+async function handleRemove(event: H3Event, user: ValidatedUser, docId: string, doc: DocSnapshot) {
   await clearDocPassword(docId)
 
   // `clearDocPassword` flips access_mode back to open-edit.
   await appendAuditEvent({
-    actorUserId: session.user.id,
+    actorUserId: user.id,
     actorIp: getClientIp(event),
     scope: 'doc',
     scopeId: docId,

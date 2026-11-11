@@ -17,9 +17,6 @@ const WAITLIST_EMAIL_MAX_LENGTH = 254
 export const WAITLIST_LOCALES = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const
 export type WaitlistLocale = (typeof WAITLIST_LOCALES)[number]
 
-/** Stable machine code when the waitlist isn't offered on this deployment. */
-export const WAITLIST_DISABLED_CODE = 'waitlist/disabled'
-
 /**
  * The waitlist only exists while billing is OFF and the deployment
  * advertises upcoming paid plans (`NUXT_PLANS_COMING_SOON`) — i.e. the

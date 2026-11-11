@@ -2,8 +2,12 @@ import { getSessionEpoch, upsertOAuthUser } from '../../repos/users'
 import { SESSION_VERSION } from '../../utils/auth/validatedSession'
 import { bootstrapAdminFromEnv } from '../../utils/auth/adminBootstrap'
 import { githubVerifiedEmail, type GitHubEmailEntry } from '../../utils/auth/oauthEmail'
+import type { EventHandler } from 'h3'
 
-export default defineOAuthGitHubEventHandler({
+// The GitHub OAuth leg of nuxt-auth-utils: without `?code` it redirects to
+// GitHub; with it, the module verifies `state` and exchanges the code
+// before `onSuccess` runs.
+const oauth: EventHandler = defineOAuthGitHubEventHandler({
   config: { emailRequired: true },
   async onSuccess(event, { user, tokens }) {
     // Only a VERIFIED address is used (stored, merged, matched against
@@ -51,4 +55,9 @@ export default defineOAuthGitHubEventHandler({
     const target = outcome === 'merged' ? '/?linked=github' : '/'
     return sendRedirect(event, target)
   }
+})
+
+export default defineApiHandler({
+  access: allow.public('sign-in itself: the OAuth state check of nuxt-auth-utils guards the callback'),
+  handler: async ({ event }): Promise<unknown> => oauth(event)
 })

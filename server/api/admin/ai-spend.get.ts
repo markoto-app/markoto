@@ -1,7 +1,7 @@
-import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmAdminFetch } from '../../utils/litellm/litellmAdmin'
 import { ALL_FEATURE_TAGS, TAG_NAMESPACES, type FeatureTag } from '../../utils/litellm/featureTags'
 import { DAY_MS } from '~~/shared/config/units'
+import { aiSpendQuery } from '~~/shared/api/legal'
 
 // Operator dashboard (/admin/ai-spend, admin-gated): per-feature LiteLLM spend
 // over a date window, aggregated by the proxy via /spend/tags.
@@ -89,10 +89,6 @@ function collapseMapShape(rows: Record<string, unknown>): SpendByTag {
   return out
 }
 
-function isValidIsoDate(s: unknown): s is string {
-  return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s)
-}
-
 function defaultRange(): { from: string, to: string } {
   const today = new Date()
   const past = new Date(today.getTime() - 30 * DAY_MS)
@@ -102,65 +98,64 @@ function defaultRange(): { from: string, to: string } {
   }
 }
 
-export default defineEventHandler(async (event) => {
-  await requireAdminUser(event)
+export default defineApiHandler({
+  access: allow.admin(),
+  query: aiSpendQuery,
+  handler: async ({ query }) => {
+    const from = query.from ?? defaultRange().from
+    const to = query.to ?? defaultRange().to
 
-  const query = getQuery(event)
-  const from = isValidIsoDate(query.from) ? query.from : defaultRange().from
-  const to = isValidIsoDate(query.to) ? query.to : defaultRange().to
+    // No `tags=` filter: unknown tags are wanted too, for the "other" row.
+    const url = `/spend/tags?start_date=${encodeURIComponent(from)}&end_date=${encodeURIComponent(to)}`
+    const res = await litellmAdminFetch(url)
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      // The upstream text stays in the server log (the cause); the client only learns the status.
+      throw apiError('admin/spend-unavailable', { upstreamStatus: res.status }, { cause: new Error(`LiteLLM /spend/tags failed: ${res.status} ${text.slice(0, 200)}`) })
+    }
+    const tagMap = collapseSpendResponse(await res.json())
 
-  // No `tags=` filter: unknown tags are wanted too, for the "other" row.
-  const url = `/spend/tags?start_date=${encodeURIComponent(from)}&end_date=${encodeURIComponent(to)}`
-  const res = await litellmAdminFetch(url)
-  if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw createError({
-      statusCode: 502,
-      message: `LiteLLM /spend/tags failed: ${res.status} ${text.slice(0, 200)}`
-    })
-  }
-  const tagMap = collapseSpendResponse(await res.json())
+    // Known feature tags get their own row in canonical order; unknown
+    // feature-shaped tags fold into `other`.
+    const knownSet = new Set<string>(ALL_FEATURE_TAGS)
+    const breakdown: Array<{ tag: FeatureTag | 'other', spend: number, requests: number, totalTokens: number }> = []
 
-  // Known feature tags get their own row in canonical order; unknown
-  // feature-shaped tags fold into `other`.
-  const knownSet = new Set<string>(ALL_FEATURE_TAGS)
-  const breakdown: Array<{ tag: FeatureTag | 'other', spend: number, requests: number, totalTokens: number }> = []
+    for (const tag of ALL_FEATURE_TAGS) {
+      const row = tagMap[tag] ?? { spend: 0, requests: 0, totalTokens: 0 }
+      breakdown.push({ tag, spend: row.spend, requests: row.requests, totalTokens: row.totalTokens })
+    }
 
-  for (const tag of ALL_FEATURE_TAGS) {
-    const row = tagMap[tag] ?? { spend: 0, requests: 0, totalTokens: 0 }
-    breakdown.push({ tag, spend: row.spend, requests: row.requests, totalTokens: row.totalTokens })
-  }
+    // The workspace:* / user:* / doc:* axes are known namespaces served by
+    // `/admin/axis-spend`; counting them here would inflate "other".
+    let otherSpend = 0
+    let otherRequests = 0
+    let otherTokens = 0
+    for (const [tag, row] of Object.entries(tagMap)) {
+      if (knownSet.has(tag)) continue
+      if (TAG_NAMESPACES.some(ns => tag.startsWith(ns) && ns !== 'feature:')) continue
+      otherSpend += row.spend
+      otherRequests += row.requests
+      otherTokens += row.totalTokens
+    }
+    if (otherSpend > 0 || otherRequests > 0) {
+      breakdown.push({ tag: 'other', spend: otherSpend, requests: otherRequests, totalTokens: otherTokens })
+    }
 
-  // The workspace:* / user:* / doc:* axes are known namespaces served by
-  // `/admin/axis-spend`; counting them here would inflate "other".
-  let otherSpend = 0
-  let otherRequests = 0
-  let otherTokens = 0
-  for (const [tag, row] of Object.entries(tagMap)) {
-    if (knownSet.has(tag)) continue
-    if (TAG_NAMESPACES.some(ns => tag.startsWith(ns) && ns !== 'feature:')) continue
-    otherSpend += row.spend
-    otherRequests += row.requests
-    otherTokens += row.totalTokens
-  }
-  if (otherSpend > 0 || otherRequests > 0) {
-    breakdown.push({ tag: 'other', spend: otherSpend, requests: otherRequests, totalTokens: otherTokens })
-  }
+    const totalSpend = breakdown.reduce((s, r) => s + r.spend, 0)
+    const totalRequests = breakdown.reduce((s, r) => s + r.requests, 0)
 
-  const totalSpend = breakdown.reduce((s, r) => s + r.spend, 0)
-  const totalRequests = breakdown.reduce((s, r) => s + r.requests, 0)
-
-  return {
-    from,
-    to,
-    totalSpendUsd: Number(totalSpend.toFixed(4)),
-    totalRequests,
-    breakdown: breakdown.map(r => ({
-      tag: r.tag,
-      spendUsd: Number(r.spend.toFixed(4)),
-      requests: r.requests,
-      totalTokens: r.totalTokens,
-      sharePct: totalSpend > 0 ? Number(((r.spend / totalSpend) * 100).toFixed(2)) : 0
-    }))
+    return {
+      from,
+      to,
+      totalSpendUsd: Number(totalSpend.toFixed(4)),
+      totalRequests,
+      breakdown: breakdown.map(r => ({
+        tag: r.tag,
+        spendUsd: Number(r.spend.toFixed(4)),
+        requests: r.requests,
+        totalTokens: r.totalTokens,
+        sharePct: totalSpend > 0 ? Number(((r.spend / totalSpend) * 100).toFixed(2)) : 0
+      }))
+    }
   }
 })

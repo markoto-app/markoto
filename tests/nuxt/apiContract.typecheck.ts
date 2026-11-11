@@ -37,7 +37,7 @@ export function requestTypes(): void {
   // @ts-expect-error no options at all on a route with a path parameter
   void apiFetch('/api/docs/:docId/share-settings')
   // An unconverted route still accepts any body.
-  void apiFetch('/api/mcp/tokens', { method: 'post', body: { anything: 1 } })
+  void apiFetch('/scim/v2/Users', { method: 'post', body: { anything: 1 } })
 }
 
 export function secretKeyGuard(): void {

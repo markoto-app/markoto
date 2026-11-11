@@ -6,6 +6,8 @@ export const uploadErrors = defineErrors('upload', {
   'confirm-in-progress': { status: 409 },
   'content-type-mismatch': { status: 415 },
   'file-too-large': { status: 413 },
+  'not-found': { status: 404 },
+  'not-landed': { status: 404 },
   'rate-limited': { status: 429 },
   'size-mismatch': { status: 400 },
   'storage-quota': { status: 409, params: z.object({ recovery: recoveryParam.optional() }) },

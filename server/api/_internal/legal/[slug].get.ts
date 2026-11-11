@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { legalMarkdown } from '~~/server/utils/privacy/legalMarkdown'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
-import { assertLegalSurfacesEnabled } from '../../../utils/platform/instanceConfig'
+import { legalDocumentParams, legalDocumentQuery } from '~~/shared/api/platform'
 import { renderProcessingPurposesMarkdown } from '~~/server/legal/registryView'
 import { isBillingEnabled } from '~~/server/utils/billing/billingMode'
 import {
@@ -74,84 +74,89 @@ const SLUG_META: Record<LegalSlug, SlugMetadata> = {
   }
 }
 
-export default defineEventHandler(async (event) => {
+export default defineApiHandler({
+  access: allow.public('Legal documents must be readable without an account; slug allowlist and locale guard are in the handler'),
   // The bundled texts describe the hosted markoto.app service; a
   // deployment with the legal surfaces off (self-hosted default) must not
   // serve them under its own origin. See shared/config/instance.ts.
-  assertLegalSurfacesEnabled()
-  const slugParam = getRouterParam(event, 'slug')
-  if (!slugParam || !ALLOWED_SLUGS.includes(slugParam as LegalSlug)) {
-    throw createError({ statusCode: 404, message: 'Document not found' })
-  }
-  const slug = slugParam as LegalSlug
-
-  const requestedLocale = (getQuery(event).locale as string | undefined) ?? AUTHORITATIVE_LOCALE
-  // Unsupported locales fall back to English without a 404.
-  const locale = LEGAL_DOCUMENT_LOCALES.includes(
-    requestedLocale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
-  )
-    ? requestedLocale
-    : AUTHORITATIVE_LOCALE
-
-  const meta = SLUG_META[slug]
-  const entity = resolveLegalEntity()
-
-  // Falls back to English on miss; a missing English copy breaks the invariant
-  // that every document has an English source, so it is a 500.
-  const baseDir = join(process.cwd(), 'content', 'legal', slug)
-  let chosenLocale = locale
-  let raw: string
-  try {
-    raw = await readFile(join(baseDir, `${chosenLocale}.md`), 'utf8')
-  } catch {
-    if (chosenLocale === AUTHORITATIVE_LOCALE) {
-      throw createError({ statusCode: 500, message: 'Authoritative legal source missing' })
+  instance: 'legalSurfaces',
+  params: legalDocumentParams,
+  query: legalDocumentQuery,
+  handler: async ({ params, query }) => {
+    const slugParam = params.slug
+    if (!slugParam || !ALLOWED_SLUGS.includes(slugParam as LegalSlug)) {
+      throw apiError('resource/not-found')
     }
-    chosenLocale = AUTHORITATIVE_LOCALE
+    const slug = slugParam as LegalSlug
+
+    const requestedLocale = query.locale ?? AUTHORITATIVE_LOCALE
+    // Unsupported locales fall back to English without a 404.
+    const locale = LEGAL_DOCUMENT_LOCALES.includes(
+      requestedLocale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
+    )
+      ? requestedLocale
+      : AUTHORITATIVE_LOCALE
+
+    const meta = SLUG_META[slug]
+    const entity = resolveLegalEntity()
+
+    // Falls back to English on miss; a missing English copy breaks the invariant
+    // that every document has an English source, so it is a 500.
+    const baseDir = join(process.cwd(), 'content', 'legal', slug)
+    let chosenLocale = locale
+    let raw: string
     try {
       raw = await readFile(join(baseDir, `${chosenLocale}.md`), 'utf8')
     } catch {
-      throw createError({ statusCode: 500, message: 'Authoritative legal source missing' })
+      if (chosenLocale === AUTHORITATIVE_LOCALE) {
+        throw apiError('internal')
+      }
+      chosenLocale = AUTHORITATIVE_LOCALE
+      try {
+        raw = await readFile(join(baseDir, `${chosenLocale}.md`), 'utf8')
+      } catch {
+        throw apiError('internal')
+      }
     }
-  }
 
-  // Versions and effective dates come from the TypeScript registry, so no
-  // frontmatter values are needed.
-  const body = stripFrontmatter(raw)
+    // Versions and effective dates come from the TypeScript registry, so no
+    // frontmatter values are needed.
+    const body = stripFrontmatter(raw)
 
-  const substitutions: Record<string, string> = {
-    currentVersion: String(meta.version),
-    effectiveDate: meta.effectiveDate,
-    controllerName: entity.controllerName,
-    controllerAddress: entity.controllerAddress,
-    privacyContactEmail: entity.privacyContactEmail,
-    abuseContactEmail: entity.abuseContactEmail,
-    governingLaw: entity.governingLaw,
-    legalForm: entity.legalForm,
-    registeredOffice: entity.registeredOffice,
-    representedBy: entity.representedBy,
-    uid: entity.uid,
-    chId: entity.chId,
-    ehraId: entity.ehraId,
-    processingPurposesTable: renderProcessingPurposesMarkdown(isBillingEnabled())
-  }
-  const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key: string) => {
-    if (!Object.hasOwn(substitutions, key)) return full
-    return substitutions[key] ?? full
-  })
+    const substitutions: Record<string, string> = {
+      currentVersion: String(meta.version),
+      effectiveDate: meta.effectiveDate,
+      controllerName: entity.controllerName,
+      controllerAddress: entity.controllerAddress,
+      privacyContactEmail: entity.privacyContactEmail,
+      abuseContactEmail: entity.abuseContactEmail,
+      governingLaw: entity.governingLaw,
+      legalForm: entity.legalForm,
+      registeredOffice: entity.registeredOffice,
+      representedBy: entity.representedBy,
+      uid: entity.uid,
+      chId: entity.chId,
+      ehraId: entity.ehraId,
+      processingPurposesTable: renderProcessingPurposesMarkdown(isBillingEnabled())
+    }
+    const substituted = body.replace(/\{\{(\w+)\}\}/g, (full, key: string) => {
+      if (!Object.hasOwn(substitutions, key)) return full
+      return substitutions[key] ?? full
+    })
 
-  const html = legalMarkdown.render(substituted)
+    const html = legalMarkdown.render(substituted)
 
-  return {
-    slug,
-    title: meta.defaultTitle,
-    version: meta.version,
-    effectiveDate: meta.effectiveDate,
-    requestedLocale: locale,
-    actualLocale: chosenLocale,
-    isFallback: chosenLocale !== locale,
-    authoritativeLocale: AUTHORITATIVE_LOCALE,
-    html
+    return {
+      slug,
+      title: meta.defaultTitle,
+      version: meta.version,
+      effectiveDate: meta.effectiveDate,
+      requestedLocale: locale,
+      actualLocale: chosenLocale,
+      isFallback: chosenLocale !== locale,
+      authoritativeLocale: AUTHORITATIVE_LOCALE,
+      html
+    }
   }
 })
 

@@ -1,8 +1,8 @@
 import type { H3Event } from 'h3'
+import { apiError } from '../api/apiError'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_POLICY_ACCEPTED } from '../../legal/auditActions'
 import { PAID_TERMS_VERSION } from '~~/shared/legal/versions'
-import { PAID_TERMS_REQUIRED_CODE } from '~~/shared/config/pricing'
 
 // Paid Plans Terms (`content/legal/paid-terms/`). Every purchase —
 // a plan checkout, an in-place plan switch, an AI-credit top-up — needs
@@ -27,13 +27,7 @@ export interface PaidTermsPurchase {
 /** 400 `billing/terms-required` unless the body carries `acceptPaidTerms: true`. */
 export function requirePaidTermsAccepted(body: unknown): void {
   const accepted = typeof body === 'object' && body !== null && (body as Record<string, unknown>).acceptPaidTerms === true
-  if (!accepted) {
-    throw createError({
-      statusCode: 400,
-      message: 'Accept the Paid Plans Terms to continue.',
-      data: { code: PAID_TERMS_REQUIRED_CODE, messageKey: 'billing.paidTerms.required' }
-    })
-  }
+  if (!accepted) throw apiError('billing/terms-required')
 }
 
 /** Record the acceptance (best-effort, like every audit write). */

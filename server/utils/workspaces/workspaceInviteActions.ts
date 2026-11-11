@@ -6,6 +6,7 @@ import {
   type InviteSelector
 } from '../../repos/workspaceInvites'
 import { appendAuditEvent } from '../../repos/audit'
+import { apiError } from '../api/apiError'
 import {
   AUDIT_WORKSPACE_INVITE_ACCEPTED,
   AUDIT_WORKSPACE_INVITE_DECLINED
@@ -24,25 +25,19 @@ import { getClientIp } from '../platform/clientIp'
 //     address (possession of the mailbox).
 // Anything else is a uniform 404 — an invite id alone grants nothing.
 
-const NOT_FOUND = {
-  statusCode: 404,
-  message: 'Invitation not found or expired',
-  data: { code: 'workspace/invite-not-found', messageKey: 'workspace.invites.errors.notFound' }
-}
-
-/** Selector for an in-app action on `:inviteId` by the signed-in user. */
-export async function inAppInviteSelector(event: H3Event, userId: number): Promise<InviteSelector> {
-  const inviteId = parseInviteId(getRouterParam(event, 'inviteId'))
-  if (!inviteId) throw createError({ statusCode: 400, message: 'Invalid invite id' })
+/** Selector for an in-app action on `inviteId` by the signed-in user. */
+export async function inAppInviteSelector(userId: number, rawInviteId: string): Promise<InviteSelector> {
+  const inviteId = parseInviteId(rawInviteId)
+  if (!inviteId) throw apiError('request/invalid', { field: 'inviteId' })
   const user = await findUserById(userId)
   const email = normaliseInviteEmail(user?.email)
-  if (!email) throw createError(NOT_FOUND)
+  if (!email) throw apiError('workspace/invite-not-found')
   return { kind: 'id', inviteId, email }
 }
 
 export async function acceptInviteForUser(event: H3Event, userId: number, selector: InviteSelector) {
   const accepted = await acceptWorkspaceInvite(selector, userId, new Date())
-  if (!accepted) throw createError(NOT_FOUND)
+  if (!accepted) throw apiError('workspace/invite-not-found')
 
   await appendAuditEvent({
     actorUserId: userId,
@@ -65,7 +60,7 @@ export async function acceptInviteForUser(event: H3Event, userId: number, select
 
 export async function declineInviteForUser(event: H3Event, userId: number, selector: InviteSelector) {
   const declined = await declineWorkspaceInvite(selector)
-  if (!declined) throw createError(NOT_FOUND)
+  if (!declined) throw apiError('workspace/invite-not-found')
 
   await appendAuditEvent({
     actorUserId: userId,

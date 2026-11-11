@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/nuxt'
 import { mcpPersonalTokens, mcpSessions } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { useValkey } from '../platform/valkey'
+import { MCP_SCOPES, type McpScope } from '~~/shared/api/account'
 
 // MCP Personal Access Token primitives.
 //
@@ -44,14 +45,7 @@ const MCP_TOKEN_BODY_BYTES = 20 // 20 bytes → 32 base32 chars
  *  3-4 (one per device + one for scripts); the headroom is generous. */
 export const MAX_PATS_PER_USER = 20
 
-export const MCP_SCOPES = [
-  'documents:read',
-  'documents:write',
-  'knowledge:read',
-  'web:fetch'
-] as const
-
-export type McpScope = (typeof MCP_SCOPES)[number]
+export { MCP_SCOPES, type McpScope }
 
 export interface McpAuthContext {
   userId: number
@@ -203,7 +197,7 @@ export async function verifyMcpPat(plaintextOrHeader: string | null | undefined)
   if (row.revokedAt !== null) return null
   if (row.expiresAt !== null && row.expiresAt.getTime() <= Date.now()) return null
 
-  const scopes = (row.scopes as string[]).filter((s): s is McpScope =>
+  const scopes = (row.scopes).filter((s): s is McpScope =>
     (MCP_SCOPES as readonly string[]).includes(s)
   )
 

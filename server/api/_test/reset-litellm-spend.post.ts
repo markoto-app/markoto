@@ -7,20 +7,17 @@
 
 import { resetUserKeySpend, getUserKeyInfo } from '../../utils/litellm/userKeys'
 import { resolveBillingContext } from '../../utils/billing/billing'
-import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
+import { testUserBody } from '~~/shared/api/platform'
 
-export default defineEventHandler(async (event) => {
-  if (!isTestModeEnabled()) {
-    throw createError({ statusCode: 404, message: 'Not found' })
+export default defineApiHandler({
+  access: allow.testOnly(),
+  body: testUserBody,
+  handler: async ({ body }) => {
+    const { userId } = body
+    // Make sure the key exists first (reset is a no-op without one).
+    const billing = await resolveBillingContext(userId, null)
+    const reset = await resetUserKeySpend(userId)
+    const info = await getUserKeyInfo(userId, billing.plan)
+    return { reset, spend: info.spend, maxBudget: info.maxBudget }
   }
-  const body = await readBody<{ userId?: unknown }>(event)
-  const userId = typeof body?.userId === 'number' ? body.userId : null
-  if (!userId || !Number.isInteger(userId) || userId <= 0) {
-    throw createError({ statusCode: 400, message: 'userId required (positive integer)' })
-  }
-  // Make sure the key exists first (reset is a no-op without one).
-  const billing = await resolveBillingContext(userId, null)
-  const reset = await resetUserKeySpend(userId)
-  const info = await getUserKeyInfo(userId, billing.plan)
-  return { reset, spend: info.spend, maxBudget: info.maxBudget }
 })

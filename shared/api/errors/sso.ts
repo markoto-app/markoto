@@ -4,14 +4,17 @@ import { defineErrors, fieldIssue } from './define'
 
 export const ssoErrors = defineErrors('sso', {
   'admin-required': { status: 403 },
+  'connection-not-found': { status: 404 },
+  'domain-not-found': { status: 404 },
   'domain-cap': { status: 409, params: z.object({ max: z.number() }) },
   'domain-exists': { status: 409 },
   'domain-taken': { status: 409 },
   'domain-unverified': { status: 422 },
   'incomplete': { status: 409 },
-  'invalid-domain': { status: 400 },
+  'invalid-domain': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
   'invalid-settings': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
   'misconfigured': { status: 503 },
+  'not-configured': { status: 404 },
   'no-connection': { status: 404, statuses: [409] },
   'rate-limited': { status: 429 },
   'required': { status: 403, params: z.object({ loginUrl: z.string().optional(), canManageSso: z.boolean().optional() }) },

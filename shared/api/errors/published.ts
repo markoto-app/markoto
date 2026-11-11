@@ -2,5 +2,6 @@
 import { defineErrors } from './define'
 
 export const publishedErrors = defineErrors('published', {
-  'rate-limited': { status: 429 }
+  'rate-limited': { status: 429 },
+  'not-found': { status: 404 }
 })

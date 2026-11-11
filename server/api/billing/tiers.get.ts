@@ -3,10 +3,11 @@
 //
 // PUBLIC: the pricing page renders these caps for logged-out visitors,
 // so the values are public by definition. Read-only, no per-user data.
-// Whitelisted in server/middleware/auth.ts.
+// Whitelisted in server/utils/auth/publicRoutes.ts.
 
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 
-export default defineEventHandler(() => {
-  return getTiers()
+export default defineApiHandler({
+  access: allow.public('pricing page for logged-out visitors; the tier caps are public by definition'),
+  handler: () => getTiers()
 })

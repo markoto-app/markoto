@@ -21,29 +21,31 @@ import { isBillingEnabled } from '../../utils/billing/billingMode'
 //    UI tells them "+ 42 more docs". This is informational only; the
 //    sweeper still deletes all of them.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const plan = await planAccountDeletion(session.user.id)
-  if (!plan) {
-    throw createError({ statusCode: 500, message: 'User row vanished mid-request' })
-  }
+export default defineApiHandler({
+  access: allow.user(),
+  handler: async ({ user }) => {
+    const plan = await planAccountDeletion(user.id)
+    if (!plan) {
+      throw apiError('internal')
+    }
 
-  return {
-    userId: plan.userId,
-    ownedDocs: {
-      total: plan.ownedDocs.length,
-      sample: plan.ownedDocs.slice(0, 100)
-    },
-    commentsToAnonymise: plan.commentsToAnonymise,
-    workspaces: plan.workspaces,
-    aiUsage: {
-      sessions: plan.aiSessionsToDelete,
-      sessionMessages: plan.aiSessionMessagesToDelete
-    },
-    dataExportJobs: plan.dataExportJobsToDelete.length,
-    // Billing off → the Stripe step is skipped (no Stripe client on this
-    // deployment), so don't promise it in the consequences modal.
-    stripeCustomerWillBeDeleted: plan.stripeCustomerToDelete !== null && isBillingEnabled(),
-    retainedAnonymised: plan.rowsRetainedAnonymised
+    return {
+      userId: plan.userId,
+      ownedDocs: {
+        total: plan.ownedDocs.length,
+        sample: plan.ownedDocs.slice(0, 100)
+      },
+      commentsToAnonymise: plan.commentsToAnonymise,
+      workspaces: plan.workspaces,
+      aiUsage: {
+        sessions: plan.aiSessionsToDelete,
+        sessionMessages: plan.aiSessionMessagesToDelete
+      },
+      dataExportJobs: plan.dataExportJobsToDelete.length,
+      // Billing off → the Stripe step is skipped (no Stripe client on this
+      // deployment), so don't promise it in the consequences modal.
+      stripeCustomerWillBeDeleted: plan.stripeCustomerToDelete !== null && isBillingEnabled(),
+      retainedAnonymised: plan.rowsRetainedAnonymised
+    }
   }
 })

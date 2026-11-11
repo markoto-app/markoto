@@ -1,6 +1,7 @@
 import { readFile, stat } from 'node:fs/promises'
 import { INSTANCE_BRAND_LOGO_TYPES, instanceBrandLogoExt } from '~~/shared/config/instanceBrand'
 import { MIB } from '~~/shared/config/units'
+import { instanceBrandParams } from '~~/shared/api/platform'
 
 // GET /instance-brand/logo.<ext> — the customer logo of a managed private
 // instance: the file the operator names in NUXT_INSTANCE_BRAND_LOGO
@@ -10,22 +11,26 @@ import { MIB } from '~~/shared/config/units'
 
 const MAX_BYTES = MIB
 
-export default defineEventHandler(async (event) => {
-  const path = (process.env.NUXT_INSTANCE_BRAND_LOGO ?? '').trim()
-  const ext = instanceBrandLogoExt(path)
-  if (!ext || getRouterParam(event, 'file') !== `logo.${ext}`) throw createError({ statusCode: 404, message: 'Not found' })
-  let bytes: Buffer
-  try {
-    const info = await stat(path)
-    if (!info.isFile() || info.size > MAX_BYTES) throw new Error('not a usable file')
-    bytes = await readFile(path)
-  } catch (e) {
-    console.warn('[instance-brand] logo not readable:', e instanceof Error ? e.message : e)
-    throw createError({ statusCode: 404, message: 'Not found' })
+export default defineApiHandler({
+  access: allow.public('Customer logo of a managed instance: shown on the sign-in and public pages, so no session'),
+  params: instanceBrandParams,
+  handler: async ({ event, params }) => {
+    const path = (process.env.NUXT_INSTANCE_BRAND_LOGO ?? '').trim()
+    const ext = instanceBrandLogoExt(path)
+    if (!ext || params.file !== `logo.${ext}`) throw apiError('resource/not-found')
+    let bytes: Buffer
+    try {
+      const info = await stat(path)
+      if (!info.isFile() || info.size > MAX_BYTES) throw new Error('not a usable file')
+      bytes = await readFile(path)
+    } catch (e) {
+      console.warn('[instance-brand] logo not readable:', e instanceof Error ? e.message : e)
+      throw apiError('resource/not-found')
+    }
+    setHeader(event, 'content-type', INSTANCE_BRAND_LOGO_TYPES[ext]!)
+    setHeader(event, 'x-content-type-options', 'nosniff')
+    setHeader(event, 'content-security-policy', `default-src 'none'; style-src 'unsafe-inline'; sandbox`)
+    setHeader(event, 'cache-control', 'public, max-age=300')
+    return bytes
   }
-  setHeader(event, 'content-type', INSTANCE_BRAND_LOGO_TYPES[ext]!)
-  setHeader(event, 'x-content-type-options', 'nosniff')
-  setHeader(event, 'content-security-policy', `default-src 'none'; style-src 'unsafe-inline'; sandbox`)
-  setHeader(event, 'cache-control', 'public, max-age=300')
-  return bytes
 })

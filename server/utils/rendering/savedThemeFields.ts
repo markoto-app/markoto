@@ -1,9 +1,5 @@
-import {
-  SAVED_THEME_DESCRIPTION_MAX,
-  SAVED_THEME_NAME_MAX,
-  checkSavedThemeDescription,
-  checkSavedThemeName
-} from '~~/shared/config/savedThemes'
+import { checkSavedThemeDescription, checkSavedThemeName } from '~~/shared/config/savedThemes'
+import { apiError } from '../api/apiError'
 
 /**
  * Request-body readers for the saved-theme endpoints (POST /api/themes,
@@ -15,19 +11,11 @@ import {
 export function readSavedThemeName(raw: unknown): string {
   const name = checkSavedThemeName(raw)
   if (name.ok) return name.value
-  const messages = {
-    'required': 'Name is required',
-    'too-long': `Name too long (max ${SAVED_THEME_NAME_MAX})`,
-    'not-a-string': 'Name must be a string'
-  } as const
-  throw createError({ statusCode: 400, message: messages[name.issue], data: { code: `theme/name-${name.issue}` } })
+  throw apiError(`theme/name-${name.issue}` as const)
 }
 
 export function readSavedThemeDescription(raw: unknown): string {
   const description = checkSavedThemeDescription(raw)
   if (description.ok) return description.value
-  const message = description.issue === 'too-long'
-    ? `Description too long (max ${SAVED_THEME_DESCRIPTION_MAX})`
-    : 'Description must be a string'
-  throw createError({ statusCode: 400, message, data: { code: `theme/description-${description.issue}` } })
+  throw apiError(description.issue === 'too-long' ? 'theme/description-too-long' : 'theme/description-not-a-string')
 }

@@ -7,6 +7,7 @@ export const abuseErrors = defineErrors('abuse', {
   'conflict': { status: 409 },
   'login-required': { status: 401 },
   'rate-limited': { status: 429 },
+  'report-not-found': { status: 404 },
   'invalid-category': { status: 400 },
   'url-required': { status: 400 },
   'body-too-short': { status: 400 },

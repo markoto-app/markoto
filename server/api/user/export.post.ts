@@ -1,7 +1,6 @@
 import { enqueueExportJob } from '../../repos/dataExportJobs'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_ACCOUNT_EXPORT_REQUESTED } from '../../legal/auditActions'
-import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
 import { DAY_MS } from '~~/shared/config/units'
 
@@ -18,47 +17,40 @@ import { DAY_MS } from '~~/shared/config/units'
 // 409 on concurrent active job. The UI suppresses the request
 // button when an active job exists; the server enforces.
 
-export default defineEventHandler(async (event) => {
+export default defineApiHandler({
+  access: allow.user(),
   // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
-  const session = await requireRecentLogin(event)
-  const userId = session.user.id
+  recentLogin: true,
+  body: 'none',
+  rateLimit: { namespace: 'account-export-request', max: 1, windowMs: DAY_MS, key: 'user', error: 'export/rate-limited' },
+  handler: async ({ event, user }) => {
+    const userId = user.id
 
-  const ip = getClientIp(event)
+    const ip = getClientIp(event)
 
-  if (!(await checkRateLimit('account-export-request', String(userId), 1, DAY_MS))) {
-    throw createError({
-      statusCode: 429,
-      message: 'You have already requested an export today. Please try again tomorrow.',
-      data: { code: 'export/rate-limited' }
-    })
-  }
+    try {
+      const job = await enqueueExportJob(userId)
 
-  try {
-    const job = await enqueueExportJob(userId)
-
-    await appendAuditEvent({
-      actorUserId: userId,
-      actorIp: ip,
-      scope: 'user',
-      scopeId: String(userId),
-      action: AUDIT_ACCOUNT_EXPORT_REQUESTED,
-      metadata: { jobId: job.jobId }
-    })
-
-    return {
-      ok: true,
-      jobId: job.jobId,
-      status: job.status,
-      createdAt: job.createdAt.toISOString()
-    }
-  } catch (e) {
-    if (isRepoError(e)) {
-      throw createError({
-        statusCode: e.httpStatus,
-        message: e.message,
-        data: { code: 'export/conflict' }
+      await appendAuditEvent({
+        actorUserId: userId,
+        actorIp: ip,
+        scope: 'user',
+        scopeId: String(userId),
+        action: AUDIT_ACCOUNT_EXPORT_REQUESTED,
+        metadata: { jobId: job.jobId }
       })
+
+      return {
+        ok: true,
+        jobId: job.jobId,
+        status: job.status,
+        createdAt: job.createdAt.toISOString()
+      }
+    } catch (e) {
+      if (isRepoError(e)) {
+        throw apiError('export/conflict', undefined, { status: e.httpStatus as 409 | 404, cause: e })
+      }
+      throw e
     }
-    throw e
   }
 })

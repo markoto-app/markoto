@@ -8,7 +8,7 @@ export const brandErrors = defineErrors('brand', {
   'file-missing': { status: 400, audience: 'developer' },
   'file-too-large': { status: 413 },
   'font-exists': { status: 409 },
-  'font-refused': { status: 422, params: z.object({ reason: z.string().optional() }) },
+  'font-refused': { status: 422, params: z.object({ reason: z.string().optional(), messageKey: z.string().optional() }) },
   'image-type': { status: 415 },
   'invalid': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
   'invalid-family': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },

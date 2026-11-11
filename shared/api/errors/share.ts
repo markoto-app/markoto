@@ -8,7 +8,10 @@ export const shareErrors = defineErrors('share', {
   'expiry-past': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
   'expiry-too-far': { status: 400, params: z.object({ maxDays: z.number(), field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
   'invalid': { status: 400, params: z.object({ field: z.string().optional(), fields: z.array(fieldIssue).optional() }) },
+  'move-not-allowed': { status: 403 },
+  'move-target-viewer': { status: 403 },
   'not-a-guest': { status: 404 },
   'not-allowed': { status: 403 },
+  'not-shared': { status: 404 },
   'rate-limited': { status: 429 }
 })

@@ -20,15 +20,6 @@ export function customDomainVerifyValue(token: string): string {
 /** A verified domain whose DNS stops pointing at us is dropped after this long. */
 export const CUSTOM_DOMAIN_GRACE_MS = 72 * HOUR_MS
 
-export const CUSTOM_DOMAIN_ERROR_CODES = {
-  disabled: 'custom-domain/disabled',
-  invalid: 'custom-domain/invalid',
-  taken: 'custom-domain/taken',
-  limit: 'custom-domain/limit',
-  notVerified: 'custom-domain/not-verified',
-  pageNotPublished: 'custom-domain/page-not-published'
-} as const
-
 /** Why a DNS check failed — shown to the user as a sentence (`customDomains.dns.*`). */
 // `in-use`: the records are right, but another account's claim of the
 // same hostname is already verified.

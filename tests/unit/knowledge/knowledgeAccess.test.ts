@@ -1,150 +1,31 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import type { H3Event } from 'h3'
 
-// Unit tests for the three knowledge-base authz gates plus the
-// deleteKnowledgeArtifact cascade. Role matrix:
-//
-//                      | view | edit | delete
-//   non-member         | 404  | 404  | 404
-//   viewer             | OK   | 403  | 403
-//   editor             | OK   | OK   | own only
-//   admin              | OK   | OK   | OK
-//
-// Missing-workspace returns 404 (not 403) so we don't leak which IDs
-// exist to callers who aren't members — important because workspace IDs
-// are nanoid-style but members might enumerate from an external system.
+// Unit tests for the deleteKnowledgeArtifact cascade. The role rules (view:
+// member, upload: admin / editor, delete: admin or the editor who uploaded) are
+// declared by the routes and covered by the workspaceKnowledge integration test.
 
-const getMemberRole = vi.fn<(wsId: string, userId: number) => Promise<'admin' | 'editor' | 'viewer' | null>>()
 const getKnowledge = vi.fn<(id: string) => Promise<{ s3Key: string } | null>>()
 const deleteKnowledgeRow = vi.fn<(id: string) => Promise<void>>()
 
-vi.mock('../../../server/repos/workspaceMembers', () => ({ getMemberRole }))
 vi.mock('../../../server/repos/knowledge', () => ({ getKnowledge, deleteKnowledgeRow }))
 
 const s3Send = vi.fn(async () => {})
 vi.stubGlobal('useS3Client', () => ({ send: s3Send }))
 vi.stubGlobal('useRuntimeConfig', () => ({ s3: { bucket: 'test-bucket' } }))
-vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => {
-  const err = new Error(opts.message) as Error & { statusCode: number }
-  err.statusCode = opts.statusCode
-  return err
-})
 
 // Sentry: no-op at runtime, but capture calls for one assertion about
 // the S3-failure path (the artifact delete must Sentry-tag the failure).
 const sentryCaptureException = vi.fn()
 vi.mock('@sentry/nuxt', () => ({ captureException: sentryCaptureException }))
 
-const {
-  requireKnowledgeViewAccess,
-  requireKnowledgeEditAccess,
-  requireKnowledgeDeleteAccess,
-  deleteKnowledgeArtifact
-} = await import('../../../server/utils/knowledge/knowledgeAccess')
-
-function fakeEvent(): H3Event {
-  return {} as H3Event
-}
+const { deleteKnowledgeArtifact } = await import('../../../server/utils/knowledge/knowledgeAccess')
 
 beforeEach(() => {
-  getMemberRole.mockReset()
   getKnowledge.mockReset()
   deleteKnowledgeRow.mockReset()
   s3Send.mockReset()
   s3Send.mockImplementation(async () => {})
   sentryCaptureException.mockReset()
-})
-
-describe('requireKnowledgeViewAccess', () => {
-  it('throws 404 for non-members (does not leak workspace existence)', async () => {
-    getMemberRole.mockResolvedValueOnce(null)
-    await expect(requireKnowledgeViewAccess(fakeEvent(), 'w1', 42))
-      .rejects.toMatchObject({ statusCode: 404 })
-  })
-
-  it('returns the role for viewer', async () => {
-    getMemberRole.mockResolvedValueOnce('viewer')
-    expect(await requireKnowledgeViewAccess(fakeEvent(), 'w1', 42)).toBe('viewer')
-  })
-
-  it('returns the role for editor', async () => {
-    getMemberRole.mockResolvedValueOnce('editor')
-    expect(await requireKnowledgeViewAccess(fakeEvent(), 'w1', 42)).toBe('editor')
-  })
-
-  it('returns the role for admin', async () => {
-    getMemberRole.mockResolvedValueOnce('admin')
-    expect(await requireKnowledgeViewAccess(fakeEvent(), 'w1', 42)).toBe('admin')
-  })
-})
-
-describe('requireKnowledgeEditAccess', () => {
-  it('throws 404 for non-members (inherits from view)', async () => {
-    getMemberRole.mockResolvedValueOnce(null)
-    await expect(requireKnowledgeEditAccess(fakeEvent(), 'w1', 42))
-      .rejects.toMatchObject({ statusCode: 404 })
-  })
-
-  it('throws 403 for viewer (members-but-read-only)', async () => {
-    getMemberRole.mockResolvedValueOnce('viewer')
-    await expect(requireKnowledgeEditAccess(fakeEvent(), 'w1', 42))
-      .rejects.toMatchObject({ statusCode: 403 })
-  })
-
-  it('allows editor', async () => {
-    getMemberRole.mockResolvedValueOnce('editor')
-    expect(await requireKnowledgeEditAccess(fakeEvent(), 'w1', 42)).toBe('editor')
-  })
-
-  it('allows admin', async () => {
-    getMemberRole.mockResolvedValueOnce('admin')
-    expect(await requireKnowledgeEditAccess(fakeEvent(), 'w1', 42)).toBe('admin')
-  })
-})
-
-describe('requireKnowledgeDeleteAccess', () => {
-  it('throws 404 for non-members (inherits from view/edit)', async () => {
-    getMemberRole.mockResolvedValueOnce(null)
-    await expect(requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, 42))
-      .rejects.toMatchObject({ statusCode: 404 })
-  })
-
-  it('throws 403 for viewer (inherits from edit)', async () => {
-    getMemberRole.mockResolvedValueOnce('viewer')
-    await expect(requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, 42))
-      .rejects.toMatchObject({ statusCode: 403 })
-  })
-
-  it('admin can delete any upload', async () => {
-    getMemberRole.mockResolvedValueOnce('admin')
-    expect(await requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, 999)).toBe('admin')
-  })
-
-  it('admin can delete anonymous/NULL-uploader uploads', async () => {
-    // Without this we'd leave orphan rows uncleanable once an editor
-    // who uploaded them leaves the workspace and their uploader FK nulls.
-    getMemberRole.mockResolvedValueOnce('admin')
-    expect(await requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, null)).toBe('admin')
-  })
-
-  it('editor can delete their own uploads', async () => {
-    getMemberRole.mockResolvedValueOnce('editor')
-    expect(await requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, 42)).toBe('editor')
-  })
-
-  it('editor CANNOT delete another member\'s upload', async () => {
-    // Core authz rule: editors curate together but can't clobber each
-    // other's work. Only admins have the blanket-delete right.
-    getMemberRole.mockResolvedValueOnce('editor')
-    await expect(requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, 99))
-      .rejects.toMatchObject({ statusCode: 403 })
-  })
-
-  it('editor CANNOT delete anonymous-uploader rows (only admin)', async () => {
-    getMemberRole.mockResolvedValueOnce('editor')
-    await expect(requireKnowledgeDeleteAccess(fakeEvent(), 'w1', 42, null))
-      .rejects.toMatchObject({ statusCode: 403 })
-  })
 })
 
 describe('deleteKnowledgeArtifact', () => {

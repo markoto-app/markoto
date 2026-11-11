@@ -1,18 +1,21 @@
-import { requireShareManager } from '../../../../utils/documents/shareSettings'
 import { documentViews } from '../../../../repos/documentViews'
-import { getDocWithActorRole } from '../../../../repos/documents'
+import { planHasFeature, resolveDocPlanFor } from '../../../../utils/billing/entitlements'
 
 // GET /api/docs/:docId/share-settings — share-link controls for the
 // owner and workspace admins: expiry, view-only without download, and the
 // opens of the last 30 days (only on a plan with the feature).
-export default defineEventHandler(async (event) => {
-  const { userId, docId, available } = await requireShareManager(event)
-  const row = (await getDocWithActorRole(docId, userId))!
-  setHeader(event, 'cache-control', 'private, no-store')
-  return {
-    available,
-    expiresAt: row.shareExpiresAt?.toISOString() ?? null,
-    noDownload: row.shareNoDownload,
-    views: available ? await documentViews(docId, 30) : null
+export default defineApiHandler({
+  access: allow.doc('manage', { deny: 'share/not-allowed' }),
+  handler: async ({ event, docId, doc }) => {
+    // Reading the settings is free on every plan (they can be cleared after
+    // a downgrade); `available` tells the dialog whether new ones can be set.
+    const available = planHasFeature(await resolveDocPlanFor(doc), 'shareControls')
+    setHeader(event, 'cache-control', 'private, no-store')
+    return {
+      available,
+      expiresAt: doc.shareExpiresAt?.toISOString() ?? null,
+      noDownload: doc.shareNoDownload,
+      views: available ? await documentViews(docId, 30) : null
+    }
   }
 })

@@ -16,40 +16,42 @@ import { getTiers } from '~~/server/utils/billing/tierConfig'
  * AI budget is not here: the AI Points UI (badge + low-points warning)
  * reads `/api/ai/credits`. This endpoint returns only structural caps + plan.
  */
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
-  const ctx = await resolveBillingContext(userId, null)
-  const tier = getTiers()[ctx.plan]
+export default defineApiHandler({
+  access: allow.user(),
+  handler: async ({ user }) => {
+    const userId = user.id
+    const ctx = await resolveBillingContext(userId, null)
+    const tier = getTiers()[ctx.plan]
 
-  const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
-    countOwnedWorkspacesByUser(userId),
-    // Personal storage only: files and images in Team / Business
-    // workspaces count against those workspaces' pools.
-    countKnowledgeByUploader(userId, { excludePooled: isBillingEnabled() }),
-    sumKnowledgeBytesByUploader(userId, { excludePooled: isBillingEnabled() }),
-    sumImageBytesByUploader(userId, { excludePooled: isBillingEnabled() })
-  ])
+    const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
+      countOwnedWorkspacesByUser(userId),
+      // Personal storage only: files and images in Team / Business
+      // workspaces count against those workspaces' pools.
+      countKnowledgeByUploader(userId, { excludePooled: isBillingEnabled() }),
+      sumKnowledgeBytesByUploader(userId, { excludePooled: isBillingEnabled() }),
+      sumImageBytesByUploader(userId, { excludePooled: isBillingEnabled() })
+    ])
 
-  return {
-    plan: ctx.plan,
-    periodStart: ctx.periodStart.toISOString(),
-    periodEnd: ctx.periodEnd.toISOString(),
+    return {
+      plan: ctx.plan,
+      periodStart: ctx.periodStart.toISOString(),
+      periodEnd: ctx.periodEnd.toISOString(),
 
-    ownedWorkspaces,
-    workspacesOwnedLimit: tier.workspacesOwned,
-    knowledgeFilesUsed: knowledgeFiles,
-    knowledgeFilesLimit: tier.knowledgeFiles,
-    knowledgeBytesUsed: knowledgeBytes,
-    knowledgeBytesPerUserLimit: tier.knowledgeBytesPerUser,
-    // Document images (uploads + AI images + duplicate copies), pending
-    // uploads included — the same sum the upload quota enforces.
-    imageBytesUsed: imageBytes,
-    imageBytesPerUserLimit: tier.imageBytesPerUser,
-    // AI credit top-ups: balance + purchases. Null with billing off.
-    credits: isBillingEnabled() ? await creditBalanceView({ type: 'user', id: String(userId) }) : null,
-    // Workspaces whose Team / Business plan covers the user inside them.
-    coveringWorkspaces: await coveringWorkspaces(userId)
+      ownedWorkspaces,
+      workspacesOwnedLimit: tier.workspacesOwned,
+      knowledgeFilesUsed: knowledgeFiles,
+      knowledgeFilesLimit: tier.knowledgeFiles,
+      knowledgeBytesUsed: knowledgeBytes,
+      knowledgeBytesPerUserLimit: tier.knowledgeBytesPerUser,
+      // Document images (uploads + AI images + duplicate copies), pending
+      // uploads included — the same sum the upload quota enforces.
+      imageBytesUsed: imageBytes,
+      imageBytesPerUserLimit: tier.imageBytesPerUser,
+      // AI credit top-ups: balance + purchases. Null with billing off.
+      credits: isBillingEnabled() ? await creditBalanceView({ type: 'user', id: String(userId) }) : null,
+      // Workspaces whose Team / Business plan covers the user inside them.
+      coveringWorkspaces: await coveringWorkspaces(userId)
+    }
   }
 })
 

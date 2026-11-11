@@ -9,5 +9,7 @@ export const designImportErrors = defineErrors('design-import', {
   'no-vision': { status: 409, params: z.object({ recovery: recoveryParam.optional() }) },
   'rate-limited': { status: 429 },
   'too-large': { status: 413 },
-  'unsupported-format': { status: 415 }
+  'unsupported-format': { status: 415 },
+  'upload-missing': { status: 404 },
+  'upload-not-found': { status: 404 }
 })

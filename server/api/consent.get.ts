@@ -19,40 +19,42 @@ interface PurposeState {
   version: number
 }
 
-export default defineEventHandler(async (event) => {
-  const session = await getValidatedUserSession(event)
-  const userId = session?.user?.id ?? null
-  const anonId = await ensureAnonId(event)
+export default defineApiHandler({
+  access: allow.public('Visitors read their own consent state, keyed on their account or their first-party anonymous cookie', { session: 'optional' }),
+  handler: async ({ event, user }) => {
+    const userId = user?.id ?? null
+    const anonId = await ensureAnonId(event)
 
-  const db = useDatabase()
-  const states: Partial<Record<ConsentPurpose, PurposeState>> = {}
+    const db = useDatabase()
+    const states: Partial<Record<ConsentPurpose, PurposeState>> = {}
 
-  for (const purpose of CONSENT_PURPOSES) {
-    const matchUser = userId === null
-      ? eq(consentLog.anonId, anonId)
-      : eq(consentLog.userId, userId)
-    const row = (await db
-      .select({ granted: consentLog.granted, version: consentLog.version })
-      .from(consentLog)
-      .where(and(matchUser, eq(consentLog.purpose, purpose)))
-      .orderBy(desc(consentLog.createdAt))
-      .limit(1)
-    )[0]
-    if (row) {
-      states[purpose] = { purpose, granted: row.granted, version: row.version }
+    for (const purpose of CONSENT_PURPOSES) {
+      const matchUser = userId === null
+        ? eq(consentLog.anonId, anonId)
+        : eq(consentLog.userId, userId)
+      const row = (await db
+        .select({ granted: consentLog.granted, version: consentLog.version })
+        .from(consentLog)
+        .where(and(matchUser, eq(consentLog.purpose, purpose)))
+        .orderBy(desc(consentLog.createdAt))
+        .limit(1)
+      )[0]
+      if (row) {
+        states[purpose] = { purpose, granted: row.granted, version: row.version }
+      }
     }
-  }
 
-  // A prompt is needed only for purposes the visitor must actively decide
-  // on, when no decision at the current version exists.
-  const promptRequired = OPTIONAL_CONSENT_PURPOSES.some((p) => {
-    const state = states[p]
-    return state === undefined || state.version < CONSENT_VERSION
-  })
+    // A prompt is needed only for purposes the visitor must actively decide
+    // on, when no decision at the current version exists.
+    const promptRequired = OPTIONAL_CONSENT_PURPOSES.some((p) => {
+      const state = states[p]
+      return state === undefined || state.version < CONSENT_VERSION
+    })
 
-  return {
-    currentVersion: CONSENT_VERSION,
-    promptRequired,
-    decisions: states
+    return {
+      currentVersion: CONSENT_VERSION,
+      promptRequired,
+      decisions: states
+    }
   }
 })

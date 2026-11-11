@@ -1,14 +1,15 @@
 import * as Sentry from '@sentry/nuxt'
 import { getWorkspaceSubscription } from '../../../../repos/workspaceSubscriptions'
 import { appendAuditEvent } from '../../../../repos/audit'
-import { assertBillingEnabled } from '../../../../utils/billing/billingMode'
 import { useStripeClient } from '../../../../utils/billing/stripeClient'
 import type { H3Event } from 'h3'
 import { acquireWorkspaceSeatLock, changeWorkspaceSeats, seatChangeError } from '../../../../utils/billing/workspaceStripe'
-import { countSeatsUsed, getPooledWorkspace, parseSeats, requireWorkspaceBillingAdmin } from '../../../../utils/billing/workspaceBilling'
+import { countSeatsUsed, getPooledWorkspace, parseSeats } from '../../../../utils/billing/workspaceBilling'
 import { ensureWorkspaceTeam } from '../../../../utils/litellm/workspaceTeams'
 import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED } from '../../../../legal/auditActions'
 import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
+import { changeSeatsBody } from '~~/shared/api/billing'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // POST /api/workspaces/:wsId/billing/seats — change the paid seat count
 // of a live Team / Business subscription. Workspace admins only.
@@ -19,45 +20,37 @@ import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingE
 // members + open invitations (409 `billing/seats-below-members`). The
 // pooled AI budget follows at once: added seats for the days left in the
 // budget window, removed seats keep theirs until it ends.
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  assertBillingEnabled()
-  const wsId = requireWsId(event)
-  await requireWorkspaceBillingAdmin(session.user.id, wsId)
-
-  if (!(await checkRateLimit('billing-seats', String(session.user.id), 10, 60_000))) {
-    throw createError({ statusCode: 429, message: 'Too many seat changes. Try again in a minute.', data: { code: 'billing/rate-limited', messageKey: 'error.rateLimited' } })
-  }
-
-  const body = await readBody<{ seats?: unknown }>(event)
-  const seats = parseSeats(body?.seats)
-  // Same lock as invitations: the seats-in-use count and the change can't
-  // interleave with an invite taking a seat.
-  const releaseSeatLock = await acquireWorkspaceSeatLock(wsId)
-  try {
-    return await changeSeats(event, session.user, wsId, seats)
-  } finally {
-    await releaseSeatLock()
+export default defineApiHandler({
+  access: allow.workspace('admin', { deny: 'billing/admin-required' }),
+  instance: 'billing',
+  body: changeSeatsBody,
+  rateLimit: { namespace: 'billing-seats', max: 10, windowMs: MINUTE_MS, key: 'user', error: 'billing/rate-limited' },
+  handler: async ({ event, user, wsId, body }) => {
+    const seats = parseSeats(body?.seats)
+    // Same lock as invitations: the seats-in-use count and the change can't
+    // interleave with an invite taking a seat.
+    const releaseSeatLock = await acquireWorkspaceSeatLock(wsId)
+    try {
+      return await changeSeats(event, user, wsId, seats)
+    } finally {
+      await releaseSeatLock()
+    }
   }
 })
 
 async function changeSeats(event: H3Event, user: { id: number, name: string }, wsId: string, seats: number): Promise<{ seats: number }> {
   const row = await getWorkspaceSubscription(wsId)
   if (!row?.stripeSubscriptionId) {
-    throw createError({ statusCode: 409, message: 'This workspace has no subscription to change.', data: { code: 'billing/no-subscription' } })
+    throw apiError('billing/no-subscription')
   }
   if (seats === row.seats) return { seats }
   const used = await countSeatsUsed(wsId)
   if (seats < used) {
-    throw createError({
-      statusCode: 409,
-      message: `${used} seats are in use (members and open invitations). Remove someone before reducing the seats.`,
-      data: { code: 'billing/seats-below-members', used, messageKey: 'workspace.billing.errors.seatsBelowMembers' }
-    })
+    throw apiError('billing/seats-below-members', { used })
   }
 
   const stripe = useStripeClient()
-  if (!stripe) throw createError({ statusCode: 503, message: 'Billing is not configured. Contact support.' })
+  if (!stripe) throw apiError('billing/not-configured')
   try {
     await changeWorkspaceSeats(stripe, row, seats)
   } catch (e) {

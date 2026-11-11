@@ -11,28 +11,30 @@ import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
 // and the URL policy (so the UI can show the allowed providers and hide
 // local presets the instance would refuse).
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
-  const [rows, access] = await Promise.all([
-    listAiProviders(userId),
-    resolvePayingPlan(userId, null).then(plan => resolveAiAccess(userId, plan))
-  ])
-  const policy = resolveByokUrlPolicy()
-  return {
-    providers: rows.map(toProviderView),
-    instanceDefaults: {
-      chat: readInstanceDefault('chat') !== null,
-      image: readInstanceDefault('image') !== null,
-      transcription: readInstanceDefault('transcription') !== null
-    },
-    availability: availabilityFrom(access.providers, access),
-    policy: {
-      allowedBaseUrls: policy.allowedBaseUrls,
-      allowPrivate: policy.allowPrivate
-    },
-    presets: PROVIDER_PRESETS.filter(p => (policy.allowPrivate || !p.local)
-      && (policy.allowedBaseUrls.length === 0 || policy.allowedBaseUrls.some(u => p.baseUrl === u || p.baseUrl.startsWith(`${u}/`)))),
-    capabilities: AI_CAPABILITIES
+export default defineApiHandler({
+  access: allow.user(),
+  handler: async ({ user }) => {
+    const userId = user.id
+    const [rows, access] = await Promise.all([
+      listAiProviders(userId),
+      resolvePayingPlan(userId, null).then(plan => resolveAiAccess(userId, plan))
+    ])
+    const policy = resolveByokUrlPolicy()
+    return {
+      providers: rows.map(toProviderView),
+      instanceDefaults: {
+        chat: readInstanceDefault('chat') !== null,
+        image: readInstanceDefault('image') !== null,
+        transcription: readInstanceDefault('transcription') !== null
+      },
+      availability: availabilityFrom(access.providers, access),
+      policy: {
+        allowedBaseUrls: policy.allowedBaseUrls,
+        allowPrivate: policy.allowPrivate
+      },
+      presets: PROVIDER_PRESETS.filter(p => (policy.allowPrivate || !p.local)
+        && (policy.allowedBaseUrls.length === 0 || policy.allowedBaseUrls.some(u => p.baseUrl === u || p.baseUrl.startsWith(`${u}/`)))),
+      capabilities: AI_CAPABILITIES
+    }
   }
 })

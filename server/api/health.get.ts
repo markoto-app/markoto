@@ -14,17 +14,20 @@ import { getCachedHealth } from '../utils/platform/healthProbes'
 // The body is minimal (no version, hostnames or timing); `/api/health/deep`
 // returns latencies and is for instance admins only.
 //
-// Public (whitelisted in `server/middleware/auth.ts`).
+// Public (server/utils/auth/publicRoutes.ts).
 
-export default defineEventHandler(async (event) => {
-  const config = useRuntimeConfig()
-  const cached = await getCachedHealth({
-    syncUrl: config.syncInternalUrl,
-    rendererUrl: config.rendererInternalUrl,
-    markitdownUrl: config.markitdownUrl,
-    litellmUrl: config.litellm?.url,
-    s3Bucket: config.s3?.bucket
-  })
-  setResponseStatus(event, cached.status)
-  return cached.body
+export default defineApiHandler({
+  access: allow.public('Liveness probe for Traefik, docker-compose and monitors; component status only, no hostnames or timings'),
+  handler: async ({ event }) => {
+    const config = useRuntimeConfig()
+    const cached = await getCachedHealth({
+      syncUrl: config.syncInternalUrl,
+      rendererUrl: config.rendererInternalUrl,
+      markitdownUrl: config.markitdownUrl,
+      litellmUrl: config.litellm?.url,
+      s3Bucket: config.s3?.bucket
+    })
+    setResponseStatus(event, cached.status)
+    return cached.body
+  }
 })

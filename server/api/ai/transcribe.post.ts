@@ -17,9 +17,10 @@ import { litellmCompletion, litellmTranscription } from '../../utils/litellm/cre
 import { providerMissingError, requireAiProviders } from '../../utils/aiProviders/guard'
 import { providerRequestFields, withProviderErrors } from '../../utils/aiProviders/requestFields'
 import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
-import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/billingMode'
+import { budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/billingMode'
 import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { TRANSCRIBE_AUDIO_MAX_BYTES } from '~~/shared/config/uploads'
+import { transcribeBody } from '~~/shared/api/ai'
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -36,59 +37,53 @@ function base64Padding(b64: string): 0 | 1 | 2 {
   return 0
 }
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  // Not document-bound: the clip is only transcribed, the prompt that follows
+  // passes the document gates.
+  access: allow.user(),
+  body: transcribeBody,
+  handler: async ({ user, body }) => {
+    const userId = user.id
 
-  // The per-user virtual key's rpm_limit (60/min, `createUserKey` in
-  // `litellm/userKeys.ts`) is the only rate limit.
+    // The per-user virtual key's rpm_limit (60/min, `createUserKey` in
+    // `litellm/userKeys.ts`) is the only rate limit.
 
-  const body = await readBody<{
-    audio?: string
-    mimeType?: string
-    languageCode?: string
-    workspaceId?: string
-  }>(event)
+    const mimeType = body.mimeType
+    const audioB64 = body.audio
 
-  const mimeType = body.mimeType
-  const audioB64 = body.audio
+    if (!mimeType || !ALLOWED_MIME.has(mimeType.toLowerCase())) throw apiError('ai/audio-unsupported-type')
+    if (!audioB64) throw apiError('ai/audio-missing')
+    // `atob` isn't available in Nitro's worker context; compute the byte length
+    // from the base64 string to reject oversize payloads before upstream.
+    const padding = base64Padding(audioB64)
+    const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
+    if (approxBytes > TRANSCRIBE_AUDIO_MAX_BYTES) {
+      throw apiError('ai/audio-too-long')
+    }
+    if (approxBytes < 100) {
+      throw apiError('ai/audio-too-short')
+    }
 
-  if (!mimeType || !ALLOWED_MIME.has(mimeType.toLowerCase())) {
-    throw createError({ statusCode: 400, message: 'Unsupported audio mimeType' })
+    const languageCode = normalizeLanguageCode(body.languageCode)
+    // BYOK: the user's transcription provider, else the instance default.
+    // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
+    // case; this is the server-side backstop).
+    // The plan that pays: the open document's Team / Business workspace when
+    // the caller is a member of it (`workspaceId` is advisory —
+    // resolveBillingContext checks membership), else the caller's own.
+    const workspaceId = body.workspaceId ?? null
+    const billing = await resolveBillingContext(userId, workspaceId)
+    const providers = await requireAiProviders(userId, 'transcription', billing.plan)
+    const provider = providers.transcription
+    if (!provider) throw providerMissingError('transcription')
+    // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape
+    // ('en') both the OpenAI transcription API and Voxtral expect.
+    const isoLanguage = languageCode.split('-')[0]?.toLowerCase() || 'en'
+    if (provider.credentials) {
+      return await transcribeViaByok({ audioB64, mimeType, isoLanguage, provider, virtualKey: billing.virtualKey })
+    }
+    return await transcribeViaVoxtral({ audioB64, mimeType, isoLanguage, userId, model: provider.model, virtualKey: billing.virtualKey })
   }
-  if (!audioB64 || typeof audioB64 !== 'string') {
-    throw createError({ statusCode: 400, message: 'Missing audio payload' })
-  }
-  // `atob` isn't available in Nitro's worker context; compute the byte length
-  // from the base64 string to reject oversize payloads before upstream.
-  const padding = base64Padding(audioB64)
-  const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
-  if (approxBytes > TRANSCRIBE_AUDIO_MAX_BYTES) {
-    throw createError({ statusCode: 413, message: 'Audio too long (max ~5 MiB)' })
-  }
-  if (approxBytes < 100) {
-    throw createError({ statusCode: 400, message: 'Audio too short to transcribe' })
-  }
-
-  const languageCode = normalizeLanguageCode(body.languageCode)
-  // BYOK: the user's transcription provider, else the instance default.
-  // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
-  // case; this is the server-side backstop).
-  // The plan that pays: the open document's Team / Business workspace when
-  // the caller is a member of it (`workspaceId` is advisory —
-  // resolveBillingContext checks membership), else the caller's own.
-  const workspaceId = typeof body.workspaceId === 'string' && body.workspaceId.length <= 64 ? body.workspaceId : null
-  const billing = await resolveBillingContext(userId, workspaceId)
-  const providers = await requireAiProviders(userId, 'transcription', billing.plan)
-  const provider = providers.transcription
-  if (!provider) throw providerMissingError('transcription')
-  // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape
-  // ('en') both the OpenAI transcription API and Voxtral expect.
-  const isoLanguage = languageCode.split('-')[0]?.toLowerCase() || 'en'
-  if (provider.credentials) {
-    return await transcribeViaByok({ audioB64, mimeType, isoLanguage, provider, virtualKey: billing.virtualKey })
-  }
-  return await transcribeViaVoxtral({ audioB64, mimeType, isoLanguage, userId, model: provider.model, virtualKey: billing.virtualKey })
 })
 
 const MIME_EXT: Record<string, string> = { 'webm': 'webm', 'ogg': 'ogg', 'wav': 'wav', 'x-wav': 'wav' }
@@ -122,11 +117,7 @@ async function transcribeViaByok(args: {
   } catch (e) {
     // Message is already key-free (withProviderErrors redacts it).
     console.error('[transcribe] BYOK provider error:', (e instanceof Error ? e.message : String(e)).slice(0, 300))
-    throw createError({
-      statusCode: 502,
-      message: 'Your transcription provider returned an error. Check the provider settings.',
-      data: { code: 'ai/provider-error', messageKey: 'aiProvider.errors.transcription' }
-    })
+    throw apiError('ai/provider-error')
   }
 }
 
@@ -184,16 +175,8 @@ async function transcribeViaVoxtral(args: {
     })
     if (isFreeAllowanceExhaustedError(e)) throw freeAllowanceExhaustedHttpError()
     if (isBudgetExceededError(e)) {
-      throw createError({
-        statusCode: 402,
-        message: budgetExhaustedMessage(),
-        data: {
-          code: 'ai/budget-exhausted',
-          messageKey: budgetExhaustedMessageKey(),
-          recovery: limitRecovery()
-        }
-      })
+      throw apiError('ai/budget-exhausted', { messageKey: budgetExhaustedMessageKey(), recovery: limitRecovery() })
     }
-    throw createError({ statusCode: 502, message: 'Transcription upstream error' })
+    throw apiError('ai/transcription-failed')
   }
 }

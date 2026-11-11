@@ -14,6 +14,7 @@
       "invalid-email": "有効なメールアドレスを入力してください。",
       "login-required": "コンテンツを通報するにはログインしてください。",
       "rate-limited": "お使いのネットワークからの通報が多すぎます。後でもう一度お試しください。",
+      "report-not-found": "This report no longer exists.",
       "url-required": "コンテンツのアドレス（URL）を入力してください。"
     },
     "account": {
@@ -23,22 +24,31 @@
       "sessions-revoke-rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。"
     },
     "admin": {
-      "forbidden": "Admin access required."
+      "forbidden": "Admin access required.",
+      "spend-unavailable": "The AI spend service answered with an error ({upstreamStatus})."
     },
     "ai": {
       "abort-not-initiator": "このmarkotoセッションを停止できるのは、開始した本人だけです。",
+      "audio-missing": "No audio was received.",
+      "audio-too-long": "The recording is too long (max about 5 MiB).",
+      "audio-too-short": "The recording is too short to transcribe.",
+      "audio-unsupported-type": "Unsupported audio mimeType. Record as WebM, Ogg or WAV.",
       "budget-exhausted": "Your AI budget is used up for this period.",
+      "comment-not-author": "Only the author can delete this comment or reply.",
+      "comment-trigger-not-eligible": "Comment thread not found or not eligible to trigger AI.",
       "confirmation-not-pending": "This request is no longer waiting for an answer.",
       "duplicate-session": "このドキュメントではすでにmarkotoセッションが実行中です。",
       "free-allowance-exhausted": "The free AI allowance is used up for this month.",
       "provider-error": "文字起こしプロバイダーでエラーが発生しました。AI プロバイダーの設定を確認してください。",
       "provider-missing": "No AI provider is set up for this. Add one in Settings.",
       "session-not-found": "AI session not found.",
+      "transcription-failed": "Transcription failed. Try again in a moment.",
       "web-tools-rate-limited": "Web search and page fetch limit reached ({limit} per {window}). Try again later, or continue without web tools."
     },
     "ai-provider": {
       "invalid": "Invalid provider settings.",
       "key-required": "API キーを入力してください。プロバイダーの追加時や URL の変更時に必要です。",
+      "not-configured": "No provider is configured for this capability.",
       "rate-limited": "Too many attempts. Try again in a few minutes.",
       "url-refused": "This provider URL is not allowed.",
       "verify-failed": "The provider could not be verified. Check the URL, API key and model."
@@ -70,20 +80,33 @@
     },
     "billing": {
       "admin-required": "Only workspace admins can manage billing.",
+      "already-on-plan": "You are already on this plan and billing period.",
       "cancel-failed": "ワークスペースのサブスクリプションを解約できなかったため、何も削除されていません。もう一度お試しください。",
+      "checkout-failed": "Could not start checkout. Please try again.",
       "currency-locked": "ご利用中のサブスクリプションは別の通貨で請求されており、変更できません。続けるにはその通貨を選択してください。",
       "disabled": "Billing is not enabled on this deployment.",
       "invalid-member-limit": "The limit must be a number from 0 to {max}, no limit, or the default.",
       "invalid-seats": "Seats must be a whole number from {min} to {max}.",
+      "member-not-found": "Member not found.",
+      "no-billing-history": "No billing history yet. Subscribe first to manage your subscription.",
       "no-subscription": "This workspace has no active subscription.",
+      "not-configured": "Billing is not configured. Contact support.",
       "payment-failed": "The payment failed, so nothing was changed.",
+      "plan-change-failed": "Could not change the plan. Nothing was changed; please try again.",
+      "portal-failed": "Could not open the billing portal. Please try again.",
+      "price-unavailable": "This plan is not available for sale right now.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
       "seats-below-members": "ワークスペースの人数が席数より多くなっています。誰かを外すか、席数を維持してください。",
       "seats-busy": "別の席数変更または招待が処理中です。しばらくしてからもう一度お試しください。",
       "seats-full": "有料の席はすべて使用中です。ほかの人を招待するには席を追加してください。",
       "subscription-active": "このワークスペースには有効なサブスクリプションが残っています。削除するにはサポートにお問い合わせください。",
+      "subscription-check-failed": "Could not verify the current subscription. Please try again.",
       "terms-required": "続けるには有料プラン規約に同意してください。",
       "topup-needs-plan": "AI クレジットは有料プランを補うものです。購入するには Pro にアップグレードしてください。",
+      "webhook-body-empty": "The request body is empty.",
+      "webhook-failed": "The webhook event could not be processed.",
+      "webhook-signature-invalid": "The Stripe signature could not be verified.",
+      "webhook-signature-missing": "The Stripe-Signature header is missing.",
       "workspace-plan": "Team and Business are bought for a workspace, from its billing settings."
     },
     "brand": {
@@ -107,6 +130,8 @@
       "internal": "Something went wrong on our side. Please try again — we've been notified."
     },
     "consent": {
+      "no-decisions": "No consent decisions were sent.",
+      "no-valid-decisions": "None of the consent decisions could be recorded.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。"
     },
     "csrf": {
@@ -116,9 +141,12 @@
       "disabled": "Custom domains are not set up on this instance.",
       "invalid": "Enter a domain name such as docs.example.com.",
       "limit": "You can add up to {limit} domains.",
+      "not-found": "Domain not found.",
       "not-verified": "This domain is not verified yet.",
+      "page-not-allowed": "Only the owner and workspace admins can show this document on a domain.",
       "page-not-published": "Publish the document as a web page first.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
+      "reserved": "This domain belongs to this service.",
       "taken": "This domain is already in use."
     },
     "design-import": {
@@ -128,12 +156,24 @@
       "no-vision": "お使いの AI プロバイダーは画像を読み取れません。画像を読み取れるモデルを選んで、もう一度お試しください。",
       "rate-limited": "過去 1 時間に多くのデザインを作成しました。しばらくしてからお試しください。",
       "too-large": "ファイルが大きすぎます。20 MB までのファイルを選んでください。",
-      "unsupported-format": "PDF または Word（.docx）ファイルを選んでください。"
+      "unsupported-format": "PDF または Word（.docx）ファイルを選んでください。",
+      "upload-missing": "The upload did not arrive. Choose the file again.",
+      "upload-not-found": "Upload not found. Choose the file again."
     },
     "docs": {
+      "activity-not-found": "このドキュメントにそのアクティビティ行は存在しません。",
+      "comment-thread-gone": "このスレッドはもう存在しません。",
       "content-too-long": "The content is too long (at most {max} characters).",
+      "delete-forbidden": "You can't delete this document.",
+      "diff-unavailable": "この行の差分は利用できません。",
+      "edit-forbidden": "このドキュメントへの編集アクセス権がありません。",
+      "manage-forbidden": "Only the owner and workspace admins can change who can open this document.",
+      "not-a-comment": "This activity row is not about a comment.",
       "not-found": "Document not found.",
-      "rate-limited": "お使いのネットワークからの新規ドキュメントが多すぎます。ログインするか、後でもう一度お試しください。"
+      "rate-limited": "お使いのネットワークからの新規ドキュメントが多すぎます。ログインするか、後でもう一度お試しください。",
+      "render-failed": "The PDF could not be generated. Please try again.",
+      "restore-compacted": "This restore point is too old — its history has been compacted and can no longer be restored. Restore to a more recent point instead.",
+      "restore-unavailable": "この行からは復元できません — 復元機能の導入前のものです。"
     },
     "dpa": {
       "version-stale": "The Data Processing Addendum has changed since you opened this prompt. Please review it again."
@@ -141,6 +181,7 @@
     "export": {
       "conflict": "An export is already in progress.",
       "expired": "This export has expired. Please request a new one.",
+      "not-found": "Export not found.",
       "not-ready": "This export is not ready yet.",
       "rate-limited": "You have already requested an export today. Please try again tomorrow."
     },
@@ -148,8 +189,10 @@
       "access-denied": "Access denied."
     },
     "import": {
+      "conversion-failed": "The file could not be converted: {detail}",
       "file-too-large": "The file is too large to import.",
       "no-file": "No file provided.",
+      "not-configured": "Document conversion is not set up on this server.",
       "not-utf8": "This Markdown file is not valid UTF-8 text.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
       "timeout": "Conversion took too long.",
@@ -158,13 +201,21 @@
       "unsupported-format": "This file format is not supported."
     },
     "internal": {
-      "forbidden": "Forbidden."
+      "forbidden": "Invalid or missing credentials."
     },
     "knowledge": {
       "content-type-mismatch": "The uploaded file does not have the expected type.",
+      "editor-required": "Only admins and editors can change the knowledge base.",
+      "empty-upload": "The uploaded file is empty.",
       "file-too-large": "The file is too large.",
+      "invalid-key": "The storage key does not belong to this workspace's knowledge base.",
+      "key-mismatch": "knowledgeId must match the s3Key.",
+      "not-found": "Knowledge file not found.",
+      "not-uploader": "Editors can only delete their own uploads.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
       "too-many-pending": "Too many uploads are pending. Try again in a moment.",
+      "unsupported-format": "Unsupported format: .{ext}. Allowed: {allowed}.",
+      "upload-not-found": "Upload not found. Request a new upload and try again.",
       "user-bytes-cap": "You've reached your knowledge storage limit.",
       "user-file-cap": "You've reached your knowledge upload limit.",
       "workspace-bytes-cap": "This workspace has reached its knowledge storage limit.",
@@ -180,6 +231,7 @@
       "missing-workspace-id": "workspace_id is required.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
       "render-rate-limited": "Too many render requests. Try again in a minute.",
+      "token-not-found": "Token not found.",
       "too-many-open-docs": "Too many documents are open at the same time. Wait a few minutes and try again.",
       "too-many-tokens": "You have the maximum number of active MCP tokens. Revoke one first.",
       "tool-not-found": "Tool not found.",
@@ -200,7 +252,9 @@
     "password": {
       "invalid": "Invalid password.",
       "locked": "リクエストが多すぎます — 少し待ってから再試行してください。",
+      "not-set": "This document has no password.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
+      "required": "Enter the password.",
       "too-short": "The password must be at least {minLength} characters."
     },
     "plan": {
@@ -219,7 +273,8 @@
       "too-large": "This document is too large to publish as a web page."
     },
     "published": {
-      "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。"
+      "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
+      "not-found": "This page does not exist or is no longer published."
     },
     "rate": {
       "limited": "リクエストが多すぎます — 少し待ってから再試行してください。"
@@ -237,12 +292,17 @@
       "expiry-past": "The expiry must be in the future.",
       "expiry-too-far": "The expiry can be at most {maxDays} days away.",
       "invalid": "Invalid sharing settings.",
+      "move-not-allowed": "Only the owner or a workspace admin can move this document.",
+      "move-target-viewer": "Viewers can't move documents into this workspace.",
       "not-a-guest": "This person is not a guest of the workspace.",
       "not-allowed": "You are not allowed to change how this document is shared.",
+      "not-shared": "This document is not shared with this person.",
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。"
     },
     "sso": {
       "admin-required": "Only workspace admins can manage single sign-on.",
+      "connection-not-found": "Unknown connection.",
+      "domain-not-found": "Domain not found.",
       "deactivated": "Your access to this workspace was turned off by your organisation.",
       "domain-cap": "At most {max} domains per workspace.",
       "domain-exists": "This domain is already added to the workspace.",
@@ -253,6 +313,7 @@
       "invalid-settings": "Invalid single sign-on settings.",
       "member-limit": "This workspace has reached the member limit of its plan.",
       "misconfigured": "Single sign-on needs NUXT_SITE_URL to be set on this instance.",
+      "not-configured": "No single sign-on is set up for this workspace.",
       "no-connection": "このメールアドレスにはシングルサインオンが設定されていません。",
       "no-seat": "All paid seats of this workspace are taken.",
       "not-active": "Single sign-on is not active for this workspace.",
@@ -282,6 +343,8 @@
       "confirm-in-progress": "This upload is already being confirmed. Try again in a moment.",
       "content-type-mismatch": "The uploaded file does not have the expected type.",
       "file-too-large": "File too large. Max 10MB.",
+      "not-found": "Upload not found.",
+      "not-landed": "The upload has not arrived yet. Try again in a moment.",
       "rate-limited": "Too many uploads. Try again in a minute.",
       "size-mismatch": "The uploaded file size does not match the requested size.",
       "storage-quota": "画像の保存容量の上限に達しました。ドキュメントから削除した画像は、クリーンアップされると容量が空きます。",
@@ -311,15 +374,20 @@
       "rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。"
     },
     "workspace": {
+      "admin-required": "Only workspace admins can do this.",
       "already-member": "この人はすでにワークスペースのメンバーです。",
-      "cap-reached": "You've reached the workspace limit for your plan. Delete an unused workspace to create a new one.",
+      "billing-not-configured": "Billing is not configured. Contact support.",
+      "cap-reached": "You've reached the workspace limit for your plan ({plan}: {cap} workspaces). Delete an unused workspace to create a new one.",
       "dpa-required": "You must accept the Data Processing Addendum (DPA) before creating a workspace.",
       "guest-cannot-create": "Guests can't create documents in this workspace.",
       "guest-cap": "このワークスペースのゲスト数がプランの上限（有料シートあたり 5 人）に達しています。ゲストを削除するか、シートを追加してください。",
+      "guest-role-change": "A guest's access is managed by sharing, not by a role. Remove the guest and invite them again to change it.",
       "invalid-email": "有効なメールアドレスを入力してください。",
       "invite-cap": "このワークスペースには保留中の招待が多すぎます。先にいくつか取り消してください。",
       "invite-not-found": "この招待は存在しないか、期限切れです。",
       "invite-rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。",
+      "last-admin": "A workspace must have at least one admin. Promote someone else first, or delete the workspace.",
+      "member-not-found": "That person is not a member of this workspace.",
       "not-found": "Workspace not found.",
       "role-required": "Viewers can't create documents in this workspace.",
       "template-rate-limited": "リクエストが多すぎます — 少し待ってから再試行してください。"

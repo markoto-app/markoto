@@ -6,5 +6,7 @@ export const passwordErrors = defineErrors('password', {
   'invalid': { status: 401 },
   'locked': { status: 429 },
   'rate-limited': { status: 429 },
-  'too-short': { status: 400, params: z.object({ minLength: z.number() }) }
+  'too-short': { status: 400, params: z.object({ minLength: z.number() }) },
+  'required': { status: 400 },
+  'not-set': { status: 400 }
 })

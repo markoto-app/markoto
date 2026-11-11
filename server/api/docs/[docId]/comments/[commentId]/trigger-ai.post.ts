@@ -30,6 +30,7 @@ import type { StreamStatusPhase } from '../../../../../utils/agentic/streamStatu
 import { wrapPromptWithEditorState } from '../../../../../utils/agentic/editorStatePrompt'
 import { EDITOR_SELECTION_TEXT_MAX } from '~~/shared/types/editorSelection'
 import { loopErrorMessage } from '../../../../../utils/agentic/loopErrorMessage'
+import { commentParams, triggerCommentAiBody } from '~~/shared/api/ai'
 
 // POST /api/docs/:docId/comments/:commentId/trigger-ai
 //
@@ -56,93 +57,77 @@ import { loopErrorMessage } from '../../../../../utils/agentic/loopErrorMessage'
 // start a session (on their own budget) seeded with someone else's
 // message. Per-user-per-doc session cap still applies.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
-  const userName = session.user.name
+export default defineApiHandler({
+  access: allow.doc('write-content'),
+  params: commentParams,
+  body: triggerCommentAiBody,
+  handler: async ({ event, user, docId, params, body }) => {
+    const userId = user.id
+    const userName = user.name
+    const { commentId } = params
+    const replyId = body?.replyId ?? null
 
-  // The text loop always runs through LiteLLM (the boot-time secret
-  // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY). No
-  // app-side rate limit: the per-user virtual key's rpm_limit is the single
-  // enforcement point.
-  const { docId, commentId, replyId } = await parseTriggerInputs(event)
+    // The text loop always runs through LiteLLM (the boot-time secret
+    // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY). No
+    // app-side rate limit: the per-user virtual key's rpm_limit is the single
+    // enforcement point.
 
-  await requireDocEditAccess(docId, userId)
+    const doc = await getDoc(docId)
+    const wsCtx = await resolveWorkspaceContext(doc?.workspaceId ?? null, userId)
+    const triggerCtx = await peekTriggerThread(docId, userId, commentId, replyId)
+    // The thread is written by whoever commented: it goes into the USER
+    // message as quoted data, never into the system prompt.
+    const wrappedSeedPrompt = triggerCtx.block + '\n' + wrapSeedWithEditorState(triggerCtx.seedPrompt, triggerCtx.thread)
+    const systemPrompt = buildTriggerSystemPrompt(doc, wsCtx)
 
-  const doc = await getDoc(docId)
-  const wsCtx = await resolveWorkspaceContext(doc?.workspaceId ?? null, userId)
-  const triggerCtx = await peekTriggerThread(docId, userId, commentId, replyId)
-  // The thread is written by whoever commented: it goes into the USER
-  // message as quoted data, never into the system prompt.
-  const wrappedSeedPrompt = triggerCtx.block + '\n' + wrapSeedWithEditorState(triggerCtx.seedPrompt, triggerCtx.thread)
-  const systemPrompt = buildTriggerSystemPrompt(doc, wsCtx)
+    // Budget enforcement is delegated to the LiteLLM proxy via the virtual
+    // key. The billing context is still resolved here to pick the attribution
+    // and lazy-create the key. Exhaustion surfaces in runLoop's catch block
+    // (LitellmBudgetExhausted).
+    const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
+    // BYOK: no chat provider → 409 `ai/provider-missing` (the client shows
+    // the "Add your API key in Settings" call-to-action).
+    const aiProviders = await requireAiProviders(userId, 'chat', billingContext.plan)
+    // Hosted free tier: the shared monthly pool may be used up — answer
+    // 402 `ai/free-allowance-exhausted` before opening a session (own-key
+    // users are never refused here).
+    await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
+    const initiatorName = (await findUserNameById(userId)) || userName
+    const initiatorColor = '#d97706'
+    const sessionId = nanoid(12)
+    const abortController = new AbortController()
 
-  // Budget enforcement is delegated to the LiteLLM proxy via the virtual
-  // key. The billing context is still resolved here to pick the attribution
-  // and lazy-create the key. Exhaustion surfaces in runLoop's catch block
-  // (LitellmBudgetExhausted).
-  const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
-  // BYOK: no chat provider → 409 `ai/provider-missing` (the client shows
-  // the "Add your API key in Settings" call-to-action).
-  const aiProviders = await requireAiProviders(userId, 'chat', billingContext.plan)
-  // Hosted free tier: the shared monthly pool may be used up — answer
-  // 402 `ai/free-allowance-exhausted` before opening a session (own-key
-  // users are never refused here).
-  await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
-  const initiatorName = (await findUserNameById(userId)) || userName
-  const initiatorColor = '#d97706'
-  const sessionId = nanoid(12)
-  const abortController = new AbortController()
+    const req = event.node?.req
+    req?.once?.('close', () => {
+      if (!req.readableEnded) abortController.abort()
+    })
 
-  const req = event.node?.req
-  req?.once?.('close', () => {
-    if (!req.readableEnded) abortController.abort()
-  })
+    await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
+    const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
+    // Initiator-only channel (prompt, status text, answers, confirmations).
+    const channel = new AiSessionChannel(sessionId)
+    await channel.open({ initiatorUserId: userId, docId, prompt: triggerCtx.seedPrompt.slice(0, 240), commentThreadId: commentId })
 
-  await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
-  const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
-  // Initiator-only channel (prompt, status text, answers, confirmations).
-  const channel = new AiSessionChannel(sessionId)
-  await channel.open({ initiatorUserId: userId, docId, prompt: triggerCtx.seedPrompt.slice(0, 240), commentThreadId: commentId })
+    // Fire-and-forget. The trigger thread id rides on awareness so the
+    // client can render a per-thread highlight on the matching comment
+    // card; the (stripped) seed prompt goes to the initiator's channel.
+    void runTriggerLoop({
+      docId, commentId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
+      seedPrompt: triggerCtx.seedPrompt,
+      wrappedSeedPrompt,
+      systemPrompt,
+      toolDeclarations: wsCtx.toolDeclarations,
+      workspaceId: wsCtx.workspaceId,
+      knowledgeFiles: wsCtx.knowledgeFiles,
+      threadHasOthers: triggerCtx.threadHasOthers,
+      channel,
+      billingContext,
+      aiProviders
+    })
 
-  // Fire-and-forget. The trigger thread id rides on awareness so the
-  // client can render a per-thread highlight on the matching comment
-  // card; the (stripped) seed prompt goes to the initiator's channel.
-  void runTriggerLoop({
-    docId, commentId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
-    seedPrompt: triggerCtx.seedPrompt,
-    wrappedSeedPrompt,
-    systemPrompt,
-    toolDeclarations: wsCtx.toolDeclarations,
-    workspaceId: wsCtx.workspaceId,
-    knowledgeFiles: wsCtx.knowledgeFiles,
-    threadHasOthers: triggerCtx.threadHasOthers,
-    channel,
-    billingContext,
-    aiProviders
-  })
-
-  return { sessionId, commentId, replyId }
+    return { sessionId, commentId, replyId }
+  }
 })
-
-interface TriggerInputs { docId: string, commentId: string, replyId: string | null }
-
-async function parseTriggerInputs(event: Parameters<Parameters<typeof defineEventHandler>[0]>[0]): Promise<TriggerInputs> {
-  const docId = requireDocId(event)
-  const commentId = getRouterParam(event, 'commentId')
-  if (!commentId || commentId.length === 0 || commentId.length > 64) {
-    throw createError({ statusCode: 400, message: 'Invalid commentId' })
-  }
-  const body = await readBody(event)
-  let replyId: string | null = null
-  if (body && typeof body.replyId === 'string') {
-    if (body.replyId.length === 0 || body.replyId.length > 64) {
-      throw createError({ statusCode: 400, message: 'Invalid replyId' })
-    }
-    replyId = body.replyId
-  }
-  return { docId, commentId, replyId }
-}
 
 interface WorkspaceCtx {
   workspaceId: string | null
@@ -212,7 +197,7 @@ async function peekTriggerThread(docId: string, userId: number, commentId: strin
     // proof — but it stops the endpoint from being pointed at somebody
     // else's message (or one that never asked for the AI).
     if (thread?.triggerAuthorId !== userId || !thread.triggerMentionsAi) {
-      throw createError({ statusCode: 404, message: 'Comment thread not found or not eligible to trigger AI.' })
+      throw apiError('ai/comment-trigger-not-eligible')
     }
     let seedPrompt = thread.triggerBody
     if (seedPrompt.length === 0) {
@@ -299,11 +284,7 @@ async function claimAiSession(args: ClaimSessionArgs): Promise<void> {
     })
   } catch (e) {
     if (e instanceof DuplicateSessionError) {
-      throw createError({
-        statusCode: 409,
-        message: 'You already have an AI session running on this document.',
-        data: { code: 'ai/duplicate-session', messageKey: 'ai.errors.duplicateSession' }
-      })
+      throw apiError('ai/duplicate-session')
     }
     throw e
   }

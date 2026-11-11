@@ -1,4 +1,3 @@
-import { getDocWithActorRole } from '../../../repos/documents'
 import { isEffectiveDocOwner } from '../../../../shared/utils/documents/docPermissions'
 import { listMembersForDoc } from '../../../repos/workspaceMembers'
 
@@ -8,33 +7,26 @@ import { listMembersForDoc } from '../../../repos/workspaceMembers'
 //
 // Visibility:
 //   - Caller must be a workspace member of the doc's workspace, OR the doc
-//     owner. Anonymous + non-member logged-in users get an empty roster —
-//     a public-link doc shouldn't reveal the team roster. This matches
+//     owner. Non-member signed-in users get an empty roster — a
+//     public-link doc shouldn't reveal the team roster. This matches
 //     Google Docs behavior (link-holders don't see the sharing list).
+//     Anonymous callers never get here (not on the public allowlist).
 //
 // Standalone docs (no workspaceId) return an empty roster. The doc owner
 // is already implicit and showing just themselves offline is clutter.
+export default defineApiHandler({
+  access: allow.doc('lookup', { reason: 'Never refuses an existing document: callers without a role in its workspace get an empty roster.' }),
+  handler: async ({ user, doc }) => {
+    // No workspace ⇒ no roster to disclose.
+    if (!doc.workspaceId) return { members: [] }
 
-export default defineEventHandler(async (event) => {
-  const docId = requireDocId(event)
-  const session = await getValidatedUserSession(event)
+    // `doc.workspaceRole` carries the SSO condition, and ownership doesn't
+    // count in an SSO-enforcing workspace without an effective role. Must be
+    // either a workspace member or the doc owner (who may have been booted
+    // from a workspace without SSO but still owns the doc).
+    if (doc.workspaceRole === null && !isEffectiveDocOwner(doc, user.id)) return { members: [] }
 
-  const userId = session?.user?.id ?? null
-  // One query: doc + the caller's role (SSO condition included) + whether
-  // their ownership counts (it doesn't in an SSO-enforcing workspace
-  // where they have no effective role).
-  const doc = await getDocWithActorRole(docId, userId)
-  if (!doc) throw createError({ statusCode: 404, message: 'Document not found' })
-
-  // No workspace ⇒ no roster to disclose.
-  if (!doc.workspaceId) return { members: [] }
-
-  if (userId === null) return { members: [] }
-
-  // Must be either a workspace member or the doc owner (who may have been
-  // booted from a workspace without SSO but still owns the doc).
-  if (doc.workspaceRole === null && !isEffectiveDocOwner(doc, userId)) return { members: [] }
-
-  const members = await listMembersForDoc(doc.workspaceId, doc.ownerId)
-  return { members }
+    const members = await listMembersForDoc(doc.workspaceId, doc.ownerId)
+    return { members }
+  }
 })

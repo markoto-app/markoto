@@ -1,5 +1,3 @@
-import { matchesCurrentOrPrevious } from '../../../../shared/utils/security/internalSecret'
-import { traefikProviderSettings } from '../../../utils/customDomains/config'
 import { liveCustomDomains } from '../../../utils/customDomains/routing'
 import { buildTraefikDynamicConfig } from '../../../utils/customDomains/traefikConfig'
 import { publishPagesSettings } from '../../../utils/publish/pagesHost'
@@ -15,12 +13,13 @@ import { publishPagesSettings } from '../../../utils/publish/pagesHost'
 // forwarding headers. Without a token it answers an empty configuration: the
 // compose files always enable the provider, and an error would make Traefik
 // log and back off forever on instances without custom domains.
-export default defineEventHandler(async (event) => {
-  const settings = traefikProviderSettings()
-  setHeader(event, 'cache-control', 'no-store')
-  if (!settings) return {}
-  if (!matchesCurrentOrPrevious(getHeader(event, 'x-markoto-provider-token') ?? '', settings.token)) {
-    throw createError({ statusCode: 403, message: 'Forbidden' })
+export default defineApiHandler({
+  // The policy checks the provider token (403 on a wrong one) and hands over
+  // the settings, or null when the instance runs no custom domains.
+  access: allow.internal('traefik-token'),
+  handler: async ({ event, traefik: settings }) => {
+    setHeader(event, 'cache-control', 'no-store')
+    if (!settings) return {}
+    return buildTraefikDynamicConfig([...(await liveCustomDomains()).values()], settings, settings.pagesRouter ? publishPagesSettings()?.hostname ?? null : null)
   }
-  return buildTraefikDynamicConfig([...(await liveCustomDomains()).values()], settings, settings.pagesRouter ? publishPagesSettings()?.hostname ?? null : null)
 })

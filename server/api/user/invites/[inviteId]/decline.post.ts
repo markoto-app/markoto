@@ -1,9 +1,14 @@
 import { declineInviteForUser, inAppInviteSelector } from '../../../../utils/workspaces/workspaceInviteActions'
+import { inviteParams } from '~~/shared/api/account'
 
 // POST /api/user/invites/:inviteId/decline — decline (delete) an
 // invitation addressed to the signed-in user's account email.
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const selector = await inAppInviteSelector(event, session.user.id)
-  return declineInviteForUser(event, session.user.id, selector)
+export default defineApiHandler({
+  access: allow.user(),
+  params: inviteParams,
+  body: 'none',
+  handler: async ({ event, user, params }) => {
+    const selector = await inAppInviteSelector(user.id, params.inviteId)
+    return declineInviteForUser(event, user.id, selector)
+  }
 })

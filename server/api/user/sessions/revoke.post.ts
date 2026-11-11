@@ -14,30 +14,26 @@ import { HOUR_MS } from '~~/shared/config/units'
 // Not behind the recent-sign-in requirement — logging out can only
 // reduce what a session holder is able to do. Rate-limited per user so
 // a script can't spin the audit log.
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  access: allow.user(),
+  body: 'none',
+  rateLimit: { namespace: 'sessions-revoke', max: 10, windowMs: HOUR_MS, key: 'user', error: 'account/sessions-revoke-rate-limited' },
+  handler: async ({ event, user }) => {
+    const userId = user.id
 
-  if (!(await checkRateLimit('sessions-revoke', String(userId), 10, HOUR_MS))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many requests. Try again later.',
-      data: { code: 'account/sessions-revoke-rate-limited', messageKey: 'error.rateLimited' }
+    await bumpSessionEpoch(userId)
+    await clearUserSession(event)
+
+    await appendAuditEvent({
+      actorUserId: userId,
+      actorIp: getClientIp(event),
+      scope: 'user',
+      scopeId: String(userId),
+      action: AUDIT_ACCOUNT_SESSIONS_REVOKED,
+      before: null,
+      after: null
     })
+
+    return { ok: true }
   }
-
-  await bumpSessionEpoch(userId)
-  await clearUserSession(event)
-
-  await appendAuditEvent({
-    actorUserId: userId,
-    actorIp: getClientIp(event),
-    scope: 'user',
-    scopeId: String(userId),
-    action: AUDIT_ACCOUNT_SESSIONS_REVOKED,
-    before: null,
-    after: null
-  })
-
-  return { ok: true }
 })

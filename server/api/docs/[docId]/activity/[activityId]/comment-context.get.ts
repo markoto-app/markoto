@@ -1,9 +1,7 @@
-import { getDocWithActorRole } from '../../../../../repos/documents'
 import { getActivityById } from '../../../../../repos/activity'
 import { assertWithinHistory, resolveDocPlanFor } from '../../../../../utils/billing/entitlements'
 import { getCommentThreadByEntryId } from '../../../../../repos/comments'
-import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/documents/docPermissions'
-import { hasValidDocJwt } from '../../../../../utils/documents/docTokenVerify'
+import { activityParams } from '~~/shared/api/docs'
 
 // On-demand fetch of the full conversation thread for a comment activity
 // row. The row stores only a body preview; expanding it needs the full body
@@ -48,73 +46,50 @@ const COMMENT_ACTIONS = new Set([
   'comment.deleted'
 ])
 
-export default defineEventHandler(async (event): Promise<CommentContextResponse> => {
-  const docId = requireDocId(event)
-  const activityId = Number(getRouterParam(event, 'activityId'))
-  if (!Number.isInteger(activityId) || activityId <= 0) {
-    throw createError({ statusCode: 400, message: 'Invalid activityId' })
-  }
+export default defineApiHandler({
+  access: allow.doc('activity', { anonymous: true, jwt: true }),
+  params: activityParams,
+  handler: async ({ docId, doc: docRow, params: { activityId } }): Promise<CommentContextResponse> => {
+    const activity = await getActivityById(activityId, docId)
+    if (!activity) {
+      throw apiError('docs/activity-not-found')
+    }
+    // Rows older than the document's plan history window stay stored but
+    // can't be opened (409 `plan/limit-reached`, field `historyDays`).
+    assertWithinHistory(await resolveDocPlanFor(docRow), activity.createdAt)
+    if (!COMMENT_ACTIONS.has(activity.action)) {
+      throw apiError('docs/not-a-comment')
+    }
 
-  const session = await getValidatedUserSession(event)
+    // All comment.* metadata shapes carry `commentId`; guard against rows
+    // written without it.
+    const meta = activity.metadata as { kind?: string, commentId?: string } | null
+    const entryId = meta?.commentId
+    if (!entryId) {
+      throw apiError('docs/not-a-comment')
+    }
 
-  const docRow = await getDocWithActorRole(docId, session?.user?.id ?? null)
-  if (!docRow) {
-    throw createError({ statusCode: 404, message: 'Document not found' })
-  }
+    const thread = await getCommentThreadByEntryId(docId, entryId)
+    if (!thread || thread.length === 0) {
+      // Comment was deleted after the row was written. 410 rather than 404
+      // because the activity row itself is real, just orphaned; the UI shows
+      // "thread no longer exists".
+      throw apiError('docs/comment-thread-gone')
+    }
 
-  const doc: DocState = docStateOf(docRow)
-  const actor: ActorState = {
-    userId: session?.user?.id ?? null,
-    workspaceRole: docRow.workspaceRole,
-    hasValidDocJwt: hasValidDocJwt(event, docId)
-  }
-  if (decideActivityAccess(doc, actor).outcome === 'deny') {
-    throw createError({ statusCode: 403, message: 'Access denied' })
-  }
-
-  const activity = await getActivityById(activityId, docId)
-  if (!activity) {
-    throw createError({ statusCode: 404, message: 'Activity row not found' })
-  }
-  // Rows older than the document's plan history window stay stored but
-  // can't be opened (409 `plan/limit-reached`, field `historyDays`).
-  assertWithinHistory(await resolveDocPlanFor(docRow), activity.createdAt)
-  if (!COMMENT_ACTIONS.has(activity.action)) {
-    throw createError({ statusCode: 410, message: 'Activity row is not a comment event' })
-  }
-
-  // All comment.* metadata shapes carry `commentId`; guard against rows
-  // written without it.
-  const meta = activity.metadata as { kind?: string, commentId?: string } | null
-  const entryId = meta?.commentId
-  if (!entryId) {
-    throw createError({ statusCode: 410, message: 'Activity row has no commentId in metadata' })
-  }
-
-  const thread = await getCommentThreadByEntryId(docId, entryId)
-  if (!thread || thread.length === 0) {
-    // Comment was deleted after the row was written. 410 rather than 404
-    // because the activity row itself is real, just orphaned; the UI shows
-    // "thread no longer exists".
-    throw createError({
-      statusCode: 410,
-      statusMessage: 'Comment thread no longer exists',
-      message: 'The comment this row referred to has been deleted.'
-    })
-  }
-
-  return {
-    activityId: activity.id,
-    rows: thread.map(r => ({
-      entryId: r.entryId,
-      parentCommentId: r.parentCommentId,
-      authorId: r.authorId,
-      authorName: r.authorName,
-      body: r.body,
-      createdAtMs: r.createdAt.getTime(),
-      updatedAtMs: r.updatedAt.getTime(),
-      resolved: r.resolved
-    })),
-    focusEntryId: entryId
+    return {
+      activityId: activity.id,
+      rows: thread.map(r => ({
+        entryId: r.entryId,
+        parentCommentId: r.parentCommentId,
+        authorId: r.authorId,
+        authorName: r.authorName,
+        body: r.body,
+        createdAtMs: r.createdAt.getTime(),
+        updatedAtMs: r.updatedAt.getTime(),
+        resolved: r.resolved
+      })),
+      focusEntryId: entryId
+    }
   }
 })

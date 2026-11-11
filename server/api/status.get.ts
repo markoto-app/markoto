@@ -15,7 +15,7 @@ import { getCachedProbeResults, isOverallHealthy, type ProbeResult } from '../ut
 // Shares the TTL cache with `/api/health` (`getCachedProbeResults`), so
 // polling adds no second fan-out.
 //
-// Public (whitelisted in `server/middleware/auth.ts`).
+// Public (server/utils/auth/publicRoutes.ts).
 
 interface StatusCheck {
   status: ProbeResult['status']
@@ -26,29 +26,32 @@ function pick(r: ProbeResult): StatusCheck {
   return { status: r.status, latencyMs: r.latencyMs }
 }
 
-export default defineEventHandler(async () => {
-  const config = useRuntimeConfig()
-  const results = await getCachedProbeResults({
-    syncUrl: config.syncInternalUrl,
-    rendererUrl: config.rendererInternalUrl,
-    markitdownUrl: config.markitdownUrl,
-    litellmUrl: config.litellm?.url,
-    s3Bucket: config.s3?.bucket
-  })
+export default defineApiHandler({
+  access: allow.public('Status board for an external status page; up/down and latency per component, no error strings'),
+  handler: async () => {
+    const config = useRuntimeConfig()
+    const results = await getCachedProbeResults({
+      syncUrl: config.syncInternalUrl,
+      rendererUrl: config.rendererInternalUrl,
+      markitdownUrl: config.markitdownUrl,
+      litellmUrl: config.litellm?.url,
+      s3Bucket: config.s3?.bucket
+    })
 
-  return {
-    // `ok` when every GATING component is up (S3 is non-gating, see
-    // isOverallHealthy); the board below still shows S3.
-    status: isOverallHealthy(results) ? 'ok' : 'degraded',
-    checkedAt: new Date().toISOString(),
-    checks: {
-      postgres: pick(results.postgres),
-      valkey: pick(results.valkey),
-      sync: pick(results.sync),
-      s3: pick(results.s3),
-      renderer: pick(results.renderer),
-      markitdown: pick(results.markitdown),
-      litellm: pick(results.litellm)
+    return {
+      // `ok` when every GATING component is up (S3 is non-gating, see
+      // isOverallHealthy); the board below still shows S3.
+      status: isOverallHealthy(results) ? 'ok' : 'degraded',
+      checkedAt: new Date().toISOString(),
+      checks: {
+        postgres: pick(results.postgres),
+        valkey: pick(results.valkey),
+        sync: pick(results.sync),
+        s3: pick(results.s3),
+        renderer: pick(results.renderer),
+        markitdown: pick(results.markitdown),
+        litellm: pick(results.litellm)
+      }
     }
   }
 })

@@ -1,34 +1,15 @@
-// Per-workspace SSO admin side: who may manage a workspace's connection,
-// how its settings are validated, and the view sent to the browser (never a secret).
+// Per-workspace SSO admin side: how a workspace's connection settings are
+// validated, and the view sent to the browser (never a secret). Who may manage
+// them is the routes' policy: `allow.workspace('admin', { ignoreSso: true })`.
 
 import { X509Certificate } from 'node:crypto'
 import type { H3Event } from 'h3'
-import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
 import { listSsoDomains, type SsoConnectionFields, type SsoConnectionRow, type SsoDomainRow } from '../../repos/sso'
-import { assertPlanFeature, planHasFeature, resolveWorkspacePlan } from '../billing/entitlements'
+import { planHasFeature, resolveWorkspacePlan } from '../billing/entitlements'
 import { encryptToken } from '../litellm/tokenCrypto'
 import { checkSsoUrl, ssoAllowsPrivateUrls, SsoUrlRefused } from './urlPolicy'
 import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
-
-/**
- * Session + workspace admin by raw membership, deliberately without the SSO
- * condition: an admin must be able to repair or switch off a connection whose
- * IdP is broken, even while it is enforced. Everything else in the workspace
- * stays behind the SSO grant.
- */
-export async function requireSsoAdmin(event: H3Event): Promise<{ userId: number, wsId: string }> {
-  const session = await requireValidatedUserSession(event)
-  const wsId = requireWsId(event)
-  const role = await getMemberRoleIgnoringSso(wsId, session.user.id)
-  if (role === null) throw createError({ statusCode: 404, message: 'Workspace not found' })
-  if (role !== 'admin') throw createError({ statusCode: 403, message: 'Only workspace admins can manage single sign-on.', data: { code: 'sso/admin-required' } })
-  return { userId: session.user.id, wsId }
-}
-
-export async function assertSsoPlan(wsId: string): Promise<void> {
-  assertPlanFeature(await resolveWorkspacePlan(wsId), 'sso', 'Single sign-on is part of the Business plan.')
-}
 
 function invalid(field: string, message: string): Error {
   return createError({ statusCode: 400, message, data: { code: 'sso/invalid-settings', field } })

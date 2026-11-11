@@ -1,9 +1,8 @@
-import { getDocWithActorRole } from '../../../../repos/documents'
 import { getBrandAsset } from '../../../../repos/brandAssets'
-import { docStateOf, decideFileAccess } from '../../../../../shared/utils/documents/docPermissions'
-import { hasValidDocJwt } from '../../../../utils/documents/docTokenVerify'
 import { sendBrandAsset } from '../../../../utils/brandKit/storage'
+import { brandFileParams } from '~~/shared/api/brand'
 import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // GET /api/docs/:docId/brand/:file — a brand-kit font or logo of the
 // document's workspace, as the document's renderers load it: the
@@ -16,23 +15,14 @@ import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'
 /** Per client (/64 for IPv6) and minute — every preview render loads each workspace font. */
 export const DOC_BRAND_FILE_RATE_PER_MINUTE = 300
 
-export default defineEventHandler(async (event) => {
-  const docId = requireDocId(event)
-  const match = BRAND_ASSET_FILE_RE.exec(requireRouteParam(event, 'file'))
-  if (!match) throw createError({ statusCode: 400, message: 'Invalid file' })
-  if (!(await checkRateLimit('doc-brand-file', getClientRateLimitKey(event), DOC_BRAND_FILE_RATE_PER_MINUTE, 60_000))) {
-    throw createError({ statusCode: 429, message: 'Too many requests. Try again in a minute.', data: { code: 'brand/rate-limited', messageKey: 'error.rateLimited' } })
+export default defineApiHandler({
+  access: allow.doc('file', { anonymous: true, jwt: ['file-access'], deny: 'files/access-denied' }),
+  params: brandFileParams,
+  rateLimit: { namespace: 'doc-brand-file', max: DOC_BRAND_FILE_RATE_PER_MINUTE, windowMs: MINUTE_MS, key: 'ip', error: 'brand/rate-limited' },
+  handler: async ({ event, doc, params: { file } }) => {
+    const [, assetId, format] = BRAND_ASSET_FILE_RE.exec(file) ?? []
+    const asset = doc.workspaceId && assetId ? await getBrandAsset(doc.workspaceId, assetId) : null
+    if (!asset || asset.format !== format) throw apiError('resource/not-found')
+    return sendBrandAsset(event, asset, { crossOrigin: true })
   }
-  const session = await getValidatedUserSession(event)
-  const row = await getDocWithActorRole(docId, session?.user?.id ?? null)
-  if (!row) throw createError({ statusCode: 404, message: 'Document not found' })
-  const decision = decideFileAccess(docStateOf(row), {
-    userId: session?.user?.id ?? null,
-    workspaceRole: row.workspaceRole,
-    hasValidDocJwt: hasValidDocJwt(event, docId, ['file-access'])
-  })
-  if (decision.outcome === 'deny') throw createError({ statusCode: 403, message: 'Access denied' })
-  const asset = row.workspaceId ? await getBrandAsset(row.workspaceId, match[1]!) : null
-  if (!asset || asset.format !== match[2]) throw createError({ statusCode: 404, message: 'Not found' })
-  return sendBrandAsset(event, asset, { crossOrigin: true })
 })

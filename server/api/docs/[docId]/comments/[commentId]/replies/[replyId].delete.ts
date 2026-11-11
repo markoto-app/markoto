@@ -3,44 +3,39 @@ import {
   findComment,
   readReplyAuthor
 } from '../../../../../../utils/documents/commentsServerClient'
+import { replyParams } from '~~/shared/api/ai'
 
 // DELETE /api/docs/:docId/comments/:commentId/replies/:replyId
 //
 // Same authorization shape as the parent comment-delete endpoint:
 // only the reply's author or a doc manager can delete it.
 
-export default defineEventHandler(async (event) => {
-  const docId = requireDocId(event)
-  const commentId = getRouterParam(event, 'commentId')
-  const replyId = getRouterParam(event, 'replyId')
-  if (!commentId || commentId.length > 64) throw createError({ statusCode: 400, message: 'Invalid commentId' })
-  if (!replyId || replyId.length > 64) throw createError({ statusCode: 400, message: 'Invalid replyId' })
+export default defineApiHandler({
+  access: allow.doc('edit'),
+  params: replyParams,
+  handler: async ({ user, docId, authz, params }) => {
+    const userId = user.id
+    const { commentId, replyId } = params
 
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+    const client = await openTrustedCommentClient(docId, `comments-server:delete-reply:${userId}`)
+    try {
+      const found = findComment(client.ycomments, commentId)
+      if (!found) return { ok: true, alreadyGone: true }
+      const reply = readReplyAuthor(found.map, replyId)
+      if (!reply) return { ok: true, alreadyGone: true }
 
-  const authz = await getDocAuthz(userId, docId)
-  if (!authz.exists) throw createError({ statusCode: 404, message: 'Document not found' })
-  if (!authz.canEdit) throw createError({ statusCode: 403, message: 'Cannot edit this document' })
-
-  const client = await openTrustedCommentClient(docId, `comments-server:delete-reply:${userId}`)
-  try {
-    const found = findComment(client.ycomments, commentId)
-    if (!found) return { ok: true, alreadyGone: true }
-    const reply = readReplyAuthor(found.map, replyId)
-    if (!reply) return { ok: true, alreadyGone: true }
-
-    const isAuthor = reply.author.authorId !== null && reply.author.authorId === userId
-    const isManager = authz.canManage
-    if (!isAuthor && !isManager) {
-      throw createError({ statusCode: 403, message: 'Only the author can delete this reply' })
+      const isAuthor = reply.author.authorId !== null && reply.author.authorId === userId
+      const isManager = authz.canManage
+      if (!isAuthor && !isManager) {
+        throw apiError('ai/comment-not-author')
+      }
+      client.ydoc.transact(() => {
+        reply.repliesArr.delete(reply.index, 1)
+        found.map.set('updatedAt', Date.now())
+      }, 'comments-server')
+      return { ok: true }
+    } finally {
+      await client.destroy()
     }
-    client.ydoc.transact(() => {
-      reply.repliesArr.delete(reply.index, 1)
-      found.map.set('updatedAt', Date.now())
-    }, 'comments-server')
-    return { ok: true }
-  } finally {
-    await client.destroy()
   }
 })

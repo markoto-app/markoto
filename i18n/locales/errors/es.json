@@ -14,6 +14,7 @@
       "invalid-email": "Introduce una dirección de correo válida.",
       "login-required": "Inicia sesión para denunciar contenido.",
       "rate-limited": "Demasiadas denuncias desde tu red. Inténtalo más tarde.",
+      "report-not-found": "This report no longer exists.",
       "url-required": "Indica la dirección (URL) del contenido."
     },
     "account": {
@@ -23,22 +24,31 @@
       "sessions-revoke-rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
     },
     "admin": {
-      "forbidden": "Admin access required."
+      "forbidden": "Admin access required.",
+      "spend-unavailable": "The AI spend service answered with an error ({upstreamStatus})."
     },
     "ai": {
       "abort-not-initiator": "Solo la persona que inició esta sesión de markoto puede detenerla.",
+      "audio-missing": "No audio was received.",
+      "audio-too-long": "The recording is too long (max about 5 MiB).",
+      "audio-too-short": "The recording is too short to transcribe.",
+      "audio-unsupported-type": "Unsupported audio mimeType. Record as WebM, Ogg or WAV.",
       "budget-exhausted": "Your AI budget is used up for this period.",
+      "comment-not-author": "Only the author can delete this comment or reply.",
+      "comment-trigger-not-eligible": "Comment thread not found or not eligible to trigger AI.",
       "confirmation-not-pending": "This request is no longer waiting for an answer.",
       "duplicate-session": "Ya tienes una sesión de markoto en curso en este documento.",
       "free-allowance-exhausted": "The free AI allowance is used up for this month.",
       "provider-error": "Tu proveedor de transcripción devolvió un error. Revisa los ajustes de tu proveedor de IA.",
       "provider-missing": "No AI provider is set up for this. Add one in Settings.",
       "session-not-found": "AI session not found.",
+      "transcription-failed": "Transcription failed. Try again in a moment.",
       "web-tools-rate-limited": "Web search and page fetch limit reached ({limit} per {window}). Try again later, or continue without web tools."
     },
     "ai-provider": {
       "invalid": "Invalid provider settings.",
       "key-required": "Introduce la clave de API. Es obligatoria al añadir un proveedor o cambiar su URL.",
+      "not-configured": "No provider is configured for this capability.",
       "rate-limited": "Too many attempts. Try again in a few minutes.",
       "url-refused": "This provider URL is not allowed.",
       "verify-failed": "The provider could not be verified. Check the URL, API key and model."
@@ -70,20 +80,33 @@
     },
     "billing": {
       "admin-required": "Only workspace admins can manage billing.",
+      "already-on-plan": "You are already on this plan and billing period.",
       "cancel-failed": "No se pudo cancelar la suscripción del espacio, así que no se eliminó nada. Inténtalo de nuevo.",
+      "checkout-failed": "Could not start checkout. Please try again.",
       "currency-locked": "Tu suscripción se factura en otra moneda y no puede cambiar. Elige esa moneda para continuar.",
       "disabled": "Billing is not enabled on this deployment.",
       "invalid-member-limit": "The limit must be a number from 0 to {max}, no limit, or the default.",
       "invalid-seats": "Seats must be a whole number from {min} to {max}.",
+      "member-not-found": "Member not found.",
+      "no-billing-history": "No billing history yet. Subscribe first to manage your subscription.",
       "no-subscription": "This workspace has no active subscription.",
+      "not-configured": "Billing is not configured. Contact support.",
       "payment-failed": "The payment failed, so nothing was changed.",
+      "plan-change-failed": "Could not change the plan. Nothing was changed; please try again.",
+      "portal-failed": "Could not open the billing portal. Please try again.",
+      "price-unavailable": "This plan is not available for sale right now.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
       "seats-below-members": "Hay más personas que puestos en este espacio. Quita a alguien o mantén más puestos.",
       "seats-busy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento.",
       "seats-full": "Todos los puestos pagados están ocupados. Añade un puesto para invitar a alguien más.",
       "subscription-active": "Este espacio todavía tiene una suscripción activa. Contacta con soporte para eliminarlo.",
+      "subscription-check-failed": "Could not verify the current subscription. Please try again.",
       "terms-required": "Acepte las Condiciones de los planes de pago para continuar.",
       "topup-needs-plan": "Los créditos de IA amplían un plan de pago. Pasa a Pro para comprarlos.",
+      "webhook-body-empty": "The request body is empty.",
+      "webhook-failed": "The webhook event could not be processed.",
+      "webhook-signature-invalid": "The Stripe signature could not be verified.",
+      "webhook-signature-missing": "The Stripe-Signature header is missing.",
       "workspace-plan": "Team and Business are bought for a workspace, from its billing settings."
     },
     "brand": {
@@ -107,6 +130,8 @@
       "internal": "Something went wrong on our side. Please try again — we've been notified."
     },
     "consent": {
+      "no-decisions": "No consent decisions were sent.",
+      "no-valid-decisions": "None of the consent decisions could be recorded.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
     },
     "csrf": {
@@ -116,9 +141,12 @@
       "disabled": "Custom domains are not set up on this instance.",
       "invalid": "Enter a domain name such as docs.example.com.",
       "limit": "You can add up to {limit} domains.",
+      "not-found": "Domain not found.",
       "not-verified": "This domain is not verified yet.",
+      "page-not-allowed": "Only the owner and workspace admins can show this document on a domain.",
       "page-not-published": "Publish the document as a web page first.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "reserved": "This domain belongs to this service.",
       "taken": "This domain is already in use."
     },
     "design-import": {
@@ -128,12 +156,24 @@
       "no-vision": "Tu proveedor de IA no puede leer imágenes. Elige un modelo que pueda hacerlo y vuelve a intentarlo.",
       "rate-limited": "Has creado muchos diseños en la última hora. Vuelve a intentarlo más tarde.",
       "too-large": "El archivo es demasiado grande. Elige un archivo de hasta 20 MB.",
-      "unsupported-format": "Elige un archivo PDF o Word (.docx)."
+      "unsupported-format": "Elige un archivo PDF o Word (.docx).",
+      "upload-missing": "The upload did not arrive. Choose the file again.",
+      "upload-not-found": "Upload not found. Choose the file again."
     },
     "docs": {
+      "activity-not-found": "Esa fila de actividad no existe para este documento.",
+      "comment-thread-gone": "Este hilo ya no existe.",
       "content-too-long": "The content is too long (at most {max} characters).",
+      "delete-forbidden": "You can't delete this document.",
+      "diff-unavailable": "Diferencia no disponible para esta fila.",
+      "edit-forbidden": "No tienes acceso de edición a este documento.",
+      "manage-forbidden": "Only the owner and workspace admins can change who can open this document.",
+      "not-a-comment": "This activity row is not about a comment.",
       "not-found": "Document not found.",
-      "rate-limited": "Demasiados documentos nuevos desde tu red. Inicia sesión o inténtalo más tarde."
+      "rate-limited": "Demasiados documentos nuevos desde tu red. Inicia sesión o inténtalo más tarde.",
+      "render-failed": "The PDF could not be generated. Please try again.",
+      "restore-compacted": "This restore point is too old — its history has been compacted and can no longer be restored. Restore to a more recent point instead.",
+      "restore-unavailable": "No se puede restaurar desde esta fila — es anterior a la función de restauración."
     },
     "dpa": {
       "version-stale": "The Data Processing Addendum has changed since you opened this prompt. Please review it again."
@@ -141,6 +181,7 @@
     "export": {
       "conflict": "An export is already in progress.",
       "expired": "This export has expired. Please request a new one.",
+      "not-found": "Export not found.",
       "not-ready": "This export is not ready yet.",
       "rate-limited": "You have already requested an export today. Please try again tomorrow."
     },
@@ -148,8 +189,10 @@
       "access-denied": "Access denied."
     },
     "import": {
+      "conversion-failed": "The file could not be converted: {detail}",
       "file-too-large": "The file is too large to import.",
       "no-file": "No file provided.",
+      "not-configured": "Document conversion is not set up on this server.",
       "not-utf8": "This Markdown file is not valid UTF-8 text.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
       "timeout": "Conversion took too long.",
@@ -158,13 +201,21 @@
       "unsupported-format": "This file format is not supported."
     },
     "internal": {
-      "forbidden": "Forbidden."
+      "forbidden": "Invalid or missing credentials."
     },
     "knowledge": {
       "content-type-mismatch": "The uploaded file does not have the expected type.",
+      "editor-required": "Only admins and editors can change the knowledge base.",
+      "empty-upload": "The uploaded file is empty.",
       "file-too-large": "The file is too large.",
+      "invalid-key": "The storage key does not belong to this workspace's knowledge base.",
+      "key-mismatch": "knowledgeId must match the s3Key.",
+      "not-found": "Knowledge file not found.",
+      "not-uploader": "Editors can only delete their own uploads.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
       "too-many-pending": "Too many uploads are pending. Try again in a moment.",
+      "unsupported-format": "Unsupported format: .{ext}. Allowed: {allowed}.",
+      "upload-not-found": "Upload not found. Request a new upload and try again.",
       "user-bytes-cap": "You've reached your knowledge storage limit.",
       "user-file-cap": "You've reached your knowledge upload limit.",
       "workspace-bytes-cap": "This workspace has reached its knowledge storage limit.",
@@ -180,6 +231,7 @@
       "missing-workspace-id": "workspace_id is required.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
       "render-rate-limited": "Too many render requests. Try again in a minute.",
+      "token-not-found": "Token not found.",
       "too-many-open-docs": "Too many documents are open at the same time. Wait a few minutes and try again.",
       "too-many-tokens": "You have the maximum number of active MCP tokens. Revoke one first.",
       "tool-not-found": "Tool not found.",
@@ -200,7 +252,9 @@
     "password": {
       "invalid": "Invalid password.",
       "locked": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "not-set": "This document has no password.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "required": "Enter the password.",
       "too-short": "The password must be at least {minLength} characters."
     },
     "plan": {
@@ -219,7 +273,8 @@
       "too-large": "This document is too large to publish as a web page."
     },
     "published": {
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "not-found": "This page does not exist or is no longer published."
     },
     "rate": {
       "limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
@@ -237,12 +292,17 @@
       "expiry-past": "The expiry must be in the future.",
       "expiry-too-far": "The expiry can be at most {maxDays} days away.",
       "invalid": "Invalid sharing settings.",
+      "move-not-allowed": "Only the owner or a workspace admin can move this document.",
+      "move-target-viewer": "Viewers can't move documents into this workspace.",
       "not-a-guest": "This person is not a guest of the workspace.",
       "not-allowed": "You are not allowed to change how this document is shared.",
+      "not-shared": "This document is not shared with this person.",
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
     },
     "sso": {
       "admin-required": "Only workspace admins can manage single sign-on.",
+      "connection-not-found": "Unknown connection.",
+      "domain-not-found": "Domain not found.",
       "deactivated": "Your access to this workspace was turned off by your organisation.",
       "domain-cap": "At most {max} domains per workspace.",
       "domain-exists": "This domain is already added to the workspace.",
@@ -253,6 +313,7 @@
       "invalid-settings": "Invalid single sign-on settings.",
       "member-limit": "This workspace has reached the member limit of its plan.",
       "misconfigured": "Single sign-on needs NUXT_SITE_URL to be set on this instance.",
+      "not-configured": "No single sign-on is set up for this workspace.",
       "no-connection": "El inicio de sesión único no está configurado para esta dirección de correo electrónico.",
       "no-seat": "All paid seats of this workspace are taken.",
       "not-active": "Single sign-on is not active for this workspace.",
@@ -282,6 +343,8 @@
       "confirm-in-progress": "This upload is already being confirmed. Try again in a moment.",
       "content-type-mismatch": "The uploaded file does not have the expected type.",
       "file-too-large": "File too large. Max 10MB.",
+      "not-found": "Upload not found.",
+      "not-landed": "The upload has not arrived yet. Try again in a moment.",
       "rate-limited": "Too many uploads. Try again in a minute.",
       "size-mismatch": "The uploaded file size does not match the requested size.",
       "storage-quota": "Has alcanzado tu límite de almacenamiento de imágenes. Las imágenes que quitas de tus documentos liberan espacio cuando se limpian.",
@@ -311,15 +374,20 @@
       "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
     },
     "workspace": {
+      "admin-required": "Only workspace admins can do this.",
       "already-member": "Esta persona ya es miembro del espacio de trabajo.",
-      "cap-reached": "You've reached the workspace limit for your plan. Delete an unused workspace to create a new one.",
+      "billing-not-configured": "Billing is not configured. Contact support.",
+      "cap-reached": "You've reached the workspace limit for your plan ({plan}: {cap} workspaces). Delete an unused workspace to create a new one.",
       "dpa-required": "You must accept the Data Processing Addendum (DPA) before creating a workspace.",
       "guest-cannot-create": "Guests can't create documents in this workspace.",
       "guest-cap": "Este espacio de trabajo tiene tantos invitados como permite su plan (5 por puesto de pago). Elimina un invitado o añade un puesto primero.",
+      "guest-role-change": "A guest's access is managed by sharing, not by a role. Remove the guest and invite them again to change it.",
       "invalid-email": "Introduce una dirección de correo válida.",
       "invite-cap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero.",
       "invite-not-found": "Esta invitación ya no existe o ha caducado.",
       "invite-rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "last-admin": "A workspace must have at least one admin. Promote someone else first, or delete the workspace.",
+      "member-not-found": "That person is not a member of this workspace.",
       "not-found": "Workspace not found.",
       "role-required": "Viewers can't create documents in this workspace.",
       "template-rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."

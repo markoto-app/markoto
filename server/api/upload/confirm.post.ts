@@ -5,6 +5,8 @@ import { requireContentMatchesExtension } from '../../utils/storage/fileTypeGuar
 import { parseUploadKey, stagingKeyFor } from '../../utils/storage/uploadKey'
 import { canWriteDocContent } from '../../utils/documents/documentAccess'
 import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
+import { confirmUploadBody } from '~~/shared/api/ai'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // The key is client-supplied, so it must have the exact shape
 // `/api/upload/request` mints AND resolve to an `uploads` row issued to the
@@ -17,29 +19,21 @@ import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuo
 // stays valid for its lifetime and can rewrite the staging object at any
 // time, but never the final object `/api/files` serves.
 function notFound() {
-  return createError({ statusCode: 404, message: 'Upload not found' })
+  return apiError('upload/not-found')
 }
 
 /** The object's stored Content-Type must be exactly the type the upload was requested for. */
 function requireStoredContentType(stored: string | undefined, expected: string): void {
   const normalised = stored?.split(';')[0]?.trim().toLowerCase()
   if (normalised !== expected.toLowerCase()) {
-    throw createError({
-      statusCode: 415,
-      message: `Uploaded object has content type ${stored ?? 'none'}; expected ${expected}.`,
-      data: { code: 'upload/content-type-mismatch' }
-    })
+    throw apiError('upload/content-type-mismatch')
   }
 }
 
 /** The stored size must be the size the upload was requested (and reserved) for. */
 function requireStoredSize(stored: number | undefined, expected: number): void {
   if (stored !== expected) {
-    throw createError({
-      statusCode: 400,
-      message: 'Uploaded object size does not match the requested size.',
-      data: { code: 'upload/size-mismatch' }
-    })
+    throw apiError('upload/size-mismatch')
   }
 }
 
@@ -48,53 +42,40 @@ function requireStoredSize(stored: number | undefined, expected: number): void {
 const CONFIRM_LOCK_NS = 'upload-confirm'
 const CONFIRM_LOCK_TTL_MS = 60_000
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  // The document is only known through the issued key, so the write gate is
+  // inline, after the ownership checks that must stay 404 (see above).
+  access: allow.user(),
+  body: confirmUploadBody,
+  rateLimit: { namespace: 'upload-confirm', max: 60, windowMs: MINUTE_MS, key: 'user', error: 'upload/rate-limited' },
+  handler: async ({ user, body }) => {
+    const userId = user.id
 
-  if (!(await checkRateLimit('upload-confirm', String(userId), 60, 60_000))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many uploads. Try again in a minute.',
-      data: { code: 'upload/rate-limited' }
-    })
-  }
+    const key = body.key
+    const parsed = parseUploadKey(key)
+    if (!parsed) throw notFound()
 
-  const body = await readBody(event)
-  const rawKey: unknown = body?.key
-  if (!rawKey) {
-    throw createError({ statusCode: 400, message: 'Missing key' })
-  }
-  const parsed = parseUploadKey(rawKey)
-  if (!parsed || typeof rawKey !== 'string') throw notFound()
-  const key = rawKey
+    const row = await findOwnUpload(key, userId)
+    if (!row || row.docId !== parsed.docId) throw notFound()
 
-  const row = await findOwnUpload(key, userId)
-  if (!row || row.docId !== parsed.docId) throw notFound()
+    // Already confirmed (double confirm / retry): idempotent success, no S3 call.
+    if (row.confirmedAt) {
+      return { success: true, size: row.sizeBytes, contentType: row.contentType }
+    }
 
-  // Already confirmed (double confirm / retry): idempotent success, no S3 call.
-  if (row.confirmedAt) {
-    return { success: true, size: row.sizeBytes, contentType: row.contentType }
-  }
+    // Same write gate as /upload/request, re-checked in case access changed.
+    const doc = await getDocWithActorRole(parsed.docId, userId)
+    if (!doc) throw notFound()
+    if (!canWriteDocContent(doc, userId)) throw apiError('auth/forbidden')
 
-  // Same write gate as /upload/request, re-checked in case access changed.
-  const doc = await getDocWithActorRole(parsed.docId, userId)
-  if (!doc) throw notFound()
-  if (!canWriteDocContent(doc, userId)) {
-    throw createError({ statusCode: 403, message: 'No write access to this document' })
-  }
-
-  if (!(await tryAcquireSessionLock(CONFIRM_LOCK_NS, key, CONFIRM_LOCK_TTL_MS))) {
-    throw createError({
-      statusCode: 409,
-      message: 'This upload is already being confirmed. Try again in a moment.',
-      data: { code: 'upload/confirm-in-progress' }
-    })
-  }
-  try {
-    return await confirmUpload({ key, userId, row, ext: parsed.ext, docId: parsed.docId })
-  } finally {
-    await releaseSessionLock(CONFIRM_LOCK_NS, key)
+    if (!(await tryAcquireSessionLock(CONFIRM_LOCK_NS, key, CONFIRM_LOCK_TTL_MS))) {
+      throw apiError('upload/confirm-in-progress')
+    }
+    try {
+      return await confirmUpload({ key, userId, row, ext: parsed.ext, docId: parsed.docId })
+    } finally {
+      await releaseSessionLock(CONFIRM_LOCK_NS, key)
+    }
   }
 })
 
@@ -123,7 +104,7 @@ async function confirmUpload(args: {
     head = await s3.send(new HeadObjectCommand({ Bucket: bucket, Key: stagingKey }))
   } catch {
     // Not landed (yet): keep the pending row so the client can retry.
-    throw createError({ statusCode: 404, message: 'Upload not found in S3' })
+    throw apiError('upload/not-landed')
   }
 
   // Stored type + size + magic-byte sniff: the presigned PUT binds the

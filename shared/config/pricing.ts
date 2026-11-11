@@ -38,7 +38,7 @@ export function isCurrency(value: unknown): value is Currency {
   return typeof value === 'string' && (CURRENCIES as readonly string[]).includes(value)
 }
 
-export function isBillingInterval(value: unknown): value is BillingInterval {
+function isBillingInterval(value: unknown): value is BillingInterval {
   return typeof value === 'string' && (BILLING_INTERVALS as readonly string[]).includes(value)
 }
 
@@ -174,6 +174,3 @@ export function topupPack(id: TopupPackId): TopupPack {
 export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, prefix = 'markoto'): string {
   return `${prefix}_topup_${pack}_${currency}`
 }
-
-/** 400 code of a purchase sent without accepting the Paid Plans Terms. */
-export const PAID_TERMS_REQUIRED_CODE = 'billing/terms-required'

@@ -16,43 +16,39 @@ import { HOUR_MS } from '~~/shared/config/units'
 // orchestrator). The UI should suppress the cancel button when no
 // deletion is scheduled, but the server enforces.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const userId = session.user.id
+export default defineApiHandler({
+  access: allow.user(),
+  body: 'none',
+  handler: async ({ event, user }) => {
+    const userId = user.id
 
-  const ip = getClientIp(event)
+    const ip = getClientIp(event)
 
-  // Same rate-limit key as the request endpoint so the budget is
-  // shared — a stolen session can't burst-cancel-then-burst-request.
-  const rlKey = `${userId}:${getClientRateLimitKey(event)}`
-  if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many account-deletion requests. Try again later.',
-      data: { code: 'account/delete-rate-limited' }
-    })
-  }
-
-  try {
-    const result = await cancelAccountDeletionByUser({
-      userId,
-      actorIp: ip
-    })
-
-    return {
-      ok: true,
-      deletionRequestedAt: null,
-      deletionGraceUntil: null,
-      emailAttempted: result.emailAttempted
+    // Same rate-limit key as the request endpoint so the budget is
+    // shared — a stolen session can't burst-cancel-then-burst-request.
+    // Inline: the wrapper's per-user key has no client address.
+    const rlKey = `${userId}:${getClientRateLimitKey(event)}`
+    if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
+      throw apiError('account/delete-rate-limited')
     }
-  } catch (e) {
-    if (isRepoError(e)) {
-      throw createError({
-        statusCode: e.httpStatus,
-        message: e.message,
-        data: { code: 'account/delete-cancel-conflict' }
+
+    try {
+      const result = await cancelAccountDeletionByUser({
+        userId,
+        actorIp: ip
       })
+
+      return {
+        ok: true,
+        deletionRequestedAt: null,
+        deletionGraceUntil: null,
+        emailAttempted: result.emailAttempted
+      }
+    } catch (e) {
+      if (isRepoError(e)) {
+        throw apiError('account/delete-cancel-conflict', undefined, { status: e.httpStatus as 409 | 404, cause: e })
+      }
+      throw e
     }
-    throw e
   }
 })

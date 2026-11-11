@@ -1,6 +1,6 @@
 import { readSessionChannel } from '../../../../utils/agentic/sessionChannel'
 import { createSessionEventStream } from '../../../../utils/agentic/sessionStream'
-import { ID_RE } from '~~/shared/config/identifiers'
+import { aiSessionParams } from '~~/shared/api/ai'
 
 // GET /api/ai/sessions/:sessionId/stream: Server-Sent Events push of the
 // initiator's private session view (same JSON as `GET .../:sessionId`):
@@ -18,23 +18,21 @@ import { ID_RE } from '~~/shared/config/identifiers'
 // untouched, so Bun flushes it itself; pinned by
 // `tests/integration/endpoints/aiSessionStream.test.ts`.
 
-export default defineEventHandler(async (event) => {
-  const session = await requireValidatedUserSession(event)
-  const sessionId = getRouterParam(event, 'sessionId') ?? ''
-  if (!ID_RE.test(sessionId)) {
-    throw createError({ statusCode: 400, message: 'Invalid sessionId' })
+export default defineApiHandler({
+  access: allow.user(),
+  params: aiSessionParams,
+  handler: async ({ user, params }) => {
+    const { sessionId } = params
+    const snapshot = await readSessionChannel(sessionId)
+    if (snapshot?.initiatorUserId !== user.id) throw apiError('ai/session-not-found')
+    const body = createSessionEventStream({ sessionId, userId: user.id })
+    return new Response(body, {
+      status: 200,
+      headers: {
+        'Content-Type': 'text/event-stream; charset=utf-8',
+        'Cache-Control': 'private, no-cache, no-store, no-transform',
+        'X-Accel-Buffering': 'no'
+      }
+    })
   }
-  const snapshot = await readSessionChannel(sessionId)
-  if (snapshot?.initiatorUserId !== session.user.id) {
-    throw createError({ statusCode: 404, message: 'AI session not found', data: { code: 'ai/session-not-found' } })
-  }
-  const body = createSessionEventStream({ sessionId, userId: session.user.id })
-  return new Response(body, {
-    status: 200,
-    headers: {
-      'Content-Type': 'text/event-stream; charset=utf-8',
-      'Cache-Control': 'private, no-cache, no-store, no-transform',
-      'X-Accel-Buffering': 'no'
-    }
-  })
 })

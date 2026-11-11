@@ -23,52 +23,49 @@ import { HOUR_MS } from '~~/shared/config/units'
 // Audit: an `account.delete_requested` audit row is appended after
 // the user-row update commits. Email is best-effort.
 
-export default defineEventHandler(async (event) => {
+export default defineApiHandler({
+  access: allow.user(),
   // Sensitive action: needs a recent sign-in (401 auth/reauth-required).
-  const session = await requireRecentLogin(event)
-  const userId = session.user.id
+  recentLogin: true,
+  body: 'none',
+  handler: async ({ event, user }) => {
+    const userId = user.id
 
-  const ip = getClientIp(event)
+    const ip = getClientIp(event)
 
-  // Rate limit on (userId, IP) — userId-only would be DoS-able by a
-  // session-stealing attacker; IP-only would be unfair to mobile users
-  // behind shared NAT. Hash both so the key isn't a PII column.
-  const rlKey = `${userId}:${getClientRateLimitKey(event)}`
-  if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
-    throw createError({
-      statusCode: 429,
-      message: 'Too many account-deletion requests. Try again later.',
-      data: { code: 'account/delete-rate-limited' }
-    })
-  }
-
-  try {
-    const result = await requestAccountDeletionByUser({
-      userId,
-      actorIp: ip
-    })
-
-    // Sign out every OTHER session: a deletion request is exactly when a
-    // stolen cookie must stop working. This browser keeps its session
-    // (re-sealed with the new epoch) so the user can still cancel from
-    // the grace banner.
-    const epoch = await bumpSessionEpoch(userId)
-    if (epoch !== null) await setUserSession(event, { e: epoch })
-
-    return {
-      ok: true,
-      deletionRequestedAt: result.status.deletionRequestedAt?.toISOString() ?? null,
-      deletionGraceUntil: result.status.deletionGraceUntil?.toISOString() ?? null,
-      emailAttempted: result.emailAttempted
+    // Rate limit on (userId, IP) — userId-only would be DoS-able by a
+    // session-stealing attacker; IP-only would be unfair to mobile users
+    // behind shared NAT. Hash both so the key isn't a PII column. Inline:
+    // the wrapper's per-user key has no client address.
+    const rlKey = `${userId}:${getClientRateLimitKey(event)}`
+    if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
+      throw apiError('account/delete-rate-limited')
     }
-  } catch (e) {
-    if (isRepoError(e)) {
-      throw createError({
-        statusCode: e.httpStatus,
-        message: e.message,
-        data: { code: 'account/delete-conflict' }
+
+    try {
+      const result = await requestAccountDeletionByUser({
+        userId,
+        actorIp: ip
       })
+
+      // Sign out every OTHER session: a deletion request is exactly when a
+      // stolen cookie must stop working. This browser keeps its session
+      // (re-sealed with the new epoch) so the user can still cancel from
+      // the grace banner.
+      const epoch = await bumpSessionEpoch(userId)
+      if (epoch !== null) await setUserSession(event, { e: epoch })
+
+      return {
+        ok: true,
+        deletionRequestedAt: result.status.deletionRequestedAt?.toISOString() ?? null,
+        deletionGraceUntil: result.status.deletionGraceUntil?.toISOString() ?? null,
+        emailAttempted: result.emailAttempted
+      }
+    } catch (e) {
+      if (isRepoError(e)) {
+        throw apiError('account/delete-conflict', undefined, { status: e.httpStatus as 409 | 404, cause: e })
+      }
+      throw e
     }
-    throw e
   }
 })

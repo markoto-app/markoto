@@ -11,24 +11,20 @@
 
 import { setUserKeyMaxBudget } from '../../utils/litellm/userKeys'
 import { resolveBillingContext } from '../../utils/billing/billing'
-import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
+import { testUserBody } from '~~/shared/api/platform'
 
-export default defineEventHandler(async (event) => {
-  if (!isTestModeEnabled()) {
-    throw createError({ statusCode: 404, message: 'Not found' })
+export default defineApiHandler({
+  access: allow.testOnly(),
+  body: testUserBody,
+  handler: async ({ body }) => {
+    const { userId } = body
+
+    // Resolve billing context so the key exists with the right plan budget
+    // first. Workspace context is null: the test exhausts the user's own key.
+    const billing = await resolveBillingContext(userId, null)
+
+    await setUserKeyMaxBudget(userId, billing.plan, 0)
+
+    return { ok: true, userId, plan: billing.plan, maxBudget: 0 }
   }
-
-  const body = await readBody<{ userId?: unknown }>(event)
-  const userId = typeof body?.userId === 'number' ? body.userId : null
-  if (!userId || !Number.isInteger(userId) || userId <= 0) {
-    throw createError({ statusCode: 400, message: 'userId required (positive integer)' })
-  }
-
-  // Resolve billing context so the key exists with the right plan budget
-  // first. Workspace context is null: the test exhausts the user's own key.
-  const billing = await resolveBillingContext(userId, null)
-
-  await setUserKeyMaxBudget(userId, billing.plan, 0)
-
-  return { ok: true, userId, plan: billing.plan, maxBudget: 0 }
 })

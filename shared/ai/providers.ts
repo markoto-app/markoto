@@ -20,10 +20,6 @@
 export const AI_CAPABILITIES = ['chat', 'image', 'transcription'] as const
 export type AiCapability = typeof AI_CAPABILITIES[number]
 
-export function isAiCapability(value: unknown): value is AiCapability {
-  return AI_CAPABILITIES.some(c => c === value)
-}
-
 /** Where a capability's provider comes from for one user. */
 export type AiProviderSource = 'user' | 'instance' | 'none'
 
