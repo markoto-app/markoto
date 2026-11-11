@@ -1,5 +1,6 @@
 import { listAllKnowledgeS3Keys } from '../../repos/knowledge'
 import type { ObjectStore } from '../storage/objectStore'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // Reaps knowledge-upload objects no `workspace_knowledge` row points at:
 //   - originals that were PUT but never confirmed (upload-request creates
@@ -15,7 +16,7 @@ import type { ObjectStore } from '../storage/objectStore'
 //
 // Runs as a layer of the `orphan-cleanup` sweeper (under its sweep lock).
 
-export const KNOWLEDGE_ORPHAN_GRACE_MS = 60 * 60 * 1000
+export const KNOWLEDGE_ORPHAN_GRACE_MS = HOUR_MS
 
 // Exactly the shapes upload-request mints (final + staging). Anything
 // else under `workspaces/` is not ours to judge and is never touched.

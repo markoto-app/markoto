@@ -1,6 +1,7 @@
 import { isValidTheme } from '../theme/themeValidation'
 import { isAudienceKind } from '../../audiences'
 import { LANGUAGE_MAX_LENGTH } from '../../languages'
+import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../../config/docCreate'
 
 /**
  * Validation of the values clients write into the shared `meta` Y.Map
@@ -20,8 +21,6 @@ import { LANGUAGE_MAX_LENGTH } from '../../languages'
  * themselves (a nested Y type is never a valid meta value).
  */
 
-export const META_TITLE_MAX_LENGTH = 255
-export const META_DESCRIPTION_MAX_LENGTH = 500
 const META_LANGUAGE_MAX_LENGTH = LANGUAGE_MAX_LENGTH
 const META_TEMPLATE_ID_MAX_LENGTH = 64
 
@@ -90,9 +89,9 @@ function isBoundedString(v: unknown, max: number): boolean {
 export function isValidMetaValue(key: string, value: unknown): boolean {
   switch (key) {
     case 'title':
-      return isBoundedString(value, META_TITLE_MAX_LENGTH)
+      return isBoundedString(value, DOC_TITLE_MAX_LENGTH)
     case 'description':
-      return isBoundedString(value, META_DESCRIPTION_MAX_LENGTH)
+      return isBoundedString(value, DOC_DESCRIPTION_MAX_LENGTH)
     case 'language':
       return isBoundedString(value, META_LANGUAGE_MAX_LENGTH)
     case 'templateId':
@@ -116,8 +115,8 @@ export function isValidMetaValue(key: string, value: unknown): boolean {
 }
 
 const STRING_LIMITS = {
-  title: META_TITLE_MAX_LENGTH,
-  description: META_DESCRIPTION_MAX_LENGTH,
+  title: DOC_TITLE_MAX_LENGTH,
+  description: DOC_DESCRIPTION_MAX_LENGTH,
   language: META_LANGUAGE_MAX_LENGTH
 } as const
 

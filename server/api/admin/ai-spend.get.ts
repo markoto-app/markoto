@@ -1,6 +1,7 @@
 import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmAdminFetch } from '../../utils/litellm/litellmAdmin'
 import { ALL_FEATURE_TAGS, TAG_NAMESPACES, type FeatureTag } from '../../utils/litellm/featureTags'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Operator dashboard (/admin/ai-spend, admin-gated): per-feature LiteLLM spend
 // over a date window, aggregated by the proxy via /spend/tags.
@@ -94,7 +95,7 @@ function isValidIsoDate(s: unknown): s is string {
 
 function defaultRange(): { from: string, to: string } {
   const today = new Date()
-  const past = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const past = new Date(today.getTime() - 30 * DAY_MS)
   return {
     from: past.toISOString().slice(0, 10),
     to: today.toISOString().slice(0, 10)

@@ -4,6 +4,8 @@
 // (`moderation.rule.<id>`, `moderation.action.<id>`); the notice emails
 // carry their own short texts (server/utils/privacy/moderationNotices.ts).
 
+import { ID_PATTERN, ID_RE } from './identifiers'
+
 /** Report categories the public form offers (stored on abuse_reports.category). */
 export const REPORT_CATEGORIES = ['illegal_content', 'csam', 'copyright', 'harassment', 'spam', 'other'] as const
 export type ReportCategory = typeof REPORT_CATEGORIES[number]
@@ -66,8 +68,6 @@ export const REPORTER_NAME_MAX = 200
 export const DECISION_EXPLANATION_MIN = 10
 export const DECISION_EXPLANATION_MAX = 3000
 
-const DOC_ID_SHAPE = /^[\w-]{1,64}$/
-
 /**
  * The document id a reported location points at, or null. Accepts a full
  * URL or path containing `/d/<id>`, or a bare id. The host is not checked
@@ -76,7 +76,7 @@ const DOC_ID_SHAPE = /^[\w-]{1,64}$/
 export function docIdFromReportedLocation(raw: string): string | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
-  const match = /\/d\/([\w-]{1,64})(?:[/?#]|$)/.exec(trimmed)
+  const match = new RegExp(`/d/(${ID_PATTERN})(?:[/?#]|$)`).exec(trimmed)
   if (match?.[1]) return match[1]
-  return DOC_ID_SHAPE.test(trimmed) ? trimmed : null
+  return ID_RE.test(trimmed) ? trimmed : null
 }

@@ -1,6 +1,7 @@
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runAccountDeletionSweep } from '../utils/privacy/accountDeletionSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Account-deletion sweep plugin. Runs the cascading-purge for users
 // whose 30-day grace window has elapsed. Thin wrapper — the heavy
@@ -19,7 +20,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // produce a flurry of "user not found" / "row already gone" errors;
 // the lock keeps the noise floor low.
 
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000 // 1h
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.accountDeletion
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('account-deletion-sweep')) return

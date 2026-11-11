@@ -26,6 +26,7 @@ import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 import { listSubjectsWithCredits } from '../../repos/aiCreditGrants'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, FREE_TIER_BUDGET_DURATION, teamIdForPlan } from './freeTierTeam'
+import { DAY_MS } from '~~/shared/config/units'
 
 const PAGE_SIZE = 100
 /** Hard stop for the listing loop (100k keys) — guards against a proxy that never reports its last page. */
@@ -114,7 +115,7 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
   await ensureFreeTierTeam()
   const listed = await listAllKeys()
   // Only users who bought top-ups need the credit lookup.
-  const usersWithCredits = new Set((await listSubjectsWithCredits(new Date(Date.now() - 62 * 24 * 3600 * 1000)))
+  const usersWithCredits = new Set((await listSubjectsWithCredits(new Date(Date.now() - 62 * DAY_MS)))
     .filter(s => s.type === 'user').map(s => s.id))
 
   for (const row of rows) {

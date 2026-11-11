@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { GIB, MIB } from '~~/shared/config/units'
+
 // Knowledge base panel for the workspace page. Uploads go through the
 // same presigned-PUT ceremony as document images: request-url → PUT bytes →
 // confirm. Confirm kicks off the background processing pipeline
@@ -101,7 +103,7 @@ const uploadCapReached = computed(() => filesCapReached.value || bytesCapReached
 // just "limit reached" and a toast, never a dead purchase link.
 const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 const uploadCapTooltip = computed(() => {
-  const limitMb = Math.round((usage.value?.maxBytes ?? 0) / (1024 * 1024))
+  const limitMb = Math.round((usage.value?.maxBytes ?? 0) / MIB)
   let msg = ''
   if (filesCapReached.value) {
     msg = billingEnabled.value
@@ -266,9 +268,9 @@ function onItemDeleted() {
 
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
+  if (n < MIB) return `${Math.round(n / 1024)} KB`
+  if (n < GIB) return `${(n / MIB).toFixed(1)} MB`
+  return `${(n / GIB).toFixed(2)} GB`
 }
 
 function statusColor(status: KnowledgeItem['status']): 'neutral' | 'warning' | 'success' | 'error' {

@@ -1,12 +1,10 @@
 import { ANON_GATE_CODES } from '~~/shared/config/anonGate'
+import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
 
 export { withoutTitleHeading } from '~~/shared/utils/markdown/markdownTitle'
 
 // Pure helpers of the marketing `::try-it` block (components/content/TryIt.vue
 // + components/marketing/TryItWorkbench.vue).
-
-/** Same cap as the server's document title (createDocument TITLE_MAX_LENGTH). */
-const TITLE_MAX = 255
 
 /**
  * The document title for the visitor's text: the first ATX heading
@@ -22,7 +20,7 @@ export function titleFromMarkdown(markdown: string): string {
     }
     if (inFence) continue
     const m = /^\s{0,3}#{1,6}[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$/.exec(line)
-    if (m?.[1]) return m[1].trim().slice(0, TITLE_MAX)
+    if (m?.[1]) return m[1].trim().slice(0, DOC_TITLE_MAX_LENGTH)
   }
   return ''
 }

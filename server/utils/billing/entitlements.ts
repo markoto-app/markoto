@@ -33,6 +33,7 @@ import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from
 import { getWorkspaceSubscription, subscriptionGrantsPlan } from '../../repos/workspaceSubscriptions'
 import { planRank, type FeatureField, type PlanName, type TierCaps } from '~~/shared/config/tiers'
 import { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE } from '~~/shared/config/planErrors'
+import { DAY_MS } from '~~/shared/config/units'
 
 export { PLAN_FEATURE_UNAVAILABLE_CODE, PLAN_LIMIT_REACHED_CODE }
 
@@ -149,7 +150,7 @@ export function planLimitError(plan: PlanName, field: keyof TierCaps, limit: num
 /** Oldest activity timestamp the plan may view, or `null` for no limit. */
 export function historyCutoff(plan: PlanName, now: Date = new Date()): Date | null {
   const days = capsFor(plan).historyDays
-  return days === null ? null : new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+  return days === null ? null : new Date(now.getTime() - days * DAY_MS)
 }
 
 /** Response header the activity endpoint sets when the plan's window hides older rows. */

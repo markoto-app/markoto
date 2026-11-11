@@ -1,5 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { isValidEmailShape } from './emailShape'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 
 // Workspace invitations (pending invite + accept).
 //
@@ -14,7 +15,7 @@ import { isValidEmailShape } from './emailShape'
 // the table access is in `server/repos/workspaceInvites.ts`.
 
 /** How long an invite stays open. Expired rows are deleted by the sweeper. */
-export const WORKSPACE_INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000
+export const WORKSPACE_INVITE_TTL_MS = 14 * DAY_MS
 
 /** Open (unexpired) invites a single workspace may have at once. */
 export const WORKSPACE_INVITE_OPEN_CAP = 50
@@ -23,11 +24,11 @@ export const WORKSPACE_INVITE_OPEN_CAP = 50
 export const WORKSPACE_INVITE_PER_ADMIN_LIMIT = 20
 /** Invites one workspace may send per hour (across all its admins). */
 export const WORKSPACE_INVITE_PER_WORKSPACE_LIMIT = 30
-export const WORKSPACE_INVITE_WINDOW_MS = 60 * 60 * 1000
+export const WORKSPACE_INVITE_WINDOW_MS = HOUR_MS
 
 /** Invite emails one address may receive per day (silently skipped beyond). */
 export const WORKSPACE_INVITE_EMAILS_PER_ADDRESS = 3
-export const WORKSPACE_INVITE_EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000
+export const WORKSPACE_INVITE_EMAIL_WINDOW_MS = DAY_MS
 
 /** RFC 5321 caps a forward-path at 254 characters. */
 const EMAIL_MAX_LENGTH = 254

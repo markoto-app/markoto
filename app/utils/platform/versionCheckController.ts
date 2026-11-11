@@ -1,3 +1,5 @@
+import { MINUTE_MS } from '~~/shared/config/units'
+
 // Pure controller for the version-check auto-reload state machine.
 // Extracted from `app/plugins/version-check.client.ts` so the polling +
 // grace-period + snooze + visibility-throttle behaviors are testable in
@@ -42,10 +44,10 @@ export interface VersionCheckController {
   dispose: () => void
 }
 
-const DEFAULT_POLL_INTERVAL_MS = 5 * 60 * 1000
+const DEFAULT_POLL_INTERVAL_MS = 5 * MINUTE_MS
 const DEFAULT_GRACE_MS = 30 * 1000
-const DEFAULT_SNOOZE_MS = 5 * 60 * 1000
-const DEFAULT_VISIBILITY_THROTTLE_MS = 60 * 1000
+const DEFAULT_SNOOZE_MS = 5 * MINUTE_MS
+const DEFAULT_VISIBILITY_THROTTLE_MS = MINUTE_MS
 
 export function createVersionCheckController(
   deps: VersionCheckDeps,

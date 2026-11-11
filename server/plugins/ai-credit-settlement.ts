@@ -2,12 +2,13 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { runCreditSettlement } from '../utils/billing/aiCredits'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 import { isBillingEnabled } from '../utils/billing/billingMode'
+import { SWEEPS } from '../config/sweeps'
 
 // AI credit top-ups: hourly — expire grants older than 12 months,
 // take each month's AI spend above the plan budget from the credits, and
 // push every affected budget to LiteLLM. Billing on only.
 
-const INTERVAL_MS = 60 * 60 * 1000
+const { intervalMs: INTERVAL_MS } = SWEEPS.aiCreditSettlement
 const LOCK = 'ai-credit-settlement'
 
 async function lockedRun(): Promise<void> {

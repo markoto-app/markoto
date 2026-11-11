@@ -1,5 +1,6 @@
 import { readSessionChannel } from '../../../../utils/agentic/sessionChannel'
 import { createSessionEventStream } from '../../../../utils/agentic/sessionStream'
+import { ID_RE } from '~~/shared/config/identifiers'
 
 // GET /api/ai/sessions/:sessionId/stream: Server-Sent Events push of the
 // initiator's private session view (same JSON as `GET .../:sessionId`):
@@ -17,12 +18,10 @@ import { createSessionEventStream } from '../../../../utils/agentic/sessionStrea
 // untouched, so Bun flushes it itself; pinned by
 // `tests/integration/endpoints/aiSessionStream.test.ts`.
 
-const SESSION_ID_RE = /^[\w-]{1,64}$/
-
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const sessionId = getRouterParam(event, 'sessionId') ?? ''
-  if (!SESSION_ID_RE.test(sessionId)) {
+  if (!ID_RE.test(sessionId)) {
     throw createError({ statusCode: 400, message: 'Invalid sessionId' })
   }
   const snapshot = await readSessionChannel(sessionId)

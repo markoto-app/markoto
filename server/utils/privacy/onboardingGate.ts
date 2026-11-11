@@ -1,4 +1,5 @@
 import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
+import { STATE_CHANGING_METHODS } from '../../../shared/config/httpMethods'
 
 // Server-side half of the onboarding gate (hosted shape, legal surfaces
 // on). The UI blocks the app shell until a signed-in user has confirmed
@@ -47,8 +48,6 @@ const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/_internal\//,
   /^\/api\/_test\//
 ]
-
-const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 /** Does the onboarding gate apply to this request at all (before looking at the user)? */
 export function isOnboardingGatedRequest(method: string, path: string): boolean {

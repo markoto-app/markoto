@@ -15,7 +15,9 @@
  * `shared/types/theme.ts` reuses `THEME_IMAGE_URL_RE`.
  */
 
-const ID_PART = '[A-Za-z0-9_-]{1,64}'
+import { ID_PATTERN } from '../../config/identifiers'
+
+const ID_PART = ID_PATTERN
 const UPLOAD_PATH = String.raw`/api/files/(${ID_PART})/(${ID_PART}\.(?:png|jpe?g|gif|webp))`
 const BUNDLED_ASSET = String.raw`/markoto-logos/[a-z0-9-]{1,64}\.(?:svg|png)`
 // A workspace brand-kit image: `/api/brand/<assetId>.<ext>`. Not

@@ -1203,7 +1203,7 @@ function chapterLabelBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 }
 
 /** Class `composeFinalHtml` puts on every heading of the highest level the document uses (`headingStructure.ts`). */
-const SECTION_HEADING_CLASS = 'markoto-section-heading'
+export const SECTION_HEADING_CLASS = 'markoto-section-heading'
 
 /** Class `composeFinalHtml` puts on numbered headings when the highest numbered level is h`base` (2–4). */
 export function numberingBaseClass(base: number): string {

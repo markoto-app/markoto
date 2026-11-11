@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/ai/aiSessions'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Every 60s, abort any AI session older than the stale threshold. Protects
 // against crashes that leave awareness entries orphaned on Hocuspocus docs.
@@ -16,8 +17,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // left by a crashed previous process are cleaned immediately instead of
 // blocking the per-user cap until the first sweep.
 
-const STALE_THRESHOLD_MS = 7 * 60 * 1000 // 7 min — safely longer than 5-min prompt deadline
-const SWEEP_INTERVAL_MS = 60_000
+const { staleAfterMs: STALE_THRESHOLD_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.aiSessions
 
 type AiSessionRow = Awaited<ReturnType<typeof snapshotAiSessions>>[number]
 

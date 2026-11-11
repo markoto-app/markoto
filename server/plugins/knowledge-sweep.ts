@@ -6,6 +6,8 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { processKnowledge } from '../utils/knowledge/processKnowledge'
 import { deleteKnowledgeArtifact } from '../utils/knowledge/knowledgeAccess'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the
@@ -21,8 +23,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // before re-inserting, so a mid-flight kill that left half the chunks
 // behind still produces a clean result on retry.
 
-const STALE_THRESHOLD_MS = 10 * 60 * 1000
-const SWEEP_INTERVAL_MS = 2 * 60 * 1000
+const { staleAfterMs: STALE_THRESHOLD_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.knowledge
 
 async function sweepStuck() {
   const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS)
@@ -61,7 +62,7 @@ async function sweepFailed() {
   const cfg = useRuntimeConfig().knowledge
   const cutoffDays = cfg.failedRetentionDays
   if (cutoffDays <= 0) return
-  const cutoff = new Date(Date.now() - cutoffDays * 24 * 60 * 60 * 1000)
+  const cutoff = new Date(Date.now() - cutoffDays * DAY_MS)
   let rows: Array<{ knowledgeId: string }>
   try {
     const db = useDatabase()

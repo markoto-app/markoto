@@ -1,12 +1,14 @@
+import { GIB, MIB } from '~~/shared/config/units'
+
 // Formatting for the pricing page (cards + comparison table).
 
 /** Plan-cap byte size: whole MB, or GB with at most one decimal. */
 export function formatPlanBytes(bytes: number): string {
-  if (bytes >= 1024 * 1024 * 1024) {
-    const gb = bytes / (1024 * 1024 * 1024)
+  if (bytes >= GIB) {
+    const gb = bytes / GIB
     return `${Number.isInteger(gb) ? gb.toFixed(0) : gb.toFixed(1)} GB`
   }
-  return `${Math.round(bytes / (1024 * 1024))} MB`
+  return `${Math.round(bytes / MIB)} MB`
 }
 
 /** A monthly price in the page's currency, no decimals for whole amounts. */

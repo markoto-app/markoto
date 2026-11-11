@@ -3,6 +3,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { getSsoConnectionForWorkspace, upsertSsoConnection } from '../../../../repos/sso'
 import { AUDIT_SSO_CONNECTION_SAVED } from '../../../../legal/auditActions'
 import { assertSsoPlan, parseSsoSettings, requireSsoAdmin, ssoSettingsView } from '../../../../utils/sso/admin'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // PUT /api/workspaces/:wsId/sso — create or change the workspace's
 // identity provider. Admins of a workspace whose plan includes
@@ -13,7 +14,7 @@ import { assertSsoPlan, parseSsoSettings, requireSsoAdmin, ssoSettingsView } fro
 export default defineEventHandler(async (event) => {
   const { userId, wsId } = await requireSsoAdmin(event)
   await assertSsoPlan(wsId)
-  if (!(await checkRateLimit('sso-settings', String(userId), 20, 10 * 60_000))) {
+  if (!(await checkRateLimit('sso-settings', String(userId), 20, 10 * MINUTE_MS))) {
     throw createError({ statusCode: 429, message: 'Too many changes. Try again in a few minutes.', data: { code: 'sso/rate-limited' } })
   }
   const existing = await getSsoConnectionForWorkspace(wsId)

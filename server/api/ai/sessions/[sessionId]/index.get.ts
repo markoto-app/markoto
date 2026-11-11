@@ -1,4 +1,5 @@
 import { readSessionChannel, toSessionView } from '../../../../utils/agentic/sessionChannel'
+import { ID_RE } from '~~/shared/config/identifiers'
 
 // GET /api/ai/sessions/:sessionId: the initiator's private view of an AI
 // session (prompt, live status, latest `message_to_user`, pending
@@ -11,12 +12,10 @@ import { readSessionChannel, toSessionView } from '../../../../utils/agentic/ses
 // The prompt bar follows the push stream (`./stream.get.ts`); this is the
 // fallback when the stream breaks and the final read after the session ended.
 
-const SESSION_ID_RE = /^[\w-]{1,64}$/
-
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const sessionId = getRouterParam(event, 'sessionId') ?? ''
-  if (!SESSION_ID_RE.test(sessionId)) {
+  if (!ID_RE.test(sessionId)) {
     throw createError({ statusCode: 400, message: 'Invalid sessionId' })
   }
   const snapshot = await readSessionChannel(sessionId)

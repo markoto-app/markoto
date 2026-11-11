@@ -1,11 +1,12 @@
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runDataExportExpirySweep } from '../utils/privacy/dataExportExpirySweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Hourly sweeper that expires `ready` data-export jobs past their
 // `expires_at` and deletes the corresponding S3 blobs.
 
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000 // 1h
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.dataExportExpiry
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('data-export-expiry-sweep')) return

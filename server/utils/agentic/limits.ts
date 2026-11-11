@@ -9,6 +9,8 @@
 // cost-amplifying tools (image gen, web search) are capped per session
 // even when the budget would allow more.
 
+import { MINUTE_MS } from '~~/shared/config/units'
+
 /**
  * Total interactions any single agentic-loop run is allowed to
  * accumulate across all turns + sub-calls. A normal session uses
@@ -49,3 +51,11 @@ export const SESSION_TOOL_CALL_CAPS: Record<string, number> = {
   // past edit, audit a restore, find the ai.tool rows behind a claim).
   search_activity_log: 8
 }
+
+/**
+ * Hard deadline for a full agentic loop (editor prompt or comment trigger).
+ * Web search, model thinking and multi-edit sequences take minutes; 5 min
+ * kills truly stuck sessions. The stale-session sweeper
+ * (`SWEEPS.aiSessions.staleAfterMs`, 7 min) must stay longer than this.
+ */
+export const AI_SESSION_HARD_DEADLINE_MS = 5 * MINUTE_MS

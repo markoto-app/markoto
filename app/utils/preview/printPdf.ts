@@ -18,11 +18,12 @@ import {
   postToFrame,
   withOwnUploadToken
 } from './previewFrame'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 /** Pagination must finish within this; the print dialog itself has no limit. */
 const PAGINATION_TIMEOUT_MS = 30_000
 /** A hidden print iframe whose `afterprint` never arrives is removed after this. */
-const PRINT_IFRAME_MAX_LIFETIME_MS = 10 * 60_000
+const PRINT_IFRAME_MAX_LIFETIME_MS = 10 * MINUTE_MS
 
 /**
  * Print the document through the browser's dialog ("Save as PDF").

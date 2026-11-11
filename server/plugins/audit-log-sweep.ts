@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runAuditLogSweep, resolveAuditLogRetentionDays } from '../utils/privacy/legalRetentionSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Enforces the 2-year audit-log retention stated in the privacy policy (§5)
 // and the DPA (`NUXT_AUDIT_LOG_RETENTION_DAYS`, default 730, 0 = keep forever).
@@ -11,8 +12,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // startup delay, daily cadence.
 
 const NAME = 'audit-log-sweep'
-const STARTUP_DELAY_MS = 45_000
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
+const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.auditLog
 
 let running = false
 

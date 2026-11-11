@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from '../platform/valkey'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Pending knowledge uploads: the record `upload-request` issues so that
 // `confirm` only ever acts on an upload it handed to THIS caller, for
@@ -15,7 +16,7 @@ import { useValkey } from '../platform/valkey'
 // a second confirm of the same upload finds nothing and touches no S3
 // object. Fails CLOSED: a Valkey error means no claim, i.e. a 404.
 
-const KNOWLEDGE_PENDING_TTL_MS = 6 * 60 * 1000
+const KNOWLEDGE_PENDING_TTL_MS = 6 * MINUTE_MS
 
 export interface PendingKnowledgeRef {
   workspaceId: string

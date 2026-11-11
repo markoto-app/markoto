@@ -91,6 +91,7 @@ import { budgetExhaustedMessage } from '../billing/billingMode'
 import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from '../litellm/freeTierTeam'
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../agentic/editProgress'
+import { MIB } from '~~/shared/config/units'
 
 export interface ToolResult {
   content: string
@@ -1182,7 +1183,7 @@ const ALLOWED_IMAGE_TYPES = new Set([
 // context footprint sane. Modern multimodal models inline up to ~20MB per
 // part but a 20MB image on every turn quickly blows up prompt-caching
 // economics.
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024
+const MAX_IMAGE_BYTES = 5 * MIB
 
 // Extracts `{ docId, fileId }` from either a relative path
 // (`/api/files/abc/def.png`) or an absolute URL pointing at our own
@@ -1207,11 +1208,11 @@ async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint
       return { error: `Unsupported image type "${mimeType}". Allowed: ${[...ALLOWED_IMAGE_TYPES].join(', ')}.` }
     }
     if (typeof resp.ContentLength === 'number' && resp.ContentLength > MAX_IMAGE_BYTES) {
-      return { error: `Image is ${Math.round(resp.ContentLength / 1024)}KB, which exceeds the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit for inlining.` }
+      return { error: `Image is ${Math.round(resp.ContentLength / 1024)}KB, which exceeds the ${MAX_IMAGE_BYTES / MIB}MB limit for inlining.` }
     }
     const bytes = await resp.Body!.transformToByteArray()
     if (bytes.byteLength > MAX_IMAGE_BYTES) {
-      return { error: `Image exceeded the ${MAX_IMAGE_BYTES / (1024 * 1024)}MB limit after fetch.` }
+      return { error: `Image exceeded the ${MAX_IMAGE_BYTES / MIB}MB limit after fetch.` }
     }
     return { bytes, mimeType }
   } catch (e) {

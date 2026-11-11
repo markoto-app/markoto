@@ -1,4 +1,5 @@
 import { checkRateLimit, isRateLimitExhausted, recordRateLimitEvent } from '../platform/rateLimit'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // Brute-force limits for `POST /api/docs/:id/password` (action=verify).
 // Three layers, all Valkey-backed and atomic (see rateLimit.ts):
@@ -17,7 +18,7 @@ import { checkRateLimit, isRateLimitExhausted, recordRateLimitEvent } from '../p
 export const DOC_PASSWORD_LIMITS = {
   perClient: { max: 5, windowMs: 60_000 },
   perDoc: { max: 30, windowMs: 60_000 },
-  failures: { max: 30, windowMs: 60 * 60_000 }
+  failures: { max: 30, windowMs: HOUR_MS }
 } as const
 
 export type PasswordAttemptOutcome = 'allowed' | 'rate-limited' | 'locked'

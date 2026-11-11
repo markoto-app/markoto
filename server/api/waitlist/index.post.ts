@@ -12,6 +12,7 @@ import {
   normaliseWaitlistLocale
 } from '../../utils/privacy/waitlist'
 import { WAITLIST_CONSENT_TEXT_ID, WAITLIST_CONSENT_VERSION } from '~~/shared/legal/versions'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 
 // POST /api/waitlist: join the paid-plans waitlist (double opt-in). Body:
 // { email, locale?, consent: true }.
@@ -31,9 +32,9 @@ import { WAITLIST_CONSENT_TEXT_ID, WAITLIST_CONSENT_VERSION } from '~~/shared/le
 // party. No IP is stored; it only keys the counter.
 
 const IP_LIMIT = 5
-const IP_WINDOW_MS = 60 * 60 * 1000
+const IP_WINDOW_MS = HOUR_MS
 const EMAIL_LIMIT = 3
-const EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000
+const EMAIL_WINDOW_MS = DAY_MS
 
 export default defineEventHandler(async (event) => {
   if (!isWaitlistOpen()) {

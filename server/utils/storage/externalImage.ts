@@ -6,6 +6,7 @@
 
 import { parseToolUrl } from '../agentic/urlGuard'
 import { readBodyCapped, safeFetch, type SafeFetchOptions } from '../platform/safeFetch'
+import { MIB } from '~~/shared/config/units'
 
 export interface ExternalImageLimits {
   allowedTypes: ReadonlySet<string>
@@ -30,7 +31,7 @@ export async function fetchExternalImage(
   } catch (e) {
     return { error: e instanceof Error ? e.message : 'URL refused' }
   }
-  const mb = limits.maxBytes / (1024 * 1024)
+  const mb = limits.maxBytes / MIB
   // 10s hard cap — an AI session that's already racing the 5-minute
   // deadline shouldn't spend a whole minute on one image fetch.
   const signal = AbortSignal.timeout(limits.timeoutMs ?? 10_000)

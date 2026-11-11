@@ -24,8 +24,9 @@ import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { readStreamWithCap } from '../platform/streamCap'
 import type { PinnedRequestInit } from '../platform/safeFetch'
 import { parseBooleanFlag } from '~~/shared/config/billingMode'
+import { MIB } from '~~/shared/config/units'
 
-export const SSO_FETCH_MAX_BYTES = 1024 * 1024
+export const SSO_FETCH_MAX_BYTES = MIB
 const SSO_FETCH_TIMEOUT_MS = 10_000
 
 export type SsoResolver = (host: string) => Promise<string[]>

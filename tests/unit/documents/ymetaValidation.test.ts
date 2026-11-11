@@ -2,10 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   isValidMetaValue,
   isBoundedJsonValue,
-  clampMetaString,
-  META_TITLE_MAX_LENGTH,
-  META_DESCRIPTION_MAX_LENGTH
+  clampMetaString
 } from '../../../shared/utils/documents/ymetaValidation'
+import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../../../shared/config/docCreate'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 
 // The ymeta contract shared by PUT /meta and the sync server's WebSocket
@@ -13,10 +12,10 @@ import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 
 describe('isValidMetaValue', () => {
   it('bounds title / description / language / templateId length', () => {
-    expect(isValidMetaValue('title', 'a'.repeat(META_TITLE_MAX_LENGTH))).toBe(true)
-    expect(isValidMetaValue('title', 'a'.repeat(META_TITLE_MAX_LENGTH + 1))).toBe(false)
+    expect(isValidMetaValue('title', 'a'.repeat(DOC_TITLE_MAX_LENGTH))).toBe(true)
+    expect(isValidMetaValue('title', 'a'.repeat(DOC_TITLE_MAX_LENGTH + 1))).toBe(false)
     expect(isValidMetaValue('title', 5)).toBe(false)
-    expect(isValidMetaValue('description', 'd'.repeat(META_DESCRIPTION_MAX_LENGTH + 1))).toBe(false)
+    expect(isValidMetaValue('description', 'd'.repeat(DOC_DESCRIPTION_MAX_LENGTH + 1))).toBe(false)
     expect(isValidMetaValue('language', 'Schwiizerdütsch')).toBe(true)
     expect(isValidMetaValue('language', 'l'.repeat(51))).toBe(false)
     expect(isValidMetaValue('templateId', 'blank')).toBe(true)
@@ -67,7 +66,7 @@ describe('isBoundedJsonValue', () => {
 
 describe('clampMetaString', () => {
   it('cuts over-long values to the enforced bound', () => {
-    expect(clampMetaString('title', 't'.repeat(300))).toHaveLength(META_TITLE_MAX_LENGTH)
+    expect(clampMetaString('title', 't'.repeat(300))).toHaveLength(DOC_TITLE_MAX_LENGTH)
     expect(clampMetaString('language', 'de')).toBe('de')
   })
 })

@@ -4,6 +4,7 @@ import { DuplicateError } from '../../../../../../repos/errors'
 import { AUDIT_SSO_DOMAIN_VERIFIED } from '../../../../../../legal/auditActions'
 import { assertSsoPlan, domainView, requireSsoAdmin } from '../../../../../../utils/sso/admin'
 import { domainHasVerificationRecord } from '../../../../../../utils/sso/domains'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // POST /api/workspaces/:wsId/sso/domains/:domainId/verify — look up the
 // TXT record now. 422 sso/domain-unverified when it isn't there
@@ -16,7 +17,7 @@ export default defineEventHandler(async (event) => {
   const domain = Number.isInteger(id) ? await getSsoDomain(wsId, id) : null
   if (!domain) throw createError({ statusCode: 404, message: 'Domain not found.' })
   if (domain.verifiedAt) return domainView(domain)
-  if (!(await checkRateLimit('sso-domain-verify', String(userId), 30, 10 * 60_000))) {
+  if (!(await checkRateLimit('sso-domain-verify', String(userId), 30, 10 * MINUTE_MS))) {
     throw createError({ statusCode: 429, message: 'Too many checks. Try again in a few minutes.', data: { code: 'sso/rate-limited' } })
   }
   if (!(await domainHasVerificationRecord(domain.domain, domain.verificationToken))) {

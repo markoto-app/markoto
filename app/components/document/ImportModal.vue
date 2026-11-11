@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { Text as YText } from 'yjs'
 import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
+import { MIB } from '~~/shared/config/units'
 
 const props = defineProps<{
   ytext: YText
@@ -119,7 +120,7 @@ watch(open, (isOpen) => {
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < MIB) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 

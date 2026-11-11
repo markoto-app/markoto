@@ -14,6 +14,7 @@ import {
 import { useS3Client } from '../storage/s3'
 import { buildExportZip } from './dataExport'
 import { safeSendTransactionalEmail } from '../email/sendEmail'
+import { DATA_EXPORT_RETENTION_DAYS } from '~~/shared/config/retention'
 
 // Worker that drives queued data-export jobs to completion. Picks up
 // the oldest queued row, builds the ZIP via `buildExportZip`,
@@ -32,7 +33,6 @@ import { safeSendTransactionalEmail } from '../email/sendEmail'
 // expiry sweeper (data-export-expiry-sweep) flips ready → expired
 // + deletes the S3 blob.
 
-const RETENTION_DAYS = 7
 const S3_KEY_PREFIX = 'exports'
 
 export interface RunDataExportWorkerResult {
@@ -94,7 +94,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
       jobId: job.jobId,
       s3Key,
       sizeBytes: bytes.byteLength,
-      retentionDays: RETENTION_DAYS
+      retentionDays: DATA_EXPORT_RETENTION_DAYS
     })
 
     result.succeeded = true
@@ -124,7 +124,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
         // null and let the email template fall back to its default locale.
         locale: null,
         subject: 'Your markoto data export is ready',
-        body: 'Your data export is ready to download. Sign in to /settings/profile and click "Download" — the link expires in 7 days.',
+        body: `Your data export is ready to download. Sign in to /settings/profile and click "Download" — the link expires in ${DATA_EXPORT_RETENTION_DAYS} days.`,
         metadata: { userId: job.userId, jobId: job.jobId, sizeBytes: bytes.byteLength }
       })
     }

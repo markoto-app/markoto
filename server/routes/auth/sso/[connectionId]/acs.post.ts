@@ -4,6 +4,7 @@ import { getSsoConnectionById } from '../../../../repos/sso'
 import { ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
 import { assertionFromSamlProfile, samlFor } from '../../../../utils/sso/saml'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
+import { ID_RE } from '~~/shared/config/identifiers'
 
 // POST /auth/sso/:connectionId/acs — SAML assertion consumer service
 // (HTTP-POST binding) for a workspace's identity provider.
@@ -15,7 +16,7 @@ const MAX_RESPONSE_BYTES = 512 * 1024
 export default defineEventHandler(async (event) => {
   const connectionId = getRouterParam(event, 'connectionId') ?? ''
   const flow = takeSsoFlowCookie(event)
-  const connection = /^[\w-]{1,64}$/.test(connectionId) ? await getSsoConnectionById(connectionId) : null
+  const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
   if (!connection || connection.protocol !== 'saml') return sendRedirect(event, ssoErrorPath('sso/unknown'))
   if (!flow || flow.connectionId !== connection.id || !flow.requestId) {
     console.warn('[auth/sso] SAML response without a valid flow cookie (expired, unsolicited or another browser)')

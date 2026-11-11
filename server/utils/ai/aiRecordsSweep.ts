@@ -1,6 +1,7 @@
 import { lt } from 'drizzle-orm'
 import { aiSessionMessages, aiSessions } from '../../db/schema'
 import { useDatabase } from '../platform/database'
+import { DAY_MS } from '~~/shared/config/units'
 
 // GDPR retention enforcement for AI records.
 //
@@ -19,7 +20,6 @@ import { useDatabase } from '../platform/database'
 // pure storage cost + a dangling reference to a purged conversation.
 
 export const AI_RECORD_RETENTION_DAYS = 90
-const DAY_MS = 24 * 60 * 60 * 1000
 
 export interface AiRecordsSweepResult {
   messagesDeleted: number

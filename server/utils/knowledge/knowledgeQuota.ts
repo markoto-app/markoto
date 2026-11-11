@@ -11,6 +11,7 @@ import { limitRecovery } from '~~/server/utils/billing/billingMode'
 import { resolveUserPlan, resolveWorkspacePlan } from '../billing/entitlements'
 import { isBillingEnabled } from '../billing/billingMode'
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
+import { MIB } from '~~/shared/config/units'
 
 /**
  * Per-user caps don't apply inside a pooled (Team / Business) workspace;
@@ -166,7 +167,7 @@ export async function reserveUploadSlot(args: {
   if (args.size > caps.maxFileBytes) {
     throw createError({
       statusCode: 413,
-      message: `File too large. Max ${Math.round(caps.maxFileBytes / (1024 * 1024))} MB.`,
+      message: `File too large. Max ${Math.round(caps.maxFileBytes / MIB)} MB.`,
       data: { code: 'knowledge/file-too-large' }
     })
   }
@@ -191,7 +192,7 @@ export async function reserveUploadSlot(args: {
   if (wsBytes + args.size > caps.maxTotalBytesPerWorkspace) {
     throw createError({
       statusCode: 409,
-      message: `Workspace knowledge storage limit reached (${Math.round(caps.maxTotalBytesPerWorkspace / (1024 * 1024))} MB).`,
+      message: `Workspace knowledge storage limit reached (${Math.round(caps.maxTotalBytesPerWorkspace / MIB)} MB).`,
       data: {
         code: 'knowledge/workspace-bytes-cap',
         recovery: limitRecovery()
@@ -211,7 +212,7 @@ export async function reserveUploadSlot(args: {
   if (userBytes + args.size > caps.maxTotalBytesPerUser) {
     throw createError({
       statusCode: 409,
-      message: `You've reached the per-user knowledge storage limit (${Math.round(caps.maxTotalBytesPerUser / (1024 * 1024))} MB).`,
+      message: `You've reached the per-user knowledge storage limit (${Math.round(caps.maxTotalBytesPerUser / MIB)} MB).`,
       data: {
         code: 'knowledge/user-bytes-cap',
         recovery: limitRecovery()

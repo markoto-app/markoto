@@ -30,12 +30,7 @@ import type { AgenticPart } from './aiTypes'
 import { EDITOR_STATE_INSTRUCTIONS } from './editorStatePrompt'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { UNTRUSTED_DATA_RULE } from './untrustedText'
-import { THEME_FONTS } from '~~/shared/utils/theme/themeFonts'
-
-// System prompt bits derived from source-of-truth data — keeps them in sync
-// when fonts are added/removed without hand-editing the prompt.
-const SERIF_FONTS = THEME_FONTS.filter(f => f.category === 'serif').map(f => f.name).join(', ')
-const SANS_FONTS = THEME_FONTS.filter(f => f.category === 'sans').map(f => f.name).join(', ')
+import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 
 // Tool catalog and per-tool usage hints live in the FunctionDeclarations
 // (see `server/utils/agentic/functionTools.ts`) — Mistral receives them

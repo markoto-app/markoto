@@ -5,6 +5,7 @@ import { getDoc } from '../repos/documents'
 import { appendAuditEvent } from '../repos/audit'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/documents/inactiveDocSweep'
+import { SWEEPS } from '../config/sweeps'
 
 // Periodic cleanup of abandoned documents.
 //
@@ -29,8 +30,7 @@ import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/doc
 // Throttled at ~10 deletes/sec so a backlog-clearing sweep doesn't melt
 // S3 and Postgres while the backup sidecar is running.
 
-const STARTUP_DELAY_MS = 30_000
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
+const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.inactiveDocs
 const THROTTLE_MS = 100
 
 let running = false

@@ -1,5 +1,6 @@
 import type { McpAuthContext } from '../../utils/mcp/mcpAuth'
 import type { BindingCheck, McpSessionBindings } from '../../utils/mcp/mcpSessionBinding'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 
 // Request gate for `/mcp`, run by the handler middleware BEFORE the MCP
 // toolkit sees the request (so before it can create a session):
@@ -33,16 +34,16 @@ export const MCP_RATE_LIMITS = {
   /** Every request per token. */
   perToken: { namespace: 'mcp-token', max: 240, windowMs: 60_000 },
   /** New sessions (`initialize` without a session id) per user. */
-  sessionsPerUser: { namespace: 'mcp-session-user', max: 60, windowMs: 60 * 60_000 },
+  sessionsPerUser: { namespace: 'mcp-session-user', max: 60, windowMs: HOUR_MS },
   /** Tool calls per user, across all their tokens and sessions. */
   toolCallsPerUser: { namespace: 'mcp-tool-user', max: 120, windowMs: 60_000 },
   /**
    * Tool calls per user per day — only enforced when the plan sets
    * `mcpToolCallsPerDay` (the plan's number replaces `max`).
    */
-  toolCallsPerUserDaily: { namespace: 'mcp-tool-user-day', max: 0, windowMs: 24 * 60 * 60_000 },
+  toolCallsPerUserDaily: { namespace: 'mcp-tool-user-day', max: 0, windowMs: DAY_MS },
   /** `generate_image` per user (each call costs a paid image generation). */
-  generateImagePerUser: { namespace: 'mcp-generate-image', max: 20, windowMs: 60 * 60_000 }
+  generateImagePerUser: { namespace: 'mcp-generate-image', max: 20, windowMs: HOUR_MS }
 } as const satisfies Record<string, RateLimitRule>
 
 export interface McpGateDeps {

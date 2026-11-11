@@ -1,6 +1,7 @@
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runDataExportWorker } from '../utils/privacy/dataExportWorker'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Data-export worker plugin. Runs the queued-job claim → ZIP build
 // → S3 upload pipeline. Thin wrapper — the heavy lifting lives in
@@ -16,7 +17,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // concurrent claims pick different rows by design — but the lock
 // keeps the noise floor low and ensures one S3 PUT per tick.
 
-const WORKER_INTERVAL_MS = 60 * 1000 // 1 min
+const { intervalMs: WORKER_INTERVAL_MS } = SWEEPS.dataExportWorker
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('data-export-worker')) return

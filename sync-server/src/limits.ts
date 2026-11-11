@@ -1,3 +1,6 @@
+import { MIB } from '../../shared/config/units'
+import { positiveInt } from './env'
+
 // Size limits for what a client may push into a document.
 //
 // Before these existed, any writer (including an anonymous editor of an
@@ -20,8 +23,6 @@
 // can grow to twice that before writes are refused. A restore re-sends a
 // whole document as one update, so the update cap equals the doc cap.
 
-const MIB = 1024 * 1024
-
 export const DEFAULT_MAX_DOCUMENT_BYTES = 16 * MIB
 const DEFAULT_MAX_UPDATE_BYTES = 16 * MIB
 /** Frame overhead on top of the update: document name + message framing. */
@@ -31,12 +32,6 @@ export interface SyncLimits {
   maxMessageBytes: number
   maxUpdateBytes: number
   maxDocumentBytes: number
-}
-
-function positiveInt(raw: string | undefined, fallback: number): number {
-  if (!raw) return fallback
-  const n = Number.parseInt(raw, 10)
-  return Number.isSafeInteger(n) && n > 0 ? n : fallback
 }
 
 export function parseSyncLimits(env: Record<string, string | undefined>): SyncLimits {

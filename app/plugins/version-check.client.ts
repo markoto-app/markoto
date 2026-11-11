@@ -29,6 +29,7 @@ import {
   createVersionCheckController,
   type VersionCheckPromptHandlers
 } from '../utils/platform/versionCheckController'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 type Pwa = UnwrapNestedRefs<PwaInjection>
 
@@ -111,7 +112,7 @@ export default defineNuxtPlugin((nuxtApp) => {
           timer = setTimeout(() => {
             timer = null
             swReload()
-          }, 5 * 60 * 1000)
+          }, 5 * MINUTE_MS)
         }
       })
       // One prompt is enough.

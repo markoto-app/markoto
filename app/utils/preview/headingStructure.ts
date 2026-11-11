@@ -1,5 +1,5 @@
 import { ABSTRACT_HEADING_CLASS, UNNUMBERED_CLASS } from './titleBlock'
-import { numberingBaseClass, SECTION_LABEL_ATTR } from '~~/shared/utils/theme/themeToCss'
+import { numberingBaseClass, SECTION_HEADING_CLASS, SECTION_LABEL_ATTR } from '~~/shared/utils/theme/themeToCss'
 import type { HeadingNumbering } from '~~/shared/types/theme'
 
 /**
@@ -29,7 +29,6 @@ import type { HeadingNumbering } from '~~/shared/types/theme'
  * headings (`{.unnumbered}`) are sections but don't set the numbering
  * base.
  */
-export const SECTION_HEADING_CLASS = 'markoto-section-heading'
 const FIRST_SECTION_CLASS = 'markoto-first-section'
 
 const HEADING_SELECTOR = 'h1, h2, h3, h4, h5, h6'

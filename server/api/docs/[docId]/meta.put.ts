@@ -8,9 +8,8 @@ import { ownCustomCss } from '~~/shared/utils/theme/themePresets'
 import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
 import { notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
 import { accessModeTightened } from '../../../../shared/utils/documents/docPermissions'
+import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
 
-const DESCRIPTION_MAX_LENGTH = 500
-const TITLE_MAX_LENGTH = 255
 const WORD_COUNT_MAX = 10_000_000
 const SIZE_BYTES_MAX = 100_000_000
 const ACCESS_MODES = ['private', 'open-edit', 'open-view', 'password-protected'] as const
@@ -107,7 +106,7 @@ function buildMetaUpdates(body: Record<string, unknown>): MetaUpdate {
 function parseTitle(raw: unknown): string | null {
   if (raw === undefined) return null
   if (typeof raw !== 'string') throw createError({ statusCode: 400, message: 'Title must be a string' })
-  if (raw.length > TITLE_MAX_LENGTH) throw createError({ statusCode: 400, message: `Title too long (max ${TITLE_MAX_LENGTH})` })
+  if (raw.length > DOC_TITLE_MAX_LENGTH) throw createError({ statusCode: 400, message: `Title too long (max ${DOC_TITLE_MAX_LENGTH})` })
   return raw.trim()
 }
 
@@ -153,8 +152,8 @@ function parseDescription(raw: unknown): string | null {
   if (typeof raw !== 'string') {
     throw createError({ statusCode: 400, message: 'Description must be a string' })
   }
-  if (raw.length > DESCRIPTION_MAX_LENGTH) {
-    throw createError({ statusCode: 400, message: `Description too long (max ${DESCRIPTION_MAX_LENGTH})` })
+  if (raw.length > DOC_DESCRIPTION_MAX_LENGTH) {
+    throw createError({ statusCode: 400, message: `Description too long (max ${DOC_DESCRIPTION_MAX_LENGTH})` })
   }
   return raw.trim()
 }

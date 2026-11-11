@@ -15,6 +15,7 @@ import { ALL_TOOL_DECLARATIONS, KNOWLEDGE_TOOL_DECLARATIONS } from '../../../../
 import { buildDocumentContext } from '../../../../../utils/agentic/documentContextPrompt'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../../../../utils/agentic/workspacePromptBlocks'
 import { AiSessionChannel } from '../../../../../utils/agentic/sessionChannel'
+import { AI_SESSION_HARD_DEADLINE_MS } from '../../../../../utils/agentic/limits'
 import { buildSessionGuard } from '../../../../../utils/agentic/sessionGuard'
 import type { CrossBoundaryGuard } from '../../../../../utils/agentic/crossBoundary'
 import { finalizeSessionProvenance, recordSessionProvenance } from '../../../../../utils/agentic/sessionProvenance'
@@ -54,8 +55,6 @@ import { loopErrorMessage } from '../../../../../utils/agentic/loopErrorMessage'
 // message must be the CALLER's own and must mention the AI — nobody can
 // start a session (on their own budget) seeded with someone else's
 // message. Per-user-per-doc session cap still applies.
-
-const HARD_DEADLINE_MS = 5 * 60_000
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -101,7 +100,7 @@ export default defineEventHandler(async (event) => {
   })
 
   await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
-  const deadlineTimer = setTimeout(() => abortController.abort(), HARD_DEADLINE_MS)
+  const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
   // Initiator-only channel (prompt, status text, answers, confirmations).
   const channel = new AiSessionChannel(sessionId)
   await channel.open({ initiatorUserId: userId, docId, prompt: triggerCtx.seedPrompt.slice(0, 240), commentThreadId: commentId })

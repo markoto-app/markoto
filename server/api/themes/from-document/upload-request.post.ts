@@ -7,6 +7,7 @@ import {
   isDesignImportExt
 } from '~~/shared/config/designImport'
 import { designImportStagingKey, recordPendingDesignUpload, requireVisionChatProvider } from '../../../utils/designImport/guard'
+import { HOUR_MS } from '~~/shared/config/units'
 
 /**
  * "Create a design from a document", step 1: presigned PUT for the file.
@@ -30,7 +31,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  if (!(await checkRateLimit('design-import', String(userId), DESIGN_IMPORT_HOURLY_LIMIT, 60 * 60_000))) {
+  if (!(await checkRateLimit('design-import', String(userId), DESIGN_IMPORT_HOURLY_LIMIT, HOUR_MS))) {
     throw createError({
       statusCode: 429,
       message: 'You have created many designs in the last hour. Try again later.',

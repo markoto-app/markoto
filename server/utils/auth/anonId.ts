@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { nanoid } from 'nanoid'
+import { YEAR_SECONDS } from '~~/shared/config/units'
 
 // First-party cookie that anchors the consent decisions of an
 // anonymous visitor. Set on first call; returned on every
@@ -15,7 +16,6 @@ import { nanoid } from 'nanoid'
 // in prod (auto-set when the request is HTTPS).
 
 const COOKIE_NAME = 'markoto-anon'
-const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60
 
 export async function ensureAnonId(event: H3Event): Promise<string> {
   const existing = getCookie(event, COOKIE_NAME)
@@ -28,7 +28,7 @@ export async function ensureAnonId(event: H3Event): Promise<string> {
     sameSite: 'lax',
     secure: getRequestProtocol(event) === 'https',
     path: '/',
-    maxAge: ONE_YEAR_SECONDS
+    maxAge: YEAR_SECONDS
   })
   return fresh
 }

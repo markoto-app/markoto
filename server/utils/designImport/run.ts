@@ -16,6 +16,7 @@ import { DesignImportFailure, runDesignImportPipeline, type ModelAnswer } from '
 import { proposeDesignTool } from './prompt'
 import { renderDesignSample } from './sampleRender'
 import { writeJob, type DesignImportJobState } from './job'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Production wiring of the design-import pipeline: markitdown extract,
 // the user's chat provider through LiteLLM (their virtual key — BYOK is
@@ -24,7 +25,7 @@ import { writeJob, type DesignImportJobState } from './job'
 // Runs in the background after `POST /api/themes/from-document/start`.
 
 /** Whole run, extract to final preview. Above it the job fails with `internal`. */
-const RUN_DEADLINE_MS = 6 * 60_000
+const RUN_DEADLINE_MS = 6 * MINUTE_MS
 /** Output cap per model call: a full proposal with CSS is ~2–3 k tokens. */
 const MAX_OUTPUT_TOKENS = 6000
 

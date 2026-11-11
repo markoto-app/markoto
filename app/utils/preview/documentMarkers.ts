@@ -1,4 +1,4 @@
-import { SECTION_HEADING_CLASS } from './headingStructure'
+import { SECTION_HEADING_CLASS } from '~~/shared/utils/theme/themeToCss'
 import { capParagraph } from './dropcapWrap'
 
 /**

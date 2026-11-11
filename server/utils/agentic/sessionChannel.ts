@@ -1,6 +1,7 @@
 import { nanoid } from 'nanoid'
 import { useValkey, useValkeySubscriber } from '../platform/valkey'
 import type { ToolStatusPhase } from './toolContext'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Initiator-only channel for an AI session.
 //
@@ -37,7 +38,7 @@ import type { ToolStatusPhase } from './toolContext'
 // blip only hides progress text). A confirmation that cannot be stored
 // or read is DENIED — the gate fails closed.
 
-const CHANNEL_TTL_MS = 15 * 60_000
+const CHANNEL_TTL_MS = 15 * MINUTE_MS
 /** How long the loop waits for an answer before treating it as "deny". */
 const CONFIRMATION_TIMEOUT_MS = 90_000
 const ANSWER_POLL_MS = 300

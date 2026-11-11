@@ -29,16 +29,11 @@ import { buildDocumentContext } from '../../utils/agentic/documentContextPrompt'
 import { buildKnowledgeBlock, buildWorkspaceMembersBlock } from '../../utils/agentic/workspacePromptBlocks'
 import { assemblePromptSystemPrompt, PROMPT_SYSTEM_PROMPT } from '../../utils/agentic/promptAssembly'
 import { AiSessionChannel } from '../../utils/agentic/sessionChannel'
+import { AI_SESSION_HARD_DEADLINE_MS } from '../../utils/agentic/limits'
 import { buildSessionGuard } from '../../utils/agentic/sessionGuard'
 import type { CrossBoundaryGuard } from '../../utils/agentic/crossBoundary'
 import { finalizeSessionProvenance, recordSessionProvenance } from '../../utils/agentic/sessionProvenance'
 import { loopErrorMessage } from '../../utils/agentic/loopErrorMessage'
-
-// Hard deadline for a full agentic loop. Web search, model thinking and
-// multi-edit sequences take minutes; 5 min kills truly stuck sessions. The
-// per-user cap limits runaway cost, and the sweeper (7 min, must remain >=
-// this) is a safety net for sessions that skip the `finally` cleanup.
-const HARD_DEADLINE_MS = 5 * 60_000
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -96,7 +91,7 @@ export default defineEventHandler(async (event) => {
   })
 
   await claimAiSession({ sessionId, docId, userId, initiatorName, initiatorColor, abortController })
-  const deadlineTimer = setTimeout(() => abortController.abort(), HARD_DEADLINE_MS)
+  const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
   // Initiator-only channel: prompt, status text, answers, confirmations.
   // Opened before the response so the client's first poll finds it.
   const channel = new AiSessionChannel(sessionId)

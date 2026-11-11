@@ -28,8 +28,9 @@
 import * as oidc from 'openid-client'
 import type { OidcSettings } from './settings'
 import { profileFromClaims, type OidcProfile } from './profile'
+import { HOUR_MS } from '~~/shared/config/units'
 
-const DISCOVERY_TTL_MS = 60 * 60 * 1000
+const DISCOVERY_TTL_MS = HOUR_MS
 const HTTP_TIMEOUT_SECONDS = 10
 
 /** Per-attempt secrets that must survive the round trip to the IdP. */

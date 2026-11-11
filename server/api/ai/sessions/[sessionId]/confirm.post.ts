@@ -1,4 +1,5 @@
 import { answerSessionConfirmation, readSessionChannel } from '../../../../utils/agentic/sessionChannel'
+import { ID_RE } from '~~/shared/config/identifiers'
 
 // POST /api/ai/sessions/:sessionId/confirm { confirmationId, allow }
 //
@@ -6,8 +7,6 @@ import { answerSessionConfirmation, readSessionChannel } from '../../../../utils
 // (`server/utils/agentic/crossBoundary.ts`). Initiator only (404 for anybody
 // else, like the GET). 409 when no longer pending (answered, timed out, which
 // counts as deny, or a stale id).
-
-const ID_RE = /^[\w-]{1,64}$/
 
 function field(body: unknown, key: string): unknown {
   if (typeof body !== 'object' || body === null || !(key in body)) return undefined

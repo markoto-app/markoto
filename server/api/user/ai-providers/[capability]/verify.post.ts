@@ -3,6 +3,7 @@ import { resolveBillingContext } from '../../../../utils/billing/billing'
 import { getAiProvider, markAiProviderVerified } from '../../../../repos/aiProviders'
 import { reverifyUserProvider } from '../../../../utils/aiProviders/store'
 import { isAiCapability } from '~~/shared/ai/providers'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // POST /api/user/ai-providers/:capability/verify — re-run the
 // verification probe against the STORED config (the settings page's
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   if (!isAiCapability(capability)) {
     throw createError({ statusCode: 400, message: 'Unknown capability' })
   }
-  if (!(await checkRateLimit('ai-provider-save', String(userId), 20, 10 * 60_000))) {
+  if (!(await checkRateLimit('ai-provider-save', String(userId), 20, 10 * MINUTE_MS))) {
     throw createError({ statusCode: 429, message: 'Too many attempts. Try again in a few minutes.', data: { code: 'ai-provider/rate-limited' } })
   }
   const row = await getAiProvider(userId, capability)

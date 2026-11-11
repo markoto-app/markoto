@@ -5,6 +5,7 @@ import { getTiers } from '../billing/tierConfig'
 import { effectivePlan, isBillingEnabled, limitRecovery, limitUpgradeHint } from '../billing/billingMode'
 import { getPooledWorkspace, workspacePoolCaps } from '../billing/workspaceBilling'
 import type { ImageQuotaScope } from '../../repos/uploads'
+import { MIB } from '~~/shared/config/units'
 
 // Per-user storage quota for document images (`imageBytesPerUser` in
 // shared/config/tiers.ts, overridable via TIER_<PLAN>_IMAGE_BYTES_PER_USER).
@@ -66,7 +67,7 @@ export async function resolveImageQuota(userId: number, docId: string | null, ta
 }
 
 function formatMegabytes(bytes: number): string {
-  return `${Math.round(bytes / (1024 * 1024))} MB`
+  return `${Math.round(bytes / MIB)} MB`
 }
 
 /** English fallback sentence (tool results, clients without the i18n key). */

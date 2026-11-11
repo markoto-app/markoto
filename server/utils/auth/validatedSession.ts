@@ -1,12 +1,8 @@
 import type { H3Event } from 'h3'
 import { findUserById } from '../../repos/users'
 import type { OnboardingState } from '../privacy/onboardingGate'
-import {
-  REAUTH_REQUIRED_CODE,
-  REAUTH_REQUIRED_MESSAGE_KEY,
-  isRecentLogin,
-  sessionEpochMatches
-} from './sessionPolicy'
+import { REAUTH_REQUIRED_CODE, REAUTH_REQUIRED_MESSAGE_KEY } from '~~/shared/config/reauth'
+import { isRecentLogin, sessionEpochMatches } from './sessionPolicy'
 
 /**
  * Bump this constant whenever the session shape changes (new required fields,

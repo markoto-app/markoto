@@ -4,6 +4,7 @@ import { saveBodySchema, saveUserProvider } from '../../../utils/aiProviders/sto
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_AI_PROVIDER_SAVED } from '../../../legal/auditActions'
 import { baseUrlHost, codeKey, isAiCapability } from '~~/shared/ai/providers'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // PUT /api/user/ai-providers/:capability — save (create or replace) the
 // caller's provider for one capability. Order: URL policy (SSRF) →
@@ -23,7 +24,7 @@ export default defineEventHandler(async (event) => {
   if (!isAiCapability(capability)) {
     throw createError({ statusCode: 400, message: 'Unknown capability' })
   }
-  if (!(await checkRateLimit('ai-provider-save', String(userId), 20, 10 * 60_000))) {
+  if (!(await checkRateLimit('ai-provider-save', String(userId), 20, 10 * MINUTE_MS))) {
     throw createError({ statusCode: 429, message: 'Too many attempts. Try again in a few minutes.', data: { code: 'ai-provider/rate-limited' } })
   }
   const parsed = saveBodySchema.safeParse(await readBody(event))

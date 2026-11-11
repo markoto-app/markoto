@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { DAY_MS } from '~~/shared/config/units'
+
 // Operator dashboard: per-feature AI spend over a date window. Reads
 // LiteLLM's /spend/tags via /api/admin/ai-spend (admin-gated server-
 // side; the page also defensively redirects non-admins so the
@@ -52,7 +54,7 @@ function isoDate(d: Date): string {
   return d.toISOString().slice(0, 10)
 }
 const today = new Date()
-const thirtyAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+const thirtyAgo = new Date(today.getTime() - 30 * DAY_MS)
 const fromDate = ref(isoDate(thirtyAgo))
 const toDate = ref(isoDate(today))
 

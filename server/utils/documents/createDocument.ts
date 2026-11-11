@@ -15,7 +15,7 @@ import { getTemplate, templateCover, type TemplateMeta } from '~~/shared/templat
 import type { DocTheme } from '~~/shared/types/theme'
 import { adaptCustomCssToDoc } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
-import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
+import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH, INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { seedDocContent } from './seedDocContent'
 
 // Document creation, shared by `POST /api/docs` and the `handleCreateDocument`
@@ -25,9 +25,6 @@ import { seedDocContent } from './seedDocContent'
 // A null ownerId creates an anonymous `open-edit` doc with no workspace and
 // no saved-theme access. Agentic-loop callers always pass the initiator's
 // real userId, so only the HTTP endpoint can take the anonymous branch.
-
-export const TITLE_MAX_LENGTH = 255
-export const DESCRIPTION_MAX_LENGTH = 500
 
 export interface CreateDocumentParams {
   /** Real human user id, or null for anonymous creation. Tool handlers
@@ -182,7 +179,7 @@ async function resolveWorkspace(raw: string | null | undefined, ownerId: number 
 function parseTitle(raw: string | undefined): string | null {
   if (raw === undefined) return null
   const trimmed = raw.trim()
-  if (trimmed.length > TITLE_MAX_LENGTH) {
+  if (trimmed.length > DOC_TITLE_MAX_LENGTH) {
     throw createError({ statusCode: 400, message: 'Title too long' })
   }
   return trimmed.length > 0 ? trimmed : null
@@ -190,8 +187,8 @@ function parseTitle(raw: string | undefined): string | null {
 
 function parseDescription(raw: string | undefined): string | null {
   if (raw === undefined) return null
-  if (raw.length > DESCRIPTION_MAX_LENGTH) {
-    throw createError({ statusCode: 400, message: `Description too long (max ${DESCRIPTION_MAX_LENGTH})` })
+  if (raw.length > DOC_DESCRIPTION_MAX_LENGTH) {
+    throw createError({ statusCode: 400, message: `Description too long (max ${DOC_DESCRIPTION_MAX_LENGTH})` })
   }
   return raw.trim()
 }

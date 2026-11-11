@@ -19,6 +19,7 @@ import { providerRequestFields, withProviderErrors } from '../../utils/aiProvide
 import type { ResolvedAiProvider } from '../../utils/aiProviders/resolve'
 import { budgetExhaustedMessage, budgetExhaustedMessageKey, limitRecovery } from '../../utils/billing/billingMode'
 import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
+import { TRANSCRIBE_AUDIO_MAX_BYTES } from '~~/shared/config/uploads'
 
 const ALLOWED_MIME = new Set([
   'audio/webm',
@@ -28,10 +29,6 @@ const ALLOWED_MIME = new Set([
   'audio/wav',
   'audio/x-wav'
 ])
-
-// ~5 MiB of raw audio cap so a malicious client can't OOM the endpoint (a
-// 60-second opus/webm clip is typically <= 400 KiB).
-const MAX_AUDIO_BYTES = 5 * 1024 * 1024
 
 function base64Padding(b64: string): 0 | 1 | 2 {
   if (b64.endsWith('==')) return 2
@@ -66,7 +63,7 @@ export default defineEventHandler(async (event) => {
   // from the base64 string to reject oversize payloads before upstream.
   const padding = base64Padding(audioB64)
   const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
-  if (approxBytes > MAX_AUDIO_BYTES) {
+  if (approxBytes > TRANSCRIBE_AUDIO_MAX_BYTES) {
     throw createError({ statusCode: 413, message: 'Audio too long (max ~5 MiB)' })
   }
   if (approxBytes < 100) {

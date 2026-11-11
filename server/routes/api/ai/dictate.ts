@@ -18,6 +18,7 @@ import { litellmCompletion } from '../../../utils/litellm/createCompletion'
 import { getDoc } from '../../../repos/documents'
 import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
 // audio stream to Mistral Voxtral Realtime via the official
@@ -55,7 +56,7 @@ import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 // separate audio cap. Other guards: one session per user, idle timeout,
 // session hard cap.
 
-const SESSION_HARD_CAP_MS = 10 * 60 * 1000
+const SESSION_HARD_CAP_MS = 10 * MINUTE_MS
 const IDLE_TIMEOUT_MS = 30_000
 // Deadline for the client's first `auth` message. Long enough to cover
 // a slow first paint but short enough that an unauthenticated socket

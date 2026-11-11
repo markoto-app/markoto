@@ -5,7 +5,7 @@ import { duplicateDocument, ImageQuotaExceededError } from '../../../../../utils
 import { imageQuotaError, resolveImageQuota } from '../../../../../utils/storage/imageQuota'
 import { flushSyncDocument } from '../../../../../utils/documents/syncNotify'
 import { withIdempotency } from '../../../../../utils/platform/idempotency'
-import { TITLE_MAX_LENGTH } from '../../../../../utils/documents/createDocument'
+import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
 
 // POST /api/workspaces/:wsId/templates/:templateId/documents — {title?}
 // — a new document in the workspace from a template — a copy of
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
   if (!template) throw createError({ statusCode: 404, message: 'Template not found' })
   const body = ((await readBody(event).catch(() => null)) ?? {}) as { title?: unknown }
   const rawTitle = typeof body.title === 'string' ? body.title.trim() : ''
-  if (rawTitle.length > TITLE_MAX_LENGTH) throw createError({ statusCode: 400, message: `Title too long (max ${TITLE_MAX_LENGTH})` })
+  if (rawTitle.length > DOC_TITLE_MAX_LENGTH) throw createError({ statusCode: 400, message: `Title too long (max ${DOC_TITLE_MAX_LENGTH})` })
   const title = rawTitle || template.name
 
   return withIdempotency(event, `template-doc:${template.id}`, userId, async () => {

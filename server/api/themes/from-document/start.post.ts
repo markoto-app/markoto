@@ -9,6 +9,7 @@ import { bytesMatchExtension } from '../../../utils/storage/fileTypeGuard'
 import { claimPendingDesignUpload, requireVisionChatProvider } from '../../../utils/designImport/guard'
 import { writeJob } from '../../../utils/designImport/job'
 import { DESIGN_IMPORT_LOCK, runDesignImportJob } from '../../../utils/designImport/run'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 /**
  * "Create a design from a document", step 2: read the uploaded file and
@@ -27,7 +28,7 @@ import { DESIGN_IMPORT_LOCK, runDesignImportJob } from '../../../utils/designImp
  */
 
 /** Longest a run may hold the per-user lock (the run deadline is 6 min). */
-const LOCK_TTL_MS = 7 * 60_000
+const LOCK_TTL_MS = 7 * MINUTE_MS
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

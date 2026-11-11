@@ -4,7 +4,8 @@ import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { isAudienceKind } from '~~/shared/audiences'
 import { resolveTemplateId } from '~~/shared/templates'
 import { LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
-import { META_DESCRIPTION_MAX_LENGTH, META_TITLE_MAX_LENGTH, isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '~~/shared/utils/documents/ymetaValidation'
+import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
+import { isBoundedJsonValue, META_THEME_MAX_DEPTH, META_THEME_MAX_NODES } from '~~/shared/utils/documents/ymetaValidation'
 import { adaptCustomCssToDoc, sanitizeCustomCss } from '~~/shared/utils/theme/customCss'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { splitMarkotoFrontmatter, type ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
@@ -52,11 +53,11 @@ export function importMarkdownFile(
   const properties: ImportedDocProperties = {}
   const ignored: string[] = []
 
-  const title = readString(data.title, META_TITLE_MAX_LENGTH, false)
+  const title = readString(data.title, DOC_TITLE_MAX_LENGTH, false)
   if (title !== undefined) properties.title = title
   else if ('title' in data) ignored.push('title')
 
-  const description = readString(data.description, META_DESCRIPTION_MAX_LENGTH, true)
+  const description = readString(data.description, DOC_DESCRIPTION_MAX_LENGTH, true)
   if (description !== undefined) properties.description = description
   else if ('description' in data) ignored.push('description')
 

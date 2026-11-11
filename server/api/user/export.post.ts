@@ -3,6 +3,7 @@ import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_ACCOUNT_EXPORT_REQUESTED } from '../../legal/auditActions'
 import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
+import { DAY_MS } from '~~/shared/config/units'
 
 // GDPR Article 20 — request a data export. Enqueues a job; the
 // worker (`data-export-worker.ts`) runs the build + S3 PUT
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
 
   const ip = getClientIp(event)
 
-  if (!(await checkRateLimit('account-export-request', String(userId), 1, 24 * 60 * 60 * 1000))) {
+  if (!(await checkRateLimit('account-export-request', String(userId), 1, DAY_MS))) {
     throw createError({
       statusCode: 429,
       message: 'You have already requested an export today. Please try again tomorrow.',

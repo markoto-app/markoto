@@ -1,4 +1,5 @@
 import { readSessionChannel, toSessionView, valkeyChannelStore, type ChannelStore } from './sessionChannel'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Server-Sent Events stream of one AI session's initiator-only channel
 // (`GET /api/ai/sessions/:sessionId/stream`): one long-lived response per
@@ -41,7 +42,7 @@ export interface SessionStreamOptions {
 const STREAM_REFRESH_MS = 5_000
 const STREAM_FALLBACK_REFRESH_MS = 1_000
 const STREAM_TERMINAL_GRACE_MS = 3_000
-const STREAM_MAX_LIFETIME_MS = 10 * 60_000
+const STREAM_MAX_LIFETIME_MS = 10 * MINUTE_MS
 /** Browser reconnect delay after a dropped stream (SSE `retry:` field). */
 const STREAM_RETRY_MS = 2_000
 

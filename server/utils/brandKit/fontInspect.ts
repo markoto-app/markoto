@@ -1,5 +1,6 @@
 import { brotliDecompressSync, inflateSync } from 'node:zlib'
 import type { BrandFontFormat, FontRefusal } from '~~/shared/config/brandKit'
+import { MIB } from '~~/shared/config/units'
 
 // Inspects an uploaded font (brand kit) WITHOUT a font library:
 // only the table directory and two small tables (`name`, `OS/2`) are
@@ -32,7 +33,7 @@ const TAG_WOFF = 0x774F4646 // 'wOFF'
 const TAG_WOF2 = 0x774F4632 // 'wOF2'
 
 /** Upper bound for decompressed font data (a CJK font is ~20 MB). */
-const MAX_DECOMPRESSED = 64 * 1024 * 1024
+const MAX_DECOMPRESSED = 64 * MIB
 const MAX_TABLES = 200
 /**
  * Upper bound for the declared size of a table this module reads. Every
@@ -41,7 +42,7 @@ const MAX_TABLES = 200
  * in every version. A larger declaration only serves to make the inflater
  * allocate, so it is refused.
  */
-const MAX_READ_TABLE = 1024 * 1024
+const MAX_READ_TABLE = MIB
 /**
  * WOFF2: the whole Brotli stream has to be decompressed to reach `name`
  * (encoders sort it after `glyf`), so the declared total is bounded by
@@ -52,7 +53,7 @@ const MAX_READ_TABLE = 1024 * 1024
  */
 const MAX_WOFF2_RATIO = 16
 /** Below this, the ratio is not checked (tiny fonts, tiny allocations). */
-const WOFF2_RATIO_FLOOR = 1024 * 1024
+const WOFF2_RATIO_FLOOR = MIB
 
 /** WOFF2 known-table tags, by index (WOFF2 spec §5.1). */
 const WOFF2_KNOWN_TAGS = [

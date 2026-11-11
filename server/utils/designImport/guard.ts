@@ -4,6 +4,7 @@ import type { ResolvedAiProvider } from '../aiProviders/resolve'
 import { useValkey } from '../platform/valkey'
 import { resolvePayingPlan } from '../billing/billing'
 import type { DesignImportExt } from '~~/shared/config/designImport'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Shared gates of the design-import endpoints.
 
@@ -38,7 +39,7 @@ export async function requireVisionChatProvider(userId: number): Promise<Resolve
 // ever reads an object it presigned for them (same idea as
 // `knowledgePendingUpload.ts`). Claimed atomically (GETDEL); fails closed.
 
-const DESIGN_IMPORT_PENDING_TTL_MS = 6 * 60 * 1000
+const DESIGN_IMPORT_PENDING_TTL_MS = 6 * MINUTE_MS
 
 export interface PendingDesignUpload {
   stagingKey: string

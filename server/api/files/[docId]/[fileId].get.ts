@@ -3,11 +3,12 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getDocWithActorRole } from '../../../repos/documents'
 import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
+import { ID_PATTERN } from '~~/shared/config/identifiers'
 
 // fileId is a nanoid(12) with a content-type-derived extension. Not a security
 // boundary (S3 keys are opaque); it just stops malformed clients from presigning
 // nonsense keys.
-const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}\.(png|jpg|jpeg|gif|webp)$/
+const FILE_ID_RE = new RegExp(`^${ID_PATTERN}\\.(png|jpg|jpeg|gif|webp)$`)
 
 const EXT_CONTENT_TYPE: Record<string, string> = {
   png: 'image/png',

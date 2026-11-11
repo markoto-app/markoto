@@ -2,6 +2,7 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { runWebhookEventSweep } from '../utils/billing/webhookEventSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 import { isBillingEnabled } from '../utils/billing/billingMode'
+import { SWEEPS } from '../config/sweeps'
 
 // Webhook event-table sweep plugin. Thin wrapper — the query logic
 // lives in `server/utils/billing/webhookEventSweep.ts` so tests can drive it
@@ -12,7 +13,7 @@ import { isBillingEnabled } from '../utils/billing/billingMode'
 // makes replay short-circuit O(1) regardless of table size); the
 // sweep is purely a storage-cost guard. 24h cadence is plenty.
 
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000 // 1 day
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.webhookEvents
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('webhook-event-sweep')) return

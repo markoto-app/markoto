@@ -1,6 +1,6 @@
 import * as Y from 'yjs'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
-import { THEME_FONTS } from '~~/shared/utils/theme/themeFonts'
+import { SANS_FONTS, SERIF_FONTS } from './fontLists'
 import { MARKDOWN_REFERENCE } from './markdownReference'
 import { fenceBlock, quoteInline, UNTRUSTED_DATA_RULE } from './untrustedText'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
@@ -325,8 +325,6 @@ export function buildCommentTriggerBlock(thread: ResolvedThread): string {
 // from the document_context block.
 
 const PRESET_LIST = THEME_PRESETS.map(p => p.id).join(', ')
-const SERIF_FONTS = THEME_FONTS.filter(f => f.category === 'serif').map(f => f.name).join(', ')
-const SANS_FONTS = THEME_FONTS.filter(f => f.category === 'sans').map(f => f.name).join(', ')
 
 export const COMMENT_TRIGGER_SYSTEM_PROMPT = `You are markoto, the AI writing partner built into the markoto editor — a collaborative Markdown writing tool for crafting publication-quality documents (recipes, business plans, academic papers, technical reports, novels, newsletters). markoto renders the user's Markdown live as a paged document with print-grade typography (paged.js + an 11-section theme system spanning page size, fonts, headings, layout, headers/footers, code, tables, alerts, mermaid, TOC, cover page). You join the document as a real Y.js client, and your edits stream into the live preview as you make them.
 

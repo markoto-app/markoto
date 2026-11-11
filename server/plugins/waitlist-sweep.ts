@@ -1,13 +1,14 @@
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runWaitlistSweep } from '../utils/privacy/waitlistSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Hourly sweeper that deletes unconfirmed paid-plans waitlist sign-ups
 // past their 7-day confirm window. Logic lives in
 // `server/utils/privacy/waitlistSweep.ts` so tests can drive it directly.
 // Hourly (not daily) so "deleted after 7 days" is accurate to the hour.
 
-const SWEEP_INTERVAL_MS = 60 * 60 * 1000 // 1h
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.waitlist
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('waitlist-sweep')) return

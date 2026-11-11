@@ -2,6 +2,7 @@ import { createError } from 'h3'
 import { checkRateLimit } from '../platform/rateLimit'
 import { limitRecovery } from '../billing/billingMode'
 import { capsFor, resolveUserPlan } from '../billing/entitlements'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 
 // Platform-provided web tools: `web_search` (Staan) and `fetch_url` (Jina
 // Reader). The operator pays the upstream search / reader call — it never
@@ -15,9 +16,6 @@ import { capsFor, resolveUserPlan } from '../billing/entitlements'
 export type WebToolName = 'web_search' | 'fetch_url'
 
 export const WEB_TOOLS_RATE_LIMITED_CODE = 'ai/web-tools-rate-limited'
-
-const HOUR_MS = 60 * 60 * 1000
-const DAY_MS = 24 * HOUR_MS
 
 const DEFAULT_HOURLY_LIMIT = 30
 const DEFAULT_DAILY_LIMIT = 100

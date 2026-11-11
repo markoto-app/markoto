@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import { isValidEmailShape } from '../workspaces/emailShape'
 import { getBillingMode } from '../billing/billingMode'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Paid-plans waitlist helpers: token minting/hashing, email
 // normalisation, the localised double-opt-in email, and the "is the
@@ -8,7 +9,7 @@ import { getBillingMode } from '../billing/billingMode'
 // can pin the behaviour without a DB.
 
 /** How long a confirm link stays valid; unconfirmed rows are reaped after this. */
-export const WAITLIST_CONFIRM_TTL_MS = 7 * 24 * 60 * 60 * 1000
+export const WAITLIST_CONFIRM_TTL_MS = 7 * DAY_MS
 
 /** RFC 5321 caps a forward-path at 254 characters. */
 const WAITLIST_EMAIL_MAX_LENGTH = 254

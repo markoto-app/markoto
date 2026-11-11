@@ -42,8 +42,8 @@
 
 import { SYNC_CLOSE_CODES, SYNC_CLOSE_REASONS, SYNC_AUTH_TIMEOUT_REASON } from '../../shared/contracts/syncClose'
 import { MESSAGE_TYPE, readFrameHeader } from './frame'
-
-const MIB = 1024 * 1024
+import { MIB } from '../../shared/config/units'
+import { positiveInt } from './env'
 
 export const DEFAULT_MAX_PREAUTH_BYTES = 32 * MIB
 export const DEFAULT_MAX_PREAUTH_TOTAL_BYTES = 256 * MIB
@@ -60,12 +60,6 @@ export interface PreAuthLimits {
   maxBytesTotal: number
   /** Time a document may queue messages without having sent its Auth frame. */
   authTimeoutMs: number
-}
-
-function positiveInt(raw: string | undefined, fallback: number): number {
-  if (!raw) return fallback
-  const n = Number.parseInt(raw, 10)
-  return Number.isSafeInteger(n) && n > 0 ? n : fallback
 }
 
 export function parsePreAuthLimits(env: Record<string, string | undefined>): PreAuthLimits {

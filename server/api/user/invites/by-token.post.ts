@@ -1,5 +1,6 @@
 import { acceptInviteForUser, declineInviteForUser } from '../../../utils/workspaces/workspaceInviteActions'
 import { hashInviteSecret, parseInviteToken } from '../../../utils/workspaces/workspaceInvites'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // POST /api/user/invites/by-token — act on an invitation from its
 // emailed link (`/invites/accept?token=…`). Sign-in required (the
@@ -11,7 +12,7 @@ import { hashInviteSecret, parseInviteToken } from '../../../utils/workspaces/wo
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
 
-  if (!(await checkRateLimit('workspace-invite-token', String(session.user.id), 20, 10 * 60 * 1000))) {
+  if (!(await checkRateLimit('workspace-invite-token', String(session.user.id), 20, 10 * MINUTE_MS))) {
     throw createError({
       statusCode: 429,
       message: 'Too many attempts. Try again later.',

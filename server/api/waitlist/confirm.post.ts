@@ -1,5 +1,6 @@
 import { confirmWaitlistSignup } from '../../repos/waitlist'
 import { hashWaitlistToken, parseWaitlistToken } from '../../utils/privacy/waitlist'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // POST /api/waitlist/confirm: second step of the double opt-in. Body:
 // { token } (the raw confirm token from the email link). The
@@ -16,7 +17,7 @@ import { hashWaitlistToken, parseWaitlistToken } from '../../utils/privacy/waitl
 
 export default defineEventHandler(async (event) => {
   const ip = getClientRateLimitKey(event)
-  if (!(await checkRateLimit('waitlist-token', ip, 30, 10 * 60 * 1000))) {
+  if (!(await checkRateLimit('waitlist-token', ip, 30, 10 * MINUTE_MS))) {
     throw createError({
       statusCode: 429,
       message: 'Too many requests. Try again later.',

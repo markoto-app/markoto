@@ -4,6 +4,7 @@ import { getSsoConnectionById } from '../../../../repos/sso'
 import { completeOidcAuthorization, getOidcConfiguration } from '../../../../utils/oidc/client'
 import { oidcSettingsForConnection, ssoErrorPath, takeSsoFlowCookie } from '../../../../utils/sso/http'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
+import { ID_RE } from '~~/shared/config/identifiers'
 
 // GET /auth/sso/:connectionId/callback — OIDC redirect back from a
 // workspace's identity provider. The flow cookie (signed, single
@@ -14,7 +15,7 @@ import { finishSsoSignIn } from '../../../../utils/sso/finish'
 export default defineEventHandler(async (event) => {
   const connectionId = getRouterParam(event, 'connectionId') ?? ''
   const flow = takeSsoFlowCookie(event)
-  const connection = /^[\w-]{1,64}$/.test(connectionId) ? await getSsoConnectionById(connectionId) : null
+  const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
   if (!connection || connection.protocol !== 'oidc') return sendRedirect(event, ssoErrorPath('sso/unknown'))
   if (!flow || flow.connectionId !== connection.id || !flow.state || !flow.nonce || !flow.codeVerifier) {
     console.warn('[auth/sso] OIDC callback without a valid flow cookie (expired, forged or another browser)')

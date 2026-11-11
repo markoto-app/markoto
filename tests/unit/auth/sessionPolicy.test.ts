@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import { RECENT_LOGIN_MAX_AGE_MS } from '../../../shared/config/reauth'
 import {
-  RECENT_LOGIN_MAX_AGE_MS,
   isRecentLogin,
   sessionEpochMatches,
   sessionEpochOf

@@ -1,6 +1,7 @@
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 import { HocuspocusProvider } from '@hocuspocus/provider'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Process-level Y.Doc connection pool. Two consumers:
 //
@@ -91,7 +92,7 @@ export interface PoolEntry {
 }
 
 const DEFAULT_SYNC_TIMEOUT_MS = 10_000
-const DEFAULT_IDLE_MS = 5 * 60_000
+const DEFAULT_IDLE_MS = 5 * MINUTE_MS
 
 function serializeKey(k: PoolKey): string {
   // Principal IDs already carry a colon (`loop:{...}` / `mcp:{...}`) so

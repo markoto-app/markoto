@@ -1,6 +1,7 @@
 import { bumpSessionEpoch } from '../../../repos/users'
 import { appendAuditEvent } from '../../../repos/audit'
 import { AUDIT_ACCOUNT_SESSIONS_REVOKED } from '../../../legal/auditActions'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // POST /api/user/sessions/revoke — "log out everywhere".
 //
@@ -17,7 +18,7 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  if (!(await checkRateLimit('sessions-revoke', String(userId), 10, 60 * 60 * 1000))) {
+  if (!(await checkRateLimit('sessions-revoke', String(userId), 10, HOUR_MS))) {
     throw createError({
       statusCode: 429,
       message: 'Too many requests. Try again later.',

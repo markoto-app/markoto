@@ -1,6 +1,7 @@
 import { and, inArray, isNotNull, lt } from 'drizzle-orm'
 import { abuseReports, auditLog } from '../../db/schema'
 import { useDatabase } from '../platform/database'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Retention enforcement for the two compliance tables that grow forever
 // otherwise. Both periods are stated in the privacy policy (§2b, §5) and
@@ -20,7 +21,6 @@ import { useDatabase } from '../platform/database'
 
 export const AUDIT_LOG_DEFAULT_RETENTION_DAYS = 730
 export const ABUSE_REPORT_DEFAULT_RETENTION_DAYS = 365
-const DAY_MS = 24 * 60 * 60 * 1000
 
 type Env = Record<string, string | undefined>
 

@@ -2,6 +2,7 @@ import type * as Y from 'yjs'
 import type { DocTheme } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
+import { MIB } from '../../config/units'
 
 /**
  * Small pure helpers lifted out of `useDocument.ts` so they're testable
@@ -57,7 +58,7 @@ export function canEditTheme(state: {
  * soft warning. Below 5 MB, no banner.
  */
 export function docSizeWarning(bytes: number): 'warning' | 'critical' | null {
-  const mb = bytes / (1024 * 1024)
+  const mb = bytes / MIB
   if (mb > 8) return 'critical'
   if (mb > 5) return 'warning'
   return null

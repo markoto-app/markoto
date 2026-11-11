@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { and, eq, isNotNull, lt, or } from 'drizzle-orm'
 import { processedWebhookEvents, pendingStripeEvents } from '../../db/schema'
 import { useDatabase } from '../platform/database'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Webhook event-table sweeper. Two responsibilities:
 //
@@ -20,9 +21,9 @@ import { useDatabase } from '../platform/database'
 // Standalone module so tests can import it without triggering
 // `defineNitroPlugin`.
 
-const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
-const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000
+const NINETY_DAYS_MS = 90 * DAY_MS
+const SEVEN_DAYS_MS = 7 * DAY_MS
+const THIRTY_DAYS_MS = 30 * DAY_MS
 
 /**
  * Run one sweep tick. Returns the number of rows deleted across both

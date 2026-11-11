@@ -3,6 +3,7 @@ import type { AnyPgColumn } from 'drizzle-orm/pg-core'
 import { ssoConnections, ssoDomains, ssoGrants, userIdentities, users } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { DuplicateError, NotFoundError } from './errors'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // Per-workspace single sign-on: connections, domains, identities
 // and the grants that let a member in while SSO is enforced.
@@ -273,7 +274,7 @@ export async function setIdentityScimExternalId(id: number, externalId: string |
 }
 
 /** How long a sign-in through the workspace's IdP lets the member in. */
-const SSO_GRANT_TTL_MS = 12 * 60 * 60 * 1000
+const SSO_GRANT_TTL_MS = 12 * HOUR_MS
 
 export async function writeSsoGrant(userId: number, workspaceId: string, sessionEpoch: number, now = new Date(), db: DbOrTx = useDatabase()): Promise<void> {
   const expiresAt = new Date(now.getTime() + SSO_GRANT_TTL_MS)

@@ -2,6 +2,7 @@ import { Pool } from 'pg'
 import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmDbUrl } from '../../utils/litellm/litellmDb'
 import { ALL_FEATURE_TAGS, type FeatureTag } from '../../utils/litellm/featureTags'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Spend breakdown by feature for ONE entity of one axis (workspace, user or
 // doc); drives the operator dashboard's drill-down.
@@ -47,7 +48,7 @@ function isValidIsoDate(s: unknown): s is string {
 
 function defaultRange(): { from: string, to: string } {
   const today = new Date()
-  const past = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+  const past = new Date(today.getTime() - 30 * DAY_MS)
   return {
     from: past.toISOString().slice(0, 10),
     to: today.toISOString().slice(0, 10)

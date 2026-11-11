@@ -1,3 +1,5 @@
+import { DAY_MS, HOUR_MS } from './units'
+
 // Rate limits for anonymous visitors, per client key (IPv4 address or
 // IPv6 /64 — `getClientRateLimitKey`). Applied on top of the ALTCHA bot
 // check (server/utils/anonGate/). Signed-in users are exempt from the
@@ -9,9 +11,6 @@ export interface RateLimitRule {
   max: number
   windowMs: number
 }
-
-const HOUR_MS = 60 * 60 * 1000
-const DAY_MS = 24 * HOUR_MS
 
 /** POST /api/docs without a session: 10 per hour and 30 per day. */
 export const ANON_DOC_CREATE_LIMITS: readonly RateLimitRule[] = Object.freeze([

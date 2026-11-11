@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../utils/ai/aiRecordsSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Enforces the 90-day retention the privacy policy promises for AI prompt +
 // tool-call records (`ai_session_messages`), plus reaps orphaned
@@ -11,8 +12,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // 30s startup delay, daily cadence. Daily is plenty — a bulk DELETE WHERE
 // created_at < cutoff, indexed on created_at (composite) / started_at.
 
-const STARTUP_DELAY_MS = 30_000
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
+const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.aiRecords
 
 let running = false
 

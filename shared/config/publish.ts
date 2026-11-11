@@ -1,3 +1,5 @@
+import { MIB } from './units'
+
 // Publish as a web page. Shared by the publish endpoints, the
 // published-page route and the publish dialog.
 
@@ -14,7 +16,7 @@ export const PUBLISHED_PAGE_ID_RE = /^[A-Za-z0-9_-]{16}$/
 export const PUBLISHED_FILE_RE = /^[A-Za-z0-9_-]{1,64}\.(?:png|jpe?g|gif|webp|woff2|woff|ttf)$/
 
 /** Upper bound for a snapshot (HTML + CSS), stored in Postgres. */
-export const PUBLISH_MAX_SNAPSHOT_CHARS = 8 * 1024 * 1024
+export const PUBLISH_MAX_SNAPSHOT_CHARS = 8 * MIB
 
 /** Publishes (incl. re-publishes) per user per hour. */
 export const PUBLISH_RATE_PER_HOUR = 30

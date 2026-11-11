@@ -1,6 +1,7 @@
 import { cancelAccountDeletionByUser } from '../../utils/privacy/accountDeletion'
 import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // GDPR Article 17 — cancel an in-flight account deletion request.
 // Available throughout the 30-day grace window. Once the sweeper has
@@ -24,7 +25,7 @@ export default defineEventHandler(async (event) => {
   // Same rate-limit key as the request endpoint so the budget is
   // shared — a stolen session can't burst-cancel-then-burst-request.
   const rlKey = `${userId}:${getClientRateLimitKey(event)}`
-  if (!(await checkRateLimit('account-delete-request', rlKey, 5, 60 * 60 * 1000))) {
+  if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
     throw createError({
       statusCode: 429,
       message: 'Too many account-deletion requests. Try again later.',

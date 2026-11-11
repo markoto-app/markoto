@@ -5,6 +5,7 @@ import { getTiers } from './tierConfig'
 import { isBillingEnabled } from './billingMode'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
 import { MAX_WORKSPACE_SEATS, MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Team / Business workspace billing.
 //
@@ -72,7 +73,7 @@ export function workspacePoolCaps(plan: WorkspacePlanName, seats: number, tiers 
 }
 
 /** LiteLLM's budget window of a workspace team (`budget_duration: 30d`). */
-const WORKSPACE_BUDGET_WINDOW_MS = 30 * 24 * 60 * 60 * 1000
+const WORKSPACE_BUDGET_WINDOW_MS = 30 * DAY_MS
 
 type BudgetSeatFields = Pick<WorkspaceSubscriptionRow, 'seats' | 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
 

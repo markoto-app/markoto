@@ -2,6 +2,7 @@ import { requestAccountDeletionByUser } from '../../utils/privacy/accountDeletio
 import { bumpSessionEpoch } from '../../repos/users'
 import { checkRateLimit } from '../../utils/platform/rateLimit'
 import { isRepoError } from '../../repos/errors'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // GDPR Article 17 — request account deletion. Marks the user with a
 // 30-day grace period; the cascading purge is performed asynchronously
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   // session-stealing attacker; IP-only would be unfair to mobile users
   // behind shared NAT. Hash both so the key isn't a PII column.
   const rlKey = `${userId}:${getClientRateLimitKey(event)}`
-  if (!(await checkRateLimit('account-delete-request', rlKey, 5, 60 * 60 * 1000))) {
+  if (!(await checkRateLimit('account-delete-request', rlKey, 5, HOUR_MS))) {
     throw createError({
       statusCode: 429,
       message: 'Too many account-deletion requests. Try again later.',

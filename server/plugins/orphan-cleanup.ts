@@ -9,9 +9,8 @@ import { sweepKnowledgeOrphans } from '../utils/knowledge/knowledgeOrphanSweep'
 import { sweepDesignImportOrphans } from '../utils/designImport/orphanSweep'
 import { s3ObjectStore } from '../utils/storage/objectStore'
 import { stagingKeyFor } from '../utils/storage/uploadKey'
-
-const ONE_HOUR_MS = 60 * 60 * 1000
-const ONE_DAY_MS = 24 * ONE_HOUR_MS
+import { SWEEPS } from '../config/sweeps'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Reconciles S3 against the documents + uploads + workspace_knowledge
 // tables. Four layers:
@@ -98,11 +97,11 @@ export default defineNitroPlugin((nitroApp) => {
   // Run once on startup (after a short delay so other subsystems are ready).
   const startupTimer = setTimeout(() => {
     void reconcile()
-  }, 30_000)
+  }, SWEEPS.orphanCleanup.startupDelayMs)
   // Then run every hour.
   const intervalTimer = setInterval(() => {
     void reconcile()
-  }, ONE_HOUR_MS)
+  }, SWEEPS.orphanCleanup.intervalMs)
 
   nitroApp.hooks.hook('close', () => {
     clearTimeout(startupTimer)
@@ -116,7 +115,7 @@ export default defineNitroPlugin((nitroApp) => {
  * objects, if any. Older than 24h.
  */
 async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<void> {
-  const stale = await listStaleUnconfirmed(ONE_DAY_MS)
+  const stale = await listStaleUnconfirmed(DAY_MS)
   if (stale.length === 0) return
 
   await deleteObjectsBatched(
@@ -128,7 +127,7 @@ async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<vo
   // Drop the rows whether or not the S3 delete succeeded — the row
   // itself is what blocks future re-use, and the defensive S3 sweep
   // below catches any leftover objects.
-  await purgeStaleUnconfirmed(ONE_DAY_MS)
+  await purgeStaleUnconfirmed(DAY_MS)
   console.log(`[orphan-cleanup] Reaped ${stale.length} unconfirmed upload row(s)`)
 }
 
@@ -171,7 +170,7 @@ async function sweepDefensiveStaleS3(
   now: number
 ): Promise<void> {
   const knownKeys = new Set(await listAllS3Keys())
-  const ageCutoff = now - ONE_DAY_MS
+  const ageCutoff = now - DAY_MS
   const stale: string[] = []
 
   for (const id of liveDocIds) {

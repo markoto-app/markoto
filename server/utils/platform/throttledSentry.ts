@@ -1,11 +1,12 @@
 import * as Sentry from '@sentry/nuxt'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Fire-and-forget paths (sync-server notify, internal HTTP) must not flood
 // Sentry when a misconfigured URL fails every request.
 // `captureExceptionThrottled(key, ...)` forwards the first occurrence per TTL
 // window and suppresses the rest. Callers' console.warn logs still fire each time.
 
-const DEFAULT_TTL_MS = 5 * 60 * 1000
+const DEFAULT_TTL_MS = 5 * MINUTE_MS
 
 const lastFired = new Map<string, number>()
 

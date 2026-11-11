@@ -2,11 +2,12 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { runWorkspaceBudgetAlerts } from '../utils/billing/workspaceBudgetAlerts'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 import { isBillingEnabled } from '../utils/billing/billingMode'
+import { SWEEPS } from '../config/sweeps'
 
 // Team / Business budget alerts (80 % / 100 % of the month's pooled AI
 // budget → email to the workspace admins). Billing on only.
 
-const INTERVAL_MS = 15 * 60 * 1000
+const { intervalMs: INTERVAL_MS } = SWEEPS.workspaceBudgetAlerts
 const LOCK = 'workspace-budget-alerts'
 
 async function lockedRun(): Promise<void> {

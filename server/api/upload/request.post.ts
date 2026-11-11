@@ -5,6 +5,7 @@ import { reservePendingUpload } from '../../repos/uploads'
 import { requireDocEditAccess } from '../../utils/documents/documentAccess'
 import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
 import { buildUploadKey, DOC_ID_RE, stagingKeyFor } from '../../utils/storage/uploadKey'
+import { IMAGE_UPLOAD_MAX_BYTES } from '~~/shared/config/uploads'
 
 // Presigned PUT lifetime. S3 checks expiry when the request STARTS, so a
 // slow 10 MB upload that begins in time still completes; a short window
@@ -20,7 +21,6 @@ const CONTENT_TYPE_EXT: Record<string, string> = {
   'image/gif': 'gif',
   'image/webp': 'webp'
 }
-const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -52,7 +52,7 @@ export default defineEventHandler(async (event) => {
       data: { code: 'upload/unsupported-format' }
     })
   }
-  if (size > MAX_SIZE) {
+  if (size > IMAGE_UPLOAD_MAX_BYTES) {
     throw createError({
       statusCode: 413,
       message: 'File too large. Max 10MB.',

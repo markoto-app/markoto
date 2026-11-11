@@ -14,6 +14,7 @@ import {
   type PriceIdentity,
   type TopupPackId
 } from '~~/shared/config/pricing'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // The Stripe price catalogue: which Stripe Price sells which
 // plan / interval / currency.
@@ -29,7 +30,7 @@ import {
 // The catalogue is cached in-process for 10 minutes. Reads process.env per
 // call, like tierConfig.ts.
 
-const CACHE_TTL_MS = 10 * 60 * 1000
+const CACHE_TTL_MS = 10 * MINUTE_MS
 /** Stripe accepts at most 10 `lookup_keys` per list request. */
 const LOOKUP_KEYS_PER_REQUEST = 10
 

@@ -15,14 +15,7 @@
 //      `RECENT_LOGIN_MAX_AGE_MS`; otherwise the API answers 401
 //      `auth/reauth-required` and the client offers "Sign in again".
 
-/** How old a sign-in may be for a sensitive action. */
-export const RECENT_LOGIN_MAX_AGE_MS = 12 * 60 * 60 * 1000
-
-/** Machine code of the 401 a sensitive action answers with a stale sign-in. */
-export const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
-
-/** i18n key the client shows for `REAUTH_REQUIRED_CODE`. */
-export const REAUTH_REQUIRED_MESSAGE_KEY = 'auth.reauthRequired'
+import { RECENT_LOGIN_MAX_AGE_MS } from '~~/shared/config/reauth'
 
 /** The epoch a sealed session carries; absent / malformed → 0. */
 export function sessionEpochOf(sessionEpoch: unknown): number {

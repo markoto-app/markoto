@@ -5,6 +5,7 @@ import { truncateIp } from '../repos/audit'
 import { CONSENT_VERSION, AUTHORITATIVE_LOCALE, LEGAL_DOCUMENT_LOCALES } from '~~/shared/legal/versions'
 import { ensureAnonId } from '../utils/auth/anonId'
 import { normaliseConsentDecisions } from '../utils/privacy/consentDecisions'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Appends consent decisions to the audit-grade `consent_log`: one INSERT per
 // (subject x purpose) per submission, never UPDATE; `GET /api/consent` reads
@@ -23,7 +24,7 @@ interface RequestBody {
 // Public + append-only: bound the write rate per client (IPv4 / IPv6 /64).
 // A real visitor submits the banner a handful of times at most.
 const CONSENT_RATE_LIMIT = 20
-const CONSENT_RATE_WINDOW_MS = 10 * 60 * 1000
+const CONSENT_RATE_WINDOW_MS = 10 * MINUTE_MS
 
 export default defineEventHandler(async (event) => {
   if (!(await checkRateLimit('consent', getClientRateLimitKey(event), CONSENT_RATE_LIMIT, CONSENT_RATE_WINDOW_MS))) {

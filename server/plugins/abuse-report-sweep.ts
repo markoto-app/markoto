@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runAbuseReportSweep, resolveAbuseReportRetentionDays } from '../utils/privacy/legalRetentionSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Deletes abuse reports 1 year after they were closed (actioned / dismissed),
 // as the privacy policy (§2b) and the abuse policy state
@@ -12,8 +13,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // startup delay, daily cadence.
 
 const NAME = 'abuse-report-sweep'
-const STARTUP_DELAY_MS = 50_000
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
+const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.abuseReports
 
 let running = false
 

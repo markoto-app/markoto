@@ -19,8 +19,9 @@
 // rebuild attribution from awareness without harm. Saves Valkey memory.
 
 import { useValkey } from './valkey'
+import { DAY_SECONDS } from '../../shared/config/units'
 
-const TTL_SECONDS = 24 * 60 * 60
+const TTL_SECONDS = DAY_SECONDS
 
 export interface LastEditor {
   userName: string | null

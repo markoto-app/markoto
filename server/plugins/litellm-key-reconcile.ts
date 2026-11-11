@@ -3,6 +3,7 @@ import { reconcileUserKeys } from '../utils/litellm/keyReconcile'
 import { reconcileWorkspaceTeams } from '../utils/litellm/workspaceTeams'
 import { freeTierTotalBudgetProblems } from '../utils/litellm/freeTierTeam'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Brings every existing LiteLLM virtual key in line with its user's plan:
 // free-tier pool membership (NUXT_FREE_TIER_TOTAL_BUDGET_USD), max_budget
@@ -10,7 +11,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // so a config change reaches existing keys on the next deploy — and every
 // 6 h as a safety net. Idempotent; logic in `utils/litellm/keyReconcile.ts`.
 
-const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000 // 6h
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.litellmKeyReconcile
 const LOCK = 'litellm-key-reconcile'
 
 async function lockedRun(): Promise<void> {

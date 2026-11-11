@@ -10,6 +10,7 @@ import {
   type CustomCssIssueCode,
   type CustomCssResult
 } from '../../types/customCss'
+import { ID_PATTERN } from '../../config/identifiers'
 
 /**
  * Sanitizer for a document's custom CSS (`theme.customCss`).
@@ -138,7 +139,7 @@ const SCRIPT_SCHEME_RE = /(?:java|vb)script:/i
 const DATA_IMAGE_RE = /^data:image\/(?:png|jpeg|jpg|gif|webp);base64,[A-Za-z0-9+/]+={0,2}$/i
 const SVG_DATA_RE = /^data:image\/svg/i
 
-const ID_PART = '[A-Za-z0-9_-]{1,64}'
+const ID_PART = ID_PATTERN
 const FILE_PATH_RE = new RegExp(String.raw`^/api/files/(${ID_PART})/(${ID_PART}\.(?:png|jpe?g|gif|webp))$`, 'i')
 
 /** Strip a vendor prefix (`-webkit-keyframes` → `keyframes`). */

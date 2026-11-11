@@ -13,9 +13,7 @@
 import { createSharedComposable } from '@vueuse/core'
 import { loginPath, type LoginProvider } from '~~/shared/config/instance'
 import { isPlanErrorCode } from '~~/shared/config/planErrors'
-
-/** Server code for "this action needs a fresh sign-in" (server/utils/auth/sessionPolicy.ts). */
-const REAUTH_REQUIRED_CODE = 'auth/reauth-required'
+import { REAUTH_REQUIRED_CODE } from '~~/shared/config/reauth'
 
 interface FetchErrorLike {
   statusCode?: number

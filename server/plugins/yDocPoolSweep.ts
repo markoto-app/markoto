@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import { evictIdle, getPoolStats, closeAll } from '../utils/mcp/yDocPool'
+import { SWEEPS } from '../config/sweeps'
 
 // Idle-eviction sweeper for the YDocPool.
 //
@@ -19,8 +20,7 @@ import { evictIdle, getPoolStats, closeAll } from '../utils/mcp/yDocPool'
 // connections forever, and long enough that a model issuing several
 // `view_document` / `replace_text` calls in succession sees cache hits.
 
-const TICK_INTERVAL_MS = 60 * 1000
-const IDLE_THRESHOLD_MS = 5 * 60 * 1000
+const { intervalMs: TICK_INTERVAL_MS, idleAfterMs: IDLE_THRESHOLD_MS } = SWEEPS.yDocPool
 
 export default defineNitroPlugin((nitroApp) => {
   let running = false

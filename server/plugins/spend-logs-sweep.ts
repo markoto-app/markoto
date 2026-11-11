@@ -1,6 +1,7 @@
 import { migrationsComplete } from '../utils/platform/migrations'
 import { runSpendLogsSweep } from '../utils/litellm/spendLogsSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // LiteLLM_SpendLogs sweep plugin: advisory-locked, daily cadence,
 // fire-and-forget on startup.
@@ -9,7 +10,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // a day's growth is bounded and hourly runs would only add log noise.
 // Revisit if 24h of growth ever approaches the 90-day total.
 
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000 // 1 day
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.spendLogs
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('spend-logs-sweep')) return

@@ -9,6 +9,8 @@ import { assertKnowledgeEmbeddingsReady } from './knowledgeEmbeddingsStatus'
 import { tryAcquireSessionLock, releaseSessionLock } from '../platform/rateLimit'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { markitdownAuthHeaders } from '../platform/markitdownAuth'
+import { MINUTE_MS } from '~~/shared/config/units'
+import { MARKITDOWN_KNOWLEDGE_TIMEOUT_MS } from '../../config/markitdown'
 
 /**
  * End-to-end ingestion for one knowledge file:
@@ -29,13 +31,11 @@ import { markitdownAuthHeaders } from '../platform/markitdownAuth'
  * failed rows are shown with a red badge and a Delete action (no retry).
  */
 
-const MARKITDOWN_TIMEOUT_MS = 60_000
-
 // Cap the Valkey lock TTL well above any legitimate pipeline duration.
 // Worst case: 300-chunk document (ceiling), 60s markitdown timeout, ~5
 // chunks/sec embedding throughput = ~2 min. 10 min gives generous headroom
 // + self-healing if a worker crashes without releasing the lock.
-const PROCESS_LOCK_TTL_MS = 10 * 60 * 1000
+const PROCESS_LOCK_TTL_MS = 10 * MINUTE_MS
 
 export async function processKnowledge(knowledgeId: string): Promise<void> {
   // Claim-check lock: the `status !== 'processing'` guard below is a
@@ -228,7 +228,7 @@ async function runConversion(s3Key: string, ext: string): Promise<string> {
       ...markitdownAuthHeaders()
     }),
     body: bytes as BodyInit,
-    signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)
+    signal: AbortSignal.timeout(MARKITDOWN_KNOWLEDGE_TIMEOUT_MS)
   })
   if (!response.ok) {
     const text = await response.text()

@@ -1,11 +1,13 @@
+import { GIB, MIB } from '~~/shared/config/units'
+
 // Shared helpers for "used / limit" meters: the storage & limits section
 // of the topbar usage popover and the storage bar on the profile page.
 
 /** Human-readable byte size (B / KB / MB / GB, one decimal). */
 export function formatBytes(bytes: number | null): string {
   if (bytes === null) return ''
-  if (bytes >= 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
-  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  if (bytes >= GIB) return `${(bytes / GIB).toFixed(1)} GB`
+  if (bytes >= MIB) return `${(bytes / MIB).toFixed(1)} MB`
   if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${bytes} B`
 }

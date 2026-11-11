@@ -1,6 +1,7 @@
 import { customDomainSettings } from './config'
 import { runCustomDomainCheck } from './manage'
 import { listCustomDomainsToRecheck } from '../../repos/customDomains'
+import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 
 // Periodic DNS re-check of custom domains, run by the
 // `custom-domain-recheck` plugin: pending / failed domains added in the
@@ -8,8 +9,8 @@ import { listCustomDomainsToRecheck } from '../../repos/customDomains'
 // and verified domains every 6 hours (a domain whose DNS moved away is
 // dropped after the grace period — `runCustomDomainCheck`).
 
-const PENDING_WINDOW_MS = 7 * 24 * 60 * 60 * 1000
-const VERIFIED_EVERY_MS = 6 * 60 * 60 * 1000
+const PENDING_WINDOW_MS = 7 * DAY_MS
+const VERIFIED_EVERY_MS = 6 * HOUR_MS
 const BATCH = 200
 
 export async function runCustomDomainRecheck(now = Date.now()): Promise<{ checked: number }> {

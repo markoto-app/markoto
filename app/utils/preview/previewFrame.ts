@@ -15,6 +15,7 @@ import type { FrameZoomMode } from './previewZoomFrame'
 import type { CustomCssResult } from '~~/shared/types/customCss'
 // Iframe bootstrap document, a separate .html file loaded as a raw string.
 import IFRAME_BOOTSTRAP from '~/composables/preview/pagedPreviewIframe.html?raw'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 /**
  * Host side of the sandboxed paged.js iframe used by the live preview
@@ -332,7 +333,7 @@ export function buildRenderMessage(opts: {
 interface FileTokenResponse { token: string, expiresAt: number }
 
 /** Refresh this long before the token expires. */
-const FILE_TOKEN_REFRESH_MARGIN_MS = 2 * 60 * 1000
+const FILE_TOKEN_REFRESH_MARGIN_MS = 2 * MINUTE_MS
 
 /**
  * Cached `file-access` token for one document. `current()` is synchronous

@@ -1,4 +1,5 @@
 import { publishedFileUrl } from '~~/shared/config/publish'
+import { ID_PATTERN } from '~~/shared/config/identifiers'
 
 // The files a web snapshot refers to. The print page writes this
 // document's uploads as `/api/files/<docId>/<fileId>` and its workspace's
@@ -9,7 +10,7 @@ import { publishedFileUrl } from '~~/shared/config/publish'
 // turns private or is deleted while the page is up. Anything else (other
 // documents' files, external URLs) is left as is.
 
-const ID = '[A-Za-z0-9_-]{1,64}'
+const ID = ID_PATTERN
 const FILE = String.raw`${ID}\.(?:png|jpe?g|gif|webp)`
 const BRAND_FILE = String.raw`[A-Za-z0-9_-]{16}\.(?:woff2|woff|ttf|png|jpg|webp)`
 

@@ -1,6 +1,5 @@
-import { SECTION_HEADING_CLASS } from '../preview/headingStructure'
 import { UNNUMBERED_CLASS } from '../preview/titleBlock'
-import { CAPTION_NUMBER_ATTR } from '~~/shared/utils/theme/themeToCss'
+import { CAPTION_NUMBER_ATTR, SECTION_HEADING_CLASS } from '~~/shared/utils/theme/themeToCss'
 
 /**
  * `blocks.captionNumbering: 'chapter'` — figures and tables numbered within

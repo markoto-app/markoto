@@ -4,6 +4,7 @@ import { buildOidcAuthorizationRequest, getOidcConfiguration } from '../../../..
 import { isSafeReturnTo, type SsoFlow } from '../../../../utils/sso/flowCookie'
 import { oidcSettingsForConnection, setSsoFlowCookie, ssoErrorPath } from '../../../../utils/sso/http'
 import { newSamlRequestId, samlFor } from '../../../../utils/sso/saml'
+import { ID_RE } from '~~/shared/config/identifiers'
 
 // GET /auth/sso/:connectionId — start a sign-in through a workspace's
 // identity provider. `?test=1` = an admin testing a draft
@@ -16,7 +17,7 @@ import { newSamlRequestId, samlFor } from '../../../../utils/sso/saml'
 // IdP's SSO URL (HTTP-Redirect binding).
 export default defineEventHandler(async (event) => {
   const connectionId = getRouterParam(event, 'connectionId') ?? ''
-  const connection = /^[\w-]{1,64}$/.test(connectionId) ? await getSsoConnectionById(connectionId) : null
+  const connection = ID_RE.test(connectionId) ? await getSsoConnectionById(connectionId) : null
   if (!connection) throw createError({ statusCode: 404, message: 'Unknown sign-in link.', data: { code: 'sso/unknown' } })
 
   const query = getQuery(event)

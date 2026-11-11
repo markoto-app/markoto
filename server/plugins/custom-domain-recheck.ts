@@ -2,12 +2,13 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { runCustomDomainRecheck } from '../utils/customDomains/recheck'
 import { customDomainSettings, traefikProviderSettings } from '../utils/customDomains/config'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
 
 // Every 15 min: DNS re-check of custom domains. Logic in
 // `server/utils/customDomains/recheck.ts`. Not started on instances
 // without custom domains (`NUXT_PUBLISH_DOMAINS_TARGET` unset).
 
-const SWEEP_INTERVAL_MS = 15 * 60 * 1000
+const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.customDomainRecheck
 
 async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock('custom-domain-recheck')) return

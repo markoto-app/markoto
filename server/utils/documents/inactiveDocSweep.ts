@@ -1,6 +1,7 @@
 import { and, isNull, lt, lte, or } from 'drizzle-orm'
 import { documents } from '../../db/schema'
 import { useDatabase } from '../platform/database'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Candidate query for the inactive-doc sweep (server/plugins/inactive-doc-sweep.ts).
 //
@@ -12,8 +13,6 @@ import { useDatabase } from '../platform/database'
 // none is deleted sooner than the period it was created under).
 //
 // Owned and workspace docs are never candidates.
-
-const DAY_MS = 24 * 60 * 60 * 1000
 
 /** Parse NUXT_INACTIVE_DOC_TTL_DAYS: a positive integer, else 0 (= sweep off). */
 export function parseInactiveDocTtlDays(raw: unknown): number {

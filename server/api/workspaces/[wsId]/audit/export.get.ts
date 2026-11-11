@@ -1,6 +1,7 @@
 import { appendAuditEvent, listWorkspaceAuditEvents } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_AUDIT_EXPORTED } from '../../../../legal/auditActions'
 import { auditCsvHeader, auditCsvLine, auditEventView, parseAuditQuery, requireAuditLogAccess } from '../../../../utils/workspaces/workspaceAudit'
+import { HOUR_MS } from '~~/shared/config/units'
 
 const BATCH = 1000
 const MAX_ROWS = 100_000
@@ -15,7 +16,7 @@ export default defineEventHandler(async (event) => {
   const format = q.format === 'jsonl' ? 'jsonl' : q.format === undefined || q.format === 'csv' ? 'csv' : null
   if (!format) throw createError({ statusCode: 400, message: 'Format is csv or jsonl.', data: { code: 'audit/invalid-query', field: 'format' } })
   const query = parseAuditQuery({ ...q, before: undefined })
-  if (!(await checkRateLimit('audit-export', String(userId), 10, 60 * 60_000))) {
+  if (!(await checkRateLimit('audit-export', String(userId), 10, HOUR_MS))) {
     throw createError({ statusCode: 429, message: 'Too many exports. Try again later.', data: { code: 'audit/rate-limited' } })
   }
 

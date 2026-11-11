@@ -1,3 +1,5 @@
+import { DAY_MS } from '../../config/units'
+
 // Policy for the inactive-doc sweeper. Pure function — no DB, no clock
 // reads, no side effects — so it's fully unit-testable and the plugin
 // query derives its WHERE clause from the same rules.
@@ -38,7 +40,6 @@ export function shouldReapDoc(
   if (doc.ownerId !== null) return false
   if (doc.workspaceId !== null) return false
 
-  const dayMs = 24 * 60 * 60 * 1000
-  const cutoff = now.getTime() - anonTtlDays * dayMs
+  const cutoff = now.getTime() - anonTtlDays * DAY_MS
   return doc.lastActive.getTime() < cutoff
 }

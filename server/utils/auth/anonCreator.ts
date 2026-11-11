@@ -1,6 +1,7 @@
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto'
 import type { H3Event } from 'h3'
 import { getCookie, getRequestProtocol, setCookie } from 'h3'
+import { YEAR_SECONDS } from '~~/shared/config/units'
 
 // Creator key for anonymous documents.
 //
@@ -25,7 +26,6 @@ const ANON_CREATOR_COOKIE = 'markoto-anon-creator'
 // (DELETE /api/docs/:id) and the token endpoint (which reports whether
 // this browser may delete). Never sent to other routes.
 const COOKIE_PATH = '/api/docs'
-const ONE_YEAR_SECONDS = 365 * 24 * 60 * 60
 
 /** 32 random bytes, base64url → 43 characters. */
 const KEY_SHAPE = /^[\w-]{43}$/
@@ -71,7 +71,7 @@ export function ensureAnonCreatorKey(event: H3Event): string {
     sameSite: 'strict',
     secure: getRequestProtocol(event) === 'https',
     path: COOKIE_PATH,
-    maxAge: ONE_YEAR_SECONDS
+    maxAge: YEAR_SECONDS
   })
   return fresh
 }

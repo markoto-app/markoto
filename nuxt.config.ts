@@ -1,6 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
 import { KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
 
 export default defineNuxtConfig({
@@ -91,7 +92,7 @@ export default defineNuxtConfig({
     // config shape and never read by the runtime.
     session: {
       password: '',
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 7 * DAY_SECONDS,
       cookie: {
         // Default `Secure: true` blocks cookie acceptance over plain HTTP
         // on non-localhost origins (e.g. LAN IP `192.168.x.x` for browser

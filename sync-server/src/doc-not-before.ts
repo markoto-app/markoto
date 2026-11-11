@@ -1,4 +1,5 @@
 import { useValkey } from './valkey'
+import { HOUR_SECONDS } from '../../shared/config/units'
 
 // Per-document not-before cutoff for doc tokens. When a document's access
 // becomes stricter, the app sends the cutoff (its own clock, epoch
@@ -16,7 +17,7 @@ import { useValkey } from './valkey'
 // of every document; the token's own expiry still bounds the access.
 
 const KEY = (docId: string) => `sync:not-before:${docId}`
-const NOT_BEFORE_TTL_SECONDS = 3 * 60 * 60
+const NOT_BEFORE_TTL_SECONDS = 3 * HOUR_SECONDS
 
 export async function readDocNotBefore(docId: string): Promise<number | null> {
   try {

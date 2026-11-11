@@ -12,11 +12,12 @@
 
 import { createError, getRequestHeader, getRequestWebStream, type H3Event } from 'h3'
 import { readStreamWithCap } from './streamCap'
+import { MIB } from '~~/shared/config/units'
 
 function tooLarge(maxBytes: number, code: string): Error {
   return createError({
     statusCode: 413,
-    message: `Request body too large. Max ${Math.floor(maxBytes / (1024 * 1024))}MB.`,
+    message: `Request body too large. Max ${Math.floor(maxBytes / MIB)}MB.`,
     data: { code }
   })
 }

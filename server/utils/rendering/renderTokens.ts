@@ -9,9 +9,7 @@
 // request, so a 60 s window is enough for navigation + Hocuspocus sync.
 
 import jwt from 'jsonwebtoken'
-import { RENDER_JWT_FIXED_CLAIMS, type RenderJwtPayload } from '~~/shared/contracts/jwt'
-
-const TOKEN_TTL_SECONDS = 60
+import { RENDER_JWT_FIXED_CLAIMS, RENDER_TOKEN_TTL_SECONDS, type RenderJwtPayload } from '~~/shared/contracts/jwt'
 
 export function mintRenderToken(docId: string, snapshotId: number): string {
   const config = useRuntimeConfig()
@@ -23,7 +21,7 @@ export function mintRenderToken(docId: string, snapshotId: number): string {
     snapshotId,
     ...RENDER_JWT_FIXED_CLAIMS
   } satisfies RenderJwtPayload
-  return jwt.sign(payload, config.internalApiSecret, { expiresIn: TOKEN_TTL_SECONDS })
+  return jwt.sign(payload, config.internalApiSecret, { expiresIn: RENDER_TOKEN_TTL_SECONDS })
 }
 
 /**

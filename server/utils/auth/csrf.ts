@@ -20,9 +20,10 @@
 // MCP (`/mcp`, bearer tokens) and the OAuth callbacks (`/auth/*`, GET)
 // are outside `/api` and unaffected.
 
+import { STATE_CHANGING_METHODS } from '~~/shared/config/httpMethods'
+
 export const CSRF_ORIGIN_CODE = 'csrf/origin-mismatch'
 
-const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 const EXEMPT_PATHS: RegExp[] = [
   /^\/api\/webhooks\//,
   /^\/api\/internal\//

@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { Pool } from 'pg'
 import { litellmDbUrl } from './litellmDb'
+import { DAY_MS } from '~~/shared/config/units'
 
 // LiteLLM `LiteLLM_SpendLogs` retention sweeper. Every billable AI call
 // writes a row, so the table grows linearly with traffic. /spend/tags aggregation reads it on every
@@ -56,7 +57,7 @@ export function _resetSpendLogsSweepPool(): void {
 }
 
 export async function runSpendLogsSweep(): Promise<{ deleted: number } | null> {
-  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000)
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * DAY_MS)
   const cutoffIso = cutoff.toISOString()
 
   let result: { deleted: number }

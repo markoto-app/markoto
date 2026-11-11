@@ -138,6 +138,11 @@ export interface RenderJwtPayload {
  *  the mint site so the literal scope value can never drift. */
 export const RENDER_JWT_FIXED_CLAIMS = { scope: 'render' } as const
 
+/** Lifetime of a render token. The renderer mints with the same value
+ *  (`renderer/src/render.ts` cannot import `shared/`; its copy is pinned by
+ *  tests/unit/platform/renderTokenTtl.test.ts). */
+export const RENDER_TOKEN_TTL_SECONDS = 60
+
 /**
  * Dictate token. Minted by `server/api/ai/dictate/token.post.ts` and
  * sent as the FIRST WS message on `/api/ai/dictate` (NOT the URL).

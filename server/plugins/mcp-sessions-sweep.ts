@@ -4,6 +4,8 @@ import { mcpSessions } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { SWEEPS } from '../config/sweeps'
+import { DAY_MS } from '~~/shared/config/units'
 
 // Periodic prune of stale `mcp_sessions` rows.
 //
@@ -29,10 +31,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // `idx_mcp_sessions_user` index's secondary key on last_active_at.
 // Daily cadence is plenty.
 
-const STARTUP_DELAY_MS = 30_000
-const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000
-const IDLE_THRESHOLD_DAYS = 90
-const DAY_MS = 24 * 60 * 60 * 1000
+const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS, idleAfterDays: IDLE_THRESHOLD_DAYS } = SWEEPS.mcpSessions
 
 let running = false
 

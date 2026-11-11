@@ -1,3 +1,5 @@
+import { HOUR_MS } from './units'
+
 // Custom domains for published web pages. Shared by the domain
 // endpoints, the DNS check and the settings page.
 
@@ -16,7 +18,7 @@ export function customDomainVerifyValue(token: string): string {
 }
 
 /** A verified domain whose DNS stops pointing at us is dropped after this long. */
-export const CUSTOM_DOMAIN_GRACE_MS = 72 * 60 * 60 * 1000
+export const CUSTOM_DOMAIN_GRACE_MS = 72 * HOUR_MS
 
 export const CUSTOM_DOMAIN_ERROR_CODES = {
   disabled: 'custom-domain/disabled',

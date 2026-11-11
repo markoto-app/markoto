@@ -1,4 +1,5 @@
 import type { ObjectStore } from '../storage/objectStore'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // Layer of `orphan-cleanup`: objects under `published/<pageId>/`
 // whose page no longer exists — the document was deleted (the row goes
@@ -6,7 +7,7 @@ import type { ObjectStore } from '../storage/objectStore'
 // failed. One hour of grace: a first publish copies the files before it
 // inserts the row.
 
-const PUBLISHED_ORPHAN_GRACE_MS = 60 * 60 * 1000
+const PUBLISHED_ORPHAN_GRACE_MS = HOUR_MS
 
 const PUBLISHED_KEY_RE = /^published\/([A-Za-z0-9_-]{16})\/(?:files|brand)\/[^/]+$/
 

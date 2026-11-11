@@ -3,6 +3,7 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { resolveImageGcRetentionDays, runImageGc } from '../utils/storage/imageGc'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 import { s3ObjectStore } from '../utils/storage/objectStore'
+import { SWEEPS } from '../config/sweeps'
 
 // Garbage-collects document images that are referenced nowhere — not in
 // the doc, not in any version that can still be restored, not in another
@@ -11,8 +12,7 @@ import { s3ObjectStore } from '../utils/storage/objectStore'
 // `server/utils/storage/imageGc.ts`. Every 6 h, first run 10 min after boot (the
 // work is a background chore, never urgent).
 
-const SWEEP_INTERVAL_MS = 6 * 60 * 60 * 1000
-const FIRST_RUN_DELAY_MS = 10 * 60 * 1000
+const { intervalMs: SWEEP_INTERVAL_MS, startupDelayMs: FIRST_RUN_DELAY_MS } = SWEEPS.imageGc
 
 async function lockedRun(): Promise<void> {
   if (resolveImageGcRetentionDays() <= 0) return

@@ -1,4 +1,5 @@
 import type { AiMessageRow } from '../../repos/aiSessionMessages'
+import { HOUR_MS } from '~~/shared/config/units'
 
 // Conversation memory: compaction + prompt-block construction.
 //
@@ -31,7 +32,7 @@ import type { AiMessageRow } from '../../repos/aiSessionMessages'
 // 60 min separates "same writing session" from "different working
 // session". Shorter would split a natural pause-to-think; longer would let
 // yesterday's context bleed into today's prompt.
-export const CONVERSATION_IDLE_GAP_MS = 60 * 60 * 1000
+export const CONVERSATION_IDLE_GAP_MS = HOUR_MS
 
 // Hard ceiling on historical rows in the prompt block. At ~12 tokens per
 // compacted row, 40 rows ≈ 480 tokens, small enough to keep the prefix

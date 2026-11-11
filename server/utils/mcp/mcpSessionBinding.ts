@@ -1,5 +1,6 @@
 import type Redis from 'ioredis'
 import { useValkey } from '../platform/valkey'
+import { MINUTE_MS } from '~~/shared/config/units'
 
 // Which personal access token created each MCP session.
 //
@@ -41,7 +42,7 @@ import { useValkey } from '../platform/valkey'
 
 export const MAX_SESSIONS_PER_USER = 20
 /** Slightly longer than the toolkit's 30-min idle session lifetime. */
-export const BINDING_IDLE_MS = 35 * 60_000
+export const BINDING_IDLE_MS = 35 * MINUTE_MS
 
 export type BindingCheck = 'ok' | 'unknown' | 'token-mismatch'
 

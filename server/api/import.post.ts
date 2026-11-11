@@ -2,6 +2,10 @@ import type { H3Event } from 'h3'
 import { importMarkdownFile } from '../utils/documents/markdownImport'
 import { capsFor, planLimitError, resolveUserPlan } from '../utils/billing/entitlements'
 import { markitdownAuthHeaders } from '../utils/platform/markitdownAuth'
+import { ID_RE } from '~~/shared/config/identifiers'
+import { MIB } from '~~/shared/config/units'
+import { IMPORT_MARKDOWN_MAX_BYTES, IMPORT_MAX_BYTES, IMPORT_REQUEST_MAX_BYTES } from '~~/shared/config/uploads'
+import { MARKITDOWN_IMPORT_TIMEOUT_MS } from '../config/markitdown'
 
 // Subset of formats markitdown handles well as document imports. It also
 // supports CSV/JSON/XML/audio/images, but those round-trip into markdown
@@ -21,15 +25,6 @@ const ALLOWED_EXTENSIONS = new Set([
 // Markdown) is split off and validated (server/utils/documents/markdownImport.ts).
 const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
 // A Markdown body lands in one Y.Doc (sync-server cap 16 MiB per document).
-const MARKDOWN_MAX_SIZE = 10 * 1024 * 1024
-const DOC_ID_SHAPE = /^[A-Za-z0-9_-]{1,64}$/
-const MAX_SIZE = 50 * 1024 * 1024 // 50 MB, kept in sync with markitdown-server/server.py
-// Whole request: the file plus multipart framing. Traefik's buffering
-// middleware on /api/import (prod + self-host compose) uses the same cap.
-const MAX_BODY = MAX_SIZE + 1024 * 1024
-// markitdown gives up after 60 s (MARKITDOWN_TIMEOUT_SECONDS); a little
-// headroom so its own 504 arrives rather than our abort.
-const MARKITDOWN_TIMEOUT_MS = 75_000
 
 export default defineEventHandler(async (event) => {
   const ip = getClientRateLimitKey(event)
@@ -45,18 +40,18 @@ export default defineEventHandler(async (event) => {
   // (`importMaxBytes`; anonymous = free), never above the platform cap.
   const session = await getValidatedUserSession(event)
   const plan = await resolveUserPlan(session?.user?.id ?? null)
-  const planMaxBytes = Math.min(capsFor(plan).importMaxBytes, MAX_SIZE)
+  const planMaxBytes = Math.min(capsFor(plan).importMaxBytes, IMPORT_MAX_BYTES)
 
   // Size-bounded read. Bun (server/runtime/bunEntry.ts) and Traefik already
   // refuse over 51 MiB in production; this keeps the bound in every runtime.
-  const body = await readBodyWithLimit(event, MAX_BODY, 'import/file-too-large')
+  const body = await readBodyWithLimit(event, IMPORT_REQUEST_MAX_BYTES, 'import/file-too-large')
   const form = await parseMultipart(event, body)
   const file = form?.get('file')
 
   if (!file || typeof file === 'string' || file.size === 0) {
     throw createError({ statusCode: 400, message: 'No file provided', data: { code: 'import/no-file' } })
   }
-  if (file.size > MAX_SIZE) {
+  if (file.size > IMPORT_MAX_BYTES) {
     throw createError({
       statusCode: 413,
       message: 'File too large. Max 50MB.',
@@ -68,7 +63,7 @@ export default defineEventHandler(async (event) => {
       plan,
       'importMaxBytes',
       planMaxBytes,
-      `File too large for your plan (max ${Math.floor(planMaxBytes / (1024 * 1024))} MB).`
+      `File too large for your plan (max ${Math.floor(planMaxBytes / MIB)} MB).`
     )
   }
 
@@ -105,7 +100,7 @@ export default defineEventHandler(async (event) => {
         ...markitdownAuthHeaders()
       }),
       body: file,
-      signal: AbortSignal.timeout(MARKITDOWN_TIMEOUT_MS)
+      signal: AbortSignal.timeout(MARKITDOWN_IMPORT_TIMEOUT_MS)
     })
   } catch (e) {
     const timedOut = e instanceof Error && e.name === 'TimeoutError'
@@ -147,7 +142,7 @@ export default defineEventHandler(async (event) => {
 })
 
 async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntryValue | null | undefined) {
-  if (file.size > MARKDOWN_MAX_SIZE) {
+  if (file.size > IMPORT_MARKDOWN_MAX_BYTES) {
     throw createError({
       statusCode: 413,
       message: 'Markdown file too large. Max 10MB.',
@@ -167,7 +162,7 @@ async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntr
   // Without the target document the theme's images and custom CSS can't be
   // checked, so properties are only read when the editor names it (the import
   // only converts, it never writes to the document).
-  const docId = typeof rawDocId === 'string' && DOC_ID_SHAPE.test(rawDocId) ? rawDocId : null
+  const docId = typeof rawDocId === 'string' && ID_RE.test(rawDocId) ? rawDocId : null
   const result = docId
     ? importMarkdownFile(text, { docId, allowedOrigins: customCssAppOrigins(event) })
     : { markdown: text }
