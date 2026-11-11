@@ -244,6 +244,16 @@ Everything lives in `.env` next to the compose files. After a change: `docker co
 | `COMPOSE_FILE`, `COMPOSE_PROJECT_NAME`, `COMPOSE_PROFILES` | set by `install.sh` | Which compose files and profiles `docker compose` uses. |
 | `REGISTRY` / `IMAGE_TAG` | `ghcr.io/joelbarmettleruzh` / release tag | Image source. |
 
+### Co-branding (managed instances)
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `NUXT_INSTANCE_BRAND_NAME` | | An organisation name shown beside the markoto wordmark and in the browser tab title. |
+| `NUXT_INSTANCE_BRAND_LOGO` | `/app/branding/logo.svg` with the brand overlay | Logo shown beside the wordmark: put it in `./branding/` (SVG, PNG, WebP or JPEG, ≤ 1 MB); `install.sh` then adds `docker-compose.selfhost.brand.yml`, which mounts the directory. |
+| `NUXT_INSTANCE_SUPPORT_URL` / `NUXT_INSTANCE_SUPPORT_EMAIL` | | "Help & support" in the account menu and the footer. |
+
+Meant for instances run for one organisation; see [MANAGED-INSTANCE.md](MANAGED-INSTANCE.md#4-co-branding).
+
 ### Secrets (generated)
 
 `POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`. Rotation: [SECRETS-ROTATION.md](SECRETS-ROTATION.md). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.

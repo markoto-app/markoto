@@ -3,11 +3,12 @@ import { uiFontStylesheetUrls } from '~~/shared/utils/themeFonts'
 import { applyTitleTemplate } from '~~/shared/seo/meta'
 
 const { t, locale, localeProperties } = useI18n()
+const { brand: instanceBrand } = useInstanceConfig()
 
 useHead({
   // `%s · markoto`; pages set only their own title. Without one: the
   // default "markoto — Collaborative Markdown".
-  titleTemplate: title => applyTitleTemplate(title),
+  titleTemplate: title => applyTitleTemplate(title, instanceBrand.value.name),
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
     { name: 'theme-color', content: '#FAF8F4', media: '(prefers-color-scheme: light)' },

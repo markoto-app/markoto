@@ -2589,5 +2589,8 @@
     "check": "立即检查",
     "remove": "移除",
     "lastChecked": "检查于 {date}"
+  },
+  "instanceBrand": {
+    "support": "帮助与支持"
   }
 }

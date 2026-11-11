@@ -2589,5 +2589,8 @@
     "check": "Check now",
     "remove": "Remove",
     "lastChecked": "checked {date}"
+  },
+  "instanceBrand": {
+    "support": "Help & support"
   }
 }

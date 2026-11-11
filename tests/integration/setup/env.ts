@@ -165,3 +165,6 @@ export const TEST_CHALLTESTSRV_URL = 'http://127.0.0.1:8055'
 export const TEST_TRAEFIK_TLS_PORT = 8443
 /** traefik-test's address on the test network (what a custom domain's A record names). */
 export const TEST_TRAEFIK_IP = process.env.TEST_TRAEFIK_IP ?? '10.213.47.40'
+
+/** Co-branding name of the primary test server (WP16, managed private instance). */
+export const TEST_INSTANCE_BRAND_NAME = 'Kanton Musterstadt'

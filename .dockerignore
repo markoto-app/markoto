@@ -37,3 +37,4 @@ docker-compose*.yml
 Dockerfile
 **/Dockerfile
 .dockerignore
+branding

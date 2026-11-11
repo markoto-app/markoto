@@ -26,6 +26,7 @@ const { t } = useI18n()
 // configured — never the hosted operator on a self-hosted instance
 // (shared/config/instance.ts).
 const { legalSurfaces, operatorName, marketingSite } = useInstanceConfig()
+const { supportHref } = useInstanceSupport()
 const { pricingVisible, billingEnabled } = useBillingMode()
 const nav = useMarketingNav()
 
@@ -68,7 +69,9 @@ const columns = computed<FooterColumn[]>(() => {
     ...(pricingVisible.value ? [{ to: '/pricing', label: t('marketing.nav.pricing'), testid: 'footer-pricing-link' }] : []),
     ...(marketingSite.value ? [{ to: selfHostPath(marketingSite.value), label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' }] : []),
     { to: '/docs', label: t('common.docs'), testid: 'footer-docs-link' },
-    { to: SOURCE_REPO_URL, label: 'GitHub', testid: 'footer-github-link', external: true }
+    { to: SOURCE_REPO_URL, label: 'GitHub', testid: 'footer-github-link', external: true },
+    // Managed instance (WP16): the customer's own service desk.
+    ...(supportHref.value ? [{ to: supportHref.value, label: t('instanceBrand.support'), testid: 'footer-support-link', external: true }] : [])
   ]
   const legal: FooterLink[] = legalSurfaces.value
     ? [
@@ -118,9 +121,13 @@ const columns = computed<FooterColumn[]>(() => {
             <NuxtLink
               to="/"
               aria-label="markoto home"
-              class="inline-flex w-fit"
+              class="inline-flex w-fit items-center gap-2.5"
             >
               <CommonWordmark :size="18" />
+              <CommonInstanceBrand
+                :size="18"
+                :show-name="false"
+              />
             </NuxtLink>
             <p class="max-w-[22ch] text-[13px] leading-normal text-muted">
               {{ t('legal.footer.tagline') }}

@@ -44,6 +44,7 @@
 // Pure — takes an env-shaped record so every test tier can drive it.
 
 import { parseBooleanFlag, resolveBillingMode } from './billingMode'
+import { EMPTY_INSTANCE_BRAND, resolveInstanceBrand, type InstanceBrand } from './instanceBrand'
 import { resolveTiersFromEnv } from './tiers'
 import { resolveLegalEntity } from '../legal/entity'
 import { DEFAULT_ANON_DOC_TTL_DAYS, resolveAnonDocTtlDays, resolveAnonGateEnabled } from './anonGate'
@@ -118,6 +119,8 @@ export interface InstanceConfig {
    * separate, per-plan question (`customDomains` feature).
    */
   customDomains: boolean
+  /** Co-branding of a managed private instance (WP16, `shared/config/instanceBrand.ts`). */
+  brand: InstanceBrand
 }
 
 /** Where self-hosted instances point their `/docs/**` canonicals. */
@@ -135,7 +138,8 @@ export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   anonGate: false,
   anonDocTtlDays: DEFAULT_ANON_DOC_TTL_DAYS,
   workspaceSso: false,
-  customDomains: false
+  customDomains: false,
+  brand: EMPTY_INSTANCE_BRAND
 })
 
 type Env = Record<string, string | undefined>
@@ -242,7 +246,8 @@ export function resolveInstanceConfig(env: Env): InstanceConfig {
     anonGate: resolveAnonGateEnabled(env),
     anonDocTtlDays: resolveAnonDocTtlDays(env),
     workspaceSso: resolveWorkspaceSsoAvailable(env),
-    customDomains: (env.NUXT_PUBLISH_DOMAINS_TARGET ?? '').trim() !== ''
+    customDomains: (env.NUXT_PUBLISH_DOMAINS_TARGET ?? '').trim() !== '',
+    brand: resolveInstanceBrand(env)
   }
 }
 

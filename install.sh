@@ -301,6 +301,11 @@ configure() {
     env_set MARKOTO_BUILD "1"
     COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.build.yml"
   fi
+  # Managed private instance (WP16): a ./branding directory holds the
+  # customer's logo (docs/MANAGED-INSTANCE.md).
+  if [ -d "$ROOT/branding" ]; then
+    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.brand.yml"
+  fi
   # Podman: renderer seccomp overlay + the engine socket (docs/CONTAINER-ENGINES.md).
   if engine_is_podman; then
     COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.podman.yml"

@@ -11,8 +11,13 @@ export const DEFAULT_TITLE = 'markoto — Collaborative Markdown'
 /** Separator the title template puts between page title and site name. */
 export const TITLE_SUFFIX = ` · ${SITE_NAME}`
 
-/** `%s · markoto`; pages without a title get DEFAULT_TITLE. */
-export function applyTitleTemplate(title: string | null | undefined): string {
+/**
+ * `%s · markoto`; pages without a title get DEFAULT_TITLE. On a managed
+ * private instance (WP16) the customer's name follows: `%s · markoto ·
+ * Kanton Musterstadt`, without a title `markoto · Kanton Musterstadt`.
+ */
+export function applyTitleTemplate(title: string | null | undefined, brandName = ''): string {
+  if (brandName) return title ? `${title}${TITLE_SUFFIX} · ${brandName}` : `${SITE_NAME} · ${brandName}`
   return title ? `${title}${TITLE_SUFFIX}` : DEFAULT_TITLE
 }
 

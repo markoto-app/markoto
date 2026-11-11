@@ -2589,5 +2589,8 @@
     "check": "Vérifier maintenant",
     "remove": "Supprimer",
     "lastChecked": "vérifié le {date}"
+  },
+  "instanceBrand": {
+    "support": "Aide et assistance"
   }
 }

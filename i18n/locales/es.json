@@ -2589,5 +2589,8 @@
     "check": "Comprobar ahora",
     "remove": "Quitar",
     "lastChecked": "comprobado {date}"
+  },
+  "instanceBrand": {
+    "support": "Ayuda y soporte"
   }
 }

@@ -52,6 +52,10 @@ const links = computed<HeaderLink[]>(() => [
         aria-label="markoto home"
       >
         <CommonWordmark :size="20" />
+        <CommonInstanceBrand
+          class="ml-2.5"
+          :size="20"
+        />
       </NuxtLink>
       <nav
         class="flex items-center gap-0.5 sm:gap-1 shrink-0"

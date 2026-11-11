@@ -2,7 +2,7 @@ import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
-import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_TRAEFIK_PROVIDER_TOKEN } from './env'
+import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL, TEST_STRIPE_PRICE_IDS, TEST_BILLING_OFF_PORT, TEST_ALTCHA_HMAC_KEY, TEST_ENFORCED_ANON_RATE_LIMITS, TEST_ENFORCED_MCP_RATE_LIMITS, TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER, TEST_OIDC_ADMIN_EMAIL, TEST_OIDC_CLIENT_ID, TEST_OIDC_CLIENT_SECRET, TEST_OIDC_ISSUER, TEST_PORT, TEST_PUBLISH_DOMAINS_TARGET, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_INSTANCE_BRAND_NAME } from './env'
 import { buildTestEnv } from './testEnv'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
 
@@ -209,7 +209,11 @@ export async function startNuxt(): Promise<void> {
     NUXT_PUBLISH_DNS_SERVERS: '127.0.0.1:8053',
     NUXT_PUBLISH_TRAEFIK_TOKEN: TEST_TRAEFIK_PROVIDER_TOKEN,
     NUXT_PUBLISH_TRAEFIK_UPSTREAM: `http://host.docker.internal:${TEST_PORT}`,
-    NUXT_PUBLISH_TRAEFIK_CERT_RESOLVER: 'pebble'
+    NUXT_PUBLISH_TRAEFIK_CERT_RESOLVER: 'pebble',
+    // Managed private instance co-branding (WP16) — endpoints/instanceBrand.test.ts.
+    NUXT_INSTANCE_BRAND_NAME: TEST_INSTANCE_BRAND_NAME,
+    NUXT_INSTANCE_BRAND_LOGO: join(process.cwd(), 'public/markoto-logos/app-icon-light.png'),
+    NUXT_INSTANCE_SUPPORT_EMAIL: 'servicedesk@musterstadt.example'
   }
 
   // Boot guard: validate the resolved env we're about to hand the
