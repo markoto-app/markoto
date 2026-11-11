@@ -11,7 +11,7 @@ Thanks for your interest in markoto. This guide covers how to set up a developme
 - [Pull requests](#pull-requests)
 - [Database migrations](#database-migrations)
 - [Documentation](#documentation)
-- [License and sign-off](#license-and-sign-off)
+- [License and contributor agreement](#license-and-contributor-agreement)
 - [Security issues](#security-issues)
 
 By participating you agree to the [Code of Conduct](./CODE_OF_CONDUCT.md).
@@ -30,18 +30,20 @@ Prerequisites:
 | Tool | Version | Why |
 |---|---|---|
 | [Bun](https://bun.sh) | **1.4 or newer** | Runtime and package manager. The lockfile format needs Bun 1.4+ (`bun --version`). |
-| Docker or rootless Podman, with Docker Compose | v2.20+ for the dev stack (self-hosting needs 5.0+) | Postgres, Valkey, S3 (SeaweedFS), the sync server and sidecars. Podman needs a few `.env` lines and an overlay file: [docs/CONTAINER-ENGINES.md](docs/CONTAINER-ENGINES.md). |
-| `make` | any | Shortcuts; every target is a thin wrapper over a documented command. |
+| Docker or rootless Podman, with Docker Compose | **5.0 or newer** | Postgres, Valkey, S3 (SeaweedFS), LiteLLM, the sync server and sidecars. The compose files redefine services they `include:`, which Compose 2.x rejects (`docker compose version`). Podman needs a few `.env` lines and an overlay file: [docs/CONTAINER-ENGINES.md](docs/CONTAINER-ENGINES.md). |
+| `make` and `openssl` | any | `make` for the shortcuts (every target wraps a documented command); `openssl` generates the local secrets. |
+
+No external accounts or API keys are needed to run the app.
 
 ```sh
-bun install
-bun install --cwd sync-server   # its own package; some unit tests import it
-cp .env.example .env     # the dev defaults already match docker-compose.dev.yml
-make dev                 # infra containers: Postgres (pgvector), Valkey, SeaweedFS, sync, markitdown, renderer
-make dev-app             # the Nuxt app on the host with HMR (bun run dev --host 0.0.0.0)
+make setup      # first run only, see below
+make dev        # infra containers: Postgres (pgvector), Valkey, SeaweedFS, LiteLLM, sync, markitdown, renderer
+make dev-app    # the Nuxt app on the host with HMR (bun run dev --host 0.0.0.0)
 ```
 
-Open the URL Nuxt prints (usually `http://localhost:3000`). Anonymous editing works without any configuration; to test sign-in or AI, fill in the OAuth and provider keys in `.env` (see the comments in [`.env.example`](./.env.example) and [`docs/AI-MODELS.md`](./docs/AI-MODELS.md)). The host app must listen on `0.0.0.0` so the sync container can reach it through `host.docker.internal`.
+`make setup` runs `scripts/setup-env.sh`, then `bun install` in the repository root, `sync-server/` and `renderer/` (each is its own package; some unit tests and the type check import them). The script copies `.env.example` to `.env` and fills the secrets the stack refuses to start without (session, JWT, internal API, ALTCHA and LiteLLM keys) with fresh random values. It is idempotent: an existing `.env` is kept and secrets that already have a value are never changed. The Postgres, Valkey and S3 values in `.env.example` are throwaway development credentials that match `docker-compose.dev.yml`; the dev ports bind to `127.0.0.1` only.
+
+Open the URL Nuxt prints (usually `http://localhost:3000`). Anonymous editing works without any further configuration; to test sign-in or AI, add the OAuth and provider keys to `.env` (see the comments in [`.env.example`](./.env.example) and [`docs/AI-MODELS.md`](./docs/AI-MODELS.md)). The host app must listen on `0.0.0.0` so the sync container can reach it through `host.docker.internal`.
 
 Useful commands:
 
@@ -67,12 +69,12 @@ The architecture overview is [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md). T
 | unit | `bun run test:unit` | no | Pure functions, no Nuxt, no DB |
 | dom | `bun run test:dom` | no | Components and utilities under happy-dom |
 | nuxt | `bun run test:nuxt` | no | Composables and components in the Nuxt environment |
-| **all fast tiers** | `bun run test` | no | unit + dom + nuxt |
+| **all fast tiers** | `bun run test` | no | unit + dom + nuxt (needs only `make setup`) |
 | repos | `bun run test:repos` | yes (test stack) | DB-backed repositories against real Postgres |
 | integration | `bun run test:integration` | yes (test stack) | REST API + sync server, full stack (several minutes) |
 | everything | `bun run test:all` | yes | All vitest projects |
 | coverage | `bun run test:coverage:fast` | yes | unit, dom, nuxt and repos with coverage |
-| flows | `bun run flows:test` | yes (spins up its own) | Playwright user flows (see below) |
+| flows | `bun run flows:test` | yes (spins up its own) | Playwright user flows (see below); first run: `bunx playwright install chromium` |
 
 **The docker test stack.** `repos` and `integration` need the disposable infrastructure in `docker-compose.test.yml` (Postgres on 5433, Valkey on 6380, SeaweedFS, LiteLLM, ...), isolated from the dev stack's ports and data:
 
@@ -87,7 +89,7 @@ On Podman the test-stack scripts add `docker-compose.test.podman.yml` themselves
 
 The test database is `ypad_test`; the suites refuse to run against any other database name. Only one person (or agent) should use the test stack on a machine at a time.
 
-Run the tiers that your change touches before you push; CI runs them all on every ready-for-review PR. A one-liner for the fast checks: `bun run lint && bun run typecheck && bun run test`. CI also runs `ansible-lint`, `yamllint`, `actionlint`, `shellcheck` on `install.sh`, a secret scan and `docker compose config` for every compose combination; `make lint` runs the same linters locally when the tools are installed.
+Run the tiers that your change touches before you push; CI runs them all on every ready-for-review PR. A one-liner for the fast checks, no Docker needed: `bun run lint && bun run typecheck && bun run test`. (`make test` is a different mix: lint, typecheck, unit, dom and repos, so it needs the test stack and skips the nuxt tier.) CI also runs `ansible-lint`, `yamllint`, `actionlint`, `shellcheck` on `install.sh`, a secret scan and `docker compose config` for every compose combination; `make lint` runs the same linters locally when the tools are installed.
 
 Notes for writing tests:
 
@@ -121,7 +123,7 @@ Project conventions are in `AGENTS.md`. The ones that matter most in review:
 - **Branch from `main`**, keep the PR focused, and open it as a draft while it is in progress. Heavy CI jobs skip draft and docs-only PRs.
 - **The PR title must be a conventional commit**: `feat: ...`, `fix: ...`, `docs: ...`, `chore: ...`, `refactor: ...`, `test: ...`, `build: ...` or `ci: ...` (optional scope, e.g. `fix(sync): ...`). CI rejects anything else. If you retitle a PR, close and reopen it so the title check re-runs.
 - **The PR title and body are the release notes, verbatim.** One merged PR becomes one GitHub Release if it is labelled for release ([`docs/RELEASE-PROCESS.md`](./docs/RELEASE-PROCESS.md)). Write the description for the person reading the release page: what changed, why, how to verify, and anything an operator must do on upgrade.
-- **Do not add a `release:*` label.** Releases are opt-in and a maintainer applies `release:patch`, `release:minor` or `release:major` to the PR that should ship (usually the last of a batch). Unlabeled merges simply accumulate on `main`.
+- **Maintainers apply the release labels, not contributors.** Releases are opt-in: a maintainer applies `release:patch`, `release:minor` or `release:major` to the PR that should ship (usually the last of a batch). Unlabeled merges simply accumulate on `main`.
 - Update the docs your change touches: user docs in `content/docs/`, [`docs/SELF-HOSTING.md`](./docs/SELF-HOSTING.md) for new configuration, and the relevant `AGENTS.md` for internals.
 - Link the issue the PR resolves.
 
@@ -140,22 +142,13 @@ Migrations are forward-only and applied at app start.
 - **Self-hosting** lives in `docs/SELF-HOSTING.md`; every variable and command there must match `install.sh`, `docker-compose.selfhost.yml` and `.env.example`.
 - Files in `docs/` that start with "Operator docs for the hosted markoto.app deployment" describe how we run the hosted service; they are published for transparency, not required reading.
 
-## License and sign-off
+## License and contributor agreement
 
-markoto is licensed under [FSL-1.1-ALv2](./LICENSE) (source-available; each release converts to Apache-2.0 two years after it ships). By contributing, you agree that your contribution is provided under the same license.
+markoto is licensed under [FSL-1.1-ALv2](./LICENSE) (source-available; each release converts to Apache-2.0 two years after it ships).
 
-<!-- TODO(owner): DCO or CLA.
-     The project has not decided yet how it takes inbound rights. Options:
-     - DCO: contributors add "Signed-off-by:" to commits (`git commit -s`);
-       enforce with a DCO check app/workflow. Lightweight, but gives the
-       company no right to relicense contributions.
-     - CLA: contributors sign once (e.g. via CLA Assistant). Needed if
-       LatentSpace Labs GmbH wants to relicense or dual-license (for example
-       the planned FSL -> Apache-2.0 conversion is covered by FSL itself, but
-       any commercial relicensing is not).
-     Replace this comment and the paragraph below once decided. -->
+Contributions need a signed Contributor License Agreement (CLA). You keep the copyright in your contribution. The CLA is a licence grant, not an assignment: it grants LatentSpace Labs GmbH, the project owner, the rights needed to distribute your contribution under the project licence (FSL-1.1-ALv2, converting to Apache-2.0) and under other licence terms.
 
-**TODO(owner): DCO or CLA.** The contributor sign-off mechanism (Developer Certificate of Origin or a Contributor License Agreement) has not been decided. Until it is, contributions are accepted under the license above, and maintainers may ask you to sign off or sign an agreement before merging.
+You sign once, through CLA Assistant: the bot comments on your first pull request with a link to the agreement text and a button to sign. Later pull requests need nothing more, and the check turns green once you have signed.
 
 ## Security issues
 

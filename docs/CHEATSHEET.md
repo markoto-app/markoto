@@ -13,6 +13,7 @@ Below is a flat reference grouped by what you are trying to do.
 
 | Goal | Command |
 |---|---|
+| First run: create `.env` with generated secrets, install dependencies | `make setup` |
 | Start dev infra (Postgres, Valkey, SeaweedFS, sync, markitdown) | `make dev` |
 | Run the Nuxt dev server (assumes infra up) | `make dev-app` |
 | Stop dev infra | `make dev-down` |
@@ -27,7 +28,7 @@ See `docs/LOCAL.md` for the pre-push full-stack verification flow (`make local-u
 
 | Goal | Command | Speed |
 |---|---|---|
-| Quick check before commit (lint + typecheck + unit + dom + repos) | `make test` | ~1m |
+| Quick check before commit (lint + typecheck + unit + dom + repos; the repos tier needs Docker, the nuxt tier is not included) | `make test` | ~1m |
 | Unit tests only | `make test-unit` | ~10s |
 | DOM tests (happy-dom) | `make test-dom` | ~10s |
 | Nuxt-env composable/component tests | `make test-nuxt` | ~30s |
@@ -38,7 +39,7 @@ See `docs/LOCAL.md` for the pre-push full-stack verification flow (`make local-u
 | Only the marketing-site flows | `bun run flows:test --grep @marketing` | ~2m |
 | Everything | `make test-all` | ~15m |
 
-Product-page videos (WP11, `public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded. Afterwards `bun scripts/build-og-images.ts` (or `make og-images`) rebuilds the 1200×630 social cards in `public/og/` (default, pricing, use cases, compare, docs; pass names to build only some): each card is an HTML page in the brand fonts from `node_modules` over a poster, screenshotted by headless Chromium (Playwright; `bunx playwright install chromium` once) and saved as JPEG with ffmpeg. Card text lives in the script, the alt texts in `shared/seo/ogImages.ts` — change both together.
+Product-page videos (`public/tour/`): with a flow-stack app running in the hosted shape (see `tests/e2e/AGENTS.md`, AI keys exported, ffmpeg installed), `TOUR_OUTPUT_DIR=/tmp/tour bun run tour:capture` re-records + encodes every scene; `--encode` only re-encodes what was recorded. Afterwards `bun scripts/build-og-images.ts` (or `make og-images`) rebuilds the 1200×630 social cards in `public/og/` (default, pricing, use cases, compare, docs; pass names to build only some): each card is an HTML page in the brand fonts from `node_modules` over a poster, screenshotted by headless Chromium (Playwright; `bunx playwright install chromium` once) and saved as JPEG with ffmpeg. Card text lives in the script, the alt texts in `shared/seo/ogImages.ts` — change both together.
 
 **SEO + page speed (marketing pages, advisory, no CI job).** Run a production build in the hosted shape (`bun run build`, then `.output/server/index.mjs` with `NUXT_MARKETING_SITE_ENABLED=true`, a loopback `NUXT_SITE_URL`, `TEST_MODE=1`, throwaway Postgres/Valkey), then:
 

@@ -374,13 +374,19 @@ plans are coming soon.
 
 ## Development
 
-You need [Bun](https://bun.sh) 1.4 or newer, Docker with Compose, and `make`.
+You need [Bun](https://bun.sh) 1.4 or newer, Docker with Compose 5.0 or newer
+(or rootless Podman), `make` and `openssl`. No external accounts or API keys.
 
 ```sh
-bun install
-make dev        # infra containers: Postgres, Valkey, SeaweedFS, sync, markitdown, renderer
+make setup      # .env with generated secrets, then bun install for the root, sync-server and renderer
+make dev        # infra containers: Postgres, Valkey, SeaweedFS, LiteLLM, sync, markitdown, renderer
 make dev-app    # the Nuxt app on the host, with hot reload
 ```
+
+Open the URL Nuxt prints (usually `http://localhost:3000`); anonymous editing
+works as is. Sign-in and the AI assistant need OAuth and provider keys in
+`.env`. The full setup, test tiers and conventions are in
+[CONTRIBUTING.md](./CONTRIBUTING.md).
 
 `make help` lists every workflow; [docs/CHEATSHEET.md](./docs/CHEATSHEET.md)
 is the flat reference.

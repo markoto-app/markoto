@@ -2,7 +2,8 @@ SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
 # Each env file pulls in docker-compose.base.yml via Compose's `include:`
-# directive (Compose v2.20+). Single -f flag is enough; the merge is
+# directive. Compose 5.0 or newer is required (the files redefine included
+# services, which older versions reject). Single -f flag is enough; the merge is
 # transparent. See AGENTS.md §5.
 LOCAL := docker compose -f docker-compose.local.yml
 DEV   := docker compose -f docker-compose.dev.yml
@@ -25,11 +26,18 @@ help: ## Show this help
 	@printf "All bun scripts:            \033[1mbun run\033[0m\n"
 
 # === Local development ===
+.PHONY: setup
+setup: ## First run: create .env with generated secrets, install deps (root, sync-server, renderer)
+	bash scripts/setup-env.sh
+	bun install
+	bun install --cwd sync-server
+	bun install --cwd renderer
+
 .PHONY: dev
 dev: ## Start dev infra (Postgres, Valkey, etc) — Nuxt runs on host
 	$(DEV) up -d
 	@echo ""
-	@echo "Dev infra up. In another terminal: bun run dev --host 0.0.0.0"
+	@echo "Dev infra up (first run? 'make setup' creates .env). In another terminal: bun run dev --host 0.0.0.0"
 	@echo "Or: make dev-app"
 
 .PHONY: dev-app

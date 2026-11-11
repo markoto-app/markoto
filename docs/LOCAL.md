@@ -2,6 +2,8 @@
 
 Reproduces the production stack on your dev machine: all containers, Traefik TLS, locally trusted certs. Daily dev usually uses `docker-compose.dev.yml` + `bun run dev` on the host instead; use this when you need to verify Traefik labels, TLS behaviour, or anything that only manifests in containers.
 
+Prerequisites: Docker Compose 5.0 or newer, and a `.env` (run `make setup` once; it generates the required secrets).
+
 ## 1. Install mkcert
 
 ```bash
