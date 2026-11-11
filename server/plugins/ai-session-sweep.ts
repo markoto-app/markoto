@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/ai/aiSessions'
 import { migrationsComplete } from '../utils/platform/migrations'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 
 // Every 60s, abort any AI session older than the stale threshold. Protects
@@ -17,20 +17,25 @@ import { SWEEPS } from '../config/sweeps'
 // left by a crashed previous process are cleaned immediately instead of
 // blocking the per-user cap until the first sweep.
 
-const { staleAfterMs: STALE_THRESHOLD_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.aiSessions
+const { staleAfterMs: STALE_THRESHOLD_MS } = SWEEPS.aiSessions
 
 type AiSessionRow = Awaited<ReturnType<typeof snapshotAiSessions>>[number]
+
+const sweeper = defineSweeper({
+  name: 'ai-session-sweep',
+  schedule: SWEEPS.aiSessions,
+  // The startup purge below is the boot pass; the locked sweep starts one
+  // interval later.
+  runAtBoot: false,
+  run: sweep
+})
 
 export default defineNitroPlugin((nitroApp) => {
   // Startup purge — clears any rows from a crashed prior process. Wait on
   // the migration signal first; otherwise on a freshly-provisioned DB the
   // query races `00-db-migrate.ts` and hits a missing table.
-  void runStartupPurge()
-
-  const timer = setInterval(() => {
-    void sweep()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
+  if (!import.meta.prerender) void runStartupPurge()
+  sweeper(nitroApp)
 })
 
 async function runStartupPurge(): Promise<void> {
@@ -47,7 +52,7 @@ async function runStartupPurge(): Promise<void> {
 }
 
 /**
- * Cross-instance gate. Note: `snapshotAiSessions` returns rows from
+ * Runs under the cross-instance lock. Note: `snapshotAiSessions` returns rows from
  * every instance's sessions, but `abortController` is per-process —
  * the winner instance can only abort its own loops; for orphan rows
  * (sessions running elsewhere), the loop falls through to
@@ -55,18 +60,13 @@ async function runStartupPurge(): Promise<void> {
  * per-user cap.
  */
 async function sweep(): Promise<void> {
-  if (!await acquireSweepLock('ai-session-sweep')) return
-  try {
-    const sessions = await loadSessionsOrLog()
-    if (!sessions) return
-    const now = Date.now()
-    for (const s of sessions) {
-      const ageMs = now - s.startedAt.getTime()
-      if (ageMs <= STALE_THRESHOLD_MS) continue
-      await abortStaleSession(s, ageMs)
-    }
-  } finally {
-    await releaseSweepLock('ai-session-sweep')
+  const sessions = await loadSessionsOrLog()
+  if (!sessions) return
+  const now = Date.now()
+  for (const s of sessions) {
+    const ageMs = now - s.startedAt.getTime()
+    if (ageMs <= STALE_THRESHOLD_MS) continue
+    await abortStaleSession(s, ageMs)
   }
 }
 

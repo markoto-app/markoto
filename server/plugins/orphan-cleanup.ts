@@ -4,7 +4,7 @@ import { ListObjectsV2Command, DeleteObjectsCommand, type S3Client } from '@aws-
 import * as Sentry from '@sentry/nuxt'
 import { listAllDocIds } from '../repos/documents'
 import { listStaleUnconfirmed, purgeStaleUnconfirmed, listAllS3Keys } from '../repos/uploads'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { sweepKnowledgeOrphans } from '../utils/knowledge/knowledgeOrphanSweep'
 import { sweepDesignImportOrphans } from '../utils/designImport/orphanSweep'
 import { s3ObjectStore } from '../utils/storage/objectStore'
@@ -40,73 +40,48 @@ import { DAY_MS } from '~~/shared/config/units'
 //      when the doc layers failed.
 //
 // Runs once on server startup (after a 30s delay so other subsystems are
-// ready), then every hour.
-export default defineNitroPlugin((nitroApp) => {
-  let running = false
+// ready), then every hour. The per-process non-overlap and the advisory lock
+// (across instances) come from `defineSweeper`.
+export default defineSweeper({
+  name: 'orphan-cleanup',
+  schedule: SWEEPS.orphanCleanup,
+  // Each layer reports its own failure and the next layer still runs, so
+  // this body never throws.
+  run: async () => {
+    const s3 = useS3Client()
+    const bucket = useRuntimeConfig().s3.bucket
+    const now = Date.now()
 
-  async function reconcile() {
-    if (running) return
-    running = true
-    // The per-process `running` flag prevents tick-overlap WITHIN this
-    // process; the advisory lock prevents tick-overlap ACROSS processes.
-    // Both are useful — keep both.
-    if (!await acquireSweepLock('orphan-cleanup')) {
-      running = false
-      return
+    try {
+      await sweepUnconfirmedUploads(s3, bucket)
+      const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
+      await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
+    } catch (e) {
+      console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
     }
     try {
-      const s3 = useS3Client()
-      const bucket = useRuntimeConfig().s3.bucket
-      const now = Date.now()
-
-      try {
-        await sweepUnconfirmedUploads(s3, bucket)
-        const { liveDocIds } = await sweepDocLevelOrphans(s3, bucket)
-        await sweepDefensiveStaleS3(s3, bucket, liveDocIds, now)
-      } catch (e) {
-        console.error('[orphan-cleanup] Reconciliation failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'reconcile_failed' } })
-      }
-      try {
-        const { deleted } = await sweepKnowledgeOrphans({ store: s3ObjectStore(s3, bucket), now })
-        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} orphaned knowledge object(s)`)
-      } catch (e) {
-        console.error('[orphan-cleanup] Knowledge sweep failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
-      }
-      try {
-        const { deleted } = await sweepDesignImportOrphans({ store: s3ObjectStore(s3, bucket), now })
-        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} design-import object(s)`)
-      } catch (e) {
-        console.error('[orphan-cleanup] Design-import sweep failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
-      }
-      try {
-        const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: listPublishedPageIds, now })
-        if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} object(s) of unpublished pages`)
-      } catch (e) {
-        console.error('[orphan-cleanup] Published-page sweep failed:', e instanceof Error ? e.message : e)
-        Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'published_sweep_failed' } })
-      }
-    } finally {
-      await releaseSweepLock('orphan-cleanup')
-      running = false
+      const { deleted } = await sweepKnowledgeOrphans({ store: s3ObjectStore(s3, bucket), now })
+      if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} orphaned knowledge object(s)`)
+    } catch (e) {
+      console.error('[orphan-cleanup] Knowledge sweep failed:', e instanceof Error ? e.message : e)
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'knowledge_sweep_failed' } })
+    }
+    try {
+      const { deleted } = await sweepDesignImportOrphans({ store: s3ObjectStore(s3, bucket), now })
+      if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} design-import object(s)`)
+    } catch (e) {
+      console.error('[orphan-cleanup] Design-import sweep failed:', e instanceof Error ? e.message : e)
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'design_import_sweep_failed' } })
+    }
+    try {
+      const { deleted } = await sweepPublishedOrphans({ store: s3ObjectStore(s3, bucket), livePageIds: listPublishedPageIds, now })
+      if (deleted > 0) console.log(`[orphan-cleanup] Reaped ${deleted} object(s) of unpublished pages`)
+    } catch (e) {
+      console.error('[orphan-cleanup] Published-page sweep failed:', e instanceof Error ? e.message : e)
+      Sentry.captureException(e, { tags: { component: 'orphan-cleanup', event: 'published_sweep_failed' } })
     }
   }
-
-  // Run once on startup (after a short delay so other subsystems are ready).
-  const startupTimer = setTimeout(() => {
-    void reconcile()
-  }, SWEEPS.orphanCleanup.startupDelayMs)
-  // Then run every hour.
-  const intervalTimer = setInterval(() => {
-    void reconcile()
-  }, SWEEPS.orphanCleanup.intervalMs)
-
-  nitroApp.hooks.hook('close', () => {
-    clearTimeout(startupTimer)
-    clearInterval(intervalTimer)
-  })
 })
 
 /**

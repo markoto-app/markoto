@@ -2,10 +2,9 @@ import * as Sentry from '@sentry/nuxt'
 import { and, eq, lt } from 'drizzle-orm'
 import { workspaceKnowledge } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
-import { migrationsComplete } from '../utils/platform/migrations'
 import { processKnowledge } from '../utils/knowledge/processKnowledge'
 import { deleteKnowledgeArtifact } from '../utils/knowledge/knowledgeAccess'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
 
@@ -23,7 +22,7 @@ import { DAY_MS } from '~~/shared/config/units'
 // before re-inserting, so a mid-flight kill that left half the chunks
 // behind still produces a clean result on retry.
 
-const { staleAfterMs: STALE_THRESHOLD_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.knowledge
+const { staleAfterMs: STALE_THRESHOLD_MS } = SWEEPS.knowledge
 
 async function sweepStuck() {
   const cutoff = new Date(Date.now() - STALE_THRESHOLD_MS)
@@ -94,31 +93,13 @@ async function sweepFailed() {
   }
 }
 
-/**
- * Cross-instance gate: a single app instance runs both sub-sweeps per
- * tick. processKnowledge is idempotent if it does double-fire, so this
- * is purely a wastefulness guard, not a correctness one.
- */
-async function sweep() {
-  if (!await acquireSweepLock('knowledge-sweep')) return
-  try {
+export default defineSweeper({
+  name: 'knowledge-sweep',
+  schedule: SWEEPS.knowledge,
+  // A single instance runs both sub-sweeps per tick. processKnowledge is
+  // idempotent if it does double-fire, so the lock is a wastefulness guard.
+  run: async () => {
     await sweepStuck()
     await sweepFailed()
-  } finally {
-    await releaseSweepLock('knowledge-sweep')
   }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  // Kick first sweep after migrations complete so we don't race 00-db-migrate
-  // on a fresh DB.
-  void (async () => {
-    await migrationsComplete
-    await sweep()
-  })()
-
-  const timer = setInterval(() => {
-    void sweep()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

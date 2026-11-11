@@ -1,6 +1,5 @@
-import { migrationsComplete } from '../utils/platform/migrations'
 import { runCreditSettlement } from '../utils/billing/aiCredits'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { isBillingEnabled } from '../utils/billing/billingMode'
 import { SWEEPS } from '../config/sweeps'
 
@@ -8,28 +7,11 @@ import { SWEEPS } from '../config/sweeps'
 // take each month's AI spend above the plan budget from the credits, and
 // push every affected budget to LiteLLM. Billing on only.
 
-const { intervalMs: INTERVAL_MS } = SWEEPS.aiCreditSettlement
-const LOCK = 'ai-credit-settlement'
-
-async function lockedRun(): Promise<void> {
-  if (!await acquireSweepLock(LOCK)) return
-  try {
-    await runCreditSettlement()
-  } catch (e) {
-    console.warn(`[ai-credit-settlement] skipped: ${e instanceof Error ? e.message : e}`)
-  } finally {
-    await releaseSweepLock(LOCK)
-  }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  if (!isBillingEnabled()) return
-  void (async () => {
-    await migrationsComplete
-    await lockedRun()
-  })()
-  const timer = setInterval(() => {
-    void lockedRun()
-  }, INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
+export default defineSweeper({
+  name: 'ai-credit-settlement',
+  schedule: SWEEPS.aiCreditSettlement,
+  enabled: isBillingEnabled,
+  // A LiteLLM that is still starting fails the run; the next one retries.
+  reportErrors: false,
+  run: runCreditSettlement
 })

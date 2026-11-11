@@ -1,9 +1,7 @@
 import { lt } from 'drizzle-orm'
-import * as Sentry from '@sentry/nuxt'
 import { mcpSessions } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
-import { migrationsComplete } from '../utils/platform/migrations'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
 
@@ -31,51 +29,16 @@ import { DAY_MS } from '~~/shared/config/units'
 // `idx_mcp_sessions_user` index's secondary key on last_active_at.
 // Daily cadence is plenty.
 
-const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS, idleAfterDays: IDLE_THRESHOLD_DAYS } = SWEEPS.mcpSessions
+const { idleAfterDays: IDLE_THRESHOLD_DAYS } = SWEEPS.mcpSessions
 
-let running = false
-
-async function sweep(): Promise<void> {
-  if (running) return
-  running = true
-  // Cross-instance dedup. The advisory lock is session-pinned to the
-  // PoolClient; release in finally.
-  if (!(await acquireSweepLock('mcp-sessions-sweep'))) {
-    running = false
-    return
-  }
-  try {
-    await migrationsComplete
-
+export default defineSweeper({
+  name: 'mcp-sessions-sweep',
+  schedule: SWEEPS.mcpSessions,
+  run: async () => {
     const cutoff = new Date(Date.now() - IDLE_THRESHOLD_DAYS * DAY_MS)
-    const db = useDatabase()
-    const result = await db.delete(mcpSessions)
+    const result = await useDatabase().delete(mcpSessions)
       .where(lt(mcpSessions.lastActiveAt, cutoff))
       .returning({ id: mcpSessions.id })
-    if (result.length > 0) {
-      console.log(`[mcp-sessions-sweep] pruned ${result.length} stale sessions (idle > ${IDLE_THRESHOLD_DAYS}d)`)
-    }
-  } catch (e) {
-    console.warn('[mcp-sessions-sweep] sweep failed:', e instanceof Error ? e.message : e)
-    Sentry.captureException(e, {
-      tags: { component: 'mcp-sessions-sweep', event: 'sweep_failed' }
-    })
-  } finally {
-    await releaseSweepLock('mcp-sessions-sweep')
-    running = false
+    return result.length > 0 ? { pruned: result.length, idleAfterDays: IDLE_THRESHOLD_DAYS } : undefined
   }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  const startupTimer = setTimeout(() => {
-    void sweep()
-  }, STARTUP_DELAY_MS)
-  const intervalTimer = setInterval(() => {
-    void sweep()
-  }, SWEEP_INTERVAL_MS)
-
-  nitroApp.hooks.hook('close', () => {
-    clearTimeout(startupTimer)
-    clearInterval(intervalTimer)
-  })
 })

@@ -1,8 +1,7 @@
-import { migrationsComplete } from '../utils/platform/migrations'
 import { reconcileUserKeys } from '../utils/litellm/keyReconcile'
 import { reconcileWorkspaceTeams } from '../utils/litellm/workspaceTeams'
 import { freeTierTotalBudgetProblems } from '../utils/litellm/freeTierTeam'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 
 // Brings every existing LiteLLM virtual key in line with its user's plan:
@@ -11,35 +10,22 @@ import { SWEEPS } from '../config/sweeps'
 // so a config change reaches existing keys on the next deploy — and every
 // 6 h as a safety net. Idempotent; logic in `utils/litellm/keyReconcile.ts`.
 
-const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.litellmKeyReconcile
-const LOCK = 'litellm-key-reconcile'
-
-async function lockedRun(): Promise<void> {
-  if (!await acquireSweepLock(LOCK)) return
-  try {
-    await reconcileUserKeys()
+export default defineSweeper({
+  name: 'litellm-key-reconcile',
+  schedule: SWEEPS.litellmKeyReconcile,
+  enabled: () => {
+    const config = useRuntimeConfig()
+    return Boolean(config.litellm?.url && config.litellm?.masterKey)
+  },
+  setup: () => {
+    for (const problem of freeTierTotalBudgetProblems()) console.warn(`[litellm-key-reconcile] ${problem}`)
+  },
+  // The proxy may still be starting (boot order) — the next run retries.
+  reportErrors: false,
+  run: async () => {
+    const users = await reconcileUserKeys()
     // Team / Business workspace teams + member keys.
-    await reconcileWorkspaceTeams()
-  } catch (e) {
-    // The proxy may still be starting (boot order) — the next run retries.
-    console.warn(`[litellm-key-reconcile] skipped: ${e instanceof Error ? e.message : e}`)
-  } finally {
-    await releaseSweepLock(LOCK)
+    const workspaces = await reconcileWorkspaceTeams()
+    return { users, workspaces }
   }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  const config = useRuntimeConfig()
-  if (!config.litellm?.url || !config.litellm?.masterKey) return
-  for (const problem of freeTierTotalBudgetProblems()) console.warn(`[litellm-key-reconcile] ${problem}`)
-
-  void (async () => {
-    await migrationsComplete
-    await lockedRun()
-  })()
-
-  const timer = setInterval(() => {
-    void lockedRun()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
 })

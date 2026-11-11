@@ -1,9 +1,8 @@
 import * as Sentry from '@sentry/nuxt'
 import { deleteDocument } from '../utils/documents/documentLifecycle'
-import { migrationsComplete } from '../utils/platform/migrations'
 import { getDoc } from '../repos/documents'
 import { appendAuditEvent } from '../repos/audit'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/documents/inactiveDocSweep'
 import { SWEEPS } from '../config/sweeps'
 
@@ -30,39 +29,15 @@ import { SWEEPS } from '../config/sweeps'
 // Throttled at ~10 deletes/sec so a backlog-clearing sweep doesn't melt
 // S3 and Postgres while the backup sidecar is running.
 
-const { startupDelayMs: STARTUP_DELAY_MS, intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.inactiveDocs
 const THROTTLE_MS = 100
 
-let running = false
-
-async function sweep(): Promise<void> {
-  if (running) return
-  running = true
-  // Cross-instance gate: only one app instance runs the sweep per tick.
-  if (!await acquireSweepLock('inactive-doc-sweep')) {
-    running = false
-    return
-  }
-  try {
-    await migrationsComplete
-    const anonTtlDays = parseInactiveDocTtlDays(useRuntimeConfig().inactiveDocTtlDays)
-    if (anonTtlDays <= 0) return
-    const candidates = await loadInactiveAnonymousDocs(anonTtlDays)
-    if (candidates.length === 0) return
-    console.log(`[inactive-doc-sweep] Reaping ${candidates.length} inactive anonymous doc(s)`)
-    const reaped = await reapDocs(candidates)
-    if (reaped > 0) {
-      console.log(`[inactive-doc-sweep] Reaped ${reaped}/${candidates.length} inactive doc(s)`)
-    }
-  } catch (e) {
-    console.error('[inactive-doc-sweep] Sweep failed:', e instanceof Error ? e.message : e)
-    Sentry.captureException(e, {
-      tags: { component: 'inactive-doc-sweep', event: 'sweep_failed' }
-    })
-  } finally {
-    await releaseSweepLock('inactive-doc-sweep')
-    running = false
-  }
+async function sweep(): Promise<{ candidates: number, reaped: number } | undefined> {
+  const anonTtlDays = parseInactiveDocTtlDays(useRuntimeConfig().inactiveDocTtlDays)
+  if (anonTtlDays <= 0) return
+  const candidates = await loadInactiveAnonymousDocs(anonTtlDays)
+  if (candidates.length === 0) return
+  console.log(`[inactive-doc-sweep] Reaping ${candidates.length} inactive anonymous doc(s)`)
+  return { candidates: candidates.length, reaped: await reapDocs(candidates) }
 }
 
 /**
@@ -111,16 +86,8 @@ async function reapOneDoc(docId: string): Promise<boolean> {
   }
 }
 
-export default defineNitroPlugin((nitroApp) => {
-  const startupTimer = setTimeout(() => {
-    void sweep()
-  }, STARTUP_DELAY_MS)
-  const intervalTimer = setInterval(() => {
-    void sweep()
-  }, SWEEP_INTERVAL_MS)
-
-  nitroApp.hooks.hook('close', () => {
-    clearTimeout(startupTimer)
-    clearInterval(intervalTimer)
-  })
+export default defineSweeper({
+  name: 'inactive-doc-sweep',
+  schedule: SWEEPS.inactiveDocs,
+  run: sweep
 })

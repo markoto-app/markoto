@@ -1,43 +1,23 @@
-import { migrationsComplete } from '../utils/platform/migrations'
 import { runWebhookEventSweep } from '../utils/billing/webhookEventSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { isBillingEnabled } from '../utils/billing/billingMode'
 import { SWEEPS } from '../config/sweeps'
 
-// Webhook event-table sweep plugin. Thin wrapper — the query logic
-// lives in `server/utils/billing/webhookEventSweep.ts` so tests can drive it
-// directly without pulling in the `defineNitroPlugin` auto-import.
+// Webhook event-table sweep. The query logic lives in
+// `server/utils/billing/webhookEventSweep.ts` so tests can drive it directly.
 //
-// Runs daily. The handler's correctness doesn't depend on this sweep
-// (the ON CONFLICT DO NOTHING in `processed_webhook_events` already
-// makes replay short-circuit O(1) regardless of table size); the
-// sweep is purely a storage-cost guard. 24h cadence is plenty.
+// Daily. The handler's correctness doesn't depend on this sweep (the
+// ON CONFLICT DO NOTHING in `processed_webhook_events` already makes replay
+// short-circuit O(1) regardless of table size); it is purely a storage-cost
+// guard.
+//
+// Stripe-dependent: with billing off there are no paid plans to lapse and no
+// Stripe webhook rows to prune, so nothing is scheduled. The flag is read
+// once at boot — flipping it needs a restart anyway.
 
-const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.webhookEvents
-
-async function lockedRun(): Promise<void> {
-  if (!await acquireSweepLock('webhook-event-sweep')) return
-  try {
-    await runWebhookEventSweep()
-  } finally {
-    await releaseSweepLock('webhook-event-sweep')
-  }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  // Stripe-dependent: with billing off there are no paid plans to lapse
-  // and no Stripe webhook rows to prune, so the timer never starts.
-  // The flag is read once at boot — flipping it needs a restart anyway
-  // (the Stripe secrets are validated at boot too).
-  if (!isBillingEnabled()) return
-
-  void (async () => {
-    await migrationsComplete
-    await lockedRun()
-  })()
-
-  const timer = setInterval(() => {
-    void lockedRun()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
+export default defineSweeper({
+  name: 'webhook-event-sweep',
+  schedule: SWEEPS.webhookEvents,
+  enabled: isBillingEnabled,
+  run: runWebhookEventSweep
 })

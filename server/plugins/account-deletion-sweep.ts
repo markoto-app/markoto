@@ -1,44 +1,21 @@
-import { migrationsComplete } from '../utils/platform/migrations'
 import { runAccountDeletionSweep } from '../utils/privacy/accountDeletionSweep'
-import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
+import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 
-// Account-deletion sweep plugin. Runs the cascading-purge for users
-// whose 30-day grace window has elapsed. Thin wrapper — the heavy
-// lifting is in `accountDeletionSweep.ts` so the unit-and-integration
-// tests can import it directly.
+// Cascading purge for users whose 30-day grace window has elapsed. The heavy
+// lifting is in `accountDeletionSweep.ts` so tests can import it directly.
 //
-// Interval: hourly. The sweep only acts on users whose grace window
-// has elapsed, so frequency just controls how soon after the cutoff
-// the cascade actually fires. Hourly hits the right point on the
-// curve between "user feels their deletion took effect" and "we're
-// not pounding the DB with no-op scans".
+// Hourly: the sweep only acts on users whose grace window has elapsed, so the
+// interval just controls how soon after the cutoff the cascade fires.
 //
-// Cross-instance lock: the
-// executor is row-level idempotent (deleting an already-deleted doc
-// is a no-op), but two instances racing on the same user would still
-// produce a flurry of "user not found" / "row already gone" errors;
-// the lock keeps the noise floor low.
+// The lock: the executor is row-level idempotent, but two instances racing on
+// the same user would produce a flurry of "user not found" errors.
 
-const { intervalMs: SWEEP_INTERVAL_MS } = SWEEPS.accountDeletion
-
-async function lockedRun(): Promise<void> {
-  if (!await acquireSweepLock('account-deletion-sweep')) return
-  try {
-    await runAccountDeletionSweep()
-  } finally {
-    await releaseSweepLock('account-deletion-sweep')
+export default defineSweeper({
+  name: 'account-deletion-sweep',
+  schedule: SWEEPS.accountDeletion,
+  run: async () => {
+    const result = await runAccountDeletionSweep()
+    return result.scanned > 0 ? result : undefined
   }
-}
-
-export default defineNitroPlugin((nitroApp) => {
-  void (async () => {
-    await migrationsComplete
-    await lockedRun()
-  })()
-
-  const timer = setInterval(() => {
-    void lockedRun()
-  }, SWEEP_INTERVAL_MS)
-  nitroApp.hooks.hook('close', () => clearInterval(timer))
 })
