@@ -18,7 +18,7 @@ import { fetchCompareData, fetchCompareHubItems, fetchMarketingPage } from '~/ut
 // This catch-all sits below every other page in the router (static and
 // dynamic segments win: /d, /w, /docs, /legal, /settings, …; /api and
 // other server routes never reach Vue), so it also answers every unknown
-// path: 404, exactly as before. Off the marketing site the middleware
+// path: 404. Off the marketing site the middleware
 // 404s before anything is queried.
 definePageMeta({ layout: 'marketing', middleware: 'marketing-pages' })
 

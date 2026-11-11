@@ -12,9 +12,7 @@ import { performLogout, LOGOUT_CHANNEL_NAME, LOGOUT_IDB_PREFIX } from '../../app
 // `globalThis` before importing the SUT — happy-dom's flat global is
 // the same surface auto-imports would resolve against.
 
-// ─────────────────────────────────────────────────────────────────────
 // Test doubles for Nuxt auto-imports
-// ─────────────────────────────────────────────────────────────────────
 
 interface SessionStub {
   loggedIn: { value: boolean }
@@ -73,9 +71,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // Storage scrub
-// ─────────────────────────────────────────────────────────────────────
 
 describe('performLogout — storage scrub', () => {
   it('clears localStorage', async () => {
@@ -106,17 +102,13 @@ describe('performLogout — storage scrub', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // BroadcastChannel
-// ─────────────────────────────────────────────────────────────────────
 
 describe('performLogout — BroadcastChannel', () => {
   it('posts a logged-out message on the markoto-auth channel', async () => {
-    // Subscribe BEFORE performLogout so the listener is wired by the time
-    // the post fires. We resolve on the actual message event instead of
-    // waiting a fixed `setTimeout(0)` — under coverage instrumentation in
-    // CI the event-loop pressure pushes the BroadcastChannel async
-    // dispatch past a single macro-tick, and the old version flaked.
+    // Subscribe BEFORE performLogout so the listener is wired by the time the post fires. We resolve on the
+    // actual message event instead of waiting a fixed `setTimeout(0)`: under coverage instrumentation in CI the
+    // event-loop pressure pushes the BroadcastChannel async dispatch past a single macro-tick.
     const listener = new BroadcastChannel(LOGOUT_CHANNEL_NAME)
     const received = new Promise<unknown>((resolve, reject) => {
       listener.addEventListener('message', (e: MessageEvent) => resolve(e.data))
@@ -163,9 +155,7 @@ describe('performLogout — BroadcastChannel', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // Awareness teardown ordering
-// ─────────────────────────────────────────────────────────────────────
 
 describe('performLogout — beforeClear hook', () => {
   it('runs beforeClear before useUserSession().clear()', async () => {
@@ -203,9 +193,7 @@ describe('performLogout — beforeClear hook', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // IndexedDB scrub
-// ─────────────────────────────────────────────────────────────────────
 
 describe('performLogout — IndexedDB', () => {
   it('deletes only IDB databases with the markoto- prefix', async () => {
@@ -246,18 +234,13 @@ describe('performLogout — IndexedDB', () => {
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────
 // Session clear + navigation
-// ─────────────────────────────────────────────────────────────────────
 
 describe('performLogout — session + redirect', () => {
-  // The current-tab redirect uses `window.location.href = '/'` (a
-  // hard reload) rather than `navigateTo('/')` (a soft SPA route).
-  // The hard reload throws away ALL Vue state — `loggedIn` ref,
-  // billing/account-status `useState` snapshots, the editor's
-  // awareness handle, etc. — so the page bootstraps cleanly
-  // anonymous. The soft path was leaving the topbar showing a
-  // stale avatar + triggering 401 toasts.
+  // The current-tab redirect uses `window.location.href = '/'` (a hard reload) rather than
+  // `navigateTo('/')` (a soft SPA route). The hard reload throws away ALL Vue state (`loggedIn` ref,
+  // billing/account-status `useState` snapshots, the editor's awareness handle, etc.) so the page
+  // bootstraps cleanly anonymous; a soft navigation leaves a stale avatar and triggers 401 toasts.
   it('clears the session and reloads the page to /', async () => {
     await performLogout()
     expect(sessionStub.clear).toHaveBeenCalledTimes(1)

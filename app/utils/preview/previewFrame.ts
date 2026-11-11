@@ -13,8 +13,7 @@ import { PAGED_HANDLERS_SCRIPT } from './pagedHandlers'
 import { PREVIEW_ZOOM_SCRIPT } from './previewZoomFrame'
 import type { FrameZoomMode } from './previewZoomFrame'
 import type { CustomCssResult } from '~~/shared/types/customCss'
-// Iframe bootstrap document — its own .html file so the HTML/CSS/JS gets
-// proper syntax highlighting. Loaded as a raw string via Vite's `?raw`.
+// Iframe bootstrap document, a separate .html file loaded as a raw string.
 import IFRAME_BOOTSTRAP from '~/composables/preview/pagedPreviewIframe.html?raw'
 
 /**
@@ -24,9 +23,9 @@ import IFRAME_BOOTSTRAP from '~/composables/preview/pagedPreviewIframe.html?raw'
  * The iframe runs with `sandbox="allow-scripts"` (print: `+ allow-modals`)
  * and NO `allow-same-origin`, i.e. in an opaque origin. Rendered document
  * content is attacker-influenced (any editor of the doc, the AI, imports),
- * and before this split a script injection inside the preview ran with the
- * app's origin — cookies, storage, parent DOM, same-origin API calls. Now
- * the only channel between the two documents is postMessage, with:
+ * so a script injected into the preview must not get the app's origin
+ * (cookies, storage, parent DOM, same-origin API calls). The only channel
+ * between the two documents is postMessage, with:
  *
  *   - parent side: `event.source === iframe.contentWindow` AND
  *     `event.origin === 'null'` (an opaque origin serialises to "null"),
@@ -183,7 +182,6 @@ export function currentCspNonce(doc: Document = document): string {
   return ''
 }
 
-/** srcdoc of the preview / print iframe with every placeholder substituted. */
 export function buildPreviewSrcdoc(opts: { parentOrigin: string, nonce: string, dark: boolean }): string {
   // replaceAll: the bootstrap's header comment names some placeholders too.
   return IFRAME_BOOTSTRAP
@@ -231,7 +229,7 @@ function jsStringSafe(value: string): string {
  * URL that merely contains the path, or another document's file.
  */
 export function withOwnUploadToken(url: string, docId: string, token: string): string {
-  // A workspace brand-kit image (WP10, `/api/brand/<file>`) loads through
+  // A workspace brand-kit image (`/api/brand/<file>`) loads through
   // the document's own brand route, which checks the asset belongs to the
   // document's workspace.
   const brand = brandImageFile(url)
@@ -244,7 +242,7 @@ function withToken(url: string, token: string): string {
   return token ? `${url}?token=${encodeURIComponent(token)}` : url
 }
 
-/** Where this document's renderers load a brand-kit font from (WP10). */
+/** Where this document's renderers load a brand-kit font from. */
 function brandFontUrl(docId: string, file: string, token: string): string {
   return withToken(brandAssetDocUrl(docId, file), token)
 }
@@ -276,7 +274,7 @@ export function mayReferenceOwnUploads(opts: {
   theme: Pick<DocTheme, 'brand' | 'header' | 'footer'>
   rawCustomCss: string | undefined
   docId: string
-  /** The workspace's brand-kit fonts (WP10) — declared in every render. */
+  /** The workspace's brand-kit fonts, declared in every render. */
   brandFonts?: readonly BrandFont[] | null
 }): boolean {
   const { html, theme, rawCustomCss, docId } = opts
@@ -302,7 +300,7 @@ export function buildRenderMessage(opts: {
   docId: string
   fileToken: string
   print: boolean
-  /** The workspace's brand-kit fonts (WP10). */
+  /** The workspace's brand-kit fonts. */
   brandFonts?: readonly BrandFont[] | null
 }): RenderMessage {
   const texts = documentTexts(opts.theme, opts.language)

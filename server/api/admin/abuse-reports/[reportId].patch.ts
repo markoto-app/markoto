@@ -18,15 +18,10 @@ import {
 } from '~~/shared/config/moderation'
 import { applyModerationDecision } from '../../../utils/privacy/moderationDecision'
 
-// Admin status transitions for abuse reports. Allowed flows:
-//   open → acknowledged   (we have eyes on it)
-//   open → actioned       (we removed/restricted the content)
-//   open → dismissed      (we reviewed and decided no action)
-//   acknowledged → actioned / dismissed
-//
-// Backwards transitions (e.g. "actioned" → "open") are NOT allowed
-// — a closed report is closed. If something turns out wrong on
-// review, file a fresh report referencing the closed one in notes.
+// Admin status transitions for abuse reports:
+//   open -> acknowledged | actioned | dismissed
+//   acknowledged -> actioned | dismissed
+// Backwards transitions are not allowed; a closed report stays closed.
 //
 // Closing a report needs a decision (`decision: {action, rule,
 // explanation}`):
@@ -106,8 +101,8 @@ export default defineEventHandler(async (event) => {
   const notes = typeof body.notes === 'string' ? body.notes.trim().slice(0, 5000) : null
 
   const db = useDatabase()
-  // Re-read first so we have the existing notes + status for the
-  // audit `before` payload AND to validate the transition.
+  // Re-read for the existing notes + status (audit `before` payload and
+  // transition validation).
   const existing = (await db
     .select()
     .from(abuseReports)

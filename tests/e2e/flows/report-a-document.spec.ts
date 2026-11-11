@@ -30,7 +30,7 @@ test('Report a document', async ({ page, flow, editor }) => {
     + 'illegal content or spam, you can report it — no account needed.'
   )
 
-  // ─── The visitor opens the link ──────────────────────────────────
+  // The visitor opens the link
   const visitor = await flow.spawn('visitor')
   await visitor.page.goto(docUrl)
   await visitor.editor.waitForReady()
@@ -54,7 +54,7 @@ test('Report a document', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Fill in the report ──────────────────────────────────────────
+  // Fill in the report
   await visitor.flow.heading('Say what is wrong', 3)
   await visitor.flow.narrate(
     'Explain why the content is illegal or breaks the rules, and leave your '

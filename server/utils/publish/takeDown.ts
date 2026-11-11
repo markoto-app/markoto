@@ -13,7 +13,7 @@ export async function takeDownPublishedPage(docId: string): Promise<{ id: string
 const PUBLISHED_PATH_RE = /^\/p\/([^/?#]+)\/?$/
 
 /**
- * The document behind a reported published-page address (WP13): a
+ * The document behind a reported published-page address: a
  * `/p/<slug>` URL on any host, or the root of a live custom domain. Lets an
  * abuse report filed from a page's Report link reach the moderation flow.
  */

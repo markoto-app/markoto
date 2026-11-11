@@ -4,10 +4,9 @@ import { getDocWithActorRole } from '../../../repos/documents'
 import { docStateOf, decideFileAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 
-// fileId is a nanoid(12) with a content-type-derived extension. Reject
-// anything else — not a security boundary (S3 keys are opaque, no
-// traversal risk), but keeps malformed clients from generating
-// presigned URLs for nonsense keys.
+// fileId is a nanoid(12) with a content-type-derived extension. Not a security
+// boundary (S3 keys are opaque); it just stops malformed clients from presigning
+// nonsense keys.
 const FILE_ID_RE = /^[A-Za-z0-9_-]{1,64}\.(png|jpg|jpeg|gif|webp)$/
 
 const EXT_CONTENT_TYPE: Record<string, string> = {
@@ -29,10 +28,8 @@ export default defineEventHandler(async (event) => {
   const session = await getValidatedUserSession(event)
   const row = await getDocWithActorRole(docId, session?.user?.id ?? null)
 
-  // Gone from the DB → refuse to sign. Without this the endpoint would
-  // happily presign for a deleted doc whose S3 objects outlived the
-  // best-effort cleanup, exposing orphan content to anyone guessing the
-  // docId / fileId pair.
+  // Gone from the DB: refuse to sign, else a deleted doc whose S3 objects
+  // outlived best-effort cleanup would be readable by anyone guessing the ids.
   if (!row) {
     throw createError({ statusCode: 404, message: 'Document not found' })
   }
@@ -41,8 +38,8 @@ export default defineEventHandler(async (event) => {
   const actor: ActorState = {
     userId: session?.user?.id ?? null,
     workspaceRole: row.workspaceRole,
-    // `file-access` tokens come from the render page and the live
-    // preview iframe (both run without the session cookie).
+    // `file-access` tokens come from the render page and the live preview iframe
+    // (neither has the session cookie).
     hasValidDocJwt: hasValidDocJwt(event, docId, ['file-access'])
   }
 
@@ -55,16 +52,12 @@ export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig()
   const key = `docs/${docId}/${fileId}`
 
-  // Short TTL because a presigned URL cannot be revoked — it remains valid
-  // for its full lifetime even if the document is deleted, its access mode
-  // is tightened, or the password is rotated. 120s is enough for the browser
-  // to follow the 302 and fetch the bytes; anything longer is surface area
-  // we don't want. Callers that need the bytes again will be re-authorized.
+  // Short TTL because a presigned URL can't be revoked: it outlives a deletion,
+  // access-mode change or password rotation. 120s is enough to follow the 302.
   //
-  // The response type is forced from the file extension (S3's
-  // `response-content-type` override) instead of trusting whatever type
-  // the object was stored with: an image URL must never be served as
-  // HTML, even for objects uploaded before the type was bound at upload.
+  // The response type is forced from the file extension (`response-content-type`)
+  // rather than the stored type: an image URL must never be served as HTML,
+  // even for objects uploaded before the type was bound at upload.
   const ext = fileId.slice(fileId.lastIndexOf('.') + 1).toLowerCase()
   const url = await getSignedUrl(
     s3,

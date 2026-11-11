@@ -201,12 +201,10 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
         @click="$emit('click')"
       >
         <!-- Text card. Two variants:
-             - chapter: huge Fraunces serif headline (display register
+             - chapter: large Fraunces serif headline (display register
                with optional italic emphasis) + JetBrains Mono eyebrow
-               separator, centered on a warm bone field. The previous
-               `font-semibold` Inter at 5xl read "developer slide
-               deck"; the new register reads "field-guide chapter
-               title" — same display voice as the homepage hero.
+               separator, centered on a warm bone field; same display
+               voice as the homepage hero.
              - narration: smaller centered prose, exposition between
                actions, not a section break. -->
         <div
@@ -230,11 +228,9 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
           >
             {{ card.text }}
           </p>
-          <!-- Narration card. Sized up from `text-base/xl` to a
-               proper editorial body — readers used the previous size
-               only because chapter cards dwarfed it; on its own the
-               smaller text felt cramped on a full-frame slide. The
-               clamp() gives it responsive scaling without breakpoints. -->
+          <!-- Narration card: an editorial body size, scaled with clamp()
+               so it needs no breakpoints (chapter cards dwarf plain
+               `text-base/xl`, which felt cramped on a full-frame slide). -->
           <p
             v-else
             class="text-default text-center leading-relaxed max-w-3xl"
@@ -283,14 +279,10 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
             </div>
           </template>
 
-          <!-- Annotation rendering DISABLED in the public docs slideshow.
-               The fixture + manifest still ship `annotations` (so future
-               work can re-enable arrow/box/pin overlays without churning
-               every spec), but feedback was that arrows spanning the
-               whole slide read as visual noise — the cursor + highlight
-               boxes carry enough direction. To re-enable, uncomment the
-               original block in git history (commit c22b7e3) and ensure
-               the props pipeline still passes the array through. -->
+          <!-- Annotation rendering is disabled in the public docs
+               slideshow. Manifests still carry `annotations`, but arrows
+               spanning the whole slide read as visual noise; the cursor
+               and highlight boxes carry enough direction. -->
           <template v-if="false && annotations?.length">
             <!-- intentionally empty — annotations live in manifests but
                  are not rendered in the slideshow today -->
@@ -324,8 +316,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
               top: `${(cursor.y / viewport.h) * 100}%`,
               opacity: cursorOpacity,
               // shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal
-              // color. Was generic orange-500 before; switched so the
-              // cursor's glow reads as brand surface, not as a warning.
+              // color, so the cursor's glow reads as brand surface, not a warning.
               filter: 'drop-shadow(0 0 3px rgb(181 55 31 / 0.95)) drop-shadow(0 0 10px rgb(181 55 31 / 0.7))'
             }"
           >
@@ -336,10 +327,8 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
 </template>
 
 <style scoped>
-/* shu-500 (#B5371F = rgb(181 55 31)) — the markoto seal color. The
-   pulse glow was generic orange-500; switched to shu so highlights
-   match the brand palette. The chip background (set inline above)
-   uses the same value. */
+/* shu-500 (#B5371F = rgb(181 55 31)), the markoto seal color. The chip
+   background (set inline above) uses the same value. */
 @keyframes flow-highlight-pulse {
   0%, 100% {
     box-shadow: 0 0 4px 1px rgb(181 55 31 / 0.6);

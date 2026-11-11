@@ -6,7 +6,7 @@ import { PUBLISH_SLUG_RE, slugFromTitle } from '../../../shared/config/publish'
 import { hljsTheme } from '../../../shared/utils/vendor/hljsAssets'
 import type { ObjectStore } from '../../../server/utils/storage/objectStore'
 
-// Publish as a web page (WP13): the pure parts — which files a snapshot
+// Publish as a web page: the pure parts — which files a snapshot
 // shows and how their URLs are rewritten, the page HTML and its CSP,
 // slugs, the orphan sweep.
 

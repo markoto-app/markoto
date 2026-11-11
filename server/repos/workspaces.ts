@@ -19,7 +19,7 @@ export interface WorkspaceRow {
   name: string
   description: string | null
   defaultTheme: DocTheme | null
-  /** Brand kit (WP10): the workspace design is locked for every document. */
+  /** Brand kit: the workspace design is locked for every document. */
   brandLocked: boolean
   createdAt: Date
 }
@@ -39,7 +39,7 @@ export interface WorkspaceUpdate {
   description?: string | null
   // `null` clears the default; `undefined` leaves the field untouched.
   defaultTheme?: DocTheme | null
-  /** Brand kit (WP10): lock the workspace design for every document. */
+  /** Brand kit: lock the workspace design for every document. */
   brandLocked?: boolean
 }
 

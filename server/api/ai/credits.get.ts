@@ -11,41 +11,30 @@ import { workspaceMembers } from '../../db/schema'
 import { useDatabase } from '../../utils/platform/database'
 
 /**
- * GET /api/ai/credits — AI Points UI data source.
+ * GET /api/ai/credits: AI Points UI data (1000 pts = $1.00 USD).
  *
- * Returns the user's current LiteLLM spend translated to AI Points
- * (1000 pts = $1.00 USD), plus the plan + period-end so the UI can
- * render "1247 / 5000 AI Points • resets {date}".
+ * Returns the user's LiteLLM spend as AI Points plus plan and period end.
+ * `resolveBillingContext` picks the effective plan and `billingUserId` (whose
+ * virtual-key budget pays); `getUserKeyInfo` gives live spend + max_budget;
+ * `pointsRemaining = (max_budget - spend) * 1000`. `freeAllowance` is the
+ * shared monthly free-tier pool state (`{pooled, exhausted, resetsAt}`), null
+ * when not pooled.
  *
- * Resolution order:
- *   1. `resolveBillingContext` to determine the effective plan +
- *      `billingUserId` (the user whose virtual-key budget actually
- *      pays for the call — today always the caller; Team workspaces
- *      bill a pooled workspace budget from WP3).
- *   2. `getUserKeyInfo(billingUserId, plan)` for live spend +
- *      max_budget from the LiteLLM proxy.
- *   3. Convert: `pointsRemaining = (max_budget - spend) × 1000`.
- *   4. `freeAllowance`: the shared monthly free-tier pool's state
- *      (`{pooled, exhausted, resetsAt}`), null when not pooled.
- *
- * Auth-gated. Anonymous users have no AI budget — the endpoint is
- * not whitelisted in middleware/auth.ts.
+ * Auth-gated (not whitelisted in middleware/auth.ts): anonymous users have no
+ * AI budget.
  */
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  // Optional `workspaceId` query param so the UI can show a Team
-  // workspace's pooled budget while the user is on `/w/:wsId` or in one
-  // of its docs (WP3).
+  // Optional `workspaceId` so the UI can show a Team workspace's pooled budget.
   const query = getQuery(event)
   const requestedWorkspaceId = typeof query.workspaceId === 'string' ? query.workspaceId : null
 
-  // Only honour the workspace billing context if the caller is actually a
-  // member: without this gate any logged-in user who learns a workspace id
-  // (e.g. from a shared doc URL or a lapsed membership) could read that
-  // workspace's live budget. Non-members fall back to their own context.
+  // Honour the workspace context only for members: otherwise any logged-in
+  // user who learns a workspace id could read its live budget. Non-members
+  // fall back to their own context.
   const workspaceId = requestedWorkspaceId
     && (await getWorkspaceRole(userId, requestedWorkspaceId)) !== null
     ? requestedWorkspaceId
@@ -53,9 +42,9 @@ export default defineEventHandler(async (event) => {
 
   const billing = await resolveBillingContext(userId, workspaceId)
 
-  // Team / Business workspace (WP3): the member's key in the workspace
-  // team. Remaining = the smaller of what's left of the member's limit
-  // and of the team pool; `workspace` carries both for the usage panel.
+  // Team / Business workspace: the member's key in the workspace team.
+  // Remaining = the smaller of the member's limit and the team pool;
+  // `workspace` carries both for the usage panel.
   if (billing.attribution === 'workspace' && billing.workspaceId) {
     const pool = await getPooledWorkspace(billing.workspaceId)
     const caps = pool ? workspacePoolCaps(pool.plan, pool.seats) : null
@@ -97,9 +86,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Phase 7: read the live key info from the SAME budget that is
-  // actually charged, so the points number matches what gets debited on
-  // the next AI call.
+  // Read live key info from the same budget that is actually charged.
   const info = await getUserKeyInfo(billing.billingUserId, billing.plan)
 
   const remainingDollars = Math.max(0, info.maxBudget - info.spend)

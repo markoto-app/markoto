@@ -54,7 +54,6 @@ const bodyText = computed(() => {
 })
 const tooLong = computed(() => text.value.length > INITIAL_CONTENT_MAX_LENGTH)
 
-// ── Editor ───────────────────────────────────────────────────────────
 const editorHost = ref<HTMLElement | null>(null)
 const view = shallowRef<EditorView | null>(null)
 
@@ -107,7 +106,6 @@ onBeforeUnmount(() => {
   view.value = null
 })
 
-// ── Preview (the editor's client pipeline, no document) ─────────────
 const { rendered } = useMarkdownPreview(bodyText)
 const previewHost = ref<HTMLElement | null>(null)
 const { pageCount, isReady, error: previewError } = usePagedPreview({
@@ -119,10 +117,8 @@ const { pageCount, isReady, error: previewError } = usePagedPreview({
   language: computed(() => props.language ?? '')
 })
 
-// ── Phones: Edit / Preview tabs (both panes stay mounted) ────────────
 const tab = ref<'edit' | 'preview'>('edit')
 
-// ── Actions ──────────────────────────────────────────────────────────
 const busy = ref<'open' | 'pdf' | null>(null)
 const errorKey = ref<string | null>(null)
 // The document made from the current text, if any (reused on a second click).

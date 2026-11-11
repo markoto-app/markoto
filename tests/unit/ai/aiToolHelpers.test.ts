@@ -20,10 +20,8 @@ import { UpdateThemeArgs, type UpdateThemeInput } from '../../../server/utils/ag
 
 describe('coerceThemePatch', () => {
   it('coerces headings.weight string enum to number', () => {
-    // Function-call schema stability (carried over from pre-Phase-5
-    // Gemini-era constraints) forces weight to be '600' not 600;
-    // handler must un-stringify before isValidTheme (which expects a
-    // number literal).
+    // Function-call schema stability forces weight to be '600' not 600; handler must un-stringify before
+    // isValidTheme (which expects a number literal).
     const out = coerceThemePatch({ headings: { weight: '600' } } as UpdateThemeInput) as { headings: { weight: number } }
     expect(out.headings.weight).toBe(600)
     expect(typeof out.headings.weight).toBe('number')

@@ -1,7 +1,8 @@
 // Content-Security-Policy builders — the single source of truth for every
 // deployment shape (hosted prod/staging, self-host, local full stack, the
 // test stacks). The app sets the header itself (server/plugins/csp.ts) with
-// a per-response nonce; Traefik no longer carries a CSP label.
+// a per-response nonce (Traefik carries no CSP label, it would be enforced
+// on top of this one).
 //
 // Two policies:
 //   - `buildAppCsp` — every page of the app. The live preview / print
@@ -13,7 +14,7 @@
 //     (renderer/src/allowlist.ts): Playwright does not re-enter route() for
 //     redirect hops, Chromium enforces this on every hop.
 //
-// Design (see docs/SECURITY-HARDENING.md §2):
+// Design (see docs/SECURITY-HARDENING.md):
 //   - script-src: 'self' + the response nonce. paged.js + Mermaid are
 //     same-origin /vendor/ files (shared/utils/vendor/vendorAssets.ts), still
 //     SRI-locked at the tag. No 'unsafe-inline' (inline event handlers
@@ -127,8 +128,8 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  *
  * The live preview and print iframes run in an opaque origin, so every
  * image they load is a cross-site request, and CORP `same-site` makes
- * Chromium refuse it (`ERR_BLOCKED_BY_RESPONSE.NotSameSite`). Two kinds of
- * resource are loaded there:
+ * Chromium refuse it (`ERR_BLOCKED_BY_RESPONSE.NotSameSite`). These
+ * resources are loaded there:
  *   - `/api/files/…` (a 302 to presigned S3) — authorised by the session /
  *     file-access token, not by the origin;
  *   - `/markoto-logos/…` — the bundled brand marks the default theme puts
@@ -139,13 +140,12 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  *     (server/utils/rendering/vendorAssetHeaders.ts) because the iframe loads them
  *     in CORS mode (SRI, fonts).
  *   - `/api/docs/<docId>/brand/<file>` — the workspace brand kit's fonts
- *     and logos (WP10), authorised by the file-access token like
+ *     and logos, authorised by the file-access token like
  *     `/api/files`; sent with `Access-Control-Allow-Origin: *` (fonts load
  *     in CORS mode).
  * Published pages' files (`/api/published/…`) are `same-origin`.
- * Everything else stays `same-site`. (Chromium happens to let plain
- * `localhost` through, which is why the blocked cover logo only showed on
- * real host names.)
+ * Everything else stays `same-site`. (Chromium exempts plain
+ * `localhost`, so the block only shows on real host names.)
  */
 const DOC_BRAND_ASSET_PATH = /^\/api\/docs\/[^/]+\/brand\/[^/]+$/
 

@@ -4,11 +4,9 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 
-// GET /api/user/billing — session-level plan summary for the topbar +
-// pre-disabling new-workspace / knowledge-upload affordances. Phase 6
-// moved AI quota to LiteLLM virtual keys, so this endpoint no longer
-// surfaces interactions/points — that's `/api/ai/credits`. The shape
-// here is plan + period + structural caps (workspaces / knowledge).
+// GET /api/user/billing: session-level plan summary for the topbar + pre-disabling new-workspace /
+// knowledge-upload affordances. AI quota lives in LiteLLM virtual keys (`/api/ai/credits`), so this endpoint
+// carries plan + period + structural caps (workspaces / knowledge) only.
 
 describe('GET /api/user/billing', () => {
   beforeEach(async () => {

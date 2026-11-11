@@ -80,7 +80,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   const notice = page.getByTestId('try-it-notice')
   await expect(notice).toContainText('Both buttons create a document')
 
-  // ─── Download PDF ────────────────────────────────────────────
+  // Download PDF
   await flow.heading('Download it as a PDF', 3)
   await flow.narrate(
     'Both buttons turn your text into a real markoto document. Without an '
@@ -114,7 +114,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-')
   expect(download.suggestedFilename()).toBe('Field notes.pdf')
 
-  // ─── Open as a document ──────────────────────────────────────
+  // Open as a document
   await flow.click('Click "Open as a document"', page.getByTestId('try-it-open'), {
     result: 'The same document opens in the editor, with your text in it.',
     after: () => page.waitForURL(/\/d\/[^/]+$/, { timeout: 30_000 })

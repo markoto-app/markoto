@@ -1,40 +1,19 @@
 name: release
 
-# Phase 12 — a merge to main fires this. Pipeline:
+# A merge to main fires this, but only for PRs labeled release:patch|minor|major.
+# The PR title becomes the release name and the PR body the release notes;
+# there is no aggregation across PRs. Jobs, in order:
 #
-#   1. resolve-pr           — find the PR for this commit, read its title +
-#                             body + release:* label. release:none short-
-#                             circuits the rest. We use the PR title as the
-#                             release name and the PR body as the release
-#                             notes — no aggregation, no release-drafter.
-#   2. bump-version         — compute the next version from the latest v* TAG
-#                             (not package.json) and push an annotated vX.Y.Z
-#                             tag. NO commit back to main.
-#   3. build-images         — matrix [app, sync-server, renderer, markitdown, backup], push to GHCR
-#   4. run-flows            — regenerate flow output against the freshly-built
-#                             tag (uses docker-compose.test.yml --profile flows)
-#   5. create-release       — softprops/action-gh-release using the PR title
-#                             as the release name, the PR body as the body
-#                             (with an auto-appended footer), and flow image
-#                             assets attached
-#   6. notify-release       — single Apprise message
+#   resolve-pr      find the PR for this commit, read title, body and label
+#   bump-version    next version from the latest v* tag; push an annotated tag
+#   build-images    app, sync-server, renderer, markitdown, backup -> GHCR
+#   run-flows       full Playwright flow suite against the freshly built tag
+#   create-release  GitHub Release from the PR title/body + flow assets
+#   notify-release  one Apprise message
 #
-# main is strictly PR-only: this workflow NEVER pushes a commit to main.
-# Versions live in the git tag history, not a committed package.json bump,
-# and flow manifests ship as Release assets rather than a commit. The only
-# write is the vX.Y.Z tag push (tags aren't covered by the branch ruleset),
-# authenticated by RELEASE_BOT_TOKEN. See docs/GITHUB-CONFIG.md.
-#
-# Why "PR-title + PR-body" over release-drafter aggregation:
-#
-# Our model is one-LABELED-PR-equals-one-release. Merges WITHOUT a
-# release:patch|minor|major label do not release (Actions-budget economy —
-# label the last PR of a batch to ship the accumulated work). When a
-# release does run, aggregation across multiple PRs is unnecessary, and
-# release-drafter's category buckets bury what authors actually wrote in
-# their PR descriptions. Authors get rewarded for writing meaningful titles
-# + descriptions (PR template hints at "What changed" / "Why" / "How to
-# verify"); those flow directly to the release page with zero indirection.
+# main is strictly PR-only: this workflow never pushes a commit to main. The
+# only write is the vX.Y.Z tag push (tags aren't covered by the branch
+# ruleset), authenticated by RELEASE_BOT_TOKEN. See docs/operations/GITHUB-CONFIG.md.
 
 on:
   push:
@@ -43,7 +22,7 @@ on:
 # Least privilege: nothing by default, each job grants itself what it needs.
 # Jobs that need high-value secrets (RELEASE_BOT_TOKEN, live-AI provider keys,
 # APPRISE_URLS) bind the `release` Environment, which only deploys from `main`
-# (docs/GITHUB-CONFIG.md). Repo-level secrets are NOT used here.
+# (docs/operations/GITHUB-CONFIG.md). Repo-level secrets are NOT used here.
 permissions: {}
 
 concurrency:
@@ -158,9 +137,7 @@ jobs:
         run: |
           set -euo pipefail
           # Source of truth for the current version is the latest v* tag,
-          # NOT package.json — the release flow no longer commits a version
-          # bump back to main (main is strictly PR-only), so the tag history
-          # is the durable version record. resolve-pr checks out at
+          # NOT package.json: nothing commits a version bump back to main. resolve-pr checks out at
           # fetch-depth: 0, so every tag is present here. No tags yet → 0.0.0.
           CURRENT=$(git tag --list 'v*' --sort=-v:refname | head -n1 | sed 's/^v//')
           CURRENT=${CURRENT:-0.0.0}
@@ -182,8 +159,9 @@ jobs:
       # A release whose changes since the previous tag touch nothing the app
       # image runs — the committed flow screenshots (public/flows, a
       # publish-flow-shots PR), operator docs, AGENTS.md / top-level Markdown,
-      # CI workflows (.github/) — has no code for the flow suite to test: it ships new images (the screenshots live in the app
-      # image) without the ~45-minute suite. content/ is NOT docs-only: those
+      # CI workflows (.github/) — has no code for the flow suite to test: it
+      # ships new images (the screenshots live in the app image) without the
+      # ~45-minute suite. content/ is NOT docs-only: those
       # pages are served by the app and covered by flows.
       - name: Detect a docs-only release
         id: scope
@@ -226,7 +204,7 @@ jobs:
           RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
         run: |
           if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/GITHUB-CONFIG.md). No tag was pushed."
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md). No tag was pushed."
             exit 1
           fi
 
@@ -262,9 +240,8 @@ jobs:
       matrix:
         # `image` is the GHCR repo name the prod compose pulls
         # (${REGISTRY}/markoto-<x>); `service` is just the display label
-        # + build cache scope. All five runtime images are built here — the
-        # markitdown + backup images were previously omitted, so the prod
-        # stack could never pull a complete set.
+        # + build cache scope. All five runtime images are built here so the
+        # prod stack can pull a complete set.
         include:
           - service: app
             context: .
@@ -294,10 +271,10 @@ jobs:
           persist-credentials: false
           ref: v${{ needs.resolve-pr.outputs.new_version }}
 
-      # The app build plus its 10 GB swapfile and BuildKit's cache export
-      # left the runner with ~90 MB free on the v0.2.0 release, so the
-      # cosign download after the push failed and the image went out
-      # unsigned. Drop preinstalled SDKs this job never uses first (same
+      # The app build plus its 10 GB swapfile and BuildKit's cache export can
+      # leave the runner nearly out of disk, which would make the cosign
+      # download after the push fail and leave the image unsigned. Drop
+      # preinstalled SDKs this job never uses first (same
       # list as image-scan.yml).
       - name: Free runner disk space
         run: |
@@ -328,7 +305,7 @@ jobs:
           RELEASE_BOT_TOKEN: ${{ secrets.RELEASE_BOT_TOKEN }}
         run: |
           if [ -z "${RELEASE_BOT_TOKEN:-}" ]; then
-            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
+            echo "::error title=Missing secret::RELEASE_BOT_TOKEN is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
             exit 1
           fi
 
@@ -347,7 +324,7 @@ jobs:
           # carries packages:write, so it doubles as the GHCR push
           # credential. ${{ secrets.GITHUB_TOKEN }} (the job declares
           # `packages: write`) works too once each package grants this repo
-          # Actions write access — docs/GITHUB-CONFIG.md, owner checklist.
+          # Actions write access — docs/operations/GITHUB-CONFIG.md, owner checklist.
           password: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       # Installed BEFORE the build so a full disk after a large push can
@@ -404,9 +381,8 @@ jobs:
     runs-on: ubuntu-latest
     # The flow suite is 160 Playwright tests on ONE worker by design
     # (flow-docs record ordered manifests against a shared stack) —
-    # measured ~3.1 tests/min in CI ⇒ ~55 min for the suite alone, plus
-    # setup + retries. 45 was measured-too-small (run 29152361051
-    # cancelled mid-suite at 107/160).
+    # ~3.1 tests/min in CI ⇒ ~55 min for the suite alone, plus setup and
+    # retries.
     timeout-minutes: 90
     env:
       IMAGE_TAG: v${{ needs.resolve-pr.outputs.new_version }}
@@ -416,9 +392,9 @@ jobs:
       # bound only to the two steps that use them (test-stack bring-up passes
       # them into the litellm container; `flows:test` reads them), so
       # `bun install`, Playwright and every other step never see them.
-      # flows-ephemeral.ts runs `bun run build`, which OOMs at the default V8
-      # heap limit on the 7 GB runner (same fix as ci.yml test-repos-integration-flows
-      # and staging-gate.yml full-flow-suite — this job was the only one missing it).
+      # flows-ephemeral.ts runs `bun run build`, which exceeds the default V8
+      # heap limit on the 7 GB runner (same setting as ci.yml
+      # test-repos-integration-flows and staging-gate.yml full-flow-suite).
       NODE_OPTIONS: --max-old-space-size=6144
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -438,7 +414,7 @@ jobs:
             if [ -z "${!n:-}" ]; then missing="${missing} ${n}"; fi
           done
           if [ -n "$missing" ]; then
-            echo "::error title=Missing secrets::Not set in the 'release' Environment (docs/GITHUB-CONFIG.md):${missing}"
+            echo "::error title=Missing secrets::Not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md):${missing}"
             exit 1
           fi
 
@@ -500,10 +476,8 @@ jobs:
           include-hidden-files: true
           retention-days: 30
 
-      # On failure the Playwright
-      # error contexts (test-results/) used to vanish with the runner —
-      # debugging the July-11 polished-pdf hang required a full local
-      # reproduction because of exactly this gap. Ship them always.
+      # Ship the Playwright error contexts (test-results/) always; they
+      # vanish with the runner otherwise.
       - name: Upload failure artefacts (error contexts + traces)
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -513,11 +487,9 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # NOTE: flow manifests are NOT committed back to main (main is strictly
-  # PR-only). The flow output is still published — run-flows uploads it as
-  # the `flow-output` artifact and create-release packs it into the GitHub
-  # Release assets. If the docs-site gallery ever needs the manifests in
-  # git, refresh them via a normal PR rather than an automated push to main.
+  # Flow manifests are NOT committed back to main. run-flows uploads them as
+  # the `flow-output` artifact and create-release packs them into the GitHub
+  # Release assets.
 
   create-release:
     name: create-release
@@ -626,7 +598,7 @@ jobs:
           URL: ${{ needs.create-release.outputs.release_url }}
         run: |
           if [ -z "${APPRISE_URLS:-}" ]; then
-            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/GITHUB-CONFIG.md)."
+            echo "::warning title=Notification skipped::APPRISE_URLS is not set in the 'release' Environment (docs/operations/GITHUB-CONFIG.md)."
             exit 0
           fi
           apprise -t "markoto v${NEW} released" \

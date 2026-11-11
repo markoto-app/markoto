@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { EMPTY_INSTANCE_BRAND, instanceBrandLogoExt, resolveInstanceBrand } from '../../../shared/config/instanceBrand'
 import { applyTitleTemplate, DEFAULT_TITLE } from '../../../shared/seo/meta'
 
-// Co-branding of a managed private instance (WP16): the env values the
+// Co-branding of a managed private instance: the env values the
 // operator sets, cleaned up; nothing changes without them.
 
 describe('resolveInstanceBrand', () => {

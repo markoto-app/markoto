@@ -20,7 +20,7 @@ import {
   type CreditSubject
 } from '../../repos/aiCreditGrants'
 
-// AI credit top-ups (WP4) — orchestration.
+// AI credit top-ups: orchestration.
 //
 //   Budget  = plan budget + credits left + credits used this month
 //             (`aiCreditBudget.ts`, applied by `recomputeCreditBudget`).

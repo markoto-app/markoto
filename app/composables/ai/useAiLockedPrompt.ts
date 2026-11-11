@@ -1,7 +1,7 @@
 import { AI_SETTINGS_ROUTE, useAiWorkspaceContext } from './useAiAvailability'
 
 /**
- * Explain a platform AI capability the paying plan doesn't include (WP5),
+ * Explain a platform AI capability the paying plan doesn't include,
  * when someone clicks its locked control (voice mic, dictation). The way
  * forward depends on where they are:
  *   - in a workspace document → "ask a workspace admin" (members never

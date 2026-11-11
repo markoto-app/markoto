@@ -1,8 +1,8 @@
 // Server-side accessors for the instance shape (login providers + legal
 // surfaces). See `shared/config/instance.ts` for the deployment matrix.
 //
-// Reads `process.env` on every call (same reasoning as `billingMode.ts`):
-// tests flip the flags per case, and helpers work outside Nitro.
+// Reads `process.env` on every call so tests can flip flags per case and the
+// helpers work outside Nitro.
 
 import { createError } from 'h3'
 import { resolveLegalSurfacesEnabled } from '~~/shared/config/instance'
@@ -16,10 +16,9 @@ export function legalSurfacesEnabled(): boolean {
 export const LEGAL_DISABLED_CODE = 'legal/disabled'
 
 /**
- * Guard for the legal-document endpoints. With the legal surfaces off the
- * hosted service's texts must not be served under a self-hosted origin —
- * they would name LatentSpace Labs as the operator. 404, like a route
- * that doesn't exist (same reasoning as `assertBillingEnabled`).
+ * Guard for the legal-document endpoints. With the legal surfaces off, the
+ * bundled texts must not be served from a self-hosted origin: they name
+ * LatentSpace Labs as the operator. 404, as for a route that doesn't exist.
  */
 export function assertLegalSurfacesEnabled(): void {
   if (legalSurfacesEnabled()) return

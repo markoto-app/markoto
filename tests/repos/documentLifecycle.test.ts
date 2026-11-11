@@ -23,7 +23,7 @@ import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 // The orchestrator deleteDocument is covered by the endpoint integration
 // tests (DELETE /api/docs/:id).
 
-// --- fake S3 ---------------------------------------------------------------
+// fake S3
 
 type SendFn = S3Client['send']
 
@@ -60,7 +60,7 @@ function makeFakeS3(state: FakeS3State): Pick<S3Client, 'send'> {
   return { send }
 }
 
-// --- deleteDocDbRows -------------------------------------------------------
+// deleteDocDbRows
 
 describe('deleteDocDbRows', () => {
   beforeEach(async () => {
@@ -120,7 +120,7 @@ describe('deleteDocDbRows', () => {
   })
 })
 
-// --- cleanupDocS3 ----------------------------------------------------------
+// cleanupDocS3
 
 describe('cleanupDocS3', () => {
   it('deletes every object under docs/{docId}/', async () => {
@@ -188,7 +188,7 @@ describe('cleanupDocS3', () => {
   })
 })
 
-// --- notifySyncDeleted -----------------------------------------------------
+// notifySyncDeleted
 
 describe('notifySyncDeleted', () => {
   it('dispatches a POST with the right shape', async () => {

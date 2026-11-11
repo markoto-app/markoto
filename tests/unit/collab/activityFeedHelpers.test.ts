@@ -12,7 +12,7 @@ function entry(overrides: Partial<ActivityLike> & { action: ActivityAction }): A
   return { userName: 'Alice', metadata: null, ...overrides }
 }
 
-// --- categoryOf -----------------------------------------------------------
+// categoryOf
 
 describe('categoryOf', () => {
   it('classifies edits', () => {
@@ -77,7 +77,7 @@ describe('categoryOf', () => {
   })
 })
 
-// --- isExpandable ---------------------------------------------------------
+// isExpandable
 
 describe('isExpandable', () => {
   it('makes edit rows expandable (diff drawer)', () => {
@@ -120,7 +120,7 @@ describe('isExpandable', () => {
   })
 })
 
-// --- expansionToggleLabelKey ---------------------------------------------
+// expansionToggleLabelKey
 
 describe('expansionToggleLabelKey', () => {
   it('returns the diff key for edit rows', () => {
@@ -150,7 +150,7 @@ describe('expansionToggleLabelKey', () => {
   })
 })
 
-// --- safeLinkUrl ------------------------------------------------------------
+// safeLinkUrl
 
 describe('safeLinkUrl (regression: AI-tool metadata URLs)', () => {
   it.each([

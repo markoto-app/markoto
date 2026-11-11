@@ -6,7 +6,7 @@ import { isBillingEnabled } from './billingMode'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
 import { MAX_WORKSPACE_SEATS, MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 
-// Team / Business workspace billing (pricing plan WP3).
+// Team / Business workspace billing.
 //
 // A workspace with an ENTITLED subscription (billing on, status active /
 // trialing / past_due, not expired — `subscriptionGrantsPlan`) is
@@ -136,7 +136,7 @@ export function memberLimitUsd(member: { aiLimitUsd: number | null, aiUnlimited:
 export async function countSeatsUsed(workspaceId: string, now: Date = new Date(), exceptInviteEmail?: string): Promise<number> {
   const [members, invites] = await Promise.all([
     countMembers(workspaceId),
-    // Guests and their invitations take no seat (WP11).
+    // Guests and their invitations take no seat.
     countOpenWorkspaceInvites(workspaceId, now, exceptInviteEmail, 'members')
   ])
   return members + invites

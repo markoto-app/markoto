@@ -14,6 +14,11 @@ const root = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: '
 const PATTERN = /\b(WP ?\d+[a-z]?|Phase \d+|Batch \d+|[Ss]ecurity batch|batch B\d+|Workstream [A-Z]|MMP)\b/g
 
 const EXCLUDE = [
+  // Sample documents: "Phase 1" there is the document's own content.
+  /^shared\/templates\/content\//,
+  /^tests\/fixtures\/theme-shots\//,
+  /^tests\/e2e\/flows\/share-a-document-with-a-guest\.spec\.ts$/,
+  /^tests\/unit\/theme\/themeStructure\.test\.ts$/,
   /^CHANGELOG\.md$/,
   /^drizzle\//,
   /^public\//,

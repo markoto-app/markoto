@@ -50,7 +50,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
     + 'who has the doc open is sent back to their dashboard.'
   )
 
-  // ─── Open the menu containing Delete ────────────────────────────
+  // Open the menu containing Delete
   // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
   // Mobile collapses File / Edit / View / etc. into a single hamburger
   // ("more") UDropdownMenu in the topbar — the duplicate/move/delete
@@ -82,7 +82,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Type the title to unlock the button ────────────────────────
+  // Type the title to unlock the button
   await flow.heading('Type the title to confirm', 3)
   await flow.narrate(
     'The Delete button stays disabled until the typed text exactly '
@@ -99,7 +99,7 @@ test('Delete a document', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Confirm ────────────────────────────────────────────────────
+  // Confirm
   await flow.click(
     'Click "Delete"',
     page.locator('[data-testid="delete-confirm"]'),

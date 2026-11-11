@@ -3,7 +3,7 @@ import { effectScope, ref, type Ref } from 'vue'
 import { useResponsePanelState } from '../../../app/components/ai/useResponsePanelState'
 
 // State machine for `AIResponsePanel.vue`. Tests pin every behaviour
-// the SFC ships and every bug we already shipped on this surface:
+// the SFC ships and the edge cases of this surface:
 //
 //   - Auto-collapse fires after the configured window (10s default)
 //     when measured FROM ARRIVAL, not from the server-stamped ts.
@@ -143,7 +143,7 @@ describe('useResponsePanelState', () => {
       expect(state.expanded.value).toBe(false)
 
       // Source ref is the parent's latched value — dismiss MUST NOT
-      // touch it. The pre-fix bug evicted it; this assertion pins
+      // touch it. Evicting it would be a bug; this assertion pins
       // that the composable doesn't reach back into the parent's
       // ref.
       expect(source.value?.message).toBe('still latched')

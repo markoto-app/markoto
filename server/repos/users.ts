@@ -3,10 +3,8 @@ import { users } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { ConflictError } from './errors'
 
-// Users repository. The OAuth handlers do an "upsert by provider id",
-// so the write path is a single `upsertOAuthUser` that replaces the
-// `select → if existing update else insert → re-select id` dance
-// github.get.ts / google.get.ts used to open-code.
+// Users repository. OAuth handlers write through the single `upsertOAuthUser`
+// (upsert by provider id).
 
 export type Provider = 'github' | 'google' | 'oidc'
 
@@ -37,22 +35,16 @@ interface OAuthProfileFields {
   name: string
   email: string | null
   /**
-   * Whether the email returned by the OAuth provider is verified.
-   * Gates the email-based account merge path: we only merge a new
-   * login into an existing row if BOTH sides present the same
-   * verified email. Otherwise an attacker who can claim an
-   * arbitrary email at one provider could take over someone else's
-   * account at another.
+   * Whether the provider verified the email. Gates the email-based account
+   * merge: a new login merges into an existing row only when BOTH sides present
+   * the same verified email, otherwise someone who can claim an arbitrary email
+   * at one provider could take over an account at another.
    *
-   * - GitHub: the userinfo endpoint only returns the primary email
-   *   when `emailRequired: true` is set, and GitHub only lists an
-   *   email as primary after it's been verified. So for our
-   *   GitHub flow, `email != null` => verified.
-   * - Google: OIDC userinfo returns `email_verified: boolean`
-   *   directly. Pipe that through.
-   * - Generic OIDC: `email_verified === true` from the IdP. The OIDC
-   *   handler additionally drops an unverified email entirely (passes
-   *   `email: null`), see `server/utils/oidc/profile.ts`.
+   * - GitHub: the email is only returned (and only as primary) once verified,
+   *   so `email != null` means verified.
+   * - Google: `email_verified` from OIDC userinfo.
+   * - Generic OIDC: `email_verified === true`; the handler already drops an
+   *   unverified email (`email: null`), see `server/utils/oidc/profile.ts`.
    */
   emailVerified: boolean
 }
@@ -68,10 +60,9 @@ export type OAuthUpsertInput = OAuthProfileFields & (
 )
 
 /**
- * Outcome returned from `upsertOAuthUser` so callers can show a
- * flash message like "linked your Google login to your existing
- * account". Pure diagnostic — the user id is what drives the
- * session cookie either way.
+ * Outcome of `upsertOAuthUser`, so callers can show e.g. "linked your Google
+ * login to your existing account". Diagnostic only; the user id drives the
+ * session.
  */
 export type OAuthUpsertOutcome = 'inserted' | 'updated' | 'merged'
 
@@ -142,36 +133,15 @@ export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id'
 }
 
 /**
- * Upsert a user by OAuth provider id.
- *
- * Three outcomes:
- *
- *   1. **updated** — the provider id matches an existing row. Refresh
- *      the profile fields (name, email, login-for-github)
- *      in case the user changed them on the provider.
- *
- *   2. **merged** — the provider id is new, BUT the verified email
- *      matches a row with the OTHER provider id set. Add our
- *      provider id to that existing row so the user can sign in
- *      with either provider going forward. This is what keeps a
- *      "I signed up with GitHub; now let me try Google" second
- *      login from creating a ghost account. Gated on
- *      `emailVerified=true` so an attacker who can't prove the
- *      email is theirs (e.g. a provider that doesn't verify) can't
- *      take over someone else's account.
- *
- *   3. **inserted** — genuinely new user. No provider-id match, no
- *      mergeable email hit.
- *
- * Ordering rules for case #2 (the merge):
- *   - Only merge if the candidate row has NULL for OUR provider id.
- *     If both provider ids are already set on that row, insert a
- *     new row instead — merging would clobber an existing binding.
- *   - `SELECT FOR UPDATE` locks the candidate row for the tx so
- *     two concurrent logins of the same email can't both merge
- *     (which would corrupt "only one of us wins" into "both append
- *     our provider id to different rows with the same provider
- *     now set").
+ * Upsert a user by OAuth provider id. Three outcomes:
+ *  1. updated: the provider id matches a row; refresh name / email / GitHub login.
+ *  2. merged: the provider id is new but the verified email matches a row bound
+ *     to the OTHER provider; bind ours to it so either provider can sign in.
+ *     Requires `emailVerified=true`, otherwise an unproven email could take
+ *     over an account. Only merges when the candidate has NULL for OUR provider
+ *     id (else insert, to avoid clobbering a binding). `SELECT FOR UPDATE`
+ *     stops two concurrent logins of the same email merging into different rows.
+ *  3. inserted: a genuinely new user.
  */
 export async function upsertOAuthUser(input: OAuthUpsertInput): Promise<OAuthUpsertResult> {
   const db = useDatabase()
@@ -298,27 +268,16 @@ async function insertNewUser(tx: Tx, input: OAuthUpsertInput): Promise<OAuthUpse
   return { userId: inserted[0]!.id, outcome: 'inserted' }
 }
 
-// ────────────────────────────────────────────────────────────────────
-// GDPR Article 17: account-deletion request lifecycle
-// ────────────────────────────────────────────────────────────────────
+// GDPR Art. 17 account-deletion request lifecycle. These functions only touch
+// the two timestamp columns on `users`; the cascading purge lives in
+// `accountDeletionSweep.ts`.
 //
-// Three repo functions:
-//   - `requestAccountDeletion` marks the user with a 30-day grace
-//     window. Idempotent at the contract level: calling it on an
-//     already-scheduled account throws `ConflictError` (the orchestrator
-//     translates this to a 409). The reason it's not silently
-//     idempotent: re-requesting would reset the grace clock, which is
-//     a user-hostile behaviour (an attacker who phished session tokens
-//     could keep extending the window).
-//   - `cancelAccountDeletion` clears the marks. Throws `ConflictError`
-//     if no deletion is scheduled (so the orchestrator knows to
-//     surface a clear "nothing to cancel" error).
-//   - `getAccountDeletionStatus` reads the current state for the
-//     user; null fields mean no deletion is scheduled.
-//
-// **No actual purge happens here.** The cascading delete lives in
-// `accountDeletionSweep.ts` (Workstream B-2). These functions only
-// touch the two timestamp columns on `users`.
+// `requestAccountDeletion` throws `ConflictError` (409) on an already-scheduled
+// account instead of being silently idempotent: re-requesting would reset the
+// grace clock, and someone with a phished session could keep extending the
+// window. `cancelAccountDeletion` throws `ConflictError` when nothing is
+// scheduled. `getAccountDeletionStatus` reads the state (null fields = none
+// scheduled).
 
 export interface AccountDeletionStatus {
   deletionRequestedAt: Date | null
@@ -455,16 +414,10 @@ export interface AccountStatus {
 }
 
 /**
- * One-shot onboarding mutation: confirms the user's age (if not
- * already), records acceptance of the Privacy Policy + Terms of
- * Service at the given versions, and stamps the locale the user
- * read each in. Idempotent: re-running on an already-accepted
- * row no-ops the relevant column. Used by the onboarding gate
- * modal (`/api/user/onboarding-accept`).
- *
- * DPA acceptance is NOT in this call — DPA is workspace-owner
- * only and gets prompted at workspace-creation time. A separate
- * `acceptDpa(userId, version, locale)` will handle that flow.
+ * One-shot onboarding mutation: confirm age (if not already) and record Privacy
+ * + ToS acceptance at the given versions with the locale they were read in.
+ * Idempotent. DPA acceptance is separate (`applyDpaAcceptance`): it is
+ * workspace-owner only and prompted at workspace creation.
  */
 export async function applyOnboardingAcceptance(args: {
   userId: number
@@ -485,18 +438,8 @@ export async function applyOnboardingAcceptance(args: {
 }
 
 /**
- * Record a user's acceptance of the DPA at the given version + locale.
- * Used by the workspace-creation flow (forthcoming) when a user
- * who hasn't accepted yet creates their first workspace.
- */
-/**
- * Set the `is_admin` flag on a user. Called by:
- *   - The OAuth-upsert path (env-allowlist bootstrap on login).
- *   - A future admin-management UI (forthcoming).
- *
- * Repo-level mutation only — the caller is responsible for the
- * audit-log entry. Returns the previous value so the caller can
- * decide whether to audit (no-op flips don't need an audit row).
+ * Set the `is_admin` flag. Mutation only: the caller writes the audit-log entry.
+ * Returns the previous value so the caller can skip auditing no-op flips.
  */
 export async function setAdminFlag(userId: number, value: boolean): Promise<{ previous: boolean } | null> {
   const db = useDatabase()
@@ -513,6 +456,7 @@ export async function setAdminFlag(userId: number, value: boolean): Promise<{ pr
   return { previous: before.isAdmin }
 }
 
+/** Record acceptance of the DPA at the given version + locale. */
 export async function applyDpaAcceptance(args: {
   userId: number
   dpaVersion: number

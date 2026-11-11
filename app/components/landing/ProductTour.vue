@@ -3,7 +3,7 @@ import { coverRange, restOffsetVh, stageSideKeyframes, type TourScene } from '~~
 import { TOUR_DARK_FROM } from '~~/shared/tour/config'
 
 /**
- * markoto.app's product page (WP11): shown at `/` to logged-out visitors
+ * markoto.app's product page: shown at `/` to logged-out visitors
  * when the instance enables it (`NUXT_MARKETING_SITE_ENABLED`, see
  * `shared/config/instance.ts`). Hero → nine scenes → closing CTA. Each
  * scene's picture is a short looping video recorded from the real app.
@@ -112,7 +112,6 @@ useHead({
   style: [{ key: 'mk-tour-sides', textContent: stageSideKeyframes('mk-sides', scenes.length, 'var(--mk-flip)', { glideVh: SIDE_GLIDE_VH }) }]
 })
 
-// ─── Lazy stage scenes ────────────────────────────────────────────────
 // SSR renders the first scene's layer; the rest mount when their section
 // comes within ~1.5 viewports (and stay mounted).
 const sectionEls = ref<Array<HTMLElement | null>>([])
@@ -127,7 +126,6 @@ let observer: IntersectionObserver | null = null
 const PINNED_QUERY = '(min-width: 1024px) and (prefers-reduced-motion: no-preference)'
 const pinnedNow = () => typeof CSS !== 'undefined' && CSS.supports('animation-timeline: view()') && window.matchMedia(PINNED_QUERY).matches
 
-// ─── Paging (pinned layout) ───────────────────────────────────────────
 // Rest positions: the page top (hero), each scene's snap marker, the page
 // end (closing call to action + footer).
 function rests(): number[] {
@@ -141,7 +139,6 @@ function rests(): number[] {
 }
 const tourScroll = useTourScroll({ rests, active: pinnedNow, activeQuery: PINNED_QUERY })
 
-// ─── "Next" buttons ───────────────────────────────────────────────────
 // A quiet down arrow under the hero and every scene but the last: the
 // visible hint that the page goes on, and a way to page with a click or
 // Enter/Space. Pinned layout: a smooth scroll to the next rest (rest 0 is
@@ -163,7 +160,6 @@ const nextLabel = (i: number): string => {
   return next ? t('tour.nextScene', { scene: sceneLabel(next) }) : ''
 }
 
-// ─── Colour phase (every layout, every engine) ────────────────────────
 // Dark once the flip scene's top has passed the middle of the viewport —
 // between that scene's rest and the previous one's. The colours themselves
 // transition in CSS (registered custom properties), so this works without
@@ -625,7 +621,6 @@ html .mk-tour-page--auto .mk-wordmark__img--dark {
   padding-inline: var(--mk-pad);
 }
 
-/* ─── Hero ─── */
 .mk-hero {
   display: flex;
   flex-direction: column;
@@ -729,7 +724,6 @@ html .mk-tour-page--auto .mk-wordmark__img--dark {
   50% { translate: 0 4px; }
 }
 
-/* ─── Visual (poster + video) ─── */
 .mk-visual {
   position: absolute;
   inset: 0;
@@ -824,7 +818,6 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
   .mk-fan__page { width: 30%; }
 }
 
-/* ─── Scenes (static layout) ─── */
 .mk-stage { display: none; }
 .mk-scene {
   display: grid;
@@ -914,7 +907,6 @@ html .mk-tour-page--auto .mk-visual[data-tone="flip"] .mk-visual__tone--dark { o
   .mk-scene__body { font-size: 15px; }
 }
 
-/* ─── Closing CTA ─── */
 .mk-final {
   display: flex;
   flex-direction: column;
@@ -1049,7 +1041,6 @@ html.lenis body { height: auto; }
   scroll-snap-stop: always;
 }
 
-/* ─── Scroll-driven choreography ───────────────────────────────────── */
 @keyframes mk-fade-window {
   /* Spans window t = -0.125 … 1.125 (LAYER_FADE_T): fade in over the first
      0.25, out over the last 0.25 — centred on the scene boundaries. */

@@ -17,13 +17,12 @@
 //   6. editor state + prompt — per prompt
 //   7. turns of the loop     — append-only (runLoop.ts never rewrites history)
 //
-// Item 5 used to close the system message. Measured through LiteLLM
-// v1.106.4 (2026-11-03, 30 tools / ~8k-token prefix, 5 prompts with a
-// different history each): Mistral Small 4 cached 0 tokens from the 3rd
-// prompt on with the history at the end of the system message, and
-// 8112 / 8178 (99 %) with it in the user message — its template puts the
-// tool definitions AFTER the system message, so anything volatile there
-// invalidates them. GLM-5.3 Flash (tools rendered first) was unaffected.
+// Item 5 goes in the user message, not at the end of the system message:
+// Mistral Small 4's chat template puts the tool definitions AFTER the
+// system message, so anything volatile there invalidates them. With the
+// history in the system message, a 30-tool / ~8k-token prefix cached 0
+// tokens from the 3rd prompt on; in the user message it cached 99 %.
+// GLM-5.3 Flash (tools rendered first) is unaffected either way.
 // No ids, dates or random values anywhere in 1-4. Pinned by
 // tests/unit/ai/promptCachePrefix.test.ts.
 

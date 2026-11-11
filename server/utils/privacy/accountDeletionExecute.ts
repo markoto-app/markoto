@@ -33,7 +33,7 @@ import type { AccountDeletionSummary } from './accountDeletionPlan'
 import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from '../billing/workspaceBillingLifecycle'
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 
-// Cascading account deletion executor. Implements the locked policy:
+// Cascading account deletion executor. Policy:
 //
 //   - Comments authored by the user are ANONYMISED (author_id = NULL,
 //     author_name = '[deleted user]'); the bodies are kept so other
@@ -46,9 +46,8 @@ import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 //         viewer) and remove the user's membership row.
 //   - Workspaces where the user is editor/viewer → just remove the
 //     membership row.
-//   - Owned docs are HARD-DELETED regardless of collaborators (per
-//     the agreed policy).
-//   - AI usage (sessions + messages + period rows) hard-deleted.
+//   - Owned docs are HARD-DELETED regardless of collaborators.
+//   - AI sessions + messages hard-deleted.
 //   - Data-export jobs hard-deleted; their S3 blobs cleaned up.
 //   - LiteLLM virtual key + LiteLLM user record DELETED (best effort).
 //   - Stripe customer DELETED via stripe.customers.del — Stripe's
@@ -91,7 +90,7 @@ export async function executeAccountDeletion(
   summary.commentsAnonymised = await anonymiseCommentsByAuthor(userId)
   summary.activityAnonymised = await anonymiseActivityByUser(userId)
   const cascadeWorkspaceIds = await processWorkspaceMemberships(userId, summary)
-  // Team / Business (WP3): billing-admin role → longest-serving other
+  // Team / Business: billing-admin role → longest-serving other
   // admin (after the promotion above), else the subscription ends at the
   // period end. Cascade-deleted workspaces cancel instead.
   summary.billingAdminHandovers = await handOverBillingAdmin(userId, cascadeWorkspaceIds)
@@ -101,7 +100,7 @@ export async function executeAccountDeletion(
   // The user's keys in workspace LiteLLM teams (the tokens live on the
   // membership rows, so before they go).
   summary.workspaceKeysDeleted = await deleteAllMemberKeys(userId)
-  // Personal AI credit top-ups (WP4; no FK to users).
+  // Personal AI credit top-ups (no FK to users).
   summary.creditGrantsDeleted = await deleteCreditsForSubject({ type: 'user', id: String(userId) })
   const removed = await removeAllMemberships(userId)
   summary.workspaceMembershipsRemoved = removed.length
@@ -207,7 +206,7 @@ async function cascadeDeleteWorkspaces(
   summary: AccountDeletionSummary
 ): Promise<void> {
   if (cascadeWorkspaceIds.length === 0) return
-  // Team / Business (WP3): cancel every subscription FIRST. A
+  // Team / Business: cancel every subscription FIRST. A
   // subscription Stripe won't cancel throws here, before anything of
   // these workspaces is deleted; the sweep retries the account later.
   for (const wsId of cascadeWorkspaceIds) {
@@ -228,7 +227,7 @@ async function cascadeDeleteWorkspaces(
     }
   }
   // Drop the workspace rows themselves — workspace_members cascade via FK.
-  // Brand-kit objects (WP10): keys read before the rows cascade away.
+  // Brand-kit objects: keys read before the rows cascade away.
   for (const wsId of cascadeWorkspaceIds) {
     const brandKeys = await collectBrandObjectKeys(wsId)
     await deleteWorkspaceRow(wsId)

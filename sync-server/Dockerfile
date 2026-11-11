@@ -1,5 +1,5 @@
 # Runs TypeScript directly with Bun — no build step, so a single stage is
-# enough. See AGENTS.md §7.7: pre-bundling hit CJS/ESM issues with Hocuspocus
+# enough: pre-bundling hit CJS/ESM issues with Hocuspocus
 # and the cold-start delta is negligible.
 #
 # Build context is the repo root (not sync-server/) so we can COPY in

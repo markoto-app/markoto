@@ -10,15 +10,12 @@ import {
 // comment. Doc owner / workspace admin gets a manage-grade override
 // (same shape as `canManageDoc`). Anyone else: 403.
 //
-// Why server-side: the client used to delete by mutating the Y.Array
-// directly, which any peer with edit access could spoof. Routing
-// delete through the server lets us bind the action to the JWT user,
-// look up the actual author from the live Y.Doc, and refuse if they
-// don't match.
+// Server-side because a client mutating the Y.Array directly could be
+// spoofed by any peer with edit access; here the action is bound to the JWT
+// user and the author is looked up from the live Y.Doc.
 //
-// The trusted client connects briefly to Hocuspocus, mutates the
-// `comments` Y.Array, and disconnects. Editors of the doc see the
-// deletion arrive over the live channel — no manual refresh.
+// The server connects briefly to Hocuspocus, mutates the `comments` Y.Array
+// and disconnects; editors see the deletion over the live channel.
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
@@ -37,7 +34,7 @@ export default defineEventHandler(async (event) => {
   try {
     const found = findComment(client.ycomments, commentId)
     if (!found) {
-      // Already deleted by another action — idempotent OK.
+      // Already deleted: idempotent OK.
       return { ok: true, alreadyGone: true }
     }
     const author = readCommentAuthor(found.map)

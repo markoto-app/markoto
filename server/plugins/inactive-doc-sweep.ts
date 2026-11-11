@@ -16,8 +16,7 @@ import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/doc
 //   - Anonymous docs (ownerId NULL, workspaceId NULL) → reaped after
 //     `inactiveDocTtlDays` of inactivity (NUXT_INACTIVE_DOC_TTL_DAYS,
 //     default 30 — the period the Terms + privacy policy state) once
-//     their `sweep_not_before` floor has passed (migration 0024 gave the
-//     docs that predate the 180 → 30 change a 30-day window). Candidate
+//     their `sweep_not_before` floor has passed. Candidate
 //     query: server/utils/documents/inactiveDocSweep.ts.
 //
 // `last_active` is bumped by:

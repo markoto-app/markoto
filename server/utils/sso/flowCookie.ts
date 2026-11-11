@@ -1,13 +1,13 @@
-// Per-workspace SSO (WP14) — the per-attempt flow cookie.
+// Per-attempt flow cookie for workspace SSO.
 //
 // Same construction as the instance OIDC flow cookie
 // (`server/utils/oidc/flowCookie.ts`): one httpOnly cookie scoped to
-// `/auth/sso`, HMAC-SHA256-signed with the session password (no cookie
-// tossing from a sibling subdomain → no login CSRF with an attacker's
-// code / response), 10-minute lifetime checked against the cookie's own
-// issue time, single use (the callback deletes it first). It carries the
-// connection the attempt belongs to, so a response for connection A can
-// never complete a flow started for connection B.
+// `/auth/sso`, HMAC-SHA256-signed with the session password (so a sibling
+// subdomain can't toss in a cookie and force a login-CSRF with an attacker's
+// code / response), 10-minute lifetime checked against the cookie's own issue
+// time, single use (the callback deletes it first). It carries the connection
+// the attempt belongs to, so a response for connection A can never complete a
+// flow started for connection B.
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
 

@@ -203,7 +203,7 @@ describe('listRecentActivity', () => {
 })
 
 describe('appendActivity dedup (cross-instance flush race)', () => {
-  // Closes the residual race documented in `sync-server/AGENTS.md`:
+  // Closes the residual cross-container race:
   // two sync-server containers flushing the same doc concurrently
   // both compute identical `edit` rows. The partial unique index
   // `uq_activity_doc_yjsafter` makes the second INSERT a no-op via

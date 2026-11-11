@@ -100,12 +100,8 @@ describe('POST /api/ai/prompt — conversation memory wiring', () => {
     expect(Number(r.rows[0].c)).toBe(0)
   })
 
-  // Phase 6: budget enforcement moved to LiteLLM virtual keys; the
-  // app-side 402-pre-check on /api/ai/prompt is gone (no app-side
-  // counter to read). The runLoop catches the proxy's 429-translation
-  // (`LitellmBudgetExhausted` / `isBudgetExceededError`) and emits a
-  // breadcrumb instead. The pre-Phase-6 "no orphan memory row on a
-  // budget-rejected prompt" guarantee no longer holds at the
-  // session-open boundary because the open succeeds — the rejection
-  // happens once the first stream call hits the proxy.
+  // Budget enforcement lives in LiteLLM virtual keys; there is no app-side 402 pre-check on /api/ai/prompt.
+  // The runLoop catches the proxy's 429-translation (`LitellmBudgetExhausted` / `isBudgetExceededError`) and
+  // emits a breadcrumb. The session open succeeds, so the rejection happens once the first stream call hits
+  // the proxy and there is no "no orphan memory row" guarantee at the session-open boundary.
 })

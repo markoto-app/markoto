@@ -20,7 +20,7 @@ import {
 } from '../../../server/utils/platform/instanceConfig'
 import { legalEntityErrors, resolveLegalEntity } from '../../../shared/legal/entity'
 
-// Instance shape (WP7): which login providers are offered and whether the
+// Instance shape: which login providers are offered and whether the
 // hosted service's legal surfaces exist. Self-hosted is the default; the
 // hosted SaaS opts in via NUXT_LEGAL_SURFACES_ENABLED.
 
@@ -72,7 +72,7 @@ describe('resolveLoginProviders', () => {
 
 describe('resolveInstanceConfig', () => {
   it('defaults to the self-hosted shape: no legal surfaces, no operator name', () => {
-    // Self-hosted: every committed tier includes per-workspace SSO (WP14).
+    // Self-hosted: every committed tier includes per-workspace SSO.
     expect(resolveInstanceConfig({})).toEqual({ ...MINIMAL_INSTANCE_CONFIG, workspaceSso: true })
     expect(resolveLegalSurfacesEnabled({ NUXT_LEGAL_SURFACES_ENABLED: 'nope' })).toBe(false)
   })

@@ -21,7 +21,7 @@ import { isIsoDate } from '../utils/documents/documentLocale'
  * definition.
  */
 
-// ── Primitives ──────────────────────────────────────────────────────────
+// Primitives
 
 /**
  * Conservative font-name pattern: letters, digits, spaces (every
@@ -69,7 +69,7 @@ const slotTemplate = z.string().max(200).refine(
   { message: String.raw`contains forbidden characters (", \, <, >, newline)` }
 )
 
-// ── Enum types (exported so consumers that import them still work) ──────
+// Enum types (exported so consumers that import them still work)
 
 export const PageSizeSchema = z.enum(['A4', 'A5', 'Letter', 'Legal'])
 export type PageSize = z.infer<typeof PageSizeSchema>
@@ -344,7 +344,7 @@ const HeaderSlotsSchema = RunningSlotsSchema.extend({
   sectionMode: SectionModeSchema.optional()
 }).strict()
 
-// ── DocTheme ────────────────────────────────────────────────────────────
+// DocTheme
 
 export const DocThemeSchema = z.object({
   page: z.object({

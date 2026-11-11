@@ -136,7 +136,7 @@ test.describe('preview isolation + CSP', () => {
     const frame = await previewFrame(page)
     await frame.waitForFunction(() => (document.getElementById('mount')?.textContent ?? '').includes('Done.'), null, { timeout: 60_000 })
 
-    // ── Isolation ──────────────────────────────────────────────────────
+    // Isolation
     const probe = await frame.evaluate(async () => {
       const attempt = (fn: () => unknown): string => {
         try {
@@ -176,7 +176,7 @@ test.describe('preview isolation + CSP', () => {
     expect(await frame.evaluate(() => (document.getElementById('mount')?.textContent ?? '').includes('forged'))).toBe(false)
     expect(await frame.evaluate(() => document.querySelectorAll('#mount .pagedjs_page').length)).toBe(pagesBefore)
 
-    // ── Rendering still works ──────────────────────────────────────────
+    // Rendering still works
     const rendered = await frame.evaluate(async () => {
       const img = Array.from(document.querySelectorAll<HTMLImageElement>('#mount img')).find(i => i.src.includes('/api/files/'))
       if (img) await img.decode().catch(() => undefined)

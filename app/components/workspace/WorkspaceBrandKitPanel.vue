@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The workspace brand kit (WP10), admins: fonts and logos every document
+// The workspace brand kit, admins: fonts and logos every document
 // of the workspace can use (theme panel), the locked workspace design and
 // the workspace templates. Server: `server/api/workspaces/[wsId]/brand/`.
 import { formatBytes } from '~/utils/billing/usageMeter'
@@ -61,7 +61,6 @@ const families = computed(() => {
   return [...groups.entries()].map(([family, faces]) => ({ family, faces }))
 })
 
-// ── Font upload ────────────────────────────────────────────────────
 const fontFile = ref<File | null>(null)
 const fontFamily = ref('')
 const fontLicence = ref(false)
@@ -93,7 +92,6 @@ async function uploadFont(): Promise<void> {
   }
 }
 
-// ── Logo upload ────────────────────────────────────────────────────
 const imageUploading = ref(false)
 async function onImageFile(e: Event): Promise<void> {
   const input = e.target as HTMLInputElement
@@ -157,7 +155,6 @@ function faceLabel(f: FontRow): string {
       />
     </div>
 
-    <!-- Fonts -->
     <div class="space-y-3">
       <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted">
         {{ t('brandKit.fonts') }}
@@ -268,7 +265,6 @@ function faceLabel(f: FontRow): string {
       </div>
     </div>
 
-    <!-- Logos -->
     <div class="space-y-3">
       <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted">
         {{ t('brandKit.logos') }}

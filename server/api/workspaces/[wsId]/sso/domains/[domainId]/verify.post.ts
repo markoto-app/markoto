@@ -6,7 +6,7 @@ import { assertSsoPlan, domainView, requireSsoAdmin } from '../../../../../../ut
 import { domainHasVerificationRecord } from '../../../../../../utils/sso/domains'
 
 // POST /api/workspaces/:wsId/sso/domains/:domainId/verify — look up the
-// TXT record now (WP14). 422 sso/domain-unverified when it isn't there
+// TXT record now. 422 sso/domain-unverified when it isn't there
 // (yet — DNS can take a while); 409 sso/domain-taken when another
 // workspace verified the domain first. 30 checks / admin / 10 min.
 export default defineEventHandler(async (event) => {

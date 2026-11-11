@@ -104,7 +104,7 @@ export function subscriptionUpdatedEvent(args: {
   }
 }
 
-/** A paid credit top-up's `checkout.session.completed` (WP4). */
+// A paid credit top-up's `checkout.session.completed`.
 export function topupCompletedEvent(args: {
   subjectType: 'user' | 'workspace'
   subjectId: string

@@ -4,7 +4,7 @@ import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
 
-// The Phase 3 audit chain end-to-end:
+// The audit chain end-to-end:
 //
 //   activity_log.actor_principal LIKE 'mcp:%'
 //     → strip 'mcp:' prefix

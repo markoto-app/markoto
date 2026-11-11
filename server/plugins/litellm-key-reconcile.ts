@@ -17,7 +17,7 @@ async function lockedRun(): Promise<void> {
   if (!await acquireSweepLock(LOCK)) return
   try {
     await reconcileUserKeys()
-    // Team / Business workspace teams + member keys (WP3).
+    // Team / Business workspace teams + member keys.
     await reconcileWorkspaceTeams()
   } catch (e) {
     // The proxy may still be starting (boot order) — the next run retries.

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Custom domains (WP13): show a published page at the user's own
+// Custom domains: show a published page at the user's own
 // address. Add a domain → set the two DNS records shown here → the check
 // passes (automatically every few minutes, or "Check now") → pick the
 // page in the document's share dialog. Modal-style page like

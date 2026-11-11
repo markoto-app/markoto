@@ -56,14 +56,12 @@ describe('createWorkspace', () => {
   })
 
   it('atomic: forced-failure on the member insert rolls back the workspace', async () => {
-    // Regression target — before the refactor, these were two separate
-    // INSERTs. If the second one failed, you got a workspace with no
-    // members (a zero-admin workspace). Now they share a transaction.
+    // The workspace and its first member are inserted in one transaction; two separate INSERTs could leave a
+    // workspace with no members (a zero-admin workspace).
     //
-    // Force the member insert to fail by pointing ownerId at a user_id
-    // that doesn't exist — workspace_members.user_id has an FK to
-    // users(id). The transaction should roll back the workspaces INSERT
-    // that landed earlier in the same tx.
+    // Force the member insert to fail by pointing ownerId at a user_id that doesn't exist (workspace_members.user_id
+    // has an FK to users(id)). The transaction should roll back the workspaces INSERT that landed earlier in the
+    // same tx.
     await expect(
       createWorkspace({ workspaceId: 'ws-bad', ownerId: 99999, name: 'Ghost' })
     ).rejects.toThrow()

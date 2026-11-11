@@ -9,9 +9,8 @@
 #
 # Run periodically (it's operator-invoked, not scheduled) — the restore
 # competes with prod for Postgres CPU/disk transiently, so pick a quiet
-# window. A `head -200` sniff (the previous version) could pass on a
-# TRUNCATED dump whose first 200 lines happen to look fine; a full psql
-# restore is the only thing that proves the dump applies cleanly.
+# window. A partial read of the dump could pass on a TRUNCATED file; a
+# full psql restore is the only thing that proves the dump applies cleanly.
 - name: Backup restore drill
   hosts: markoto
   become: true

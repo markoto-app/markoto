@@ -2,9 +2,8 @@ import { eq, desc, and, isNull } from 'drizzle-orm'
 import { mcpPersonalTokens } from '../../../db/schema'
 import { useDatabase } from '../../../utils/platform/database'
 
-// List the caller's MCP Personal Access Tokens. Plaintext is never
-// reconstructed — the response carries metadata only. Revoked tokens
-// are excluded; the user only sees actionable rows.
+// Lists the caller's MCP Personal Access Tokens: metadata only (plaintext is
+// never reconstructed), revoked tokens excluded.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

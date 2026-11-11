@@ -174,7 +174,6 @@ function cancelImport() {
           {{ t('import.title') }}
         </h3>
 
-        <!-- Conflict resolution -->
         <div
           v-if="showConflict"
           class="space-y-4"
@@ -263,7 +262,6 @@ function cancelImport() {
           </div>
         </div>
 
-        <!-- File selection -->
         <div v-else>
           <p class="text-sm text-muted mb-3">
             {{ t('import.description') }}

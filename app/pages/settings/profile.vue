@@ -3,9 +3,7 @@ import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
 import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
-// controls (export + delete) for managing it. Spending and usage
-// will land here as those features ship — see the dedicated section
-// below.
+// controls (export + delete) for managing it.
 //
 // Modal-style page with a close button that returns the user to
 // their previous route (mirrors /pricing's UX). Auth-gated client-
@@ -51,7 +49,6 @@ function onClose(): void {
   }
 }
 
-// ─────────── Sessions ───────────
 // "Log out everywhere" bumps the server-side session epoch, which
 // invalidates every session cookie (other browsers, devices, and this
 // one), then runs the normal logout clean-up + hard reload.
@@ -69,7 +66,6 @@ async function onLogoutEverywhere(): Promise<void> {
   }
 }
 
-// ─────────── Export jobs ───────────
 const exports = ref<ExportJob[]>([])
 const exportsLoading = ref(false)
 const requestingExport = ref(false)
@@ -151,10 +147,8 @@ async function onRequestExport(): Promise<void> {
   }
 }
 
-// ─────────── Storage ───────────
 const { billing, refresh: refreshBilling } = useBilling()
 
-// ─────────── Spending (WP4) ───────────
 // Pro: manage the subscription in the Stripe portal and buy AI credits.
 const creditCurrency = ref<'eur' | 'chf'>('eur')
 const openingPortal = ref(false)
@@ -209,7 +203,6 @@ function fmtDateOnly(iso: string | null): string {
   }
 }
 
-// ─────────── Delete confirmation modal ───────────
 const deletionModalOpen = ref(false)
 function openDeletionModal(): void {
   deletionModalOpen.value = true
@@ -247,7 +240,6 @@ async function onCancelDeletion(): Promise<void> {
 const deletionPending = computed(() => status.value?.deletion?.pending === true)
 const deletionGraceFormatted = computed(() => fmtDate(status.value?.deletion?.graceUntil ?? null))
 
-// ─────────── Legal acceptance ───────────
 const policies = computed(() => {
   const p = status.value?.policy
   if (!p) return []

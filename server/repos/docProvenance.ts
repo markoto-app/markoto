@@ -22,14 +22,9 @@ import { useDatabase } from '../utils/platform/database'
 //   restore:<uid>:<sid>  a restore they ran
 //   seed:<uid>           the body they seeded through create_document
 //
-// Rows without a user id or principal are judged foreign too — before
-// F-7b the NOT (…) over NULL comparisons dropped them, so another user's
-// AI / MCP edits and anonymous edits never counted.
-//
-// Everything else — another user, an anonymous editor of an open-edit
-// doc, an AI / MCP session that can't be attributed — is foreign. The
-// check is deliberately conservative: when in doubt the document counts
-// as shared and cross-document tools ask before they run.
+// Rows without a user id or principal are judged foreign too (a NOT (...) over
+// NULL comparisons would otherwise drop them, so another user's AI / MCP edits
+// and anonymous edits would never count).
 
 const CONTENT_ACTIONS = ['edit', 'title.changed', 'theme.changed', 'restore'] as const
 
@@ -95,7 +90,7 @@ export async function hasForeignContentActivity(docId: string, userId: number): 
 /**
  * Number of OTHER people who can edit documents in the workspace: its
  * admins / editors plus every guest holding an `edit` share on one of
- * its documents (WP11) — a guest can change that document's text, title
+ * its documents — a guest can change that document's text, title
  * and description, which the invoker's AI then reads.
  */
 export async function countOtherWorkspaceEditors(workspaceId: string, userId: number): Promise<number> {

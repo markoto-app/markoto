@@ -119,8 +119,6 @@ export type ToolAnnotations = {
   openWorldHint?: boolean
 }
 
-// ─── Doc-bound ──────────────────────────────────────────────────────
-
 export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
   /** Any ToolName (DOC or META). The type split's load-bearing
    *  invariant runs in the OTHER direction (META wrappers can't accept
@@ -139,7 +137,7 @@ export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
   /** Extra per-call allowance (render tools, image generation). */
   limit?: ToolCallLimit
   /** The result carries the document out (page images): refused to
-   *  visitors of a view-only document (WP9 share controls). */
+   *  visitors of a view-only document (share controls). */
   download?: boolean
 }
 
@@ -210,8 +208,6 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
   })
 }
 
-// ─── Workspace-bound ────────────────────────────────────────────────
-
 export interface WrapWorkspaceBoundToolOpts<Schema extends ZodRawShape> {
   /** Must be a key in META_TOOL_HANDLERS. Compile error if you try to
    *  pass a doc-bound name (e.g. 'replace_text') — that's the whole
@@ -273,8 +269,6 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
   })
 }
 
-// ─── User-only ──────────────────────────────────────────────────────
-
 export interface WrapUserOnlyToolOpts<Schema extends ZodRawShape> {
   /** Must be a key in META_TOOL_HANDLERS. */
   name: MetaToolName
@@ -313,8 +307,6 @@ export function buildUserOnlyTool<Schema extends ZodRawShape>(opts: WrapUserOnly
   })
 }
 
-// ─── Internal helpers ──────────────────────────────────────────────
-
 /**
  * Translate the in-app loop's `ToolResult` shape into MCP's
  * `CallToolResult`. The loop uses `{ content: string, isError, extraParts }`;
@@ -349,12 +341,6 @@ function mcpSessionIdFromEvent(event: H3Event): string | null {
   const v = getHeader(event, 'mcp-session-id')
   return typeof v === 'string' && v.length > 0 ? v : null
 }
-
-// `assertKnownTool` (the previous runtime guard) is gone — the
-// type-narrow on `WrapDocBoundToolOpts.name` (DocToolName) and
-// `WrapWorkspaceBoundToolOpts.name` / `WrapUserOnlyToolOpts.name`
-// (MetaToolName) catches every typo at compile time. Cheaper +
-// stronger than a module-load runtime check.
 
 function assertSchemaContains(schema: ZodRawShape, field: string, name: string): void {
   if (!(field in schema)) {

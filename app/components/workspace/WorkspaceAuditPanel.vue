@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The workspace audit log (WP15): who changed what, when and from which
+// The workspace audit log: who changed what, when and from which
 // (shortened) network address — members, roles, invitations, sharing,
 // deletions, billing, single sign-on. Admins of a plan that includes it.
 // Filter by kind and dates, page with "Show older", download as CSV or

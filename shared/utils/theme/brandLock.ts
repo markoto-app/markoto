@@ -1,7 +1,7 @@
 import type { DocTheme } from '../../types/theme'
 
 /**
- * The locked workspace design (brand kit, WP10). While a workspace's admins
+ * The locked workspace design (brand kit). While a workspace's admins
  * lock its design, every document in it renders with the workspace design
  * (`workspaces.default_theme`) — fonts, colours, logo, page, headings,
  * header / footer, custom CSS — and keeps only its own cover TEXT: subtitle,

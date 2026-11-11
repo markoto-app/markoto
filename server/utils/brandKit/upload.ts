@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import { customAlphabet } from 'nanoid'
 import { readBodyWithLimit, parseMultipart } from '../platform/requestBodyLimit'
 
-// Shared request handling for brand-kit uploads (WP10): one multipart
+// Shared request handling for brand-kit uploads: one multipart
 // POST, read whole (≤ the per-file cap + form overhead) and checked in
 // memory — the bytes that are inspected are exactly the bytes stored.
 

@@ -32,7 +32,7 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
     + 'you can verify before publishing.'
   )
 
-  // ─── Prompt + send ──────────────────────────────────────────────
+  // Prompt + send
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,

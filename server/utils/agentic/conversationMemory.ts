@@ -1,18 +1,15 @@
 import type { AiMessageRow } from '../../repos/aiSessionMessages'
 
-// ---------------------------------------------------------------------------
-// Conversation memory — compaction + prompt-block construction
-// ---------------------------------------------------------------------------
+// Conversation memory: compaction + prompt-block construction.
 //
-// The bet behind this file: the AI needs to remember WHAT happened in
-// past turns ("you built a complex table", "the user asked you to
-// translate the intro") so phrases like "now put it on the first page"
-// resolve correctly. It does NOT need to re-see the FULL PAYLOADS of
-// past tool results (the actual fetched chunks, the entire viewed
-// document slice, the base64 image bytes). Those are reproducible —
-// the model can re-issue the call if it wants the data back.
+// The AI needs to remember WHAT happened in past turns ("you built a
+// complex table", "the user asked you to translate the intro") so phrases
+// like "now put it on the first page" resolve correctly. It does not need
+// the full payloads of past tool results (fetched chunks, viewed document
+// slices, base64 image bytes); they are reproducible by re-issuing the
+// call.
 //
-// So compaction keeps three things verbatim and drops the rest:
+// So compaction keeps three things and drops the rest:
 //
 //   1. user_prompt   — every word the user typed (small, conversational glue)
 //   2. message_to_user — what the AI said back (the user-visible reply
@@ -28,28 +25,23 @@ import type { AiMessageRow } from '../../repos/aiSessionMessages'
 // model to read it for context but not to repeat its content back.
 
 // Idle-gap rotation: a 60-minute silence resets the conversation. Older
-// rows stay in the DB (the activity log is the long-term memory tier
-// and a future `search_activity_log` tool will let the model pull them
-// up explicitly), they just don't load into the prompt context anymore.
+// rows stay in the DB (the activity log is the long-term memory tier),
+// they just don't load into the prompt context anymore.
 //
-// Picked 60 min as the breakpoint between "same coffee", "same writing
-// session" and "different working session". Shorter would split a
-// natural pause-to-think; longer would let yesterday's context bleed
-// into today's prompt. Tunable per-deployment if it shakes out wrong.
+// 60 min separates "same writing session" from "different working
+// session". Shorter would split a natural pause-to-think; longer would let
+// yesterday's context bleed into today's prompt.
 export const CONVERSATION_IDLE_GAP_MS = 60 * 60 * 1000
 
-// Hard ceiling on how many historical rows the prompt block will hold.
-// At ~50 chars/row average compacted form (~12 tokens), 40 rows ≈ 480
-// tokens — bounded enough to keep the prefix cache friendly across
-// follow-up prompts. Older rows are silently truncated; the model
-// sees a "(N earlier turns omitted)" sentinel so it knows the window
-// is incomplete.
+// Hard ceiling on historical rows in the prompt block. At ~12 tokens per
+// compacted row, 40 rows ≈ 480 tokens, small enough to keep the prefix
+// cache friendly across follow-up prompts. Older rows are truncated; the
+// model sees a "(N earlier turns omitted)" sentinel.
 export const CONVERSATION_MAX_ROWS = 40
 
-// Tools that are pure noise from a memory perspective. The model calls
-// these every turn just to read the world; recording them would bloat
-// the history block without aiding context resolution. Mirrors the
-// skip set in runLoop's `logAiTool` for the same reason.
+// Read-only tools the model calls every turn; recording them would bloat
+// the history block without aiding context resolution. Mirrors the skip
+// set in runLoop's `logAiTool`.
 const MEMORY_SKIP_TOOLS: ReadonlySet<string> = new Set([
   'view_document',
   'read_comments',
@@ -57,27 +49,21 @@ const MEMORY_SKIP_TOOLS: ReadonlySet<string> = new Set([
   'list_themes',
   'list_workspace_documents',
   'get_page_count',
-  // Long-term memory query tool — recording it would create a
-  // cycle ("you asked about your past, now your past contains the
-  // asking") that bloats the history block without aiding context.
+  // Recording the memory query tool would make the history contain its own
+  // lookups.
   'search_activity_log'
 ])
 
-/**
- * True when this tool is worth recording in conversation memory.
- * Non-recorded calls still execute normally — they just don't appear
- * in the next prompt's `<conversation_history>` block.
- */
+// Non-recorded calls still execute; they just don't appear in the next
+// prompt's `<conversation_history>` block.
 export function shouldRecordToolInMemory(name: string): boolean {
   return !MEMORY_SKIP_TOOLS.has(name)
 }
 
 /**
- * Build the short arg summary that lands in the memory row's body.
- * Per-tool: pick the ONE field that conveys what the call did + cap it
- * tight. The model needs "you called X for Y", not the full JSON.
- *
- * Unknown tools fall back to "args=<keys>" so we still leave a trace.
+ * Short arg summary for the memory row's body: the one field that conveys
+ * what the call did, capped tight. Unknown tools fall back to
+ * "args=<keys>" so a trace remains.
  */
 export function summarizeToolCall(name: string, args: unknown): string {
   if (typeof args !== 'object' || args === null) return ''
@@ -109,9 +95,8 @@ export function summarizeToolCall(name: string, args: unknown): string {
     case 'view_other_document':
       return `doc=${trim(a.doc_id, 80)}`
     case 'update_theme':
-      // Theme patches are too varied to summarise meaningfully — just
-      // record which top-level surfaces were touched. "preset=X" is
-      // the most informative single fact.
+      // Theme patches are too varied to summarise; "preset=X" is the most
+      // informative single fact, else just the touched keys.
       if (typeof a.preset === 'string') return `preset=${a.preset}`
       if (a.theme_id) return `theme_id=${trim(a.theme_id, 32)}`
       if (a.from_workspace_default) return 'from_workspace_default=true'
@@ -133,19 +118,14 @@ export function summarizeToolCall(name: string, args: unknown): string {
   }
 }
 
-/**
- * Render a single memory row into one line of the history block.
- * Format chosen for token efficiency + model readability — leading
- * dash + bracketed kind + content.
- */
+// One line per row: leading dash + bracketed kind + content.
 function renderRow(row: AiMessageRow): string {
   const body = row.body as Record<string, unknown> | null
   switch (row.kind) {
     case 'user_prompt': {
       const text = typeof body?.text === 'string' ? body.text : ''
-      // Cap at 800 chars — anything longer is already a doc paste, not
-      // a conversational turn, and the user's intent was to land it
-      // INTO the doc rather than re-surface it as memory.
+      // Anything over 800 chars is a doc paste, not a conversational turn;
+      // the user meant it for the document, not as memory.
       const trimmed = text.length > 800 ? text.slice(0, 800) + '…' : text
       return `- user: ${trimmed}`
     }
@@ -167,15 +147,13 @@ function renderRow(row: AiMessageRow): string {
 
 /**
  * Build the `<conversation_history>` system-prompt block from the
- * compacted memory rows. Returns the empty string when there's nothing
- * to show — the prompt builder concatenates raw, so absence means the
- * block doesn't render at all.
+ * compacted memory rows. Returns the empty string when there is nothing
+ * to show (the prompt builder concatenates raw).
  *
- * Truncation behaviour: if there are more than `CONVERSATION_MAX_ROWS`,
- * we keep the most recent and prepend a sentinel telling the model
- * older context exists but isn't loaded — that's the cue for it to
- * reach for the (future) `search_activity_log` tool when the user
- * references something further back.
+ * Beyond `CONVERSATION_MAX_ROWS` the most recent rows are kept and a
+ * sentinel tells the model older context exists but isn't loaded, its
+ * cue to use `search_activity_log` when the user references something
+ * further back.
  */
 export function buildConversationHistoryBlock(rows: AiMessageRow[]): string {
   if (rows.length === 0) return ''
@@ -208,15 +186,12 @@ export function buildConversationHistoryBlock(rows: AiMessageRow[]): string {
 }
 
 /**
- * Convenience: load the prompt-relevant slice of memory + render it
- * directly. The endpoint just calls this with `(docId, userId)` and
- * gets the block ready to prepend.
+ * Load the prompt-relevant slice of memory and render it.
  *
  * Idle-gap rule: if the most recent row is older than
- * `CONVERSATION_IDLE_GAP_MS`, we treat the new prompt as the start of
- * a fresh conversation and return an empty block. Long pauses signal
- * "different working session" and stale context bleeding in is worse
- * than missing context (the user would feel surveilled rather than
+ * `CONVERSATION_IDLE_GAP_MS`, the new prompt starts a fresh conversation
+ * and the block is empty. Stale context bleeding in is worse than
+ * missing context (the user would feel surveilled rather than
  * remembered).
  *
  * Returns the block + the cutoff Date used (for logging / diagnostics).
@@ -226,14 +201,12 @@ export async function buildConversationContextForPrompt(
   lastActivity: Date | null,
   now: Date = new Date()
 ): Promise<{ block: string, since: Date | null, idleReset: boolean }> {
-  // Idle reset: if the last row is past the gap, do not load anything.
   if (lastActivity && now.getTime() - lastActivity.getTime() > CONVERSATION_IDLE_GAP_MS) {
     return { block: '', since: null, idleReset: true }
   }
 
-  // Window the read to the idle gap so a once-active doc with
-  // hundreds of stale rows doesn't pay the cost of reading them all.
-  // The repo also caps at CONVERSATION_MAX_ROWS regardless.
+  // Window the read to the idle gap so a doc with hundreds of stale rows
+  // doesn't read them all (the repo also caps at CONVERSATION_MAX_ROWS).
   const since = new Date(now.getTime() - CONVERSATION_IDLE_GAP_MS)
   const rows = await loadFn(since)
   return {

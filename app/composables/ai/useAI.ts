@@ -179,8 +179,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     ? defaultEventSourceFactory()
     : options.createEventSource
 
-  // All active AI sessions on this doc, derived from awareness entries that
-  // advertise `isAI: true` + an `aiSession` metadata block.
+  // Derived from awareness entries with `isAI: true` + an `aiSession` block.
   const activeSessions = ref<AiSessionInfo[]>([])
 
   function refresh() {
@@ -206,7 +205,6 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   awareness.on('change', refresh)
   refresh()
 
-  // The current user's session on this doc — used to show Stop button + disable input.
   const mySessionId = computed<string | null>(() => {
     if (!loggedIn.value) return null
     const myId = sessionUser.value?.id
@@ -223,19 +221,13 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
 
   const submitting = ref(false)
   const lastError = ref<string | null>(null)
-  // Separate channel for budget-exhausted (402). The error message
-  // alone isn't enough — we want the UI to render an "Upgrade" CTA
-  // toast + link-to-pricing, which is a different control flow from
-  // the generic "AI request failed" toast. Set when `/api/ai/prompt`
-  // returns 402; cleared whenever a fresh request succeeds or
-  // `clearLastError()` is called.
+  // Set on a 402 from `/api/ai/prompt` so the UI shows the upgrade CTA instead
+  // of the generic failure toast. Cleared on the next prompt or `clearLastError()`.
   const budgetExhausted = ref(false)
   // The shared monthly free-tier pool is used up (402
   // `ai/free-allowance-exhausted`) — distinct from the user's own points.
   const freeAllowanceExhausted = ref(false)
 
-  // ─── Private status channel ───────────────────────────────────────
-  //
   // `privateStatus` is the latest snapshot for the session I'm tracking.
   // Tracking starts as soon as `/api/ai/prompt` returns a session id
   // (before the AI client shows up in awareness) or when awareness shows
@@ -449,10 +441,8 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     lastOutcome.value = null
     budgetExhausted.value = false
     freeAllowanceExhausted.value = false
-    // Prefer the call-site override (used by the selection popup to
-    // pass a pre-captured range snapshot) — falls back to the lazily
-    // computed default from `options.getEditorSelection`. `undefined`
-    // still ships happily; the server treats absence as `kind: 'none'`.
+    // The call-site override (selection popup passes a pre-captured range) wins
+    // over `options.getEditorSelection`. Absent = server treats it as `kind: 'none'`.
     const editorSelection = overrides?.editorSelection ?? options.getEditorSelection?.()
     try {
       const res = await $fetch<{ sessionId: string }>('/api/ai/prompt', {
@@ -480,8 +470,6 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         // "add your own key" toast, not the per-user points one.
         freeAllowanceExhausted.value = true
       } else if (code === 402) {
-        // Budget-exhausted. Flip the flag so the prompt-bar toast
-        // renders the upgrade CTA variant.
         budgetExhausted.value = true
       }
       lastError.value = err.data?.message || err.message || 'Request failed'
@@ -501,15 +489,12 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       })
     } catch (e) {
       const err = e as { statusCode?: number, data?: { statusCode?: number, message?: string }, message?: string }
-      // 404 = session already finished on the server between us reading mySessionId
-      // and sending the request. That's a benign race — treat it as success.
+      // 404: the session finished between reading mySessionId and sending; benign race.
       if (err?.statusCode === 404 || err?.data?.statusCode === 404) return
       lastError.value = err.data?.message || err.message || 'Abort failed'
     }
   }
 
-  // Exposed for consumers as a readonly ref plus an explicit `clearLastError`
-  // helper: callers read `lastError`, show a toast, then call `clearLastError()`.
   function clearLastError() {
     lastError.value = null
     budgetExhausted.value = false

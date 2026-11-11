@@ -166,7 +166,7 @@ function ctaKind(plan: PlanName): CtaKind {
 
 const toast = useToast()
 const checkoutLoading = ref<PlanName | null>(null)
-// The Paid Plans Terms box (WP6b): required for every purchase.
+// The Paid Plans Terms box: required for every purchase.
 const paidTermsAccepted = ref(false)
 
 async function onChangePlan(plan: PlanName): Promise<void> {
@@ -256,7 +256,6 @@ async function openPortal(): Promise<void> {
   }
 }
 
-// ─── FAQ ───────────────────────────────────────────────────────────
 const faqItems = computed<FaqItem[]>(() => {
   const items: FaqItem[] = []
   if (plansComingSoon.value) {
@@ -279,7 +278,6 @@ const faqItems = computed<FaqItem[]>(() => {
   return items
 })
 
-// ─── SEO ───────────────────────────────────────────────────────────
 // Meta description: the hosted free-only + self-hosted subtitles are short
 // enough; with billing on, a dedicated one (the subtitle runs long).
 const metaDescription = computed(() => (billingEnabled.value ? t('pricing.metaDescription') : pageSubtitle.value))
@@ -662,7 +660,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
                       {{ t('pricing.paid.joinWaitlist') }}
                     </UButton>
                     <!-- Team / Business are bought for a workspace, from its
-                         billing settings (pricing plan WP3). -->
+                         billing settings. -->
                     <template v-else-if="isPerSeatPlan(plan)">
                       <UButton
                         to="/"
@@ -762,7 +760,7 @@ const badgeClass = 'absolute -top-3 left-5 bg-inverted text-inverted font-mono t
           </div>
         </div>
 
-        <!-- AI credit top-ups (WP4): one-off, for paid plans. -->
+        <!-- AI credit top-ups: one-off, for paid plans. -->
         <section
           v-if="optionsLayout"
           class="mt-8 rounded-lg border border-default bg-default p-5"

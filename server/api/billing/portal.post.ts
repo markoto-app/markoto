@@ -5,18 +5,9 @@ import { useDatabase } from '../../utils/platform/database'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { assertBillingEnabled } from '../../utils/billing/billingMode'
 
-// POST /api/billing/portal — creates a Stripe Customer Portal
-// session for the current user and returns the URL to redirect to.
-//
-// The portal is Stripe's hosted page where users can:
-//   - update their payment method
-//   - download invoices
-//   - cancel, pause, or upgrade their subscription
-//   - see their billing history
-//
-// Only users with an existing `stripe_customer_id` (i.e. who have
-// checked out at least once) can open the portal. New users should
-// go through `/api/billing/checkout` first.
+// POST /api/billing/portal: creates a Stripe Customer Portal session (payment
+// method, invoices, cancel/upgrade) and returns the redirect URL. Needs an
+// existing `stripe_customer_id`; new users go through /api/billing/checkout.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -24,8 +15,7 @@ export default defineEventHandler(async (event) => {
   assertBillingEnabled()
   const userId = session.user.id
 
-  // Rate limit: mirrors /api/billing/checkout — portal sessions are
-  // real Stripe API objects too.
+  // Mirrors /api/billing/checkout: portal sessions are real Stripe objects.
   if (!(await checkRateLimit('billing-portal', String(userId), 10, 60_000))) {
     throw createError({
       statusCode: 429,
@@ -51,8 +41,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Base URL from the Origin (browsers always send it on POST) with
-  // Host as fallback — both survive Traefik.
+  // Origin (always sent on POST) with Host as fallback; both survive Traefik.
   const originHeader: string | undefined = getRequestHeader(event, 'origin')
   const hostHeader: string | undefined = getRequestHeader(event, 'host')
   const origin = originHeader ?? hostHeader ?? ''

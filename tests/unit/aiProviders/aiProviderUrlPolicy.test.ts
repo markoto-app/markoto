@@ -3,7 +3,7 @@ import { checkProviderBaseUrl, type ByokUrlPolicy, type Resolver } from '../../.
 import { isAlwaysForbiddenIp } from '../../../server/utils/agentic/urlGuard'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS, normalizeBaseUrl } from '../../../shared/ai/providers'
 
-// BYOK SSRF policy (WP4). Pure function + injected DNS resolver, so the
+// BYOK SSRF policy. Pure function + injected DNS resolver, so the
 // DNS-rebinding-shaped cases (a public-looking hostname resolving to a
 // private / loopback / metadata address) run without a network.
 

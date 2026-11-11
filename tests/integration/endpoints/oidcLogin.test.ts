@@ -19,7 +19,7 @@ import {
   resetOidcConfigurationCache
 } from '../../../server/utils/oidc/client'
 
-// Generic OpenID Connect sign-in (WP7b) against a REAL OpenID provider:
+// Generic OpenID Connect sign-in against a REAL OpenID provider:
 // the `oidc-test` container (navikt mock-oauth2-server) in
 // docker-compose.test.yml. Its interactive login form takes the subject
 // plus arbitrary claims JSON, which is how these tests mint tokens with
@@ -137,7 +137,7 @@ describe('GET /auth/oidc — full sign-in against a real IdP', () => {
     // The session cookie must be SameSite=Lax: the callback is reached by a
     // redirect from the IdP's site, and browsers withhold a Strict cookie on
     // the rest of that cross-site redirect chain, so the page after sign-in
-    // would render signed out (seen on staging with GitHub, 2026-11-03).
+    // would render signed out .
     const sessionCookie = res.headers.getSetCookie().find(c => c.startsWith(`${SESSION_COOKIE}=`))
     expect(sessionCookie).toMatch(/;\s*SameSite=Lax/i)
     expect(sessionCookie).toMatch(/;\s*HttpOnly/i)

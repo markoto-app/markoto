@@ -7,10 +7,8 @@ import {
   ValkeyMcpSessionBindings
 } from '../../server/utils/mcp/mcpSessionBinding'
 
-// MCP session ↔ token bindings (F-7d) against the REAL Valkey test
-// container. Bindings used to live in process memory; now they survive a
-// restart and are shared by every app instance. Each test uses fresh
-// random user ids / session ids, so no cleanup is needed (keys expire).
+// MCP session ↔ token bindings against the REAL Valkey test container: they survive a restart and are shared
+// by every app instance. Each test uses fresh random user ids / session ids, so no cleanup is needed (keys expire).
 
 function uid(): number {
   return 1_000_000 + randomBytes(3).readUIntBE(0, 3)

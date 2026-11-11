@@ -3,8 +3,8 @@ import { isThemeImageUrl } from '~~/shared/utils/theme/themeImages'
 import { repeatTitle, resolveTitleBlock } from '~~/shared/utils/theme/themeOptions'
 
 /**
- * Build the cover-page HTML when `theme.cover.enabled`. Returns the
- * empty string when disabled (caller can blindly concatenate).
+ * The cover-page HTML, or '' when `theme.cover.enabled` is off (callers
+ * can concatenate blindly).
  *
  * Output structure:
  *   <section class="markoto-cover">
@@ -20,17 +20,13 @@ import { repeatTitle, resolveTitleBlock } from '~~/shared/utils/theme/themeOptio
  *   <div class="markoto-repeat-title">…</div>  ← cover.repeatTitle (also after a title block)
  *
  * Design notes:
- *   - `<h1>` + `<div>` only, never `<p>` — `wrapFirstLetterAsDropCap`
- *     would otherwise grab the cover subtitle's first letter; cover
- *     uses block-level non-paragraph tags so the dropcap regex skips
- *     past it to the body's first paragraph.
- *   - Empty values are skipped (no zero-content `<h1></h1>`).
- *   - Logo `<img>` only emitted when both the toggle AND the URL are
- *     set; otherwise we'd render a broken image placeholder.
- *   - Author entries with empty/whitespace strings are dropped.
- *   - All text values are HTML-escaped — even though theme JSONB is
- *     validated at intake, defense-in-depth: title, subtitle, author
- *     names and the date string all go through `esc`.
+ *   - `<h1>` + `<div>` only, never `<p>`: `wrapFirstLetterAsDropCap`
+ *     would otherwise take the cover subtitle's first letter instead of
+ *     the body's first paragraph.
+ *   - Empty values are skipped (no zero-content `<h1></h1>`), and the
+ *     logo `<img>` needs both the toggle and the URL (no broken image).
+ *   - All text values (title, subtitle, authors, date) go through `esc`
+ *     even though the theme is validated at intake: defence in depth.
  *   - The logo URL lands in an attribute. The theme can arrive over
  *     Y.js without HTTP validation, so the builder re-checks the shape
  *     itself (`isThemeImageUrl`: upload path or bundled asset, no quotes
@@ -162,7 +158,6 @@ function buildTitleBlockHtml(theme: DocTheme, title: string, dateText: string, a
   return `<section class="markoto-cover markoto-title-block">${content.join('')}</section>`
 }
 
-/** Minimal HTML escape for text interpolated into element bodies. */
 function esc(s: string): string {
   return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 }

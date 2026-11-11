@@ -13,12 +13,10 @@ export const MEMBERS_BLOCK_MAX = 50
 
 /**
  * Grounding rule inside the `<knowledge_files>` block. Without it the
- * model often skipped retrieval for a request like "summarise what the
- * Q3 postmortem said about staged rollouts" and wrote plausible but
- * invented figures (the knowledge-grounded-ai flow published "~40%" and
- * "5–10%" for a file that says 24h / 5% / 12h). The tool description
- * alone ("Use BEFORE writing when the user references uploaded
- * material") was not enough at temperature 0.
+ * model often skips retrieval for a request like "summarise what the
+ * Q3 postmortem said about staged rollouts" and writes plausible but
+ * invented figures. The tool description alone ("Use BEFORE writing when
+ * the user references uploaded material") is not enough at temperature 0.
  */
 export const KNOWLEDGE_GROUNDING_RULE
   = 'GROUNDING — NON-NEGOTIABLE: when the request refers to material that is not in the document itself '

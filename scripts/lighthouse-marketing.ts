@@ -2,7 +2,7 @@
 // Lighthouse (mobile profile, simulated throttling) against the public
 // marketing pages of a running instance — ideally a local production
 // build of the hosted shape (NUXT_MARKETING_SITE_ENABLED=true). Advisory:
-// no CI job runs it. See docs/CHEATSHEET.md ("SEO + page speed").
+// no CI job runs it. See docs/contributing/CHEATSHEET.md ("SEO + page speed").
 //
 //   bun scripts/lighthouse-marketing.ts http://127.0.0.1:3620 [/path …]
 //

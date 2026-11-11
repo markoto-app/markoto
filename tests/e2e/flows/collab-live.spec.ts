@@ -47,7 +47,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
     + 'coloured ring on a passage shows where their cursor is.'
   )
 
-  // ─── Maya alone ────────────────────────────────────────────────
+  // Maya alone
   await flow.heading('You\'re the only one in the doc — for now', 3)
   await flow.narrate(
     'You see one avatar in the topbar — yours. Type freely; the '
@@ -71,7 +71,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   // Capture the share URL so Sam can join via the same link.
   const docUrl = page.url()
 
-  // ─── Sam joins ─────────────────────────────────────────────────
+  // Sam joins
   await flow.heading('Sam joins via the share link', 3)
   await flow.narrate(
     'You send Sam the URL. Sam logs in on their own browser, opens '
@@ -95,7 +95,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
     + 'the front (themselves), Maya right next to them.'
   )
 
-  // ─── Sam types — Maya sees it land ─────────────────────────────
+  // Sam types — Maya sees it land
   await flow.heading('Sam types — you see it land in real time', 3)
   await flow.narrate(
     'Sam adds a paragraph. On your screen the characters appear at '
@@ -148,7 +148,7 @@ test('Two writers, one document', async ({ page, flow, editor }) => {
   expect(samText).toMatch(/Avatar regression caught early/i)
   expect(mayaText).toMatch(/what shipped, what slipped/i)
 
-  // ─── A comment thread between them ─────────────────────────────
+  // A comment thread between them
   await flow.heading('Sam leaves a comment for you', 3)
   await flow.narrate(
     'Sam highlights the line you wrote and leaves a thought. The '

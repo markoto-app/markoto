@@ -10,14 +10,12 @@ import {
   openAIStreamToInternalChunks
 } from '../../../server/utils/agentic/messageTranslation'
 
-// Phase 4 boundary translator tests. The runLoop's internal
-// representation stays in the historical Content[] shape
-// (pre-migration: Gemini-derived); these helpers convert at the LLM
-// call site so the existing chunk handler keeps working unchanged.
-// Pin the wire format so a future Mistral/OpenAI shape drift trips
-// a test instead of silently producing wrong behaviour.
+// Boundary translator tests. The runLoop's internal representation stays in the Content[] shape (originally
+// Gemini-derived); these helpers convert at the LLM call site so the existing chunk handler keeps working
+// unchanged. Pin the wire format so a future Mistral/OpenAI shape drift trips a test instead of silently
+// producing wrong behaviour.
 
-// ─── Outbound: Content[] → OpenAI messages[] ────────────────────────────
+// Outbound: Content[] → OpenAI messages[]
 
 describe('internalToOpenAIMessages', () => {
   it('translates a single user prompt with system into [system, user]', () => {
@@ -95,7 +93,7 @@ describe('internalToOpenAIMessages', () => {
   })
 
   it('lifts inlineData (view_image extraParts) into a follow-up image_url user message', () => {
-    // The internal smuggle pattern (pre-migration: Gemini-derived):
+    // The internal smuggle pattern:
     // a user block containing one functionResponse + sibling
     // inlineData parts. Translator splits:
     // tool message for the response, then a fresh user message with
@@ -125,7 +123,7 @@ describe('internalToOpenAIMessages', () => {
   })
 })
 
-// ─── Tool declarations ──────────────────────────────────────────────────
+// Tool declarations
 
 describe('internalToOpenAITools', () => {
   it('translates function declarations to OpenAI tools[] with JSON-Schema parameters', () => {
@@ -159,7 +157,7 @@ describe('internalToOpenAITools', () => {
   })
 })
 
-// ─── Inbound: OpenAI stream chunks → internal-shape ─────────────────────
+// Inbound: OpenAI stream chunks → internal-shape
 
 // Synthesise a fake OpenAI streaming response. Pin the accumulator
 // behaviour: text deltas pass through, tool-call args fragment across

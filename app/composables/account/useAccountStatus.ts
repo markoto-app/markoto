@@ -1,13 +1,9 @@
-// Reactive account-status state. Backed by `useState` so the
-// deletion-grace banner, the settings page, and any future policy-
-// acceptance prompt all read one snapshot from a single
-// /api/user/me/account-status fetch.
+// Account-status state shared via `useState`: the deletion-grace banner, the
+// settings page and the policy-acceptance prompt read one snapshot from a
+// single /api/user/account-status fetch.
 //
-// Refresh points:
-//   - First mount of any consumer (auto-fetch).
-//   - On login (watch on `loggedIn`).
-//   - Explicit `refresh()` after request/cancel deletion + after
-//     accepting a policy version.
+// Refreshed on first mount of any consumer, on login, and explicitly after
+// requesting/cancelling deletion and after accepting a policy version.
 
 export interface AccountStatus {
   isAdmin: boolean

@@ -9,7 +9,7 @@ import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { adaptCustomCssToDoc } from '~~/shared/utils/theme/customCss'
 import { customCssAppOrigins } from '../../../../utils/rendering/themeCustomCss'
 
-// POST /api/workspaces/:wsId/brand/design-from-doc — {docId} (WP10): make a
+// POST /api/workspaces/:wsId/brand/design-from-doc — {docId}: make a
 // workspace document's CURRENT design the workspace design (the default
 // for new documents, and what the lock enforces). Admins, plan feature
 // `brandKit`. The document's own uploads can't serve other documents, so

@@ -1,14 +1,9 @@
 <script setup lang="ts">
-// Persistent banner shown across the top of the app whenever the
-// signed-in user's account is scheduled for deletion. Sumi-toned
-// — this is a calm informational status, not an alarm. The cancel
-// CTA is `neutral` (the brand never reaches for primary outside
-// the AI seal).
-//
-// Visible until the deletion executes (at which point the user is
-// gone and the session has been cleared, so this component never
-// renders for an executed deletion). The /settings/profile page
-// shows the same state with more context.
+// Persistent banner across the top of the app while the signed-in user's
+// account is scheduled for deletion. Calm sumi tone (informational, not an
+// alarm); the cancel CTA is `neutral` because the brand reserves primary for
+// the AI seal. The /settings/profile page shows the same state with more
+// context.
 
 const { t } = useI18n()
 const { status, refresh } = useAccountStatus()
@@ -31,11 +26,10 @@ const formattedDate = computed(() => {
   }
 })
 
-// Compact variant for the mobile banner — just the date, no time.
-// At 375px the long "Account scheduled for deletion — May 06, 2026,
-// 12:00 PM" + a button breaks the single-line layout. We hide the
-// title text on `<sm` and shorten the date so icon + date + cancel
-// all fit on one row.
+// Compact variant for the mobile banner: date only, no time. At 375px the
+// long "Account scheduled for deletion — May 06, 2026, 12:00 PM" plus a
+// button breaks the single-line layout, so `<sm` hides the title text and
+// shortens the date.
 const formattedDateCompact = computed(() => {
   const grace = status.value?.deletion?.graceUntil
   if (!grace) return ''

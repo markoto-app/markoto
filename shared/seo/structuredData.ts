@@ -166,7 +166,7 @@ export function faqStructuredData(items: FaqItem[], inLanguage: string): Record<
   }
 }
 
-// ─── Page graphs (every public page below `/`) ─────────────────────────
+// Page graphs (every public page below `/`)
 
 export interface SiteIds {
   home: string

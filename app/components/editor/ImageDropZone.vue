@@ -61,8 +61,7 @@ async function handleDrop(e: DragEvent) {
   }
 }
 
-// Typed as `Event` so it matches the `EventListener` contract expected by
-// add/removeEventListener without a cast. We narrow with `instanceof` inside.
+// Typed as `Event` to match the `EventListener` contract of add/removeEventListener without a cast; narrowed with `instanceof` inside.
 async function handlePaste(e: Event) {
   if (!(e instanceof ClipboardEvent)) return
   if (props.readOnly || !props.editorView) return
@@ -81,8 +80,7 @@ async function handlePaste(e: Event) {
   }
 }
 
-// useEventListener accepts a ref target and rebinds when the ref
-// resolves — no need for the onMounted ceremony.
+// useEventListener accepts a ref target and rebinds when it resolves.
 useEventListener(containerRef, 'paste', handlePaste)
 </script>
 
@@ -96,7 +94,6 @@ useEventListener(containerRef, 'paste', handlePaste)
   >
     <slot />
 
-    <!-- Drag overlay -->
     <Transition name="fade">
       <div
         v-if="dragging && !readOnly"
@@ -114,7 +111,6 @@ useEventListener(containerRef, 'paste', handlePaste)
       </div>
     </Transition>
 
-    <!-- Upload indicator -->
     <div
       v-if="uploading"
       class="absolute top-2 right-2 z-20 flex items-center gap-2 bg-[var(--ui-bg)] border border-default rounded-lg px-3 py-1.5 shadow-lg"

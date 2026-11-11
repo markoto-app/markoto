@@ -1,6 +1,16 @@
 import type { AiAvailability } from '~~/shared/ai/providers'
 
 /**
+ * The workspace of the document being edited (set by the editor, null
+ * elsewhere). Inside a Team / Business workspace its plan decides which
+ * platform AI capabilities are unlocked, so availability and the
+ * voice prompt send it along.
+ */
+export function useAiWorkspaceContext() {
+  return useState<string | null>('ai-workspace-context', () => null)
+}
+
+/**
  * Which AI capabilities the signed-in user can use right now (their own
  * BYOK key → the instance default → none), from `GET /api/ai/availability`.
  *
@@ -10,19 +20,9 @@ import type { AiAvailability } from '~~/shared/ai/providers'
  * a provider.
  *
  * Until the first fetch resolves `availability` is null; consumers treat
- * null as "unknown" and keep their default (pre-BYOK) rendering so the
- * editor doesn't flash a call-to-action on every page load.
+ * null as "unknown" and keep their default rendering so the editor
+ * doesn't flash a call-to-action on every page load.
  */
-/**
- * The workspace of the document being edited (set by the editor, null
- * elsewhere). Inside a Team / Business workspace its plan decides which
- * platform AI capabilities are unlocked (WP5), so availability and the
- * voice prompt send it along.
- */
-export function useAiWorkspaceContext() {
-  return useState<string | null>('ai-workspace-context', () => null)
-}
-
 export function useAiAvailability() {
   const { loggedIn } = useUserSession()
   const state = useState<AiAvailability | null>('ai-availability', () => null)
@@ -69,7 +69,7 @@ export function useAiAvailability() {
   const transcriptionAvailable = computed(() => state.value === null || state.value.transcription.available)
   const liveDictationAvailable = computed(() => state.value === null || state.value.transcription.liveDictation)
   const chatPlatformBilled = computed(() => state.value === null || state.value.chat.platformBilled)
-  /** The platform has voice / images, but not on the plan that pays here (WP5). */
+  /** The platform has voice / images, but not on the plan that pays here. */
   const transcriptionLocked = computed(() => state.value?.transcription.locked === 'plan')
   const imageLocked = computed(() => state.value?.image.locked === 'plan')
   /** Operator has Staan / Jina keys; null snapshot → assume available. */

@@ -4,7 +4,7 @@ import { useDatabase } from '../utils/platform/database'
 import { DuplicateError } from './errors'
 import type { BrandAssetFormat, BrandFont } from '~~/shared/config/brandKit'
 
-// Workspace brand kit assets (WP10): fonts and logos. Writers are the
+// Workspace brand kit assets: fonts and logos. Writers are the
 // admin-only routes under /api/workspaces/:wsId/brand; readers are the
 // render paths (token endpoint, render bootstrap, the asset routes).
 

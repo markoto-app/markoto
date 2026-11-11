@@ -3,8 +3,7 @@
 // INTERNAL_API_SECRET: a compromised converter must not be able to call
 // the sync-server or the app's /api/internal routes.
 //
-// Read from process.env on every call (like NUXT_TRUSTED_PROXY_HOPS in
-// clientIp.ts) so the helper works outside a Nitro context in tests.
+// Read from process.env on every call so the helper works outside Nitro.
 
 const MARKITDOWN_SECRET_HEADER = 'X-Markitdown-Secret'
 

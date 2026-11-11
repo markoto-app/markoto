@@ -2,7 +2,7 @@
 # Traefik with Let's Encrypt TLS, all app images pulled from GHCR, external S3.
 # Run: docker compose -f docker-compose.prod.yml pull && docker compose -f docker-compose.prod.yml up -d
 #
-# See docs/DEPLOY.md for DNS and TLS prerequisites.
+# See docs/operations/DEPLOY.md for DNS and TLS prerequisites.
 #
 # Policy: every `${VAR}` substitution below uses `:?` so a missing .env
 # entry crashes `docker compose up` instead of silently booting with an
@@ -20,7 +20,7 @@ include:
 # Purpose networks (docs/SECURITY-HARDENING.md §C.3). `internal: true`
 # = no route off the host. The renderer and markitdown, which parse
 # untrusted input, reach the app and nothing else (+ the renderer's own
-# egress for S3 / the pinned CDNs):
+# egress for S3):
 #   web              traefik, app, sync              (published entrypoint, app/sync egress)
 #   docker-api       traefik, socket-proxy           (read-only Docker API)
 #   data             postgres, valkey + app, sync, litellm, db-init, backup
@@ -86,7 +86,7 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL required}"
       - "--certificatesresolvers.le.acme.storage=/acme.json"
-      # Custom domains of published pages (WP13): the app lists the
+      # Custom domains of published pages: the app lists the
       # verified ones as routers with a certificate from `le`. Answers an
       # empty config while NUXT_PUBLISH_TRAEFIK_TOKEN is unset.
       - "--providers.http.endpoint=http://app:3000/api/internal/traefik/custom-domains"
@@ -104,7 +104,7 @@ services:
     # ip_unprivileged_port_start=0). DAC_OVERRIDE only because
     # ./traefik/acme.json (0600) is owned by the deploy user, not root
     # (infra/roles/markoto) — drop it once the file is root-owned
-    # (docs/LAUNCH-CHECKLIST.md).
+    # (docs/operations/LAUNCH-CHECKLIST.md).
     cap_add:
       - DAC_OVERRIDE
     security_opt:
@@ -155,7 +155,7 @@ services:
       - NUXT_S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
       - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:?NUXT_S3_BUCKET required}
       - NUXT_JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
-      # Optional, only set during rotation — see docs/SECRETS-ROTATION.md.
+      # Optional, only set during rotation — see docs/operations/SECRETS-ROTATION.md.
       - NUXT_JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS}
       - NUXT_INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
       - NUXT_INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS}
@@ -167,8 +167,7 @@ services:
       # to NUXT_PUBLIC_SENTRY_DSN per sentry.server.config.ts.
       - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN}
       - SENTRY_DSN=${SENTRY_DSN}
-      # Phase 5: every AI surface routes through LiteLLM. Distinct
-      # dictation-JWT secret falls back to NUXT_JWT_SECRET when empty.
+      # Dictation-JWT secret; falls back to NUXT_JWT_SECRET when empty.
       - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET}
       # AI grounding provider keys read directly by the app process (NOT via
       # LiteLLM): Staan backs web_search, Jina Reader backs fetch_url. Enable
@@ -182,7 +181,7 @@ services:
       # empty = default 30 / 100). Shared by the editor AI and MCP.
       - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
       - NUXT_WEB_TOOLS_DAILY_LIMIT=${NUXT_WEB_TOOLS_DAILY_LIMIT:-}
-      # Bring-your-own-key AI (WP4). No defaults here: the hosted SaaS sets
+      # Bring-your-own-key AI. No defaults here: the hosted SaaS sets
       # no instance AI defaults (users bring their own key) and renders the
       # provider allowlist into .env (infra/render-env.sh). Self-hosters set
       # NUXT_AI_DEFAULT_* in .env. See server/utils/aiProviders/config.ts.
@@ -272,7 +271,7 @@ services:
       # Search-engine indexing. Staging renders false (robots.txt
       # Disallow: / + X-Robots-Tag: noindex on every response).
       - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-true}
-      # Custom domains (WP13): the host customers CNAME to (empty = off)
+      # Custom domains: the host customers CNAME to (empty = off)
       # and the token Traefik's HTTP provider sends.
       - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
       - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
@@ -380,7 +379,7 @@ services:
       - VALKEY_PORT=6379
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
-      # Postgres TLS posture — see docs/DEPLOY.md and shared/utils/runtime/postgresSsl.ts.
+      # Postgres TLS posture — see docs/operations/DEPLOY.md and shared/utils/runtime/postgresSsl.ts.
       # Empty PGSSLROOTCERT is fine: prod default is rejectUnauthorized
       # against the system CA bundle. Set it to a bind-mounted PEM path
       # (e.g. /run/secrets/managed_pg_ca.pem) for cert-pin verification.
@@ -418,7 +417,7 @@ services:
       # parallel 1-second probes, so worst case is ~1s. 10s is generous
       # headroom.
       - "traefik.http.services.app.loadbalancer.healthcheck.timeout=10s"
-      # ─── Security headers + CSP (see docs/SECURITY-HARDENING.md) ───
+      # Security headers + CSP (see docs/SECURITY-HARDENING.md)
       # Applied to every response from the app router. Traefik's
       # `headers` middleware has named fields for HSTS / CSP / referrer /
       # frame-deny / nosniff; everything else lands in
@@ -438,7 +437,7 @@ services:
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Cross-Origin-Opener-Policy=same-origin"
       - "traefik.http.middlewares.security-headers.headers.customResponseHeaders.Permissions-Policy=camera=(), microphone=(self), geolocation=(), payment=(self)"
       - "traefik.http.routers.app.middlewares=security-headers,app-compress"
-      # Published pages on customers' own domains (WP13, routers from the
+      # Published pages on customers' own domains (routers from the
       # app's HTTP provider): HSTS for that host only, never its subdomains.
       - "traefik.http.middlewares.custom-domain-headers.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.custom-domain-headers.headers.contentTypeNosniff=true"
@@ -479,7 +478,7 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
-      # Phase 5: every AI surface routes through LiteLLM. Gate app
+      # Every AI surface routes through LiteLLM. Gate app
       # startup on the proxy being healthy so a cold deploy doesn't
       # 502 user AI calls in the window between app-up and proxy-up.
       litellm:
@@ -520,7 +519,7 @@ services:
   # Database + roles bootstrap (infra/postgres/db-init.sh). On a managed
   # cluster POSTGRES_USER is the cluster's admin user: it needs CREATEDB and
   # CREATEROLE (OVH's default admin user has both) — see
-  # docs/LAUNCH-CHECKLIST.md for switching the hosted DB to separate roles.
+  # docs/operations/LAUNCH-CHECKLIST.md for switching the hosted DB to separate roles.
   db-init:
     networks:
       - data
@@ -566,8 +565,7 @@ services:
       # serialize cross-instance flushes for the same docId (two
       # different clients on the same doc CAN land on different
       # instances). The residual cross-instance race on
-      # `sync:prev-text:{docId}` is documented in
-      # `sync-server/AGENTS.md`; worst case is one duplicate activity
+      # `sync:prev-text:{docId}`: worst case is one duplicate activity
       # row per cross-container concurrency event — not corrupting,
       # just noisy.
       - "traefik.http.services.sync.loadbalancer.sticky.cookie=true"
@@ -644,7 +642,7 @@ services:
       # Symmetric AES-256 passphrase for client-side backup encryption.
       # Without this the sidecar refuses to start. Rotation invalidates
       # older backups for restore — schedule rotations against the
-      # retention window. See docs/DEPLOY.md §6.
+      # retention window. See docs/operations/DEPLOY.md §6.
       - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE:?BACKUP_GPG_PASSPHRASE required}
     networks:
       - data

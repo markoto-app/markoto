@@ -25,7 +25,7 @@ const EXPECTED_KEYS: string[] = [
   'ai.budgetExhaustedDescription',
   'ai.upgradeCta',
 
-  // Budget exhausted — workspace-shared (Phase 7 / FT.2)
+  // Budget exhausted — workspace-shared
   'ai.workspaceBudgetExhaustedTitle',
   'ai.workspaceBudgetExhaustedDescription',
 

@@ -8,20 +8,15 @@ import { AgenticFinishReason as FinishReason } from './aiTypes'
 import type OpenAI from 'openai'
 
 /**
- * Internal-shape ↔ OpenAI message-shape translator for the Phase 4
- * dual-mode agentic loop. The loop's internal representation stays in
- * the historical `Content[]` shape (pre-migration: Gemini-derived,
- * minimises the runLoop.ts rewrite); these helpers convert to/from
- * OpenAI's messages array at the LLM boundary.
+ * Internal-shape <-> OpenAI message-shape translator. The loop keeps its
+ * own `Content[]` representation; these helpers convert to/from OpenAI's
+ * messages array at the LLM boundary.
  *
- * One-way translation guidance:
- *   - `Content[]` → `OpenAI messages[]` runs at every turn before calling
- *     LiteLLM. Includes the system prompt as a top message.
- *   - OpenAI streaming chunk → internal-shaped chunk runs inside a wrapped
- *     async iterator so the existing chunk-handler in runLoop.ts keeps
- *     working unchanged. The wrapper accumulates fragmented tool-call
- *     arguments and emits the complete `chunk.functionCalls` array on
- *     the final chunk.
+ *   - `Content[]` -> `messages[]` runs every turn before calling LiteLLM and
+ *     puts the system prompt first.
+ *   - OpenAI streaming chunks -> internal-shaped chunks runs inside a wrapped
+ *     async iterator. The wrapper accumulates fragmented tool-call arguments
+ *     and emits the complete `chunk.functionCalls` array on the final chunk.
  *
  * Vision-input mapping: the internal shape smuggles binary parts
  * (`view_image` / `view_pages`) as `extraParts` *after* the
@@ -36,16 +31,13 @@ import type OpenAI from 'openai'
  * previous tool call.
  */
 
-// ─── Outbound: internal Content[] → OpenAI messages[] ────────────────────
-
 type OAIMessage = OpenAI.Chat.Completions.ChatCompletionMessageParam
 type OAIToolMessage = OpenAI.Chat.Completions.ChatCompletionToolMessageParam
 type OAIUserContentPart = OpenAI.Chat.Completions.ChatCompletionContentPart
 
-// `Part` (= AgenticPart) is the single source of truth for content
-// parts; importing here keeps the runLoop.ts ↔ messageTranslation.ts
-// boundary structurally identical so spreading `chunk.candidates[0].
-// content.parts` into a `Content['parts']` array typechecks.
+// `Part` (= AgenticPart) is the single source of truth for content parts, so
+// spreading `chunk.candidates[0].content.parts` into `Content['parts']`
+// typechecks across the runLoop.ts boundary.
 
 /**
  * Translate the loop's internal `Content[]` into OpenAI's `messages[]`.
@@ -57,7 +49,7 @@ type OAIUserContentPart = OpenAI.Chat.Completions.ChatCompletionContentPart
  *     `role: 'user'` with multipart `[{type: 'text'}, {type: 'image_url'}]`
  *   - `role: 'user'` with `functionResponse` parts → one `role: 'tool'`
  *     message per response, matched by `tool_call_id`. Sibling
- *     `inlineData` parts (the historical "extraParts" smuggle pattern)
+ *     `inlineData` parts (the "extraParts" smuggle pattern)
  *     split off into a fresh `role: 'user'` message right after, so the
  *     model ties the image to the function it just called.
  *   - `role: 'model'` with text + functionCall parts → `role: 'assistant'`
@@ -207,8 +199,6 @@ function buildAssistantMessage(parts: Part[]): OAIMessage {
   return assistantMsg
 }
 
-// ─── Tool declarations: internal → OpenAI ───────────────────────────────
-
 /**
  * Translate internal `FunctionDeclaration[]` into OpenAI's `tools[]`. The
  * underlying parameter schemas are JSON-Schema (Zod produces draft-7
@@ -229,14 +219,10 @@ export function internalToOpenAITools(
   }))
 }
 
-// ─── Inbound: OpenAI streaming chunks → internal-shaped chunks ──────────
-
 /**
- * Wrap an OpenAI streaming chunk iterator so the consumer (existing
- * runLoop.ts code) sees internal-shaped chunks. This lets the existing
- * chunk-handling code stay unchanged: it reads
- * `chunk.candidates[0].content.parts`, `chunk.functionCalls`, and
- * `chunk.usageMetadata` (shape pre-migration: Gemini-derived).
+ * Wrap an OpenAI streaming chunk iterator so runLoop.ts sees
+ * internal-shaped chunks: `chunk.candidates[0].content.parts`,
+ * `chunk.functionCalls` and `chunk.usageMetadata`.
  *
  * Streaming tool-call accumulator: Mistral's chat-completions stream
  * delivers `delta.tool_calls[].function.arguments` as fragmented JSON
@@ -252,7 +238,7 @@ export function internalToOpenAITools(
  *      + `usageMetadata`. Triggered on stream end.
  *
  * This is intentionally a thin shim. It does NOT validate or dispatch
- * tool calls — that's the existing runLoop.ts loop body's job.
+ * tool calls; that is the runLoop.ts loop body's job.
  */
 
 interface AccumulatingToolCall {
@@ -261,9 +247,6 @@ interface AccumulatingToolCall {
   argsBuffer: string
 }
 
-// Streaming chunk shape — re-exported alias for callers (runLoop.ts)
-// that previously imported `GeminiStreamChunk` from here. Identical
-// shape; the rename collapses two duplicate interfaces.
 export type StreamChunk = AgenticGenerateContentResponse
 
 /**
@@ -409,8 +392,8 @@ function parseToolCallArgs(buf: string): Record<string, unknown> {
 }
 
 /**
- * OpenAI's `finish_reason` values → the internal `FinishReason` enum
- * (pre-migration: Gemini-derived). Anything we don't explicitly map
+ * OpenAI's `finish_reason` values → the internal `FinishReason` enum.
+ * Anything we don't explicitly map
  * falls through to `OTHER` so the existing exit-path code recognises
  * it as terminal-but-unusual.
  */

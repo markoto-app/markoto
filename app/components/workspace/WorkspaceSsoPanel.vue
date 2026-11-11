@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Single sign-on settings of a workspace (WP14): the identity provider
+// Single sign-on settings of a workspace: the identity provider
 // (OpenID Connect or SAML), the values to enter at the IdP, the test
 // sign-in that switches it on, verified email domains, SCIM provisioning
 // and removal. Admins only; works without a current SSO sign-in (the
@@ -44,7 +44,6 @@ const loading = ref(true)
 const busy = ref<string | null>(null)
 const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspaceId)}/sso`)
 
-// Form draft
 const protocol = ref<'oidc' | 'saml'>('oidc')
 const oidcIssuer = ref('')
 const oidcClientId = ref('')
@@ -262,7 +261,6 @@ const spRows = computed(() => {
         data-testid="workspace-sso-enforced"
       />
 
-      <!-- Identity provider ─────────────────────────────────────── -->
       <div
         v-if="cur.available || cur.connection"
         class="rounded-lg border border-default bg-default p-5 space-y-5"
@@ -387,7 +385,6 @@ const spRows = computed(() => {
         </p>
       </div>
 
-      <!-- Values for the IdP ──────────────────────────────────────── -->
       <div
         v-if="cur.connection"
         class="rounded-lg border border-default bg-default p-5 space-y-3"
@@ -420,7 +417,6 @@ const spRows = computed(() => {
         </div>
       </div>
 
-      <!-- Domains ─────────────────────────────────────────────────── -->
       <div
         v-if="cur.available || cur.domains.length"
         class="rounded-lg border border-default bg-default p-5 space-y-4"
@@ -502,7 +498,6 @@ const spRows = computed(() => {
         </div>
       </div>
 
-      <!-- SCIM ────────────────────────────────────────────────────── -->
       <div
         v-if="cur.connection && cur.available"
         class="rounded-lg border border-default bg-default p-5 space-y-3"
@@ -562,7 +557,6 @@ const spRows = computed(() => {
         </div>
       </div>
 
-      <!-- Remove ──────────────────────────────────────────────────── -->
       <div
         v-if="cur.connection"
         class="flex items-center gap-2"

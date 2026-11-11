@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Publish as a web page (WP13): a static copy of the document at a public
+// Publish as a web page: a static copy of the document at a public
 // address (`/p/<slug>`), optionally shown on one of the user's own
 // domains. Owner and workspace admins. Publishing again replaces the
 // copy; the document itself keeps its access mode.
@@ -93,7 +93,6 @@ const updatedAt = computed(() => {
   return iso ? new Date(iso).toLocaleString(locale.value, { dateStyle: 'medium', timeStyle: 'short' }) : ''
 })
 
-// ── Custom domain ─────────────────────────────────────────────────────
 const NO_DOMAIN = '__none__'
 const verifiedDomains = computed(() => (domains.value?.domains ?? []).filter(d => d.status === 'verified'))
 const currentDomain = computed(() => verifiedDomains.value.find(d => d.page?.docId === props.docId) ?? null)

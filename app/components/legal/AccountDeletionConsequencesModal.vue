@@ -145,7 +145,6 @@ async function onConfirm(): Promise<void> {
           </div>
         </div>
 
-        <!-- Loading + error states -->
         <div
           v-if="previewLoading"
           class="text-sm text-muted py-6 text-center"
@@ -167,7 +166,6 @@ async function onConfirm(): Promise<void> {
           v-else-if="preview"
           class="space-y-4 flex-1 min-h-0 overflow-y-auto pr-1"
         >
-          <!-- Permanently deleted -->
           <section>
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.deleted.heading') }}
@@ -185,7 +183,6 @@ async function onConfirm(): Promise<void> {
             </ul>
           </section>
 
-          <!-- Workspaces — the load-bearing transparency section -->
           <section v-if="preview.workspaces.length > 0">
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.workspaces.heading') }}
@@ -268,7 +265,6 @@ async function onConfirm(): Promise<void> {
             </div>
           </section>
 
-          <!-- Anonymised -->
           <section>
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.anonymised.heading') }}
@@ -283,7 +279,6 @@ async function onConfirm(): Promise<void> {
             </ul>
           </section>
 
-          <!-- Manual steps + timing -->
           <section>
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
               {{ t('legal.delete.consequences.manualSteps.heading') }}

@@ -20,7 +20,7 @@ import { isWorkspacePlan, type PlanName } from '~~/shared/config/tiers'
 
 // POST /api/workspaces/:wsId/billing/checkout — buy Team / Business for a
 // workspace, or change the plan / billing period of its live subscription
-// (WP3). Workspace admins only; the caller becomes the billing admin.
+// Workspace admins only; the caller becomes the billing admin.
 //
 // Body: {plan: 'team'|'business', interval?: 'month'|'year',
 //        currency?: 'eur'|'chf', seats: ≥ 3 (and ≥ members + open invites)}

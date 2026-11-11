@@ -7,7 +7,7 @@ import { automaticTaxEnabled, createTopupCheckout } from '../../../../utils/bill
 import { isTopupPackId } from '~~/shared/config/pricing'
 
 // POST /api/workspaces/:wsId/billing/topup — buy AI credits for a Team /
-// Business workspace (WP4). Workspace admins; needs an active
+// Business workspace. Workspace admins; needs an active
 // subscription (409 `billing/no-subscription`). Paid on the workspace's
 // own Stripe customer, in its currency. Body {pack}.
 export default defineEventHandler(async (event) => {

@@ -1,4 +1,4 @@
-// Plan entitlements (Phase A) over real HTTP.
+// Plan entitlements over real HTTP.
 //
 // The billing-off twin runs the hosted free-only shape, including the
 // hosted free-tier plan limits (`HOSTED_FREE_TIER_LIMITS` in

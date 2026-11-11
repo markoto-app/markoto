@@ -57,7 +57,6 @@ function onCapReachedClick() {
   toast.add({ title: workspaceCapShortLabel.value, description: workspaceCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
 }
 
-// Fetch user's documents if logged in
 interface DocumentListItem {
   docId: string
   title: string
@@ -135,7 +134,7 @@ async function loadInvites(): Promise<void> {
     myInvites.value = []
   }
 }
-// Documents shared with this account as a workspace GUEST (WP11) — a
+// Documents shared with this account as a workspace GUEST — a
 // guest's only way into a workspace. Hidden when there are none.
 interface SharedDoc { docId: string, title: string, access: 'view' | 'edit', workspaceId: string, workspaceName: string, lastActive: string | null }
 const sharedDocs = ref<SharedDoc[]>([])
@@ -198,7 +197,6 @@ const pageTitle = computed(() => {
   return name ? t('home.greeting', { name }) : t('home.title')
 })
 
-// Delete modal state
 const deleteTarget = ref<DocumentListItem | null>(null)
 const showDeleteConfirm = ref(false)
 
@@ -245,7 +243,6 @@ function onDocMoved(newWorkspaceId: string | null) {
   moveTarget.value = null
 }
 
-// Workspace create
 const showCreateWorkspace = ref(false)
 
 function onWorkspaceCreated(workspaceId: string) {
@@ -338,7 +335,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
         />
       </section>
 
-      <!-- Shared with you as a guest of a workspace (WP11). -->
+      <!-- Shared with you as a guest of a workspace. -->
       <section
         v-if="sharedDocs.length > 0"
         class="space-y-4"

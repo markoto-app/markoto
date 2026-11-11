@@ -2,7 +2,7 @@ import { and, desc, eq, inArray, sql } from 'drizzle-orm'
 import { documentShares, documents, users, workspaces } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 
-// Documents shared with workspace guests (WP11). A share is the ONLY way
+// Documents shared with workspace guests. A share is the ONLY way
 // a guest reaches a workspace document; `getDocWithActorRole` turns it
 // into `editor` (edit) / `viewer` (view) for that one document.
 
@@ -74,7 +74,7 @@ export interface SharedWithMeRow {
 }
 
 /**
- * Documents shared with the user AS A GUEST (WP11), newest activity
+ * Documents shared with the user AS A GUEST, newest activity
  * first. Only while they are still a guest of the document's workspace.
  */
 export async function listSharedWithUser(userId: number): Promise<SharedWithMeRow[]> {

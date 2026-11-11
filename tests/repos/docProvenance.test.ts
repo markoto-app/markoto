@@ -116,7 +116,7 @@ describe('hasForeignContentActivity — AI session provenance', () => {
   })
 })
 
-describe('countOtherWorkspaceEditors — guests with an edit share (WP11)', () => {
+describe('countOtherWorkspaceEditors — guests with an edit share', () => {
   beforeEach(async () => {
     await resetDb()
   })

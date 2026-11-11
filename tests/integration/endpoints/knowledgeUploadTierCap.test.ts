@@ -110,7 +110,7 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request — tier cap', () 
     expect(res.status).not.toBe(409)
   })
 
-  // ─── Error-contract delivery (the upgrade CTA wiring) ─────────────────
+  // Error-contract delivery (the upgrade CTA wiring)
   //
   // When a user hits a knowledge cap mid-work, the WorkspaceKnowledgePanel
   // toast needs to render an "Upgrade your plan" link routing to /pricing.

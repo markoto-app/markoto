@@ -70,7 +70,7 @@ const columns = computed<FooterColumn[]>(() => {
     ...(marketingSite.value ? [{ to: selfHostPath(marketingSite.value), label: t('marketing.nav.selfHost'), testid: 'footer-self-host-link' }] : []),
     { to: '/docs', label: t('common.docs'), testid: 'footer-docs-link' },
     { to: SOURCE_REPO_URL, label: 'GitHub', testid: 'footer-github-link', external: true },
-    // Managed instance (WP16): the customer's own service desk.
+    // Managed instance: the customer's own service desk.
     ...(supportHref.value ? [{ to: supportHref.value, label: t('instanceBrand.support'), testid: 'footer-support-link', external: true }] : [])
   ]
   const legal: FooterLink[] = legalSurfaces.value
@@ -99,9 +99,7 @@ const columns = computed<FooterColumn[]>(() => {
 </script>
 
 <template>
-  <!-- UFooter: the column grid sits in its `top` slot, the copyright row
-       in the footer's own container. Root keeps `legal-footer` (the
-       product tour snaps to it, ProductTour.vue). -->
+  <!-- Root keeps `legal-footer`: the product tour snaps to it (ProductTour.vue). -->
   <UFooter
     class="legal-footer border-t border-sumi-300/50 dark:border-sumi-700/50 bg-muted"
     role="contentinfo"
@@ -110,9 +108,8 @@ const columns = computed<FooterColumn[]>(() => {
   >
     <template #top>
       <UContainer class="max-w-6xl lg:px-6">
-        <!-- Columns from the default slot, not the `columns` prop: the
-             prop renders anonymous wrappers, and every column keeps its
-             own test id. -->
+        <!-- Default slot rather than the `columns` prop: the prop renders
+             anonymous wrappers, and each column keeps its own test id. -->
         <UFooterColumns
           :aria-label="t('legal.footer.navLabel')"
           :ui="columnsUi"

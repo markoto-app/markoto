@@ -2,7 +2,7 @@ import { and, eq, gt, isNull, lt } from 'drizzle-orm'
 import { waitlistSignups } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 
-// `waitlist_signups` repository — the paid-plans waitlist (WP3).
+// `waitlist_signups` repository — the paid-plans waitlist.
 //
 // Every function takes token HASHES, never raw tokens: hashing lives in
 // `server/utils/privacy/waitlist.ts` so the raw value never reaches this layer

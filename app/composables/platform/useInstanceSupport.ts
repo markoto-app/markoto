@@ -1,5 +1,5 @@
 /**
- * Where a managed private instance's users get help (WP16): the operator's
+ * Where a managed private instance's users get help: the operator's
  * support page, else a mailto: link to the support address, else null.
  */
 export function useInstanceSupport() {

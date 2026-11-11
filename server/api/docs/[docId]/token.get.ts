@@ -48,14 +48,14 @@ export default defineEventHandler(async (event) => {
   // body, description, owner, workspace or theme — a
   // leaked link to a private doc must not leak its metadata.
   if (decision.outcome === 'forbidden' || decision.outcome === 'password-required') {
-    // A member of a workspace that enforces single sign-on (WP14) gets the
+    // A member of a workspace that enforces single sign-on gets the
     // link to sign in through it; everyone else learns nothing more.
     const ssoLoginUrl = decision.outcome === 'forbidden' && row.workspaceId && session?.user?.id
       ? await ssoLoginUrlForMember(row.workspaceId, session.user.id, `/d/${docId}`)
       : null
     return {
       ssoLoginUrl,
-      // Share-link controls (WP9): the public link ended — the page says
+      // Share-link controls: the public link ended — the page says
       // so instead of "no access". Nothing else about the doc is revealed.
       shareExpired: doc.shareExpired === true,
       token: null,
@@ -90,7 +90,7 @@ export default defineEventHandler(async (event) => {
     accessMode: row.accessMode,
     ownerId: row.ownerId,
     workspaceId: row.workspaceId,
-    // A guest (WP11) is not a member: no workspace role for the UI (no
+    // A guest is not a member: no workspace role for the UI (no
     // knowledge panel, no sharing); `guest` says why they may open it.
     workspaceRole: row.isGuest ? null : row.workspaceRole,
     guest: row.isGuest,
@@ -119,11 +119,11 @@ export default defineEventHandler(async (event) => {
     }),
     templateId: row.templateId,
     planFeatures: { customCss: planHasFeature(docPlan, 'customCss') },
-    // Workspace brand kit (WP10): the fonts every render declares and,
+    // Workspace brand kit: the fonts every render declares and,
     // while the workspace design is locked, that design (the editor
     // renders with it, keeping only the document's cover text).
     brandKit: await docBrandForClient(row.workspaceId),
-    // Share-link controls (WP9): this viewer may not download or print.
+    // Share-link controls: this viewer may not download or print.
     noDownload: !canDownload(doc, actor, row.shareNoDownload),
     // The Team / Business plan covering the doc's workspace (header badge).
     workspacePlan: row.workspaceId ? (await pooledPlansFor([row.workspaceId])).get(row.workspaceId) ?? null : null,
@@ -146,10 +146,10 @@ export default defineEventHandler(async (event) => {
     userName: session?.user?.name ?? null,
     readOnly: decision.readOnly
   } satisfies SessionJwtPayload
-  // ≤ 2 h, and never past the share link's expiry (WP9).
+  // ≤ 2 h, and never past the share link's expiry.
   const token = jwt.sign(payload, config.jwtSecret, { expiresIn: docJwtLifetimeSeconds(row.shareExpiresAt) })
 
-  // View counts (WP9): an open by someone other than the owner and the
+  // View counts: an open by someone other than the owner and the
   // workspace members, on a plan with share controls. Aggregate per day,
   // best-effort — never fails the open. A token refresh (`?refresh=1`, the
   // editor's reconnect path) is not a new open.

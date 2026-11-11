@@ -33,14 +33,14 @@
 // acceptance); precise age rule (16); AI training statements per provider.
 // v9 (2026-11-09): billing data once paid plans are offered: Team /
 // Business seats + billing admin, admins see members' monthly AI spend
-// (not content), AI credits, Paid Plans Terms acceptance (WP6b).
+// (not content), AI credits, Paid Plans Terms acceptance.
 // v10 (2026-11-09): single sign-on through a workspace's own IdP + SCIM
-// provisioning (WP14): identifier, link, last sign-in, active state.
+// provisioning: identifier, link, last sign-in, active state.
 // v11 (2026-11-09): workspace admins (audit-log plan feature) see and
-// export that workspace's audit entries incl. names + truncated IPs (WP15).
+// export that workspace's audit entries incl. names + truncated IPs.
 // v12 (2026-11-09): workspace guests + document shares, per-person usage
-// view for workspace admins (WP11).
-// v13 (2026-11-10): publish as a web page + custom domains (WP13): the
+// view for workspace admins.
+// v13 (2026-11-10): publish as a web page + custom domains: the
 // published copy, domain names, DNS checks, Let's Encrypt certificates
 // (domain name public in Certificate Transparency logs).
 export const PRIVACY_VERSION = 13
@@ -65,7 +65,7 @@ export const DPA_EFFECTIVE_DATE = '2026-11-03'
 export const ABUSE_POLICY_VERSION = 2
 export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-11-03'
 
-// Paid Plans Terms (pricing plan WP6): the extra terms for Pro / Team /
+// Paid Plans Terms: the extra terms for Pro / Team /
 // Business and AI credits, accepted at checkout (not at onboarding — free
 // users never see them). Acceptance is recorded per purchase in the audit
 // log (`policy.accepted`, document `paid-terms`), not on the user row.

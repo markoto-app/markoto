@@ -5,7 +5,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { flushPromises } from '@vue/test-utils'
 import { DocumentMoveWorkspaceModal } from '#components'
 
-// Moving a document out of a Team / Business workspace (WP6): the modal
+// Moving a document out of a Team / Business workspace: the modal
 // warns that the doc's features then follow the new place's plan, but
 // only on a step down (Business → Team, or out of any plan).
 

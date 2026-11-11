@@ -3,12 +3,8 @@
 # file needs Docker Compose >= 5.0.0 (2.24-2.40 reject it with "conflicts
 # with imported resource"; compose-go#835 re-allowed it).
 #
-# Why this exists: dev/local/prod previously duplicated ~80 % of every
-# service block. Drift was real — pool sizing, mem_limit, healthcheck
-# shapes, Valkey password + TLS opt-in, security headers had to be
-# touched in 2-3 places per change. This file is the single source of
-# truth for the common shape; each env file overrides only what's
-# genuinely environment-specific.
+# Single source of truth for the shape shared by dev / local / prod; each env
+# file overrides only what is environment-specific.
 #
 # Semantics reminder (Compose merge):
 #   - environment: map-merged (per-key override) — good
@@ -151,9 +147,8 @@ services:
       - EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-openai/text-embedding-3-small}
       - EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-https://api.openai.com/v1}
       - EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
-      # Stubbed for Phase 4 / 5 — declared now so the env wiring is in
-      # place when those phases land. `${VAR:-}` fallbacks let the stack
-      # boot before the user provisions the keys.
+      # Upstream provider keys. `${VAR:-}` fallbacks let the stack boot
+      # before the keys are provisioned.
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
       - BFL_API_KEY=${BFL_API_KEY:-}
       - STORE_MODEL_IN_DB=false
@@ -163,9 +158,8 @@ services:
     volumes:
       - ./infra/litellm/config.yaml:/app/config.yaml:ro,z
       # custom_handlers.py is loaded by litellm_settings.custom_provider_map
-      # in config.yaml. Ready for Phase 3 (BFL) + Phase 5 (Voxtral tick) —
-      # imported eagerly on every boot so any regression in the file
-      # surfaces immediately, not at cutover.
+      # in config.yaml. Imported eagerly on every boot, so a broken file
+      # fails at startup.
       - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
@@ -267,7 +261,7 @@ services:
     # pinned to one instance, so per-instance memory scales with local load.
     mem_limit: 1g
     # Same as the image's HEALTHCHECK, declared here because Podman builds
-    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=3 http://127.0.0.1:4001/health || exit 1"]
       interval: 30s
@@ -333,7 +327,7 @@ services:
     # a 50 MB import size limit upstream).
     mem_limit: 1g
     # Same as the image's HEALTHCHECK, declared here because Podman builds
-    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
     healthcheck:
       test: ["CMD", "python3", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status==200 else 1)"]
       interval: 30s
@@ -418,7 +412,7 @@ services:
       - PGPASSWORD=${POSTGRES_PASSWORD}
       # Backup storage. ONLY this service receives these: they default to the
       # app's bucket/keys (NUXT_S3_*) until a dedicated backup bucket with its
-      # own credentials is provisioned (docs/LAUNCH-CHECKLIST.md). The
+      # own credentials is provisioned (docs/operations/LAUNCH-CHECKLIST.md). The
       # endpoint is set per environment.
       - S3_ACCESS_KEY=${BACKUP_S3_ACCESS_KEY:-${NUXT_S3_ACCESS_KEY}}
       - S3_SECRET_KEY=${BACKUP_S3_SECRET_KEY:-${NUXT_S3_SECRET_KEY}}

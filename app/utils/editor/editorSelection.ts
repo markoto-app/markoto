@@ -6,26 +6,23 @@ import {
   EDITOR_CURSOR_LINE_CONTEXT_EACH_SIDE
 } from '~~/shared/types/editorSelection'
 
-// Re-export NOT added here — the type lives in shared/types and is
-// auto-imported. Re-exporting from this file triggers a "duplicated
-// imports" warning from Nuxt's auto-import machinery.
+// Don't re-export the type here: it lives in shared/types and is
+// auto-imported, and a re-export triggers Nuxt's "duplicated imports" warning.
 
 /**
- * Splice `<CURSOR_IS_HERE>` into the line at the caret column. If the
- * line is longer than can reasonably ship with the prompt, window
- * around the cursor with `…` markers on either side so the AI still
- * sees the immediate context — it'll call `view_document` for the
- * full line when it's time to build `old_str`.
+ * Splice `<CURSOR_IS_HERE>` into the line at the caret column. A line too
+ * long to ship with the prompt is windowed around the cursor with `…`
+ * markers; the AI calls `view_document` for the full line when it needs
+ * `old_str`.
  *
- * Escapes any pre-existing `<CURSOR_IS_HERE>` in the line so an
- * attacker (or a user who literally typed the marker into their doc)
- * can't confuse the model about where the caret really is.
+ * A pre-existing marker in the line is escaped so document text can't
+ * mislead the model about where the caret is.
  */
 function buildCursorLineText(
   fullLine: string,
   column: number
 ): { text: string, truncated: boolean } {
-  // 1-indexed column → 0-indexed insert position.
+  // 1-indexed column → 0-indexed position.
   const cursorIdx = Math.max(0, Math.min(fullLine.length, column - 1))
   const safeLine = fullLine.replaceAll(CURSOR_MARKER, '<cursor-in-doc>')
   const before = safeLine.slice(0, cursorIdx)
@@ -46,16 +43,13 @@ function buildCursorLineText(
 
 /**
  * Read the current CodeMirror selection into a serializable snapshot for
- * the AI prompt endpoint. Returns `{ kind: 'none' }` when:
- *   - the view isn't mounted yet (editor hidden behind a password gate,
- *     mobile collapsed view, etc.), OR
- *   - the user has never focused the editor in this session.
+ * the AI prompt endpoint. Returns `{ kind: 'none' }` when the view isn't
+ * mounted (password gate, collapsed mobile view) or the user has never
+ * focused the editor in this session.
  *
- * The `everFocused` gate is the signal that separates "initial CM6 state
- * at doc load" (cursor sits at position 0 by default) from "user placed
- * the cursor at line 1". Without it, every freshly-opened doc would
- * report a cursor on line 1, even if the user is typing their prompt
- * without having ever clicked into the doc.
+ * `everFocused` separates CM6's initial state (caret at position 0) from
+ * a user who placed the caret on line 1; without it every freshly opened
+ * doc would report a cursor on line 1.
  */
 export function snapshotEditorSelection(
   view: EditorView | null,

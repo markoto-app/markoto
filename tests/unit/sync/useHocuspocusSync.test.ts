@@ -19,7 +19,6 @@ import { WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspoc
 ;(globalThis as unknown as { ref: typeof ref }).ref = ref
 ;(globalThis as unknown as { shallowRef: typeof shallowRef }).shallowRef = shallowRef
 
-// ═══════════════════════════════════════════════════════════════════════
 // Fake provider harness
 //
 // The composable's `providerFactory` seam means we never need to mock
@@ -27,7 +26,6 @@ import { WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspoc
 // records the config (so we can fire its lifecycle callbacks) and
 // tracks destroy() calls. Each `connect()` creates a new one; the test
 // keeps a reference via the factory.
-// ═══════════════════════════════════════════════════════════════════════
 
 interface FakeProvider extends ProviderLike {
   readonly config: HocuspocusProviderConfiguration
@@ -107,9 +105,7 @@ function baseOpts(harness: Harness, overrides: {
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════
 // No-syncUrl path — pure offline dev mode
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useHocuspocusSync — no syncUrl configured', () => {
   it('marks synced=true + status=disconnected WITHOUT creating a provider', () => {
@@ -132,9 +128,7 @@ describe('useHocuspocusSync — no syncUrl configured', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // connect() — provider construction + config forwarding
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useHocuspocusSync — connect() with syncUrl', () => {
   it('creates a provider and stashes it in the reactive ref', () => {
@@ -159,7 +153,7 @@ describe('useHocuspocusSync — connect() with syncUrl', () => {
   it('passes getToken as the provider token accessor (re-evaluated per connect, not resolved once)', async () => {
     // The composable must hand an ACCESSOR to HocuspocusProvider (which
     // invokes it on every reconnect), not a resolved string — that's what
-    // lets a post-password-verify swap AND the F5 near-expiry refresh take
+    // lets a post-password-verify swap AND the near-expiry refresh take
     // effect on the next reconnect. The accessor is normalised to
     // `() => Promise<string>` at the provider boundary.
     let currentToken = 'jwt-initial'
@@ -175,9 +169,7 @@ describe('useHocuspocusSync — connect() with syncUrl', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Provider callbacks → reactive state transitions
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useHocuspocusSync — lifecycle callbacks', () => {
   it('status starts "connecting" before any event fires', () => {
@@ -303,9 +295,7 @@ describe('useHocuspocusSync — lifecycle callbacks', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // disconnect() / reconnect() / destroy()
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
   it('disconnect() destroys the provider and nulls the ref', () => {
@@ -410,9 +400,7 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Guards and corner cases
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useHocuspocusSync — corner cases', () => {
   it('calling connect() twice creates two providers without destroying the first', () => {
@@ -461,13 +449,11 @@ describe('useHocuspocusSync — corner cases', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Server-side rejection of an update (size limit / invalid ymeta value)
 //
 // The sync server closes the document connection with a known reason.
 // Reconnecting would resend the same state and be refused again, so the
 // composable surfaces the reason and stops the provider.
-// ═══════════════════════════════════════════════════════════════════════
 
 function closeEvent(code: number, reason: string) {
   return Object.assign(new Event('close'), { code, reason, wasClean: true })
@@ -529,12 +515,10 @@ describe('useHocuspocusSync — sync rejection', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Re-authentication: the server closed the connection because the token
 // expired or the document's access became stricter. Not a rejection —
 // the provider reconnects, and the caller makes that reconnect fetch a
 // fresh token.
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useHocuspocusSync — re-authentication', () => {
   it('a re-authenticate close asks the caller for a fresh token and keeps reconnecting', () => {

@@ -4,7 +4,7 @@
 //
 // The caps themselves live in `shared/config/tiers.ts` (committed
 // self-host defaults + `TIER_<PLAN>_<FIELD>` runtime overrides). With
-// billing off (self-host, and the hosted free-only phase) every
+// billing off (self-host, and the hosted free-only deployment) every
 // account resolves to `free` through `effectivePlan`, so the free tier
 // IS the instance's limits: the committed free tier switches every
 // feature on, the hosted deployment narrows it via `TIER_FREE_*`.

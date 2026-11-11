@@ -13,7 +13,7 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // curve between "user feels their deletion took effect" and "we're
 // not pounding the DB with no-op scans".
 //
-// Cross-instance lock: same pattern as plan-lapse-sweep. The
+// Cross-instance lock: the
 // executor is row-level idempotent (deleting an already-deleted doc
 // is a no-op), but two instances racing on the same user would still
 // produce a flurry of "user not found" / "row already gone" errors;

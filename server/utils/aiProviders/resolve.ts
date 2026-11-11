@@ -12,7 +12,7 @@
 //     deployment in infra/litellm/config.yaml has zero cost, so these
 //     calls never debit the user's LiteLLM `max_budget`.
 //   - instance default WITHOUT base URL → the model alias as-is
-//     (platform-paid, debits the budget like before BYOK).
+//     (platform-paid, debits the user's budget).
 //
 // The request still authenticates with the user's LiteLLM virtual key,
 // so per-key rpm limits and spend-log tags keep working for BYOK.
@@ -93,8 +93,8 @@ function fromInstanceDefault(capability: AiCapability): ResolvedAiProvider | nul
 }
 
 /**
- * Plan feature that unlocks a capability on the PLATFORM's provider
- * (WP5). Chat on the instance default is in every plan; a user's own key
+ * Plan feature that unlocks a capability on the PLATFORM's provider.
+ * Chat on the instance default is in every plan; a user's own key
  * is never gated.
  */
 export const CAPABILITY_PLAN_FEATURE: Partial<Record<AiCapability, FeatureField>> = {

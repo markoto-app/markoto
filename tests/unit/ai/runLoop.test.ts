@@ -8,20 +8,14 @@ import {
 } from '../../../server/utils/agentic/aiTypes'
 import { soloSessionGuard, taintedSessionGuard } from '../fixtures/crossBoundary'
 
-// ─── Adversarial: budget exhaustion paths ─────────────────────────────────
+// Adversarial: budget exhaustion paths
 //
-// The runLoop charges 1 interaction per turn upfront, +4 for each
-// grounded sub-call. Mid-loop BudgetExhausted means the user crossed
-// their cap during this run — must emit a doc breadcrumb (so the user
-// sees what happened — there's no chat UI) and exit cleanly via
-// setStatus('done', 'AI Points exhausted'). Critical that exhaustion
-// NEVER throws to the caller — that would render as an unhandled
-// error, not the friendly "Upgrade your plan" UX.
-//
-// Phase 6: app-side `chargeInteractions` is gone. LiteLLM's HTTP 400
-// `budget_exceeded` is the only signal. The mock for `streamFromProvider`
-// (or the underlying ai client) can throw a synthetic LitellmBudgetExhausted
-// to exercise the budget-exhausted code path.
+// The LiteLLM proxy's HTTP 400 `budget_exceeded` is the only exhaustion signal (there is no app-side
+// counter). Mid-loop exhaustion must emit a doc breadcrumb (so the user sees what happened; there's no chat
+// UI) and exit cleanly via setStatus('done', 'AI Points exhausted'). Critical that exhaustion NEVER throws to
+// the caller: that would render as an unhandled error, not the friendly "Upgrade your plan" UX. The mock for
+// `streamFromProvider` (or the underlying ai client) can throw a synthetic LitellmBudgetExhausted to exercise
+// this path.
 
 // The runLoop imports `aiToolAdapter.executeFunctionByName` which
 // transitively pulls in the DB layer (repos/documents -> useDatabase).
@@ -50,7 +44,7 @@ vi.mock('../../../server/utils/agentic/functionTools', async () => {
 // Import under test AFTER vi.mock() calls above.
 const { runAgenticLoop } = await import('../../../server/utils/agentic/runLoop')
 
-// --- Test harness ---------------------------------------------------------
+// Test harness
 
 interface StreamChunk {
   functionCalls?: FunctionCall[]
@@ -104,7 +98,7 @@ function makeFakeAi(turns: FakeTurn[]): {
 }
 
 function shapeChunk(c: StreamChunk): GenerateContentResponse {
-  // The internal stream shape (pre-migration: Gemini-derived) surfaces
+  // The internal stream shape surfaces
   // `functionCalls` on the response; a plain property of the same name
   // is fine for runLoop's consumption.
   // `candidates[0].content.parts` holds text/inline-data/tool-calls for
@@ -151,7 +145,7 @@ function makeOpts(overrides: Partial<Parameters<typeof runAgenticLoop>[0]> = {},
   }
 }
 
-// --- Tests ----------------------------------------------------------------
+// Tests
 
 beforeEach(() => {
   executeFunctionByName.mockReset()
@@ -450,7 +444,7 @@ describe('runAgenticLoop — web_search routing', () => {
       'fake-test-model',
       'mistral pricing',
       expect.any(AbortSignal),
-      // Phase 7 multi-axis spend-tag context rides on the 5th arg.
+      // The multi-axis spend-tag context rides on the 5th arg.
       // We don't pin the exact contents here (covered in
       // featureTags.test.ts); just assert the shape is forwarded.
       expect.objectContaining({})
@@ -512,15 +506,10 @@ describe('runAgenticLoop — conversation history', () => {
   })
 })
 
-// Phase 6: budget-exhausted tests deleted. The previous suite tested
-// the app-side `chargeInteractions` exception path which doesn't exist
-// anymore — LiteLLM's HTTP 400 `budget_exceeded` is the only signal,
-// and the runLoop's catch around `streamFromProvider` translates it
-// into the same `emitBudgetBreadcrumb` flow. The full integration
-// path is exercised by the integration suite which can spin up a
-// real LiteLLM proxy with a sub-cent budget. Voiding the previous
-// unit-level guards here is acceptable given the test-cost vs. signal
-// trade-off in the new architecture.
+// Budget-exhausted behaviour is covered elsewhere: LiteLLM's HTTP 400 `budget_exceeded` is the only signal,
+// and the runLoop's catch around `streamFromProvider` translates it into the `emitBudgetBreadcrumb` flow
+// (runLoopBudgetExhaustion.test.ts). The full path is exercised by the integration suite, which can spin up a
+// real LiteLLM proxy with a sub-cent budget.
 
 describe('runAgenticLoop — degenerate function-call shapes', () => {
   it('all calls in a turn have empty `name` → defensive "no responses" exit', async () => {
@@ -593,8 +582,8 @@ describe('runAgenticLoop — degenerate function-call shapes', () => {
 
 describe('runAgenticLoop — terminal finishReason behaviour (no app-side billing)', () => {
   it('SAFETY-blocked turn surfaces an error status', async () => {
-    // Phase 6: no app-side per-turn charge. LiteLLM bills the upstream
-    // chat call automatically — this test only checks the status flow.
+    // No app-side per-turn charge: LiteLLM bills the upstream chat call automatically; this test only checks
+    // the status flow.
     const { ai } = makeFakeAi([
       {
         chunks: [{
@@ -697,13 +686,11 @@ describe('runAgenticLoop — taint + confirm gate (cross-document access)', () =
   })
 })
 
-// --- Stalled edits ----------------------------------------------------------
+// Stalled edits
 //
-// Release v0.2.1: 9 sessions ran into the 20-turn limit after the real
-// edit was done — the model kept inserting bare newlines, replacing text
-// with itself, or swapping a sentence back and forth. The loop now tells
-// the model when an edit changed nothing, and ends the session normally
-// after STALLED_TURN_LIMIT such turns in a row.
+// Sessions can run into the 20-turn limit after the real edit was done: the model keeps inserting bare newlines,
+// replacing text with itself, or swapping a sentence back and forth. The loop tells the model when an edit
+// changed nothing, and ends the session normally after STALLED_TURN_LIMIT such turns in a row.
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null
@@ -816,7 +803,7 @@ describe('runAgenticLoop — stalled edits', () => {
   })
 
   it('the same failing edit repeated is stopped', async () => {
-    // Session XS__q_OQpkPv: the model kept "fixing" text that only exists
+    // The model kept "fixing" text that only exists
     // in the document context, getting "No match" every time.
     const ytext = docWith('# Title\n')
     const { ai, callsSeen } = makeFakeAi(Array.from({ length: 10 }, () =>

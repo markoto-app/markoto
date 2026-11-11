@@ -79,7 +79,7 @@ class ExtractError(Exception):
     """The file can't be read as the claimed format (user-facing, short)."""
 
 
-# ── helpers ──────────────────────────────────────────────────────────────
+# helpers
 
 
 def _hex(value: str | None) -> str | None:
@@ -139,7 +139,7 @@ def _rels(archive: zipfile.ZipFile, part: str) -> dict[str, str]:
     return out
 
 
-# ── DOCX ─────────────────────────────────────────────────────────────────
+# DOCX
 
 
 def _theme(archive: zipfile.ZipFile) -> dict[str, Any]:
@@ -454,7 +454,7 @@ def extract_docx(body: bytes) -> dict[str, Any]:
         }
 
 
-# ── PDF ──────────────────────────────────────────────────────────────────
+# PDF
 
 
 def _color_hex(color: Any) -> str | None:

@@ -96,8 +96,6 @@ export function isFreeAllowanceExhaustedError(err: unknown): boolean {
   return msg.includes(`Team=${FREE_TIER_TEAM_ID}`) && /Budget has been exceeded|budget_exceeded/i.test(msg)
 }
 
-// ─── Team provisioning ──────────────────────────────────────────────────
-
 /** Budget the team was last brought to in this process (skip the round trip when unchanged). */
 let ensuredBudget: number | null = null
 /** The provisioning round trip in flight, shared by concurrent callers. */
@@ -220,8 +218,6 @@ export async function ensureFreeTierTeamMember(userId: number): Promise<void> {
   if (/already in team|team_member_already_in_team|Unique constraint failed/i.test(text)) return
   throw new Error(`[freeTierTeam] /team/member_add failed: ${res.status} ${text.slice(0, 200)}`)
 }
-
-// ─── Pool status (for the UI) ───────────────────────────────────────────
 
 export interface FreeTierPoolStatus {
   exhausted: boolean

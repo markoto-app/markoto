@@ -18,7 +18,7 @@ import {
 } from './env'
 
 // Single source of truth for the env vars every test surface (repo
-// tests, integration subprocess, future suites) needs.
+// tests, integration subprocess) needs.
 //
 // Why this exists: `useDatabase()` and `useValkey()` resolve their
 // connection strings via `postgresUrlFromEnv` / `valkeyUrlFromEnv` in
@@ -72,7 +72,7 @@ export function buildTestEnv(): Record<string, string> {
     // /_test/login bypass) — repo tests don't usually need these but
     // setting it here keeps the env shape uniform.
     TEST_MODE: '1',
-    // Phase 7: repo-tier tests don't bring up the LiteLLM proxy (no
+    // Repo-tier tests don't bring up the LiteLLM proxy (no
     // Nuxt subprocess, no useRuntimeConfig). Stub the per-user key
     // path so `resolveBillingContext` can run without hitting the
     // network. Integration tests do NOT set this — they exercise the

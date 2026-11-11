@@ -33,13 +33,10 @@ export async function createUser(overrides: CreateUserOpts = {}): Promise<TestUs
   const name = overrides.name ?? `User ${nanoid(6)}`
   const email = overrides.email ?? `${nanoid(8)}@test.local`
   const fresh = overrides.freshOnboarding === true
-  // github_id is optional per schema, but we set a unique one anyway so
-  // tests that log in via OAuth-style paths have a plausible shape.
-  // Default behaviour mirrors a post-onboarding user: privacy + ToS + DPA
-  // accepted at current versions, age confirmed. The DPA gate on
-  // `POST /api/workspaces` (added in commit 53e6b3e — Workstream B,
-  // GDPR/DSA infra) refuses workspace creation otherwise; tests that
-  // care about that gate opt out via `freshOnboarding: true`.
+  // github_id is optional per schema, but we set a unique one anyway so tests that log in via OAuth-style paths
+  // have a plausible shape. Default behaviour mirrors a post-onboarding user: privacy + ToS + DPA accepted at
+  // current versions, age confirmed. The DPA gate on `POST /api/workspaces` refuses workspace creation
+  // otherwise; tests that care about that gate opt out via `freshOnboarding: true`.
   const result = await db.query<{ id: number }>(
     fresh
       ? `INSERT INTO users (name, email, github_id)

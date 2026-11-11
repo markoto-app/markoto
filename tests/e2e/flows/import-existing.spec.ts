@@ -32,7 +32,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
   await editor.silentSetup({ title: 'Quarterly report' })
   await editor.page.disableCoverPage()
 
-  // ─── Open the import dialog ──────────────────────────────────────
+  // Open the import dialog
   await flow.heading('Bring your existing document in', 3)
   await flow.narrate(
     'Already have a draft in Word, a PDF, an HTML export from a CMS? '
@@ -79,7 +79,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Pick the file ───────────────────────────────────────────────
+  // Pick the file
   await flow.heading('Pick the file you want to import', 3)
   await flow.narrate(
     'The dialog accepts Word (.docx), PDF, PowerPoint, Excel, HTML, '
@@ -118,7 +118,7 @@ test('Import existing document', async ({ page, flow, editor }) => {
   // ASSERTION: the selected-file pane is now visible with the right name.
   await expect(page.getByText(/q3-launch-postmortem\.html/i)).toBeVisible()
 
-  // ─── Trigger the import ──────────────────────────────────────────
+  // Trigger the import
   await flow.heading('Convert and load it into the editor', 3)
   await flow.narrate(
     'Hit Import. The file is converted to Markdown and lands '

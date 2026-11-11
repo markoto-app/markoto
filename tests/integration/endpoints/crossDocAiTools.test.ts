@@ -89,9 +89,7 @@ describe('POST /api/_test/exec-ai-tool — gating', () => {
   })
 })
 
-// =====================================================================
 // list_workspace_documents — full-stack
-// =====================================================================
 
 describe('list_workspace_documents — full-stack', () => {
   beforeEach(async () => {
@@ -197,9 +195,7 @@ describe('list_workspace_documents — full-stack', () => {
   })
 })
 
-// =====================================================================
 // view_other_document — access-denial branches (no sync needed)
-// =====================================================================
 
 describe('view_other_document — anti-enumeration (404-shape)', () => {
   beforeEach(async () => {
@@ -366,9 +362,7 @@ describe('view_other_document — URL parsing', () => {
   })
 })
 
-// =====================================================================
 // Mid-session membership drift
-// =====================================================================
 
 describe('view_other_document — membership drift', () => {
   beforeEach(async () => {

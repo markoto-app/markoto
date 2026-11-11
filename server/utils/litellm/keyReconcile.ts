@@ -113,7 +113,7 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
   // The team must exist before any key can be pointed at it.
   await ensureFreeTierTeam()
   const listed = await listAllKeys()
-  // Only users who bought top-ups need the credit lookup (WP4).
+  // Only users who bought top-ups need the credit lookup.
   const usersWithCredits = new Set((await listSubjectsWithCredits(new Date(Date.now() - 62 * 24 * 3600 * 1000)))
     .filter(s => s.type === 'user').map(s => s.id))
 
@@ -126,7 +126,7 @@ export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
       continue
     }
     const desired = desiredKeyState(row.plan, row.planValidUntil)
-    // Top-up credits (WP4) raise the key's budget on top of the plan's.
+    // Top-up credits raise the key's budget on top of the plan's.
     if (usersWithCredits.has(String(row.id))) {
       desired.maxBudget = Math.round((desired.maxBudget + await creditBudgetExtraUsd({ type: 'user', id: String(row.id) })) * 10_000) / 10_000
     }

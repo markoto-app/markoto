@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import { getDoc } from '../../repos/documents'
 import { getMembershipRole, listMembers } from '../../repos/workspaceMembers'
 
-// Sharing a workspace document with a GUEST (WP11). Who may share:
+// Sharing a workspace document with a GUEST. Who may share:
 // admins and editors of the document's workspace (normal role check —
 // SSO enforcement applies). A guest, even one with edit access to the
 // document, can't share it further. Personal documents have no guests.

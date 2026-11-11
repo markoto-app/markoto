@@ -9,7 +9,7 @@ import { AUDIT_WORKSPACE_BRAND_ASSET_ADDED } from '../../../../../legal/auditAct
 import { BRAND_FONT_FAMILY_RE, BRAND_FONT_MAX_BYTES, BRAND_FONTS_PER_WORKSPACE } from '~~/shared/config/brandKit'
 import { selfHostedFont } from '~~/shared/utils/theme/themeFonts'
 
-// POST /api/workspaces/:wsId/brand/fonts — upload one font file (WP10).
+// POST /api/workspaces/:wsId/brand/fonts — upload one font file.
 // Multipart: `file` (WOFF2 / WOFF / TTF), `licence` = "true" (the admin
 // confirms the workspace may embed it in documents and PDFs), optional
 // `family` / `weight` / `style` overriding what the file says. Static

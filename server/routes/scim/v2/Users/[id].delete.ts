@@ -2,7 +2,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_SSO_SCIM_USER_DEACTIVATED } from '../../../../legal/auditActions'
 import { defineScimHandler, deleteScimUser, requireScimIdentity } from '../../../../utils/sso/scim'
 
-// DELETE /scim/v2/Users/:id — out of the workspace; the account stays (WP14).
+// DELETE /scim/v2/Users/:id — out of the workspace; the account stays.
 export default defineScimHandler(async (event, connection) => {
   const identity = await requireScimIdentity(connection, getRouterParam(event, 'id'))
   await deleteScimUser(connection, identity)

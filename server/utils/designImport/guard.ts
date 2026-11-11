@@ -17,7 +17,7 @@ const DESIGN_IMPORT_NO_VISION_CODE = 'design-import/no-vision'
  */
 export async function requireVisionChatProvider(userId: number): Promise<ResolvedAiProvider> {
   // No document / workspace here (the theme panel saves a personal
-  // design), so the person's own plan decides (AI by plan, WP5).
+  // design), so the person's own plan decides (AI by plan).
   const providers = await requireAiProviders(userId, 'chat', await resolvePayingPlan(userId, null))
   const chat = providers.chat
   if (!chat?.supportsVision) {

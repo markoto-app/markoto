@@ -4,12 +4,10 @@ import { countThemesByUser, createTheme } from '../../repos/themes'
 import { readSavedThemeDescription, readSavedThemeName } from '../../utils/rendering/savedThemeFields'
 import { assertPlanLimit, resolveUserPlan } from '../../utils/billing/entitlements'
 
-// Save a theme as a personal preset. Body: `{ name: string, description?: string, theme: DocTheme }`.
-// Per-user cap = the plan's `savedThemes` (shared/config/tiers.ts):
-// 20 by default on self-hosted instances, narrowed on the hosted free tier.
-// Validation reuses `DocThemeSchema` — the same Zod schema that gates
-// `documents.theme` writes — so any theme that's valid in a doc is
-// valid as a preset. Name / description limits: shared/config/savedThemes.ts.
+// Saves a theme as a personal preset. Body: `{ name, description?, theme }`.
+// Per-user cap is the plan's `savedThemes` (shared/config/tiers.ts). Validation
+// reuses `DocThemeSchema`, which also gates `documents.theme` writes. Name /
+// description limits: shared/config/savedThemes.ts.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

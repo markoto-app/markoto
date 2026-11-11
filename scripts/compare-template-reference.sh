@@ -15,7 +15,7 @@
 #   side-N.png     reference left, ours right, at half size
 #   overlay-N.png  both pages thresholded and stacked: black = both,
 #                  cyan = reference only, red = ours only
-# Needs ImageMagick 7 (`magick`). See docs/TEMPLATE-WORKFLOW.md.
+# Needs ImageMagick 7 (`magick`). See docs/contributing/TEMPLATE-WORKFLOW.md.
 set -euo pipefail
 
 if [ "$#" -ne 4 ]; then

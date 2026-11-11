@@ -51,7 +51,7 @@ const server = Bun.serve({
       if (format !== 'pdf' && format !== 'png' && format !== 'both' && format !== 'html') {
         return jsonResponse({ error: 'invalid format' }, 400)
       }
-      // Brand-kit fingerprint (WP10): part of the output folder, so a
+      // Brand-kit fingerprint: part of the output folder, so a
       // workspace font / locked-design change gets its own cache entry.
       if (variant !== undefined && (typeof variant !== 'string' || !/^[a-f0-9]{16}$/.test(variant))) {
         return jsonResponse({ error: 'invalid variant' }, 400)
@@ -64,7 +64,7 @@ const server = Bun.serve({
       // a sibling. End result: one trace covers browser → app → renderer
       // (and the renderer's Playwright `page.goto` to the print page is a
       // sibling trace — that hop can't carry headers via Playwright; see
-      // OBSERVABILITY.md §4 for the limitation).
+      // docs/operations/OBSERVABILITY.md "Tracing limitations").
       const sentryTrace = req.headers.get('sentry-trace') ?? undefined
       const baggage = req.headers.get('baggage') ?? undefined
       return await Sentry.continueTrace({ sentryTrace, baggage }, () => {

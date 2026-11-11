@@ -32,7 +32,7 @@ test('Ask the AI to draw an image', async ({ flow, editor }) => {
     + 'with the document.'
   )
 
-  // ─── Prompt + send ──────────────────────────────────────────────
+  // Prompt + send
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,

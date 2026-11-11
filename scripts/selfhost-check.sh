@@ -83,7 +83,7 @@ check "tls + build + backup" "docker-compose.selfhost.yml:docker-compose.selfhos
 check "http + build" "docker-compose.selfhost.yml:docker-compose.selfhost.build.yml"
 check "tls + brand" "docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml:docker-compose.selfhost.brand.yml"
 
-# ─── Backup sidecar ───────────────────────────────────────────────────
+# Backup sidecar
 # 1. Backup credentials (BACKUP_S3_*) reach the backup service only: the app
 #    and the renderer must never see them, in any compose file.
 cat >> "$tmp/selfhost.env" <<'EOF2'
@@ -126,7 +126,7 @@ if ! docker run --rm --entrypoint sh localhost/markoto-backup-ci -c "test -f '$c
 fi
 echo "ok: cron command $cron_path exists in the backup image (non-root)"
 
-# ─── Container + network isolation (docs/SECURITY-HARDENING.md) ───────
+# Container + network isolation (docs/SECURITY-HARDENING.md)
 # Rendered against placeholder values for every stack that runs the
 # product: selfhost (all overlays), prod, local. The rules:
 #   - the renderer and markitdown (they parse untrusted input) share no
@@ -239,7 +239,7 @@ done
 render_config "$tmp/iso.json" "$tmp/prod.env" "docker-compose.prod.yml"
 check_isolation "prod" "$tmp/iso.json"
 
-# ─── Anonymous gate (shared/config/anonGate.ts) ───────────────────────
+# Anonymous gate (shared/config/anonGate.ts)
 # Hosted: on, and the ALTCHA key is required (compose refuses without it).
 # Self-host: install.sh generates the key on install AND upgrade.
 if ! jq -e '.services.app.environment.NUXT_ANON_GATE_ENABLED == "true"' "$tmp/iso.json" > /dev/null; then
@@ -266,7 +266,7 @@ echo "ok: install.sh generates the markitdown secret (install + upgrade)"
 render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
 check_isolation "local" "$tmp/local.json"
 
-# ─── App gets the LiteLLM salt key ────────────────────────────────────
+# App gets the LiteLLM salt key
 # The app encrypts users' LiteLLM virtual-key tokens with LITELLM_SALT_KEY.
 # Every compose shape that runs the app must pass it (it reached only the
 # litellm service once, and every AI setup on staging failed with a 500).
@@ -290,7 +290,7 @@ for cfg in salt-prod salt-selfhost; do
 done
 echo "ok: app and sync agree on the trusted proxy hops (prod, self-host)"
 
-# ─── LiteLLM is recreated when its config changes ─────────────────────
+# LiteLLM is recreated when its config changes
 # LiteLLM reads its config once at boot and the single-file bind mounts
 # keep the old file after a deploy replaced it (staging ran a week-old
 # model list). The deploy paths export LITELLM_CONFIG_HASH; the label must
@@ -323,7 +323,7 @@ if ! jq -e '[.syscalls[] | select(.action == "SCMP_ACT_ALLOW" and ((.includes //
 fi
 echo "ok: renderer keeps Chromium's sandbox"
 
-# ─── Internal routes stay off the public edge ─────────────────────────
+# Internal routes stay off the public edge
 # The app's /api/internal/** (sync → app), the renderer's print page +
 # bootstrap and the sync server's /internal/** control plane are reached
 # over the Docker network only. Every public router that could match them
@@ -372,7 +372,7 @@ check_internal_routes "selfhost tls" "$tmp/edge-selfhost-tls.json"
 check_internal_routes "prod" "$tmp/salt-prod.json"
 check_internal_routes "local" "$tmp/local.json"
 
-# ─── Published pages on their own host ────────────────────────────────
+# Published pages on their own host
 # User-written HTML never shares the app's origin. The pages-host router
 # admits only a published page's paths (never `/`, never an internal
 # route); the app 404s anything else there too. Hosted: required (compose
@@ -418,7 +418,7 @@ if ! grep -qF "${pages_inner%)}" server/utils/customDomains/traefikConfig.ts; th
 fi
 echo "ok: published pages have their own host (prod required, local, self-host HTTPS via provider)"
 
-# ─── Dev + test stacks publish on loopback only ───────────────────────
+# Dev + test stacks publish on loopback only
 # Throwaway credentials (devpassword, the committed seaweedfs/s3.json keys)
 # must never be reachable from the LAN. The only other binding allowed is
 # the test network's gateway address for fake-openai-test (see
@@ -428,7 +428,7 @@ check_loopback() { # check_loopback LABEL CONFIG_JSON
   # Exception: fake-openai-test (BYOK) and oidc-test (per-workspace SSO
   # mock IdP) are also published on the test network's gateway
   # (10.213.47.x), or on TEST_FAKE_OPENAI_HOST (rootless Podman,
-  # docs/CONTAINER-ENGINES.md): the app refuses loopback provider / IdP
+  # docs/contributing/CONTAINER-ENGINES.md): the app refuses loopback provider / IdP
   # URLs, so they must sit on a private address it and the containers reach.
   out="$(jq -r --arg fakehost "${TEST_FAKE_OPENAI_HOST:-}" '
     .services | to_entries[] | .key as $s | (.value.ports // [])[]

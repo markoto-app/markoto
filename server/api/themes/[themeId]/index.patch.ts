@@ -2,11 +2,9 @@ import { DocThemeSchema, type DocTheme } from '~~/shared/types/theme'
 import { getThemeById, updateTheme } from '../../../repos/themes'
 import { readSavedThemeDescription, readSavedThemeName } from '../../../utils/rendering/savedThemeFields'
 
-// Rename / describe / update a saved theme. Body:
-// `{ name?: string, description?: string, theme?: DocTheme }` — any
-// subset. The `(themeId, userId)` tuple in the repo prevents another
-// user's theme from being changed via a guessed id — a 404 is returned
-// in that case rather than 403, so the endpoint doesn't leak whether a
+// Renames / describes / updates a saved theme. Body: `{ name?, description?,
+// theme? }`, any subset. The `(themeId, userId)` tuple prevents changing
+// another user's theme via a guessed id, and the 404 (not 403) hides whether a
 // foreign id exists. Limits: shared/config/savedThemes.ts.
 
 export default defineEventHandler(async (event) => {

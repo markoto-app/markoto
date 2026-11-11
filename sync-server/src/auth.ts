@@ -20,7 +20,7 @@ import { readDocNotBefore } from './doc-not-before'
 //     the change (doc-not-before.ts).
 //   - Rotation: the app still issues against the current secret; we accept
 //     both current + previous during the rotation window. See
-//     docs/SECRETS-ROTATION.md and shared/utils/security/secrets.ts.
+//     docs/operations/SECRETS-ROTATION.md and shared/utils/security/secrets.ts.
 
 // The verifier extends the shared `SessionJwtPayload` with an OPTIONAL
 // `scope` claim — the SessionJwtPayload contract intentionally omits
@@ -29,9 +29,6 @@ import { readDocNotBefore } from './doc-not-before'
 // scope-narrowed JWTs replayed at the WS path. Defense in depth: even
 // if a future mint site bug accidentally sets scope, this verifier
 // rejects with 'Token scope mismatch' rather than letting it through.
-//
-// Re-exported under the legacy name so existing test fixtures keep
-// compiling; new code should import `SessionJwtPayload` directly.
 export type DocJwtPayload = SessionJwtPayload & { scope?: string }
 
 export interface AuthContext {
@@ -101,7 +98,7 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
     }
 
     // Reject scope-narrowed tokens. Hocuspocus connection requires a
-    // legacy/session-shaped token (no `scope` claim). A token minted
+    // session-shaped token (no `scope` claim). A token minted
     // with `scope: 'file-access'` (or any other future narrowing) was
     // issued for an HTTP endpoint and must not be promotable to a Y.js
     // connection. Without this check, a leaked render token could be

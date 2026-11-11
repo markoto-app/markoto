@@ -19,21 +19,17 @@ import { clampMetaString } from '~~/shared/utils/documents/ymetaValidation'
  *   - (owned here)        — Y.Doc itself, title bridge, deletion observer,
  *                           awareness bootstrap, template seeding
  *
- * External API must stay bit-for-bit stable — `EditorLayout.vue` destructures
- * 17 fields from this return.
+ * The return shape is consumed by `EditorLayout.vue`; keep it stable.
  */
 export function useDocument(docId: string) {
   const ydoc = new Y.Doc()
   const ytext = ydoc.getText('content')
   const ymeta = ydoc.getMap('meta')
 
-  // Test-only handle: when `public.exposeTestHandles` is true,
-  // expose ydoc + ytext on `window.__DEBUG_*` so e2e flow tests can
-  // assert against authoritative Y.Doc state instead of CM6's
-  // viewport-virtualised .cm-content. The runtime config flag is
-  // false by default — only the flow-test stack flips it to true via
-  // NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1 (see scripts/flows-ephemeral.
-  // ts). Production bundles never carry the handles.
+  // Test-only: with `public.exposeTestHandles` (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1,
+  // set only by the flow-test stack) ydoc + ytext go on `window.__DEBUG_*` so
+  // e2e tests can assert on Y.Doc state instead of CM6's viewport-virtualised
+  // .cm-content.
   if (import.meta.client && useRuntimeConfig().public.exposeTestHandles) {
     type Win = {
       __DEBUG_ydoc?: Y.Doc
@@ -43,29 +39,21 @@ export function useDocument(docId: string) {
     const w = globalThis as unknown as Win
     w.__DEBUG_ydoc = ydoc
     w.__DEBUG_ytext = ytext
-    // awareness is initialised below; stamp the handle there too
-    // (search for `__DEBUG_awareness` to find the second write).
   }
 
-  // Single stable Awareness instance — passed to HocuspocusProvider so both
-  // local and remote clients share the same object. Components (PresenceBar,
-  // yCollab) bind to this once at mount and never need to re-subscribe.
+  // One stable instance, so components (PresenceBar, yCollab) bind once and never re-subscribe.
   const awareness = new Awareness(ydoc)
 
-  // Normalise every remote peer's `user` field (name / colour / avatar
-  // seed / id) the moment it arrives, before anything renders it. Registered
-  // here — before yCollab and PresenceBar subscribe — so the y-codemirror
-  // caret widget (which interpolates `color` into a raw style attribute)
-  // and the presence bar only ever see the normalised shape. The sync
-  // server normalises too; this is the client-side half of that guard.
+  // Normalise every remote peer's `user` field on arrival. Registered before
+  // yCollab and PresenceBar subscribe, because the y-codemirror caret widget
+  // interpolates `color` into a raw style attribute. The sync server
+  // normalises too; this is the client-side half.
   awareness.on('change', ({ added, updated }: { added: number[], updated: number[] }) => {
     normalizeAwarenessStates(awareness, [...added, ...updated])
   })
 
-  // Expose awareness alongside the ydoc test handle (gated on the
-  // same exposeTestHandles flag). Flow tests use it to assert
-  // peer-state propagation (e.g. waiting for the local user.id to
-  // be stamped before submitting an @markoto comment).
+  // Test handle for asserting peer-state propagation (e.g. waiting for the
+  // local user.id before submitting an @markoto comment).
   if (import.meta.client && useRuntimeConfig().public.exposeTestHandles) {
     type Win = { __DEBUG_awareness?: Awareness }
     ;(globalThis as unknown as Win).__DEBUG_awareness = awareness
@@ -75,24 +63,16 @@ export function useDocument(docId: string) {
 
   const { loggedIn, user: sessionUser } = useUserSession()
 
-  // Access-mode / password / ownership state.
   const tokenState = useDocToken(docId)
 
-  // Provider lifecycle. Reads the token lazily via `getToken` so the
-  // post-password-verify reconnect picks up the fresh JWT automatically.
+  // The token is read lazily via `getToken` so the post-password-verify
+  // reconnect picks up the fresh JWT.
   //
-  // Sync URL resolution:
-  //   - In prod the runtime config carries `wss://sync.<domain>` from
-  //     `NUXT_PUBLIC_SYNC_URL`. Pass through.
-  //   - In dev the env default `ws://localhost:4001` only works when the
-  //     browser is loading from localhost itself; opening the page from
-  //     another device on the LAN (or via the host's LAN IP) would
-  //     leave the WS pointing at the *browser's* localhost, where no
-  //     sync server is listening, and the doc shows "Disconnected".
-  //     Derive the URL from `window.location.host` instead — same host
-  //     as the page, port 4001, matching scheme (ws/wss). Works for
-  //     localhost, LAN IPs, and any hostname dev mode happens to be
-  //     served on.
+  // A configured `ws://localhost:<port>` (the dev default) would point at the
+  // *browser's* localhost when the page is opened from another device, so it
+  // is rewritten to the page's hostname with the same port and matching
+  // ws/wss scheme. Any other configured URL (prod `wss://sync.<domain>`) is
+  // used as is.
   const syncUrl = (() => {
     const configured = useRuntimeConfig().public.syncUrl
     if (import.meta.server || !configured) return configured
@@ -110,41 +90,28 @@ export function useDocument(docId: string) {
     ydoc,
     awareness,
     syncUrl,
-    // Refreshing accessor — the provider calls this on every reconnect and
-    // when the sync server asks for a fresh token before expiry; it
-    // refetches when needed so a >2h session neither reconnects with a
-    // dead token (F5) nor gets closed at expiry.
+    // Called on every reconnect and when the sync server asks for a fresh
+    // token before expiry, so a >2h session neither reconnects with a dead
+    // token nor gets closed at expiry.
     getToken: opts => tokenState.getFreshToken(opts),
     onReauthRequired: () => tokenState.invalidateToken(),
     onSynced: () => {
       authRetried = false
-      // Authoritative empty-doc seed. `onSynced` means we've received the
-      // server's current state for this doc, so `ytext.length === 0` here
-      // definitively means the server has NO content — safe to seed the
-      // template body. This is the ONLY seed path (F9): we
-      // deliberately do NOT seed on a never-synced disconnect. The
-      // genuinely-serverless dev path (no syncUrl) still seeds because
-      // `connect()` routes it through `onSynced`.
+      // The ONLY template seed path. After a sync, an empty ytext means the
+      // server really has no content. Never seed on a never-synced
+      // disconnect: the local update would merge with the server's real
+      // content on reconnect and corrupt the document. (The serverless dev
+      // path without syncUrl also seeds, since `connect()` routes it here.)
       insertTemplateIfEmpty()
-      // If this sync came after password verification, now it's safe to show
-      // the editor content — flipping `requiresPassword` false causes the
-      // template's `v-if` gate to mount the editor.
+      // After a password unlock it is now safe to mount the editor.
       tokenState.clearPendingUnlock()
     },
-    // No `onDisconnect` seed (F9 fix). A disconnect BEFORE any sync means we
-    // never learned the server's content, so seeding a template would write a
-    // local update that merges with the server's real content once the
-    // provider auto-reconnects and finally syncs — silently corrupting the
-    // document. An unreachable server shows an empty editor + a
-    // "disconnected" status instead: honest and non-destructive. The doc
-    // seeds correctly if/when a real sync lands and finds it empty.
     onAuthFailed: () => {
       // Access ended and the gate is already showing: nothing to report.
       if (accessEnded()) return
-      // A refused token may just be outdated (the document's access
-      // changed while this tab was offline, or clocks disagree): retry
-      // once with a freshly fetched token before showing the banner. A
-      // refused socket can't authenticate again, hence a new provider.
+      // A refused token may just be outdated (access changed while offline,
+      // clock skew): retry once with a fresh token before showing the banner.
+      // A refused socket can't authenticate again, hence a new provider.
       if (!authRetried) {
         authRetried = true
         tokenState.invalidateToken()
@@ -170,36 +137,30 @@ export function useDocument(docId: string) {
   })
 
   function insertTemplateIfEmpty() {
-    // Template body (server pre-rendered with the doc's title/description,
-    // locale-matched on doc.language). `blank` renders to null: a blank
-    // document stays empty — no generic welcome text any more (the Demo
-    // template carries the onboarding content instead).
+    // Server pre-rendered with the doc's title/description, locale-matched
+    // on doc.language; `blank` renders to null and the document stays empty.
     const seed = tokenState.initialBody.value
     if (seed && ytext.length === 0 && !tokenState.isReadOnly.value) {
       ytext.insert(0, seed)
     }
   }
 
-  // Awareness bootstrap. A placeholder name/color is set eagerly so yCollab
-  // (which may attach before `connect()` runs) has something to show. The
-  // real session-aware values are re-applied inside `connect()`.
+  // Placeholder so yCollab (which may attach before the token resolves) has
+  // something to show; `applySessionAwareness` sets the real values.
   awareness.setLocalStateField('user', {
     name: generateRandomName(),
     color: pickColor()
   })
 
   function applySessionAwareness() {
-    // Normalised before broadcast so the shape we send is exactly what
-    // peers (and the sync server) accept: a long OAuth display name is
-    // capped. Avatars are generated locally — signed-in users from their
-    // `id`, anonymous visitors from a random per-tab `avatarSeed`
-    // (sessionStorage, `utils/userAvatar.ts`), so collaborators can tell
-    // them apart. No image URL is ever broadcast.
+    // Normalised before broadcast so peers and the sync server accept it
+    // (e.g. long OAuth display names are capped). Avatars are generated
+    // locally: signed-in users from their `id`, anonymous visitors from a
+    // random per-tab `avatarSeed` (`utils/userAvatar.ts`). No image URL is
+    // ever broadcast.
     awareness.setLocalStateField('user', normalizeAwarenessUser({
-      // Seed `id` from the session so remote clients can match this awareness
-      // state to a workspace-member row (role tooltips, "is this person live"
-      // lookup in PresenceBar). Unauthenticated visitors stay id-less and
-      // appear as "Anonymous editor" downstream.
+      // `id` lets peers match this state to a workspace-member row (role
+      // tooltips, live lookup in PresenceBar). Anonymous visitors stay id-less.
       id: loggedIn.value ? sessionUser.value?.id : undefined,
       name: loggedIn.value ? sessionUser.value?.name : generateRandomName(),
       color: pickColor(),
@@ -207,32 +168,25 @@ export function useDocument(docId: string) {
     }))
   }
 
-  // Bridge Y.js Map reactivity to Vue: `ymeta.get()` isn't tracked by Vue,
-  // so we observe the Map and update a reactive ref on every change.
-  // Live title from ymeta. Empty until a client sets one — a doc created
-  // through the new-document dialog carries its title only on the DB row
-  // (seeded below via /token), so the computed `title` falls back to it.
+  // `ymeta.get()` isn't tracked by Vue, so the Map is observed below and
+  // mirrored into refs. The live title is empty until a client sets one: a
+  // doc created via the new-document dialog carries it only on the DB row
+  // (from /token), which the computed `title` falls back to.
   const _ymetaTitleRef = ref((ymeta.get('title') as string) || '')
-  // `_deleted` flag is set by the sync-server when the owner deletes the doc —
-  // all connected clients see this via Y.js broadcast and redirect away.
+  // Set by the sync server when the owner deletes the doc; every connected client redirects away.
   const isDeleted = ref(!!ymeta.get('_deleted'))
-  // True while THIS client's own delete request is in flight (File →
-  // Delete). The sync server broadcasts `_deleted` before the DELETE
-  // response lands, so without this the person deleting the doc was told
-  // "This document was deleted by the owner."
+  // True while THIS client's own delete request is in flight. The sync server
+  // broadcasts `_deleted` before the DELETE response lands, so without this
+  // the deleter would see "deleted by the owner".
   const deletingHere = ref(false)
   const deletedByOther = computed(() => isDeleted.value && !deletingHere.value)
   function setDeletingHere(active: boolean) {
     deletingHere.value = active
   }
-  // Theme: lives on ymeta.theme as a plain JSON object so changes broadcast
-  // to all collaborators in the same way the title does. Falls back to the
-  // hardcoded `defaultTheme` until either (a) the /token round-trip seeds
-  // the DB-stored theme, or (b) sync delivers what's currently on the doc.
+  // The theme lives on ymeta.theme as plain JSON so it broadcasts like the
+  // title; `defaultTheme` until /token seeds the DB value or sync delivers it.
   const _themeRef = ref<DocTheme>(defaultTheme)
-  // Document context — same dual-source pattern as theme. Initial values
-  // come from /token; ymeta mirrors take over once sync is live so changes
-  // broadcast to every collaborator.
+  // Document context: same dual source as the theme (/token first, then ymeta).
   const _descriptionRef = ref<string>((ymeta.get('description') as string) ?? '')
   const _audienceRef = ref<string>((ymeta.get('audience') as string) ?? 'casual')
   const _languageRef = ref<string>((ymeta.get('language') as string) ?? 'en')
@@ -251,23 +205,15 @@ export function useDocument(docId: string) {
   const title = computed({
     get: () => _ymetaTitleRef.value || tokenState.initialTitle.value || 'Untitled',
     set: (v: string) => {
-      // Clamped to the sync server's ymeta bounds — an over-long value
-      // would be rejected there and close the connection.
+      // Clamped to the sync server's ymeta bounds; an over-long value would close the connection.
       if (!tokenState.isReadOnly.value) ymeta.set('title', clampMetaString('title', v))
     }
   })
 
   /**
-   * Theme write access mirrors content write access:
-   *   - read-only? no.
-   *   - has an owner and you're not them? no.
-   *   - no owner (anonymous-created doc)? yes — same liberal default
-   *     as the doc itself, since open-edit means "anyone can change
-   *     anything".
-   * The DB-write path uses PUT /meta which checks ownership server-side
-   * for owned docs; for ownerless docs the meta endpoint would 403 today.
-   * That's covered below — we skip the persist call when there's no
-   * owner and let Y.js sync be the source of truth.
+   * Read-only: no. Owned by someone else: no. Ownerless (anonymous-created):
+   * yes, matching its open-edit content. `PUT /meta` is owner-gated, so
+   * ownerless docs skip persisting and rely on Y.js sync alone.
    */
   const canEditTheme = computed(() => computeCanEditTheme({
     isReadOnly: tokenState.isReadOnly.value,
@@ -276,17 +222,9 @@ export function useDocument(docId: string) {
   }))
 
   /**
-   * Pushes into ymeta (broadcasts live to all clients) and, for owned
-   * docs, persists to the DB row via PUT /meta (debounced) so a fresh
-   * visitor on a brand-new socket sees the right theme during the
-   * window before y-postgresql replays the Y.js update history.
-   *
-   * For ownerless docs the DB row stays NULL — Y.js is the only source
-   * of truth and the next visitor seeds from sync, not the DB. (The
-   * `/meta` endpoint requires ownership and would 403 us anyway.)
-   *
-   * The DB write is best-effort — Y.js stays the live source of truth,
-   * the DB is just the seed for new sessions.
+   * The DB write (debounced PUT /meta, owned docs only) is a best-effort
+   * seed so a fresh visitor sees the right theme before y-postgresql
+   * replays the update history; Y.js stays the live source of truth.
    */
   const persistTheme = useDebounceFn((next: DocTheme) => {
     $fetch(`/api/docs/${docId}/meta`, {
@@ -295,17 +233,14 @@ export function useDocument(docId: string) {
     }).catch(() => {})
   }, 800)
 
-  // Same pattern as `persistTheme`: ymeta is the live source, the DB
-  // row is a seed for new sessions. Owner-only writes — non-owners on
-  // open-edit docs CAN touch ymeta (and broadcast to collaborators)
-  // but the /meta endpoint is owner-gated, so the DB persist is a
-  // no-op for them. Y.js sync becomes the only persistence surface in
-  // that case (same trade-off as theme on ownerless docs).
+  // Same pattern as `persistTheme`: owner-only DB writes; non-owners on
+  // open-edit docs still change ymeta, and Y.js sync is then the only
+  // persistence.
   //
-  // Changes are MERGED before the debounced PUT: `useDebounceFn` only
-  // runs the last call's arguments, so setting the audience and then the
-  // language within 800 ms used to persist only the language — the AI
-  // (which reads these fields from the row) never saw the audience.
+  // Changes are MERGED before the debounced PUT because `useDebounceFn` only
+  // runs the last call's arguments: setting audience then language within
+  // 800 ms would otherwise persist only the language, and the AI reads
+  // these fields from the row.
   type DocContextPatch = { description?: string, audience?: string, language?: string, templateId?: string }
   let pendingDocContext: DocContextPatch = {}
   const flushDocContext = useDebounceFn(() => {
@@ -328,9 +263,7 @@ export function useDocument(docId: string) {
     if (tokenState.isOwner.value) persistTheme(next)
   }
 
-  // Reset to defaults — clears the ymeta entry and (for owned docs) asks
-  // the server to null the DB column. After this, `readTheme()` falls
-  // back to `defaultTheme` for everyone.
+  // Clears the ymeta entry and, for owned docs, nulls the DB column; everyone falls back to `defaultTheme`.
   function resetTheme() {
     if (!canEditTheme.value) return
     ymeta.delete('theme')
@@ -345,11 +278,7 @@ export function useDocument(docId: string) {
 
   const theme = readonly(_themeRef)
 
-  /**
-   * Document context setters — same write semantics as theme. Owner +
-   * editors can change them; viewers cannot. Y.js broadcasts the
-   * change live; the owner-side debounced persist seeds the DB row.
-   */
+  // Same write semantics as the theme: editors change them, viewers cannot.
   const description = computed({
     get: () => _descriptionRef.value,
     set: (v: string) => {
@@ -390,13 +319,9 @@ export function useDocument(docId: string) {
 
   const docSizeWarning = computed(() => computeDocSizeWarning(sync.docSizeBytes.value))
 
-  // Initial connect. Password-protected / private docs must NOT connect until
-  // the user unlocks them, otherwise content syncs before the gate appears.
-  // Seed the local theme + document-context refs from the DB-stored
-  // values (the /token round-trip, or /meta after a password unlock) so
-  // the preview and the Document tab paint with real values before sync
-  // settles. Once Y.js sync delivers the ymeta values, the observers
-  // above take over.
+  // Seeds the theme + document-context refs from the DB values (/token, or
+  // /meta after a password unlock) so the preview and Document tab paint
+  // before sync settles; the ymeta observers take over afterwards.
   function applyInitialSeeds() {
     if (tokenState.initialTheme.value && isValidTheme(tokenState.initialTheme.value)) {
       _themeRef.value = tokenState.initialTheme.value
@@ -409,9 +334,8 @@ export function useDocument(docId: string) {
   tokenState.fetchToken().then(() => {
     applySessionAwareness()
     applyInitialSeeds()
-    // Don't connect for docs we can't/shouldn't sync: password-gated
-    // (no token yet), forbidden (no token, ever), or not-found (the doc
-    // doesn't exist — an empty-token connect would just churn + fail).
+    // Password-gated docs must not connect before unlock (content would sync
+    // before the gate shows); forbidden and not-found docs have nothing to sync.
     if (!tokenState.requiresPassword.value && !tokenState.forbidden.value && !tokenState.notFound.value) {
       sync.connect()
     }
@@ -489,8 +413,8 @@ export function useDocument(docId: string) {
     resetTheme,
     onPasswordVerified,
     setAccessMode: tokenState.setAccessMode,
-    // Doc JWT for HTTP calls made on behalf of a session-less viewer (the
-    // preview's image-token fetch). Empty when there is none.
+    // Doc JWT for HTTP calls on behalf of a session-less viewer (the preview's
+    // image-token fetch). Empty when there is none.
     getDocJwt: () => tokenState.getFreshToken(),
     destroy
   }

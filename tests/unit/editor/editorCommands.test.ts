@@ -64,7 +64,6 @@ function selectedText(view: EditorView): string {
   return view.state.sliceDoc(from, to)
 }
 
-// ═══════════════════════════════════════════════════════════════════════
 // toggleWrap — inline wrap with symmetric marker
 //
 // Black-box spec (from file-header invariants):
@@ -76,7 +75,6 @@ function selectedText(view: EditorView): string {
 //   - Mixed-state: adds to missing, never partial-removes.
 //   - Disambiguation: `*` italic does not strip from `**foo**` — must
 //     produce `***foo***`. Same rule for `~` vs `~~`.
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('toggleWrap — bold (**)', () => {
   it('cursor only: inserts empty marker pair with cursor between', () => {
@@ -215,9 +213,7 @@ describe('toggleWrap — other markers (happy-path only)', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // toggleCode — inline vs fenced (invariant #7)
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('toggleCode', () => {
   it('cursor only: inserts empty inline backticks with cursor between', () => {
@@ -257,9 +253,7 @@ describe('toggleCode', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // toggleHeading — levels 1..6, idempotent + replace-level
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('toggleHeading', () => {
   it('adds a heading prefix when the line has none', () => {
@@ -322,9 +316,7 @@ describe('toggleHeading', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // toggleLinePrefix — bullets, blockquote, task lists
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('toggleLinePrefix', () => {
   it('adds bullet prefix to plain line', () => {
@@ -415,9 +407,7 @@ describe('toggleLinePrefix', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // toggleOrderedList — renumbering
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('toggleOrderedList', () => {
   it('single line: adds 1. prefix', () => {
@@ -447,9 +437,7 @@ describe('toggleOrderedList', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertTable — pipe-table skeleton
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertTable', () => {
   it('creates a header row + separator + body rows, with correct column count', () => {
@@ -485,9 +473,7 @@ describe('insertTable', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertBlock — generic block insertion at cursor
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertBlock', () => {
   it('inserts the given text into the document', () => {
@@ -497,9 +483,7 @@ describe('insertBlock', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertFootnote — [^N] + definition
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertFootnote', () => {
   it('in empty doc: inserts [^1] ref and [^1]: definition', () => {
@@ -526,9 +510,7 @@ describe('insertFootnote', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertAlert — GitHub-style alert block
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertAlert', () => {
   it('inserts a TIP alert with blockquote body placeholder', () => {
@@ -549,9 +531,7 @@ describe('insertAlert', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertMath — inline vs block
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertMath', () => {
   it('inline: wraps cursor with single $', () => {
@@ -573,9 +553,7 @@ describe('insertMath', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertDiagram — fenced mermaid block
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertDiagram', () => {
   const kinds = ['flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'mindmap'] as const
@@ -597,9 +575,7 @@ describe('insertDiagram', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertPageBreak — HTML comment on own line
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertPageBreak', () => {
   it('inserts <!-- pagebreak --> marker', () => {
@@ -619,9 +595,7 @@ describe('insertPageBreak', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertToc — [[toc]] marker
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('insertToc', () => {
   it('inserts [[toc]]', () => {
@@ -639,11 +613,8 @@ describe('insertToc', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // insertDefinitionList — dl scaffold
-// ═══════════════════════════════════════════════════════════════════════
 
-// ═══════════════════════════════════════════════════════════════════════
 // toggleComment — wrap/unwrap selection in <!-- ... -->
 //
 // Black-box spec:
@@ -653,7 +624,6 @@ describe('insertToc', () => {
 //     inner text so a second click toggles off.
 //   - Already-commented selection → unwraps (strips `<!--`/`-->` and
 //     the surrounding whitespace inside the delimiters).
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('toggleComment', () => {
   it('cursor only: inserts empty comment with cursor between spaces', () => {

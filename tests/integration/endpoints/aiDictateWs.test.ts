@@ -65,9 +65,8 @@ describe('WS /api/ai/dictate', () => {
     })
 
     it('has no token in the URL — only in the first message', async () => {
-      // Guards the audit fix: the JWT used to live in ?token= which
-      // leaked into access logs. A regression that re-introduces
-      // query-string auth would require re-reading the URL here.
+      // The JWT must not travel in ?token= (it leaks into access logs); query-string auth would require
+      // re-reading the URL here.
       const ws = await openWs('/api/ai/dictate')
       expect(ws.raw.url).not.toMatch(/token=/)
       ws.close()
@@ -186,10 +185,8 @@ describe('WS /api/ai/dictate', () => {
     })
 
     it('cleanly handles stop without emitting a spurious error', async () => {
-      // The "write after end" race was a real bug: audio chunks in
-      // flight after `stop` landed on an ended STT stream and
-      // surfaced as UI errors. The server now drops post-stop audio
-      // silently. This test guards that behavior.
+      // Audio chunks in flight after `stop` must not land on an ended STT stream (a "write after end" error
+      // surfacing in the UI). The server drops post-stop audio silently.
       const { user, doc } = await setupUserAndDoc()
       const token = await mintDictateToken(user.id, doc.docId)
       const ws = await openWs('/api/ai/dictate')
@@ -311,25 +308,16 @@ describe('WS /api/ai/dictate', () => {
       expect(res.status).toBe(401)
     })
 
-    // Budget enforcement at the dictate token + WS endpoints is gone:
-    // Phase 6 retired the app-side `ai_usage_period` counter so neither
-    // the token mint nor the WS open pre-checks budget. Exhaustion is
-    // enforced at proxy call time (the first voice-tick), which surfaces
-    // as a 429 from the SDK and closes the WS. End-to-end coverage is
-    // in the flow tests; unit-level coverage of the 429 → close-frame
-    // translation is in the runLoop budget-exhaustion test file.
+    // There is no app-side budget pre-check at the dictate token + WS endpoints. Exhaustion is enforced at
+    // proxy call time (the first voice-tick), which surfaces as a 429 from the SDK and closes the WS.
+    // End-to-end coverage is in the flow tests; unit-level coverage of the 429 → close-frame translation is in
+    // the runLoop budget-exhaustion test file.
   })
 
-  // ─── Budget exhaustion (Phase 6 — moved to LiteLLM) ────────────────────
+  // Budget exhaustion (enforced by LiteLLM)
   //
-  // Pre-Phase-6, the dictate handler had two budget checks at WS open:
-  //   (1) Daily audio-ms budget (Valkey)
-  //   (2) Monthly interaction budget (Postgres `ai_usage_period`)
-  //
-  // Phase 6 retired (1) (no app-side limit) and (2) (no app-side counter).
-  // Voice-tick metering posts to LiteLLM via the user's virtual key — the
-  // proxy returns 429 once `max_budget` is exhausted, which the orchestrator
-  // surfaces as a structured close frame. End-to-end exhaustion is exercised
-  // in the flow tests (real proxy round-trip); the unit tests cover the
-  // 429 → close-frame translation in `voiceTickOrchestrator`.
+  // Voice-tick metering posts to LiteLLM via the user's virtual key; the proxy returns 429 once `max_budget`
+  // is exhausted, which the orchestrator surfaces as a structured close frame. End-to-end exhaustion is
+  // exercised in the flow tests (real proxy round-trip); the unit tests cover the 429 → close-frame
+  // translation in `voiceTickOrchestrator`.
 })

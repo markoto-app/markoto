@@ -45,9 +45,8 @@ export const TEST_DB_HOST = '127.0.0.1'
 export const TEST_DB_PORT = '5433'
 export const TEST_DB_URL = `postgres://${TEST_DB_USER}:${TEST_DB_PASSWORD}@${TEST_DB_HOST}:${TEST_DB_PORT}/${TEST_DB_NAME}`
 
-// Valkey atomic parts — `postgresUrlFromEnv` / `valkeyUrlFromEnv` in
-// shared/utils/runtime/connectionStrings.ts now read these instead of the
-// composed URLs, so we have to set both for the Nuxt subprocess.
+// Valkey atomic parts: `postgresUrlFromEnv` / `valkeyUrlFromEnv` in shared/utils/runtime/connectionStrings.ts
+// read these instead of the composed URLs, so both must be set for the Nuxt subprocess.
 export const TEST_VALKEY_HOST = '127.0.0.1'
 export const TEST_VALKEY_PORT = '6380'
 // Hardcoded weak password mirroring `--requirepass testpassword` in
@@ -56,21 +55,14 @@ export const TEST_VALKEY_PORT = '6380'
 // the same auth code path prod uses.
 export const TEST_VALKEY_PASSWORD = 'testpassword'
 
-// Sync-server target — the real `sync-test` Hocuspocus container under
-// docker-compose.test.yml, host-mapped on 4002. Both internal HTTP
-// endpoints (/internal/kick-user, /internal/notify-deleted) AND the
-// WebSocket Y.js sync protocol are served by the same process, so
-// pointing Nuxt's `syncInternalUrl` here unlocks live-sync coverage
-// (MCP doc-bound tools, AI agentic loop, real Hocuspocus auth flow).
+// Sync-server target: the real `sync-test` Hocuspocus container under docker-compose.test.yml, host-mapped on
+// 4002. Both internal HTTP endpoints (/internal/kick-user, /internal/notify-deleted) AND the WebSocket Y.js
+// sync protocol are served by the same process, so pointing Nuxt's `syncInternalUrl` here gives live-sync
+// coverage (MCP doc-bound tools, AI agentic loop, real Hocuspocus auth flow). The kick-user dispatch shape
+// is pinned by `tests/unit/sync/syncNotify.test.ts`.
 //
-// Previously this pointed at an in-process Node HTTP stub on port 4010
-// that recorded /internal/kick-user calls for assertion. Removed: the
-// stub couldn't speak Hocuspocus protocol, which gated every Y.js-
-// touching tool out of integration coverage. The kick-user dispatch
-// shape is now pinned by `tests/unit/sync/syncNotify.test.ts`.
-// Generic OIDC (WP7b): the `oidc-test` mock IdP (navikt mock-oauth2-server)
-// in docker-compose.test.yml. Every path is its own issuer with its own
-// signing key; the app trusts exactly TEST_OIDC_ISSUER.
+// Generic OIDC: the `oidc-test` mock IdP (navikt mock-oauth2-server) in docker-compose.test.yml. Every path
+// is its own issuer with its own signing key; the app trusts exactly TEST_OIDC_ISSUER.
 const TEST_OIDC_PORT = 4130
 export const TEST_OIDC_BASE_URL = `http://127.0.0.1:${TEST_OIDC_PORT}`
 export const TEST_OIDC_ISSUER = `${TEST_OIDC_BASE_URL}/markoto`
@@ -102,7 +94,7 @@ export const TEST_ALTCHA_HMAC_KEY = 'test-altcha-hmac-key-isolated-from-dev-and-
 // with `--requirepass testpassword`.
 export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/0`
 
-// ─── Fake OpenAI-compatible provider (BYOK) ──────────────────────────
+// Fake OpenAI-compatible provider (BYOK)
 // `fake-openai-test` in docker-compose.test.yml, published on host port
 // 4120. The BYOK base URL must be reachable from BOTH the app (on the
 // host, which runs the SSRF policy incl. DNS — loopback is refused) and
@@ -140,7 +132,7 @@ export function fakeOpenAiBaseUrl(): string {
 
 /**
  * The mock IdP (oidc-test) on the private address — what per-workspace
- * SSO connections use (WP14): the SSRF policy refuses loopback, and the
+ * SSO connections use: the SSRF policy refuses loopback, and the
  * test server allows private IdPs (`NUXT_SSO_ALLOW_PRIVATE_URLS`).
  * Every path below it is a separate issuer.
  */
@@ -155,7 +147,7 @@ export function ssoMockIdpBase(): string {
 export const TEST_LITELLM_DB_USER = 'litellm_test'
 export const TEST_LITELLM_DB_PASSWORD = 'litellmtestpassword'
 
-// Custom domains (WP13): the CNAME target the test server announces and
+// Custom domains: the CNAME target the test server announces and
 // the token traefik-test sends (docker-compose.test.yml has the same one).
 export const TEST_PUBLISH_DOMAINS_TARGET = 'pages.markoto.test'
 export const TEST_TRAEFIK_PROVIDER_TOKEN = 'test-provider-token-0123456789abcdef0123'
@@ -170,5 +162,5 @@ export const TEST_TRAEFIK_TLS_PORT = 8443
 /** traefik-test's address on the test network (what a custom domain's A record names). */
 export const TEST_TRAEFIK_IP = process.env.TEST_TRAEFIK_IP ?? '10.213.47.40'
 
-/** Co-branding name of the primary test server (WP16, managed private instance). */
+/** Co-branding name of the primary test server (managed private instance). */
 export const TEST_INSTANCE_BRAND_NAME = 'Kanton Musterstadt'

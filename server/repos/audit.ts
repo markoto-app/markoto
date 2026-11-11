@@ -9,8 +9,8 @@ import { useDatabase } from '../utils/platform/database'
 // on actor_user_id (when a user account is purged) or a manual DBA
 // action.
 //
-// See `schema.ts` for the data-model rationale and §4 in AGENTS.md for
-// where audit fits in the security model.
+// See `schema.ts` and docs/contributing/database.md for the data-model
+// rationale.
 
 export type AuditScope = 'doc' | 'workspace' | 'user' | 'billing' | 'system'
 
@@ -24,7 +24,7 @@ export interface AppendAuditEventArgs {
   after?: unknown
   metadata?: Record<string, unknown>
   /**
-   * The workspace the event belongs to (WP15). Defaults to `scopeId` for
+   * The workspace the event belongs to. Defaults to `scopeId` for
    * `workspace` and `billing` events (their scope id IS the workspace);
    * pass it for document events of a workspace document.
    */
@@ -181,8 +181,6 @@ export async function getAuditEventsByActor(
     .limit(limit)
   return rows as AuditEventRow[]
 }
-
-// ── Workspace audit log (WP15) ──────────────────────────────────────
 
 export interface WorkspaceAuditRow {
   id: number

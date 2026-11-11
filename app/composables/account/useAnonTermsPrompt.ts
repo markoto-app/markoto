@@ -1,8 +1,7 @@
-// State of the global accept-terms dialog before an anonymous visitor's
-// first document (shared/config/anonGate.ts). `useAnonDocCreate()`
-// (useAnonGate.ts) asks; `DocumentAnonGateDialog` answers. Kept apart from
-// useAnonGate.ts so CommonAppOverlays can watch the state without loading
-// the bot-check solver on every page.
+// State of the accept-terms dialog shown before an anonymous visitor's first
+// document. `useAnonDocCreate()` asks; `DocumentAnonGateDialog` answers.
+// Separate from useAnonGate.ts so CommonAppOverlays can watch it without
+// loading the bot-check solver on every page.
 
 interface TermsPromptState {
   open: boolean
@@ -10,7 +9,6 @@ interface TermsPromptState {
 
 let resolveTermsPrompt: ((accepted: boolean) => void) | null = null
 
-/** State of the global accept-terms dialog (one instance, mounted by CommonAppOverlays on first use). */
 export function useAnonTermsPrompt() {
   const state = useState<TermsPromptState>('anon-terms-prompt', () => ({ open: false }))
 

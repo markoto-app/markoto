@@ -5,7 +5,7 @@ import { readMemberKeySpend } from '../../../utils/litellm/workspaceTeams'
 import { getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 
 // GET /api/workspaces/:wsId/usage — per-person usage of the workspace for
-// its admins (WP11): documents they own in it, knowledge files and image
+// its admins: documents they own in it, knowledge files and image
 // storage they added to it, and — in a paid Team / Business workspace —
 // their AI spend this budget period on the shared budget. Guests are
 // listed (documents shared with them), never with AI spend (they use

@@ -3,7 +3,7 @@ import type { H3Event } from 'h3'
 import { BRAND_ASSET_CONTENT_TYPES, type BrandAssetFormat } from '~~/shared/config/brandKit'
 import { listBrandAssetKeys, type BrandAssetRow } from '../../repos/brandAssets'
 
-// S3 side of the brand kit (WP10). Objects at
+// S3 side of the brand kit. Objects at
 // `workspaces/{wsId}/brand/{id}.{format}`. The app streams them itself
 // (no presigned redirect): fonts load in CORS mode from the sandboxed,
 // opaque-origin preview iframe, and an S3 redirect would need CORS on the

@@ -446,11 +446,8 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
     expect(resA.status).toBe(200)
     expect(resB.status).toBe(200)
 
-    // Final state: row holds ONE of the two events' values,
-    // consistently. We don't care which order landed (Stripe doesn't
-    // either — either is a valid interleaving). We just assert the
-    // fields are INTERNALLY consistent: a Pro-matching period with
-    // the Pro plan, or Max-matching period with Max plan.
+    // Final state: the row holds the values of whichever event landed last. Both events are Pro with identical
+    // period timestamps, so the result is the same in either order; a corrupted blend would show up as a mismatch.
     const r = await testDb().query<{
       plan: string
       stripe_current_period_start: Date
@@ -495,9 +492,7 @@ describe('POST /api/webhooks/stripe — concurrent delivery', () => {
   })
 })
 
-// -----------------------------------------------------------------------------
 // Replay protection — event.id idempotency
-// -----------------------------------------------------------------------------
 //
 // Stripe redelivers webhooks on 5xx with exponential backoff. The retry
 // payload carries the SAME `event.id` as the original delivery. We INSERT
@@ -591,9 +586,7 @@ describe('POST /api/webhooks/stripe — event.id replay protection', () => {
   })
 })
 
-// -----------------------------------------------------------------------------
 // Out-of-order delivery — subscription.updated arriving before checkout
-// -----------------------------------------------------------------------------
 //
 // Stripe's webhook delivery is at-least-once and intentionally NOT
 // ordered. A common hazard at signup: `customer.subscription.created`
@@ -736,9 +729,7 @@ describe('POST /api/webhooks/stripe — out-of-order delivery', () => {
   })
 })
 
-// -----------------------------------------------------------------------------
 // Body tampering — signature mismatch detection
-// -----------------------------------------------------------------------------
 //
 // Stripe's signature is computed over the EXACT raw body. Any byte
 // modification post-signing — even reordering whitespace — breaks
@@ -809,9 +800,7 @@ describe('POST /api/webhooks/stripe — body tampering', () => {
   })
 })
 
-// -----------------------------------------------------------------------------
 // Hand-built events — additional edge cases the fixtures don't cover
-// -----------------------------------------------------------------------------
 describe('POST /api/webhooks/stripe — hand-built event edge cases', () => {
   beforeEach(async () => {
     await resetDb()
@@ -844,7 +833,7 @@ describe('POST /api/webhooks/stripe — hand-built event edge cases', () => {
   it('200 on event types we explicitly do NOT handle (unhandled type)', async () => {
     // Existing test covers `customer.updated`. This one stresses a
     // distinctly different namespace (`radar.early_fraud_warning.created`;
-    // `charge.refunded` is handled since WP4) to make sure the dispatch
+    // `charge.refunded` is handled) to make sure the dispatch
     // switch's `default` arm is genuinely unconditional.
     const event = makeStripeEvent('radar.early_fraud_warning.created', {
       id: 'issfr_test',

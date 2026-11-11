@@ -21,9 +21,9 @@ import { DESIGN_IMPORT_LOCK, runDesignImportJob } from '../../../utils/designImp
  *   5. read the bytes, DELETE the object, sniff the bytes that were read
  *   6. audit, write the job, run (`utils/designImport/run.ts`)
  *
- * The original never stays in storage: it is deleted right after this
- * read, and its bytes live in memory only until the markitdown call.
- * Returns `{ jobId }`; the dialog polls `GET …/jobs/:jobId`.
+ * The original never stays in storage: it is deleted right after this read and
+ * its bytes live in memory only until the markitdown call. Returns `{ jobId }`;
+ * the dialog polls `GET .../jobs/:jobId`.
  */
 
 /** Longest a run may hold the per-user lock (the run deadline is 6 min). */

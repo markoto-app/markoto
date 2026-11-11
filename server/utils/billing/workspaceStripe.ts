@@ -11,7 +11,7 @@ import type { WorkspaceSubscriptionRow } from '../../repos/workspaceSubscription
 import type { BillingInterval, Currency } from '~~/shared/config/pricing'
 import type { WorkspacePlanName } from '~~/shared/config/tiers'
 
-// Stripe side of Team / Business workspace subscriptions (WP3).
+// Stripe side of Team / Business workspace subscriptions.
 //
 // Each workspace gets its OWN Stripe customer (metadata `workspace_id`),
 // never the billing admin's personal one: invoices name the workspace,
@@ -76,7 +76,7 @@ export async function ensureWorkspaceCustomer(stripe: Stripe, args: {
  *
  * - More seats: invoiced and paid NOW (`always_invoice` +
  *   `error_if_incomplete`, like a plan upgrade). A failed payment throws
- *   and changes nothing — seats bought on credit used to unlock the
+ *   and changes nothing — seats bought on credit would unlock the
  *   pooled AI budget before anything was paid.
  * - Fewer seats: no credit for the running period
  *   (`proration_behavior: 'none'`); the next invoice bills the new count.

@@ -137,7 +137,7 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
   })
 })
 
-// ─── Phase A entitlements (plan limits + feature switches) ──────────────
+// Entitlements (plan limits + feature switches)
 
 describe('tier config — self-hosted instances keep every feature', () => {
   // Billing off (self-host) resolves everyone to `free`, so the COMMITTED

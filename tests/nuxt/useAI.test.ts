@@ -282,9 +282,7 @@ beforeEach(() => {
   FakeEventSource.instances.length = 0
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // activeSessions — derived from awareness entries
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useAI — activeSessions derivation', () => {
   it('returns an empty list when no awareness entries exist', () => {
@@ -408,9 +406,7 @@ describe('useAI — activeSessions derivation', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // mySession / mySessionId / otherSessions — user-relative derivations
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useAI — mySession / otherSessions', () => {
   it('mySessionId is null when anonymous (loggedIn false)', () => {
@@ -464,9 +460,7 @@ describe('useAI — mySession / otherSessions', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Private session channel — status text, errors, answers, confirmations
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useAI — private session channel', () => {
   it('merges my private status text into mySession; awareness alone has none', async () => {
@@ -722,9 +716,7 @@ describe('useAI — push stream (SSE) for my session', () => {
   }, 15_000)
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // prompt() — submit gating + POST shape + error capture
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useAI — prompt()', () => {
   it('rejects an empty string without hitting the server', async () => {
@@ -872,9 +864,7 @@ describe('useAI — prompt()', () => {
 // editorSelection override — covered by `passes editorSelection
 // through to the request body` above. No separate rewrite path.
 
-// ═══════════════════════════════════════════════════════════════════════
 // abort() — 404 race tolerance + no-session guard
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useAI — abort()', () => {
   it('is a no-op when there is no active session of mine', async () => {
@@ -927,9 +917,7 @@ describe('useAI — abort()', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // clearLastError + submitting + general state contract
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useAI — clearLastError + submitting', () => {
   it('clearLastError resets lastError to null', async () => {

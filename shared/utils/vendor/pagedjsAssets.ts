@@ -36,8 +36,8 @@ export const PAGEDJS_POLYFILL_URL = vendorUrl('pagedjs', PAGEDJS_VERSION, 'paged
 
 /**
  * Subresource Integrity hash for the paged.js polyfill (the exact bytes
- * of the npm package's `dist/paged.polyfill.min.js`). The file is now
- * first-party, but SRI stays: a tampered build artefact or a cache in
+ * of the npm package's `dist/paged.polyfill.min.js`). The file is served
+ * from our own origin, but SRI stays: a tampered build artefact or a cache in
  * between still can't run other code in every preview/print iframe.
  */
 export const PAGEDJS_POLYFILL_SRI = 'sha384-y6+mefdjvGUaOPOrIMXHgP6Wwpza9G0N1QW1YUteLiwb50olbeI7H909UwZTMuVX'

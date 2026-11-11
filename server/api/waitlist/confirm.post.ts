@@ -1,21 +1,18 @@
 import { confirmWaitlistSignup } from '../../repos/waitlist'
 import { hashWaitlistToken, parseWaitlistToken } from '../../utils/privacy/waitlist'
 
-// POST /api/waitlist/confirm — second step of the double opt-in.
+// POST /api/waitlist/confirm: second step of the double opt-in. Body:
+// { token } (the raw confirm token from the email link). The
+// `/waitlist/confirm` page POSTs it on an explicit button click, not on page
+// load, so link-scanning mail filters can't confirm for the person.
 //
-// Body: { token: string } — the raw confirm token from the email link.
-// The `/waitlist/confirm` page POSTs it on an explicit button click
-// (not on page load) so link-scanning mail filters that prefetch URLs
-// can't confirm on the person's behalf.
+// Works regardless of billing mode: a sign-up made while the waitlist was open
+// can still be confirmed after a config change. Public (whitelisted in
+// middleware/auth.ts); a 256-bit token isn't brute-forceable and the IP limit
+// only caps garbage traffic.
 //
-// Works regardless of the billing mode: a sign-up made while the
-// waitlist was open can still be confirmed after a config change.
-// Public (whitelisted in middleware/auth.ts). A 256-bit token is not
-// brute-forceable; the IP limit only caps garbage traffic.
-//
-// 200 { confirmed: true } on success; 400 `waitlist/invalid-token` for
-// a malformed, unknown, already-used or expired token (one response for
-// all four — no oracle).
+// 200 { confirmed: true }; 400 `waitlist/invalid-token` for a malformed,
+// unknown, used or expired token (one response for all, no oracle).
 
 export default defineEventHandler(async (event) => {
   const ip = getClientRateLimitKey(event)

@@ -81,7 +81,7 @@ export async function byokUser(name?: string): Promise<TestUser> {
   return u
 }
 
-// ─── Hocuspocus test client ──────────────────────────────────────────
+// Hocuspocus test client
 
 export interface SyncIdentity {
   userId: string

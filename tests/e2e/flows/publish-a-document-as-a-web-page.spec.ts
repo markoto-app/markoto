@@ -1,6 +1,6 @@
 import { test, expect } from '../fixtures/flow'
 
-// "Publish a document as a web page" (WP13).
+// "Publish a document as a web page".
 //
 // User-job: a writer wants a document readable by anyone at a clean,
 // public address — without opening the document itself to the world.
@@ -52,7 +52,7 @@ test('Publish a document as a web page', async ({ page, flow, editor }) => {
   })
   await page.keyboard.press('Escape')
 
-  // ─── The reader ───────────────────────────────────────────────────
+  // The reader
   await flow.heading('What readers see', 3)
   const reader = await flow.spawn('reader')
   await reader.page.goto(url)

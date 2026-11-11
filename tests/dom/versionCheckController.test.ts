@@ -44,9 +44,7 @@ describe('versionCheckController', () => {
     )
   }
 
-  // ─────────────────────────────────────────────────────────────────────
   // Baseline + mismatch detection
-  // ─────────────────────────────────────────────────────────────────────
 
   it('first poll captures baseline; no prompt while build id is stable', async () => {
     fetchBuildId.mockResolvedValueOnce('build-A').mockResolvedValueOnce('build-A')
@@ -89,9 +87,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Auto-reload after 30s grace
-  // ─────────────────────────────────────────────────────────────────────
 
   it('auto-reloads after the 30s grace window with no user interaction', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
@@ -109,9 +105,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Reload-now button
-  // ─────────────────────────────────────────────────────────────────────
 
   it('"Reload now" reloads immediately and cancels the auto-reload timer', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
@@ -130,9 +124,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Snooze
-  // ─────────────────────────────────────────────────────────────────────
 
   it('"Snooze" defers the auto-reload by 5 minutes from the click', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
@@ -174,9 +166,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // visibilitychange-driven poll
-  // ─────────────────────────────────────────────────────────────────────
 
   it('onVisible polls if past the throttle window', async () => {
     fetchBuildId.mockResolvedValue('A')
@@ -229,9 +219,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // Periodic polling via setInterval
-  // ─────────────────────────────────────────────────────────────────────
 
   it('polls again on the periodic interval', async () => {
     fetchBuildId.mockResolvedValue('A')
@@ -246,9 +234,7 @@ describe('versionCheckController', () => {
     ctl.dispose()
   })
 
-  // ─────────────────────────────────────────────────────────────────────
   // dispose
-  // ─────────────────────────────────────────────────────────────────────
 
   it('dispose clears the poll interval and any pending reload timer', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')

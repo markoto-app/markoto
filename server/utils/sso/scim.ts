@@ -1,26 +1,26 @@
-// Per-workspace SSO (WP14) — SCIM 2.0 user provisioning (RFC 7643/7644),
-// `/scim/v2/Users` only (the user's choice: roles stay in markoto).
+// SCIM 2.0 user provisioning (RFC 7643/7644), `/scim/v2/Users` only; roles
+// stay in markoto.
 //
 // The IdP holds a bearer token per connection (SHA-256 at rest, shown
 // once). What the operations do:
 //
-//   create      email (userName / primary email) must be in a VERIFIED
-//               domain → the account with that address, or a new one;
+//   create      the email (userName / primary email) must be in a verified
+//               domain; uses the account with that address or creates one;
 //               joins the workspace with the connection's default role
-//               (seats + member limit like an invitation); a placeholder
-//               identity `scim:<externalId|userName>` that the user's
-//               first sign-in replaces with the IdP's real subject.
-//   active=false  membership + SSO grant + workspace AI key removed, the
-//               identity kept inactive (sign-in refused) — reactivating
+//               (seats + member limit like an invitation); stores a
+//               placeholder identity `scim:<externalId|userName>` that the
+//               user's first sign-in replaces with the IdP's real subject.
+//   active=false  membership, SSO grant and workspace AI key removed, the
+//               identity kept inactive (sign-in refused); reactivating
 //               re-joins (seat check again).
-//   delete      membership + grant + key + identity removed. The markoto
-//               ACCOUNT stays: the person may use it elsewhere, and only
-//               they can delete it (privacy policy, account deletion).
-//   name / email changes are not applied to the account (it belongs to
-//               the person, not the workspace); `externalId` is stored.
+//   delete      membership, grant, key and identity removed. The markoto
+//               account stays: the person may use it elsewhere, and only
+//               they can delete it.
+//   name / email changes are not applied to the account (it belongs to the
+//               person, not the workspace); `externalId` is stored.
 //
-// The last admin of a workspace can't be deactivated or deleted (409 —
-// same rule as in the app).
+// The last admin of a workspace can't be deactivated or deleted (409, same
+// rule as in the app).
 
 import { createHash, randomBytes } from 'node:crypto'
 import type { H3Event } from 'h3'

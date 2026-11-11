@@ -1,9 +1,8 @@
 import { readSessionChannel, toSessionView, valkeyChannelStore, type ChannelStore } from './sessionChannel'
 
 // Server-Sent Events stream of one AI session's initiator-only channel
-// (`GET /api/ai/sessions/:sessionId/stream`). Replaces the prompt bar's
-// 600 ms polling of `GET /api/ai/sessions/:id` with one long-lived
-// response per session.
+// (`GET /api/ai/sessions/:sessionId/stream`): one long-lived response per
+// session instead of polling `GET /api/ai/sessions/:id`.
 //
 // How it stays current: every channel write PUBLISHes a ping (Valkey
 // pub/sub, all instances); the stream re-reads the keys on each ping and

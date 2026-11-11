@@ -4,7 +4,7 @@
 # Environment secrets/variables (provider keys included), whose NAMES
 # are exactly the .env keys — so there is no ansible-var translation here.
 #
-# ⚠️  This is a faithful bash port of infra/templates/env.j2 (the ansible/laptop
+# This is a faithful bash port of infra/templates/env.j2 (the ansible/laptop
 #     path). The two MUST stay byte-identical for a given value set —
 #     infra/render-env-parity-test.sh proves it. If you add a var to one, add
 #     it to the other.
@@ -39,7 +39,7 @@ done
 # the new containers crash-loop into the auto-rollback.
 for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
   if [ -z "${!v:-}" ]; then
-    echo "render-env: '$v' is empty: the legal pages need it (set it as a GitHub Environment variable, see docs/LAUNCH-CHECKLIST.md)" >&2
+    echo "render-env: '$v' is empty: the legal pages need it (set it as a GitHub Environment variable, see docs/operations/LAUNCH-CHECKLIST.md)" >&2
     exit 1
   fi
 done
@@ -48,7 +48,7 @@ done
 # boot in the hosted shape without it, and prod compose routes it with its
 # own certificate). It is spliced into a Traefik rule, so: plain hostname.
 if [ -z "${NUXT_PUBLISH_PAGES_HOST:-}" ]; then
-  echo "render-env: 'NUXT_PUBLISH_PAGES_HOST' is empty: published pages need their own hostname, e.g. pages.\${DOMAIN} (set it as a GitHub Environment variable and add its DNS record, see docs/LAUNCH-CHECKLIST.md)" >&2
+  echo "render-env: 'NUXT_PUBLISH_PAGES_HOST' is empty: published pages need their own hostname, e.g. pages.\${DOMAIN} (set it as a GitHub Environment variable and add its DNS record, see docs/operations/LAUNCH-CHECKLIST.md)" >&2
   exit 1
 fi
 case "$NUXT_PUBLISH_PAGES_HOST" in
@@ -79,8 +79,7 @@ case "$(echo "$NUXT_BILLING_ENABLED" | tr '[:upper:]' '[:lower:]' | tr -d '[:spa
     ;;
 esac
 
-# Bring-your-own-key AI (WP4). The hosted SaaS sets NO instance AI defaults
-# (every user brings their own key) and restricts BYOK base URLs to the
+# Bring-your-own-key AI. The hosted SaaS restricts BYOK base URLs to the
 # provider allowlist below (shared/ai/providers.ts
 # RECOMMENDED_SAAS_ALLOWED_BASE_URLS — keep in sync). Private-network
 # provider URLs stay off.
@@ -126,7 +125,7 @@ TIER_FREE_FEATURE_GUESTS="${TIER_FREE_FEATURE_GUESTS:-false}"
 TIER_FREE_FEATURE_BRAND_KIT="${TIER_FREE_FEATURE_BRAND_KIT:-false}"
 TIER_FREE_FEATURE_SHARE_CONTROLS="${TIER_FREE_FEATURE_SHARE_CONTROLS:-false}"
 TIER_FREE_FEATURE_CUSTOM_DOMAINS="${TIER_FREE_FEATURE_CUSTOM_DOMAINS:-false}"
-# Single sign-on is a Business feature on markoto.app (WP14).
+# Single sign-on is a Business feature on markoto.app.
 TIER_PRO_FEATURE_SSO="${TIER_PRO_FEATURE_SSO:-false}"
 TIER_PRO_FEATURE_AUDIT_LOG="${TIER_PRO_FEATURE_AUDIT_LOG:-false}"
 TIER_PRO_FEATURE_GUESTS="${TIER_PRO_FEATURE_GUESTS:-false}"
@@ -139,7 +138,7 @@ POSTGRES_HOST="${POSTGRES_HOST:-postgres}"
 POSTGRES_PORT="${POSTGRES_PORT:-5432}"
 # Separate least-privilege Postgres roles (infra/postgres/db-init.sh). Empty =
 # the app and LiteLLM keep using POSTGRES_USER (the compose files fall back);
-# docs/LAUNCH-CHECKLIST.md has the switch-over.
+# docs/operations/LAUNCH-CHECKLIST.md has the switch-over.
 POSTGRES_APP_USER="${POSTGRES_APP_USER:-}"
 POSTGRES_APP_PASSWORD="${POSTGRES_APP_PASSWORD:-}"
 POSTGRES_LITELLM_USER="${POSTGRES_LITELLM_USER:-}"
@@ -150,7 +149,7 @@ BACKUP_INTERVAL_SECONDS="${BACKUP_INTERVAL_SECONDS:-86400}"
 BACKUP_RETENTION_COUNT="${BACKUP_RETENTION_COUNT:-30}"
 # Backup storage: only the backup sidecar receives these. Each falls back to
 # the app's NUXT_S3_* value (or the stock region/prefix) until a dedicated
-# backup bucket is provisioned (docs/LAUNCH-CHECKLIST.md).
+# backup bucket is provisioned (docs/operations/LAUNCH-CHECKLIST.md).
 BACKUP_S3_ENDPOINT="${BACKUP_S3_ENDPOINT:-$NUXT_S3_ENDPOINT}"
 BACKUP_S3_BUCKET="${BACKUP_S3_BUCKET:-$NUXT_S3_BUCKET}"
 BACKUP_S3_ACCESS_KEY="${BACKUP_S3_ACCESS_KEY:-$NUXT_S3_ACCESS_KEY}"
@@ -266,7 +265,7 @@ NUXT_ALTCHA_HMAC_KEY=${NUXT_ALTCHA_HMAC_KEY}
 # Shared secret between the app and the markitdown converter (its own, so a
 # compromised converter cannot call sync or /api/internal).
 NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET}
-# Custom domains of published pages (WP13): the host customers CNAME to
+# Custom domains of published pages: the host customers CNAME to
 # (empty = off) and the token Traefik's HTTP provider sends (>= 32 chars).
 NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
 NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
@@ -332,7 +331,7 @@ EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
 EMBEDDINGS_UPSTREAM_API_BASE=${EMBEDDINGS_UPSTREAM_API_BASE:-}
 EMBEDDINGS_UPSTREAM_API_KEY=${EMBEDDINGS_UPSTREAM_API_KEY:-}
 
-# ─── Bring-your-own-key AI (WP4) + free AI allowance ───
+# ─── Bring-your-own-key AI + free AI allowance ───
 # Instance defaults per capability. Hosted: chat = the free-allowance
 # alias (platform-paid, capped per user + in total), image / transcription
 # empty (BYOK only). MODEL alone = a LiteLLM model alias (platform-paid);

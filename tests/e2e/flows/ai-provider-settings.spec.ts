@@ -1,7 +1,7 @@
 import { test, expect } from '../fixtures/flow'
 import { fakeOpenAiBaseUrl } from '../../integration/setup/env'
 
-// "Use your own AI provider" (WP4, bring your own key).
+// "Use your own AI provider" (bring your own key).
 //
 // User-job: connect the AI assistant to an AI account the user already
 // has (Mistral, OpenAI, a model on their own server) so their own
@@ -74,7 +74,7 @@ test('Use your own AI provider', async ({ page, flow, editor }) => {
   const chatCard = page.getByTestId('ai-provider-card-chat')
   await chatCard.waitFor({ state: 'visible', timeout: 15_000 })
 
-  // ─── Chapter 1: Where AI runs ──────────────────────────────────
+  // Chapter 1: Where AI runs
   await flow.heading('Bring your own AI provider', 3)
   await flow.narrate(
     'markoto\'s writing assistant, image generation and voice input can run on your own AI '
@@ -85,7 +85,7 @@ test('Use your own AI provider', async ({ page, flow, editor }) => {
     highlights: [{ label: 'Writing assistant', selector: '[data-testid="ai-provider-card-chat"]' }]
   })
 
-  // ─── Chapter 2: Add the provider ───────────────────────────────
+  // Chapter 2: Add the provider
   await flow.heading('Connect a provider for the writing assistant', 3)
   await flow.click('Click "Add your provider"', page.getByTestId('ai-provider-edit-chat'), {
     result: 'The form asks for the provider, its address, the model and your key',
@@ -104,7 +104,7 @@ test('Use your own AI provider', async ({ page, flow, editor }) => {
     () => page.getByTestId('ai-provider-api-key-chat').fill('sk-flow-demo-key-4242')
   )
 
-  // ─── Chapter 3: Verified ───────────────────────────────────────
+  // Chapter 3: Verified
   await flow.heading('Save: markoto checks the connection first', 3)
   const message = page.getByTestId('ai-provider-message-chat')
   await flow.click('Click "Save and verify"', page.getByTestId('ai-provider-save-chat'), {

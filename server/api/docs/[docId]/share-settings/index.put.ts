@@ -12,7 +12,7 @@ export const SHARE_SETTINGS_RATE_LIMIT = 30
 const ISO_DATE_TIME = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/
 
 // PUT /api/docs/:docId/share-settings — {expiresAt: ISO | null, noDownload:
-// boolean} (WP9). Owner and workspace admins. Setting an expiry or
+// boolean}. Owner and workspace admins. Setting an expiry or
 // view-only needs the plan feature `shareControls`; clearing them always
 // works (also after a downgrade — settings already in force stay in force,
 // they only restrict). Audited `doc.share_settings_changed`.

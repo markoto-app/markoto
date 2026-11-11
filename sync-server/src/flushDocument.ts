@@ -4,9 +4,7 @@
 //
 // Hocuspocus debounces `onStoreDocument` (2 s, up to 10 s under steady
 // typing — see `debounce` / `maxDebounce` in index.ts). Without this, a
-// duplicate made right after an edit cloned the rows from BEFORE the
-// edit: the v0.2.2 release flow caught a copy that held the welcome text
-// but not the line typed just before "Duplicate".
+// duplicate made right after an edit would clone the rows from before it.
 //
 // Pure over a structural instance shape (no persistence import) so the
 // unit tests can drive it with a fake debouncer.

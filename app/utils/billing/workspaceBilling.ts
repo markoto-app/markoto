@@ -1,4 +1,4 @@
-// Client shapes + pure helpers for Team / Business workspace billing (WP3).
+// Client shapes + pure helpers for Team / Business workspace billing.
 
 import type { BillingInterval, Currency, PaidPlanName } from '~~/shared/config/pricing'
 
@@ -46,7 +46,7 @@ export interface WorkspaceBillingOverview {
     unlimited: boolean
     spendUsd: number | null
   }>
-  /** AI credit top-ups (WP4); null with billing off. */
+  /** AI credit top-ups; null with billing off. */
   credits?: import('~/utils/billing/aiCredits').CreditBalanceView | null
 }
 

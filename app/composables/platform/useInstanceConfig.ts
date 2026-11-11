@@ -13,11 +13,11 @@ import { EMPTY_INSTANCE_BRAND } from '~~/shared/config/instanceBrand'
  * are on, whether this is the hosted marketing site, and the SEO
  * origins (site URL, docs canonical base).
  *
- * Resolved ONCE on the server from the same env vars the server-side
- * guards read, and shipped through the SSR payload (`useState`) — the
- * same pattern as `useBillingMode()`. `app/plugins/instance-config.ts`
- * touches it on every SSR pass so client-side navigations see the real
- * value. Client default: nothing optional offered.
+ * Resolved once on the server from the same env vars the server-side guards
+ * read and shipped through the SSR payload (`useState`), like
+ * `useBillingMode()`. `app/plugins/instance-config.ts` touches it on every
+ * SSR pass so client-side navigations see the real value. Client default:
+ * nothing optional offered.
  */
 export function useInstanceConfig() {
   const config = useState<InstanceConfig>('instance-config', () =>
@@ -31,11 +31,11 @@ export function useInstanceConfig() {
   const docsCanonicalBase = computed(() => config.value.docsCanonicalBase)
   const anonGate = computed(() => config.value.anonGate)
   const anonDocTtlDays = computed(() => config.value.anonDocTtlDays)
-  /** Per-workspace single sign-on can exist on this instance (WP14). */
+  /** Per-workspace single sign-on can exist on this instance. */
   const workspaceSso = computed(() => config.value.workspaceSso === true)
   const customDomains = computed(() => config.value.customDomains === true)
   const brand = computed(() => config.value.brand ?? EMPTY_INSTANCE_BRAND)
-  /** Start of the login flow — the first configured provider, or null when login is off. */
+  /** The first configured provider's login path, or null when login is off. */
   const primaryLoginPath = computed(() => {
     const first = config.value.loginProviders[0]
     return first ? loginPath(first) : null

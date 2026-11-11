@@ -21,8 +21,8 @@ export default defineEventHandler(async (event) => {
 
   const userId = session?.user?.id ?? null
   // One query: doc + the caller's role (SSO condition included) + whether
-  // their ownership counts (WP14 — not in an SSO-enforcing workspace
-  // without an effective role there).
+  // their ownership counts (it doesn't in an SSO-enforcing workspace
+  // where they have no effective role).
   const doc = await getDocWithActorRole(docId, userId)
   if (!doc) throw createError({ statusCode: 404, message: 'Document not found' })
 

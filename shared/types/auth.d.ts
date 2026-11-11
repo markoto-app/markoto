@@ -22,7 +22,7 @@ declare module '#auth-utils' {
     // (avatars are generated from `id`). Cookies sealed before this
     // change may still carry one; nothing reads it.
     // `sso` = signed in through a workspace's own identity provider
-    // (WP14, `server/routes/auth/sso/`).
+    // (`server/routes/auth/sso/`).
     provider: 'github' | 'google' | 'oidc' | 'sso'
   }
 

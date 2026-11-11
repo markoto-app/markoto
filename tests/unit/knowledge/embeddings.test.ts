@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// Embeddings wrapper. Phase 5 reduced this to a single backend (Jina
+// Embeddings wrapper over a single backend (Jina
 // via LiteLLM). The shape of `embedDocuments` / `embedQuery` /
 // `embeddingVersionTag` is the public contract that
 // processKnowledge.ts and the re-embed script depend on.
@@ -51,7 +51,7 @@ beforeEach(() => {
   mockState.jinaResponse = { data: [{ embedding: new Array(768).fill(0.01) }] }
 })
 
-// ─── resolveEmbeddingsConfig + embeddingVersionTag ────────────────────────
+// resolveEmbeddingsConfig + embeddingVersionTag
 
 describe('resolveEmbeddingsConfig', () => {
   it('resolves the jina config from runtimeConfig', () => {
@@ -145,7 +145,7 @@ describe('custom (non-Jina) configuration', () => {
   })
 })
 
-// ─── embedDocuments — wire-format ─────────────────────────────────────────
+// embedDocuments — wire-format
 
 describe('embedDocuments', () => {
   it('passes task=retrieval.passage and dimensions=768 to LiteLLM', async () => {
@@ -179,7 +179,7 @@ describe('embedDocuments', () => {
   })
 })
 
-// ─── embedQuery — single-call query path ──────────────────────────────────
+// embedQuery — single-call query path
 
 describe('embedQuery', () => {
   it('uses task=retrieval.query', async () => {

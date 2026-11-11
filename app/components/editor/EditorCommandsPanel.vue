@@ -1,34 +1,18 @@
 <script setup lang="ts">
 /**
- * Mobile "Editor" drawer content. Replaces the always-visible
- * `MobileFormatBar` strip with a categorized panel of every editor
- * command, grouped by purpose:
+ * Mobile "Editor" drawer content: every editor command in categorized grids
+ * (Formatting, Headings, Lists, Insert). Tapping a command runs it through the
+ * `editorCommands.ts` helpers and closes the drawer, leaving the user on the
+ * editor with the keyboard up. Kind sub-pickers (alert, diagram) reuse the
+ * `InsertSheet` step machine inline.
  *
- *   • Formatting   bold, italic, strikethrough, inline code
- *   • Headings     H1, H2, H3, body
- *   • Lists        bullet, numbered, task
- *   • Insert       link, image, table, code-block, alert, math,
- *                  diagram, page-break, footnote, comment, TOC
+ * The 2-tap cost (open drawer, tap action) is accepted: markdown is the native
+ * input, so buttons serve discovery and occasional reach, and "always
+ * reachable + categorized" beats a keyboard-anchored bar whose visibility
+ * heuristic (`visualViewport`) was flaky on iOS Safari.
  *
- * Tapping any command runs it through the existing
- * `editorCommands.ts` helpers and CLOSES the drawer so the user
- * lands back on the editor with the keyboard already up. Sub-pickers
- * (alert kind, diagram kind) re-use the existing `InsertSheet`'s
- * step machine inline here so the user never has to leave the drawer.
- *
- * The design accepts the 2-tap cost (open drawer → tap action)
- * for two reasons:
- *
- *   1. Markdown is the native input — a writer who knows `**bold**`
- *      doesn't need a button. Buttons are for discovery + occasional
- *      reach, not constant flow.
- *   2. The previous keyboard-anchored bar gated visibility on a
- *      `visualViewport` heuristic that was flaky on iOS Safari, and
- *      the tradeoff for "always reachable + categorized" beat
- *      "single-tap but sometimes invisible".
- *
- * Renders as the slot content for the shared `BottomSheet` (via
- * `RightPanelHost`); no own chrome here, just the grouped grids.
+ * Renders as slot content of the shared `BottomSheet` (via `RightPanelHost`),
+ * with no chrome of its own beyond the grouped grids.
  */
 import type { EditorView } from '@codemirror/view'
 import {
@@ -51,38 +35,30 @@ import {
 
 const props = defineProps<{
   view: EditorView | null
-  /** Hide insert-comment when the user can't anchor a comment
-   *  (anonymous on a private doc, etc.). */
+  /** Hide insert-comment when the user can't anchor a comment (e.g. anonymous on a private doc). */
   canComment: boolean
 }>()
 
 const emit = defineEmits<{
-  /** Emitted after any successful action so the host can close the
-   *  drawer. The host returns focus to the editor; the keyboard is
-   *  already up because we don't blur on emit. */
+  /** Emitted after any successful action so the host can close the drawer; focus returns to the editor with the keyboard still up (no blur on emit). */
   'done': []
-  /** Emitted when the user explicitly dismisses (× button) without
-   *  running an action. The host closes the drawer. */
+  /** Emitted when the user dismisses (× button) without running an action. */
   'close': []
-  /** Forward to the layout-level table-size picker modal — full-grid
-   *  picker doesn't fit comfortably in a mobile drawer. */
+  /** Forward to the layout-level table-size picker modal; the full grid doesn't fit a mobile drawer. */
   'open-table-picker': []
   /** Forward to the layout-level image picker (presigned upload flow). */
   'open-image-picker': []
-  /** Open the import dialog (markitdown round-trip) — File menu
-   *  equivalent for mobile users who don't have the desktop menubar. */
+  /** Open the import dialog (File menu equivalent for mobile). */
   'open-import': []
-  /** Trigger server-rendered PDF download (Playwright sidecar render
-   *  → S3 presigned download). Mirrors File → Save as PDF on desktop. */
+  /** Trigger the server-rendered PDF download (mirrors File → Save as PDF on desktop). */
   'open-server-pdf': []
-  /** Trigger client-side `.md` download. Mirrors File → Save as
-   *  Markdown on desktop. */
+  /** Trigger the client-side `.md` download (mirrors File → Save as Markdown on desktop). */
   'export-markdown': []
 }>()
 
 const { t } = useI18n()
 
-// Sub-step state for kind-pickers. Same shape the InsertSheet used.
+// Sub-step state for the kind pickers.
 type Step = 'main' | 'alert' | 'diagram'
 const step = ref<Step>('main')
 function backToMain() {
@@ -164,11 +140,8 @@ function applyDiagram(kind: MermaidKind) {
 
 <template>
   <div class="ecp h-full flex flex-col bg-muted">
-    <!-- Panel header — matches the icon-title-× pattern the Activity,
-         Knowledge, Comments, Theme and Document panels all use, so
-         every drawer reads with one consistent voice. The
-         `<BottomSheet>` host now intentionally renders no header of
-         its own; this is the single title surface the user sees. -->
+    <!-- Same icon-title-× pattern as the other panels; the `<BottomSheet>` host
+         renders no header, so this is the only title surface. -->
     <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2">
         <UIcon
@@ -192,9 +165,7 @@ function applyDiagram(kind: MermaidKind) {
     </div>
 
     <div class="ecp__body">
-      <!-- ── MAIN ─────────────────────────────────────────────────── -->
       <template v-if="step === 'main'">
-        <!-- Formatting -->
         <section class="ecp__section">
           <h3 class="ecp__heading">
             {{ t('editorCommands.formatting') }}
@@ -247,7 +218,6 @@ function applyDiagram(kind: MermaidKind) {
           </div>
         </section>
 
-        <!-- Headings -->
         <section class="ecp__section">
           <h3 class="ecp__heading">
             {{ t('editorCommands.headings') }}
@@ -284,7 +254,6 @@ function applyDiagram(kind: MermaidKind) {
           </div>
         </section>
 
-        <!-- Lists -->
         <section class="ecp__section">
           <h3 class="ecp__heading">
             {{ t('editorCommands.lists') }}
@@ -323,7 +292,6 @@ function applyDiagram(kind: MermaidKind) {
           </div>
         </section>
 
-        <!-- Insert -->
         <section class="ecp__section">
           <h3 class="ecp__heading">
             {{ t('editorCommands.insert') }}
@@ -447,13 +415,9 @@ function applyDiagram(kind: MermaidKind) {
           </div>
         </section>
 
-        <!-- File. Mobile equivalent of the desktop File menu — Import,
-           Save as PDF, Save as Markdown. Without these, mobile users
-           lose feature parity with desktop on the import/export
-           surface. The Print item is desktop-only because mobile
-           browsers' print dialog is not interactively useful, but
-           "Save as PDF" gives the same end result via the renderer
-           sidecar. -->
+        <!-- File: mobile equivalent of the desktop File menu (Import, Save as PDF,
+           Save as Markdown). Print is desktop-only: mobile print dialogs aren't
+           useful, and "Save as PDF" gives the same result via the renderer. -->
         <section class="ecp__section">
           <h3 class="ecp__heading">
             {{ t('menubar.file.title') }}
@@ -496,7 +460,6 @@ function applyDiagram(kind: MermaidKind) {
         </section>
       </template>
 
-      <!-- ── ALERT KIND PICKER ──────────────────────────────────────── -->
       <template v-else-if="step === 'alert'">
         <button
           class="ecp__back"
@@ -523,7 +486,6 @@ function applyDiagram(kind: MermaidKind) {
         </div>
       </template>
 
-      <!-- ── DIAGRAM KIND PICKER ────────────────────────────────────── -->
       <template v-else-if="step === 'diagram'">
         <button
           class="ecp__back"
@@ -553,9 +515,8 @@ function applyDiagram(kind: MermaidKind) {
 </template>
 
 <style scoped>
-/* Outer wrapper provides chrome (bg-muted, full-height column). The
-   actual command grid sits in `.ecp__body` below so padding only
-   applies to the scrollable content, not the sticky header. */
+/* Outer wrapper provides the chrome (bg-muted, full-height column); padding
+   applies only to `.ecp__body`, not the sticky header. */
 .ecp__body {
   flex: 1;
   overflow-y: auto;
@@ -579,9 +540,7 @@ function applyDiagram(kind: MermaidKind) {
 
 .ecp__grid {
   display: grid;
-  /* minmax(0, 1fr): a long label must not widen its column (a 1fr
-     track's minimum is its content, which pushed the grid past the
-     sheet's edge). */
+  /* minmax(0, 1fr): a 1fr track's minimum is its content, so a long label would push the grid past the sheet's edge. */
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }

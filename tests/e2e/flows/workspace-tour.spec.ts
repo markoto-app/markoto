@@ -47,7 +47,7 @@ test('Start a workspace', async ({ page, flow, editor }) => {
     + 'files when working on any doc inside the workspace.'
   )
 
-  // ─── Open the create-workspace modal ────────────────────────────
+  // Open the create-workspace modal
   await flow.heading('Click "+ New workspace"', 3)
   await flow.narrate(
     'Each section of your home page has its own create button: '
@@ -68,7 +68,7 @@ test('Start a workspace', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Fill the form ──────────────────────────────────────────────
+  // Fill the form
   await flow.heading('Name your workspace', 3)
   await flow.narrate(
     'The name shows in the topbar of every doc in the workspace + '
@@ -91,7 +91,7 @@ test('Start a workspace', async ({ page, flow, editor }) => {
     { result: 'The description is captured.' }
   )
 
-  // ─── Submit + land on the workspace ─────────────────────────────
+  // Submit + land on the workspace
   await flow.heading('Create + land on the workspace', 3)
   await flow.narrate(
     'Submit creates the workspace, makes you the admin, and routes '

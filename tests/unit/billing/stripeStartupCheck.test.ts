@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { stripeStartupErrors } from '../../../server/utils/billing/stripeStartupCheck'
 
-// Boot-time Stripe validation, gated on NUXT_BILLING_ENABLED (WP3).
+// Boot-time Stripe validation, gated on NUXT_BILLING_ENABLED.
 // Billing off must boot with NO Stripe vars at all; billing on must stay
 // exactly as strict as before the flag existed.
 

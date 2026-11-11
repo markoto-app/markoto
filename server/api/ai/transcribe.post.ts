@@ -1,14 +1,9 @@
-// One-shot voice-to-text for the AI prompt bar. The user speaks, stops,
-// and the recorded clip is sent here — Voxtral (via LiteLLM) transcribes
-// it and the client auto-submits the transcript as a normal prompt. No
-// Y.js session, no agentic loop: transcription doesn't touch the doc,
-// and the downstream /api/ai/prompt call enforces the usual auth +
-// content gates. That's why this route does NOT call
-// `requireDocEditAccess`.
-//
-// Phase 7: cloud-stt path + dual-mode flag dropped. Voxtral is the only
-// path. Per-user billing is enforced inside LiteLLM via the user's
-// virtual-key `max_budget`.
+// One-shot voice-to-text for the AI prompt bar: Voxtral (via LiteLLM)
+// transcribes a recorded clip and the client submits the transcript as a normal
+// prompt. No Y.js session or agentic loop; transcription doesn't touch the doc
+// and the downstream /api/ai/prompt call enforces the usual auth + content
+// gates, so this route does NOT call `requireDocEditAccess`. Per-user billing
+// is the user's virtual-key `max_budget` inside LiteLLM.
 
 import * as Sentry from '@sentry/nuxt'
 import { normalizeLanguageCode } from '../../utils/agentic/transcribeHelpers'
@@ -34,9 +29,8 @@ const ALLOWED_MIME = new Set([
   'audio/x-wav'
 ])
 
-// Cap at ~5 MiB of raw audio. A 60-second opus/webm clip is typically
-// ≤400 KiB, so this is generous — but the ceiling exists so a malicious
-// client can't OOM the endpoint.
+// ~5 MiB of raw audio cap so a malicious client can't OOM the endpoint (a
+// 60-second opus/webm clip is typically <= 400 KiB).
 const MAX_AUDIO_BYTES = 5 * 1024 * 1024
 
 function base64Padding(b64: string): 0 | 1 | 2 {
@@ -49,9 +43,8 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const userId = session.user.id
 
-  // Phase 6: app-side rate limit dropped. LiteLLM enforces an
-  // rpm_limit (60/min) at the per-user-virtual-key level — see
-  // `createUserKey` in `litellm/userKeys.ts`.
+  // The per-user virtual key's rpm_limit (60/min, `createUserKey` in
+  // `litellm/userKeys.ts`) is the only rate limit.
 
   const body = await readBody<{
     audio?: string
@@ -69,10 +62,8 @@ export default defineEventHandler(async (event) => {
   if (!audioB64 || typeof audioB64 !== 'string') {
     throw createError({ statusCode: 400, message: 'Missing audio payload' })
   }
-  // `atob` not available in Nitro's worker context; compute byte length
-  // from the base64 string directly so we can reject oversize payloads
-  // before reaching upstream (each upstream has its own ceiling — ours is
-  // tighter for abuse prevention).
+  // `atob` isn't available in Nitro's worker context; compute the byte length
+  // from the base64 string to reject oversize payloads before upstream.
   const padding = base64Padding(audioB64)
   const approxBytes = Math.floor(audioB64.length * 3 / 4) - padding
   if (approxBytes > MAX_AUDIO_BYTES) {
@@ -150,26 +141,23 @@ async function transcribeViaVoxtral(args: {
   model: string
   virtualKey: string
 }): Promise<{ text: string, inaudible: boolean }> {
-  // Test-mode short-circuit. The integration stack runs a real
-  // LiteLLM proxy, but the upstream Mistral key is a stub — so a
-  // real /v1/audio/transcriptions call would 401 and the test loop
-  // would time out waiting through SDK retries. The validation
-  // tests only need the endpoint to RESPOND past its own ladder; we
-  // satisfy that with a canned empty transcript when TEST_MODE=1.
+  // Test-mode short-circuit: the integration LiteLLM proxy has a stub Mistral
+  // key, so a real call would 401 and stall on SDK retries; validation tests
+  // only need a response, so return a canned empty transcript.
   if (isTestModeEnabled()) {
     return { text: '', inaudible: true }
   }
 
-  // Operator alias (platform-paid): billed against the user's LiteLLM
-  // budget; LiteLLM 4xx's with budget_exceeded if exhausted.
+  // Operator alias (platform-paid): billed against the user's LiteLLM budget,
+  // which 4xx's with budget_exceeded when exhausted.
   const litellm = useLitellmForUser(args.virtualKey)
   const transcribeModel = args.model
   const isoLanguage = args.isoLanguage
 
-  // Custom provider convention: single user message with JSON-encoded
-  // {audio_base64, mime, language}. See infra/litellm/custom_handlers.py:
-  // MistralTranscribeProvider. The wrapper internally hits Mistral's
-  // /v1/audio/transcriptions and reshapes the response so spend tracks.
+  // Custom provider convention: one user message with JSON-encoded
+  // {audio_base64, mime, language}; MistralTranscribeProvider
+  // (infra/litellm/custom_handlers.py) wraps /v1/audio/transcriptions and
+  // reshapes the response so spend tracks.
   try {
     const resp = await litellmCompletion(litellm, {
       model: transcribeModel,
@@ -181,12 +169,9 @@ async function transcribeViaVoxtral(args: {
           language: isoLanguage
         })
       }],
-      // No max_tokens — Voxtral's transcript length is bounded by the
-      // input audio and we want the full transcript.
+      // No max_tokens: the transcript is bounded by the audio.
       temperature: 0,
-      // LiteLLM spend-tags. Transcribe never carries a workspace
-      // context (the prompt-bar mic isn't doc-scoped), so only
-      // feature + user dimensions apply.
+      // Spend tags: feature + user only; the mic isn't doc-scoped.
       ...featureMetadata(FEATURE_TAGS.transcribe, { userId: args.userId })
     })
     const text = (resp.choices?.[0]?.message?.content ?? '').trim()

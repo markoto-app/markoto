@@ -60,7 +60,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Paid tabs ───────────────────────────────────────────────
+  // Paid tabs
   await flow.click('Click the "Team" tab', paid.getByRole('tab', { name: 'Team' }), {
     result: 'Team shows its planned price per seat and the limits each seat adds to the workspace.',
     after: () => expect(page.getByTestId('pricing-tier-team')).toBeVisible()
@@ -75,7 +75,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     await expect(panel.getByTestId('pricing-join-waitlist')).toBeVisible()
   }
 
-  // ─── Comparison table ────────────────────────────────────────
+  // Comparison table
   const compare = page.getByTestId('pricing-compare')
   await compare.scrollIntoViewIfNeeded()
   await expect(compare.getByTestId('pricing-compare-row-aiPoints')).toBeVisible()
@@ -83,7 +83,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     highlights: [{ label: 'AI Points per month', selector: '[data-testid="pricing-compare-row-aiPoints"]' }]
   })
 
-  // ─── Waitlist ────────────────────────────────────────────────
+  // Waitlist
   await flow.heading('Hear when paid plans launch', 3)
   const section = page.getByTestId('waitlist-section')
   await section.scrollIntoViewIfNeeded()

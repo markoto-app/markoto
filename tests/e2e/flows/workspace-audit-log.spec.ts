@@ -1,7 +1,7 @@
 import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 
-// "See who changed what in a workspace" (WP15).
+// "See who changed what in a workspace".
 //
 // User-job: a workspace admin wants to check who changed the workspace's
 // members and sharing — and keep a copy for their records. Job done when

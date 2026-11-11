@@ -3,18 +3,9 @@ import { abuseReports, moderationNotices, users } from '../../db/schema'
 import { useDatabase } from '../../utils/platform/database'
 import { requireAdminUser } from '../../utils/auth/adminAccess'
 
-// Admin queue: list abuse reports for triage. Filterable by status
-// (default: open + acknowledged — the actionable queue).
-//
-// Joins to users so the caller sees the reporter's name + email
-// without a second round-trip. Joining via the audit log would
-// also work but the abuse_reports row doesn't carry the reporter
-// id directly (we kept that pseudonymised); we look up via the
-// audit row's actor_user_id at read time when needed.
-//
-// Pagination: simple offset-based, capped at 100 per page. The
-// queue should never grow large enough to need cursor-based pagination
-// — if it does, that's a separate ops-scale problem.
+// Admin queue: abuse reports for triage, filterable by status (default: open +
+// acknowledged, the actionable queue). Joins to users for the reporter's name
+// and email. Offset pagination capped at 100 per page.
 
 const ALLOWED_STATUSES = ['open', 'acknowledged', 'actioned', 'dismissed'] as const
 type Status = (typeof ALLOWED_STATUSES)[number]
@@ -39,10 +30,7 @@ export default defineEventHandler(async (event) => {
   const limit = Math.min(Number(query.limit ?? 50), 100)
 
   const db = useDatabase()
-  // Two joins to `users`: one for the reporter (so the moderator
-  // can see who reported + has a mailto: handle), one for the
-  // actioning admin (when the report has been triaged). Aliased
-  // because both joins target the same table.
+  // Two joins to `users` (reporter, actioning admin), hence the aliases.
   const reporter = aliasedTable(users, 'reporter')
   const actioner = aliasedTable(users, 'actioner')
   const rows = await db
@@ -115,13 +103,10 @@ export default defineEventHandler(async (event) => {
     acknowledgedAt: r.acknowledgedAt?.toISOString() ?? null,
     actionedAt: r.actionedAt?.toISOString() ?? null,
     reporterIpTruncated: r.reporterIpTruncated,
-    // Reporter — name + email come from the live join when the
-    // user still exists, fallback to the email snapshot when the
-    // user has since deleted their account (FK auto-nulled). Email
-    // channel reports (no reporterUserId) won't surface here —
-    // those go to the abuse@ inbox separately.
-    // Anonymous form reports (DSA Art.16, no account) carry only the
-    // name + email the reporter typed; `signedIn` tells them apart.
+    // Name + email come from the live join, falling back to the email snapshot
+    // when the reporter has deleted their account (FK auto-nulled). Anonymous
+    // form reports carry only the name + email typed; `signedIn` tells them
+    // apart. Email-channel reports go to the abuse@ inbox, not here.
     reporter: r.reporterUserId === null && r.reporterEmailSnapshot === null && r.reporterNameSnapshot === null
       ? null
       : {

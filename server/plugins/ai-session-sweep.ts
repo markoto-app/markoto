@@ -12,9 +12,9 @@ import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 // `api/ai/prompt.post.ts` (currently 5 min) so legitimate long-running loops
 // don't get killed prematurely.
 //
-// Now that sessions are DB-backed, the plugin also runs a one-shot purge at
-// startup — any rows left over from a crashed previous process are cleaned
-// immediately instead of blocking the per-user cap until the first sweep.
+// Sessions are DB-backed, so the plugin also purges once at startup: rows
+// left by a crashed previous process are cleaned immediately instead of
+// blocking the per-user cap until the first sweep.
 
 const STALE_THRESHOLD_MS = 7 * 60 * 1000 // 7 min — safely longer than 5-min prompt deadline
 const SWEEP_INTERVAL_MS = 60_000
@@ -52,8 +52,7 @@ async function runStartupPurge(): Promise<void> {
  * the winner instance can only abort its own loops; for orphan rows
  * (sessions running elsewhere), the loop falls through to
  * `removeAiSession` which just drops the DB entry to unblock the
- * per-user cap. That matches the pre-lock behaviour for sessions
- * from a prior crashed process.
+ * per-user cap.
  */
 async function sweep(): Promise<void> {
   if (!await acquireSweepLock('ai-session-sweep')) return

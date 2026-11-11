@@ -8,7 +8,7 @@ import { TEST_BILLING_OFF_BASE_URL, fakeOpenAiBaseUrl } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, byokUser, fakeRequests, resetFake, uniqueKey, waitFor } from '../setup/byok'
 import { decryptToken } from '../../../server/utils/litellm/tokenCrypto'
 
-// Bring-your-own-key AI providers (WP4), end to end:
+// Bring-your-own-key AI providers, end to end:
 //   app (SSRF policy, encryption, verification) → litellm-test (`byok/*`
 //   clientside credentials, zero cost) → fake-openai-test (the "user's
 //   provider", tests/fixtures/fake-openai/server.py).
@@ -230,7 +230,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
     expect(after.chat).toMatchObject({ source: 'user', platformBilled: false })
   })
 
-  it('availability reports which platform web tools the operator configured (WP6)', async () => {
+  it('availability reports which platform web tools the operator configured', async () => {
     const u = await byokUser()
     const full: { webTools: { search: boolean, fetch: boolean } } = await (await (await loggedInClient(u.id)).get('/api/ai/availability')).json()
     expect(full.webTools).toEqual({ search: true, fetch: true })

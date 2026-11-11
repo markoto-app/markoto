@@ -61,7 +61,7 @@ export async function mintPat(input: MintPatInput): Promise<MintedPat> {
   return { plaintext, tokenId }
 }
 
-// ─── JSON-RPC client ─────────────────────────────────────────────────
+// JSON-RPC client
 
 export interface RpcResult<T = unknown> {
   result?: T
@@ -224,7 +224,7 @@ export class McpClient {
     return this.sessionId
   }
 
-  // ─── Internals ────────────────────────────────────────────────────
+  // Internals
 
   /** Send a JSON-RPC request and parse the response into RpcResult. */
   private async rawRpc<T>(body: object): Promise<RpcResult<T>> {

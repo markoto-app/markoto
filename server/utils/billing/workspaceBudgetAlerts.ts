@@ -6,7 +6,7 @@ import { getPooledWorkspace, pooledFromRow, type PooledWorkspace } from './works
 import { ensureWorkspaceTeam, readWorkspaceTeam } from '../litellm/workspaceTeams'
 import { notifyWorkspaceAdmins } from '../email/workspaceBillingEmails'
 
-// Budget alerts for Team / Business workspaces (WP3): when a workspace's
+// Budget alerts for Team / Business workspaces: when a workspace's
 // pooled AI budget reaches 80 % and 100 % of the month, its admins get
 // one email each (once per level per budget period — the once-key holds
 // LiteLLM's `budget_reset_at`). Run by `plugins/workspace-budget-alerts.ts`

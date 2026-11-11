@@ -117,7 +117,7 @@ export default defineEventHandler(async (event) => {
     const pool = await getPooledWorkspace(wsId, now)
 
     if (newRole === 'guest') {
-      // Guests (WP11): a plan feature; no seat and no member limit, but at
+      // Guests: a plan feature; no seat and no member limit, but at
       // most GUESTS_PER_SEAT per paid seat in a Team / Business workspace.
       assertPlanFeature(plan, 'guests', 'Guests are part of the Team and Business plans.')
       if (pool) {
@@ -139,7 +139,7 @@ export default defineEventHandler(async (event) => {
     // accepted invite never pushes a workspace past its limit and accepting
     // needs no second check. A workspace already above the limit (e.g.
     // after a downgrade) keeps everyone; only new invitations are refused.
-    // Guests and guest invitations don't count (WP11).
+    // Guests and guest invitations don't count.
     const membersNow = await countMembers(wsId)
     const memberInvites = await countOpenWorkspaceInvites(wsId, now, email, 'members')
     if (newRole !== 'guest') {
@@ -151,7 +151,7 @@ export default defineEventHandler(async (event) => {
       )
     }
 
-    // Team / Business (WP3): members + open invitations may not exceed the
+    // Team / Business: members + open invitations may not exceed the
     // paid seats. With `addSeat: true` (the invite dialog's "This adds a
     // seat" confirmation) one seat is bought and paid first, pro rata.
     if (pool && newRole !== 'guest') {

@@ -4,7 +4,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
-// Share-link controls (WP9): link expiry, view-only without download,
+// Share-link controls: link expiry, view-only without download,
 // view counts — set by the owner / workspace admins, enforced on every
 // access path, refused to set without the plan feature.
 

@@ -4,18 +4,17 @@ import { liveCustomDomains } from '../../../utils/customDomains/routing'
 import { buildTraefikDynamicConfig } from '../../../utils/customDomains/traefikConfig'
 import { publishPagesSettings } from '../../../utils/publish/pagesHost'
 
-// GET /api/internal/traefik/custom-domains — Traefik's HTTP provider polls
-// this: one router per live custom domain, plus one for the pages host
+// GET /api/internal/traefik/custom-domains: polled by Traefik's HTTP provider.
+// Emits one router per live custom domain, plus one for the pages host
 // (NUXT_PUBLISH_PAGES_HOST) where the stack asks for it
-// (NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER), each with a certificate from the
-// instance's ACME resolver. Only reachable inside the stack
-// (Traefik → app on the `web` network) and only with the provider token
-// (`NUXT_PUBLISH_TRAEFIK_TOKEN`, sent by Traefik as a header). The public
-// routers exclude /api/internal/ and server/middleware/auth.ts refuses
-// requests that carry the edge proxy's forwarding headers. Without a
-// configured token it answers an empty configuration: the compose files
-// always enable the provider, and an error would make Traefik log and
-// back off forever on instances that don't use custom domains.
+// (NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER), each with a certificate from the ACME
+// resolver. Reachable only inside the stack (Traefik -> app on the `web`
+// network) and only with the provider token (`NUXT_PUBLISH_TRAEFIK_TOKEN`,
+// sent as a header). Public routers exclude /api/internal/ and
+// server/middleware/auth.ts refuses requests carrying the edge proxy's
+// forwarding headers. Without a token it answers an empty configuration: the
+// compose files always enable the provider, and an error would make Traefik
+// log and back off forever on instances without custom domains.
 export default defineEventHandler(async (event) => {
   const settings = traefikProviderSettings()
   setHeader(event, 'cache-control', 'no-store')

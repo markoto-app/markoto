@@ -1,6 +1,5 @@
-// Per-workspace SSO (WP14) — SAML 2.0 service provider, on
-// `@node-saml/node-saml` (SP-initiated, HTTP-Redirect AuthnRequest →
-// HTTP-POST Response). The admin pastes the IdP's entity id, SSO URL and
+// SAML 2.0 service provider for workspace SSO, on `@node-saml/node-saml`
+// (SP-initiated, HTTP-Redirect AuthnRequest, HTTP-POST Response). The admin pastes the IdP's entity id, SSO URL and
 // signing certificate: the server never fetches IdP metadata.
 //
 // What a Response must pass (library + this module):
@@ -9,11 +8,11 @@
 //   - Issuer = the configured IdP entity id; Audience = our entity id
 //     for this connection; Destination / Recipient = our ACS URL;
 //     NotBefore / NotOnOrAfter with 30 s skew;
-//   - InResponseTo = the AuthnRequest THIS browser started: the cache
-//     handed to the library at the ACS only knows the request id from the
-//     browser's signed flow cookie, and consumes it atomically (Valkey
-//     GETDEL) — a response for another browser's request, an unsolicited
-//     (IdP-initiated) one, or a second copy of the same one is refused;
+//   - InResponseTo = the AuthnRequest THIS browser started: the cache handed
+//     to the library at the ACS only knows the request id from the browser's
+//     signed flow cookie and consumes it atomically (Valkey GETDEL), so a
+//     response for another browser's request, an unsolicited (IdP-initiated)
+//     one, or a second copy of the same one is refused;
 //   - an assertion id is accepted once (`rejectReplayedAssertions`,
 //     Valkey SET NX until the assertion expires).
 
@@ -92,8 +91,8 @@ export function samlFor(event: H3Event, connection: SsoConnectionRow, opts: { re
     rejectReplayedAssertions: true,
     requestIdExpirationPeriodMs: REQUEST_TTL_SECONDS * 1000,
     acceptedClockSkewMs: 30_000,
-    // No NameIDPolicy / AuthnContext: the IdP decides (Entra ID, Okta,
-    // Google and Keycloak differ here; a mismatch is a failed sign-in).
+    // No NameIDPolicy / AuthnContext: the IdP decides (Entra ID, Okta, Google
+    // and Keycloak differ here; a mismatch fails the sign-in).
     identifierFormat: null,
     disableRequestedAuthnContext: true,
     cacheProvider: samlCacheProvider(opts.boundRequestId),

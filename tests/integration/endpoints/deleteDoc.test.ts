@@ -9,8 +9,8 @@ import {
 } from '../setup/fixtures'
 import { createAnonDoc as createAnonDocViaGate } from '../setup/anonGate'
 
-// DELETE /api/docs/:docId. Bug-fix regression target: pre-fix, anonymous
-// docs could never be deleted — no session = no authz path.
+// DELETE /api/docs/:docId. Anonymous docs must be deletable even without a session (otherwise there is no
+// authz path for them).
 //
 // Current rules (per decideDocDelete):
 //   - Anonymous doc (no owner, no workspace, open-edit) → only the browser

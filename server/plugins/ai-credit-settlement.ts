@@ -3,7 +3,7 @@ import { runCreditSettlement } from '../utils/billing/aiCredits'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 import { isBillingEnabled } from '../utils/billing/billingMode'
 
-// AI credit top-ups (WP4): hourly — expire grants older than 12 months,
+// AI credit top-ups: hourly — expire grants older than 12 months,
 // take each month's AI spend above the plan budget from the credits, and
 // push every affected budget to LiteLLM. Billing on only.
 

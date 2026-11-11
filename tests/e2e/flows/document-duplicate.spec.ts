@@ -61,7 +61,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
     + 'The copy is independent: editing one never changes the other.'
   )
 
-  // ─── Open the menu containing Duplicate ─────────────────────────
+  // Open the menu containing Duplicate
   // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
   // Mobile collapses File / Edit / View / etc. into a single hamburger
   // ("more") UDropdownMenu in the topbar — the duplicate/move/delete
@@ -90,7 +90,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Confirm + verify navigation ────────────────────────────────
+  // Confirm + verify navigation
   await flow.heading('Confirm and land in the clone', 3)
   await flow.narrate(
     'Edit the title if you like, then confirm. markoto copies the '

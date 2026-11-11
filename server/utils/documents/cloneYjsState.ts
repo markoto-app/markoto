@@ -4,44 +4,29 @@ import { withThemeDocId } from '~~/shared/utils/theme/customCss'
 import { withThemeImagesDocId } from '~~/shared/utils/theme/themeImages'
 import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 
-// Clone Y.js state from one docId to another, rewriting image URLs in
-// the process so the target doc's markdown references its own
-// `/api/files/{targetDocId}/...` paths instead of the source's.
+// Clones Y.js state from one docId to another, rewriting image URLs so the
+// target's markdown references its own `/api/files/{targetDocId}/...` paths.
 //
-// Why not a raw SQL `INSERT … SELECT` of the yjs_documents rows?
-// Because the update blobs reference image URLs by literal string, and
-// an unrewritten clone would leave the duplicate pointing at
-// `/api/files/{sourceDocId}/…` — the /api/files endpoint gates access
-// by the URL's docId, so a workspace member of the duplicate (but not
-// the source) would get 403s on every image. Deleting the source would
-// also kill the duplicate's images.
+// A raw `INSERT ... SELECT` of the yjs_documents rows is not enough: the
+// update blobs hold image URLs as literal strings, and /api/files gates
+// access by the URL's docId, so members of the duplicate (but not the
+// source) would get 403s, and deleting the source would break the
+// duplicate's images.
 //
-// Approach:
-//   1. Reconstruct the source Y.Doc by applying every stored update
-//      (mirrors what y-postgresql does when the sync-server loads).
-//   2. Grab ytext as a plain string and replace-all the image URL
-//      prefix.
-//   3. Build a FRESH Y.Doc, insert the rewritten text + copy ymeta
-//      entries except `_deleted` (source might have transient state).
-//   4. Encode the fresh doc's full state as a single update and INSERT
-//      one row into yjs_documents under the target docname. Hocuspocus
-//      loads it verbatim the next time someone opens the duplicate.
+// Steps: replay every stored update into a Y.Doc (as y-postgresql does on
+// load), rewrite the image URL prefix in ytext, build a FRESH Y.Doc with
+// the rewritten text and the ymeta entries except `_deleted`, then store
+// its full state as a single row under the target docname. y-postgresql
+// treats that row as the whole history.
 //
-// The sync-server's y-postgresql will treat our single row as the
-// whole history; it merges updates internally as new edits come in,
-// so there's no long-term difference vs. a normal-history doc.
-//
-// Caveat: if the source doc is currently open and actively edited, the
-// last few seconds of writes may only live in the sync-server's
-// in-memory Y.Doc (Hocuspocus debounces onStoreDocument). Those writes
-// won't be reflected in the clone. Acceptable for typical duplicate
-// flows — users copy settled templates, not mid-keystroke docs. If we
-// need stronger guarantees later, add `/internal/flush-document` on
-// the sync-server and call it before this runs.
+// Caveat: if the source is being edited right now, the last seconds of
+// writes may only live in the sync-server's in-memory Y.Doc (Hocuspocus
+// debounces onStoreDocument) and are missing from the clone. A flush
+// endpoint on the sync-server would close that gap.
 export async function cloneYjsStateWithUrlRewrite(
   sourceDocId: string,
   targetDocId: string,
-  /** `title`: the copy's live title (ymeta) — a document made from a template (WP10c). */
+  /** `title`: the copy's live title (ymeta) — used when a document is made from a template. */
   overrides?: { title?: string }
 ): Promise<void> {
   const pool = useDatabasePool()

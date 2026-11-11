@@ -1,6 +1,6 @@
 import { defineScimHandler, listScimUsers, parseScimFilter, scimError, scimUserResource, SCIM_LIST_SCHEMA } from '../../../../utils/sso/scim'
 
-// GET /scim/v2/Users?filter=userName eq "x"&startIndex=1&count=100 (WP14)
+// GET /scim/v2/Users?filter=userName eq "x"&startIndex=1&count=100
 export default defineScimHandler(async (event, connection) => {
   const q = getQuery(event)
   const filter = parseScimFilter(typeof q.filter === 'string' ? q.filter : undefined)

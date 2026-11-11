@@ -96,18 +96,15 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
   }
 }
 
-// ─── Voxtral Realtime path (Phase 5) ───────────────────────────────────
-//
-// Wraps Mistral's @mistralai/mistralai/extra/realtime SDK in the same
-// `SpeechClientLike` / `SpeechStream` shape the dictate handler already
-// consumes. The SDK takes an `AsyncGenerator<Uint8Array>` and yields
+// Voxtral Realtime path. Wraps Mistral's
+// @mistralai/mistralai/extra/realtime SDK in the same `SpeechClientLike` /
+// `SpeechStream` shape the dictate handler already consumes. The SDK takes an `AsyncGenerator<Uint8Array>` and yields
 // transcription events; we bridge that to the EventEmitter contract via
 // a small internal queue.
 //
 // Audio format match: Voxtral expects PCM s16le, 16-bit mono, 16 kHz —
 // the exact format our AudioWorklet pipeline produces. No client-side
-// codec change. The pre-Phase-5 (Cloud STT) MP4/AAC rejection (Safari
-// quirk) may disappear under Voxtral — verify in a future safari pass.
+// codec change.
 
 /** Mistral's EU regional endpoint — the default for every platform-paid realtime stream. */
 const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
@@ -193,10 +190,8 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   private async run(apiKey: string, req: StreamingRecognizeRequest): Promise<void> {
     try {
       const client = new RealtimeTranscription({ apiKey, serverURL: this.serverURL })
-      // Voxtral's batch transcribe model id, in realtime variant. Using
-      // the purpose-built realtime-transcribe (not generic realtime
-      // chat) — same logic as Phase 2: dedicated transcription beats
-      // a generative chat model for our voice-prompt input flow.
+      // The realtime variant of Voxtral's transcribe model: a dedicated
+      // transcription model beats a generative chat model for voice prompts.
       const model = this.model
       const audioFormat = {
         encoding: AudioEncoding.PcmS16le,
@@ -223,8 +218,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   /**
    * Append delta and emit a partial frame. Voxtral's `text` field is
    * just the delta; accumulate locally to expose the full running
-   * partial (matching the contract pre-Phase-5 Cloud STT clients
-   * expected). The Mistral SDK's stream union doesn't narrow to the
+   * partial (the contract the dictate WS clients expect). The Mistral SDK's stream union doesn't narrow to the
    * delta type off `event.type` alone; cast at the access point.
    */
   private handleDelta(event: unknown): void {
@@ -265,9 +259,8 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
 
   write(chunk: Buffer): boolean {
     if (this.ended) {
-      // Mirror the historical Cloud STT contract: writing after end
-      // emits "write after end" so the existing straggler-chunk guard
-      // works unchanged.
+      // Writing after end emits "write after end", which the server's
+      // straggler-chunk guard relies on.
       queueMicrotask(() => this.emit('error', new Error('write after end')))
       return false
     }
@@ -301,7 +294,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
   }
 }
 
-// ─── Mock for tests (mirrors MockSpeechClient pattern) ─────────────────
+// Mock for tests (mirrors MockSpeechClient pattern).
 class MockRealtimeClient implements SpeechClientLike {
   streamingRecognize(_req: StreamingRecognizeRequest): SpeechStream {
     // Reuse MockSpeechStream — same emission shape works for the

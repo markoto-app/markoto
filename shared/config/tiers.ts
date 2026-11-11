@@ -3,22 +3,19 @@
 // `server/utils/billing/tierConfig.ts#getTiers()`), the unit tests, and the
 // client-side pricing page (via `GET /api/billing/tiers`).
 //
-// Phase 6 architecture: AI usage is gated SOLELY by per-user LiteLLM
-// virtual-key budgets. No per-feature interaction counters, no
-// per-minute dictation caps, no rate-limit middleware. The user's
-// `litellmBudgetUsd` maps to a `max_budget` on their LiteLLM key;
-// every billable operation (chat, image gen, voice tick, embeddings)
-// debits that budget directly via LiteLLM's spend tracker. UI surfaces
-// budget as "AI Points" at 1000 pts = $1.00 USD (display multiplier
-// makes the numbers feel generous; backend math stays in dollars).
+// AI usage is gated solely by per-user LiteLLM virtual-key budgets: the
+// user's `litellmBudgetUsd` is the `max_budget` of their key, and every
+// billable operation (chat, image gen, voice tick, embeddings) debits it
+// through LiteLLM's spend tracker. The UI shows the budget as "AI Points"
+// at 1000 pts = $1.00 USD; backend math stays in dollars.
 //
-// Storage caps (knowledge files / bytes) stay because they bind real
-// S3 + DB cost, not LLM cost. `workspacesOwned` is a capacity cap.
+// Storage caps (knowledge files / bytes) bind real S3 + DB cost, not LLM
+// cost. `workspacesOwned` is a capacity cap.
 
 // Free and Pro are PERSONAL plans (`users.plan`); Team and Business are
 // WORKSPACE subscriptions (`workspace_subscriptions`), billed per seat.
 // For Team / Business the per-user style caps (`litellmBudgetUsd`,
-// knowledge, images) are PER SEAT; the workspace pools them (WP3).
+// knowledge, images) are PER SEAT; the workspace pools them.
 export type PlanName = 'free' | 'pro' | 'team' | 'business'
 export type PersonalPlanName = 'free' | 'pro'
 export type WorkspacePlanName = 'team' | 'business'
@@ -110,7 +107,7 @@ export interface TierCaps {
   aiStrongModel: boolean
   /**
    * Feature switch: the workspace may connect its own identity provider
-   * (SAML / OIDC single sign-on + SCIM, WP14). Judged against the
+   * (SAML / OIDC single sign-on + SCIM). Judged against the
    * WORKSPACE's plan. On in every committed tier (self-hosters); on
    * markoto.app only Business has it (`TIER_{FREE,PRO,TEAM}_FEATURE_SSO=false`
    * in infra/render-env.sh).
@@ -118,33 +115,33 @@ export interface TierCaps {
   sso: boolean
   /**
    * Feature switch: workspace admins see and export the workspace's
-   * audit log (WP15). Judged against the WORKSPACE's plan. On in every
+   * audit log. Judged against the WORKSPACE's plan. On in every
    * committed tier; markoto.app: Business only.
    */
   auditLog: boolean
   /**
-   * Feature switch: the workspace may invite guests (WP11) — people who
+   * Feature switch: the workspace may invite guests — people who
    * see only the documents shared with them, take no seat (up to
    * `GUESTS_PER_SEAT` per paid seat). Judged against the WORKSPACE's
    * plan. On in every committed tier; markoto.app: Team + Business.
    */
   guests: boolean
   /**
-   * Feature switch: the workspace brand kit (WP10) — uploaded fonts and
+   * Feature switch: the workspace brand kit — uploaded fonts and
    * logos, the locked workspace design, workspace templates. Judged
    * against the WORKSPACE's plan. On in every committed tier;
    * markoto.app: Team + Business.
    */
   brandKit: boolean
   /**
-   * Feature switch: share-link controls (WP9) — link expiry, view-only
+   * Feature switch: share-link controls — link expiry, view-only
    * without download / print, view counts. Judged against the DOCUMENT's
    * plan (workspace plan, else the owner's). On in every committed tier;
    * markoto.app: Pro and up.
    */
   shareControls: boolean
   /**
-   * Feature switch: custom domains for published web pages (WP13).
+   * Feature switch: custom domains for published web pages.
    * Judged against the plan of the user who adds the domain. Publishing at
    * `/p/<slug>` is free; a domain of one's own is not. On in every
    * committed tier; markoto.app: Pro and up.

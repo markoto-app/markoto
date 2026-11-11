@@ -7,7 +7,7 @@ import { applyTestEnv } from '../setup/testEnv'
 import { TEST_LITELLM_DB_PASSWORD, TEST_LITELLM_DB_USER } from '../setup/env'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
 
-// AI credit top-ups (WP4) against the REAL `litellm-test` proxy, in
+// AI credit top-ups against the REAL `litellm-test` proxy, in
 // process: a Pro user's key budget includes their credits, and the
 // settlement reads the key's spend from LiteLLM's spend logs (by the
 // stored key id) and takes what passed the plan budget from the credits —

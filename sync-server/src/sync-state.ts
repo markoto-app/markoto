@@ -1,11 +1,10 @@
-// Per-doc state that used to live in process-local Maps in index.ts:
+// Per-doc state, kept in Valkey so multiple sync-server containers share it:
 //   - last-editor:   primary attribution source for activity-log rows.
 //   - prev-text:     diff baseline for line-add/-remove counts.
 //   - prev-meta:     title/theme baseline for "title.changed"/"theme.changed".
 //
-// Migrated to Valkey so multiple sync-server containers can share the
-// view. Each call returns the previous value (read-modify-write
-// callsites in index.ts handle their own logic).
+// Each call returns the previous value (read-modify-write callsites in
+// index.ts handle their own logic).
 //
 // Failure mode: every helper catches errors and reports them via the
 // `cause` channel back to the caller, which:
@@ -82,7 +81,7 @@ async function safeDel(key: string): Promise<void> {
   }
 }
 
-// ───────── last-editor ─────────
+// last-editor
 
 export async function getLastEditor(docId: string): Promise<FetchResult<LastEditor>> {
   const raw = await safeGet(KEY_LAST_EDITOR(docId))
@@ -100,7 +99,7 @@ export async function setLastEditor(docId: string, value: LastEditor): Promise<v
   await safeSetEx(KEY_LAST_EDITOR(docId), JSON.stringify(value))
 }
 
-// ───────── prev-text ─────────
+// prev-text
 
 export async function getPrevText(docId: string): Promise<FetchResult<string>> {
   return safeGet(KEY_PREV_TEXT(docId))
@@ -110,7 +109,7 @@ export async function setPrevText(docId: string, value: string): Promise<void> {
   await safeSetEx(KEY_PREV_TEXT(docId), value)
 }
 
-// ───────── prev-meta ─────────
+// prev-meta
 
 export async function getPrevMeta(docId: string): Promise<FetchResult<PreviousMeta>> {
   const raw = await safeGet(KEY_PREV_META(docId))
@@ -126,7 +125,7 @@ export async function setPrevMeta(docId: string, value: PreviousMeta): Promise<v
   await safeSetEx(KEY_PREV_META(docId), JSON.stringify(value))
 }
 
-// ───────── cleanup (called on last-disconnect) ─────────
+// cleanup (called on last-disconnect)
 
 export async function dropDocState(docId: string): Promise<void> {
   await Promise.all([

@@ -2,10 +2,9 @@
  * Drop the table-of-contents levels deeper than `theme.toc.maxDepth` from
  * the HTML (the renderer always emits h1–h4).
  *
- * They used to be hidden with `display: none`, but paged.js measures a
- * hidden list as overflowing: the TOC broke after the first entry that
- * had hidden children, leaving a near-empty page (a preset with TOC depth 2).
- * Removing the nodes avoids the measurement altogether.
+ * The levels are removed rather than hidden with `display: none`:
+ * paged.js measures a hidden list as overflowing, so the TOC would break
+ * after the first entry with hidden children and leave a near-empty page.
  *
  * Works on parsed DOM (inert `<template>`) of sanitised markup;
  * `composeFinalHtml` sanitises the result again. Browser-only.

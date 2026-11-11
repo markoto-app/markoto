@@ -148,10 +148,8 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
 async function sendViaResend(args: SendEmailArgs, label: string, apiKey: string): Promise<SendEmailResult> {
   const from = process.env.NUXT_EMAIL_FROM || SANDBOX_FROM
   if (!process.env.NUXT_EMAIL_FROM) {
-    // Soft warn — devs running with just the API key see the
-    // sandbox limitation in their server logs. In prod, the
-    // boot-time env validator should require NUXT_EMAIL_FROM
-    // (added separately when we wire the prod compose).
+    // Soft warn so devs running with just the API key see the
+    // sandbox limitation in their server logs.
     console.warn(`[email] NUXT_EMAIL_FROM not set; using Resend sandbox sender ${SANDBOX_FROM}. This delivers only to the Resend account owner.`)
   }
 

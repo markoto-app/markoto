@@ -1,4 +1,4 @@
-// Custom domains for published web pages (WP13). Shared by the domain
+// Custom domains for published web pages. Shared by the domain
 // endpoints, the DNS check and the settings page.
 
 /** Domains one user may add. */

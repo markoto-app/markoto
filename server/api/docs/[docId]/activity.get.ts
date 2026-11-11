@@ -4,11 +4,10 @@ import { HISTORY_LIMITED_HEADER, capsFor, historyCutoff, resolveDocPlanFor } fro
 import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../utils/documents/docTokenVerify'
 
-// Activity log is a view-level read. Rules mirror file access:
-//   - open-edit / open-view → public.
-//   - private / password-protected → owner, workspace member, or
-//     holder of a valid doc-scoped JWT (covers anon users who verified
-//     a password and got a JWT back from /password).
+// Activity log is a view-level read; access rules mirror file access:
+//   - open-edit / open-view: public.
+//   - private / password-protected: owner, workspace member, or holder of a
+//     valid doc-scoped JWT (anon users who verified a password).
 
 export default defineEventHandler(async (event) => {
   const docId = requireDocId(event)
@@ -31,9 +30,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
 
-  // The document's plan may limit how far back history goes
-  // (`historyDays`). Older rows stay stored; the header tells the UI
-  // that some are hidden so it can show the plan notice.
+  // The plan may limit how far back history goes (`historyDays`). Older rows
+  // stay stored; the header tells the UI some are hidden.
   const plan = await resolveDocPlanFor({ ownerId: row.ownerId, workspaceId: row.workspaceId })
   const cutoff = historyCutoff(plan)
   if (cutoff && await hasActivityBefore(docId, cutoff)) {

@@ -4,7 +4,7 @@ import type { Locator, Page } from '@playwright/test'
 import { test as flowTest, expect } from '../fixtures/flow'
 import type { TourBeatId, TourSceneId } from '../../../shared/tour/manifest'
 
-// Product-tour capture fixture (WP11). Extends the flow fixture (same
+// Product-tour capture fixture. Extends the flow fixture (same
 // `editor` helpers, login shim, failure signals) with a
 // `tour` recorder that turns a scripted session in the real app into the
 // frames of a short looping video.

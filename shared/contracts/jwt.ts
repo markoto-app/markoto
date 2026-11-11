@@ -7,12 +7,9 @@
  * shared interface. A drift on either side becomes a TypeScript
  * error at PR time.
  *
- * This module is the response to the `aiDictateWs scope-mismatch`
- * incident: the test mint helper produced `{kind: 'dictate'}`, the
- * server verify checked `payload.scope === 'dictate'`. Two different
- * shapes, no shared type, nine tests failing with misleading "wrong
- * close-code" errors. Centralising the contracts here is the
- * structural fix.
+ * Without a shared type, a mint helper producing `{kind: 'dictate'}`
+ * against a verifier checking `payload.scope === 'dictate'` fails with
+ * misleading close-code errors; one definition prevents that.
  *
  * Naming convention: `<purpose>JwtPayload` for static shapes,
  * `<PURPOSE>_JWT_FIXED_CLAIMS` for any literal claims that MUST be
@@ -52,7 +49,7 @@
  * a new synthetic-client class.
  */
 
-// ─── Session-shaped JWTs (verified by sync-server onAuthenticate) ──
+// Session-shaped JWTs (verified by sync-server onAuthenticate)
 
 /**
  * Session-shaped JWT payload. Used for ALL Hocuspocus connections —
@@ -95,8 +92,8 @@ export const SYNTHETIC_USER_ID_PREFIXES = [
   // every tool call from that session uses the same principal so
   // the YDocPool can dedupe per-session connections and so
   // activity-log rows stay attributable to the originating MCP
-  // session. Real-user attribution is recoverable via the (Phase 3)
-  // `mcp_sessions` table — see plan file.
+  // session. Real-user attribution is recoverable via the
+  // `mcp_sessions` table.
   'mcp:'
 ] as const
 
@@ -120,7 +117,7 @@ export function mcpClientUserId(mcpSessionId: string): `mcp:${string}` {
   return `mcp:${mcpSessionId}`
 }
 
-// ─── Scoped HTTP tokens ──────────────────────────────────────────────
+// Scoped HTTP tokens
 
 /**
  * Render token. Minted by `server/utils/rendering/renderTokens.ts` so the
@@ -146,8 +143,8 @@ export const RENDER_JWT_FIXED_CLAIMS = { scope: 'render' } as const
  * sent as the FIRST WS message on `/api/ai/dictate` (NOT the URL).
  * Verified inline in the dictate route. Both `kind` AND `scope` are
  * required — they're the same value but checked separately:
- *   - `kind === 'dictate'` is the original "what kind of token is
- *     this" check (legacy field).
+ *   - `kind === 'dictate'` is the "what kind of token is
+ *     this" check.
  *   - `scope === 'dictate'` is the defense-in-depth check the
  *     sync-server WS auth uses to reject scoped tokens replayed at
  *     the WS sync path.

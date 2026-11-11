@@ -39,9 +39,8 @@ const avatarSeed = computed(() => avatarSeedFor({ id: props.authorId, avatarSeed
 
 const segments = computed(() => parseCommentBody(props.body))
 
-// Live "X ago" string via `useTimeAgoIntl` — owns its own 30s ticker
-// and uses Intl.RelativeTimeFormat for locale-aware output ("5 minutes
-// ago" / "vor 5 Minuten" / etc.) without per-locale i18n keys.
+// Live "X ago" string; owns a 30 s ticker and uses Intl.RelativeTimeFormat,
+// so no per-locale i18n keys.
 const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
 </script>
 
@@ -63,10 +62,7 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
       class="mt-0.5"
     />
     <div class="flex-1 min-w-0">
-      <!-- Author + timestamp register: author in Inter weight 500
-           (no bold — the brand stays at 400/500 max), timestamp in
-           JetBrains Mono with the mockup's 0.04em tracking, lower
-           opacity to feel like a slate caption beside the author. -->
+      <!-- Author in weight 500 (the brand stays at 400/500), timestamp in mono at lower opacity. -->
       <div class="flex items-baseline gap-2 text-xs">
         <span class="font-medium text-default truncate">{{ authorName }}</span>
         <span class="font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0 lowercase">{{ relativeTime }}</span>
@@ -89,10 +85,8 @@ const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
         </template>
       </div>
 
-      <!-- Action row in the mockup's mono micro-label register. Same
-           10.5px / 0.04em pattern as the status bar so the whole UI
-           reads with one consistent "instrument" voice. The middot
-           sits at lowered opacity as a hairline divider. -->
+      <!-- Mono micro-label row, same 10.5px / 0.04em as the status bar; the
+           middot is a low-opacity divider. -->
       <div
         v-if="!readOnly && (canDelete || isThreadRoot)"
         class="mt-2 flex items-center gap-2 font-mono text-[10.5px] tracking-[0.04em] lowercase"

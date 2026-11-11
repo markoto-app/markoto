@@ -38,7 +38,7 @@ import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal
 test('Delete account with consequences', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
-  // ─── Seed: Alice with two workspaces of contrasting fate ────────
+  // Seed: Alice with two workspaces of contrasting fate
   // Two workspaces is the minimum that makes the consequence preview
   // tell a story:
   //   1. "Personal notes" — Alice is the sole member. Cascade-delete
@@ -129,7 +129,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
   // mirrors how a real user would navigate, not a deep-link.
   await page.goto('/')
 
-  // ─── Chapter 1: Open your profile ──────────────────────────────
+  // Chapter 1: Open your profile
   await flow.heading('Open your profile', 3)
   await flow.narrate(
     'Your profile page lives under your avatar in the topbar. It is '
@@ -144,8 +144,8 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     avatarButton,
     {
       result: 'A menu opens — Profile is the one you want.',
-      // Menu-item selector falls back to getByRole+name (AGENTS.md
-      // option 2) — Nuxt UI's UDropdownMenu items array doesn't
+      // Menu-item selector falls back to getByRole+name (tests/e2e/AGENTS.md
+      // selector preference) — Nuxt UI's UDropdownMenu items array doesn't
       // accept per-item data-testid declaratively. Same pattern as
       // delete-document.spec.ts uses for File-menu items.
       after: () => page.getByRole('menuitem', { name: /profile/i }).first().waitFor({ state: 'visible' })
@@ -190,7 +190,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Chapter 3: Open the consequence preview ───────────────────
+  // Chapter 3: Open the consequence preview
   await flow.heading('Preview the consequences', 3)
   await flow.narrate(
     'Account deletion is irreversible after the 30-day grace window '
@@ -233,7 +233,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
   await expect(promoteBlock).toContainText(wsCoadminName)
   await expect(promoteBlock).toContainText('Bob')
 
-  // ─── Chapter 4: Read the named consequences ────────────────────
+  // Chapter 4: Read the named consequences
   await flow.heading('Read the named consequences', 3)
   await flow.narrate(
     'Every workspace and every new admin is named. Want to keep a '
@@ -242,7 +242,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     + 'admin" group. Nothing is lost by accident, and nobody is surprised.'
   )
 
-  // ─── Chapter 5: Type the confirm phrase ────────────────────────
+  // Chapter 5: Type the confirm phrase
   await flow.heading('Type the phrase to confirm', 3)
   await flow.narrate(
     'The destructive button is gated behind a phrase you have to '
@@ -260,7 +260,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     { result: 'The Schedule deletion button enables.' }
   )
 
-  // ─── Chapter 6: Submit → grace banner takes over ────────────────
+  // Chapter 6: Submit → grace banner takes over
   await flow.heading('Submit — the grace banner takes over', 3)
   await flow.narrate(
     'The 30-day grace clock starts. Until it elapses, a banner sits '
@@ -301,7 +301,7 @@ test('Delete account with consequences', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Chapter 7: Cancel — restored to normal ────────────────────
+  // Chapter 7: Cancel — restored to normal
   await flow.heading('Change your mind? Cancel from the banner', 3)
   await flow.narrate(
     'During the grace window you can cancel from any page — click '

@@ -16,7 +16,7 @@ import { availabilityFrom, resolveAiAccess, resolveAiProviders } from '../../ser
 import { requireAiProviders } from '../../server/utils/aiProviders/guard'
 import { toProviderView } from '../../server/utils/aiProviders/store'
 
-// Bring-your-own-key provider configs (WP4): repo CRUD, resolution order
+// Bring-your-own-key provider configs: repo CRUD, resolution order
 // (own key → instance default → none), key-free views, GDPR export and
 // account deletion.
 
@@ -167,7 +167,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
   })
 })
 
-describe('AI by plan (WP5)', () => {
+describe('AI by plan', () => {
   beforeEach(async () => {
     await resetDb()
     for (const k of DEFAULT_ENV_KEYS) vi.stubEnv(k, '')

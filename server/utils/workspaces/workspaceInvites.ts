@@ -32,7 +32,7 @@ export const WORKSPACE_INVITE_EMAIL_WINDOW_MS = 24 * 60 * 60 * 1000
 /** RFC 5321 caps a forward-path at 254 characters. */
 const EMAIL_MAX_LENGTH = 254
 
-// `guest` (WP11): sees only documents shared with them; takes no seat.
+// `guest`: sees only documents shared with them; takes no seat.
 export type InviteRole = 'admin' | 'editor' | 'viewer' | 'guest'
 
 export function isInviteRole(value: unknown): value is InviteRole {

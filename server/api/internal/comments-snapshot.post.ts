@@ -8,16 +8,14 @@ import { diffCommentsSnapshot } from '../../utils/documents/commentsSnapshotDiff
 import { normalizeAvatarSeed } from '../../../shared/utils/documents/awarenessUser'
 import { requireInternalSecret } from '../../utils/platform/internalRoutes'
 
-// Internal endpoint called by the sync-server on every persisted save
-// of a doc that has a non-empty `comments` Y.Array. The body carries
-// the FULL list of comment-shaped entries (root + replies), and we
-// replace the doc's rows in `document_comments` atomically.
+// Internal endpoint called by the sync-server on every persisted save of a doc
+// with a non-empty `comments` Y.Array. The body carries the FULL list of
+// comment entries (root + replies); the doc's rows in `document_comments` are
+// replaced atomically.
 //
-// Eventually-consistent design: we accept that the mirror lags the
-// live Y.js state by however long y-postgresql's batch flush takes
-// (~200 updates or whatever the flushSize is set to). The mirror
-// exists for cross-doc queries (mention notifications, recent
-// activity) — none of those care about sub-second freshness.
+// Eventually consistent: the mirror lags live Y.js by the y-postgresql flush
+// interval, which is fine for its cross-doc queries (mention notifications,
+// recent activity).
 //
 // Auth: X-Internal-Secret, enforced for all of /api/internal/** by
 // server/middleware/auth.ts; repeated here so the handler is safe on its own.
@@ -35,7 +33,7 @@ interface IncomingEntry {
 }
 
 const MAX_ENTRIES_PER_DOC = 5000
-const MAX_BODY_LENGTH = 8000 // matches the loosest comment cap with headroom
+const MAX_BODY_LENGTH = 8000 // the loosest comment cap, with headroom
 
 interface ParsedBody {
   docId: string
@@ -48,9 +46,8 @@ export default defineEventHandler(async (event) => {
   requireInternalSecret(event)
   const body = parseSnapshotBody(await readBody(event))
 
-  // Anonymous / direct-URL docs without a DB row are skipped — same
-  // posture as the activity endpoint. The mirror only makes sense
-  // alongside a real document row.
+  // Anonymous / direct-URL docs without a DB row are skipped, as in the
+  // activity endpoint.
   if (!(await docExists(body.docId))) return { ok: true, mirrored: false }
 
   const rows = body.entries
@@ -83,10 +80,9 @@ function parseSnapshotBody(body: unknown): ParsedBody {
 }
 
 /**
- * Validate one incoming entry and shape it into a `CommentSnapshotRow`.
- * Returns null when the entry fails any required-field check (missing
- * id, non-string author/body, non-number timestamps) — caller filters
- * those out so a single corrupt row doesn't block the whole snapshot.
+ * Shapes one incoming entry into a `CommentSnapshotRow`, or null when a
+ * required field is missing or mistyped so one corrupt row can't block the
+ * whole snapshot.
  */
 function buildSnapshotRow(e: IncomingEntry): CommentSnapshotRow | null {
   if (typeof e.entryId !== 'string' || e.entryId.length === 0 || e.entryId.length > 64) return null
@@ -108,14 +104,11 @@ function buildSnapshotRow(e: IncomingEntry): CommentSnapshotRow | null {
 }
 
 /**
- * Read prev → diff → replace → return events, ALL inside a single
- * transaction protected by a per-doc advisory lock. Without the
- * lock, two concurrent pushes for the same doc can both observe
- * the prev rows, both DELETE+INSERT inside `replaceCommentSnapshot`,
- * and the second one hits the (doc_id, entry_id) unique constraint
- * (yielding 500s) — caught by the integration concurrency suite.
- * The advisory-xact lock auto-releases when the transaction commits
- * or rolls back, so the lock can never leak.
+ * Read prev, diff, replace and return events, all inside one transaction under
+ * a per-doc advisory lock. Without it, two concurrent pushes both see the prev
+ * rows and both DELETE+INSERT in `replaceCommentSnapshot`, and the second hits
+ * the (doc_id, entry_id) unique constraint (500). The xact lock releases on
+ * commit or rollback.
  */
 async function replaceSnapshotInTx(
   docId: string,
@@ -156,10 +149,9 @@ async function replaceSnapshotInTx(
 }
 
 /**
- * Anonymous authors' avatar tokens by comment id, for the activity rows
- * only — the mirror table doesn't store them (they live on the comment
- * in Y.js). A comment that is gone (`comment.deleted`) has none here,
- * so its row falls back to the name-seeded avatar.
+ * Anonymous authors' avatar tokens by comment id, for the activity rows only
+ * (the mirror table doesn't store them; they live on the comment in Y.js). A
+ * deleted comment has none, so its row falls back to the name-seeded avatar.
  */
 function anonAvatarSeedsByEntry(entries: IncomingEntry[]): Map<string, string> {
   const out = new Map<string, string>()

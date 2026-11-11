@@ -19,12 +19,12 @@ import { injectTraceHeaders } from '../platform/traceHeaders'
 //
 // Ordering is load-bearing:
 //   1. DB rows first — the doc "disappears" from the user's perspective
-//      the instant this completes even if the later phases fail.
+//      the instant this completes even if the later steps fail.
 //   2. S3 cleanup — best effort; orphan-cleanup sweeps missed keys later.
 //   3. Sync-server notify — fire-and-forget; broadcasts `ymeta._deleted`
 //      to connected clients and clears the Y.js row log.
 //
-// The three phases are exported individually so tests can drive each
+// The three steps are exported individually so tests can drive each
 // failure-isolation case (S3 down, sync-server down, bad config) without
 // having to mock the whole transitive graph.
 
@@ -37,7 +37,7 @@ export interface DocumentLifecycleDeps {
 }
 
 /**
- * Phase 1: delete the DB rows in FK-safe order (activity and uploads
+ * Step 1: delete the DB rows in FK-safe order (activity and uploads
  * reference documents). If this throws, the caller treats the whole
  * delete as failed — nothing external has been touched yet.
  */
@@ -48,7 +48,7 @@ export async function deleteDocDbRows(docId: string): Promise<void> {
 }
 
 /**
- * Phase 2: delete every S3 object under `docs/{docId}/`. Resolves
+ * Step 2: delete every S3 object under `docs/{docId}/`. Resolves
  * normally on success AND on failure — a wedged S3 must not prevent
  * the caller from returning 200. On failure, reports to Sentry + logs;
  * the orphan-cleanup plugin reaps the remaining objects later.
@@ -96,7 +96,7 @@ export async function cleanupDocS3(
 }
 
 /**
- * Phase 3: fire-and-forget notify to the sync-server so it broadcasts
+ * Step 3: fire-and-forget notify to the sync-server so it broadcasts
  * `ymeta._deleted` and clears Y.js rows. Returns synchronously (no
  * await on the POST) — a wedged sync-server must not block the delete
  * path. Returns `true` if the notify was dispatched, `false` when
@@ -129,11 +129,11 @@ export function notifySyncDeleted(
 }
 
 /**
- * Orchestrator: runs the three phases in order. Production callers use
- * this; tests drive the phases directly for finer-grained assertions.
+ * Orchestrator: runs the three steps in order. Production callers use
+ * this; tests drive the steps directly for finer-grained assertions.
  */
 export async function deleteDocument(docId: string): Promise<void> {
-  // A published web page (WP13) goes with the document (FK cascade); its
+  // A published web page goes with the document (FK cascade); its
   // copied files are read first and deleted after (the orphan sweep is the
   // backstop).
   const published = await getPublishedPageSummary(docId)

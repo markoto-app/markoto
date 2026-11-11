@@ -8,11 +8,11 @@ import { requestBaseUrl } from '../../utils/billing/workspaceStripe'
 import { automaticTaxEnabled, createTopupCheckout } from '../../utils/billing/topupCheckout'
 import { isCurrency, isTopupPackId } from '~~/shared/config/pricing'
 
-// POST /api/billing/topup — buy AI credits for yourself (WP4). Body
-// {pack: '10'|'25'|'50', currency?}. Pro only: free accounts draw on the
-// shared free pool, credits can't lift that (409 `billing/topup-needs-plan`).
-// A customer who paid in one currency keeps it (409 `billing/currency-locked`).
-// → Stripe Checkout `{url, sessionId}`; the webhook records the credit.
+// POST /api/billing/topup: buy AI credits for yourself. Body
+// {pack: '10'|'25'|'50', currency?}. Pro only: free accounts draw on the shared
+// free pool, which credits can't lift (409 `billing/topup-needs-plan`). A
+// customer who paid in one currency keeps it (409 `billing/currency-locked`).
+// Returns Stripe Checkout `{url, sessionId}`; the webhook records the credit.
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   assertBillingEnabled()

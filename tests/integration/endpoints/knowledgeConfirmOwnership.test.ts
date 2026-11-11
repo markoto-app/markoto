@@ -145,8 +145,8 @@ describe('knowledge presigned PUT: signed type, staging key, immutable original'
     }
   })
 
-  // Regression: `content-type` was not a signed header, so the original
-  // could be stored under any type (e.g. `text/html` for a `.md`).
+  // `content-type` must be a signed header, otherwise the original could be stored under any type (e.g.
+  // `text/html` for a `.md`).
   it('the PUT refuses a Content-Type other than the issued one', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
@@ -188,8 +188,8 @@ describe('knowledge presigned PUT: signed type, staging key, immutable original'
     expect(await knowledgeRows(ws.workspaceId)).toEqual([])
   })
 
-  // Regression: the URL targeted the key processing reads, so bytes could
-  // be swapped after confirm had sniffed them.
+  // The URL must not target the key processing reads, otherwise bytes could be swapped after confirm had
+  // sniffed them.
   it('the URL writes a staging key; confirm moves the upload to the stored key', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)

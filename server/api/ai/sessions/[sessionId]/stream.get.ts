@@ -1,29 +1,21 @@
 import { readSessionChannel } from '../../../../utils/agentic/sessionChannel'
 import { createSessionEventStream } from '../../../../utils/agentic/sessionStream'
 
-// GET /api/ai/sessions/:sessionId/stream — Server-Sent Events push of the
-// initiator's private session view (same JSON as `GET …/:sessionId`):
-// `status` events on every change, `end` when the session is finished.
+// GET /api/ai/sessions/:sessionId/stream: Server-Sent Events push of the
+// initiator's private session view (same JSON as `GET .../:sessionId`):
+// `status` on every change, `end` when finished.
 // See `server/utils/agentic/sessionStream.ts`.
 //
-// Same gate as the GET: session cookie required, initiator only, 404
-// for anybody else and for unknown / expired sessions — decided BEFORE
-// the stream opens, so a refused EventSource fails with a plain HTTP
-// error (the client then falls back to polling, which 404s too).
+// Same gate as the GET (session cookie, initiator only, 404 otherwise),
+// decided BEFORE the stream opens so a refused EventSource fails with a plain
+// HTTP error and the client falls back to polling.
 //
-// Proxies: `X-Accel-Buffering: no` + `Cache-Control: no-transform`
-// keep buffering / compressing proxies from holding events back.
-// Traefik (prod + self-host) streams responses unbuffered: its
-// `buffering` middleware is only attached to `/api/import`, no `compress`
-// middleware is configured, and Go's reverse proxy flushes
-// `text/event-stream` responses immediately. CSP `connect-src 'self'`
-// covers the same-origin EventSource. The production entry
-// (`server/runtime/bunEntry.ts`) goes through `nitroApp.localFetch`,
-// whose mock Node response passes the ReadableStream through untouched
-// (h3 `sendStream` without a socket), so Bun receives — and flushes —
-// the stream itself; pinned by
-// `tests/integration/endpoints/aiSessionStream.test.ts` against the
-// production build.
+// `X-Accel-Buffering: no` + `Cache-Control: no-transform` stop buffering or
+// compressing proxies from holding events back. Traefik doesn't buffer or
+// compress this route. The production entry (`server/runtime/bunEntry.ts`)
+// goes through `nitroApp.localFetch`, which passes the ReadableStream through
+// untouched, so Bun flushes it itself; pinned by
+// `tests/integration/endpoints/aiSessionStream.test.ts`.
 
 const SESSION_ID_RE = /^[\w-]{1,64}$/
 

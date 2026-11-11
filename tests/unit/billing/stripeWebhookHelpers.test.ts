@@ -79,9 +79,8 @@ vi.mock('../../../server/utils/platform/database', () => ({
   })
 }))
 
-// The price catalogue maps this test price id to Pro (monthly, EUR) —
-// pricing plan WP2: prices are identified by lookup key or by the
-// NUXT_STRIPE_PRICE_IDS override, read per call.
+// The price catalogue maps this test price id to Pro (monthly, EUR): prices are identified by lookup key or
+// by the NUXT_STRIPE_PRICE_IDS override, read per call.
 vi.stubEnv('NUXT_STRIPE_PRICE_IDS', 'markoto_pro_month_eur=price_pro_abc')
 
 // Minimal Stripe SDK mock. Only `subscriptions.retrieve` is called by

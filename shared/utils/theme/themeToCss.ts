@@ -91,7 +91,7 @@ export function themeFontsImport(theme: DocTheme): string {
     .join('\n')
 }
 
-// — page block ————————————————————————————————————————————————————————
+// Page block
 
 function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const { size, orientation } = theme.page
@@ -281,7 +281,7 @@ function tokenToCss(token: string, theme: DocTheme, runtime: ThemeRuntime): stri
   }
 }
 
-// — root block ————————————————————————————————————————————————————————
+// Root block
 
 function columnRules(columns: number, columnGap: number): string {
   if (columns <= 1) return ''
@@ -333,7 +333,7 @@ ${fontVars(theme)}
  * The author's font + accent choices as custom properties, so template CSS
  * (\`theme.customCss\`) follows them instead of naming a family:
  * \`font-family: var(--doc-heading-font)\`. Documented in
- * docs/TEMPLATE-WORKFLOW.md.
+ * docs/contributing/TEMPLATE-WORKFLOW.md.
  */
 function fontVars(theme: DocTheme): string {
   return [
@@ -345,15 +345,14 @@ function fontVars(theme: DocTheme): string {
   ].join('\n')
 }
 
-// — typography ————————————————————————————————————————————————————————
+// Typography
 
 /**
  * Heading scale. `headings.scale` is the ratio between neighbouring levels
  * from h4 up: h4 = body size (weight carries it), h3 = body·scale,
  * h2 = body·scale², h1 = body·scale³ — 1.73× body at 1.2, 1.95× at 1.25,
- * 2.1× at 1.28, 2.37× at 1.333. h5 = body, h6 = 0.9·body. (Until 2026-11
- * h1 was body·scale⁵, 33–46 pt next to 10–11 pt text; display sizes now
- * belong to the cover / title block only.)
+ * 2.1× at 1.28, 2.37× at 1.333. h5 = body, h6 = 0.9·body. Display sizes
+ * belong to the cover / title block only.
  */
 export const HEADING_SCALE_EXPONENTS = [3, 2, 1, 0, 0, 0] as const
 
@@ -413,7 +412,7 @@ function typographyBlock(theme: DocTheme): string {
   // marks it).
   headingRules.push(`.paged-doc [data-markoto-page-top] { margin-top: 0 !important; }`)
 
-  // Hyphenation is now an explicit body knob (decoupled from textAlign).
+  // Hyphenation is its own body setting, independent of textAlign.
   // Justified text always needs `text-align-last: left` to prevent the
   // final line stretching; that stays coupled to align.
   const align = theme.body.textAlign
@@ -503,7 +502,7 @@ function typographyBlock(theme: DocTheme): string {
   ].filter(Boolean).join('\n')
 }
 
-// — tables ————————————————————————————————————————————————————————————
+// Tables
 
 function tableBlock(theme: DocTheme): string {
   const { headerBackground, headerTextColor, borders, zebra, cellPadding } = theme.tables
@@ -600,7 +599,7 @@ function tableBlock(theme: DocTheme): string {
   ].filter(Boolean).join('\n')
 }
 
-// — blocks (images / blockquote) ——————————————————————————————————————
+// Blocks (images / blockquote)
 
 function blockBlock(theme: DocTheme): string {
   const { imageRadius, imageMaxWidth, blockquoteStyle } = theme.blocks
@@ -660,7 +659,7 @@ function blockquoteCss(variant: DocTheme['blocks']['blockquoteStyle']): string {
 }`
 }
 
-// — code ——————————————————————————————————————————————————————————————
+// Code
 
 const SYSTEM_MONO_STACK = `ui-monospace, "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace`
 
@@ -687,8 +686,7 @@ const CODE_KEEP_TOGETHER_LINES = 15
  * use their background when it isn't white (solarized), else a faint
  * tint of the text colour, so a block never floats bare on the page.
  * Frame (`code.frame`): an accent rule on the left or a hairline box.
- * Long lines wrap (`code.wrap`, default on — a page can't scroll; the
- * old `overflow-x: auto` clipped them in print). Line numbers
+ * Long lines wrap (`code.wrap`, default on — a page can't scroll). Line numbers
  * (`code.lineNumbers`) come from each line's `data-line`. A fence title
  * (```ts title="replay.ts") renders as a caption bar above the block.
  */
@@ -800,17 +798,14 @@ function codeBlock(theme: DocTheme): string {
   ].filter(Boolean).join('\n')
 }
 
-// — alerts (GitHub-style admonitions) —————————————————————————————————
+// Alerts (GitHub-style admonitions)
 
 /**
  * GitHub-style alert blocks emitted by `@mdit/plugin-alert`. Five kinds,
  * each in its own semantic color so the meaning reads at a glance. The
- * palette is now THEME-DRIVEN via `theme.alerts.{note|tip|important|
- * warning|caution}` — every preset commits to its own admonition look.
- * The Modern preset keeps the GitHub colours; markoto picks a desaturated
- * warm-paper variant; the rest follow their own brand voice. This is
- * what lets a vermillion-on-cream theme stop slamming a saturated
- * blue/green/purple admonition into the page.
+ * palette comes from `theme.alerts.{note|tip|important|warning|caution}`,
+ * so each preset sets its own admonition look instead of a fixed
+ * blue/green/purple scheme.
  *
  * HTML structure (from the plugin):
  *   <div class="markdown-alert markdown-alert-{kind}">
@@ -855,7 +850,7 @@ function alertBlock(theme: DocTheme): string {
   ].join('\n')
 }
 
-// — KaTeX math —————————————————————————————————————————————————————————
+// KaTeX math
 
 /**
  * Body fonts whose x-height is no larger than KaTeX's Computer Modern
@@ -919,7 +914,7 @@ function katexBlock(theme: DocTheme): string {
   ].join('\n')
 }
 
-// — mermaid diagrams ——————————————————————————————————————————————————
+// Mermaid diagrams
 
 /**
  * Mermaid diagrams arrive as `<div class="mermaid"><img data:svg></div>`
@@ -980,7 +975,7 @@ function mermaidBlock(theme: DocTheme): string {
   ].join('\n')
 }
 
-// — table of contents —————————————————————————————————————————————————
+// Table of contents
 
 /**
  * Auto-generated TOC from \`[[toc]]\` (markdown-it-toc-done-right). Plays
@@ -1052,9 +1047,7 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
     : ''
 
   return [
-    // Bottom margin bumped from 1.2em to 2.2em so the TOC has visible
-    // breathing room before the first chapter heading — without it,
-    // the TOC felt jammed against the body content.
+    // Room between the TOC and the first chapter heading.
     `.paged-doc .table-of-contents {
   margin: 1.2em 0 2.2em 0;
   break-inside: avoid;
@@ -1090,7 +1083,7 @@ function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   ].filter(Boolean).join('\n')
 }
 
-// — heading numbers ————————————————————————————————————————————————————
+// Heading numbers
 
 /**
  * Headings that never get a number (nor advance the counters): the cover /
@@ -1235,7 +1228,7 @@ function numberLabel(style: Exclude<HeadingNumbering, 'none'>, counters: string[
   return style === 'decimal-dot' ? `${joined} "."` : joined
 }
 
-// — captions ——————————————————————————————————————————————————————————
+// Captions
 
 /**
  * Table captions (`Table: …` / `: …` next to a table in the Markdown →
@@ -1290,7 +1283,7 @@ function captionBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 /** Attribute with a caption's chapter-relative number ("3.1"), written by `app/utils/markdown/captionNumbers.ts`. */
 export const CAPTION_NUMBER_ATTR = 'data-markoto-number'
 
-// — references ————————————————————————————————————————————————————————
+// References
 
 /**
  * The reference list: `composeFinalHtml` marks the lists and paragraphs of
@@ -1317,7 +1310,7 @@ function referencesBlock(theme: DocTheme): string {
   return rules.join('\n')
 }
 
-// — running section title ——————————————————————————————————————————————
+// Running section title
 
 /** Named string behind the `{section}` header/footer token. */
 const SECTION_STRING = 'mk-section'
@@ -1342,7 +1335,7 @@ function sectionStringBlock(theme: DocTheme): string {
 /** Attribute with the section number + title, set on every top-level section heading when `header.sectionNumber` is on. */
 export const SECTION_LABEL_ATTR = 'data-markoto-section'
 
-// — page break ————————————————————————————————————————————————————————
+// Page break
 
 /**
  * Hard page break. The \`<!-- pagebreak -->\` marker in source
@@ -1358,7 +1351,7 @@ function pageBreakBlock(): string {
 }`
 }
 
-// — multi-column spanners ———————————————————————————————————————————————
+// Multi-column spanners
 
 /**
  * In multi-column layouts (newsletter, magazine), the doc title and
@@ -1393,7 +1386,7 @@ function columnSpanBlock(theme: DocTheme): string {
   ].filter(Boolean).join('\n')
 }
 
-// — cover page ———————————————————————————————————————————————————————
+// Cover page
 
 /**
  * Cover-page CSS. Emitted ONLY when `theme.cover.enabled` is true so
@@ -1539,7 +1532,7 @@ function repeatTitleBlock(theme: DocTheme): string {
 }`
 }
 
-// — title block (papers) ——————————————————————————————————————————————
+// Title block (papers)
 
 /**
  * `cover.layout: 'title-block'` — no cover page: title, subtitle, authors
@@ -1626,7 +1619,7 @@ function titleBlockCss(theme: DocTheme, align: 'left' | 'center' | 'right'): str
   ].filter(Boolean).join('\n')
 }
 
-// — cover-layout helpers (per-layout CSS) —————————————————————————————
+// Cover-layout helpers (per-layout CSS)
 
 interface CoverCtx {
   justifyItems: string
@@ -1792,7 +1785,7 @@ function classicCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): stri
 }`
 }
 
-// — page-break hints (typography hygiene) —————————————————————————————
+// Page-break hints (typography hygiene)
 
 /**
  * Break hints. paged.js 0.4.3 doesn't honour `break-after: avoid-page`
@@ -1826,7 +1819,7 @@ function breakHints(columns: number): string {
   ].filter(Boolean).join('\n')
 }
 
-// — helpers ———————————————————————————————————————————————————————————
+// Helpers
 
 /**
  * Serialise `s` as a double-quoted CSS string (CSSOM "serialize a

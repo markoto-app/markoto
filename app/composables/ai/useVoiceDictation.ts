@@ -8,17 +8,12 @@
 //
 // Built on VueUse primitives:
 //   - `useUserMedia` handles MediaStream lifecycle + explicit
-//     track.stop() on unmount / stop — one of the bug-prone bits we
-//     hand-rolled in `useVoicePrompt.ts` (carrying that legacy hand-
-//     wired path until a future audit consolidates onto VueUse there).
+//     track.stop() on unmount / stop.
 //   - `useWebSocket` handles close-on-unmount, reactive status, and
-//     the buffered-send contract. Key config: `autoConnect: false`
-//     AND `immediate: false`. Both options default to `true`;
-//     leaving `autoConnect` on makes useWebSocket watch the URL ref
-//     and re-open on every change, which — combined with an
-//     explicit `.open()` call after setting the URL — spawns TWO
-//     sockets per click. With both flags off we fully own the open
-//     lifecycle: set URL once, call `.open()` once.
+//     buffered send. Both `autoConnect` and `immediate` must be false:
+//     with `autoConnect` on it re-opens whenever the URL ref changes,
+//     which together with our explicit `.open()` spawns TWO sockets
+//     per click. With both off, set the URL once and call `.open()` once.
 
 import { useUserMedia, useWebSocket, useVibrate } from '@vueuse/core'
 import {
@@ -59,61 +54,41 @@ export interface UseVoiceDictationOptions {
 }
 
 export function useVoiceDictation(options: UseVoiceDictationOptions) {
-  // `useI18n()` MUST be called synchronously during setup — calling it
-  // later (e.g. inside an async click handler) throws
-  // "Must be called at the top of a `setup` function". We capture the
-  // reactive `locale` ref here and read `locale.value` lazily at the
-  // point of use so we still pick up language changes without
-  // re-invoking useI18n.
+  // `useI18n()` must run synchronously during setup (it throws inside an
+  // async click handler); `locale.value` is read lazily so language changes
+  // are still picked up.
   const { locale } = useI18n()
 
   const state = ref<VoiceDictationState>('idle')
   const errorMessage = ref<string | null>(null)
 
-  // AudioContext + worklet are only created after the user clicks the
-  // mic. We hold references outside reactivity because neither plays
-  // well with Vue's Proxy wrapping (same reasoning as shallowRef for
-  // EditorView).
+  // Created after the user clicks the mic. Held outside reactivity because
+  // neither plays well with Vue's Proxy wrapping.
   let audioCtx: AudioContext | null = null
   let source: MediaStreamAudioSourceNode | null = null
   let worklet: AudioWorkletNode | null = null
   const wsUrl = ref<string | undefined>(undefined)
   let closing = false
-  // Connect watchdog. If we never receive `ready` from the server
-  // within 10s (Voxtral session slow to open, auth issue, upstream
-  // outage), transition to `error` rather than spin forever. Cleared
-  // in `startPumping` once we're actually recording.
   const _connectWatchdog: ReturnType<typeof setTimeout> | null = null
 
-  // VueUse: mediaStream lifecycle + track cleanup. `enabled` flips
-  // with our toggle; the composable will request permission the
-  // first time we set it true and reuse the granted stream after.
   const media = useUserMedia({ constraints: { audio: true } })
 
-  // Mobile haptics — confirm mic start (single short tap) and stop
-  // (faster double-tap). Silent no-op on iOS / unsupported browsers.
-  // Patterns passed at call time because UseVibrateOptions.interval
-  // is non-optional in the upstream .d.ts.
+  // Haptics: one short tap on start, a double tap on stop; no-op where
+  // unsupported (iOS). Patterns are passed per call because
+  // UseVibrateOptions.interval is non-optional in the upstream typings.
   const { vibrate } = useVibrate()
 
-  // VueUse: WebSocket with buffered send, reactive status. Both
-  // `immediate` and `autoConnect` are turned off so the lifecycle is
-  // fully driven by our `ws.open()` call. Leaving `autoConnect` on
-  // would re-open the socket every time we mutate `wsUrl`, racing
-  // our explicit `open()` and producing duplicate connections.
-  // Pending auth payload — sent on the FIRST message after `open`
-  // rather than as a URL query param. Keeps the JWT out of access
-  // logs, browser history, and `Referer` headers.
+  // Sent as the FIRST message after `open` rather than as a URL query param,
+  // which keeps the JWT out of access logs, browser history and `Referer`.
   let pendingAuth: { token: string, languageCode?: string } | null = null
 
   const ws = useWebSocket(wsUrl, {
     immediate: false,
     autoConnect: false,
-    autoReconnect: false, // dictation sessions are short-lived; reconnect would mis-bill
+    autoReconnect: false, // a reconnect would start a second billed session
     onConnected(socket) {
-      // Send the auth message as the FIRST frame. Server waits up to
-      // 5s for this and closes otherwise — so we ship it immediately
-      // on connect, not lazily.
+      // Must be the first frame: the server closes the socket if it
+      // doesn't arrive within 5s.
       if (pendingAuth) {
         socket.send(encodeClientFrame({ type: 'auth', ...pendingAuth }))
       }
@@ -121,17 +96,11 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     onMessage(_, ev) {
       if (typeof ev.data !== 'string') return
       try {
-        // Narrow against the shared discriminated union so a typo in
-        // any case branch becomes a TS error and so adding a new
-        // server-frame type forces this switch to handle it.
+        // Typed against the shared union so a new server frame type must be handled here.
         const msg = JSON.parse(ev.data) as DictateServerFrame
         switch (msg.type) {
           case 'hello':
-            // Server acknowledged open and is waiting for auth. We
-            // already sent the auth message in `onConnected`; this
-            // hello is just the "send auth now" signal. No-op client
-            // side — kept as an explicit case so unknown-type fallthrough
-            // doesn't match it.
+            // Auth was already sent in `onConnected`; nothing to do.
             break
           case 'ready':
             // Auth + STT stream both up — safe to start sending audio.
@@ -163,8 +132,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     },
     onDisconnected() {
       if (!closing && state.value !== 'error') {
-        // Server closed on us unexpectedly. Treat as a soft stop so
-        // the UI returns to idle rather than looking stuck.
+        // Unexpected server close: soft stop so the UI doesn't look stuck.
         stop()
       }
     },
@@ -179,9 +147,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     state.value = 'requesting-permission'
     closing = false
 
-    // Kick useUserMedia's getUserMedia call. Its own internal enabled
-    // ref is SYNC-reactive, but it also exposes a `start()` that
-    // awaits — we use start() so we know when the stream is live.
+    // `start()` (not the `enabled` ref) so we know when the stream is live.
     let stream: MediaStream | undefined
     try {
       stream = await media.start()
@@ -199,9 +165,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
 
     state.value = 'connecting'
 
-    // Mint a short-lived JWT. Posting to /api/ai/dictate/token happens
-    // over HTTPS where the request body is encrypted, so the token
-    // never appears in a URL, log line, or referer.
+    // Short-lived JWT, minted over POST so it never appears in a URL or log.
     let token: string
     try {
       const res = await $fetch<{ token: string }>('/api/ai/dictate/token', {
@@ -215,21 +179,16 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       return
     }
 
-    // Stash auth for onConnected to send as the first WS frame. We
-    // also piggyback the UI locale so Voxtral transcribes in the
-    // user's language — same pattern as Feature B. `locale` was
-    // captured at setup-time above (Vue I18n rule: useI18n must run
-    // during setup, not lazily).
+    // Sent by onConnected as the first WS frame; the UI locale rides along
+    // so Voxtral transcribes in the user's language.
     pendingAuth = { token, languageCode: locale.value }
     wsUrl.value = buildWsUrl()
     ws.open()
   }
 
   async function startPumping() {
-    // `ready` arrived. Set up the worklet graph and start piping PCM
-    // chunks over the socket. `audio/pcm;rate=16000` requires the
-    // AudioContext itself to run at 16 kHz — the worklet does NOT
-    // resample.
+    // `audio/pcm;rate=16000` requires the AudioContext itself to run at
+    // 16 kHz; the worklet does not resample.
     const stream = media.stream.value
     if (!stream) {
       fail('Microphone stream not available.')
@@ -239,9 +198,8 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     try {
       audioCtx = new AudioContext({ sampleRate: 16000 })
       if (audioCtx.sampleRate !== 16000) {
-        // Rare but real — iOS Safari sometimes ignores the sampleRate
-        // hint. We bail loudly rather than ship the wrong rate; a
-        // resampler would be the proper fix for that platform later.
+        // iOS Safari sometimes ignores the sampleRate hint. Fail rather
+        // than send the wrong rate (a resampler would be the fix).
         fail(`Browser forced ${audioCtx.sampleRate}Hz; dictation requires 16000Hz.`)
         return
       }
@@ -255,11 +213,8 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
         }
       }
       source.connect(worklet)
-      // Don't connect worklet → destination; we don't want local
-      // audio playback and `destination` would make the AudioGraph
-      // run "live" which some browsers require for the worklet to
-      // fire. Chrome + Firefox both pump the graph as long as there's
-      // a MediaStreamSource feeding it, so source→worklet is enough.
+      // Not connected to `destination`: no local playback, and Chrome and
+      // Firefox pump the graph as long as a MediaStreamSource feeds it.
       state.value = 'recording'
       vibrate(50)
     } catch (e) {
@@ -272,14 +227,13 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     if (state.value === 'recording') vibrate([75, 20, 75])
     closing = true
 
-    // Send `stop` so Voxtral can emit any pending final before teardown.
+    // Lets Voxtral emit any pending final before teardown.
     try {
       if (ws.status.value === 'OPEN') ws.send(encodeClientFrame({ type: 'stop' }))
     } catch { /* best-effort */ }
 
     cleanupAudioResources()
-    // Defer WS close slightly so the server's stop handler + any
-    // trailing `final` message land before our onDisconnected fires.
+    // Delay the close so the trailing `final` lands before onDisconnected fires.
     setTimeout(() => {
       try {
         ws.close()
@@ -326,13 +280,10 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     } catch { /* best-effort */ }
     source = null
     if (audioCtx && audioCtx.state !== 'closed') {
-      // close() returns a promise; fire-and-forget is fine, we're
-      // not racing anything that depends on completion.
       audioCtx.close().catch(() => { /* best-effort */ })
     }
     audioCtx = null
-    // Release the MediaStream via VueUse so the browser mic
-    // indicator clears immediately.
+    // Clears the browser's mic indicator immediately.
     media.stop()
   }
 
@@ -355,10 +306,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
 }
 
 function buildWsUrl(): string {
-  // Respect the current page's protocol — wss:// on HTTPS, ws:// on
-  // plain HTTP. Port is inherited from location.host. The auth token
-  // is NOT appended here; it's sent as the first WS message instead,
-  // so it can't leak into access logs or the browser history stack.
+  // The auth token is deliberately not in the URL; see `pendingAuth`.
   const scheme = globalThis.location.protocol === 'https:' ? 'wss:' : 'ws:'
   return `${scheme}//${globalThis.location.host}/api/ai/dictate`
 }

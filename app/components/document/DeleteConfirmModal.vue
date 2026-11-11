@@ -66,7 +66,6 @@ function handleClose() {
   open.value = false
 }
 
-// Reset input when modal opens
 watch(open, (v) => {
   if (v) confirmText.value = ''
 })

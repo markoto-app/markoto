@@ -273,11 +273,9 @@ async function logAiTool(
 
 export interface RunLoopOptions {
   /**
-   * Production callers OMIT this. The runLoop routes 100% through
-   * LiteLLM → Mistral; the only remaining use of `ai` is the
-   * unit-test seam, where tests inject a fake `AgenticAIClient` to
-   * drive the loop without LiteLLM. When omitted, the seam path is
-   * unreachable.
+   * Test seam: production callers omit this and the loop streams through
+   * LiteLLM. Tests inject a fake `AgenticAIClient` to drive the loop
+   * without LiteLLM.
    */
   ai?: AiClient
   model: string
@@ -295,11 +293,7 @@ export interface RunLoopOptions {
   sessionId: string
   abortController: AbortController
   setStatus: (phase: StreamStatusPhase, message?: string) => void
-  /**
-   * Pre-Phase-5 (Gemini-era) reasoning-token knob. 0 = thinking
-   * disabled. Mistral has no equivalent; kept on the surface for the
-   * test seam.
-   */
+  /** Reasoning-token knob; 0 = thinking disabled. Mistral has no equivalent, so only the test seam uses it. */
   thinkingBudget?: number
   /**
    * Override the function declarations handed to the model. Defaults
@@ -362,10 +356,6 @@ interface LoopContext {
   answeredUser: boolean
 }
 
-/**
- * Current document text, or null when the session has no readable
- * Y.Text (the unit-test seam passes a bare session stub).
- */
 /** Text a `replace_text` / `insert_text` call would add to the document. */
 function addedEditText(args: unknown): string {
   if (typeof args !== 'object' || args === null) return ''
@@ -384,6 +374,7 @@ function logTurnUsage(ctx: LoopContext, usage: StreamChunk['usageMetadata']): vo
   ctx.log(`usage: prompt=${usage.promptTokenCount} cached=${cached} output=${usage.candidatesTokenCount ?? 0} reasoning=${usage.thoughtsTokenCount ?? 0}`)
 }
 
+/** Current document text, or null when the session has no readable Y.Text (the unit-test seam passes a bare session stub). */
 function readDocText(session: AiSession): string | null {
   try {
     return session.ytext.toJSON()
@@ -438,9 +429,7 @@ async function consumeStreamTurn(
 
     // `finishReason` is typed `AgenticFinishReason | string` so the
     // LiteLLM stream wrapper can pass through unmapped OpenAI values.
-    // We only care about the recognised enum values; anything else is
-    // treated as `OTHER` so the existing exit-path code recognises it
-    // as terminal.
+    // Anything outside the enum is treated as `OTHER` (terminal).
     const reason = chunk.candidates?.[0]?.finishReason
     if (reason) {
       finishReason = (Object.values(FinishReason) as string[]).includes(reason)
@@ -547,14 +536,6 @@ type DispatchOutcome
     | { kind: 'session-cap-exceeded', message: string }
     | { kind: 'comment-trigger-done', responseParts: NonNullable<Content['parts']> }
 
-/**
- * Validate args for a tool, debit caps, dispatch to the right backend
- * (web_search / fetch_url sub-calls or the regular adapter), build the
- * `functionResponse` part the model expects.
- *
- * NOT responsible for: top-level abort detection (caller checks before
- * entering), turn-level setStatus transitions (caller drives those).
- */
 /**
  * Validate args against the registered Zod schema. Returns the
  * validated args on success; on failure returns a `continue` outcome
@@ -952,7 +933,7 @@ async function openProviderStream(ctx: LoopContext): Promise<{ kind: 'stream', s
     // the session ends with the typed message, which reaches the
     // initiator only, and the prompt bar's credits refresh shows the
     // "add your own key" toast.
-    // Team / Business workspace (WP3): the pooled team budget or the
+    // Team / Business workspace: the pooled team budget or the
     // member's own limit. Never "upgrade" and no breadcrumb in the shared
     // document — the message reaches the initiator only.
     if (ctx.opts.billingContext.attribution === 'workspace' && (isWorkspaceTeamBudgetError(e) || isBudgetExceededError(e))) {
@@ -1095,20 +1076,11 @@ export async function runAgenticLoop(opts: RunLoopOptions): Promise<void> {
   }
 }
 
-// ─── Streaming dispatcher: production LiteLLM vs in-process test seam ───
-//
-// Two paths:
-//
-//   (1) LITELLM (production). Hit when `opts.ai` is undefined —
-//       production callers omit it. Routes through `streamFromLiteLLM`
-//       → OpenAI SDK → LiteLLM proxy → Mistral.
-//
-//   (2) TEST SEAM. Hit when `opts.ai` is explicitly injected. Tests
-//       hand the loop a fake `AgenticAIClient` whose
-//       `models.generateContentStream` yields scripted internal-shape
-//       chunks. Skips the OpenAI-shape translation in
-//       `messageTranslation.ts` — that translation is pinned
-//       independently by `messageTranslation.test.ts`.
+// Streaming dispatcher. Without `opts.ai` the stream goes through
+// `streamFromLiteLLM` (OpenAI SDK -> LiteLLM proxy). With an injected fake
+// `AgenticAIClient` (tests) it yields scripted internal-shape chunks and skips
+// the OpenAI-shape translation, which `messageTranslation.test.ts` pins
+// separately.
 
 interface StreamFromProviderOpts {
   ai?: AiClient

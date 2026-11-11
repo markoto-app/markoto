@@ -73,7 +73,7 @@ export interface PlanPricesResponse {
 /**
  * Stripe Price lookup key for a plan / interval / currency. The operator
  * creates one recurring Price per key in the Stripe dashboard
- * (docs/LAUNCH-CHECKLIST.md); the server finds them by key, so prices
+ * (docs/operations/LAUNCH-CHECKLIST.md); the server finds them by key, so prices
  * change in Stripe without a deploy.
  */
 export function stripePriceLookupKey(plan: PaidPlanName, interval: BillingInterval, currency: Currency, prefix = 'markoto'): string {
@@ -137,7 +137,7 @@ export function defaultCurrencyForLocale(locale: string | null | undefined): Cur
   return /[-_]ch$/i.test(locale ?? '') ? 'chf' : 'eur'
 }
 
-// ─── AI credit top-ups (WP4) ────────────────────────────────────────
+// AI credit top-ups
 //
 // One-time purchases that raise a Pro user's or a Team / Business
 // workspace's AI budget. Each pack adds `creditUsd` (the AI budget is
@@ -175,5 +175,5 @@ export function stripeTopupLookupKey(pack: TopupPackId, currency: Currency, pref
   return `${prefix}_topup_${pack}_${currency}`
 }
 
-/** 400 code of a purchase sent without accepting the Paid Plans Terms (WP6b). */
+/** 400 code of a purchase sent without accepting the Paid Plans Terms. */
 export const PAID_TERMS_REQUIRED_CODE = 'billing/terms-required'

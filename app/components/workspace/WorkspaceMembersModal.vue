@@ -16,7 +16,7 @@ import type { PlanPricesResponse } from '~~/shared/config/pricing'
 // Admins see the open invitations below the roster and can revoke them.
 
 type MemberRole = 'admin' | 'editor' | 'viewer'
-// Guests (WP11) see only documents shared with them; no workspace role.
+// Guests see only documents shared with them; no workspace role.
 type InviteRole = MemberRole | 'guest'
 
 const props = defineProps<{
@@ -24,13 +24,13 @@ const props = defineProps<{
   workspaceName: string
   members: WorkspaceMember[]
   myRole: MemberRole
-  // The workspace's plan allows guests (WP11, admins only).
+  // The workspace's plan allows guests (admins only).
   guestsAvailable?: boolean
   myUserId: number
   // Opened from the workspace header's "Invite people" button: focus
   // the email field so the admin can type straight away.
   focusInvite?: boolean
-  // Team / Business subscription (WP3, admins only): paid seats and seats
+  // Team / Business subscription (admins only): paid seats and seats
   // in use (members + open invitations). Null = no seat limit.
   billing?: WorkspaceSeatBilling | null
 }>()
@@ -120,7 +120,7 @@ function roleLabel(role: WorkspaceMember['role']) {
   return t('workspace.roles.viewer')
 }
 
-// "This adds a seat" (WP3): an invite into a workspace whose paid seats
+// "This adds a seat": an invite into a workspace whose paid seats
 // are all taken is refused (409 billing/seats-full); the admin confirms
 // and the invite is sent again with `addSeat: true`, which buys one seat.
 const seatConfirm = ref<{ email: string, seats: number } | null>(null)

@@ -16,10 +16,8 @@ import { AI_COMMENT_AUTHOR_NAME } from '../../../shared/ai/author'
 // rendering + @ai stripping + the AI-loop guard (AI doesn't summon
 // itself).
 
-// ---------------------------------------------------------------------------
 // Helpers — pre-seed comments into a Y.Doc so we can drive resolveCommentTrigger
 // against realistic state.
-// ---------------------------------------------------------------------------
 
 function newDoc(content = ''): { ydoc: Y.Doc, ytext: Y.Text } {
   const ydoc = new Y.Doc()
@@ -93,9 +91,7 @@ function seedComment(ydoc: Y.Doc, ytext: Y.Text, opts: {
   return { commentId: id, replyIds }
 }
 
-// ---------------------------------------------------------------------------
 // stripAiMention / hasAiMention (server-side counterparts of the client utils)
-// ---------------------------------------------------------------------------
 
 describe('plainCommentText (AI comment bodies render as plain text)', () => {
   it('drops bold / underline-bold markers and heading hashes', () => {
@@ -143,9 +139,7 @@ describe('hasAiMention (server)', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // resolveCommentTrigger
-// ---------------------------------------------------------------------------
 
 describe('resolveCommentTrigger', () => {
   it('returns null for an unknown commentId', () => {
@@ -307,9 +301,7 @@ describe('resolveCommentTrigger', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // buildCommentTriggerBlock
-// ---------------------------------------------------------------------------
 
 describe('buildCommentTriggerBlock', () => {
   it('renders the parent trigger with anchor + task instructions', () => {

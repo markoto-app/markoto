@@ -4,7 +4,7 @@ import { AUDIT_POLICY_ACCEPTED } from '../../legal/auditActions'
 import { PAID_TERMS_VERSION } from '~~/shared/legal/versions'
 import { PAID_TERMS_REQUIRED_CODE } from '~~/shared/config/pricing'
 
-// Paid Plans Terms (WP6b, `content/legal/paid-terms/`). Every purchase —
+// Paid Plans Terms (`content/legal/paid-terms/`). Every purchase —
 // a plan checkout, an in-place plan switch, an AI-credit top-up — needs
 // the buyer's explicit acceptance in the request (`acceptPaidTerms:
 // true`, the ticked box beside the button). The box also carries the

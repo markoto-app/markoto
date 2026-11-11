@@ -2,7 +2,7 @@ import { customDomainView, requireCustomDomainUser, runCustomDomainCheck } from 
 import { getCustomDomainForUser, listCustomDomainsForUser } from '../../../../repos/customDomains'
 
 // POST /api/user/custom-domains/:domainId/verify — check the DNS records
-// now (WP13; the sweeper also re-checks pending domains every 15 min).
+// now (the sweeper also re-checks pending domains every 15 min).
 export default defineEventHandler(async (event) => {
   const { userId, settings } = await requireCustomDomainUser(event)
   const domain = await getCustomDomainForUser(getRouterParam(event, 'domainId') ?? '', userId)

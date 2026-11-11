@@ -16,10 +16,10 @@
  *   - `color`    `#rgb` / `#rrggbb` only; fallback AWARENESS_FALLBACK_COLOR
  *   - `colorLight` `#rgb[a]` / `#rrggbb[aa]` only; dropped otherwise
  *   - `avatarSeed` an anonymous visitor's random avatar token,
- *                `[A-Za-z0-9]{1,32}`; dropped otherwise. (There is no
- *                avatar URL any more: avatars are generated locally, so a
- *                peer can't make every viewer load an image from a host
- *                of its choosing.)
+ *                `[A-Za-z0-9]{1,32}`; dropped otherwise. (Avatars are
+ *                generated locally, never loaded from a peer-supplied
+ *                URL, so a peer can't make viewers fetch from a host of
+ *                its choosing.)
  *   - `id`       positive safe integer (numeric strings are converted);
  *                dropped otherwise
  *   - `isAI`     kept only when it is literally `true`

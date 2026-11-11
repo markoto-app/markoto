@@ -8,7 +8,7 @@ import { DEFAULT_PLAN_PRICES, CURRENCIES, type PlanPricesResponse } from '~~/sha
 import type { H3Event } from 'h3'
 import type { WorkspaceBillingOverview } from '~/utils/billing/workspaceBilling'
 
-// Team / Business workspace billing UI (WP3): the admin billing tab and
+// Team / Business workspace billing UI: the admin billing tab and
 // the invite dialog's "This adds a seat" confirmation.
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>
@@ -104,7 +104,7 @@ describe('workspace billing tab — no subscription yet', () => {
 
   it('sends plan, interval, currency and seats to checkout and follows the Stripe URL', async () => {
     const wrapper = await mountPanel()
-    // Disabled until the Paid Plans Terms box is ticked (WP6b).
+    // Disabled until the Paid Plans Terms box is ticked.
     expect(wrapper.get('[data-testid="workspace-billing-checkout"]').attributes('disabled')).toBeDefined()
     await wrapper.get('[data-testid="workspace-billing-checkout-paid-terms"] [role="checkbox"]').trigger('click')
     await flushPromises()

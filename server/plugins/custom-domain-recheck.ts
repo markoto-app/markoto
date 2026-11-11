@@ -3,7 +3,7 @@ import { runCustomDomainRecheck } from '../utils/customDomains/recheck'
 import { customDomainSettings, traefikProviderSettings } from '../utils/customDomains/config'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
-// Every 15 min: DNS re-check of custom domains (WP13) — logic in
+// Every 15 min: DNS re-check of custom domains. Logic in
 // `server/utils/customDomains/recheck.ts`. Not started on instances
 // without custom domains (`NUXT_PUBLISH_DOMAINS_TARGET` unset).
 

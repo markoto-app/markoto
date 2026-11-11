@@ -8,12 +8,9 @@ import {
   type TurnProgress
 } from '../../../server/utils/agentic/editProgress'
 
-// The AI loop used to run into its 20-turn limit after finishing the
-// requested edit: Mistral kept "polishing" — inserting bare newlines,
-// swapping a sentence back and forth, replacing text with itself. These
-// tests pin how edits are classified and when a session counts as
-// stalled. The patterns are taken from real sessions in the v0.2.1
-// release flow run.
+// The AI loop must not run into its 20-turn limit after finishing the requested edit: the model can keep
+// "polishing" (inserting bare newlines, swapping a sentence back and forth, replacing text with itself). These
+// tests pin how edits are classified and when a session counts as stalled.
 
 const ok = { isError: false, rejectedNoOp: false, call: 'replace_text:{}' }
 
@@ -62,8 +59,7 @@ describe('EditProgressTracker', () => {
   })
 
   it('the identical failed call made again is a repeat', () => {
-    // Session XS__q_OQpkPv: replace_text 'Language: "EnglishDeutsch"' — text
-    // from the document context, not the document — 13 times in a row.
+    // replace_text 'Language: "EnglishDeutsch"' (text from the document context, not the document) 13 times in a row.
     const t = new EditProgressTracker('x')
     const failed = { isError: true, rejectedNoOp: false, call: 'replace_text:{"old_str":"Language"}' }
     expect(t.noteEdit('x', 'x', failed)).toBeNull()
@@ -84,7 +80,7 @@ describe('EditProgressTracker', () => {
   })
 
   it(`stops after ${STALLED_TURN_LIMIT} stalled turns in a row (bare-newline inserts)`, () => {
-    // Session D08rmXvk9txJ: insert_text "\n" at lines 79, 80, 81 … for 17 turns.
+    // insert_text "\n" at lines 79, 80, 81 … for 17 turns.
     let doc = 'Intro.\n'
     const t = new EditProgressTracker(doc)
     const results: TurnProgress[] = []
@@ -99,7 +95,6 @@ describe('EditProgressTracker', () => {
   })
 
   it('stops a sentence swapped back and forth (Keep it short ↔ Be concise)', () => {
-    // Session Nm1-xpjiJw4a, shortened.
     const states = ['Write short.', 'Keep it short.', 'Be concise.', 'Keep it short.', 'Be concise.', 'Keep it short.']
     const t = new EditProgressTracker(states[0] ?? null)
     const stops: boolean[] = []

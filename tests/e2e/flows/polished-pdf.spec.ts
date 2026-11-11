@@ -145,7 +145,7 @@ test('Polished PDF', async ({ page, flow, editor }) => {
   // The hero claim is "a real PDF lands on disk" — check the magic bytes.
   expect(pdf.subarray(0, 5).toString()).toBe('%PDF-')
 
-  // ─── Open the file ──────────────────────────────────────────────
+  // Open the file
   // Show the downloaded bytes the way a reader opens them. Headless
   // Chromium has no PDF viewer, so `showPdf` stands in for it (pdf.js,
   // real file contents) at the URL the menu item opened.

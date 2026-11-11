@@ -6,7 +6,7 @@ import * as Y from 'yjs'
 // closures still need to capture mutable refs we can drive from
 // each test.
 
-// --- HocuspocusProvider mock --------------------------------------
+// HocuspocusProvider mock
 //
 // We replace the class with one that records constructor options +
 // exposes manual triggers for sync / auth-fail / close. Tests drive
@@ -80,7 +80,7 @@ vi.mock('@hocuspocus/provider', () => ({
   HocuspocusProvider: MockProvider
 }))
 
-// --- useDatabase mock ---------------------------------------------
+// useDatabase mock
 //
 // The helper opens a tx and runs three SQL statements via the
 // `sql` template (advisory lock, SELECT MAX(id) before, SELECT
@@ -115,7 +115,7 @@ const dbMock = {
           txExecuteCalls.push({ kind: 'lock', orderInTransaction: callIndex })
           return { rows: [] }
         }
-        // Call 3 is the F4 compaction-floor probe (SELECT MIN(id) WHERE
+        // Call 3 is the compaction-floor probe (SELECT MIN(id) WHERE
         // version='v1'). Return null so the guard is skipped in these
         // happy-path tests; it does NOT consume a maxId slot. The guard
         // firing is covered by the restore integration test.
@@ -139,7 +139,7 @@ vi.mock('../../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({ query: vi.fn() })
 }))
 
-// --- historyReplay mock -------------------------------------------
+// historyReplay mock
 //
 // The replay helper itself is unit-tested elsewhere; here we just
 // need it to return a Y.Doc with known content so we can verify
@@ -149,7 +149,7 @@ vi.mock('../../../server/utils/documents/historyReplay', () => ({
   reconstructDocAtYjsId: (...args: unknown[]) => replayMock(...args)
 }))
 
-// --- useRuntimeConfig mock ----------------------------------------
+// useRuntimeConfig mock
 //
 // A real `useRuntimeConfig` lives in Nuxt's auto-imports. The unit
 // project doesn't have Nuxt runtime, so we stub a global one. Tests
@@ -210,17 +210,15 @@ describe('restoreDocToYjsId', () => {
     })
 
     it('captures yjsDocIdBeforeRestore BEFORE the WS provider is constructed (regression target)', async () => {
-      // SECURITY/CORRECTNESS: this is the bug fixed during browser
-      // validation. If the helper captures `before` AFTER the WS
-      // sync, the value reflects post-restore state and reversibility
-      // breaks (clicking restore on a restore row goes to the same
-      // target as the original).
+      // SECURITY/CORRECTNESS: the helper must capture `before` BEFORE the WS sync. If it captures `before` AFTER
+      // the sync, the value reflects post-restore state and reversibility breaks (clicking restore on a restore
+      // row goes to the same target as the original).
       //
       // The MockProvider's constructor records how many tx.execute
       // calls had landed BEFORE it ran. By the time the provider is
       // constructed, the helper must have already issued: (1) the
       // advisory lock query, (2) the SELECT MAX(id) for `before`, and
-      // (3) the SELECT MIN(id) F4 compaction-floor probe — that's 3
+      // (3) the SELECT MIN(id) compaction-floor probe — that's 3
       // tx.execute() calls. A smaller value means the helper is reading
       // `before` AFTER the WS connect (the reversibility bug).
       txState.maxIdValues = [40, 41]

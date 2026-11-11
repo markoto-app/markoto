@@ -8,26 +8,16 @@ const props = defineProps<{
   view: EditorView | null
   readOnly: boolean
   docId: string
-  /**
-   * Current dictation state, hoisted from the parent's
-   * `useVoiceDictation`. 'idle' = the button shows the mic icon; any
-   * other value means a session is in-flight and the button styles
-   * itself as "active / stop".
-   */
+  /** Dictation state from the parent's `useVoiceDictation`: 'idle' shows the mic icon, anything else styles the button as active / stop. */
   dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
 }>()
 
 const emit = defineEmits<{
-  // Toolbar Table button just signals the parent to open the shared
-  // size-picker modal. Same modal the menu bar's Insert → Table opens —
-  // single source of truth for "user wants to insert a table".
+  // Signals the parent to open the shared size-picker modal (same one as the menu's Insert → Table).
   'open-table-picker': []
-  // Dictation toggle is hoisted to the parent so the composable can
-  // own the editor/ydoc/awareness wiring — the toolbar just renders
-  // the button and emits clicks.
+  // Hoisted so the composable can own the editor/ydoc/awareness wiring; the toolbar only renders and emits.
   'toggle-dictation': []
-  // "Add a comment on the selection" — parent serializes the anchor
-  // and opens the sidebar.
+  // Add a comment on the selection; the parent serializes the anchor and opens the sidebar.
   'create-comment': []
 }>()
 
@@ -37,13 +27,13 @@ const dictationActive = computed(() =>
 const dictationBusy = computed(() =>
   props.dictationState === 'connecting' || props.dictationState === 'requesting-permission'
 )
-// Live dictation is Voxtral Realtime (Mistral-only). Hidden unless the
-// user's transcription provider is Mistral or the instance provides it.
-// Stays visible while availability is still loading / unknown — and
-// while a session is running, so the stop button never disappears.
+// Live dictation is Voxtral Realtime (Mistral-only): hidden unless the user's
+// transcription provider is Mistral or the instance provides it. Stays visible
+// while availability is loading / unknown and while a session runs, so the
+// stop button never disappears.
 const { liveDictationAvailable, transcriptionLocked } = useAiAvailability()
 const { explainLocked } = useAiLockedPrompt()
-// Locked (WP5): the platform has dictation but the paying plan doesn't.
+// Locked: the platform has dictation but the paying plan doesn't.
 const dictationLocked = computed(() => !liveDictationAvailable.value && transcriptionLocked.value && !dictationActive.value)
 const showDictation = computed(() => liveDictationAvailable.value || dictationActive.value || dictationBusy.value || dictationLocked.value)
 function onDictationClick() {
@@ -80,8 +70,7 @@ function withView(fn: (v: EditorView) => void) {
   }
 }
 
-// `reset: true` so a failed upload + re-pick of the same file fires
-// the change event again.
+// `reset: true` so re-picking the same file after a failed upload fires change again.
 const { open: openImagePicker, onChange: onImagePicked } = useFileDialog({
   accept: 'image/png,image/jpeg,image/gif,image/webp,image/svg+xml',
   multiple: false,
@@ -94,9 +83,8 @@ onImagePicked(async (files) => {
   await uploadAndInsert(file, props.view)
 })
 
-// Link is a special case — wrap as `[text](url)` and select the
-// placeholder URL so the user can type the destination immediately.
-// Doesn't fit `toggleWrap`'s symmetric-marker contract.
+// Link wraps as `[text](url)` and selects the placeholder URL so the user can
+// type the destination; doesn't fit `toggleWrap`'s symmetric-marker contract.
 function linkAction() {
   if (!props.view || props.readOnly) return
   const v = props.view
@@ -111,17 +99,15 @@ function linkAction() {
 }
 
 const actions = computed(() => [
-  // Inline formatting — `toggleWrap` is smart about already-wrapped
-  // selections (toggles off) and trims whitespace before wrapping.
+  // `toggleWrap` toggles off already-wrapped selections and trims whitespace first.
   { icon: 'i-lucide-bold', label: t('editor.bold'), action: withView(v => toggleWrap(v, '**')) },
   { icon: 'i-lucide-italic', label: t('editor.italic'), action: withView(v => toggleWrap(v, '*')) },
   { icon: 'i-lucide-strikethrough', label: t('editor.strikethrough'), action: withView(v => toggleWrap(v, '~~')) },
   { icon: 'i-lucide-highlighter', label: t('editor.highlight'), action: withView(v => toggleWrap(v, '==')) },
   { icon: 'i-lucide-underline', label: t('editor.insert'), action: withView(v => toggleWrap(v, '++')) },
   { divider: true },
-  // Headings — `toggleHeading` strips/replaces existing prefix, so
-  // clicking H1 on a `## Foo` line yields `# Foo` (not `# ## Foo`),
-  // and clicking H1 again yields plain `Foo` (toggle off).
+  // `toggleHeading` replaces an existing prefix (H1 on `## Foo` gives `# Foo`;
+  // H1 again gives `Foo`).
   { icon: 'i-lucide-heading-1', label: t('editor.heading'), action: withView(v => toggleHeading(v, 1)) },
   { icon: 'i-lucide-heading-2', label: 'Heading 2', action: withView(v => toggleHeading(v, 2)) },
   { icon: 'i-lucide-heading-3', label: 'Heading 3', action: withView(v => toggleHeading(v, 3)) },
@@ -129,45 +115,35 @@ const actions = computed(() => [
   { icon: 'i-lucide-code', label: t('editor.code'), action: withView(v => toggleCode(v)) },
   { icon: 'i-lucide-quote', label: t('editor.quote'), action: withView(v => toggleLinePrefix(v, '> ')) },
   { icon: 'i-lucide-link', label: t('editor.link'), action: linkAction },
-  // Wrapped so the click MouseEvent isn't passed into useFileDialog's
-  // open(options?) and silently treated as an options override.
+  // Wrapped so the click MouseEvent isn't passed to useFileDialog's open(options?) as an override.
   { icon: 'i-lucide-image', label: t('editor.image'), action: () => openImagePicker() },
   { icon: 'i-lucide-subscript', label: t('editor.subscript'), action: withView(v => toggleWrap(v, '~')) },
   { icon: 'i-lucide-superscript', label: t('editor.superscript'), action: withView(v => toggleWrap(v, '^')) },
   { divider: true },
-  // Block lists — `toggleLinePrefix` swaps any existing list-style
-  // prefix on the line, so clicking ordered-list on `- item` yields
-  // `1. item`. Clicking the same prefix again strips it.
+  // `toggleLinePrefix` swaps any list prefix (ordered list on `- item` gives
+  // `1. item`); the same prefix again strips it.
   { icon: 'i-lucide-list', label: t('editor.list'), action: withView(v => toggleLinePrefix(v, '- ')) },
   { icon: 'i-lucide-list-ordered', label: t('editor.orderedList'), action: withView(v => toggleOrderedList(v)) },
   { icon: 'i-lucide-list-checks', label: t('editor.taskList'), action: withView(v => toggleLinePrefix(v, '- [ ] ')) },
   { divider: true },
-  // HR, page break, TOC are single-click insertions. Table is a popover
-  // with a size picker (rendered in the template after this list).
+  // Single-click insertions; Table is a size-picker popover in the template.
   { icon: 'i-lucide-minus', label: t('editor.horizontalRule'), action: withView(v => insertBlock(v, '\n---\n')) },
   { icon: 'i-lucide-scissors-line-dashed', label: t('editor.pageBreak'), action: withView(v => insertPageBreak(v)) },
   { icon: 'i-lucide-list-tree', label: t('menubar.insert.toc'), action: withView(v => insertToc(v)) },
-  // Make invisible — wraps selection in an HTML comment so it stays in
-  // the markdown source but is stripped from preview/PDF/share. The
-  // closed-eye icon reads as "hide this" to non-technical users; the
-  // underlying toggle still uses the generic comment-wrap helper.
+  // Wraps the selection in an HTML comment: kept in the markdown source but
+  // stripped from preview/PDF/share. The closed-eye icon reads as "hide this"
+  // to non-technical users.
   { icon: 'i-lucide-eye-off', label: t('editor.hideFromPreview'), action: withView(v => toggleComment(v)) }
-  // Math, alerts, diagrams, table need a kind/size picker — rendered as
-  // dropdowns / popovers directly in the template after this list.
-  // Putting them in `actions` would force a default on the toolbar
-  // click, which doesn't match the menu-bar behavior or what users
-  // expect.
+  // Math, alerts, diagrams and table need a kind/size picker, so they render as
+  // dropdowns / popovers in the template; a default on click would diverge from the menu bar.
 ])
 
-// Math kinds — surfaces inline + block in the toolbar dropdown.
 const mathItems = computed(() => [[
   { label: t('menubar.insert.mathInline'), icon: 'i-lucide-pi', onSelect: withView(v => insertMath(v, 'inline')) },
   { label: t('menubar.insert.mathBlock'), icon: 'i-lucide-square-sigma', onSelect: withView(v => insertMath(v, 'block')) }
 ]])
 
-// Alert kinds — same five variants the menu bar exposes. Keeping the
-// option set in sync with the menu bar means users learn one
-// vocabulary; toolbar is just a faster path to the same actions.
+// Same five variants as the menu bar, so users learn one vocabulary.
 const alertItems = computed(() => [[
   { label: t('menubar.insert.alertNote'), icon: 'i-lucide-info', onSelect: withView(v => insertAlert(v, 'NOTE')) },
   { label: t('menubar.insert.alertTip'), icon: 'i-lucide-lightbulb', onSelect: withView(v => insertAlert(v, 'TIP')) },
@@ -176,8 +152,7 @@ const alertItems = computed(() => [[
   { label: t('menubar.insert.alertCaution'), icon: 'i-lucide-octagon-alert', onSelect: withView(v => insertAlert(v, 'CAUTION')) }
 ]])
 
-// Diagram kinds — eight Mermaid diagram types, each inserting a
-// minimal working example.
+// Eight Mermaid diagram types, each inserting a minimal working example.
 const diagramItems = computed(() => [[
   { label: t('menubar.insert.diagramFlowchart'), icon: 'i-lucide-git-fork', onSelect: withView(v => insertDiagram(v, 'flowchart')) },
   { label: t('menubar.insert.diagramSequence'), icon: 'i-lucide-arrow-left-right', onSelect: withView(v => insertDiagram(v, 'sequence')) },
@@ -220,11 +195,7 @@ const diagramItems = computed(() => [[
       </UTooltip>
     </template>
 
-    <!-- Multi-option insertions (table, math, alert, diagram) — surfaced
-         as dropdowns / a modal so the toolbar matches the menu-bar
-         Insert submenus and the user picks the variant rather than the
-         button forcing a default. Triggers visually match the other
-         ghost buttons. -->
+    <!-- Dropdowns / a modal so the user picks the variant, matching the menu bar's Insert submenus. -->
     <UTooltip :text="t('editor.table')">
       <UButton
         icon="i-lucide-table"
@@ -274,12 +245,9 @@ const diagramItems = computed(() => [[
       </UTooltip>
     </UDropdownMenu>
 
-    <!-- Add discussion comment on selection. Distinct icon from the
-         "Make invisible" button (i-lucide-eye-off) so users learn the
-         two are different things: the eye-off button wraps the
-         selection in an HTML comment that stays in the markdown but
-         is invisible in preview; this discussion comment lives in the
-         sidebar with replies + resolve. -->
+    <!-- Discussion comment on the selection. The icon differs from "Make
+         invisible" (i-lucide-eye-off), which wraps the selection in an HTML
+         comment; this one lives in the sidebar with replies + resolve. -->
     <USeparator
       orientation="vertical"
       class="h-5 mx-1"
@@ -295,13 +263,9 @@ const diagramItems = computed(() => [[
       />
     </UTooltip>
 
-    <!-- Live voice dictation. Sits at the tail of the toolbar so it
-         doesn't shift the position of the muscle-memory formatting
-         buttons. Red solid-variant while recording reads as "active"
-         without being loud; the pulse + animate-ping ring on the
-         icon signal live microphone without needing an explicit
-         badge. Loading spinner covers the permission / connecting
-         states. -->
+    <!-- Live voice dictation, at the tail so it doesn't shift the muscle-memory
+         formatting buttons. Red solid while recording; pulse + animate-ping on
+         the icon signal a live mic; the spinner covers permission / connecting. -->
     <USeparator
       v-if="showDictation"
       orientation="vertical"
@@ -329,13 +293,9 @@ const diagramItems = computed(() => [[
 
 <style scoped>
 /*
- * Spin the mic icon INSIDE the dictation button, not the whole button.
- * Applying `animate-spin` directly on the UButton root rotates the
- * entire pill (including the background) which reads as a stuck /
- * glitched element rather than a loading state. Scoping the spin to
- * the iconify child with `:deep` reaches through UButton's own scoped
- * styles (the button renders as a nested root component, so ordinary
- * scoped selectors don't match).
+ * Spin the mic icon inside the dictation button, not the whole button:
+ * `animate-spin` on the UButton root rotates the entire pill, which reads as
+ * a glitch. `:deep` reaches the nested UButton's own scoped styles.
  */
 @keyframes dictation-icon-spin {
   to { transform: rotate(360deg); }

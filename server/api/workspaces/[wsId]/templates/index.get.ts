@@ -1,7 +1,7 @@
 import { brandKitAvailable, requireBrandKitMember } from '../../../../utils/brandKit/access'
 import { listWorkspaceTemplates } from '../../../../repos/workspaceTemplates'
 
-// GET /api/workspaces/:wsId/templates — the workspace's templates (WP10c)
+// GET /api/workspaces/:wsId/templates — the workspace's templates
 // for its members: the new-document dialog's "This workspace" tab and the
 // brand-kit tab. Each is a live link to a workspace document.
 export default defineEventHandler(async (event) => {

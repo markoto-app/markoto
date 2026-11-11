@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
-// Phase 5 unit tests for the Voxtral realtime client + voice-tick
+// Unit tests for the Voxtral realtime client + voice-tick
 // orchestrator routing. The full WS handler is exercised by the
 // integration suite (it spawns Nitro + a real WS client). These tests
 // pin the small bits of routing logic that don't need a server:

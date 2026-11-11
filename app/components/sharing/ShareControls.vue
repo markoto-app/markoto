@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Share-link controls (WP9): when the public link stops working, whether
+// Share-link controls: when the public link stops working, whether
 // visitors may download / print, and how often the link was opened in the
 // last 30 days. Owner and workspace admins; the plan feature
 // `shareControls` is needed to SET a restriction (clearing always works).

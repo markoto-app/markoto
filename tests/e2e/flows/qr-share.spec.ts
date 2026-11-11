@@ -36,7 +36,7 @@ test('Share by QR code', async ({ page, flow, editor }) => {
     + 'app, no clipboard handoff, no "send myself a link" detour.'
   )
 
-  // ─── Open the share modal ───────────────────────────────────────
+  // Open the share modal
   await flow.click(
     'Open the share dialog from the lock icon in the header',
     editor.page.accessLockButton,
@@ -55,7 +55,7 @@ test('Share by QR code', async ({ page, flow, editor }) => {
   await expect(page.locator('[data-testid="share-qr-toggle"]')).toHaveAttribute('aria-pressed', 'false')
   await expect(page.locator('[data-testid="share-qr-image-wrapper"]')).toHaveCount(0)
 
-  // ─── Reveal the QR ──────────────────────────────────────────────
+  // Reveal the QR
   await flow.heading('Reveal the QR', 3)
   await flow.narrate(
     'Click the QR icon next to the link. The square renders below '

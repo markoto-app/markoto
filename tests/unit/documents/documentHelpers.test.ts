@@ -11,9 +11,7 @@ import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 // delegates to these, so the invariants live here — once these pass,
 // the orchestrator just has to wire them up correctly.
 
-// ═══════════════════════════════════════════════════════════════════════
 // readThemeFromYmeta — ymeta.theme → DocTheme (with fallback)
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('readThemeFromYmeta', () => {
   function ymap(entries: Record<string, unknown> = {}): Y.Map<unknown> {
@@ -51,9 +49,7 @@ describe('readThemeFromYmeta', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // canEditTheme — access-mode derivation
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('canEditTheme', () => {
   it('read-only blocks editing regardless of ownership', () => {
@@ -88,9 +84,7 @@ describe('canEditTheme', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // docSizeWarning — byte count → banner severity
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('docSizeWarning', () => {
   const MB = 1024 * 1024

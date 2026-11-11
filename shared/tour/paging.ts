@@ -1,4 +1,4 @@
-// Scene rests of the product page (WP11): pure helpers behind
+// Scene rests of the product page: pure helpers behind
 // app/composables/marketing/useTourScroll.ts, unit-tested in tests/unit/seo/tourPaging.test.ts.
 //
 // The visitor scrolls the page themselves (Lenis smooths wheel and

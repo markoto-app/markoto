@@ -20,9 +20,8 @@ describe('wrapFirstLetterAsDropCap — markup safety (regression)', () => {
   }
 
   test('a paragraph that starts with a link keeps the link an element', () => {
-    // Sanitised HTML may carry `<` inside an attribute value; the old
-    // string splitter wrapped the tag's `<` and turned the attribute
-    // text into live markup.
+    // Sanitised HTML may carry `<` inside an attribute value; the wrapper must not treat that `<` as a tag
+    // start and turn the attribute text into live markup.
     const html = `<p><a href="x" title="&lt;img src=x onerror=alert(1)&gt;">a</a> tail${TAIL}</p>`
     const out = wrapFirstLetterAsDropCap(html)
     expect(elementsOf(out)).toEqual(['p', 'a', 'span'])

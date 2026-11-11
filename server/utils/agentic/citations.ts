@@ -2,12 +2,11 @@
 // in the in-editor loop.
 //
 // The system prompt already asks the model to link its web sources, but
-// at temperature 0 Mistral Small regularly wrote the facts and dropped
-// the links (flow `ask-the-ai-for-current-information` / `-to-read-a-url`
-// published answers without a single source). The instruction works when
-// it sits in the tool result the model is reading when it writes — the
-// same place the URLs are. MCP results are not touched: an MCP client's
-// own agent decides how to present sources.
+// at temperature 0 Mistral Small tends to write the facts and drop the
+// links. The instruction works when it sits in the tool result the model
+// is reading when it writes — the same place the URLs are. MCP results
+// are not touched: an MCP client's own agent decides how to present
+// sources.
 
 export function webSearchCitationReminder(sources: ReadonlyArray<{ title: string, uri: string }>): string {
   const first = sources[0]

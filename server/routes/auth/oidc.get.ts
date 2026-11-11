@@ -15,8 +15,8 @@ import {
 } from '../../utils/oidc/flowCookie'
 import type { H3Event } from 'h3'
 
-// Generic OpenID Connect sign-in for self-hosted identity providers
-// (WP7b). One route, two legs — like the nuxt-auth-utils handlers:
+// Generic OpenID Connect sign-in for self-hosted identity providers.
+// One route, two legs — like the nuxt-auth-utils handlers:
 //
 //   GET /auth/oidc                 → fresh state/nonce/PKCE, signed flow
 //                                    cookie, 302 to the IdP

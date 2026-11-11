@@ -4,7 +4,7 @@ import { stripeTopupPriceIdFor } from './stripePrices'
 import type { Currency, TopupPackId } from '~~/shared/config/pricing'
 import type { CreditSubject } from '../../repos/aiCreditGrants'
 
-// Stripe Checkout for an AI credit top-up (WP4): `mode: 'payment'`, one
+// Stripe Checkout for an AI credit top-up: `mode: 'payment'`, one
 // pack, the subject in the metadata (the webhook reads it back:
 // `stripeWebhook.ts#handleTopupCheckout`). Automatic tax follows
 // `NUXT_STRIPE_AUTOMATIC_TAX` like subscriptions.

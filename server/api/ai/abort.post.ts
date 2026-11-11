@@ -12,7 +12,6 @@ export default defineEventHandler(async (event) => {
 
   const aiSession = await getAiSession(sessionId)
   if (!aiSession) {
-    // Already done or never existed — treat as success
     return { success: true, note: 'session not found (may have already finished)' }
   }
 
@@ -29,12 +28,9 @@ export default defineEventHandler(async (event) => {
     return { success: true }
   }
 
-  // Row exists in the DB but no local AbortController — this process isn't
-  // the one running the agentic loop (e.g. after a restart the DB row
-  // survived, or a future multi-worker setup). Best we can do from here is
-  // drop the registry row so the per-user cap unblocks; the stuck loop (if
-  // any) will exit on its own deadline. Awareness cleanup happens when that
-  // loop's finally block runs.
+  // Row exists but no local AbortController: this process isn't running the
+  // loop. Drop the registry row so the per-user cap unblocks; a stuck loop
+  // exits on its own deadline and cleans up awareness in its finally block.
   await removeAiSession(sessionId)
   return { success: true, note: 'session was orphaned (no abort controller in this process); registry cleared' }
 })

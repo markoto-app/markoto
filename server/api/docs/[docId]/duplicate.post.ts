@@ -28,7 +28,7 @@ import { flushSyncDocument } from '../../../utils/documents/syncNotify'
 //     into the actor's ownership, not the source owner's.
 //   - Any target workspace (the source's own included) needs admin or
 //     editor membership there (same gate as /api/docs POST) — guests
-//     (WP11) are refused with 403 `workspace/guest-cannot-create`.
+//     are refused with 403 `workspace/guest-cannot-create`.
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const sourceDocId = requireDocId(event)
@@ -80,12 +80,6 @@ interface DuplicateBody {
   workspaceId?: unknown
 }
 
-/**
- * canEditDoc on the source. Anyone who could edit the source's
- * content can create a copy of it; that's weaker than "manage", but
- * stealing edit access is not a thing — the duplicate goes into the
- * actor's ownership, not the source owner's.
- */
 async function assertCanDuplicate(userId: number, sourceDocId: string): Promise<void> {
   const authz = await getDocAuthz(userId, sourceDocId)
   if (!authz.exists) {
@@ -94,7 +88,7 @@ async function assertCanDuplicate(userId: number, sourceDocId: string): Promise<
   if (!authz.canEdit) {
     throw createError({ statusCode: 403, message: 'Not authorized to duplicate this document' })
   }
-  // View only (WP9): a copy is a download — a guest can't take one.
+  // View only: a copy is a download — a guest can't take one.
   if (!(await userMayDownload(sourceDocId, userId))) {
     throw createError({ statusCode: 403, message: DOWNLOAD_DISABLED_MESSAGE, data: { code: 'share/download-disabled' } })
   }
@@ -128,7 +122,7 @@ function parseTargetWorkspaceId(body: DuplicateBody, sourceWorkspaceId: string |
  * Creation-grade membership in the target workspace (admin / editor),
  * the same gate as `/api/docs` POST and the AI / MCP `duplicate_document`
  * tool. Checked for the source's own workspace too: edit rights on the
- * source don't imply membership — a guest (WP11) edits a shared document
+ * source don't imply membership — a guest edits a shared document
  * through its share only and must never create documents in the
  * workspace (the copy would be theirs to manage, move out and keep after
  * their removal). Guests get a dedicated code; a personal copy is not

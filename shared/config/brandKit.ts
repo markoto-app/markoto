@@ -1,4 +1,4 @@
-// Workspace brand kit (WP10): uploaded fonts + logos, the locked workspace
+// Workspace brand kit: uploaded fonts + logos, the locked workspace
 // design, workspace templates. Limits and shapes shared by the API and
 // the UI. The plan switch is `brandKit` (shared/config/tiers.ts).
 
@@ -10,7 +10,7 @@ export const BRAND_IMAGES_PER_WORKSPACE = 20
 export const BRAND_FONT_MAX_BYTES = 10 * 1024 * 1024
 /** One brand image. */
 export const BRAND_IMAGE_MAX_BYTES = 5 * 1024 * 1024
-/** Workspace templates per workspace (WP10c). */
+/** Workspace templates per workspace. */
 export const WORKSPACE_TEMPLATES_PER_WORKSPACE = 50
 export const WORKSPACE_TEMPLATE_NAME_MAX = 80
 export const WORKSPACE_TEMPLATE_DESCRIPTION_MAX = 200

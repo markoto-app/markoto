@@ -1,9 +1,8 @@
-// `EditorView`, `ViewPlugin`, `Decoration`, and `WidgetType` are RUNTIME
-// values (CodeMirror classes used as `extends WidgetType`,
-// `Decoration.widget(...)`, `ViewPlugin.fromClass(...)`). The
-// `consistent-type-imports` lint rule flips these to `import type {}`
-// which silently breaks the build at runtime. The disable is targeted
-// — `DecorationSet` IS a type-only and stays inline-tagged.
+// `EditorView`, `ViewPlugin`, `Decoration` and `WidgetType` are runtime
+// values (`extends WidgetType`, `Decoration.widget(...)`,
+// `ViewPlugin.fromClass(...)`); the `consistent-type-imports` autofix would
+// turn them into type imports and break the build at runtime.
+// `DecorationSet` is type-only.
 // eslint-disable-next-line @typescript-eslint/consistent-type-imports
 import {
   EditorView,
@@ -15,29 +14,19 @@ import {
 import { StateEffect, StateField } from '@codemirror/state'
 import type * as Y from 'yjs'
 
-// CodeMirror 6 ghost-text decoration for live dictation. An inline
-// widget sits at the caret showing the interim transcript; when
-// Voxtral finalises a phrase we commit it to Y.js and clear the
-// ghost.
+// Ghost-text decoration for live dictation: an inline widget at the caret
+// shows the interim transcript; when a phrase is finalised it is committed
+// to Y.js and the ghost cleared.
 //
-// Why a StateField → ViewPlugin pipeline (not just a ViewPlugin):
-//   - The interim text comes from OUTSIDE the editor (WebSocket
-//     callback on the page). A StateField lets us route updates in
-//     via a StateEffect.of(...) dispatch, which then triggers a
-//     ViewPlugin update that rebuilds the decoration set. This
-//     means the interim text survives unrelated editor updates
-//     (e.g. a collaborator typing elsewhere) — if we built the
-//     decoration set from a local class field in the ViewPlugin,
-//     we'd have to manually re-dispatch on every relevant event.
-//
-// The widget itself is a tiny `<span>` styled to look like user-agent
-// autocomplete suggestions: muted colour, italicised, non-selectable.
-// The "listening dot" is a CSS animation declared globally (no
-// styled-components overhead).
+// StateField → ViewPlugin rather than a ViewPlugin alone: the interim text
+// arrives from outside the editor (a WebSocket callback), and a StateField
+// takes it in via a StateEffect dispatch and keeps it across unrelated
+// editor updates (e.g. a collaborator typing elsewhere), which a plain
+// ViewPlugin field would have to re-dispatch by hand. The widget is a
+// muted, italic, non-selectable `<span>`; the "listening dot" is a global
+// CSS animation.
 
-/**
- * Replace the current dictation ghost text (pass "" to clear).
- */
+/** Replace the current dictation ghost text (pass "" to clear). */
 export const setDictationInterim = StateEffect.define<string>()
 
 const dictationState = StateField.define<string>({
@@ -61,16 +50,14 @@ class DictationGhostWidget extends WidgetType {
     const wrap = document.createElement('span')
     wrap.className = 'cm-dictation-ghost'
     wrap.textContent = this.text
-    // Prevent the widget from stealing focus or absorbing keystrokes.
-    // aria-hidden because the interim text is read aloud by screen
-    // readers via the mic itself (it's the user's own speech).
+    // aria-hidden: the interim text is the user's own speech, so a screen
+    // reader announcing it would be redundant.
     wrap.setAttribute('aria-hidden', 'true')
     return wrap
   }
 
-  // Signal to CM6 that clicks, caret motion, etc. should treat this
-  // widget as non-interactive. Without this, clicking the ghost
-  // positions the caret "inside" it which is visually confusing.
+  // Treat the widget as non-interactive: otherwise clicking the ghost
+  // positions the caret "inside" it.
   override ignoreEvent(): boolean { return true }
 }
 
@@ -81,8 +68,7 @@ function buildDeco(view: EditorView): DecorationSet {
   return Decoration.set([
     Decoration.widget({
       widget: new DictationGhostWidget(text),
-      // `side: 1` renders after the caret's position instead of
-      // displacing it — the caret stays to the left of the ghost.
+      // `side: 1` renders after the caret so the caret stays left of the ghost.
       side: 1
     }).range(pos)
   ])
@@ -95,8 +81,8 @@ const ghostPlugin = ViewPlugin.fromClass(class {
   }
 
   update(update: { view: EditorView, docChanged: boolean, selectionSet: boolean, transactions: readonly { effects: readonly StateEffect<unknown>[] }[] }) {
-    // Rebuild on doc change (ghost anchored to caret, caret moved),
-    // selection change (same reason), or a dictation-state effect.
+    // The ghost is anchored to the caret, so rebuild when the doc or
+    // selection changes, or on a dictation-state effect.
     const hadEffect = update.transactions.some(tr =>
       tr.effects.some(e => e.is(setDictationInterim))
     )
@@ -108,24 +94,18 @@ const ghostPlugin = ViewPlugin.fromClass(class {
   decorations: v => v.decorations
 })
 
-/**
- * Bundle of extensions to include in the editor. Add alongside the
- * existing yCollab / keymap extensions.
- */
+/** Extensions to include in the editor alongside yCollab and the keymaps. */
 export const dictationExtensions = [dictationState, ghostPlugin]
 
 /**
  * Commit a finalized phrase into Y.js at the editor's current caret.
- * Handles the "caret inside a word" edge case by prefixing a space
- * when the immediately-preceding character is a letter / digit — per
- * the UX spec, `fo|o` dictating "bar" becomes `fo bar o`, not
- * `fobaro`. Spaces around punctuation and existing whitespace are
- * left alone.
+ * Prefixes a space when the preceding character is a letter / digit, so
+ * dictating "bar" at `fo|o` gives `fo bar o`, not `fobaro`. Spaces around
+ * punctuation and existing whitespace are left alone.
  *
- * Wrapped in a Y.js transact tagged with a `dictation:{userId}`
- * origin so the activity log and undo stack attribute the write to
- * the user rather than a synthetic principal. Parallels how AI
- * writes use `ai:assistant:{sessionId}`.
+ * The Y.js transaction carries a `dictation:{userId}` origin so the
+ * activity log and undo stack attribute the write to the user, as AI
+ * writes do with `ai:assistant:{sessionId}`.
  */
 export function commitDictationFinal(
   view: EditorView,
@@ -140,19 +120,10 @@ export function commitDictationFinal(
   const caret = view.state.selection.main.head
   const charBefore = caret > 0 ? view.state.doc.sliceString(caret - 1, caret) : ' '
 
-  // Leading space if we're mid-word (previous char is word-like and
-  // not already whitespace). Trailing space ALWAYS — the next spoken
-  // phrase needs a separator regardless of what's downstream, and at
-  // EOF there's nothing to collide with.
-  //
-  // The trailing-space invariant has its own test pin (see
-  // tests/dom/dictationCommit.test.ts:appends with trailing space at
-  // end of empty doc + the four others). A previous Sonar S3923 "fix"
-  // narrowed this to `(needsTailSpace ? ' ' : '')` and broke them —
-  // S3923 fired on the original `' ' : ' '` because both branches
-  // were the literal space, but the right resolution was to drop the
-  // ternary entirely (no condition = no S3923), not to invent a
-  // condition.
+  // Leading space only mid-word. The trailing space is unconditional: the
+  // next spoken phrase needs a separator whatever follows, and at EOF
+  // there is nothing to collide with. Pinned by
+  // tests/dom/dictationCommit.test.ts.
   const needsLeadSpace = /\w/.test(charBefore)
   const insert = (needsLeadSpace ? ' ' : '') + trimmed + ' '
 
@@ -161,10 +132,8 @@ export function commitDictationFinal(
     ytext.insert(caret, insert)
   }, origin)
 
-  // Move the caret to the end of the inserted text. yCollab already
-  // syncs via Y.js, but CodeMirror doesn't automatically move the
-  // local selection — without this, the caret stays at the old
-  // position and the NEXT phrase lands in the wrong spot.
+  // yCollab syncs the text but doesn't move the local selection; without
+  // this the NEXT phrase would land at the old caret position.
   const newPos = caret + insert.length
   view.dispatch({ selection: { anchor: newPos } })
 }

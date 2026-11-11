@@ -54,7 +54,6 @@ import { listCustomDomainsForUser } from '../../repos/customDomains'
 //   themes.json                     ← saved themes
 //   ai/sessions.ndjson
 //   ai/messages.ndjson              ← prompt + tool-call history
-//   ai/usage.ndjson                 ← per-period interaction counter
 //   ai/providers.json               ← BYOK provider configs (never the key)
 //   activity.ndjson                 ← rows where user_id = $userId
 //   audit.ndjson                    ← rows scoped to or by the user
@@ -190,10 +189,7 @@ export async function buildExportZip(userId: number): Promise<BuildExportZipResu
   const invitesCount = await addWorkspaceInvitesEntry(entries, userId, userRow.email)
   const themesCount = await addThemesEntry(entries, db, userId)
   const { sessionsCount, messagesCount } = await addAiEntries(entries, db, userId)
-  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
-  // No usage history to export — LiteLLM's spend logs are operator-
-  // facing only. If a user requests historical AI usage in the future,
-  // re-add via a separate `/spend/logs` proxy.
+  // No AI usage history is exported: LiteLLM's spend logs are operator-facing only.
   const activityCount = await addActivityLogEntry(entries, db, userId)
   const auditCount = await addAuditLogEntry(entries, db, userId)
   const consentCount = await addConsentLogEntry(entries, db, userId)
@@ -248,7 +244,7 @@ function buildProfileEntry(userRow: typeof users.$inferSelect) {
     login: userRow.login,
     githubLinked: userRow.githubId !== null,
     googleLinked: userRow.googleId !== null,
-    // Generic OIDC (WP7b): the issuer is the instance operator's own IdP;
+    // Generic OIDC: the issuer is the instance operator's own IdP;
     // the subject is an opaque identifier, kept out like the GitHub/Google ids.
     oidcLinked: userRow.oidcSubject !== null,
     oidcIssuer: userRow.oidcIssuer,
@@ -679,7 +675,7 @@ async function addWorkspaceSubscriptionsEntry(entries: Entries, userId: number):
   return rows.length
 }
 
-/** Personal AI credit top-ups (always written; WP4). */
+/** Personal AI credit top-ups (always written). */
 async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<number> {
   const rows = await listGrants({ type: 'user', id: String(userId) })
   entries['billing/ai_credits.json'] = strToU8(JSON.stringify(rows.map(r => ({
@@ -696,7 +692,7 @@ async function addCreditGrantsEntry(entries: Entries, userId: number): Promise<n
 }
 
 /**
- * Single sign-on (WP14): the workspace identity providers this account
+ * Single sign-on: the workspace identity providers this account
  * is linked to — which workspace, the protocol, the subject the IdP
  * knows you by, whether provisioning (SCIM) disabled it, last sign-in.
  */
@@ -723,7 +719,7 @@ async function addSsoIdentitiesEntry(entries: Entries, userId: number): Promise<
 }
 
 /**
- * Workspace guests (WP11): documents shared with this account as a
+ * Workspace guests: documents shared with this account as a
  * guest, and the shares this account granted to guests.
  */
 async function addDocumentSharesEntry(entries: Entries, userId: number): Promise<void> {
@@ -749,7 +745,7 @@ async function addDocumentSharesEntry(entries: Entries, userId: number): Promise
   }, null, 2))
 }
 
-/** Brand kit (WP10): the fonts and logos this account uploaded to a workspace. */
+/** Brand kit: the fonts and logos this account uploaded to a workspace. */
 async function addBrandAssetsEntry(entries: Entries, userId: number): Promise<void> {
   const rows = await useDatabase().select({
     workspaceId: workspaceBrandAssets.workspaceId,
@@ -763,7 +759,7 @@ async function addBrandAssetsEntry(entries: Entries, userId: number): Promise<vo
   entries['brand_assets.json'] = strToU8(JSON.stringify(rows.map(r => ({ ...r, createdAt: r.createdAt.toISOString() })), null, 2))
 }
 
-/** Publishing (WP13): web pages of documents you own, your custom domains. */
+/** Publishing: web pages of documents you own, your custom domains. */
 async function addPublishingEntries(entries: Entries, userId: number): Promise<void> {
   const pages = await listPublishedPagesForOwner(userId)
   entries['published_pages.json'] = strToU8(JSON.stringify(pages.map(p => ({

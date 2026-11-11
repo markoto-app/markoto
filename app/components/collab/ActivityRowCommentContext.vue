@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { parseCommentBody } from '~/utils/comments/commentBody'
 
-// Lazy fetcher for an activity-row's comment-thread context. Renders
-// every comment in the thread, with the row's focus entry visually
-// highlighted. We deliberately don't reuse `<CommentItem>` because
-// (a) it ships action buttons (delete / resolve) that don't make
-// sense in a read-only history view, and (b) we want a tighter,
-// chat-bubble-style layout that fits the narrow sidebar width.
+// Fetches the comment thread behind an activity row and highlights the row's
+// own entry. Doesn't reuse `<CommentItem>`: its delete/resolve actions make no
+// sense in read-only history, and the narrow sidebar needs a tighter layout.
 
 interface CommentContextRow {
   entryId: string
@@ -63,10 +60,8 @@ function formatTime(ms: number): string {
   return new Date(ms).toLocaleString()
 }
 
-// Strip mention tokens (`@[Name](user:N)` and the bare `@ai` form)
-// to plain text for display. Matches `CommentItem` rendering in
-// spirit but inline-only — we don't have room for mention pills in
-// this narrow drawer view.
+// Strips mention tokens (`@[Name](user:N)` and bare `@ai`) to plain text; the
+// narrow drawer has no room for mention pills.
 function plainBody(body: string): string {
   return parseCommentBody(body).map(segText).join('')
 }

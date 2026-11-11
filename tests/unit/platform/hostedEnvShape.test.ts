@@ -116,7 +116,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('NUXT_FREE_TIER_TOTAL_BUDGET_USD')).toBe('500')
   })
 
-  it('narrows the free tier\'s plan limits (Phase A entitlements)', () => {
+  it('narrows the free tier\'s plan limits (plan entitlements)', () => {
     expect(vars.get('TIER_FREE_MEMBERS_PER_WORKSPACE')).toBe('3')
     expect(vars.get('TIER_FREE_HISTORY_DAYS')).toBe('30')
     expect(vars.get('TIER_FREE_SAVED_THEMES')).toBe('3')
@@ -150,7 +150,7 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(config).toContain(`- model_name: ${vars.get('NUXT_AI_DEFAULT_CHAT_MODEL')}\n`)
   })
 
-  it('image / voice / strong-model defaults are platform aliases, locked for the free tier (WP5)', () => {
+  it('image / voice / strong-model defaults are platform aliases, locked for the free tier', () => {
     expect(vars.get('NUXT_AI_DEFAULT_IMAGE_MODEL')).toBe('flux-2-pro')
     expect(vars.get('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL')).toBe('voxtral-mini-transcribe')
     expect(vars.get('NUXT_AI_DEFAULT_CHAT_STRONG_MODEL')).toBe('mistral-small-2603')

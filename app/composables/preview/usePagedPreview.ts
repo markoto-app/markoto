@@ -26,28 +26,14 @@ import {
 /**
  * Preview pane backed by a persistent sandboxed (opaque-origin) iframe.
  *
- * Why an iframe instead of rendering paged.js directly into the host page:
- *
- *   paged.js was designed to paginate a static document once. It mutates
- *   global state — appends `<style>` elements to `document.head`, sets
- *   `:root` custom properties — and re-paginates the entire doc on every
- *   call. When you re-run paged.js into the same window on every keystroke,
- *   the new render's stylesheet retroactively re-styles the OLD pages
- *   still on screen (causing visible reflow), accumulated stylesheets pile
- *   up in head, and subpixel layout differences between renders show up
- *   as horizontal jitter on the live preview.
- *
- *   We tried six rounds of mitigations (off-screen swap, style cleanup,
- *   height pin, position-fixed, sequential queueing, adaptive debounce)
- *   and the symptom kept resurfacing in different forms. The conclusion:
- *   we were fighting paged.js's design assumption that it owns the
- *   document. The clean fix is to give it its own document context.
- *
- *   Inside an iframe, every paged.js head-style mutation, every :root
- *   var, every layout reflow stays scoped to the iframe. The parent app
- *   is fully insulated. Even the iframe's internal flicker is bounded —
- *   it's just the preview pane visibly re-rendering, which the user
- *   already expects to do during pagination.
+ * Why an iframe instead of rendering paged.js into the host page: paged.js
+ * assumes it owns the document. It appends `<style>` elements to
+ * `document.head`, sets `:root` custom properties and re-paginates the
+ * whole document on every call, so re-running it in one window per
+ * keystroke lets each new stylesheet restyle the old pages still on screen
+ * (visible reflow, accumulating styles, horizontal jitter). In its own
+ * iframe every head mutation, `:root` variable and reflow stays scoped to
+ * the frame and the parent app is insulated.
  *
  * The iframe has NO `allow-same-origin` (see app/utils/preview/previewFrame.ts for
  * the isolation model): everything crosses as a validated postMessage —
@@ -64,11 +50,11 @@ export function usePagedPreview(opts: {
    * title and chart number formats follow it (`documentTexts`).
    */
   language?: Ref<string>
-  /** Owning document — scopes which uploads custom CSS may reference.
+  /** Owning document: scopes which uploads custom CSS may reference.
    *  '' = no document (marketing `::try-it`): no file token is fetched. */
   docId: Ref<string>
   container: Ref<HTMLElement | null>
-  /** The workspace's brand-kit fonts (WP10); none outside a workspace. */
+  /** The workspace's brand-kit fonts; none outside a workspace. */
   brandFonts?: Ref<readonly BrandFont[] | null>
   /**
    * Fired when the user presses Cmd/Ctrl+P while focus is INSIDE the
@@ -106,20 +92,14 @@ export function usePagedPreview(opts: {
   const error = ref<string | null>(null)
 
   let iframe: HTMLIFrameElement | null = null
-  // If a render is requested before the iframe is ready OR while a
-  // previous render is still in flight, queue it. Only the latest
-  // pending render matters — earlier ones are coalesced.
+  // A render requested before the iframe is ready or while another is in
+  // flight is queued; only the latest matters, earlier ones coalesce.
   //
-  // Why we serialize despite the iframe-side `mount` ⇆ `pending` swap:
-  // paged.js's `previewer.preview(...)` is async and renders INTO
-  // `#pending`. If a second render fires before the first's
-  // `replaceChildren` swap completes, the second clears pending mid-
-  // render-of-the-first AND begins its own preview. Whichever swap
-  // runs last races against an empty pending, leaving `#mount` empty
-  // even though both renders "succeeded". The user sees an empty
-  // preview pane (and screenshots / `.pagedjs_page` waits time out).
-  // Tracking this with `isPaginating` + a pendingRender flag confines
-  // any one in-flight render to one and only one swap.
+  // Serialising is required despite the iframe-side `mount` / `pending`
+  // swap: paged.js's async `previewer.preview(...)` renders INTO
+  // `#pending`, so a second render firing before the first's
+  // `replaceChildren` swap clears `#pending` mid-render and the last swap
+  // can leave `#mount` empty even though both renders "succeeded".
   let pendingRender = false
 
   function handleMessage(e: MessageEvent) {
@@ -137,7 +117,7 @@ export function usePagedPreview(opts: {
     } else if (data.type === 'paginated') {
       pageCount.value = data.pageCount
       isPaginating.value = false
-      // Drain any render request that arrived while we were busy.
+      // Drain a render request that arrived while busy.
       if (pendingRender) {
         pendingRender = false
         render()
@@ -176,9 +156,9 @@ export function usePagedPreview(opts: {
   }
 
   // Image access token for the opaque-origin iframe (its requests carry
-  // no cookie). `render()` stays synchronous (pagination serialisation
-  // above): when a token is needed but missing / about to expire it kicks
-  // off a fetch and re-enters once it is in.
+  // no cookie). `render()` stays synchronous (see above): when a token is
+  // needed but missing / about to expire it starts a fetch and re-enters
+  // once the token is in.
   const fileTokens = createFileTokenSource(() => opts.docId.value, opts.getDocJwt)
   let fileTokenPending = false
 
@@ -250,10 +230,8 @@ export function usePagedPreview(opts: {
       pendingRender = true
       return
     }
-    // Serialize against in-flight pagination — concurrent renders race
-    // the `#pending` ⇆ `#mount` swap inside the iframe and can land an
-    // empty `#mount`. The 'paginated' / 'iframe-error' handlers drain
-    // `pendingRender` once the current run terminates.
+    // Serialize against in-flight pagination (see `pendingRender`); the
+    // 'paginated' / 'iframe-error' handlers drain it when the run ends.
     if (isPaginating.value) {
       pendingRender = true
       return
@@ -264,9 +242,8 @@ export function usePagedPreview(opts: {
     const current = opts.theme.value
     const docId = opts.docId.value
     const theme = themeImagesForDoc(isValidTheme(current) ? current : defaultTheme, docId).theme
-    // Compose the final HTML through the shared helper so live preview,
-    // browser print, and the server-rendered PDF stay byte-identical
-    // (one place to change cover/dropcap composition order).
+    // The shared helper keeps live preview, browser print and the
+    // server-rendered PDF byte-identical.
     const language = opts.language?.value ?? ''
     const html = composeFinalHtml({
       theme,
@@ -301,10 +278,7 @@ export function usePagedPreview(opts: {
     if (frame && isReady.value) postToFrame(frame, { type: 'color-mode', dark: appIsDark() })
   }
 
-  // 250ms debounce. Lower than the previous 800ms because the iframe
-  // contains the layout cost — re-paginates don't cause cross-contamination
-  // and there's no off-screen-swap dance to amortize. Could probably go
-  // lower; tune based on user feel.
+  // The iframe contains the layout cost, so a short debounce is enough.
   const debouncedRender = useDebounceFn(render, 250)
 
   let firstRender = true
@@ -321,12 +295,10 @@ export function usePagedPreview(opts: {
     watch(() => opts.zoom?.command.value.seq, () => sendZoom(true))
   }
 
-  // useEventListener auto-cleans on scope dispose — no manual
-  // removeEventListener in onUnmounted needed.
   useEventListener(globalThis, 'message', handleMessage)
 
-  // The iframe used to observe the parent's <html class> itself; with an
-  // opaque origin it can't, so the parent forwards every change.
+  // The opaque-origin iframe can't observe the parent's <html class>, so
+  // the parent forwards every change.
   useMutationObserver(
     () => (import.meta.client ? document.documentElement : null),
     sendColorMode,
@@ -338,12 +310,12 @@ export function usePagedPreview(opts: {
     iframe = document.createElement('iframe')
     iframe.title = 'Document preview'
     iframe.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: transparent;'
-    // Sandbox: scripts only. NO allow-same-origin — the preview renders
+    // Sandbox: scripts only. NO allow-same-origin: the preview renders
     // content any editor (or the AI) controls, and an opaque origin keeps
     // a script injection there away from the app's cookies, storage, DOM
     // and same-origin APIs. Also omitted: allow-forms, allow-popups,
-    // allow-modals, allow-top-navigation — the preview must never
-    // navigate the host or open windows. See docs/SECURITY-HARDENING.md.
+    // allow-modals, allow-top-navigation (the preview must never navigate
+    // the host or open windows). See docs/SECURITY-HARDENING.md.
     iframe.setAttribute('sandbox', PREVIEW_SANDBOX)
     iframe.srcdoc = buildPreviewSrcdoc({
       parentOrigin: globalThis.location.origin,

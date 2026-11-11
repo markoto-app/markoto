@@ -245,8 +245,7 @@ describe('GET /api/docs/:docId/token', () => {
     })
 
     it('viewer bypasses password gate with read-only JWT', async () => {
-      // Bug-fix regression guard: pre-fix, viewers on password-protected
-      // docs got requiresPassword. Now they bypass — read-only.
+      // Viewers on password-protected docs bypass requiresPassword (read-only).
       const creator = await createUser()
       const member = await createUser()
       const ws = await createWorkspace(creator.id)

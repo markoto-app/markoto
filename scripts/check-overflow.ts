@@ -3,7 +3,7 @@
 // running instance (or the paths given) at 375 and 390 px in headless
 // Chromium and reports pages wider than the viewport, with the outermost
 // elements that stick out. Exits 1 on any overflow. Advisory, no CI job
-// (docs/CHEATSHEET.md → "SEO + page speed").
+// (docs/contributing/CHEATSHEET.md → "SEO + page speed").
 //
 //   bun scripts/check-overflow.ts http://127.0.0.1:3000 [/path …]
 

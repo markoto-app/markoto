@@ -2,9 +2,7 @@
  * Awareness color palette for live-collaboration cursors and presence
  * rings. Calibrated for the paper aesthetic — muted, low-chroma
  * pastels that sit naturally on the bone (sumi-50) page surface
- * without competing with the seal red. The previous palette used
- * bright tailwind primaries (`#3b82f6`, `#ef4444`, etc.) which read
- * "kanban app" against the warm chrome.
+ * without competing with the seal red.
  *
  * Each entry is a desaturated tone in the rough vicinity of a
  * recognizable hue family — sage, slate, rose, ochre, lavender, etc.

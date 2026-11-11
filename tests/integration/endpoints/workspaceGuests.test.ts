@@ -5,7 +5,7 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 import { clearRecentKicks, waitForKick } from '../setup/syncProbe'
 
-// Workspace guests (WP11): a guest sees ONLY the documents shared with
+// Workspace guests: a guest sees ONLY the documents shared with
 // them — no workspace page, no other document, no knowledge — takes no
 // seat, and is capped at 5 per paid seat in a Team / Business
 // workspace. Admins and editors share documents with them; admins see

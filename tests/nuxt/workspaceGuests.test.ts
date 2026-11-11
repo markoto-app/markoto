@@ -4,7 +4,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { SharingGuestShares, WorkspaceUsagePanel } from '#components'
 import { readBody } from 'h3'
 
-// Workspace guests UI (WP11): the share dialog's guest section and the
+// Workspace guests UI: the share dialog's guest section and the
 // admins' usage tab.
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>

@@ -28,7 +28,7 @@
  *   bun scripts/render-theme-thumbs.ts --base http://127.0.0.1:3309 [--gallery | --templates] [id …]
  *
  * Needs what render-theme-shots needs with `--patch`: a TEST_MODE=1 app with
- * NUXT_ANON_GATE_ENABLED=false (see docs/TEMPLATE-WORKFLOW.md), plus
+ * NUXT_ANON_GATE_ENABLED=false (see docs/contributing/TEMPLATE-WORKFLOW.md), plus
  * ImageMagick (`magick`) with WebP support.
  */
 import { spawnSync } from 'node:child_process'

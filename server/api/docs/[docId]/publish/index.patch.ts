@@ -7,7 +7,7 @@ import { assertNotModerationRestricted } from '../../../../utils/privacy/moderat
 import { PUBLISH_ERROR_CODES } from '~~/shared/config/publish'
 
 // PATCH /api/docs/:docId/publish — {slug?, indexable?} without
-// re-rendering (WP13). A new slug frees the old address at once.
+// re-rendering. A new slug frees the old address at once.
 export default defineEventHandler(async (event) => {
   const { userId, docId, doc } = await requirePublishManager(event)
   assertNotModerationRestricted(doc)

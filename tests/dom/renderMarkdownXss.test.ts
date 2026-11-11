@@ -423,8 +423,8 @@ describe('renderMarkdown — allowlist semantics', () => {
     expect(p?.getAttribute('style')?.replaceAll(/\s+/g, '')).toBe('text-align:center')
   })
 
-  // Regression: DOMPurify does not parse CSS, so `style` values used to
-  // pass through verbatim (overlays, external url() beacons).
+  // DOMPurify does not parse CSS, so `style` values must be sanitised separately
+  // (overlays, external url() beacons).
   it.each([
     ['position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:9;background-color:red', ['fixed', 'z-index', '100vw'], 'top: 0; left: 0; background-color: red'],
     ['color:red;background-image:url(x.png)', ['url(', 'background-image'], 'color: red'],

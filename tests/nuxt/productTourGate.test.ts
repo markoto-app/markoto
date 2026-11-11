@@ -5,7 +5,7 @@ import { defineComponent, h } from 'vue'
 import { NuxtPage } from '#components'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 
-// The product tour (WP11) replaces the home page's hero only for
+// The product tour replaces the home page's hero only for
 // LOGGED-OUT visitors on an instance with NUXT_MARKETING_SITE_ENABLED
 // (hosted markoto.app). Self-hosted instances and signed-in users keep
 // the plain hero + dashboard.

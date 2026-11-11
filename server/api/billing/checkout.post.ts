@@ -9,33 +9,19 @@ import { assertBillingEnabled } from '../../utils/billing/billingMode'
 import { stripePriceIdFor } from '../../utils/billing/stripePrices'
 import { isBillingInterval, isCurrency } from '~~/shared/config/pricing'
 
-// POST /api/billing/checkout — plan purchase/upgrade endpoint. Two
-// outcomes depending on the caller's current Stripe state:
+// POST /api/billing/checkout: plan purchase/upgrade. Without a live
+// subscription it creates a Stripe Checkout Session and returns
+// `{ url, sessionId }` for a full-page redirect; with one (upgrade between paid
+// tiers) it swaps the price on the EXISTING subscription in place (prorated,
+// charged now) and returns `{ updated: true, plan }`. Never creates a second
+// concurrent subscription.
 //
-//   - No live subscription → creates a Stripe Checkout Session and
-//     returns `{ url, sessionId }` for a full-page redirect.
-//   - Live subscription (upgrade between paid tiers) → swaps the price
-//     on the EXISTING subscription in place (prorated, charged now)
-//     and returns `{ updated: true, plan }`. Never creates a second
-//     concurrent subscription.
+// `client_reference_id = userId` lets the `checkout.session.completed` webhook
+// associate the subscription with our user; `customer_email` pre-fills the form.
 //
-// Flow:
-//   1. Client clicks "Upgrade to Pro" on /pricing.
-//   2. Frontend POSTs { plan: 'pro' } here.
-//   3. Handler creates a Stripe Checkout Session, gets back a URL.
-//   4. Frontend does `window.location.href = url`.
-//   5. User lands on Stripe's hosted Checkout page.
-//   6. On completion Stripe redirects back to our `success_url` and
-//      the `checkout.session.completed` webhook fires server-side.
-//
-// We pass `client_reference_id = userId` so the webhook can associate
-// the resulting subscription with our user row. We also pass
-// `customer_email` so Stripe pre-fills the payment form.
-
-// Personal checkout sells Pro only — monthly or annual, in EUR or CHF
-// (the Stripe price catalogue, server/utils/billing/stripePrices.ts). Team /
-// Business are workspace subscriptions bought by a workspace admin
-// (pricing plan WP3).
+// Personal checkout sells Pro only (monthly or annual, EUR or CHF; the Stripe
+// price catalogue is server/utils/billing/stripePrices.ts). Team / Business are
+// workspace subscriptions bought by a workspace admin.
 
 function customerOrEmailFields(stripeCustomerId: string | null, email: string | null): { customer: string } | { customer_email: string } | Record<string, never> {
   if (stripeCustomerId) return { customer: stripeCustomerId }
@@ -49,9 +35,8 @@ export default defineEventHandler(async (event) => {
   assertBillingEnabled()
   const userId = session.user.id
 
-  // Rate limit: every call creates a real Stripe Checkout Session — a
-  // looping client would generate unbounded abandoned sessions and
-  // Stripe API load. 10/min is far above any human retry pattern.
+  // Every call creates a real Stripe Checkout Session; 10/min is far above any
+  // human retry pattern and stops a looping client flooding Stripe.
   if (!(await checkRateLimit('billing-checkout', String(userId), 10, 60_000))) {
     throw createError({
       statusCode: 429,
@@ -87,9 +72,7 @@ export default defineEventHandler(async (event) => {
   }
   const config = useRuntimeConfig()
 
-  // Pull user's email + existing Stripe anchors. If they've subscribed
-  // before (e.g. subscribed → cancelled → now upgrading again), reuse
-  // the same Customer so Stripe dashboards show one continuous history.
+  // Reuse an existing Customer so Stripe shows one continuous history.
   const db = useDatabase()
   const rows = await db.select({
     email: users.email,
@@ -103,8 +86,8 @@ export default defineEventHandler(async (event) => {
   }
   const { email, stripeCustomerId, stripeSubscriptionId, billingCurrency } = userRow
 
-  // A Stripe customer keeps one currency for life: once a user has paid in
-  // EUR they can't check out in CHF (Stripe would refuse mid-checkout).
+  // A Stripe customer keeps one currency for life, so a user who paid in EUR
+  // can't check out in CHF (Stripe would refuse mid-checkout).
   const currency = isCurrency(body?.currency) ? body.currency : (billingCurrency ?? 'eur')
   if (billingCurrency && stripeCustomerId && currency !== billingCurrency) {
     throw createError({
@@ -119,14 +102,12 @@ export default defineEventHandler(async (event) => {
   }
   requirePaidTermsAccepted(body)
 
-  // ── In-place plan change ────────────────────────────────────────────
-  // A Checkout Session in `mode: 'subscription'` ALWAYS creates a NEW
-  // subscription. If this user already has a live one (monthly ↔ annual,
-  // or a row the webhook hasn't caught up with), that would leave them with TWO concurrent
-  // subscriptions billing the same customer. Probe the recorded
-  // subscription and, when it's live, swap its price in place instead —
-  // the `customer.subscription.updated` webhook applies the plan +
-  // period + LiteLLM budget exactly like a Checkout-born change.
+  // In-place plan change. A Checkout Session in `mode: 'subscription'` ALWAYS
+  // creates a NEW subscription, which would leave a user with a live one
+  // (monthly <-> annual, or a row the webhook hasn't caught up with) billed
+  // twice. So probe the recorded subscription and, when live, swap its price;
+  // the `customer.subscription.updated` webhook applies plan, period and
+  // LiteLLM budget like a Checkout-born change.
   let liveSub
   try {
     liveSub = await findLiveSubscription(stripe, stripeSubscriptionId)
@@ -136,8 +117,8 @@ export default defineEventHandler(async (event) => {
     Sentry.captureException(e, {
       tags: { component: 'billing', event: 'subscription_probe_failed', userId: String(userId) }
     })
-    // Fail CLOSED: proceeding to Checkout while we can't SEE the
-    // existing subscription is exactly how double-billing happens.
+    // Fail CLOSED: going to Checkout without seeing the existing subscription
+    // is how double-billing happens.
     throw createError({ statusCode: 502, message: 'Could not verify your current subscription. Please try again.' })
   }
   if (liveSub) {
@@ -153,24 +134,18 @@ export default defineEventHandler(async (event) => {
       Sentry.captureException(e, {
         tags: { component: 'billing', event: 'plan_change_failed', userId: String(userId) }
       })
-      // `error_if_incomplete` surfaces payment failures here with
-      // nothing changed — the user fixes their card in the Portal.
+      // `error_if_incomplete` surfaces payment failures here, nothing changed.
       throw createError({ statusCode: 502, message: `Could not change your plan: ${msg}` })
     }
-    // The webhook is the source of truth for users.plan; the client
-    // just shows success + refetches billing (which may briefly still
-    // read the old plan until the webhook lands — acceptable).
+    // The webhook is the source of truth for users.plan; the client may briefly
+    // read the old plan until it lands.
     await recordPaidTermsAcceptance(event, userId, { kind: 'plan', subject: { type: 'user', id: String(userId) }, item: `${plan}_${interval}` })
     return { updated: true, plan }
   }
 
-  // ── Fresh subscription via Checkout ─────────────────────────────────
-  // `success_url` / `cancel_url` from runtime config. Supports
-  // `{CHECKOUT_SESSION_ID}` — Stripe substitutes the real session id
-  // after completion so our post-checkout page can fetch the order
-  // state if we want. Don't URL-encode the placeholder; Stripe reads
-  // it verbatim. Base URL comes from the Origin (browsers always send
-  // it on POST) with Host as fallback — both survive Traefik.
+  // `success_url` / `cancel_url` are built from the Origin (always sent on POST)
+  // with Host as fallback; both survive Traefik. Stripe substitutes
+  // `{CHECKOUT_SESSION_ID}` itself, so don't URL-encode the placeholder.
   const originHeader: string | undefined = getRequestHeader(event, 'origin')
   const hostHeader: string | undefined = getRequestHeader(event, 'host')
   const origin = originHeader ?? hostHeader ?? ''
@@ -178,14 +153,11 @@ export default defineEventHandler(async (event) => {
   const successUrl = base + (config.stripe.successUrl || '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}')
   const cancelUrl = base + (config.stripe.cancelUrl || '/pricing?checkout=cancelled')
 
-  // Stripe Tax — opt-in via NUXT_STRIPE_AUTOMATIC_TAX=1 because
-  // `automatic_tax` HARD-ERRORS unless Stripe Tax is activated + an
-  // origin address is configured in the dashboard. Enable the flag as
-  // part of the live-mode launch checklist, not before. With an
-  // existing customer, Stripe additionally requires `customer_update`
-  // permissions to save the collected address/name back to the
-  // Customer. `tax_id_collection` lets B2B customers enter a VAT id
-  // (EU reverse charge).
+  // Stripe Tax is opt-in via NUXT_STRIPE_AUTOMATIC_TAX=1: `automatic_tax`
+  // hard-errors unless Stripe Tax is activated and an origin address is set in
+  // the dashboard. With an existing customer Stripe also needs
+  // `customer_update` to save the collected address/name back.
+  // `tax_id_collection` lets B2B customers enter a VAT id (EU reverse charge).
   const taxEnabled = ['1', 'true', 'yes'].includes(String(config.stripe.automaticTax || '').toLowerCase())
   const taxFields = taxEnabled
     ? {
@@ -201,14 +173,12 @@ export default defineEventHandler(async (event) => {
       mode: 'subscription',
       client_reference_id: String(userId),
       line_items: [{ price: priceId, quantity: 1 }],
-      // The webhook routes by customer; the metadata names the subject
-      // explicitly as well (pricing plan WP2).
+      // The webhook routes by customer; metadata names the subject explicitly too.
       metadata: { subject_type: 'user', subject_id: String(userId) },
       subscription_data: { metadata: { subject_type: 'user', subject_id: String(userId) } },
       success_url: successUrl,
       cancel_url: cancelUrl,
-      // Pass the customer if we have one; else pass email so Stripe
-      // creates a new Customer linked to that address.
+      // Existing customer, else email so Stripe creates one.
       ...customerOrEmailFields(stripeCustomerId, email),
       ...taxFields
     })

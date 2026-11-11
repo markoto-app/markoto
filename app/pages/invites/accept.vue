@@ -39,7 +39,7 @@ async function onAct(action: 'accept' | 'decline'): Promise<void> {
     })
     clearPendingInviteToken()
     if (action === 'accept' && typeof res.workspaceId === 'string') {
-      // A guest (WP11) has no workspace page: their shared documents
+      // A guest has no workspace page: their shared documents
       // are on the dashboard.
       await router.push(res.role === 'guest' ? '/' : `/w/${res.workspaceId}`)
       return

@@ -27,8 +27,9 @@ import type { ToolStatusPhase } from './toolContext'
 // "changed" ping on `ai:session-channel:{sid}:notify` (Valkey pub/sub,
 // reaches every instance) so open streams re-read right away. The ping
 // carries no data — subscribers re-read the keys, so a lost ping only
-// delays an update until the stream's periodic re-read. One key per field, each written by exactly one
-// party, so concurrent writes never read-modify-write the same value.
+// delays an update until the stream's periodic re-read. One key per
+// field, each written by exactly one party, so concurrent writes never
+// read-modify-write the same value.
 // Keys outlive the session by `CHANNEL_TTL_MS` so the client can pick up
 // the final answer / error after the AI client has left the document.
 //

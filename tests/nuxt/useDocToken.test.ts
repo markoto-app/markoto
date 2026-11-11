@@ -357,9 +357,7 @@ describe('useDocToken — independence between instances', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// getFreshToken — F5 token refresh on reconnect
-// ═══════════════════════════════════════════════════════════════════════
+// getFreshToken — token refresh on reconnect
 
 // Build a syntactically-real JWT (header.payload.sig) whose payload
 // carries an `exp` claim `expSecondsFromNow` in the future (negative =
@@ -376,7 +374,7 @@ function makeJwt(expSecondsFromNow: number, marker: string): string {
   return `${head}.${payload}.sig`
 }
 
-describe('useDocToken — getFreshToken (F5)', () => {
+describe('useDocToken — getFreshToken', () => {
   it('reuses the current token while it is comfortably valid (no refetch)', async () => {
     response.current = { token: makeJwt(3600, 'valid'), readOnly: false, accessMode: 'open-edit', ownerId: null }
     const t = useDocToken('doc-123')

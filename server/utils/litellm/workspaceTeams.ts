@@ -8,7 +8,7 @@ import { memberLimitUsd, pooledFromRow, workspaceAiBudgetUsd, workspacePoolCaps,
 import { isBillingEnabled } from '../billing/billingMode'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 
-// One LiteLLM team per Team / Business workspace (pricing plan WP3).
+// One LiteLLM team per Team / Business workspace.
 //
 //   team  `markoto-ws-<workspaceId>`: max_budget = seats × per-seat budget,
 //         budget_duration 30d — the workspace's pooled AI budget.
@@ -91,7 +91,7 @@ export async function readWorkspaceTeam(workspaceId: string): Promise<TeamInfo |
 export async function ensureWorkspaceTeam(pool: PooledWorkspace): Promise<string> {
   const teamId = workspaceTeamId(pool.workspaceId)
   // Seats × per-seat (adjusted for seat changes in the current window)
-  // + the workspace's top-up credits (WP4).
+  // + the workspace's top-up credits.
   const budget = Math.round((workspaceAiBudgetUsd(pool)
     + await creditBudgetExtraUsd({ type: 'workspace', id: pool.workspaceId })) * 10_000) / 10_000
   if (!isStubMode()) {
@@ -171,7 +171,7 @@ async function readMember(workspaceId: string, userId: number): Promise<MemberRo
       litellmKeyToken: workspaceMembers.litellmKeyToken
     })
     .from(workspaceMembers)
-    // Guests (WP11) use their own AI budget, never the workspace's.
+    // Guests use their own AI budget, never the workspace's.
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), eq(workspaceMembers.userId, userId), ne(workspaceMembers.role, 'guest')))
     .limit(1))[0]
   return row ?? null

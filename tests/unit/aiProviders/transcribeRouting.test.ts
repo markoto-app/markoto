@@ -1,21 +1,16 @@
 import { describe, it, expect } from 'vitest'
 
-// The `/api/ai/transcribe` handler routes through Voxtral Mini
-// Transcribe via the LiteLLM proxy. (Pre-Phase-5: Phase 2 dual-mode
-// between Cloud STT and Voxtral via `runtimeConfig.aiTranscribeProvider`;
-// that fork was removed once the migration completed.) The full
-// handler is exercised by the integration suite (it spawns a real
-// Nitro subprocess); these unit tests pin the small bits of routing
-// logic that don't need an HTTP stack:
+// The `/api/ai/transcribe` handler routes through Voxtral Mini Transcribe via the LiteLLM proxy. The full
+// handler is exercised by the integration suite (it spawns a real Nitro subprocess); these unit tests pin the
+// small bits of routing logic that don't need an HTTP stack:
 //
 //   - language code translation (BCP-47 `en-US` → ISO `en` for Voxtral)
 //   - the JSON content shape we send to the custom provider
 //   - the model id the handler reads from runtime config
 //
-// We intentionally don't unit-test the full handler — the request body
-// parsing, MIME validation, rate limiting, and provider selection
-// all live behind `defineEventHandler` which is hard to mock without
-// booting Nitro. Integration tests already cover that surface.
+// We intentionally don't unit-test the full handler: the request body parsing, MIME validation, rate limiting,
+// and provider selection all live behind `defineEventHandler` which is hard to mock without booting Nitro.
+// Integration tests already cover that surface.
 
 describe('transcribe — language code translation for Voxtral', () => {
   // Voxtral expects ISO codes ('en', 'de', 'fr'). Our client sends

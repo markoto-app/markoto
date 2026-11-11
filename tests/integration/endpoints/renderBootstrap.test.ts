@@ -197,11 +197,9 @@ describe('GET /api/_internal/render-bootstrap', () => {
     expect(await res.json()).toMatchObject({ fileIds: ['AbCdEfGhIjKl.png'] })
   })
 
-  // Regression: an anonymous doc's theme (and any property change made by
-  // someone other than the owner) lives only in Y.js `meta` — the row's
-  // theme stays NULL because only the owner's editor persists it via
-  // PUT /meta. The bootstrap used to read the row, so the server PDF of an
-  // anonymous doc came out in the default theme.
+  // An anonymous doc's theme (and any property change made by someone other than the owner) lives only in
+  // Y.js `meta`; the row's theme stays NULL because only the owner's editor persists it via PUT /meta. The
+  // bootstrap must read Y.js meta, otherwise the server PDF of an anonymous doc comes out in the default theme.
   it('takes theme + properties from the replayed Y.js meta (anonymous doc, row theme NULL)', async () => {
     await ensureYjsTable()
     const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme

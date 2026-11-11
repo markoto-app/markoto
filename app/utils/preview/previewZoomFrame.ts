@@ -49,8 +49,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
   const MAX = 3
   /**
    * Smallest overview thumbnail (CSS px on screen) and the gap between
-   * them (about the size of the product video's grid). Narrow panes
-   * (phones) go down to ~100 px so three fit across.
+   * them. Narrow panes (phones) go down to ~100 px so three fit across.
    */
   const THUMB_MAX_MIN = 120
   const THUMB_FLOOR = 96
@@ -261,7 +260,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     if (applyLayout(remeasure)) postState()
   }
 
-  // ─── Resize: keep the page you're reading in view ──────────────────
+  // Resize: keep the page being read in view.
   let resizeFrame = 0
   window.addEventListener('resize', () => {
     if (resizeFrame) return
@@ -275,7 +274,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     })
   })
 
-  // ─── Keyboard: Ctrl/Cmd + = / - / 0 (same rule as zoomShortcutAction) ─
+  // Keyboard: Ctrl/Cmd + = / - / 0 (same rule as zoomShortcutAction).
   const isMac = /Mac|iPhone|iPad/.test(navigator.platform)
   document.addEventListener('keydown', (e) => {
     const mod = isMac ? e.metaKey : e.ctrlKey
@@ -289,7 +288,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     toParent({ type: 'zoom-request', action, page: 0 })
   }, true)
 
-  // ─── Overview: click a page to open it at fit width ───────────────
+  // Overview: click a page to open it at fit width.
   document.addEventListener('click', (e) => {
     if (mode !== 'overview') return
     const target = e.target
@@ -300,8 +299,7 @@ function installPreviewZoom(toParent: (msg: Record<string, unknown>) => void): P
     toParent({ type: 'zoom-request', action: 'page', page: pageList().findIndex(p => p === page) + 1 })
   }, true)
 
-  // ─── Gestures: Ctrl+wheel / trackpad pinch, touch pinch ───────────
-  // Applied live inside the frame (one layout per animation frame); the
+  // Gestures (Ctrl+wheel / trackpad pinch, touch pinch). Applied live inside the frame (one layout per animation frame); the
   // final factor goes to the parent, which stores it — or, pinched past
   // the minimum, switches to the overview.
   interface Gesture { base: number, factor: number, point: { x: number, y: number }, opened: boolean }

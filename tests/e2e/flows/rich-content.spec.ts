@@ -18,10 +18,6 @@ import { test, expect } from '../fixtures/flow'
 //   - Desktop: menubar Insert → submenu pick.
 //   - Mobile: Editor tab on the bottom-tab-bar → Insert grid in the
 //     `EditorCommandsPanel` drawer.
-// (Until Phase 6.30 there was a `rich-content-mobile.spec.ts`
-//  sibling carrying mobile-specific narration. Deleted as part of the
-//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
-//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 test('Rich content', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
 
@@ -67,7 +63,7 @@ test('Rich content', async ({ page, flow, editor }) => {
     await page.keyboard.insertText('\n\n')
   }
 
-  // ─── A real code block ──────────────────────────────────────────
+  // A real code block
   await flow.heading('Insert a code block', 3)
   await flow.narrate(
     'Code blocks pick up syntax highlighting from the language hint, '
@@ -142,7 +138,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   await page.keyboard.insertText('def fibonacci(n):\n    a, b = 0, 1\n    for _ in range(n):\n        yield a\n        a, b = b, a + b')
   await expect.poll(() => editor.page.docText()).toContain('```python\ndef fibonacci(n):\n    a, b = 0, 1\n')
 
-  // ─── An alert callout ───────────────────────────────────────────
+  // An alert callout
   await flow.heading('Add an alert callout', 3)
   await flow.narrate(
     'Alerts are GitHub-style callouts — five flavours (Note, Tip, '
@@ -214,7 +210,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   await cmContent.pressSequentially('Try Cmd / Ctrl + P to save this doc as a polished PDF.')
   await expect.poll(() => editor.page.docText()).toMatch(/^> \[!TIP\]\n> Try Cmd \/ Ctrl \+ P/m)
 
-  // ─── A math equation ────────────────────────────────────────────
+  // A math equation
   await flow.heading('Drop in a math equation', 3)
   await flow.narrate(
     'Math is typeset like in a paper — inline with $...$, block with '
@@ -270,7 +266,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   await cmContent.pressSequentially('\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}')
   await expect.poll(() => editor.page.docText()).toContain('$$\n\\sum_{i=1}^{n} i = \\frac{n(n+1)}{2}\n$$')
 
-  // ─── A Mermaid diagram ──────────────────────────────────────────
+  // A Mermaid diagram
   await flow.heading('Render a diagram', 3)
   await flow.narrate(
     'Diagrams use Mermaid — eight diagram kinds (flowchart, sequence, '
@@ -340,7 +336,7 @@ test('Rich content', async ({ page, flow, editor }) => {
     )
   }
 
-  // ─── See it all rendered ────────────────────────────────────────
+  // See it all rendered
   await flow.heading('Live preview shows the render', 3)
   await flow.narrate(
     'Every insert shows up in the preview pane the moment you finish '

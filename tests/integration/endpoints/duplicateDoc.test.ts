@@ -429,9 +429,8 @@ describe('POST /api/docs/:docId/duplicate', () => {
   })
 })
 
-// Regression: duplicated images kept the ORIGINAL uploader and were never
-// counted, so any workspace editor could multiply a colleague's images
-// (and fill the author's quota) without limit.
+// Duplicated images are attributed to the duplicator and counted, so an editor can't multiply a
+// colleague's images (and fill the author's quota) without limit.
 describe('POST /api/docs/:docId/duplicate — image storage quota', () => {
   const s3 = new S3Client({
     endpoint: 'http://127.0.0.1:8334',

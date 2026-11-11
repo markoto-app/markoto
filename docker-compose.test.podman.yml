@@ -5,7 +5,7 @@
 # or set COMPOSE_FILE=docker-compose.test.yml:docker-compose.test.podman.yml
 # in .env so `bun run test:integration:up` / `flows:up` pick it up.
 # Everything else in the test stack runs unchanged on rootless Podman.
-# See docs/CONTAINER-ENGINES.md.
+# See docs/contributing/CONTAINER-ENGINES.md.
 
 services:
   renderer-test:

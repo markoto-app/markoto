@@ -4,10 +4,8 @@
 //   ≥25% remaining → green
 //   10-25%         → orange
 //   <10%           → red
-// Click-to-open popover with full breakdown + upgrade CTA. Chose a
-// popover over a hover tooltip so the content can be richer (a real
-// styled card, not a bare browser tooltip) and so the upgrade button
-// is actually clickable without the tooltip disappearing.
+// Click-to-open popover (not a hover tooltip) so the content can be a real
+// card and the upgrade button stays clickable.
 //
 // Billing off (self-hosted / free-only SaaS): the AI-points meter stays
 // — every account still has a monthly AI budget that drains and
@@ -30,10 +28,10 @@ const router = useRouter()
 const { billing, refresh: refreshBilling } = useBilling()
 const { pointsRemaining, pointsTotal, fillRatio, isFreeAllowanceExhausted } = useAiCredits()
 const { billingEnabled, plansComingSoon } = useBillingMode()
-// Bring your own key (WP4): AI Points only measure platform-paid AI
-// (an operator's model-alias defaults). Calls on the user's own key
-// never touch them, so the meter is hidden when nothing the user can do
-// spends points — and says so when they mix own keys with defaults.
+// AI Points only measure platform-paid AI (an operator's model-alias
+// defaults). Calls on the user's own key never touch them, so the meter is
+// hidden when nothing the user can do spends points — and says so when they
+// mix own keys with defaults.
 const { anyPlatformBilled, availability } = useAiAvailability()
 const usesOwnKey = computed(() => {
   const a = availability.value
@@ -58,9 +56,7 @@ const pctRemaining = computed(() => {
 
 const barColor = computed(() => {
   const pct = pctRemaining.value
-  // Full-palette Tailwind classes so Tailwind's JIT picks them up at
-  // build time — no dynamic string concatenation that would get
-  // tree-shaken.
+  // Full class names so Tailwind's JIT sees them at build time.
   if (pct < 10) return 'bg-red-500'
   if (pct < 25) return 'bg-orange-500'
   return 'bg-emerald-500'
@@ -99,7 +95,7 @@ watch(open, (isOpen) => {
 })
 
 // Upgrade → the pricing page: every purchase goes through the Paid Plans
-// Terms box there (WP6b), so the badge no longer starts a checkout itself.
+// Terms box there.
 function onUpgrade(): void {
   open.value = false
   router.push('/pricing')
@@ -187,7 +183,6 @@ function onManage(): void {
 
     <template #content>
       <div class="w-72 p-4 space-y-3">
-        <!-- Header: plan + title -->
         <div class="flex items-center justify-between">
           <h3 class="text-sm font-semibold">
             {{ t('topbar.creditsTooltipTitle') }}
@@ -202,7 +197,6 @@ function onManage(): void {
           </UBadge>
         </div>
 
-        <!-- Primary stat: remaining / limit + big bar -->
         <div>
           <div class="flex items-baseline justify-between text-xs text-muted mb-1">
             <span class="tabular-nums text-default font-medium">
@@ -220,7 +214,6 @@ function onManage(): void {
           </div>
         </div>
 
-        <!-- Shared free pool used up (hosted free tier) -->
         <p
           v-if="isFreeAllowanceExhausted"
           class="text-xs text-warning leading-relaxed"
@@ -236,7 +229,6 @@ function onManage(): void {
           </NuxtLink>
         </p>
 
-        <!-- Reset line -->
         <div class="flex items-center gap-2 text-xs text-muted">
           <UIcon
             name="i-lucide-calendar"
@@ -245,7 +237,6 @@ function onManage(): void {
           <span>{{ t('topbar.creditsResetOn', { date: resetDate }) }}</span>
         </div>
 
-        <!-- Primer: what counts as a credit -->
         <div class="text-xs text-muted leading-relaxed border-t border-default pt-3">
           {{ t('topbar.creditsHint') }}
           <span
@@ -255,13 +246,11 @@ function onManage(): void {
           >{{ t('aiProvider.pointsOwnKeyHint') }}</span>
         </div>
 
-        <!-- Storage & limits -->
         <AuthUsageLimits
           :billing="billing"
           class="border-t border-default pt-3"
         />
 
-        <!-- Actions -->
         <div class="flex flex-col gap-2 pt-1">
           <UButton
             v-if="canUpgrade && nextPlan"

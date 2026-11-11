@@ -85,7 +85,7 @@ export interface KnowledgeCaps {
   /** Plan whose caps we're using for the per-user portion. Diagnostic only. */
   uploaderPlan: PlanName
   /**
-   * Team / Business workspace (WP3): the workspace caps are the pool
+   * Team / Business workspace: the workspace caps are the pool
    * (seats × per-seat), the uploader's personal caps don't apply, and
    * the files don't count against the uploader's personal storage.
    */

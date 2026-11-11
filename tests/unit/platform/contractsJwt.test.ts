@@ -25,8 +25,7 @@ import { verifyRenderToken } from '../../../server/utils/rendering/renderTokens'
 // unit-test speed, BEFORE integration tests notice with a misleading
 // 4001 close-code or a 403.
 //
-// This test file is the structural fix for the `aiDictateWs
-// scope-mismatch` incident. Three classes of assertion per helper:
+// Three classes of assertion per helper:
 //
 //   1. **Shape assertion** — decode the minted JWT, verify the payload
 //      contains every literal claim the contract demands. Catches a
@@ -179,14 +178,9 @@ describe('JWT contract: mintRenderJwt', () => {
   })
 
   it('round-trips through verifyRenderToken when secrets align', () => {
-    // verifyRenderToken reads `useRuntimeConfig().internalApiSecret`,
-    // so to round-trip we need to either mock the runtime config or
-    // mint with the secret the runtime config would expose. The unit
-    // test environment seeds `internalApiSecret = TEST_INTERNAL_SECRET`
-    // (see `tests/setup/runtime-config.ts` if present); we instead
-    // call the verifier directly with a known secret via the
-    // jsonwebtoken API — same code path as the verifier's inner
-    // `jwt.verify`, just without the runtime-config indirection.
+    // verifyRenderToken reads `useRuntimeConfig().internalApiSecret`, so to round-trip we would need to mock the
+    // runtime config. Instead we call the verifier directly with a known secret via the jsonwebtoken API: same
+    // code path as the verifier's inner `jwt.verify`, just without the runtime-config indirection.
     //
     // The shape pin above is the load-bearing assertion; the
     // round-trip here is a defense-in-depth check that the verifier

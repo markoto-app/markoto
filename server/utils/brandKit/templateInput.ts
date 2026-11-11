@@ -1,6 +1,6 @@
 import { WORKSPACE_TEMPLATE_DESCRIPTION_MAX, WORKSPACE_TEMPLATE_NAME_MAX } from '~~/shared/config/brandKit'
 
-// Shared field checks for workspace templates (WP10c).
+// Shared field checks for workspace templates.
 
 export function parseTemplateName(raw: unknown, required: boolean): string | undefined {
   if (raw === undefined && !required) return undefined

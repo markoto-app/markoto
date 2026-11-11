@@ -230,10 +230,9 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       expect(res.status).toBe(410)
     })
 
-    // F4 (data-loss guard): y-postgresql compaction physically DELETES every
-    // granular `v1` row below the merged row. Restoring to a target below that
-    // surviving floor used to reconstruct an EMPTY doc and WIPE the live doc.
-    // The compaction-floor guard must refuse with 410 instead.
+    // Data-loss guard: y-postgresql compaction physically DELETES every granular `v1` row below the merged row.
+    // Restoring to a target below that surviving floor must be refused with 410, not reconstruct an EMPTY doc
+    // and WIPE the live doc.
     it('returns 410 (does NOT wipe) when the target id is below the compaction floor', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })

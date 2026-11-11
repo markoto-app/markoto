@@ -33,11 +33,6 @@ import path from 'node:path'
 //     editor's Knowledge bottom-tab drawer to upload. The drawer's
 //     upload UI is the same `[data-testid="knowledge-upload-button"]`
 //     used by the workspace page — same backend pipeline either way.
-//
-// (Until Phase 6.30 there was a `knowledge-rag-mobile.spec.ts`
-//  sibling carrying mobile-specific narration. Deleted as part of the
-//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
-//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   requireLiveAi()
   test.setTimeout(360_000)
@@ -104,7 +99,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     + 'files instead of from general knowledge.'
   )
 
-  // ─── Upload a knowledge file ────────────────────────────────────
+  // Upload a knowledge file
   await flow.heading('Upload the file', 3)
 
   // Open the Knowledge surface. Desktop = workspace-landing-page
@@ -205,7 +200,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     'The file is Ready — the AI can now look things up in it.'
   )
 
-  // ─── Create a doc inside the workspace ───────────────────────────
+  // Create a doc inside the workspace
   await flow.heading('Now ask the AI about it', 3)
   await flow.narrate(
     editor.isMobile
@@ -281,7 +276,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     )
   }
 
-  // ─── Ask a question grounded in the file ────────────────────────
+  // Ask a question grounded in the file
   await flow.heading('A question grounded in the postmortem', 3)
   await flow.narrate(
     'The uploaded postmortem has specific facts no AI could guess: the '

@@ -86,12 +86,8 @@ describe('POST /api/ai/transcribe', () => {
     })
 
     it('rejects MP4 / AAC (Safari MediaRecorder default)', async () => {
-      // Voxtral Mini Transcribe doesn't accept MP4 containers (and
-      // pre-Phase-5 the legacy Cloud STT path didn't either; the
-      // even-earlier Gemini-era path DID accept them, hence the
-      // explicit reject here). The server must now return 400 so
-      // the client gets a clean error — the upstream would otherwise
-      // return a confusing 400.
+      // Voxtral Mini Transcribe doesn't accept MP4 containers, so the server rejects them with 400 up front and
+      // the client gets a clean error (the upstream would otherwise return a confusing 400).
       const user = await createUser()
       const client = await loggedInClient(user.id)
       for (const mimeType of ['audio/mp4', 'audio/mpeg', 'audio/mp3']) {
@@ -166,19 +162,15 @@ describe('POST /api/ai/transcribe', () => {
     })
   })
 
-  // ─── Budget exhaustion ────────────────────────────────────────────────
+  // Budget exhaustion
   //
-  // Phase 6: budget enforcement moved to LiteLLM virtual keys. The proxy
-  // surfaces 429 with a budget-exceeded body when a key's spend exceeds
-  // its `max_budget`; the app translates that to its standard error
-  // shape. We can no longer simulate exhaustion via DB seeding because
-  // there is no app-side counter — exhaustion only manifests through a
-  // real LiteLLM round-trip. That is exercised end-to-end in the flow
-  // tests; HTTP-level coverage of the 429-translation path lives in the
-  // unit tests for `isBudgetExceededError` + the agentic loop's catch
-  // block.
+  // Budget enforcement lives in LiteLLM virtual keys. The proxy surfaces 429 with a budget-exceeded body when a
+  // key's spend exceeds its `max_budget`; the app translates that to its standard error shape. Exhaustion
+  // can't be simulated by DB seeding (there is no app-side counter), only through a real LiteLLM round-trip,
+  // which the flow tests exercise end to end. HTTP-level coverage of the 429-translation path lives in the
+  // unit tests for `isBudgetExceededError` + the agentic loop's catch block.
 
-  // ─── Rate limiting (anti-abuse, 60/hour/user) ─────────────────────────
+  // Rate limiting (anti-abuse, 60/hour/user)
 
   describe('rate limit (60 requests/hour/user)', () => {
     it('does not fire for a single legitimate request', async () => {

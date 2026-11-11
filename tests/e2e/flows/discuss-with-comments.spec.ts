@@ -41,7 +41,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   // Sam (spawned below) joins through the link: anyone with it can edit.
   await editor.page.setAccessMode('open-edit')
 
-  // ─── Discuss in your doc ────────────────────────────────────────
+  // Discuss in your doc
   await flow.heading('Have a discussion', 3)
   await flow.narrate(
     'markoto documents have threaded comments built in. Highlight a passage, '
@@ -123,7 +123,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
   await expect(newThread).toContainText('Should we open on Monday instead')
   await expect(page.locator('.cm-comment-anchor').first()).toBeAttached()
 
-  // ─── Sam replies ───────────────────────────────────────────────────
+  // Sam replies
   await flow.heading('Your collaborator replies', 3)
   await flow.narrate(
     'Sam opens the same document. The thread is waiting in the Comments '
@@ -176,7 +176,7 @@ test('Have a discussion', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Resolve when the discussion is done ───────────────────────────
+  // Resolve when the discussion is done
   await flow.heading('Resolve the thread when you\'re done', 3)
   await flow.narrate(
     'Question answered: resolve the thread. It moves into a "Resolved" '

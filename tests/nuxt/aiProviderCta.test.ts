@@ -5,7 +5,7 @@ import { mountSuspended, registerEndpoint, mockNuxtImport } from '@nuxt/test-uti
 import { AIPromptBar } from '#components'
 import type { AiAvailability } from '~~/shared/ai/providers'
 
-// Bring your own key (WP4): the prompt bar must turn into an "Add your
+// Bring your own key: the prompt bar must turn into an "Add your
 // API key in Settings" call-to-action when the user has no chat
 // provider (no own key, no instance default), and hide the voice mic
 // when there is no transcription provider. Availability is the
@@ -97,7 +97,7 @@ describe('AIPromptBar — bring your own key', () => {
   })
 })
 
-describe('AIPromptBar — AI by plan (WP5)', () => {
+describe('AIPromptBar — AI by plan', () => {
   it('voice the plan doesn\'t include → a locked mic that explains, not a hidden one', async () => {
     toastAdd.mockClear()
     setAvailability({

@@ -4,7 +4,7 @@ import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser, createWorkspace } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
 
-// Host-style MCP tools (Phase 4):
+// Host-style MCP tools:
 //   - create_document    — new doc owned by the PAT user
 //   - duplicate_document — clone of a viewable doc
 //   - export_document_as_markdown — read raw ytext

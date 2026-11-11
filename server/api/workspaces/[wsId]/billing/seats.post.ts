@@ -11,7 +11,7 @@ import { AUDIT_WORKSPACE_BILLING_SEATS_CHANGED } from '../../../../legal/auditAc
 import { notifyWorkspaceAdmins } from '../../../../utils/email/workspaceBillingEmails'
 
 // POST /api/workspaces/:wsId/billing/seats — change the paid seat count
-// of a live Team / Business subscription (WP3). Workspace admins only.
+// of a live Team / Business subscription. Workspace admins only.
 // Body: {seats}. More seats are charged now, pro rata (402
 // `billing/payment-failed` when the payment fails — nothing changes);
 // fewer seats are not credited for the running period

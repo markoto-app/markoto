@@ -12,9 +12,8 @@
 //                    AND in the dashboard's TAG_LABELS map.
 //   - workspace:*  — which workspace context the call originated
 //                    from. Open set (one tag per workspace_id). Used
-//                    for "where is the sponsor's (+) budget going"
-//                    breakdowns, and for workspace-owner self-serve
-//                    cost views.
+//                    for per-workspace spend breakdowns and
+//                    workspace-owner self-serve cost views.
 //   - user:*       — which user initiated the call. Open set (one
 //                    per user_id). Lets a workspace owner identify
 //                    which member is driving spend; also redundant

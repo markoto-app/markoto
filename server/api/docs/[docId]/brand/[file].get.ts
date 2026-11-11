@@ -6,7 +6,7 @@ import { sendBrandAsset } from '../../../../utils/brandKit/storage'
 import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'
 
 // GET /api/docs/:docId/brand/:file — a brand-kit font or logo of the
-// document's workspace (WP10), as the document's renderers load it: the
+// document's workspace, as the document's renderers load it: the
 // live preview + print iframes (opaque origin, the file-access token in
 // `?token=`), the server render page (same token) and the editor itself
 // (session). Same access decision as `/api/files`; the asset must belong

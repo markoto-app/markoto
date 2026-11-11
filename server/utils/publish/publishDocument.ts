@@ -16,7 +16,7 @@ import { PUBLISH_ERROR_CODES, PUBLISH_MAX_SNAPSHOT_CHARS, slugFromTitle } from '
 import { sanitizeSnapshotHtml } from './sanitizeSnapshot'
 import { collectSnapshotAssets, publishedObjectKey, publishedPrefix, rewriteSnapshotAssets, type SnapshotAssetRefs } from './snapshotAssets'
 
-// Publish a document as a web page (WP13): render the web snapshot, copy
+// Publish a document as a web page: render the web snapshot, copy
 // the files it shows to the page's own prefix, store it. Re-publishing
 // keeps the page id and slug (unless a new slug is asked for) and
 // replaces the snapshot and its files.

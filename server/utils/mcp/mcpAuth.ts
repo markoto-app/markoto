@@ -39,8 +39,7 @@ import { useValkey } from '../platform/valkey'
 export const MCP_TOKEN_PREFIX = 'mkt_'
 const MCP_TOKEN_BODY_BYTES = 20 // 20 bytes → 32 base32 chars
 
-/** Per-user cap on active (non-revoked, non-expired) PATs. Mirrors the
- *  themes per-user cap (20) and the workspaces-per-user cap (20). The
+/** Per-user cap on active (non-revoked, non-expired) PATs. The
  *  cap is anti-abuse only — a real user almost never needs more than
  *  3-4 (one per device + one for scripts); the headroom is generous. */
 export const MAX_PATS_PER_USER = 20
@@ -265,8 +264,6 @@ export async function invalidateMcpPatCache(tokenHash: string): Promise<void> {
   }
 }
 
-// ─── mcp_sessions — audit attribution closure ────────────────────────
-
 export interface TouchMcpSessionInput {
   mcpSessionId: string
   userId: number
@@ -306,10 +303,8 @@ export async function touchMcpSession(input: TouchMcpSessionInput): Promise<void
   // a chatty MCP client issuing 30 tool calls/min on the same session
   // would otherwise hammer this row 30×/min for no information gain.
   //
-  // We deliberately DON'T claim the throttle pre-DB-write (the old
-  // approach): if the DB write fails, a 60s claim would lock out
-  // retries until expiry. New ordering: DB write first, claim ONLY
-  // on success. Worst case under contention: two concurrent calls
+  // The throttle is claimed only AFTER a successful DB write: claiming
+  // first would lock out retries for 60s after a failed write. Worst case under contention: two concurrent calls
   // both do the DB write before either claims — wasted work, not
   // correctness loss.
   const throttleKey = `${SESSION_TOUCH_THROTTLE_NAMESPACE}:${input.mcpSessionId}`
@@ -330,9 +325,7 @@ export async function touchMcpSession(input: TouchMcpSessionInput): Promise<void
     //   - client_name + user_agent are first-writer-wins via COALESCE
     //     on the existing row's value (never overwrite a real value
     //     with NULL)
-    //   - token_id is updated unconditionally — if the user rotates
-    //     their PAT mid-session (revoke old + issue new + reconnect),
-    //     the audit row should reflect the NEW credential.
+    //   - token_id is first-writer-wins as well (see the conflict set)
     await db.insert(mcpSessions)
       .values({
         mcpSessionId: input.mcpSessionId,

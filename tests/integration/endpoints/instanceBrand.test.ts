@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { anonClient } from '../setup/client'
 import { TEST_INSTANCE_BRAND_NAME } from '../setup/env'
 
-// Co-branding of a managed private instance (WP16): the primary test
+// Co-branding of a managed private instance: the primary test
 // server is configured with a customer name, logo and support address.
 
 describe('instance co-branding', () => {

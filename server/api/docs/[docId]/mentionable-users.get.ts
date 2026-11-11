@@ -3,7 +3,7 @@ import { listMembers } from '../../../repos/workspaceMembers'
 
 // Typeahead source for `@`-mentions inside doc comments.
 //
-// Privacy posture (AGENTS.md §4 "no user enumeration"): only workspace
+// Privacy posture (no user enumeration): only workspace
 // docs return a real list — and only to members of that workspace.
 // Standalone (anonymous-created) docs and non-member viewers get an
 // empty list — the comment composer falls back to plain `@text` with no
@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
   const role = await getWorkspaceRole(userId, doc.workspaceId)
   if (role === null) return { users: [] }
 
-  // Guests (WP11) see only documents shared with them: not offered.
+  // Guests see only documents shared with them: not offered.
   const members = (await listMembers(doc.workspaceId)).filter(m => m.role !== 'guest')
   return {
     users: members.map(m => ({

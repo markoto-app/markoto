@@ -1,15 +1,7 @@
-// Internal shapes for the agentic loop. Phase 5 split: previously
-// imported from `@google/genai`, now hand-rolled so the loop has a
-// single source of truth that doesn't depend on a vendor SDK we
-// no longer talk to. The runtime path is OpenAI-shape via LiteLLM
-// (translated by `messageTranslation.ts`), but the loop's internal
-// representation stays in the historical `{role, parts}` shape
-// (pre-migration: Gemini) because (a) tools naturally produce +
-// consume parts, and (b) it keeps the diff against the historic
-// loop minimal.
-//
-// The `*Original` aliases at the bottom let migrating callers move
-// import-by-import without an atomic rename.
+// Internal shapes for the agentic loop, independent of any vendor SDK.
+// The runtime path is OpenAI-shape via LiteLLM (translated by
+// `messageTranslation.ts`), but the loop's internal representation is a
+// `{role, parts}` shape because tools naturally produce and consume parts.
 
 /**
  * Single content part. Mirrors the model's Part union — at most one

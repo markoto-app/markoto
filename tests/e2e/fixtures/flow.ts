@@ -464,13 +464,9 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
     // reappears at fixture teardown if THIS run's status is OK.
     await fs.rm(path.join(outDir, '.passed'), { force: true })
 
-    // Pre-seed the color-mode preference. @nuxtjs/color-mode only
-    // understands 'light' / 'dark' / 'system' — write JUST the theme
-    // half of the composite variant (e.g. 'dark-desktop' → 'dark').
-    // Writing the full variant string was a silent no-op (falls back
-    // to 'system') and produced light-themed screenshots in the dark
-    // variant directories. Combined with project-level `colorScheme`,
-    // both signals agree.
+    // Pre-seed the color-mode preference. @nuxtjs/color-mode only understands 'light' / 'dark' / 'system', so
+    // write just the theme half of the composite variant (e.g. 'dark-desktop' becomes 'dark'); the full variant
+    // string would be ignored and fall back to 'system'. Combined with project-level `colorScheme`, both signals agree.
     const theme: 'light' | 'dark' = variant.startsWith('dark') ? 'dark' : 'light'
     await wireActorPage(page, theme)
 
@@ -1026,7 +1022,7 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
           await editor.setDocText(opts.body)
         }
         // Mobile forces edit-only view (preview pane is hidden) — see
-        // AGENTS.md §11. Skip the split-view setup; flow shots will
+        // tests/e2e/AGENTS.md. Skip the split-view setup; flow shots will
         // capture the editor in its single-pane mobile layout.
         if (!isMobile) {
           await editor.switchToSplitView()
@@ -1044,21 +1040,15 @@ export const test = base.extend<{ flow: Flow, editor: EditorFixture }>({
 
 export const expect = baseExpect
 
-/**
- * Require the live AI upstream to be wired. Phase 5 retired Gemini —
- * AI flows now drive Mistral / Jina / BFL through the LiteLLM proxy.
- * The proxy reads `MISTRAL_API_KEY`, `JINA_AI_API_KEY`, `BFL_API_KEY`
- * inside its container; for the host-spawned flow test stack they're
- * passed in via `flows-ephemeral.ts`. Either every upstream is wired
- * or the flow can't make a real call — there's no useful "partial"
- * state.
- *
- * Call from inside an AI flow's `test('...', async ({ ... }) => { ... })`
- * body BEFORE any other setup. SKIPS the test (visibly, via `test.skip`)
- * when any required key is absent — the fast PR gate runs without the AI
- * keys so these flows skip there; the release/staging full-suite run wires
- * the keys so they execute. Locally they run whenever the keys are in `.env`.
- */
+// Require the live AI upstream to be wired. AI flows drive Mistral / Jina / BFL through the LiteLLM proxy.
+// The proxy reads `MISTRAL_API_KEY`, `JINA_AI_API_KEY`, `BFL_API_KEY` inside its container; for the
+// host-spawned flow test stack they're passed in via `flows-ephemeral.ts`. Either every upstream is wired
+// or the flow can't make a real call, so there is no useful "partial" state.
+//
+// Call from inside an AI flow's `test('...', async ({ ... }) => { ... })` body BEFORE any other setup.
+// SKIPS the test (visibly, via `test.skip`) when any required key is absent: the fast PR gate runs without
+// the AI keys so these flows skip there; the release/staging full-suite run wires the keys so they execute.
+// Locally they run whenever the keys are in `.env`.
 export function requireLiveAi(): void {
   const required = ['MISTRAL_API_KEY', 'JINA_AI_API_KEY', 'BFL_API_KEY'] as const
   const missing = required.filter(k => !process.env[k])

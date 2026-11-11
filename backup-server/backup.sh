@@ -25,7 +25,7 @@
 # Same script works against any S3-compatible endpoint (SeaweedFS in dev,
 # Infomaniak / R2 / AWS in prod) — only env changes.
 #
-# Restore: see docs/DEPLOY.md §6 — `gpg --decrypt | gunzip | psql`.
+# Restore: see docs/operations/DEPLOY.md §6 — `gpg --decrypt | gunzip | psql`.
 # Runs as an unprivileged user (see the Dockerfile): HOME and the gpg home
 # live under /tmp.
 

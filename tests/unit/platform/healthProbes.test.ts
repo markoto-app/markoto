@@ -2,10 +2,10 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Tests the per-component probe functions + the parallel aggregator.
 // The Nitro endpoint itself (`server/api/health.get.ts`) lives behind
-// the subprocess-only coverage gap (AGENTS.md §11), so unit-level
+// the subprocess-only coverage gap (docs/contributing/testing.md, "Coverage"), so unit-level
 // confidence focuses on the helpers it composes.
 
-// ─── Mocks ────────────────────────────────────────────────────────────────
+// Mocks
 // `vi.hoisted` keeps these references stable across the hoisted vi.mock
 // factory and the test bodies — the factory is moved to top of file by
 // vitest, so a closure over a top-level `let` would be undefined at mock
@@ -78,7 +78,7 @@ beforeEach(() => {
   vi.restoreAllMocks()
 })
 
-// ─── Probe-level ──────────────────────────────────────────────────────────
+// Probe-level
 
 describe('probePostgres', () => {
   it('returns ok on a successful SELECT 1', async () => {
@@ -170,7 +170,7 @@ describe('HTTP probes', () => {
   })
 })
 
-// ─── Aggregator ───────────────────────────────────────────────────────────
+// Aggregator
 
 describe('runAllProbes + isOverallHealthy', () => {
   it('all green → healthy', async () => {

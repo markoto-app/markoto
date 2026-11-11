@@ -81,7 +81,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
     + 'access is enforced by the server, not just hidden in the UI.'
   )
 
-  // ─── Open the members panel ─────────────────────────────────────
+  // Open the members panel
   await flow.click(
     'Open the members panel',
     page.locator('[data-testid="workspace-members-trigger"]'),
@@ -96,7 +96,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
   const samChip = page.locator(`[data-testid="workspace-member-row-${teammateUserId}"] [data-testid="workspace-member-role"]`)
   await expect(samChip).toContainText('Viewer')
 
-  // ─── Promote Sam to editor (server-side) ────────────────────────
+  // Promote Sam to editor (server-side)
   await flow.heading('Promote Sam to editor', 3)
   await flow.narrate(
     'The role chip beside Sam\'s name opens a dropdown — Admin / '
@@ -131,7 +131,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
   }
   expect(wsAfter.members.find(m => m.userId === teammateUserId)?.role).toBe('editor')
 
-  // ─── Last-admin invariant ───────────────────────────────────────
+  // Last-admin invariant
   await flow.heading('The last-admin invariant', 3)
   await flow.narrate(
     'A workspace must always have at least one admin — otherwise '

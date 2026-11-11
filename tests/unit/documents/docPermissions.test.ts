@@ -414,7 +414,7 @@ describe('exhaustiveness', () => {
   })
 })
 
-// Single sign-on (WP14): ownership of a doc in a workspace that enforces
+// Single sign-on: ownership of a doc in a workspace that enforces
 // SSO counts only while the owner has an effective role there.
 // `getDocWithActorRole` computes `ownerAccessSuspended`; these pin that
 // a suspended owner is treated exactly like a non-owner.

@@ -6,7 +6,7 @@
 # .env file the compose stack reads). Missing values cause the playbook
 # to fail loudly at template-render time, not at compose-up time.
 #
-# Generation hints inline. Re-read docs/SECRETS-ROTATION.md before rotating
+# Generation hints inline. Re-read docs/operations/SECRETS-ROTATION.md before rotating
 # anything tagged "never-rotate" (the backup gpg passphrase in particular).
 
 # ─── App secrets (≥32 chars; openssl rand -hex 32) ───
@@ -32,7 +32,7 @@ nuxt_s3_bucket: "REPLACE_ME"
 
 # ─── Backup storage (optional; defaults to the nuxt_s3_* values above) ───
 # Set these to a dedicated bucket with its own backup-only key
-# (docs/LAUNCH-CHECKLIST.md). Only the backup sidecar receives them.
+# (docs/operations/LAUNCH-CHECKLIST.md). Only the backup sidecar receives them.
 # backup_s3_endpoint: "https://s3.example.com"
 # backup_s3_bucket: "markoto-backups"
 # backup_s3_access_key: "REPLACE_ME"
@@ -40,7 +40,7 @@ nuxt_s3_bucket: "REPLACE_ME"
 # backup_s3_region: "us-east-1"
 # backup_s3_prefix: "backups/postgres"
 
-# ─── AI dictate JWT (Phase 5: every AI surface routes through LiteLLM) ───
+# ─── AI dictate JWT ───
 # Optional dedicated dictation-JWT secret. Empty falls back to nuxt_jwt_secret.
 nuxt_ai_dictate_jwt_secret: ""
 
@@ -72,7 +72,7 @@ nuxt_oauth_google_client_secret: ""
 nuxt_public_sentry_dsn: ""
 sentry_dsn: ""
 
-# ─── Backup encryption (NEVER-ROTATE — see SECRETS-ROTATION.md) ───
+# ─── Backup encryption (NEVER-ROTATE — see docs/operations/SECRETS-ROTATION.md) ───
 # openssl rand -base64 48
 # Copy this value into your password manager BEFORE any rotation:
 # rotating invalidates every backup taken under the old passphrase.
@@ -82,7 +82,7 @@ backup_gpg_passphrase: "REPLACE_ME"
 # Fine-scoped PAT with `read:packages` ONLY (no write, no contents access).
 # Generated at https://github.com/settings/tokens?type=beta. Used by the
 # markoto role to `docker login ghcr.io` so private GHCR images are
-# pullable. Annual rotation — see SECRETS-ROTATION.md §19.
+# pullable. Annual rotation — see docs/operations/SECRETS-ROTATION.md §19.
 ghcr_username: "REPLACE_ME"             # the GitHub username that issued the PAT
 ghcr_pat: "REPLACE_ME"                  # PAT, scope: read:packages
 

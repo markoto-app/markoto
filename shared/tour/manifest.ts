@@ -1,4 +1,4 @@
-// Product tour (WP11) — the asset contract between the capture pipeline
+// Product tour — the asset contract between the capture pipeline
 // (`scripts/capture-tour.ts` + `tests/e2e/tour/*.capture.ts`) and the
 // scroll-driven product page (`app/components/landing/ProductTour.vue`).
 //
@@ -40,7 +40,7 @@ export type TourSceneId = typeof TOUR_SCENE_IDS[number]
 export const TOUR_BEAT_IDS = ['sharePdf'] as const
 export type TourBeatId = typeof TOUR_BEAT_IDS[number]
 
-// ─── Scroll math ──────────────────────────────────────────────────────
+// Scroll math
 
 /** Scroll length of each scene section, in viewport heights. */
 export const SCENE_HEIGHT_VH = 160
@@ -120,7 +120,7 @@ export function loopFrameAt(elapsedMs: number, frameCount: number, fps: number, 
   return t >= playMs ? frameCount - 1 : Math.min(frameCount - 1, Math.floor((t * fps) / 1000))
 }
 
-// ─── Images + video ───────────────────────────────────────────────────
+// Images + video
 
 /** `srcset` attribute for an image (the base `src` plus its variants). */
 export function srcsetFor(img: TourImage): string {

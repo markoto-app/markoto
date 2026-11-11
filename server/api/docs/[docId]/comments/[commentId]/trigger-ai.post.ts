@@ -62,10 +62,10 @@ export default defineEventHandler(async (event) => {
   const userId = session.user.id
   const userName = session.user.name
 
-  // Phase 5: text loop runs through LiteLLM unconditionally. Secret
-  // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY at boot.
-  // Phase 6: app-side rate limit dropped — LiteLLM's per-user-virtual-key
-  // rpm_limit is the single enforcement point now.
+  // The text loop always runs through LiteLLM (the boot-time secret
+  // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY). No
+  // app-side rate limit: the per-user virtual key's rpm_limit is the single
+  // enforcement point.
   const { docId, commentId, replyId } = await parseTriggerInputs(event)
 
   await requireDocEditAccess(docId, userId)
@@ -78,10 +78,10 @@ export default defineEventHandler(async (event) => {
   const wrappedSeedPrompt = triggerCtx.block + '\n' + wrapSeedWithEditorState(triggerCtx.seedPrompt, triggerCtx.thread)
   const systemPrompt = buildTriggerSystemPrompt(doc, wsCtx)
 
-  // Phase 6: budget enforcement is delegated to the LiteLLM proxy via the
-  // virtual key. We still resolve the billing context here to pick the
-  // right attribution and lazy-create the key if needed. Exhaustion
-  // surfaces inside the runLoop's catch block (LitellmBudgetExhausted).
+  // Budget enforcement is delegated to the LiteLLM proxy via the virtual
+  // key. The billing context is still resolved here to pick the attribution
+  // and lazy-create the key. Exhaustion surfaces in runLoop's catch block
+  // (LitellmBudgetExhausted).
   const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
   // BYOK: no chat provider → 409 `ai/provider-missing` (the client shows
   // the "Add your API key in Settings" call-to-action).
@@ -273,8 +273,8 @@ function buildTriggerSystemPrompt(
   const knowledgeBlock = ws.exposeKnowledgeTools ? buildKnowledgeBlock(ws.knowledgeFiles) : ''
   const membersBlock = buildWorkspaceMembersBlock(ws.members)
   // Static prompt FIRST (identical for every trigger session), per-doc /
-  // per-workspace context after it — see `agentic/promptAssembly.ts`.
-  // The doc context used to lead, which made the whole prefix per-doc.
+  // per-workspace context after it, so the cacheable prefix is shared; see
+  // `agentic/promptAssembly.ts`.
   return assemblePromptSystemPrompt(COMMENT_TRIGGER_SYSTEM_PROMPT, { documentContextBlock, knowledgeBlock, membersBlock })
 }
 
@@ -386,9 +386,9 @@ async function runTriggerLoop(args: TriggerLoopArgs): Promise<void> {
       abortController: args.abortController,
       setStatus,
       billingContext: args.billingContext,
-      // Tells runLoop's salvage path to call `reply_to_comment`
-      // instead of `message_to_user` when Mistral emits prose with
-      // no tool call. Without this the comment thread looks ignored.
+      // Makes runLoop's salvage path call `reply_to_comment` instead of
+      // `message_to_user` when the model emits prose with no tool call;
+      // otherwise the comment thread looks ignored.
       commentThreadId: args.commentId,
       crossBoundary
     })

@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const myRole = await getWorkspaceRole(userId, wsId)
   if (myRole === null) {
     // A member of a workspace that enforces single sign-on, without a
-    // current sign-in through it: tell the UI where to sign in (WP14).
+    // current sign-in through it: tell the UI where to sign in.
     const sso = await ssoRequiredError(wsId, userId, `/w/${wsId}`)
     if (sso) throw sso
     // Not a member. Return 404 rather than 403 so membership itself isn't
@@ -42,7 +42,7 @@ export default defineEventHandler(async (event) => {
     listMembers(wsId),
     getPooledWorkspace(wsId)
   ])
-  // Team / Business (WP3), admins only: the seat counter in the invite
+  // Team / Business, admins only: the seat counter in the invite
   // dialog and the payment-problem notice in the header. Members never
   // see billing state.
   let billing: { seats: number, seatsUsed: number, status: string, plan: string, interval: string, currency: string } | null = null
@@ -58,14 +58,14 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // Single sign-on (WP14), admins only: whether the SSO tab is shown
+  // Single sign-on, admins only: whether the SSO tab is shown
   // (the plan includes it, or a connection exists to switch off).
   let sso: { available: boolean, status: 'none' | 'draft' | 'active' } | null = null
-  // Audit log (WP15), admins only: whether the plan includes the viewer.
+  // Audit log, admins only: whether the plan includes the viewer.
   let auditLog: { available: boolean } | null = null
-  // Guests (WP11), admins only: whether guests can be invited.
+  // Guests, admins only: whether guests can be invited.
   let guests: { available: boolean } | null = null
-  // Brand kit (WP10), admins only: the tab shows where the plan includes
+  // Brand kit, admins only: the tab shows where the plan includes
   // it, or where something is set up that can still be removed.
   let brandKit: { available: boolean, inUse: boolean } | null = null
   if (myRole === 'admin') {

@@ -33,14 +33,11 @@ export default defineEventHandler(async (event) => {
 
   // Public routes that don't require authentication.
   //
-  // DEFAULT-DENY MODEL: any /api route NOT matched here requires a valid
-  // session — there is no fall-through-open branch. Adding a new public
-  // endpoint means adding an explicit entry to this list (with a comment
-  // saying WHY it's public and where its own gating lives). The previous
-  // model (whitelist + protected-prefix list + implicit fall-through) left
-  // the most sensitive route class (/api/admin) with no middleware
-  // backstop: a future admin route missing `requireAdminUser` would have
-  // been silently world-readable.
+  // DEFAULT-DENY: any /api route NOT matched here requires a valid
+  // session; there is no fall-through-open branch, so a future admin route
+  // that forgets `requireAdminUser` is still not world-readable. A new
+  // public endpoint needs an explicit entry here, with a comment saying
+  // WHY it's public and where its own gating lives.
   const publicRoutes = [
     { path: /^\/api\/health$/, methods: ['GET'] },
     { path: /^\/api\/status$/, methods: ['GET'] }, // Public per-component status board for an external status page
@@ -93,11 +90,11 @@ export default defineEventHandler(async (event) => {
     // load images through this route; a session requirement here would
     // break every image in anonymously-shared docs.
     { path: /^\/api\/files\/[^/]+\/[^/]+$/, methods: ['GET'] },
-    // Workspace brand-kit fonts + logos of a document (WP10) — same
+    // Workspace brand-kit fonts + logos of a document — same
     // decideFileAccess gate as /api/files (session, or the file-access
     // token the preview / print iframes and the renderer carry).
     { path: /^\/api\/docs\/[^/]+\/brand\/[^/]+$/, methods: ['GET'] },
-    // Files of a published web page (WP13) — public like the page itself;
+    // Files of a published web page — public like the page itself;
     // copies under the page's own S3 prefix, nothing of the document.
     { path: /^\/api\/published\/[^/]+\/(?:files|brand)\/[^/]+$/, methods: ['GET'] },
     { path: /^\/api\/import$/, methods: ['POST'] }, // Import is public — user uploads their own file for conversion
@@ -140,7 +137,7 @@ export default defineEventHandler(async (event) => {
     // at rest. Sign-up 404s unless the waitlist is open (billing off +
     // NUXT_PLANS_COMING_SOON).
     { path: /^\/api\/waitlist$/, methods: ['POST'] },
-    // "Sign in with your organisation" (WP14): email → the SSO sign-in
+    // "Sign in with your organisation": email → the SSO sign-in
     // link of the workspace that verified its domain. Rate-limited.
     { path: /^\/api\/auth\/sso\/discover$/, methods: ['POST'] },
     { path: /^\/api\/waitlist\/(?:confirm|unsubscribe)$/, methods: ['POST'] },
@@ -148,10 +145,10 @@ export default defineEventHandler(async (event) => {
     // webhook secret. No user session — Stripe's servers don't have
     // one. Handler does full cryptographic signature verification.
     { path: /^\/api\/webhooks\/stripe$/, methods: ['POST'] },
-    // Live-dictation WS relay: authenticated via short-lived JWT in
-    // the upgrade URL (`?token=`), not the session cookie — crossws
-    // gives the upgrade hook a raw Request, not an H3Event, so reading
-    // the sealed cookie there isn't feasible. The JWT itself is minted
+    // Live-dictation WS relay: authenticated via a short-lived JWT sent
+    // in the first WebSocket message (never in the URL), not the session
+    // cookie — crossws gives the upgrade hook a raw Request, not an
+    // H3Event, so reading the sealed cookie there isn't feasible. The JWT is minted
     // by POST /api/ai/dictate/token which still requires a session.
     { path: /^\/api\/ai\/dictate$/, methods: ['GET'] }
   ]

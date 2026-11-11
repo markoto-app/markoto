@@ -18,14 +18,9 @@ const props = withDefaults(defineProps<{
   awareness: Awareness
   undoManager: UndoManager
   readOnly: boolean
-  /**
-   * Active comment anchors to underline. The host (EditorLayout) keeps
-   * this in sync with the Y.js comments array; we dispatch a
-   * `setCommentRanges` effect whenever it changes so the decoration
-   * field rebuilds.
-   */
+  /** Comment anchors to underline; the host keeps this in sync with the Y.js comments array and each change dispatches `setCommentRanges` to rebuild the decorations. */
   commentRanges?: readonly CommentRange[]
-  /** Click on a comment underline → invoked with the id. */
+  /** Click on a comment underline; invoked with the id. */
   onCommentClick?: (id: string) => void
 }>(), {
   commentRanges: () => [],
@@ -33,19 +28,17 @@ const props = withDefaults(defineProps<{
 })
 
 const editorRef = ref<HTMLElement | null>(null)
-// `shallowRef` (not `ref`) because EditorView is a class with private fields
-// that Vue's deep-reactivity Proxy strips. With `ref`, consumers see a
-// structurally-similar-but-incomplete EditorView type (missing
-// dispatchTransactions/_root/plugins/…) and typecheck breaks. shallowRef
-// preserves the exact instance without wrapping it.
+// `shallowRef`, not `ref`: EditorView has private fields that Vue's deep
+// Proxy strips, leaving consumers an incomplete EditorView type and breaking
+// typecheck. shallowRef preserves the exact instance.
 const view = shallowRef<EditorView | null>(null)
 
-// Compartments allow dynamic reconfiguration of readOnly and responsive theme
+// Compartments allow dynamic reconfiguration of readOnly and the responsive theme.
 const editableCompartment = new Compartment()
 const readOnlyCompartment = new Compartment()
 const responsiveThemeCompartment = new Compartment()
 
-// Matches Tailwind's sm: breakpoint (640px and up = not-mobile)
+// Matches Tailwind's sm: breakpoint (640px and up is not mobile)
 const isMobile = useMediaQuery('(max-width: 639px)')
 
 // Mobile: 16px font prevents iOS auto-zoom on focus; wider line-height aids touch reading.
@@ -54,30 +47,25 @@ function buildResponsiveTheme(mobile: boolean) {
     '&': { height: '100%', fontSize: mobile ? '16px' : '15px' },
     '.cm-scroller': {
       overflow: 'auto',
-      // Proportional Inter, not mono — markoto is a writing tool, not
-      // a code editor. Inline `code` and fenced blocks still render
-      // mono via the `t.monospace` rule in `markotoMarkdownHighlight`.
+      // Proportional Inter, not mono: markoto is a writing tool. Inline `code`
+      // and fenced blocks still render mono via `t.monospace` in `markotoMarkdownHighlight`.
       fontFamily: 'var(--font-sans)',
       lineHeight: mobile ? '1.7' : '1.65'
     },
     '.cm-content': {
-      // Generous top padding so the doc title doesn't kiss the
-      // toolbar — gives the page a "sheet of paper" feel, like the
-      // first line is set down ~1.5cm from the top edge.
+      // Top padding so the doc title doesn't touch the toolbar (first line sits ~1.5cm down, like a sheet of paper).
       padding: mobile ? '32px 16px 16px' : '64px 20px 24px',
       minHeight: '100%',
-      // Editorial reading width on desktop. Centers prose so 1500px
-      // monitors don't stretch lines past readability. Mobile keeps
-      // viewport-width.
+      // Reading width on desktop so 1500px monitors don't stretch lines;
+      // mobile uses the viewport width.
       maxWidth: mobile ? 'none' : '70ch',
       marginLeft: 'auto',
       marginRight: 'auto'
     },
     '.cm-gutters': { display: 'none' },
     '.cm-focused': { outline: 'none' },
-    // currentColor inherits the editor's prose colour — sumi-950 in
-    // light, sumi-100 in dark — so cursor + selection stay in brand
-    // automatically per mode without a CSS-var dance.
+    // currentColor inherits the prose colour (sumi-950 light, sumi-100 dark), so
+    // cursor and selection follow the mode without CSS vars.
     '.cm-cursor, .cm-dropCursor': {
       borderLeftColor: 'currentColor',
       borderLeftWidth: '2px'
@@ -92,10 +80,8 @@ function buildResponsiveTheme(mobile: boolean) {
       fontFamily: 'system-ui, sans-serif',
       fontWeight: '500'
     },
-    // Dictation ghost text. Muted + italic so it reads as
-    // "provisional" rather than committed text; the trailing
-    // blinking dot is a pseudo-element driven by the global
-    // `cm-dictation-ghost-blink` keyframes in main.css.
+    // Dictation ghost text: muted italic reads as provisional; the trailing
+    // blinking dot is a pseudo-element using the global `cm-dictation-ghost-blink` keyframes in main.css.
     '.cm-dictation-ghost': {
       opacity: '0.55',
       fontStyle: 'italic',
@@ -108,10 +94,9 @@ function buildResponsiveTheme(mobile: boolean) {
       marginLeft: '2px',
       animation: 'cm-dictation-ghost-blink 1.1s steps(2, end) infinite'
     },
-    // Comment-anchor underline. Subtle yellow background + dashed
-    // underline reads as "annotated" without competing with text
-    // semantics (highlights, links). Cursor is pointer so the click
-    // target is discoverable.
+    // Comment-anchor underline: subtle yellow background + dashed underline reads
+    // as "annotated" without competing with highlights or links; pointer cursor
+    // makes the click target discoverable.
     '.cm-comment-anchor': {
       backgroundColor: 'rgba(234, 179, 8, 0.16)',
       borderBottom: '1px dashed rgba(234, 179, 8, 0.7)',
@@ -120,9 +105,8 @@ function buildResponsiveTheme(mobile: boolean) {
     '.cm-comment-anchor:hover': {
       backgroundColor: 'rgba(234, 179, 8, 0.28)'
     },
-    // Flash applied for ~1.2s after the user clicks a thread in the
-    // sidebar — ringed amber highlight that pulses once so the eye
-    // catches the connection between the click and the doc location.
+    // Flash for ~1.2 s after a sidebar thread click: a ringed amber highlight
+    // that pulses once to connect the click to the doc location.
     '.cm-comment-flash': {
       backgroundColor: 'rgba(234, 179, 8, 0.55)',
       animation: 'cm-comment-flash-pulse 1.2s ease-out 1'
@@ -136,17 +120,15 @@ onMounted(() => {
   const extensions = [
     markdown({ base: markdownLanguage, codeLanguages: languages }),
     syntaxHighlighting(markotoMarkdownHighlight),
-    // markdownKeymap continues `- `/`> `/`1. ` prefixes on Enter and
-    // strips them on Backspace at line start. Goes BEFORE defaultKeymap
-    // so it wins the Enter/Backspace bindings — defaultKeymap's plain
-    // newline would otherwise swallow the markdown-aware behaviour.
+    // markdownKeymap continues `- `/`> `/`1. ` prefixes on Enter and strips them
+    // on Backspace at line start. It goes BEFORE defaultKeymap so it wins
+    // Enter/Backspace (the plain newline would swallow the markdown-aware behaviour).
     // formattingKeymap: Mod-b / Mod-i (the shortcuts the Format menu shows).
     keymap.of([...formattingKeymap, ...markdownKeymap, ...defaultKeymap, ...historyKeymap, indentWithTab]),
     pasteURLAsLink,
     history(),
     drawSelection(),
     EditorView.lineWrapping,
-    // Mobile keyboard hints: sentence case, autocorrect on
     EditorView.contentAttributes.of({
       autocapitalize: 'sentences',
       autocorrect: 'on',
@@ -156,42 +138,38 @@ onMounted(() => {
     editableCompartment.of(EditorView.editable.of(!props.readOnly)),
     readOnlyCompartment.of(EditorState.readOnly.of(props.readOnly)),
     yCollab(props.ytext, props.awareness, { undoManager: props.undoManager }),
-    // Dictation ghost-text decoration. No-op when dictation isn't
-    // active (state field starts empty). See `dictationExtensions.ts`.
+    // Dictation ghost-text decoration; a no-op until dictation is active. See `dictationExtensions.ts`.
     ...dictationExtensions,
-    // Comment-anchor underlines + flash + click → focus router. The
-    // decoration sets are driven by `setCommentRanges` effects
-    // dispatched in the watcher below.
+    // Comment-anchor underlines + flash + click-to-focus router; the decoration
+    // sets are driven by `setCommentRanges` effects dispatched by the watcher below.
     commentDecorationsExtension({ onCommentClick: props.onCommentClick })
   ]
 
   view.value = new EditorView({
     state: EditorState.create({
-      // Provide initial content from Y.js — needed when the editor mounts
-      // after the doc is already synced (e.g. after password verification)
+      // Initial content from Y.js, needed when the editor mounts after the doc
+      // already synced (e.g. after password verification)
       doc: props.ytext.toString(),
       extensions
     }),
     parent: editorRef.value
   })
 
-  // Seed the comment-anchor decorations from the initial prop so newly
-  // joined sessions immediately see existing comment underlines.
+  // Seed decorations from the initial prop so new sessions see existing underlines at once.
   if (props.commentRanges.length > 0) {
     view.value.dispatch({ effects: setCommentRanges.of([...props.commentRanges]) })
   }
 })
 
-// Watcher for comment range updates. The host updates `commentRanges`
-// whenever the Y.js comments array changes; we forward via effect so
-// the decoration field rebuilds. `deep` because the items themselves
-// are POJOs that change in place.
+// The host updates `commentRanges` whenever the Y.js comments array changes;
+// forwarded as an effect so the decoration field rebuilds. `deep` because the
+// items are POJOs that change in place.
 watch(() => props.commentRanges, (ranges) => {
   if (!view.value) return
   view.value.dispatch({ effects: setCommentRanges.of([...ranges]) })
 }, { deep: true })
 
-// Watch readOnly prop changes and reconfigure the editor dynamically
+// Reconfigure the editor when readOnly changes
 watch(() => props.readOnly, (readOnly) => {
   if (!view.value) return
   view.value.dispatch({
@@ -214,11 +192,9 @@ onUnmounted(() => {
   view.value?.destroy()
 })
 
-// Briefly highlight a range and scroll it into view. Called by the
-// parent when the user clicks a comment thread in the sidebar — the
-// flash is what makes the click→jump connection legible.
-// Comment-flash highlight: 1.2s post-scroll-into-view the highlight
-// clears so it doesn't linger. Restart cancels the in-flight timer.
+// Called by the parent when the user clicks a comment thread: highlights the
+// range and scrolls it into view. The highlight clears after 1.2 s;
+// restarting cancels the in-flight timer.
 const flashClear = useTimeoutFn(() => {
   if (view.value) view.value.dispatch({ effects: setFlashRange.of(null) })
 }, 1200, { immediate: false })

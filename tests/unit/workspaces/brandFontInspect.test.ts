@@ -3,7 +3,7 @@ import { brotliCompressSync, deflateSync, inflateSync } from 'node:zlib'
 import { describe, expect, it } from 'vitest'
 import { inspectFont, sanitizeFamily } from '../../../server/utils/brandKit/fontInspect'
 
-// The brand-kit font inspector (WP10) on real font files: the static
+// The brand-kit font inspectoron real font files: the static
 // Fontsource cuts the app ships (WOFF2 + WOFF), a TrueType file built from
 // one of them here, the variable cuts, and byte-patched variants for the
 // refusals (CFF outlines, collection, restricted embedding, damage).

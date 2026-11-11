@@ -16,13 +16,11 @@ import { getTemplate, templateLocale } from '~~/shared/templates'
  * Nitro build, with no plugin coordination.
  */
 
-// Resolve the templates content directory from process.cwd() — the repo
-// root under `bun run dev`, `/app` in the prod container. The earlier
-// import.meta.url approach was fragile: once Nitro bundles this file into
-// a .output chunk, `../../shared/...` no longer points at the source tree,
-// so every template body 500'd/returned null in prod. The .md bodies are
-// shipped to /app/shared/templates/content by the Dockerfile (fs reads
-// aren't traced into the Nitro bundle, same as content/legal + drizzle).
+// Resolved from process.cwd() (repo root under `bun run dev`, `/app` in the
+// prod container), not import.meta.url: once Nitro bundles this file into
+// a .output chunk, relative paths no longer point at the source tree. The
+// .md bodies are copied to /app/shared/templates/content by the Dockerfile
+// (fs reads aren't traced into the Nitro bundle, same as content/legal + drizzle).
 const CONTENT_ROOT = resolve(process.cwd(), 'shared/templates/content')
 
 const cache = new Map<string, string>()
@@ -54,8 +52,7 @@ export interface TemplateContext {
  * engine, which we don't need yet.
  */
 export function renderTemplate(templateId: string, ctx: TemplateContext): string | null {
-  // Retired ids (aliases, e.g. `academic-paper` on older documents) render
-  // the template they became.
+  // Aliases (e.g. `academic-paper`) render the template they point to.
   const meta = getTemplate(templateId)
   if (!meta?.hasContent) return null
 

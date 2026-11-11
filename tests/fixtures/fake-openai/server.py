@@ -140,7 +140,7 @@ class Handler(BaseHTTPRequestHandler):
         if os.environ.get("FAKE_OPENAI_VERBOSE") == "1":
             super().log_message(fmt, *args)
 
-    # ── helpers ──────────────────────────────────────────────────────
+    # helpers
     def _send_json(self, status, payload):
         body = json.dumps(payload).encode("utf-8")
         self.send_response(status)
@@ -181,7 +181,7 @@ class Handler(BaseHTTPRequestHandler):
             return False
         return True
 
-    # ── routes ───────────────────────────────────────────────────────
+    # routes
     def do_GET(self):
         if self.path.startswith("/redirect/"):
             self._redirect()

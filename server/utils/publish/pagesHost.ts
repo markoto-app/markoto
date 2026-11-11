@@ -103,7 +103,7 @@ export function publishPagesErrors(env: Env, hostedShape: boolean): string[] {
   }
   if (hostedShape) {
     if (!settings) {
-      errors.push('NUXT_PUBLISH_PAGES_HOST is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): published pages must be served from their own hostname (e.g. pages.<your domain>), never the app\'s origin — see docs/LAUNCH-CHECKLIST.md')
+      errors.push('NUXT_PUBLISH_PAGES_HOST is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): published pages must be served from their own hostname (e.g. pages.<your domain>), never the app\'s origin — see docs/operations/LAUNCH-CHECKLIST.md')
     } else if ((env.NUXT_PUBLISH_TRAEFIK_TOKEN ?? '').trim().length < 32) {
       errors.push('NUXT_PUBLISH_PAGES_HOST is set but NUXT_PUBLISH_TRAEFIK_TOKEN is missing or shorter than 32 characters: Traefik learns the pages host\'s router and certificate from the app\'s HTTP provider, which only answers with the token')
     }

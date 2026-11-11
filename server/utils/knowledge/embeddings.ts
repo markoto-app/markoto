@@ -22,10 +22,6 @@ import {
  * and pick the dimension (see docs/AI-MODELS.md#embeddings). Same code path,
  * differences only through configuration.
  *
- * Public API is provider-agnostic: callsites in `processKnowledge.ts`,
- * `repos/knowledge.ts`, and `scripts/reembed-knowledge.ts` use the same
- * `embedDocuments` / `embedQuery` signature.
- *
  * Behaviour:
  *   - Pin model + dimensionality from runtimeConfig so all calls produce
  *     vectors in one space (per-call drift breaks `1 - cosineDistance`).
@@ -150,11 +146,9 @@ async function embedOne(
     ...extras,
     model: cfg.model,
     input: truncate(text),
-    // OpenAI SDK auto-injects `encoding_format: 'base64'` for
-    // embeddings. With Jina via LiteLLM, that path returns a 192-d
-    // truncated vector instead of the requested 768-d (silent
-    // failure: pgvector insert fails with "vector has wrong shape").
-    // Force `'float'` so the proxy returns the number array directly.
+    // The OpenAI SDK defaults to `encoding_format: 'base64'`; with Jina via
+    // LiteLLM that returns a truncated 192-d vector instead of the
+    // requested 768-d. Force `'float'`.
     encoding_format: 'float'
   })
   const values = response.data?.[0]?.embedding
@@ -167,8 +161,6 @@ async function embedOne(
   }
   return values
 }
-
-// ─── Public API ───────────────────────────────────────────────────────────
 
 export interface EmbedOptions {
   /** Override provider config (tests, scripts). */

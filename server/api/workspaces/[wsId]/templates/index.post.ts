@@ -9,7 +9,7 @@ import { AUDIT_WORKSPACE_TEMPLATE_ADDED } from '../../../../legal/auditActions'
 import { WORKSPACE_TEMPLATES_PER_WORKSPACE } from '~~/shared/config/brandKit'
 
 // POST /api/workspaces/:wsId/templates — {docId, name, description?}
-// (WP10c): make one of the workspace's documents a template. Admins, plan
+// — make one of the workspace's documents a template. Admins, plan
 // feature `brandKit`. Live link: edits to the document change what new
 // documents start with.
 export default defineEventHandler(async (event) => {

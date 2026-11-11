@@ -78,7 +78,6 @@ function pageVars(beat: TourBeat, i: number): Record<string, string | number> {
   return { '--mk-o': o, '--mk-k': i, 'zIndex': String(10 - Math.round(Math.abs(o) * 2)) }
 }
 
-// ─── PDF fan-out (the share scene's beat) ─────────────────────────────
 // Time-based, part of the scene's REST state: once the scene has settled
 // (pinned stage: the pager's rest event; inline: the figure mostly in
 // view), the pages fan out over the window; they fold back as soon as the
@@ -126,7 +125,6 @@ const hasVideo = computed(() => props.mode !== 'hero' && Boolean(props.scene.vid
 const phoneVideo = computed(() => (props.mode === 'inline' && props.phoneCut ? props.scene.phone?.video : undefined))
 const phonePoster = computed(() => (props.mode === 'inline' && props.phoneCut ? props.scene.phone?.poster : undefined))
 
-// ─── Playback ─────────────────────────────────────────────────────────
 const root = ref<HTMLElement | null>(null)
 const videoEls: Record<Mode, HTMLVideoElement | null> = { light: null, dark: null }
 const playing = ref<Record<Mode, boolean>>({ light: false, dark: false })

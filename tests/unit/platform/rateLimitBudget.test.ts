@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 //      leak briefly.
 //   2. `tryAcquireSessionLock` fails CLOSED (returns false). A
 //      concurrent-session CAP, not a rate limit — failing open would
-//      let unlimited sessions through and double-bill GCP.
+//      let unlimited sessions through and double-bill.
 // A refactor that accidentally flips either polarity would be
 // silently dangerous; these tests pin the contract.
 
@@ -134,7 +134,7 @@ describe('tryAcquireSessionLock', () => {
   it('fails CLOSED on Valkey errors', async () => {
     // Inverse of the budget helper — failing open would let unlimited
     // concurrent sessions through during a Valkey blip and silently
-    // double-bill GCP.
+    // double-bill.
     fake.throwOnNext = new Error('valkey down')
     expect(await tryAcquireSessionLock('dictate', 'u', 10_000)).toBe(false)
   })

@@ -32,7 +32,7 @@ export default defineEventHandler(async (event) => {
 
   const ip = getClientIp(event)
 
-  // Team / Business (WP3): cancel the subscription first (annual:
+  // Team / Business: cancel the subscription first (annual:
   // prorated credit) and delete the workspace's LiteLLM team. If Stripe
   // can't cancel it, this throws and nothing has been deleted yet.
   await endWorkspaceBilling(wsId, session.user.id)
@@ -70,7 +70,7 @@ export default defineEventHandler(async (event) => {
     await deleteKnowledgeArtifact(row.knowledgeId)
   }
 
-  // Brand-kit objects (WP10): the rows cascade with the workspace; read
+  // Brand-kit objects: the rows cascade with the workspace; read
   // their keys first, delete the objects after.
   const brandKeys = await collectBrandObjectKeys(wsId)
 

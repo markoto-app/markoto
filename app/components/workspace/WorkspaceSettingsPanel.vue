@@ -4,10 +4,8 @@ import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import { fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 
-// Workspace settings tab — admin-only chrome around workspace-wide
-// preferences. Currently exposes the default-theme picker; new
-// settings (retention, member-policy presets, etc.) slot in as
-// additional `<section>`s as we ship them.
+// Workspace settings tab — admin-only. Currently the default-theme picker;
+// further workspace-wide settings go in as additional `<section>`s.
 //
 // Default-theme model: pick a built-in preset OR one of the admin's
 // own saved themes, OR clear (revert to "use markoto when creating
@@ -123,7 +121,6 @@ async function persist(theme: DocTheme | null) {
       </p>
     </header>
 
-    <!-- ── Default theme ──────────────────────────────────────────── -->
     <section class="space-y-3">
       <div class="space-y-1">
         <h3 class="font-serif text-lg font-normal tracking-tight">

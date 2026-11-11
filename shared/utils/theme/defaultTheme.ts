@@ -34,8 +34,7 @@ export const defaultTheme: DocTheme = {
     textAlign: 'left',
     color: '#14110D', // sumi-950
     // Plain white paper: a new document looks like the page it prints
-    // on. (The cream sumi-50 page read as "something is off" to new
-    // users; anyone who wants it sets it in the Theme panel.)
+    // on. A cream page looks off to new users; it is a Theme panel choice.
     background: '#FFFFFF',
     dropCap: true, // editorial signature on first paragraph
     firstLineIndent: false, // markoto uses paragraph spacing, not indent

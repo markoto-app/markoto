@@ -43,7 +43,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     + 'and the PDF, so what you see on the right is what you send.'
   )
 
-  // ─── Open the theme panel ──────────────────────────────────────────
+  // Open the theme panel
   await flow.heading('Open the theme panel', 3)
   await flow.narrate(
     'New documents use the markoto theme: Fraunces headings, Inter body '
@@ -85,7 +85,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     )
   }
 
-  // ─── Try a different preset ────────────────────────────────────────
+  // Try a different preset
   await flow.heading('Try a different preset', 3)
   await flow.narrate(
     'Each preset is a complete theme. Click a card to apply it; the '
@@ -114,7 +114,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Switch back to markoto ────────────────────────────────────────
+  // Switch back to markoto
   await flow.heading('Switch back to markoto', 3)
   await flow.narrate(
     'Nothing is final: click another preset any time. Back to markoto '
@@ -148,7 +148,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
     )
   }
 
-  // ─── Cover page ────────────────────────────────────────────────────
+  // Cover page
   // Mobile stops here: the cover controls are covered on both variants
   // by `cover-page-editor.spec.ts`; the preview (the payoff) is
   // desktop-only.

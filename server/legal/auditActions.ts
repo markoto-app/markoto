@@ -56,7 +56,7 @@ export const AUDIT_ADMIN_REVOKED = 'admin.revoked'
 export const AUDIT_MCP_TOKEN_ISSUED = 'mcp.token_issued'
 export const AUDIT_MCP_TOKEN_REVOKED = 'mcp.token_revoked'
 
-// Bring-your-own-key AI provider config saved / deleted (WP4). Storing a
+// Bring-your-own-key AI provider config saved / deleted. Storing a
 // third-party API key and pointing the server at a base URL is a
 // credential + outbound-traffic change, so it's audit-grade. `scope_id`
 // is the user id; `metadata` carries capability, provider HOST and model
@@ -78,7 +78,7 @@ export const AUDIT_WORKSPACE_INVITE_REVOKED = 'workspace.invite_revoked'
 export const AUDIT_WORKSPACE_INVITE_ACCEPTED = 'workspace.invite_accepted'
 export const AUDIT_WORKSPACE_INVITE_DECLINED = 'workspace.invite_declined'
 
-// Team / Business workspace billing (WP3). `scope` is `billing`,
+// Team / Business workspace billing. `scope` is `billing`,
 // `scope_id` the workspace id. Metadata: plan / seats / interval /
 // currency, the affected member id for limits — never card data (Stripe
 // holds that).
@@ -95,7 +95,7 @@ export const AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED = 'workspace.subscription_ca
 // size only (never the file name or content).
 export const AUDIT_DESIGN_IMPORT_STARTED = 'design_import.started'
 
-// Per-workspace single sign-on (WP14). `scope` workspace, `scope_id` the
+// Per-workspace single sign-on. `scope` workspace, `scope_id` the
 // workspace id. Metadata: protocol, domain, the affected user id — never
 // a client secret, certificate body, SCIM token or assertion.
 export const AUDIT_SSO_CONNECTION_SAVED = 'sso.connection_saved'
@@ -111,19 +111,19 @@ export const AUDIT_SSO_SCIM_TOKEN_ROTATED = 'sso.scim_token_rotated'
 export const AUDIT_SSO_SCIM_USER_CREATED = 'sso.scim_user_created'
 export const AUDIT_SSO_SCIM_USER_DEACTIVATED = 'sso.scim_user_deactivated'
 
-// Workspace audit log (WP15): an admin downloaded it. Metadata: format,
+// Workspace audit log: an admin downloaded it. Metadata: format,
 // row count, date range.
 export const AUDIT_WORKSPACE_AUDIT_EXPORTED = 'workspace.audit_exported'
 
-// A workspace document shared with a guest / no longer (WP11). Metadata:
+// A workspace document shared with a guest / no longer. Metadata:
 // the guest's user id; before / after: the access (view / edit).
 export const AUDIT_DOC_SHARED = 'doc.shared'
 export const AUDIT_DOC_UNSHARED = 'doc.unshared'
 
-// Share-link controls changed (WP9). Before / after: expiresAt, noDownload.
+// Share-link controls changed. Before / after: expiresAt, noDownload.
 export const AUDIT_DOC_SHARE_SETTINGS_CHANGED = 'doc.share_settings_changed'
 
-// Workspace brand kit (WP10). Metadata: asset id, kind, name (font family
+// Workspace brand kit. Metadata: asset id, kind, name (font family
 // or file name), weight/style; lock: before/after; templates: template id
 // + document id.
 export const AUDIT_WORKSPACE_BRAND_ASSET_ADDED = 'workspace.brand_asset_added'
@@ -132,7 +132,7 @@ export const AUDIT_WORKSPACE_BRAND_LOCK_CHANGED = 'workspace.brand_lock_changed'
 export const AUDIT_WORKSPACE_TEMPLATE_ADDED = 'workspace.template_added'
 export const AUDIT_WORKSPACE_TEMPLATE_REMOVED = 'workspace.template_removed'
 
-// Publish as a web page + custom domains (WP13). Published / unpublished:
+// Publish as a web page + custom domains. Published / unpublished:
 // metadata page id + slug; settings: before / after {slug, indexable};
 // custom domains: metadata hostname (+ page id).
 export const AUDIT_DOC_PUBLISHED = 'doc.published'

@@ -100,7 +100,7 @@ describe('image storage quota (uploads repo)', () => {
   })
 })
 
-describe('pooled image storage (Team / Business workspaces, WP3)', () => {
+describe('pooled image storage (Team / Business workspaces)', () => {
   beforeEach(async () => {
     await resetDb()
   })

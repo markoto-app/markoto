@@ -59,9 +59,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// downloadFile — string content path
-// ═══════════════════════════════════════════════════════════════════════
+// downloadFile: string content path
 
 describe('downloadFile — string content', () => {
   it('wraps a string in a Blob with the given MIME type', async () => {
@@ -92,9 +90,7 @@ describe('downloadFile — string content', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// downloadFile — Blob content path
-// ═══════════════════════════════════════════════════════════════════════
+// downloadFile: Blob content path
 
 describe('downloadFile — Blob content', () => {
   it('passes a Blob through without rewrapping', () => {
@@ -116,9 +112,7 @@ describe('downloadFile — Blob content', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// downloadFile — anchor lifecycle + cleanup ordering
-// ═══════════════════════════════════════════════════════════════════════
+// downloadFile: anchor lifecycle + cleanup ordering
 
 describe('downloadFile — anchor lifecycle', () => {
   it('sets href to the object URL and download to the filename', () => {
@@ -170,9 +164,7 @@ describe('downloadFile — anchor lifecycle', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// downloadMarkdown — filename + MIME wiring
-// ═══════════════════════════════════════════════════════════════════════
+// downloadMarkdown: filename + MIME wiring
 
 describe('downloadMarkdown', () => {
   it('appends .md to a clean title', () => {
@@ -194,15 +186,12 @@ describe('downloadMarkdown', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
-// downloadMarkdown — sanitizeFilename (indirect coverage via title)
+// downloadMarkdown: sanitizeFilename (indirect coverage via title)
 //
 // Spec (from the regex):
-//   - Keep: [a-zA-Z0-9_\-. ] — alphanumeric, underscore, hyphen, dot,
-//     space. Any other char → '_'.
-//   - Trim leading/trailing whitespace AFTER substitution.
-//   - Empty result → 'document'.
-// ═══════════════════════════════════════════════════════════════════════
+// - Keep: [a-zA-Z0-9_\-. ] (alphanumeric, underscore, hyphen, dot, space). Any other char becomes '_'.
+// - Trim leading/trailing whitespace AFTER substitution.
+// - Empty result becomes 'document'.
 
 describe('downloadMarkdown — filename sanitization', () => {
   function filenameFor(title: string): string {

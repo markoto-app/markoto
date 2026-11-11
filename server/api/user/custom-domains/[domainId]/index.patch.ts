@@ -6,7 +6,7 @@ import { getDocAuthz } from '../../../../utils/workspaces/workspaceAccess'
 import { CUSTOM_DOMAIN_ERROR_CODES } from '~~/shared/config/customDomains'
 
 // PATCH /api/user/custom-domains/:domainId — {docId | null}: which
-// published page the domain shows (WP13). The caller must be able to
+// published page the domain shows. The caller must be able to
 // manage that document (owner / workspace admin) — a domain can't be
 // pointed at somebody else's page.
 export default defineEventHandler(async (event) => {

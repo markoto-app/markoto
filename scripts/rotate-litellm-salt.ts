@@ -40,7 +40,7 @@
  *     salt. Rotating ours requires rotating the proxy's master_key/
  *     salt at the SAME time (or accepting that proxy-side tokens
  *     become unreadable). Coordinate via the proxy's restart cycle.
- *     See docs/SECRETS-ROTATION.md for the joint procedure.
+ *     See docs/operations/SECRETS-ROTATION.md for the joint procedure.
  */
 
 import { Pool } from 'pg'

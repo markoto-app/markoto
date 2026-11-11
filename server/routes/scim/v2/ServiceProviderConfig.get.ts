@@ -1,6 +1,6 @@
 import { defineScimHandler } from '../../../utils/sso/scim'
 
-// GET /scim/v2/ServiceProviderConfig (RFC 7643 §5) — what we support (WP14).
+// GET /scim/v2/ServiceProviderConfig (RFC 7643 §5) — what we support.
 export default defineScimHandler(async () => ({
   schemas: ['urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig'],
   documentationUri: 'https://markoto.app/docs/account/single-sign-on',

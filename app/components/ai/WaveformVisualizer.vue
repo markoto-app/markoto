@@ -59,11 +59,9 @@ function draw() {
   const barWidth = Math.max(1, (w - totalGap) / count)
   const minBar = props.minHeight * h
 
-  // Theme-aware fill: pull the brand shu (vermillion) from CSS vars
-  // so the bars match the prompt-bar's seal + ring + send button.
-  // Dark mode uses the brighter shu-400 stop for legibility on the
-  // darker chrome. Earlier this fill came from `--color-blue-500`
-  // — leftover from the pre-brand placeholder accent.
+  // Fill uses the brand shu from CSS vars so the bars match the prompt
+  // bar's seal, ring and send button; dark mode uses the brighter shu-400
+  // for legibility on the darker chrome.
   const styles = getComputedStyle(el)
   const isDark = document.documentElement.classList.contains('dark')
   const stop = isDark ? '--color-shu-400' : '--color-shu-500'
@@ -94,9 +92,9 @@ function draw() {
 // allocates a fresh array each tick so Vue reactivity fires naturally.
 watch(() => props.levels, () => draw(), { flush: 'post' })
 watch(() => props.height, resize)
-// Wrapper width changes (parent resize, layout shift) → reapply the
-// DPR-aware sizing. Fires post-mount on the first non-zero width too,
-// so we don't need an extra onMounted to seed the canvas.
+// Wrapper width changes (parent resize, layout shift) reapply the
+// DPR-aware sizing. This also fires on the first non-zero width, so no
+// extra onMounted is needed to seed the canvas.
 watch(wrapperWidth, resize)
 </script>
 

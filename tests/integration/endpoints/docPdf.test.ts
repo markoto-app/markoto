@@ -85,19 +85,12 @@ beforeEach(async () => {
   await ensureYjsTable()
 })
 
-// Pay the render chain's COLD-START cost before any measured test. The
-// first render after stack boot covers Chromium's first page load in the
-// renderer container + the print page's SSR warm-up; on a loaded 2-core
-// CI runner that cold path has taken long enough that the app server
-// killed the connection mid-request ("TypeError: fetch failed /
-// SocketError: other side closed"), failing whichever auth-matrix test
-// ran first and cascading into the next request (observed twice on
-// 2026-08-18 across unrelated PRs; never locally, where cold renders
-// finish in ~2s). One tolerated warm-up render moves that cost out of
-// the measured tests; every test below still asserts exactly what it
-// asserted before. Deliberately non-fatal: if the renderer is genuinely
-// broken, the real tests fail with far better errors than this hook
-// could produce.
+// Pay the render chain's COLD-START cost before any measured test. The first render after stack boot covers
+// Chromium's first page load in the renderer container + the print page's SSR warm-up; on a loaded 2-core CI
+// runner that cold path can take long enough that the app server kills the connection mid-request
+// ("TypeError: fetch failed / SocketError: other side closed"), failing whichever auth-matrix test ran first.
+// One tolerated warm-up render moves that cost out of the measured tests. Deliberately non-fatal: if the
+// renderer is genuinely broken, the real tests fail with far better errors than this hook could produce.
 beforeAll(async () => {
   await resetDb()
   await ensureYjsTable()
@@ -346,7 +339,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
-    // Brand kit (WP10): a font uploaded to the workspace (the bundled TeX
+    // Brand kit: a font uploaded to the workspace (the bundled TeX
     // Gyre Heros file under another name) reaches the server PDF through
     // the locked workspace design, embedded as a real TrueType font, and
     // the render is cached under the brand fingerprint (a lock / font
@@ -459,10 +452,9 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // Inter and Source Serif 4 used to come from Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name). Documents now get
-    // the static cuts (themeFonts.ts): both embed as real (TrueType/CID)
-    // fonts, and no Type 3 font is left in the file.
+    // Inter and Source Serif 4 embed as real (TrueType/CID) fonts, not Type 3 (Chromium embeds variable fonts
+    // as Type 3, with no BaseFont name): documents get the static cuts (themeFonts.ts), and no Type 3 font is
+    // left in the file.
     it('embeds Inter and Source Serif 4 as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderBusinessReport()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
@@ -539,9 +531,8 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(docId)
     }, 90_000)
 
-    // Source Serif 4 and Source Sans 3 used to be Fontsource VARIABLE fonts,
-    // which Chromium embeds as Type 3 (no BaseFont name). With the static
-    // cuts all three families embed as real (TrueType/CID) fonts.
+    // Source Serif 4 and Source Sans 3 come from static cuts, not Fontsource VARIABLE fonts (which Chromium
+    // embeds as Type 3, with no BaseFont name): all three families embed as real (TrueType/CID) fonts.
     it('embeds Source Serif 4, Source Sans 3 and IBM Plex Mono as real fonts, never Type 3', async () => {
       const { pdf, docId } = await renderTechDocs()
       const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]

@@ -1,7 +1,6 @@
-// Outbound GET to a user/AI-supplied URL, for the cases where the APP
-// opens the connection (today: `view_image`'s external-image fetch, which
-// also serves image URLs from `fetch_url` extraction and BYOK
-// `generate_image` URL responses).
+// Outbound GET to a user/AI-supplied URL, for cases where the app itself opens
+// the connection (`view_image`'s external-image fetch, which also serves image
+// URLs from `fetch_url` extraction and BYOK `generate_image` responses).
 //
 // Three rules on top of the URL guard (`agentic/urlGuard.ts`):
 //

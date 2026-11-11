@@ -13,12 +13,8 @@
  *      a small overlap so a citation that straddles the seam still
  *      matches.
  *
- * Why not a third-party splitter:
- *   - langchain's MarkdownTextSplitter pulls in a large dep tree for what
- *     is ~80 lines of logic.
- *   - unstructured-io's value is layout-aware parsing of the source file
- *     (PDF → blocks), which markitdown already did. By the time we reach
- *     this function we're working with clean markdown.
+ * No third-party splitter: the input is already clean markdown from
+ * markitdown, and the logic is small.
  *
  * Tokens are estimated as chars/4 — good enough for budgeting and avoids
  * pulling tokenizer deps in. The consuming embedding call (Jina via

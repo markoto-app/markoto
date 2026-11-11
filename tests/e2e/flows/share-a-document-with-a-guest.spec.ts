@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
 
-// "Share a document with a guest" (WP11).
+// "Share a document with a guest".
 //
 // User-job: a workspace admin wants a client to review ONE document
 // without letting them into the rest of the workspace. Job done when the
@@ -85,7 +85,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
     highlights: [{ label: 'Shared with Lena', selector: `[data-testid="share-guest-${clientId}"]` }]
   })
 
-  // ─── The guest's view ────────────────────────────────────────────
+  // The guest's view
   await flow.heading('What the guest sees', 3)
   const lena = await flow.spawn('guest')
   await lena.editor.loginAsExistingUser(clientId, 'Lena Fischer')

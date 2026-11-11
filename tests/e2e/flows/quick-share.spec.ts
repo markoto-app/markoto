@@ -34,7 +34,7 @@ test('Quick share', async ({ page, flow, editor }) => {
   // Preamble: open markoto → click "+ New Document" → dialog opens.
   await editor.recordPreamble()
 
-  // ─── Set up your document ───────────────────────────────────────
+  // Set up your document
   await flow.heading('Set up your document', 3)
   await flow.narrate(
     'Name your document and you can start. Under Details, tell markoto '
@@ -122,7 +122,7 @@ test('Quick share', async ({ page, flow, editor }) => {
         await editor.page.waitForReady()
         // Desktop: split view + paged.js wait so the outcome shot
         // lands on a populated preview. Mobile: edit-only by design
-        // (AGENTS.md §11), so we skip both.
+        // (tests/e2e/AGENTS.md), so we skip both.
         if (!editor.isMobile) {
           await editor.page.switchToSplitView()
           await editor.page.waitForPreviewPaginated()
@@ -131,7 +131,7 @@ test('Quick share', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── See the seeded skeleton ────────────────────────────────────
+  // See the seeded skeleton
   await flow.heading('Your skeleton is ready', 3)
   await flow.narrate(
     'markoto pre-fills the doc with the template\'s structure — headings, '
@@ -144,7 +144,7 @@ test('Quick share', async ({ page, flow, editor }) => {
     'Headings, an Action items checklist, comment hints — all ready to fill in.'
   )
 
-  // ─── Share the link ─────────────────────────────────────────────
+  // Share the link
   await flow.heading('Share the link', 3)
   await flow.narrate(
     'markoto documents share by URL. Anyone with the link can read or edit, '

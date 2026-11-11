@@ -2,10 +2,9 @@
 //
 // The system prompt's CRITICAL IMAGE RULE says to embed only URLs that a
 // tool returned or the user gave, but at temperature 0 Mistral still
-// skipped `generate_image` and wrote a made-up URL straight into the
+// skips `generate_image` and writes a made-up URL straight into the
 // document (`https://placehold.co/…`, an invented `api.files.markoto.app`
-// path — v0.2.4 release flow run). A prompt rule can't stop that, so the
-// loop enforces it: an edit may only ADD an image whose URL this session
+// path). A prompt rule can't stop that, so the loop enforces it: an edit may only ADD an image whose URL this session
 // has already seen — in the document, the user's prompt, or a tool result
 // (`generate_image` returns the stored `/api/files/…` path; `web_search`,
 // `fetch_url`, `view_other_document` and the knowledge tools return the

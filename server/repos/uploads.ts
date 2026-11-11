@@ -30,20 +30,16 @@ export async function recordPending(input: PendingUploadInput): Promise<void> {
   await db.insert(uploads).values(input)
 }
 
-// ─── Image storage quota ──────────────────────────────────────────────
+// Image storage quota: every upload row, pending or confirmed, counts against
+// a quota, reserved when the presigned URL is issued. Check + insert run in ONE
+// transaction under an advisory lock on the quota scope, so parallel requests
+// can't all pass a "used + size <= max" check that only one should pass.
 //
-// Every upload row — pending or confirmed — counts against a quota, so a
-// reservation is made the moment a presigned URL is issued. Check +
-// insert run in ONE transaction holding an advisory lock on the quota's
-// scope, so N parallel requests are serialised and can't all pass a
-// "used + size <= max" check that only one of them should pass.
-//
-// Scope (WP3): images in a Team / Business workspace's documents count
-// against that WORKSPACE's pool (`{kind: 'workspace'}`, joined through
-// `documents.workspace_id` — no column on `uploads`, so a moved document
-// takes its images along); everything else against the uploader
-// (`{kind: 'user'}`), leaving out pooled workspaces' images while
-// billing is on (`excludePooled`).
+// Scope: images in a Team / Business workspace's documents count against that
+// WORKSPACE's pool (`{kind: 'workspace'}`, joined through
+// `documents.workspace_id`; no column on `uploads`, so a moved document takes
+// its images along); everything else against the uploader (`{kind: 'user'}`),
+// leaving out pooled workspaces' images while billing is on (`excludePooled`).
 
 export type ImageQuotaScope
   = | { kind: 'user', uploaderId: number, excludePooled: boolean }
@@ -327,7 +323,7 @@ export async function insertConfirmedUploadsWithinQuota(
   })
 }
 
-// ─── Image garbage collection (see server/utils/storage/imageGc.ts) ─────────────
+// Image garbage collection (see server/utils/storage/imageGc.ts)
 
 export interface GcCandidate {
   id: number

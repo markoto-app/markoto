@@ -1,4 +1,4 @@
-// Co-branding of a managed private instance (WP16): the customer's name
+// Co-branding of a managed private instance: the customer's name
 // and logo next to the markoto wordmark, and their support contact. Set
 // by the operator in the instance's .env — nothing to configure in the
 // app. Unset everywhere else (markoto.app, ordinary self-hosts): nothing

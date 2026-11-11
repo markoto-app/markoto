@@ -14,7 +14,7 @@ import {
 } from '../../../shared/tour/manifest'
 import { parseTourManifest } from '../../../shared/tour/schema'
 
-// Product tour (WP11): the asset contract (posters + looping videos per
+// Product tour: the asset contract (posters + looping videos per
 // scene, light/dark, desktop/phone) and the scroll math behind the CSS.
 
 const root = fileURLToPath(new URL('../../../', import.meta.url))

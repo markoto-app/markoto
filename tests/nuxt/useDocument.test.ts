@@ -261,9 +261,7 @@ async function flushFetchToken() {
   await Promise.resolve()
 }
 
-// ═══════════════════════════════════════════════════════════════════════
 // Awareness identity (generated avatars)
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — awareness avatar identity', () => {
   it('a signed-in user broadcasts their id and no avatar URL or seed', async () => {
@@ -295,9 +293,7 @@ describe('useDocument — awareness avatar identity', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Initial connect gating
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — initial connect gating', () => {
   it('calls sync.connect() after fetchToken resolves for a normal doc', async () => {
@@ -358,9 +354,7 @@ describe('useDocument — initial connect gating', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Sync lifecycle callbacks wired by useDocument
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — sync lifecycle wiring', () => {
   const TEMPLATE_BODY = '# Welcome to markoto\n\nTemplate body.\n'
@@ -416,7 +410,7 @@ describe('useDocument — sync lifecycle wiring', () => {
     doc.destroy()
   })
 
-  it('does NOT wire an onDisconnect seed (F9: never seed without an authoritative sync)', async () => {
+  it('does NOT wire an onDisconnect seed (never seed without an authoritative sync)', async () => {
     // The template seed must run ONLY from onSynced. useDocument must not
     // pass an onDisconnect handler that writes to the Y.Doc — a pre-sync
     // disconnect seed would merge with the server's real content when the
@@ -505,7 +499,7 @@ describe('useDocument — sync lifecycle wiring', () => {
 
   it('forwards the CURRENT token via getToken() (not a stale snapshot)', async () => {
     // getToken now delegates to tokenState.getFreshToken() (async) so the
-    // provider re-reads a possibly-refreshed JWT on every reconnect (F5).
+    // provider re-reads a possibly-refreshed JWT on every reconnect.
     hoisted.tokenState.tokenData.value = { token: 'initial', readOnly: false }
     const doc = useDocument('doc-abc')
     await flushFetchToken()
@@ -525,9 +519,7 @@ describe('useDocument — sync lifecycle wiring', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Title bridge (ymeta ↔ Vue ref)
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — title bridge', () => {
   it('title defaults to "Untitled" when ymeta has no title', async () => {
@@ -585,9 +577,7 @@ describe('useDocument — title bridge', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Deletion observer
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — deletion observer', () => {
   it('isDeleted flips true when ymeta._deleted is set', async () => {
@@ -637,9 +627,7 @@ describe('useDocument — deletion observer', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Theme write path
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — document context persist', () => {
   it('merges description, audience and language changes into one PUT (debounce keeps all fields)', async () => {
@@ -783,9 +771,7 @@ describe('useDocument — resetTheme', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Theme reactivity + canEditTheme derivation
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — theme reactivity', () => {
   it('theme ref updates when ymeta.theme changes via remote broadcast', async () => {
@@ -817,9 +803,7 @@ describe('useDocument — theme reactivity', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // Password verify flow
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — onPasswordVerified', () => {
   it('forwards the new token to tokenState and triggers a reconnect', async () => {
@@ -853,9 +837,7 @@ describe('useDocument — onPasswordVerified', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // destroy()
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — destroy', () => {
   it('tears down sync, awareness, and ydoc', async () => {
@@ -878,9 +860,7 @@ describe('useDocument — destroy', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // docSizeWarning derivation pipes through from sync
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('useDocument — docSizeWarning', () => {
   it('reflects sync.docSizeBytes through the shared helper thresholds', async () => {

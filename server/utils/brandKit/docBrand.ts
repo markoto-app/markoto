@@ -6,7 +6,7 @@ import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 import type { BrandFont } from '~~/shared/config/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
 
-// What a document's renderers need from its workspace's brand kit (WP10):
+// What a document's renderers need from its workspace's brand kit:
 // the fonts to declare and, while the design is locked (and the plan
 // includes the kit), the locked design (shared/utils/theme/brandLock.ts). Read
 // by the token endpoint (editor preview + browser print) and the render
@@ -20,7 +20,7 @@ export interface DocBrand {
    * Changes whenever the fonts, the logos or the locked design change — part of the
    * server render cache key (a brand change makes no new Y.js row, so the
    * snapshot id alone would serve a stale PDF). Null when the document has
-   * no brand inputs (cache key unchanged from before WP10).
+   * no brand inputs (the cache key is then unchanged).
    */
   fingerprint: string | null
 }

@@ -4,9 +4,8 @@ import { findUserById } from '../../repos/users'
 // Admin authorisation.
 //
 // **Source of truth: `users.is_admin` column.** Steady-state
-// admin checks read this column. Granted via the (forthcoming)
-// admin-management UI, by the env-list bootstrap on first login,
-// or by direct SQL if you really need to.
+// admin checks read this column. Granted by the env-list bootstrap
+// on first login, or by direct SQL.
 //
 // **Bootstrap: `NUXT_ADMIN_USER_EMAILS` env allowlist.** A
 // comma-separated, case-insensitive list of emails that get

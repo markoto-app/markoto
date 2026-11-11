@@ -1,22 +1,15 @@
 <script setup lang="ts">
-// Workspace member roster. Used to be a tight avatar stack ("5 dots
-// +2"), which made the act of editing members invisible — users
-// didn't realize the row was clickable, and roles were hidden in
-// tooltips. Redesign:
-//   - When ≤ THRESHOLD members, render each as a row with avatar +
-//     name + role caption, so the roster reads like a colophon.
-//   - When > THRESHOLD, fall back to the compact avatar stack so the
-//     header doesn't grow unbounded.
-//   - In both modes, an explicit "Manage members" pill with a pencil
-//     icon makes the edit affordance obvious — the avatar group is
-//     no longer the only click target.
+// Workspace member roster. Up to THRESHOLD members render as rows (avatar,
+// name, role caption); beyond that it falls back to a compact avatar stack
+// so the header doesn't grow unbounded. Both modes have an explicit "Manage
+// members" pill, since the avatar group alone doesn't read as clickable.
 
 export interface WorkspaceMember {
   userId: number
   name: string
   email: string | null
   login: string | null
-  // `guest` (WP11): sees only documents shared with them.
+  // `guest`: sees only documents shared with them.
   role: 'admin' | 'editor' | 'viewer' | 'guest'
 }
 

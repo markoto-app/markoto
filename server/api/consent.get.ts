@@ -5,14 +5,12 @@ import { CONSENT_VERSION } from '~~/shared/legal/versions'
 import { ensureAnonId } from '../utils/auth/anonId'
 import { CONSENT_PURPOSES, OPTIONAL_CONSENT_PURPOSES, type ConsentPurpose } from '../utils/privacy/consentDecisions'
 
-// Read the latest consent decision per purpose for the caller.
-// Logged-in users are keyed on userId; anonymous users on a
-// first-party `markoto-anon` cookie (set by `ensureAnonId` if not
-// present). Each purpose's latest row wins.
+// Latest consent decision per purpose for the caller: keyed on userId when
+// logged in, else on the first-party `markoto-anon` cookie (`ensureAnonId`).
 //
-// No UI calls this today: markoto uses essential storage only, so there
-// is no cookie banner (CONSENT_VERSION 2). The endpoint stays so a future
-// consent-based purpose can reuse the `consent_log` mechanism; it reports
+// No UI calls this today: markoto uses essential storage only, so there is no
+// cookie banner (CONSENT_VERSION 2). The endpoint stays so a future
+// consent-based purpose can reuse `consent_log`; it reports
 // `promptRequired: false` while OPTIONAL_CONSENT_PURPOSES is empty.
 
 interface PurposeState {

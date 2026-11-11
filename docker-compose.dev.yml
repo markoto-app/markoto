@@ -138,7 +138,7 @@ services:
       # SYNC_MAX_CONNECTIONS_PER_IP if you want to test the limit.
       - SYNC_MAX_CONNECTIONS_PER_IP=${SYNC_MAX_CONNECTIONS_PER_IP:-500}
     extra_hosts:
-      # CONTAINER_HOST_ADDRESS: see docs/CONTAINER-ENGINES.md (VPNs, Podman).
+      # CONTAINER_HOST_ADDRESS: see docs/contributing/CONTAINER-ENGINES.md (VPNs, Podman).
       - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
     ports:
       - "127.0.0.1:4001:4001"
@@ -168,7 +168,7 @@ services:
       # PDF/PNG render uploads fail with an opaque S3 InternalError.
       - S3_SSE=none
     extra_hosts:
-      # CONTAINER_HOST_ADDRESS: see docs/CONTAINER-ENGINES.md (VPNs, Podman).
+      # CONTAINER_HOST_ADDRESS: see docs/contributing/CONTAINER-ENGINES.md (VPNs, Podman).
       - "host.docker.internal:${CONTAINER_HOST_ADDRESS:-host-gateway}"
     ports:
       - "127.0.0.1:9000:9000"

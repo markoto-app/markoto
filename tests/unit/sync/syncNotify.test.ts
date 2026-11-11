@@ -1,14 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-// Pin the dispatch CONTRACT for `notifySyncKickUser`. The integration
-// tests in `tests/integration/endpoints/workspaceMembers.test.ts` used
-// to assert on this via an in-process HTTP stub; that stub was removed
-// when the real `sync-test` Hocuspocus container became always-up for
-// integration runs (no other way to test the WS protocol). The
-// dispatch shape moved here.
+// Pin the dispatch CONTRACT for `notifySyncKickUser`. The integration tests in
+// `tests/integration/endpoints/workspaceMembers.test.ts` run against the real `sync-test` Hocuspocus
+// container, so the dispatch shape is pinned here.
 //
-// Coverage points (high-risk regression target — pre-fix, membership
-// changes silently left stale JWTs valid for up to 2 hours):
+// Coverage points (high-risk: without the kick, membership changes silently leave stale JWTs valid for up to
+// 2 hours):
 //   1. Correct URL: `${syncInternalUrl}/internal/kick-user`
 //   2. POST + JSON content-type
 //   3. X-Internal-Secret header carries the configured secret

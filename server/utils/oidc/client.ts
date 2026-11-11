@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in (WP7b) — protocol layer.
+// Generic OpenID Connect sign-in — protocol layer.
 //
 // Built on `openid-client` (panva; certified OpenID RP library) rather than
 // nuxt-auth-utils' `defineOAuthOidcEventHandler`: as of nuxt-auth-utils
@@ -22,7 +22,7 @@
 //
 // The module keeps one discovered `Configuration` per settings tuple for
 // an hour (up to 200 tuples: the instance IdP plus per-workspace SSO
-// connections, WP14); openid-client caches the JWKS on it and refetches
+// connections); openid-client caches the JWKS on it and refetches
 // on an unknown `kid` (key rotation).
 
 import * as oidc from 'openid-client'

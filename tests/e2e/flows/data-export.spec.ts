@@ -55,7 +55,7 @@ test('Data export', async ({ page, flow, editor }) => {
   await page.goto('/settings/profile')
   await page.locator('[data-testid="export-request-button"]').waitFor({ state: 'visible', timeout: 10_000 })
 
-  // ─── Chapter 1: Why export ─────────────────────────────────────
+  // Chapter 1: Why export
   await flow.heading('Get a copy of everything we hold about you', 3)
   await flow.narrate(
     'You have the right to a machine-readable copy of every piece of '
@@ -66,7 +66,7 @@ test('Data export', async ({ page, flow, editor }) => {
     + 'needed to open it.'
   )
 
-  // ─── Chapter 2: Request the export ─────────────────────────────
+  // Chapter 2: Request the export
   await flow.heading('Request the export', 3)
   await flow.narrate(
     'The archive covers your account profile, every document you own '
@@ -87,7 +87,7 @@ test('Data export', async ({ page, flow, editor }) => {
 
   await expect(page.locator('[data-testid="export-history-row"]').first()).toContainText(/queued|running/i)
 
-  // ─── Chapter 3: Wait for the worker to build ───────────────────
+  // Chapter 3: Wait for the worker to build
   await flow.heading('Your archive is ready', 3)
   await flow.narrate(
     'Building the archive usually takes under a minute. You can close '
@@ -124,7 +124,7 @@ test('Data export', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Chapter 4: Verify the download endpoint ────────────────────
+  // Chapter 4: Verify the download endpoint
   await flow.heading('Download the archive', 3)
   await flow.narrate(
     'Click Download and the ZIP lands on disk. Each click hands your '

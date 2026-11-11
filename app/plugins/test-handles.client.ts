@@ -1,14 +1,12 @@
 // Test-only: report every error toast to the flow-test harness.
 //
-// Gated on `public.exposeTestHandles` (false in production builds; the
-// flow-test stack flips it via NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1, see
-// scripts/flows-ephemeral.ts). Nuxt UI renders no colour marker into the
-// toast DOM, so the harness can't tell an error toast from an info toast
-// by looking at the page. Instead we watch the shared toast state and
-// hand each new `color: 'error'` toast to `window.__flowErrorToast`,
-// which the Playwright fixture installs with `exposeBinding` (it
-// survives navigations). Flows fail on any error toast they didn't
-// explicitly expect — see tests/e2e/fixtures/flow.ts.
+// Gated on `public.exposeTestHandles` (set only by the flow-test stack via
+// NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1). Nuxt UI renders no colour marker into
+// the toast DOM, so the harness can't tell an error toast from an info toast
+// by looking at the page. Instead the shared toast state is watched and each
+// new `color: 'error'` toast goes to `window.__flowErrorToast`, installed by
+// the Playwright fixture with `exposeBinding` (it survives navigations).
+// Flows fail on any unexpected error toast (tests/e2e/fixtures/flow.ts).
 
 type ReportedToast = { title: string, description: string }
 

@@ -29,11 +29,11 @@ interface WorkspaceDetail {
     defaultTheme: import('~~/shared/types/theme').DocTheme | null
     // A Team / Business subscription currently covers the workspace.
     pooled?: boolean
-    // Admins only: seats + status of the subscription (WP3).
+    // Admins only: seats + status of the subscription.
     billing?: import('~/utils/billing/workspaceBilling').WorkspaceSeatBilling | null
-    /** Admins only (WP14). */
+    /** Admins only. */
     sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
-    /** Admins only (WP15). */
+    /** Admins only. */
     auditLog?: { available: boolean } | null
     guests?: { available: boolean } | null
     brandKit?: { available: boolean, inUse: boolean } | null
@@ -46,7 +46,7 @@ interface WorkspaceDetail {
 const notFound = ref(false)
 const forbidden = ref(false)
 // Single sign-on enforced and no current sign-in through the workspace's
-// IdP (WP14): where to sign in, and whether this admin may still manage
+// IdP: where to sign in, and whether this admin may still manage
 // the connection (the break-glass).
 const ssoRequired = ref<{ loginUrl: string, canManageSso: boolean } | null>(null)
 
@@ -118,24 +118,24 @@ const tabItems = computed(() => {
   // same width for everyone but the order shifts.
   if (isAdmin.value) {
     items.push({ label: t('workspace.tabs.settings'), icon: 'i-lucide-settings', slot: 'settings', value: 'settings' })
-    // Usage per person (WP11), every plan.
+    // Usage per person, every plan.
     items.push({ label: t('workspace.tabs.usage'), icon: 'i-lucide-chart-no-axes-column', slot: 'usage', value: 'usage' })
   }
-  // Brand kit (WP10): admins, where the plan includes it or something is
+  // Brand kit: admins, where the plan includes it or something is
   // set up (so it can be cleared after a downgrade).
   const brand = data.value?.workspace.brandKit
   if (isAdmin.value && brand && (brand.available || brand.inUse)) {
     items.push({ label: t('workspace.tabs.brand'), icon: 'i-lucide-palette', slot: 'brand', value: 'brand' })
   }
-  // Team / Business billing (WP3): admins, and only where something can
+  // Team / Business billing: admins, and only where something can
   // be bought. Members never see prices.
-  // Single sign-on (WP14): admins, where the plan includes it or a
+  // Single sign-on: admins, where the plan includes it or a
   // connection exists (so it can be switched off after a downgrade).
   const sso = data.value?.workspace.sso
   if (isAdmin.value && sso && (sso.available || sso.status !== 'none')) {
     items.push({ label: t('workspace.tabs.sso'), icon: 'i-lucide-key-round', slot: 'sso', value: 'sso' })
   }
-  // Audit log (WP15): admins of a plan that includes it.
+  // Audit log: admins of a plan that includes it.
   if (isAdmin.value && data.value?.workspace.auditLog?.available) {
     items.push({ label: t('workspace.tabs.audit'), icon: 'i-lucide-scroll-text', slot: 'audit', value: 'audit' })
   }
@@ -165,7 +165,7 @@ tryOnMounted(() => {
   } else if (outcome === 'cancelled') {
     toast.add({ title: t('workspace.billing.checkoutCancelled'), icon: 'i-lucide-x', color: 'neutral' })
   }
-  // Back from a single sign-on test (WP14).
+  // Back from a single sign-on test.
   if (route.query.test === 'activated') toast.add({ title: t('sso.testActivated'), icon: 'i-lucide-check', color: 'neutral' })
   else if (route.query.test === 'ok') toast.add({ title: t('sso.testOk'), icon: 'i-lucide-check', color: 'neutral' })
   if (route.query.billing || route.query.tab || route.query.credits || route.query.test) void router.replace({ query: {} })
@@ -501,11 +501,9 @@ async function leaveWorkspace() {
               />
             </div>
           </div>
-          <!-- Page-level actions. The "New document" button used to
-               sit here, but it belongs inside the Documents tab — a
-               page-level CTA implies "this is THE primary action" and
-               on Knowledge / AI tabs that's misleading. The dropdown
-               (rename / delete / members) stays — it's truly page-level.
+          <!-- Page-level actions only (rename / delete / members); "New
+               document" lives in the Documents tab, since a page-level CTA
+               would read as the primary action on every tab.
                "Invite people" is the admins' primary page action: a
                visible button, not an entry buried in the members modal. -->
           <div class="flex items-center gap-2 shrink-0">

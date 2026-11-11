@@ -12,7 +12,7 @@ import { KATEX_CSS_URL } from '../../../shared/utils/vendor/katexAssets'
 import { hljsTheme } from '../../../shared/utils/vendor/hljsAssets'
 import { fontStylesheetUrl } from '../../../shared/utils/theme/themeFonts'
 
-/** Third-party hosts the print page used to load from — none is allowed any more. */
+// Third-party hosts: none is allowed.
 const FORMER_CDN_ORIGINS = ['https://cdn.jsdelivr.net', 'https://fonts.googleapis.com', 'https://fonts.gstatic.com']
 
 const hosted = buildAllowedOrigins({

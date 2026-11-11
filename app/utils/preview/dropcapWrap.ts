@@ -38,12 +38,10 @@
 /**
  * Paragraphs inside these are not the body's opening prose: an alert's
  * title ("Tip") or a quote, list item, table cell or caption must never
- * get the drop cap — a doc starting with a Tip alert showed a giant "T"
- * in front of "IP".
+ * get the drop cap (an alert would show a giant "T" in front of "IP").
  */
 const NOT_BODY_PROSE = 'blockquote, .markdown-alert, li, td, th, figure, figcaption, aside, dl, .footnote, .markoto-cover'
 
-/** Inline elements we look inside for the first letter. */
 const DESCEND_INTO = new Set(['a', 'abbr', 'b', 'code', 'del', 'em', 'i', 'ins', 'mark', 's', 'span', 'strong', 'sub', 'sup', 'u'])
 
 const TEXT_NODE = 3
@@ -63,12 +61,11 @@ function firstTextNode(parent: Node): Text | null {
 }
 
 /**
- * A drop cap is ~3.4em tall, i.e. about three body lines. Next to a
- * shorter opening paragraph it towers over one or two lines of small
- * text and the float drags the following paragraph up beside it — the
- * typical case for a short intro line or an AI-written one-liner. Below
- * this length (about three lines of body text on an A4 page) the
- * paragraph gets no cap.
+ * A drop cap is ~3.4em tall, about three body lines. Next to a shorter
+ * opening paragraph (a short intro line, an AI-written one-liner) it
+ * towers over the text and its float drags the following paragraph up
+ * beside it. Below this length (about three lines of body text on an A4
+ * page) the paragraph gets no cap.
  */
 export const DROPCAP_MIN_CHARS = 220
 
@@ -89,7 +86,7 @@ export function wrapFirstLetterAsDropCap(html: string): string {
 /**
  * Put the drop cap on `p` (in place) when it qualifies — see the rules
  * above. Returns whether it did. Shared with the every-chapter drop cap
- * (`documentMarkers.ts#markChapterOpenings`).
+ * (`documentMarkers.ts#markDocumentStructure`).
  */
 export function capParagraph(p: Element): boolean {
   // Only real opening prose: long enough to sit beside the cap, and not a

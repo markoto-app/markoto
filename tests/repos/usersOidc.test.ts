@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { findUserById, upsertOAuthUser } from '../../server/repos/users'
 
-// Generic OIDC (WP7b): identities are keyed by (issuer, sub) — never the
+// Generic OIDC: identities are keyed by (issuer, sub) — never the
 // email — and only a VERIFIED email merges into an existing account,
 // same rule as GitHub/Google (tests/repos/users.test.ts).
 

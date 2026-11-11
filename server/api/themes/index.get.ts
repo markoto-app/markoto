@@ -1,8 +1,6 @@
 import { listThemesByUser } from '../../repos/themes'
 
-// List the caller's saved themes. The `(updatedAt desc)` ordering puts
-// the most recently saved/edited preset first — same reading direction
-// as the Recent Documents list on the homepage.
+// Lists the caller's saved themes, most recently saved/edited first.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

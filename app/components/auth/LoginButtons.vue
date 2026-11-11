@@ -6,7 +6,7 @@ const { t } = useI18n()
 const { loginOptions } = useLoginOptions()
 const { workspaceSso } = useInstanceConfig()
 
-// "Sign in with your organisation" (WP14): a work email → the SSO link of
+// "Sign in with your organisation": a work email → the SSO link of
 // the workspace that verified its domain. Only where per-workspace SSO
 // can exist on this instance.
 const ssoOpen = ref(false)

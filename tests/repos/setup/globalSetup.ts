@@ -17,7 +17,7 @@ import { applyTestEnv } from '../../integration/setup/testEnv'
 //      `useValkey()` call in the repos under test binds to the test
 //      stack. See `tests/integration/setup/testEnv.ts` for the list.
 //   4. Smoke-probe `useDatabase()` AFTER migrations to surface any
-//      env-wiring regressions BEFORE 169 tests pile up FK violations.
+//      env-wiring regressions BEFORE tests pile up FK violations.
 //
 // Each test file imports `resetDb` from the integration harness and
 // TRUNCATEs between cases for isolation — no need to re-migrate.

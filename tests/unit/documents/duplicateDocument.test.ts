@@ -231,7 +231,7 @@ describe('duplicateDocument — happy path', () => {
 
 describe('duplicateDocument — rollback', () => {
   it('rolls back the row when S3 CopyObject throws', async () => {
-    // Phase 2 failure: an S3 object was missing (source deleted mid-dup)
+    // S3 copy failure: an S3 object was missing (source deleted mid-dup)
     // or S3 is flaky. The partially-created row must go away.
     getDoc.mockResolvedValueOnce(fakeSource())
     listConfirmedUploadsForDoc.mockResolvedValueOnce([
@@ -248,7 +248,7 @@ describe('duplicateDocument — rollback', () => {
   })
 
   it('rolls back the row when the Y.js clone throws', async () => {
-    // Phase 3 failure: the source's yjs_documents rows are corrupt /
+    // Y.js clone failure: the source's yjs_documents rows are corrupt /
     // schema drift. S3 copies already happened — leaves orphan objects
     // under `docs/TGT/` that the sweep will clean up.
     getDoc.mockResolvedValueOnce(fakeSource())

@@ -2,10 +2,9 @@ import { describe, it, expect } from 'vitest'
 import { safeFetch, type PinnedFetch, type PinnedRequestInit } from '../../../server/utils/platform/safeFetch'
 import { fetchExternalImage } from '../../../server/utils/storage/externalImage'
 
-// Outbound fetch for URLs the model / a page / a document controls
-// (`view_image`). Regression cases for the redirect + DNS-rebinding gap:
-// the old code checked the first URL once and then let `fetch` follow
-// redirects and resolve the host again on its own.
+// Outbound fetch for URLs the model / a page / a document controls (`view_image`). Regression cases for the
+// redirect + DNS-rebinding gap: the first URL is checked once, so `fetch` must neither follow redirects nor
+// resolve the host again on its own.
 
 interface Call { url: string, init: PinnedRequestInit }
 

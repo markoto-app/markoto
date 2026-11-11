@@ -39,7 +39,7 @@ export interface AiCapabilityStatus {
   platformBilled: boolean
   /**
    * `'plan'`: the platform offers this capability, but not on the plan
-   * that pays here (WP5) — the UI shows a locked control with an upgrade
+   * that pays here — the UI shows a locked control with an upgrade
    * (or "ask your admin") prompt instead of hiding it. A user's own key
    * always unlocks it.
    */

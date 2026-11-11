@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// The workspace's brand-kit logos (WP10) as one-click choices in the theme
+// The workspace's brand-kit logos as one-click choices in the theme
 // panel's logo and header-image fields. Shown only inside a workspace
 // that has some. Picking one stores `/api/brand/<file>` in the theme.
 

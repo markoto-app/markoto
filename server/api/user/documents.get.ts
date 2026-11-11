@@ -6,7 +6,6 @@ import { listOwnedByUser } from '../../repos/documents'
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const docs = await listOwnedByUser(session.user.id)
-  // `isOwner: true` preserved from the previous endpoint shape so the
-  // dashboard UI doesn't branch on presence.
+  // Always true here; the dashboard UI relies on the field being present.
   return docs.map(d => ({ ...d, isOwner: true as const }))
 })

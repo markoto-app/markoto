@@ -96,7 +96,7 @@ function cancelEdit(): void {
 function sourceLabel(): string {
   if (props.status.source === 'user') return t('aiProvider.status.own')
   if (props.status.source === 'instance') return t('aiProvider.status.instance')
-  // The platform offers it, but not on this plan (WP5).
+  // The platform offers it, but not on this plan.
   if (props.status.locked === 'plan') return t('aiProvider.status.locked')
   return t('aiProvider.status.none')
 }
@@ -234,7 +234,6 @@ const messageClass = computed(() => {
       </UBadge>
     </div>
 
-    <!-- Saved own-key config -->
     <dl
       v-if="config && !editing"
       class="text-sm divide-y divide-default border border-default rounded-md my-3"
@@ -287,7 +286,6 @@ const messageClass = computed(() => {
       {{ t('aiProvider.status.liveDictation') }}
     </p>
 
-    <!-- Add / change form -->
     <form
       v-if="editing"
       class="space-y-3 my-3"

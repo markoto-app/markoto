@@ -22,15 +22,12 @@ import { isValidTheme } from '~~/shared/utils/theme/themeValidation'
 // rewrite) + S3 image assets.
 //
 // Ordering:
-//   1. Insert the new documents row — allocates the target docId and
-//      provides a valid FK target for upload rows.
-//   2. S3 CopyObject each confirmed image to the new prefix
-//      `docs/{targetDocId}/{fileId}` — same fileId on both sides so
-//      ytext's `/api/files/{docId}/{fileId}` URLs resolve once we
-//      rewrite the docId segment in the next step.
-//   3. Clone Y.js state with URL rewrite (see `cloneYjsStateWithUrlRewrite`).
+//   1. Insert the new documents row (FK target for the upload rows).
+//   2. S3 CopyObject each confirmed image to `docs/{targetDocId}/{fileId}`;
+//      the fileId stays the same so the rewritten ytext URLs resolve.
+//   3. Clone Y.js state with URL rewrite (`cloneYjsStateWithUrlRewrite`).
 //
-// Rollback: if any phase throws, undo the documents + uploads rows so
+// Rollback: if any step throws, undo the documents + uploads rows so
 // the duplicate never becomes visible. Stray S3 objects are caught by
 // the orphan-cleanup sweep (whole prefix goes away once the documents
 // row is absent).
@@ -45,7 +42,7 @@ export interface DuplicateInput {
   workspaceId: string | null
   title: string
   /**
-   * A new document made from a workspace template (WP10c): it starts
+   * A new document made from a workspace template: it starts
    * private (never the template document's sharing or password) and its
    * live title (ymeta) is `title`, not the template document's.
    */
@@ -85,7 +82,7 @@ export async function duplicateDocument(
   }
 
   // Cheap quota pre-check before anything is written or copied. The
-  // authoritative check is the atomic insert in phase 2.
+  // authoritative check is the atomic insert in step 2.
   const uploadsToClone = await listConfirmedUploadsForDoc(input.sourceDocId)
   const cloneBytes = uploadsToClone.reduce((n, r) => n + r.sizeBytes, 0)
   if (input.ownerId !== null && cloneBytes > 0
@@ -93,7 +90,7 @@ export async function duplicateDocument(
     throw new ImageQuotaExceededError(deps.imageQuota.maxBytes)
   }
 
-  // Phase 1: documents row. Description/audience/language/templateId
+  // Step 1: documents row. Description/audience/language/templateId
   // copy through unchanged — a duplicate is the same document content
   // by another name, so its writing register and audience guidance
   // should match the source.
@@ -123,17 +120,15 @@ export async function duplicateDocument(
   })
 
   try {
-    // Phase 2: S3 image asset clone. Uses the same fileId on both
+    // Step 2: S3 image asset clone. Uses the same fileId on both
     // sides so the rewritten markdown URLs match.
     const copiedRows: Parameters<typeof insertConfirmedUploads>[0] = []
     for (const row of uploadsToClone) {
       const newS3Key = `docs/${input.newDocId}/${row.fileId}`
       await deps.s3.send(new CopyObjectCommand({
         Bucket: deps.bucket,
-        // CopySource must include the bucket and be URL-encoded per
-        // S3's spec. Our fileIds are nanoid-safe so the only thing
-        // needing encoding is the slash separators — which S3 actually
-        // wants as literal slashes, so we encode the path segments.
+        // CopySource must include the bucket. Keys are nanoid-safe, so no
+        // URL-encoding is needed.
         CopySource: `/${deps.bucket}/${row.s3Key}`,
         Key: newS3Key
       }))
@@ -153,7 +148,7 @@ export async function duplicateDocument(
       await insertConfirmedUploads(copiedRows)
     }
 
-    // Phase 3: Y.js state with URL rewrite.
+    // Step 3: Y.js state with URL rewrite.
     await cloneYjsStateWithUrlRewrite(input.sourceDocId, input.newDocId, input.fromTemplate ? { title: input.title } : undefined)
   } catch (e) {
     // Roll back the DB side. Stray S3 objects under the new prefix
@@ -171,7 +166,7 @@ export async function duplicateDocument(
   }
 }
 
-/** Custom CSS always; theme images only on a well-formed theme (legacy partial rows are copied as they are). */
+/** Custom CSS always; theme images only on a well-formed theme (partial rows are copied as they are). */
 function withThemeUploadsDocId<T extends { customCss?: string }>(theme: T, sourceDocId: string, targetDocId: string): T {
   const cssMoved = withThemeDocId(theme, sourceDocId, targetDocId)
   return isValidTheme(cssMoved) ? withThemeImagesDocId(cssMoved, sourceDocId, targetDocId) : cssMoved

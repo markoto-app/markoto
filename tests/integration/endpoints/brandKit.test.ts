@@ -6,7 +6,7 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 import { TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 
-// Workspace brand kit (WP10): fonts + logos (upload checks, who may, how
+// Workspace brand kit: fonts + logos (upload checks, who may, how
 // documents load them), the locked workspace design, workspace templates.
 
 const STATIC_WOFF2 = new Uint8Array(readFileSync('node_modules/@fontsource/inter/files/inter-latin-400-normal.woff2'))

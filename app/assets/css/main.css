@@ -58,9 +58,8 @@
   --color-sumi-950: #14110D;
 }
 
-/* Flatten all dark-mode surface elevations to sumi-950. The original
-   spec layered dark mode as page=sumi-950 / chrome=sumi-900 /
-   elevated=sumi-800, but the canonical SVG lockup
+/* Flatten all dark-mode surface elevations to sumi-950 (instead of
+   page=950 / chrome=900 / elevated=800): the canonical SVG lockup
    (`/markoto-logos/primary-lockup-dark.svg`) bakes a sumi-950 rect
    into the asset for cream-on-dark legibility. Anywhere the lockup
    lands on a non-950 surface, that rect would read as a visible
@@ -308,10 +307,9 @@ body { min-height: 100svh; }
   }
 }
 
-/* The document preview now renders through paged.js inside `.paged-doc`
-   (see shared/utils/theme/themeToCss.ts). The old `.prose` styles have been
-   removed — theme CSS is the single source of truth for document
-   presentation, shared between the live preview and the PDF print output. */
+/* The document preview renders through paged.js inside `.paged-doc`
+   (see shared/utils/theme/themeToCss.ts). Theme CSS is the single source of
+   truth for document presentation, shared by the live preview and the PDF. */
 
 /* Push CodeMirror's scrollable area down so the floating AI bar
    (positioned `absolute bottom-6` over `<main>`) doesn't cover the

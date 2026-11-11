@@ -7,7 +7,7 @@ import { appendAuditEvent } from '../../../../../repos/audit'
 import { AUDIT_WORKSPACE_BRAND_ASSET_ADDED } from '../../../../../legal/auditActions'
 import { BRAND_IMAGE_MAX_BYTES, BRAND_IMAGES_PER_WORKSPACE, type BrandImageFormat } from '~~/shared/config/brandKit'
 
-// POST /api/workspaces/:wsId/brand/images — upload a logo (WP10).
+// POST /api/workspaces/:wsId/brand/images — upload a logo.
 // Multipart `file`: PNG, JPEG or WebP (no SVG — it can carry script), the
 // type decided by the bytes, not the name. Usable as the cover logo and
 // header / footer image of every document in the workspace

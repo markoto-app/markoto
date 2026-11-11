@@ -54,8 +54,7 @@
         docker_install_compose: false
         docker_users:
           - "{{ markoto_user }}"
-        # Match the daemon.json our hand-rolled role used to render. 50 MB ×
-        # 5 = 250 MB max per container's log; live-restore lets us upgrade
+        # 50 MB × 5 = 250 MB max per container's log; live-restore lets us upgrade
         # the daemon without bouncing every container.
         docker_daemon_options:
           log-driver: "json-file"

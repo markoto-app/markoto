@@ -6,7 +6,7 @@ import { hashScimToken, newScimToken } from '../../../../utils/sso/scim'
 import { ssoBaseUrl } from '../../../../utils/sso/http'
 
 // POST /api/workspaces/:wsId/sso/scim-token — create (or replace) the
-// SCIM bearer token for the workspace's IdP (WP14). Returned ONCE; only
+// SCIM bearer token for the workspace's IdP. Returned ONCE; only
 // its SHA-256 is stored. The previous token stops working at once.
 export default defineEventHandler(async (event) => {
   const { userId, wsId } = await requireSsoAdmin(event)

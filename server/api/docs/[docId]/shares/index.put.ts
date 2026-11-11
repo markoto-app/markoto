@@ -7,8 +7,8 @@ import { assertNotModerationRestricted } from '../../../../utils/privacy/moderat
 import { getDoc } from '../../../../repos/documents'
 
 // PUT /api/docs/:docId/shares — {userId, access: 'view' | 'edit'}: share
-// the document with a guest of its workspace, or change their access
-// (WP11). Audited (`doc.shared`).
+// the document with a guest of its workspace, or change their access.
+// Audited (`doc.shared`).
 export default defineEventHandler(async (event) => {
   const { userId: actorId, docId, workspaceId } = await requireDocSharingAccess(event)
   assertNotModerationRestricted(await getDoc(docId))

@@ -6,7 +6,7 @@ import { oidcSettingsForConnection, setSsoFlowCookie, ssoErrorPath } from '../..
 import { newSamlRequestId, samlFor } from '../../../../utils/sso/saml'
 
 // GET /auth/sso/:connectionId — start a sign-in through a workspace's
-// identity provider (WP14). `?test=1` = an admin testing a draft
+// identity provider. `?test=1` = an admin testing a draft
 // connection (a successful test activates it); `?returnTo=/path` = where
 // to land afterwards (same-site paths only).
 //

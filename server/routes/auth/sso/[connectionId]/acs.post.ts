@@ -6,7 +6,7 @@ import { assertionFromSamlProfile, samlFor } from '../../../../utils/sso/saml'
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 
 // POST /auth/sso/:connectionId/acs — SAML assertion consumer service
-// (HTTP-POST binding) for a workspace's identity provider (WP14).
+// (HTTP-POST binding) for a workspace's identity provider.
 // Validation rules: `server/utils/sso/saml.ts`. Only SP-initiated
 // sign-ins: the response must answer the AuthnRequest whose id is in
 // THIS browser's flow cookie.

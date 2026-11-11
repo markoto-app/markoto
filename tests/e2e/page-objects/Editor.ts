@@ -20,7 +20,7 @@ import { PRIVACY_VERSION, TOS_VERSION, DPA_VERSION } from '../../../shared/legal
 export class EditorPage {
   constructor(public readonly page: Page) {}
 
-  // ─── Header / title ───────────────────────────────────────────────
+  // Header / title
 
   /** The title button shown when NOT editing. Click to enter edit mode. */
   get titleButton(): Locator {
@@ -36,9 +36,7 @@ export class EditorPage {
    *  or `disconnected`. Connected is the assumed default and the chip
    *  is hidden (see EditorLayout.vue's `v-if="status !== 'connected'"`).
    *  Tests should wait for this locator to be DETACHED (= connected),
-   *  not visible. The historical `connectedBadge` was based on the
-   *  always-rendered chip; that surface was removed in the topbar
-   *  polish pass. */
+   *  not visible. */
   get nonConnectedBadge(): Locator {
     return this.page.locator('[data-testid="connection-status"]')
   }
@@ -48,7 +46,7 @@ export class EditorPage {
     return this.page.locator(sel(TESTID.ACCESS_LOCK_BUTTON))
   }
 
-  // ─── View-mode toggle group ───────────────────────────────────────
+  // View-mode toggle group
 
   /** The three view-mode buttons in the header center. Selected by
    *  `data-testid="view-mode-{edit,split,preview}"` from
@@ -62,7 +60,7 @@ export class EditorPage {
     }
   }
 
-  // ─── Right-sidebar toggles ────────────────────────────────────────
+  // Right-sidebar toggles
 
   get sidebar() {
     return {
@@ -74,7 +72,7 @@ export class EditorPage {
     }
   }
 
-  // ─── Theme panel ──────────────────────────────────────────────────
+  // Theme panel
   //
   // Surface area for the right-sidebar theme editor. Preset cards have
   // stable `theme-preset-{id}` testids; the cover-page accordion's
@@ -96,7 +94,7 @@ export class EditorPage {
     }
   }
 
-  // ─── Comments panel + composer ────────────────────────────────────
+  // Comments panel + composer
   //
   // Surface area large enough that grouping it under a `comments` getter
   // keeps the flow tests readable. All selectors go through testids so
@@ -128,7 +126,7 @@ export class EditorPage {
     }
   }
 
-  // ─── AI surfaces ──────────────────────────────────────────────────
+  // AI surfaces
   //
   // Two interaction surfaces for the AI assistant:
   //   1. The floating prompt bar at the bottom of the editor — always
@@ -217,7 +215,7 @@ export class EditorPage {
     await expect(this.ai.promptBar).toHaveAttribute('data-active', 'true', { timeout })
   }
 
-  // ─── Live dictation ───────────────────────────────────────────────
+  // Live dictation
   //
   // The toolbar mic toggles streaming dictation (`/api/ai/dictate` WS).
   // Mobile surfaces the same control as the second tab on the bottom
@@ -257,24 +255,17 @@ export class EditorPage {
     }
   }
 
-  /**
-   * Turn the cover page off (or on) for the current document so the
-   * preview shows page 1 = the content the flow is about, not the
-   * markoto title sheet every new doc opens with.
-   *
-   * Writes the theme the same way the Theme panel's cover switch does:
-   * into the shared `ymeta.theme` (via the flow stack's `__DEBUG_ydoc`
-   * test handle, NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1), so it applies live
-   * for every collaborator and works for anonymous docs too. The old
-   * implementation PUT /meta, which only updates the stored seed — an
-   * editor that had already loaded kept rendering the cover, which is
-   * why so many published frames showed nothing but "Untitled".
-   *
-   * Starts from the live theme (ymeta) or, before anyone touched it,
-   * the stored one (GET /meta) so a preset picked in the new-document
-   * dialog survives. When the preview is mounted, waits until it has
-   * repaginated with/without the cover.
-   */
+  // Turn the cover page off (or on) for the current document so the preview shows page 1 = the content the
+  // flow is about, not the markoto title sheet every new doc opens with.
+  //
+  // Writes the theme the same way the Theme panel's cover switch does: into the shared `ymeta.theme` (via the
+  // flow stack's `__DEBUG_ydoc` test handle, NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1), so it applies live for every
+  // collaborator and works for anonymous docs too. PUT /meta is not enough: it only updates the stored seed,
+  // so an editor that had already loaded would keep rendering the cover.
+  //
+  // Starts from the live theme (ymeta) or, before anyone touched it, the stored one (GET /meta) so a preset
+  // picked in the new-document dialog survives. When the preview is mounted, waits until it has repaginated
+  // with/without the cover.
   async setCoverEnabled(enabled: boolean): Promise<void> {
     const docId = this.currentDocId()
     const { defaultTheme } = await import('../../../shared/utils/theme/defaultTheme')
@@ -461,7 +452,7 @@ export class EditorPage {
     }
   }
 
-  // ─── Status bar (footer) ──────────────────────────────────────────
+  // Status bar (footer)
 
   get statusBar() {
     return {
@@ -472,7 +463,7 @@ export class EditorPage {
     }
   }
 
-  // ─── New-document dialog ──────────────────────────────────────────
+  // New-document dialog
 
   /** Selectors inside the new-document dialog. The dialog opens when
    *  the user clicks "+ New Document" anywhere — homepage, workspace,
@@ -568,7 +559,7 @@ export class EditorPage {
     await expect(this.newDocDialog.titleInput).toBeVisible()
   }
 
-  // ─── Composite actions ────────────────────────────────────────────
+  // Composite actions
 
   /**
    * Wait until the editor has fully mounted AND the Hocuspocus WS
@@ -679,7 +670,7 @@ export class EditorPage {
     await expect(this.titleButton.filter({ hasText: newTitle })).toBeVisible()
   }
 
-  // ─── Auth (TEST_MODE only) ────────────────────────────────────────
+  // Auth (TEST_MODE only)
 
   /**
    * Seal a session cookie for a fresh test user. Uses the
@@ -717,16 +708,11 @@ export class EditorPage {
     })
     try {
       const githubId = `flow-test-${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${Date.now()}`
-      // Seed the onboarding columns directly so the user row matches a
-      // post-Welcome-modal state. Mirrors `tests/integration/setup/
-      // fixtures.ts:createUser()` non-fresh path. Without this, every
-      // `POST /api/workspaces` returns 409 `workspace/dpa-required`
-      // (the DPA gate added in Workstream B), and every flow that
-      // touches workspaces fails at setup. Versions read from
-      // `shared/legal/versions.ts` so a future PRIVACY_VERSION bump
-      // can't desync the OnboardingGate's "needs re-acceptance"
-      // check from the test seed (which previously hard-coded 2/1/1
-      // and broke every flow on the next bump).
+      // Seed the onboarding columns directly so the user row matches a post-Welcome-modal state. Mirrors
+      // `tests/integration/setup/fixtures.ts:createUser()` non-fresh path. Without this, every
+      // `POST /api/workspaces` returns 409 `workspace/dpa-required` (the DPA gate), and every flow that touches
+      // workspaces fails at setup. Versions are read from `shared/legal/versions.ts` so a PRIVACY_VERSION bump
+      // can't desync the OnboardingGate's "needs re-acceptance" check from the test seed.
       const result = await pool.query<{ id: number }>(
         `INSERT INTO users (
            github_id, name, email, locale, plan,
@@ -803,7 +789,7 @@ export class EditorPage {
     }])
   }
 
-  // ─── Navigation ───────────────────────────────────────────────────
+  // Navigation
 
   /**
    * Go to the homepage, open the new-document dialog, create a doc with

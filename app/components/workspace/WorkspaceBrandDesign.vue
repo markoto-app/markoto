@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Brand kit (WP10), admins: the workspace design — taken from one of the
+// Brand kit, admins: the workspace design — taken from one of the
 // workspace's documents, locked for every document — and the workspace
 // templates (live links to workspace documents). Rendered inside
 // WorkspaceBrandKitPanel. Server: `…/brand/lock`, `…/brand/design-from-doc`,
@@ -24,7 +24,6 @@ const { showError } = useErrorHandler()
 const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspaceId)}`)
 const docItems = computed(() => props.documents.map(d => ({ label: d.title || t('editor.untitled'), value: d.docId })))
 
-// ── Design ─────────────────────────────────────────────────────────
 const designDoc = ref<string | undefined>(undefined)
 const designBusy = ref(false)
 async function useDesignFrom(): Promise<void> {
@@ -60,7 +59,6 @@ async function setLocked(locked: boolean): Promise<void> {
   }
 }
 
-// ── Templates ──────────────────────────────────────────────────────
 const templates = ref<Template[]>([])
 async function loadTemplates(): Promise<void> {
   try {
@@ -111,7 +109,6 @@ async function removeTemplate(id: string): Promise<void> {
 
 <template>
   <div class="space-y-8">
-    <!-- Workspace design + lock -->
     <div
       class="space-y-3"
       data-testid="brand-design"
@@ -176,7 +173,6 @@ async function removeTemplate(id: string): Promise<void> {
       </div>
     </div>
 
-    <!-- Workspace templates -->
     <div
       class="space-y-3"
       data-testid="brand-templates"

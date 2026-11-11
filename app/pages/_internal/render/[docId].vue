@@ -93,7 +93,7 @@ onMounted(async () => {
     looksLikeTheme(stored) && isValidTheme(stored) ? stored : defaultTheme,
     docId
   ).theme
-  // Web snapshot for a published page (WP13): the same pipeline, but no
+  // Web snapshot for a published page: the same pipeline, but no
   // cover page and no pagination — the page shows the title itself.
   const webMode = route.query.mode === 'web'
   const theme: DocTheme = webMode ? { ...validTheme, cover: { ...validTheme.cover, enabled: false } } : validTheme
@@ -106,7 +106,7 @@ onMounted(async () => {
   // bootstrap) so private / password-gated / workspace-only docs' images
   // load — the renderer's Chromium has no session cookie. It goes ONLY to
   // exact `/api/files/<docId>/<fileId>` URLs of this document's confirmed
-  // uploads and to the workspace's brand-kit files (WP10): `<img src>` in
+  // uploads and to the workspace's brand-kit files: `<img src>` in
   // the body + cover logo, the header/footer images (themeToCss
   // `imageUrl`), own-upload url()s in custom CSS and the brand fonts.
   // Nothing in the content can make the page attach it to another URL.
@@ -148,7 +148,7 @@ onMounted(async () => {
   // via a direct Y.js write). The sanitizer keeps only exact own-upload
   // url()s (normalised to `/api/files/<docId>/<fileId>`), which get the
   // same file-access token; everything else external is already gone,
-  // and the CSP + renderer allowlist (PR #64) back that up.
+  // and the CSP + renderer allowlist back that up.
   const customCss = await sanitizeCustomCssForRender(
     typeof theme.customCss === 'string' ? theme.customCss : undefined,
     {
@@ -178,7 +178,7 @@ onMounted(async () => {
   // cssText }], mount) bypasses document scanning entirely. The Nuxt
   // UI styles can stay in the head; paged.js will never look at them.
 
-  // Web snapshot (WP13 publish): hand the composed, sanitised HTML + the
+  // Web snapshot (publish): hand the composed, sanitised HTML + the
   // theme CSS back to the renderer instead of paginating. Mermaid
   // diagrams are inlined as sanitised SVG like after pagination; the
   // file-access token is taken off every URL — the app rewrites them to
@@ -304,10 +304,9 @@ onMounted(async () => {
   // image bytes are usually browser-cached at this point so this resolves
   // fast, but on a cold cache (or a slow renderer container start)
   // page.pdf() will fire before pixels exist and the PDF comes up with
-  // missing images. element.screenshot() apparently waits for in-viewport
-  // images, but page.pdf() does not — hence images appeared on direct
-  // screenshots but were absent from the produced PDF until this wait
-  // landed.
+  // missing images. element.screenshot() waits for in-viewport images,
+  // but page.pdf() does not, so images show up on direct
+  // screenshots but are absent from the produced PDF without this wait.
   // Mermaid diagrams were atomic <img>s for pagination; now inline them
   // (sanitised) so their text uses the document's web fonts.
   inlineMermaidSvgs(mount)

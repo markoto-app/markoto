@@ -55,7 +55,7 @@ export interface MetaToolContext {
   sessionId: string
 
   /** Billing target — `user:{id}` self-bill, or `workspace:{id}` when
-   *  a `(+)` workspace's owner covers the cost. */
+   *  the workspace's pooled budget covers the cost. */
   attributedTo: AttributedTo
 
   /** Plan that applies to this call (gates per-tier features +
@@ -66,7 +66,7 @@ export interface MetaToolContext {
    *  calendar-month UTC. */
   periodStart: Date
 
-  /** Per-user (or per-(+)-workspace-owner) LiteLLM virtual-key bearer
+  /** Per-user (or per-workspace-member) LiteLLM virtual-key bearer
    *  token. Tools that hit LiteLLM (web_search, fetch_url,
    *  generate_image, search_knowledge embeddings) pass this to
    *  `useLitellmForUser(virtualKey)` so spend lands on the right
@@ -111,9 +111,7 @@ export interface DocToolContext extends MetaToolContext {
 
 /**
  * @deprecated Use `DocToolContext` (handlers that need Y handles) or
- * `MetaToolContext` (handlers that don't) explicitly. The unsplit
- * `ToolContext` alias remains so the migration to per-handler typing
- * doesn't have to land in one big patch. New code SHOULD pick the
- * narrower of the two.
+ * `MetaToolContext` (handlers that don't) explicitly. New code should pick
+ * the narrower of the two.
  */
 export type ToolContext = DocToolContext

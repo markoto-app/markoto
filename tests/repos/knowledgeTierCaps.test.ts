@@ -64,7 +64,7 @@ describe('resolveCaps — per-uploader tier', () => {
     expect(caps.maxTotalBytesPerUser).toBe(TIERS.free.knowledgeBytesPerUser)
   })
 
-  it('in a Business workspace the uploader\'s personal caps don\'t apply (pooled, WP3)', async () => {
+  it('in a Business workspace the uploader\'s personal caps don\'t apply (pooled)', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     await subscribe(ws.workspaceId, 'business')

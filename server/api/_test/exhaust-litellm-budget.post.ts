@@ -1,21 +1,13 @@
-// Test-only endpoint that drains a user's LiteLLM virtual-key budget
-// so the next AI call surfaces a budget_exceeded error from the proxy.
-// Drives `tests/e2e/flows/ai-budget-exhausted.spec.ts` and the
-// integration tests pinned at the post-Phase-6 wire-path.
+// Test-only: drains a user's LiteLLM virtual-key budget so the next AI call
+// surfaces a budget_exceeded error from the proxy (used by the
+// ai-budget-exhausted flow and integration tests).
 //
-// 404 in any environment where TEST_MODE !== '1' so an accidentally-set
-// env var on a prod box still doesn't expose the surface.
+// 404 unless TEST_MODE === '1' so a stray env var on a prod box exposes nothing.
 //
-// Body: `{ userId: number }`. The endpoint:
-//   1. Lazy-creates the user's virtual key (or reuses the existing one).
-//   2. Calls LiteLLM /key/update with `max_budget = 0.0` — every
-//      subsequent call against this key will return a 400 with
-//      `budget_exceeded` in the body, which our `isBudgetExceededError`
-//      predicate translates to `LitellmBudgetExhausted`.
-//
-// We don't try to read current spend + match it: the proxy-side gate
-// trips on `spend >= max_budget`, so 0.0 always works whether the key
-// has already been used or not.
+// Body: `{ userId: number }`. Lazily creates the user's virtual key, then sets
+// `max_budget = 0.0` via LiteLLM /key/update. The proxy trips on
+// `spend >= max_budget`, so 0.0 works whether or not the key was already used;
+// `isBudgetExceededError` maps the resulting 400 to `LitellmBudgetExhausted`.
 
 import { setUserKeyMaxBudget } from '../../utils/litellm/userKeys'
 import { resolveBillingContext } from '../../utils/billing/billing'
@@ -33,9 +25,7 @@ export default defineEventHandler(async (event) => {
   }
 
   // Resolve billing context so the key exists with the right plan budget
-  // before we slam it. Workspace context is null — exhausting the user's
-  // own key is the test contract; (+) sponsorship would need a separate
-  // endpoint that targets `users.id` of the sponsor.
+  // first. Workspace context is null: the test exhausts the user's own key.
   const billing = await resolveBillingContext(userId, null)
 
   await setUserKeyMaxBudget(userId, billing.plan, 0)

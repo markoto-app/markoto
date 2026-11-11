@@ -98,8 +98,8 @@ export interface ToolResult {
   /**
    * Extra content parts (e.g. image inlineData) appended to the user
    * message AFTER the functionResponse so the model can see them on the
-   * next turn. The internal `functionResponse` shape (pre-migration:
-   * Gemini-derived) is JSON-only — binary data has to ride as a
+   * next turn. The internal `functionResponse` shape
+   * is JSON-only — binary data has to ride as a
    * sibling `inlineData` part, which the OpenAI-shape translator in
    * `messageTranslation.ts` then re-emits as a follow-up user message
    * with `image_url` parts.
@@ -277,8 +277,7 @@ export function handleInsert(
 
 /**
  * Numeric fields are declared as string enums in the Zod schema for
- * function-call schema stability (carried over from pre-Phase-5
- * Gemini-era constraints): weight (headings), columns (layout),
+ * function-call schema stability: weight (headings), columns (layout),
  * maxDepth (toc). Coerce them back to numbers before deep-merge +
  * isValidTheme.
  */
@@ -379,7 +378,7 @@ export async function handleUpdateTheme(
   const conflictErr = checkBaseSourceConflict(input)
   if (conflictErr) return conflictErr
 
-  // Brand kit (WP10): a locked workspace design — only the cover text is
+  // Brand kit: a locked workspace design — only the cover text is
   // the document's own. Anything else would be stored but never shown.
   const lockErr = await checkBrandLock(session.docId, input)
   if (lockErr) return lockErr
@@ -776,7 +775,7 @@ export async function handleListMyDocuments(
   return ok(JSON.stringify(payload, null, 2))
 }
 
-// ─── Host-style tools (Phase 4) ──────────────────────────────────────
+// ─── Host-style tools ────────────────────────────────────────────────
 
 export async function handleCreateDocument(
   session: MetaToolContext,
@@ -866,7 +865,7 @@ export async function handleDuplicateDocument(
   if (!(await canEditDoc(session.initiatorUserId, input.source_doc_id))) {
     return err(`Error: source document "${input.source_doc_id}" not found, or you don't have access to it.`)
   }
-  // View only (WP9): a copy is a download.
+  // View only: a copy is a download.
   if (!(await userMayDownload(input.source_doc_id, session.initiatorUserId))) {
     return err(`Error: ${DOWNLOAD_DISABLED_MESSAGE} Tell the user.`)
   }
@@ -925,7 +924,7 @@ export async function handleExportDocumentAsMarkdown(
   // entry, so session.ytext / ymeta are the live synced doc.
   const doc = await getDoc(session.docId)
   if (!doc) return err('Error: document not found.')
-  // Share-link controls (WP9): a visitor may not download a view-only doc.
+  // Share-link controls: a visitor may not download a view-only doc.
   if (!(await userMayDownload(session.docId, session.initiatorUserId))) {
     return err(`Error: ${DOWNLOAD_DISABLED_MESSAGE} Tell the user.`)
   }
@@ -1265,7 +1264,7 @@ export async function handleViewImage(
 
 // --- Generate image -------------------------------------------------------
 
-// Map the image-gen output MIME (BFL FLUX.2 / pre-Phase-5 Gemini) to
+// Map the image-gen output MIME (BFL FLUX.2) to
 // the extension the upload pipeline uses. (Keep the set narrow — the
 // file-id regex in /api/files only accepts these extensions; anything
 // else would be unreachable via /api/files.)
@@ -1390,7 +1389,7 @@ async function generateImageBytesBfl(
   opts: ImageGenOpts
 ): Promise<ImageGenResult> {
   if (!opts.virtualKey) {
-    return { error: 'BFL image gen requires a per-user LiteLLM virtual key (Phase 6).' }
+    return { error: 'BFL image gen requires a per-user LiteLLM virtual key.' }
   }
   const config = useRuntimeConfig()
   const litellm = useLitellmForUser(opts.virtualKey)
@@ -1461,9 +1460,9 @@ export async function handleGenerateImage(
   session: MetaToolContext,
   input: GenerateImageInput
 ): Promise<ToolResult> {
-  // Phase 6: no app-side interaction-charging. The BFL custom provider
-  // bills the user's LiteLLM virtual key directly via the chat-completion
-  // shape; budget_exceeded surfaces as a `LitellmBudgetExhausted` thrown
+  // No app-side charging: the BFL custom provider bills the user's
+  // LiteLLM virtual key directly via the chat-completion shape;
+  // budget_exceeded surfaces as a `LitellmBudgetExhausted` thrown
   // from `generateImageBytesBfl` (caught + translated to a tool-result
   // error string).
   session.updateStatus('tool', 'Generating image…')
@@ -1471,7 +1470,7 @@ export async function handleGenerateImage(
   // 1. Image storage quota — checked BEFORE generating so a full quota
   //    doesn't burn the user's AI budget on an image we can't store. The
   //    atomic reservation (with the real size) happens before the PUT.
-  //    A Team / Business workspace document uses the workspace pool (WP3).
+  //    A Team / Business workspace document uses the workspace pool.
   const quota = await resolveImageQuota(session.initiatorUserId, session.docId)
   const quotaBytes = quota.maxBytes
   if (await sumImageBytesInScope(quota.scope) >= quotaBytes) {
@@ -1584,21 +1583,18 @@ export async function handleGenerateImage(
 //
 // Backend-rendered PNGs of paginated pages. The renderer container produces
 // these on demand and uploads to S3 keyed by yjs-doc snapshot id; subsequent
-// calls hit the cache. Costs interactions because the model's vision
-// input is charged per-image — we use 5 per page (same as image
-// generation), leaving room for the renderer compute itself.
+// calls hit the cache. Each page image is billed as vision input tokens.
 //
 // Cap: 5 pages per call (enforced by Zod). The model is instructed to call
-// these tools only when the user references a specific page — burning 25
-// interactions speculatively would chew through budget.
+// these tools only when the user references a specific page, so images
+// aren't rendered speculatively.
 
 export async function handleGetPageCount(
   session: MetaToolContext,
   _input: GetPageCountInput
 ): Promise<ToolResult> {
-  // Phase 6: no app-side interaction-charging. The renderer call below
-  // is server-internal — the user only "pays" for the chat-completion
-  // turn that issued this tool call (via LiteLLM).
+  // No app-side charging: the renderer call is server-internal, so the
+  // user only pays (via LiteLLM) for the chat turn that issued this call.
   session.updateStatus('tool', 'Counting pages…')
 
   try {
@@ -1616,10 +1612,9 @@ export async function handleViewPages(
 ): Promise<ToolResult> {
   const requestedPages = Array.from(new Set(input.pages)).sort((a, b) => a - b)
 
-  // Phase 6: no app-side interaction-charging. The page images are
-  // injected into the next user turn as `image_url` parts; the
-  // per-image input-token cost is billed by LiteLLM on that turn's
-  // chat completion (Mistral Small 4.0 vision input).
+  // No app-side charging: the page images are injected into the next
+  // user turn as `image_url` parts; the per-image input-token cost is
+  // billed by LiteLLM on that turn's chat completion.
   session.updateStatus('tool', `Rendering ${requestedPages.length} page${requestedPages.length === 1 ? '' : 's'}…`)
 
   let manifest
@@ -2267,8 +2262,8 @@ export async function handleDeleteComment(
 
 /**
  * Authorship gate for comment/reply deletion. markoto's own posts
- * (authorId=null + authorName='markoto', plus legacy 'AI Assistant'
- * from before the rename) and the initiator's own posts are always
+ * (authorId=null + authorName='markoto', plus the older 'AI Assistant'
+ * name) and the initiator's own posts are always
  * deletable. Anything else falls through to the doc-manage right.
  */
 function canDeleteEntry(map: Y.Map<unknown>, initiatorUserId: number): boolean {

@@ -10,9 +10,8 @@ import { markDocumentStructure } from '../../app/utils/preview/documentMarkers'
 import { defaultTheme } from '../../shared/utils/theme/defaultTheme'
 import type { DocTheme } from '../../shared/types/theme'
 
-// Engine batch 2: the `{section}` label attribute, chapter-relative caption
-// numbers and the marker classes for template CSS (run-in labels, endpoint
-// lines, lead paragraph, opening words, the every-chapter drop cap).
+// Engine hooks: the `{section}` label attribute, chapter-relative caption numbers and the marker classes
+// for template CSS (run-in labels, endpoint lines, lead paragraph, opening words, the every-chapter drop cap).
 
 function parse(html: string): DocumentFragment {
   const tpl = document.createElement('template')

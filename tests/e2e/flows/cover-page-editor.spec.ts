@@ -57,7 +57,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     + 'every field, and a slider for the title size.'
   )
 
-  // ─── Open the theme panel + the cover accordion ─────────────────
+  // Open the theme panel + the cover accordion
   // Desktop: right-sidebar Theme tab; mobile: bottom-tab-bar Theme.
   const themeTab = editor.isMobile
     ? editor.page.mobileTabs.theme
@@ -96,7 +96,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Switch the layout ──────────────────────────────────────────
+  // Switch the layout
   await flow.heading('Pick a layout', 3)
   await flow.narrate(
     'Editorial is the default. Banner puts the logo and the title in a '
@@ -155,7 +155,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
     )
   }
 
-  // ─── Add a subtitle ─────────────────────────────────────────────
+  // Add a subtitle
   await flow.heading('Add a subtitle line', 3)
   await flow.narrate(
     'A short line under the title, such as a version, a team or '

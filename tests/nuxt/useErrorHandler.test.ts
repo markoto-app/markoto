@@ -3,11 +3,8 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 
 import { useErrorHandler } from '~/composables/platform/useErrorHandler'
 
-// useErrorHandler contract tests. Senior-QA review of the previous 25-
-// test suite noted ~20 were mechanical branch coverage (would catch a
-// typo, not a design error). This pared-down suite keeps only the ones
-// that encode a non-obvious cross-file contract — the kind of tests
-// that WOULD have caught a real regression.
+// useErrorHandler contract tests. Only tests that encode a non-obvious cross-file contract live here, not
+// mechanical branch coverage (which would catch a typo, not a design error).
 //
 // What we keep, and why each exists:
 //

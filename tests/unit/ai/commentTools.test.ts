@@ -22,9 +22,7 @@ vi.mock('../../../server/utils/workspaces/workspaceAccess', () => ({
 // that the real-time UI renders, so correctness (authorId, anchorStart/End
 // encoding, resolved flag, delete auth) is pinned here.
 
-// ---------------------------------------------------------------------------
 // Session stub (same pattern as aiToolAdapter.test.ts)
-// ---------------------------------------------------------------------------
 
 interface StubSession {
   session: AiSession
@@ -67,9 +65,7 @@ function makeSession(initial = '', sessionId = 'test-session', initiatorUserId =
   return { session, ytext, ydoc, statusCalls, originsSeen }
 }
 
-// ---------------------------------------------------------------------------
 // Helpers to pre-seed comments into the Y.Doc
-// ---------------------------------------------------------------------------
 
 function seedComment(ydoc: Y.Doc, ytext: Y.Text, opts: {
   id?: string
@@ -138,9 +134,7 @@ function seedComment(ydoc: Y.Doc, ytext: Y.Text, opts: {
   return id
 }
 
-// ---------------------------------------------------------------------------
 // read_comments
-// ---------------------------------------------------------------------------
 
 describe('read_comments', () => {
   it('returns empty message when no comments', async () => {
@@ -224,9 +218,7 @@ describe('read_comments', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // create_comment
-// ---------------------------------------------------------------------------
 
 describe('create_comment', () => {
   it('creates a comment with AI identity and correct anchor', async () => {
@@ -311,9 +303,7 @@ describe('create_comment', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // reply_to_comment
-// ---------------------------------------------------------------------------
 
 describe('reply_to_comment', () => {
   it('adds a reply with AI identity and bumps parent updatedAt', async () => {
@@ -361,9 +351,7 @@ describe('reply_to_comment', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // resolve_comment
-// ---------------------------------------------------------------------------
 
 describe('resolve_comment', () => {
   it('marks a thread as resolved', async () => {
@@ -425,9 +413,7 @@ describe('resolve_comment', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
 // delete_comment
-// ---------------------------------------------------------------------------
 
 describe('delete_comment', () => {
   it('deletes an AI-authored thread', async () => {

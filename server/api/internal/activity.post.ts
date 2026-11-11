@@ -32,7 +32,6 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Invalid action' })
   }
 
-  // Only log activity for documents that exist in the DB.
   // Anonymous/direct-URL docs without a DB row are skipped.
   if (!(await docExists(body.docId))) {
     return { success: true, logged: false }
@@ -62,25 +61,20 @@ export default defineEventHandler(async (event) => {
   })
 
   if (!inserted) {
-    // Cross-instance dup or replay — expected with the multi-sync-server
-    // rollout. The partial unique index `uq_activity_doc_yjsafter` made
-    // the second INSERT a no-op. Debug-level only; this is the documented
-    // residual race landing softly, not a Sentry-worthy event.
+    // Cross-instance dup or replay: `uq_activity_doc_yjsafter` makes the second
+    // INSERT a no-op. Expected with several sync servers, so debug-level only.
     console.debug(`[activity] dedup skipped insert for doc=${body.docId} action=${body.action} yjsAfter=${body.yjsDocIdAfter}`)
     return { success: true, logged: false, deduped: true }
   }
 
-  // Edit events bump `lastActive`, which the inactive-doc sweep reads.
-  // Without this, a document actively being edited but never hitting
-  // `meta.put` would age out at the TTL and get reaped. Non-edit actions
-  // (join/leave) don't count — a passive viewer shouldn't keep an
-  // abandoned doc alive.
+  // Edit events bump `lastActive` (read by the inactive-doc sweep), so a doc
+  // edited without ever hitting `meta.put` isn't reaped. Join/leave don't
+  // count: a passive viewer shouldn't keep an abandoned doc alive.
   if (body.action === 'edit') {
     await bumpLastActive(body.docId)
   }
 
-  // Cap the log at MAX_ENTRIES_PER_DOC so edit-heavy docs don't grow
-  // unbounded. Cheap (one count + one targeted delete) per append.
+  // Cap the log at MAX_ENTRIES_PER_DOC (one count + one targeted delete).
   await pruneActivity(body.docId)
 
   return { success: true, logged: true }

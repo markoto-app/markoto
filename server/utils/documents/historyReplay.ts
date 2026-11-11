@@ -8,25 +8,17 @@ import { useDatabasePool } from '../platform/database'
 // textual diff.
 //
 // Mechanics:
-//   - y-postgresql stores granular updates as `version = 'v1'` rows
-//     in `yjs_documents`. `version = 'v1_sv'` rows are derived state
-//     vectors — we ignore those (re-applying a state vector to a
-//     fresh Y.Doc would be a no-op, but skipping them keeps the
-//     ordering clean).
-//   - `Y.applyUpdate(doc, bytes)` is associative + commutative, so
-//     replay order doesn't strictly matter for correctness. We sort
-//     by `id ASC` anyway because (a) it matches y-postgresql's own
-//     load semantics and (b) it makes debugging deterministic.
-//
-// Performance: a doc with thousands of granular updates merges them
-// internally during apply, so memory stays bounded. Typical replay
-// latency: 50-200ms for the longest docs we see in practice. The
-// diff endpoint exposes this on-demand — no caching layer in v1.
+//   - y-postgresql stores granular updates as `version = 'v1'` rows in
+//     `yjs_documents`; `v1_sv` rows are derived state vectors and are skipped.
+//   - `Y.applyUpdate` is associative + commutative, so order does not matter
+//     for correctness; rows are replayed by `id ASC` to match y-postgresql's
+//     own load order and keep debugging deterministic.
+//   - There is no caching: replay of the longest docs takes tens to a few
+//     hundred ms.
 //
 // Edge cases:
-//   - `maxYjsId === null` → return an empty Y.Doc. Happens when the
-//     activity row predates the boundary-tracking feature, or when
-//     the row was written before any store had occurred (rare).
+//   - `maxYjsId === null` → an empty Y.Doc (the activity row has no
+//     recorded boundary).
 //   - `maxYjsId` references a row that has since been COMPACTED AWAY by
 //     y-postgresql (`flushDocument` → `clearUpdatesRange` DELETES every
 //     `v1` row below the merged row). The merged row's `id` is HIGHER
@@ -41,11 +33,8 @@ import { useDatabasePool } from '../platform/database'
 //     proper Uint8Array view before passing to `applyUpdate` (lib0
 //     rejects raw Buffers in some bundling configurations).
 //
-// This file is a sibling of `cloneYjsState.ts`, which does almost the
-// same thing for the duplicate-doc flow. We keep them separate because
-// (a) cloneYjsState rewrites image URLs and copies ymeta whereas this
-// helper is read-only, and (b) the diff endpoint may eventually want
-// caching that doesn't make sense for the one-shot clone.
+// Kept separate from `cloneYjsState.ts`, which replays the same way but
+// rewrites image URLs and copies ymeta; this helper is read-only.
 
 /**
  * Replay every yjs_documents row for `docId` with `id <= maxYjsId`,

@@ -66,7 +66,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     + 'directory isn\'t enumerable. Nobody joins until they accept.'
   )
 
-  // ─── Open the Members panel ─────────────────────────────────────
+  // Open the Members panel
   await flow.click(
     'Click "Invite people" at the top of the workspace page',
     page.locator('[data-testid="workspace-invite-people"]'),
@@ -79,7 +79,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Invite Sam ─────────────────────────────────────────────────
+  // Invite Sam
   await flow.heading('Add Sam by email', 3)
   await flow.narrate(
     'Type the exact email Sam signed up with. The default role is '
@@ -113,7 +113,7 @@ test('Invite a teammate to your workspace', async ({ page, flow, editor }) => {
   }
   expect(membersBefore.members.some(m => m.userId === teammateUserId)).toBe(false)
 
-  // ─── Sam sees the workspace ────────────────────────────────────
+  // Sam sees the workspace
   await flow.heading('Sam accepts', 3)
   await flow.narrate(
     'Sam opens markoto in their own browser, signed in with the invited '

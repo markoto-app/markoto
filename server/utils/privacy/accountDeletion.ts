@@ -18,7 +18,7 @@ import { safeSendTransactionalEmail } from '../email/sendEmail'
 // **Scope:** This file ONLY touches the `users` row's two timestamp
 // columns + writes audit + fires a courtesy email. The actual
 // cascading purge (docs / S3 / comments / Stripe / etc.) lives in
-// `accountDeletionSweep.ts` (Workstream B-2). Splitting these is
+// `accountDeletionSweep.ts`. Splitting these is
 // deliberate: the request flow is a hot path the user touches
 // directly and must stay fast and reversible; the purge is offline,
 // idempotent, and runs from a sweeper.

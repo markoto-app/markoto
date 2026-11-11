@@ -4,7 +4,7 @@ HTTP wrapper around Microsoft markitdown for file → markdown conversion.
 Replaces the prior pandoc/extra container. Markitdown ships pure-Python
 converters for the common office formats (docx, pdf, pptx, xlsx, html,
 epub, …) and is a fraction of the image size — no TeX, no fonts, no
-shell-out to pandoc subprocess. Per AGENTS.md §16, the import endpoint
+shell-out to pandoc subprocess. The import endpoint
 only converts TO markdown (export is client-side via paged.js), so we
 don't need pandoc's wide output coverage.
 

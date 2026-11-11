@@ -3,7 +3,7 @@ import { deleteSsoConnection } from '../../../../repos/sso'
 import { AUDIT_SSO_CONNECTION_DELETED } from '../../../../legal/auditActions'
 import { requireSsoAdmin } from '../../../../utils/sso/admin'
 
-// DELETE /api/workspaces/:wsId/sso — remove the identity provider (WP14).
+// DELETE /api/workspaces/:wsId/sso — remove the identity provider.
 // Ends enforcement at once; identities and grants go with it. Allowed
 // without the plan (a lapsed plan must still be able to switch SSO off).
 export default defineEventHandler(async (event) => {

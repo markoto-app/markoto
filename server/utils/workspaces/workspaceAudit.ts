@@ -1,4 +1,4 @@
-// Workspace audit log (WP15): who may read it, query parsing, and the
+// Workspace audit log: who may read it, query parsing, and the
 // view / export shape. The rows come from `audit_log.workspace_id`
 // (`server/repos/audit.ts#listWorkspaceAuditEvents`).
 //
@@ -6,7 +6,7 @@
 //   (Business on markoto.app; every workspace when self-hosted). Normal
 //   role check — in a workspace that enforces single sign-on, that means
 //   a current SSO sign-in too.
-// - Truncated IPs (/24, /48) are shown (decision WP15); never secrets
+// - Truncated IPs (/24, /48) are shown; never secrets
 //   (the audit writers store none).
 // - Retention: the instance's audit retention (2 years by default,
 //   `NUXT_AUDIT_LOG_RETENTION_DAYS`) — shown, not configurable here.

@@ -36,8 +36,8 @@ export interface LegalEntity {
   // Choice-of-law for the Terms of Service. e.g. "Swiss law" /
   // "the laws of Switzerland".
   governingLaw: string
-  // ─── Provider-identification facts (Swiss UWG Art. 3(1)(s) / EU
-  //     imprint requirements). Rendered into the Impressum page. ───
+
+  // Provider-identification facts, rendered into the Impressum page.
   // Legal form, e.g. "Gesellschaft mit beschränkter Haftung (GmbH)".
   legalForm: string
   // Registered office / Sitz.

@@ -5,7 +5,7 @@
 //   ::flow{id="quick-share" hide-title}         — minimal embed
 //   ::flow{path="/internal/flows/admin/manifest.json"} — escape hatch
 //
-// Manifest v2 introduces four slide kinds:
+// Slide kinds:
 //   • chapter   — text-only section break (no screenshot)
 //   • narration — exposition; screenshot + large subtitle, no cursor
 //   • approach  — "click X" — cursor on target, before-state
@@ -205,12 +205,10 @@ function durationFor(e: Entry): number {
   return 2500
 }
 
-// Slide state. Image, caption, and cursor all bind to slideIdx —
-// the v1 model lagged the image swap so the cursor could "arrive"
-// on the previous screenshot, but with v2's approach+outcome pairs
-// the cursor's destination IS the new approach's screenshot context,
-// so swapping immediately reads correctly. The cursor's CSS
-// transition on left/top/opacity still gives smooth motion between
+// Slide state. Image, caption and cursor all bind to slideIdx and swap
+// immediately: an outcome's cursor destination IS the approach's
+// screenshot context, so there is no lag to hide. The cursor's CSS
+// transition on left/top/opacity still animates motion between
 // consecutive cursor-bearing slides.
 const slideIdx = ref(0)
 const isPlaying = ref(false)
@@ -336,8 +334,6 @@ watch(entries, (newEntries) => {
 watch(slideIdx, (idx) => {
   if (slideQuery.value !== idx) slideQuery.value = idx
 })
-
-// useTimeoutFn auto-stops on scope dispose — no manual onUnmounted.
 
 // Keyboard nav for slides — bound to the slides container so the
 // shortcuts only fire when it has focus (tabIndex on the wrapper).
@@ -491,12 +487,10 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
       {{ manifest.title }}
     </h3>
 
-    <!-- Hero frame intentionally NOT rendered. Manifest still carries
-         `heroEntry` and the script resolver is live, so re-enabling
-         is one git revert away (search for "jumpToHero" + "heroEntry"
-         in history). The payoff frame still appears in the slideshow
-         proper as a normal outcome shot — only the redundant top-
-         strip surface is suppressed. -->
+    <!-- Hero frame intentionally not rendered: the manifest still
+         carries `heroEntry` and the resolver is live, but the payoff
+         frame already appears in the slideshow as a normal outcome
+         shot, so a top strip would be redundant. -->
 
     <section
       v-if="entries.length"
@@ -532,13 +526,12 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
           leave-to-class="opacity-0"
           mode="out-in"
         >
-          <!-- Slide caption. Bone (sumi-50) chip on the bone field
-               of the slide rather than the previous black/45 wash —
-               the dark-on-dark-gray combo was unreadable in light
-               mode and read as "video player chrome". `bg-muted/95`
-               keeps just enough translucency for the chip to feel
-               layered without losing legibility, and `text-default`
-               + `font-medium` lands the brand body voice. -->
+          <!-- Slide caption: a bone (sumi-50) chip on the slide's bone
+               field. A dark wash on dark gray was unreadable in light
+               mode and read as video-player chrome. `bg-muted/95` keeps
+               just enough translucency to feel layered without losing
+               legibility; `text-default` + `font-medium` is the brand
+               body voice. -->
           <div
             v-if="subtitleText"
             :key="slideIdx"

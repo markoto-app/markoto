@@ -6,7 +6,7 @@ import { isAdminEmail } from './adminAccess'
 // One-shot bootstrap: when a user logs in via OAuth and their
 // email is on the `NUXT_ADMIN_USER_EMAILS` allowlist, flip their
 // `users.is_admin` column to true (if not already) and audit the
-// promotion. Called from both OAuth callbacks (github + google)
+// promotion. Called from the OAuth callbacks (github, google, oidc)
 // after the upsert completes.
 //
 // Idempotent: `setAdminFlag` short-circuits when the flag is

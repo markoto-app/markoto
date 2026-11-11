@@ -264,11 +264,10 @@ describe('insert_text', () => {
   })
 
   it('insert_line === lines.length appends at end (regression for off-by-one)', async () => {
-    // Regression target: pre-fix, this overshot by 1 because the loop
-    // added "+1 for newline" after the last line even though there's no
-    // trailing newline. Result depended on yjs's bounds-handling and
-    // silently put content in the wrong place. The `Math.min(idx, full.length)`
-    // clamp in handleInsert pins this to the true end.
+    // The insert position must be clamped to the true end: the loop added "+1 for newline" after the last line even
+    // though there's no trailing newline, so the position overshot by 1 and, depending on yjs's bounds handling,
+    // silently put content in the wrong place. The `Math.min(idx, full.length)` clamp in handleInsert pins this to
+    // the true end.
     const { session, ytext } = makeSession('hello\nworld')
     const res = await executeFunctionByName(session, 'insert_text', {
       insert_line: 2,
@@ -348,13 +347,11 @@ describe('executeFunctionByName — dispatch', () => {
     expect(res.content).toContain('Unsupported function')
   })
 
-  it('web_search IS routed through the dispatch table (Phase 2: MCP needs it)', async () => {
-    // Phase 2 added web_search + fetch_url to TOOL_HANDLERS so MCP
-    // wrappers can call them. The in-app runLoop continues to call
-    // `webSearch` directly because it has the abort signal + spend
-    // context handy. Either path should work — this test pins that
-    // the dispatcher knows about web_search now AND that an unknown
-    // name still returns the "Unsupported function" sentinel.
+  it('web_search IS routed through the dispatch table (MCP needs it)', async () => {
+    // web_search + fetch_url are in TOOL_HANDLERS so MCP wrappers can call them. The in-app runLoop calls
+    // `webSearch` directly because it has the abort signal + spend context handy. Either path should work: this
+    // test pins that the dispatcher knows about web_search AND that an unknown name still returns the
+    // "Unsupported function" sentinel.
     const { session } = makeSession('')
 
     // Negative oracle: unknown names hit the dispatcher's `default`

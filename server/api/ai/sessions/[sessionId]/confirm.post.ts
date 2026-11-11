@@ -1,12 +1,11 @@
 import { answerSessionConfirmation, readSessionChannel } from '../../../../utils/agentic/sessionChannel'
 
-// POST /api/ai/sessions/:sessionId/confirm — { confirmationId, allow }
+// POST /api/ai/sessions/:sessionId/confirm { confirmationId, allow }
 //
-// The initiator's answer to a confirmation request raised by the taint
-// gate (`server/utils/agentic/crossBoundary.ts`): "markoto wants to read
-// 'Q3 plan' — Allow / Deny". Initiator only (404 for anybody else, like
-// the GET). 409 when the confirmation is no longer pending (already
-// answered, timed out — a timeout counts as deny — or a stale id).
+// The initiator's answer to a confirmation raised by the taint gate
+// (`server/utils/agentic/crossBoundary.ts`). Initiator only (404 for anybody
+// else, like the GET). 409 when no longer pending (answered, timed out, which
+// counts as deny, or a stale id).
 
 const ID_RE = /^[\w-]{1,64}$/
 

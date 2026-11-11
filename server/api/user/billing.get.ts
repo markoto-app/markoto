@@ -13,9 +13,8 @@ import { getTiers } from '~~/server/utils/billing/tierConfig'
  *     the app when the caller's quota is full
  *   - plan badge in the workspace header
  *
- * Phase 6: AI budget went to LiteLLM virtual keys; the AI Points UI
- * (badge + low-points warning) is wired through `/api/ai/credits`,
- * NOT this endpoint. Here we only return the structural caps + plan.
+ * AI budget is not here: the AI Points UI (badge + low-points warning)
+ * reads `/api/ai/credits`. This endpoint returns only structural caps + plan.
  */
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -26,7 +25,7 @@ export default defineEventHandler(async (event) => {
   const [ownedWorkspaces, knowledgeFiles, knowledgeBytes, imageBytes] = await Promise.all([
     countOwnedWorkspacesByUser(userId),
     // Personal storage only: files and images in Team / Business
-    // workspaces count against those workspaces' pools (WP3).
+    // workspaces count against those workspaces' pools.
     countKnowledgeByUploader(userId, { excludePooled: isBillingEnabled() }),
     sumKnowledgeBytesByUploader(userId, { excludePooled: isBillingEnabled() }),
     sumImageBytesByUploader(userId, { excludePooled: isBillingEnabled() })
@@ -47,7 +46,7 @@ export default defineEventHandler(async (event) => {
     // uploads included — the same sum the upload quota enforces.
     imageBytesUsed: imageBytes,
     imageBytesPerUserLimit: tier.imageBytesPerUser,
-    // AI credit top-ups (WP4): balance + purchases. Null with billing off.
+    // AI credit top-ups: balance + purchases. Null with billing off.
     credits: isBillingEnabled() ? await creditBalanceView({ type: 'user', id: String(userId) }) : null,
     // Workspaces whose Team / Business plan covers the user inside them.
     coveringWorkspaces: await coveringWorkspaces(userId)

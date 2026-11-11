@@ -18,8 +18,8 @@ export default defineEventHandler(async (event) => {
   // of workspaces to fan out uploads" fan-out vector — each workspace
   // independently has a 1 GB knowledge cap, so without a per-user
   // workspace limit a single account could pin TB of S3. The exact
-  // number depends on the plan: Free=1, Pro=10, Max=30, Ultra=100.
-  // Lapsed paid plans fall back to free-tier caps defensively.
+  // number depends on the plan: Free=1, Pro=10, Team=30, Business=100.
+  // Lapsed paid plans fall back to free-tier caps.
   const db = useDatabase()
   const planRows = await db.select({
     plan: users.plan,

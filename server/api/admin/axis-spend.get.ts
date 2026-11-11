@@ -3,21 +3,13 @@ import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmDbUrl } from '../../utils/litellm/litellmDb'
 import { ALL_FEATURE_TAGS, type FeatureTag } from '../../utils/litellm/featureTags'
 
-// Per-axis spend filter: returns the spend breakdown for ONE entity
-// of one axis (workspace, user, or doc), broken down by feature.
-// Drives the operator dashboard's per-entity drill-down.
+// Spend breakdown by feature for ONE entity of one axis (workspace, user or
+// doc); drives the operator dashboard's drill-down.
 //
-// Implementation note: LiteLLM's `/spend/tags` endpoint returns
-// per-tag totals but NOT cross-tabs — querying it with `tags=doc:X`
-// gives the doc total, but can't give "doc:X spend split by feature".
-// We get the cross-tab by querying `LiteLLM_SpendLogs` directly with
-// a JSONB filter on `request_tags`: rows where `request_tags` contains
-// the axis tag, grouped by which feature tag co-occurs.
-//
-// Same Postgres connection pattern as `spendLogsSweep.ts` — the proxy
-// owns the table, but it has no write coordination on read-only
-// SELECTs so the cross-process query is safe. Bounded by the date
-// window so a sloppy operator can't accidentally scan all-time.
+// `/spend/tags` has per-tag totals but no cross-tabs, so this queries
+// `LiteLLM_SpendLogs` directly with a JSONB filter on `request_tags`. Read-only
+// SELECTs need no write coordination with the proxy (same pattern as
+// `spendLogsSweep.ts`). Bounded by the date window to avoid all-time scans.
 
 interface CliQuery {
   axis: 'workspace' | 'user' | 'doc'
@@ -42,7 +34,6 @@ function pool(): Pool {
   return cachedPool
 }
 
-/** Test-only: drop the cached pool. */
 export function _resetAxisSpendPool(): void {
   if (cachedPool) {
     void cachedPool.end()
@@ -90,11 +81,8 @@ export default defineEventHandler(async (event) => {
   }
   const filterTag = `${opts.axis}:${opts.value}`
 
-  // Cross-tab aggregation. For every row in the window where the
-  // request_tags array contains the axis tag, sum spend per
-  // co-occurring feature tag. The `?` operator on a JSONB array tests
-  // element-equality. Date filter on `startTime` cuts the scan to
-  // the window — without it, scans all-time on every dashboard load.
+  // Sum spend per feature tag co-occurring with the axis tag (`?` tests JSONB
+  // array element equality). The `startTime` filter bounds the scan.
   type Row = { feature_tag: string, spend: string, requests: string, total_tokens: string }
   const rows = await pool().query<Row>(
     `
@@ -132,14 +120,12 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Total: spend across every feature row (which is also the entity's
-  // total since we filtered to the axis tag).
+  // Total over every feature row (the query is already filtered to the axis tag).
   const totalSpend = Array.from(byTag.values()).reduce((s, r) => s + r.spend, 0)
   const totalRequests = Array.from(byTag.values()).reduce((s, r) => s + r.requests, 0)
 
-  // Canonical-order breakdown — every feature gets a row, zero-spend
-  // when missing. Same shape as `/api/admin/ai-spend` so the dashboard
-  // can render both with one component.
+  // Canonical order, zero-spend rows included; same shape as
+  // `/api/admin/ai-spend` so one dashboard component renders both.
   const breakdown = ALL_FEATURE_TAGS.map((tag): {
     tag: FeatureTag
     spendUsd: number

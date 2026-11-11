@@ -6,7 +6,7 @@ import { coverDateFormat, mirrorMargins, numberingDepth, repeatTitle, resolveCap
 import { buildCoverHtml, keepCompoundsTogether } from '../../../app/utils/preview/coverHtml'
 import type { DocTheme } from '../../../shared/types/theme'
 
-// Engine batch 2 (structure, running heads, template hooks): `{section}`
+// Engine (structure, running heads, template hooks): `{section}`
 // with its number + "start" mode, `{author}`, chapter labels, numbering
 // depth + zero-padded numbers, chapter-relative and stacked captions,
 // cover affiliations on page covers, the repeated title, date formats,

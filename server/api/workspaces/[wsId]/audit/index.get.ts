@@ -4,7 +4,7 @@ import { auditEventView, auditRetentionDays, parseAuditQuery, requireAuditLogAcc
 const PAGE = 50
 
 // GET /api/workspaces/:wsId/audit?before=<id>&action=<prefix>&from=&to=
-// — the workspace's audit log for its admins, newest first (WP15).
+// — the workspace's audit log for its admins, newest first.
 // `nextBefore` is the cursor for the next page (null at the end).
 export default defineEventHandler(async (event) => {
   const { wsId } = await requireAuditLogAccess(event)

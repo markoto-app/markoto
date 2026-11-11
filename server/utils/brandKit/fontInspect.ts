@@ -1,7 +1,7 @@
 import { brotliDecompressSync, inflateSync } from 'node:zlib'
 import type { BrandFontFormat, FontRefusal } from '~~/shared/config/brandKit'
 
-// Inspects an uploaded font (brand kit, WP10) WITHOUT a font library:
+// Inspects an uploaded font (brand kit) WITHOUT a font library:
 // only the table directory and two small tables (`name`, `OS/2`) are
 // read, every offset and length is bounds-checked, and decompression is
 // size-capped. It decides two things:

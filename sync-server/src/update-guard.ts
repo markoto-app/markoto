@@ -53,7 +53,7 @@ export class SyncRejection extends Error {
   }
 }
 
-// ─── Message framing ────────────────────────────────────────────────
+// Message framing
 // Sync / SyncReply: varUint(syncType) varUint8Array(payload)
 const SYNC_STEP_2 = 1
 const SYNC_UPDATE = 2
@@ -76,7 +76,7 @@ export function extractSyncUpdate(message: Uint8Array): Uint8Array | null {
   }
 }
 
-// ─── ymeta placement ────────────────────────────────────────────────
+// ymeta placement
 
 interface Placement {
   /** Root type name (`content`, `meta`, `comments`, …). */
@@ -241,7 +241,7 @@ function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Sk
   }
 }
 
-// ─── Stateless messages ─────────────────────────────────────────────
+// Stateless messages
 
 /**
  * Refuse stateless messages from a read-only connection. Hocuspocus relays
@@ -265,7 +265,7 @@ function rejectReadOnlyStateless(message: Uint8Array): void {
   }
 }
 
-// ─── Guard ──────────────────────────────────────────────────────────
+// Guard
 
 export function createUpdateGuard(limits: SyncLimits) {
   // Last known encoded size per live document, advanced by the size of

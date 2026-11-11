@@ -59,7 +59,6 @@ const mockedGetCtx = vi.mocked(getDocWithActorRole)
 const mockedListDocs = vi.mocked(listWorkspaceDocsWithOwnerFlag)
 const mockedOpenTrusted = vi.mocked(openTrustedCommentClient)
 
-// ---------------------------------------------------------------------
 // Session stub. Handler reads:
 //   - session.docId           (current doc id)
 //   - session.workspaceId     (workspace gating)
@@ -67,7 +66,6 @@ const mockedOpenTrusted = vi.mocked(openTrustedCommentClient)
 //   - session.sessionId       (audit principal in trusted-client open)
 //   - session.ymeta / .ydoc   (theme tools — irrelevant here)
 //   - session.updateStatus()  (cosmetic, must not throw)
-// ---------------------------------------------------------------------
 function makeSession(opts: {
   docId?: string
   workspaceId?: string | null
@@ -127,9 +125,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-// =====================================================================
 // view_other_document
-// =====================================================================
 
 describe('view_other_document — input parsing precedes access check', () => {
   it('parses a markoto URL down to a bare id BEFORE looking up the doc', async () => {
@@ -555,9 +551,7 @@ describe('view_other_document — trusted-client lifecycle', () => {
   })
 })
 
-// =====================================================================
 // list_workspace_documents
-// =====================================================================
 
 describe('list_workspace_documents — gating', () => {
   it('errors when the current document is not in a workspace', async () => {

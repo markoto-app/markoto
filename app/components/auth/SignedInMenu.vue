@@ -40,7 +40,7 @@ const menuItems = computed<MenuItem[]>(() => {
     icon: 'i-lucide-plug',
     to: '/settings/integrations'
   })
-  // Custom domains for published pages (WP13) — only where the operator
+  // Custom domains for published pages — only where the operator
   // set them up.
   if (customDomains.value) {
     items.push({
@@ -49,7 +49,7 @@ const menuItems = computed<MenuItem[]>(() => {
       to: '/settings/domains'
     })
   }
-  // Managed instance (WP16): the customer's own service desk.
+  // Managed instance: the customer's own service desk.
   if (supportHref.value) {
     items.push({
       label: t('instanceBrand.support'),

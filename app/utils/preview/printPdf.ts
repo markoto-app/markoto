@@ -54,7 +54,7 @@ export async function printDocumentAsPdf(opts: {
   language?: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
-  /** The workspace's brand-kit fonts (WP10). */
+  /** The workspace's brand-kit fonts. */
   brandFonts?: readonly BrandFont[] | null
 }): Promise<void> {
   // Re-validate the theme here: it comes from `ymeta.theme`, which any
@@ -107,8 +107,8 @@ export async function printDocumentAsPdf(opts: {
     iframe.setAttribute('sandbox', PRINT_SANDBOX)
     // Inside the viewport (1×1 px, transparent, click-through) rather than
     // parked off-screen: Chromium throttles rendering + rAF of OFF-SCREEN
-    // cross-origin frames, and this frame is cross-origin now (opaque
-    // origin) — off-screen, paged.js would never finish.
+    // cross-origin frames (this one has an opaque origin), so paged.js
+    // would never finish.
     iframe.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none;'
 
     let settled = false

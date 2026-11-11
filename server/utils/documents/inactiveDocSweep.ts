@@ -7,10 +7,9 @@ import { useDatabase } from '../platform/database'
 // An anonymous document (no owner, no workspace) is deleted once it has
 // had no activity for `ttlDays` (NUXT_INACTIVE_DOC_TTL_DAYS, default 30 —
 // the period the Terms and the privacy policy state) AND its
-// `sweep_not_before` floor, if any, has passed. The floor was set by
-// migration 0024 on the anonymous docs that existed when the period went
-// from 180 to 30 days, so none of them is deleted without a full 30-day
-// window after the change (or earlier than the old 180-day rule).
+// `sweep_not_before` floor, if any, has passed (migration 0024 set the
+// floor on anonymous docs that existed when the period was shortened, so
+// none is deleted sooner than the period it was created under).
 //
 // Owned and workspace docs are never candidates.
 

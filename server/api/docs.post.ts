@@ -6,17 +6,15 @@ import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 import { isTemplateId } from '~~/shared/templates'
 import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 
-// Document creation. Anonymous creation is allowed — falls back to
-// `open-edit` access mode with no workspace — but gated (hosted shape,
-// `NUXT_ANON_GATE_ENABLED`): the visitor must have accepted the Terms +
-// age statement and must send a fresh ALTCHA proof-of-work solution
-// (`altcha` + `acceptTerms` in the body; see server/utils/anonGate/).
-// The accepted terms version + time are stored on the doc row.
+// Document creation. Anonymous creation is allowed (falls back to `open-edit`
+// access mode, no workspace) but gated on the hosted shape
+// (`NUXT_ANON_GATE_ENABLED`): the visitor must have accepted the Terms + age
+// statement and send a fresh ALTCHA solution (`altcha` + `acceptTerms` in the
+// body; server/utils/anonGate/). The accepted terms version + time are stored
+// on the doc row.
 //
-// All validation + theme resolution lives in `createDocument()` so the
-// AI tool handler (`handleCreateDocument` in aiToolAdapter.ts) shares
-// the exact same behavior. This endpoint stays thin: parse the raw
-// JSON body into typed fields, hand off.
+// Validation and theme resolution live in `createDocument()`, shared with the
+// AI tool handler (`handleCreateDocument`); this endpoint only parses the body.
 
 interface RawBody {
   altcha?: unknown
@@ -37,10 +35,9 @@ export default defineEventHandler(async (event) => {
   const session = await getValidatedUserSession(event)
   const ownerId = session?.user?.id ?? null
 
-  // Rate limit ANONYMOUS creation only, per client key (IPv4 or IPv6
-  // /64): each doc is a Postgres row + Y.js state that lives until the
-  // inactive-doc sweep, and anonymous docs are the abuse surface
-  // (phishing / spam pages on our domain). On top of the bot check.
+  // Rate limit ANONYMOUS creation only, per client key (IPv4 or IPv6 /64):
+  // each doc is a Postgres row + Y.js state living until the inactive-doc
+  // sweep, and anonymous docs are the abuse surface (phishing / spam pages).
   // Logged-in users are accountable (owned rows, plan caps) and skip this.
   if (!ownerId) {
     const ip = getClientRateLimitKey(event)
@@ -57,10 +54,8 @@ export default defineEventHandler(async (event) => {
 
   const body = await readBody<RawBody>(event).catch((): RawBody => ({}))
 
-  // Endpoint-level type-shape validation (must reject 400 on wrong
-  // types or unknown enum values — preserves the original endpoint
-  // contract). The deeper field validation (length caps, mutex
-  // checks) lives inside `createDocument`.
+  // Type-shape validation: 400 on wrong types or unknown enum values. Deeper
+  // field validation (length caps, mutex checks) lives in `createDocument`.
   const audience = parseEnumOrThrow(body.audience, isAudienceKind, 'Invalid audience')
   const templateId = parseEnumOrThrow(body.templateId, isTemplateId, 'Unknown templateId')
   if (body.title !== undefined && typeof body.title !== 'string') {
@@ -78,11 +73,10 @@ export default defineEventHandler(async (event) => {
   if (body.themeId !== undefined && typeof body.themeId !== 'string') {
     throw createError({ statusCode: 400, message: 'themeId must be a string' })
   }
-  // Optional starting Markdown (the marketing `::try-it` block): stored as
-  // the doc's first Y.js update, like text typed into the editor. The
-  // length is checked here too, so an oversized body never burns the
-  // visitor's bot-check solution; `createDocument` re-checks it and the
-  // mutex with templateId.
+  // Optional starting Markdown (the marketing `::try-it` block), stored as the
+  // doc's first Y.js update. The length is checked here too so an oversized
+  // body never burns the bot-check solution; `createDocument` re-checks it and
+  // the mutex with templateId.
   if (body.content !== undefined && typeof body.content !== 'string') {
     throw createError({ statusCode: 400, message: 'content must be a string' })
   }
@@ -90,8 +84,8 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: `Content too long (max ${INITIAL_CONTENT_MAX_LENGTH} characters)`, data: { code: 'docs/content-too-long' } })
   }
 
-  // Anonymous gate AFTER the cheap shape checks (a malformed body never
-  // burns the visitor's solution) and BEFORE anything is written.
+  // Anonymous gate AFTER the cheap shape checks (a malformed body never burns
+  // the solution) and BEFORE anything is written.
   const acceptance = ownerId === null
     ? await enforceAnonGate(event, { altcha: body.altcha, acceptTerms: body.acceptTerms }, 'doc-create')
     : null
@@ -120,11 +114,7 @@ export default defineEventHandler(async (event) => {
   return { docId: result.docId }
 })
 
-/**
- * Reject `undefined` (omitted), accept matching enum value, throw 400
- * on anything else (wrong type or unknown value). Keeps the endpoint
- * strict on enums while letting omission fall through to the helper.
- */
+/** Rejects wrong types or unknown values with 400; `undefined` falls through to the helper. */
 function parseEnumOrThrow<T extends string>(
   raw: unknown,
   check: (v: unknown) => v is T,

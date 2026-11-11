@@ -7,7 +7,7 @@ import ja from '../../../i18n/locales/ja.json'
 import zh from '../../../i18n/locales/zh.json'
 import { URL_REFUSAL_CODES, VERIFY_CODES, AI_CAPABILITIES, codeKey } from '../../../shared/ai/providers'
 
-// Bring-your-own-key settings + call-to-action strings (WP4). Walks the
+// Bring-your-own-key settings + call-to-action strings. Walks the
 // whole `aiProvider` subtree of the English file: every leaf must exist
 // as a non-empty string in all six locales, and non-English locales
 // must not just copy the English text. Also pins that every outcome

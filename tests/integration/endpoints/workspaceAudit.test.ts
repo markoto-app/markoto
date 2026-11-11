@@ -4,7 +4,7 @@ import { loggedInClient } from '../setup/client'
 import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
-// Workspace audit log (WP15): admins of a plan with the audit log see
+// Workspace audit log: admins of a plan with the audit log see
 // and download the workspace's events — and only that workspace's.
 
 interface AuditEvent {

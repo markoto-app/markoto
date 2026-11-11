@@ -3,7 +3,7 @@ import { resetDb, testDb } from '../setup/db'
 import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
 
-// Paid Plans Terms (WP6b): every purchase needs `acceptPaidTerms: true`
+// Paid Plans Terms: every purchase needs `acceptPaidTerms: true`
 // (the ticked box at checkout), and each accepted purchase leaves a
 // `policy.accepted` audit row naming the document, version and item.
 

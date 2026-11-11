@@ -14,7 +14,7 @@ import {
   MIN_WORKSPACE_SEATS
 } from '../../../../utils/billing/workspaceBilling'
 
-// GET /api/workspaces/:wsId/billing — the workspace billing tab (WP3).
+// GET /api/workspaces/:wsId/billing — the workspace billing tab.
 // Workspace admins only (404 non-member, 403 member).
 //
 // Always answers (also with billing off, so the tab can explain itself):
@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
     })
     .from(workspaceMembers)
     .innerJoin(users, eq(users.id, workspaceMembers.userId))
-    // Guests (WP11) take no seat and never use the workspace's AI budget.
+    // Guests take no seat and never use the workspace's AI budget.
     .where(and(eq(workspaceMembers.workspaceId, wsId), ne(workspaceMembers.role, 'guest')))
     .orderBy(asc(workspaceMembers.joinedAt))
 
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
         }
       : null,
     members,
-    // AI credit top-ups (WP4).
+    // AI credit top-ups.
     credits: billingEnabled ? await creditBalanceView({ type: 'workspace', id: wsId }) : null
   }
 })

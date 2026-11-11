@@ -1,31 +1,29 @@
-// Per-workspace SSO (WP14) — what happens after the IdP vouched for
-// someone. Protocol-independent: the OIDC callback and the SAML ACS both
-// hand over a validated `SsoAssertion` and the decoded flow cookie.
+// What happens after the IdP vouched for someone. Protocol-independent: the
+// OIDC callback and the SAML ACS both hand over a validated `SsoAssertion`
+// and the decoded flow cookie.
 //
 // Who is this? (one transaction, row locks)
-//   1. A known identity (connection, subject) → its user. A SCIM-
-//      deactivated identity is refused.
-//   2. An admin's TEST sign-in → the identity is linked to that admin
-//      (they are signed in to markoto already and started the test).
-//   3. The email is in a domain the workspace VERIFIED → the existing
-//      account with that address gets the identity, else a new account
-//      is created with it. (The workspace proved it owns the domain, so
-//      its IdP may speak for addresses in it — the user's choice
-//      "link if domain verified".)
-//   4. Anything else → `sso/not-provisioned`. No unverified address is
-//      ever matched against an existing account.
+//   1. A known identity (connection, subject) maps to its user. A
+//      SCIM-deactivated identity is refused.
+//   2. An admin's TEST sign-in links the identity to that admin (already
+//      signed in to markoto, they started the test).
+//   3. The email is in a domain the workspace verified: the existing account
+//      with that address gets the identity, else a new account is created.
+//      Verification proves the workspace owns the domain, so its IdP may
+//      speak for addresses in it.
+//   4. Anything else is `sso/not-provisioned`. An unverified address is never
+//      matched against an existing account.
 //
-// Member of the workspace?
-//   - already a member → fine; otherwise a verified-domain address or a
-//     SCIM-provisioned identity joins (seats + member limit,
-//     `membership.ts`); otherwise `sso/not-provisioned`.
+// Member of the workspace? An existing member passes; otherwise a
+// verified-domain address or a SCIM-provisioned identity joins (seats +
+// member limit, `membership.ts`); otherwise `sso/not-provisioned`.
 //
-// Then: a 12 h grant for the user's current session epoch (what lets
-// them in while SSO is enforced), and for a successful test the
-// connection becomes active.
+// Then a 12 h grant for the user's current session epoch is written (it lets
+// them in while SSO is enforced), and a successful test activates the
+// connection.
 //
-// Never: instance admin bootstrap (`NUXT_ADMIN_USER_EMAILS`) — a
-// customer's IdP must not be able to make anyone an instance operator.
+// Never instance-admin bootstrap (`NUXT_ADMIN_USER_EMAILS`): a customer's IdP
+// must not be able to make anyone an instance operator.
 
 import { and, eq, sql } from 'drizzle-orm'
 import { userIdentities, users } from '../../db/schema'
@@ -152,7 +150,7 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     return { userId, identityId: inserted.id, scim: false, created, linked: true }
   })
 
-  // Raw membership incl. `guest` (WP11): an existing guest stays a guest.
+  // Raw membership incl. `guest`: an existing guest stays a guest.
   let role: MembershipRole | null = await getMembershipRole(connection.workspaceId, who.userId)
   let joined = false
   if (!role) {

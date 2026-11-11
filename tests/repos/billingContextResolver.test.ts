@@ -7,12 +7,8 @@ import { resolveBillingContext } from '../../server/utils/billing/billing'
 //   - free user, no workspace → self-bill, calendar-month period
 //   - active paid user → self-bill, Stripe-anchored period
 //   - lapsed paid user → defensive downgrade to free caps
-//   - workspace docs self-bill too (the `(+)` sponsorship is retired;
-//     Team billing arrives in WP3)
-//
-// These were originally in `billingResolver.test.ts` (deleted with the
-// pre-Phase-6 ai_usage_period table); resurrected here without the
-// `interactionsRemaining` shape.
+//   - workspace docs self-bill too (the `(+)` sponsorship is retired; workspace billing goes through
+//     workspace subscriptions)
 
 // These cases exercise PAID-plan behaviour, which only exists with
 // billing switched on (default is off — see shared/config/billingMode.ts).
@@ -93,7 +89,7 @@ describe('resolveBillingContext — base shape', () => {
     expect(ctx.periodStart.toISOString()).toBe(expectedStart.toISOString())
   })
 
-  it('a workspace doc still self-bills until Team billing exists (WP3)', async () => {
+  it('a workspace doc still self-bills until Team billing exists', async () => {
     const owner = await createUser()
     const member = await createUser()
     const db = testDb()

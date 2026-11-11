@@ -229,13 +229,11 @@ describe('searchKnowledge (hybrid)', () => {
   })
 })
 
-// ─── Adversarial tests ────────────────────────────────────────────────────
+// Adversarial tests
 //
-// Senior-QA hypotheses that interrogate failure modes the happy-path
-// suite above doesn't touch. Each test states a hypothesis and pins
-// the actual behaviour. Where current behaviour is suboptimal but
-// not a security/correctness bug, the test documents it for future
-// review (with a comment explaining the cost-benefit).
+// Hypotheses that interrogate failure modes the happy-path suite above doesn't touch. Each test states a
+// hypothesis and pins the actual behaviour. Where current behaviour is suboptimal but not a security/correctness
+// bug, the test documents it for future review (with a comment explaining the cost-benefit).
 
 describe('searchKnowledge — adversarial: query degenerate cases', () => {
   beforeEach(async () => {

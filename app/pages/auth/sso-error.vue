@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Where a refused or failed single sign-on lands (WP14). The server only
+// Where a refused or failed single sign-on lands. The server only
 // ever passes one of our fixed codes (`server/utils/sso/completeLogin.ts`
 // + the callback routes) — never text from the identity provider.
 const { t } = useI18n()

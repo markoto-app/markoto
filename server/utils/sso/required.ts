@@ -5,15 +5,15 @@ const SSO_REQUIRED_CODE = 'sso/required'
 
 /**
  * For a caller who got no role in a workspace: if they ARE a member and
- * the workspace enforces single sign-on (WP14), the 403 that tells the
+ * the workspace enforces single sign-on, the 403 that tells the
  * UI where to sign in. Null otherwise (the caller then answers its usual
  * 404, so membership stays hidden from outsiders).
  */
 export async function ssoRequiredError(workspaceId: string, userId: number, returnTo?: string): Promise<Error | null> {
   const loginUrl = await ssoLoginUrlForMember(workspaceId, userId, returnTo)
   if (!loginUrl) return null
-  // Admins may still manage (and switch off) the connection — the
-  // break-glass the UI shows on the sign-in screen.
+  // Admins may still manage (and switch off) the connection: the break-glass
+  // the UI shows on the sign-in screen.
   const canManageSso = (await getMemberRoleIgnoringSso(workspaceId, userId)) === 'admin'
   return createError({
     statusCode: 403,

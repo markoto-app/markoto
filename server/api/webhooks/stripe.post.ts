@@ -4,34 +4,27 @@ import { useStripeClient } from '../../utils/billing/stripeClient'
 import { dispatchStripeEvent } from '../../utils/billing/stripeWebhook'
 import { assertBillingEnabled } from '../../utils/billing/billingMode'
 
-// Stripe webhook entry point. Verifies the `Stripe-Signature` header
-// against the raw body using our webhook secret, then dispatches to
-// per-event handlers in `server/utils/billing/stripeWebhook.ts`.
+// Stripe webhook entry point: verifies `Stripe-Signature` against the raw body,
+// then dispatches to the handlers in `server/utils/billing/stripeWebhook.ts`.
 //
-// CRITICAL: Stripe's signature is computed over the RAW body. Any
-// JSON parse-and-restringify would change whitespace/key order and
-// break verification. h3's `readRawBody` returns the unmodified
-// bytes — do NOT switch to `readBody` here.
+// The signature covers the RAW body; re-stringifying parsed JSON changes
+// whitespace/key order and breaks verification, so use `readRawBody`, never
+// `readBody`.
 //
-// Response contract:
-//   - 400 on missing/invalid signature (Stripe won't retry; signals
-//     "your secret is wrong", which is unrecoverable)
-//   - 500 on handler failure (Stripe WILL retry — good, we want to
-//     see it again after the underlying issue is fixed)
-//   - 200 on success OR unknown event type (acknowledge to stop the
-//     retry loop on events we genuinely don't handle)
+// Responses: 400 on a missing/invalid signature (unrecoverable, Stripe won't
+// retry); 500 on handler failure (Stripe retries, which we want); 200 on
+// success or an unhandled event type (stops the retry loop).
 
 export default defineEventHandler(async (event) => {
-  // Billing off → 404 `billing/disabled`. Deliberately not 503: a 503
-  // tells Stripe to keep retrying a permanent configuration state. A
-  // stray endpoint left registered in the Stripe dashboard gets 404s
-  // and Stripe eventually disables it.
+  // Billing off: 404 `billing/disabled`, deliberately not 503, which would make
+  // Stripe retry a permanent config state. A stray registered endpoint gets
+  // 404s until Stripe disables it.
   assertBillingEnabled()
   const config = useRuntimeConfig()
   const stripe = useStripeClient()
   if (!stripe) {
-    // Misconfigured deployment — no secret key. Respond 503 so Stripe
-    // retries once we fix the config; don't silently 200.
+    // Misconfigured deployment (no secret key): 503 so Stripe retries once the
+    // config is fixed.
     throw createError({ statusCode: 503, message: 'Stripe not configured' })
   }
   if (!config.stripe.webhookSecret) {
@@ -43,7 +36,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'Missing Stripe-Signature header' })
   }
 
-  // Raw bytes — NOT a parsed JSON object. See comment at top.
+  // Raw bytes, not parsed JSON (see top).
   const raw = await readRawBody(event, false) // false = Buffer, not string
   if (!raw) {
     throw createError({ statusCode: 400, message: 'Empty request body' })
@@ -51,11 +44,8 @@ export default defineEventHandler(async (event) => {
 
   let stripeEvent
   try {
-    // `constructEventAsync` instead of `constructEvent` — under the
-    // Bun runtime the SDK detects SubtleCrypto and refuses the
-    // synchronous variant ("SubtleCryptoProvider cannot be used in a
-    // synchronous context"). The async path uses the same SubtleCrypto
-    // primitive correctly. Same signature semantics; just `await`-able.
+    // `constructEventAsync`: under Bun the SDK uses SubtleCrypto and refuses the
+    // synchronous variant. Same signature semantics.
     stripeEvent = await stripe.webhooks.constructEventAsync(raw, sig, config.stripe.webhookSecret)
   } catch (e) {
     const msg = e instanceof Error ? e.message : 'verification failed'
@@ -73,9 +63,8 @@ export default defineEventHandler(async (event) => {
     return {
       received: true,
       handled: result.handled,
-      // Surface replay short-circuit + stash signals so monitoring +
-      // tests can verify the dedup path engaged. Omitted when false to
-      // keep the happy-path response shape compact.
+      // Surface replay short-circuit + stash signals so monitoring and tests can
+      // see the dedup path engage; omitted when false.
       ...(result.replayed ? { replayed: true } : {}),
       ...(result.stashed ? { stashed: true } : {})
     }
@@ -85,8 +74,8 @@ export default defineEventHandler(async (event) => {
     Sentry.captureException(e, {
       tags: { component: 'stripeWebhook', event: 'dispatch_failed', stripeEventType: stripeEvent.type }
     })
-    // 500 → Stripe retries with exponential backoff. Better than
-    // acknowledging a failed DB update and losing the state change.
+    // 500 makes Stripe retry with backoff, better than acknowledging a failed
+    // DB update and losing the state change.
     throw createError({ statusCode: 500, message: `Webhook handler failed: ${msg}` })
   }
 })

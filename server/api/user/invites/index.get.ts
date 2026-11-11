@@ -16,7 +16,7 @@ export default defineEventHandler(async (event) => {
 
   const rows = await listInvitesForEmail(email, new Date())
   // A Team / Business plan of the workspace: the invite says what it
-  // includes for the invitee (WP3).
+  // includes for the invitee.
   const plans = await pooledPlansFor(rows.map(r => r.workspaceId))
   return rows.map(r => ({
     workspacePlan: plans.get(r.workspaceId) ?? null,

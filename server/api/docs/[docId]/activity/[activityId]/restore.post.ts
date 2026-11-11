@@ -8,18 +8,15 @@ import { assertWithinHistory, resolveDocPlan } from '../../../../../utils/billin
 // POST /api/docs/:docId/activity/:activityId/restore
 //
 // Snap the live Y.Doc back to the state at this activity row's
-// yjsDocIdBefore. The "before" boundary is the right anchor because
-// activity rows describe a change FROM the state at `before` TO the
-// state at `after` — to undo the change, we want the `before` state.
+// yjsDocIdBefore (rows describe a change FROM `before` TO `after`, so undoing
+// it means restoring `before`).
 //
-// The restore is a real Y.js operation that broadcasts to every
-// connected client. It's NOT a destructive history rewrite —
-// y-postgresql keeps the operation log untouched, and the resulting
-// `restore` activity row is itself reversible (clicking restore on
-// IT brings the doc back to the pre-restore state).
+// The restore is a real Y.js operation broadcast to every connected client,
+// not a history rewrite: y-postgresql keeps the operation log, and the
+// resulting `restore` row is itself reversible.
 //
-// Auth: requires edit access (matches `replace_text` / `set_title`).
-// Read-only viewers can SEE diffs (Tier 1) but can't APPLY them.
+// Auth: edit access (matches `replace_text` / `set_title`). Viewers can see
+// diffs but not apply them.
 //
 // Errors:
 //   - 401: unauthenticated
@@ -43,9 +40,8 @@ export default defineEventHandler(async (event) => {
   // workspace-admin/editor branches + raises 403/404 internally.
   await requireDocEditAccess(docId, userId)
 
-  // The activity row must belong to THIS doc — pinned via the (id, docId)
-  // tuple in `getActivityById`. A row id from a different doc returns
-  // null, which we surface as 404 (matches the diff endpoint's pattern).
+  // The (id, docId) tuple in `getActivityById` pins the row to THIS doc; a
+  // row from another doc yields null -> 404 (same as the diff endpoint).
   const activity = await getActivityById(activityId, docId)
   if (!activity) {
     throw createError({ statusCode: 404, message: 'Activity row not found' })
@@ -59,15 +55,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Resolve the actor's display name for the awareness label
-  // collaborators see when the restore broadcasts. Fall back to a
-  // generic label if the user record is missing — the restore still
-  // happens, the awareness ribbon just shows "User" instead of name.
+  // Display name for the awareness label shown while the restore
+  // broadcasts; falls back to "User" if the user record is missing.
   const actorName = (await findUserNameById(userId)) ?? 'User'
 
-  // Synthetic session id namespaces the JWT principal AND the Y.js
-  // transaction origin. Short — only needs to be unique per in-flight
-  // restore; concurrent restores serialize via the advisory lock.
+  // Synthetic session id namespacing the JWT principal and the Y.js
+  // transaction origin; only needs to be unique per in-flight restore
+  // (concurrent restores serialize via the advisory lock).
   const sessionId = nanoid(12)
 
   let yjsDocIdBeforeRestore: number | null
@@ -83,9 +77,9 @@ export default defineEventHandler(async (event) => {
     yjsDocIdBeforeRestore = result.yjsDocIdBeforeRestore
     yjsDocIdAfterRestore = result.yjsDocIdAfterRestore
   } catch (e) {
-    // Target compacted away (F4) — the live doc is untouched (we refuse
-    // BEFORE the apply). Surface as 410 Gone with a clear message, NOT a
-    // retryable 500: retrying won't bring the merged-away history back.
+    // Target compacted away: the live doc is untouched (refused before the
+    // apply). 410, not a retryable 500: retrying can't bring merged-away
+    // history back.
     if (e instanceof RestorePointCompactedError) {
       throw createError({
         statusCode: 410,
@@ -93,10 +87,8 @@ export default defineEventHandler(async (event) => {
         message: 'This restore point is too old — its history has been compacted and can no longer be restored. Restore to a more recent point instead.'
       })
     }
-    // The Y.js transaction is atomic — on any failure inside
-    // restoreDocToYjsId, the live doc is unchanged. Surface as 500
-    // so the client retries via UI affordance. Log the underlying
-    // cause for debugging.
+    // The Y.js transaction is atomic: on failure the live doc is unchanged.
+    // 500 so the client can retry.
     const msg = e instanceof Error ? e.message : String(e)
     console.error(`[restore] failed for doc=${docId} activity=${activityId}: ${msg}`)
     throw createError({
@@ -106,15 +98,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Write the `restore` activity row. Boundary ids:
-  //   - `yjsDocIdBefore` = the LIVE state right before the restore.
-  //     This is what powers reversibility — clicking restore on
-  //     this new row brings the doc back to the pre-restore state.
-  //   - `yjsDocIdAfter`  = the post-restore state.
-  // The diff drawer then renders "live before → past target" as
-  // the user-visible change, and the future-restore semantics
-  // ("restore THIS restore") snap the doc back to the captured
-  // pre-restore live state.
+  // Boundary ids of the `restore` row: `yjsDocIdBefore` is the live state
+  // right before the restore (this is what makes restoring THIS row bring the
+  // pre-restore state back), `yjsDocIdAfter` the post-restore state.
   await appendActivity({
     docId,
     userId,

@@ -7,7 +7,7 @@ interface WorkspaceOption {
   workspaceId: string
   name: string
   role: 'admin' | 'editor' | 'viewer'
-  /** Team / Business plan covering the workspace, else null (WP3). */
+  /** Team / Business plan covering the workspace, else null. */
   plan?: 'team' | 'business' | null
 }
 
@@ -32,7 +32,7 @@ const saving = ref(false)
 // Null represents "Personal" (no workspace). We use null explicitly
 // in the selection to distinguish "unpicked" from "pick Personal".
 const selected = ref<string | null>(null)
-// The Team / Business plan of the workspace the doc is in now (WP6): a
+// The Team / Business plan of the workspace the doc is in now: a
 // move out of it changes which plan the doc's features follow.
 const sourcePlan = ref<'team' | 'business' | null>(null)
 

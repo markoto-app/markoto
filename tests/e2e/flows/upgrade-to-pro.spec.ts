@@ -125,8 +125,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     + 'flips the moment Stripe sends us the webhook.'
   )
 
-  // ─── Accept the Paid Plans Terms, then Upgrade ─────────────────
-  // Every purchase needs the box (WP6b); Upgrade stays disabled until then.
+  // Accept the Paid Plans Terms, then Upgrade. Every purchase needs the box; Upgrade stays disabled until then.
   await flow.click(
     'Tick the box to accept the Paid Plans Terms',
     page.getByTestId('pricing-paid-terms-pro').getByRole('checkbox'),
@@ -134,7 +133,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   )
   await expect(page.getByTestId('pricing-buy-pro')).toBeEnabled()
 
-  // ─── Click Upgrade on Pro ───────────────────────────────────────
+  // Click Upgrade on Pro
   // The CTA button doesn't carry its own testid; scope by the Pro
   // tier's container, then by the button's accessible name.
   const proCta = page.locator('[data-testid="pricing-tier-pro"]').getByRole('button', { name: /upgrade/i })
@@ -150,7 +149,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Off-stage: Stripe Checkout ─────────────────────────────────
+  // Off-stage: Stripe Checkout
   await flow.heading('Stripe handles the payment', 3)
   await flow.narrate(
     'You\'re redirected to Stripe\'s hosted checkout page — card '
@@ -197,17 +196,14 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
   const subObj = (subEvent.data as { object: Record<string, unknown> }).object
   subObj.id = subscriptionId
   subObj.customer = customerId
-  // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`.
-  // The integration tests rely on the same env-var-driven mapping;
-  // the fixture's price id is `price_test_pro` which is the value
-  // wired into the test stack (see docker-compose.test.yml).
+  // The price id in the fixture should map to Pro via `NUXT_STRIPE_PRICE_IDS`. The integration tests rely on
+  // the same env-var-driven mapping; the fixture's price id is `price_test_pro`, the value wired into the test
+  // stack (see docker-compose.test.yml).
   //
-  // Override the subscription item's period dates to "now" → "now+30d"
-  // so `resolveBillingContext` doesn't demote the plan to Free via its
-  // `planActive(plan, planValidUntil, now)` check. The fixture ships
-  // with hard-coded epoch seconds (~April-May 2026) which expire
-  // relative to wallclock — without this override the test fails the
-  // moment the calendar passes the fixture's `current_period_end`.
+  // Override the subscription item's period dates to "now" → "now+30d" so `resolveBillingContext` doesn't demote
+  // the plan to Free via its `planActive(plan, planValidUntil, now)` check. The fixture ships with hard-coded
+  // epoch seconds that expire relative to wallclock; without this override the test fails once the calendar
+  // passes the fixture's `current_period_end`.
   const items = (subObj.items as { data: Array<Record<string, unknown>> }).data
   const item = items[0]!
   const nowSec = Math.floor(Date.now() / 1000)
@@ -220,7 +216,7 @@ test('Upgrade to Pro', { tag: '@billing' }, async ({ page, flow, editor }) => {
     data: subBody
   })
 
-  // ─── Land back on /pricing with Pro current ─────────────────────
+  // Land back on /pricing with Pro current
   await flow.heading('Land back on markoto — Pro is now current', 3)
   await flow.narrate(
     'Stripe redirects you to markoto. The pricing page reloads, '

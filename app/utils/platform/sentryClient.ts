@@ -2,10 +2,9 @@ import { browserTracingIntegration, captureException, init, setUser } from '@sen
 import type { Router } from 'vue-router'
 
 // The browser Sentry SDK, loaded on demand by `plugins/sentry.client.ts`
-// (after the page is idle, or at once when an error happens first). It was
-// in the entry chunk of every page through @sentry/nuxt's client plugins
-// (~40 KB gzip) — a cost the marketing pages paid before their first
-// paint. Only that plugin may import this module.
+// (after the page is idle, or at once when an error happens first), so the
+// SDK (~40 KB gzip) stays out of the entry chunk and off the first paint
+// of marketing pages. Only that plugin may import this module.
 
 export interface SentryErrorReport {
   error: unknown
@@ -24,11 +23,9 @@ export function startSentry(options: { dsn: string, router: Router, production: 
   init({
     dsn: options.dsn,
     environment: options.production ? 'production' : 'development',
-    // Sample a small slice of transactions — enough to spot hot paths
-    // without burning the Sentry quota. Bump to 1.0 briefly if
-    // investigating an incident. Dev gets full sampling so distributed
-    // traces (browser → app → renderer / sync-server) are always
-    // visible while debugging.
+    // A small slice of transactions spots hot paths without burning the
+    // Sentry quota. Dev samples everything so distributed traces
+    // (browser → app → renderer / sync-server) are always visible.
     tracesSampleRate: options.production ? 0.1 : 1.0,
     // Page-load + navigation spans (the page-load span still starts at
     // navigation start: it reads the browser's performance timeline).

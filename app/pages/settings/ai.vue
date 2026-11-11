@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "AI provider" settings — bring your own key (WP4). One card per
+// "AI provider" settings — bring your own key. One card per
 // capability (chat / image / transcription). Each shows where the
 // capability comes from right now (own key → instance default → none)
 // and lets the user connect their own OpenAI-compatible provider.
@@ -47,7 +47,7 @@ function onClose(): void {
 
 const data = ref<ProvidersResponse | null>(null)
 
-// Fast / Strong platform chat model (WP5).
+// Fast / Strong platform chat model.
 const savingTier = ref(false)
 async function saveTier(tier: 'fast' | 'strong'): Promise<void> {
   savingTier.value = true
@@ -168,7 +168,7 @@ const allowlistText = computed(() => {
         v-if="data"
         class="space-y-6"
       >
-        <!-- Platform chat model: Fast / Strong (WP5). Only where the
+        <!-- Platform chat model: Fast / Strong. Only where the
              operator offers a strong model and chat runs on the platform. -->
         <section
           v-if="data.availability.chat.modelTier?.strongAvailable"

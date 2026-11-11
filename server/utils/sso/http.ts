@@ -1,6 +1,6 @@
-// Per-workspace SSO (WP14) — HTTP plumbing shared by the routes under
-// `server/routes/auth/sso/`: the public base URL, the flow cookie, the
-// session, errors, and the per-connection OIDC settings.
+// HTTP plumbing shared by the routes under `server/routes/auth/sso/`: the
+// public base URL, the flow cookie, the session, errors, and the
+// per-connection OIDC settings.
 
 import type { H3Event } from 'h3'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'

@@ -1,9 +1,4 @@
-# LiteLLM proxy config — production shape.
-#
-# Phase 1A only needs Jina embeddings. Mistral chat models, Voxtral, and
-# BFL FLUX entries are commented-stubs ready for Phases 4 / 5 / 3 — the
-# custom_provider_map is loaded eagerly so when those models go live it's
-# a config-only change, not a custom-handler import surprise.
+# LiteLLM proxy config.
 #
 # EU only: EVERY Mistral deployment below (chat, fallbacks, transcription)
 # and the app's live-dictation WebSocket use Mistral's EU regional endpoint
@@ -17,16 +12,14 @@
 
 model_list:
   # ---- Embeddings: jina-embeddings-v5-text-nano (custom provider) ----
-  # Phase 1A workhorse. Used by server/utils/knowledge/embeddings.ts behind the
-  # NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER=jina feature flag.
+  # Used by server/utils/knowledge/embeddings.ts.
   #
   # Why -nano: native 768-d output (perfect fit for the existing
   # pgvector(768) HNSW index — zero DDL), smallest model in Jina's v5
-  # family = fastest + cheapest. For writing-doc retrieval (no math,
-  # no code, no science) the quality vs -text-small (1024-d native) is
-  # negligible — our hybrid vector+BM25 RRF retrieval absorbs the diff.
-  # If quality ever becomes the bottleneck, swapping to -text-small via
-  # MRL truncation to 768 is a config-only change.
+  # family = fastest + cheapest. For writing-doc retrieval the quality vs
+  # -text-small (1024-d native) is negligible; the hybrid vector+BM25 RRF
+  # retrieval absorbs the difference. -text-small via MRL truncation to
+  # 768 is a config-only swap.
   #
   # Why custom provider (jina-embed/) instead of native (jina_ai/):
   # LiteLLM's native Jina path computes spend as `input_cost_per_token ×
@@ -71,7 +64,7 @@ model_list:
   # per knowledge search without a justified quality win. Revisit only
   # if recall becomes the bottleneck under real usage.
 
-  # ---- Phase 2: Voxtral Mini Transcribe 2 (custom provider) ----
+  # ---- Voxtral Mini Transcribe 2 (custom provider) ----
   # Wraps Mistral's /v1/audio/transcriptions endpoint as a fake chat-
   # completion so LiteLLM's spend tracker bills correctly. The native
   # transcription path ignores Mistral's `usage.prompt_audio_seconds`
@@ -79,11 +72,9 @@ model_list:
   # reshapes the response — transcript in choices[].message.content,
   # duration_seconds in usage.completion_tokens.
   #
-  # Pinned to the dated id `voxtral-mini-2602` (Transcribe 2, GA). The old
-  # `voxtral-mini-2507` id was retired 2026-05-31 and Mistral now silently
-  # aliases it to `voxtral-mini-latest`; pinning avoids silent model drift.
-  # Voxtral Mini Transcribe 3 is Public Preview (2026-10-20), $0.0035/min,
-  # same /v1/audio/transcriptions shape — see docs/AI-MODELS.md.
+  # Pinned to the dated id `voxtral-mini-2602` (Transcribe 2, GA) to avoid
+  # silent model drift behind `-latest` aliases. See docs/AI-MODELS.md for
+  # newer Voxtral versions.
   #
   # Cost math (EU endpoint, 1.1x list): $0.0033/min = $0.000055/sec. With
   # completion_tokens = duration_seconds, output_cost_per_token = 0.000055
@@ -98,9 +89,9 @@ model_list:
   # 16384) × output_cost_per_token — against the key / team budget and
   # settles it after the call. The billing-wrapped models below report
   # their price in completion_tokens, so without a real ceiling one call
-  # reserved $0.9–1.8, i.e. a free user's whole budget, and every other
-  # request of that user was refused until it settled. Each sets
-  # max_output_tokens to what it can actually report.
+  # would reserve $0.9–1.8, i.e. a free user's whole budget, and every
+  # other request of that user would be refused until it settled. Each
+  # sets max_output_tokens to what it can actually report.
   - model_name: voxtral-mini-transcribe
     litellm_params:
       model: mistral-transcribe/voxtral-mini-2602
@@ -112,13 +103,10 @@ model_list:
       # clip is ≤ 60 s, so ≤ 60 "tokens" — 120 leaves room.
       max_output_tokens: 120
 
-  # ---- Phase 4: Mistral Small 4.0 (text agentic loop + vision) ----
-  # Native mistral/ provider — no custom wrapper needed; Mistral's
-  # chat-completions is OpenAI-compatible end-to-end and LiteLLM's cost
-  # calc maps to Mistral's `prompt_tokens` / `completion_tokens` natively.
-  # Verified in Phase 0 spike: streaming tool-calling, structured output
-  # (json_schema strict:true), vision (described a real JPEG), and a
-  # 2-turn agentic loop all work cleanly.
+  # ---- Mistral Small 4.0 (text agentic loop + vision) ----
+  # Native mistral/ provider, no custom wrapper: Mistral's chat-completions
+  # is OpenAI-compatible and LiteLLM's cost calc maps to its
+  # `prompt_tokens` / `completion_tokens` natively.
   - model_name: mistral-small-2603
     litellm_params:
       model: mistral/mistral-small-2603
@@ -138,7 +126,7 @@ model_list:
       # The app also sends `prompt_cache_key` (runLoop.ts). LiteLLM's mistral
       # provider doesn't list it as supported, so `drop_params` would strip
       # it; `allowed_openai_params` lets it through (v1.106.4 forwards it —
-      # checked in the provider's request transform; 1.83.14 dropped it).
+      # checked in the provider's request transform).
       allowed_openai_params: ["prompt_cache_key"]
     model_info:
       input_cost_per_token: 0.000000165   # $0.165 / M (EU: 1.1 x $0.15)
@@ -157,8 +145,7 @@ model_list:
   # Served BY MISTRAL on La Plateforme (third-party open model, MIT
   # weights, "served without Mistral modifications"), so the Mistral
   # contract, no-training opt-out and data terms apply as for Mistral's
-  # own models. Verified 2026-11-03 via GET /v1/models: GA, 1M context,
-  # function_calling + vision + reasoning, no deprecation date.
+  # own models. GA, 1M context, function_calling + vision + reasoning.
   #
   # EU-pinned: `api_base` is Mistral's EU regional endpoint. The default
   # `api.mistral.ai` makes NO location commitment; `api.eu.mistral.ai`
@@ -181,8 +168,7 @@ model_list:
   # as `reasoning_content` (never shown to users). Thinking is switched OFF
   # here, for every caller (agent loop, `@ai`, MCP, web-tool synthesis):
   # Mistral accepts `reasoning_effort` low / high / max only — `none` is a
-  # 400, a Z.ai-style `thinking: {type: disabled}` a 422 (both verified
-  # 2026-11-03) — and `low` produces 0 reasoning tokens on almost every
+  # 400, a Z.ai-style `thinking: {type: disabled}` a 422 — and `low` produces 0 reasoning tokens on almost every
   # turn. Set as a deployment param, so the fallback (`mistral-small-2603`,
   # its own deployment) never receives it.
   - model_name: zai-glm-5-3-flash
@@ -204,8 +190,9 @@ model_list:
       supports_prompt_caching: true
 
   # ---- Fallback for mistral-small-2603 ----
-  # Ministral 3 8B (`ministral-8b-2512`, pinned instead of `-latest`) is a different model family (separate Mistral rate-
-  # limit pool from `mistral-small-*`), with the same essential
+  # Ministral 3 8B (`ministral-8b-2512`, pinned instead of `-latest`) is a
+  # different model family (separate Mistral rate-limit pool from
+  # `mistral-small-*`), with the same essential
   # capabilities — function calling, vision, 262K context. Smaller
   # parameter count means simpler answers, but as a fallback it's
   # near-free: same input cost, 4× CHEAPER output ($0.15 vs $0.60).
@@ -227,11 +214,11 @@ model_list:
       output_cost_per_token: 0.000000165  # $0.165 / M (EU: 1.1 x $0.15, 4× cheaper than small output)
       max_tokens: 262144
 
-  # ---- Phase 3: BFL FLUX.2 [pro] image generation (custom provider) ----
+  # ---- BFL FLUX.2 [pro] image generation (custom provider) ----
   # Wraps BFL's submission+poll API. EU-pinned to api.eu2.bfl.ai (no
   # round-robin to api.us2.bfl.ai). Exposed via chat-completions because
   # OSS LiteLLM's /v1/images/generations cost path doesn't fire the
-  # spend-logger callback for custom providers (verified live in Phase 0).
+  # spend-logger callback for custom providers.
   #
   # Pricing: $0.030 per 1024² image (3 BFL credits × $0.01/credit). The
   # provider reports completion_tokens = round(cost_usd / 0.0001) = 300
@@ -246,7 +233,7 @@ model_list:
       # Budget reservation ceiling: a 2048² image is ~$0.12 = 1200 tokens.
       max_output_tokens: 1500
 
-  # ---- Phase 5: voice-tick metering for live dictation ----
+  # ---- Voice-tick metering for live dictation ----
   # Billing-only stub via custom_handlers.py:VoxtralTickProvider. Hit
   # once per 60s of audio in server/routes/api/ai/dictate.ts. Reports 60
   # completion_tokens × output_cost_per_token: 0.00011 = $0.0066/tick =
@@ -254,8 +241,6 @@ model_list:
   # actual transcription WS stays direct from our backend (Mistral SDK,
   # pinned to api.eu.mistral.ai in dictateSpeechClient.ts) — this stub exists only
   # so spend appears in the same per-key budget as chat / image / etc.
-  # Verified end-to-end in Phase 0 spike (8 ticks billed correctly,
-  # 9th hit budget_exceeded at $0.054).
   - model_name: voxtral-realtime-tick
     litellm_params:
       model: voxtral-tick/voxtral-realtime-tick
@@ -265,7 +250,7 @@ model_list:
       # Budget reservation ceiling: a tick is exactly 60 tokens.
       max_output_tokens: 60
 
-  # ---- WP4: bring-your-own-key (BYOK) passthrough ----
+  # ---- Bring-your-own-key (BYOK) passthrough ----
   # Every BYOK call (chat / agent loop, web-tool synthesis, image
   # generation, one-shot transcription) is sent as model `byok/<id>`
   # with the user's `api_key` + `api_base` in the request body
@@ -316,10 +301,8 @@ litellm_settings:
   drop_params: true
   set_verbose: false
   json_logs: true
-  # Custom provider map kept loaded eagerly. Phase 1A doesn't use either
-  # custom provider (no model_list entries reference them), but the import
-  # path is exercised on every boot so a regression in custom_handlers.py
-  # surfaces immediately rather than at Phase 3 / 5 cutover.
+  # Custom provider map. It is loaded eagerly, so a regression in
+  # custom_handlers.py surfaces at boot rather than on first use.
   custom_provider_map:
     - {"provider": "jina-embed", "custom_handler": "custom_handlers.jina_embeddings_provider"}
     - {"provider": "mistral-transcribe", "custom_handler": "custom_handlers.mistral_transcribe_provider"}

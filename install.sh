@@ -21,7 +21,7 @@ MIN_COMPOSE="5.0.0"
 HEALTH_TIMEOUT="${MARKOTO_HEALTH_TIMEOUT:-900}"
 ENV_MARKER="# markoto self-host configuration"
 
-# ─── Output helpers ────────────────────────────────────────────────────
+# Output helpers
 if [ -t 1 ]; then BOLD=$'\033[1m'; DIM=$'\033[2m'; RED=$'\033[31m'; GREEN=$'\033[32m'; RESET=$'\033[0m'
 else BOLD=""; DIM=""; RED=""; GREEN=""; RESET=""; fi
 info() { printf '%s\n' "${BOLD}==>${RESET} $*"; }
@@ -76,7 +76,7 @@ Install options (each also readable from the environment variable shown):
 EOF
 }
 
-# ─── .env access ───────────────────────────────────────────────────────
+# .env access
 # Values are written single-quoted: compose treats them literally (no
 # $-interpolation), so generated or pasted secrets can't be mangled.
 env_get() {
@@ -141,7 +141,7 @@ set_config() {
   fi
 }
 
-# ─── Prompts ───────────────────────────────────────────────────────────
+# Prompts
 INTERACTIVE=1
 ask() { # ask VAR "question" default
   local __var="$1" question="$2" default="${3:-}" reply=""
@@ -166,7 +166,7 @@ ask_yes_no() { # ask_yes_no "question" default(y|n) → exit status
   case "$reply" in y | Y | yes | YES) return 0 ;; *) return 1 ;; esac
 }
 
-# ─── Prerequisites ─────────────────────────────────────────────────────
+# Prerequisites
 version_ge() { # version_ge A B → A >= B
   [ "$(printf '%s\n%s\n' "$2" "$1" | sort -V | head -n 1)" = "$2" ]
 }
@@ -214,7 +214,7 @@ compose() {
   docker compose --project-directory "$ROOT" --env-file "$ENV_FILE" "$@"
 }
 
-# ─── Configuration ─────────────────────────────────────────────────────
+# Configuration
 # Prefer an immutable release tag over the moving `latest`: the release tag
 # of the checked-out commit, else the newest release tag reachable from it,
 # else (shallow clone / no tags) `latest`.
@@ -301,19 +301,19 @@ configure() {
     env_set MARKOTO_BUILD "1"
     COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.build.yml"
   fi
-  # Managed private instance (WP16): a ./branding directory holds the
-  # customer's logo (docs/MANAGED-INSTANCE.md).
+  # Managed private instance: a ./branding directory holds the
+  # customer's logo (docs/operations/MANAGED-INSTANCE.md).
   if [ -d "$ROOT/branding" ]; then
     COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.brand.yml"
   fi
-  # Podman: renderer seccomp overlay + the engine socket (docs/CONTAINER-ENGINES.md).
+  # Podman: renderer seccomp overlay + the engine socket (docs/contributing/CONTAINER-ENGINES.md).
   if engine_is_podman; then
     COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.podman.yml"
     local unpriv
     unpriv="$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null || echo 1024)"
     if [ "$(id -u)" != 0 ] && [ "$(env_get MARKOTO_HTTP_PORT)" -lt "$unpriv" ]; then
       warn "Rootless Podman can't publish port $(env_get MARKOTO_HTTP_PORT) (this host allows ports from $unpriv)."
-      warn "Lower net.ipv4.ip_unprivileged_port_start, or choose a port >= $unpriv. See docs/CONTAINER-ENGINES.md."
+      warn "Lower net.ipv4.ip_unprivileged_port_start, or choose a port >= $unpriv. See docs/contributing/CONTAINER-ENGINES.md."
     fi
   fi
   env_set CONTAINER_SOCKET "$(engine_socket)"
@@ -444,7 +444,7 @@ configure_ai() {
   fi
 }
 
-# ─── Lifecycle ─────────────────────────────────────────────────────────
+# Lifecycle
 pull_or_build() {
   if [ "$(env_get MARKOTO_BUILD)" = 1 ]; then
     info "Building images from $ROOT (this takes a while the first time)"
@@ -550,7 +550,7 @@ cmd_upgrade() {
   next_steps
 }
 
-# ─── Argument parsing ──────────────────────────────────────────────────
+# Argument parsing
 COMMAND="install"
 OPT_DOMAIN="${MARKOTO_DOMAIN:-}"
 OPT_ACME_EMAIL="${ACME_EMAIL:-}"

@@ -6,8 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // branches via real HTTP, but it can't reach the success-path body
 // assertions because the test stack has no Hocuspocus to land the
 // restore. THIS suite mocks `restoreDocToYjsId` so we never need a WS
-// connection — and uses that to pin the regression target the browser
-// validation caught:
+// connection — and uses that to pin this regression target:
 //
 //   The new `restore` activity row's `yjsDocIdBefore` MUST be the
 //   helper's `yjsDocIdBeforeRestore` (the LIVE pre-restore state),
@@ -19,7 +18,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // error; clicking would simply re-snap to the same past state. Cheap
 // to write here, expensive to debug in production.
 
-// --- Mocks (must register before importing the SUT) ----------------
+// Mocks (must register before importing the SUT)
 
 const requireDocEditAccess = vi.fn(async () => {})
 const getActivityById = vi.fn()
@@ -219,16 +218,10 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
   })
 
   it('writes the restore activity row with the LIVE pre-restore yjsDocIdBefore (regression target)', async () => {
-    // THIS is the bug the browser-validation pass caught: an early
-    // version of the endpoint stamped the new restore row's
-    // `yjsDocIdBefore` with the SOURCE row's `yjsDocIdBefore` (i.e.
-    // the past target). That broke reversibility — clicking restore
-    // on the new restore row would re-snap to the same past state
-    // instead of bringing the doc back to the pre-restore live state.
-    //
-    // Correct behaviour: `yjsDocIdBefore` on the new row = the LIVE
-    // state captured BEFORE the restore landed (helper return field
-    // `yjsDocIdBeforeRestore`).
+    // The new restore row's `yjsDocIdBefore` must be the LIVE state captured BEFORE the restore landed (helper
+    // return field `yjsDocIdBeforeRestore`), NOT the source row's `yjsDocIdBefore` (the past target). Otherwise
+    // reversibility breaks: clicking restore on the new restore row would re-snap to the same past state instead
+    // of bringing the doc back to the pre-restore live state.
     getActivityById.mockResolvedValueOnce(fakeActivityRow({
       yjsDocIdBefore: 30,
       yjsDocIdAfter: 35,

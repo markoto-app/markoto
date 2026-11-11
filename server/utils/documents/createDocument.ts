@@ -18,19 +18,13 @@ import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 import { seedDocContent } from './seedDocContent'
 
-// Document creation — single source of truth shared by:
-//   - `POST /api/docs` (the user-facing endpoint)
-//   - `handleCreateDocument` AI-tool handler (in-app loop + MCP)
+// Document creation, shared by `POST /api/docs` and the `handleCreateDocument`
+// AI-tool handler (in-app loop + MCP) so both apply the same validation
+// (audience values, theme precedence, workspace-role gating).
 //
-// The HTTP endpoint used to inline all of this; factored out so the
-// tool handler doesn't drift on validation rules (which audience values
-// are valid, theme-resolution precedence, workspace-role gating).
-//
-// Anonymous creation is allowed when ownerId is null — produces an
-// `open-edit` doc with no workspace and no saved-theme access. The
-// agentic-loop callers ALWAYS pass a numeric ownerId (the initiator's
-// real userId), so the anonymous branch is exercised only by the HTTP
-// endpoint's `getValidatedUserSession` returning null.
+// A null ownerId creates an anonymous `open-edit` doc with no workspace and
+// no saved-theme access. Agentic-loop callers always pass the initiator's
+// real userId, so only the HTTP endpoint can take the anonymous branch.
 
 export const TITLE_MAX_LENGTH = 255
 export const DESCRIPTION_MAX_LENGTH = 500
@@ -81,10 +75,7 @@ export interface CreateDocumentResult {
 /**
  * Validate every input field, resolve workspace + theme, insert the
  * documents row. Throws `createError(...)` on validation failure with
- * the same status codes the original endpoint used (400 / 401 / 403 /
- * 404), so HTTP callers + tool callers (which surface the error message
- * via the framework-level error handler / tool-result `isError`) get
- * consistent responses.
+ * status codes 400 / 401 / 403 / 404; HTTP and tool callers get the same errors.
  *
  * Theme precedence (first match wins):
  *   1. `themeId`     — caller's own saved-theme preset

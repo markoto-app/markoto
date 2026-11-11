@@ -3,26 +3,22 @@ import { toRef, watch } from 'vue'
 import type { AiResponseEntry } from '~/composables/ai/useAI'
 import { useResponsePanelState } from './useResponsePanelState'
 
-// The AI's ephemeral response surface — sits directly above the prompt
-// bar. Driven by `lastResponse` from `useAI`, which latches the most
-// recent `message_to_user` call so the panel survives the AI session
-// ending (~2.5s after `done`). Phase 1 of the response substrate; the
-// panel is purely a viewport with no history list — chat-thread shape
-// is deliberately avoided (the doc IS the artefact).
+// The AI's ephemeral response surface, directly above the prompt bar.
+// Driven by `lastResponse` from `useAI`, which latches the most recent
+// `message_to_user` so the panel survives the AI session ending (~2.5s
+// after `done`). It is a viewport with no history list: the doc IS the
+// artefact, not a chat thread.
 //
 // Two modes:
-//   - Plain message (`isQuestion: false`) — auto-collapses 10s after
+//   - Plain message (`isQuestion: false`): auto-collapses 10s after
 //     arrival; the user can re-expand via the "last response" pill.
-//   - Question (`isQuestion: true`) — sticky until the user dismisses
+//   - Question (`isQuestion: true`): sticky until the user dismisses
 //     or sends a follow-up prompt.
 //
-// All copy is i18n-keyed under `ai.response*`.
-//
 // The timer + manual-expand state machine lives in
-// `useResponsePanelState.ts` so it can be unit-tested without
-// mounting the SFC (the test infra's `dom` project doesn't ship
-// `@vitejs/plugin-vue`, and the `nuxt` project trips a transform-time
-// SVG block at boot). The component just wires props → state → DOM.
+// `useResponsePanelState.ts` so it can be unit-tested without mounting
+// the SFC (the `dom` test project has no `@vitejs/plugin-vue`, and the
+// `nuxt` project trips a transform-time SVG block at boot).
 
 const props = defineProps<{
   response: AiResponseEntry | null
@@ -47,7 +43,6 @@ const { expanded, expand, dismiss, onPointerEnter, onPointerLeave } = useRespons
 })
 
 watch(expanded, v => emit('update:expanded', v), { immediate: true })
-// (timer / state-machine logic lives in useResponsePanelState.ts)
 </script>
 
 <template>
@@ -111,13 +106,10 @@ watch(expanded, v => emit('update:expanded', v), { immediate: true })
 }
 
 /*
- * Match the prompt-bar shell's `border-radius` transition (220ms with
- * the same easing curve) so the panel's slide-up + the bar's top-corner
- * flatten happen in lockstep — the eye perceives one continuous motion
- * instead of two separately-timed ones. translateY(10px) starts the
- * panel slightly OVER the bar's top edge before settling above it,
- * giving a "rising out of the bar" feel rather than "fading in from
- * thin air".
+ * Matches the prompt-bar shell's `border-radius` transition (220ms, same
+ * easing) so the panel's slide-up and the bar's top-corner flatten run
+ * in lockstep, reading as one motion. translateY(10px) starts the panel
+ * slightly over the bar's top edge, so it rises out of the bar.
  */
 .response-panel-enter-active,
 .response-panel-leave-active {

@@ -6,7 +6,7 @@ import { AuthLoginButtons, WorkspaceSsoPanel } from '#components'
 import type { H3Event } from 'h3'
 import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/instance'
 
-// Per-workspace single sign-on UI (WP14): the admin panel and the
+// Per-workspace single sign-on UI: the admin panel and the
 // "Sign in with your organisation" entry on the sign-in buttons.
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>

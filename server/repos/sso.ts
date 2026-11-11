@@ -4,7 +4,7 @@ import { ssoConnections, ssoDomains, ssoGrants, userIdentities, users } from '..
 import { useDatabase } from '../utils/platform/database'
 import { DuplicateError, NotFoundError } from './errors'
 
-// Per-workspace single sign-on (WP14): connections, domains, identities
+// Per-workspace single sign-on: connections, domains, identities
 // and the grants that let a member in while SSO is enforced.
 
 type Db = ReturnType<typeof useDatabase>
@@ -154,8 +154,6 @@ export async function setScimTokenHash(connectionId: string, hash: string | null
   await useDatabase().update(ssoConnections).set({ scimTokenHash: hash, updatedAt: new Date() }).where(eq(ssoConnections.id, connectionId))
 }
 
-// ── Domains ──────────────────────────────────────────────────────────
-
 export interface SsoDomainRow {
   id: number
   domain: string
@@ -220,8 +218,6 @@ export async function isDomainVerifiedForWorkspace(workspaceId: string, domain: 
   return row !== undefined
 }
 
-// ── Identities ───────────────────────────────────────────────────────
-
 export interface UserIdentityRow {
   id: number
   userId: number
@@ -275,8 +271,6 @@ export async function setIdentityActive(id: number, active: boolean, db: DbOrTx 
 export async function setIdentityScimExternalId(id: number, externalId: string | null, db: DbOrTx = useDatabase()): Promise<void> {
   await db.update(userIdentities).set({ scimExternalId: externalId }).where(eq(userIdentities.id, id))
 }
-
-// ── Grants ───────────────────────────────────────────────────────────
 
 /** How long a sign-in through the workspace's IdP lets the member in. */
 const SSO_GRANT_TTL_MS = 12 * 60 * 60 * 1000

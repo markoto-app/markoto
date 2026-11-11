@@ -4,7 +4,7 @@ import { getDoc, getDocWithActorRole } from '../../repos/documents'
 import { canDownload, docStateOf } from '~~/shared/utils/documents/docPermissions'
 import { planHasFeature, resolveDocPlanFor } from '../billing/entitlements'
 
-// Share-link controls (WP9): who may see and change them — the document's
+// Share-link controls: who may see and change them — the document's
 // owner and workspace admins (`canManage`, like the access mode).
 
 /** Longest an expiry may lie in the future. */
@@ -22,7 +22,7 @@ export async function requireShareManager(event: H3Event) {
 }
 
 /**
- * View only (WP9): may `userId` take this document's content away — a
+ * View only: may `userId` take this document's content away — a
  * PDF, page images, a Markdown export or a copy? False only for a visitor
  * (not the owner, no member role; guests count) of a view-only doc.
  * Unknown documents answer true: the caller's own access check decides.

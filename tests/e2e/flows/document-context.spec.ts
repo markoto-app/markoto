@@ -22,10 +22,6 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 //   - Mobile: bottom-tab-bar Info/Document tab (opens the same panel
 //     in a bottom sheet). Form fields scroll below the fold at narrow
 //     widths but the asserted server state + AI output are identical.
-// (Until Phase 6.30 there was a `document-context-mobile.spec.ts`
-//  sibling carrying mobile-specific narration. Deleted as part of the
-//  "single canonical spec per feature" cleanup — Flow.vue auto-routes
-//  variants by viewport via `useMediaQuery('(max-width: 639px)')`.)
 // Small, high-frequency function words: enough to tell a German
 // sentence from an English one without a language-detection library.
 const GERMAN_WORDS = new Set(['und', 'der', 'die', 'das', 'mit', 'sie', 'ihr', 'ihre', 'ihren', 'für', 'bei', 'ist', 'wir', 'ein', 'eine', 'einen', 'zu', 'dein', 'deine', 'deinem', 'dich', 'dir', 'du', 'willkommen', 'auf', 'in', 'von', 'nicht', 'jetzt', 'schon'])
@@ -46,7 +42,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   const draftBody = '# Welcome to Lumen\n\n## Your first steps\n\n- Create your profile\n- Invite your team\n- Start your first project\n'
   await editor.silentSetup({ title: 'Onboarding email', body: draftBody, cover: false })
 
-  // ─── Open the Document panel ────────────────────────────────────
+  // Open the Document panel
   await flow.heading('Tell markoto who you\'re writing for', 3)
   await flow.narrate(
     'Every doc carries four context fields beyond the title: a '
@@ -75,7 +71,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Set the three fields ───────────────────────────────────────
+  // Set the three fields
   await flow.heading('Set the audience, language, and description', 3)
   await flow.narrate(
     'Description is one line that tells the AI what this document IS. '
@@ -98,12 +94,9 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
     }
   )
 
-  // Audience: USelect (Reka button + popover). The mobile branch used to
-  // need synthetic PointerEvents because the option popover rendered BEHIND
-  // the bottom sheet (untappable). That was a real product bug — now fixed
-  // by lifting select/combobox popovers above the sheet (main.css) — so both
-  // mobile and desktop select with plain clicks. The branch remains only
-  // because the desktop version records richer flow-doc annotations.
+  // Audience: USelect (Reka button + popover). Select/combobox popovers are lifted above the bottom sheet
+  // (main.css), so mobile and desktop both select with plain clicks. The branch remains only because the
+  // desktop version records richer flow-doc annotations.
   if (editor.isMobile) {
     // Real clicks — the option popover now stacks above the bottom sheet
     // (main.css z-index fix), so no synthetic-PointerEvent workaround needed.
@@ -203,7 +196,7 @@ test('Tell the AI who you\'re writing for', async ({ page, flow, editor }) => {
   }, { timeout: 10_000, message: 'audience / language / description never reached the server' })
     .toMatch(/(?=.*"audience":"marketing")(?=.*"language":"(de|Deutsch)")(?=.*Onboarding email for newly registered users)/)
 
-  // ─── Ask the AI ─────────────────────────────────────────────────
+  // Ask the AI
   await flow.heading('Ask the AI for an intro', 3)
   await flow.narrate(
     'With audience + language + description set, ANY prompt the AI '

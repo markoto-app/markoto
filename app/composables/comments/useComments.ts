@@ -5,15 +5,13 @@ import { nanoid } from 'nanoid'
 import { resolveAnchor, type SerializedAnchor } from '~/utils/comments/commentAnchors'
 import { COMMENT_BODY_MAX, REPLY_BODY_MAX } from '~/utils/comments/commentBody'
 
-// Comments live entirely in Y.js: a top-level `Y.Array` named "comments"
-// holding `Y.Map` entries (one per thread). Replies are a nested
-// `Y.Array<Y.Map>` inside each comment. y-postgresql persists the whole
-// Y.Doc, so this is durable without any new SQL table.
+// Comments live entirely in Y.js: a top-level `Y.Array` "comments" of
+// `Y.Map` threads, each with a nested `Y.Array<Y.Map>` of replies. They
+// persist with the Y.Doc, so no SQL table is needed.
 //
-// The composable observes the array deeply (so reply changes re-fire) and
-// re-derives a plain Vue-reactive list every time. Cheaper than fine-grained
-// observers, and keeps the diff tiny — comments are typically dozens, not
-// thousands.
+// The array is observed deeply and a plain reactive list is re-derived on
+// every change: simpler than fine-grained observers, and comments number
+// in the dozens.
 
 export interface DerivedReply {
   id: string
@@ -60,27 +58,25 @@ function readAuthor(awareness: Awareness): AuthorIdentity {
   }
 }
 
-/** Read a string field with default — drops everything that isn't a string at the Y.Map boundary. */
+/** Non-strings are dropped at the Y.Map boundary. */
 function strField(map: Y.Map<unknown>, key: string, fallback = ''): string {
   const v = map.get(key)
   return typeof v === 'string' ? v : fallback
 }
 
-/** Read a number field with default — drops everything that isn't a number at the Y.Map boundary. */
+/** Non-numbers are dropped at the Y.Map boundary. */
 function numField(map: Y.Map<unknown>, key: string, fallback = 0): number {
   const v = map.get(key)
   return typeof v === 'number' ? v : fallback
 }
 
-/** The anonymous author's avatar token — same shape the awareness
- *  normaliser accepts, anything else is dropped (comment maps are
- *  writable by any peer). */
+/** Same shape the awareness normaliser accepts; anything else is dropped
+ *  because any peer can write comment maps. */
 function avatarSeedField(map: Y.Map<unknown>): string | null {
   const v = map.get('authorAvatarSeed')
   return typeof v === 'string' && /^[A-Za-z0-9]{1,32}$/.test(v) ? v : null
 }
 
-/** Read a number field as `number | null` — null when missing or non-number. */
 function numOrNullField(map: Y.Map<unknown>, key: string): number | null {
   const v = map.get(key)
   return typeof v === 'number' ? v : null
@@ -92,8 +88,7 @@ function deriveAuthorAndTimestamps(map: Y.Map<unknown>) {
     body: strField(map, 'body'),
     authorId: numOrNullField(map, 'authorId'),
     authorName: strField(map, 'authorName', 'Anonymous'),
-    // `authorAvatar` (a provider image URL) on older comments is ignored:
-    // avatars are generated locally now.
+    // A stored `authorAvatar` (provider image URL) is ignored: avatars are generated locally.
     authorAvatarSeed: avatarSeedField(map),
     createdAt: numField(map, 'createdAt'),
     updatedAt: numField(map, 'updatedAt')
@@ -106,7 +101,7 @@ function deriveReply(map: Y.Map<unknown>): DerivedReply | null {
   return { id, ...deriveAuthorAndTimestamps(map) }
 }
 
-/** Resolve the (anchorStart, anchorEnd) base64 pair into a doc-position range; returns null if either field is missing. */
+/** Null if either anchor field is missing. */
 function resolveCommentAnchor(map: Y.Map<unknown>, ydoc: Y.Doc): { from: number, to: number } | null {
   const startB64 = map.get('anchorStart')
   const endB64 = map.get('anchorEnd')
@@ -114,7 +109,6 @@ function resolveCommentAnchor(map: Y.Map<unknown>, ydoc: Y.Doc): { from: number,
   return resolveAnchor({ start: startB64, end: endB64 }, ydoc)
 }
 
-/** Walk a `Y.Array<Y.Map>` of replies and return the derived rows; skips entries that are missing required fields. */
 function deriveReplies(map: Y.Map<unknown>): DerivedReply[] {
   const repliesArr = map.get('replies')
   if (!(repliesArr instanceof Y.Array)) return []
@@ -155,9 +149,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
         if (d) out.push(d)
       }
     }
-    // Active (with a resolvable anchor) first, sorted by position. Orphans
-    // stable-appended last by createdAt — keeps them visible without
-    // disrupting the position-ordered active list.
+    // Anchored threads first by position; orphans (anchor text deleted) last by createdAt.
     const active: DerivedComment[] = []
     const orphan: DerivedComment[] = []
     for (const c of out) (c.anchor ? active : orphan).push(c)
@@ -166,15 +158,12 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
     comments.value = [...active, ...orphan]
   }
 
-  // observeDeep fires on any nested change (reply add/delete, body edit,
-  // resolved toggle). Cheaper than fine-grained observers and easier to
-  // reason about — the recompute walks at most a few hundred entries.
+  // Fires on any nested change (reply, body edit, resolved toggle).
   const onDeep = () => recompute()
   ycomments.observeDeep(onDeep)
 
-  // Y.js update events shift the underlying ytext too, which doesn't fire
-  // observeDeep on `ycomments` but DOES change anchor resolution. Refresh
-  // on every doc update so anchor positions stay in sync as users type.
+  // Typing shifts ytext, which doesn't fire observeDeep on `ycomments` but
+  // does change anchor resolution, so refresh on every doc update.
   const onDocUpdate = () => recompute()
   ydoc.on('update', onDocUpdate)
 
@@ -233,15 +222,13 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
   }
 
   /**
-   * Delete a comment. Routed through the REST endpoint so the server
-   * can validate authorship — Y.js peers can't enforce that on their
-   * own. The deletion lands locally via the live broadcast from the
-   * server's trusted-client mutation, so the UI updates without an
-   * optimistic-then-rollback round trip.
+   * Goes through the REST endpoint so the server can validate authorship,
+   * which Y.js peers can't enforce. The deletion arrives locally via the
+   * server's broadcast, so there is no optimistic update to roll back.
    */
   async function deleteComment(id: string): Promise<void> {
     if (!docId) {
-      // Fallback for tests / callers without a docId — local-only path.
+      // Local-only path for tests / callers without a docId.
       const found = findCommentById(id)
       if (!found) return
       ydoc.transact(() => {
@@ -280,7 +267,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
       map.set('createdAt', now)
       map.set('updatedAt', now)
       ;(repliesArr as Y.Array<Y.Map<unknown>>).push([map])
-      // Bump the parent thread's updatedAt so "recently active" sorts work.
+      // Bumps the thread so "recently active" sorts work.
       found.map.set('updatedAt', now)
     }, 'comments')
     return replyId
@@ -311,11 +298,9 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
 
 export type CommentsApi = ReturnType<typeof useComments>
 
-// Single-instance pattern. EditorLayout calls `useProvideComments` once
-// and descendants (CommentsPanel) read it via `useCommentsContext`.
-// Two instances would each attach observeDeep + ydoc.update listeners
-// and recompute the list independently — same answer, twice the work,
-// and a one-frame divergence on every change.
+// EditorLayout calls `useProvideComments` once and descendants read it via
+// `useCommentsContext`; a second instance would duplicate the observers and
+// recompute independently, diverging for a frame on every change.
 const [useProvideCommentsState, useInjectComments] = createInjectionState(
   (ydoc: Y.Doc, awareness: Awareness, docId?: string) => useComments(ydoc, awareness, docId)
 )

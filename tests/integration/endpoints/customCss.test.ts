@@ -151,7 +151,7 @@ describe('custom CSS — write paths', () => {
   })
 })
 
-// ── Render path ──────────────────────────────────────────────────────────
+// Render path
 
 // MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in docker-compose.test.yml
 // (shared with rendererNetwork.test.ts, which runs in the same process pool —
@@ -299,8 +299,7 @@ describe('custom CSS — server renderer', () => {
     expect(Math.abs(g - b)).toBeLessThan(40)
   }, 90_000)
 
-  // Regression (theme image URLs): a logo URL that breaks out of the
-  // cover `<img src>` attribute used to become a live event handler on
+  // A logo URL that breaks out of the cover `<img src>` attribute must not become a live event handler on
   // the render page. The marker handler would paint the page sheet green.
   it('a stored logo URL with an attribute breakout does not run on the render page', async () => {
     const owner = await createUser()

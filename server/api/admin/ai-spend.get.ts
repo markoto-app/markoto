@@ -2,16 +2,12 @@ import { requireAdminUser } from '../../utils/auth/adminAccess'
 import { litellmAdminFetch } from '../../utils/litellm/litellmAdmin'
 import { ALL_FEATURE_TAGS, TAG_NAMESPACES, type FeatureTag } from '../../utils/litellm/featureTags'
 
-// Operator dashboard: per-feature LiteLLM spend over a date window.
-// Drives /admin/ai-spend (admin-gated). Aggregation lives at the
-// proxy via /spend/tags — we just request the breakdown for the
-// known tag set and shape the response for the UI.
+// Operator dashboard (/admin/ai-spend, admin-gated): per-feature LiteLLM spend
+// over a date window, aggregated by the proxy via /spend/tags.
 //
-// Window: defaults to the last 30 days. Caller can override with
-// `?from=YYYY-MM-DD&to=YYYY-MM-DD` query params; both must be valid
-// ISO date strings (YYYY-MM-DD), otherwise we fall back to the
-// 30-day default rather than 400 (operators land on a chart, not
-// an error, when they typo a URL).
+// Window defaults to the last 30 days; `?from=YYYY-MM-DD&to=YYYY-MM-DD`
+// override it. Invalid dates fall back to the default rather than 400, so a
+// typo'd URL still shows a chart.
 
 interface SpendTagRow {
   individual_request_tag?: string
@@ -26,11 +22,9 @@ interface SpendTagRow {
 type SpendByTag = Record<string, { spend: number, requests: number, totalTokens: number }>
 
 /**
- * LiteLLM's `/spend/tags` returns an array of `{individual_request_tag,
- * total_spend, log_count, ...}` rows. Some versions return the same
- * data wrapped as `{ spend_per_tag: [...] }`. Collapse both shapes
- * (and the historic keyed-map shape that some callers documented)
- * into a single internal map.
+ * LiteLLM's `/spend/tags` returns an array of rows, or the same wrapped as
+ * `{ spend_per_tag: [...] }`, or a tag-keyed map depending on version.
+ * All shapes collapse into one internal map.
  */
 function collapseSpendResponse(payload: unknown): SpendByTag {
   const body = unwrapEnvelope(payload)
@@ -39,7 +33,6 @@ function collapseSpendResponse(payload: unknown): SpendByTag {
   return {}
 }
 
-/** Strip the `{ spend_per_tag: [...] }` envelope variant if present. */
 function unwrapEnvelope(payload: unknown): unknown {
   if (payload && typeof payload === 'object' && 'spend_per_tag' in payload) {
     return (payload as { spend_per_tag?: unknown }).spend_per_tag
@@ -47,7 +40,6 @@ function unwrapEnvelope(payload: unknown): unknown {
   return payload
 }
 
-/** Coerce a possibly-missing field to a number, defaulting to 0. */
 function num(row: unknown, key: string): number {
   if (!row || typeof row !== 'object') return 0
   const v = (row as Record<string, unknown>)[key]
@@ -65,11 +57,7 @@ function firstNum(row: unknown, keys: string[]): number {
   return 0
 }
 
-/**
- * Array shape (current LiteLLM): `[{individual_request_tag, total_spend,
- * log_count, total_tokens, ...}, ...]`. Multiple rows for the same tag
- * sum.
- */
+/** Array shape: multiple rows for the same tag sum. */
 function collapseArrayShape(rows: unknown[]): SpendByTag {
   const out: SpendByTag = {}
   for (const row of rows as SpendTagRow[]) {
@@ -85,10 +73,8 @@ function collapseArrayShape(rows: unknown[]): SpendByTag {
 }
 
 /**
- * Map shape (legacy / some versions): `{ tag: { total_spend?, spend?,
- * log_count?, api_requests?, total_tokens?, ... } }`. Two field-name
- * fallbacks per stat — `total_spend`/`spend` and `log_count`/`api_requests`
- * — pick the first defined.
+ * Map shape: `total_spend`/`spend` and `log_count`/`api_requests` are
+ * alternative field names; the first defined wins.
  */
 function collapseMapShape(rows: Record<string, unknown>): SpendByTag {
   const out: SpendByTag = {}
@@ -122,9 +108,7 @@ export default defineEventHandler(async (event) => {
   const from = isValidIsoDate(query.from) ? query.from : defaultRange().from
   const to = isValidIsoDate(query.to) ? query.to : defaultRange().to
 
-  // LiteLLM's /spend/tags endpoint accepts optional `tags` (CSV) +
-  // `start_date` / `end_date` (YYYY-MM-DD). We don't pass `tags=`
-  // because we want unknown tags too (so we can show "other").
+  // No `tags=` filter: unknown tags are wanted too, for the "other" row.
   const url = `/spend/tags?start_date=${encodeURIComponent(from)}&end_date=${encodeURIComponent(to)}`
   const res = await litellmAdminFetch(url)
   if (!res.ok) {
@@ -136,9 +120,8 @@ export default defineEventHandler(async (event) => {
   }
   const tagMap = collapseSpendResponse(await res.json())
 
-  // Bucket: known feature tags get their own row (in the canonical
-  // order so the dashboard renders consistently); unknown feature-
-  // shaped tags fold into `other`.
+  // Known feature tags get their own row in canonical order; unknown
+  // feature-shaped tags fold into `other`.
   const knownSet = new Set<string>(ALL_FEATURE_TAGS)
   const breakdown: Array<{ tag: FeatureTag | 'other', spend: number, requests: number, totalTokens: number }> = []
 
@@ -147,11 +130,8 @@ export default defineEventHandler(async (event) => {
     breakdown.push({ tag, spend: row.spend, requests: row.requests, totalTokens: row.totalTokens })
   }
 
-  // Sweep up everything the proxy returned that ISN'T one of our
-  // known feature tags into a single `other` row. The workspace:* /
-  // user:* / doc:* axes are also known namespaces — they're queried
-  // through dedicated endpoints (`/admin/axis-spend`) and would just
-  // inflate "other" if we counted them here, so we skip them.
+  // The workspace:* / user:* / doc:* axes are known namespaces served by
+  // `/admin/axis-spend`; counting them here would inflate "other".
   let otherSpend = 0
   let otherRequests = 0
   let otherTokens = 0

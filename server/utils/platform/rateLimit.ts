@@ -10,11 +10,10 @@ import { isRateLimitBypassed } from '../../../shared/utils/security/testMode'
 //              when two calls land in the same millisecond.
 // TTL:         2× window (via PEXPIRE), so abandoned keys self-clean.
 //
-// Check-and-record runs as ONE Lua script (trim → count → add only when
-// under the limit), so it is atomic inside Valkey: a burst of N parallel
-// requests admits exactly `maxAttempts`. A count-then-add in two round
-// trips let every request that read the count before the first write
-// through — an unbounded overshoot under concurrency.
+// Check-and-record runs as ONE Lua script (trim, count, add only when under
+// the limit), so it is atomic inside Valkey: a burst of N parallel requests
+// admits exactly `maxAttempts`. Count-then-add in two round trips would let
+// every request that read the count before the first write through.
 //
 // Fails open: if Valkey is unreachable, the request is allowed through.
 // Rate limits are defense-in-depth (backend still validates payload size,
@@ -73,8 +72,7 @@ return {1, after}
 
 function reportValkeyError(e: unknown, namespace: string, what: string): void {
   console.warn(`[rateLimit] valkey error ${what}:`, e instanceof Error ? e.message : e)
-  // Surface to the telemetry sink with a stable tag so operators can
-  // dashboard "rate-limit protection is currently bypassed" volume.
+  // Stable tag so operators can chart how often rate-limit protection is bypassed.
   Sentry.captureException(e, {
     tags: { component: 'rateLimit', event: 'valkey_unavailable', namespace }
   })
@@ -96,12 +94,10 @@ export async function checkRateLimit(
   maxAttempts: number,
   windowMs: number
 ): Promise<boolean> {
-  // Test-mode bypass. The integration suite pounds endpoints far harder
-  // than a real user ever would; without this, password-brute-force and
-  // doc-delete limits make the suite flaky and order-dependent. Limiter
-  // behaviour has its own tests (unit + the real-Valkey concurrency test
-  // in tests/repos/rateLimitAtomic.test.ts). Only honoured on instances
-  // that don't look like a real deployment — see shared/utils/security/testMode.ts.
+  // The integration suite hits endpoints far harder than a real user, which
+  // would make it flaky and order-dependent. Limiter behaviour has its own
+  // tests (tests/repos/rateLimitAtomic.test.ts). Only honoured on instances
+  // that don't look like a real deployment; see shared/utils/security/testMode.ts.
   if (isRateLimitBypassed(namespace)) return true
 
   const zkey = `rl:${namespace}:${key}`
@@ -165,40 +161,25 @@ export async function recordRateLimitEvent(
 }
 
 /**
- * Single-holder semaphore, backed by `SET NX EX` on Valkey. The first
- * caller wins (returns true); subsequent callers see `false` until the
- * holder releases or the TTL expires.
+ * Single-holder semaphore via `SET NX PX` on Valkey: the first caller gets
+ * true, others get false until release or TTL expiry.
  *
- * Used for the dictation concurrent-session cap: only one WS session
- * per user. An in-memory `Set<userId>` would silently break across
- * multiple Nitro workers / containers (a user's two tabs could land
- * on different processes and both slip through). Valkey gives us a
- * cluster-consistent lock in one network round-trip.
+ * Backs the one-dictation-session-per-user cap. It lives in Valkey because an
+ * in-memory set would not hold across Nitro processes.
  *
- * TTL is a safety net — if a process crashes without releasing the
- * lock, it self-expires after `ttlMs`. Callers should pass a value
- * ≥ the longest legitimate session length so a live session never
- * loses its lock while still in use.
+ * `ttlMs` is only a crash safety net; pass at least the longest legitimate
+ * session length so a live session never loses its lock.
  *
- * Returns `false` (i.e. "don't proceed") if Valkey is unreachable
- * because this is a CAP not a rate limiter — failing open would let
- * unlimited concurrent sessions through on a Valkey outage. Callers
- * should surface the error; the app already degrades gracefully when
- * dictation is unavailable.
+ * Fails CLOSED (returns false) when Valkey is unreachable: this is a cap, and
+ * failing open would allow unlimited concurrent sessions.
  */
 export async function tryAcquireSessionLock(
   namespace: string,
   key: string,
   ttlMs: number
 ): Promise<boolean> {
-  // NOTE: deliberately NO test-mode bypass here, unlike
-  // `checkRateLimit` / `consumeRateLimitBudget`. Those are DoS
-  // limits where tests would pound the endpoint; a bypass prevents
-  // flakiness. This function is a CORRECTNESS lock (one dictation
-  // session per user), and tests need to verify concurrent-session
-  // rejection. Valkey self-cleans via TTL + explicit
-  // `releaseSessionLock` on the server's WS close hook.
-
+  // No test-mode bypass, unlike `checkRateLimit`: this is a correctness lock
+  // and tests need to verify concurrent-session rejection.
   const lockKey = `lock:${namespace}:${key}`
   try {
     const valkey = useValkey()
@@ -218,11 +199,7 @@ export async function releaseSessionLock(
   namespace: string,
   key: string
 ): Promise<void> {
-  // Same rationale as `tryAcquireSessionLock` — session locks need to
-  // actually release in tests so subsequent tests (or a test that
-  // deliberately opens a second session after closing the first)
-  // can reacquire the lock.
-
+  // No test-mode bypass, same as `tryAcquireSessionLock`: tests must be able to reacquire.
   const lockKey = `lock:${namespace}:${key}`
   try {
     const valkey = useValkey()
@@ -231,29 +208,19 @@ export async function releaseSessionLock(
 }
 
 /**
- * Cost-based sliding window, backed by a plain Valkey counter with a
- * windowed TTL. Unlike `checkRateLimit` (which counts DISCRETE
- * attempts), this bucket sums arbitrary integer costs — the intended
- * use case is billing audio-seconds for live dictation, where a single
- * "attempt" doesn't map cleanly to a request.
+ * Cost-based window on a Valkey counter with a windowed TTL. Unlike
+ * `checkRateLimit` (discrete attempts) it sums integer costs, e.g. audio
+ * seconds for live dictation.
  *
- * Contract:
- *   - Returns `{ allowed: true, remaining }` and debits `cost` if the
- *     new total fits within `maxCost` for the window.
- *   - Returns `{ allowed: false, remaining }` WITHOUT debiting if the
- *     request would exceed the cap. Caller should surface a rate-limit
- *     error to the user.
- *   - Cost 0 = peek: returns the actual remaining without touching the
- *     bucket (callers use it at session-open time to decide whether to
- *     proceed at all).
+ *   - Debits `cost` and returns `allowed: true` if the new total fits `maxCost`.
+ *   - Otherwise returns `allowed: false` without debiting.
+ *   - Cost 0 peeks: returns the remaining budget without touching the bucket.
  *
- * The read-check-debit runs as one Lua script, so concurrent debits
- * can't jointly overshoot `maxCost`. The TTL is refreshed on every
- * debit (sliding-window semantics) so an abandoned window self-cleans.
+ * Read-check-debit is one Lua script, so concurrent debits can't jointly
+ * overshoot. The TTL is refreshed on every debit.
  *
- * Fails open (allowed: true, remaining: maxCost) on Valkey errors —
- * same rationale as `checkRateLimit`: rate limits are defense-in-depth,
- * not the primary cost governor. A wedged Valkey shouldn't DoS dictation.
+ * Fails open on Valkey errors, like `checkRateLimit`: the real cost governor
+ * is the LiteLLM budget.
  */
 export async function consumeRateLimitBudget(
   namespace: string,
@@ -276,23 +243,18 @@ export async function consumeRateLimitBudget(
 }
 
 /**
- * Reserve one "inflight slot" under a counter. Used to prevent
- * concurrent-request races from overshooting caps BEFORE a DB write
- * commits — e.g. 500 simultaneous knowledge upload-requests all read
- * count=499 from the DB and all pass the per-workspace cap check.
+ * Reserve one "inflight slot" under a counter, so concurrent requests can't
+ * overshoot a cap before the DB write commits (500 simultaneous upload
+ * requests would all read count=499 and pass).
  *
- * Returns `{ allowed, current }`. When `allowed=false`, no slot was
- * reserved; caller should 409. `current` is post-increment on success.
- * The check-and-increment is one Lua script, so the cap holds under
- * concurrency.
+ * Returns `{ allowed, current }`; when `allowed` is false no slot was
+ * reserved (caller should 409). Check-and-increment is one Lua script.
  *
- * TTL is a safety net — the counter is decremented on confirm / abort,
- * but if the caller crashes between `reserve` and `release` the TTL
- * lets the slot self-free. Keep `ttlMs` close to the presigned-URL TTL
- * (plus a margin) so abandoned presigns don't pin slots forever.
+ * The counter is decremented on confirm / abort; `ttlMs` frees slots of
+ * crashed callers, so keep it near the presigned-URL TTL plus a margin.
  *
- * Fails CLOSED on Valkey error — inflight tracking is a correctness
- * cap, not a rate limit. Failing open would re-open the race.
+ * Fails CLOSED on Valkey errors: this is a correctness cap, and failing open
+ * would re-open the race.
  */
 export async function reserveInflightSlot(
   namespace: string,
@@ -313,9 +275,8 @@ export async function reserveInflightSlot(
 }
 
 /**
- * Decrement an inflight counter. Best-effort — if the decrement fails
- * or the key is missing, TTL will eventually clean up. Never goes
- * negative (Valkey `DECR` can; we clamp by deleting at zero).
+ * Decrement an inflight counter. Best effort; the TTL cleans up on failure.
+ * Deletes the key at zero because `DECR` alone can go negative.
  */
 export async function releaseInflightSlot(namespace: string, key: string): Promise<void> {
   if (isRateLimitBypassed(namespace)) return

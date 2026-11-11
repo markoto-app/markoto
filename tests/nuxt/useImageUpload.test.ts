@@ -173,9 +173,7 @@ beforeEach(() => {
   fetchCalls.length = 0
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // upload() — 3-step happy path + POST body shapes
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('upload() — happy path', () => {
   it('returns { fileId, url } on a successful 3-step upload', async () => {
@@ -245,9 +243,7 @@ describe('upload() — happy path', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // upload() — `uploading` reactive state
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('upload() — uploading ref', () => {
   it('flips uploading true during the in-flight call and back to false afterwards', async () => {
@@ -274,9 +270,7 @@ describe('upload() — uploading ref', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // upload() — error paths + error ref
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('upload() — error handling', () => {
   it('clears error at the start of each call', async () => {
@@ -363,9 +357,7 @@ describe('upload() — error handling', () => {
   })
 })
 
-// ═══════════════════════════════════════════════════════════════════════
 // uploadAndInsert() — placeholder rewrite contract
-// ═══════════════════════════════════════════════════════════════════════
 
 describe('uploadAndInsert() — happy path', () => {
   it('inserts a uniquely-tagged "Uploading" placeholder BEFORE the network call', async () => {
@@ -465,9 +457,7 @@ describe('uploadAndInsert() — user-edit safety', () => {
   })
 
   it('two concurrent uploads produce DISTINCT placeholders and replace each correctly', async () => {
-    // Previously the placeholder ID was built from a counter; now
-    // nanoid. Either way, concurrent calls must not collide on the
-    // `indexOf(placeholder)` lookup.
+    // Concurrent calls must not collide on the `indexOf(placeholder)` lookup.
     //
     // Track per-call resolvers so we can release the PUTs
     // independently AFTER both requests have actually hit the stub.

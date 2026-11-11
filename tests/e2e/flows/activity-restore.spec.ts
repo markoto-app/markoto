@@ -57,7 +57,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     + 'with the document open sees it at once.'
   )
 
-  // ─── A real edit, then a mistake ───────────────────────────────
+  // A real edit, then a mistake
   await flow.heading('An edit, then a mistake', 3)
   await flow.narrate(
     'Maya adds the release date to her announcement. A few seconds later '
@@ -98,7 +98,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
   // Let the mistake flush as its own row before opening Activity.
   await page.waitForTimeout(3_000)
 
-  // ─── Open Activity ─────────────────────────────────────────────
+  // Open Activity
   await flow.heading('Open the Activity tab', 3)
 
   // Desktop: right-sidebar Activity tab; mobile: bottom-tab-bar entry.
@@ -120,7 +120,7 @@ test('Restore an earlier version', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Restore ───────────────────────────────────────────────────
+  // Restore
   await flow.heading('Undo the mistake', 3)
   await flow.narrate(
     'Restore on an entry brings the document back to how it was just '

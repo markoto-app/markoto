@@ -2,7 +2,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_SSO_SCIM_USER_DEACTIVATED } from '../../../../legal/auditActions'
 import { defineScimHandler, getScimUser, readScimBody, replaceScimUser, requireScimIdentity, scimUserResource } from '../../../../utils/sso/scim'
 
-// PUT /scim/v2/Users/:id — replace: `active` and `externalId` apply (WP14).
+// PUT /scim/v2/Users/:id — replace: `active` and `externalId` apply.
 export default defineScimHandler(async (event, connection) => {
   const identity = await requireScimIdentity(connection, getRouterParam(event, 'id'))
   await replaceScimUser(connection, identity, await readScimBody(event))

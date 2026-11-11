@@ -67,7 +67,6 @@ onMounted(() => {
   void refreshTokens()
 })
 
-// ─────────── New token form ───────────
 const newName = ref('')
 const issuing = ref(false)
 
@@ -128,7 +127,6 @@ function dismissIssued(): void {
   justIssuedCopied.value = false
 }
 
-// ─────────── Revoke ───────────
 const revokingId = ref<string | null>(null)
 
 async function onRevoke(tokenId: string): Promise<void> {
@@ -155,7 +153,6 @@ async function onRevoke(tokenId: string): Promise<void> {
   }
 }
 
-// ─────────── Claude Desktop config snippet ───────────
 // Uses the just-issued plaintext when available; otherwise a placeholder.
 // The MCP URL is derived from the running origin so localhost users see
 // `http://localhost:3000/mcp` and prod users see their domain.

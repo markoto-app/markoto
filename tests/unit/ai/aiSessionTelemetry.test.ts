@@ -12,7 +12,7 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 // exit path (success / abort / cap / error / turn-limit) with structured
 // tags + extras. Same harness pattern as agenticLimits.test.ts.
 
-// ── Sentry mock — captures the (msg, options) pairs for assertion. ──
+// Sentry mock — captures the (msg, options) pairs for assertion.
 const captureMessage = vi.fn<(msg: string, opts?: unknown) => void>()
 vi.mock('@sentry/nuxt', () => ({
   captureMessage,

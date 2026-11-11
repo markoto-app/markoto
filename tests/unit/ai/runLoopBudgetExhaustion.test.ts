@@ -4,21 +4,15 @@ import * as Y from 'yjs'
 import { LitellmBudgetExhausted } from '../../../server/utils/litellm/userKeys'
 import { soloSessionGuard } from '../fixtures/crossBoundary'
 
-// Phase 7: pin the runLoop's mid-loop budget-exhaustion catch path
-// at the unit layer. Pre-Phase-6 the app-side `chargeInteractions`
-// call threw `BudgetExhausted` BEFORE the model call; that catch
-// path is gone. The new contract:
+// Pin the runLoop's mid-loop budget-exhaustion catch path at the unit layer. The contract:
 //
-//   1. The first `streamFromProvider` call throws `LitellmBudgetExhausted`
-//      (or any error matching `isBudgetExceededError`).
+//   1. The first `streamFromProvider` call throws `LitellmBudgetExhausted` (or any error matching
+//      `isBudgetExceededError`).
 //   2. The runLoop catches it WITHOUT rethrowing.
-//   3. A breadcrumb message is inserted into the session's Y.Doc with
-//      a Markdown link to /pricing.
-//   4. `setStatus('done', 'AI Points exhausted')` is called so the
-//      client UI tears down the spinner.
+//   3. A breadcrumb message is inserted into the session's Y.Doc with a Markdown link to /pricing.
+//   4. `setStatus('done', 'AI Points exhausted')` is called so the client UI tears down the spinner.
 //
-// If a refactor ever drops the catch block (or drops the breadcrumb
-// emission), this test fails uniformly.
+// If a refactor ever drops the catch block (or drops the breadcrumb emission), this test fails uniformly.
 
 const executeFunctionByName = vi.fn()
 const webSearch = vi.fn()

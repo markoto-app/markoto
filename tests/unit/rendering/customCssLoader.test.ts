@@ -1,9 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 
-// Regression: the print path and the server render page used to call the
-// render-time sanitize without a guard, so input that made the sanitizer
-// throw failed the whole render. The loader now fails closed (no custom
-// CSS) instead.
+// The print path and the server render page must call the render-time sanitize with a guard: input that makes
+// the sanitizer throw must not fail the whole render. The loader fails closed (no custom CSS) instead.
 vi.mock('../../../shared/utils/theme/customCss', () => ({
   sanitizeCustomCss: () => {
     throw new RangeError('Maximum call stack size exceeded')

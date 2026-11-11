@@ -29,8 +29,7 @@ import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/vendor/mermaidAssets'
  * ESM build's dynamic `import()` cannot be integrity-checked.
  */
 
-// Only `initialize` and `render` are touched — a minimal stub keeps this
-// `any`-free.
+// Only `initialize` and `render` are used; a minimal interface avoids `any`.
 interface MermaidModule {
   initialize: (config: Record<string, unknown>) => void
   render: (id: string, source: string) => Promise<{ svg: string }>
@@ -39,7 +38,7 @@ interface MermaidModule {
 export interface MermaidRenderOptions {
   /** `buildMermaidConfig(theme)` (shared/utils/markdown/mermaidConfig.ts). */
   config: Record<string, unknown>
-  /** BCP-47 tag of the document language — pie legend number format. */
+  /** BCP-47 tag of the document language, for number formats. */
   locale: string
 }
 
@@ -108,10 +107,10 @@ export async function transformMermaid(html: string, opts: MermaidRenderOptions)
 }
 
 function renderId(): string {
-  // crypto.randomUUID() is secure-context-only. The render page is served
-  // to the renderer's Chromium over plain HTTP (container to container),
-  // which is NOT a secure context — fall back to getRandomValues, which
-  // is defined there. The id only needs to be unique within this pass.
+  // crypto.randomUUID() needs a secure context, and the render page is
+  // served to the renderer's Chromium over plain HTTP (container to
+  // container). getRandomValues works there. The id only needs to be
+  // unique within this pass.
   return 'mmd-' + (globalThis.crypto.randomUUID?.()
     ?? (Date.now().toString(36) + Array.from(
       globalThis.crypto.getRandomValues(new Uint32Array(2)),
@@ -139,10 +138,10 @@ async function replaceMermaidBlock(doc: Document, pre: Element, source: string, 
 /**
  * Re-serialise mermaid's SVG as well-formed XML. Mermaid 11 builds labels
  * inside `<foreignObject>` with the HTML serializer, so a label line break
- * comes out as `<br>` (no self-close). As a `data:image/svg+xml` `<img>`
- * the browser parses it as XML and the whole diagram renders as a broken
- * image. Parsing it as HTML and serialising the `<svg>` with
- * `XMLSerializer` closes every void element. The same transform lives in
+ * comes out as `<br>` (no self-close); as a `data:image/svg+xml` `<img>`
+ * the browser parses it as XML and the diagram renders as a broken image.
+ * Parsing as HTML and serialising the `<svg>` with `XMLSerializer` closes
+ * every void element. The same transform lives in
  * `pagedPreviewIframe.html` (live preview + browser print).
  */
 export function toWellFormedSvg(svg: string): string {
@@ -175,7 +174,7 @@ const BARE_NUMBER_RE = /^-?\d+(?:\.\d+)?$/
 
 /**
  * Axis tick labels of xy-charts in the document's number format
- * (`7000` → `7,000` / `7.000`). Only 4+ digit integers parts change —
+ * (`7000` → `7,000` / `7.000`). Only numbers of 1000 and above change;
  * small numbers read the same in every locale.
  */
 export function formatAxisNumber(text: string, locale: string): string {
@@ -317,8 +316,8 @@ export function sanitizeMermaidSvg(svg: string): SVGSVGElement | null {
   svgPurifier ??= createDOMPurify(globalThis.window)
   const fragment = svgPurifier.sanitize(svg, {
     USE_PROFILES: { svg: true, svgFilters: true },
-    // Mermaid scopes its <style> to the diagram id; markers are
-    // referenced via url(#id) inside the same SVG.
+    // Mermaid scopes its <style> to the diagram id and references markers
+    // via url(#id) inside the same SVG.
     ADD_TAGS: ['style'],
     ADD_ATTR: ['dominant-baseline', 'marker-end', 'marker-start'],
     RETURN_DOM_FRAGMENT: true

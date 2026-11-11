@@ -1,16 +1,12 @@
 import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/platform/healthProbes'
 
-// Auth-gated deep healthcheck. Same probes as `/api/health` but returns
-// per-component latencies + (when down) the underlying error string.
-// Used by on-call dashboards / a logged-in operator pulling a snapshot.
+// Auth-gated deep healthcheck: the same probes as `/api/health` plus
+// per-component latencies and (when down) the underlying error string.
 //
-// Skips the cache: this endpoint is rare enough that fresh data is more
-// valuable than amortising cost. The bare `/api/health` endpoint already
-// absorbs the high-frequency Traefik traffic.
+// Uncached: it is rare, and `/api/health` absorbs the Traefik traffic.
 //
-// Auth: bare `requireValidatedUserSession` — any logged-in user can read
-// their own server's status. We don't gate on admin because the response
-// only exposes liveness booleans + sub-millisecond latencies, no PII.
+// Auth: any logged-in user, not admin-only, since the response exposes only
+// liveness booleans and latencies, no PII.
 
 interface DeepCheck {
   status: ProbeResult['status']

@@ -16,7 +16,7 @@ import {
 } from '~~/shared/config/pricing'
 
 // The Stripe price catalogue: which Stripe Price sells which
-// plan / interval / currency (pricing plan WP2).
+// plan / interval / currency.
 //
 // Prices are found by LOOKUP KEY (`markoto_pro_year_chf`, prefix
 // `NUXT_STRIPE_LOOKUP_KEY_PREFIX`, default `markoto`), so the operator
@@ -148,8 +148,6 @@ export async function livePlanPriceTable(stripe: Stripe): Promise<PlanPriceTable
   }
   return table
 }
-
-// ─── Top-up prices (WP4) ────────────────────────────────────────────
 
 const topupCache = new Map<string, { at: number, priceId: string | null }>()
 

@@ -1,8 +1,7 @@
-// Per-workspace SSO (WP14) — the outbound policy for a customer's identity
-// provider. A workspace admin types the OIDC issuer; the APP then fetches
-// its discovery document, JWKS, token and UserInfo endpoints. Without a
-// policy that is a server-side request forgery primitive, so every request
-// goes through `ssoFetch`:
+// Outbound policy for a customer's identity provider. A workspace admin types
+// the OIDC issuer and the APP then fetches its discovery document, JWKS, token
+// and UserInfo endpoints. Without a policy that is an SSRF primitive, so every
+// request goes through `createSsoFetch`:
 //
 //   - https only; plain http only to a private address on an instance that
 //     allows private IdPs (`NUXT_SSO_ALLOW_PRIVATE_URLS=true`: self-hosters

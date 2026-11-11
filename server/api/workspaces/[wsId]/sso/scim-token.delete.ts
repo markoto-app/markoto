@@ -3,7 +3,7 @@ import { getSsoConnectionForWorkspace, setScimTokenHash } from '../../../../repo
 import { AUDIT_SSO_SCIM_TOKEN_ROTATED } from '../../../../legal/auditActions'
 import { requireSsoAdmin } from '../../../../utils/sso/admin'
 
-// DELETE /api/workspaces/:wsId/sso/scim-token — switch provisioning off (WP14).
+// DELETE /api/workspaces/:wsId/sso/scim-token — switch provisioning off.
 export default defineEventHandler(async (event) => {
   const { userId, wsId } = await requireSsoAdmin(event)
   const connection = await getSsoConnectionForWorkspace(wsId)

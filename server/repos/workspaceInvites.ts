@@ -92,7 +92,7 @@ export async function countOpenWorkspaceInvites(
   now: Date,
   exceptEmail?: string,
   // `members` for seats + the member limit, `guests` for the guest cap,
-  // `all` for the open-invitation cap (WP11).
+  // `all` for the open-invitation cap.
   kind: 'all' | 'members' | 'guests' = 'all'
 ): Promise<number> {
   const db = useDatabase()

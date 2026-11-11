@@ -3,7 +3,7 @@ import { deleteSsoDomain, getSsoDomain } from '../../../../../../repos/sso'
 import { AUDIT_SSO_DOMAIN_REMOVED } from '../../../../../../legal/auditActions'
 import { requireSsoAdmin } from '../../../../../../utils/sso/admin'
 
-// DELETE /api/workspaces/:wsId/sso/domains/:domainId (WP14). Existing
+// DELETE /api/workspaces/:wsId/sso/domains/:domainId. Existing
 // links and members stay; new sign-ins with that domain no longer link
 // or join automatically.
 export default defineEventHandler(async (event) => {

@@ -6,10 +6,9 @@ import { useMcpSessionBindings } from '../../../utils/mcp/mcpSessionBinding'
 import { appendAuditEvent, truncateIp } from '../../../repos/audit'
 import { AUDIT_MCP_TOKEN_REVOKED } from '../../../legal/auditActions'
 
-// Revoke a Personal Access Token. Soft-delete (sets `revoked_at`) so the
-// row stays for audit; the verifier rejects any row where this is non-null.
-// 404 (not 403) for another user's token id so we don't leak existence
-// of foreign rows.
+// Revokes a Personal Access Token by soft-delete (`revoked_at`), keeping the row
+// for audit; the verifier rejects any non-null row. 404 (not 403) for another
+// user's token id so foreign rows don't leak.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
@@ -20,11 +19,9 @@ export default defineEventHandler(async (event) => {
 
   const db = useDatabase()
 
-  // Tuple-keyed update + return the hash so we can invalidate the cache.
-  // Revoking an already-revoked or foreign-user token returns no rows →
-  // 404. Same shape as the themes delete endpoint (server/api/themes/...).
-  // We also project `name` for the audit metadata so the audit row is
-  // human-readable ("revoked 'Claude Desktop on laptop'").
+  // Tuple-keyed update returning the hash (for cache invalidation) and `name`
+  // (for a readable audit row). An already-revoked or foreign token returns no
+  // rows, hence 404.
   const updated = await db.update(mcpPersonalTokens)
     .set({ revokedAt: new Date() })
     .where(and(
@@ -43,15 +40,14 @@ export default defineEventHandler(async (event) => {
   }
 
   await invalidateMcpPatCache(row.tokenHash)
-  // Free the token's MCP session bindings (and the user's session slots).
-  // Not load-bearing for security — the token itself no longer verifies —
-  // so a Valkey error only leaves the bindings to expire on their own.
+  // Free the token's MCP session bindings and the user's session slots. Not
+  // security-critical (the token no longer verifies); a Valkey error leaves
+  // them to expire.
   await useMcpSessionBindings().releaseToken(tokenId, userId).catch((e: unknown) => {
     console.warn(`[mcp] releasing session bindings of a revoked token failed: ${e instanceof Error ? e.message : String(e)}`)
   })
 
-  // Audit the revocation. Same shape as issuance — security-grade
-  // event, never log the hash.
+  // Audit the revocation; never log the hash.
   const ip = getClientIp(event)
   await appendAuditEvent({
     actorUserId: userId,

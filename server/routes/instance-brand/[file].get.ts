@@ -2,7 +2,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { INSTANCE_BRAND_LOGO_TYPES, instanceBrandLogoExt } from '~~/shared/config/instanceBrand'
 
 // GET /instance-brand/logo.<ext> — the customer logo of a managed private
-// instance (WP16): the file the operator names in NUXT_INSTANCE_BRAND_LOGO
+// instance: the file the operator names in NUXT_INSTANCE_BRAND_LOGO
 // (a path inside the container, e.g. a read-only mount). Only shown as an
 // <img>; served with a sandbox CSP so an SVG opened directly can't run
 // script on the app's origin.

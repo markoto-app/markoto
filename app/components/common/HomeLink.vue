@@ -1,8 +1,6 @@
 <script setup lang="ts">
-// Top-left home link for subpages (pricing, profile, legal/*,
-// admin/*). Mirrors the close-button (top-right) — every modal-
-// style page now has a logo back-to-home on the left and an X
-// on the right. Visual symmetry + a clear escape route either way.
+// Top-left home link for subpages (pricing, profile, legal/*, admin/*);
+// pairs with the close button on the right.
 
 interface Props {
   /** Wordmark height in px. Defaults to 20 — slightly larger

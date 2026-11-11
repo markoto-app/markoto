@@ -21,10 +21,9 @@ import { useAnonTermsPrompt } from '~/composables/account/useAnonTermsPrompt'
 //     signed in / gate off → plain POST; anonymous → terms dialog (only
 //     when this browser hasn't accepted the current terms yet) + a fresh
 //     bot-check payload, with one automatic retry on an expired/used one.
-// The terms dialog itself is `DocumentAnonGateDialog` (mounted by
-// CommonAppOverlays on first use), driven by `useAnonTermsPrompt()` state
-// (its own file, so the overlays don't pull this module and its solver
-// into every page's entry chunk).
+// The dialog (`DocumentAnonGateDialog`) is driven by `useAnonTermsPrompt()`,
+// which lives in its own file so CommonAppOverlays doesn't pull this module
+// and its solver into every page's entry chunk.
 
 function createSolverWorker(): WorkerLike {
   return new Worker(new URL('../../workers/altchaPbkdf2.worker.ts', import.meta.url), { type: 'module' })
@@ -126,16 +125,14 @@ export function useAnonDocCreate() {
   const { loggedIn } = useUserSession()
   const { anonGate } = useInstanceConfig()
   const prompt = useAnonTermsPrompt()
-  // One solver per tab: the landing page warms it up, the dialog and the
-  // editor's File → New reuse the solution. (Never shared across SSR
-  // requests: the server gets a throw-away instance.)
+  // One solver per tab, reused by the landing page, dialog and File → New.
+  // Never shared across SSR requests: the server gets a throw-away instance.
   const check = import.meta.server
     ? useAnonBotCheck('doc-create')
     : (sharedDocCheck ??= useAnonBotCheck('doc-create'))
 
   const gated = computed(() => anonGate.value && !loggedIn.value)
 
-  /** Warm up (call when a create button becomes visible / a dialog opens). */
   function prepare(): void {
     if (gated.value) check.prepare()
   }
@@ -149,9 +146,8 @@ export function useAnonDocCreate() {
   async function createDocument(body: Record<string, unknown> = {}): Promise<string> {
     if (!gated.value) return post(body)
     check.prepare()
-    // Two rounds at most: a stale remembered acceptance (terms version
-    // bumped) re-asks, an expired / already-used / unsolved bot check
-    // fetches a fresh one — once.
+    // Two rounds at most: a stale remembered acceptance (terms version bumped)
+    // re-asks; an expired / used / unsolved bot check fetches a fresh one.
     for (let round = 0; ; round++) {
       let acceptTerms = false
       if (!check.termsAccepted.value) {

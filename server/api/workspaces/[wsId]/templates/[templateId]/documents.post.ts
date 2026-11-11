@@ -8,7 +8,7 @@ import { withIdempotency } from '../../../../../utils/platform/idempotency'
 import { TITLE_MAX_LENGTH } from '../../../../../utils/documents/createDocument'
 
 // POST /api/workspaces/:wsId/templates/:templateId/documents — {title?}
-// (WP10c): a new document in the workspace from a template — a copy of
+// — a new document in the workspace from a template — a copy of
 // the template document's CURRENT text, design and images (the copy is
 // the caller's, starts private, images count against the workspace pool
 // or the caller's quota). Admins and editors (like creating any document

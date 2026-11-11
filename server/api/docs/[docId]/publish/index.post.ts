@@ -8,7 +8,7 @@ import { PUBLISH_RATE_PER_HOUR } from '~~/shared/config/publish'
 
 // POST /api/docs/:docId/publish — {slug?, indexable?}. Publishes the
 // document's current state as a static web page at /p/<slug>, or replaces
-// the published snapshot (WP13). Owner + workspace admins; free on every
+// the published snapshot. Owner + workspace admins; free on every
 // plan. Audited `doc.published`.
 export default defineEventHandler(async (event) => {
   const { userId, docId, doc } = await requirePublishManager(event)

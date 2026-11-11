@@ -70,7 +70,7 @@ export interface PoolCheckoutOpts {
   awarenessExtra?: Record<string, unknown>
   /** Internal Hocuspocus URL (ws://...). Defaults to runtime config. */
   syncUrl: string
-  /** Hard sync deadline. Default 10s — matches the legacy createAiSession value. */
+  /** Hard sync deadline. Default 10s. */
   syncTimeoutMs?: number
 }
 

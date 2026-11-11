@@ -126,10 +126,9 @@
     content: "{{ markoto_user }} ALL=(ALL) NOPASSWD:ALL\n"
     validate: /usr/sbin/visudo -cf %s
 
-# `ignore_errors` is replaced by `failed_when: false` so we keep the
-# "missing-pubkey is non-fatal here, ssh_hardening's preflight will catch it"
-# ergonomics, but ansible-lint stops complaining and the task properly
-# surfaces the failure status to subsequent registers/diagnostics.
+# `failed_when: false` (not `ignore_errors`) keeps a missing pubkey non-fatal
+# here (ssh_hardening's preflight catches it) while the task still surfaces
+# its failure status to subsequent registers/diagnostics.
 - name: Install controller user's authorized_keys for the markoto account
   ansible.posix.authorized_key:
     user: "{{ markoto_user }}"
@@ -165,21 +164,18 @@
     msg: |
       WARNING: root volume {{ base_root_device.stdout }} is NOT LUKS-encrypted
       (status={{ base_luks_status.stdout }}). Some OVH plans don't expose
-      volume-level LUKS. See docs/DEPLOY-OVH.md §1.5. Local disk holds .env,
+      volume-level LUKS. See docs/operations/DEPLOY.md §1. Local disk holds .env,
       valkey AOF, traefik acme.json. Decide whether provider-side
       encryption-at-rest is sufficient for your threat model.
   when: base_luks_status.stdout != 'encrypted'
 
-# ──────────────────────────────────────────────────────────────────────────
 # Apprise unified-notification wrapper. Single entry point used by:
 #   - geerlingguy.security's unattended-upgrade post-Invoke hook
 #   - roles/backup_cron failure path
-#   - any future "this is probably interesting" path on the VPS
 #
 # Configuration lives in /etc/markoto/apprise.env (mode 0600) — it sources
 # APPRISE_URLS from the vault. Same value as the GitHub Actions secret of
 # the same name.
-# ──────────────────────────────────────────────────────────────────────────
 
 - name: Install python3-pip (host-side, for apprise)
   ansible.builtin.apt:

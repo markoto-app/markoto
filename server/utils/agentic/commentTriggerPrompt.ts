@@ -6,26 +6,23 @@ import { fenceBlock, quoteInline, UNTRUSTED_DATA_RULE } from './untrustedText'
 import { isAiCommentAuthor } from '~~/shared/ai/author'
 
 /**
- * Builds the `<comment_trigger>` system-prompt block that tells the AI
- * "you were summoned by an @ai mention in a comment thread", plus the
- * seed user-message extracted from the triggering comment/reply body
- * (with `@ai` tokens stripped so the model doesn't see itself
- * referenced as the addressee).
+ * Builds the `<comment_trigger>` block that tells the AI it was summoned by
+ * an @ai mention in a comment thread, plus the seed user message taken from
+ * the triggering comment/reply body (mentions stripped so the model doesn't
+ * see itself as the addressee).
  *
- * Anchored to a single comment thread by id. When `replyId` is set, the
- * trigger came from a reply; the parent comment's body still ships in
- * the block so the model has the full conversation context regardless
- * of which message the user @-mentioned the AI in.
+ * The block is anchored to one thread by id. When `replyId` is set the
+ * trigger came from a reply; the parent comment still ships so the model
+ * has the whole conversation.
  *
- * Loop guard: if the resolved triggering message is itself authored by
- * the AI (`isAiCommentAuthor` — no user id + the AI author name, current
- * or legacy), `resolveCommentTrigger` returns null. The endpoint
- * surfaces that as a 404 — AI doesn't summon itself.
+ * Loop guard: if the triggering message is authored by the AI
+ * (`isAiCommentAuthor`), `resolveCommentTrigger` returns null and the
+ * endpoint answers 404, so the AI can't summon itself.
  */
 
-// Match both `@markoto` (current) and legacy `@ai` so historical
-// comments still trigger; also use this regex to STRIP outgoing
-// markoto replies of either form so the loop can't re-summon itself.
+// Matches both `@markoto` and the older `@ai` so existing comments still
+// trigger. Also used to strip mentions from outgoing replies so the loop
+// can't re-summon itself.
 const AT_AI_RE = /(^|[^\w])@(markoto|ai)\b/gi
 
 /**
@@ -94,11 +91,6 @@ interface ResolvedThread {
   triggerMentionsAi: boolean
 }
 
-/**
- * Walk the Y.Doc 'comments' array and resolve everything the trigger
- * prompt needs. Returns null when the comment can't be found OR when
- * the triggering message was authored by the AI itself (loop guard).
- */
 /** Coerce a Y.Map field to a string with a fallback. */
 function strField(map: Y.Map<unknown>, key: string, fallback: string): string {
   const v = map.get(key)
@@ -326,23 +318,11 @@ export function buildCommentTriggerBlock(thread: ResolvedThread): string {
   return sections.join('\n')
 }
 
-// ---------------------------------------------------------------------------
-// System prompt (comment-trigger flavour)
-// ---------------------------------------------------------------------------
-//
-// Sibling to the SYSTEM_PROMPT in /api/ai/prompt.post.ts. Differences:
-//   - Tells the model it was summoned into a comment thread (the
-//     <comment_trigger> block carries the thread state).
-//   - Forbids `create_comment` (it's already inside an existing
-//     thread; opening a new one would be confusing).
-//   - Mandates ending the turn with `reply_to_comment` on the trigger
-//     thread.
-//   - Otherwise the same tools + same routing rules apply, so the
-//     editor-state block + cursor/selection guidance still ships.
-//
-// The model is multilingual at output but the system prompt itself
-// stays English (matches /api/ai/prompt — language guidance is in the
-// document_context block).
+// Comment-trigger flavour of SYSTEM_PROMPT in /api/ai/prompt.post.ts:
+// forbids `create_comment` (already inside a thread) and requires ending the
+// turn with `reply_to_comment` on the trigger thread. Tools and routing rules
+// are otherwise the same. The prompt stays English; output language comes
+// from the document_context block.
 
 const PRESET_LIST = THEME_PRESETS.map(p => p.id).join(', ')
 const SERIF_FONTS = THEME_FONTS.filter(f => f.category === 'serif').map(f => f.name).join(', ')

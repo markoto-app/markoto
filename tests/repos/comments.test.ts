@@ -13,7 +13,7 @@ import { createUser, createDoc as seedDoc } from '../integration/setup/fixtures'
 // activity-feed comment-context expansion.
 //
 // The repo exposes only two functions but BOTH operate on (docId, entryId)
-// tuple keys, so the cross-doc isolation invariant from server/AGENTS.md
+// tuple keys, so the cross-doc isolation invariant from server/repos/AGENTS.md
 // applies: an entryId from doc B must never resolve via doc A's id.
 
 // Small helper — hand-roll the row shape so tests stay legible. The repo
@@ -359,7 +359,7 @@ describe('getCommentThreadByEntryId', () => {
   })
 
   it('cross-doc isolation: querying entryId from doc B against doc A returns null', async () => {
-    // THE security-critical test. AGENTS.md §Repos: "cross-doc isolation
+    // THE security-critical test. server/repos/AGENTS.md: "cross-doc isolation
     // via tuple keys — getActivityById(activityId, docId) is keyed on the
     // (id, docId) tuple — a row from doc B accessed via doc A's URL
     // returns null." Same invariant applies here: knowing an entryId on

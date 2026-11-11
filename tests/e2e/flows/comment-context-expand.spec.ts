@@ -76,7 +76,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
     + 'all preserved for as long as the doc lives.'
   )
 
-  // ─── Open the Activity tab ──────────────────────────────────────
+  // Open the Activity tab
   // On mobile, the comment composer ran inside the Comments bottom
   // sheet (`mk-sheet-host`), which overlays the editor AND the
   // bottom-tab-bar — so the Activity tab is unreachable until the
@@ -108,7 +108,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
     }
   )
 
-  // ─── Click the comment row → context drawer ─────────────────────
+  // Click the comment row → context drawer
   await flow.heading('Click the comment row to replay it', 3)
   await flow.narrate(
     'Comment rows in the feed carry a chevron — click to expand. '

@@ -1,5 +1,5 @@
 #!/usr/bin/env bun
-// Product-tour videos (WP11): record → encode → manifest.
+// Product-tour videos: record → encode → manifest.
 //
 //   bun scripts/capture-tour.ts            # record (Playwright) + encode
 //   bun scripts/capture-tour.ts --encode   # only encode $TOUR_OUTPUT_DIR → public/tour
@@ -47,7 +47,7 @@ type Mode = 'light' | 'dark'
 
 const DESKTOP_WIDTH = 1728
 const PHONE_WIDTH = 720
-/** Per-file byte budgets from the WP11 brief: ≤ 3 MB per desktop scene, ≤ 1 MB per phone cut. */
+/** Per-file byte budgets: ≤ 3 MB per desktop scene, ≤ 1 MB per phone cut. */
 const DESKTOP_VIDEO_BUDGET = 3 * 1024 * 1024
 const PHONE_VIDEO_BUDGET = 1024 * 1024
 const POSTER_WIDTHS = [1920, 1280, 800] as const

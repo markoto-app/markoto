@@ -5,7 +5,7 @@ import { AUDIT_SSO_CONNECTION_SAVED } from '../../../../legal/auditActions'
 import { assertSsoPlan, parseSsoSettings, requireSsoAdmin, ssoSettingsView } from '../../../../utils/sso/admin'
 
 // PUT /api/workspaces/:wsId/sso — create or change the workspace's
-// identity provider (WP14). Admins of a workspace whose plan includes
+// identity provider. Admins of a workspace whose plan includes
 // SSO (409 plan/feature-unavailable otherwise). Any change to the IdP
 // settings returns an active connection to `draft`: it is enforced again
 // only after the next successful test sign-in, so a typo can't lock the

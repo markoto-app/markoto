@@ -7,7 +7,7 @@ import { isValidTheme } from '../../../shared/utils/theme/themeValidation'
 // A preset may carry template CSS (`theme.customCss`, arXiv). It is
 // ordinary custom CSS: the same sanitizer runs on it at write and render
 // time, so it must come through without a single issue. And it must keep
-// the rules the engine relies on (docs/TEMPLATE-WORKFLOW.md).
+// the rules the engine relies on (docs/contributing/TEMPLATE-WORKFLOW.md).
 
 const withCss = THEME_PRESETS.filter(p => p.theme.customCss)
 

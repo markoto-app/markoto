@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test'
 import { api, smokeDoc } from './_helpers'
 
-// The server-rendered PDF path (renderer sidecar → headless Chromium →
-// paged.js) is the one that shipped broken: crypto.randomUUID is undefined in
-// the insecure-context render page, so it threw on the mermaid transform and
-// the sidecar timed out after 45s. The seeded Demo doc CONTAINS a mermaid
-// diagram, so this is the exact regression case.
+// The server-rendered PDF path (renderer sidecar → headless Chromium → paged.js) must not break on the
+// mermaid transform: crypto.randomUUID is undefined in the insecure-context render page, so it would throw
+// there and the sidecar would time out after 45s. The seeded Demo doc CONTAINS a mermaid diagram, so this is
+// the exact case.
 test('server-rendered PDF export succeeds for a mermaid doc', async ({ page }) => {
   // Shared run document (globalSetup.ts) — never a new one per attempt.
   const docId = smokeDoc('demo')

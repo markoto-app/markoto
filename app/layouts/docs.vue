@@ -31,7 +31,7 @@ const { data: navigation } = await useAsyncData('docs:nav', () =>
 
 // Search index — every page split into per-heading sections. Used
 // only by UContentSearch (Cmd-K modal, client-only), so it is NOT part of
-// the server render (it was ~50 KB gzip of every docs page's HTML): the
+// the server render (~50 KB gzip per docs page): the
 // browser fetches it once when search is about to open — pointer over /
 // focus on the search button, or the modal opening (Cmd-K) — and keeps
 // it across docs pages (same key).

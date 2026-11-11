@@ -10,7 +10,7 @@ import { deleteKeyTokens, deleteWorkspaceTeam, listMemberKeyTokens } from '../li
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
 import { AUDIT_WORKSPACE_BILLING_ADMIN_CHANGED, AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED } from '../../legal/auditActions'
 
-// Lifecycle hooks of Team / Business billing (WP3): what happens to a
+// Lifecycle hooks of Team / Business billing: what happens to a
 // workspace subscription when its workspace or its billing admin goes.
 
 /**
@@ -46,7 +46,7 @@ export async function endWorkspaceBilling(workspaceId: string, actorUserId: numb
       metadata: { reason: 'workspace_deleted' }
     })
   }
-  // Top-up credits belong to the workspace and go with it (WP4).
+  // Top-up credits belong to the workspace and go with it.
   await deleteCreditsForSubject({ type: 'workspace', id: workspaceId })
   await deleteWorkspaceTeam(workspaceId)
 }

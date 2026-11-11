@@ -13,7 +13,7 @@ export interface AiCredits {
    */
   freeAllowance?: { pooled: boolean, exhausted: boolean, resetsAt: string | null } | null
   /**
-   * Team / Business workspace (WP3): the member's limit and the pooled
+   * Team / Business workspace: the member's limit and the pooled
    * team budget, in USD. Null outside a subscribed workspace.
    */
   workspace?: {
@@ -29,9 +29,8 @@ export interface AiCredits {
 
 /**
  * AI Points UI state. Backed by `useState` so every consumer (the
- * AIPromptBar badge, workspace overview, the hypothetical /pricing
- * page upsell, etc.) reads one snapshot — no duplicate /api/ai/credits
- * round-trips on mount.
+ * AIPromptBar badge, workspace overview) reads one snapshot — no
+ * duplicate /api/ai/credits round-trips on mount.
  *
  * `refresh()` is the explicit invalidation point. Call it after AI
  * actions that consumed budget:
@@ -41,8 +40,8 @@ export interface AiCredits {
  *   - after Stripe checkout returns (plan + budget reset)
  *
  * The `workspaceId` argument reads the budget that pays inside that
- * workspace: a Team / Business workspace's member limit + team pool
- * (WP3), else the user's own. One state per workspace (key
+ * workspace: a Team / Business workspace's member limit + team pool,
+ * else the user's own. One state per workspace (key
  * `ai-credits:<workspaceId>`), so the topbar badge (personal) and the
  * prompt bar of a workspace document never overwrite each other.
  */
@@ -78,8 +77,7 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
     } catch (e) {
       const err = e as { message?: string, data?: { message?: string } }
       errors.value = { ...errors.value, [k]: err?.data?.message ?? err?.message ?? 'Could not load AI credits' }
-      // Keep last-known state so a transient failure doesn't blank
-      // the badge mid-session.
+      // Keep the last known state so a transient failure doesn't blank the badge.
     } finally {
       loadings.value = { ...loadings.value, [k]: false }
     }
@@ -111,7 +109,7 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
   const isLow = computed(() => fillRatio.value > 0 && fillRatio.value < 0.1)
   const isExhausted = computed(() => fillRatio.value <= 0)
   const isFreeAllowanceExhausted = computed(() => state.value?.freeAllowance?.exhausted === true)
-  // Team / Business workspace (WP3): the member's AI runs on the
+  // Team / Business workspace: the member's AI runs on the
   // workspace's budget. A member can't buy their way out of an empty
   // team budget or their own member limit — the AIPromptBar says "ask an
   // admin" instead of "upgrade".

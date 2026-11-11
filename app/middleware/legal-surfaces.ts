@@ -1,7 +1,7 @@
-// Route guard for the /legal/* pages. With the legal surfaces off (the
-// self-hosted default) the bundled texts — written for the hosted
-// markoto.app service — don't exist on this instance; the matching API
-// endpoints answer 404 too. See shared/config/instance.ts.
+// Route guard for the /legal/* pages. With legal surfaces off (the self-host
+// default) the bundled texts, written for the hosted markoto.app service,
+// don't exist on this instance; the matching API endpoints answer 404 too.
+// See shared/config/instance.ts.
 export default defineNuxtRouteMiddleware(() => {
   const { legalSurfaces } = useInstanceConfig()
   if (legalSurfaces.value) return

@@ -48,9 +48,7 @@ EXPOSE 8080
 
 # /health is in server.py — cheap probe (no markitdown invocation) so the
 # healthcheck can prove the HTTP loop is alive without spending a worker.
-# Use python3 (always present in this image) — the slim base has no wget/curl,
-# so the previous wget-based check reported "unhealthy" even though the
-# service was answering /health fine.
+# Uses python3 (always present): the slim base has no wget or curl.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD python3 -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=3).status==200 else 1)" || exit 1
 

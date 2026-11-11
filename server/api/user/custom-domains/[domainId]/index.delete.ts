@@ -5,7 +5,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_CUSTOM_DOMAIN_REMOVED } from '../../../../legal/auditActions'
 
 // DELETE /api/user/custom-domains/:domainId — stop serving the domain
-// (WP13). Traefik drops its router at its next poll.
+// Traefik drops its router at its next poll.
 export default defineEventHandler(async (event) => {
   const { userId } = await requireCustomDomainUser(event)
   const removed = await deleteCustomDomain(getRouterParam(event, 'domainId') ?? '', userId)

@@ -98,9 +98,7 @@ describe('shouldReapDoc', () => {
 
   describe('regression — old two-TTL behaviour is gone', () => {
     it('owned docs are NOT reaped under any positive TTL', () => {
-      // Regression guard: pre-policy-change, owned docs were reaped
-      // after `inactiveDocOwnedTtlDays` (365 by default). That field is
-      // removed; owned docs must stay forever regardless of ttl value.
+      // Owned docs must stay forever regardless of ttl value (there is no `inactiveDocOwnedTtlDays` any more).
       for (const ttl of [1, 30, 180, 365, 3650]) {
         const d = doc({ ownerId: 42, lastActive: daysAgo(ttl + 100) })
         expect(shouldReapDoc(d, NOW, ttl), `ttl=${ttl}`).toBe(false)

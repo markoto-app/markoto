@@ -7,10 +7,10 @@ const props = defineProps<{
   docTitle: string
   isOwner: boolean
   currentAccessMode: string
-  // Admin / editor of the document's workspace (WP11): may share it
+  // Admin / editor of the document's workspace: may share it
   // with the workspace's guests.
   canShareWithGuests?: boolean
-  /** Owner or workspace admin (WP9 share-link controls). */
+  /** Owner or workspace admin (share-link controls). */
   canManage?: boolean
 }>()
 
@@ -147,7 +147,6 @@ async function setPassword() {
           </p>
         </div>
 
-        <!-- Copy link -->
         <div>
           <label
             for="share-link-input"
@@ -257,7 +256,6 @@ async function setPassword() {
             </button>
           </div>
 
-          <!-- Password input -->
           <div
             v-if="settingPassword"
             class="mt-3 p-3 rounded-lg border border-default bg-[var(--ui-bg-muted)]"
@@ -327,7 +325,6 @@ async function setPassword() {
           :doc-id="docId"
         />
 
-        <!-- Close -->
         <div class="flex justify-end pt-2">
           <UButton
             variant="ghost"

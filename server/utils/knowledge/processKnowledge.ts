@@ -25,9 +25,8 @@ import { markitdownAuthHeaders } from '../platform/markitdownAuth'
  * step 5.
  *
  * Errors are caught at every phase and flip the row to `status='failed'`
- * with a short `errorMessage`. The original S3 object is left in place
- * so the user can retry (re-uploading is a separate flow; for now
- * failed rows are just shown with a red badge and a Delete action).
+ * with a short `errorMessage`. The original S3 object is left in place;
+ * failed rows are shown with a red badge and a Delete action (no retry).
  */
 
 const MARKITDOWN_TIMEOUT_MS = 60_000
@@ -110,11 +109,9 @@ async function runPipeline(knowledgeId: string): Promise<void> {
       { config: embedCfg }
     )
 
-    // Embedding providers are supposed to return one vector per input,
-    // but retry layers can drop elements silently and a future SDK
-    // upgrade could change the contract. Fail loudly here rather than
-    // inserting an `undefined` vector (which would crash at the NOT NULL
-    // constraint in prod with a confusing drizzle-encoding error).
+    // Retry layers can drop elements silently. Fail here rather than
+    // inserting an `undefined` vector, which would crash later with a
+    // confusing drizzle-encoding error.
     if (embeddings.length !== chunks.length) {
       await markFailed(knowledgeId,
         `embed returned ${embeddings.length} vectors for ${chunks.length} chunks`)
@@ -221,11 +218,8 @@ async function runConversion(s3Key: string, ext: string): Promise<string> {
   const bytes = await object.Body!.transformToByteArray()
 
   const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
-  // Markitdown is a Python/FastAPI service that doesn't currently parse
-  // sentry-trace headers (would need sentry-sdk[fastapi]) — but we still
-  // emit them so the originating app-side transaction shows the
-  // markitdown call as an outbound HTTP span. Wiring up Python-side
-  // continuation is an OBSERVABILITY.md follow-up.
+  // Markitdown doesn't parse sentry-trace headers, but they are still sent
+  // so the app-side transaction shows this call as an outbound HTTP span.
   const response = await fetch(url, {
     method: 'POST',
     headers: injectTraceHeaders({

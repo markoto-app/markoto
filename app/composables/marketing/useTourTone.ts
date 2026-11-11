@@ -1,5 +1,5 @@
 /**
- * The product page's colour phase (WP11), shared by `LandingProductTour`
+ * The product page's colour phase, shared by `LandingProductTour`
  * (which sets it from the scroll position) and the page header in
  * `pages/index.vue` (whose toggle shows and flips what is on screen).
  *

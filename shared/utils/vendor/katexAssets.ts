@@ -27,7 +27,7 @@ export const KATEX_CSS_URL = vendorUrl('katex', KATEX_VERSION, 'katex.min.css')
  * npm package's `dist/katex.min.css`). A poisoned stylesheet could
  * exfiltrate via attribute selectors + url() requests, hide content, or
  * replace glyphs to alter math rendering — so it stays SRI-locked even
- * though it is first-party now.
+ * though it is served from our own origin.
  *
  * To bump: change KATEX_VERSION (and package.json), then run
  *   openssl dgst -sha384 -binary node_modules/katex/dist/katex.min.css | openssl base64 -A

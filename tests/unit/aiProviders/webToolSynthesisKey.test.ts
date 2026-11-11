@@ -4,9 +4,8 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 // Pins two things about the web_search / fetch_url synthesis sub-calls:
 //
 //  1. Cost attribution: they authenticate with the CALLER'S LiteLLM
-//     virtual key (rpm limits + spend tags), never the master key —
-//     before that fix both synthesis calls ran on `useLitellmAdmin()`.
-//  2. BYOK (WP4): they run on the session's chat provider — a platform
+//     virtual key (rpm limits + spend tags), never the master key (`useLitellmAdmin()`).
+//  2. BYOK: they run on the session's chat provider — a platform
 //     alias is sent as-is, a user key goes out as `byok/<model>` with
 //     clientside credentials — and with no chat provider at all the
 //     tools return the raw search results / page text unsynthesised.

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 
-// Platform-paid web tools (WP6): per-user hourly/daily allowance shared by
+// Platform-paid web tools: per-user hourly/daily allowance shared by
 // web_search + fetch_url, and availability from the operator's upstream keys.
 
 const checkRateLimit = vi.hoisted(() => vi.fn(async (_ns: string, _key: string, _max: number, _windowMs: number) => true))

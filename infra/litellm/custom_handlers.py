@@ -1,15 +1,11 @@
 """
-Custom LiteLLM providers — Phase 0 spike.
+Custom LiteLLM providers, registered via litellm_settings.custom_provider_map.
 
-Two custom providers proving we can extend LiteLLM in OSS to solve:
-  1. FLUX.2 [pro] image generation (LiteLLM's BFL provider doesn't list it
-     and flux-pro-1.1 itself is broken in v1.83.14).
-  2. Voxtral Realtime voice-tick metering (pass-through cost_per_request is
-     Enterprise-only; this fakes a billable LLM call so OSS budget enforcement
-     applies to non-LLM ops too).
-
-Both register via litellm_settings.custom_provider_map. Cost flows through
-model_info.input_cost_per_token / output_cost_per_token in config.yaml.
+They wrap non-chat operations (FLUX.2 image generation, Voxtral transcription
+and voice ticks, Jina embeddings) as billable calls so OSS LiteLLM budget
+enforcement applies to them (pass-through cost_per_request is Enterprise-only).
+Cost flows through model_info.input_cost_per_token / output_cost_per_token in
+config.yaml.
 """
 
 from __future__ import annotations
@@ -35,9 +31,7 @@ from litellm.types.utils import (
 )
 
 
-# -----------------------------------------------------------------------------
 # Outbound HTTP clients for OpenAI-compatible upstreams: never follow redirects
-# -----------------------------------------------------------------------------
 #
 # The `byok/*` deployment (config.yaml) sends requests to a user-supplied
 # `api_base`. The app checks that URL (and its DNS answers) before every
@@ -60,9 +54,7 @@ litellm.client_session = httpx.Client(follow_redirects=False)
 litellm.aclient_session = httpx.AsyncClient(follow_redirects=False)
 
 
-# -----------------------------------------------------------------------------
-# Provider 1 — BFL FLUX.2 [pro], EU-pinned, polling-based
-# -----------------------------------------------------------------------------
+# BFL FLUX.2 [pro], EU-pinned, polling-based
 
 _BFL_EU = "https://api.eu2.bfl.ai"
 _BFL_POLL_INTERVAL = 0.5
@@ -202,18 +194,14 @@ class BFLFluxProvider(CustomLLM):
 bfl_flux_provider = BFLFluxProvider()
 
 
-# -----------------------------------------------------------------------------
-# Provider 2 — Voxtral Realtime voice-tick (billing-only stub)
-# -----------------------------------------------------------------------------
+# Voxtral Realtime voice-tick (billing-only stub)
 # Strategy: report exactly 60 completion_tokens per call. Set
 #   model_info.output_cost_per_token: 0.00011
 # in config.yaml so each tick costs 60 × $0.00011 = $0.0066 (1 minute of Voxtral
 # Realtime on Mistral's EU endpoint, 1.1x list). The dictate orchestrator hits this once per minute of audio.
 # Direct upstream call to Voxtral Realtime stays in our app's WS handler.
 
-# -----------------------------------------------------------------------------
-# Provider — Jina embeddings with proper spend tracking
-# -----------------------------------------------------------------------------
+# Jina embeddings with proper spend tracking
 # LiteLLM's native Jina provider works for routing but its spend math is
 # broken: Jina returns `usage.total_tokens` only (no `prompt_tokens`),
 # while LiteLLM's embeddings-cost computation is `input_cost_per_token ×
@@ -301,9 +289,7 @@ class JinaEmbeddingsProvider(CustomLLM):
 jina_embeddings_provider = JinaEmbeddingsProvider()
 
 
-# -----------------------------------------------------------------------------
-# Provider — Mistral Voxtral Mini Transcribe 2 (batch STT) with proper cost
-# -----------------------------------------------------------------------------
+# Mistral Voxtral Mini Transcribe 2 (batch STT) with proper cost
 # LiteLLM's native /v1/audio/transcriptions path can't extract Voxtral's
 # duration field (`usage.prompt_audio_seconds`) — its cost calculator looks
 # for `duration` like OpenAI Whisper returns. Mistral doesn't, so spend
@@ -313,8 +299,8 @@ jina_embeddings_provider = JinaEmbeddingsProvider()
 # chat completion, internally call Mistral's transcribe endpoint, return
 # the text in `choices[0].message.content`. The wrapper reports
 # `usage.completion_tokens = audio_duration_seconds`; combined with
-# model_info.output_cost_per_token = $0.00005 in config.yaml, each second
-# of audio bills exactly $0.003/min = Mistral's stated price.
+# model_info.output_cost_per_token in config.yaml, each second of audio
+# bills exactly Mistral's per-minute price.
 #
 # Caller convention (mirrors BFL pattern): single user message whose JSON-
 # encoded body is `{audio_base64, mime, language}`. Response's
@@ -384,7 +370,7 @@ class MistralTranscribeProvider(CustomLLM):
             duration_sec = 1
 
         # Map duration → completion_tokens 1:1; config.yaml sets
-        # output_cost_per_token: 0.00005 → $0.003/min audio.
+        # output_cost_per_token prices one token per second of audio.
         resp = ModelResponse()
         resp.id = f"voxtral-tx-{uuid4().hex[:12]}"
         resp.created = int(time.time())

@@ -53,7 +53,7 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
     + 'archive.'
   )
 
-  // ─── Open the menu containing Export ────────────────────────────
+  // Open the menu containing Export
   const openMenuTrigger = editor.isMobile
     ? page.getByRole('button', { name: /^menu$/i }).first()
     : page.locator('nav[aria-label="Menu bar"] > button').first()
@@ -87,7 +87,7 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
     triggerCaption = 'Click "Markdown (.md)" to download'
   }
 
-  // ─── Trigger the download ───────────────────────────────────────
+  // Trigger the download
   // The export-markdown handler creates an object URL and triggers
   // an `<a download="...">` click. Playwright's download event
   // captures it. Pre-register BEFORE the click that triggers it.
@@ -118,7 +118,7 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
   expect(split.data.title).toBe('Weekly sync')
   expect(split.data.theme).toBeTruthy()
 
-  // ─── Open the file ──────────────────────────────────────────────
+  // Open the file
   await flow.heading('Open the file', 3)
   const viewer = await flow.spawn('file')
   await showTextFile(viewer.page, saved)

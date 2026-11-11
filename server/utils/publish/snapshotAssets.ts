@@ -1,6 +1,6 @@
 import { publishedFileUrl } from '~~/shared/config/publish'
 
-// The files a web snapshot refers to (WP13). The print page writes this
+// The files a web snapshot refers to. The print page writes this
 // document's uploads as `/api/files/<docId>/<fileId>` and its workspace's
 // brand-kit files as `/api/docs/<docId>/brand/<file>` (tokens already
 // stripped). Publishing copies exactly those files to the page's own S3

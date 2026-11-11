@@ -1,6 +1,5 @@
-// Per-workspace SSO (WP14) — the admin side: who may manage a
-// workspace's connection, how its settings are validated, and the view
-// that goes to the browser (never a secret).
+// Per-workspace SSO admin side: who may manage a workspace's connection,
+// how its settings are validated, and the view sent to the browser (never a secret).
 
 import { X509Certificate } from 'node:crypto'
 import type { H3Event } from 'h3'
@@ -13,10 +12,10 @@ import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
 
 /**
- * Session + workspace ADMIN by raw membership — deliberately without the
- * SSO condition: an admin must be able to repair or switch off a
- * connection whose IdP is broken, even while it is enforced. Everything
- * else in the workspace stays behind the SSO grant.
+ * Session + workspace admin by raw membership, deliberately without the SSO
+ * condition: an admin must be able to repair or switch off a connection whose
+ * IdP is broken, even while it is enforced. Everything else in the workspace
+ * stays behind the SSO grant.
  */
 export async function requireSsoAdmin(event: H3Event): Promise<{ userId: number, wsId: string }> {
   const session = await requireValidatedUserSession(event)
@@ -93,7 +92,7 @@ export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow
   } catch {
     throw invalid('samlSsoUrl', 'The SSO URL is not a valid URL.')
   }
-  // The browser goes there, not the server — https is all we require
+  // The browser goes there, not the server, so https is all we require
   // (http only on an instance that allows private IdPs, e.g. tests).
   if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ssoAllowsPrivateUrls())) {
     throw invalid('samlSsoUrl', 'The SSO URL must start with https://.')

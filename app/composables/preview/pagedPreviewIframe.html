@@ -61,23 +61,20 @@
   html, body {
     margin: 0;
     padding: 0;
-    /* Sumi-50 (`#FAF8F4`, "Bone") surround in light mode — matches
-       Nuxt UI's `--ui-bg-muted` (= the toolbar AND the right sidebar
-       wrapper), so the entire chrome around the doc and around the
-       panels reads as one calm field. White paper sheets and white
-       sidebar cards (`bg-default`) pop forward against this gentle
-       surround. Dark mode: see body.dark-preview below. */
+    /* Light-mode surround (sumi-50) matching Nuxt UI's `--ui-bg-muted`
+       (toolbar and right sidebar wrapper), so the chrome around the doc
+       reads as one field and white pages stand out. Dark mode:
+       html.dark-preview below. */
     background: #FAF8F4;
     scrollbar-gutter: stable;
     /* Pinch zooms the preview (previewZoomFrame.ts), never the app. */
     touch-action: pan-x pan-y;
   }
   body {
-    /* Heavy bottom padding so scrolling reveals the last page in full
-       even though the floating AI bar (in the parent app) overlays
-       this iframe's bottom 80–100 px. Without it the final page sits
-       behind the bar and looks cropped. The top padding leaves a lane
-       for the zoom control the parent floats over the pane's top right. */
+    /* Bottom padding lets scrolling reveal the last page in full despite
+       the floating AI bar the parent overlays on the iframe's bottom
+       80-100 px. The top padding leaves a lane for the zoom control the
+       parent floats over the pane's top right. */
     padding: 48px 16px 120px 16px;
     min-height: 100vh;
     box-sizing: border-box;
@@ -87,12 +84,10 @@
     flex-direction: column;
     align-items: center;
     gap: 16px;
-    /* Responsive scaling: pages are absolute-sized via @page (A4 = ~794px),
-       which would clip on narrow screens. `zoom` shrinks the visual
-       AND the layout box (unlike `transform: scale` which leaves the
-       layout box at full size and overflows). The scale factor is
-       computed in JS after each pagination and on iframe resize so the
-       page width always equals the available column. */
+    /* Pages are absolute-sized via @page (A4 = ~794px) and would clip on
+       narrow screens. `zoom` shrinks the layout box too (`transform:
+       scale` would leave it full size and overflow). The factor is
+       computed in JS after each pagination and on iframe resize. */
     zoom: var(--page-zoom, 1);
   }
   /* Fixed zoom wider than the pane: left-aligned + horizontally
@@ -115,11 +110,11 @@
   html.zoom-overview #mount .pagedjs_page {
     cursor: zoom-in;
   }
-  /* Light mode: the page card's shadow sits inside the zoomed pages, so
-     at thumbnail size it all but disappears and white pages melt into
-     the bone surround. Same separation as fit width — a hairline plus
-     the soft drop shadow — sized in on-screen pixels (divided by the
-     zoom). Dark mode keeps its own shadow (below). */
+  /* Light mode: the page's shadow sits inside the zoomed pages and all
+     but disappears at thumbnail size, so white pages would melt into the
+     surround. A hairline plus soft drop shadow restores the separation,
+     sized in on-screen pixels (divided by the zoom). Dark mode keeps its
+     own shadow (below). */
   html.zoom-overview:not(.dark-preview) #mount .pagedjs_page {
     box-shadow:
       0 0 0 calc(1px / var(--page-zoom, 1)) rgba(20, 17, 13, 0.10),
@@ -145,10 +140,9 @@
     background: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.05);
   }
-  /* Off-screen scratch mount used during pagination — sits in the
-     fixed-position layer (relative to the iframe viewport, not body)
-     so it doesn't contribute to body's scroll height. Same class as
-     the visible mount so paged.js's flex centering computes identically. */
+  /* Off-screen mount paged.js paginates into. Fixed positioning keeps it
+     out of body's scroll height; it shares the visible mount's class so
+     paged.js's flex centering computes identically. */
   #pending {
     position: fixed;
     left: -10000px;
@@ -157,12 +151,11 @@
     pointer-events: none;
   }
 
-  /* Dark-mode preview — only the chrome behind the pages flips. The
-     pages themselves render exactly as the theme says (white paper,
-     dark text) so what you see in the editor is what you'll print.
-     sumi-950 surround (NOT the parent's sumi-900 `bg-default`) keeps
-     the iframe consistent with the toolbar / sidebar / status bar.
-     Heavier shadow so the page sits cleanly against the dark canvas. */
+  /* Dark mode flips only the chrome behind the pages; the pages render
+     as the theme says so the preview matches the print. The sumi-950
+     surround (not the parent's sumi-900 `bg-default`) matches the
+     toolbar / sidebar / status bar; the heavier shadow separates the
+     page from the dark canvas. */
   html.dark-preview { color-scheme: dark; }
   html.dark-preview body { background: #14110D; }
   body.dark-preview .paged-mount .pagedjs_page,
@@ -192,9 +185,8 @@
     .paged-mount .pagedjs_page { box-shadow: none !important; }
   }
 </style>
-<!-- KaTeX stylesheet — static, doesn't change with theme. Loaded
-     statically in head so the math glyph fonts start fetching as soon
-     as the iframe initializes. -->
+<!-- KaTeX stylesheet: independent of the theme, loaded statically so the
+     math glyph fonts start fetching as soon as the iframe initializes. -->
 <link rel="stylesheet" href="__KATEX_CSS_URL__" integrity="__KATEX_CSS_SRI__" crossorigin="anonymous">
 <style id="theme-fonts">/* populated at runtime by the render message */</style>
 <style id="theme-css">/* populated at runtime by the render message */</style>
@@ -223,18 +215,18 @@
     window.parent.postMessage(msg, PARENT_ORIGIN);
   }
 
-  // Mirror the parent app's color mode (sent as a message; this opaque-
-  // origin document cannot read the parent's DOM). The initial value is
-  // baked into the srcdoc so the first paint is already right.
+  // Mirrors the parent app's color mode (sent as a message; an opaque
+  // origin cannot read the parent's DOM). The initial value is baked into
+  // the srcdoc so the first paint is already right.
   function applyColorMode(dark) {
     document.documentElement.classList.toggle('dark-preview', dark === true);
     document.body.classList.toggle('dark-preview', dark === true);
   }
   applyColorMode(__INITIAL_DARK__);
 
-  // Zoom engine (fit width, fixed zoom, the overview grid, shortcuts,
-  // pinch). Source: app/utils/preview/previewZoomFrame.ts — self-contained,
-  // inlined by buildPreviewSrcdoc. Talks to the parent through toParent.
+  // Zoom engine (fit width, fixed zoom, overview grid, shortcuts, pinch).
+  // Source: app/utils/preview/previewZoomFrame.ts, self-contained and
+  // inlined by buildPreviewSrcdoc; talks to the parent through toParent.
   var previewZoom = (__PREVIEW_ZOOM_SCRIPT__)(toParent);
 
   function whenPagedReady(cb) {
@@ -249,12 +241,11 @@
     setTimeout(function() { whenPagedReady(cb); }, POLL_INTERVAL);
   }
 
-  // Links. In-document anchors (TOC entries, footnote refs, any
-  // `<a href="#id">`) scroll within the preview — srcdoc iframes have no
-  // real URL, so the browser would resolve the # link against the
-  // parent's URL and navigate the iframe there. Every other link is
-  // inert: the sandboxed preview must never navigate itself away (and
-  // the CSP's frame-src would refuse it anyway).
+  // In-document anchors (TOC entries, footnote refs, any `<a href="#id">`)
+  // scroll within the preview: srcdoc iframes have no real URL, so the
+  // browser would resolve the # link against the parent's URL and navigate
+  // the iframe there. Every other link is inert: the sandboxed preview
+  // must never navigate away (the CSP's frame-src would refuse it too).
   document.addEventListener('click', function(e) {
     var a = e.target && e.target.closest ? e.target.closest('a[href]') : null;
     if (!a) return;
@@ -267,12 +258,10 @@
     if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
 
-  // Forward Cmd/Ctrl+P to the parent. Without this, pressing Print while
-  // focus is inside the iframe fires the browser's native print dialog
-  // against the host page — which renders the entire app chrome instead
-  // of just the doc. The parent's document-level keydown listener never
-  // sees these events because keydowns bubble in the iframe's own
-  // document, not the host's.
+  // Forward Cmd/Ctrl+P to the parent. Keydowns inside the iframe never
+  // reach the parent's document-level listener, so the browser would open
+  // its print dialog for the host page (the whole app chrome) instead of
+  // the document.
   document.addEventListener('keydown', function(e) {
     var isMac = /Mac|iPhone|iPad/.test(navigator.platform);
     var modifier = isMac ? e.metaKey : e.ctrlKey;
@@ -282,13 +271,10 @@
     }
   }, true);
 
-  // ─── Stateless render helpers ─────────────────────────────────────
-
   /**
-   * Cap font wait at 1s — if a font file is slow or a font name is
-   * unresolvable, document.fonts.ready can stall forever and wedge
-   * pagination. Falls back to whatever fonts are ready by then; the
-   * next render picks up late arrivals.
+   * Caps the font wait at 1s: document.fonts.ready can stall forever on a
+   * slow font file or unresolvable font name and wedge pagination. Late
+   * arrivals are picked up by the next render.
    */
   function awaitFontsReady() {
     return Promise.race([
@@ -299,9 +285,8 @@
 
   /**
    * Decode every <img> in a container so paged.js measures real
-   * dimensions, not placeholder sizes. img.decode() rejects for broken
-   * images; swallow per-image errors so one bad img doesn't kill the
-   * whole render.
+   * dimensions. img.decode() rejects for broken images; per-image errors
+   * are swallowed so one bad image doesn't kill the render.
    */
   function decodeImagesIn(container) {
     var imgs = container.querySelectorAll('img');
@@ -311,7 +296,7 @@
     }));
   }
 
-  /** UTF-8 → base64 without the deprecated unescape(). */
+  /** UTF-8 → base64. */
   function utf8ToBase64(s) {
     var bytes = new TextEncoder().encode(s);
     var binary = '';
@@ -322,8 +307,8 @@
   }
 
   /**
-   * Finish a freshly rendered mermaid SVG for the page — same steps as
-   * `finishMermaidSvg` in app/utils/markdown/mermaidLoader.ts (server render page):
+   * Finish a freshly rendered mermaid SVG for the page, with the same steps
+   * as `finishMermaidSvg` in app/utils/markdown/mermaidLoader.ts:
    *  - well-formed XML: mermaid serialises foreignObject labels as HTML
    *    (`<br>` without a self-close) and an SVG <img> is parsed as XML;
    *  - explicit pixel width/height from the viewBox (diagrams that still
@@ -347,8 +332,8 @@
   }
   /**
    * Thin a crowded numeric axis to at most 8 labels on a nice step
-   * (0, 500 … 7000 → 0, 1000 … 7000) — Mermaid has no tick-count
-   * option. Same as `thinAxisTicks` in mermaidLoader.ts.
+   * (0, 500 … 7000 → 0, 1000 … 7000); Mermaid has no tick-count option.
+   * Same as `thinAxisTicks` in mermaidLoader.ts.
    */
   function isNiceStep(step) {
     if (!(step > 0) || !isFinite(step)) return false;
@@ -414,11 +399,11 @@
   }
 
   /**
-   * After pagination: swap each mermaid <img> for its inline SVG, so the
+   * After pagination: swap each mermaid <img> for its inline SVG so the
    * chart text uses the document's web fonts (an SVG loaded as an image
    * can't). The SVG keeps the image's intrinsic size + CSS, so nothing
-   * moves. Same as `inlineMermaidSvgs` in mermaidLoader.ts (which also
-   * sanitises — this frame is the opaque-origin sandbox). Diagrams that
+   * moves. Same as `inlineMermaidSvgs` in mermaidLoader.ts, minus the
+   * sanitising (this frame is the opaque-origin sandbox). Diagrams that
    * still use <foreignObject> stay images, as on the server.
    */
   function inlineMermaidSvgs(root) {
@@ -443,16 +428,16 @@
 
   /**
    * Render one mermaid source string and replace its <pre> with an
-   * <img data-uri> wrapper (success) or an inline error placeholder
-   * (mermaid threw). An <img> is atomic for paged.js — inline SVGs get
-   * fragmented across page breaks regardless of break-inside:avoid —
-   * so the SVG is inlined only after pagination (inlineMermaidSvgs).
+   * <img data-uri> wrapper, or an inline error placeholder if mermaid
+   * threw. An <img> is atomic for paged.js (inline SVGs get split across
+   * page breaks despite break-inside:avoid), so the SVG is inlined only
+   * after pagination (inlineMermaidSvgs).
    */
   async function renderMermaidBlock(mer, codeEl, locale) {
     var preEl = codeEl.parentElement;
     var source = codeEl.textContent || '';
-    // crypto.randomUUID() is secure-context-only; fall back to
-    // getRandomValues (available everywhere) for plain-HTTP self-hosts.
+    // crypto.randomUUID() needs a secure context; fall back to
+    // getRandomValues for plain-HTTP self-hosts.
     var renderId = 'mmd-' + (self.crypto.randomUUID
       ? self.crypto.randomUUID()
       : (Date.now().toString(36) + Array.from(
@@ -507,15 +492,14 @@
     var Previewer = globalThis.Paged.Previewer;
     var lastFontsImport = null;
     var lastHljsUrl = null;
-    // Track paged.js's accumulated <style> elements so they don't pile up
-    // in iframe head over a long editing session and slow re-renders.
+    // paged.js's <style> elements from the last render, removed after the
+    // next one so they don't pile up in the head and slow re-renders.
     var stylesFromLastRender = [];
 
-    // Mermaid lazy loader — injects the SRI-locked single-file bundle on
-    // the first render that contains a mermaid block. Re-initialized only
-    // when the config changes (mermaid has no per-render override). The
-    // config is buildMermaidConfig(theme) (shared/utils/markdown/mermaidConfig.ts):
-    // document font + colours, label sizes, securityLevel 'antiscript'.
+    // Mermaid lazy loader: injects the SRI-locked single-file bundle on the
+    // first render with a mermaid block. Re-initialized only when the
+    // config changes (mermaid has no per-render override). The config is
+    // buildMermaidConfig(theme) (shared/utils/markdown/mermaidConfig.ts).
     var mermaidPromise = null;
     var lastMermaidConfig = null;
     function loadMermaidScript() {
@@ -538,7 +522,7 @@
         if (!cfg || typeof cfg !== 'object' || Array.isArray(cfg)) return null;
         // antiscript: no <script> / javascript: URLs, but mermaid's own
         // <style> survives ('strict' strips it and every shape turns
-        // black). A config can never lower it.
+        // black). A config can never lower the level.
         cfg.securityLevel = 'antiscript';
         cfg.startOnLoad = false;
         return cfg;
@@ -560,8 +544,8 @@
       var cfg = parseMermaidConfig(configJson) || { startOnLoad: false, securityLevel: 'antiscript' };
       if (!mermaidPromise) {
         mermaidPromise = loadMermaidScript().catch(function (err) {
-          // Reset so a transient network failure doesn't permanently
-          // disable mermaid for the rest of the session.
+          // Reset so a transient network failure doesn't disable mermaid
+          // for the rest of the session.
           mermaidPromise = null;
           throw err;
         });
@@ -585,9 +569,9 @@
 
     /**
      * Swap the highlight.js theme stylesheet when codeBlockTheme
-     * changes. Lazy-injected: a link without an href used to confuse
-     * paged.js's Polisher and wedge pagination silently. SRI-locked
-     * (integrity changes with the theme, so a new <link> each time).
+     * changes. Injected lazily because a link without an href confuses
+     * paged.js's Polisher and silently wedges pagination. SRI-locked; the
+     * integrity differs per theme, so each swap creates a new <link>.
      */
     function applyHljsTheme(opts) {
       if (opts.hljsUrl === lastHljsUrl) return;
@@ -606,9 +590,8 @@
     }
 
     /**
-     * Pre-process every mermaid code block in the scratch DOM, in turn,
-     * in place. Returns the post-process innerHTML if any blocks were
-     * processed, or null otherwise.
+     * Render every mermaid code block in the scratch DOM in place, one at a
+     * time. Returns the resulting innerHTML, or null if there were none.
      */
     async function preprocessMermaid(scratch, mermaidConfig, locale) {
       var mermaidBlocks = Array.prototype.slice.call(
@@ -648,14 +631,13 @@
 
         var mount = document.getElementById('mount');
         var pending = document.getElementById('pending');
-        // Match the visible mount's width so paged.js's flex centering
-        // produces the same column offsets in both contexts.
+        // Same width as the visible mount so flex centering gives the same
+        // column offsets in both.
         pending.style.width = mount.clientWidth + 'px';
         pending.innerHTML = '';
 
-        // Decode images + mermaid pre-process against an off-screen
-        // scratch container (not pending — paged.js needs pending
-        // empty so it can append its own pages there).
+        // Decode images and render mermaid in an off-screen scratch
+        // container; `pending` must stay empty for paged.js's pages.
         var html = opts.html;
         var scratch = document.createElement('div');
         scratch.style.cssText = 'position:fixed;left:-20000px;top:0;visibility:hidden;';
@@ -685,12 +667,12 @@
         var stylesAfter = Array.prototype.slice.call(document.head.querySelectorAll('style'));
         var newStyles = stylesAfter.filter(function(s) { return !stylesBefore.has(s); });
 
-        // Atomic swap. replaceChildren is a single mutation so the browser
-        // can't lay out an empty mount between clearing and refilling.
+        // replaceChildren is a single mutation, so the browser can't lay
+        // out an empty mount between clearing and refilling.
         var scrollY = window.scrollY;
-        // Snap-to-bottom only when the previous doc was meaningfully
-        // scrollable (before the first render scrollHeight equals the
-        // viewport and would false-positive).
+        // Snap to the bottom only if the previous doc was scrollable
+        // (before the first render scrollHeight equals the viewport and
+        // would false-positive).
         var prevScrollHeight = document.documentElement.scrollHeight;
         var hadScrollableContent = prevScrollHeight > window.innerHeight + 100;
         var wasNearBottom = hadScrollableContent
@@ -714,8 +696,8 @@
 
         toParent({ type: 'paginated', pageCount: (result && result.total) || 0 });
         if (opts.print) {
-          // paged.js clones images into the pages; wait for those clones
-          // before the print snapshot.
+          // paged.js clones images into the pages; wait for the clones
+          // before printing.
           await decodeImagesIn(mount);
           printNow();
         }

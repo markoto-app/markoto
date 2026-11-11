@@ -74,14 +74,10 @@ describe('dictation ghost-text extension', () => {
   })
 
   it('stays in the DOM after the caret moves (reposition path)', () => {
-    // Dictation's "jump to new spot and continue" flow relies on the
-    // ViewPlugin rebuilding the DecorationSet on every `selectionSet`
-    // transaction. jsdom doesn't do layout so we can't measure pixel
-    // position, but we CAN verify the widget survives the rebuild —
-    // i.e. the plugin's update hook is correctly triggered by
-    // `selectionSet: true`. Before this fix, the widget was static
-    // (only rebuilt on doc change) and the ghost would stick to
-    // wherever dictation started, not where the caret now is.
+    // Dictation's "jump to new spot and continue" flow relies on the ViewPlugin rebuilding the DecorationSet
+    // on every `selectionSet` transaction. jsdom doesn't do layout so we can't measure pixel position, but we
+    // can verify the widget survives the rebuild, i.e. the plugin's update hook is triggered by
+    // `selectionSet: true`. A widget that is only rebuilt on doc change would stick to where dictation started.
     view.dispatch({ effects: setDictationInterim.of('keep me') })
     expect(ghostEl(view)?.textContent).toBe('keep me')
     view.dispatch({ selection: { anchor: 0, head: 0 } })

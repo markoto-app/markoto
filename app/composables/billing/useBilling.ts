@@ -4,8 +4,8 @@ export interface UserBilling {
   plan: PlanName
   periodStart: string
   periodEnd: string
-  // Structural caps — echoed alongside the counted values so the UI
-  // can do `used >= limit` checks without a separate TIERS import.
+  // Caps are echoed alongside the counted values so the UI can compare
+  // `used >= limit` without importing TIERS.
   ownedWorkspaces: number
   workspacesOwnedLimit: number
   knowledgeFilesUsed: number
@@ -15,7 +15,7 @@ export interface UserBilling {
   /** Document image storage (pending uploads included) vs. the per-user quota. */
   imageBytesUsed: number
   imageBytesPerUserLimit: number
-  /** AI credit top-ups (WP4); null with billing off. */
+  /** AI credit top-ups; null with billing off. */
   credits?: import('~/utils/billing/aiCredits').CreditBalanceView | null
   /** Workspaces whose Team / Business plan covers the user inside them. */
   coveringWorkspaces?: Array<{ workspaceId: string, name: string, plan: 'team' | 'business' }>
@@ -28,7 +28,7 @@ export interface UserBilling {
  *
  * `refresh()` is the explicit invalidation point. Call it after actions
  * that might change the state:
- *   - after an AI session ends (interactions consumed)
+ *   - after an AI session ends
  *   - after Stripe checkout returns (plan may have changed)
  */
 export function useBilling() {
@@ -49,24 +49,18 @@ export function useBilling() {
     } catch (e) {
       const err = e as { message?: string, data?: { message?: string } }
       error.value = err?.data?.message ?? err?.message ?? 'Could not load billing info'
-      // Keep the last-known state so a transient failure doesn't erase
-      // the plan badge mid-session; we just stop refreshing until the
-      // next explicit refresh() call.
+      // Keep the last known state so a transient failure doesn't erase the plan badge.
     } finally {
       loading.value = false
     }
   }
 
-  // Auto-fetch once on first consumer, tracked via `state` being null.
-  // Subsequent consumers share the cached state. No interval polling —
-  // the counter only changes on AI activity, and the prompt bar's
-  // session-end hook triggers refresh() explicitly.
+  // Fetched once by the first consumer. No polling: the counters only change
+  // on AI activity, and the prompt bar's session-end hook calls refresh().
   if (import.meta.client && loggedIn.value && state.value === null && !loading.value) {
     void refresh()
   }
 
-  // Keep billing state in sync with login changes: cleared on logout,
-  // re-fetched on login.
   watch(loggedIn, (isIn) => {
     if (!isIn) {
       state.value = null
@@ -75,13 +69,9 @@ export function useBilling() {
     void refresh()
   })
 
-  // Derived "at-cap" flags. Every cap-gated UI surface reads from
-  // these instead of re-doing the math, so "at cap" is defined in
-  // exactly one place and every button disables in lockstep.
-  // - `null` billing (anonymous / fetch failed) → `false` for all
-  //   flags: we don't want to accidentally disable actions for
-  //   callers we know nothing about. Server enforcement is the
-  //   second line of defense in that case.
+  // "At cap" is defined here once so every gated control disables in lockstep.
+  // With no billing data (anonymous / fetch failed) every flag is false rather
+  // than disabling actions for unknown callers; the server enforces regardless.
   const workspaceCapReached = computed(() => {
     const b = state.value
     if (!b) return false
@@ -97,9 +87,7 @@ export function useBilling() {
     if (!b) return false
     return b.knowledgeBytesUsed >= b.knowledgeBytesPerUserLimit
   })
-  // Phase 6: AI-credit exhaustion is now read from /api/ai/credits via
-  // `useAiCredits`. This composable only owns structural caps (workspaces,
-  // knowledge files, knowledge bytes).
+  // AI-credit exhaustion lives in `useAiCredits`; this only owns structural caps.
 
   return {
     billing: state,

@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
   const state = docStateOf(authz)
   const actor = { userId: session?.user?.id ?? null, workspaceRole: authz.workspaceRole, isGuest: authz.isGuest }
   const decision = decideTokenAccess(state, actor)
-  // An expired share link (WP9) also ends what an earlier password unlock
+  // An expired share link also ends what an earlier password unlock
   // (its JWT) gave — only the owner and members keep seeing the metadata.
   if (decision.outcome !== 'allow' && (state.shareExpired || !hasValidDocJwt(event, docId))) {
     return {
@@ -73,14 +73,14 @@ export default defineEventHandler(async (event) => {
 
   // Boolean is safe to expose; the hash itself is not.
   const hasPassword = doc.accessMode === 'password-protected'
-  // The workspace id is read for the brand kit only — not part of this
-  // public shape (unchanged since before WP10).
+  // The workspace id is read for the brand kit only; it is not part of this
+  // public shape.
   const { workspaceId, ...publicDoc } = doc
   return {
     ...publicDoc,
-    // Share-link controls (WP9): this viewer may not download or print.
+    // Share-link controls: this viewer may not download or print.
     noDownload: !canDownload(state, actor, authz.shareNoDownload),
-    // Workspace brand kit (WP10), as on the token endpoint.
+    // Workspace brand kit, as on the token endpoint.
     brandKit: await docBrandForClient(workspaceId),
     hasPassword,
     requiresPassword: false,

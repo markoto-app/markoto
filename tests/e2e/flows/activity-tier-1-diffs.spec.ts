@@ -47,11 +47,9 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   await editorContent.press('Enter')
   await editorContent.pressSequentially('Q3 launch checklist — first pass.')
 
-  // Wait for the sync-server to flush the FIRST `edit` activity row.
-  // Hocuspocus debounces ~5s before flushing; previously this used
-  // `waitForTimeout(7_000)` which dead-waited the full 7s on every
-  // run. Poll the activity API instead — exits as soon as the row
-  // exists, typically 5-6s but as fast as 1s on cold runs.
+  // Wait for the sync-server to flush the FIRST `edit` activity row. Hocuspocus debounces ~5s before
+  // flushing, so poll the activity API instead of a fixed wait: it exits as soon as the row exists,
+  // typically 5-6s but as fast as 1s on cold runs.
   const docId = page.url().match(/\/d\/([^/?]+)/)?.[1]
   if (!docId) throw new Error('expected /d/{docId} URL')
 
@@ -83,7 +81,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
     + 'want to roll back.'
   )
 
-  // ─── Open the Activity tab ──────────────────────────────────────
+  // Open the Activity tab
   // Desktop: right-sidebar Activity tab; mobile: bottom-tab-bar entry.
   const activityTab = editor.isMobile
     ? editor.page.mobileTabs.activity
@@ -101,7 +99,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Click an edit row → diff drawer ────────────────────────────
+  // Click an edit row → diff drawer
   await flow.heading('Click any edit row to see the diff', 3)
   await flow.narrate(
     'Edit rows are clickable — chevron + "show details" hint. The '

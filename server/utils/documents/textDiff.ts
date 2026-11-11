@@ -45,8 +45,7 @@ const CONTEXT_LINES = 3
  * removes). The library handles these cases natively.
  */
 export function computeTextDiff(beforeText: string, afterText: string): DiffResult {
-  // structuredPatch wants filenames + headers it baked in at the top
-  // of the format. We supply placeholders since we don't render them.
+  // Filenames / headers are required by the API but never rendered.
   const patch = structuredPatch('before', 'after', beforeText, afterText, '', '', { context: CONTEXT_LINES })
 
   function lineKindFromPrefix(prefix: string | undefined): DiffHunk['lines'][number]['kind'] {
@@ -65,15 +64,10 @@ export function computeTextDiff(beforeText: string, afterText: string): DiffResu
     newStart: h.newStart,
     newLines: h.newLines,
     lines: h.lines
-      // The library emits a `\ No newline at end of file` marker line
-      // as metadata about the previous line — useful in patch files
-      // but pure noise in our drawer (the user doesn't care about
-      // trailing-newline pedantry). Filter it out.
+      // Drop the `\ No newline at end of file` marker line; noise in the drawer.
       .filter(rawLine => !rawLine.startsWith('\\'))
       .map((rawLine) => {
-        // The library prefixes each line with one of `+ - ` (space
-        // for context). We split off the prefix and map to our own
-        // kind union.
+        // Lines carry a `+`, `-` or space prefix.
         const prefix = rawLine[0]
         const text = rawLine.slice(1)
         const truncatedText = text.length > MAX_LINE_CHARS

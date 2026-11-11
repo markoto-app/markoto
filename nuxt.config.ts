@@ -147,19 +147,13 @@ export default defineNuxtConfig({
       secretKey: '',
       bucket: 'ypad'
     },
-    // Phase 5: every Google API surface (Gemini text/image/embeddings,
-    // Cloud STT) is gone. Only the dictation-WS JWT secret survives,
-    // moved from `config.google.dictateJwtSecret` → `config.aiDictateJwtSecret`.
-    // The env var renamed accordingly: NUXT_GOOGLE_DICTATE_JWT_SECRET
-    // → NUXT_AI_DICTATE_JWT_SECRET.
     aiDictateJwtSecret: '', // NUXT_AI_DICTATE_JWT_SECRET — falls back to `jwtSecret` if unset
-    // LiteLLM proxy — vendor-agnostic gateway for Phase-1+ migration.
-    // Phase 1A only routes embeddings; Phase 4 adds chat, Phase 3 image
-    // gen, Phase 5 voice metering. The proxy enforces per-key budgets
-    // and unifies cost tracking across providers (Mistral / Jina / BFL).
+    // LiteLLM proxy — vendor-agnostic gateway for every AI surface. It
+    // enforces per-key budgets and unifies cost tracking across providers
+    // (Mistral / Jina / BFL).
     litellm: {
       url: '', // NUXT_LITELLM_URL — internal HTTP URL, e.g. http://litellm:4000 (prod) / http://localhost:4000 (dev with host bun)
-      masterKey: '', // NUXT_LITELLM_MASTER_KEY — admin key; per-user virtual keys arrive in Phase 6
+      masterKey: '', // NUXT_LITELLM_MASTER_KEY — admin key; per-user virtual keys are minted from it
       // Embedding model + dims used when the knowledge pipeline routes
       // through LiteLLM. jina-embeddings-v5-text-nano is natively 768-d
       // (perfect fit for the existing pgvector(768) HNSW index — zero
@@ -175,16 +169,14 @@ export default defineNuxtConfig({
       embeddingsSendDimensions: 'auto', // NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS — auto|true|false (auto = Jina only)
       embeddingsTaskHints: 'auto', // NUXT_LITELLM_EMBEDDINGS_TASK_HINTS — Jina `task` param; auto|true|false (auto = Jina only)
       embeddingsUpstreamModel: '', // NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL — label only (version tag); mirrors the proxy's EMBEDDINGS_UPSTREAM_MODEL
-      // WP4: the chat / image / transcription MODELS are no longer runtime
-      // config. They resolve per request from the user's own provider
-      // (bring your own key) or the operator's instance default
+      // The chat / image / transcription MODELS are not runtime config.
+      // They resolve per request from the user's own provider (bring your
+      // own key) or the operator's instance default
       // (`NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_*`, read from process.env
-      // by server/utils/aiProviders/config.ts). The former
-      // NUXT_LITELLM_{TEXT,IMAGE,TRANSCRIBE}_MODEL vars are gone; set
-      // NUXT_AI_DEFAULT_*_MODEL to the same alias instead.
+      // by server/utils/aiProviders/config.ts).
       imageDefaultWidth: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_WIDTH
       imageDefaultHeight: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT
-      // Phase 5 voice-tick metering stub. Each "call" against this fake
+      // Voice-tick metering stub. Each "call" against this fake
       // chat model bills $0.006 (1 minute of Voxtral Realtime audio) —
       // see infra/litellm/custom_handlers.py:VoxtralTickProvider. The
       // dictate WS orchestrator hits this once per minute of audio.
@@ -195,7 +187,7 @@ export default defineNuxtConfig({
     },
     jwtSecret: '',
     // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
-    // See docs/SECRETS-ROTATION.md.
+    // See docs/operations/SECRETS-ROTATION.md.
     jwtSecretPrevious: '',
     internalApiSecret: '',
     // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
@@ -292,8 +284,7 @@ export default defineNuxtConfig({
     // CSS, JSON, SVG) and let Nitro's static handler serve them by
     // Accept-Encoding. Nothing in front of the app compresses (Traefik
     // has no compress middleware), so without this the ~1.5 MB of
-    // client JS went over the wire raw — the product page's first-view
-    // budget (WP11) is unreachable that way.
+    // client JS would go over the wire raw.
     compressPublicAssets: true,
     // Native WebSocket route support for `/api/ai/dictate` (voice
     // dictation relay to Mistral Voxtral Realtime). Other WS traffic
@@ -322,9 +313,8 @@ export default defineNuxtConfig({
         changeOrigin: true
       }
     },
-    // `ws` is a transitive dep (originally pulled in by `@google/genai`
-    // pre-Phase-5; now by `@mistralai/mistralai`'s realtime sub-export
-    // for live dictation) that Nitro's NFT tracer doesn't follow
+    // `ws` is a transitive dep (pulled in by `@mistralai/mistralai`'s
+    // realtime sub-export for live dictation) that Nitro's NFT tracer doesn't follow
     // through the SDK's dist bundle — the output emits `import 'ws'`
     // but omits the package. `traceInclude` takes glob patterns (not
     // bare package names); `ws` itself has no deps so one glob is
@@ -400,8 +390,8 @@ export default defineNuxtConfig({
       { code: 'zh', language: 'zh-CN', name: '中文', file: 'zh.json' }
     ],
     defaultLocale: 'en',
-    // `lazy` was removed in @nuxtjs/i18n v10 — lazy loading is now the default
-    // whenever `locales[].file` is set (which it is for us, via langDir).
+    // Lazy loading is the @nuxtjs/i18n v10 default whenever `locales[].file`
+    // is set (it is, via langDir).
     langDir: 'locales/',
     strategy: 'no_prefix',
     detectBrowserLanguage: {
@@ -495,7 +485,7 @@ export default defineNuxtConfig({
   // captured in prod stay minified — investigations have to map line
   // numbers by hand. Set those three vars in CI / build env (NOT in
   // the runtime `app` container — they're not needed at runtime).
-  // See docs/DEPLOY.md.
+  // See docs/operations/DEPLOY.md.
   sentry: {
     sourceMapsUploadOptions: {
       // `org` + `project` come from env. Empty / undefined disables

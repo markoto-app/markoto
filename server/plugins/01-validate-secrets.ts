@@ -56,7 +56,7 @@ export default defineNitroPlugin(() => {
   ]))
   checkPresenceFields(config, errors)
   checkOAuthPairs(config, errors)
-  // Generic OIDC (WP7b): issuer + id + secret all-or-nothing, https
+  // Generic OIDC: issuer + id + secret all-or-nothing, https
   // issuer, parseable redirect URL. See server/utils/oidc/settings.ts.
   const oidc = resolveOidcSettings(process.env)
   errors.push(...oidc.errors)

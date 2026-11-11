@@ -13,30 +13,27 @@ export type CommentSegment
   = | { kind: 'text', text: string }
     | { kind: 'mention', userId: number, name: string }
     /**
-     * `@ai` mention — the special token that summons the AI assistant
-     * to act on the comment thread. Detected case-insensitively at
-     * word boundaries (so `email@ai.example.com` does NOT match).
-     * Rendered as a distinct rainbow badge so users can see at a
-     * glance "this comment will trigger AI".
+     * `@markoto` (or the older `@ai`) mention: summons the AI assistant
+     * to act on the comment thread. Detected case-insensitively at word
+     * boundaries (so `email@ai.example.com` does NOT match) and rendered
+     * as a distinct badge so users see that the comment triggers the AI.
      */
     | { kind: 'ai-mention', raw: string }
 
 /**
- * Hard caps on comment body length. Composer enforces visually via
- * `maxlength`; the composable also slices defensively in case a
- * keyboard-shortcut paste or programmatic insert sneaks past. Generous
- * enough to cover real discussion (a few paragraphs) but bounded so a
- * malicious paste can't bloat the doc's Y.js state.
+ * Hard caps on comment body length. The composer enforces them with
+ * `maxlength`; the composable also slices in case a paste or programmatic
+ * insert gets past it. They bound how much a paste can add to the doc's
+ * Y.js state.
  */
 export const COMMENT_BODY_MAX = 4000
 export const REPLY_BODY_MAX = 2000
 
 const MENTION_RE = /@\[([^\]]+)\]\(user:(\d+)\)/g
-// `@markoto` at a word boundary, case-insensitive. The leading
-// lookbehind ensures we don't match inside emails or URLs. Word-
-// boundary on the trailing side keeps `@markoto-something` from
-// matching too. Legacy `@ai` is still recognised so old comments
-// don't lose their chip — both forms render as the markoto pill.
+// `@markoto` at a word boundary, case-insensitive. The leading guard
+// keeps it from matching inside emails or URLs; the trailing lookahead
+// keeps `@markoto-something` out. `@ai` is still recognised so existing
+// comments keep their chip — both forms render as the markoto pill.
 const AI_MENTION_RE = /(^|[^\w@])@(markoto|ai)(?=[^\w]|$)/gi
 
 interface SegmentMatch {
@@ -46,7 +43,6 @@ interface SegmentMatch {
 }
 
 export function parseCommentBody(body: string): CommentSegment[] {
-  // Two regexes (user mentions + AI mention). Run both, merge in order.
   const matches: SegmentMatch[] = []
 
   MENTION_RE.lastIndex = 0
@@ -62,8 +58,7 @@ export function parseCommentBody(body: string): CommentSegment[] {
   AI_MENTION_RE.lastIndex = 0
   let am: RegExpExecArray | null
   while ((am = AI_MENTION_RE.exec(body)) !== null) {
-    // The lookbehind char (group 1) is captured but isn't part of the
-    // chip — keep it as text. The chip is `@markoto` or legacy `@ai`.
+    // Group 1 (the char before the `@`) stays text, outside the chip.
     const lead = am[1] ?? ''
     const tag = am[2] ?? 'markoto'
     const chipStart = am.index + lead.length
@@ -94,9 +89,8 @@ export function parseCommentBody(body: string): CommentSegment[] {
 }
 
 /**
- * Detect whether a comment body contains an `@ai` trigger mention.
- * Used by the client to decide whether to fire the trigger-ai endpoint
- * after a successful Y.js commit.
+ * Whether a comment body contains the AI mention. The client uses it to
+ * decide whether to call the trigger-ai endpoint after the Y.js commit.
  */
 export function hasAiMention(body: string): boolean {
   AI_MENTION_RE.lastIndex = 0

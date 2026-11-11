@@ -13,7 +13,7 @@ import { extractToken, verifyDocJwt } from '../../../server/utils/documents/docT
 // "always rejected" (false negative, breaks feature) or "accepts any
 // token" (false positive, security hole).
 
-// ─── extractToken ───────────────────────────────────────────────────────
+// extractToken
 
 /**
  * Build a minimal H3Event shape that `getRequestHeader` + `getQuery`
@@ -143,7 +143,7 @@ describe('extractToken', () => {
   })
 })
 
-// ─── verifyDocJwt ───────────────────────────────────────────────────────
+// verifyDocJwt
 
 const SECRET = 'verify-docjwt-test-' + 'a'.repeat(64)
 const PREVIOUS = 'verify-docjwt-prev-' + 'b'.repeat(64)
@@ -278,7 +278,7 @@ describe('verifyDocJwt', () => {
     })
   })
 
-  // ─── Adversarial: algorithm pinning ────────────────────────────────────
+  // Adversarial: algorithm pinning
   //
   // Finding during review: without `algorithms` pinned in `jwt.verify`,
   // the library auto-detects from the token header. This means a token
@@ -317,7 +317,7 @@ describe('verifyDocJwt', () => {
     })
   })
 
-  // ─── Adversarial: temporal claims ──────────────────────────────────────
+  // Adversarial: temporal claims
 
   describe('nbf (not-before) claim', () => {
     it('rejects a token whose nbf is in the future (not yet valid)', () => {
@@ -337,7 +337,7 @@ describe('verifyDocJwt', () => {
   })
 })
 
-// ─── Adversarial: extractToken edge cases ─────────────────────────────────
+// Adversarial: extractToken edge cases
 
 describe('extractToken — adversarial edge cases', () => {
   it('returns null when the query token is an array (?token=a&token=b)', () => {

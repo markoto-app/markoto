@@ -54,7 +54,7 @@ export interface AccountDeletionPlan {
   // Personally-attributable data the user owns outright.
   ownedDocs: { docId: string, title: string, accessMode: string, workspaceId: string | null }[]
   // Comments authored on docs the user does NOT own — these get
-  // anonymised, not deleted, per the locked policy.
+  // anonymised, not deleted, by policy.
   commentsToAnonymise: number
   // Workspaces the user is a member of, with the per-workspace fate.
   workspaces: WorkspaceFate[]
@@ -147,7 +147,7 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
       .where(and(
         eq(workspaceMembers.workspaceId, m.workspaceId),
         sql`${workspaceMembers.userId} <> ${userId}`,
-        // Guests (WP11) are not the team: never promoted, and a workspace
+        // Guests are not the team: never promoted, and a workspace
         // left with only guests counts as having no other member.
         ne(workspaceMembers.role, 'guest')
       ))
@@ -206,8 +206,6 @@ export async function planAccountDeletion(userId: number): Promise<AccountDeleti
     .select({ count: sql<number>`count(*)::int` })
     .from(aiSessionMessages)
     .where(eq(aiSessionMessages.userId, userId))
-  // Phase 6: ai_usage_period table dropped (LiteLLM owns spend state).
-
   // ── Data export jobs (CASCADE on user delete, but the S3 blobs
   //    don't go away with the row — collect keys for cleanup) ──────
   const exportJobs = await db
@@ -277,9 +275,8 @@ export interface AccountDeletionSummary {
   creditGrantsDeleted: number
 }
 
-// Also expose a small repo-shape helper to count themes (only used
-// by the executor today; not in the preview because it's invariant
-// "your saved themes go away — they're personal").
+// Theme count for the executor; not in the preview because saved themes
+// are personal and always go away with the account.
 export async function countThemesByUser(userId: number): Promise<number> {
   const db = useDatabase()
   const rows = await db.select({ count: sql<number>`count(*)::int` })

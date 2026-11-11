@@ -2,7 +2,7 @@ import { requireBrandKitAdmin } from '../../../../../utils/brandKit/access'
 import { parseTemplateDescription, parseTemplateName } from '../../../../../utils/brandKit/templateInput'
 import { updateWorkspaceTemplate } from '../../../../../repos/workspaceTemplates'
 
-// PATCH /api/workspaces/:wsId/templates/:templateId — {name?, description?} (WP10c, admins).
+// PATCH /api/workspaces/:wsId/templates/:templateId — {name?, description?} (admins).
 export default defineEventHandler(async (event) => {
   const { wsId } = await requireBrandKitAdmin(event)
   const id = requireRouteParam(event, 'templateId')

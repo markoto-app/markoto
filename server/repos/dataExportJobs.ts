@@ -4,23 +4,14 @@ import { dataExportJobs } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import { ConflictError, NotFoundError } from './errors'
 
-// `data_export_jobs` repository. Drives the GDPR Article 20 + 15
-// data-portability + access export. Owner of:
-//   - enqueueing (one active job at a time per user)
-//   - the worker's claim → run → ready / failed transitions
-//   - the expiry sweeper's mark-expired transition
-//   - the user-facing list + by-id reads
+// `data_export_jobs` repository (GDPR Art. 15/20 export): enqueue, the worker's
+// claim -> run -> ready / failed transitions, the expiry sweeper and the user's
+// reads.
 //
-// Status transitions:
-//   queued → running → ready    (worker happy path)
-//                    → failed   (worker error path; user can re-request)
-//          → expired             (sweeper, when ready row past expires_at)
-//
-// The active job is anything in `queued` or `running` — only one
-// active row per user at a time. Re-requesting while one is active
-// returns 409 (the user's UI shows "export in progress" until they
-// can request another). After ready/failed/expired the user can
-// request a new export immediately.
+// Status: queued -> running -> ready | failed; ready -> expired (sweeper, past
+// expires_at). Only one job per user may be active (queued or running);
+// re-requesting meanwhile is a 409. Once ready / failed / expired a new export
+// can be requested at once.
 
 const ACTIVE_STATUSES = ['queued', 'running'] as const
 
@@ -40,22 +31,15 @@ export interface DataExportJobRow {
 }
 
 /**
- * Create a new export job in `queued` status. Throws `ConflictError`
- * if the user already has an active (queued or running) job — the
- * UI shows "in progress" until that one resolves. Generates a fresh
- * `jobId` (nanoid) so the row's URL space is unguessable.
- *
- * The "one active per user" constraint is enforced via a transactional
- * count-then-insert. We don't use a partial unique index because a
- * post-completion ready row needs to coexist with a freshly-queued
- * one (re-requesting is allowed once the prior export is finished).
+ * Create a `queued` job; throws `ConflictError` if the user already has an
+ * active one. The one-active rule is a transactional count-then-insert, not a
+ * partial unique index, because a finished ready row must coexist with a newly
+ * queued one. `jobId` is a nanoid so the URL space is unguessable.
  */
 export async function enqueueExportJob(userId: number): Promise<DataExportJobRow> {
   const db = useDatabase()
   return db.transaction(async (tx) => {
-    // Lock-and-count: SELECT FOR UPDATE the user's active rows so a
-    // concurrent enqueue can't slip past us. Empty result is fine —
-    // we're locking on the rows that match, not on the user row.
+    // SELECT FOR UPDATE the user's active rows so a concurrent enqueue can't slip past (the matching rows are locked, not the user row).
     const active = await tx
       .select({ id: dataExportJobs.id })
       .from(dataExportJobs)
@@ -83,11 +67,8 @@ export async function enqueueExportJob(userId: number): Promise<DataExportJobRow
 }
 
 /**
- * Worker entry point: claim the oldest queued job, transitioning it
- * to `running`. Returns null if no queued jobs exist. Uses
- * `SELECT … FOR UPDATE SKIP LOCKED` so multiple worker instances can
- * each pick a different job concurrently without blocking on the
- * locked rows.
+ * Worker entry: claim the oldest queued job and mark it `running`; null if
+ * none. `FOR UPDATE SKIP LOCKED` lets several workers each take a different job.
  */
 export async function claimQueuedJob(): Promise<DataExportJobRow | null> {
   const db = useDatabase()
@@ -119,10 +100,7 @@ export async function claimQueuedJob(): Promise<DataExportJobRow | null> {
     `)
     const row = claimed.rows?.[0]
     if (!row) return null
-    // Raw `tx.execute` bypasses drizzle's column-type marshalling, so
-    // timestamp columns come back as ISO strings (or `Date` if pg's
-    // type parser converts — depends on driver config). Coerce to
-    // Date defensively so the public shape matches the typed reads.
+    // Raw `tx.execute` skips drizzle's column marshalling, so timestamps may come back as strings; coerce to Date to match the typed reads.
     return {
       jobId: row.job_id,
       userId: row.user_id,
@@ -148,10 +126,9 @@ function toDateOrNull(v: Date | string | number | null): Date | null {
 }
 
 /**
- * Mark a job ready. Sets `s3_key`, `size_bytes`, `expires_at`, and
- * `completed_at`. Idempotent — re-running on an already-ready row
- * has no effect (the worker is the only writer of `ready` and
- * advisory-locks per user).
+ * Mark a job ready (sets s3_key, size_bytes, expires_at, completed_at).
+ * Idempotent: the worker is the only writer of `ready` and advisory-locks per
+ * user.
  */
 export async function markJobReady(args: {
   jobId: string

@@ -113,8 +113,7 @@ describe('POST /api/abuse-reports', () => {
   })
 
   it('accepts free-form docId text (no FK constraint)', async () => {
-    // The FK was dropped in B-15.1 — pasting "test" (or a URL,
-    // or anything) should land cleanly.
+    // There is no FK on doc_id: pasting "test" (or a URL, or anything) should land cleanly.
     const reporter = await createUser()
     const client = await loggedInClient(reporter.id, reporter.name)
     const res = await client.request('/api/abuse-reports', {

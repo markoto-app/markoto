@@ -18,7 +18,6 @@ export function useImageUpload(docId: string) {
     error.value = null
 
     try {
-      // 1. Request presigned URL
       const { uploadUrl, fileId, key } = await $fetch<{
         uploadUrl: string
         fileId: string
@@ -33,7 +32,6 @@ export function useImageUpload(docId: string) {
         }
       })
 
-      // 2. PUT file directly to S3
       const putResponse = await fetch(uploadUrl, {
         method: 'PUT',
         headers: { 'Content-Type': file.type },
@@ -44,7 +42,6 @@ export function useImageUpload(docId: string) {
         throw new Error(`S3 upload failed: ${putResponse.status}`)
       }
 
-      // 3. Confirm upload
       await $fetch('/api/upload/confirm', {
         method: 'POST',
         body: { key }
@@ -74,9 +71,7 @@ export function useImageUpload(docId: string) {
 
   async function uploadAndInsert(file: File, view: EditorView) {
     const alt = file.name.replace(/\.[^.]+$/, '')
-    // Unique per-call so concurrent uploads don't collide on the
-    // post-upload `indexOf` lookup. Any collision-free token works;
-    // nanoid is already a project dep.
+    // Unique per call so concurrent uploads don't collide on the post-upload `indexOf`.
     const placeholder = `![Uploading ${alt}...](upload-${nanoid()})`
 
     const pos = view.state.selection.main.head
@@ -86,12 +81,12 @@ export function useImageUpload(docId: string) {
 
     const result = await upload(file)
 
-    // Find placeholder by its unique ID — safe even if user edited around it
+    // Safe even if the user edited around it.
     const currentText = view.state.doc.toString()
     const placeholderPos = currentText.indexOf(placeholder)
 
     if (placeholderPos < 0) {
-      // Placeholder was deleted by user during upload — silently skip
+      // The user deleted the placeholder during upload.
       return
     }
 
@@ -105,7 +100,6 @@ export function useImageUpload(docId: string) {
         }
       })
     } else {
-      // Remove placeholder on failure
       view.dispatch({
         changes: {
           from: placeholderPos,

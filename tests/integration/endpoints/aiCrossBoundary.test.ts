@@ -16,7 +16,7 @@ import {
   type SyncClient
 } from '../setup/byok'
 
-// AI security batch, end to end through the real loop:
+// AI security, end to end through the real loop:
 //   app → litellm-test (BYOK) → fake-openai-test model "obedient-chat",
 // a model that follows instructions planted in content
 // (`FAKE_DIRECTIVE <tool> <json>` lines) — i.e. a successful prompt
@@ -364,9 +364,8 @@ describe('F-7b — provenance of the invoker\'s own AI edits', () => {
     })
     await waitForAcked(c)
 
-    // Session 1 (prompt bar — it writes conversation memory, which under
-    // the old rule made its edits "Alice's"): reads Bob's comment →
-    // tainted → writes into the doc.
+    // Session 1 (prompt bar, which writes conversation memory): reads Bob's comment, becomes tainted, writes
+    // into the doc.
     await startPrompt(alice.client, doc.docId, 'Go through the comments.')
     await waitForSessionEnd(doc.docId)
     await waitForAiEditRow(doc.docId)

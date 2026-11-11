@@ -4,10 +4,9 @@ import { loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
-// Theme image URLs (cover logo, header/footer image) are interpolated
-// into an HTML attribute and a CSS url(). Regression: the schema only
-// checked their length, so any string was stored. Now a write accepts
-// empty, a bundled asset, or an upload of THIS document.
+// Theme image URLs (cover logo, header/footer image) are interpolated into an HTML attribute and a CSS
+// url(). A write accepts only empty, a bundled asset, or an upload of THIS document (a length check alone
+// would store any string).
 
 function themeWith(logoUrl: string, headerUrl = ''): typeof defaultTheme {
   return {

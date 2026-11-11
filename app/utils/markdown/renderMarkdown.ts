@@ -1,18 +1,16 @@
 /**
- * markdown-it + DOMPurify pipeline, factored out as a standalone async
- * function so both the live paged preview (`useMarkdownPreview`) and the
- * PDF print iframe (`printPdf`) share the same security-critical render
- * path. The strict ALLOWED_TAGS / ALLOWED_ATTR allowlist (`sanitizeHtml.ts`) is the XSS
- * boundary — DOMPurify's defaults plus a few additions would be looser; an
- * explicit allowlist fails closed when a future markdown-it plugin starts
- * emitting an unexpected tag.
+ * markdown-it + DOMPurify pipeline shared by the live paged preview
+ * (`useMarkdownPreview`) and the PDF print iframe (`printPdf`), so both
+ * use the same security-critical render path. The strict ALLOWED_TAGS /
+ * ALLOWED_ATTR allowlist (`sanitizeHtml.ts`) is the XSS boundary: an
+ * explicit allowlist fails closed when a markdown-it plugin starts
+ * emitting an unexpected tag, which DOMPurify's looser defaults would not.
  *
- * Tag sources: markdown-it core (headings, paragraphs, code, lists,
- * emphasis, links, images, tables, blockquote, hr, sup/sub via inline
- * tokens), markdown-it-footnote (sup, section, ol+li with ids/classes),
- * markdown-it-emoji (raw unicode, no tags), markdown-it-task-lists
- * (input[type=checkbox]), @mdit/plugin-alert (div.markdown-alert + p.title),
- * @mdit/plugin-katex (span.katex + MathML when output=htmlAndMathml).
+ * Tag sources: markdown-it core, markdown-it-footnote (sup, section, ol+li
+ * with ids/classes), markdown-it-emoji (raw unicode, no tags),
+ * markdown-it-task-lists (input[type=checkbox]), @mdit/plugin-alert
+ * (div.markdown-alert + p.title), @mdit/plugin-katex (span.katex + MathML
+ * when output=htmlAndMathml).
  */
 
 import type MarkdownIt from 'markdown-it'
@@ -27,9 +25,8 @@ import { unnumberedShorthandPlugin } from './markdownUnnumbered'
 import { tablePlugin } from './markdownTables'
 import { markersPlugin } from './markdownMarkers'
 
-// markdown-it exports Options as a nested type under the default class; we
-// pluck it from the instance shape so the type resolution doesn't depend on
-// the internal `/lib` path layout.
+// Plucked from the instance shape so type resolution doesn't depend on
+// markdown-it's internal `/lib` path layout.
 type MarkdownItOptions = MarkdownIt['options']
 
 interface MarkdownPipeline {
@@ -37,13 +34,10 @@ interface MarkdownPipeline {
 }
 
 /**
- * Inline markdown-it plugin: matches `<!-- pagebreak -->` on its own
- * line and emits an empty `<div class="page-break">`. The HTML-comment
- * marker degrades gracefully — every other markdown renderer sees a
- * comment and emits nothing, so docs ported elsewhere don't break.
- *
- * The matching CSS rule (`.page-break { break-after: page }`) lives
- * in themeToCss; this plugin is just the source-text → HTML bridge.
+ * Matches `<!-- pagebreak -->` on its own line and emits an empty
+ * `<div class="page-break">` (styled in themeToCss). The HTML-comment
+ * marker degrades gracefully: other markdown renderers see a comment and
+ * emit nothing, so documents ported elsewhere don't break.
  */
 function pagebreakPlugin(md: MarkdownIt): void {
   const re = /^\s*<!--\s*pagebreak\s*-->\s*$/i
@@ -62,27 +56,20 @@ function pagebreakPlugin(md: MarkdownIt): void {
 }
 
 /**
- * Block + inline plugin: HTML-style comments `<!-- ... -->` are stripped
- * from rendered output. Lets writers leave private notes for themselves
- * — `<!-- note: rewrite this -->` — without those notes leaking into
- * the preview, PDF, or shared view. The comment text stays in the
- * markdown source so collaborators with editor access still see it.
+ * Strips HTML comments `<!-- ... -->` from rendered output, so private
+ * notes stay out of the preview, PDF and shared view (the text stays in
+ * the source for editors).
  *
- * Two rules:
  *   - block: a line (or multi-line range) whose only non-whitespace
- *     content is a comment is consumed entirely, emitting nothing.
- *   - inline: `<!-- ... -->` mid-paragraph is stripped in place so
- *     surrounding prose flows around the gap.
+ *     content is a comment is consumed entirely.
+ *   - inline: a comment mid-paragraph is stripped in place.
  *
- * Pagebreak (`<!-- pagebreak -->`) is registered earlier in the chain
- * via `.use(pagebreakPlugin)` first, then `.use(commentPlugin)`. Both
- * insert `before('paragraph', ...)`, which positions the second
- * insertion AFTER the first — so pagebreak runs first and short-circuits
- * its exact pattern before the comment rule sees the line.
+ * Must be registered AFTER `pagebreakPlugin`: both insert
+ * `before('paragraph', ...)`, so the later `.use()` runs second and the
+ * pagebreak rule claims its exact pattern first.
  *
- * Unterminated `<!--` (no matching `-->`) returns false from the block
- * rule and falls through to paragraph parsing, where markdown-it
- * escapes the literal `<` because `html: false`.
+ * An unterminated `<!--` makes the block rule return false; paragraph
+ * parsing then escapes the literal `<` because `html: false`.
  */
 function commentPlugin(md: MarkdownIt): void {
   md.block.ruler.before('paragraph', 'comment', (state: StateBlock, startLine: number, endLine: number, silent: boolean) => {
@@ -128,7 +115,7 @@ function commentPlugin(md: MarkdownIt): void {
     const end = state.src.indexOf('-->', state.pos + 4)
     if (end === -1) return false
     if (!silent) {
-      // No token pushed — the comment is consumed silently.
+      // No token pushed: the comment is consumed silently.
     }
     state.pos = end + 3
     return true
@@ -136,10 +123,9 @@ function commentPlugin(md: MarkdownIt): void {
 }
 
 /**
- * Slugify shared by anchor + toc so the heading IDs and the TOC link
- * targets always agree. Lowercase, strip punctuation, hyphenate spaces
- * — same shape as GitHub's slugger so collaborators familiar with
- * GitHub anchors get the same URLs.
+ * Slugify shared by anchor + toc so heading IDs and TOC link targets
+ * agree. Same shape as GitHub's slugger: lowercase, strip punctuation,
+ * hyphenate spaces.
  */
 function defaultSlugify(s: string): string {
   const slug = s
@@ -148,9 +134,8 @@ function defaultSlugify(s: string): string {
     .replace(/[\s\u00A0]+/g, '-')
     .replace(/[^\p{L}\p{N}\-_]/gu, '')
     .replace(/-+/g, '-')
-    // The preceding collapse guarantees no `--` runs remain, so stripping
-    // a SINGLE leading/trailing dash is equivalent to the old /^-+|-+$/
-    // (whose `-+$` half backtracks super-linearly).
+    // No `--` runs remain after the collapse, so stripping a SINGLE
+    // leading/trailing dash suffices (`/^-+|-+$/` backtracks super-linearly).
     .replace(/^-|-$/g, '')
   return clobberSafeId(selectorSafeId(slug))
 }
@@ -159,9 +144,8 @@ function defaultSlugify(s: string): string {
  * An id that starts with a digit (heading "2024 results" → `2024-results`)
  * is a valid HTML id but not a valid CSS `#id` selector, and paged.js
  * resolves `target-counter()` / internal links with `querySelector('#…')`
- * without escaping — it threw and the WHOLE preview stayed blank. Such
- * slugs get an `h-` prefix (anchor + TOC share this slugify, so both
- * agree).
+ * without escaping; it throws and the whole preview stays blank. Such
+ * slugs get an `h-` prefix.
  */
 export function selectorSafeId(slug: string): string {
   return /^\p{N}/u.test(slug) ? `h-${slug}` : slug
@@ -173,11 +157,11 @@ let clobberProbe: HTMLFormElement | null = null
  * DOMPurify drops an `id` whose value names a property of `document` or of
  * a `<form>` (`SANITIZE_DOM`, DOM-clobbering protection) — `method`,
  * `title`, `action`, `images`, `forms`, `length`, … A heading "Method"
- * therefore lost its `id="method"`: the TOC link pointed nowhere and
- * paged.js's `target-counter()` printed page 0 for it. Such slugs get a
- * `-section` suffix (anchor + TOC share this slugify, so both agree).
- * Checked the way DOMPurify checks, in the same browser; without a DOM
- * (server-side trusted render, no DOMPurify) slugs stay as they are.
+ * would lose its `id="method"`, leaving the TOC link dangling and
+ * paged.js's `target-counter()` printing page 0. Such slugs get a
+ * `-section` suffix. Checked the way DOMPurify checks, in the same
+ * browser; without a DOM (server-side trusted render, no DOMPurify) slugs
+ * stay as they are.
  */
 export function clobberSafeId(slug: string): string {
   if (!slug || typeof document === 'undefined') return slug
@@ -191,11 +175,10 @@ export function clobberSafeId(slug: string): string {
  * highlight spans that cross a line break so the markup stays nested.
  * The theme makes each line a block (`display: block`), so the newlines
  * themselves are dropped: paged.js treats whitespace-only text nodes as
- * ignorable, and a block split over two pages lost the "\n" between its
- * lines on the second page (all lines ran into one). Block lines also
- * give paged.js clean break points, the theme its line numbers
- * (`code.lineNumbers`, `attr(data-line)`) and a line count for the
- * keep-short-blocks-together rule.
+ * ignorable and would run all lines together on the second page of a
+ * split block. Block lines also give paged.js clean break points, the
+ * theme its line numbers (`code.lineNumbers`, `attr(data-line)`) and a
+ * line count for the keep-short-blocks-together rule.
  */
 export function wrapCodeLines(html: string): string {
   const lines = html.replace(/\n$/, '').split('\n')
@@ -210,10 +193,6 @@ export function wrapCodeLines(html: string): string {
   }).join('')
 }
 
-/**
- * `title="replay.ts"` (or `title='…'` / `title=word`) from a fence's info
- * string after the language — shown as a caption bar above the block.
- */
 export const CODE_TOKEN_CLASS = 'markoto-code-token'
 
 /**
@@ -229,15 +208,17 @@ export function wrapCodeTokens(content: string, escape: (s: string) => string): 
   }).join('')
 }
 
+/**
+ * `title="replay.ts"` (or `title='…'` / `title=word`) from a fence's info
+ * string after the language — shown as a caption bar above the block.
+ */
 export function fenceTitle(info: string): string {
   const m = /(?:^|\s)title=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(info)
   return (m?.[1] ?? m?.[2] ?? m?.[3] ?? '').trim().slice(0, 200)
 }
 
-// Lazy singleton via createGlobalState: the factory runs once on first
-// call and returns the same Promise to every subsequent caller. The
-// async work (dynamic imports + plugin registration) is deduplicated
-// without manual `if (initPromise) return initPromise` guards.
+// Lazy singleton: the factory runs once on first call and every caller
+// gets the same Promise.
 const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline> => {
   const [
     { default: MarkdownIt },
@@ -245,8 +226,6 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     taskListsMod,
     emojiMod,
     footnoteMod,
-    // Batch 1 — typography & semantic markup. Each is a named export
-    // from `@mdit/plugin-*` and wires through the same `.use()` chain.
     { attrs },
     { mark },
     { ins },
@@ -256,11 +235,9 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     { abbr },
     { figure },
     { imgSize },
-    // Batch 2 — math + GitHub-style alerts.
     { alert },
     { katex },
-    // Batch 3 — anchors + auto-TOC. anchor must load BEFORE toc so
-    // the toc plugin sees stable heading IDs to link against.
+    // anchor must be registered BEFORE toc so toc sees stable heading IDs.
     anchorMod,
     tocMod
   ] = await Promise.all([
@@ -284,13 +261,12 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     import('markdown-it-toc-done-right')
   ])
 
-  // Syntax highlighting CSS — same theme on screen and in PDF.
+  // Same highlight theme on screen and in PDF.
   await import('highlight.js/styles/github-dark.min.css')
 
-  // Dynamic-import unwrapping: the dependencies ship mixed CJS/ESM defaults
-  // whose shapes differ by build. Each module has `default`, `full`, or a
-  // direct function export depending on bundler + version — we probe the
-  // known shapes rather than pin to one.
+  // The dependencies ship mixed CJS/ESM shapes that differ by bundler and
+  // version (`default`, `full`, or a direct function export); probe them
+  // rather than pin one.
   type MaybeDefault<T> = T | { default?: T, full?: T }
   function unwrap<T>(mod: MaybeDefault<T>): T {
     const m = mod as { default?: T, full?: T }
@@ -308,22 +284,13 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     html: false,
     linkify: true,
     typographer: true,
-    // GFM-style hard-wrap: a single newline inside a paragraph
-    // becomes a <br>. Without this, `a\nb\nc` renders as `a b c`
-    // on one line (CommonMark default), which is consistently
-    // confusing for users who expect WYSIWYG behavior. Blank-line
-    // paragraph breaks still create new paragraphs.
+    // GFM-style hard wrap: a single newline in a paragraph becomes a
+    // <br> (CommonMark would join the lines), matching what users expect.
     breaks: true,
-    // Return the full `<pre><code class="hljs ...">` wrapper rather
-    // than just the inner highlighted spans, so the github-dark
-    // stylesheet's `.hljs { background; color; }` rules actually
-    // apply. If we returned only the spans (markdown-it's default
-    // contract), markdown-it would wrap them in `<pre><code class="
-    // language-X">` — without `.hljs`, the base background/color
-    // never lands and the result looks half-styled.
-    //
-    // Returning a string starting with `<pre` tells markdown-it to
-    // use it verbatim instead of wrapping again.
+    // Returns the full `<pre><code class="hljs ...">` wrapper (a string
+    // starting with `<pre` is used verbatim) so the github-dark
+    // stylesheet's `.hljs` background/color rules apply; markdown-it's
+    // own wrapper would lack the `.hljs` class.
     highlight: (str: string, lang: string) => {
       const escaped = md?.utils?.escapeHtml?.(str) ?? str
       if (lang && hljs.getLanguage(lang)) {
@@ -332,11 +299,8 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
           return `<pre><code class="hljs language-${lang}">${wrapCodeLines(out)}</code></pre>`
         } catch { /* fall through to the plain-class path below */ }
       }
-      // Preserve language class even when hljs doesn't recognize the
-      // lang — needed for the iframe-side mermaid pre-processor to
-      // find `pre code.language-mermaid` blocks. Without this, mermaid
-      // (and any future unknown-lang detector) sees `class="hljs"`
-      // only and can't tell what kind of block this is.
+      // Keep the language class even when hljs doesn't know the language:
+      // the mermaid pre-processor finds `pre code.language-mermaid` by it.
       const langClass = lang ? ` language-${lang.replace(/[^a-zA-Z0-9_-]/g, '')}` : ''
       // Mermaid source is replaced by the diagram; keep it as plain text.
       const body = lang === 'mermaid' ? escaped : wrapCodeLines(escaped)
@@ -346,7 +310,6 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     .use(taskLists, { enabled: true })
     .use(emoji)
     .use(footnote)
-  // Batch 1 — typography & semantic markup
     .use(attrs)
   // `# References {-}` → class `unnumbered` (Pandoc shorthand for `{.unnumbered}`).
     .use(unnumberedShorthandPlugin)
@@ -358,29 +321,20 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     .use(abbr)
     .use(figure, { copyAttrsOnFigure: true })
     .use(imgSize)
-  // Batch 2 — math + GitHub-style alerts.
-  // Defaults already match the 5-kind GH set; setting it explicitly
-  // here keeps the contract visible at the call site.
+  // The 5-kind GitHub set (the plugin default), explicit to keep the contract visible.
     .use(alert, { alertNames: ['note', 'tip', 'important', 'warning', 'caution'] })
-  // KaTeX with `htmlAndMathml` so screen readers / copy-paste get the
-  // semantic MathML alongside the visually-laid-out HTML. throwOnError
-  // off so a malformed `$\frac{`  doesn't 500 the whole render — bad
-  // expressions render in errorColor and the rest of the doc carries
-  // on. Ref: @mdit/plugin-katex docs.
+  // `htmlAndMathml` gives screen readers / copy-paste the semantic MathML.
+  // throwOnError off so a malformed `$\frac{` renders in errorColor
+  // instead of failing the whole render.
     .use(katex, {
       output: 'htmlAndMathml',
       throwOnError: false,
       errorColor: '#cc0000',
       strict: false
     })
-  // Batch 3 — anchors + auto-TOC. Anchor adds stable `id` attrs to
-  // every heading so the TOC links resolve cleanly (and so deep
-  // links to specific sections work). Permalink off — the inserted
-  // `¶` glyphs would clutter the printed page. TOC plugin renders
-  // the `[[toc]]` placeholder into a nested `<nav class="table-of-
-  // contents"><ul>…</ul></nav>` from h2/h3 by default; we expose
-  // h1–h4 so a user putting a TOC in a structured doc gets useful
-  // depth.
+  // Permalink off: the inserted `¶` glyphs would clutter the printed page.
+  // `[[toc]]` renders to `<nav class="table-of-contents">`; h1–h4 (the
+  // plugin default is h2/h3) so a structured document gets useful depth.
     .use(anchor, { permalink: false, slugify: defaultSlugify })
     .use(toc, {
       listType: 'ul',
@@ -388,12 +342,9 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
       containerClass: 'table-of-contents',
       slugify: defaultSlugify
     })
-  // Inline plugin — `<!-- pagebreak -->` on its own line becomes
-  // `<div class="page-break"></div>` for paged.js to break on.
+  // `<!-- pagebreak -->` → `<div class="page-break">` for paged.js.
     .use(pagebreakPlugin)
-  // Comment plugin — strips `<!-- ... -->` from preview/PDF.
-  // Registered AFTER pagebreak so the pagebreak rule wins on its
-  // exact pattern by registration order.
+  // Registered AFTER pagebreak (see commentPlugin).
     .use(commentPlugin)
   // `{.class}` on the line right after a table → attributes of the table
   // (instead of an extra empty row). See markdownTableAttrs.ts.
@@ -424,8 +375,8 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
     return `<code${self.renderAttrs(token)}>${wrapCodeTokens(token.content, md.utils.escapeHtml)}</code>`
   }
 
-  // Open all preview links in a new tab. `rel="noopener noreferrer"`
-  // prevents the opened page from reaching back into our window.
+  // Links open in a new tab; `rel="noopener noreferrer"` stops the opened
+  // page from reaching back into our window.
   type RenderRule = (tokens: Token[], idx: number, options: MarkdownItOptions, env: unknown, self: Renderer) => string
   const defaultLinkOpen: RenderRule = md.renderer.rules.link_open
     || ((tokens, idx, options, _env, self) => self.renderToken(tokens, idx, options))
@@ -442,9 +393,6 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
 
   return { md }
 })
-
-// The tag/attribute/URI allowlist + inline-style filter live in
-// `sanitizeHtml.ts`, shared with `composeFinalHtml`'s final pass.
 
 /**
  * Render markdown source to sanitized HTML. Initializes the singleton on
@@ -474,23 +422,18 @@ export async function renderTrustedMarkdown(source: string): Promise<string> {
 }
 
 /**
- * Lift markdown-it-footnote output from "all collected at end of doc" into
- * `float: footnote` inline anchors so paged.js places each footnote at the
- * bottom of the page where its reference appears (the standard print
- * typography convention).
+ * Lift markdown-it-footnote output (all notes collected at the end) into
+ * inline `float: footnote` anchors so paged.js places each footnote at the
+ * bottom of the page where its reference appears.
  *
  * markdown-it-footnote emits two pieces:
  *   - inline:  <sup class="footnote-ref"><a href="#fn1" id="fnref1">[1]</a></sup>
  *   - end:     <section class="footnotes"><ol><li id="fn1">…</li></ol></section>
  *
- * We extract each `<li>`'s content (minus the back-reference link), wrap
- * it in `<span class="footnote">…</span>` at the original `<sup>` location,
- * and drop the trailing section. The `.footnote` class then gets
- * `float: footnote` from themeToCss, which paged.js's footnote handler
- * pulls into the page's bottom margin.
- *
- * Falls back gracefully — if there are no footnotes, returns the input
- * untouched.
+ * Each `<li>`'s content (minus the back-reference link) is wrapped in
+ * `<span class="footnote">` at the original `<sup>` location and the
+ * trailing section is dropped. themeToCss gives `.footnote` its
+ * `float: footnote`. Without footnotes the input is returned untouched.
  */
 function transformFootnotesForPagedMedia(html: string): string {
   if (!html.includes('footnote-ref')) return html
@@ -503,22 +446,19 @@ function transformFootnotesForPagedMedia(html: string): string {
   const section = root.querySelector('section.footnotes')
   if (!section) return html
 
-  // Build id → inline-content map. Strip the back-reference link that
-  // markdown-it-footnote appends to each item — it links back to the
-  // inline ref position, which is meaningless once footnotes are inlined.
+  // id → inline content. The back-reference link is meaningless once
+  // footnotes are inlined.
   const contents = new Map<string, string>()
   section.querySelectorAll('li.footnote-item').forEach((li) => {
     const id = li.id
     if (!id) return
     const clone = li.cloneNode(true) as Element
     clone.querySelectorAll('.footnote-backref').forEach(a => a.remove())
-    // Drop the wrapping <p> if it's the only child — keeps inline footnotes flat.
+    // Use the wrapping <p>'s content to keep inline footnotes flat.
     const inner = clone.querySelector('p')
     contents.set(id, (inner ?? clone).innerHTML.trim())
   })
 
-  // Inline each reference. The `<sup>` becomes a `<span class="footnote">`
-  // whose text content paged.js then floats into the page-bottom margin.
   root.querySelectorAll('sup.footnote-ref').forEach((sup) => {
     const link = sup.querySelector('a')
     const href = link?.getAttribute('href')

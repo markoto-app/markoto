@@ -5,7 +5,7 @@
 #  regenerate certs, so we keep it.)
 # Run: docker compose -f docker-compose.local.yml up -d --build
 #
-# First-time setup: see docs/LOCAL.md.
+# First-time setup: see docs/contributing/LOCAL.md.
 #
 # Access:
 #   App:           https://ypad.127.0.0.1.nip.io
@@ -58,7 +58,7 @@ services:
       - VERSION=1
       - POST=0
     volumes:
-      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/CONTAINER-ENGINES.md.
+      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/contributing/CONTAINER-ENGINES.md.
       - ${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro
     read_only: true
     tmpfs:
@@ -176,7 +176,7 @@ services:
 
   app:
     # Same as the image's HEALTHCHECK, declared here because Podman builds
-    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=5 http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s
@@ -255,7 +255,7 @@ services:
       # empty = default 30 / 100). Shared by the editor AI and MCP.
       - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
       - NUXT_WEB_TOOLS_DAILY_LIMIT=${NUXT_WEB_TOOLS_DAILY_LIMIT:-}
-      # Bring-your-own-key AI (WP4) — instance defaults + URL policy. See
+      # Bring-your-own-key AI — instance defaults + URL policy. See
       # server/utils/aiProviders/config.ts. MISTRAL_API_KEY reaches the app
       # only for live dictation on a platform-alias transcription default.
       - NUXT_AI_DEFAULT_CHAT_MODEL=${NUXT_AI_DEFAULT_CHAT_MODEL:-}

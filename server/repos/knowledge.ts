@@ -188,7 +188,7 @@ export async function sumKnowledgeBytesByUploader(uploaderId: number, opts: { ex
 
 /**
  * Rows of one uploader; with `excludePooled`, without the files in Team /
- * Business workspaces (those count against the workspace pool, WP3).
+ * Business workspaces (those count against the workspace pool).
  */
 function uploaderCondition(uploaderId: number, excludePooled: boolean) {
   const byUploader = eq(workspaceKnowledge.uploaderId, uploaderId)

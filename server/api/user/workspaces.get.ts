@@ -9,7 +9,7 @@ import { pooledPlansFor } from '../../utils/billing/workspaceBilling'
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const rows = await listWorkspacesForUser(session.user.id)
-  // Team / Business plan covering the workspace (WP3), for the badge.
+  // Team / Business plan covering the workspace, for the badge.
   const plans = await pooledPlansFor(rows.map(r => r.workspaceId))
   return rows.map(r => ({ ...r, plan: plans.get(r.workspaceId) ?? null }))
 })

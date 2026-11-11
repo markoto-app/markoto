@@ -12,9 +12,8 @@ function parse(html: string): DocumentFragment {
 }
 
 describe('heading ids survive sanitising (TOC page numbers)', () => {
-  // Regression: DOMPurify (SANITIZE_DOM) drops id="method" because
-  // `method` is a property of <form>; the TOC link then pointed nowhere and
-  // paged.js printed page 0 for "Method".
+  // DOMPurify (SANITIZE_DOM) drops id="method" because `method` is a property of <form>; the TOC link
+  // would then point nowhere and paged.js would print page 0 for "Method".
   it('a heading named like a DOM property keeps an id the TOC links to', async () => {
     const html = await renderMarkdown('[[toc]]\n\n# Introduction\n\n# Method\n\n# Title\n\n# Action\n')
     const root = parse(html)
@@ -36,9 +35,8 @@ describe('heading ids survive sanitising (TOC page numbers)', () => {
 })
 
 describe('heading ids are valid CSS selectors (paged.js)', () => {
-  // Regression: "## 3.4.1 — 2026-10-28" got id="341-2026-10-28"; paged.js
-  // resolves target-counter()/links with querySelector('#…') unescaped,
-  // which threw and left the whole preview blank.
+  // A heading like "## 3.4.1 — 2026-10-28" must not yield an id that paged.js resolves with an unescaped
+  // querySelector('#…') (target-counter()/links); that throws and leaves the whole preview blank.
   it('a heading starting with a digit gets an id that querySelector accepts, and the TOC links to it', async () => {
     const html = await renderMarkdown('[[toc]]\n\n# 2024 results\n\n## 3.4.1 — 2026-10-28\n')
     const root = parse(html)

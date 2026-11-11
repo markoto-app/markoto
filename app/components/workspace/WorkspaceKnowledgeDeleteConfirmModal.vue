@@ -1,10 +1,8 @@
 <script setup lang="ts">
-// Knowledge-file delete confirmation. Same visual idiom as
-// DeleteConfirmModal / WorkspaceDeleteConfirmModal but without the
-// "type the name to confirm" step — knowledge files are uploaded
-// artifacts, not user-authored content, so the friction bar is lower.
-// The destructive action is still framed clearly (red icon + warning
-// copy) so it can't be mistaken for a benign click.
+// Knowledge-file delete confirmation. Like DeleteConfirmModal but without
+// the "type the name" step: knowledge files are uploaded artifacts, not
+// user-authored content. The red icon + warning copy still frame it as
+// destructive.
 
 const props = defineProps<{
   workspaceId: string

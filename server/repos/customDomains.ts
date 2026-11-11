@@ -3,7 +3,7 @@ import { customDomains, documents, publishedPages, workspaceMembers } from '../d
 import { useDatabase } from '../utils/platform/database'
 import { ssoEnforcedSql } from './sso'
 
-// Custom domains of published pages (WP13).
+// Custom domains of published pages.
 
 export type CustomDomainRow = typeof customDomains.$inferSelect
 

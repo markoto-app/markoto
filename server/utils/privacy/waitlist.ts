@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 import { isValidEmailShape } from '../workspaces/emailShape'
 import { getBillingMode } from '../billing/billingMode'
 
-// Paid-plans waitlist helpers (WP3): token minting/hashing, email
+// Paid-plans waitlist helpers: token minting/hashing, email
 // normalisation, the localised double-opt-in email, and the "is the
 // waitlist open" gate. Pure where possible so `tests/unit/privacy/waitlist.test.ts`
 // can pin the behaviour without a DB.

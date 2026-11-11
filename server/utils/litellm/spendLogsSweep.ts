@@ -2,9 +2,8 @@ import * as Sentry from '@sentry/nuxt'
 import { Pool } from 'pg'
 import { litellmDbUrl } from './litellmDb'
 
-// LiteLLM `LiteLLM_SpendLogs` retention sweeper. Phase 5 risk-register
-// item: every billable AI call writes a row, so the table grows
-// linearly with traffic. /spend/tags aggregation reads it on every
+// LiteLLM `LiteLLM_SpendLogs` retention sweeper. Every billable AI call
+// writes a row, so the table grows linearly with traffic. /spend/tags aggregation reads it on every
 // admin-dashboard refresh, so unbounded growth eventually impacts
 // dashboard responsiveness.
 //

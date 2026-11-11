@@ -5,26 +5,20 @@ import { getCommentThreadByEntryId } from '../../../../../repos/comments'
 import { docStateOf, decideActivityAccess, type DocState, type ActorState } from '../../../../../../shared/utils/documents/docPermissions'
 import { hasValidDocJwt } from '../../../../../utils/documents/docTokenVerify'
 
-// On-demand fetch of the full conversation thread for a comment-row
-// activity. The activity row stores only a body preview — when the
-// user expands the row, we want the full body PLUS the surrounding
-// reply chain so they can see the conversation context this row
-// belonged to.
+// On-demand fetch of the full conversation thread for a comment activity
+// row. The row stores only a body preview; expanding it needs the full body
+// plus the surrounding reply chain.
 //
-// Source-of-truth: the `document_comments` mirror table. The mirror
-// is eventually-consistent (lags Y.js by a few seconds) but the
-// activity row that triggered this expansion was itself created from
-// a snapshot push, so by the time the user clicks "View thread" the
-// mirror has caught up.
+// Source of truth is the `document_comments` mirror table. It lags Y.js by a
+// few seconds, but the activity row was created from a snapshot push, so the
+// mirror has caught up by the time the user expands it.
 //
-// Endpoint shape:
 //   GET /api/docs/:docId/activity/:activityId/comment-context
-//   → 200 { rows: CommentThreadRow[], focusEntryId: string }
-//   → 404 if the activity row doesn't exist for this doc
-//   → 410 if the row is a comment.* event but the entry has been
-//        purged from the mirror (deleted thread + post-snapshot prune)
-//   → 410 if the row isn't a comment.* event at all (caller bug)
-//   → 403 if the actor isn't allowed to read activity for this doc
+//   200 { rows: CommentThreadRow[], focusEntryId: string }
+//   404 activity row doesn't exist for this doc
+//   410 comment.* row whose entry was purged from the mirror, or a row that
+//       isn't a comment.* event at all
+//   403 actor can't read activity for this doc
 
 interface CommentContextRow {
   entryId: string
@@ -89,9 +83,8 @@ export default defineEventHandler(async (event): Promise<CommentContextResponse>
     throw createError({ statusCode: 410, message: 'Activity row is not a comment event' })
   }
 
-  // Pull the entry id off the metadata. All comment.* shapes carry
-  // a `commentId` field; defensive in case some old row was written
-  // before that contract was tightened.
+  // All comment.* metadata shapes carry `commentId`; guard against rows
+  // written without it.
   const meta = activity.metadata as { kind?: string, commentId?: string } | null
   const entryId = meta?.commentId
   if (!entryId) {
@@ -100,11 +93,9 @@ export default defineEventHandler(async (event): Promise<CommentContextResponse>
 
   const thread = await getCommentThreadByEntryId(docId, entryId)
   if (!thread || thread.length === 0) {
-    // Comment was deleted after the activity row was written. We
-    // still know which entry the row referred to, but there's no
-    // thread context to render. The UI surfaces this as "thread no
-    // longer exists" — better than 404 because the activity row
-    // itself is real, just orphaned.
+    // Comment was deleted after the row was written. 410 rather than 404
+    // because the activity row itself is real, just orphaned; the UI shows
+    // "thread no longer exists".
     throw createError({
       statusCode: 410,
       statusMessage: 'Comment thread no longer exists',

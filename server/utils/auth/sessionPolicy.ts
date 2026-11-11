@@ -9,9 +9,7 @@
 //      column is rejected on the next request. Bumping the column
 //      ("log out everywhere", account-deletion request) therefore kills
 //      every cookie issued before the bump, including a stolen copy.
-//      Cookies sealed before the column existed carry no `e` and count
-//      as epoch 0, the column default — nobody is logged out by the
-//      rollout itself.
+//      A cookie without `e` counts as epoch 0, the column default.
 //   2. Recent sign-in. Account deletion, data-export requests and
 //      bring-your-own-key provider changes need `loggedInAt` within
 //      `RECENT_LOGIN_MAX_AGE_MS`; otherwise the API answers 401

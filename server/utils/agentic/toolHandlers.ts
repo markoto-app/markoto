@@ -117,8 +117,8 @@ export const META_TOOL_HANDLERS = Object.freeze({
   list_themes: (ctx, args) => handleListThemes(ctx, args as ListThemesInput),
   list_workspace_documents: (ctx, args) => handleListWorkspaceDocuments(ctx, args as ListWorkspaceDocumentsInput),
   list_my_documents: (ctx, args) => handleListMyDocuments(ctx, args as ListMyDocumentsInput),
-  // Phase 4 host-style tools. Both META — no current-doc context
-  // needed, the tool args carry their own doc references.
+  // META: no current-doc context needed, the tool args carry their own
+  // doc references.
   create_document: (ctx, args) => handleCreateDocument(ctx, args as CreateDocumentInput),
   duplicate_document: (ctx, args) => handleDuplicateDocument(ctx, args as DuplicateDocumentInput),
   view_other_document: (ctx, args) => handleViewOtherDocument(ctx, args as ViewOtherDocumentInput),
@@ -134,8 +134,7 @@ export const META_TOOL_HANDLERS = Object.freeze({
   // the in-app loop (they have a 2-call shape that needs the loop's
   // abort signal + spend-tag context). The bridge below adapts them to
   // the (ctx, args) signature so MCP wrappers + the dispatch table can
-  // call them through the same surface as every other tool. The loop
-  // continues to call them directly for now.
+  // call them through the same surface as every other tool.
   web_search: async (ctx, args): Promise<ToolResult> => {
     const { query } = args as { query: string }
     const result = await webSearch(undefined, '', query, neverAbortSignal(), {
@@ -182,10 +181,9 @@ export const KNOWN_TOOL_NAMES: readonly string[] = Object.freeze(
   [...Object.keys(DOC_TOOL_HANDLERS), ...Object.keys(META_TOOL_HANDLERS)].sort((a, b) => a.localeCompare(b))
 )
 
-// MCP tool calls don't have an in-flight abort signal (no equivalent
-// of the loop's 5-min deadline). The toolkit may add one in a future
-// version; until then, web_search / fetch_url get a never-aborts
-// signal and rely on the underlying Jina/Mistral SDKs' own timeouts.
+// MCP tool calls have no in-flight abort signal (no equivalent of the
+// loop's 5-min deadline), so web_search / fetch_url get a never-aborts
+// signal and rely on the underlying SDKs' own timeouts.
 function neverAbortSignal(): AbortSignal {
   return new AbortController().signal
 }

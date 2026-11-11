@@ -41,7 +41,7 @@ const LOCKED_MESSAGE: Partial<Record<AiCapability, string>> = {
 /**
  * Resolve all providers under `plan` and require one capability. A
  * capability the platform offers but the plan doesn't include answers
- * 409 `plan/feature-unavailable` (WP5); none at all → `ai/provider-missing`.
+ * 409 `plan/feature-unavailable`; none at all → `ai/provider-missing`.
  */
 export async function requireAiProviders(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProviders> {
   const access = await resolveAiAccess(userId, plan)

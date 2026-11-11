@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { test, expect } from '../fixtures/flow'
 
-// "Set up a workspace brand kit" (WP10).
+// "Set up a workspace brand kit".
 //
 // User-job: a workspace admin wants every document of the team to look
 // like the company's: its font, its logo, one locked design. Job done
@@ -96,7 +96,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
     { after: () => expect(lockSwitch).toHaveAttribute('aria-checked', 'true', { timeout: 10_000 }) }
   )
 
-  // ─── A colleague's document ──────────────────────────────────────
+  // A colleague's document
   await flow.heading('Every document follows it', 3)
   await page.goto(`/d/${memoId}`)
   await editor.page.waitForReady()

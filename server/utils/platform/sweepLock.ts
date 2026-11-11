@@ -3,40 +3,28 @@ import * as Sentry from '@sentry/nuxt'
 import { useDatabasePool } from './database'
 
 /**
- * Coarse cross-instance lock for periodic background sweepers. Built on
- * Postgres advisory locks (session-scoped via pg_try_advisory_lock /
- * pg_advisory_unlock). Two app instances both fire the sweeper timer at
- * the same second; only one acquires the lock and runs the work, the
- * other no-ops.
+ * Cross-instance lock for periodic background sweepers, built on Postgres
+ * session advisory locks. When two instances fire the same sweeper, one
+ * acquires the lock and runs; the other no-ops.
  *
- * Why session-scoped (NOT transaction-scoped): the sweep work runs
- * across many transactions (and may not be in a transaction at all);
- * we want one lock for the whole sweep, released only at the end. The
- * `pg_try_advisory_xact_lock` variant would auto-release the moment our
- * acquire query commits, defeating the purpose.
+ * Session-scoped, not transaction-scoped: a sweep spans many transactions
+ * and needs one lock until the end. `pg_try_advisory_xact_lock` would
+ * release as soon as the acquire query commits.
  *
- * Each named sweep gets one stable bigint lock id derived from
- * hashtext(name). Postgres uses a single namespace for advisory locks,
- * so the namespace IS the literal string we pass.
+ * The lock id is `hashtext(name)`; Postgres has a single advisory-lock
+ * namespace, so the name itself is the namespace.
  *
- * Connection pinning: Postgres session-advisory locks are bound to the
- * connection that acquired them. With `pg.Pool`, two queries from the
- * same caller can land on different connections — so we pin the same
- * `PoolClient` across acquire AND release via a per-process Map. The
- * Map is per-process; advisory locks are per-connection — across
- * multi-instance, each instance has its own Map AND its own connection,
- * so only one instance's `pg_try_advisory_lock` returns true.
+ * Connection pinning: a session lock belongs to the connection that took
+ * it, and a `pg.Pool` may serve the next query from another connection, so
+ * the same `PoolClient` is held in a per-process Map from acquire to release.
  *
  * Failure modes:
- *   - Could-not-acquire (the common case under multi-instance): logs at
- *     debug, no Sentry capture. Returns false; caller skips the sweep
- *     cleanly.
- *   - Acquire threw (DB unreachable, etc.): Sentry-capture, return false
- *     and let the next tick try. Failing-closed prevents two instances
- *     from running the sweep when the lock infrastructure is degraded.
- *   - releaseSweepLock when no lock was held: silent no-op. Worst case
- *     (the connection was lost mid-sweep) the lock auto-releases when
- *     the connection terminates; the next tick reacquires.
+ *   - Lock held elsewhere (the normal multi-instance case): returns false,
+ *     no Sentry event; the caller skips the sweep.
+ *   - Acquire threw (DB unreachable): captured to Sentry, returns false. This
+ *     fails closed so two instances never sweep while locking is degraded.
+ *   - `releaseSweepLock` without a held lock: no-op. If the connection died
+ *     mid-sweep the lock released with it.
  *
  * Usage:
  *   if (!await acquireSweepLock('orphan-cleanup')) return
@@ -63,16 +51,14 @@ export async function acquireSweepLock(name: string): Promise<boolean> {
       [name]
     )
     if (!res.rows[0]?.ok) {
-      // Common case under multi-instance — another worker holds the
-      // lock. Return the connection to the pool and bail quietly.
+      // Another instance holds the lock.
       client.release()
       return false
     }
     heldConns.set(name, client)
     return true
   } catch (e) {
-    // Acquire query itself blew up. Release the connection so the pool
-    // doesn't leak it, capture for ops, and fail closed.
+    // Release the connection so the pool doesn't leak it, and fail closed.
     try {
       client.release()
     } catch { /* ignore */ }
@@ -86,13 +72,12 @@ export async function acquireSweepLock(name: string): Promise<boolean> {
 
 export async function releaseSweepLock(name: string): Promise<void> {
   const client = heldConns.get(name)
-  if (!client) return // No-op: never acquired here, or already released.
+  if (!client) return
   heldConns.delete(name)
   try {
     await client.query('SELECT pg_advisory_unlock(hashtext($1))', [name])
   } catch (e) {
-    // The lock auto-releases when the connection ends, so a failing
-    // unlock query is recoverable — just warn.
+    // The lock is released when the connection ends, so just warn.
     console.warn(`[sweepLock] unlock failed for '${name}':`, e instanceof Error ? e.message : e)
   } finally {
     try {

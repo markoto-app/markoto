@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
   if (decision.outcome === 'deny') {
     throw createError({ statusCode: 403, message: 'Access denied' })
   }
-  // Share-link controls (WP9): view-only without download for visitors.
+  // Share-link controls: view-only without download for visitors.
   if (!canDownload(doc, { ...actor, isGuest: row.isGuest }, row.shareNoDownload)) {
     throw createError({ statusCode: 403, message: 'The owner turned off downloading this document.', data: { code: 'share/download-disabled', messageKey: 'share.controls.downloadDisabled' } })
   }

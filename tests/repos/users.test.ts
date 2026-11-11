@@ -366,9 +366,7 @@ describe('upsertOAuthUser — email-based merge', () => {
   })
 })
 
-// ────────────────────────────────────────────────────────────────────
-// Account-deletion request lifecycle (Workstream B-1)
-// ────────────────────────────────────────────────────────────────────
+// Account-deletion request lifecycle
 
 async function newUser(): Promise<number> {
   const r = await upsertOAuthUser({
@@ -533,9 +531,7 @@ describe('getAccountStatus', () => {
   })
 })
 
-// ────────────────────────────────────────────────────────────────────
-// Admin flag (B-13.x)
-// ────────────────────────────────────────────────────────────────────
+// Admin flag
 
 describe('setAdminFlag', () => {
   beforeEach(async () => {

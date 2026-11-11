@@ -10,7 +10,7 @@
 // meta, one <h1>, heading order, <img> alt/width/height, JSON-LD (parses,
 // types, duplicate @ids) and every internal link (no 4xx/5xx). Exits 1
 // when a page has an error-level finding. No CI job runs it; see
-// docs/CHEATSHEET.md.
+// docs/contributing/CHEATSHEET.md.
 //
 // The sitemap's URLs use NUXT_SITE_URL's origin; requests go to the base
 // URL given on the command line instead (the site URL's host name may

@@ -7,12 +7,11 @@ import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
  * LiteLLM speaks OpenAI's API shape for chat / embeddings / images /
  * audio, so the official `openai` SDK Just Works against it — we don't
  * need a vendor-specific client per provider. The proxy handles routing,
- * cost tracking, and (per Phase 6) per-user budget enforcement.
+ * cost tracking, and per-user budget enforcement.
  *
- * Phase 1A uses the master key for every call (system-level operations:
- * ingest re-embed, search-time query embedding). Phase 6 introduces
- * per-user virtual keys — `useLitellmForUser(virtualKey)` is the future
- * shape; for now `useLitellmAdmin()` is the entry point.
+ * `useLitellmAdmin()` uses the master key for system-level operations
+ * (ingest re-embed, search-time query embedding); `useLitellmForUser()`
+ * uses a per-user virtual key.
  *
  * Don't confuse with `server/utils/ai/aiClient.ts` — that's the Y.js AI
  * session client (joins Hocuspocus as the `ai:assistant:*` principal).
@@ -25,7 +24,7 @@ let cachedAdminClient: OpenAI | null = null
 /**
  * Returns an OpenAI SDK client authenticated with the LiteLLM master key.
  * Use for system operations (ingest pipelines, sweepers, admin endpoints).
- * For user-attributed calls, use `useLitellmForUser(virtualKey)` in Phase 6+.
+ * For user-attributed calls, use `useLitellmForUser(virtualKey)`.
  *
  * The client is cached across calls — the SDK manages its own keep-alive
  * connection pool, and `useRuntimeConfig()` is cheap but not free.
@@ -49,8 +48,8 @@ export function useLitellmAdmin(): OpenAI {
 
 /**
  * Returns an OpenAI SDK client authenticated with a per-user virtual key.
- * Phase 6+ entry point — currently a thin wrapper that constructs a fresh
- * client per call (no cache, since virtual keys differ per user).
+ * Constructs a fresh client per call (no cache, since virtual keys differ
+ * per user).
  */
 export function useLitellmForUser(virtualKey: string): OpenAI {
   const config = useRuntimeConfig()

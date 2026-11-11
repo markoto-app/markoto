@@ -1,20 +1,17 @@
 import { deleteWaitlistSignupByUnsubscribeToken } from '../../repos/waitlist'
 import { hashWaitlistToken, parseWaitlistToken } from '../../utils/privacy/waitlist'
 
-// POST /api/waitlist/unsubscribe — withdraw consent; DELETES the row.
+// POST /api/waitlist/unsubscribe: withdraws consent and DELETES the row. Body:
+// { token } (the raw unsubscribe token from the email). Like confirm, the page
+// sends it on an explicit click so a link-prefetching scanner can't remove
+// someone silently.
 //
-// Body: { token: string } — the raw unsubscribe token from the email.
-// Like confirm, the `/waitlist/unsubscribe` page sends it on an explicit
-// click so a link-prefetching scanner can't remove someone silently.
-//
-// Always available (withdrawing consent must never depend on a feature
-// flag — GDPR Art.7(3): as easy to withdraw as to give). Public
-// (whitelisted in middleware/auth.ts).
+// Always available (GDPR Art.7(3): withdrawing must not depend on a feature
+// flag). Public (whitelisted in middleware/auth.ts).
 //
 // Idempotent: a well-formed token always gets 200 { unsubscribed: true },
-// whether or not a row matched (already removed, never existed) — the
-// person's goal "not on the list" holds either way, and the response
-// reveals nothing. Only a malformed token is a 400.
+// matched or not, so the response reveals nothing. Only a malformed token is
+// a 400.
 
 export default defineEventHandler(async (event) => {
   const ip = getClientRateLimitKey(event)

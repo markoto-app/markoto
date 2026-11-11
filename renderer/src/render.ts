@@ -10,9 +10,8 @@ import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
 //
 // Sizing: ~80MB/context × 5 = 400MB peak + ~250MB Chromium baseline =
 // ~650MB worst case, well under the renderer service's mem_limit: 2g
-// (set in docker-compose.prod.yml). 5 was chosen over 3 because at 50
-// concurrent PDF requests, a 3-slot pool puts 47 requests in the queue —
-// many time-out at POOL_WAIT_MS (30s). 5 raises throughput linearly
+// (set in docker-compose.prod.yml). A 3-slot pool queues most of 50
+// concurrent PDF requests past POOL_WAIT_MS (30 s); 5 slots raise throughput
 // without approaching the memory cap.
 const POOL_SIZE = 5
 const POOL_WAIT_MS = 30_000
@@ -67,24 +66,14 @@ const LOCALHOST_TARGET = (() => {
 let browserPromise: Promise<Browser> | null = null
 function getBrowser(): Promise<Browser> {
   if (!browserPromise) {
-    // `--host-resolver-rules`: rewrite `localhost` DNS lookups inside the
-    // renderer's Chromium to `host.docker.internal` (RENDERER_LOCALHOST_TARGET
-    // above). This solves the
-    // dev networking gotcha: presigned S3 URLs are minted with the
-    // app's S3 endpoint host (e.g. `localhost:8333` in dev where
-    // SeaweedFS is published on the host), but from inside the
-    // renderer container `localhost` IS the container — nothing's
-    // listening on :8333. The redirect target then 404s silently and
-    // images don't appear in the PDF.
-    //
-    // Mapping `localhost` → `host.docker.internal` routes those lookups
-    // through the docker bridge gateway to the host's loopback, which
-    // has the published S3 port. In prod, presigned URLs use the
-    // external S3 endpoint (OVH Object Storage), so this rule is harmless —
-    // it only fires on `localhost` lookups, which prod never produces.
-    //
-    // EXCLUDE_LOCALHOST keeps anything that ALREADY resolves locally
-    // (the renderer's own /health probe at 127.0.0.1:9000) untouched.
+    // `--host-resolver-rules`: rewrite `localhost` lookups inside the
+    // renderer's Chromium to RENDERER_LOCALHOST_TARGET. In dev, presigned S3
+    // URLs carry the app's S3 host (`localhost:8333`), but inside the
+    // renderer container `localhost` is the container itself, so images
+    // would silently 404 and be missing from the PDF. In prod the presigned
+    // host is the external S3 endpoint, so the rule never fires.
+    // EXCLUDE_LOCALHOST leaves names that already resolve locally (the
+    // renderer's own /health probe at 127.0.0.1:9000) untouched.
     //
     // `--font-render-hinting=none`: headless Chromium on Linux hints glyphs
     // and lays text out with whole-pixel, hinted advances — the PDF then
@@ -144,7 +133,7 @@ const pool = new Semaphore(POOL_SIZE)
 export interface RenderInput {
   docId: string
   snapshotId: number
-  /** 'html' (WP13): the web snapshot for a published page — returned, not stored. */
+  /** 'html': the web snapshot for a published page — returned, not stored. */
   format: 'pdf' | 'png' | 'both' | 'html'
   /** Brand-kit fingerprint (16 hex chars) — appended to the output folder. */
   variant?: string
@@ -243,7 +232,7 @@ async function lockDownNetwork(context: BrowserContext, docId: string): Promise<
 }
 
 /**
- * The web snapshot (WP13 publish): the print page in `mode=web` renders the
+ * The web snapshot of a published page: the print page in `mode=web` renders the
  * markdown with the document's theme but without paged.js, and leaves the
  * result on `window.__webSnapshot`. Nothing is uploaded — the app stores it.
  */
@@ -325,14 +314,11 @@ async function doRender(
   const pageKeys: string[] = []
 
   if (format === 'pdf' || format === 'both') {
-    // Force a full image-decode + paint pass before page.pdf().
-    // Empirically: an in-page evaluate that ACCESSES naturalWidth/
-    // naturalHeight on every paginated <img> AND returns the data
-    // back to Node is what reliably commits images to the print
-    // pipeline. Just calling .decode() inside the page (without the
-    // sync boundary back to Node) wasn't enough — page.pdf() still
-    // dropped images. Mirroring the exact pattern from the standalone
-    // probe that produced correct PDFs.
+    // Force a full image-decode + paint pass before page.pdf(). Reading
+    // naturalWidth/naturalHeight on every paginated <img> AND returning the
+    // data to Node is what reliably commits images to the print pipeline;
+    // calling .decode() inside the page alone leaves page.pdf() dropping
+    // images.
     await page.evaluate(async () => {
       const imgs = Array.from(document.querySelectorAll('.pagedjs_page img'))
       await Promise.all(imgs.map(i => (i as HTMLImageElement).decode().catch(() => undefined)))

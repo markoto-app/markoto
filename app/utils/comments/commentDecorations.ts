@@ -1,14 +1,10 @@
 import { StateEffect, StateField, type Extension } from '@codemirror/state'
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view'
 
-// CM6 extension that paints a yellow-underline mark on every active
-// comment anchor. The host (EditorPane) dispatches `setCommentRanges`
-// whenever the reactive comment list changes; the field rebuilds the
-// decoration set.
-//
-// Mark-decoration `attributes` carry the comment id on the rendered
-// span, so a single `domEventHandlers.click` can route clicks to the
-// matching thread without per-comment listeners.
+// CM6 extension that marks every active comment anchor. The host
+// (EditorPane) dispatches `setCommentRanges` when the comment list
+// changes. The mark carries the comment id as a data attribute, so one
+// `domEventHandlers.click` routes clicks to the thread.
 
 export interface CommentRange {
   id: string
@@ -18,12 +14,7 @@ export interface CommentRange {
 
 export const setCommentRanges = StateEffect.define<CommentRange[]>()
 
-/**
- * Briefly highlight a range with `.cm-comment-flash`. Used when the user
- * clicks a thread in the sidebar — we scroll the doc to the anchor and
- * pulse the highlight so the eye picks up the location. Pass `null` to
- * clear.
- */
+/** Briefly highlight a range with `.cm-comment-flash` (sidebar thread click). `null` clears it. */
 export const setFlashRange = StateEffect.define<{ from: number, to: number } | null>()
 
 const commentMark = (id: string) => Decoration.mark({
@@ -36,11 +27,8 @@ const flashMark = Decoration.mark({ class: 'cm-comment-flash' })
 const commentField = StateField.define<DecorationSet>({
   create: () => Decoration.none,
   update(deco, tr) {
-    // map() shifts existing decorations across non-anchor edits so the
-    // visual underline stays in sync with text changes between
-    // setCommentRanges dispatches. Y.js anchor resolution catches up on
-    // the next dispatch, but the in-between visual lag would otherwise
-    // be jarring (a stale yellow underline on a moved range).
+    // Map across edits so the underline follows the text until the next
+    // setCommentRanges dispatch re-resolves the Y.js anchors.
     deco = deco.map(tr.changes)
     for (const e of tr.effects) {
       if (e.is(setCommentRanges)) {

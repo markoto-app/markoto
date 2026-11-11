@@ -10,8 +10,7 @@ import {
 import { TEST_JWT_SECRET } from '../setup/env'
 import { mintSessionJwt } from '~~/tests/helpers/jwt'
 
-// GET /api/docs/:docId/activity — returns up to 50 edit/join/leave entries.
-// Bug-fix regression target: pre-fix the endpoint had NO auth check.
+// GET /api/docs/:docId/activity: returns up to 50 edit/join/leave entries. The endpoint must enforce its auth gate.
 
 async function seedActivity(docId: string): Promise<void> {
   const db = testDb()
@@ -59,7 +58,7 @@ describe('GET /api/docs/:docId/activity', () => {
     expect(res.status).toBe(200)
   })
 
-  describe('private mode (regression guard for pre-fix open activity)', () => {
+  describe('private mode: activity requires authz', () => {
     it('anonymous is denied', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })

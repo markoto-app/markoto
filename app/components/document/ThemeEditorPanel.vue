@@ -33,13 +33,13 @@ const props = defineProps<{
    */
   customCssAllowed?: boolean
   /**
-   * The document's workspace (WP10 brand kit): its fonts join the font
+   * The document's workspace (brand kit): its fonts join the font
    * pickers and its logos the logo / header-image fields. Null outside a
    * workspace, and for guests (who don't see the workspace's kit).
    */
   workspaceId?: string | null
   /**
-   * The workspace design is locked (WP10): the document renders with it
+   * The workspace design is locked: the document renders with it
    * and keeps only its cover text, so the panel shows just that.
    */
   brandLocked?: boolean
@@ -85,7 +85,7 @@ if (import.meta.client) {
   })
 }
 
-// Workspace brand kit (WP10): fonts + logos the members can pick. Loaded
+// Workspace brand kit: fonts + logos the members can pick. Loaded
 // once per panel; a failure just leaves the built-in choices.
 interface BrandKitResponse {
   fonts: BrandFont[]
@@ -728,12 +728,10 @@ function applyPreset(preset: ThemePreset) {
   })
 }
 
-// ─── User-saved themes ────────────────────────────────────────────
-//
-// Anonymous viewers see no saved-themes UI (server returns 401, list
-// stays empty). Logged-in users get a "Your themes" section ABOVE the
-// built-in presets and a "Save current theme" button beside the
-// section eyebrow. Same one-click apply, plus rename + delete.
+// User-saved themes. Anonymous viewers see no saved-themes UI (the server
+// returns 401, the list stays empty). Logged-in users get a "Your themes"
+// section ABOVE the built-in presets and a "Save current theme" button
+// beside the section eyebrow: one-click apply, plus rename + delete.
 
 interface SavedTheme {
   themeId: string
@@ -767,8 +765,8 @@ async function refreshSavedThemes() {
 }
 
 onMounted(() => {
-  // onMounted only fires client-side, so the previous
-  // `import.meta.client` guard is implicit here.
+  // onMounted only fires client-side, so no `import.meta.client` guard
+  // is needed.
   refreshSavedThemes().catch(() => { /* swallowed inside refreshSavedThemes */ })
 })
 
@@ -919,7 +917,7 @@ function deleteSaved(saved: SavedTheme) {
         {{ t('theme.readOnly') }}
       </div>
 
-      <!-- Locked workspace design (brand kit, WP10): only the cover text
+      <!-- Locked workspace design (brand kit): only the cover text
            is the document's own. -->
       <div
         v-else-if="brandLocked"

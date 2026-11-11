@@ -5,7 +5,6 @@ import type { H3Event } from 'h3'
 // deleteKnowledgeArtifact cascade. Role matrix:
 //
 //                      | view | edit | delete
-//   ──────────────────────────────────────────
 //   non-member         | 404  | 404  | 404
 //   viewer             | OK   | 403  | 403
 //   editor             | OK   | OK   | own only

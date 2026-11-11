@@ -1,27 +1,22 @@
 <script setup lang="ts">
 /**
- * Branching wrapper for the editor's right-sidebar panels (theme,
- * comments, activity, document, knowledge). Renders the same slot
- * content in two shapes:
+ * Wrapper for the editor's right-sidebar panels (theme, comments, activity,
+ * document, knowledge). Renders the same slot content in two shapes:
  *
- *   - Mobile (<sm)   → inside `<BottomSheet>` (drag handle, slide-up,
- *                      preserves preview visibility above)
- *   - Desktop (>=sm) → inside the existing `<aside>` (fixed sidebar at
- *                      xl+, flex-1 column at <xl)
+ *   - Mobile (<sm)   inside `<BottomSheet>` (drag handle, slide-up, preview stays visible above)
+ *   - Desktop (>=sm) inside the `<aside>` (fixed sidebar at xl+, flex-1 column below)
  *
- * Lets EditorLayout keep ONE panel-render block (5 v-ifs) without
- * duplicating it for each layout. The host owns the chrome; the
- * caller fills in the panel content.
+ * Lets EditorLayout keep one panel-render block. The host owns the chrome;
+ * the caller fills in the panel content.
  */
 import { useMediaQuery } from '@vueuse/core'
 import BottomSheet from '~/components/common/BottomSheet.vue'
 
 const props = defineProps<{
-  /** Truthy when ANY right-panel is selected. */
+  /** Truthy when any right panel is selected. */
   open: boolean
-  /** Drives the desktop sidebar's width class:
-   *   edit         → `w-full sm:w-80 sm:shrink-0`
-   *   split/preview → `flex-1 min-w-0 xl:flex-none xl:w-80 xl:shrink-0` */
+  /** Desktop sidebar width class: edit -> `w-full sm:w-80 sm:shrink-0`;
+   *  split/preview -> `flex-1 min-w-0 xl:flex-none xl:w-80 xl:shrink-0`. */
   viewMode: 'edit' | 'split' | 'preview'
 }>()
 
@@ -37,15 +32,10 @@ function onSheetUpdate(v: boolean) {
 </script>
 
 <template>
-  <!-- Mobile: bottom-sheet wrapper. Open state binds to `open`; the
-       sheet emits update:modelValue=false on dismiss → we forward
-       to `close`. We deliberately DO NOT pass a `title` prop — every
-       panel rendered inside this slot brings its own header (icon +
-       title + × close button) so the user can both read the panel
-       name and dismiss it. Letting BottomSheet render a second
-       header on top duplicated the title and wasted ~48px of mobile
-       viewport. The drag handle still ships from BottomSheet
-       independently of the header. -->
+  <!-- Mobile: bottom sheet bound to `open`; its update:modelValue=false is
+       forwarded to `close`. No `title` prop on purpose: every panel brings its
+       own header (icon + title + × close), and a second header duplicated the
+       title and wasted ~48px of viewport. The drag handle still comes from BottomSheet. -->
   <BottomSheet
     v-if="isMobile"
     :model-value="open"
@@ -54,8 +44,7 @@ function onSheetUpdate(v: boolean) {
     <slot />
   </BottomSheet>
 
-  <!-- Desktop: existing fixed-sidebar layout. Same width classes the
-       caller had inline before this component existed. -->
+  <!-- Desktop: fixed sidebar layout. -->
   <aside
     v-else-if="open"
     :class="[

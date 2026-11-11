@@ -7,7 +7,7 @@ import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 import type { BrandFont } from '../../../shared/config/brandKit'
 import type { DocTheme } from '../../../shared/types/theme'
 
-// Brand kit (WP10) pure helpers: the locked workspace design, the brand
+// Brand kitpure helpers: the locked workspace design, the brand
 // fonts' @font-face rules, and brand images as theme image URLs.
 
 const brand = THEME_PRESETS.find(p => p.id === 'business-report')!.theme as DocTheme

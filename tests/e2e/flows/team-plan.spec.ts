@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 import { postStripeEvent, stayOnApp, subscriptionUpdatedEvent, topupCompletedEvent } from '../fixtures/stripe'
 
-// "Put a workspace on the Team plan" (pricing plan WP3).
+// "Put a workspace on the Team plan".
 //
 // User-job: a team lead wants everyone in their workspace to have the
 // paid features and a shared AI budget, paid once, per seat. Job done
@@ -25,7 +25,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   test.setTimeout(180_000)
   await stayOnApp(page, testInfo)
 
-  // ─── Setup: Maya's workspace with two colleagues ────────────────
+  // Setup: Maya's workspace with two colleagues
   await editor.page.loginAsTestUser('Maya Chen')
   await page.goto('/')
   const wsRes = await page.request.post('/api/workspaces', { data: { name: 'Northwind research' } })
@@ -51,7 +51,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   await page.goto(`/w/${workspaceId}`)
   await page.getByRole('tab', { name: /documents/i }).waitFor({ state: 'visible', timeout: 10_000 })
 
-  // ─── Choose the plan ────────────────────────────────────────────
+  // Choose the plan
   await flow.heading('Choose Team for the whole workspace', 3)
   await flow.narrate(
     'Team is bought for a workspace, not for a person. You pay per '
@@ -96,7 +96,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   expect(checkout.status()).toBe(200)
   expect(JSON.parse(checkout.request().postData() ?? '{}')).toMatchObject({ plan: 'team', seats: 4, interval: 'month', acceptPaidTerms: true })
 
-  // ─── Stripe (off stage) ─────────────────────────────────────────
+  // Stripe (off stage)
   await flow.heading('Pay with Stripe', 3)
   await flow.narrate(
     'Stripe\'s checkout page takes the payment (markoto never sees '
@@ -136,7 +136,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
     }
   )
 
-  // ─── Invite beyond the paid seats ───────────────────────────────
+  // Invite beyond the paid seats
   await flow.heading('Invite more people than you have seats for', 3)
   await flow.narrate(
     'The fourth seat is free, so the first invitation goes straight '
@@ -178,7 +178,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
   }
   await page.keyboard.press('Escape')
 
-  // ─── A member limit ─────────────────────────────────────────────
+  // A member limit
   await flow.heading('Give one person a smaller AI allowance', 3)
   await flow.narrate(
     'By default each member may use up to two seats\' worth of the '
@@ -206,7 +206,7 @@ test('Put a workspace on the Team plan', { tag: '@billing' }, async ({ page, flo
     }
   )
 
-  // ─── AI credits ─────────────────────────────────────────────────
+  // AI credits
   await flow.heading('Top up the AI budget', 3)
   await flow.narrate(
     'If the workspace needs more AI this month, buy credits. They are '

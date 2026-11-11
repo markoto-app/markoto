@@ -26,10 +26,8 @@ export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)
   const status = await getAccountStatus(session.user.id)
   if (!status) {
-    // Defensively — `requireValidatedUserSession` already guarantees
-    // the row exists, so this is a 500 rather than a 404 (the row was
-    // deleted between the validation step and this query, which means
-    // someone else just executed our deletion sweep).
+    // `requireValidatedUserSession` guarantees the row, so a miss means it
+    // was purged between validation and this query (deletion sweep): 500, not 404.
     throw createError({ statusCode: 500, message: 'User row vanished mid-request' })
   }
 

@@ -27,14 +27,11 @@ import { isBudgetExceededError } from './userKeys'
 //   - AbortSignal aborts immediately; in-flight backoff is cancelled.
 //   - All other errors propagate on the first attempt.
 //
-// Why retry here, not at every call site: the in-app AI's user-facing
-// "Could not reach markoto" toast was firing on ANY upstream throttle
-// (Mistral's free tier is bursty AND has per-minute limits). One retry
-// covers transient blips; the 4-retry budget covers sustained
-// throttling within a single rate-limit window. Production users get
-// a calmer UX (loop blocks on backoff instead of erroring), AND our
-// flow tests stop flaking when the test stack bursts ~30 AI calls
-// against the proxy.
+// Why retry here, not at every call site: upstream providers are bursty
+// and have per-minute limits, and surfacing every throttle as a "Could
+// not reach markoto" error is worse than the loop blocking on backoff.
+// One retry covers transient blips; the 4-retry budget covers sustained
+// throttling within a single rate-limit window.
 //
 // The waitForAiIdle default in `tests/e2e/page-objects/Editor.ts` is
 // sized (150s) to absorb up to ~2 max-budget retries chained across

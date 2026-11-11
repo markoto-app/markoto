@@ -9,7 +9,7 @@
 # that file) and checks that TEST_FAKE_OPENAI_HOST is set: rootless Podman
 # has no host-side bridge gateway to publish the fake AI provider on.
 # Override detection with TEST_CONTAINER_ENGINE=docker|podman.
-# See docs/CONTAINER-ENGINES.md.
+# See docs/contributing/CONTAINER-ENGINES.md.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -33,7 +33,7 @@ if [ "$engine" = podman ]; then
     done
     echo "test-compose: Podman detected, but TEST_FAKE_OPENAI_HOST is not set." >&2
     echo "  Set it (in .env) to a private address of this machine${suggestion:+, e.g. TEST_FAKE_OPENAI_HOST=$suggestion}." >&2
-    echo "  See docs/CONTAINER-ENGINES.md." >&2
+    echo "  See docs/contributing/CONTAINER-ENGINES.md." >&2
     exit 2
   fi
 fi

@@ -5,7 +5,7 @@ import { loggedInClient, anonClient } from '../setup/client'
 import { createUser, createWorkspace } from '../setup/fixtures'
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
-// Billing-off mode (WP3) over real HTTP. These tests talk to the SECOND
+// Billing-off mode over real HTTP. These tests talk to the SECOND
 // Nitro subprocess (TEST_BILLING_OFF_BASE_URL), booted from the same
 // build with NUXT_BILLING_ENABLED off, NUXT_PLANS_COMING_SOON=true and
 // no NUXT_STRIPE_* variables at all — so its successful boot is itself

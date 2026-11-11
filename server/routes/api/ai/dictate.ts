@@ -24,15 +24,10 @@ import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 // `@mistralai/mistralai/extra/realtime` SDK and forwards transcript
 // events back to the client.
 //
-// Why Voxtral Realtime (post-Phase-5): purpose-built streaming
-// transcription with true interim-result streaming the moment a
-// phoneme is confident, and `is_final: true` when the recognizer
-// commits. The SDK opens a direct WS to Mistral (NOT through LiteLLM
-// — LiteLLM doesn't proxy stateful WS streams); LiteLLM still sees the
-// per-minute billing tick (`voxtral-realtime-tick`) so spend lands on
-// the right per-user virtual key. Pre-Phase-5 (Gemini-era) this path
-// ran against Google Cloud Speech-to-Text v1; some helper names
-// (`stt`, `SpeechStream`) survive from that era.
+// The SDK opens a direct WS to Mistral (not through LiteLLM, which
+// doesn't proxy stateful WS streams); LiteLLM still sees a per-minute
+// billing tick (`voxtral-realtime-tick`) so spend lands on the right
+// per-user virtual key.
 //
 // Wire format:
 //   Client → server (JSON, before auth):
@@ -52,15 +47,13 @@ import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 //     - `{ type: 'partial', text }` interim transcripts
 //     - `{ type: 'final', text }` finalized phrases
 //     - `{ type: 'error', message }` fatal; socket closes next
-//     - `{ type: 'budget-exhausted', remaining }` daily cap hit
+//     - `{ type: 'budget-exhausted', remaining }` LiteLLM budget used up
 //     - `{ type: 'session-cap' }` per-session 10 min cap
 //     - `{ type: 'idle-timeout' }` 30 s without audio
 //
-// Rate-limit: audio-ms (NOT requests). Each 2048-sample chunk @ 16 kHz
-// = 128 ms of audio; we debit that into a per-user daily budget whose
-// size depends on the caller's tier (Free=5min, Pro=30min, Max/Ultra=60min).
-// The daily cap backstops the interaction counter — a user can't bypass
-// the monthly interaction budget by dictating continuously for a month.
+// Spend is capped by the LiteLLM budget (voice-tick below); there is no
+// separate audio cap. Other guards: one session per user, idle timeout,
+// session hard cap.
 
 const SESSION_HARD_CAP_MS = 10 * 60 * 1000
 const IDLE_TIMEOUT_MS = 30_000
@@ -69,55 +62,31 @@ const IDLE_TIMEOUT_MS = 30_000
 // can't sit open consuming resources indefinitely.
 const AUTH_DEADLINE_MS = 5_000
 
-// Concurrent-session cap is enforced via a Valkey lock (see
-// `tryAcquireSessionLock`) rather than an in-memory Set. An in-memory
-// Set would only catch same-process conflicts, so two tabs landing on
-// different Nitro workers / containers would both slip through. The
-// Valkey lock's TTL is set to `SESSION_HARD_CAP_MS` below so a
-// crashed process self-heals its lock.
+// The one-session-per-user cap is a Valkey lock (see
+// `tryAcquireSessionLock`), not an in-memory Set: two tabs on different
+// workers would both slip past a per-process Set. The lock TTL is
+// `SESSION_HARD_CAP_MS`, so a crashed process releases it on its own.
 
-// Minimal surface of the realtime streaming transcription API we
-// actually use. Defined in dictateSpeechClient.ts so the real Voxtral
-// Realtime client and the test-mode mock satisfy the same contract —
-// imported here as SttStream (alias) for backwards compat with the
-// names in this file (legacy from the Cloud STT era).
+// Minimal surface of the realtime transcription API in
+// dictateSpeechClient.ts; the real Voxtral client and the test-mode mock
+// both satisfy it.
 type SttStream = SpeechStream
 
 interface DictatePeerContext {
   userId?: number
   docId?: string
-  /** Workspace this doc belongs to, if any — drives the workspace-axis
-   *  spend tag on voice-tick LiteLLM calls. Resolved at auth time. */
+  /** Workspace this doc belongs to, if any; tags spend on voice-tick calls. */
   workspaceId?: string | null
   /** User's virtual-key bearer token, resolved at auth time. */
   virtualKey?: string
-  /**
-   * Phase 5 voice-tick orchestrator state. Each tick fires a fake chat
-   * completion against the `voxtral-realtime-tick` LiteLLM model →
-   * $0.006 billed per tick = 1 minute of Voxtral Realtime audio.
-   * Real transcription stays on the direct WS to Mistral; the tick
-   * exists only so spend lands in the same per-key budget as everything
-   * else (LiteLLM is the only gate post-Phase-6). Round-up policy: on
-   * close, fire ONE final tick if any audio flowed in the partial
-   * minute since the last tick. Documented overrun: ≤1 extra minute.
-   */
+  // Voice-tick orchestrator state (see "Voice-tick orchestrator" below).
   /** True when the stream runs on the operator's Mistral key (platform-paid) → bill ticks. */
   voiceTickBilling?: boolean
   voiceTickInterval?: ReturnType<typeof setInterval>
   voiceTickActive?: boolean
   voiceLastTickAt?: number // ms epoch of the last tick fired
   voiceAudioSinceTick?: boolean // any audio since last tick? drives round-up
-  // Phase 6: dropped per-tier daily audio budget + accumulated-audio-ms
-  // ledger. The voice-tick orchestrator (voxtral path) bills against
-  // the user's LiteLLM virtual key once per minute; LiteLLM enforces
-  // the $ cap. Single-session lock + idle timeout + session hard-cap
-  // remain as orthogonal safety/UX guards.
-  /**
-   * Voxtral Realtime stream. Populated in `handleAuth` after the JWT
-   * checks out; every code path that reaches for it also checks
-   * `authed`. (Field name `stt` survives from the pre-Phase-5
-   * Cloud STT era.)
-   */
+  /** Voxtral Realtime stream, set in `handleAuth` once the JWT checks out; users also check `authed`. */
   stt?: SttStream
   authed?: boolean
   closed?: boolean
@@ -146,13 +115,10 @@ export default defineEventHandler({
   },
 
   websocket: {
-    // The upgrade hook no longer authenticates — auth moved to the
-    // first WS message so the JWT never appears in the URL. crossws's
-    // upgrade hook would otherwise give us a raw Request with no
-    // Authorization header support, forcing us to either reject every
-    // WS (no auth yet) or accept every WS (unsafe). The auth-on-first-
-    // message pattern keeps the token off the URL while still closing
-    // the socket in 5s if nothing valid arrives.
+    // Auth happens in the first WS message so the JWT never appears in
+    // the URL. crossws's upgrade hook gets a raw Request with no
+    // Authorization header support, so it can't authenticate. The socket
+    // is closed after `AUTH_DEADLINE_MS` if nothing valid arrives.
     upgrade() {
       // Intentionally empty — every connection is allowed to OPEN.
       // Authentication + user binding happen in the `message` hook
@@ -260,7 +226,7 @@ async function handlePreAuthMessage(p: PeerLike, ctx: DictatePeerContext, parsed
   await handleAuth(p, ctx, parsedControl.token, parsedControl.languageCode)
 }
 
-/** Coerce a crossws-typed `rawData` (declared `unknown`) to a Buffer. Returns null if the runtime payload doesn't match either expected shape — chunk silently dropped, same effect as the pre-refactor `Buffer.from(raw as Uint8Array)` on a hypothetical mismatch. */
+/** Coerce a crossws-typed `rawData` (declared `unknown`) to a Buffer. Returns null if the runtime payload matches neither expected shape; the chunk is then dropped. */
 function toBuffer(raw: unknown): Buffer | null {
   if (raw instanceof ArrayBuffer) return Buffer.from(raw)
   if (raw instanceof Uint8Array) return Buffer.from(raw)
@@ -279,15 +245,8 @@ function handlePostAuthControl(ctx: DictatePeerContext, parsedControl: ParsedCon
 /**
  * Forward one binary audio chunk to the upstream STT stream and drive
  * the per-minute billing tick. Drops chunks that arrive after `stop`
- * (the browser's AudioWorklet → main-thread postMessage queue can be
- * up to ~128 ms in-flight when the user clicks stop), so each
- * straggler doesn't surface as an "error" frame on the wire.
- *
- * Phase 6: dropped the daily-audio-ms cap. The voice-tick orchestrator
- * (voxtral path) bills against the user's LiteLLM virtual key once
- * per minute; LiteLLM enforces the $ cap. The single-session Valkey
- * lock + idle timeout + session hard-cap remain as orthogonal
- * safety/UX guards.
+ * (the AudioWorklet queue can still hold ~128 ms when the user clicks
+ * stop) so stragglers don't surface as "error" frames.
  */
 async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unknown): Promise<void> {
   if (ctx.sttEnded) return
@@ -308,7 +267,7 @@ async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unkno
   // to the bill.
   ctx.voiceAudioSinceTick = true
 
-  // Phase 5 voice-tick: start the 60s billing heartbeat on the first
+  // Start the 60s billing heartbeat on the first
   // audio chunk. Idempotent (only the first call arms the interval).
   // BYOK: only when the stream runs on the operator's Mistral key — a
   // user's own key is billed by Mistral directly, not by our budget.
@@ -318,10 +277,10 @@ async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unkno
   resetIdleTimer(p, ctx)
 }
 
-// ─── Phase 5 voice-tick orchestrator ───────────────────────────────────
-//
-// Bills $0.006 per minute of Voxtral Realtime audio against the user's
-// LiteLLM budget. Implementation:
+// Voice-tick orchestrator: bills $0.006 per minute of Voxtral Realtime
+// audio against the user's LiteLLM budget by firing a fake chat
+// completion on the `voxtral-realtime-tick` model (the real transcription
+// runs on the direct WS to Mistral).
 //   - Started on the first audio chunk (not on auth) so a connection
 //     that opens but never sends audio doesn't get billed.
 //   - 60s `setInterval` fires `voxtral-realtime-tick` chat completion;
@@ -337,8 +296,6 @@ async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw: unkno
 //   - Round-up: on close, fire ONE final tick if any audio flowed in
 //     the partial minute since the last tick. Documented overrun:
 //     ≤1 extra minute charged per session.
-//
-// Phase 6 will swap the master-key tick for a per-user virtual key.
 
 const VOICE_TICK_INTERVAL_MS = 60_000
 
@@ -513,15 +470,14 @@ async function handleAuth(
     ctx.authTimer = undefined
   }
 
-  // Phase 6: resolve billing context to get the user's virtual-key
-  // token. If resolution fails (DB blip, missing user row) close the
+  // Resolve billing context to get the user's virtual-key token. If resolution fails (DB blip, missing user row) close the
   // session rather than silently fall through — billing is a
   // correctness surface, not a rate limit. The voice-tick orchestrator
   // hits LiteLLM with this key; if the user's $ budget is already 0,
   // the FIRST tick (fired on first audio chunk) returns 4xx and the
   // WS closes cleanly with `budget_exhausted` code 1011.
   // Resolve the doc's workspace first: it tags the spend AND decides
-  // which plan pays (a Team / Business workspace's member key, WP3/WP5). Best-effort — a doc that
+  // which plan pays (a Team / Business workspace's member key). Best-effort — a doc that
   // disappeared mid-handshake just means we tag with no workspace
   // dimension, which is harmless (the call still bills correctly).
   try {
@@ -644,10 +600,3 @@ function resetIdleTimer(peer: PeerLike, ctx: DictatePeerContext) {
     peer.close(4001, 'idle timeout')
   }, IDLE_TIMEOUT_MS)
 }
-
-/**
- * Charge interactions for accumulated dictation audio on WS close.
- * Runs via `void` — we don't want to block the close hook on a DB
- * round-trip. Errors are logged but not propagated: a dead DB
- * shouldn't prevent the WS from tearing down cleanly.
- */

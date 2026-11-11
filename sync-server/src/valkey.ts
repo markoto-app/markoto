@@ -4,9 +4,8 @@ import { valkeyClientConfigFromEnv } from '../../shared/utils/runtime/connection
 // Singleton ioredis client for the sync-server. Mirrors the pattern in
 // `server/utils/platform/valkey.ts` (the Nuxt app's client) — the sync-server is
 // its own Bun process, so it owns its own connection pool. Used to back
-// per-doc attribution + diff-baseline state that used to live in
-// process-local Maps; migrated so multiple sync-server instances can
-// share the state instead of each holding a partial view.
+// per-doc attribution + diff-baseline state, so multiple sync-server
+// instances share one view instead of each holding a partial one.
 //
 // Operations against this client are best-effort — every call site MUST
 // catch errors and fall through to the awareness heuristic. Losing

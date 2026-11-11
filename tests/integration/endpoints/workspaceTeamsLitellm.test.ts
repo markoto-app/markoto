@@ -5,7 +5,7 @@ import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 import { applyTestEnv } from '../setup/testEnv'
 import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
 
-// Team / Business workspace AI budgets (WP3) against the REAL
+// Team / Business workspace AI budgets against the REAL
 // `litellm-test` proxy. Runs the production helpers in-process (the
 // integration server uses `LITELLM_TEST_STUB=1`), so the /team/* and
 // /key/* contracts and LiteLLM's budget errors are what the proxy really

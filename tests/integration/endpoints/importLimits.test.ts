@@ -100,8 +100,8 @@ function postImport(chunkCount: number, chunkBytes: number, contentLength?: numb
 
 describe('request-body limit (server entry) on /api/import', () => {
   it('refuses a declared Content-Length over the cap without waiting for the body', async () => {
-    // Declares 100 MB, sends only 1 KB and never ends: the old endpoint
-    // waited for the rest of the body (until the test timed out).
+    // Declares 100 MB, sends only 1 KB and never ends: the endpoint must not wait for the rest of the body
+    // (the test would time out).
     const out = await Promise.race([
       postImport(1, 1024, 100 * 1024 * 1024),
       new Promise<Outcome>((_, reject) => setTimeout(() => reject(new Error('no early response — body was being buffered')), 10_000))
@@ -110,10 +110,9 @@ describe('request-body limit (server entry) on /api/import', () => {
   }, 20_000)
 
   it('cuts a chunked upload off at the cap instead of buffering all of it', async () => {
-    // 120 × 1 MiB, chunked (no Content-Length). The server must refuse
-    // while the client is still sending: Bun answers 413 and closes the
-    // connection, which the client sees as the 413 or as the closed socket
-    // depending on timing. The old server read all 120 MiB first.
+    // 120 × 1 MiB, chunked (no Content-Length). The server must refuse while the client is still sending: Bun
+    // answers 413 and closes the connection, which the client sees as the 413 or as the closed socket
+    // depending on timing.
     const total = 120 * 1024 * 1024
     const out = await postImport(120, 1024 * 1024)
     expect(out.endedFirst).toBe(false)

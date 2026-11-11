@@ -6,11 +6,11 @@ import { parseUploadKey, stagingKeyFor } from '../../utils/storage/uploadKey'
 import { canWriteDocContent } from '../../utils/documents/documentAccess'
 import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
 
-// The key is client-supplied, so it is never trusted by itself: it must have
-// the exact shape `/api/upload/request` mints AND resolve to an `uploads` row
-// issued to the calling user. Anything else is a 404 BEFORE any S3 call (no
-// existence oracle, and DeleteObject can only ever reach a key we issued to
-// this user — the bucket also holds backups).
+// The key is client-supplied, so it must have the exact shape
+// `/api/upload/request` mints AND resolve to an `uploads` row issued to the
+// caller. Anything else is a 404 BEFORE any S3 call (no existence oracle, and
+// DeleteObject can only reach a key we issued to this user; the bucket also
+// holds backups).
 //
 // The browser PUT lands on the staging key (`docs/{docId}/staging/{file}`).
 // Confirm copies it to the final key and sniffs the COPY: the presigned URL
@@ -43,8 +43,8 @@ function requireStoredSize(stored: number | undefined, expected: number): void {
   }
 }
 
-// One confirm per key at a time: a failing confirm deletes the final
-// object, which must never race a concurrent confirm that succeeded.
+// One confirm per key at a time: a failing confirm deletes the final object,
+// which must never race a concurrent confirm that succeeded.
 const CONFIRM_LOCK_NS = 'upload-confirm'
 const CONFIRM_LOCK_TTL_MS = 60_000
 
@@ -77,8 +77,7 @@ export default defineEventHandler(async (event) => {
     return { success: true, size: row.sizeBytes, contentType: row.contentType }
   }
 
-  // Same write gate as /upload/request, re-checked in case access changed
-  // between request and confirm.
+  // Same write gate as /upload/request, re-checked in case access changed.
   const doc = await getDocWithActorRole(parsed.docId, userId)
   if (!doc) throw notFound()
   if (!canWriteDocContent(doc, userId)) {
@@ -127,10 +126,9 @@ async function confirmUpload(args: {
     throw createError({ statusCode: 404, message: 'Upload not found in S3' })
   }
 
-  // Stored type + size + magic-byte sniff. The presigned PUT binds the
-  // Content-Type header and length S3 records (signed in /upload/request),
-  // not the actual bytes. On mismatch we 415 AND delete the caller's own
-  // pending objects + row so garbage can't pile up in the bucket.
+  // Stored type + size + magic-byte sniff: the presigned PUT binds the
+  // Content-Type and length S3 records, not the actual bytes. On mismatch 415
+  // AND delete the caller's own pending objects + row so garbage can't pile up.
   try {
     requireStoredContentType(head.ContentType, row.contentType)
     requireStoredSize(head.ContentLength, row.sizeBytes)
@@ -150,10 +148,10 @@ async function confirmUpload(args: {
     throw e
   }
 
-  // Quota re-check + atomic flip. The row's bytes were reserved at request
-  // time; this only refuses when the user is over quota NOW (e.g. a lower
-  // quota was configured since). 'missing' = the row vanished meanwhile
-  // (doc deleted) → the object has no owner, drop it.
+  // Quota re-check + atomic flip. Bytes were reserved at request time; this
+  // refuses only if the user is over quota NOW (e.g. a lower quota was
+  // configured). 'missing' = the row vanished (doc deleted), so the object has
+  // no owner and is dropped.
   const quota = await resolveImageQuota(userId, args.docId)
   const quotaBytes = quota.maxBytes
   const outcome = await confirmOwnUploadWithinQuota(key, userId, quotaBytes, quota.scope)

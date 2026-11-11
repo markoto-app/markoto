@@ -34,12 +34,10 @@ import type { CrossBoundaryGuard } from '../../utils/agentic/crossBoundary'
 import { finalizeSessionProvenance, recordSessionProvenance } from '../../utils/agentic/sessionProvenance'
 import { loopErrorMessage } from '../../utils/agentic/loopErrorMessage'
 
-// Hard deadline for a full agentic loop. A grounded `web_search` sub-call can
-// take several seconds; combined with model thinking and multi-edit sequences
-// a realistic budget is several minutes. 5 min gives headroom while still
-// killing truly stuck sessions. The per-user cap prevents runaway cost, and
-// the sweeper (7 min — must remain ≥ this) is a safety net for abandoned
-// sessions that skip the `finally` cleanup.
+// Hard deadline for a full agentic loop. Web search, model thinking and
+// multi-edit sequences take minutes; 5 min kills truly stuck sessions. The
+// per-user cap limits runaway cost, and the sweeper (7 min, must remain >=
+// this) is a safety net for sessions that skip the `finally` cleanup.
 const HARD_DEADLINE_MS = 5 * 60_000
 
 export default defineEventHandler(async (event) => {
@@ -47,10 +45,9 @@ export default defineEventHandler(async (event) => {
   const userId = session.user.id
   const userName = session.user.name
 
-  // Phase 5: text loop runs through LiteLLM unconditionally. The secret
-  // validator enforces NUXT_LITELLM_URL + NUXT_LITELLM_MASTER_KEY at boot.
-  // Phase 6: app-side rate limit dropped — LiteLLM's per-user-virtual-key
-  // rpm_limit is the single enforcement point now.
+  // The text loop always runs through LiteLLM (the secret validator enforces
+  // its URL and master key at boot); its per-user-key rpm_limit is the only
+  // rate limit.
   const { docId, prompt, wrappedPrompt } = parsePromptInputs(await readBody(event))
   await requireDocEditAccess(docId, userId)
 
@@ -65,24 +62,20 @@ export default defineEventHandler(async (event) => {
       })
     : ''
   const conversationBlock = await loadConversationBlock(docId, userId)
-  // Ordered for prompt caching (see `agentic/promptAssembly.ts`): the
-  // system message is static-first and carries only per-doc /
-  // per-workspace context; the conversation memory changes with every
-  // prompt, so it opens the first USER message (`promptPreamble`) instead
-  // of closing the system message — where it invalidated the cached tool
-  // definitions on Mistral Small (measured: 0 % → 99 % cached).
+  // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
+  // message is static-first, and the per-prompt conversation memory opens the
+  // first USER message (`promptPreamble`) instead. Placing it in the system
+  // message invalidated the cached tool definitions on Mistral Small.
   const systemPrompt = assemblePromptSystemPrompt(PROMPT_SYSTEM_PROMPT, {
     documentContextBlock,
     knowledgeBlock: buildKnowledgeBlock(wsCtx.knowledgeFiles),
     membersBlock: buildWorkspaceMembersBlock(wsCtx.members)
   })
 
-  // Resolve billing context up-front to lazy-create the LiteLLM virtual
-  // key (if not already provisioned) and to pick the right attribution
-  // (workspace `(+)` sponsor vs. self). Phase 6: app-side exhaustion
-  // pre-check removed — the LiteLLM proxy enforces `max_budget` on the
-  // first model call and the runLoop catches `LitellmBudgetExhausted` /
-  // `isBudgetExceededError(...)` to surface the upgrade-CTA breadcrumb.
+  // Resolve billing context up-front to lazily create the LiteLLM virtual key
+  // and pick the attribution. No exhaustion pre-check: the proxy enforces
+  // `max_budget` on the first model call and runLoop catches
+  // `LitellmBudgetExhausted` / `isBudgetExceededError(...)`.
   const billingContext = await resolveBillingContext(userId, wsCtx.workspaceId)
   // BYOK: the user's own provider (or the instance default). No chat
   // provider → 409 `ai/provider-missing` with a link to the settings page.
@@ -93,7 +86,7 @@ export default defineEventHandler(async (event) => {
   await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
 
   const initiatorName = (await findUserNameById(userId)) || userName
-  const initiatorColor = '#d97706' // Warm orange — reused from the original AI-as-collaborator design
+  const initiatorColor = '#d97706'
 
   const sessionId = nanoid(12)
   const abortController = new AbortController()
@@ -109,9 +102,8 @@ export default defineEventHandler(async (event) => {
   const channel = new AiSessionChannel(sessionId)
   await channel.open({ initiatorUserId: userId, docId, prompt, commentThreadId: null })
 
-  // Run in background — HTTP response returns immediately after registration.
-  // All edits reach the client over Y.js; we don't need to stream anything on
-  // this HTTP response. See server/utils/agentic/AGENTS.md for the full design.
+  // Runs in the background; the HTTP response returns after registration and
+  // all edits reach the client over Y.js. See server/utils/agentic/AGENTS.md.
   void runPromptLoop({
     docId, sessionId, userId, initiatorName, initiatorColor, abortController, deadlineTimer,
     prompt,
@@ -131,12 +123,7 @@ export default defineEventHandler(async (event) => {
 
 interface PromptInputs { docId: string, prompt: string, wrappedPrompt: string }
 
-/**
- * Validate body shape + the optional editor-state snapshot. Bad
- * snapshot shapes fall back to `kind: 'none'` rather than
- * hard-erroring — a stale / malformed snapshot shouldn't block a
- * request that would otherwise succeed.
- */
+/** Validates body shape + the optional editor-state snapshot; a bad snapshot falls back to `kind: 'none'` instead of failing the request. */
 function parsePromptInputs(body: { docId?: unknown, prompt?: string, editorSelection?: unknown }): PromptInputs {
   const docId = body.docId
   const prompt = body.prompt?.trim()
@@ -154,11 +141,7 @@ interface PromptWorkspaceCtx {
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
 }
 
-/**
- * Knowledge-tool exposure rule: requires (a) the doc is in a workspace,
- * (b) the caller is a member, and (c) the workspace has at least one
- * ready knowledge file. Any missing condition → standard tool set.
- */
+/** Knowledge tools need a workspace doc, a member caller and at least one ready knowledge file. */
 async function resolvePromptWorkspaceContext(rawWorkspaceId: string | null, userId: number): Promise<PromptWorkspaceCtx> {
   if (!rawWorkspaceId) return { workspaceId: null, knowledgeFiles: [], members: [], toolDeclarations: ALL_TOOL_DECLARATIONS }
   const role = await getMemberRole(rawWorkspaceId, userId)
@@ -179,11 +162,9 @@ async function resolvePromptWorkspaceContext(rawWorkspaceId: string | null, user
 }
 
 /**
- * Load conversation memory for THIS (doc, user) pair. The block is
- * empty when (a) no prior rows exist, or (b) the most recent row is
- * older than the idle gap (60 min) — both treated as a fresh start.
- * Failures degrade silently: a memory read hiccup mustn't block a
- * user-typed prompt; the loop just runs without prior context.
+ * Conversation memory for THIS (doc, user) pair; empty when there are no prior
+ * rows or the latest is older than the idle gap (60 min). Read failures
+ * degrade to no memory rather than blocking the prompt.
  */
 async function loadConversationBlock(docId: string, userId: number): Promise<string> {
   try {
@@ -256,10 +237,9 @@ interface PromptLoopArgs {
 }
 
 /**
- * Background fire-and-forget runner. The `status.phase` wrap (instead
- * of `let lastPhase: StreamStatusPhase`) is intentional — TS's
- * control-flow analysis would narrow a literal through try/catch and
- * reject the `finally` comparison with `'error'`.
+ * Background fire-and-forget runner. `status.phase` is wrapped (rather than a
+ * `let lastPhase`) because TS control-flow analysis would narrow a literal
+ * through try/catch and reject the `finally` comparison with `'error'`.
  */
 async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
   let aiSession: Awaited<ReturnType<typeof createAiSession>> | null = null
@@ -287,11 +267,10 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
       aiProviders: args.aiProviders
     }, args.abortController.signal)
 
-    // Taint gate: a document other people edit (or later: their
-    // comments, web pages, their knowledge files, other documents)
-    // makes cross-document / knowledge / web tools ask the initiator
-    // first. Only what the initiator typed counts as their own text —
-    // NOT the editor-state wrapper, which quotes document content.
+    // Taint gate: other people's text (document edits, comments, web pages,
+    // knowledge files, other documents) makes cross-document / knowledge / web
+    // tools ask the initiator first. Only what the initiator typed counts as
+    // their own, NOT the editor-state wrapper, which quotes document content.
     crossBoundary = await buildSessionGuard({
       docId: args.docId,
       initiatorUserId: args.userId,
@@ -303,10 +282,9 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
     })
 
     await runAgenticLoop({
-      // Phase 5: `ai` arg is for the unit-test seam only; production
-      // routes through LiteLLM via the user's virtual key. `model` and
-      // `thinkingBudget` are also test-seam-only — the model comes from
-      // the session's resolved chat provider (`aiSession.aiProviders.chat`).
+      // `ai` is a unit-test seam; production routes through LiteLLM via the
+      // user's virtual key. `model` and `thinkingBudget` are test-only too: the
+      // model comes from the session's resolved chat provider.
       model: '',
       systemPrompt: args.systemPrompt,
       initialPrompt: args.wrappedPrompt,
@@ -338,13 +316,10 @@ async function runPromptLoop(args: PromptLoopArgs): Promise<void> {
 }
 
 /**
- * Record the user's verbatim prompt FIRST — before the AI Hocuspocus
- * client opens. Memory captures the user's INTENT, and their intent
- * is "I asked X" regardless of whether the downstream sync / model
- * spin-up succeeds. Storing the BARE prompt (not the editor-state-
- * wrapped one) — the model doesn't need to re-see its own
- * scaffolding, just the human-typed words. Failures are swallowed;
- * memory is never load-bearing on the request itself.
+ * Records the user's verbatim prompt FIRST, before the AI Hocuspocus client
+ * opens, so memory captures the intent even if sync / model spin-up fails.
+ * Stores the bare prompt, not the editor-state-wrapped one. Failures are
+ * swallowed; memory is never load-bearing.
  */
 async function recordUserPromptMemory(args: PromptLoopArgs): Promise<void> {
   try {
@@ -361,11 +336,9 @@ async function recordUserPromptMemory(args: PromptLoopArgs): Promise<void> {
 }
 
 /**
- * Per-call memory recorder. Compacted to {name, summary} only — the
- * result payload is intentionally NOT recorded so the model re-issues
- * the call if it needs the data again. Skip noise tools
- * (view_document, read_comments, etc.) that the model re-runs every
- * turn just to read the current state.
+ * Per-call memory recorder: {name, summary} only, without the result payload,
+ * so the model re-issues a call when it needs the data again. Skips noise
+ * tools (view_document, read_comments, ...) the model re-runs every turn.
  */
 async function recordToolCallMemory(args: PromptLoopArgs, name: string, validatedArgs: unknown): Promise<void> {
   if (!shouldRecordToolInMemory(name)) return
@@ -387,10 +360,8 @@ function handlePromptLoopError(
   args: PromptLoopArgs,
   setStatus: (phase: StreamStatusPhase, message?: string) => void
 ): void {
-  // Treat anything that happens after we signaled abort as an abort,
-  // regardless of the error's name/message. The SDK throws various abort
-  // variants (AbortError, ApiError wrapping fetch abort, etc.) — our
-  // AbortController is the source of truth.
+  // Anything after the abort signal counts as an abort: the SDK throws various
+  // abort variants and our AbortController is the source of truth.
   const err = e as { name?: string, message?: string }
   const isAbort
     = args.abortController.signal.aborted

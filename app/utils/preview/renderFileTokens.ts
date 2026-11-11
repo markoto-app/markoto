@@ -21,7 +21,7 @@ export interface RenderFileAccess {
   /** The bootstrap's file-access JWT. */
   token: string
   /**
-   * Brand-kit files (`<assetId>.<ext>`) of the document's workspace (WP10).
+   * Brand-kit files (`<assetId>.<ext>`) of the document's workspace.
    * A theme's `/api/brand/<file>` image loads through
    * `/api/docs/<docId>/brand/<file>` with the token — only for these.
    */

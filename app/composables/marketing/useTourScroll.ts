@@ -37,7 +37,6 @@ const AT_REST_PX = 4
 /** Keys the browser scrolls the page with (taken over while Lenis runs). */
 const SCROLL_KEYS = new Set(['PageDown', 'PageUp', 'ArrowDown', 'ArrowUp', ' ', 'Home', 'End'])
 
-/** After the page has loaded and the main thread is idle. */
 function afterLoadIdle(fn: () => void): () => void {
   let cancelled = false
   let idle: number | null = null
@@ -86,9 +85,6 @@ const LENIS_PREVENT = '[role="dialog"], [role="menu"], [role="listbox"], textare
  *
  * `TOUR_REST_EVENT` / `TOUR_DEPART_EVENT` tell the scenes when one has
  * settled (the share scene fans its PDF pages out then).
- *
- * This replaced a hand-written wheel hijack that turned every gesture into
- * one scripted glide: it swallowed trackpad input and felt abrupt.
  */
 export function useTourScroll(opts: TourScrollOptions) {
   let lenis: Lenis | null = null
@@ -298,7 +294,6 @@ export function useTourScroll(opts: TourScrollOptions) {
     clearTimeout(idleTimer)
     destroyLenis()
   }
-  /** Scroll to rest `index` (the scenes' "next" buttons). */
   function goTo(index: number): void {
     dir = index >= anchor ? 1 : -1
     settleTo(index, false)

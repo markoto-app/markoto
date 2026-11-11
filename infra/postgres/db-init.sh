@@ -13,13 +13,12 @@
 #   3. nobody else can connect to either database (CONNECT/TEMP revoked
 #      from PUBLIC), so the LiteLLM role cannot open the app database and
 #      vice versa;
-#   4. objects created earlier by the admin role (installs from before
-#      separate roles existed) are handed over to the owning role.
+#   4. objects created earlier by the admin role (installs that predate
+#      separate roles) are handed over to the owning role.
 #
 # A role whose name equals POSTGRES_USER means "no separate role" — that
-# consumer keeps using the admin role (the pre-B11 behaviour; compose
-# falls back to it when POSTGRES_APP_USER / POSTGRES_LITELLM_USER are
-# unset). Passwords are re-applied on every run, so rotating one is: edit
+# consumer keeps using the admin role (compose falls back to it when
+# POSTGRES_APP_USER / POSTGRES_LITELLM_USER are unset). Passwords are re-applied on every run, so rotating one is: edit
 # .env, `docker compose up -d`.
 #
 # Environment (libpq): PGHOST PGPORT PGUSER PGPASSWORD [PGSSLMODE]

@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in (WP7b) — env parsing.
+// Generic OpenID Connect sign-in — env parsing.
 //
 // Self-hosters point markoto at their own IdP (Authentik, Keycloak,
 // Authelia, Pocket ID, Zitadel, Dex, ...). The provider is offered only
@@ -40,7 +40,7 @@ export interface OidcSettings {
   allowInsecureHttp: boolean
   /**
    * Fetch for every request to the IdP (discovery, JWKS, token,
-   * UserInfo). Set for per-workspace SSO connections (WP14): the issuer
+   * UserInfo). Set for per-workspace SSO connections: the issuer
    * is customer-supplied, so requests go through the SSRF policy in
    * `server/utils/sso/urlPolicy.ts`. Unset = global fetch (the
    * operator's own instance IdP).

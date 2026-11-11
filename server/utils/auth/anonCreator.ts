@@ -17,8 +17,8 @@ import { getCookie, getRequestProtocol, setCookie } from 'h3'
 // necessary for a feature the visitor asked for (deleting their own
 // doc), so no consent is involved.
 //
-// Docs created before the key existed have a NULL hash and can't be
-// deleted anonymously; the inactive-doc sweep removes them as before.
+// Docs with a NULL hash can't be deleted anonymously; the inactive-doc
+// sweep removes them.
 
 const ANON_CREATOR_COOKIE = 'markoto-anon-creator'
 // Scoped to the doc API: create (POST /api/docs), delete
@@ -42,7 +42,7 @@ export function hashAnonCreatorKey(key: string): string {
 
 /**
  * Does the presented key match the doc's stored hash? Constant-time on
- * the hash comparison. A NULL stored hash (legacy anonymous doc) never
+ * the hash comparison. A NULL stored hash (anonymous doc without a key) never
  * matches.
  */
 export function anonCreatorKeyMatches(key: string | null, storedHash: string | null): boolean {

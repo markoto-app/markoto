@@ -5,7 +5,7 @@ import { flushPromises } from '@vue/test-utils'
 import type { H3Event } from 'h3'
 import { CommonAiCreditsCard } from '#components'
 
-// AI credit top-ups (WP4): the card shows the balance and history, sends
+// AI credit top-ups: the card shows the balance and history, sends
 // the chosen pack to checkout and follows Stripe's URL; without a paid
 // plan it explains instead of selling.
 
@@ -46,7 +46,7 @@ describe('AI credits card', () => {
     expect(wrapper.text()).toContain('$2.50 used this month')
     expect(wrapper.text()).toContain('$22.50 left')
     expect(wrapper.find('[data-testid="profile-buy-25"]').text()).toContain('CHF')
-    // Disabled until the Paid Plans Terms box is ticked (WP6b).
+    // Disabled until the Paid Plans Terms box is ticked.
     expect(wrapper.get('[data-testid="profile-buy-25"]').attributes('disabled')).toBeDefined()
     await wrapper.get('[data-testid="profile-paid-terms"] [role="checkbox"]').trigger('click')
     await flushPromises()

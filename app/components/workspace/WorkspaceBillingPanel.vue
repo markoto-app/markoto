@@ -14,7 +14,7 @@ import {
   type WorkspaceBillingOverview
 } from '~/utils/billing/workspaceBilling'
 
-// Workspace billing tab (Team / Business, pricing plan WP3). Admins only;
+// Workspace billing tab (Team / Business). Admins only;
 // the page shows the tab only when billing is on.
 //
 //   - No subscription yet (or an abandoned checkout): choose Team or
@@ -23,8 +23,7 @@ import {
 //     seat changes, plan / billing-period switch, the Stripe portal
 //     (invoices, card, cancel), and the pooled AI budget with each
 //     member's spend and limit.
-// Members never see this tab: they never see a price (plan "Team member
-// experience").
+// Members never see this tab: they never see a price.
 
 const props = defineProps<{
   workspaceId: string
@@ -77,7 +76,6 @@ const sub = computed(() => overview.value?.subscription ?? null)
 const hasLiveSubscription = computed(() => sub.value !== null && sub.value.status !== 'incomplete' && sub.value.status !== 'incomplete_expired' && sub.value.status !== 'canceled')
 const paymentProblem = computed(() => isPaymentProblem(sub.value?.status))
 
-// ── Buying ──────────────────────────────────────────────────────────
 const plan = ref<'team' | 'business'>('team')
 const interval = ref<BillingInterval>('month')
 const currency = ref<Currency>('eur')
@@ -108,7 +106,7 @@ const totalLabel = computed(() => {
   })
 })
 
-// The Paid Plans Terms box (WP6b): a first purchase and a plan switch
+// The Paid Plans Terms box: a first purchase and a plan switch
 // both need it; seat changes don't (they run under the accepted terms).
 const paidTermsAccepted = ref(false)
 
@@ -128,7 +126,6 @@ async function startCheckout() {
   }
 }
 
-// ── Changing ────────────────────────────────────────────────────────
 async function changePlan(next: { plan?: 'team' | 'business', interval?: BillingInterval }) {
   if (!sub.value || !paidTermsAccepted.value) return
   busy.value = 'plan'
@@ -174,7 +171,6 @@ async function openPortal() {
   }
 }
 
-// ── Member limits ───────────────────────────────────────────────────
 type LimitMode = 'default' | 'custom' | 'none'
 const limitDrafts = ref<Record<number, { mode: LimitMode, amount: number }>>({})
 watch(overview, (o) => {
@@ -251,7 +247,7 @@ function usd(amount: number | null | undefined): string {
         data-testid="workspace-billing-payment-problem"
       />
 
-      <!-- No subscription yet: buy one ─────────────────────────────── -->
+      <!-- No subscription yet: buy one -->
       <div
         v-if="!hasLiveSubscription"
         class="rounded-lg border border-default bg-default p-5 space-y-5"
@@ -338,7 +334,7 @@ function usd(amount: number | null | undefined): string {
         </p>
       </div>
 
-      <!-- Subscription ─────────────────────────────────────────────── -->
+      <!-- Subscription -->
       <template v-else-if="sub">
         <div
           class="rounded-lg border border-default bg-default p-5 space-y-4"
@@ -433,7 +429,7 @@ function usd(amount: number | null | undefined): string {
           </div>
         </div>
 
-        <!-- AI credit top-ups (WP4) ─────────────────────────────────── -->
+        <!-- AI credit top-ups -->
         <div
           class="rounded-lg border border-default bg-default p-5 space-y-3"
           data-testid="workspace-billing-credits-card"
@@ -450,7 +446,7 @@ function usd(amount: number | null | undefined): string {
           />
         </div>
 
-        <!-- Pooled AI budget + members ─────────────────────────────── -->
+        <!-- Pooled AI budget + members -->
         <div
           v-if="overview.pool"
           class="rounded-lg border border-default bg-default p-5 space-y-4"

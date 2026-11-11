@@ -33,7 +33,7 @@ test('Write with AI', async ({ flow, editor }) => {
   const draft = '# Team handbook\n\n## Writing in markoto\n\nWe draft every proposal in markoto so the whole team can edit at once.\n\n## Reviews\n\nLeave a comment on the passage you mean, not on the whole document.\n'
   await editor.silentSetup({ title: 'Team handbook', body: draft, cover: false })
 
-  // ─── Open the AI prompt bar ──────────────────────────────────────
+  // Open the AI prompt bar
   await flow.heading('Ask the AI to write for you', 3)
   await flow.narrate(
     'The AI prompt bar floats at the bottom of every markoto document. '
@@ -72,7 +72,7 @@ test('Write with AI', async ({ flow, editor }) => {
   )
   await expect(editor.page.ai.promptBarInput).toHaveValue(prompt)
 
-  // ─── Submit + watch the AI work ──────────────────────────────────
+  // Submit + watch the AI work
   await flow.heading('The AI joins your document', 3)
   await flow.narrate(
     'The bar swaps to its active state and pulses while '
@@ -99,7 +99,7 @@ test('Write with AI', async ({ flow, editor }) => {
   // the client optimistically toggled active.
   await expect(editor.page.ai.promptBar).toHaveAttribute('data-active', 'true')
 
-  // ─── Wait for AI to finish + see the result ──────────────────────
+  // Wait for AI to finish + see the result
   await flow.heading('The AI is done', 3)
   await flow.narrate(
     'When the AI is done, the bar fades back to its idle '

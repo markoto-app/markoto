@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<{
   /** data-testid of each card: `${testidPrefix}${template.id}`. */
   testidPrefix: string
   savedTab?: boolean
-  /** A "This workspace" tab (WP10c workspace templates) — shows only the `before` slot, first in the row. */
+  /** A "This workspace" tab (workspace templates) — shows only the `before` slot, first in the row. */
   workspaceTab?: boolean
   /** The design Blank gets when it is not markoto (a workspace default). */
   blankTheme?: DocTheme | null

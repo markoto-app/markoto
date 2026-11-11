@@ -20,13 +20,10 @@ export interface ProviderLike {
  * disconnect, and the `status` / `synced` / `userCount` / `docSizeBytes`
  * reactivity derived from provider events.
  *
- * Doesn't know or care about access mode, passwords, ownership, or the Y.Doc
- * contents themselves. That split is deliberate: this composable is the
- * "dumb transport layer" and can be reasoned about in isolation.
- *
- * The orchestrator (`useDocument`) threads together the token, awareness, and
- * Y.Doc, then calls `connect()` at the right moment (never for forbidden or
- * password-gated docs pre-verification).
+ * A deliberately dumb transport layer: it knows nothing about access mode,
+ * passwords, ownership or Y.Doc contents. The orchestrator (`useDocument`)
+ * calls `connect()` at the right moment (never for forbidden or
+ * password-gated docs before verification).
  */
 
 export interface HocuspocusSyncOptions {
@@ -38,9 +35,9 @@ export interface HocuspocusSyncOptions {
    *  HocuspocusProvider's `token` option, which invokes it on EVERY
    *  (re)connect — so returning a value that reflects the current token
    *  (and refreshes it when near expiry) is what keeps a long-lived
-   *  session's reconnect from presenting a dead JWT (F5). May be async
-   *  (the provider awaits it). Changes over the doc's lifetime (anonymous
-   *  → password-verified → refreshed), so it must be read lazily.
+   *  session's reconnect from presenting a dead JWT. May be async. The
+   *  token changes over the doc's lifetime (anonymous → password-verified
+   *  → refreshed), so it must be read lazily.
    *  `renewal` is true when the sync server asked for a fresh token on the
    *  open connection (shortly before the current one expires). */
   getToken: (opts: { renewal: boolean }) => string | Promise<string>
@@ -50,40 +47,33 @@ export interface HocuspocusSyncOptions {
   onReauthRequired?: () => void
   /** Fires on every successful sync (initial load + later reconnects). */
   onSynced?: () => void
-  /** Fires on disconnect; receives whether we ever synced in this provider's
-   *  lifetime so the caller can distinguish "server offline" from "lost after
-   *  first sync" (useful for status/telemetry). NOTE: the caller must NOT
-   *  seed doc content from here — a disconnect before any sync means the
-   *  server's content is unknown, and a local seed would merge with real
-   *  content on auto-reconnect (F9). Welcome seeding lives on `onSynced`
-   *  only. */
+  /** Fires on disconnect; receives whether this provider ever synced, to
+   *  tell "server offline" from "lost after first sync". The caller must NOT
+   *  seed doc content from here: before any sync the server's content is
+   *  unknown, and a local seed would merge with it on auto-reconnect. Seed
+   *  from `onSynced` only. */
   onDisconnect?: (everSynced: boolean) => void
   /** Hocuspocus rejected the JWT — caller should flip `isReadOnly`. */
   onAuthFailed?: () => void
   /**
-   * Factory for the underlying provider. Production passes no value and
-   * gets a real HocuspocusProvider; tests inject a fake that captures the
-   * config (including the lifecycle callbacks) so they can fire
-   * `onConnect` / `onSynced` / `onDisconnect` / `onAuthenticationFailed`
-   * / `onAwarenessChange` on demand without touching WebSockets.
+   * Factory for the underlying provider. Defaults to a real
+   * HocuspocusProvider; tests inject a fake that captures the config so
+   * they can fire the lifecycle callbacks without WebSockets.
    */
   providerFactory?: (config: HocuspocusProviderConfiguration) => ProviderLike
 }
 
 export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
-  // shallowRef: the provider is an opaque handle (we only care about
-  // identity + its `.destroy()` method). Using `ref` would wrap the
-  // instance in a Proxy and break reference comparisons anywhere
-  // upstream that holds onto `.value`.
+  // shallowRef: a `ref` would Proxy-wrap the provider and break reference
+  // comparisons by anyone holding `.value`.
   const provider = shallowRef<ProviderLike | null>(null)
   const status = ref<'connecting' | 'connected' | 'disconnected'>('connecting')
   const synced = ref(false)
   const userCount = ref(1)
   const docSizeBytes = ref(0)
-  // Set when the sync server refused one of our updates (too large,
-  // invalid document setting, …). Reconnecting would resend the same
-  // state and be refused again, so the provider stops; the editor shows
-  // a banner asking the user to reload.
+  // Set when the sync server refused an update (too large, invalid setting…).
+  // A reconnect would resend the same state, so the provider stops and the
+  // editor asks the user to reload.
   const syncRejection = ref<SyncCloseReason | null>(null)
 
   function isAuthenticated(): boolean {
@@ -99,9 +89,8 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
     ?? ((config: HocuspocusProviderConfiguration) => new HocuspocusProvider(config))
 
   function connect() {
-    // No sync URL configured (e.g. pure-offline dev): simulate a "synced,
-    // disconnected" state so the editor still renders. The caller decides
-    // whether to seed welcome content (see `onSynced` callback).
+    // No sync URL (pure-offline dev): report "synced, disconnected" so the
+    // editor still renders; the caller seeds via `onSynced`.
     if (!opts.syncUrl) {
       status.value = 'disconnected'
       synced.value = true
@@ -114,14 +103,12 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
       name: opts.docId,
       document: opts.ydoc,
       awareness: opts.awareness,
-      // Pass an accessor (not a resolved string): HocuspocusProvider calls
-      // it on every (re)connect, so a token that refreshes near expiry keeps
-      // reconnects authenticated instead of replaying a dead JWT (F5).
-      // `Promise.resolve` normalises the sync-or-async accessor to the
-      // provider's `() => Promise<string>` shape.
+      // An accessor, not a string: it is called on every (re)connect, so a
+      // token refreshed near expiry keeps reconnects authenticated.
+      // `Promise.resolve` normalises sync/async to the provider's shape.
       // An authenticated provider asking for a token is answering the
-      // server's renewal request; on a (re)connect the provider has
-      // reset `isAuthenticated` before it asks.
+      // server's renewal request; on a (re)connect it has already reset
+      // `isAuthenticated`.
       token: () => Promise.resolve(opts.getToken({ renewal: isAuthenticated() })),
       onConnect: () => { status.value = 'connected' },
       onDisconnect: () => {
@@ -151,21 +138,14 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
         if (syncRejection.value && next === WebSocketStatus.Connecting) stopReconnecting()
       },
       onAwarenessChange: ({ states }) => {
-        // Dedup by `user.id` so multiple tabs of the SAME human don't
-        // inflate the count. Anonymous editors (no `user.id`) and AI
-        // sessions stay as one entry per socket — we can't tell anon
-        // tabs apart, and each AI session is genuinely distinct. This
-        // keeps the chip's number aligned with what PresenceBar
-        // actually shows: open the same doc twice in two tabs as the
-        // same logged-in user and you see one avatar, not two — the
-        // count must match.
+        // Dedup by `user.id` so several tabs of the same person count once,
+        // matching what PresenceBar shows. Anonymous editors (no id) and AI
+        // sessions count once per socket: anon tabs can't be told apart and
+        // each AI session is distinct.
         //
-        // Real `user.id` values are NUMERIC (DB-issued). The 'anonymous'
-        // sentinel is the only legitimate string. A numeric string
-        // (e.g. "42") would dedup correctly via Number coercion below,
-        // but its appearance signals a regression at a JWT mint site or
-        // session helper — log it so we can chase it down rather than
-        // letting it silently work-by-accident.
+        // Real ids are numeric (DB-issued); 'anonymous' is the only legitimate
+        // string. A numeric string still dedups via Number coercion, but
+        // signals a regression at a JWT mint site or session helper, so it is logged.
         const seenUserIds = new Set<number>()
         let unique = 0
         for (const s of states) {
@@ -184,9 +164,7 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
           if (typeof id === 'number') {
             numericId = id
           } else {
-            // Non-numeric string id should never happen — sound the alarm
-            // and treat the connection as anonymous (don't count toward
-            // dedup) rather than crashing the user-count chip.
+            // Non-numeric: log and count as anonymous rather than crash the chip.
             const parsed = Number(id)
             if (!Number.isFinite(parsed)) {
               console.warn('[useHocuspocusSync] non-numeric user.id slipped into awareness:', id)
@@ -211,14 +189,12 @@ export function useHocuspocusSync(opts: HocuspocusSyncOptions) {
   }
 
   /**
-   * Tear down the current provider and connect fresh. Used by the orchestrator
-   * after a password-verified token swap — the existing provider carries a
-   * rejected-or-absent token and must be replaced wholesale.
+   * Replaces the provider wholesale; used after a password-verified token
+   * swap, since the old provider carries a rejected or absent token.
    */
   function reconnect() {
     disconnect()
-    // Reset sync tracking so the next `onSynced` fires the welcome-seed / clear-
-    // pending-unlock branches fresh. docSizeBytes gets recomputed on sync.
+    // So the next `onSynced` re-runs the template-seed / clear-pending-unlock branches.
     synced.value = false
     syncRejection.value = null
     status.value = 'connecting'

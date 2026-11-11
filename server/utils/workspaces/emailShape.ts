@@ -3,7 +3,7 @@
 // This is a SHAPE check only — the caller resolves the address against
 // the users table afterwards, so false positives just produce a 404
 // ("no user with that email") instead of a 400. It deliberately mirrors
-// the semantics of the old inline regex
+// the semantics of this regex
 //
 //     /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 //

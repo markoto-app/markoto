@@ -31,8 +31,7 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
   return out
 }
 
-// "Snap the live Y.Doc to a past state" — the execution side of
-// the Tier 2 restore feature.
+// "Snap the live Y.Doc to a past state" — the execution side of restore.
 //
 // Mechanics:
 //   1. Replay y-postgresql up to `targetYjsId` to produce the past
@@ -97,7 +96,7 @@ export interface RestoreDocResult {
  * row below the merged row, so a target id below the lowest surviving row can
  * no longer be reconstructed. `reconstructDocAtYjsId` would return an EMPTY
  * doc for it, and applying that would WIPE the live document. We refuse instead.
- * The endpoint maps this to 410 Gone. See the F4 guard in `restoreDocToYjsId`.
+ * The endpoint maps this to 410 Gone. See the compaction-floor guard in `restoreDocToYjsId`.
  */
 export class RestorePointCompactedError extends Error {
   constructor(public readonly targetYjsId: number, public readonly floorId: number) {
@@ -137,7 +136,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     )
     const yjsDocIdBeforeRestore = (beforeRow.rows?.[0])?.id ?? null
 
-    // ─── F4 compaction-floor guard (prevents restore from WIPING a doc) ──
+    // Compaction-floor guard: keeps a restore from WIPING the doc.
     // y-postgresql compaction (`flushDocument` → `clearUpdatesRange`) DELETES
     // every granular `v1` row below the merged row, collapsing the doc into a
     // single row at the highest id. If `targetYjsId` sits below that surviving
@@ -227,25 +226,18 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     try {
       await syncReady
 
-      // Step 3: replace state inside one transaction. Why not just
-      // `Y.applyUpdate(ydoc, pastUpdate)`? Because Y.js merges by item
-      // id (clientID, clock). The past doc and the live doc share item
-      // ids — they're the SAME items the same authors typed. If we
-      // delete the live items first, then re-apply the past update,
-      // Y.js sees those item ids in the past update as ALREADY DELETED
-      // (we just tombstoned them in this same transaction) and the
-      // deletion wins in CRDT merge order. The doc ends up empty —
-      // which is exactly the bug that surfaced once boundary stamping
-      // started rendering the Restore button.
+      // Step 3: replace state inside one transaction. `Y.applyUpdate(ydoc,
+      // pastUpdate)` would not work: Y.js merges by item id (clientID,
+      // clock), and the past and live docs share item ids. Deleting the
+      // live items first tombstones those ids in this transaction, so the
+      // past update's items count as already deleted and the doc ends up
+      // empty.
       //
-      // The fix: don't try to resurrect old items. Empty the shared
-      // collections, then INSERT fresh items carrying the past
-      // VALUES. This loses character-level CRDT history (the new
-      // text is a single freshly-typed run, not the original keystroke
-      // chain), but the user-visible outcome — "the doc reads exactly
-      // like it did at row N" — is preserved. The new restore row's
-      // boundary ids let a reverse-restore bring back the pre-restore
-      // state in the same way (also as fresh items).
+      // Instead, empty the shared collections and INSERT fresh items
+      // carrying the past VALUES. Character-level CRDT history is lost
+      // (the text is one freshly typed run) but the doc reads exactly as
+      // it did at the target row, and the new restore row's boundary ids
+      // let a reverse restore work the same way.
       ydoc.transact(() => {
         const ytext = ydoc.getText('content')
         ytext.delete(0, ytext.length)
@@ -308,11 +300,9 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       }
     }
 
-    // Step 4: capture the post-restore yjs row id so the activity
-    // row's yjsDocIdAfter points at the new state. The store
-    // debounce inside Hocuspocus may not have flushed yet — we
-    // accept that for now; the diff drawer will resolve to the
-    // most recent post-restore state available, which is fine.
+    // Step 4: capture the post-restore yjs row id for the activity row's
+    // yjsDocIdAfter. Hocuspocus's store debounce may not have flushed yet;
+    // the diff drawer then resolves to the latest state available.
     const r = await tx.execute<{ id: number | null }>(
       sql`SELECT MAX(id) AS id FROM yjs_documents WHERE docname = ${opts.docId}`
     )

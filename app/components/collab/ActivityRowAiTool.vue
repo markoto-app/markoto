@@ -1,14 +1,7 @@
 <script setup lang="ts">
-// Per-tool detail view for an `ai.tool` activity row. We render
-// directly from the row's `metadata` blob — no extra round-trip.
-// All persistence happened at runLoop time when the tool fired, so
-// the drawer just needs to switch on `metadata.tool` and pick the
-// right sub-renderer.
-//
-// Why no API call: the data per row is small (sources array, image
-// strip, prompt text — all bounded) and travels with the activity
-// list response anyway. Saving the round-trip here keeps the
-// expansion instant.
+// Per-tool detail view for an `ai.tool` activity row, rendered straight from
+// the row's `metadata` (small, bounded, and already in the list response, so
+// no extra request).
 
 import { safeLinkUrl } from '~/utils/collab/activityFeedHelpers'
 
@@ -48,9 +41,7 @@ const viewedSrc = computed(() => safeLinkUrl(props.metadata.src))
 
 const { t } = useI18n()
 
-// Try to surface a host-only URL on link rows so the narrow sidebar
-// doesn't blow out on long URIs. Falls back to the raw URL on parse
-// failure (which would only happen for malformed inputs).
+// Host-only URL keeps the narrow sidebar from overflowing; falls back to the raw URL if parsing fails.
 function hostOf(rawUrl: string): string {
   try {
     return new URL(rawUrl).host
@@ -62,7 +53,6 @@ function hostOf(rawUrl: string): string {
 
 <template>
   <div class="activity-row-ai-tool space-y-2">
-    <!-- web_search: synthesized query + clickable source list -->
     <template v-if="metadata.tool === 'web_search'">
       <div
         v-if="metadata.query"
@@ -109,7 +99,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- fetch_url: page summary + image strip -->
     <template v-else-if="metadata.tool === 'fetch_url'">
       <a
         v-if="pageUrl"
@@ -143,10 +132,7 @@ function hostOf(rawUrl: string): string {
           :title="img.description ?? img.url"
           class="block rounded overflow-hidden border border-default/60 aspect-square bg-muted"
         >
-          <!-- Inline thumbnail. `referrerpolicy=no-referrer` so cross-
-               origin hosts don't 403 us on referer-based hotlink
-               protection. `loading=lazy` because most expansions
-               only show 0-1 images visible at a time. -->
+          <!-- `no-referrer` avoids referer-based hotlink 403s from cross-origin hosts. -->
           <img
             :src="img.url"
             :alt="img.description ?? ''"
@@ -158,7 +144,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- generate_image: prompt -->
     <template v-else-if="metadata.tool === 'generate_image'">
       <div
         v-if="metadata.prompt"
@@ -171,7 +156,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- view_image: thumbnail of the image AI looked at -->
     <template v-else-if="metadata.tool === 'view_image'">
       <a
         v-if="viewedSrc"
@@ -190,9 +174,7 @@ function hostOf(rawUrl: string): string {
       </a>
     </template>
 
-    <!-- search_knowledge: just the query for now (results expansion
-         can land in a follow-up; the knowledge-base feature is
-         workspace-only and we want to validate the broad UX first). -->
+    <!-- Only the query is shown; no result expansion. -->
     <template v-else-if="metadata.tool === 'search_knowledge'">
       <div
         v-if="metadata.query"
@@ -205,7 +187,6 @@ function hostOf(rawUrl: string): string {
       </div>
     </template>
 
-    <!-- get_knowledge_file: just the id; future-work resolves to filename -->
     <template v-else-if="metadata.tool === 'get_knowledge_file'">
       <div
         v-if="metadata.knowledgeId"

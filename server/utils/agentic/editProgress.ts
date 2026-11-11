@@ -4,9 +4,9 @@ import { createHash } from 'node:crypto'
  * Edit-progress tracking for the agentic loop.
  *
  * Mistral at temperature 0 does not always know when it is finished.
- * After making the requested edit it kept calling tools — swapping a
+ * After making the requested edit it can keep calling tools — swapping a
  * sentence back and forth, inserting bare newlines, replacing text
- * with itself — until the 20-turn limit ended the session with an
+ * with itself — until the 20-turn limit ends the session with an
  * error. This module classifies each document edit by its effect on
  * the text so the loop can (a) tell the model plainly that an edit
  * achieved nothing and (b) end a session that keeps stalling with a

@@ -128,7 +128,7 @@ const savedThemes = ref<SavedTheme[]>([])
 // Workspace default theme (when filing into a workspace): the design Blank
 // gets. Without one, Blank is in the markoto design.
 const workspaceDefaultTheme = ref<DocTheme | null>(null)
-// The workspace's own templates (WP10c, brand kit): a copy of a workspace
+// The workspace's own templates: a copy of a workspace
 // document's current text + design. Only when filing into a workspace.
 interface WorkspaceTemplate { id: string, name: string, description: string, docTitle: string }
 const workspaceTemplates = ref<WorkspaceTemplate[]>([])
@@ -404,7 +404,7 @@ async function submit() {
                   @select="(tpl) => pickTemplate(tpl.id)"
                 >
                   <template #before="{ tab: slotTab }">
-                    <!-- The workspace's own templates (WP10c). -->
+                    <!-- The workspace's own templates. -->
                     <template v-if="slotTab === 'workspace'">
                       <DocumentPictureCard
                         v-for="wt in workspaceTemplates"

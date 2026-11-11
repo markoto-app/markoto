@@ -11,9 +11,8 @@ import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../..
  * for the trusted-hop rule.
  *
  * `NUXT_TRUSTED_PROXY_HOPS` (default 1 = the Traefik in every shipped
- * compose file) is read from `process.env` on every call, not via
- * `useRuntimeConfig()`, so unit tests can flip it per case and the helper
- * works outside a Nitro context.
+ * compose file) is read from `process.env` on every call, so tests can flip
+ * it and the helper works outside Nitro.
  */
 export function getClientIp(event: H3Event): string | null {
   return resolveClientIp({

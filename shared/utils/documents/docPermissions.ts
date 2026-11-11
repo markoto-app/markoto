@@ -15,7 +15,7 @@
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
 export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 /**
- * A row in `workspace_members` (WP11): a role, or `guest` — someone who
+ * A row in `workspace_members`: a role, or `guest` — someone who
  * reaches only the documents shared with them. Never passed to the
  * access decisions as a role: `getMemberRole` returns null for a guest,
  * and the document query maps a share to `editor` / `viewer`.
@@ -27,13 +27,13 @@ export interface DocState {
   workspaceId: string | null
   accessMode: AccessMode
   // True when the actor owns the doc but the ownership must not count:
-  // the doc is in a workspace that enforces single sign-on (WP14) and
+  // the doc is in a workspace that enforces single sign-on and
   // the actor has no effective role there (no current SSO grant, or
   // removed / deactivated via SCIM). The actor is then treated as a
   // non-owner. Computed per actor by `getDocWithActorRole`; build
   // DocState with `docStateOf(row)` so it is never dropped.
   ownerAccessSuspended?: boolean
-  // The share link's expiry (WP9) has passed: `accessMode` was a public
+  // The share link's expiry has passed: `accessMode` was a public
   // mode and is now `private` (set by `docStateOf`). Lets the token
   // endpoint tell a visitor the link expired instead of "forbidden".
   shareExpired?: boolean
@@ -57,7 +57,7 @@ export interface ActorState {
   // Only read by `decideDocDelete`: anonymous docs can be deleted only
   // by their creating browser.
   isAnonCreator?: boolean
-  // A workspace GUEST (WP11): `workspaceRole` comes from their share of
+  // A workspace GUEST: `workspaceRole` comes from their share of
   // this one document. Read by `canDownload` (guests are visitors there).
   isGuest?: boolean
 }
@@ -95,10 +95,10 @@ export function docStateOf(row: {
   workspaceId: string | null
   accessMode: AccessMode
   ownerAccessSuspended: boolean
-  /** Share-link expiry (WP9); absent / null = never. */
+  /** Share-link expiry; absent / null = never. */
   shareExpiresAt?: Date | string | null
 }, now: Date = new Date()): DocState {
-  // Share-link expiry (WP9): after it, a public mode (open-edit, open-view,
+  // Share-link expiry: after it, a public mode (open-edit, open-view,
   // password) acts as `private` — the owner and workspace members keep
   // their access, everyone else is refused. Applied here, so every
   // decide* call on a row sees it.
@@ -120,9 +120,9 @@ export function isShareExpired(expiresAt: Date | string | null | undefined, now:
 }
 
 /**
- * Share-link controls (WP9): this caller may download (PDF, Markdown) and
+ * Share-link controls: this caller may download (PDF, Markdown) and
  * print. Visitors — not the owner, not a workspace member — may not while
- * `shareNoDownload` is on. Guests (WP11) count as visitors.
+ * `shareNoDownload` is on. Guests count as visitors.
  */
 export function canDownload(doc: DocState, actor: ActorState, noDownload: boolean): boolean {
   if (!noDownload) return true
@@ -180,7 +180,7 @@ function isAnonymousDoc(doc: DocState): boolean {
  * - `forbidden`          → return { token: null, forbidden: true }
  * - `password-required`  → return { token: null, requiresPassword: true }
  *
- * Spec (AGENTS.md §4):
+ * Spec (server/AGENTS.md):
  *   - Doc owner: full access, always — except while the ownership is
  *     suspended by single sign-on (`doc.ownerAccessSuspended`).
  *   - Workspace admin/editor: bypass `private` and `password-protected`,
@@ -269,7 +269,7 @@ export function decideFileAccess(doc: DocState, actor: ActorState): ViewDecision
   // private or password-protected
   if (isDocOwner(doc, actor)) return { outcome: 'allow' }
   if (actor.workspaceRole !== null) return { outcome: 'allow' }
-  // A doc JWT from before the share link expired (WP9) no longer counts:
+  // A doc JWT from before the share link expired no longer counts:
   // after the expiry only the owner and workspace members get in.
   if (actor.hasValidDocJwt && !doc.shareExpired) return { outcome: 'allow' }
   return { outcome: 'deny' }

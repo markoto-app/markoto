@@ -51,7 +51,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
     + 'time, so if you keep editing they see the latest version.'
   )
 
-  // ─── Switch to open-view ────────────────────────────────────────
+  // Switch to open-view
   // Step A (story): show the share dialog so the screenshot captures
   // the four access-mode options the user picks from. We deliberately
   // do NOT click "Anyone can view" inside the modal because the
@@ -86,7 +86,7 @@ test('Share as read-only', async ({ page, flow, editor }) => {
 
   const docUrl = page.url()
 
-  // ─── Visitor opens the link ─────────────────────────────────────
+  // Visitor opens the link
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
     'A visitor opens the link in their own browser. The document '

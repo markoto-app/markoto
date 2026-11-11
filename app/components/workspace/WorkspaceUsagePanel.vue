@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Workspace usage (WP11), admins: per person, what they own and added in
+// Workspace usage, admins: per person, what they own and added in
 // this workspace — documents, documents shared with guests, knowledge
 // files, image storage — and, in a Team / Business workspace, their AI
 // spend on the shared budget this period. No activity times: this is

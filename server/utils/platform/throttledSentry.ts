@@ -1,13 +1,9 @@
 import * as Sentry from '@sentry/nuxt'
 
-// Fire-and-forget paths (sync-server notify, internal HTTP) must not
-// flood Sentry when a misconfigured URL fails every single request.
-// `captureExceptionThrottled(key, ...)` forwards the first occurrence
-// in each TTL window to Sentry and suppresses the rest — so a broken
-// `NUXT_SYNC_INTERNAL_URL` in prod surfaces once, not per-request.
-//
-// The console.warn logs still fire per-occurrence so tail-the-logs
-// debugging stays intact.
+// Fire-and-forget paths (sync-server notify, internal HTTP) must not flood
+// Sentry when a misconfigured URL fails every request.
+// `captureExceptionThrottled(key, ...)` forwards the first occurrence per TTL
+// window and suppresses the rest. Callers' console.warn logs still fire each time.
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000
 

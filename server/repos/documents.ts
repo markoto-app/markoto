@@ -7,17 +7,11 @@ import type { WorkspaceRole } from '../../shared/utils/documents/docPermissions'
 import { useDatabase } from '../utils/platform/database'
 import { NotFoundError } from './errors'
 
-// Documents repository.
-//
-// Every endpoint that reads or writes the `documents` table goes through
-// this module. Benefits:
-//   - One place owns the DB schema coupling; endpoints work with domain
-//     shapes (`DocSnapshot`, `DocAuthzRow`) instead of Drizzle row types.
-//   - The "fetch doc + joined workspace role" pattern used by token,
-//     files, and activity endpoints lives in `getDocWithActorRole`
-//     rather than being inlined in three places.
-//   - Unit-testable via `createDocumentsRepo(db)` that takes an explicit
-//     Drizzle instance. Default export reads from `useDatabase()`.
+// Documents repository: every read/write of the `documents` table goes through
+// here, so endpoints work with domain shapes (`DocSnapshot`, `DocAuthzRow`)
+// instead of Drizzle rows, and the "doc + joined workspace role" fetch lives
+// once in `getDocWithActorRole`. `createDocumentsRepo(db)` takes an explicit
+// Drizzle instance for unit tests; the default export uses `useDatabase()`.
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
 
@@ -55,13 +49,13 @@ export interface DocAuthzRow {
   theme: DocTheme | null
   workspaceRole: WorkspaceRole | null
   /**
-   * The caller is a GUEST of the document's workspace (WP11):
+   * The caller is a GUEST of the document's workspace:
    * `workspaceRole` then comes from their share of this document only.
    */
   isGuest: boolean
   /**
    * True when the caller OWNS the doc but that ownership must not count:
-   * the doc sits in a workspace that enforces single sign-on (WP14) and
+   * the doc sits in a workspace that enforces single sign-on and
    * the caller has no effective role there (no current SSO grant, or no
    * longer a member — e.g. deactivated / deleted via SCIM). Ownership of
    * a workspace doc then grants nothing beyond what any outsider gets.
@@ -71,15 +65,14 @@ export interface DocAuthzRow {
    * (`shared/utils/documents/docPermissions.ts`) so the rule applies everywhere.
    */
   ownerAccessSuspended: boolean
-  /** Share-link controls (WP9): when public access ends (null = never). `docStateOf` applies it. */
+  /** Share-link controls: when public access ends (null = never). `docStateOf` applies it. */
   shareExpiresAt: Date | null
-  /** Share-link controls (WP9): no PDF / Markdown download or print for visitors. */
+  /** Share-link controls: no PDF / Markdown download or print for visitors. */
   shareNoDownload: boolean
   /**
-   * Document context fields. Surfaced through the token endpoint so the
-   * editor can hydrate the Document tab + new-doc-derived UI before the
-   * Y.js sync completes. Source-of-truth lives in the documents row;
-   * ymeta.* mirrors are bridged for live updates.
+   * Document context fields, surfaced through the token endpoint so the editor
+   * can hydrate the Document tab before Y.js sync completes. The documents row
+   * is the source of truth; ymeta.* mirrors carry live updates.
    */
   title: string
   description: string
@@ -94,10 +87,8 @@ export interface CreateDocInput {
   workspaceId: string | null
   accessMode: AccessMode
   /**
-   * Optional context fields chosen at creation time via the new-doc
-   * dialog. Each falls back to the schema default if omitted, so the
-   * "Just give me a blank doc" path can pass nothing and get sensible
-   * values without the caller having to know the defaults.
+   * Optional context fields from the new-doc dialog; each falls back to the
+   * schema default when omitted.
    */
   title?: string
   description?: string
@@ -125,11 +116,7 @@ export interface MetaUpdate {
   templateId?: string
 }
 
-/**
- * Fetch the full document row. Returns null (not throws) for missing
- * docs so callers can distinguish "not found" from genuine errors —
- * handlers that want 404 on missing translate explicitly.
- */
+/** Fetch the full document row; null (not a throw) when missing so handlers choose their own 404. */
 export async function getDoc(docId: string): Promise<DocSnapshot | null> {
   const db = useDatabase()
   const row = (await db
@@ -159,10 +146,7 @@ export async function getDoc(docId: string): Promise<DocSnapshot | null> {
   }
 }
 
-/**
- * Exists check without pulling the whole row. Cheaper than getDoc when
- * all we need is "yes/no" (e.g. internal/activity).
- */
+/** Existence check without loading the row. */
 export async function docExists(docId: string): Promise<boolean> {
   const db = useDatabase()
   const row = (await db
@@ -174,12 +158,9 @@ export async function docExists(docId: string): Promise<boolean> {
 }
 
 /**
- * The one-query fetch used by token, files, and activity endpoints:
- * doc row joined with the caller's workspace role (if any). Replaces
- * the "fetch doc, then fetch role conditionally" two-step that was
- * inlined in several places.
- *
- * `actorUserId` null ⇒ anonymous caller ⇒ no role lookup performed.
+ * One-query fetch for the token, files and activity endpoints: the doc row
+ * joined with the caller's workspace role. `actorUserId` null means anonymous,
+ * so no role lookup.
  */
 export async function getDocWithActorRole(
   docId: string,
@@ -201,7 +182,7 @@ export async function getDocWithActorRole(
       audience: documents.audience,
       language: documents.language,
       templateId: documents.templateId,
-      // A guest (WP11) has the role their share of THIS document gives
+      // A guest has the role their share of THIS document gives
       // (edit → editor, view → viewer) and none without one.
       role: sql<WorkspaceRole | null>`case when ${workspaceMembers.role} = 'guest' then (
         select case ${documentShares.access} when 'edit' then 'editor' else 'viewer' end
@@ -228,9 +209,9 @@ export async function getDocWithActorRole(
         : and(
             eq(workspaceMembers.workspaceId, documents.workspaceId),
             eq(workspaceMembers.userId, actorUserId),
-            // Single sign-on (WP14): no role without a current SSO grant
+            // Single sign-on: no role without a current SSO grant
             // in a workspace that enforces it — same as getMemberRole.
-            // Guests (WP11) are outside the organisation: not held to it.
+            // Guests are outside the organisation: not held to it.
             or(eq(workspaceMembers.role, 'guest'), ssoSatisfiedSql(workspaceMembers.workspaceId, actorUserId))
           )
     )
@@ -258,9 +239,6 @@ export async function getDocWithActorRole(
   }
 }
 
-/**
- * Create a new doc row. Title defaults to "Untitled" via the schema.
- */
 export async function createDoc(input: CreateDocInput): Promise<void> {
   const db = useDatabase()
   // Build the values object dynamically so omitted fields fall back to
@@ -396,11 +374,7 @@ export async function setModerationRestriction(docId: string, restriction: { rep
   if (result.length === 0) throw new NotFoundError('Document')
 }
 
-/**
- * Set the password hash AND flip accessMode to password-protected in one
- * write. Called by /password action=set.
- */
-/** Share-link controls (WP9). */
+/** Update the share-link controls. */
 export async function setShareSettings(docId: string, settings: { shareExpiresAt: Date | null, shareNoDownload: boolean }): Promise<void> {
   const result = await useDatabase().update(documents).set(settings)
     .where(eq(documents.docId, docId))
@@ -408,6 +382,7 @@ export async function setShareSettings(docId: string, settings: { shareExpiresAt
   if (result.length === 0) throw new NotFoundError('Document')
 }
 
+/** Set the password hash AND flip accessMode to password-protected in one write. */
 export async function setDocPassword(docId: string, passwordHash: string): Promise<void> {
   const db = useDatabase()
   await db

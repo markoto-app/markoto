@@ -1,11 +1,5 @@
-// Domain errors thrown by the repositories. Endpoints catch these and
-// translate to HTTP codes via `toHttpError(e)` at the end of the handler,
-// so individual endpoints no longer spell out "throw 404 if not found,
-// throw 409 if duplicate" for every operation.
-//
-// Every repo function returns either a valid domain value or throws one
-// of these. Never an HTTP status, never a pg error code — those details
-// stop at the repo boundary.
+// Domain errors thrown by the repositories. Endpoints translate them to HTTP
+// codes with `toHttpError(e)` at the end of the handler.
 
 export class RepoError extends Error {
   constructor(message: string, public readonly httpStatus: number) {

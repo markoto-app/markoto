@@ -207,7 +207,7 @@ const phaseLabel = computed(() => t(`designImport.phase.${phase.value}`))
 
 // The AI's own line while it works (italic serif + pulsing seal, the
 // product's one "AI is thinking" voice) and how long it has been at it:
-// a run takes a few minutes, and a bare progress bar looked stuck.
+// a run takes a few minutes, and a bare progress bar looks stuck.
 const thinkingLine = computed(() => {
   if (phase.value === 'designing' && round.value > 1) {
     return t('designImport.thinking.comparing', { round: round.value, max: maxRounds.value })
@@ -311,7 +311,6 @@ function png(base64: string): string {
           </p>
         </div>
 
-        <!-- 1. Pick a file -->
         <template v-if="step === 'pick'">
           <div
             v-if="noVision"
@@ -357,7 +356,6 @@ function png(base64: string): string {
           </template>
         </template>
 
-        <!-- 2. Working -->
         <div
           v-else-if="step === 'working'"
           class="space-y-3"
@@ -393,7 +391,6 @@ function png(base64: string): string {
           </p>
         </div>
 
-        <!-- 3. Error -->
         <div
           v-else-if="step === 'error'"
           class="space-y-4"
@@ -423,7 +420,6 @@ function png(base64: string): string {
           </div>
         </div>
 
-        <!-- 4. Result -->
         <form
           v-else-if="result"
           class="space-y-5"

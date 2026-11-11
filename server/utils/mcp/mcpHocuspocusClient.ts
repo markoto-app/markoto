@@ -35,7 +35,7 @@ export interface ConnectAsMcpClientInput {
   docId: string
   /** Real human user id resolved from the PAT verifier. Used for
    *  audited writes (uploads.uploaderId, themes.user_id), billing
-   *  attribution, and the Phase-3 mcp_sessions join. */
+   *  attribution, and the mcp_sessions join. */
   userId: number
   /** MCP session id from the toolkit's `Mcp-Session-Id` header. One
    *  per Claude Desktop / Cursor connection. Stable across all tool
@@ -128,7 +128,7 @@ function mintMcpJwt(docId: string, mcpSessionId: string): string {
     // Friendly literal for `activity_log.user_name` — same pattern
     // as the in-app AI loop's `'markoto'`. The synthetic principal
     // (for joining `activity_log` rows back to `mcp_sessions` and
-    // resolving the human initiator) lives in the new
+    // resolving the human initiator) lives in
     // `activity_log.actor_principal` column, which the sync-server
     // populates from the JWT's `userId` field directly. See
     // `server/db/schema.ts` activity_log.actor_principal comment.
@@ -215,7 +215,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     throw err
   }
 
-  // Phase only: awareness reaches every participant of the document,
+  // Only the status kind is broadcast: awareness reaches every participant of the document,
   // and status messages can name the user's other documents, queries or
   // URLs. The MCP client learns the details from the tool result.
   const updateStatus = (phase: ToolStatusPhase, _message?: string): void => {

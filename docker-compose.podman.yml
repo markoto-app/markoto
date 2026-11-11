@@ -3,7 +3,7 @@
 #
 #   docker compose -f docker-compose.dev.yml -f docker-compose.podman.yml up -d --wait
 #
-# See docs/CONTAINER-ENGINES.md.
+# See docs/contributing/CONTAINER-ENGINES.md.
 
 services:
   renderer:

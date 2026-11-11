@@ -83,7 +83,7 @@ describe('executeAccountDeletion: full graph', () => {
     // Billing on so the Stripe-customer step runs (it's skipped when
     // billing is off — see the dedicated case below).
     vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
-    // ── Build the test graph ─────────────────────────────────────
+    // Build the test graph
     const alice = await createUser()
     const bob = await createUser()
     const carol = await createUser()
@@ -159,10 +159,10 @@ describe('executeAccountDeletion: full graph', () => {
       [alice.id]
     )
 
-    // ── Execute ─────────────────────────────────────────────────
+    // Execute
     const result = await executeAccountDeletion({ userId: alice.id })
 
-    // ── Assertions ──────────────────────────────────────────────
+    // Assertions
     // User row is gone.
     const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [alice.id])
     expect(userRow.rows.length).toBe(0)
@@ -238,9 +238,8 @@ describe('executeAccountDeletion: full graph', () => {
       { user_id: carol.id, user_name: carol.name }
     ])
 
-    // AI sessions cleared. (Phase 6: ai_usage_period dropped — LiteLLM
-    // owns spend state. Virtual-key revocation is exercised in the unit
-    // tests for `executeAccountDeletion`.)
+    // AI sessions cleared. (LiteLLM owns spend state; virtual-key revocation is exercised in the unit tests for
+    // `executeAccountDeletion`.)
     const aiSessions = await testDb().query(`SELECT session_id FROM ai_sessions`)
     expect(aiSessions.rows.length).toBe(0)
 
@@ -384,7 +383,7 @@ describe('executeAccountDeletion: full graph', () => {
   })
 })
 
-describe('executeAccountDeletion: Team / Business billing admin (WP3)', () => {
+describe('executeAccountDeletion: Team / Business billing admin', () => {
   beforeEach(async () => {
     await resetDb()
     deleteDocumentMock.mockClear()

@@ -3,11 +3,9 @@ import { importMarkdownFile } from '../utils/documents/markdownImport'
 import { capsFor, planLimitError, resolveUserPlan } from '../utils/billing/entitlements'
 import { markitdownAuthHeaders } from '../utils/platform/markitdownAuth'
 
-// Subset of formats markitdown handles well as document imports. Markitdown
-// also supports CSV/JSON/XML/audio/images, but those don't make sense as a
-// "drop a doc in to seed your markdown" path — they round-trip into markdown
-// poorly or need extra LLM/OCR config. Keep the whitelist tight; widen later
-// if users ask.
+// Subset of formats markitdown handles well as document imports. It also
+// supports CSV/JSON/XML/audio/images, but those round-trip into markdown
+// poorly or need LLM/OCR config; keep the whitelist tight.
 const ALLOWED_EXTENSIONS = new Set([
   'docx',
   'pdf',
@@ -25,7 +23,7 @@ const MARKDOWN_EXTENSIONS = new Set(['md', 'markdown'])
 // A Markdown body lands in one Y.Doc (sync-server cap 16 MiB per document).
 const MARKDOWN_MAX_SIZE = 10 * 1024 * 1024
 const DOC_ID_SHAPE = /^[A-Za-z0-9_-]{1,64}$/
-const MAX_SIZE = 50 * 1024 * 1024 // 50 MB — kept in sync with markitdown-server/server.py
+const MAX_SIZE = 50 * 1024 * 1024 // 50 MB, kept in sync with markitdown-server/server.py
 // Whole request: the file plus multipart framing. Traefik's buffering
 // middleware on /api/import (prod + self-host compose) uses the same cap.
 const MAX_BODY = MAX_SIZE + 1024 * 1024
@@ -34,7 +32,6 @@ const MAX_BODY = MAX_SIZE + 1024 * 1024
 const MARKITDOWN_TIMEOUT_MS = 75_000
 
 export default defineEventHandler(async (event) => {
-  // Rate limit: 10 imports per IP per minute
   const ip = getClientRateLimitKey(event)
   if (!(await checkRateLimit('import', ip, 10, 60_000))) {
     throw createError({
@@ -50,9 +47,8 @@ export default defineEventHandler(async (event) => {
   const plan = await resolveUserPlan(session?.user?.id ?? null)
   const planMaxBytes = Math.min(capsFor(plan).importMaxBytes, MAX_SIZE)
 
-  // Size-bounded read. In production Bun already refused anything over
-  // 51 MiB (server/runtime/bunEntry.ts) and Traefik did on this route;
-  // this keeps the same bound in every runtime.
+  // Size-bounded read. Bun (server/runtime/bunEntry.ts) and Traefik already
+  // refuse over 51 MiB in production; this keeps the bound in every runtime.
   const body = await readBodyWithLimit(event, MAX_BODY, 'import/file-too-large')
   const form = await parseMultipart(event, body)
   const file = form?.get('file')
@@ -94,9 +90,9 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 503, message: 'Markitdown service not configured' })
   }
 
-  // Markitdown's converter routing is extension-driven (see StreamInfo in
-  // markitdown-server/server.py), so we pass the validated extension as a
-  // query param rather than relying on Content-Type sniffing.
+  // Markitdown's converter routing is extension-driven (StreamInfo in
+  // markitdown-server/server.py), so pass the validated extension as a query
+  // param instead of relying on Content-Type sniffing.
   const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
 
   let response: Response
@@ -168,9 +164,9 @@ async function importMarkdown(event: H3Event, file: File, rawDocId: FormDataEntr
       data: { code: 'import/not-utf8' }
     })
   }
-  // Without the target document the theme's images and custom CSS can't
-  // be checked, so properties are only read when the editor names it
-  // (the import only converts — it never writes to the document).
+  // Without the target document the theme's images and custom CSS can't be
+  // checked, so properties are only read when the editor names it (the import
+  // only converts, it never writes to the document).
   const docId = typeof rawDocId === 'string' && DOC_ID_SHAPE.test(rawDocId) ? rawDocId : null
   const result = docId
     ? importMarkdownFile(text, { docId, allowedOrigins: customCssAppOrigins(event) })

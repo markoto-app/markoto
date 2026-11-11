@@ -2,13 +2,11 @@ import { and, desc, eq, gte } from 'drizzle-orm'
 import { aiSessionMessages } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 
-// Per-(doc, user) AI conversation memory. Append-only by convention —
-// no `update`/`delete` exports, mirroring `audit.ts`. The only legitimate
-// way for rows to disappear is the cascade FK on doc/user delete.
-//
-// Phase 2 of the response substrate: the `<conversation_history>` block
-// in the system prompt is built from `loadRecentMessages(...)`. The hot
-// read pattern is "last N rows for (docId, userId), since last idle gap".
+// Per-(doc, user) AI conversation memory. Append-only by convention: no
+// `update`/`delete` exports, mirroring `audit.ts`. Rows disappear only through
+// the cascade FK on doc/user delete. The `<conversation_history>` block in the
+// system prompt is built from `loadRecentMessages(...)`; the hot read is "last
+// N rows for (docId, userId), since the last idle gap".
 
 export type AiMessageKind = 'user_prompt' | 'tool_call' | 'message_to_user'
 

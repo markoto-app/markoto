@@ -29,7 +29,7 @@ let client: Stripe | null = null
  * first-use so misconfiguration surfaces immediately (not hours later
  * when a user tries to check out).
  */
-// Stripe API version is now centralised in `shared/contracts/stripe.ts`
+// Stripe API version is centralised in `shared/contracts/stripe.ts`
 // so every consumer (this client, the dispatcher, test fixtures) pins
 // to the same wire shape. See that file for upgrade-guide notes.
 

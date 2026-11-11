@@ -11,11 +11,9 @@ import { buildUploadKey, DOC_ID_RE, stagingKeyFor } from '../../utils/storage/up
 // limits how long a leaked URL stays usable.
 const IMAGE_PUT_TTL_SECONDS = 120
 
-// SVG deliberately excluded — SVG can embed <script> and event handlers
-// that execute when the file is opened directly (right-click → open,
-// anchor link to the presigned S3 URL). The markdown pipeline's
-// DOMPurify blocks inline SVG, but uploaded SVGs bypass that path
-// entirely.
+// SVG deliberately excluded: it can embed <script> and event handlers that run
+// when the file is opened directly via the presigned S3 URL, and uploaded SVGs
+// bypass the markdown pipeline's DOMPurify.
 const CONTENT_TYPE_EXT: Record<string, string> = {
   'image/png': 'png',
   'image/jpeg': 'jpg',
@@ -41,8 +39,8 @@ export default defineEventHandler(async (event) => {
   if (typeof docId !== 'string' || !DOC_ID_RE.test(docId)) {
     throw createError({ statusCode: 400, message: 'Invalid docId' })
   }
-  // A positive integer: the size is signed into the PUT and reserved
-  // against the quota, so a negative or fractional value must not pass.
+  // A positive integer: the size is signed into the PUT and reserved against
+  // the quota, so a negative or fractional value must not pass.
   if (typeof size !== 'number' || !Number.isInteger(size) || size <= 0) {
     throw createError({ statusCode: 400, message: 'Missing or invalid file size' })
   }
@@ -62,14 +60,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Verify the user has write access to this document — the same rule
-  // as the editor's Y.js token (`requireDocEditAccess` →
-  // `decideTokenAccess`): owner / workspace admin+editor everywhere,
-  // anyone logged in on `open-edit` docs, and never a workspace viewer
-  // (viewer wins over the public edit grant). The doc must exist (404):
-  // confirm resolves keys through the pending `uploads` row (FK to
-  // documents), and presigning for non-existent docs would hand out
-  // unlimited 10 MB PUT URLs into the bucket.
+  // Write access, the same rule as the editor's Y.js token
+  // (`requireDocEditAccess` -> `decideTokenAccess`): owner / workspace
+  // admin+editor everywhere, anyone logged in on `open-edit` docs, never a
+  // workspace viewer (viewer wins over the public edit grant). The doc must
+  // exist (404): confirm resolves keys through the pending `uploads` row (FK to
+  // documents), and presigning for non-existent docs would hand out unlimited
+  // 10 MB PUT URLs.
   await requireDocEditAccess(docId, session.user.id)
 
   const s3 = usePresignS3Client()
@@ -78,11 +75,10 @@ export default defineEventHandler(async (event) => {
   const key = buildUploadKey(docId, fileId, ext)
 
   // Insert an unconfirmed upload row BEFORE issuing the URL: /upload/confirm
-  // only acts on keys with a row owned by the caller, and the orphan cleanup
-  // uses it to reap uploads that never landed. The row is also the quota
-  // reservation: check + insert are atomic per user, so parallel requests
-  // can't jointly overshoot the image storage quota.
-  // Team / Business workspace documents use the workspace's pool (WP3).
+  // only acts on keys with a row owned by the caller, and orphan cleanup reaps
+  // uploads that never landed. The row is also the quota reservation; check +
+  // insert are atomic per user so parallel requests can't jointly overshoot.
+  // Team / Business workspace documents use the workspace's pool.
   const quota = await resolveImageQuota(session.user.id, docId)
   const quotaBytes = quota.maxBytes
   const reservation = await reservePendingUpload({
@@ -95,26 +91,22 @@ export default defineEventHandler(async (event) => {
   }, quotaBytes, quota.scope)
   if (!reservation.reserved) throw imageQuotaError(quotaBytes)
 
-  // SSE NOTE: presigned PUTs deliberately omit `ServerSideEncryption` —
-  // SigV4 binds every signed header into the URL, which would force the
-  // browser to echo `x-amz-server-side-encryption: AES256` exactly or
-  // get a SignatureDoesNotMatch. Encryption is enforced at the bucket
-  // level via the default-encryption policy (docs/S3-SETUP.md §6) so
-  // every PUT — presigned or not — gets AES256-at-rest regardless.
-  // Server-side direct PUTs (renderer, AI image gen, backup sidecar)
-  // set the header explicitly as defense-in-depth.
+  // SSE: presigned PUTs deliberately omit `ServerSideEncryption`. SigV4 binds
+  // every signed header, so the browser would have to echo
+  // `x-amz-server-side-encryption: AES256` exactly. Encryption is enforced by
+  // the bucket's default-encryption policy (docs/S3-SETUP.md section 6); server
+  // side PUTs (renderer, AI image gen, backup sidecar) set the header
+  // explicitly as defense in depth.
   //
-  // CONTENT-TYPE IS SIGNED: the presigner leaves it unsigned by default,
-  // which would let the client PUT image bytes with any stored type
-  // (e.g. `text/html`) and have the bucket serve them as that type. With
-  // `content-type` in the signed headers the browser must send exactly
-  // the type requested here, or S3 rejects the PUT. Confirm re-checks the
-  // stored type, and `/api/files` forces it on the way out.
+  // CONTENT-TYPE IS SIGNED: unsigned, a client could PUT image bytes with any
+  // stored type (e.g. `text/html`) and have the bucket serve them as that.
+  // Signed, S3 rejects a mismatching PUT. Confirm re-checks the stored type and
+  // `/api/files` forces it on the way out.
   //
   // STAGING KEY: the URL can only write `docs/{docId}/staging/{fileId}`.
-  // Confirm copies that object to `key` (what `/api/files` serves) and
-  // sniffs the copy, so re-using the URL after confirm can't swap the
-  // bytes of a confirmed image. `key` is still what the client confirms.
+  // Confirm copies it to `key` (what `/api/files` serves) and sniffs the copy,
+  // so re-using the URL can't swap the bytes of a confirmed image. `key` is
+  // still what the client confirms.
   const uploadUrl = await getSignedUrl(
     s3,
     new PutObjectCommand({

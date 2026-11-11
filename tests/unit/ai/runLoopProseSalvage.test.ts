@@ -7,19 +7,13 @@ import {
 } from '../../../server/utils/agentic/aiTypes'
 import { soloSessionGuard } from '../fixtures/crossBoundary'
 
-// Pin the salvage-path branching: when the model emits prose without
-// a tool call, the runLoop synthesises a fallback call. Pre-Phase-6
-// always called `message_to_user`. Phase 6.5 introduced
-// `commentThreadId` on RunLoopOptions: if set (comment-trigger
-// session), salvage calls `reply_to_comment` instead so the prose
-// lands as a reply on the original thread.
+// Pin the salvage-path branching: when the model emits prose without a tool call, the runLoop synthesises a
+// fallback call. By default that is `message_to_user`; with `commentThreadId` on RunLoopOptions (comment-trigger
+// session) salvage calls `reply_to_comment` instead so the prose lands as a reply on the original thread.
 //
-// Without this branch, comment-trigger sessions where Mistral picks
-// free-text over a tool call (which it does — the "MUST end with
-// reply_to_comment" mandate, originally tuned pre-Phase-5 for Gemini,
-// doesn't bind reliably on Mistral) silently land in the prompt-bar
-// response panel rather than the comment thread, and the thread
-// looks ignored to the user.
+// Without this branch, comment-trigger sessions where the model picks free text over a tool call (the "MUST end
+// with reply_to_comment" mandate doesn't bind reliably) silently land in the prompt-bar response panel rather
+// than the comment thread, and the thread looks ignored to the user.
 
 const executeFunctionByName = vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>()
 const webSearch = vi.fn()

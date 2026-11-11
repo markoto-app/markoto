@@ -36,7 +36,7 @@ export type ProcessingPurpose = {
 
 export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
   {
-    // `workspace_sso_identity` (WP14): signing in through a workspace's
+    // `workspace_sso_identity`: signing in through a workspace's
     // own identity provider — the identifier it sends (OIDC subject /
     // SAML NameID), the link to the account, the last sign-in, a 12-hour
     // sign-in record per workspace, and what that workspace's SCIM
@@ -58,16 +58,16 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     id: 'document_storage',
     label: 'Document storage',
     basis: 'contract',
-    // `guest_document_shares` (WP11): which workspace documents were
+    // `guest_document_shares`: which workspace documents were
     // shared with which guest (view / edit) and by whom.
-    // `workspace_brand_kit` (WP10): fonts + logos a workspace's admins
+    // `workspace_brand_kit`: fonts + logos a workspace's admins
     // uploaded (and who), workspace templates.
     dataCategories: ['document_content', 'document_metadata', 'images', 'edit_attribution', 'guest_document_shares', 'workspace_brand_kit'],
     retention: 'until_deletion',
     subProcessors: ['ovh_postgres', 'ovh_object_storage']
   },
   {
-    // WP13: a document published as a web page — the copy as published
+    // Published pages: a document published as a web page — the copy as published
     // (text, design, images, fonts), its address, who published it; and
     // custom domains (name, verification token, DNS check results). The
     // certificate for a custom domain comes from Let's Encrypt (the
@@ -118,7 +118,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     subProcessors: ['mistral_ai', 'jina_ai', 'bfl', 'staan']
   },
   {
-    // Bring-your-own-key AI (WP4). When a user configures their OWN AI
+    // Bring-your-own-key AI. When a user configures their OWN AI
     // provider (Settings → AI provider), their prompts, document
     // context, audio and generated content for that capability are sent
     // to the provider THEY chose, under THEIR agreement with that
@@ -171,7 +171,7 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     // than 2 years (`server/utils/privacy/legalRetentionSweep.ts`,
     // `NUXT_AUDIT_LOG_RETENTION_DAYS`). Account deletion nulls the actor
     // id earlier (FK `ON DELETE SET NULL`); the IP is stored truncated.
-    // Since WP15 the entries about a workspace are also shown to (and
+    // The entries about a workspace are also shown to (and
     // downloadable by) that workspace's admins when its plan includes
     // the audit log — names and the truncated IPs included.
     id: 'security_audit_log',
@@ -193,9 +193,8 @@ export const PROCESSING_PURPOSES: readonly ProcessingPurpose[] = [
     retention: 30,
     subProcessors: ['resend']
   },
-  // `product_analytics` and `session_replay` were removed with
-  // PRIVACY_VERSION 8 / CONSENT_VERSION 2: no analytics or session-replay
-  // script was ever loaded, so listing them was a false disclosure.
+  // No `product_analytics` / `session_replay` purposes: no such script is
+  // loaded, so listing them would be a false disclosure.
   {
     // Paid-plans waitlist (hosted SaaS while billing is off). Opt-in via
     // an unticked checkbox + double opt-in email. Retention: until the

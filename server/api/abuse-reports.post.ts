@@ -36,8 +36,8 @@ import { ANON_ABUSE_REPORT_LIMITS, USER_ABUSE_REPORT_LIMIT } from '~~/shared/con
 //
 // Anonymous reporters: a fresh ALTCHA solution (purpose `abuse-report`)
 // + 5/hour and 20/day per client key. Without the anonymous gate
-// (self-hosted default) the form needs a sign-in, as before. Signed-in
-// reporters: 10/hour per user.
+// (self-hosted default) the form needs a sign-in. Signed-in reporters:
+// 10/hour per user.
 //
 // On success: row + audit, a confirmation of receipt to the reporter
 // (Art.16(4), recorded in `moderation_notices`) and a best-effort note to
@@ -45,7 +45,7 @@ import { ANON_ABUSE_REPORT_LIMITS, USER_ABUSE_REPORT_LIMIT } from '~~/shared/con
 
 interface RequestBody {
   contentUrl?: unknown
-  /** Legacy field of the pre-DSA form; treated like `contentUrl`. */
+  /** Alias of `contentUrl`. */
   docId?: unknown
   category?: unknown
   body?: unknown
@@ -132,7 +132,7 @@ export default defineEventHandler(async (event) => {
     await requireBotCheck(event, input.altcha, 'abuse-report')
   }
 
-  // A published page (WP13) is reported by its own address: /p/<slug> or a custom domain.
+  // A published page is reported by its own address: /p/<slug> or a custom domain.
   const docId = docIdFromReportedLocation(contentUrl) ?? await docIdForPublishedUrl(contentUrl)
   const locale = normaliseNoticeLocale(input.locale)
   const rawIp = getClientIp(event)

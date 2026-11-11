@@ -20,8 +20,7 @@
 // `tests/unit/mcp/mcpWrapperShapeIsolation.test.ts`. The wrapper-side
 // wiring is verified at the integration tier
 // (`tests/integration/mcp/tools-write.test.ts` runs `update_theme`
-// through MCP and asserts the merged theme persists correctly — if
-// the integration test fails again the wrapper forgot to call this).
+// through MCP and asserts the merged theme persists correctly).
 
 export function stripWrapperArgs<T extends Record<string, unknown>>(
   args: T,

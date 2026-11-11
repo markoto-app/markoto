@@ -5,17 +5,12 @@ import { loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { writeDocAs, type SyncClient } from '../setup/byok'
 
-// Regression: duplicating a document right after an edit cloned the
-// persisted Y.js rows from BEFORE the edit. The sync-server debounces
-// its store 2–10 s, and `duplicateDocument` reads `yjs_documents`. The
-// v0.2.2 release flow caught it (document-duplicate, en-light-mobile:
-// the copy held the welcome text but not the line typed just before
-// "Duplicate"). The duplicate endpoint now asks the sync-server to
-// persist pending edits first (`/internal/flush-document`).
+// Regression: duplicating a document right after an edit cloned the persisted Y.js rows from BEFORE the edit.
+// The sync-server debounces its store 2–10 s, and `duplicateDocument` reads `yjs_documents`, so the duplicate
+// endpoint asks the sync-server to persist pending edits first (`/internal/flush-document`).
 //
-// The edit below is acknowledged by the sync-server (it has it in
-// memory) but well inside the 2 s store debounce when the duplicate
-// request goes out — no waiting in between.
+// The edit below is acknowledged by the sync-server (it has it in memory) but well inside the 2 s store
+// debounce when the duplicate request goes out: no waiting in between.
 
 async function persistedText(docId: string): Promise<string> {
   const rows = await testDb().query<{ value: Buffer }>(

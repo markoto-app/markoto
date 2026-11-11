@@ -1,36 +1,26 @@
-/**
- * Test-side JWT mint helpers.
- *
- * Shared by every test tier (unit, integration, e2e). **PROD CODE MUST
- * NOT IMPORT FROM `tests/`.** The `prod-never-imports-tests` rule in
- * `.dependency-cruiser.cjs` enforces it, and the Nuxt server bundle
- * never includes `tests/*` (no route imports from here).
- *
- * Why this module exists: the `aiDictateWs scope-mismatch` incident.
- * The test mint helper for dictate-tokens drifted from the prod mint
- * shape: test set `{ kind: 'dictate' }`, prod additionally required
- * `scope: 'dictate'`. The verifier rejected with 4001 'scope mismatch'
- * BEFORE any of the actual logic under test could fire — nine tests
- * silently failed for the wrong reason. Routing every test mint
- * through these helpers, which spread the same `*_FIXED_CLAIMS`
- * constants the prod mint sites use, makes that drift impossible.
- *
- * Each helper takes:
- *   - The **payload contents** (the variable parts — userId, docId, …).
- *     Typed against the shared contract so missing fields error at
- *     compile time.
- *   - An **opts** object with `secret` (required) + optional `ttl`.
- *     Secrets stay in test fixtures (`tests/integration/setup/env.ts`)
- *     since they vary by test environment; the helper is shape-safe,
- *     not env-aware.
- *
- * For ADVERSARIAL test cases that deliberately mint malformed tokens
- * (e.g. `printPage.test.ts` testing scope-mismatch rejection,
- * `renderTokens.test.ts` testing wrong-secret rejection, etc.), keep
- * calling `jwt.sign` directly. The helpers here are for the
- * happy-path mint — using them for adversarial mints would defeat
- * the contract guarantee.
- */
+// Test-side JWT mint helpers.
+//
+// Shared by every test tier (unit, integration, e2e). **PROD CODE MUST NOT IMPORT FROM `tests/`.** The
+// `prod-never-imports-tests` rule in `.dependency-cruiser.cjs` enforces it, and the Nuxt server bundle never
+// includes `tests/*` (no route imports from here).
+//
+// Why this module exists: a test mint helper that drifts from the prod mint shape makes tests fail for the
+// wrong reason. For example, if the dictate-token helper omits `scope: 'dictate'` that prod requires, the
+// verifier rejects with 4001 'scope mismatch' BEFORE the logic under test can fire. Routing every test mint
+// through these helpers, which spread the same `*_FIXED_CLAIMS` constants the prod mint sites use, makes
+// that drift impossible.
+//
+// Each helper takes:
+// - The **payload contents** (the variable parts: userId, docId, ...). Typed against the shared contract
+// so missing fields error at compile time.
+// - An **opts** object with `secret` (required) + optional `ttl`. Secrets stay in test fixtures
+// (`tests/integration/setup/env.ts`) since they vary by test environment; the helper is shape-safe,
+// not env-aware.
+//
+// For ADVERSARIAL test cases that deliberately mint malformed tokens (e.g. `printPage.test.ts` testing
+// scope-mismatch rejection, `renderTokens.test.ts` testing wrong-secret rejection), keep calling `jwt.sign`
+// directly. The helpers here are for the happy-path mint; using them for adversarial mints would defeat the
+// contract guarantee.
 
 import jwt from 'jsonwebtoken'
 import {
@@ -65,16 +55,10 @@ export function mintSessionJwt(
   return jwt.sign(claims, opts.secret, { expiresIn: opts.ttl ?? '2h' })
 }
 
-/**
- * Mint a dictate WS token. Matches the shape minted by
- * `server/api/ai/dictate/token.post.ts` — `kind` AND `scope` are both
- * spread from `DICTATE_JWT_FIXED_CLAIMS`, so callers cannot forget
- * either field. (Forgetting `scope` is exactly what triggered the
- * incident this whole module exists to prevent.)
- *
- * Default TTL is 60s, matching the prod mint. Override for expiry
- * tests.
- */
+// Mint a dictate WS token. Matches the shape minted by `server/api/ai/dictate/token.post.ts`: `kind` AND
+// `scope` are both spread from `DICTATE_JWT_FIXED_CLAIMS`, so callers cannot forget either field.
+//
+// Default TTL is 60s, matching the prod mint. Override for expiry tests.
 export function mintDictateJwt(
   claims: { userId: number, docId: string },
   opts: BaseOpts

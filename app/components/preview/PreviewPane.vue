@@ -14,7 +14,7 @@ const props = defineProps<{
   docId: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
-  /** The workspace's brand-kit fonts (WP10). */
+  /** The workspace's brand-kit fonts. */
   brandFonts?: readonly BrandFont[] | null
   /** Show the zoom pill in the pane (desktop; mobile has it in the view-mode bar). */
   zoomControl?: boolean

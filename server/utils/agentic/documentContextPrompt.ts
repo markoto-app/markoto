@@ -20,11 +20,9 @@ const LANGUAGE_MAX = 50
  *   - `Audience guidance` — the curated tone fragment from
  *     `shared/audiences/index.ts`
  *
- * Why one always-present block (not a conditional "if any field set"
- * gate): the schema makes all four fields NOT NULL with sane defaults,
- * so every doc has authoritative values. A conditional block would only
- * skip itself for theoretical legacy NULL data that can no longer
- * exist after migration 0001.
+ * The block is always present rather than gated on "any field set": the
+ * schema makes all four fields NOT NULL with defaults, so every doc has
+ * authoritative values.
  *
  * Returns the block as a string ready to concatenate into the system
  * prompt — including its trailing newlines so the next block can be

@@ -1,6 +1,6 @@
 import { getSettledUsd, listGrants, sumUsableCredits, type CreditSubject } from '../../repos/aiCreditGrants'
 
-// The part of an AI budget that comes from credit top-ups (WP4), USD:
+// The part of an AI budget that comes from credit top-ups, USD:
 // the credits still usable + the credits already used THIS month. Added
 // to the plan budget on the LiteLLM key / team, so a month's budget never
 // drops below what was already spent, and resets with LiteLLM's monthly

@@ -2,7 +2,7 @@
 // reads, no side effects — so it's fully unit-testable and the plugin
 // query derives its WHERE clause from the same rules.
 //
-// Current rules (simpler than the prior two-TTL design):
+// Rules:
 //
 //   1. Workspace-attached docs are NEVER reaped. The workspace is the
 //      user's explicit organisation signal; inactivity ≠ abandonment.

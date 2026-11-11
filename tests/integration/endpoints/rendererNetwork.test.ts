@@ -111,10 +111,9 @@ describe('renderer network lockdown (SSRF)', () => {
     expect(blocked.hits).toEqual([])
   }, 90_000)
 
-  // The print page holds a file-access token for the document's own
-  // uploads. A URL that merely CONTAINS the upload path (here on an
-  // allowed origin) must not get it — it used to be appended to every
-  // `/api/files/<docId>/…` match in the HTML.
+  // The print page holds a file-access token for the document's own uploads. A URL that merely CONTAINS the
+  // upload path (here on an allowed origin) must not get it: the token must not be appended to every
+  // `/api/files/<docId>/…` substring match in the HTML.
   it('never hands the file-access token to a URL that only contains the doc\'s upload path', async () => {
     const status = await renderPdfWith(docId => `# Doc\n\n![t](http://host.docker.internal:${allowed.port}/api/files/${docId}/AbCdEfGhIjKl.png)\n`)
     expect(status).toBe(302)

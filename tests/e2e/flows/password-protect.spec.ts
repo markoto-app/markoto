@@ -46,7 +46,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     + 'account has no owner and can\'t be locked.'
   )
 
-  // ─── Open the share dialog ───────────────────────────────────────
+  // Open the share dialog
   await flow.narrate(
     'Open the share dialog from the lock icon in the topbar.'
   )
@@ -63,7 +63,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Switch to password-protected ────────────────────────────────
+  // Switch to password-protected
   await flow.heading('Switch the access mode', 3)
   await flow.narrate(
     'Tap "Password protected" to gate the doc. The password input '
@@ -129,7 +129,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   // doc-scoped JWT).
   const docUrl = page.url()
 
-  // ─── What your visitor sees ──────────────────────────────────────
+  // What your visitor sees
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
     'A first-time visitor — say, in their own browser — opens the '
@@ -158,7 +158,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Unlock the doc ──────────────────────────────────────────────
+  // Unlock the doc
   await visitor.flow.heading('Unlock with the passphrase', 3)
   await visitor.flow.narrate(
     'Type the passphrase and the gate lifts. Too many wrong guesses '

@@ -3,7 +3,7 @@ import { deleteWorkspaceTemplate } from '../../../../../repos/workspaceTemplates
 import { appendAuditEvent } from '../../../../../repos/audit'
 import { AUDIT_WORKSPACE_TEMPLATE_REMOVED } from '../../../../../legal/auditActions'
 
-// DELETE /api/workspaces/:wsId/templates/:templateId (WP10c) — admins,
+// DELETE /api/workspaces/:wsId/templates/:templateId — admins,
 // also without the plan feature. The document itself stays.
 export default defineEventHandler(async (event) => {
   const { userId, wsId, role } = await requireBrandKitMember(event)

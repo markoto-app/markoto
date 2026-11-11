@@ -38,7 +38,7 @@
 # ~/.docker/config.json then carries the credential) to match the user
 # compose pull runs under.
 #
-# Rotation: see docs/SECRETS-ROTATION.md §19. Re-running this play
+# Rotation: see docs/operations/SECRETS-ROTATION.md §19. Re-running this play
 # silently re-logs-in with the new value; old PAT can be revoked at the
 # provider after.
 - name: Login to GHCR (private image pull on the VPS)
@@ -60,7 +60,7 @@
 # which Docker Compose 2.24–2.40 rejects ("services.X conflicts with
 # imported resource"). Fail before touching the running stack instead of
 # half-applying. geerlingguy.docker installs the plugin from Docker's apt
-# repo (v5.x since 2026); on an older host: `apt-get install --only-upgrade
+# repo (v5.x); on an older host: `apt-get install --only-upgrade
 # docker-compose-plugin`.
 - name: Read the Docker Compose plugin version
   ansible.builtin.command:
@@ -137,7 +137,7 @@
 
 # CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
 # the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`
-# replaces the noisier `ignore_errors: true` so ansible-lint stays happy.
+# (not `ignore_errors: true`) keeps ansible-lint happy.
 - name: Sync OVH managed-PG CA cert (if present in infra/files/)
   ansible.builtin.copy:
     src: "{{ ovh_pg_ca_local_path }}"

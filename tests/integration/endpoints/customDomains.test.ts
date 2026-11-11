@@ -10,7 +10,7 @@ import {
   TEST_TRAEFIK_IP, TEST_TRAEFIK_PROVIDER_TOKEN, TEST_TRAEFIK_TLS_PORT
 } from '../setup/env'
 
-// Custom domains (WP13): a user adds a domain, proves it with a TXT
+// Custom domains: a user adds a domain, proves it with a TXT
 // record, points it at the instance; only then Traefik gets a router for
 // it and a certificate from the ACME CA — here pebble, Let's Encrypt's
 // test CA, with challtestsrv as DNS (docker-compose.test.yml). On the

@@ -1,13 +1,8 @@
 import { describe, it, expect } from 'vitest'
 
-// The `generate_image` tool routes through BFL FLUX.2 [pro]
-// (EU-pinned) via the LiteLLM custom provider. (Pre-Phase-5 the tool
-// was dual-mode with Gemini as the alternate; that fork was removed
-// once the migration completed.) The full handler
-// (`handleGenerateImage` in aiToolAdapter.ts) is exercised by the
-// integration suite; these unit tests pin the small bits of routing
-// logic that don't need a Y.Doc session, S3 client, or LiteLLM
-// proxy:
+// The `generate_image` tool routes through BFL FLUX.2 [pro] (EU-pinned) via the LiteLLM custom provider. The
+// full handler (`handleGenerateImage` in aiToolAdapter.ts) is exercised by the integration suite; these unit
+// tests pin the small bits of routing logic that don't need a Y.Doc session, S3 client, or LiteLLM proxy:
 //
 //   - the JSON content shape we send to the BFL custom provider
 //   - default width/height resolution

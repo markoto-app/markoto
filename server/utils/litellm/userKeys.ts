@@ -9,7 +9,7 @@ import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
 
-/** Plan budget + the user's top-up credits (WP4), USD. */
+/** Plan budget + the user's top-up credits, USD. */
 export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<number> {
   return planToBudgetUsd(plan, getTiers()) + await creditBudgetExtraUsd({ type: 'user', id: String(userId) })
 }
@@ -19,30 +19,25 @@ export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<
 // `useLitellmForUser(virtualKeyToken)`; LiteLLM's spend tracker
 // enforces the `max_budget` set at the user's plan tier. Stripe
 // webhooks call `updateUserKeyBudget` / `resetUserKeySpend` on plan
-// changes + monthly renewals.
+// changes.
 
-// ─── Stub mode (for harnesses without a live proxy) ────────────────────
-//
-// Phase 7: integration tests bring up a real `litellm-test` container
-// and exercise the actual /key/* admin surface. The unit-test path
-// (vitest --project=unit) doesn't bring up docker — it sets
+// Stub mode for harnesses without a live proxy: integration tests run
+// against a real `litellm-test` container, while the unit/repos tiers
+// don't start docker and set
 // `LITELLM_TEST_STUB=1` so `ensureUserKey` returns a stub handle and
 // the budget-update / spend-reset / key-info helpers no-op. Don't
 // gate on TEST_MODE alone: TEST_MODE is also set in integration where
 // the real proxy IS reachable, and stubbing there would defeat the
-// regression coverage we're adding.
+// coverage of the real /key/* admin surface.
 const TEST_STUB_TOKEN = 'sk-fake-test-virtual-key'
 const TEST_STUB_KEY_ID_PREFIX = 'test-stub-'
 function isStubMode(): boolean {
   return process.env.LITELLM_TEST_STUB === '1'
 }
 
-// ─── Errors ────────────────────────────────────────────────────────────
-
 /**
  * Thrown when LiteLLM rejects an LLM call because the user's
- * `max_budget` has been crossed. Replaces the legacy `BudgetExhausted`
- * (Phase 6 retired the app-side counter — LiteLLM is the only gate).
+ * `max_budget` has been crossed (LiteLLM is the only budget gate).
  *
  * Caller paths catch this and emit the doc-breadcrumb upgrade message
  * via `runLoop`'s existing `emitBudgetBreadcrumb` flow.
@@ -68,8 +63,6 @@ function errorAsString(err: unknown): string {
   if (typeof err === 'string') return err
   return JSON.stringify(err)
 }
-
-// ─── Public API ────────────────────────────────────────────────────────
 
 interface UserKeyHandle {
   /** LiteLLM's internal `token_id` (returned as `token` from /key/generate). */
@@ -100,16 +93,15 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
       // Monthly spend reset. LiteLLM resets `spend` to 0 every
       // `budget_duration` (reset date lands on the 1st of the month —
       // matches the "resets on the first" copy in the AI Points UI). This
-      // is the ONLY periodic reset now: free users have no Stripe invoice
-      // to hang a reset on, so without this their "$1/month" was a lifetime
-      // $1. Paid users reset here too — we deliberately do NOT also reset on
+      // is the ONLY periodic reset: free users have no Stripe invoice
+      // to hang a reset on, so without this their "$1/month" would be a
+      // lifetime $1. Paid users reset here too — we deliberately do NOT also reset on
       // invoice.paid (that would double-reset and over-grant budget).
       budget_duration: '30d',
       user_id: String(userId),
       // Abuse cap. The user can't make more than 60 LLM calls/min from
       // a single virtual key. Generous for normal use (the agentic loop
       // fires ~5 calls per turn at most; 60/min covers a heavy session).
-      // Replaces the legacy per-app-route rate limits dropped in Phase 6.
       rpm_limit: 60,
       // Opt the key into client-supplied `metadata.tags` (the multi-
       // axis spend tags from `featureTags.ts` — feature: / workspace:
@@ -234,9 +226,9 @@ export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollar
 }
 
 /**
- * Reset the cumulative spend back to 0 — typically on `invoice.paid`
- * (monthly renewal). The `max_budget` stays the same; only `spend`
- * resets, giving the user a clean cycle. Returns false (after logging)
+ * Reset the cumulative spend back to 0 (used when a paid plan
+ * ends, so a user over the free cap isn't stuck until the monthly
+ * reset). The `max_budget` stays the same; only `spend` resets. Returns false (after logging)
  * when the proxy refused — callers don't fail on it.
  */
 export async function resetUserKeySpend(userId: number): Promise<boolean> {

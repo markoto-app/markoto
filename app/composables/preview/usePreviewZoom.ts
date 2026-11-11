@@ -125,7 +125,7 @@ export function usePreviewZoomMenu(opts: { withStepItems?: boolean } = {}) {
   const label = computed(() => {
     if (zoom.isOverview.value) return t('previewZoom.allPages')
     const s = zoom.setting.value
-    // Fit width shows the last reported fit factor: right away, not only
+    // Fit width shows the last reported fit factor immediately, not only
     // once the frame confirms the switch.
     const scale = s.mode === 'scale' ? s.scale : (zoom.fitScale.value ?? zoom.effective.value)
     return scale === null ? t('previewZoom.fitWidth') : formatZoomPercent(scale, locale.value)

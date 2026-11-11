@@ -69,7 +69,7 @@ export default defineMcpTool({
       })
     }
 
-    // View only (WP9): a visitor (e.g. a guest) gets no PDF, as on GET /pdf.
+    // View only: a visitor (e.g. a guest) gets no PDF, as on GET /pdf.
     if (!(await userMayDownload(docId, auth.userId))) {
       return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
     }

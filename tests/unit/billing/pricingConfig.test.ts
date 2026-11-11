@@ -12,7 +12,7 @@ import {
 } from '../../../shared/config/pricing'
 import { formatPlanBytes, formatPrice } from '../../../app/utils/billing/pricing'
 
-// Plan prices (pricing plan WP2): EUR + CHF, monthly + annual; one table
+// Plan prices: EUR + CHF, monthly + annual; one table
 // for the cards, the comparison table and the Offer JSON-LD, and the
 // Stripe lookup keys the server sells from.
 

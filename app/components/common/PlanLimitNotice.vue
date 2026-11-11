@@ -10,7 +10,7 @@
  * - self-hosted → no link (the operator sets the limits; there is
  *   nothing to buy).
  *
- * TODO(WS5, Team plan): members of a paid workspace get "Ask your
+ * TODO: members of a paid workspace get "Ask your
  * admin" instead of a purchase link.
  */
 const props = defineProps<{

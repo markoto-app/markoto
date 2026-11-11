@@ -513,8 +513,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * column with its text at the top of the next one. Before every
    * overflow check (the `layout` hook) a heading — or a definition term,
    * a code-block title, a table caption, a short lead-in ending in a
-   * colon — that ends a
-   * column, or has fewer than NEAR_LINES lines of its block under it
+   * colon — that ends a column, or has fewer than NEAR_LINES lines of its block under it
    * there, gets a forced column break (`data-markoto-column-break`), so
    * it opens the next column with its block. Breaks at the page end are
    * left to onOverflow.
@@ -824,8 +823,7 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
     if (!(estimate >= MIN_DIAGRAM_SCALE)) return overflow
     diagram.setAttribute('data-markoto-fit', '')
     // The estimate can come out a little large (margins, the line box
-    // around the image — paged.js moved diagrams the estimate said fit
-    // at 92 %): a few smaller steps before giving up.
+    // around the image): try a few smaller steps before giving up.
     for (let scale = Math.min(estimate, 1 - DIAGRAM_SCALE_STEP); scale >= MIN_DIAGRAM_SCALE - 0.001; scale = Math.round((scale - DIAGRAM_SCALE_STEP) * 100) / 100) {
       diagram.style.zoom = String(scale)
       let next: unknown
@@ -1233,10 +1231,11 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
    * would grow over the line holding the call, it assumes the call moves
    * to the next page and defers or clips the note. In a multi-column
    * page the call only moves to the next column of the SAME page, so the
-   * note ended up on a later page (often one holding nothing else). After
-   * paged.js placed a note, this puts it back on the call's page at full
-   * height (also when paged.js sized the note area too small for it); if the call really leaves the page, paged.js's overflow
-   * removal takes the note along and it is placed again with its call.
+   * note ends up on a later page (often one holding nothing else). After
+   * paged.js places a note, this puts it back on the call's page at full
+   * height (also when paged.js sized the note area too small for it). If
+   * the call really leaves the page, paged.js's overflow removal takes the
+   * note along and it is placed again with its call.
    * Single-column pages are left exactly as paged.js lays them out.
    */
   const proto = pagedHandlersWith('moveFootnote')[0]
@@ -1284,10 +1283,9 @@ export function registerPagedHandlers(paged: PagedGlobal): void {
       changed = true
     }
     // Room the notes need: their own height plus the note area's padding,
-    // margins and borders. paged.js's own measure can come out short (seen
-    // in the live preview: one 12px note line, padding and margin left
-    // out); the note then overflows its area and is deferred to a page of
-    // its own.
+    // margins and borders. paged.js's own measure can come out short
+    // (padding and margin left out); the note then overflows its area and
+    // is deferred to a page of its own.
     const full = inner.scrollHeight + edges(noteContent, 'padding-top', 'padding-bottom') + edges(noteContent, 'margin-top', 'margin-bottom') + edges(noteContent, 'border-top-width', 'border-bottom-width')
     const current = Number.parseFloat(pageArea instanceof HTMLElement ? pageArea.style.getPropertyValue('--pagedjs-footnotes-height') : '') || 0
     if (!changed && full <= current + 1) return

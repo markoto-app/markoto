@@ -11,8 +11,8 @@ import type { ConfirmationRequest } from './sessionChannel'
 //
 // So the loop tracks per session whether it has received content the
 // invoker did not write ("tainted"). A solo private document — owned by
-// the invoker, edited only by them — starts clean and behaves exactly as
-// before. Once tainted:
+// the invoker, edited only by them — starts clean and runs ungated. Once
+// tainted:
 //
 //   - tools that reach the invoker's OTHER documents or knowledge
 //     (`CONFIRM_WHEN_TAINTED`) pause the loop and ask the invoker in the

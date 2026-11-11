@@ -2,16 +2,12 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { runSpendLogsSweep } from '../utils/litellm/spendLogsSweep'
 import { acquireSweepLock, releaseSweepLock } from '../utils/platform/sweepLock'
 
-// LiteLLM_SpendLogs sweep plugin. Mirrors the webhook-event-sweep
-// pattern: advisory-locked, daily cadence, fire-and-forget on
-// startup.
+// LiteLLM_SpendLogs sweep plugin: advisory-locked, daily cadence,
+// fire-and-forget on startup.
 //
-// Why daily and not hourly: the proxy's spend-logs table grows by
-// one row per billable AI call. At our scale (small VPS, single-
-// digit AI calls/min worst-case), a day's growth is bounded; running
-// hourly would add noise to the proxy's own logs without measurable
-// benefit. If we ever scale to where 24h growth approaches the
-// 90-day total, revisit.
+// Daily, not hourly: the table grows by one row per billable AI call, so
+// a day's growth is bounded and hourly runs would only add log noise.
+// Revisit if 24h of growth ever approaches the 90-day total.
 
 const SWEEP_INTERVAL_MS = 24 * 60 * 60 * 1000 // 1 day
 

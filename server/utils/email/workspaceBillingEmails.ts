@@ -6,7 +6,7 @@ import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { safeSendTransactionalEmail } from './sendEmail'
 import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaces/workspaceInvites'
 
-// Billing emails to a Team / Business workspace's admins (WP3):
+// Billing emails to a Team / Business workspace's admins:
 //   budget_80 / budget_100 — the workspace's AI budget is 80 % / fully used
 //   payment_failed         — Stripe couldn't charge (first failure only)
 //   seat_added             — another admin added a seat (to the billing admin)

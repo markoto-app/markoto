@@ -1,16 +1,15 @@
-// Per-workspace SSO (WP14) — joining a workspace without an invitation:
-// on the first sign-in through its IdP (JIT) and when SCIM creates a
-// user. Same limits as an invitation:
+// Joining a workspace without an invitation: on first sign-in through its IdP
+// (JIT) and when SCIM creates a user. Same limits as an invitation:
 //
 //   - the plan's member limit (`membersPerWorkspace`), and for a paid
 //     Team / Business workspace its seats (members + open invitations).
-//     No seat is ever bought automatically — a full workspace answers
+//     No seat is bought automatically: a full workspace answers
 //     `sso/no-seat` and an admin adds seats on the Billing tab.
 //   - An open invitation for the address is used: its role wins, it is
-//     deleted, and its seat (already counted) is the one taken.
+//     deleted, and its already-counted seat is the one taken.
 //
 // Runs in one transaction under a per-workspace advisory lock, so two
-// first sign-ins at the same moment can't both take the last seat.
+// simultaneous first sign-ins can't both take the last seat.
 
 import { and, eq, gt, sql } from 'drizzle-orm'
 import { workspaceInvites, workspaceMembers } from '../../db/schema'

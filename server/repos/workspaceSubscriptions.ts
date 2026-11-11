@@ -3,10 +3,9 @@ import { workspaceSubscriptions } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 import type { WorkspacePlanName } from '../../shared/config/tiers'
 
-// Team / Business subscriptions of workspaces (pricing plan WS2). Stripe
-// writes every row through the webhook (WP2/WP3); the rest of the app
-// only reads them, through `resolveWorkspacePlan`
-// (server/utils/billing/entitlements.ts).
+// Team / Business subscriptions of workspaces. Stripe writes every row through
+// the webhook; the rest of the app only reads them, through
+// `resolveWorkspacePlan` (server/utils/billing/entitlements.ts).
 
 export interface WorkspaceSubscriptionRow {
   workspaceId: string
@@ -56,7 +55,7 @@ export async function getWorkspaceSubscription(workspaceId: string): Promise<Wor
 
 /**
  * Subscriptions a user manages as billing admin — for their data export
- * and the account-deletion hand-over (WP3). Ids and plan facts only.
+ * and the account-deletion hand-over. Ids and plan facts only.
  */
 export async function listSubscriptionsByBillingAdmin(userId: number): Promise<Array<Pick<WorkspaceSubscriptionRow, 'workspaceId' | 'plan' | 'seats' | 'status' | 'validUntil' | 'currency' | 'interval' | 'createdAt'>>> {
   const db = useDatabase()

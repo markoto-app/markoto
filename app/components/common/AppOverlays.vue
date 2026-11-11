@@ -6,8 +6,7 @@
 //
 // Every overlay that only a signed-in user can see, and the anonymous
 // terms dialog, is a Lazy component mounted only when it can show: an
-// anonymous visitor on a public page doesn't download them (they used to
-// sit in the entry chunk of every page).
+// anonymous visitor on a public page doesn't download them.
 const { legalSurfaces, anonGate } = useInstanceConfig()
 const { loggedIn } = useUserSession()
 // The anonymous terms dialog mounts the first time something asks for it
@@ -25,17 +24,13 @@ const showOverlays = computed(() => !route.path.startsWith('/_internal/'))
 
 <template>
   <template v-if="showOverlays">
-    <!-- Browser-level offline banner — shown above all routes so the
-         user sees it everywhere (dashboard, editor, workspace, docs).
-         Auto-hides when the network comes back. -->
+    <!-- Shown above all routes; hides when the network returns. -->
     <CommonOfflineBanner />
-    <!-- Visible across every authenticated route while a deletion is
-         scheduled. Signed-in users only (no account, no deletion). -->
+    <!-- Signed-in users only (no account, no deletion). -->
     <LazyLegalAccountDeletionGraceBanner v-if="loggedIn" />
-    <!-- Onboarding gate — blocks the app on first login until the
-         user confirms age + accepts current Privacy Policy + ToS.
-         Signed-in users only (no row to attach acceptance to), and
-         hidden for users who already accepted the current versions. -->
+    <!-- Blocks the app until the user confirms age + accepts the current
+         Privacy Policy + ToS. Signed-in users only (no row to attach
+         acceptance to). -->
     <LazyLegalOnboardingGate v-if="legalSurfaces && loggedIn" />
     <!-- No cookie banner: markoto stores only what the service needs
          (session, language, anonymous-document creator key), which

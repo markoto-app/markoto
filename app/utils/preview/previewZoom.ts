@@ -6,7 +6,7 @@
  * (`previewZoomFrame.ts`).
  *
  *   fit       one page fills the pane width (never enlarged past 100 %) —
- *             the default and the behaviour before zoom existed;
+ *             the default;
  *   scale     a fixed factor (toolbar steps, Ctrl/Cmd +/-, pinch);
  *   overview  "All pages": the pages wrap side by side in a grid.
  *
@@ -51,9 +51,9 @@ export function clampZoom(scale: number): number {
 }
 
 /**
- * One step in (see STEP_MARGIN). `effective` is the scale the preview currently shows (in
- * fit mode that depends on the pane width, so the iframe reports it).
- * From the overview, zooming in returns to fit width.
+ * One step in (see STEP_MARGIN). `effective` is the scale the preview
+ * currently shows (in fit mode it depends on the pane width, so the
+ * iframe reports it). From the overview, zooming in returns to fit width.
  */
 export function zoomInFrom(setting: PreviewZoomSetting, effective: number | null): PreviewZoomSetting {
   if (setting.mode === 'overview') return { mode: 'fit' }

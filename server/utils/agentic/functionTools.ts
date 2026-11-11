@@ -59,16 +59,13 @@ import {
  *   - One definition → one JSON Schema → one TS type. No drift.
  */
 
-// --- Schemas --------------------------------------------------------------
-
-// NOTE on `view_range`: we want semantically a [start, end] tuple, but Zod's
+// NOTE on `view_range`: semantically a [start, end] tuple, but Zod's
 // `z.tuple(...)` emits JSON Schema in draft-7 tuple form (`items: [...]`) or
-// 2020-12 (`prefixItems: [...]`) — pre-Phase-5 (Gemini-era) the function-
-// declaration validator rejected both with "schema at properties.view_range
-// .items must be a boolean or an object." A length-bounded array of integers
-// flattens to the single-schema `items` shape that survived the migration to
-// Mistral. The [start, end] ordering is enforced by description + runtime
-// bounds check in `handleView`.
+// 2020-12 (`prefixItems: [...]`), which some providers' function-declaration
+// validators reject ("schema at properties.view_range.items must be a boolean
+// or an object"). A length-bounded array of integers flattens to the
+// single-schema `items` shape. The [start, end] ordering is enforced by the
+// description + the runtime bounds check in `handleView`.
 const ViewDocumentArgs = z.object({
   view_range: z.array(z.number().int()).min(2).max(2)
     // Enforce at the schema level so the model self-corrects with a clean
@@ -121,9 +118,7 @@ const GetKnowledgeFileArgs = z.object({
     .describe('The exact knowledge_id from the <knowledge_files> block in the system prompt. Do NOT guess — only pass ids that are listed there.')
 }).describe('Retrieve the full parsed markdown of a single knowledge file. Use after `search_knowledge` when the returned chunks are insufficient and you need the whole document, or when the user asks to read / summarise a specific file by name (match it to the right knowledge_id from <knowledge_files>). Response may be truncated for very large files — an explicit marker is appended if so.')
 
-// --- Comment tools -----------------------------------------------------------
-//
-// Comments are the primary channel for AI ↔ user communication. Every comment
+// Comments are the primary channel for AI <-> user communication; every comment
 // appears in the sidebar in real time (same as collaborator comments).
 
 export const ReadCommentsArgs = z.object({})
@@ -188,9 +183,7 @@ export const GenerateImageArgs = z.object({
     .describe('Output image height in pixels (multiple of 32, range 512-1536). Default 1024. Use a taller value (e.g. 1408) for portrait illustrations; pair with smaller width. Skip both for the default 1:1 1024×1024.')
 }).describe('Generate a photo or illustration from a text description and upload it. Returns the markdown reference (e.g. "![alt](/api/files/…/x.png)") — the caller decides how to place it (insert_text to add, replace_text to swap an existing image, etc.). Do NOT use for diagrams/flowcharts/charts — write a Mermaid code block via insert_text instead.')
 
-// --- view_pages / get_page_count -----------------------------------------
-//
-// Backend rendering pair. The user sees a paginated document (paged.js
+// view_pages / get_page_count: backend rendering pair. The user sees a paginated document (paged.js
 // breaks the content into A4/Letter pages with @page rules); the AI only
 // sees raw markdown which has no concept of "page". When the user says
 // "fix the table on page 3" or "is page 1 too dense?" the AI needs to
@@ -213,9 +206,7 @@ export const ViewPagesArgs = z.object({
 }).strict()
   .describe('Fetch rendered PNG images of specific pages from the current document and inline them into the conversation so you can VISUALLY inspect what those pages look like. Use when the user references a specific page ("issue on page 3", "is page 1 too dense?", "fix the table layout on page 5") — the markdown gives you the content but not the page boundaries paged.js produces. Each page costs interactions; never call this preemptively, only when the user names a specific page.')
 
-// --- message_to_user ------------------------------------------------------
-//
-// The AI's only direct response surface OUTSIDE the document. Renders in
+// message_to_user: the AI's only direct response surface OUTSIDE the document. Renders in
 // a thin panel above the prompt bar, auto-collapsed after 2s for plain
 // messages, sticky for questions. The doc itself remains the artefact;
 // this is just where the AI says one short thing back to the user.
@@ -230,9 +221,7 @@ export const ViewPagesArgs = z.object({
 // when the task is genuinely ambiguous. NOT for "Done" / status reports
 // — those stay silent.
 
-// --- search_activity_log --------------------------------------------------
-//
-// Long-term memory tier. The agentic loop's in-prompt
+// search_activity_log: long-term memory tier. The agentic loop's in-prompt
 // `<conversation_history>` block holds the last 60 minutes (capped at
 // 40 rows) of *this user's* prompts + AI tool calls + AI replies. Past
 // that window, the AI must opt in to recall. `search_activity_log`
@@ -274,8 +263,7 @@ const SearchActivityLogArgs = z.object({
     .describe('Restrict to specific action types. Common picks: ["edit"] (content changes), ["ai.tool"] (your own past tool calls — useful for "what did you base that on?"), ["title.changed", "theme.changed"] (metadata changes), ["restore"] (rollbacks), ["comment.added","comment.replied","comment.resolved","comment.reopened","comment.deleted"] (any comment activity). Omit for all action types.'),
   // Plain `z.string()` instead of `.datetime()` — Zod's draft-7 emit
   // for `.datetime()` includes a 600-char leap-year-aware regex that
-  // some model versions reject as an invalid schema (carried over from
-  // pre-Phase-5 Gemini compatibility). The handler re-validates with
+  // some providers reject as an invalid schema. The handler re-validates with
   // `new Date(s)` + `isFinite` so a malformed string round-trips back
   // to the model as a clean tool error.
   since: z.string().min(1).max(40).optional()
@@ -295,9 +283,7 @@ const MessageToUserArgs = z.object({
 }).strict()
   .describe('Send a short ephemeral message back to the user, rendered above the AI prompt bar. Use when the user asked a question whose answer does NOT belong in the document (a status report on what you found, a brief explanation, a clarifying question), OR when the task is genuinely ambiguous and you need the user to choose. Prefer SILENCE for "Done" / "Changes applied" — the diff is the receipt. Each session shows only the latest message; no history.')
 
-// --- update_theme ---------------------------------------------------------
-//
-// Partial theme patch. Every leaf is optional and every sub-object is
+// update_theme: partial theme patch. Every leaf is optional and every sub-object is
 // optional — the AI only sends what it wants to change, the handler
 // deep-merges over the current theme. Enums + ranges mirror
 // `isValidTheme` exactly so the AI's schema advertises the same
@@ -315,8 +301,8 @@ const MessageToUserArgs = z.object({
 // Why fonts differ from the other enums in this file: `DocThemeSchema`
 // (shared/types/theme.ts) accepts any string matching FONT_NAME_REGEX —
 // that's "any CSS-safe font name". This tool intentionally restricts
-// the model to the CURATED list of fonts we actually fetch from Google
-// Fonts (via `themeFonts.ts`). If the AI picked "Times New Roman", the
+// the model to the CURATED list of fonts we actually serve
+// (via `themeFonts.ts`). If the AI picked "Times New Roman", the
 // preview would silently fall back to a system font rather than render
 // the serif the user asked for.
 const FONT_NAMES = THEME_FONTS.map(f => f.name) as [string, ...string[]]
@@ -360,13 +346,11 @@ const HeadingLevelPatch = z.object({
   align: HeadingAlignSchema.optional().describe('`center` centres this level, number included (IEEE sections); `left` (default).')
 }).describe('Look of one heading level. Omitted fields follow the theme-wide heading values; `{}` removes every override of the level.')
 
-// Function-call compatibility quirk (carried over from pre-Phase-5
-// Gemini era): numeric theme fields (`headings.weight`,
-// `layout.columns`, `toc.maxDepth`) are declared here as STRING enums
-// even though DocThemeSchema has them as numeric unions. The original
-// function-declaration validator rejected `oneOf` with numeric
-// literals (only strings); the string form has been kept stable
-// post-migration to Mistral so the schema doesn't churn. We coerce
+// Function-call compatibility quirk: numeric theme fields
+// (`headings.weight`, `layout.columns`, `toc.maxDepth`) are declared here as
+// STRING enums even though DocThemeSchema has them as numeric unions, because
+// some providers' function-declaration validators reject `oneOf` with numeric
+// literals (only strings). We coerce
 // back to a number in `aiToolAdapter.coerceThemePatch` before the
 // merged theme goes through `isValidTheme`. The canonical numeric
 // surface lives in theme.ts; don't add a new weight/column/depth
@@ -548,9 +532,7 @@ export const UpdateThemeArgs = z.object({
     .describe(`Custom CSS for the document (preview, print and PDF only — never the app UI), appended after the generated theme CSS so its rules win. LAST RESORT: first use the structured fields above (fonts, sizes, colours, spacing, tables.zebra, blocks.*, alerts.*, header/footer, cover, layout.columns); write CSS only for what no field expresses (a coloured h2 underline, a custom alert look, a two-column section, page-number formats). REPLACES the whole existing custom CSS: call get_theme first and send the full text with your rules added — keep the user's existing rules. Empty string clears it. ${CUSTOM_CSS_AI_REFERENCE}`)
 }).describe('Update document theme settings. Pass ONLY the fields you want to change — omitted fields keep their current value. The change broadcasts live to all collaborators and persists to the database. NEW theme surfaces shipped recently: chapter labels + numbering depth (`headings.chapterLabel/chapterWord/numberingDepth`, `headings.numbering: "decimal-zero"`), `{section}` with its number / the section a page starts in (`header.sectionNumber/sectionMode`), the `{author}` token, chapter-relative and stacked captions (`blocks.captionNumbering/captionLabelStyle`), a repeated title and date formats (`cover.repeatTitle/dateFormat`), mirrored book margins (`page.mirrorMargins`), a drop cap on every chapter (`body.dropCap: "every-chapter"`), numbering styles (`headings.numbering: "decimal-dot" | "ieee"`), centred heading levels (`headings.levels.hN.align`), per-side page margins (`page.marginTop/Right/Bottom/Left`), table captions (`tables.captionPosition/captionLabel`), figure numbers (`blocks.figureLabel`), reference-list style (`blocks.referenceStyle`), the `{section}` header/footer token, header/footer rule (`header.rule`, `footer.rule`), per-level heading look (`headings.levels`), cover title weight (`cover.titleWeight`), `{.unnumbered}` headings, the `arxiv` preset, section numbering (`headings.numbering`), code block look (`code.font/background/frame/wrap/lineNumbers`), paper title block (`cover.layout: "title-block"` + `cover.affiliations`), A5 pages, bundled TeX fonts (TeX Gyre Termes / Heros, Latin Modern Roman / Mono), cover-page section, multi-author list, drop cap (`body.dropCap`), asterism HR (`blocks.hrStyle: "asterism"`), eyebrow font (`meta.font`), secondary color (`color.secondary`), per-kind alert palette (`alerts.*`), custom CSS (`customCss` — read the field docs before using it).')
 
-// --- Theme inspection / preset management --------------------------------
-//
-// Three thin tools so the AI can reason about styling beyond just
+// Theme inspection / preset management: three thin tools so the AI can reason about styling beyond just
 // "apply a built-in preset":
 //   - get_theme: read the current ymeta.theme. No args.
 //   - list_themes: enumerate the initiator's saved themes + the
@@ -573,9 +555,7 @@ export const SaveThemeAsPresetArgs = z.object({
     .describe(`Optional one-line description shown under the name (≤${SAVED_THEME_DESCRIPTION_MAX} chars), e.g. "Two columns, serif body, for papers".`)
 }).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
 
-// --- Cross-document reads -------------------------------------------------
-//
-// Two tools that let the AI reach BEYOND the current document:
+// Cross-document reads: two tools that let the AI reach BEYOND the current document:
 //
 //   - list_workspace_documents — enumerate the OTHER docs in the
 //     current session's workspace (current doc excluded). Useful for
@@ -597,8 +577,7 @@ const ListMyDocumentsArgs = z.object({
     .describe('Max documents to return. Default 25, cap 100. Sorted by last-active descending so the most recently touched docs come first.')
 }).describe('List documents the initiator OWNS, across every workspace they participate in. Returns each doc\'s id, title, description, language, access_mode, workspace_id, word_count, and last_active timestamp. Use when the user references a doc by name without giving the id ("the Q3 retro doc", "my brand guidelines") so you can find the matching id, then call `view_other_document({ doc_id: ... })` to read it. Cross-workspace counterpart to `list_workspace_documents`, which is per-workspace and exposes shared (not just owned) docs.')
 
-// ─── Host-style tools (Phase 4) ──────────────────────────────────────
-// Tools that operate AT the user's library level rather than inside a
+// Host-style tools: tools that operate AT the user's library level rather than inside a
 // specific doc: create + duplicate + export. Available to both the
 // in-app agentic loop and MCP clients.
 
@@ -650,8 +629,6 @@ const ViewOtherDocumentArgs = z.object({
     .describe('Optional 1-indexed inclusive line range [start, end]. Use -1 for end to read through to the end of the document. Default: full document, capped at the first 50 000 characters. Page through long docs by repeating the call with non-overlapping ranges.')
 }).describe('Read another document\'s body + metadata. Permission check is the SAME as if the user opened the URL in their browser: their own docs, any doc in any workspace they belong to (any role — viewer is enough), and any anonymous open-edit / open-view doc. Private docs owned by other users return "not found." Password-protected docs are accessible only when the initiator is a member of that doc\'s workspace (workspace membership bypasses the password gate). Returns line-numbered body so you can quote / replace specific lines. The current document cannot be read this way — use `view_document` instead.')
 
-// --- Inferred types the dispatcher consumes -------------------------------
-
 export type ViewDocumentInput = z.infer<typeof ViewDocumentArgs>
 export type ReplaceTextInput = z.infer<typeof ReplaceTextArgs>
 export type InsertTextInput = z.infer<typeof InsertTextArgs>
@@ -680,8 +657,7 @@ export type ViewPagesInput = z.infer<typeof ViewPagesArgs>
 export type MessageToUserInput = z.infer<typeof MessageToUserArgs>
 export type SearchActivityLogInput = z.infer<typeof SearchActivityLogArgs>
 
-// --- Name → schema registry used by runLoop for validate-before-dispatch --
-//
+// Name -> schema registry used by runLoop to validate before dispatch.
 // `ZodType<unknown>` is the bound so the map can hold heterogeneous schemas;
 // the caller narrows via the name when it branches.
 export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
@@ -716,9 +692,7 @@ export const TOOL_SCHEMAS: Record<string, ZodType<unknown>> = {
   search_activity_log: SearchActivityLogArgs
 }
 
-// --- FunctionDeclarations (what the model sees) --------------------------
-//
-// `parameters` accepts any JSON-Schema-shaped object (the SDK types
+// FunctionDeclarations (what the model sees). `parameters` accepts any JSON-Schema-shaped object (the SDK types
 // it as `unknown`), so we feed it the output of `zodToJsonSchema` directly.
 // Descriptions live on the Zod schema and propagate through conversion, so
 // we don't duplicate them on the declaration.
@@ -733,11 +707,9 @@ function decl(name: string, description: string, schema: ZodType<unknown>): Func
     // Field name MUST be `parameters` (matches both `AgenticFunctionDeclaration`
     // and the OpenAI SDK's `ChatCompletionTool['function'].parameters`).
     // `internalToOpenAITools` reads `d.parameters` and falls back to an
-    // EMPTY schema when missing — which is exactly what happened during
-    // the Gemini→LiteLLM migration when this was named
-    // `parametersJsonSchema`. Mistral then saw no required fields on
-    // any tool and emitted empty `{}` arg objects, blowing up Zod
-    // validation in `runLoop.ts` for every tool call.
+    // EMPTY schema when missing; the model then sees no required fields and
+    // emits empty `{}` arg objects, failing Zod validation in `runLoop.ts`
+    // for every tool call.
     parameters: z.toJSONSchema(schema, { target: 'draft-7' })
   }
 }
@@ -880,13 +852,6 @@ export const ALL_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   )
 ]
 
-/**
- * Knowledge-base tools. Split out so `prompt.post.ts` can decide per
- * session whether to expose them — they're only meaningful when the
- * document is in a workspace the caller belongs to AND that workspace
- * has at least one `status='ready'` knowledge file. Exposing them
- * empty-handed invites the model to hallucinate filenames.
- */
 /** Tools that send images TO the model — only offered to vision-capable chat models. */
 const VISION_INPUT_TOOLS = new Set(['view_image', 'view_pages'])
 
@@ -914,6 +879,13 @@ export function filterToolsForProviders(
   })
 }
 
+/**
+ * Knowledge-base tools, split out so `prompt.post.ts` can decide per session
+ * whether to expose them: only meaningful when the document is in a workspace
+ * the caller belongs to AND that workspace has at least one `status='ready'`
+ * knowledge file. Exposing them empty-handed invites the model to hallucinate
+ * filenames.
+ */
 export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   decl(
     'search_knowledge',
@@ -927,20 +899,6 @@ export const KNOWLEDGE_TOOL_DECLARATIONS: FunctionDeclaration[] = [
   )
 ]
 
-// --- Web search sub-call --------------------------------------------------
-
-/**
- * Executes a 2-call web-search sub-call: Jina Reader hands back a corpus
- * of snippets, then Mistral synthesises a grounded answer with cited
- * sources. Isolated here because:
- *   - It keeps our main agentic loop free of the
- *     "search-grounding + functionDeclarations" coexistence question
- *     that pre-Phase-5 (Gemini-era `googleSearch`) used to force.
- *   - Per-call status ("Searching the web for …") is emitted by the outer loop
- *     from the validated `FunctionCall.args` before this runs.
- *   - Output format (top answer + bulleted sources) is controlled by us, not
- *     whatever shape the upstream grounding returns.
- */
 /**
  * Context threaded into the web-tool synthesis sub-calls.
  *
@@ -975,6 +933,12 @@ export interface WebSearchResult {
   sources: Array<{ title: string, uri: string }>
 }
 
+/**
+ * Web-search sub-call: Staan returns ranked results, then Mistral synthesises
+ * a cited answer. The outer loop emits the per-call status ("Searching the
+ * web for ...") from the validated args before this runs, and we control the
+ * output format (answer + bulleted sources).
+ */
 export async function webSearch(
   _ai: AiClient | undefined,
   _model: string,
@@ -988,26 +952,14 @@ export async function webSearch(
   // Platform-paid upstream call: count it against the user's allowance
   // (shared with fetch_url and with MCP) before spending anything.
   await consumeWebToolQuota(spendCtx.userId)
-  // Web search runs on Staan (staan.ai) — a European search index (OVHcloud,
-  // EU) that replaces Jina Search. The motivation: Jina Search fans out to
-  // Google/Bing under the hood, routing queries through US processors; Staan
-  // uses its own EU index. EU-only routing (disabling Staan's optional US
+  // Web search runs on Staan (staan.ai), a European search index (OVHcloud,
+  // EU) with its own index rather than a Google/Bing fan-out through US
+  // processors. EU-only routing (disabling Staan's optional US
   // fallback) is an ACCOUNT-LEVEL setting in the Staan dashboard — there is no
   // per-request parameter — so it must be verified enabled on the account.
   return await webSearchViaStaan(query, signal, spendCtx)
 }
 
-// --- URL context sub-call -------------------------------------------------
-
-/**
- * Executes a 2-call URL-fetch sub-call: Jina Reader returns the page as
- * markdown, then Mistral synthesises a structured `{summary, images[]}`
- * extraction with `json_schema strict:true`. Same isolation rationale
- * as `webSearch`: keeps the URL-context behaviour separate from our
- * `functionDeclarations` so coexistence quirks don't affect the main
- * loop. (Pre-Phase-5: this used Gemini's built-in `urlContext` tool
- * with informal text output.)
- */
 /**
  * Structured shape returned by `fetch_url`. Mirrors the JSON schema
  * passed to Mistral on the synthesis call — kept as a TS interface so
@@ -1032,6 +984,10 @@ export interface FetchUrlResult {
   images: Array<{ url: string, description?: string }>
 }
 
+/**
+ * URL-fetch sub-call: Jina Reader returns the page as markdown, then Mistral
+ * extracts a structured `{summary, images[]}` with `json_schema strict:true`.
+ */
 export async function fetchUrl(
   _ai: AiClient | undefined,
   _model: string,
@@ -1057,13 +1013,12 @@ export async function fetchUrl(
   // SSRF guard, so a rejected URL never burns allowance.
   await consumeWebToolQuota(spendCtx.userId)
 
-  // Phase 5: Jina Reader → Mistral structured output is the only path.
   // The `ai` + `model` args are retained on the signature for harness
-  // compat until P5.4 retypes the loop.
+  // compatibility.
   return await fetchUrlViaJina(url, signal, spendCtx)
 }
 
-// ─── AI grounding providers ─────────────────────────────────────────────
+// AI grounding providers:
 //
 //   web_search → Staan /search/web (staan.ai): the European search index
 //                returns ranked results (title/url/snippet) → Mistral
@@ -1075,13 +1030,9 @@ export async function fetchUrl(
 //                search backend involved — the EU-sovereignty concern that
 //                motivated the Staan swap applies only to search fan-out.
 //
-// History: the pre-Staan web_search used Jina Search (s.jina.ai) for the
-// first call. Jina Search fans out to Google/Bing, routing queries through
-// US processors; Staan uses a proprietary EU index. The swap is a like-for-
-// like source replacement — same 2-call (search → synthesise) shape, same
-// synthesis prompt — so only the search backend changes. Staan's synthesising
-// /answer endpoint would collapse this to one call but is gated to a higher
-// plan tier (403 on the current key), so we keep our own synthesis step.
+// Staan's synthesising /answer endpoint would collapse this to one call but
+// is gated to a higher plan tier (403 on the current key), so we keep our own
+// synthesis step.
 
 const _WEB_SEARCH_SYSTEM_PROMPT
   = 'You are a web-search synthesiser. Given a dump of search results '

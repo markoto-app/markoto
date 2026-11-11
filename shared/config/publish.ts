@@ -1,4 +1,4 @@
-// Publish as a web page (WP13). Shared by the publish endpoints, the
+// Publish as a web page. Shared by the publish endpoints, the
 // published-page route and the publish dialog.
 
 /** A page slug: lowercase letters, digits, single hyphens, 3–60 chars. */

@@ -7,7 +7,7 @@
 // free-only SaaS): no code path touches Stripe, so nothing is required
 // and nothing is checked. A deployment can boot with zero STRIPE_* vars.
 //
-// Billing ON: exactly as strict as before billing became switchable —
+// Billing ON:
 //   - an `apiBase` override, when present, must parse as a URL (silently
 //     falling back to api.stripe.com on a typo would point a stripe-mock
 //     setup at real Stripe);

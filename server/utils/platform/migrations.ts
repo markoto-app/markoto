@@ -1,15 +1,11 @@
-// Signal that unblocks DB-touching startup tasks once migrations are in.
+// Unblocks DB-touching startup tasks once migrations are applied.
 //
-// Nitro instantiates plugins without guaranteeing their async work finishes
-// before the next plugin runs — specifically, a plugin that kicks off a
-// fire-and-forget `void (async () => {...})()` IIFE will see its DB query
-// race the migrator. Any plugin that needs a migrated schema at startup
-// should `await migrationsComplete` before touching the DB.
+// Nitro does not wait for one plugin's async work before running the next, so
+// a fire-and-forget startup query would race the migrator. Plugins that need
+// the migrated schema `await migrationsComplete` first.
 //
-// Module-scoped Promise: one instance per Nitro process. `00-db-migrate.ts`
-// resolves it after successful migration; on failure the plugin throws and
-// the process exits, so the promise stays pending forever — waiting plugins
-// simply never run their startup work, which is what we want.
+// `00-db-migrate.ts` resolves it. If migration fails the process exits and the
+// promise stays pending, so waiting plugins never run their startup work.
 
 let resolveFn: () => void = () => {}
 

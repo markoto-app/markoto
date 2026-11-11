@@ -10,33 +10,29 @@ import { resolveUserPlan } from './entitlements'
 import { getWorkspaceRole } from '../workspaces/workspaceAccess'
 
 /**
- * Phase 6 billing context resolution. Every AI call site calls
+ * Billing context resolution. Every AI call site calls
  * `resolveBillingContext` once and threads the result through:
  *
  *   1. WHICH plan applies (capacity caps, tier display).
- *   2. WHO gets charged (today always the caller; Team workspaces in WP3).
+ *   2. WHO gets charged (the caller, or the workspace pool for members).
  *   3. WHICH virtual key the LLM call should use as its bearer token.
  *
- * Phase 6 architecture: AI usage is gated SOLELY by per-user LiteLLM
- * virtual-key budgets. There's no app-side interaction counter,
- * BudgetExhausted exception, or `chargeInteractions` call — LiteLLM's
- * spend tracker enforces `max_budget` natively, and a budget overrun
- * surfaces as an HTTP 422 `budget_exceeded` from the proxy (400 before
- * LiteLLM 1.104; detection is message-based, not status-based). Callers
- * use `useLitellmForUser(virtualKey)` from `litellmClient.ts` and
- * catch `LitellmBudgetExhausted` (or detect via `isBudgetExceededError`)
- * at the call site.
+ * AI usage is gated solely by LiteLLM virtual-key budgets: the proxy
+ * enforces `max_budget` and a budget overrun surfaces as an HTTP 422
+ * `budget_exceeded` (400 before LiteLLM 1.104; detection is
+ * message-based, not status-based). Callers use
+ * `useLitellmForUser(virtualKey)` from `litellmClient.ts` and catch
+ * `LitellmBudgetExhausted` (or detect via `isBudgetExceededError`).
  *
  * Period anchoring (Stripe `current_period_start` for paid users,
- * calendar-month UTC for free) is preserved — used by `/api/ai/credits`
- * to populate the AI Points UI's `periodEnd` display so users see when
- * their budget resets.
+ * calendar-month UTC for free) feeds `/api/ai/credits`' `periodEnd`, so
+ * users see when their budget resets.
  */
 
 /**
  * Identifier for the billing target. `user:{id}` or `workspace:{id}`.
  * Kept as a typed string for diagnostics + Sentry tags; no DB column
- * stores it post-Phase-6.
+ * stores it.
  */
 export type AttributedTo = `user:${number}` | `workspace:${string}`
 
@@ -175,8 +171,7 @@ async function getUserPlan(userId: number): Promise<{
 /**
  * Resolve the billing context for an AI call: the caller's own virtual
  * key at their effective personal plan. Lapsed paid users collapse to
- * Free caps + Free's budget. (The retired `(+)` workspace sponsorship
- * path is gone; Team billing replaces it in WP3.)
+ * Free caps + Free's budget.
  *
  * Lazy virtual-key creation: if the caller doesn't have a LiteLLM key
  * yet, `ensureUserKey` creates one inline.
@@ -197,7 +192,8 @@ export async function resolveBillingContext(
     throw new Error(`[billing] resolveBillingContext: user ${userId} not found`)
   }
   // Billing off (self-hosted / free-only SaaS): nobody can hold a paid
-  // plan — everyone self-bills at the free tier (whose budget operators raise via TIER_FREE_* env vars).
+  // plan; everyone self-bills at the free tier (whose budget operators
+  // raise via TIER_FREE_* env vars).
   const billingOn = isBillingEnabled()
   const callerActive = planActive(caller.plan, caller.planValidUntil, now)
   // A lapsed paid user reverts to Free caps until the plan-lapse
@@ -205,11 +201,7 @@ export async function resolveBillingContext(
   // from still getting Pro quota.
   const effectiveCallerPlan: PlanName = billingOn && callerActive ? caller.plan : 'free'
 
-  // TODO(WP3, Team billing): a member of a Team / Business workspace
-  // bills to that workspace's pooled budget through their per-workspace
-  // key. Until then every caller self-bills; `workspaceId` is accepted so
-  // call sites don't change when that lands.
-  // Team / Business (WP3): inside a workspace with an entitled
+  // Team / Business: inside a workspace with an entitled
   // subscription a member's AI runs on their key in the workspace's
   // LiteLLM team (member limit + pooled team budget). Non-members (e.g.
   // someone editing an open-edit document of the workspace) keep their

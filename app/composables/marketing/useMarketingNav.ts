@@ -55,8 +55,7 @@ export function useMarketingNav() {
     const items = data.value
     if (!marketingSite.value || items.length === 0) return EMPTY
     const current = asMarketingLocale(locale.value)
-    // Reviewed versions, with the label their own page gives them: a
-    // link to the German page reads in German.
+    // Reviewed versions with their own label, so a link to the German page reads in German.
     const translated = new Map<string, string>()
     for (const item of items) {
       const target = parseMarketingContentPath(item.path)

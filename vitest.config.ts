@@ -57,15 +57,9 @@ export default defineConfig({
     // (every `server/api/*`, `server/middleware/*`, `server/plugins/*`,
     // `server/routes/*`) runs through Vite's SSR transform which records
     // coverage under the opaque URL `evalmachine.<anonymous>` — c8 can't
-    // map that back to source files. See AGENTS.md §19 "coverage
-    // undercounts" for the three dead ends we tried. Rather than publish
-    // a misleading ~27% number that averages real gaps with subprocess
-    // blind spots, we exclude the subprocess-only paths entirely.
-    //
-    // The 300+ tests in tests/integration/ still exercise those files at
-    // runtime — they're the actual safety net for the HTTP surface. The
-    // coverage report now measures what the in-process tests cover, and
-    // nothing more.
+    // map that back to source files. Averaging those blind spots into the
+    // number would be misleading, so the subprocess-only paths are
+    // excluded; tests/integration/ still exercises them at runtime.
     coverage: {
       provider: 'v8',
       reporter: ['text', 'text-summary', 'html', 'json-summary', 'lcov'],

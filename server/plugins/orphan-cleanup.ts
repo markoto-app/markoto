@@ -30,8 +30,8 @@ const ONE_DAY_MS = 24 * ONE_HOUR_MS
 //      and drop any whose key isn't in uploads AND whose last-modified
 //      is > 24h old. The 24h grace prevents racing the create-doc flow
 //      (where a file can briefly land in S3 before its uploads row
-//      commits, though our request handler now writes the row first —
-//      kept for belt-and-suspenders). Also catches staging objects
+//      commits; the request handler writes the row first, so this is a
+//      backstop). Also catches staging objects
 //      (`docs/{id}/staging/…`) left over after a confirm.
 //
 //   4. Knowledge sweep (`server/utils/knowledge/knowledgeOrphanSweep.ts`): objects
@@ -109,8 +109,6 @@ export default defineNitroPlugin((nitroApp) => {
     clearInterval(intervalTimer)
   })
 })
-
-// ─── Sweep helpers ──────────────────────────────────────────────────────
 
 /**
  * Layer 1: drop uploads rows that were never confirmed (presigned URL
@@ -220,8 +218,6 @@ async function findStaleKeysInDocPrefix(
   return stale
 }
 
-// ─── Paginated-S3 helpers ───────────────────────────────────────────────
-
 /** List immediate `docs/{id}/` prefixes via the delimited Prefix API. */
 async function listDocPrefixes(s3: S3Client, bucket: string): Promise<string[]> {
   const out: string[] = []
@@ -265,7 +261,7 @@ async function listKeysUnderPrefix(s3: S3Client, bucket: string, prefix: string)
  * can attribute failures to the right layer.
  *
  * `opts.silent` — by default, the unconfirmed sweep already logs every
- * S3 error inline (legacy behaviour); the doc-orphan + defensive sweeps
+ * S3 error inline; the doc-orphan + defensive sweeps
  * let exceptions propagate to the outer try/catch so a transient S3
  * failure aborts THAT layer cleanly without nuking the rest. Set
  * `silent: true` to suppress the inline log + Sentry capture.

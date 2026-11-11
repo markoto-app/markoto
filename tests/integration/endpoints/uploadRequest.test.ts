@@ -8,13 +8,10 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 
-// POST /api/upload/request — mints a presigned S3 PUT for a doc image.
-// Regression target: pre-fix the write-authz check only covered `open-view`
-// non-owners, so any authenticated user who knew a `private` or
-// `password-protected` doc id could presign a PUT into that doc's S3 prefix
-// (and it wrongly blocked workspace editors on `open-view` docs). The write
-// gate is now `canEditDoc`, the same helper every other write endpoint uses,
-// with `open-edit` staying open to anyone (that's the feature).
+// POST /api/upload/request: mints a presigned S3 PUT for a doc image. The write gate is `canEditDoc`, the same
+// helper every other write endpoint uses: it must refuse any authenticated user who knows a `private` or
+// `password-protected` doc id (else they could presign a PUT into that doc's S3 prefix), must not block
+// workspace editors on `open-view` docs, and `open-edit` stays open to anyone (that's the feature).
 
 const BODY = {
   filename: 'shot.png',
@@ -59,11 +56,10 @@ describe('POST /api/upload/request', () => {
     })
   })
 
-  // The browser PUTs straight to S3 with the presigned URL. Regression: from
-  // @aws-sdk 3.729 the client signed a default CRC32 into every PutObject —
-  // computed over the EMPTY body at presign time — so S3 rejected every real
-  // upload with 400 (images and knowledge files alike). Only a real PUT
-  // against the test SeaweedFS catches that; checking for a URL does not.
+  // The browser PUTs straight to S3 with the presigned URL. The client must not sign a default CRC32 into every
+  // PutObject (@aws-sdk 3.729+ computes it over the EMPTY body at presign time), or S3 rejects every real upload
+  // with 400 (images and knowledge files alike). Only a real PUT against the test SeaweedFS catches that;
+  // checking for a URL does not.
   it('the presigned URL accepts the upload the browser sends', async () => {
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -115,7 +111,7 @@ describe('POST /api/upload/request', () => {
     })
   })
 
-  describe('private — the regression (pre-fix: any authed user could upload)', () => {
+  describe('private — authenticated users without edit rights cannot upload', () => {
     it('logged-in non-owner is denied (403)', async () => {
       const owner = await createUser()
       const other = await createUser()

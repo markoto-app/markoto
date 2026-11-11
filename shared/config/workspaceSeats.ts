@@ -4,7 +4,7 @@ export const MIN_WORKSPACE_SEATS = 3
 export const MAX_WORKSPACE_SEATS = 1000
 
 /**
- * Guests (WP11) take no seat; a paid Team / Business workspace may have
+ * Guests take no seat; a paid Team / Business workspace may have
  * up to this many per paid seat (against using guests as free members).
  * Workspaces without a subscription (self-hosted) have no guest cap.
  */

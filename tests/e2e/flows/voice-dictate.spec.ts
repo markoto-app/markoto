@@ -57,7 +57,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
   await page.keyboard.press('Enter')
   await page.keyboard.press('Enter')
 
-  // ─── Open the mic ───────────────────────────────────────────────
+  // Open the mic
   await flow.heading('Speak instead of typing', 3)
   await flow.narrate(
     'Click the mic in the toolbar (or the Dictate tab on mobile) and '
@@ -92,7 +92,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Watch the words stream in ──────────────────────────────────
+  // Watch the words stream in
   await flow.heading('The words land in the doc', 3)
   await flow.narrate(
     'The words appear as faint text at the cursor first; once a '
@@ -119,7 +119,7 @@ test('Speak instead of typing', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Stop the mic ───────────────────────────────────────────────
+  // Stop the mic
   await flow.heading('Stop the mic when you\'re done', 3)
   await flow.narrate(
     'Click the mic again to stop. The last words you said are written '

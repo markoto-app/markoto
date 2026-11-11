@@ -2,7 +2,7 @@ import { brandKitAvailable, requireBrandKitMember } from '../../../../utils/bran
 import { listBrandAssets } from '../../../../repos/brandAssets'
 import { BRAND_FONTS_PER_WORKSPACE, BRAND_IMAGES_PER_WORKSPACE } from '~~/shared/config/brandKit'
 
-// GET /api/workspaces/:wsId/brand — the workspace's brand kit (WP10) for
+// GET /api/workspaces/:wsId/brand — the workspace's brand kit for
 // its members: fonts and logos (the theme panel offers them), whether
 // the plan includes the kit, and the limits. Admins manage it in the
 // workspace's Brand kit tab.

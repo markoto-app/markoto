@@ -7,7 +7,7 @@ import { ssoMockIdpBase, TEST_BASE_URL, TEST_BILLING_OFF_BASE_URL } from '../set
 import { authnRequestId, makeIdpKeyPair, samlResponse, type IdpKeyPair } from '../setup/samlIdp'
 import { PRIVACY_VERSION, TOS_VERSION } from '~~/shared/legal/versions'
 
-// Per-workspace single sign-on (WP14), end to end through the Nitro
+// Per-workspace single sign-on, end to end through the Nitro
 // server:
 //   - OIDC against the REAL mock IdP (`oidc-test`, every path an issuer),
 //     reached on the test network's private address (the SSO fetch policy
@@ -631,7 +631,7 @@ describe('SSO enforcement covers the documents a member owns', () => {
     expect(await ownerAccess(member.id, doc.docId, ws.workspaceId)).toMatchObject({ token: true, metaPut: true, files: true, activity: true })
 
     // A workspace without SSO: an owner who is no longer a member keeps
-    // their doc (pre-existing behaviour, unchanged by WP14).
+    // their doc.
     const plainAdmin = await createUser()
     const plain = await createWorkspace(plainAdmin.id)
     const owner = await createUser()

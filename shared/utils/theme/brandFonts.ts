@@ -1,7 +1,7 @@
 import { BRAND_FONT_CSS_FORMAT, BRAND_FONT_FAMILY_RE, type BrandFont } from '../../config/brandKit'
 
 /**
- * `@font-face` rules for a workspace's brand-kit fonts (WP10), appended to
+ * `@font-face` rules for a workspace's brand-kit fonts, appended to
  * the theme's font imports in all three renderers (live preview, browser
  * print, server render page). Every workspace font is declared — a theme,
  * a per-level heading font or custom CSS may name any of them — and the

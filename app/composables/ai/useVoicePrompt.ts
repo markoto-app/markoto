@@ -5,15 +5,12 @@
 //        → transcribing → done (auto-submit fires) → idle
 //   Any step can transition to `error` with a human-readable message.
 //
-// MediaRecorder + MediaStream are explicitly cleaned up on every exit path
-// (stop, cancel, unmount, error) so the browser's "site is using your
-// microphone" indicator clears immediately — leaving the track dangling
-// after an aborted recording is the most visible UX bug in naive impls.
+// MediaRecorder + MediaStream are cleaned up on every exit path (stop,
+// cancel, unmount, error) so the browser's microphone indicator clears.
 //
 // `levels` is a small ring of 0..1 amplitude samples that the waveform
-// component reads each frame. We own the RAF loop here (not in the
-// component) so the composable can kill it from any state transition
-// without the component having to listen for that.
+// component reads each frame. The RAF loop lives here, not in the
+// component, so any state transition can stop it.
 
 export type VoicePromptState
   = | 'idle'
@@ -24,9 +21,8 @@ export type VoicePromptState
 
 export interface UseVoicePromptOptions {
   /**
-   * Called when transcription succeeds. The client auto-submits whatever
-   * text comes back — the composable is intentionally kind-agnostic about
-   * what "submit" means; the consumer wires it to the real submit handler.
+   * Called when transcription succeeds. The composable doesn't know what
+   * "submit" means; the consumer wires this to the real submit handler.
    */
   onTranscript: (text: string) => void | Promise<void>
   /**
@@ -45,17 +41,11 @@ export interface UseVoicePromptOptions {
 const DEFAULT_MAX_DURATION_SEC = 60
 const LEVEL_SAMPLE_COUNT = 64 // visualizer bar count — thin bars read as a smooth wave rather than a chunky equalizer
 
-// MediaRecorder's MIME preference order.
-//
-// We only return opus-based containers because Mistral Voxtral Mini
-// Transcribe's `/v1/audio/transcriptions` endpoint accepts the same
-// container set as the historical Cloud STT path (WEBM_OPUS / OGG_OPUS
-// / LINEAR16) and rejects MP4/AAC. Safari's MediaRecorder currently
-// only emits `audio/mp4` (AAC) — so voice input is effectively
-// Chrome/Firefox-only until we add a server-side transcoder.
-// Returning `undefined` on Safari lets `start()` fail with a friendly
-// "unsupported browser" error rather than shipping bytes that Voxtral
-// will reject.
+// MediaRecorder's MIME preference order. Only webm/ogg/wav: Voxtral's
+// `/v1/audio/transcriptions` rejects MP4/AAC, which is all Safari's
+// MediaRecorder emits, so voice input is Chrome/Firefox-only. Returning
+// `undefined` there lets `start()` fail with an "unsupported browser"
+// error instead of sending bytes Voxtral will reject.
 function pickMimeType(): string | undefined {
   const candidates = [
     'audio/webm;codecs=opus',
@@ -84,20 +74,16 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 export function useVoicePrompt(opts: UseVoicePromptOptions) {
-  // Capture i18n at setup time — useI18n throws "Must be called at the
-  // top of a `setup` function" if called inside the async transcribe
-  // path. We read `locale.value` lazily at send time so language
-  // changes still propagate without a re-invocation.
+  // `useI18n()` must run during setup (it throws in the async transcribe
+  // path); `locale.value` is read lazily at send time.
   const { locale } = useI18n()
   // The open document's workspace: its Team / Business plan may include
-  // voice where the personal plan doesn't (WP5).
+  // voice where the personal plan doesn't.
   const aiWorkspace = useAiWorkspaceContext()
 
-  // Reactive mic permission. Lets the UI gray out the button + show
-  // "Mic blocked in browser settings" without the user having to click
-  // and hit a NotAllowedError. `'unsupported'` on Firefox + iOS Safari
-  // (no Permissions API for `microphone`); we treat those as "unknown,
-  // don't preemptively block".
+  // Lets the UI disable the button before a click hits NotAllowedError.
+  // `'unsupported'` on Firefox + iOS Safari (no Permissions API for
+  // `microphone`) means "unknown", not blocked.
   const micPermission = usePermission('microphone', { controls: false })
 
   const state = ref<VoicePromptState>('idle')
@@ -107,19 +93,16 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
 
   const maxDurationSec = opts.maxDurationSec ?? DEFAULT_MAX_DURATION_SEC
 
-  // Native handles — held in non-reactive refs because attaching Vue
-  // reactivity to a MediaStream/AudioContext triggers spurious re-renders
-  // and can even break some browser-native event plumbing.
+  // Native handles stay non-reactive: Vue proxies cause spurious re-renders
+  // and can break browser-native event plumbing.
   let mediaStream: MediaStream | null = null
   let mediaRecorder: MediaRecorder | null = null
   let audioCtx: AudioContext | null = null
   let analyser: AnalyserNode | null = null
   let rafId: number | null = null
   let startedAt = 0
-  // Hard-cap auto-stop timer — fires once `maxDurationSec` after start.
-  // useTimeoutFn auto-cleans on scope dispose; we still call .stop()
-  // from cleanupAudioResources for the cancel/error paths so a user
-  // who clicks stop early doesn't get an orphaned auto-stop.
+  // Auto-stop at `maxDurationSec`. cleanupAudioResources stops it on
+  // cancel/error so an early stop doesn't leave an orphaned timer.
   const stopTimeout = useTimeoutFn(() => {
     if (state.value === 'recording') stop()
   }, maxDurationSec * 1000, { immediate: false })
@@ -136,9 +119,6 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     } catch { /* best-effort */ }
     analyser = null
     if (audioCtx && audioCtx.state !== 'closed') {
-      // AudioContext.close() returns a promise — we don't await it because
-      // cleanup happens on teardown paths where awaiting would needlessly
-      // block state transitions.
       audioCtx.close().catch(() => { /* best-effort */ })
     }
     audioCtx = null
@@ -175,9 +155,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     const buf = new Uint8Array(analyser.frequencyBinCount)
     analyser.getByteFrequencyData(buf)
 
-    // Downsample the frequency bin array to LEVEL_SAMPLE_COUNT buckets by
-    // max-pooling. Max-pool (not mean) because visual loudness cares more
-    // about peaks than averages — flat averages look dead even during speech.
+    // Max-pool (not mean) into LEVEL_SAMPLE_COUNT buckets: averages look
+    // flat even during speech.
     const binsPerSample = Math.floor(buf.length / LEVEL_SAMPLE_COUNT)
     const out: number[] = new Array(LEVEL_SAMPLE_COUNT)
     for (let i = 0; i < LEVEL_SAMPLE_COUNT; i++) {
@@ -228,19 +207,16 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     state.value = 'recording'
     rafId = requestAnimationFrame(tickLevels)
 
-    // Hard cap. Using `stop()` (not `cancel`) so the recorded audio still
-    // gets transcribed — user hit the cap but presumably wanted what they
-    // said to go through.
+    // Hitting the cap calls `stop()` (not `cancel`) so the audio is still transcribed.
     stopTimeout.start()
   }
 
-  /** Request the user's microphone. Returns null on permission denial / hardware miss / generic error (already routed to fail()). */
+  /** Returns null on any failure (already routed to fail()). */
   async function acquireUserMedia(): Promise<MediaStream | null> {
     try {
       return await navigator.mediaDevices.getUserMedia({ audio: true })
     } catch (e) {
-      // Chrome throws NotAllowedError on dismiss-or-block, NotFoundError on
-      // missing hardware. Both messages are user-intelligible so surface them.
+      // NotAllowedError = dismissed or blocked, NotFoundError = no hardware.
       const name = (e as { name?: string })?.name
       if (name === 'NotAllowedError') {
         fail('Microphone permission denied.')
@@ -254,12 +230,9 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   }
 
   /**
-   * Build the MediaRecorder and wire its event hooks. `onstop` fires
-   * after `stop()` drains the final chunk, which is the point at which
-   * we know the full Blob is ready — we trigger transcription there
-   * (not from the caller) so both "user clicked stop" and "hit max
-   * duration" paths share one code path. Returns false on construction
-   * failure (already routed to fail()).
+   * `onstop` fires after `stop()` drains the final chunk, so transcription
+   * starts there and both "user clicked stop" and "hit max duration" share
+   * one path. Returns null on construction failure (already routed to fail()).
    */
   function instantiateRecorder(stream: MediaStream, mimeType: string): MediaRecorder | null {
     let recorder: MediaRecorder
@@ -284,10 +257,9 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   }
 
   /**
-   * Analyser for the visualizer — shares the MediaStream, doesn't
-   * duplicate the audio path. fftSize 256 = 128 frequency bins, plenty
-   * for 32 bars. Visualiser failure is non-fatal — recording still
-   * works without bars.
+   * Analyser for the visualizer, sharing the MediaStream. fftSize 256 =
+   * 128 bins, enough for LEVEL_SAMPLE_COUNT buckets. Failure is
+   * non-fatal: recording works without bars.
    */
   function setupAnalyser(stream: MediaStream): void {
     try {
@@ -304,10 +276,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
 
   function stop() {
     if (state.value !== 'recording') return
-    // Don't flip to 'transcribing' yet — the recorder's `onstop` fires after
-    // the final chunk is drained; `finalizeAndTranscribe` sets the state
-    // then. Flipping it here leaves a window where the UI says "transcribing"
-    // but we're still waiting for the last audio bytes.
+    // 'transcribing' is set by `finalizeAndTranscribe` once `onstop` fires;
+    // setting it here would show it while the last audio bytes are pending.
     try {
       mediaRecorder?.stop()
     } catch {
@@ -317,8 +287,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
 
   function cancel() {
     if (state.value === 'idle') return
-    // `null`-ing `onstop` before stop() prevents the recorded clip from
-    // racing to transcription after a cancel.
+    // Clearing `onstop` keeps the cancelled clip from being transcribed.
     if (mediaRecorder) mediaRecorder.onstop = null
     try {
       mediaRecorder?.stop()
@@ -328,9 +297,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   }
 
   async function finalizeAndTranscribe(mimeType: string) {
-    // At this point the recorder is done but the audio stream + analyser
-    // are still live — release them now so the browser mic indicator
-    // clears immediately rather than waiting for the fetch to resolve.
+    // Release the stream now so the mic indicator clears before the fetch resolves.
     cleanupAudioResources()
     state.value = 'transcribing'
 
@@ -342,10 +309,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     const blob = new Blob(chunks, { type: mimeType })
     chunks.length = 0
 
-    // Filter a useless MP4 "silence/noise" chunk that Safari sometimes
-    // emits on very short recordings (<300ms). The server will reject
-    // anything under 100 bytes, but we short-circuit here for a cleaner
-    // error.
+    // Very short recordings yield near-empty blobs; the server rejects
+    // under 100 bytes, this gives a cleaner error.
     if (blob.size < 256) {
       fail('Recording was too short.')
       return
@@ -360,11 +325,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     }
 
     try {
-      // `languageCode` piggybacks the UI locale so a German speaker
-      // doesn't get English transcription. The transcription pipeline
-      // accepts either a BCP-47 tag (`de-DE`) or, via our server-side
-      // normalizer, the short ISO 639-1 code (`de`) we store for the
-      // UI. `locale` was captured at setup-time (see top of composable).
+      // The UI locale as `languageCode`; the server normalizer accepts both
+      // BCP-47 (`de-DE`) and the short ISO 639-1 code (`de`).
       const res = await $fetch<{ text: string, inaudible: boolean }>('/api/ai/transcribe', {
         method: 'POST',
         body: { audio: audioB64, mimeType, languageCode: locale.value, ...(aiWorkspace.value ? { workspaceId: aiWorkspace.value } : {}) }
@@ -374,9 +336,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
         opts.onInaudible?.()
         return
       }
-      // Hand off the transcript to the consumer. Reset to idle first so the
-      // UI is back in its resting state by the time the submit lands; the
-      // consumer then flips into its own submitting state.
+      // Reset first so the UI is idle by the time the consumer's submit lands.
       resetState()
       await opts.onTranscript(res.text)
     } catch (e) {
@@ -385,8 +345,6 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     }
   }
 
-  // Clear the error state without starting a new recording — lets the
-  // consumer dismiss an error toast.
   function clearError() {
     if (state.value === 'error') resetState()
   }

@@ -8,9 +8,8 @@ import type { EditorView } from '@codemirror/view'
 // shrinks; when the surrounding text is removed entirely, the anchor
 // resolves to null (orphan).
 //
-// We store a `start` + `end` pair per comment, base64-encoded so the value
-// JSON-stringifies cleanly (Y.Map values can technically hold Uint8Array
-// but base64 strings keep dev-tool inspection readable).
+// Each comment stores a `start` + `end` pair, base64-encoded so the value
+// JSON-stringifies cleanly.
 //
 // Sticking conventions (the `assoc` parameter on `createRelativePosition`):
 //   - `start`: assoc = 0  (right-bound) — text inserted at the very start
@@ -25,15 +24,10 @@ export interface SerializedAnchor {
   end: string
 }
 
-/**
- * Convert a Uint8Array to a base64 string. We can't rely on `Buffer` in
- * the browser; this works in both Node and the browser.
- */
 function toBase64(bytes: Uint8Array): string {
-  // Chunk in 0x8000-byte slices because `String.fromCharCode(...bytes)`
-  // blows the stack on large buffers (the spread pushes every byte as
-  // an argument). Relative positions are small in practice (<100 bytes)
-  // but the chunking is essentially free defensive code.
+  // Chunked because spreading a large buffer into `String.fromCodePoint`
+  // overflows the stack; relative positions are tiny, so this is purely
+  // defensive. No `Buffer`: this runs in the browser.
   let binary = ''
   const chunk = 0x8000
   for (let i = 0; i < bytes.length; i += chunk) {
@@ -50,10 +44,8 @@ function fromBase64(b64: string): Uint8Array {
 }
 
 /**
- * Capture the editor's current selection as a serialized Y.js relative
- * anchor pair. Returns null when the view isn't ready or the selection
- * is empty — callers should handle "no selection" by toasting a hint
- * rather than calling this.
+ * The editor's current selection as a serialized relative anchor pair, or
+ * null when the selection is empty or out of range.
  */
 export function serializeAnchor(
   view: EditorView,

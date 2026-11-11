@@ -6,7 +6,7 @@ const BATCH = 1000
 const MAX_ROWS = 100_000
 
 // GET /api/workspaces/:wsId/audit/export?format=csv|jsonl&from=&to=&action=
-// — download the workspace's audit log (WP15). Admins of a plan with the
+// — download the workspace's audit log. Admins of a plan with the
 // audit log; 10 exports / admin / hour; at most 100 000 rows (narrow the
 // dates beyond that); the export itself is audited.
 export default defineEventHandler(async (event) => {

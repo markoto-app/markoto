@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in (WP7b) — validated claims → markoto user profile.
+// Generic OpenID Connect sign-in — validated claims → markoto user profile.
 //
 // Pure. The input claims have ALREADY been validated by openid-client
 // (signature via JWKS, iss, aud, azp, exp/iat, nonce — see `client.ts`);

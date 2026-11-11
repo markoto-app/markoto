@@ -104,8 +104,8 @@ function validateRangeSelection(r: Record<string, unknown>): EditorSelectionSnap
 /**
  * Wrap the user's prompt with an `<editor_state>` block describing their
  * cursor or selection at submit time. Returned verbatim for `kind: none`
- * — no wrapper, no tokens wasted — so a default-state request is
- * indistinguishable (to the model) from the pre-feature behavior.
+ * — no wrapper, no tokens wasted — so a request without a snapshot
+ * carries no editor-state markup.
  *
  * The XML-ish tags are a readability convention for the model; modern
  * LLMs are trained well on structured user messages wrapped this way.

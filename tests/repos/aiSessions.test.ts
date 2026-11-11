@@ -248,7 +248,7 @@ describe('purgeStaleAiSessions', () => {
   })
 
   it('leaves fresh sessions alone', async () => {
-    // Regression target: the AGENTS.md invariant is "sweep threshold
+    // Regression target: the server/utils/agentic/AGENTS.md invariant is "sweep threshold
     // must exceed prompt deadline" — the 7-min sweeper can't kill a
     // legit 5-min session that's still running. Simulate: add a
     // session at startedAt=now, then purge with a 7-min threshold.

@@ -161,13 +161,10 @@ const server = new Server({
     // edit is intentionally not restorable (no prior state to roll
     // back to).
     const yjsDocIdBefore = await ypgPersistence.getMaxYjsDocId(data.documentName)
-    // AFTER: use the row id returned BY the store itself rather than a
-    // follow-up MAX query. The follow-up query was the source of the
-    // earlier NULL-boundary bug — between INSERT and the second
-    // MAX(id) call, the queryPool's connection occasionally returned
-    // null (suspected MVCC/snapshot timing across separate pg pools,
-    // exact cause not pinned). Using the returned id is structurally
-    // correct anyway: it's the id WE wrote, not whatever the latest
+    // AFTER: use the row id returned by the store itself rather than a
+    // follow-up MAX query, which can return null across separate pg pools
+    // (suspected snapshot timing). The returned id is also the correct one:
+    // it's the id WE wrote, not whatever the latest
     // row happens to be by the time we re-query (which under
     // multi-instance concurrency could be a row a different instance
     // wrote).
@@ -274,7 +271,7 @@ const server = new Server({
 
 // Release the socket's rate-limit slots on EVERY teardown. Hocuspocus's
 // onDisconnect only fires for connections that authenticated, so failed
-// handshakes used to leak their slot for good (see rate-limiter.ts).
+// handshakes would leak their slot for good (see rate-limiter.ts).
 // Registered after Hocuspocus's own `connection` listener (set up in the
 // Server constructor), so the pre-auth guard's `message` listener runs
 // after Hocuspocus has queued each frame.
@@ -293,7 +290,7 @@ server.listen(port, () => {
 // for the race-safety design.
 startCompactionSweeper()
 
-// ─── onStoreDocument helpers ─────────────────────────────────────────
+// onStoreDocument helpers
 
 type StoreDocumentData = Parameters<NonNullable<NonNullable<ConstructorParameters<typeof Server>[0]>['onStoreDocument']>>[0]
 

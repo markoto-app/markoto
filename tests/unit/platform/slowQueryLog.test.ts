@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Tests for Item 2 — slow-query log instrumentation in
+// Tests for the slow-query log instrumentation in
 // server/utils/platform/database.ts. We can't import the real `useDatabase`
 // because it spins up an actual Pool against a real DB; instead we
 // stub `pg.Pool` for a fake whose `query` method we control, then run

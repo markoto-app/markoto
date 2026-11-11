@@ -1,17 +1,15 @@
 import { readSessionChannel, toSessionView } from '../../../../utils/agentic/sessionChannel'
 
-// GET /api/ai/sessions/:sessionId — the initiator's private view of an
-// AI session: their prompt, the live status message, the latest
-// `message_to_user` answer and any pending confirmation request.
+// GET /api/ai/sessions/:sessionId: the initiator's private view of an AI
+// session (prompt, live status, latest `message_to_user`, pending
+// confirmation).
 //
-// Initiator only. Everybody else (other participants of the document
-// included) gets 404 — the same answer as for an unknown or expired
-// session, so a session id reveals nothing. Other participants see the
-// coarse "markoto is working" state through Y.js awareness instead.
+// Initiator only. Everybody else gets the same 404 as for an unknown or expired
+// session, so a session id reveals nothing; other participants see the coarse
+// "markoto is working" state through Y.js awareness.
 //
-// The prompt bar follows the session through the push stream
-// (`./stream.get.ts`); this endpoint is the fallback when the stream
-// breaks and the one final read after the session left the document.
+// The prompt bar follows the push stream (`./stream.get.ts`); this is the
+// fallback when the stream breaks and the final read after the session ended.
 
 const SESSION_ID_RE = /^[\w-]{1,64}$/
 

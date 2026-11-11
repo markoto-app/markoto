@@ -69,8 +69,8 @@ export default defineEventHandler(async (event) => {
   const uploadId = nanoid(16)
   const stagingKey = designImportStagingKey(userId, uploadId, ext)
   const mimeType = DESIGN_IMPORT_MIME[ext]
-  // SSE: presigned PUTs omit `ServerSideEncryption` (bucket default
-  // covers them — see server/api/upload/request.post.ts).
+  // SSE: presigned PUTs omit `ServerSideEncryption` (the bucket default covers
+  // them, see server/api/upload/request.post.ts).
   const uploadUrl = await getSignedUrl(
     usePresignS3Client(),
     new PutObjectCommand({ Bucket: config.s3.bucket, Key: stagingKey, ContentType: mimeType, ContentLength: size }),

@@ -10,7 +10,7 @@ import { ssoSatisfiedSql } from './sso'
 // "≥1 admin" invariant, which is why several of these functions are
 // transactional or do their own count-then-mutate bookkeeping.
 
-/** setRole on a guest (WP11): invite them as a member instead. */
+/** setRole on a guest: invite them as a member instead. */
 class GuestRoleChangeError extends ConflictError {
   constructor() {
     super('Guests can\'t get a team role. Remove them and invite them as a member instead.')
@@ -23,14 +23,14 @@ export interface MemberRow {
   name: string
   email: string | null
   login: string | null
-  /** `guest` included (WP11): the member list shows guests too. */
+  /** `guest` included: the member list shows guests too. */
   role: MembershipRole
   joinedAt: Date
 }
 
 /**
  * The caller's role in a workspace, or null if not a member — or if the
- * workspace enforces single sign-on (WP14) and the caller has no current
+ * workspace enforces single sign-on and the caller has no current
  * SSO grant. This is THE access check: every path into a workspace goes
  * through it (or through `getDocWithActorRole`, which applies the same
  * condition), so SSO enforcement holds for the editor, AI, MCP,
@@ -47,7 +47,7 @@ export async function getMemberRole(
     .where(and(
       eq(workspaceMembers.workspaceId, workspaceId),
       eq(workspaceMembers.userId, userId),
-      // Guests (WP11) are not members for anything workspace-wide.
+      // Guests are not members for anything workspace-wide.
       ne(workspaceMembers.role, 'guest'),
       ssoSatisfiedSql(workspaceMembers.workspaceId, userId)
     ))
@@ -76,7 +76,7 @@ export async function getMemberRoleIgnoringSso(
 }
 
 /**
- * The raw membership row's role INCLUDING `guest` (WP11). For the member
+ * The raw membership row's role INCLUDING `guest`. For the member
  * list, member removal and role changes — never for access decisions.
  */
 export async function getMembershipRole(
@@ -137,7 +137,7 @@ export async function listMembersForDoc(
     })
     .from(workspaceMembers)
     .innerJoin(users, eq(users.id, workspaceMembers.userId))
-    // Guests (WP11) aren't part of the team roster (presence, mentions).
+    // Guests aren't part of the team roster (presence, mentions).
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), ne(workspaceMembers.role, 'guest')))
     .orderBy(sql`case ${workspaceMembers.role} when 'admin' then 0 when 'editor' then 1 else 2 end, ${workspaceMembers.joinedAt} asc`) as Promise<Array<{ userId: number, name: string, login: string | null, role: WorkspaceRole, isDocOwner: boolean }>>
 }
@@ -167,12 +167,12 @@ export async function countMembers(workspaceId: string): Promise<number> {
   const rows = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(workspaceMembers)
-    // Guests (WP11) take no seat and don't count towards the member limit.
+    // Guests take no seat and don't count towards the member limit.
     .where(and(eq(workspaceMembers.workspaceId, workspaceId), ne(workspaceMembers.role, 'guest')))
   return rows[0]?.n ?? 0
 }
 
-/** Guests of the workspace (WP11) — for the guest cap. */
+/** Guests of the workspace — for the guest cap. */
 export async function countGuests(workspaceId: string): Promise<number> {
   const rows = await useDatabase()
     .select({ n: sql<number>`count(*)::int` })
@@ -196,21 +196,15 @@ export async function addMember(
 }
 
 /**
- * Change a member's role. Enforces the ≥1-admin invariant: if the
- * target is currently admin and the new role isn't, refuses when
- * they're the last admin.
+ * Change a member's role. Enforces the >=1-admin invariant: refuses to demote
+ * the last admin. Returns the previous role; throws NotFoundError if the user
+ * isn't a member.
  *
- * Concurrency: runs in a transaction AND takes a `FOR UPDATE` row lock
- * on every admin row in the workspace during the count. Without the
- * lock, two concurrent demotions both read admin_count=2 under pg's
- * default READ COMMITTED isolation, both decide it's safe, and both
- * commit — leaving zero admins. The lock makes the second transaction
- * block until the first commits, at which point its count sees the
- * post-demotion state and throws LastAdminError. (A repo test caught
- * this exact race; DO NOT remove the FOR UPDATE clause.)
- *
- * Returns the previous role, or throws NotFoundError if the user isn't
- * a member of the workspace.
+ * Runs in a transaction and takes `FOR UPDATE` on every admin row during the
+ * count. Without it two concurrent demotions both read admin_count=2 under
+ * READ COMMITTED and both commit, leaving zero admins; the lock makes the
+ * second block and then see the post-demotion state (LastAdminError). Do not
+ * remove it.
  */
 export async function setRole(
   workspaceId: string,
@@ -231,7 +225,7 @@ export async function setRole(
     if (!existing) throw new NotFoundError('Member')
 
     const prev = existing.role
-    // A guest (WP11) becomes a member only through an invitation (which
+    // A guest becomes a member only through an invitation (which
     // checks seats); there is no role change into or out of `guest`.
     if (prev === 'guest') throw new GuestRoleChangeError()
     if (prev === 'admin' && nextRole !== 'admin') {

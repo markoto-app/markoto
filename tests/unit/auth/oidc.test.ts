@@ -3,7 +3,7 @@ import { oidcRedirectErrors, oidcRedirectUri, parseOidcScopes, resolveOidcSettin
 import { OidcProfileError, profileFromClaims } from '../../../server/utils/oidc/profile'
 import { OIDC_FLOW_MAX_AGE_SECONDS, decodeFlowCookie, encodeFlowCookie } from '../../../server/utils/oidc/flowCookie'
 
-// Generic OpenID Connect sign-in (WP7b) — the pure pieces. The protocol
+// Generic OpenID Connect sign-in— the pure pieces. The protocol
 // validation itself (signature, iss, aud, exp, nonce, state, PKCE) is
 // exercised against a real IdP in tests/integration/endpoints/oidcLogin.test.ts.
 
@@ -14,8 +14,8 @@ const FULL = {
   NUXT_OAUTH_OIDC_CLIENT_SECRET: 's3cret'
 }
 
-// Regression (Host-header fallback): without `_REDIRECT_URL` / site URL
-// the redirect URI used to be built from the request's Host header.
+// Regression (Host-header fallback): without `_REDIRECT_URL` / site URL the redirect URI must not be built
+// from the request's Host header.
 describe('oidcRedirectUri', () => {
   it('prefers the explicit redirect URL, then NUXT_SITE_URL', () => {
     expect(oidcRedirectUri({ redirectUrl: 'https://login.example.org/auth/oidc' }, 'https://docs.example.org')).toBe('https://login.example.org/auth/oidc')

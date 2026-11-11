@@ -6,21 +6,14 @@ import { CONSENT_VERSION, AUTHORITATIVE_LOCALE, LEGAL_DOCUMENT_LOCALES } from '~
 import { ensureAnonId } from '../utils/auth/anonId'
 import { normaliseConsentDecisions } from '../utils/privacy/consentDecisions'
 
-// Append a consent decision to the audit-grade `consent_log` table.
-// One row per (subject × purpose) per submission — we never UPDATE,
-// only INSERT. The latest row per (subject, purpose) is what the
-// runtime reads via `GET /api/consent`.
+// Appends consent decisions to the audit-grade `consent_log`: one INSERT per
+// (subject x purpose) per submission, never UPDATE; `GET /api/consent` reads
+// the latest row. Withdrawal is a NEW row with `granted=false` at the current
+// version, preserving the history a regulator may ask for.
 //
-// Withdrawing consent is recorded as a NEW row with `granted=false`
-// at the current version. This preserves the historical trail
-// (regulator-style "show me the user's consent decisions over
-// time").
-//
-// Anonymous users get an `anon_id` first-party cookie via
-// `ensureAnonId` so a returning visitor sees their prior choice.
-// Logged-in users get `user_id` populated AND `anon_id` mirrored —
-// the linkage helps if a user logs in mid-session and we want to
-// associate their pre-login decision.
+// Anonymous users get an `anon_id` cookie (`ensureAnonId`) so a returning
+// visitor sees their prior choice; logged-in users get `user_id` AND `anon_id`
+// so a mid-session login can be linked to the pre-login decision.
 
 interface RequestBody {
   decisions?: unknown
@@ -42,10 +35,9 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<RequestBody>(event)
-  // At most one row per purpose per submission (last decision for a
-  // purpose wins); unknown purposes / non-boolean values are dropped
-  // rather than 400-ing the whole batch, but an empty or oversized
-  // array is refused.
+  // One row per purpose per submission (last decision wins); unknown purposes
+  // and non-boolean values are dropped rather than 400-ing the batch, but an
+  // empty or oversized array is refused.
   const valid = normaliseConsentDecisions(body?.decisions)
   if (valid === null) {
     throw createError({ statusCode: 400, message: 'No decisions provided' })
@@ -54,9 +46,7 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'No valid decisions in payload' })
   }
 
-  // Locale fallback — the consent record stores which language
-  // the user actually saw the banner in. Important for forensics
-  // ("did they understand what they consented to?").
+  // The record stores the language the user actually saw the banner in.
   const locale = LEGAL_DOCUMENT_LOCALES.includes(
     body.locale as (typeof LEGAL_DOCUMENT_LOCALES)[number]
   )
@@ -67,9 +57,8 @@ export default defineEventHandler(async (event) => {
   const userId = session?.user?.id ?? null
   const anonId = await ensureAnonId(event)
 
-  // Truncate IP + hash UA — same audit-log convention. Storing
-  // raw values would re-introduce identifying data we just
-  // pseudonymised.
+  // Truncate IP + hash UA (same as the audit log): raw values would
+  // re-introduce identifying data.
   const rawIp = getClientIp(event)
   const ipTruncated = truncateIp(rawIp)
   const userAgent = getRequestHeader(event, 'user-agent') ?? ''
@@ -78,9 +67,7 @@ export default defineEventHandler(async (event) => {
     : null
 
   const db = useDatabase()
-  // Bulk INSERT — drizzle expands the array into one statement.
-  // No conflict handling because the table is append-only; repeated
-  // submissions create new rows (the read path takes the latest).
+  // Append-only: no conflict handling; the read path takes the latest row.
   await db.insert(consentLog).values(valid.map(d => ({
     userId,
     anonId,

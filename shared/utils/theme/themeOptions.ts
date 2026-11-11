@@ -1,10 +1,8 @@
 import type { CaptionLabelStyle, CaptionNumbering, CaptionPosition, CodeBackground, CodeFrame, DateFormat, DocTheme, HeadingAlign, HeadingLevelKey, HeadingNumbering, HeadingStyle, NumberingDepth, ReferenceStyle, RunningSlots, SectionMode } from '../../types/theme'
 
 /**
- * Defaults for the OPTIONAL theme fields (added after themes were already
- * stored, so a stored theme may lack them). The schema keeps them
- * optional — a stored theme without them stays valid, no data migration —
- * and every reader resolves them here: `themeToCss`, the theme panel, the
+ * Defaults for the OPTIONAL theme fields. A stored theme may lack them,
+ * so the schema keeps them optional (no data migration) and every reader resolves them here: `themeToCss`, the theme panel, the
  * AI/MCP `get_theme`. Built-in presets and `defaultTheme` spell every
  * field out.
  */

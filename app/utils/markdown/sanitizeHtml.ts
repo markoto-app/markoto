@@ -17,9 +17,8 @@ const SANITIZE_OPTS = {
     'hr', 'i', 'img', 'input', 'ins', 'li', 'mark', 'nav', 'ol', 'p', 'pre',
     's', 'section', 'span', 'strong', 'sub', 'sup', 'table', 'tbody', 'td',
     'tfoot', 'th', 'thead', 'tr', 'u', 'ul',
-    // KaTeX MathML output (@mdit/plugin-katex with output=htmlAndMathml).
-    // The HTML side is built from spans we already allow; the MathML
-    // mirror gives screen readers + copy-paste the semantic tree.
+    // KaTeX MathML output (@mdit/plugin-katex with output=htmlAndMathml):
+    // gives screen readers + copy-paste the semantic tree.
     'math', 'semantics', 'annotation', 'mrow', 'mi', 'mo', 'mn', 'mtext',
     'msup', 'msub', 'msubsup', 'mfrac', 'msqrt', 'mroot', 'mover', 'munder',
     'munderover', 'mspace', 'mstyle', 'mpadded', 'menclose', 'mtable',
@@ -34,35 +33,28 @@ const SANITIZE_OPTS = {
     'class',
     'id',
     'type', 'checked', 'disabled',
-    // img-size emits width/height as bare attrs; figure emits no
-    // extra attrs by default but gets them via attrs plugin if used.
+    // img-size emits width/height as bare attributes.
     'width', 'height',
     // KaTeX positions glyph stacks (fractions, roots, accents) with
     // inline `style`, and `{style=…}` is a documented markdown attribute.
     // DOMPurify does NOT parse CSS, so every value goes through
     // `filterInlineStyle` (property allowlist + value checks) below.
     'style',
-    // MathML attributes used by KaTeX's mathml output.
+    // MathML attributes used by KaTeX.
     'mathvariant', 'displaystyle', 'scriptlevel', 'encoding',
-    // ARIA + role for KaTeX's a11y wrapping of the HTML rendering.
+    // KaTeX's a11y wrapping of the HTML rendering.
     'aria-hidden', 'role',
     // KaTeX SVG geometry (only kept on the KaTeX SVG elements, see `KATEX_SVG_ATTRS`).
     'viewbox', 'preserveaspectratio', 'd', 'x1', 'y1', 'x2', 'y2', 'stroke-width'
   ],
-  // Explicit URI allowlist — strictly more restrictive than DOMPurify's default.
-  // Permits:
-  //   - http(s) and mailto schemes
-  //   - Any URL without a scheme (absolute paths like `/api/files/…`,
-  //     protocol-relative `//host/…`, fragments `#anchor`, bare relative
-  //     paths like `foo.png`) — the `[^:]*(?:\/|#|$)` branch lets any
-  //     string through iff it never reaches a `:` before hitting a path
-  //     separator / fragment / end-of-string.
-  // Denies:
-  //   - javascript:, vbscript:, file:, ftp:, tel:, and every other
-  //     scheme — any `:` that isn't part of `https:` or `mailto:` fails.
-  //     (DOMPurify separately keeps `data:` on `<img src>`, which the
-  //     mermaid transform relies on; markdown-it only emits raster
-  //     `data:image/*` there.)
+  // Explicit URI allowlist, stricter than DOMPurify's default. Permits
+  // http(s), mailto, and any URL without a scheme (absolute or relative
+  // paths, `//host/…`, `#anchor`): the `[^:]*(?:\/|#|$)` branch passes a
+  // string only if no `:` appears before a path separator / fragment / end.
+  // Every other scheme (javascript:, vbscript:, file:, ftp:, tel:, …) is
+  // denied. DOMPurify separately keeps `data:` on `<img src>`, which the
+  // mermaid transform relies on; markdown-it only emits raster
+  // `data:image/*` there.
   ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|[^:]*(?:\/|#|$))/i
 }
 
@@ -77,12 +69,12 @@ const SANITIZE_OPTS = {
  * script hooks (`behavior`, `-moz-binding`).
  */
 const ALLOWED_STYLE_PROPERTIES = new Set([
-  // KaTeX
+  // Set by KaTeX through `element.style`
   'background-color', 'border-bottom-width', 'border-color', 'border-right-style',
   'border-right-width', 'border-style', 'border-top-width', 'border-width', 'bottom',
   'color', 'height', 'left', 'margin', 'margin-left', 'margin-right', 'margin-top',
   'min-width', 'padding-left', 'position', 'text-shadow', 'top', 'vertical-align', 'width',
-  // Layout + typography for `{style=…}` (and mermaid's `<img>` sizing)
+  // Layout + typography for `{style=…}` and mermaid's `<img>` sizing
   'align-items', 'aspect-ratio', 'border', 'border-bottom', 'border-bottom-color',
   'border-bottom-style', 'border-left', 'border-left-color', 'border-left-style',
   'border-left-width', 'border-radius', 'border-right', 'border-right-color', 'border-top',
@@ -143,8 +135,7 @@ const SVG_NS = 'http://www.w3.org/2000/svg'
 /**
  * KaTeX's SVG (`\underbrace`, `\overbrace`, `\widehat`, `\overrightarrow`,
  * `\cancel`, `\sqrt`'s radical…): the elements and the attributes
- * each may keep. Without them those symbols vanish from the page (the
- * braces of `\underbrace` printed as nothing).
+ * each may keep. Without them those symbols render as nothing.
  */
 const KATEX_SVG_ATTRS: Readonly<Record<string, ReadonlySet<string>>> = {
   svg: new Set(['width', 'height', 'viewbox', 'preserveaspectratio', 'style']),
@@ -196,8 +187,8 @@ let purifier: DOMPurify | null = null
 
 function getPurifier(): DOMPurify {
   if (!purifier) {
-    // A private instance so the style hook can't leak into (or be
-    // removed by) any other DOMPurify user.
+    // Private instance so the hooks can't leak into (or be removed by)
+    // any other DOMPurify user.
     purifier = createDOMPurify(globalThis.window)
     purifier.addHook('uponSanitizeElement', onElement)
     purifier.addHook('uponSanitizeAttribute', onAttribute)

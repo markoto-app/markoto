@@ -4,8 +4,8 @@
 // configuration. Two independent facts live here:
 //
 // 1. Login providers. GitHub / Google OAuth via nuxt-auth-utils, plus a
-//    generic OpenID Connect provider for self-hosters' own IdPs (WP7b,
-//    `server/routes/auth/oidc.get.ts`). A provider is offered only when
+//    generic OpenID Connect provider for self-hosters' own IdPs
+//    (`server/routes/auth/oidc.get.ts`). A provider is offered only when
 //    its credentials are complete: client id + secret (GitHub, Google),
 //    issuer + client id + secret (OIDC). A self-hosted instance without
 //    any is anonymous-only (public docs work; ownership, workspaces and
@@ -27,8 +27,8 @@
 //   | Hosted SaaS                   | true                        |
 //
 // 3. Marketing site — "this instance IS markoto.app". Turns on the
-//    scroll-driven product page at `/` for logged-out visitors (WP11,
-//    `app/components/landing/ProductTour.vue`), the sitemap
+//    scroll-driven product page at `/` for logged-out visitors
+//    (`app/components/landing/ProductTour.vue`), the sitemap
 //    (`server/routes/sitemap.xml.ts`), the `Sitemap:` line in robots.txt,
 //    the JSON-LD on `/` and the `marketing-pages` route middleware for
 //    hosted-only pages. OFF by default; markoto.app sets
@@ -106,19 +106,19 @@ export interface InstanceConfig {
   /** Days without activity after which anonymous documents are deleted (0 = never). */
   anonDocTtlDays: number
   /**
-   * Per-workspace single sign-on can exist here (WP14): a plan that can
+   * Per-workspace single sign-on can exist here: a plan that can
    * be on this instance includes it — with billing off only the free
    * tier, with billing on any plan. Shows "Sign in with your
    * organisation" on the sign-in screen.
    */
   workspaceSso: boolean
   /**
-   * The operator set up custom domains for published pages (WP13,
-   * `NUXT_PUBLISH_DOMAINS_TARGET`). Whether a user may add one is a
+   * The operator set up custom domains for published pages
+   * (`NUXT_PUBLISH_DOMAINS_TARGET`). Whether a user may add one is a
    * separate, per-plan question (`customDomains` feature).
    */
   customDomains: boolean
-  /** Co-branding of a managed private instance (WP16, `shared/config/instanceBrand.ts`). */
+  /** Co-branding of a managed private instance (`shared/config/instanceBrand.ts`). */
   brand: InstanceBrand
 }
 

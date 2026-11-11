@@ -1,7 +1,7 @@
 import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 
-// "Limit a share link" (WP9).
+// "Limit a share link".
 //
 // User-job: a writer shares a draft by link but doesn't want it to end up
 // as a file in someone's downloads, nor to stay open forever. Job done
@@ -66,7 +66,7 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   })
   await page.keyboard.press('Escape')
 
-  // ─── The visitor ──────────────────────────────────────────────────
+  // The visitor
   await flow.heading('What the people with the link see', 3)
   const visitor = await flow.spawn('visitor')
   await visitor.editor.loginAsTestUser('Sam Reeves')

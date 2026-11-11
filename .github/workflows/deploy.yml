@@ -6,7 +6,7 @@ name: deploy
 # auto-rollbacks on failure, sends Apprise notifications either way.
 #
 # Required secrets, all scoped to the target Environment (staging / prod; see
-# docs/GITHUB-CONFIG.md):
+# docs/operations/GITHUB-CONFIG.md):
 #   DEPLOY_SSH_KEY     — private OpenSSH key for the deploy user on the VPS
 #   DEPLOY_HOST        — IP or DNS of the VPS
 #   DEPLOY_KNOWN_HOSTS — pinned SSH host keys (`ssh-keyscan -t ed25519 HOST`);
@@ -23,8 +23,7 @@ on:
   # and tag, and `prod` can require an approval via the GitHub Environment
   # protection rules (Settings → Environments → prod → Required reviewers).
   # Flow: merge → release.yml builds+pushes images → you dispatch this to
-  # `staging`, verify, then dispatch to `prod`. (Previously it auto-fired on
-  # release:published, which would push straight to prod on every merge.)
+  # `staging`, verify, then dispatch to `prod`.
   workflow_dispatch:
     inputs:
       environment:
@@ -37,9 +36,8 @@ on:
         required: true
         type: string
   # staging-gate.yml reuses this exact deploy path for staging so the gate
-  # also renders .env from GitHub (before, it only synced compose files —
-  # every env var added since the host's last manual deploy never reached
-  # staging) and gets the cold-boot health budget + auto-rollback.
+  # renders .env from GitHub and gets the cold-boot health budget +
+  # auto-rollback.
   workflow_call:
     inputs:
       environment:
@@ -79,8 +77,7 @@ jobs:
       # SSH login user on the VPS. Prod is Ansible-provisioned with a
       # dedicated `markoto` user; the manually-provisioned staging box
       # uses `debian`. Set a per-environment `DEPLOY_USER` variable
-      # (Settings → Environments → <env> → Variables) to override; the
-      # default preserves the original prod behaviour.
+      # (Settings → Environments → <env> → Variables) to override.
       DEPLOY_USER: ${{ vars.DEPLOY_USER || 'markoto' }}
       TAG: ${{ inputs.tag }}
     steps:
@@ -124,7 +121,7 @@ jobs:
       # image-tag auto-rollback below does NOT restore .env).
       - name: Render .env from GitHub secrets/variables
         env:
-          # ── secrets (Environment-scoped) ──
+          # secrets (Environment-scoped)
           NUXT_SESSION_PASSWORD: ${{ secrets.NUXT_SESSION_PASSWORD }}
           NUXT_JWT_SECRET: ${{ secrets.NUXT_JWT_SECRET }}
           NUXT_INTERNAL_API_SECRET: ${{ secrets.NUXT_INTERNAL_API_SECRET }}
@@ -164,12 +161,12 @@ jobs:
           NUXT_OAUTH_GOOGLE_CLIENT_SECRET: ${{ secrets.NUXT_OAUTH_GOOGLE_CLIENT_SECRET }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
-          # ── provider keys (Environment-scoped, like the rest) ──
+          # provider keys (Environment-scoped, like the rest)
           JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
           MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
           BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
-          # ── variables (Environment-scoped, non-secret) ──
+          # variables (Environment-scoped, non-secret)
           POSTGRES_USER: ${{ vars.POSTGRES_USER }}
           POSTGRES_DB: ${{ vars.POSTGRES_DB }}
           POSTGRES_HOST: ${{ vars.POSTGRES_HOST }}
@@ -199,9 +196,8 @@ jobs:
           OVH_PG_HOST: ${{ vars.OVH_PG_HOST }}
           OVH_PG_CA_REMOTE_PATH: ${{ vars.OVH_PG_CA_REMOTE_PATH }}
           # Optional hosted-shape tuning (empty = render-env.sh default:
-          # billing off, plans "coming soon", SaaS BYOK allowlist, the free
-          # AI allowance — chat default zai-glm-5-3-flash, $0.50/user and
-          # $500 total per month — committed free-tier + web-tool limits).
+          # billing off, plans "coming soon", SaaS BYOK allowlist, free AI
+          # allowance, committed free-tier + web-tool limits).
           NUXT_BILLING_ENABLED: ${{ vars.NUXT_BILLING_ENABLED }}
           NUXT_PLANS_COMING_SOON: ${{ vars.NUXT_PLANS_COMING_SOON }}
           # Only prod may be indexed; staging (and anything else) renders
@@ -306,18 +302,17 @@ jobs:
 
       # Same rationale as staging-gate.yml: the host's compose files are
       # otherwise only written at Ansible provision time, so a merged
-      # compose change would never reach the box — `pull && up -d`
-      # against the stale copy silently no-ops. Sync the compose pair +
-      # every repo path they bind-mount before rolling.
+      # compose change would never reach the box (`pull && up -d` against
+      # the stale copy silently no-ops). Sync the compose pair + every repo
+      # path they bind-mount before rolling.
       - name: Sync compose + mounted config to the host
         run: |
           set -euo pipefail
           # infra/postgres/init is deliberately NOT synced: the initdb
           # scripts only run on the FIRST boot of a fresh postgres data
           # dir (a provision-time concern), and the host copy is
-          # root-owned from provisioning — the deploy user can't
-          # overwrite it (tar: Permission denied). Changing an init
-          # script requires an Ansible pass anyway.
+          # root-owned from provisioning, so the deploy user can't
+          # overwrite it. Changing an init script requires an Ansible pass.
           tar czf - \
             docker-compose.prod.yml \
             docker-compose.base.yml \
@@ -363,10 +358,9 @@ jobs:
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
           # first boot: litellm runs ~118 Prisma migrations before turning
           # healthy (start_period 60s) and `app` gates on litellm via
-          # depends_on service_healthy — a 90 s budget could expire while a
-          # perfectly healthy deploy was still warming up and trigger a
-          # spurious auto-rollback. Warm rolls pass on early attempts, so
-          # the longer ceiling costs nothing in the common case.
+          # depends_on service_healthy — a shorter budget could expire on a
+          # healthy deploy and trigger a spurious auto-rollback. Warm rolls
+          # pass on early attempts, so the ceiling costs nothing.
           DOMAIN=$(awk -F= '/^DOMAIN=/{print $2}' .env | tr -d '"')
           if [ -z "$DOMAIN" ]; then
             echo "DOMAIN not in .env — cannot probe health" >&2
@@ -446,7 +440,7 @@ jobs:
         env:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} succeeded" \
                   -b "Deployed to ${DEPLOY_HOST}.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -459,7 +453,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} FAILED — rolled back to ${PREV_TAG}" \
                   -b "Auto-rollback restored ${PREV_TAG} on ${DEPLOY_HOST}. Health check now passing under previous version. Investigate the failed release.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
@@ -472,7 +466,7 @@ jobs:
           APPRISE_URLS: ${{ secrets.APPRISE_URLS }}
           PREV_TAG: ${{ steps.prev.outputs.tag }}
         run: |
-          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/GITHUB-CONFIG.md)"; exit 0; fi
+          if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in this Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
           apprise -t "Deploy ${TAG} FAILED — ROLLBACK ALSO FAILED" \
                   -b "Both ${TAG} and rollback to ${PREV_TAG} failed health on ${DEPLOY_HOST}. MANUAL INTERVENTION REQUIRED.
           Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \

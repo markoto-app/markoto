@@ -51,7 +51,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
     + 'rewrites it in place instead of adding text somewhere else.'
   )
 
-  // ─── Select the paragraph ───────────────────────────────────────
+  // Select the paragraph
   await flow.heading('Select the passage you want to rewrite', 3)
   await flow.narrate(
     'Triple-click selects a paragraph; click and drag selects any '
@@ -71,7 +71,7 @@ test('Rewrite a selection with the AI', async ({ page, flow, editor }) => {
   const selectedLen = await page.evaluate(() => window.getSelection()?.toString().length ?? 0)
   expect(selectedLen).toBeGreaterThan(50)
 
-  // ─── Ask the AI to rewrite ──────────────────────────────────────
+  // Ask the AI to rewrite
   await flow.heading('Ask the AI to make it shorter', 3)
   await flow.narrate(
     'Type what you want into the prompt bar. Short instructions work '

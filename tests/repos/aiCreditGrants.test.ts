@@ -17,7 +17,7 @@ import {
 import { useDatabase } from '../../server/utils/platform/database'
 import { creditBudgetExtraUsd, creditPeriod, previousCreditPeriod } from '../../server/utils/billing/aiCreditBudget'
 
-// AI credit top-ups (WP4): grants, using them up oldest-expiring first,
+// AI credit top-ups: grants, using them up oldest-expiring first,
 // monthly settlement, refunds, expiry.
 
 const alice: CreditSubject = { type: 'user', id: '1' }

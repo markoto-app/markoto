@@ -36,7 +36,7 @@
  *   3. Land senders in lockstep.
  */
 
-// ─── Server → Client ──────────────────────────────────────────────────
+// Server → Client
 
 /**
  * Sent immediately on socket open. The 'send your auth now' signal.
@@ -130,7 +130,7 @@ export const DICTATE_SERVER_FRAME_TYPES = [
   'idle-timeout'
 ] as const
 
-// ─── Client → Server ──────────────────────────────────────────────────
+// Client → Server
 
 /**
  * MUST be the FIRST message on the socket. The server's auth-deadline
@@ -163,7 +163,7 @@ export type DictateClientFrame = AuthClientFrame | StopClientFrame
 /** Literal-union of every client-frame type. */
 export const DICTATE_CLIENT_FRAME_TYPES = ['auth', 'stop'] as const
 
-// ─── Helpers ──────────────────────────────────────────────────────────
+// Helpers
 
 /**
  * Type-safe builder for server frames. Tests and the server handler

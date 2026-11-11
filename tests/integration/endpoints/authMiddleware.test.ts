@@ -184,10 +184,8 @@ describe('auth middleware whitelist', () => {
     })
 
     it('an UNKNOWN /api route rejects anonymous instead of falling through', async () => {
-      // This is the load-bearing default-deny pin: under the old
-      // prefix-list model this 404'd (fell through open); now the
-      // middleware refuses before routing. Also removes anonymous
-      // route-enumeration as a side effect.
+      // This is the load-bearing default-deny pin: the middleware refuses before routing (a prefix-list model
+      // would fall through and 404). It also removes anonymous route enumeration.
       const res = await anonClient().get('/api/route-that-does-not-exist')
       expect(res.status).toBe(401)
     })
@@ -199,9 +197,8 @@ describe('auth middleware whitelist', () => {
       expect(res.status).toBe(404)
     })
 
-    // Whitelist survivors — routes that previously relied on the implicit
-    // fall-through and are now explicitly public. A missed entry here
-    // breaks an anonymous product surface.
+    // Whitelist survivors: routes that are explicitly public (they once relied on the implicit fall-through).
+    // A missed entry here breaks an anonymous product surface.
 
     it('GET /api/version stays public', async () => {
       const res = await anonClient().get('/api/version')

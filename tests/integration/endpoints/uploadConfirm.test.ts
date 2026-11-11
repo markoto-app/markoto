@@ -11,11 +11,9 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 
-// POST /api/upload/confirm. Regression target: pre-fix the route took any
-// `key` from the body, HEADed it (404-vs-415 existence oracle for the whole
-// bucket) and DELETED it when the bytes didn't match the extension — so an
-// ordinary user could delete e.g. `backups/postgres/*.sql.gz.gpg`. The key
-// must now resolve to the caller's own pending `uploads` row first.
+// POST /api/upload/confirm. The route must not take any `key` from the body: HEADing it would be a 404-vs-415
+// existence oracle for the whole bucket, and deleting it on an extension mismatch would let an ordinary user
+// delete e.g. `backups/postgres/*.sql.gz.gpg`. The key must resolve to the caller's own pending `uploads` row first.
 
 const s3 = new S3Client({
   endpoint: 'http://127.0.0.1:8334',
@@ -184,8 +182,8 @@ describe('POST /api/upload/confirm', () => {
     expect(await confirmedAt(key)).toBe('no-row')
   })
 
-  // Regression: the presigned PUT did not bind Content-Type, so a valid
-  // PNG could be stored as `text/html` and served back as a document.
+  // The presigned PUT must bind Content-Type, otherwise a valid PNG could be stored as `text/html` and served
+  // back as a document.
   it('the presigned PUT refuses a Content-Type other than the requested one', async () => {
     const user = await createUser()
     const doc = await createDoc({ ownerId: user.id, accessMode: 'private' })
@@ -228,10 +226,9 @@ describe('POST /api/upload/confirm', () => {
   })
 })
 
-// Regression (presigned PUT re-use): the URL stayed valid for its whole
-// lifetime and targeted the served key, so after confirm had sniffed the
-// bytes the uploader could PUT again (same length + type) and swap the
-// confirmed image for arbitrary bytes.
+// Presigned PUT re-use: the URL must not stay valid for its whole lifetime against the served key, otherwise
+// after confirm sniffed the bytes the uploader could PUT again (same length + type) and swap the confirmed
+// image for arbitrary bytes.
 describe('POST /api/upload/confirm — confirmed images are immutable', () => {
   beforeEach(async () => {
     await resetDb()
@@ -286,8 +283,7 @@ describe('POST /api/upload/confirm — confirmed images are immutable', () => {
   })
 })
 
-// Regression (storage abuse): there was no per-user image quota — any
-// signed-in user could store 60 × 10 MB per minute, forever.
+// Storage abuse: without a per-user image quota any signed-in user could store 60 × 10 MB per minute, forever.
 describe('image storage quota', () => {
   const TEN_MB = 10 * 1024 * 1024
 

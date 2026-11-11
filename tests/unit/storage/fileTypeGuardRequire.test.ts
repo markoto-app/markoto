@@ -37,7 +37,7 @@ beforeEach(() => {
   fakeS3.send.mockClear()
 })
 
-// ─── Fixtures ─────────────────────────────────────────────────────────────
+// Fixtures
 
 function pdfBytes(): Uint8Array {
   // Minimal PDF header — file-type recognises this unambiguously.
@@ -77,7 +77,7 @@ function invalidUtf8(): Uint8Array {
   return new Uint8Array([0xff, 0xfe, 0xfd, 0xfc])
 }
 
-// ─── Tests ────────────────────────────────────────────────────────────────
+// Tests
 
 describe('requireContentMatchesExtension — binary formats', () => {
   it('accepts a real PDF for .pdf', async () => {
@@ -186,7 +186,7 @@ describe('requireContentMatchesExtension — text formats', () => {
   })
 })
 
-// ─── Adversarial: asymmetric mismatch matrix ──────────────────────────────
+// Adversarial: asymmetric mismatch matrix
 //
 // Original review: "security tests should exhaust the attack surface, not
 // just one example." The binary-format section had one mismatch case

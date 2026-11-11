@@ -38,13 +38,11 @@ export async function runWebhookEventSweep(): Promise<{ processedDeleted: number
     const pendingProcessedCutoff = new Date(now - SEVEN_DAYS_MS)
     const pendingUnprocessedCutoff = new Date(now - THIRTY_DAYS_MS)
 
-    // (1) processed_webhook_events: older than 90 days.
     const a = await db.delete(processedWebhookEvents)
       .where(lt(processedWebhookEvents.processedAt, processedCutoff))
       .returning({ eventId: processedWebhookEvents.eventId })
     processedDeleted = a.length
 
-    // (2) pending_stripe_events: split by processed flag.
     const b = await db.delete(pendingStripeEvents)
       .where(or(
         and(

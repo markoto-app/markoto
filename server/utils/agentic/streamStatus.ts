@@ -66,9 +66,7 @@ export function processChunk(
   }
 }
 
-// ─── Per-tool formatter helpers ────────────────────────────────────────
-//
-// Each formatter takes the validated args (typed `Record<string, unknown>`
+// Per-tool formatter helpers. Each formatter takes the validated args (typed `Record<string, unknown>`
 // so unknown shapes are handled defensively) and returns a status string
 // or null. Splitting one-per-tool keeps `describeToolInput` flat (a map
 // lookup) and pushes per-shape extraction logic into 1-3 line helpers.
@@ -204,7 +202,7 @@ const FORMATTERS: Record<string, (args: Record<string, unknown>) => string | nul
  *
  * Returns null if the tool isn't recognised — callers should leave the
  * previous status in place rather than flash something generic
- * (philosophy carried over from pre-Phase-5: Gemini-era).
+ * (a generic status would only flash and then be replaced).
  */
 export function describeToolInput(name: string, args: Record<string, unknown>): string | null {
   const formatter = FORMATTERS[name]

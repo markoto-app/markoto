@@ -33,15 +33,13 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-// Local drafts for two-way binding. Same pattern as ThemeEditorPanel —
-// drafts mirror props, watchers fire updates upstream. Keeps the
-// inputs from flickering on remote-collaborator edits.
+// Local drafts for two-way binding, as in ThemeEditorPanel: drafts mirror
+// props and watchers fire updates upstream, so inputs don't flicker on
+// remote-collaborator edits.
 //
-// `watchIgnorable` exposes `ignoreUpdates(fn)` so we can write the
-// prop value back into the draft (when the prop changes externally)
-// without re-triggering the upstream-emit watcher. Replaces the
-// previous "if (next === propValue) return" equality guards inside
-// each emit watcher.
+// `watchIgnorable`'s `ignoreUpdates(fn)` writes the prop value back into
+// the draft (when the prop changes externally) without re-triggering the
+// upstream-emit watcher.
 const descriptionDraft = ref(props.description)
 const audienceDraft = ref(props.audience)
 
@@ -71,13 +69,10 @@ watch(() => props.audience, (next) => {
   })
 })
 
-// — Language combobox ────────────────────────────────────────────────
-// One UInputMenu drives both "pick a preset" and "type any language".
-// `value-key="value"` makes the model the language STRING ("de",
-// "Romansh"), not the item object. (The model used to be typed as the
-// item while UInputMenu emitted the string, so the watcher below threw
-// every pick away: choosing "Deutsch" showed in the field but never
-// reached the document — the AI kept writing English.)
+// Language combobox: one UInputMenu drives both "pick a preset" and
+// "type any language". `value-key="value"` makes the model the language
+// STRING ("de", "Romansh"), not the item object; typing the model as the
+// item would make the watcher below discard every pick.
 //
 // Items: 6 curated presets, each {label, value}. The user can:
 //   - type to filter presets, click one → emits the preset value
@@ -161,7 +156,6 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
     </div>
 
     <div class="flex-1 overflow-y-auto p-3 min-h-0 space-y-5">
-      <!-- Description ────────────────────────────────────────────── -->
       <section>
         <label
           for="doc-description"
@@ -193,7 +187,6 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
         </div>
       </section>
 
-      <!-- Language ───────────────────────────────────────────────── -->
       <section>
         <label
           for="doc-language"
@@ -224,7 +217,6 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
         </p>
       </section>
 
-      <!-- Audience ───────────────────────────────────────────────── -->
       <section>
         <label
           for="doc-audience"

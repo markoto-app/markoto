@@ -185,9 +185,8 @@ describe('update_theme schema', () => {
   })
 
   it('accepts numeric-ish fields as string enums (function-call schema quirk)', () => {
-    // headings.weight, layout.columns, toc.maxDepth are declared as
-    // string enums for function-call schema stability (carried over
-    // from pre-Phase-5 Gemini-era constraints); the handler coerces.
+    // headings.weight, layout.columns, toc.maxDepth are declared as string enums for function-call schema
+    // stability; the handler coerces.
     expect(parse('update_theme', { headings: { weight: '600' } }).success).toBe(true)
     expect(parse('update_theme', { layout: { columns: '2' } }).success).toBe(true)
     expect(parse('update_theme', { toc: { maxDepth: '3' } }).success).toBe(true)
@@ -550,11 +549,8 @@ describe('ALL_TOOL_DECLARATIONS — model-facing shape', () => {
   })
 
   it('view_document JSON schema exposes view_range as an array, not a tuple', () => {
-    // Pre-Phase-5 (Gemini-era) the function-declaration validator
-    // rejected draft-7 tuple form (`items: [...]`) and draft 2020-12
-    // prefixItems. We've kept the flattened schema post-migration to
-    // Mistral so the shape doesn't churn. Regression guard per the
-    // comment in functionTools.ts.
+    // The flattened schema (no draft-7 tuple form `items: [...]`, no draft 2020-12 prefixItems) is kept so the
+    // shape doesn't churn; see the comment in functionTools.ts.
     const decl = ALL_TOOL_DECLARATIONS.find(d => d.name === 'view_document')
     const props = (decl?.parameters as { properties?: Record<string, unknown> })?.properties
     const vr = props?.view_range as { type?: string, items?: unknown, prefixItems?: unknown }

@@ -1,14 +1,11 @@
 import { deleteTheme, getThemeById } from '../../../repos/themes'
 
-// Delete a saved theme preset. The `(themeId, userId)` repo guard
-// returns 404 (not 403) for another user's id so the endpoint doesn't
-// leak existence of foreign rows.
+// Deletes a saved theme preset. The `(themeId, userId)` repo guard returns 404
+// (not 403) for another user's id so foreign rows don't leak.
 //
-// Note: documents that were CREATED with this theme keep their copy —
-// `documents.theme` is a snapshot, not a foreign-key reference. Same
-// goes for `workspaces.default_theme`: deleting the source preset does
-// not clear a workspace's default. Admins who want to clear the
-// workspace default do that explicitly via the workspace settings UI.
+// Documents created with this theme keep their copy (`documents.theme` is a
+// snapshot, not a reference), and `workspaces.default_theme` is not cleared;
+// admins do that in the workspace settings.
 
 export default defineEventHandler(async (event) => {
   const session = await requireValidatedUserSession(event)

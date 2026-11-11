@@ -45,7 +45,7 @@ test('Start from a template', async ({ page, flow, editor }) => {
     + 'where; the preview and the PDF never show them.'
   )
 
-  // ─── Tour the template cards ────────────────────────────────────
+  // Tour the template cards
   await flow.heading('A picture of every template', 3)
   await flow.narrate(
     'Each card shows the template\'s first page in its design, its name '
@@ -65,7 +65,7 @@ test('Start from a template', async ({ page, flow, editor }) => {
     await flow.hover(`Hover "${label}"`, editor.page.newDocDialog.templateCard(id))
   }
 
-  // ─── Pick one ──────────────────────────────────────────────────
+  // Pick one
   await flow.click(
     'Open the "Business" tab',
     page.locator('[data-testid="template-tabs"]').getByRole('tab', { name: 'Business' }),

@@ -48,7 +48,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
     + 'template with its own design, but the baseline is yours.'
   )
 
-  // ─── Open the Settings tab ──────────────────────────────────────
+  // Open the Settings tab
   await flow.click(
     'Open the Settings tab',
     page.getByRole('tab', { name: /^settings$/i }),
@@ -66,7 +66,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   const clearCard = page.locator('[data-testid="workspace-default-theme-clear"]')
   await expect(clearCard).toBeVisible()
 
-  // ─── Pick the Corporate report preset ───────────────────────────
+  // Pick the Corporate report preset
   await flow.heading('Pick a preset', 3)
   await flow.narrate(
     'The grid lists every built-in preset (and any themes you\'ve '
@@ -103,7 +103,7 @@ test('Set a default theme for your workspace', async ({ page, flow, editor }) =>
   expect(wsCheck.workspace.defaultTheme).toBeTruthy()
   expect(wsCheck.workspace.defaultTheme?.headings?.font).toMatch(/source serif/i)
 
-  // ─── Create a new doc — see the inheritance ─────────────────────
+  // Create a new doc — see the inheritance
   await flow.heading('Create a blank doc — it starts in your default', 3)
   await flow.narrate(
     'Hit "+ New document" in the workspace. Under Template, Blank is a '

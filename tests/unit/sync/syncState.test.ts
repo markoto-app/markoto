@@ -1,11 +1,7 @@
-// Unit tests for the sync-server's Valkey-backed per-doc state helpers
-// (sync-server/src/sync-state.ts). Imported cross-package from the root
-// tests/unit suite — like compaction.test.ts — because sync-server's own
-// src/__tests__ dir is NOT wired into the CI vitest projects; a test left
-// there never runs in the pipeline (this file lived there, unexecuted,
-// until 2026-07-11).
-// Mocks the singleton ioredis client via the `_setValkeyClientForTests`
-// seam so the tests never touch a live Valkey.
+// Unit tests for the sync-server's Valkey-backed per-doc state helpers (sync-server/src/sync-state.ts).
+// Imported cross-package from the root tests/unit suite, like compaction.test.ts, because sync-server's own
+// src/__tests__ dir is NOT wired into the CI vitest projects; a test left there never runs in the pipeline.
+// Mocks the singleton ioredis client via the `_setValkeyClientForTests` seam so the tests never touch a live Valkey.
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import {

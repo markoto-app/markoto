@@ -7,7 +7,7 @@ import ja from '../../../i18n/locales/ja.json'
 import zh from '../../../i18n/locales/zh.json'
 
 // Pin the i18n keys the billing-off / coming-soon / waitlist surfaces
-// reference (WP3). Every key must resolve to a non-empty string in ALL
+// reference. Every key must resolve to a non-empty string in ALL
 // six locales, and non-English locales must not just copy the English
 // text (a copy renders English to a German user without anyone noticing).
 

@@ -4,7 +4,7 @@ import { listDocIdsInWorkspace } from '../../../../repos/documents'
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_BRAND_LOCK_CHANGED } from '../../../../legal/auditActions'
 
-// PUT /api/workspaces/:wsId/brand/lock — {locked: boolean} (WP10). While
+// PUT /api/workspaces/:wsId/brand/lock — {locked: boolean}. While
 // locked, every document in the workspace renders with the workspace
 // design (its default theme) and keeps only its cover text — enforced at
 // render time (shared/utils/theme/brandLock.ts), documents' own themes stay as

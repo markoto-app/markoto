@@ -75,7 +75,7 @@ export async function startNuxt(): Promise<void> {
     ...process.env,
     ...buildTestEnv(),
     NODE_ENV: 'production',
-    // The Phase-9 hardening enables Postgres TLS by default in
+    // Hardening enables Postgres TLS by default in
     // production (resolvePostgresSsl in shared/utils/runtime/postgresSsl.ts
     // returns `{rejectUnauthorized: true}` whenever NODE_ENV=production).
     // The local test Postgres container speaks plaintext only, so the
@@ -101,7 +101,7 @@ export async function startNuxt(): Promise<void> {
     NUXT_OAUTH_GITHUB_CLIENT_SECRET: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_ID: 'test',
     NUXT_OAUTH_GOOGLE_CLIENT_SECRET: 'test',
-    // Generic OIDC (WP7b) against the real `oidc-test` mock IdP
+    // Generic OIDC against the real `oidc-test` mock IdP
     // (docker-compose.test.yml). http issuer is accepted because
     // TEST_MODE=1; see tests/integration/endpoints/oidcLogin.test.ts.
     NUXT_OAUTH_OIDC_ISSUER: TEST_OIDC_ISSUER,
@@ -112,12 +112,10 @@ export async function startNuxt(): Promise<void> {
     // Admin allowlist bootstrap on sign-in — an address no other suite uses.
     NUXT_ADMIN_USER_EMAILS: TEST_OIDC_ADMIN_EMAIL,
     NUXT_GOOGLE_API_KEY: 'test',
-    // LiteLLM proxy. Phase 7: integration tests hit a real `litellm-test`
-    // container (docker-compose.test.yml) on port 4100 so the per-user
-    // virtual-key CRUD round-trips through the actual /key/* admin
-    // surface. Knowledge embeddings retain the legacy provider tag
-    // (pre-Phase-5 Gemini-era) for tests that exercise the dual-mode
-    // resolver branch — no model upstream is wired in the test proxy.
+    // LiteLLM proxy: integration tests hit a real `litellm-test` container (docker-compose.test.yml) on port 4100
+    // so the per-user virtual-key CRUD round-trips through the actual /key/* admin surface. Knowledge embeddings
+    // keep the legacy provider tag for tests that exercise the dual-mode resolver branch; no model upstream is
+    // wired in the test proxy.
     NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
     NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
     // Test stack uses `litellm_test` (alongside `ypad_test`) on the
@@ -127,14 +125,12 @@ export async function startNuxt(): Promise<void> {
     // ...as LiteLLM's own role, like a deployment with separate roles.
     NUXT_LITELLM_DB_USER: TEST_LITELLM_DB_USER,
     NUXT_LITELLM_DB_PASSWORD: TEST_LITELLM_DB_PASSWORD,
-    // Phase 6 collapsed `NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER` to a single
-    // value (`jina`) when the Gemini path was retired. Left at the
-    // default in tests; the env var still exists but no longer toggles
-    // a runtime branch.
-    // Substitutes a fake SpeechClient for the dictation WS route so
-    // integration tests can drive the full handshake and message
-    // flow without hitting Voxtral Realtime or paying per-minute.
-    // See `server/utils/agentic/dictateSpeechClient.ts`.
+    // `NUXT_KNOWLEDGE_EMBEDDINGS_PROVIDER` has a single value (`jina`); tests leave it at the default (the env var
+    // no longer toggles a runtime branch).
+    //
+    // Substitutes a fake SpeechClient for the dictation WS route so integration tests can drive the full
+    // handshake and message flow without hitting Voxtral Realtime or paying per-minute. See
+    // `server/utils/agentic/dictateSpeechClient.ts`.
     NUXT_VOXTRAL_REALTIME_MOCK: '1',
     // The markitdown-test container (host port 8081): the design-from-a-
     // document pipeline reads its uploads there (`POST /design/extract`).
@@ -192,18 +188,18 @@ export async function startNuxt(): Promise<void> {
     NUXT_AI_DEFAULT_TRANSCRIBE_MODEL: 'voxtral-mini-transcribe',
     NUXT_AI_BYOK_ALLOWED_BASE_URLS: '',
     NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'true',
-    // Per-workspace SSO (WP14): the mock IdP sits on a private address.
+    // Per-workspace SSO: the mock IdP sits on a private address.
     NUXT_SSO_ALLOW_PRIVATE_URLS: 'true',
     // Live dictation on the instance default needs the operator's
     // Mistral key in the app process (the realtime WS is direct). The
     // dictation tests use the in-process speech mock, so a stub works.
     MISTRAL_API_KEY: process.env.MISTRAL_API_KEY || 'stub-mistral-key',
-    // Platform web tools (WP6): stub upstream keys so the primary server
+    // Platform web tools: stub upstream keys so the primary server
     // offers web_search + fetch_url (nothing in the suite calls Staan/Jina;
     // TEST_MODE bypasses the per-user allowance).
     STAAN_API_KEY: 'stub-staan-key',
     JINA_AI_API_KEY: 'stub-jina-key',
-    // Custom domains (WP13): checked against challtestsrv-test, routed by
+    // Custom domains: checked against challtestsrv-test, routed by
     // traefik-test (which polls this server with the same token) with
     // certificates from pebble-test — docker-compose.test.yml.
     NUXT_PUBLISH_DOMAINS_TARGET: TEST_PUBLISH_DOMAINS_TARGET,
@@ -211,7 +207,7 @@ export async function startNuxt(): Promise<void> {
     NUXT_PUBLISH_TRAEFIK_TOKEN: TEST_TRAEFIK_PROVIDER_TOKEN,
     NUXT_PUBLISH_TRAEFIK_UPSTREAM: `http://host.docker.internal:${TEST_PORT}`,
     NUXT_PUBLISH_TRAEFIK_CERT_RESOLVER: 'pebble',
-    // Managed private instance co-branding (WP16) — endpoints/instanceBrand.test.ts.
+    // Managed private instance co-branding: endpoints/instanceBrand.test.ts.
     NUXT_INSTANCE_BRAND_NAME: TEST_INSTANCE_BRAND_NAME,
     NUXT_INSTANCE_BRAND_LOGO: join(process.cwd(), 'public/markoto-logos/app-icon-light.png'),
     NUXT_INSTANCE_SUPPORT_EMAIL: 'servicedesk@musterstadt.example'
@@ -257,7 +253,7 @@ const HOSTED_FREE_TIER_LIMITS = {
   TIER_FREE_IMPORT_MAX_BYTES: String(10 * 1024 * 1024),
   TIER_FREE_WEB_TOOLS_PER_DAY: '20',
   TIER_FREE_FEATURE_CUSTOM_CSS: 'false',
-  // Per-workspace SSO is Business-only on markoto.app (WP14).
+  // Per-workspace SSO is Business-only on markoto.app.
   TIER_FREE_FEATURE_SSO: 'false',
   TIER_FREE_FEATURE_AUDIT_LOG: 'false',
   TIER_FREE_FEATURE_GUESTS: 'false',

@@ -6,20 +6,13 @@ import { Awareness } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { commitDictationFinal } from '../../app/utils/editor/dictationExtensions'
 
-// commitDictationFinal is the bridge between Voxtral Realtime's
-// finalized transcript and the Y.js document. The logic is small
-// but carries a
-// non-obvious UX choice: if the cursor lands inside a word, we inject
-// a leading space so "fo|o" + dictated "bar" yields "fo bar o", not
-// "fobaro". Same for the trailing edge. Regressions here would be
-// visually nasty (words glued together) and hard to spot until a
-// user complained.
+// commitDictationFinal is the bridge between Voxtral Realtime's finalized transcript and the Y.js document.
+// The logic is small but carries a non-obvious UX choice: if the cursor lands inside a word, we inject
+// a leading space so "fo|o" + dictated "bar" yields "fo bar o", not "fobaro". Same for the trailing edge.
 //
-// yCollab is included in the test so Y.js text inserts flow into the
-// CM6 view's document — exactly what happens in the real editor.
-// Without it, `view.dispatch({ selection: { anchor: newPos } })`
-// would fire outside the doc and throw "Selection points outside of
-// document".
+// yCollab is included in the test so Y.js text inserts flow into the CM6 view's document, exactly as in the
+// real editor. Without it, `view.dispatch({ selection: { anchor: newPos } })` would fire outside the doc
+// and throw "Selection points outside of document".
 
 function makeViewWithY(ydoc: Y.Doc, ytext: Y.Text, initial: string, caret: number) {
   ytext.insert(0, initial)

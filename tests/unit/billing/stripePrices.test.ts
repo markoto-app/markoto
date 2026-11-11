@@ -11,7 +11,7 @@ import {
 } from '../../../server/utils/billing/stripePrices'
 import { DEFAULT_PLAN_PRICES } from '../../../shared/config/pricing'
 
-// The Stripe price catalogue (pricing plan WP2): lookup keys, the
+// The Stripe price catalogue: lookup keys, the
 // NUXT_STRIPE_PRICE_IDS overrides, batching, caching.
 
 function fakeStripe(prices: Array<{ id: string, lookup_key: string, unit_amount: number }>) {

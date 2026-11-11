@@ -30,11 +30,9 @@ import { test, expect } from '../fixtures/flow'
 // `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
 // playwright.config.ts `grepInvert`).
 test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page, flow, editor }) => {
-  // Phase 7: budget exhaustion drives LiteLLM virtual-key `max_budget`
-  // through the real proxy. The flow stack brings up `litellm-test`
-  // alongside the rest of the test infra; the TEST_MODE-only endpoint
-  // /api/_test/exhaust-litellm-budget slams the user's key budget to 0
-  // so the next call trips the proxy gate.
+  // Budget exhaustion drives LiteLLM virtual-key `max_budget` through the real proxy. The flow stack brings
+  // up `litellm-test` alongside the rest of the test infra; the TEST_MODE-only endpoint
+  // /api/_test/exhaust-litellm-budget slams the user's key budget to 0 so the next call trips the proxy gate.
   test.setTimeout(120_000)
 
   // Login + create a doc. The flow is about the prompt bar's
@@ -66,7 +64,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
     + 'directly, in the field where you would have typed.'
   )
 
-  // ─── The exhausted placeholder ──────────────────────────────────
+  // The exhausted placeholder
   await flow.shot(
     'The prompt bar is greyed out. "Out of AI credits — upgrade to '
     + 'continue" replaces the normal placeholder. The send button, '
@@ -87,7 +85,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   await expect(promptInput).toHaveAttribute('placeholder', /out of ai credits/i, { timeout: 10_000 })
   await expect(promptInput).toBeDisabled()
 
-  // ─── Find the upgrade path ──────────────────────────────────────
+  // Find the upgrade path
   await flow.heading('The upgrade path is one click away', 3)
   await flow.narrate(
     'The topbar shows your AI credit usage at all times — a small '

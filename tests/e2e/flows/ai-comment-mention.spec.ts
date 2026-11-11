@@ -1,15 +1,11 @@
 import { test, expect, requireLiveAi } from '../fixtures/flow'
 
-// One retry at spec level (CI already runs with retries=2; this matches
-// local behaviour for just this live-AI spec). The failures seen in
-// release runs of 2026-11-02/03 (chat on mistral-small-2603) were all the same
-// model behaviour, not a test race: after `view_document` the model
-// sometimes answered the question by `replace_text`-ing the anchored
-// passage with the answer, which orphans the comment anchor
-// (`data-anchored="false"`) even though a reply lands. That is the
-// product misbehaving (commentTriggerPrompt.ts says questions get an
-// answer, not an edit), so the anchored/unchanged-passage assertions
-// stay strict. Not seen since the flows moved to zai-glm-5-3-flash.
+// One retry at spec level (CI already runs with retries=2; this matches local behaviour for just this
+// live-AI spec). The failure mode is model behaviour, not a test race: after `view_document` the model
+// sometimes answers the question by `replace_text`-ing the anchored passage with the answer, which orphans
+// the comment anchor (`data-anchored="false"`) even though a reply lands. That is the product misbehaving
+// (commentTriggerPrompt.ts says questions get an answer, not an edit), so the anchored/unchanged-passage
+// assertions stay strict.
 test.describe.configure({ retries: 1 })
 
 // Tier 1, AI Flow: "Summon the AI inside a comment thread".
@@ -33,11 +29,9 @@ test.describe.configure({ retries: 1 })
 
 test('Summon AI from a comment', async ({ page, flow, editor }) => {
   requireLiveAi()
-  // Mobile takes longer than desktop because the bottom-sheet
-  // comments panel + the smaller viewport mean the AI's view_document
-  // returns a slightly different scroll context that nudges its
-  // tool-use cadence. Bump from 6 min to 10 min on all variants;
-  // the live API call dominates wall-clock time anyway.
+  // Mobile takes longer than desktop because the bottom-sheet comments panel and the smaller viewport mean
+  // the AI's view_document returns a slightly different scroll context that nudges its tool-use cadence.
+  // 10 minutes on all variants; the live API call dominates wall-clock time anyway.
   test.setTimeout(600_000)
 
   await editor.page.loginAsTestUser('Sam Reeves')
@@ -51,7 +45,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     cover: false
   })
 
-  // ─── Set the scene ──────────────────────────────────────────────
+  // Set the scene
   await flow.heading('Mention @markoto in a comment', 3)
   await flow.narrate(
     'Comments in markoto are threaded — leave one on a specific passage '
@@ -85,7 +79,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   )
   await expect(editor.page.comments.composerInput).toBeFocused()
 
-  // ─── Type @ → typeahead opens ────────────────────────────────────
+  // Type @ → typeahead opens
   await flow.heading('Pick markoto from the typeahead', 3)
   await flow.narrate(
     'Type @ to mention any workspace member — markoto shows up in the '
@@ -126,12 +120,9 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
         { label: 'markoto entry', selector: '[data-testid="mention-typeahead-ai"]', kind: 'arrow' }
       ],
       result: 'The composer now reads "@markoto " — finish your question.',
-      // Confirm the literal token landed in the input. The synthetic
-      // markoto entry inserts the bare-word `@markoto ` (with trailing
-      // space) rather than a structured @[Name](user:N) token. The
-      // server-side trigger regex still accepts the legacy `@ai`
-      // form for back-compat, but the typeahead-inserted token is
-      // `@markoto` after the rename.
+      // Confirm the literal token landed in the input. The synthetic markoto entry inserts the bare-word
+      // `@markoto ` (with trailing space) rather than a structured @[Name](user:N) token. The server-side trigger
+      // regex still accepts the legacy `@ai` form for back-compat.
       after: () => expect(editor.page.comments.composerInput).toHaveValue(/@markoto\s/)
     }
   )
@@ -176,7 +167,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
     { timeout: 10_000 }
   )
 
-  // ─── Submit → markoto joins the thread ───────────────────────────
+  // Submit → markoto joins the thread
   await flow.heading('markoto joins your thread', 3)
   await flow.narrate(
     'Once you post, the comment lands like any other — but the '
@@ -231,7 +222,7 @@ test('Summon AI from a comment', async ({ page, flow, editor }) => {
   await expect(editor.page.comments.thread.first()).toContainText(question)
   await expect(editor.page.ai.activeThread).toHaveCount(1)
 
-  // ─── Wait for markoto's reply to land ────────────────────────────
+  // Wait for markoto's reply to land
   await flow.heading('See markoto\'s reply', 3)
   await flow.narrate(
     'markoto uses tools to inspect the document and craft a response. '

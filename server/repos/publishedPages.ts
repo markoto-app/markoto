@@ -2,7 +2,7 @@ import { and, eq, ne, sql } from 'drizzle-orm'
 import { publishedPages } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 
-// Published pages (WP13): one static web snapshot per document.
+// Published pages: one static web snapshot per document.
 
 export type PublishedPageRow = typeof publishedPages.$inferSelect
 

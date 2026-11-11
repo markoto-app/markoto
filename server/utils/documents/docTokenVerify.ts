@@ -12,12 +12,9 @@ import { verifyJwtWithRotation } from '../../../shared/utils/security/secrets'
 // back to their session + workspace_members lookup. The JWT path is a
 // view-level capability, deliberately not a full session substitute.
 //
-// Split into three pieces so unit tests can exercise the pure halves
-// without building a full H3 event:
-//   - `extractToken(event)`   — HTTP-layer parsing only
-//   - `verifyDocJwt(...)`     — pure crypto + scope check
-//   - `hasValidDocJwt(...)`   — production orchestrator wiring
-//                               runtimeConfig into the two halves
+// Split so unit tests can exercise the pure halves without an H3 event:
+// `extractToken` (HTTP parsing), `verifyDocJwt` (crypto + scope check),
+// `hasValidDocJwt` (wires runtimeConfig into both).
 
 /**
  * Look for a Y.js JWT on the request — `Authorization: Bearer …`

@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Guests of the document's workspace this document is shared with
-// (WP11). Admins and editors of the workspace pick a guest and give
+// Guests of the document's workspace this document is shared with.
+// Admins and editors of the workspace pick a guest and give
 // them view or edit access; a guest sees only the documents shared with
 // them. Server: `server/api/docs/[docId]/shares/`.
 

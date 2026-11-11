@@ -1,17 +1,13 @@
 <script setup lang="ts">
 import type { EditorView } from '@codemirror/view'
 
-// Floating "Comment" pill that appears just below the user's selection
-// in the editor. Click → emits `trigger`, which the parent forwards to
-// the same create-comment handler that the toolbar / menu use. The
-// popup itself never touches the Y.js doc — single source of truth
-// stays in CommentsPanel's `startDraft()`.
+// Floating "Comment" pill just below the editor selection. Click emits
+// `trigger`, which the parent forwards to the create-comment handler shared
+// with the toolbar and menu; the popup never touches the Y.js doc.
 //
-// Lifecycle mirrors the (deleted) AISelectionPopup: a `selectionchange`
-// listener on the document watches the editor's selection, shows the
-// pill on non-empty selections, hides on collapse / blur / click-out.
-// Click-outside is suppressed when the click landed on the pill itself
-// (handled by `@mousedown.stop` on the root).
+// A `selectionchange` listener shows the pill on non-empty selections and
+// hides it on collapse / blur / click-out (clicks on the pill are exempted
+// via `@mousedown.stop` on the root).
 
 const props = defineProps<{
   view: EditorView | null
@@ -34,10 +30,9 @@ function hide() {
   visible.value = false
 }
 
-// The selection a comment was just started on. Once the pill has been
-// used, the same selection doesn't bring it back (it lingered next to
-// the new thread after posting, because focus returns to the editor with
-// the passage still selected). Any other selection clears it.
+// The selection a comment was just started on; it doesn't bring the pill back
+// (focus returns to the editor with the passage still selected). Any other
+// selection clears it.
 let usedRange: { from: number, to: number } | null = null
 
 onClickOutside(popupEl, () => hide())
@@ -45,32 +40,25 @@ onClickOutside(popupEl, () => hide())
 function reposition(view: EditorView) {
   const sel = view.state.selection.main
   if (sel.empty) return
-  // Position at the END of the selection so the pill doesn't cover the
-  // start (where the user's eye usually is). Coords are viewport-relative;
-  // `position: fixed` consumes them directly.
+  // Anchor at the END of the selection so the pill doesn't cover the start
+  // where the eye is. Coords are viewport-relative (`position: fixed`).
   const coords = view.coordsAtPos(sel.to)
   if (!coords) return
-  // Pill measurements: hidden = height 0, so we measure when visible.
-  // Default to a conservative estimate when not yet rendered (first
-  // appearance). 120×32 covers the "Add comment" pill at most locales.
+  // The hidden pill has height 0, so measure when visible; fall back to an
+  // estimate (120×32) before first render.
   const pill = popupEl.value
   const pillW = pill?.offsetWidth || 120
   const pillH = pill?.offsetHeight || 32
-  // Use `visualViewport` when present so the pill sits inside the
-  // mobile keyboard's available area, not behind it. Falls back to
-  // `window.innerHeight` on platforms without VV.
+  // `visualViewport` keeps the pill inside the mobile keyboard's free area.
   const viewportH = window.visualViewport?.height ?? window.innerHeight
   const viewportW = window.innerWidth
-  // Horizontal: prefer just below the selection-end; clamp to 8px
-  // margins so nothing overflows on narrow screens.
+  // Horizontal: clamp to 8px margins on narrow screens.
   let x = coords.left - 4
   x = Math.min(x, viewportW - pillW - 8)
   x = Math.max(8, x)
   popupX.value = x
-  // Vertical: prefer below the selection. If that puts the pill in or
-  // below the keyboard's intrusion zone, flip ABOVE the selection
-  // (`coords.top - pillH - 6`). The flip keeps the comment affordance
-  // discoverable on mobile when typing at the bottom of the doc.
+  // Vertical: below the selection; if that lands in the keyboard's zone, flip
+  // above (`coords.top - pillH - 6`) so it stays reachable on mobile.
   const below = coords.bottom + 6
   if (below + pillH <= viewportH - 8) {
     popupY.value = below
@@ -79,10 +67,8 @@ function reposition(view: EditorView) {
   }
 }
 
-// `selectionchange` fires on the document while the editor view's
-// `blur` fires on the CM6 contentDOM. Both are tied via useEventListener
-// to refs that re-bind when the view changes — no manual attach/remove
-// dance.
+// `selectionchange` fires on the document, `blur` on the CM6 contentDOM; both
+// bind via useEventListener to refs that follow view changes.
 const blurTarget = computed(() => props.view?.contentDOM ?? null)
 
 function onSelectionChange() {
@@ -92,10 +78,9 @@ function onSelectionChange() {
     if (visible.value) hide()
     return
   }
-  // Only for the selection the user is working with: when the editor
-  // isn't focused (typing in the AI prompt bar, a remote or AI edit
-  // moving the DOM selection) the pill stays hidden — it used to pop up
-  // again at a stale spot after the AI rewrote the selected passage.
+  // Only for the selection the user is working with: stays hidden while the
+  // editor is unfocused (AI prompt bar typing, remote or AI edits moving the
+  // DOM selection).
   if (!view.hasFocus) {
     if (visible.value) hide()
     return
@@ -120,9 +105,8 @@ function onSelectionChange() {
   reposition(view)
 }
 
-// Hide when focus leaves the editor (clicking elsewhere implicitly
-// collapses or moves the selection most of the time, but blur is a
-// belt-and-braces signal).
+// Hide on blur too: a click elsewhere usually collapses the selection, but
+// blur is a belt-and-braces signal.
 function onBlur() {
   setTimeout(() => {
     if (document.activeElement?.closest('.comment-selection-popup')) return
@@ -133,8 +117,7 @@ function onBlur() {
 useEventListener(document, 'selectionchange', onSelectionChange)
 useEventListener(blurTarget, 'blur', onBlur)
 
-// If `disabled` flips on mid-selection, hide immediately so the pill
-// doesn't survive a permission downgrade.
+// Hide immediately if `disabled` flips mid-selection (permission downgrade).
 watch(() => props.disabled, (d) => {
   if (d) hide()
 })
@@ -173,12 +156,9 @@ function onClick() {
 
 <style scoped>
 /*
- * Selection-comment trigger pill. Same visual family as the AI prompt
- * bar — frosted bone backdrop, hairline shu ring + soft shu glow. The
- * brand reserves shu for AI presence, but a comment carries a strong
- * loop affordance to summon markoto via `@markoto`, so the seal red
- * is the right anchor here too. Earlier this popup wore amber, which
- * read as a separate semantic and broke the editor's color discipline.
+ * Same visual family as the AI prompt bar: frosted bone backdrop, hairline shu
+ * ring and soft glow. Shu is the AI mark, and a comment is the way to summon
+ * markoto via `@markoto`.
  */
 .comment-selection-popup__pill {
   background: color-mix(in srgb, var(--ui-bg-muted) 88%, transparent);

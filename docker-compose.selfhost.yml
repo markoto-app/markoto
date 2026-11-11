@@ -89,7 +89,7 @@ services:
       - VERSION=1
       - POST=0
     volumes:
-      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/CONTAINER-ENGINES.md.
+      # CONTAINER_SOCKET: the engine API socket (rootless Podman: $XDG_RUNTIME_DIR/podman/podman.sock). docs/contributing/CONTAINER-ENGINES.md.
       - ${CONTAINER_SOCKET:-/var/run/docker.sock}:/var/run/docker.sock:ro
     # Runs as root only to open the socket (root:docker 0660); no
     # capabilities, read-only (it renders its haproxy config into /tmp).
@@ -303,7 +303,7 @@ services:
 
   app:
     # Same as the image's HEALTHCHECK, declared here because Podman builds
-    # OCI images, which drop HEALTHCHECK (docs/CONTAINER-ENGINES.md).
+    # OCI images, which drop HEALTHCHECK (docs/contributing/CONTAINER-ENGINES.md).
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- --tries=1 --timeout=5 http://127.0.0.1:3000/api/health || exit 1"]
       interval: 30s
@@ -316,13 +316,13 @@ services:
     mem_limit: 2g
     environment:
       - NODE_ENV=production
-      # ─── Public origin ───
+      # Public origin
       # MARKOTO_PUBLIC_URL: what users type (https://docs.example.com or
       # http://192.168.1.10:8080). Absolute links in emails, the OAuth
       # callback URLs and the browser-facing S3 endpoint all derive from it.
       - NUXT_SITE_URL=${MARKOTO_PUBLIC_URL:?MARKOTO_PUBLIC_URL required}
       - NUXT_PUBLIC_SYNC_URL=${MARKOTO_SYNC_URL:?MARKOTO_SYNC_URL required}
-      # ─── Secrets (install.sh generates them) ───
+      # Secrets (install.sh generates them)
       - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD:?NUXT_SESSION_PASSWORD required}
       - NUXT_JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
       - NUXT_JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS:-}
@@ -332,7 +332,7 @@ services:
       # Key of the self-hosted ALTCHA bot check (anonymous gate, below).
       # install.sh generates it; required only while the gate is on.
       - NUXT_ALTCHA_HMAC_KEY=${NUXT_ALTCHA_HMAC_KEY:-}
-      # ─── Login (optional; without a pair the instance is anonymous-only) ───
+      # Login (optional; without a pair the instance is anonymous-only)
       # Callback URLs to register with the provider: <public URL>/auth/github
       # and <public URL>/auth/google. Pinned here so they stay right behind
       # an extra proxy that rewrites X-Forwarded-Proto.
@@ -353,13 +353,13 @@ services:
       - NUXT_OAUTH_OIDC_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/oidc
       # Emails promoted to instance admin on their first login (/admin/*).
       - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
-      # ─── Storage (bundled SeaweedFS) ───
+      # Storage (bundled SeaweedFS)
       - NUXT_S3_ENDPOINT=http://seaweedfs:8333
       - NUXT_S3_PUBLIC_ENDPOINT=${MARKOTO_PUBLIC_URL}
       - NUXT_S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
       - NUXT_S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
       - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:-markoto-files}
-      # ─── Internal services ───
+      # Internal services
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
       - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
@@ -391,7 +391,7 @@ services:
       # Reverse proxies in front of the app: 1 = this Traefik. Behind your own
       # TLS proxy set 2 (and TRAEFIK_TRUSTED_IPS). shared/utils/security/clientIp.ts.
       - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
-      # ─── AI (all optional; docs/SELF-HOSTING.md#ai) ───
+      # AI (all optional; docs/SELF-HOSTING.md#ai)
       # Instance defaults per capability; empty = users bring their own key.
       - NUXT_AI_DEFAULT_CHAT_MODEL=${NUXT_AI_DEFAULT_CHAT_MODEL:-}
       - NUXT_AI_DEFAULT_CHAT_BASE_URL=${NUXT_AI_DEFAULT_CHAT_BASE_URL:-}
@@ -428,7 +428,7 @@ services:
       - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
       - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
-      # ─── Limits ───
+      # Limits
       # Billing is off, so everyone is on the free tier and TIER_FREE_* ARE
       # the limits. The hosted free tier is tight (1 workspace, 5 knowledge
       # files); a self-hosted instance defaults to roomier values.
@@ -463,7 +463,7 @@ services:
       - NUXT_AUDIT_LOG_RETENTION_DAYS=${NUXT_AUDIT_LOG_RETENTION_DAYS:-}
       - NUXT_ABUSE_REPORT_RETENTION_DAYS=${NUXT_ABUSE_REPORT_RETENTION_DAYS:-}
       - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-30}
-      # ─── Operator surfaces (shared/config/instance.ts) ───
+      # Operator surfaces (shared/config/instance.ts)
       # The bundled privacy policy / terms / DPA / imprint describe the
       # hosted markoto.app service. Off by default: no onboarding gate, no
       # cookie banner, no DPA step, no /legal/* pages. Turn on only with your
@@ -474,13 +474,13 @@ services:
       # Empty = follows NUXT_LEGAL_SURFACES_ENABLED. Set true to gate
       # anonymous use without the legal pages (needs NUXT_ALTCHA_HMAC_KEY).
       - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-}
-      # ─── Search engines (shared/config/instance.ts) ───
+      # Search engines (shared/config/instance.ts)
       # The bundled /docs pages point their canonical link at markoto.app,
       # the original, so search engines don't rank copies against each
       # other. Set NUXT_DOCS_CANONICAL_BASE= (empty) to make your copy
       # self-canonical, or another https origin. Unset = markoto.app.
       - NUXT_DOCS_CANONICAL_BASE=${NUXT_DOCS_CANONICAL_BASE-https://markoto.app}
-      # Custom domains of published pages (WP13, HTTPS overlay only):
+      # Custom domains of published pages (HTTPS overlay only):
       # NUXT_PUBLISH_DOMAINS_TARGET = the host your users CNAME to,
       # NUXT_PUBLISH_TRAEFIK_TOKEN = ≥ 32 random characters.
       - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
@@ -493,7 +493,7 @@ services:
       # Traefik is served. docs/SELF-HOSTING.md → Published pages.
       - NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST:-}
       - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=markoto-headers@docker,markoto-compress@docker
-      # Managed private instance (WP16): the customer's name beside the
+      # Managed private instance: the customer's name beside the
       # markoto wordmark and their service desk in the account menu +
       # footer. The logo needs docker-compose.selfhost.brand.yml.
       - NUXT_INSTANCE_BRAND_NAME=${NUXT_INSTANCE_BRAND_NAME:-}
@@ -513,13 +513,13 @@ services:
       - NUXT_LEGAL_UID=${NUXT_LEGAL_UID:-}
       - NUXT_LEGAL_CH_ID=${NUXT_LEGAL_CH_ID:-}
       - NUXT_LEGAL_EHRA_ID=${NUXT_LEGAL_EHRA_ID:-}
-      # ─── Email (optional) ───
+      # Email (optional)
       # Without RESEND_API_KEY emails are logged, not sent ([email-stub]);
       # every flow still completes.
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
       - NUXT_EMAIL_PROVIDER=${NUXT_EMAIL_PROVIDER:-}
-      # ─── Telemetry (optional; nothing is sent without a DSN) ───
+      # Telemetry (optional; nothing is sent without a DSN)
       - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
       - SENTRY_DSN=${SENTRY_DSN:-}
     # The BYOK URL policy resolves provider hostnames in the app before

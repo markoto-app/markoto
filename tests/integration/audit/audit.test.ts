@@ -39,7 +39,7 @@ async function readAudit(scope: string, scopeId: string): Promise<AuditRow[]> {
   return r.rows
 }
 
-describe('audit log — doc.deleted (B1)', () => {
+describe('audit log — doc.deleted', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -91,7 +91,7 @@ describe('audit log — doc.deleted (B1)', () => {
   })
 })
 
-describe('audit log — doc.password_set / password_removed (B2)', () => {
+describe('audit log — doc.password_set / password_removed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -133,7 +133,7 @@ describe('audit log — doc.password_set / password_removed (B2)', () => {
   })
 })
 
-describe('audit log — doc.access_mode_changed (B3)', () => {
+describe('audit log — doc.access_mode_changed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -163,7 +163,7 @@ describe('audit log — doc.access_mode_changed (B3)', () => {
   })
 })
 
-describe('audit log — doc.workspace_moved (B4)', () => {
+describe('audit log — doc.workspace_moved', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -184,7 +184,7 @@ describe('audit log — doc.workspace_moved (B4)', () => {
   })
 })
 
-describe('audit log — workspace.member_removed (B5)', () => {
+describe('audit log — workspace.member_removed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -212,7 +212,7 @@ describe('audit log — workspace.member_removed (B5)', () => {
   })
 })
 
-describe('audit log — workspace.member_role_changed (B6)', () => {
+describe('audit log — workspace.member_role_changed', () => {
   beforeEach(async () => {
     await resetDb()
   })

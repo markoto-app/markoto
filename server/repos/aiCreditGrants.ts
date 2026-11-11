@@ -2,8 +2,8 @@ import { and, asc, eq, gt, lte, sql } from 'drizzle-orm'
 import { aiCreditGrants, aiCreditSettlements } from '../db/schema'
 import { useDatabase } from '../utils/platform/database'
 
-// AI credit top-ups (WP4): grants + monthly settlements. Orchestration
-// (budgets, Stripe) lives in `server/utils/billing/aiCredits.ts`.
+// AI credit top-ups: grants + monthly settlements. Orchestration (budgets,
+// Stripe) lives in `server/utils/billing/aiCredits.ts`.
 
 export type CreditSubjectType = 'user' | 'workspace'
 

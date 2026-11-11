@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 import { test, expect } from '../fixtures/flow'
 import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
 
-// "Set up single sign-on for a workspace" (WP14).
+// "Set up single sign-on for a workspace".
 //
 // User-job: an IT-minded workspace admin wants everyone to sign in to the
 // workspace through the company's identity provider. Job done when the
@@ -30,7 +30,7 @@ test('Set up single sign-on for a workspace', async ({ page, flow, editor }) => 
   test.setTimeout(120_000)
   const issuer = `http://${IDP_HOST}:4130/northwind-${Date.now()}`
 
-  // ─── Setup: Maya's workspace with a colleague ───────────────────
+  // Setup: Maya's workspace with a colleague
   const maya = await editor.page.loginAsTestUser('Maya Chen', { email: 'maya@northwind.example' })
   await page.goto('/')
   const wsRes = await page.request.post('/api/workspaces', { data: { name: 'Northwind research' } })
@@ -55,7 +55,7 @@ test('Set up single sign-on for a workspace', async ({ page, flow, editor }) => 
   await page.goto(`/w/${workspaceId}`)
   await page.getByRole('tab', { name: /documents/i }).waitFor({ state: 'visible', timeout: 10_000 })
 
-  // ─── Connect the identity provider ──────────────────────────────
+  // Connect the identity provider
   await flow.heading('Connect your identity provider', 3)
   await flow.narrate(
     'Workspace admins find single sign-on in its own tab. Choose OpenID '
@@ -88,7 +88,7 @@ test('Set up single sign-on for a workspace', async ({ page, flow, editor }) => 
     highlights: [{ label: 'Redirect URI', selector: '[data-testid="workspace-sso-sp-callback"]' }]
   })
 
-  // ─── Verify the email domain ────────────────────────────────────
+  // Verify the email domain
   await flow.heading('Verify your email domain', 3)
   await flow.narrate(
     'Only addresses in a domain you verify are linked to existing '
@@ -111,7 +111,7 @@ test('Set up single sign-on for a workspace', async ({ page, flow, editor }) => 
     await verifyPool.end()
   }
 
-  // ─── Test the sign-in: this switches it on ──────────────────────
+  // Test the sign-in: this switches it on
   await flow.heading('Test the sign-in to switch it on', 3)
   await flow.narrate(
     'Sign in once through your identity provider with your own account. '
@@ -140,7 +140,7 @@ test('Set up single sign-on for a workspace', async ({ page, flow, editor }) => 
     ]
   })
 
-  // ─── A colleague opens the workspace ────────────────────────────
+  // A colleague opens the workspace
   await flow.heading('Your colleagues sign in through your organisation', 3)
   const ben = await flow.spawn('colleague')
   await ben.editor.loginAsExistingUser(benId, 'Ben Ortiz')

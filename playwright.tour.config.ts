@@ -1,6 +1,6 @@
 import { defineConfig, devices } from '@playwright/test'
 
-// Product-tour captures (WP11) — NOT a test suite. Drives the real app on
+// Product-tour captures — NOT a test suite. Drives the real app on
 // the flow stack and records the stills / frame sequences the product
 // page at `/` plays (tests/e2e/tour/*.capture.ts → tests/e2e/output/tour/
 // → `bun scripts/capture-tour.ts` encodes them into public/tour/).

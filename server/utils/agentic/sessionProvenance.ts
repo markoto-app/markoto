@@ -19,8 +19,8 @@ import type { CrossBoundaryGuard } from './crossBoundary'
 /**
  * Write the provenance row for a freshly claimed session. If that fails
  * the session is released again and the error propagates: an AI session
- * must never write without a provenance row (it would fall back to the
- * pre-provenance attribution rule).
+ * must never write without a provenance row (its edits would be
+ * attributed without the taint information).
  */
 export async function recordSessionProvenance(sessionId: string, docId: string, userId: number): Promise<void> {
   try {

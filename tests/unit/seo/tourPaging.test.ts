@@ -10,7 +10,7 @@ import {
   stepTarget
 } from '../../../shared/tour/paging'
 
-// Settling the product page on a scene rest (WP11): the visitor scrolls
+// Settling the product page on a scene rest: the visitor scrolls
 // freely; once the input stops the page settles on a rest — never springing
 // back from a deliberate scroll, never skipping a scene.
 

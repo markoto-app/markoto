@@ -1,14 +1,9 @@
 <script setup lang="ts">
-// Yellow status strip shown across the top of the app when the
-// browser reports `navigator.onLine === false`. Distinct from the
-// Hocuspocus connection status (which can be `connecting` for many
-// reasons — server down, JWT expired, rate-limited) — this is the
-// browser's own "you have no network" signal. The split lets users
-// distinguish "wait for WiFi" from "the sync server is broken".
-//
-// Y.js still works locally while offline (CRDT edits queue in the
-// browser); this banner just sets expectations so the user doesn't
-// think their changes are landing on the server.
+// Strip shown when `navigator.onLine === false`. Separate from the
+// Hocuspocus connection status (`connecting` has many causes): this is the
+// browser's own "no network" signal, so users can tell "wait for WiFi" from
+// "the sync server is broken". Y.js edits keep queuing locally while offline;
+// the banner only sets expectations.
 
 const { t } = useI18n()
 const online = useOnline()

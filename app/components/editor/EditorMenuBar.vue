@@ -9,14 +9,9 @@ import {
 } from '~/utils/editor/editorCommands'
 
 /**
- * Top-level menu bar — Google-Docs-style. Replaces the assortment of
- * icon-only buttons that were previously scattered between the title row
- * and the formatting toolbar with discoverable, labeled menus.
- *
- * High-frequency actions (formatting toolbar, view-mode toggles, sidebar
- * toggles in the corner) intentionally still have visible header
- * shortcuts — the menu items duplicate them for discoverability, not as
- * the only entry point.
+ * Google-Docs-style top menu bar. The formatting toolbar, view-mode toggles
+ * and sidebar toggles keep their header shortcuts; the menu items duplicate
+ * them for discoverability and aren't the only entry point.
  */
 
 const props = defineProps<{
@@ -24,29 +19,20 @@ const props = defineProps<{
   docId: string
   isReadOnly: boolean
   loggedIn: boolean
-  // Can the user perform sharing/delete-grade actions on this doc? Owner
-  // or workspace admin only. Gates the destructive / ownership-changing
-  // entries in File (Move, Delete).
+  // Owner or workspace admin: gates the destructive / ownership-changing File entries (Move, Delete).
   canManage: boolean
   // Server-computed (token endpoint): owner / workspace admin, or the
   // browser that created an anonymous doc.
   canDelete: boolean
-  // Right-sidebar state — used to render check marks next to "Activity"
-  // and "Theme" in the View menu so the user can see what's currently open.
+  // Right-sidebar state: renders check marks next to "Activity" and "Theme" in the View menu.
   rightSidebar: TabName | null
-  // Whether the current doc belongs to a workspace the viewer is a
-  // member of. Only then is the Knowledge panel meaningful — gate the
-  // menu entry on this so non-workspace docs don't show a disabled item.
+  // Only workspace members get a meaningful Knowledge panel; gates the menu
+  // entry so non-workspace docs don't show a disabled item.
   hasKnowledgeAccess: boolean
-  // View mode: 'edit' | 'split' | 'preview'.
   viewMode: 'edit' | 'split' | 'preview'
-  /**
-   * Current live-dictation state, hoisted from the parent so the
-   * Insert menu can toggle the label between "Start" / "Stop
-   * dictation" and show a check mark while active.
-   */
+  /** Live-dictation state, so the Insert menu can flip its label and show a check while active. */
   dictationState?: 'idle' | 'requesting-permission' | 'connecting' | 'recording' | 'error'
-  /** Share-link controls (WP9): the owner made this a view-only link — no export or print. */
+  /** Share-link controls: the owner made this a view-only link, so no export or print. */
   noDownload?: boolean
 }>()
 
@@ -56,9 +42,8 @@ const emit = defineEmits<{
   'open-share-password': []
   'export-markdown': []
   'export-pdf': []
-  // Server-rendered PDF (Playwright + paged.js) — opens in a new tab
-  // via the /api/docs/:id/pdf endpoint. Distinct from `export-pdf`
-  // (which goes through the browser's in-tab print dialog).
+  // Server-rendered PDF (Playwright + paged.js) opens in a new tab via
+  // /api/docs/:id/pdf; distinct from `export-pdf` (in-tab print dialog).
   'open-server-pdf': []
   'new-document': []
   'duplicate-document': []
@@ -69,31 +54,23 @@ const emit = defineEmits<{
   'undo': []
   'redo': []
   'open-image-picker': []
-  // Table size picker — handed up to EditorLayout which owns the
-  // shared open state. The toolbar's anchored UPopover is the single
-  // visual surface; menu just opens it.
+  // Handed up to EditorLayout, which owns the shared open state; the toolbar's anchored UPopover is the one visual surface.
   'open-table-picker': []
-  // Dictation toggle — hoisted to the parent where the composable
-  // owns the editor + ydoc + awareness wiring.
+  // Hoisted to the parent, where the composable owns the editor + ydoc + awareness wiring.
   'toggle-dictation': []
-  // Insert → Comment. Parent captures the current selection, opens the
-  // sidebar, focuses the composer.
+  // Insert → Comment: the parent captures the selection, opens the sidebar, focuses the composer.
   'create-comment': []
-  // Help → Documentation / Keyboard shortcuts / Take the tour.
   'open-docs': []
   'open-shortcuts': []
   'start-tour': []
-  // Format / insert dispatch on the editor view directly via callbacks
-  // rather than emits so we don't have to re-thread every command up
-  // through EditorLayout. The view ref is sufficient.
+  // Format / insert dispatch on the editor view through callbacks instead of
+  // emits, so commands needn't be re-threaded through EditorLayout.
 }>()
 
 const { t, locale, locales, setLocale } = useI18n()
-// Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
-// (no prefers-color-scheme + no localStorage), so reading at top-level causes
-// hydration mismatch when the user's actual mode is dark. The brief
-// light-mode flash on first paint is acceptable for this component;
-// see app/AGENTS.md "Common Vue conventions" section.
+// Defer the color-mode read to onMounted: useColorMode() returns 'light' on
+// SSR, so a top-level read mismatches on hydration for dark-mode users (see
+// app/AGENTS.md "Common Vue conventions").
 const colorMode = useColorMode()
 const colorModeValue = ref<'light' | 'dark'>('light')
 onMounted(() => {
@@ -102,27 +79,20 @@ onMounted(() => {
 watch(() => colorMode.value, (v) => {
   colorModeValue.value = v === 'dark' ? 'dark' : 'light'
 })
-// Sharing → Copy link. `useClipboard` adds a legacy execCommand fallback
-// for iframe / older-browser contexts the bare Async Clipboard API
-// doesn't reach, and silently no-ops on `isSupported === false`.
+// Sharing → Copy link. `useClipboard` adds an execCommand fallback for iframe
+// / older-browser contexts the Async Clipboard API doesn't reach.
 const { copy: copyToClipboard } = useClipboard()
 
-// ── Editor command helpers — delegate to shared utils so menu and
-// toolbar produce identical output (smart toggle, whitespace trim,
-// prefix replacement instead of dumb prepend). See
-// `app/utils/editor/editorCommands.ts`.
+// Delegates to shared utils so menu and toolbar produce identical output
+// (smart toggle, whitespace trim, prefix replacement); see `app/utils/editor/editorCommands.ts`.
 
 function call(fn: (v: EditorView) => void) {
   if (!props.view || props.isReadOnly) return
   fn(props.view)
 }
 
-// ── Menu item builders ──────────────────────────────────────────────
-//
-// Nuxt UI v4 UDropdownMenu items support: label, icon, kbds (kbd
-// shortcut chip), onSelect, disabled, type ('separator'|'label'),
-// children (submenu), checked (radio/check). We use that vocabulary
-// throughout so the menus all look consistent.
+// Nuxt UI v4 UDropdownMenu items: label, icon, kbds, onSelect, disabled,
+// type ('separator'|'label'), children (submenu), checked.
 
 const fileItems = computed(() => {
   const items: Array<Record<string, unknown>> = [
@@ -137,18 +107,16 @@ const fileItems = computed(() => {
       icon: 'i-lucide-download',
       children: [
         { label: t('export.markdown'), icon: 'i-lucide-file-text', onSelect: () => emit('export-markdown') },
-        // PDF export goes through the server renderer (Playwright + paged.js)
-        // and opens the result in a new tab inline — distinct from File →
-        // Print, which uses the in-browser print dialog.
+        // Server renderer (Playwright + paged.js), opened inline in a new tab;
+        // File → Print uses the in-browser print dialog instead.
         { label: t('export.pdf'), icon: 'i-lucide-file-output', onSelect: () => emit('open-server-pdf') }
       ]
     },
     { type: 'separator' },
     { label: t('menubar.file.print'), icon: 'i-lucide-printer', kbds: ['cmd', 'p'], onSelect: () => emit('export-pdf') }
   )
-  // Duplicate is available to anyone who can edit the doc (server
-  // re-checks); Move requires manage rights. Both need login — the
-  // server rejects anonymous on both paths because they need an owner.
+  // Duplicate is open to anyone who can edit (the server re-checks); Move needs
+  // manage rights. Both need login: the server rejects anonymous because they need an owner.
   if (props.loggedIn) {
     items.push(
       { type: 'separator' },
@@ -158,10 +126,9 @@ const fileItems = computed(() => {
       items.push({ label: t('menubar.file.move'), icon: 'i-lucide-folder-input', onSelect: () => emit('move-document') })
     }
   }
-  // Delete sits at the bottom of File — destructive, kept under its
-  // own separator so it's not a one-click slip from the copy/move
-  // entries. Shown only when the server says the delete would succeed
-  // (an anonymous creator has no login but may delete their own doc).
+  // Delete sits under its own separator so it isn't a one-click slip from
+  // copy/move. Shown only when the server says it would succeed (an anonymous
+  // creator has no login but may delete their own doc).
   if (props.canDelete) {
     items.push(
       { type: 'separator' },
@@ -182,7 +149,6 @@ const editItems = computed(() => {
 const zoomMenu = usePreviewZoomMenu({ withStepItems: true })
 
 const viewItems = computed(() => [
-  // View mode (radio-style: only one active)
   [
     {
       label: t('editor.edit'),
@@ -205,7 +171,7 @@ const viewItems = computed(() => [
       checked: props.viewMode === 'preview',
       onSelect: () => emit('set-view-mode', 'preview')
     },
-    // Preview zoom — only while a preview is on screen.
+    // Only while a preview is on screen.
     {
       label: t('previewZoom.menu'),
       icon: 'i-lucide-zoom-in',
@@ -213,8 +179,7 @@ const viewItems = computed(() => [
       children: zoomMenu.items.value
     }
   ],
-  // Right-sidebar toggles (independent — but mutually exclusive in the
-  // parent; we only render the check on whichever is active)
+  // Independent toggles, though the parent keeps them mutually exclusive; the check marks the active one.
   [
     {
       label: t('documentPanel.title'),
@@ -244,8 +209,7 @@ const viewItems = computed(() => [
       checked: props.rightSidebar === 'theme',
       onSelect: () => emit('toggle-sidebar', 'theme')
     },
-    // Knowledge — only meaningful for workspace docs. Hidden otherwise
-    // so the menu doesn't advertise a capability that isn't available.
+    // Workspace docs only, so the menu doesn't advertise an unavailable capability.
     ...(props.hasKnowledgeAccess
       ? [{
           label: t('knowledge.title'),
@@ -256,7 +220,6 @@ const viewItems = computed(() => [
         }]
       : [])
   ],
-  // Display preferences
   [
     {
       label: colorModeValue.value === 'dark' ? t('menu.lightMode') : t('menu.darkMode'),
@@ -276,7 +239,7 @@ const viewItems = computed(() => [
   ]
 ])
 
-// Link is a special case (asymmetric wrap with URL placeholder).
+// Link is asymmetric (URL placeholder), so it can't use the symmetric-wrap helper.
 function linkAction() {
   if (!props.view || props.isReadOnly) return
   const v = props.view
@@ -306,15 +269,13 @@ const insertItems = computed(() => {
     { type: 'separator' as const },
     { label: t('menubar.insert.codeBlock'), icon: 'i-lucide-code', onSelect: () => call(v => insertBlock(v, '\n```\n\n```\n')) },
     { label: t('editor.quote'), icon: 'i-lucide-quote', onSelect: () => call(v => toggleLinePrefix(v, '> ')) },
-    // Opens the same hover-grid picker the toolbar's Table button uses.
-    // EditorLayout owns the shared open-state ref.
+    // Opens the toolbar Table button's hover-grid picker; EditorLayout owns the open state.
     { label: t('editor.table'), icon: 'i-lucide-table', onSelect: () => emit('open-table-picker') },
     { label: t('editor.horizontalRule'), icon: 'i-lucide-minus', onSelect: () => call(v => insertBlock(v, '\n---\n')) },
     { label: t('editor.pageBreak'), icon: 'i-lucide-scissors-line-dashed', onSelect: () => call(v => insertPageBreak(v)) },
     { label: t('editor.hideFromPreview'), icon: 'i-lucide-eye-off', onSelect: () => call(v => toggleComment(v)) },
-    // Discussion comment — separate from the markdown comment above.
-    // The markdown one stays in the source (hidden from preview);
-    // this one opens a thread in the sidebar with replies + resolve.
+    // Discussion comment: opens a sidebar thread with replies + resolve, unlike
+    // the markdown comment above, which stays in the source (hidden from preview).
     { label: t('comments.title'), icon: 'i-lucide-message-circle', onSelect: () => emit('create-comment') },
     { type: 'separator' as const },
     { label: t('menubar.insert.footnote'), icon: 'i-lucide-asterisk', onSelect: () => call(v => insertFootnote(v)) },
@@ -354,11 +315,9 @@ const insertItems = computed(() => {
     { label: t('menubar.insert.toc'), icon: 'i-lucide-list-tree', onSelect: () => call(v => insertToc(v)) },
     { label: t('menubar.insert.definitionList'), icon: 'i-lucide-book-open-text', onSelect: () => call(v => insertDefinitionList(v)) },
     { type: 'separator' as const },
-    // Live voice dictation — toggles a Mistral Voxtral Realtime
-    // session that streams transcribed speech into the doc at the
-    // caret. Label flips so "Stop dictation" is reachable even when
-    // the toolbar mic button isn't visible (e.g. a user who lives in
-    // the menu).
+    // Toggles a Mistral Voxtral Realtime session that streams speech into the
+    // doc at the caret. The label flips so "Stop dictation" is reachable when
+    // the toolbar mic button isn't visible.
     {
       label: props.dictationState === 'recording' || props.dictationState === 'connecting'
         ? t('ai.dictateStop')
@@ -429,7 +388,7 @@ const helpItems = computed(() => [[
   }
 ]])
 
-// Trigger styling — common to every menu so they look like a single bar.
+// Common trigger styling so the menus read as one bar.
 const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visible:bg-elevated focus-visible:outline-none transition-colors'
 </script>
 

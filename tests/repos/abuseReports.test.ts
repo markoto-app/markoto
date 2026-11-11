@@ -77,9 +77,7 @@ describe('abuse_reports — basic insert + read', () => {
 
   it('accepts free-form docId text (no FK constraint)', async () => {
     const reporter = await createUser()
-    // 'test' isn't a real doc id — this used to fail with an FK
-    // violation before B-15.1 dropped the constraint. Now it's
-    // accepted as free-form text.
+    // 'test' isn't a real doc id; it is accepted as free-form text (no FK).
     await insertReport({
       reportId: 'rep-test-freeform',
       reporterUserId: reporter.id,

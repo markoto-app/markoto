@@ -63,7 +63,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Apply a preset to start from ───────────────────────────────
+  // Apply a preset to start from
   await flow.heading('Pick a starting preset', 3)
   await flow.narrate(
     'Saved presets live ALONGSIDE the built-in ones — you don\'t '
@@ -90,7 +90,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Tweak: turn the cover off ──────────────────────────────────
+  // Tweak: turn the cover off
   await flow.heading('Tweak — turn the cover page off', 3)
   await flow.narrate(
     'Corporate report opens with a cover page. For internal documents '
@@ -127,7 +127,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
     }
   )
 
-  // ─── Save it ─────────────────────────────────────────────────────
+  // Save it
   await flow.heading('Bookmark it as a saved preset', 3)
   await flow.narrate(
     'The "Save current" button at the top of the presets list (the '
@@ -202,7 +202,7 @@ test('Save your custom theme as a preset', async ({ page, flow, editor }) => {
   expect(savedRow?.description).toBe(PRESET_DESCRIPTION)
   if (!savedRow) throw new Error('saved theme not returned by /api/themes')
 
-  // ─── Edit name + description ────────────────────────────────────
+  // Edit name + description
   await flow.heading('Rename it later', 3)
   await flow.narrate(
     'The pencil on the card opens the same dialog with the current '

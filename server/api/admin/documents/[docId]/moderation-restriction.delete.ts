@@ -3,12 +3,11 @@ import { getModerationRestriction, setModerationRestriction } from '../../../../
 import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_DOC_MODERATION_RESTRICTION_LIFTED } from '../../../../legal/auditActions'
 
-// DELETE /api/admin/documents/:docId/moderation-restriction — {note}:
-// lift the restriction an `access_restricted` moderation decision put on
-// a document (e.g. after a successful appeal). Platform admins only. The
-// document stays private; its owner may share or publish it again.
-// Copies made while it was restricted keep their own restriction — each
-// is lifted on its own, after looking at it.
+// DELETE /api/admin/documents/:docId/moderation-restriction {note}: lifts the
+// restriction an `access_restricted` moderation decision put on a document
+// (e.g. after an appeal). Platform admins only. The document stays private.
+// Copies made while restricted keep their own restriction, each lifted
+// separately after review.
 
 const NOTE_MAX = 2000
 

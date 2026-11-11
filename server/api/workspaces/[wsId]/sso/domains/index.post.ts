@@ -8,7 +8,7 @@ import { newDomainVerificationToken, normalizeSsoDomain } from '../../../../../u
 const MAX_DOMAINS = 20
 
 // POST /api/workspaces/:wsId/sso/domains — {domain}: list an email domain
-// to verify with a DNS TXT record (WP14). Consumer mail domains (gmail.com,
+// to verify with a DNS TXT record. Consumer mail domains (gmail.com,
 // outlook.com, …) are refused.
 export default defineEventHandler(async (event) => {
   const { userId, wsId } = await requireSsoAdmin(event)

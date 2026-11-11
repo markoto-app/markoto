@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // `ready` without inserting chunks, would only surface via user
 // complaints.
 
-// ─── Mocks ────────────────────────────────────────────────────────────────
+// Mocks
 
 /**
  * Per-test-programmable results for each Drizzle terminal call. The SUT
@@ -121,7 +121,7 @@ vi.stubGlobal('fetch', fetchMock)
 
 const { processKnowledge } = await import('../../../server/utils/knowledge/processKnowledge')
 
-// ─── Helpers ──────────────────────────────────────────────────────────────
+// Helpers
 
 type RowStatus = 'processing' | 'ready' | 'failed'
 
@@ -174,7 +174,7 @@ beforeEach(() => {
   assertKnowledgeEmbeddingsReady.mockResolvedValue(undefined)
 })
 
-// ─── Tests ────────────────────────────────────────────────────────────────
+// Tests
 
 describe('processKnowledge — embeddings misconfigured', () => {
   it('fails the row with the actionable reason before converting or embedding', async () => {
@@ -446,14 +446,10 @@ describe('processKnowledge — pipeline exceptions', () => {
   })
 })
 
-// ─── Adversarial tests ────────────────────────────────────────────────────
+// Adversarial tests
 //
-// Senior-QA review of the original 14 tests noted they were specification-
-// style (re-verifying happy-path shapes). The tests below are hypothesis-
-// driven: each one names a plausible failure mode and tries to trigger it.
-// Where the SUT's current behaviour diverges from what we'd want, the test
-// documents the gap as a failing hypothesis (a TODO for the codebase, not
-// a test bug).
+// Each test names a plausible failure mode and tries to trigger it. Where the SUT's behaviour diverges from what
+// we'd want, the test documents the gap.
 
 describe('processKnowledge — adversarial: non-Error throwables', () => {
   it('handles a thrown string (surfaces via String(e), no crash)', async () => {
@@ -494,10 +490,8 @@ describe('processKnowledge — adversarial: non-Error throwables', () => {
 
 describe('processKnowledge — embedding/chunk length mismatch (guarded)', () => {
   it('markFailed cleanly when embed returns FEWER vectors than chunks', async () => {
-    // Adversarial test that originally documented a bug: `embeddings[i]!`
-    // with a non-null assertion passed `undefined` to the drizzle insert
-    // when the upstream embedding provider dropped a vector. The SUT now
-    // has a length-check guard; the test now verifies the guard works.
+    // `embeddings[i]!` with a non-null assertion would pass `undefined` to the drizzle insert when the upstream
+    // embedding provider drops a vector; the SUT has a length-check guard and this test verifies it works.
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
     fetchMock.mockResolvedValueOnce(okResponse('# a\n\n# b\n\n# c'))
@@ -591,16 +585,12 @@ describe('processKnowledge — adversarial: chunker returns unexpected indices',
 
 describe('processKnowledge — concurrency guarded by Valkey claim-check', () => {
   it('second concurrent call no-ops (Valkey lock held by first)', async () => {
-    // Adversarial test that originally found a TOCTOU bug — the
-    // `status !== 'processing'` guard let two concurrent calls both
-    // proceed. The SUT now acquires a `knowledge-process:{id}` lock
-    // via `tryAcquireSessionLock` before starting the pipeline; the
+    // Two concurrent calls must not both proceed (the `status !== 'processing'` guard alone is racy). The SUT
+    // acquires a `knowledge-process:{id}` lock via `tryAcquireSessionLock` before starting the pipeline; the
     // second caller can't acquire it and no-ops.
     //
-    // We program the mock `tryAcquireSessionLock` (below) to return
-    // true once then false — simulating "first call wins, second loses".
-    // Under the old SUT this test would have failed with 2 embed
-    // calls + 2 inserts.
+    // We program the mock `tryAcquireSessionLock` (below) to return true once then false, simulating "first call
+    // wins, second loses".
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
     selectQueue.push([{ id: 'k1' }])

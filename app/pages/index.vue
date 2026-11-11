@@ -8,7 +8,7 @@ const { loggedIn } = useUserSession()
 const toast = useToast()
 
 // Hosted markoto.app shows the scroll-driven product page to logged-out
-// visitors (NUXT_MARKETING_SITE_ENABLED, WP11); everyone else gets the
+// visitors (NUXT_MARKETING_SITE_ENABLED); everyone else gets the
 // plain hero + dashboard (components/home/Dashboard.vue).
 const { marketingSite } = useInstanceConfig()
 const showTour = computed(() => marketingSite.value && !loggedIn.value)
@@ -61,11 +61,9 @@ onMounted(() => {
   }
 })
 
-// New-doc dialog. Replaces the old one-click POST so the user gets a
-// chance to seed title/description/audience/language/theme up-front —
-// the AI then has authoritative context from the very first prompt.
-// Skip path inside the dialog ("Just give me a blank doc") preserves
-// the legacy zero-config flow for muscle memory. Mounted on first use
+// New-doc dialog: seeds title/description/audience/language/theme up
+// front, so the AI has authoritative context from the first prompt.
+// "Just give me a blank doc" inside the dialog skips the setup. Mounted on first use
 // (useNewDocDialog), so the product page doesn't ship it.
 const { mounted: newDocDialogMounted, open: showNewDocDialog, show: createDocument, warm: warmNewDocDialog } = useNewDocDialog(() => import('~/components/document/NewDocumentDialog.vue'))
 function onDocCreated(docId: string) {

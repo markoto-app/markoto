@@ -2,7 +2,7 @@ import { customDomainSettings } from './config'
 import { runCustomDomainCheck } from './manage'
 import { listCustomDomainsToRecheck } from '../../repos/customDomains'
 
-// Periodic DNS re-check of custom domains (WP13), run by the
+// Periodic DNS re-check of custom domains, run by the
 // `custom-domain-recheck` plugin: pending / failed domains added in the
 // last 7 days (so a user doesn't have to come back and click "Check"),
 // and verified domains every 6 hours (a domain whose DNS moved away is

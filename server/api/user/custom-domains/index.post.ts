@@ -8,7 +8,7 @@ import { AUDIT_CUSTOM_DOMAIN_ADDED } from '../../../legal/auditActions'
 import { CUSTOM_DOMAIN_ERROR_CODES, CUSTOM_DOMAINS_PER_USER } from '~~/shared/config/customDomains'
 
 // POST /api/user/custom-domains — {hostname}. Adds a pending domain with
-// its own verification token (WP13). Plan feature `customDomains`.
+// its own verification token. Plan feature `customDomains`.
 export default defineEventHandler(async (event) => {
   const { userId, settings } = await requireCustomDomainUser(event)
   assertPlanFeature(await resolveUserPlan(userId), 'customDomains', 'Custom domains are part of the paid plans.')

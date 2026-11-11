@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Feature table driven by props, for comparison pages (SEO-6):
+// Feature table driven by props, for comparison pages:
 //
 //   ::compare-table
 //   ---

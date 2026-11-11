@@ -119,7 +119,7 @@ async function handleVerify(event: H3Event, docId: string, doc: DocSnapshot, pas
  * so the two token surfaces can't disagree: a member who already has
  * access keeps exactly that access (viewer → read-only); the password's
  * audience ("password-required") gets edit. Anyone else — above all a
- * visitor once the share link has expired (WP9), when the doc counts as
+ * visitor once the share link has expired, when the doc counts as
  * private — is refused: the password no longer opens it.
  */
 async function passwordGrant(event: H3Event, docId: string): Promise<{ readOnly: boolean, shareExpiresAt: Date | null }> {

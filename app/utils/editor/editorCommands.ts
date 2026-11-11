@@ -4,44 +4,34 @@ import type { ChangeSpec } from '@codemirror/state'
 /**
  * Editor command helpers for the formatting toolbar + menu bar.
  *
- * Design rules (apply to every helper):
+ * Rules every helper follows:
  *
- *  1. **Idempotent.** Clicking the same action twice on the same
- *     selection always toggles. Never accumulates markers
- *     (`****foo****`) or stacks prefixes (`# ## Foo`).
+ *  1. **Idempotent.** Repeating an action on the same selection toggles;
+ *     markers (`****foo****`) and prefixes (`# ## Foo`) never accumulate.
  *
- *  2. **Whitespace-safe.** Wrapping a selection like `  foo  ` puts
- *     the markers OUTSIDE the trimmed range so the result is
- *     `  **foo**  `, which is valid markdown. Whitespace-only
- *     selections behave like empty (drop a marker pair, cursor inside).
+ *  2. **Whitespace-safe.** Wrapping `  foo  ` puts the markers OUTSIDE the
+ *     trimmed range (`  **foo**  `), which is valid markdown.
+ *     Whitespace-only selections behave like an empty one (a marker pair,
+ *     cursor inside).
  *
- *  3. **Per-line for line-anchored ops.** Headings, lists, quotes
- *     apply to every non-blank line in the selection — clicking H1
- *     across three lines makes all three H1. Blank lines are skipped
- *     (we don't add `# ` to an empty line).
+ *  3. **Per-line for line-anchored ops.** Headings, lists and quotes apply
+ *     to every non-blank line of the selection; blank lines are skipped.
  *
- *  4. **Per-line for inline wraps when multi-line.** If the selection
- *     spans more than one line, each non-blank line gets the marker
- *     individually. Otherwise the existing wrap goes outside the
- *     trimmed selection.
+ *  4. **Per-line for inline wraps on multi-line selections.** Each
+ *     non-blank line gets the marker individually.
  *
- *  5. **Mixed-state toggle policy.** When a multi-line action would
- *     have an asymmetric effect (some lines already have the
- *     marker/prefix, some don't), we **add** to all missing rather
- *     than removing from all present. So a single click is always
- *     either "make all this X" or "remove X from all this", never
- *     partial. Toggle off only fires when ALL non-blank lines already
- *     have the marker/prefix.
+ *  5. **Mixed-state policy.** When some lines already have the
+ *     marker/prefix and some don't, add it to the missing ones; toggle off
+ *     only when ALL non-blank lines have it. A click is never a partial
+ *     change.
  *
- *  6. **Disambiguation.** Single-char markers (`*` italic, `~` sub)
- *     never steal from doubled markers (`**` bold, `~~` strike). So
- *     italic on `**foo**` produces `***foo***`, not `*foo*` corruption.
+ *  6. **Disambiguation.** Single-char markers (`*` italic, `~` sub) never
+ *     steal from doubled ones (`**` bold, `~~` strike): italic on
+ *     `**foo**` gives `***foo***`.
  *
- *  7. **Code is special.** `toggleCode` produces inline backticks for
- *     single-line selections, a fenced ` ``` ` block for multi-line.
+ *  7. **Code is special.** `toggleCode` uses inline backticks for a single
+ *     line and a fenced ` ``` ` block for multiple lines.
  */
-
-// — line walking ——————————————————————————————————————————————————
 
 interface LineInfo { from: number, to: number, text: string, number: number }
 
@@ -62,13 +52,9 @@ const isBlank = (s: string) => s.trim().length === 0
 const BLOCK_PREFIX_RE = /^(\s*)([-*]\s+\[[ xX]\]\s+|[-*]\s+|\d+\.\s+|>\s+)/
 const HEADING_PREFIX_RE = /^(#{1,6})\s+/
 
-// — inline wrap (single-line core) —————————————————————————————————
-
 /**
- * Wrap/unwrap one selection range with `marker`. Used directly for
- * single-line ops; the multi-line `toggleWrap` calls into this per
- * line. Builds and returns a ChangeSpec list rather than dispatching
- * so callers can batch.
+ * Wrap/unwrap one selection range with `marker`. Returns a ChangeSpec
+ * list instead of dispatching so callers can batch.
  */
 function wrapRangeChanges(
   view: EditorView,
@@ -84,10 +70,9 @@ function wrapRangeChanges(
   const trailing = selected.slice(selected.trimEnd().length)
   const trimmed = selected.slice(leading.length, selected.length - trailing.length)
 
-  // Empty / whitespace-only — caller decides if it makes sense to act.
   if (trimmed.length === 0) {
     if (from === to) {
-      // Empty cursor — drop marker pair, cursor between.
+      // Empty cursor: marker pair with the cursor between.
       return {
         changes: [{ from, to, insert: marker + marker }],
         finalFrom: from + marker.length,
@@ -100,7 +85,7 @@ function wrapRangeChanges(
   const trimFrom = from + leading.length
   const trimTo = to - trailing.length
 
-  // Outside-wrap: marker chars adjacent to the trimmed range.
+  // Markers adjacent to the trimmed range.
   const before = view.state.sliceDoc(Math.max(0, trimFrom - marker.length), trimFrom)
   const after = view.state.sliceDoc(trimTo, Math.min(docLen, trimTo + marker.length))
   let wrappedOutside = before === marker && after === marker
@@ -122,8 +107,8 @@ function wrapRangeChanges(
     }
   }
 
-  // Inside-wrap: trimmed text starts AND ends with marker (selection
-  // dragged across the wrappers).
+  // Trimmed text starts AND ends with the marker (selection dragged
+  // across the wrappers).
   let insideWrap = trimmed.length >= marker.length * 2
     && trimmed.startsWith(marker) && trimmed.endsWith(marker)
   if (insideWrap && marker.length === 1 && (marker === '*' || marker === '~')) {
@@ -142,7 +127,6 @@ function wrapRangeChanges(
     }
   }
 
-  // Default: wrap outside the trimmed range.
   return {
     changes: [{ from, to, insert: leading + marker + trimmed + marker + trailing }],
     finalFrom: trimFrom + marker.length,
@@ -160,7 +144,6 @@ export function toggleWrap(view: EditorView, marker: string): void {
   const { from, to } = view.state.selection.main
   const selected = view.state.sliceDoc(from, to)
 
-  // Single-line path (or empty selection).
   if (!selected.includes('\n')) {
     const result = wrapRangeChanges(view, from, to, marker)
     if (!result) return
@@ -172,7 +155,6 @@ export function toggleWrap(view: EditorView, marker: string): void {
     return
   }
 
-  // Multi-line path — per non-blank line.
   const lines = linesInPrimarySelection(view)
   const nonBlank = lines.filter(l => !isBlank(l.text))
   if (nonBlank.length === 0) return
@@ -182,7 +164,7 @@ export function toggleWrap(view: EditorView, marker: string): void {
     if (trimmed.length < marker.length * 2) return false
     if (!trimmed.startsWith(marker) || !trimmed.endsWith(marker)) return false
     if (marker.length === 1 && (marker === '*' || marker === '~')) {
-      // Defensive: don't treat `**foo**` as italic-wrapped.
+      // Don't treat `**foo**` as italic-wrapped.
       if (trimmed[marker.length] === marker
         || trimmed[trimmed.length - marker.length - 1] === marker) return false
     }
@@ -199,11 +181,10 @@ export function toggleWrap(view: EditorView, marker: string): void {
     const trimmed = text.slice(leading.length, text.length - trailing.length)
 
     if (allWrapped) {
-      // Strip wrap on every line.
       const stripped = trimmed.slice(marker.length, trimmed.length - marker.length)
       changes.push({ from: line.from, to: line.to, insert: leading + stripped + trailing })
     } else {
-      // Add wrap only to lines that don't already have it (idempotent).
+      // Only lines that don't already have it.
       if (wrappedTrimmed(text)) continue
       changes.push({
         from: line.from,
@@ -217,8 +198,6 @@ export function toggleWrap(view: EditorView, marker: string): void {
   view.dispatch({ changes })
   view.focus()
 }
-
-// — code (special) ————————————————————————————————————————————————
 
 /**
  * Inline backticks for single-line selections; fenced ` ``` ` block for
@@ -240,11 +219,9 @@ export function toggleCode(view: EditorView): void {
   const fenceOpen = /^```\w*\s*$/
   const fenceClose = /^```\s*$/
 
-  // Case A: selection includes the fence lines themselves (user selected
-  // the whole block).
+  // Case A: the selection includes the fence lines themselves; strip them
+  // plus the adjoining newlines.
   if (fenceOpen.test(startLine.text) && fenceClose.test(endLine.text) && startLine.number < endLine.number) {
-    // Strip the first and last line of the selection (the fences) plus
-    // the newline that follows / precedes them.
     const secondLine = view.state.doc.line(startLine.number + 1)
     const beforeLast = view.state.doc.line(endLine.number - 1)
     view.dispatch({
@@ -257,7 +234,7 @@ export function toggleCode(view: EditorView): void {
     return
   }
 
-  // Case B: selection is between fence lines (above startLine and below endLine).
+  // Case B: the selection sits between fence lines.
   const lineBefore = startLine.number > 1 ? view.state.doc.line(startLine.number - 1) : null
   const lineAfter = endLine.number < view.state.doc.lines ? view.state.doc.line(endLine.number + 1) : null
   const fenceBefore = lineBefore && fenceOpen.test(lineBefore.text)
@@ -274,7 +251,6 @@ export function toggleCode(view: EditorView): void {
     return
   }
 
-  // Default: wrap.
   view.dispatch({
     changes: [
       { from: startLine.from, insert: '```\n' },
@@ -283,8 +259,6 @@ export function toggleCode(view: EditorView): void {
   })
   view.focus()
 }
-
-// — heading prefix —————————————————————————————————————————————————
 
 /**
  * Heading toggle. Per-line on multi-line selections.
@@ -321,8 +295,6 @@ export function toggleHeading(view: EditorView, level: number): void {
   view.focus()
 }
 
-// — line prefix (quote, unordered list, task list) ————————————————————
-
 /**
  * Line-anchored block prefix toggle (`> `, `- `, `- [ ] `, …). Per-line
  * on multi-line selections.
@@ -347,9 +319,9 @@ export function toggleLinePrefix(view: EditorView, prefix: string): void {
   if (nonBlank.length === 0) return
 
   const wanted = prefix.replace(/^\s*/, '')
-  // Checked (`- [x] `) and unchecked (`- [ ] `) task items are the same
-  // list type — clicking "task list" on a checked item should toggle
-  // the whole task off, not normalize the check state.
+  // Checked and unchecked task items are the same list type: "task list"
+  // on a checked item toggles the task off instead of normalising the
+  // check state.
   const isTaskPrefix = (s: string) => /^[-*]\s+\[[ xX]\]\s+/.test(s)
   const hasPrefix = (text: string) => {
     const m = BLOCK_PREFIX_RE.exec(text)
@@ -415,17 +387,14 @@ export function toggleOrderedList(view: EditorView): void {
   view.focus()
 }
 
-// — block insert ——————————————————————————————————————————————————
-
 /**
- * Insert a markdown table sized `rows × cols` (rows includes the header
- * row, matching the convention users expect from picker-style table
- * inserters: a "3 × 3" pick yields three visible rows total). The first
- * row gets `Column 1` … `Column N` placeholders; body cells are blank
- * (three spaces per cell so the table reads cleanly in source).
+ * Insert a markdown table sized `rows × cols`. `rows` includes the header
+ * row, so a "3 × 3" pick yields three visible rows. The header gets
+ * `Column 1` … `Column N` placeholders; body cells are three spaces so the
+ * source reads cleanly.
  *
- * Always inserts on its own pair of newlines so the table parses
- * cleanly regardless of where the cursor was.
+ * Always inserts on its own pair of newlines so the table parses wherever
+ * the cursor was.
  */
 export function insertTable(view: EditorView, rows: number, cols: number): void {
   const safeRows = Math.max(1, rows)
@@ -449,8 +418,8 @@ export function insertTable(view: EditorView, rows: number, cols: number): void 
 }
 
 /**
- * Replace the current selection with a block of text. Used for HRs and
- * tables. No toggle, no per-line — just an insertion.
+ * Replace the current selection with a block of text (HRs, tables). A
+ * plain insertion: no toggle, not per-line.
  */
 export function insertBlock(view: EditorView, text: string): void {
   const { from, to } = view.state.selection.main
@@ -461,19 +430,18 @@ export function insertBlock(view: EditorView, text: string): void {
   view.focus()
 }
 
-/**
- * Insert a footnote pair: the `[^N]` ref at the cursor and a matching
- * `[^N]: ` definition at the end of the doc, with the cursor placed at
- * the empty definition body so the user can type immediately.
- *
- * `N` is auto-numbered: scans existing `[^digit]` refs and picks the
- * next integer. So adding three footnotes in a row produces 1, 2, 3
- * regardless of where they're inserted in the doc body.
- */
 function footnoteSeparator(lastChar: string): string {
   return lastChar === '\n' ? '\n' : '\n\n'
 }
 
+/**
+ * Insert a footnote pair: the `[^N]` ref at the cursor and a matching
+ * `[^N]: ` definition at the end of the doc, with the cursor at the empty
+ * definition body.
+ *
+ * `N` is the next integer after the highest existing `[^digit]` ref, so
+ * three footnotes in a row give 1, 2, 3 wherever they sit in the body.
+ */
 export function insertFootnote(view: EditorView): void {
   const docText = view.state.doc.toString()
   const refs = [...docText.matchAll(/\[\^(\d+)\]/g)].map(m => Number.parseInt(m[1]!, 10))
@@ -483,9 +451,7 @@ export function insertFootnote(view: EditorView): void {
   const { from, to } = view.state.selection.main
   const docLen = view.state.doc.length
 
-  // Make sure the definition lands on its own line. If the doc is empty
-  // or already ends with a newline, just append; otherwise prefix with
-  // `\n\n` so it sits in its own paragraph at the bottom.
+  // The definition must land in its own paragraph at the bottom.
   const lastChar = docLen > 0 ? view.state.sliceDoc(docLen - 1, docLen) : ''
   const sep = docLen === 0 ? '' : footnoteSeparator(lastChar)
   const def = `${sep}[^${next}]: `
@@ -495,7 +461,7 @@ export function insertFootnote(view: EditorView): void {
       { from, to, insert: ref },
       { from: docLen, insert: def }
     ],
-    // Cursor at the end of the empty definition body (post-both-changes).
+    // End of the empty definition body, after both changes.
     selection: { anchor: docLen + ref.length + def.length }
   })
   view.focus()
@@ -504,13 +470,12 @@ export function insertFootnote(view: EditorView): void {
 export type AlertKind = 'NOTE' | 'TIP' | 'IMPORTANT' | 'WARNING' | 'CAUTION'
 
 /**
- * Insert a GitHub-style alert block at the current selection. Renders to
- * a `.markdown-alert` div via `@mdit/plugin-alert`. The selection (if
- * any) becomes the body; otherwise inserts a placeholder line and lands
- * the cursor where the user can immediately type.
+ * Insert a GitHub-style alert block (rendered to `.markdown-alert` by
+ * `@mdit/plugin-alert`). The selection, if any, becomes the body;
+ * otherwise a placeholder line is inserted.
  *
- * Each line of the body is prefixed with `> ` so the alert reads as a
- * single blockquote — that's the syntax the plugin parses.
+ * Every body line is prefixed with `> `: the plugin parses the alert as a
+ * single blockquote.
  */
 export function insertAlert(view: EditorView, kind: AlertKind): void {
   const { from, to } = view.state.selection.main
@@ -522,7 +487,7 @@ export function insertAlert(view: EditorView, kind: AlertKind): void {
   const block = `> [!${kind}]\n${bodyLines}`
   view.dispatch({
     changes: { from, to, insert: block },
-    // Cursor at end of body for continued typing.
+    // End of the body.
     selection: { anchor: from + block.length }
   })
   view.focus()
@@ -530,9 +495,8 @@ export function insertAlert(view: EditorView, kind: AlertKind): void {
 
 /**
  * Insert KaTeX math at the current selection. Inline wraps the selection
- * in single `$…$`; block emits a `$$…$$` fenced display equation on its
- * own line(s). Empty selection drops the cursor between the delimiters
- * so the user can type the formula immediately.
+ * in `$…$`; block emits a `$$…$$` display equation on its own lines. An
+ * empty selection puts the cursor between the delimiters.
  */
 export function insertMath(view: EditorView, mode: 'inline' | 'block'): void {
   const { from, to } = view.state.selection.main
@@ -551,7 +515,7 @@ export function insertMath(view: EditorView, mode: 'inline' | 'block'): void {
     return
   }
 
-  // Block: ensure delimiters sit on their own lines for the parser.
+  // The parser needs the delimiters on their own lines.
   const body = selected || ''
   const block = `$$\n${body}\n$$`
   const cursor = body.length > 0
@@ -575,11 +539,8 @@ export type MermaidKind
     | 'mindmap'
 
 /**
- * Minimal working examples for each Mermaid diagram kind. Each snippet
- * is short enough that the user can edit-in-place rather than read a
- * tutorial first. Kept as runnable diagrams (not skeletal placeholders)
- * so a user clicking "Sequence" gets an immediately-rendered preview to
- * play with.
+ * Minimal runnable example per Mermaid diagram kind, short enough to edit
+ * in place; a rendered preview appears immediately.
  */
 const MERMAID_TEMPLATES: Record<MermaidKind, string> = {
   flowchart: `flowchart LR
@@ -606,7 +567,7 @@ const MERMAID_TEMPLATES: Record<MermaidKind, string> = {
   gantt: `gantt
   title Project Plan
   dateFormat YYYY-MM-DD
-  section Phase 1
+  section Plan
   Design :a1, 2026-01-01, 14d
   Build  :after a1, 21d`,
   pie: `pie title Distribution
@@ -621,13 +582,12 @@ const MERMAID_TEMPLATES: Record<MermaidKind, string> = {
 }
 
 /**
- * Insert a Mermaid code block with a minimal example for the chosen
- * diagram kind. The block is fenced as ` ```mermaid `; the iframe
- * pre-processor (preview + print) detects the language and replaces
- * the block with its rendered SVG before paged.js paginates.
+ * Insert a ` ```mermaid ` block with an example for the chosen diagram
+ * kind; the iframe pre-processor (preview + print) renders it before
+ * paged.js paginates.
  *
- * Always inserts on its own pair of newlines so the fence parses
- * cleanly regardless of where the cursor was.
+ * Always inserts on its own pair of newlines so the fence parses wherever
+ * the cursor was.
  */
 export function insertDiagram(view: EditorView, kind: MermaidKind): void {
   const { from, to } = view.state.selection.main
@@ -635,19 +595,16 @@ export function insertDiagram(view: EditorView, kind: MermaidKind): void {
   const block = `\n\`\`\`mermaid\n${template}\n\`\`\`\n`
   view.dispatch({
     changes: { from, to, insert: block },
-    // Cursor at the end of the inserted block, ready to add prose
-    // after the diagram. The user can click into the diagram source
-    // to edit it.
+    // End of the inserted block, ready for prose after the diagram.
     selection: { anchor: from + block.length }
   })
   view.focus()
 }
 
 /**
- * Insert a `<!-- pagebreak -->` marker. The renderer's custom block
- * rule turns it into `<div class="page-break">`, which paged.js
- * breaks on. HTML-comment syntax means the marker is invisible in
- * other markdown renderers — docs ported elsewhere keep working.
+ * Insert a `<!-- pagebreak -->` marker, which the renderer turns into
+ * `<div class="page-break">` for paged.js. As an HTML comment it is
+ * invisible in other markdown renderers.
  */
 export function insertPageBreak(view: EditorView): void {
   const { from, to } = view.state.selection.main
@@ -660,18 +617,15 @@ export function insertPageBreak(view: EditorView): void {
 }
 
 /**
- * Wrap (or unwrap) the current selection in `<!-- ... -->`. Comments
- * stay in the markdown source but are stripped from preview/PDF/share
- * by the comment plugin in `renderMarkdown.ts` — useful for private
- * todos, alternative phrasings, and reminders to the writer.
+ * Wrap (or unwrap) the current selection in `<!-- ... -->`. Comments stay
+ * in the source but the comment plugin in `renderMarkdown.ts` strips them
+ * from preview/PDF/share (private notes, alternative phrasings).
  *
- * Behavior matches the bold-style `toggleWrap` ergonomics:
- *   - Empty selection → inserts `<!--  -->` and lands the cursor
- *     between the spaces, ready to type.
- *   - Selection already starts with `<!--` and ends with `-->` →
- *     unwraps (strips the delimiters), preserving the inner text.
- *   - Otherwise → wraps the selection as `<!-- selected -->` (single
- *     line or multi-line; the renderer handles both forms).
+ *   - Empty selection: inserts `<!--  -->` with the cursor between the
+ *     spaces.
+ *   - Selection already starts with `<!--` and ends with `-->`: unwraps,
+ *     keeping the inner text.
+ *   - Otherwise: wraps as `<!-- selected -->` (single or multi-line).
  */
 export function toggleComment(view: EditorView): void {
   const { from, to } = view.state.selection.main
@@ -681,7 +635,7 @@ export function toggleComment(view: EditorView): void {
     const insert = '<!--  -->'
     view.dispatch({
       changes: { from, to, insert },
-      // Cursor between the two spaces inside the delimiters.
+      // Between the two spaces inside the delimiters.
       selection: { anchor: from + 5 }
     })
     view.focus()
@@ -690,8 +644,7 @@ export function toggleComment(view: EditorView): void {
 
   const trimmed = selected.trim()
   if (trimmed.startsWith('<!--') && trimmed.endsWith('-->') && trimmed.length >= 7) {
-    // Unwrap. Preserve original leading/trailing whitespace by only
-    // touching the trimmed core.
+    // Only the trimmed core is touched, preserving surrounding whitespace.
     const lead = /^\s*/.exec(selected)![0]
     const trail = selected.slice(selected.trimEnd().length)
     const inner = trimmed.slice(4, -3).trim()
@@ -707,18 +660,16 @@ export function toggleComment(view: EditorView): void {
   const insert = `<!-- ${selected} -->`
   view.dispatch({
     changes: { from, to, insert },
-    // Re-select the original text inside the new delimiters so a second
-    // click toggles cleanly.
+    // Re-select the text so a second click toggles back.
     selection: { anchor: from + 5, head: from + 5 + selected.length }
   })
   view.focus()
 }
 
 /**
- * Insert a `[[toc]]` placeholder. The renderer (markdown-it-toc-done-
- * right) rewrites it into a nested list of links to every heading in
- * the doc. Always lands on its own line so the placeholder parses as
- * a block-level token, not inline text.
+ * Insert a `[[toc]]` placeholder, which markdown-it-toc-done-right
+ * rewrites into a nested list of heading links. It goes on its own line so
+ * it parses as a block token, not inline text.
  */
 export function insertToc(view: EditorView): void {
   const { from, to } = view.state.selection.main
@@ -731,26 +682,23 @@ export function insertToc(view: EditorView): void {
 }
 
 /**
- * Insert a definition-list template (`Term\n: Definition`) at the
- * cursor. Selects "Term" so the user can immediately type a real term;
- * the definition placeholder gets typed-into next via Tab/click.
+ * Insert a definition-list template (`Term\n: Definition`) and select
+ * "Term" so typing replaces it.
  */
 export function insertDefinitionList(view: EditorView): void {
   const { from, to } = view.state.selection.main
   const template = 'Term\n: Definition'
   view.dispatch({
     changes: { from, to, insert: template },
-    // Pre-select "Term" (4 chars) so typing replaces it.
     selection: { anchor: from, head: from + 4 }
   })
   view.focus()
 }
 
 /**
- * Keyboard shortcuts for inline formatting — the ones the Format menu
- * advertises (Bold ⌘B, Italic ⌘I) and the welcome document mentions.
- * `Mod` is Cmd on macOS and Ctrl elsewhere. Read-only editors fall
- * through (return false) so the browser's own handling is untouched.
+ * Inline-formatting shortcuts advertised by the Format menu (Bold, Italic).
+ * `Mod` is Cmd on macOS and Ctrl elsewhere. Read-only editors return false
+ * so the browser's own handling is untouched.
  */
 function wrapCommand(marker: string): (view: EditorView) => boolean {
   return (view) => {

@@ -2,7 +2,7 @@ import type { H3Event } from 'h3'
 import { planHasFeature, assertPlanFeature, resolveWorkspacePlan } from '../billing/entitlements'
 import type { WorkspaceRole } from '~~/shared/utils/documents/docPermissions'
 
-// Who may do what with a workspace's brand kit (WP10). Normal role checks
+// Who may do what with a workspace's brand kit. Normal role checks
 // (SSO enforcement applies). Reading the kit (the fonts + logos the theme
 // panel offers): any member. Changing it: admins, on a plan with the
 // `brandKit` feature. Without the feature (e.g. after a downgrade)

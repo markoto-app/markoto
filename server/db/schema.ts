@@ -2,10 +2,8 @@ import { pgTable, serial, integer, text, timestamp, primaryKey, index, uniqueInd
 import { sql, type SQL } from 'drizzle-orm'
 import type { DocTheme } from '~~/shared/types/theme'
 
-// Postgres `tsvector` — drizzle doesn't ship a native type for it, but
-// generated columns + the usual operators work fine via customType. We
-// use STORED generation (the drizzle default) so the vector is computed
-// at write time and the GIN index stays in sync without triggers.
+// drizzle has no native `tsvector`; generated columns are STORED so the
+// GIN index stays in sync without triggers.
 const tsvector = customType<{ data: string }>({
   dataType() { return 'tsvector' }
 })
@@ -14,9 +12,9 @@ export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   githubId: text('github_id').unique(),
   googleId: text('google_id').unique(),
-  // Generic OpenID Connect identity (WP7b, self-hosted IdPs). Keyed by
-  // the PAIR (issuer, subject) — `sub` is only unique per issuer, and
-  // the email is never the key. Both set or both null (CHECK below).
+  // Generic OpenID Connect identity. Keyed by the PAIR (issuer, subject):
+  // `sub` is only unique per issuer, and the email is never the key.
+  // Both set or both null (CHECK below).
   oidcIssuer: text('oidc_issuer'),
   oidcSubject: text('oidc_subject'),
   login: text('login'),
@@ -25,14 +23,11 @@ export const users = pgTable('users', {
   // PERSONAL subscription tier: `free` or `pro`. Team / Business are
   // workspace subscriptions (`workspace_subscriptions`). Set by the
   // Stripe webhook when `invoice.paid` / `subscription.updated` lands.
-  // The retired `max` / `ultra` values were mapped to `pro` by migration
-  // 0028. See AGENTS.md §7 "Billing (Stripe + LiteLLM)" +
-  // server/utils/AGENTS.md.
+  // See server/utils/AGENTS.md.
   plan: text('plan', { enum: ['free', 'pro'] }).notNull().default('free'),
   // Paid-tier expiry = Stripe's `current_period_end`. NULL for free
   // users (free never lapses). Set by the Stripe webhook; the
-  // plan-lapse sweep flips the row back to `free` + disables any
-  // `(+)` workspaces once we're past this timestamp.
+  // plan-lapse sweep flips the row back to `free` once past it.
   planValidUntil: timestamp('plan_valid_until', { withTimezone: true }),
   // Stripe's `current_period_start` for paid users — anchors the
   // AI-credits billing period so quota resets on the invoice day, not
@@ -45,64 +40,47 @@ export const users = pgTable('users', {
   // currency for life, so checkout refuses a different one (409
   // `billing/currency-locked`). NULL until the first subscription.
   billingCurrency: text('billing_currency', { enum: ['eur', 'chf'] }),
-  // Platform chat model the user picked (WP5): 'fast' = the instance chat
+  // Platform chat model the user picked: 'fast' = the instance chat
   // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL — only applied
   // while the plan includes `aiStrongModel`. Own keys are unaffected.
   aiModelTier: text('ai_model_tier', { enum: ['fast', 'strong'] }).notNull().default('fast'),
-  // Phase 6 LiteLLM virtual-key handle. ONE source of truth for the
-  // user's AI budget — every billable AI call routes through
-  // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the
-  // `max_budget` set at the user's plan tier. Lazy-created on first
-  // AI use via `ensureUserKey(userId, plan)`; updated by Stripe
-  // webhooks on plan changes.
+  // LiteLLM virtual-key handle: the single source of truth for the
+  // user's AI budget. Every billable AI call goes through
+  // `useLitellmForUser(litellmKeyToken)` and LiteLLM enforces the plan's
+  // `max_budget`. Lazy-created on first AI use via
+  // `ensureUserKey(userId, plan)`; updated by Stripe webhooks on plan
+  // changes.
   //
-  // Token storage: encrypted at rest with `LITELLM_SALT_KEY` (already
-  // provisioned for LiteLLM's internal token-table encryption). The
-  // raw token only exists in memory long enough to construct the
-  // OpenAI SDK client. `litellmKeyId` is the bookkeeping handle
-  // (LiteLLM's internal token id) — useful for `/key/info` calls that
-  // accept either the token or the id.
+  // The token is encrypted at rest with `LITELLM_SALT_KEY` and only held
+  // in memory to build the OpenAI SDK client. `litellmKeyId` is LiteLLM's
+  // internal token id, accepted by `/key/info` in place of the token.
   litellmKeyId: text('litellm_key_id').unique(),
   litellmKeyToken: text('litellm_key_token'),
   // Platform-admin flag. Source of truth for `/admin/*` access.
-  // Bootstrap: a user whose email is in `NUXT_ADMIN_USER_EMAILS` is
-  // auto-promoted to is_admin=true on next OAuth login (see
-  // `users` repo `upsertOAuthUser`). After that, the column is the
-  // durable record — env-list changes only matter for new
-  // bootstrapping users, not steady-state. Never set this for a
-  // user without their explicit consent + an audit trail
-  // (`admin.granted` action).
+  // A user whose email is in `NUXT_ADMIN_USER_EMAILS` is promoted on
+  // their next OAuth login (`upsertOAuthUser`); after that the column is
+  // the durable record. Never set it without the user's consent and an
+  // `admin.granted` audit row.
   isAdmin: boolean('is_admin').notNull().default(false),
-  // User's preferred locale. Drives all transactional emails (delete
-  // confirmation, export-ready, breach notification, consent-version
-  // bump) and the legal-document fallback when a per-locale translation
-  // is missing. Nullable on purpose: NULL means "user never explicitly
-  // chose, fall back to Accept-Language at send time". Don't default to
-  // 'en' — that erases the distinction between "user picked English"
-  // and "we never asked".
+  // Preferred locale for transactional emails and the legal-document
+  // fallback. NULL means "never chose, use Accept-Language at send time";
+  // don't default to 'en', that erases the difference between "picked
+  // English" and "never asked".
   locale: text('locale'),
-  // GDPR Article 8: minors require parental consent. We require an age
-  // confirmation at signup (and re-confirmation at next login for
-  // grandfathered accounts). NULL means "not yet confirmed" — login
-  // interstitial forces the user through the gate. NEVER backfill this
-  // to a non-null value retroactively for existing users; we never
-  // asked them at signup so any default would be a legal lie.
+  // GDPR Art. 8 age confirmation. NULL means "not yet confirmed" and the
+  // onboarding gate forces the user through it. Never backfill a value
+  // for accounts that were not asked: a default would be a false record.
   ageConfirmedAt: timestamp('age_confirmed_at', { withTimezone: true }),
-  // GDPR Article 17: deletion requested by the user. We mark the row,
-  // notify the user by email, then run a 30-day grace period during
-  // which a re-login can cancel. The `accountDeletionSweep` cron picks
-  // up rows past `deletionGraceUntil` and hard-deletes the user + all
-  // owned content. NULL on both = account is active.
+  // GDPR Art. 17 deletion request: a 30-day grace period during which
+  // the user can cancel; `accountDeletionSweep` hard-deletes rows past
+  // `deletionGraceUntil`. NULL on both = account is active.
   deletionRequestedAt: timestamp('deletion_requested_at', { withTimezone: true }),
   deletionGraceUntil: timestamp('deletion_grace_until', { withTimezone: true }),
-  // Acceptance state for our three customer-facing legal documents.
-  // The integer is the version that was acceptable AT acceptance time
-  // (matched against `shared/legal/versions.ts`); on bump, the app
-  // re-prompts. The `_locale` companion records which locale the user
-  // actually saw at acceptance — important if a translation later turns
-  // out to have drifted from the authoritative English text. Nullable
-  // because (a) existing users will be re-prompted on next login, and
-  // (b) DPA only applies to workspace owners.
+  // Acceptance state for the legal documents. The integer is the version
+  // accepted (compared with `shared/legal/versions.ts`; a bump re-prompts).
+  // `_locale` records which translation the user saw, in case it drifts
+  // from the authoritative English text. Nullable because the DPA only
+  // applies to workspace owners.
   tosVersionAccepted: integer('tos_version_accepted'),
   tosVersionAcceptedLocale: text('tos_version_accepted_locale'),
   privacyVersionAccepted: integer('privacy_version_accepted'),
@@ -113,17 +91,14 @@ export const users = pgTable('users', {
   // value current at sign-in (`e`); `resolveValidatedUser` rejects a
   // cookie whose `e` differs. Bumped by "log out everywhere" and by an
   // account-deletion request, which invalidates every outstanding
-  // cookie at once (cookies themselves can't be recalled). Cookies from
-  // before this column existed carry no `e` and count as epoch 0.
+  // cookie at once (cookies themselves can't be recalled). A cookie
+  // without `e` counts as epoch 0.
   sessionEpoch: integer('session_epoch').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  // Plan-lapse sweep scans for `planValidUntil < now()` among non-free
-  // users. Partial index keeps it cheap as the user table grows.
+  // Partial indexes: the plan-lapse and account-deletion sweeps scan these
+  // columns, which are null for most rows.
   index('idx_users_plan_valid_until').on(table.planValidUntil).where(sql`${table.planValidUntil} is not null`),
-  // Account-deletion sweep scans for `deletionGraceUntil < now()`. Same
-  // partial-index pattern: the column is null for the vast majority of
-  // rows, so the index stays small.
   index('idx_users_deletion_grace_until').on(table.deletionGraceUntil).where(sql`${table.deletionGraceUntil} is not null`),
   uniqueIndex('uq_users_oidc_identity').on(table.oidcIssuer, table.oidcSubject),
   check('ck_users_oidc_identity_pair', sql`(${table.oidcIssuer} is null) = (${table.oidcSubject} is null)`)
@@ -133,12 +108,10 @@ export const documents = pgTable('documents', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().unique(),
   ownerId: integer('owner_id').references(() => users.id),
-  // Optional parent workspace. Folder-like containment: set at creation
-  // and moveable afterwards via PATCH /api/docs/:docId/workspace
-  // (authz: canManageDoc on source + admin/editor on target).
-  // Workspace delete cascades at the app layer via `deleteDocument()`
-  // per-doc — FK kept at `set null` as a defensive fallback if a row
-  // survives the cascade.
+  // Optional parent workspace, set at creation and movable via
+  // PATCH /api/docs/:docId/workspace (canManageDoc on source + admin/editor
+  // on target). Workspace delete cascades per doc in the app via
+  // `deleteDocument()`; the `set null` FK is only a fallback.
   workspaceId: text('workspace_id').references(() => workspaces.workspaceId, { onDelete: 'set null' }),
   title: text('title').notNull().default('Untitled'),
   // `private` = owner-only (default for logged-in users on creation).
@@ -150,7 +123,7 @@ export const documents = pgTable('documents', {
     enum: ['private', 'open-edit', 'open-view', 'password-protected']
   }).notNull().default('open-edit'),
   passwordHash: text('password_hash'),
-  // Share-link controls (WP9). After `share_expires_at` a public access
+  // Share-link controls. After `share_expires_at` a public access
   // mode (open-edit / open-view / password) acts as `private` for
   // everyone but the owner and workspace members (`docStateOf`).
   // `share_no_download`: those visitors get no PDF / Markdown download and
@@ -166,59 +139,46 @@ export const documents = pgTable('documents', {
   moderationReportId: text('moderation_report_id'),
   sizeBytes: integer('size_bytes').default(0),
   wordCount: integer('word_count').default(0),
-  // Per-doc theme (page size, fonts, colors, headers/footers, etc).
-  // NULL = use the in-code `defaultTheme`. Mirrored to ymeta.theme on the
-  // Y.Doc so changes broadcast live to every connected client; the DB row
-  // is the source of truth for new connections that haven't synced yet.
+  // Per-doc theme. NULL = the in-code `defaultTheme`. Mirrored to
+  // ymeta.theme on the Y.Doc for live broadcast; this row is the source
+  // of truth for connections that haven't synced yet.
   theme: jsonb('theme').$type<DocTheme>(),
-  // One-line "what this doc is about". Surfaced in the AI system prompt
-  // every turn so the model has durable context without the user
-  // re-typing it. Also shown as the subtitle on overview lists.
-  // Empty string means "not set" — UI collapses the subtitle and the
-  // prompt builder skips the `About:` line.
+  // One-line "what this doc is about", sent in the AI system prompt every
+  // turn and shown as the subtitle on overview lists. '' = not set (the
+  // UI collapses the subtitle, the prompt skips the `About:` line).
   description: text('description').notNull().default(''),
-  // Closed enum of writing registers. Resolves to a curated tone prompt
-  // fragment in `shared/audiences/index.ts` and is appended to the AI
-  // system prompt. `casual` is the most-neutral default — picking
-  // `technical` would bias every blank-dialog doc into engineering
-  // tone. Text-enum (not pgEnum) so adding values is TS-only.
+  // Writing register; resolves to a tone fragment in
+  // `shared/audiences/index.ts` that is appended to the AI system prompt.
+  // `casual` is the neutral default.
   audience: text('audience', {
     enum: ['technical', 'marketing', 'academic', 'casual', 'business', 'creative']
   }).notNull().default('casual'),
-  // Free-form language string. Either an ISO 639-1 code from the
-  // 6 curated presets (en/de/fr/es/ja/zh) OR any user-typed name
-  // ("english", "Deutsch", "Romantsch"). The AI handles both —
-  // we just smuggle the string into the system prompt verbatim
-  // and let the model pick its output language. ≤50 chars.
+  // Free-form: an ISO 639-1 preset code (en/de/fr/es/ja/zh) or any
+  // user-typed name ("Deutsch", "Romantsch"). Passed verbatim into the
+  // system prompt. ≤50 chars.
   language: text('language').notNull().default('en'),
-  // Provenance of the structural skeleton picked at creation time.
-  // Stored for analytics + a future "regenerate skeleton" feature
-  // but NEVER read by the AI prompt path (the title/description/
-  // audience/language fields carry all live AI context). Not
-  // editable post-creation. `blank` = no skeleton.
+  // Skeleton picked at creation. Never read by the AI prompt path (the
+  // title/description/audience/language fields carry the AI context) and
+  // not editable afterwards. `blank` = no skeleton.
   templateId: text('template_id').notNull().default('blank'),
   // Anonymous docs only: SHA-256 of the creating browser's random
   // creator key (the httpOnly `markoto-anon-creator` cookie). Deleting
   // an ownerless doc requires presenting the matching key, so only the
   // browser that created it can delete it (others can still edit an
-  // open-edit doc). NULL for owned docs and for anonymous docs created
-  // before this column existed — those can't be deleted anonymously;
-  // the inactive-doc sweep still removes them. No PII: the key is a
-  // random value, not tied to an identity.
+  // open-edit doc). NULL for owned docs and for older anonymous docs,
+  // which can't be deleted anonymously (the inactive-doc sweep still
+  // removes them). No PII: the key is random.
   anonCreatorKeyHash: text('anon_creator_key_hash'),
   // Anonymous docs created through the accept-terms gate
   // (server/utils/anonGate/): the Terms version the creating visitor
   // accepted (shared/legal/versions.ts TOS_VERSION at the time) and when
-  // they ticked the box. NULL for owned docs (accepted at onboarding) and
-  // for anonymous docs created before the gate, or on an instance with
-  // the gate off.
+  // they ticked the box. NULL for owned docs (accepted at onboarding),
+  // older anonymous docs, and instances with the gate off.
   anonTermsVersion: integer('anon_terms_version'),
   anonTermsAcceptedAt: timestamp('anon_terms_accepted_at', { withTimezone: true }),
-  // Earliest time the inactive-doc sweep may delete this doc. Set by
-  // migration 0024 on the anonymous docs that existed when retention went
-  // from 180 to 30 days (min(now + 30 days, last_active + 180 days)), so
-  // the shorter period never deletes them without a full 30-day notice
-  // window. NULL = no floor (every doc created since).
+  // Earliest time the inactive-doc sweep may delete this doc, so docs
+  // that predate the 30-day anonymous retention get a full 30-day notice
+  // window. NULL = no floor.
   sweepNotBefore: timestamp('sweep_not_before', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   lastActive: timestamp('last_active', { withTimezone: true }).notNull().defaultNow()
@@ -231,25 +191,20 @@ export const documents = pgTable('documents', {
 export const workspaces = pgTable('workspaces', {
   id: serial('id').primaryKey(),
   workspaceId: text('workspace_id').notNull().unique(),
-  // Immutable "original creator" field. Authorization goes through
-  // `workspace_members.role` — ownerId is for record-keeping only (e.g.
-  // "who invited everyone here"). Promoting/demoting admins never touches
-  // this row; deleting the creator's account would need separate handling.
+  // Immutable original creator. Authorization goes through
+  // `workspace_members.role`; ownerId is provenance only and is not
+  // changed by promoting/demoting admins.
   ownerId: integer('owner_id').notNull().references(() => users.id),
   name: text('name').notNull().default('My Workspace'),
   description: text('description'),
-  // DEPRECATED — the retired `(+)` workspace AI sponsorship (replaced by
-  // Team / Business workspace subscriptions, `workspace_subscriptions`).
-  // No code reads or writes them any more; they stay one release so a
-  // code rollback still finds them, then a migration drops them.
+  // Unused: nothing reads or writes these two columns.
   billingOwnerId: integer('billing_owner_id').references(() => users.id, { onDelete: 'set null' }),
   aiEnabled: boolean('ai_enabled').notNull().default(false),
-  // Default theme applied to NEW documents created in this workspace.
-  // NULL = use the markoto built-in preset (the global default). Set by
-  // workspace admins via the workspace settings UI. Snapshotted at
-  // creation — changing this later does NOT retheme existing docs.
+  // Theme applied to NEW documents in this workspace. NULL = the built-in
+  // preset. Snapshotted at creation: changing it doesn't retheme existing
+  // docs.
   defaultTheme: jsonb('default_theme').$type<DocTheme>(),
-  // Brand kit (WP10): while true (and the plan includes `brandKit`), every
+  // Brand kit: while true (and the plan includes `brandKit`), every
   // document in the workspace renders with `default_theme`'s design —
   // only its cover text stays its own (shared/utils/theme/brandLock.ts).
   // Enforced at render time; the documents' own themes are untouched.
@@ -257,34 +212,32 @@ export const workspaces = pgTable('workspaces', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_workspaces_owner').on(table.ownerId),
-  // Billing resolver reads `(+)` state by workspace id; sweep scans by
-  // billing owner. Both benefit from an index on billingOwnerId.
   index('idx_workspaces_billing_owner').on(table.billingOwnerId)
 ])
 
-// Team / Business subscription of a workspace (pricing plan WS2). One row
+// Team / Business subscription of a workspace. One row
 // per workspace that ever had one; Stripe drives every column through the
-// webhook (WP2/WP3). `resolveWorkspacePlan` (server/utils/billing/entitlements.ts)
+// webhook. `resolveWorkspacePlan` (server/utils/billing/entitlements.ts)
 // counts a row only while billing is on, `status` is live and
 // `valid_until` is in the future; otherwise the workspace falls back to
 // its creator's personal plan.
 export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
   workspaceId: text('workspace_id').primaryKey().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
   plan: text('plan', { enum: ['team', 'business'] }).notNull(),
-  // Paid seats. Members + open invitations may not exceed it (WP3).
+  // Paid seats. Members + open invitations may not exceed it.
   seats: integer('seats').notNull(),
   // Stripe subscription status, verbatim (active, trialing, past_due,
   // canceled, unpaid, incomplete, incomplete_expired, paused).
   status: text('status').notNull(),
   // The member who pays and manages billing. SET NULL when their account
   // is deleted; the account-deletion flow hands the role to the
-  // longest-serving workspace admin first (WP3).
+  // longest-serving workspace admin first.
   billingAdminId: integer('billing_admin_id').references(() => users.id, { onDelete: 'set null' }),
   stripeCustomerId: text('stripe_customer_id'),
   stripeSubscriptionId: text('stripe_subscription_id').unique(),
   currentPeriodStart: timestamp('current_period_start', { withTimezone: true }),
   validUntil: timestamp('valid_until', { withTimezone: true }),
-  // LiteLLM team holding the workspace's pooled AI budget (WP3).
+  // LiteLLM team holding the workspace's pooled AI budget.
   litellmTeamId: text('litellm_team_id'),
   // Seat changes inside the current LiteLLM budget window (30 days).
   // Added seats are charged pro rata, so they unlock budget only for the
@@ -305,7 +258,7 @@ export const workspaceSubscriptions = pgTable('workspace_subscriptions', {
   index('idx_workspace_subscriptions_customer').on(table.stripeCustomerId)
 ])
 
-// AI credit top-ups (pricing plan WP4): one row per paid top-up, for a
+// AI credit top-ups: one row per paid top-up, for a
 // user (Pro) or a workspace (Team / Business). `subject_id` is the user
 // id or the workspace id as text (no FK: two subject kinds; account and
 // workspace deletion delete the rows explicitly). `remaining_usd` goes
@@ -353,14 +306,9 @@ export const aiCreditSettlements = pgTable('ai_credit_settlements', {
   primaryKey({ columns: [table.subjectType, table.subjectId, table.period] })
 ])
 
-// User-saved theme presets. Per-user, not shared across workspaces. A
-// user can save up to 20 themes (parity with the workspaces-owned cap)
-// and apply them to any document they own from the theme picker.
-//
-// Workspace admins can pick any theme they own (built-in OR user-saved)
-// as the workspace's `defaultTheme`. The default is snapshotted into
-// `documents.theme` at creation time, so re-renaming or deleting a saved
-// theme later doesn't ripple into already-created docs.
+// User-saved theme presets (per user, up to 20). A workspace's
+// `defaultTheme` is snapshotted into `documents.theme` at creation, so
+// renaming or deleting a saved theme doesn't touch existing docs.
 export const themes = pgTable('themes', {
   id: serial('id').primaryKey(),
   themeId: text('theme_id').notNull().unique(),
@@ -387,12 +335,12 @@ export const themes = pgTable('themes', {
 export const workspaceMembers = pgTable('workspace_members', {
   workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  // `guest` (WP11): someone outside the team who sees ONLY the documents
+  // `guest`: someone outside the team who sees ONLY the documents
   // shared with them (`document_shares`). Not a member for any
   // workspace-level access — `getMemberRole` returns null for guests.
   role: text('role', { enum: ['admin', 'editor', 'viewer', 'guest'] }).notNull().default('editor'),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
-  // Team / Business (WP3): the member's monthly AI limit inside the
+  // Team / Business: the member's monthly AI limit inside the
   // workspace's pooled budget, in USD. NULL = the default (2 × the
   // per-seat budget); `ai_unlimited` = no member limit (the team budget
   // still applies). Set by workspace admins.
@@ -442,7 +390,7 @@ export const workspaceInvites = pgTable('workspace_invites', {
   index('idx_workspace_invites_expires').on(table.expiresAt)
 ])
 
-// Documents shared with a workspace GUEST (WP11): the only way a guest
+// Documents shared with a workspace GUEST: the only way a guest
 // reaches anything in the workspace. `edit` = editor rights on that one
 // document, `view` = read-only. Removed with the document, the guest's
 // membership (route code) and when the document leaves the workspace.
@@ -457,7 +405,7 @@ export const documentShares = pgTable('document_shares', {
   index('idx_document_shares_user').on(table.userId)
 ])
 
-// Opens of a shared document per day (WP9 view counts): pages opened by
+// Opens of a shared document per day: pages opened by
 // people other than the owner and workspace members. Aggregate counts
 // only — no visitor, address or cookie is recorded.
 export const documentViewDays = pgTable('document_view_days', {
@@ -468,7 +416,6 @@ export const documentViewDays = pgTable('document_view_days', {
   primaryKey({ columns: [table.docId, table.day] })
 ])
 
-// ── Published pages + custom domains (WP13) ─────────────────────────
 // A published page is a static web snapshot of a document: the HTML the
 // print page rendered (markdown → sanitised HTML, theme CSS, no cover, no
 // pagination), served at `/p/<slug>` (and on a verified custom domain)
@@ -518,8 +465,7 @@ export const customDomains = pgTable('custom_domains', {
   uniqueIndex('uq_custom_domains_user_host').on(table.userId, table.hostname)
 ])
 
-// ── Workspace brand kit (WP10) ───────────────────────────────────────
-// Fonts and logos uploaded by a workspace's admins. A font file is one
+// Brand kit: fonts and logos uploaded by a workspace's admins. A font file is one
 // family + weight + style; static TrueType outlines only (variable and
 // CFF fonts print as Type 3 in Chromium's PDFs and are refused —
 // server/utils/brandKit/fontInspect.ts). Bytes live in S3 at
@@ -548,7 +494,7 @@ export const workspaceBrandAssets = pgTable('workspace_brand_assets', {
   uniqueIndex('uq_brand_font_face').on(table.workspaceId, table.name, table.weight, table.style).where(sql`kind = 'font'`)
 ])
 
-// Workspace templates (WP10c): a LIVE link to one of the workspace's
+// Workspace templates: a LIVE link to one of the workspace's
 // documents. A new document made from it copies that document's current
 // text and design. Goes with the document (FK) and when the document
 // leaves the workspace (route code).
@@ -565,8 +511,7 @@ export const workspaceTemplates = pgTable('workspace_templates', {
   index('idx_workspace_templates_doc').on(table.docId)
 ])
 
-// ── Per-workspace single sign-on (WP14) ─────────────────────────────
-// A Business workspace connects its own identity provider (OIDC or SAML).
+// Per-workspace single sign-on. A Business workspace connects its own identity provider (OIDC or SAML).
 // See `server/utils/sso/AGENTS.md` for the flow; the rules in short:
 //
 //   - One connection per workspace. `draft` until an admin completed a
@@ -576,8 +521,8 @@ export const workspaceTemplates = pgTable('workspace_templates', {
 //   - Domains: the workspace proves ownership with a DNS TXT record. A
 //     verified domain is unique across workspaces; only addresses in a
 //     verified domain link to an existing account or join by JIT.
-//   - Identities: (connection, subject) → user. Replaces nothing — the
-//     instance-wide OIDC columns on `users` stay for the operator's IdP.
+//   - Identities: (connection, subject) → user. Separate from the
+//     instance-wide OIDC columns on `users`, which are for the operator's IdP.
 export const ssoConnections = pgTable('sso_connections', {
   id: text('id').primaryKey(),
   workspaceId: text('workspace_id').notNull().unique().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
@@ -647,9 +592,8 @@ export const ssoGrants = pgTable('sso_grants', {
   primaryKey({ columns: [table.userId, table.workspaceId] })
 ])
 
-// Active AI sessions. Survives Nitro restarts so the per-user-per-doc cap can't
-// be bypassed by restarting the process. Abort controllers themselves are
-// in-memory only — that's an acceptable single-process limitation for now.
+// Active AI sessions. Persisted so the per-user-per-doc cap survives
+// restarts. Abort controllers are in-memory only.
 export const aiSessions = pgTable('ai_sessions', {
   sessionId: text('session_id').primaryKey(),
   docId: text('doc_id').notNull(),
@@ -684,32 +628,22 @@ export const aiSessionProvenance = pgTable('ai_session_provenance', {
   index('idx_ai_session_provenance_user').on(table.userId)
 ])
 
-// Per-(doc, user) conversation memory feeding the AI agentic loop's
-// short-term context. Records the FACT of past prompts + tool calls
-// + AI messages so a follow-up prompt can resolve "it" / "that table"
-// without losing context across separate /api/ai/prompt requests.
+// Per-(doc, user) memory for the AI loop, so a follow-up prompt can
+// resolve "it" / "that table" across separate /api/ai/prompt requests.
 //
-// Compaction policy lives in `server/utils/agentic/conversationMemory.ts`:
-//   - kind='user_prompt' → body verbatim (small, conversational glue)
-//   - kind='message_to_user' → body verbatim (the AI's user-visible reply)
-//   - kind='tool_call' → body holds the tool NAME + a short arg summary
-//     ONLY. Tool RESULTS are never recorded — if the model needs the
-//     payload again it re-issues the call. This is the bloat-prevention
-//     bet: the fact "I called search_knowledge for 'pricing model'" is
-//     load-bearing, the chunks themselves are reproducible.
+// Compaction (`server/utils/agentic/conversationMemory.ts`):
+//   - user_prompt / message_to_user: body verbatim.
+//   - tool_call: tool NAME + a short arg summary only. Results are never
+//     stored; the model re-issues the call if it needs them.
 //
-// Cascade-on-doc-delete: memory is doc-bound. Cascade-on-user-delete:
-// privacy — we don't keep a user's AI conversation history past account
-// deletion. Same posture as the activity log on user-delete (anonymise)
-// would not apply here because the entries are PII-rich (their literal
-// prompts).
+// Cascades with the doc, and with the user: rows hold literal prompts, so
+// they are deleted on account deletion rather than anonymised.
 export const aiSessionMessages = pgTable('ai_session_messages', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  // The AI session that produced this row. Lets debugging correlate
-  // memory entries to a specific prompt's loop. Not a FK because
-  // ai_sessions rows are pruned on session-end while memory persists.
+  // The AI session that produced this row. Not a FK: ai_sessions rows are
+  // pruned at session end while memory persists.
   sessionId: text('session_id').notNull(),
   kind: text('kind', { enum: ['user_prompt', 'tool_call', 'message_to_user'] }).notNull(),
   // Shape varies by kind:
@@ -719,20 +653,18 @@ export const aiSessionMessages = pgTable('ai_session_messages', {
   body: jsonb('body').notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  // The hot read path is "load this user's recent memory for this doc",
-  // ordered by recency. Composite index covers it in one seek + a
-  // small backwards scan.
+  // Hot path: this user's recent memory for this doc.
   index('idx_ai_msg_doc_user_time').on(table.docId, table.userId, table.createdAt)
 ])
 
 // Image / file uploads. Inserted (unconfirmed) when the client requests a
 // presigned URL; flipped to confirmed when the client posts back after the
-// PUT. The orphan-cleanup plugin uses this table as the source of truth:
-//   - rows with confirmed_at = null AND created_at < now - 24h → abandoned;
-//     S3 object (if any) deleted, row dropped.
-//   - S3 objects under docs/{docId}/ with no matching s3_key in uploads
-//     AND last-modified > 24h → defensive cleanup.
-//   - whole prefix docs/{docId}/ when the parent document is gone → cascade.
+// PUT. The orphan-cleanup plugin treats this table as the source of truth:
+//   - confirmed_at null AND created_at older than 24h: abandoned; S3
+//     object (if any) and row deleted.
+//   - S3 objects under docs/{docId}/ with no matching s3_key and older
+//     than 24h: deleted.
+//   - the whole docs/{docId}/ prefix once the document is gone.
 // `s3_key` is the FINAL key (`docs/{docId}/{fileId}`); the browser PUTs to
 // a staging key (`docs/{docId}/staging/{fileId}`) that confirm copies from,
 // so the presigned URL can never rewrite a confirmed image.
@@ -759,23 +691,19 @@ export const uploads = pgTable('uploads', {
   index('idx_uploads_unconfirmed').on(table.confirmedAt, table.createdAt)
 ])
 
-// Workspace-level knowledge base. Files (PDFs, DOCX, PPTX, etc.) that
-// workspace members upload so the AI assistant can retrieve grounded
-// content when writing in any doc under that workspace. Ingest pipeline:
-// S3 → markitdown (→ markdown) → chunker → LiteLLM →
-// jina-embeddings-v5-text-nano (768-dim native) → chunks table. Vector
-// search + full-text retrieval is exposed to the AI via
-// `search_knowledge` and `get_knowledge_file` tools.
+// Workspace knowledge base: files uploaded so the AI can retrieve grounded
+// content in any doc of the workspace. Ingest: S3 → markitdown → chunker →
+// LiteLLM embeddings → chunks table; exposed to the AI via
+// `search_knowledge` and `get_knowledge_file`.
 //
-// Cascades: workspace delete drops rows via FK; per-row delete also
-// tears down chunks via chunks' FK cascade AND the original S3 object.
+// Workspace delete cascades via FK; deleting a row also removes its chunks
+// (FK cascade) and the original S3 object.
 export const workspaceKnowledge = pgTable('workspace_knowledge', {
   id: serial('id').primaryKey(),
   knowledgeId: text('knowledge_id').notNull().unique(),
   workspaceId: text('workspace_id').notNull().references(() => workspaces.workspaceId, { onDelete: 'cascade' }),
-  // Display name. Collisions are resolved with a numeric suffix
-  // (`report.pdf`, `report (2).pdf`) at confirm time — see duplicate
-  // handling in the knowledge repo.
+  // Display name. Collisions get a numeric suffix at confirm time
+  // (`report.pdf`, `report (2).pdf`).
   filename: text('filename').notNull(),
   // Extension hint routed to markitdown (pdf, docx, pptx, xlsx, html, epub, …).
   sourceExt: text('source_ext').notNull(),
@@ -790,10 +718,8 @@ export const workspaceKnowledge = pgTable('workspace_knowledge', {
   errorMessage: text('error_message'),
   chunkCount: integer('chunk_count').notNull().default(0),
   tokenCount: integer('token_count').notNull().default(0),
-  // String key like `jina/jina-embeddings-v5-text-nano:768` (or the
-  // legacy pre-Phase-5 `gemini-embedding-2-preview:768` shape on rows
-  // produced before the migration) so we can detect chunks produced
-  // with an old model/dim and re-embed lazily.
+  // Key like `jina/jina-embeddings-v5-text-nano:768`, so chunks produced
+  // with an old model/dim can be detected and re-embedded.
   embeddingVersion: text('embedding_version').notNull(),
   uploaderId: integer('uploader_id').references(() => users.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -802,8 +728,7 @@ export const workspaceKnowledge = pgTable('workspace_knowledge', {
   index('idx_wk_workspace').on(table.workspaceId),
   // Sweep stuck-processing rows older than N minutes.
   index('idx_wk_status_created').on(table.status, table.createdAt),
-  // Enforce per-workspace filename uniqueness at the DB layer — the
-  // confirm endpoint suffixes on collision before insert.
+  // The confirm endpoint suffixes on collision before insert.
   uniqueIndex('wk_workspace_filename_unq').on(table.workspaceId, table.filename)
 ])
 
@@ -818,15 +743,11 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
   chunkIndex: integer('chunk_index').notNull(),
   content: text('content').notNull(),
   tokens: integer('tokens').notNull(),
-  // 768 dims = Jina v5-text-nano native (no MRL truncation). HNSW-
-  // compatible (pgvector caps HNSW at 2000 dims, so larger embedding
-  // models would require IVFFlat — slower + worse recall at typical
-  // corpus sizes). Plenty for doc-retrieval.
+  // 768 dims = Jina v5-text-nano native. pgvector caps HNSW at 2000
+  // dims; larger models would need IVFFlat (slower, worse recall).
   embedding: vector('embedding', { dimensions: 768 }),
-  // Generated tsvector for BM25-style full-text search. Combined with
-  // the vector similarity via Reciprocal Rank Fusion in `searchKnowledge`.
-  // `STORED` (drizzle default) means Postgres materializes the vector at
-  // write time and the GIN index stays in sync without triggers.
+  // Full-text side of hybrid search; fused with vector similarity via
+  // Reciprocal Rank Fusion in `searchKnowledge`.
   contentTsv: tsvector('content_tsv').generatedAlwaysAs(
     (): SQL => sql`to_tsvector('english', ${workspaceKnowledgeChunks.content})`
   ),
@@ -838,13 +759,6 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
   index('idx_wkc_content_tsv').using('gin', table.contentTsv)
 ])
 
-// Phase 6 retired the per-period interaction counter. AI usage is now
-// gated solely by per-user LiteLLM virtual-key budgets — see
-// `users.litellmKeyToken` + `server/utils/litellm/userKeys.ts`. The single
-// source of truth for "how much AI budget does this user have left" is
-// LiteLLM's `/key/info` endpoint, surfaced to the UI as AI Points via
-// `/api/ai/credits`.
-
 // `metadata` carries structured detail per action — comment id + body
 // preview for `comment.*`, before/after for `title.changed`, tool name +
 // args preview for `ai.tool`. The UI renders human-readable strings via
@@ -853,11 +767,9 @@ export const workspaceKnowledgeChunks = pgTable('workspace_knowledge_chunks', {
 export const activityLog = pgTable('activity_log', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().references(() => documents.docId),
-  // Optional FK to the user who triggered this activity. Drives avatar
-  // lookup on the read endpoint (JOIN to users). Nullable because:
-  //   - AI rows have no user (synthetic principal "AI Assistant")
-  //   - Anonymous edits / pre-migration rows have no userId either
-  // `set null` on user deletion preserves the historical activity row.
+  // The user who triggered this activity (avatar lookup joins on it).
+  // NULL for AI rows and anonymous edits; `set null` on user deletion
+  // keeps the row.
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
   userName: text('user_name'),
   action: text('action', { enum: [
@@ -879,20 +791,17 @@ export const activityLog = pgTable('activity_log', {
   linesRemoved: integer('lines_removed'),
   metadata: jsonb('metadata'),
   // Boundary y-postgresql row ids around the store event that produced
-  // this activity row. `before` = max yjs_documents.id captured BEFORE
-  // the store; `after` = max id captured AFTER. Used by the diff
-  // endpoint to reconstruct the doc state on either side and compute
-  // a textual diff. Both nullable: pre-feature rows have neither, and
-  // some action types (e.g. metadata-only events fired ahead of the
-  // store flush) may legitimately leave them empty.
+  // this row: max yjs_documents.id BEFORE and AFTER the store. The diff
+  // endpoint reconstructs the doc on either side from them. Nullable:
+  // some actions (e.g. metadata-only events fired ahead of the store
+  // flush) have neither.
   yjsDocIdBefore: integer('yjs_doc_id_before'),
   yjsDocIdAfter: integer('yjs_doc_id_after'),
-  // Synthetic-principal label for agent-driven rows. Carries the JWT's
-  // userId verbatim when non-numeric — `'ai:assistant:{aiSessionId}'`
-  // for the in-app loop, `'mcp:{mcpSessionId}'` for MCP. NULL for
-  // human edits (which use `userId` instead).
+  // Principal label for agent-driven rows: the JWT's userId verbatim when
+  // non-numeric (`'ai:assistant:{aiSessionId}'` for the in-app loop,
+  // `'mcp:{mcpSessionId}'` for MCP). NULL for human edits (`userId`).
   //
-  // The unified-attribution chain that ActivityFeed renders against:
+  // Attribution chain ActivityFeed renders:
   //   actor_principal LIKE 'ai:assistant:%'
   //     → strip prefix → ai_sessions.session_id
   //       → ai_sessions.initiator_user_id → users (the human)
@@ -900,345 +809,229 @@ export const activityLog = pgTable('activity_log', {
   //     → strip prefix → mcp_sessions.mcp_session_id
   //       → mcp_sessions.user_id → users (the human)
   //       → mcp_sessions.client_name (e.g. 'Claude Desktop')
-  //
-  // Without this column, agent rows in `activity_log` have NO
-  // traceback to the human initiator from the activity row alone.
-  // The pre-Phase-3 implementation worked around this by hardcoding
-  // `userName='AI Assistant'` for AI rows; this column moves the
-  // identification to a structured field so MCP can join through
-  // the same render layer without polluting `user_name`.
   actorPrincipal: text('actor_principal'),
-  // Anonymous rows only: the random per-browser-tab avatar token the
-  // editor's presence broadcast (awareness `user.avatarSeed`,
-  // sessionStorage `markoto-anon-avatar`), so the Activity Log shows
-  // the same generated face as the presence bar. Not derived from
-  // anything about the visitor. NULL for signed-in users (avatar
-  // seeded by `user_id`), agents and rows written before 0027.
+  // Anonymous rows only: the random per-browser-tab avatar token from the
+  // presence broadcast (awareness `user.avatarSeed`, sessionStorage
+  // `markoto-anon-avatar`), so the Activity Log shows the same face as
+  // the presence bar. Not derived from anything about the visitor. NULL
+  // for signed-in users (seeded by `user_id`) and agents.
   actorAvatarSeed: text('actor_avatar_seed'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
   index('idx_activity_doc').on(table.docId, table.createdAt),
-  // Forensic queries for "every agent row across all docs": uncommon
-  // (the per-doc activity feed is the hot path) but cheap to support.
-  // Partial — only agent rows have a non-null principal, so the index
-  // stays small.
+  // Forensic "every agent row across all docs"; partial because only
+  // agent rows have a principal.
   index('idx_activity_actor_principal').on(table.actorPrincipal).where(sql`actor_principal IS NOT NULL`),
-  // Partial unique index that closes the cross-instance flush race
-  // documented in `sync-server/AGENTS.md`. Two sync-server containers
-  // can flush the same doc concurrently, both compute the same edit
-  // delta against the same `sync:prev-text:{docId}` baseline, and
-  // both POST identical `edit` activity rows with the same boundary
-  // ids. The index makes the second INSERT a no-op via
-  // `ON CONFLICT DO NOTHING` in `appendActivity`.
+  // Closes the cross-instance flush race: two sync containers flushing the same doc
+  // post identical `edit` rows with the same boundary ids; this makes the
+  // second INSERT a no-op (`ON CONFLICT DO NOTHING` in `appendActivity`).
   //
-  // Scope narrowed to the three sync-server-originated actions
-  // (`edit`, `title.changed`, `theme.changed`) because those are the
-  // ones whose race is real AND whose `(docId, yjsDocIdAfter)` tuple
-  // is naturally unique-per-flush. Comment events legitimately share
-  // a `yjsDocIdAfter` across rows in one snapshot batch (multiple
-  // comment.* rows fan out from one store event), and restore rows
-  // are user-originated. Both are excluded by the action filter and
-  // continue to insert unconditionally.
+  // Limited to the three sync-server actions, whose `(docId,
+  // yjsDocIdAfter)` is unique per flush. Comment rows legitimately share
+  // a `yjsDocIdAfter` within one snapshot batch, and restore rows are
+  // user-originated, so both insert unconditionally.
   uniqueIndex('uq_activity_doc_yjsafter')
     .on(table.docId, table.yjsDocIdAfter)
     .where(sql`yjs_doc_id_after IS NOT NULL AND action IN ('edit', 'title.changed', 'theme.changed')`)
 ])
 
-// Append-only audit log for security-sensitive operations. Distinct
-// from `activity_log` (per-doc user-facing feed of edits/comments/restores)
-// — `audit_log` records WHO changed access controls, deleted content, or
-// touched workspace membership / billing. Different retention policy
-// (no auto-prune; trail must persist), different access surface (admin /
-// internal forensic tools — never user-facing).
+// Append-only audit log of security-sensitive operations (access
+// changes, deletions, membership, billing). Separate from `activity_log`
+// (the user-facing per-doc feed): never auto-pruned, and only for admin /
+// forensic use.
 //
-// Append-only by convention: the repo exports no update or delete; the
-// only legitimate way for a row to disappear is the `set null` FK on
-// actor_user_id (when a user account is purged) or a manual DBA action.
+// Append-only by convention: the repo exports no update or delete.
 //
-// `actor_ip` is truncated to /24 (IPv4) or /48 (IPv6) before storage to
-// honour pseudonymisation under GDPR — full IPs are never persisted.
+// `actor_ip` is truncated to /24 (IPv4) or /48 (IPv6) before storage;
+// full IPs are never persisted.
 //
-// Failures to write here MUST NOT propagate into the caller. The user's
-// primary action (delete, role change, etc.) has already committed by
-// the time the audit row is appended; failing the request because audit
-// logging is wedged would be worse than a missing audit row. The repo
-// swallows + Sentry-captures.
+// A failed write must NOT propagate to the caller: the primary action
+// has already committed, and failing it over a wedged audit log is worse
+// than a missing row. The repo swallows the error and reports to Sentry.
 export const auditLog = pgTable('audit_log', {
   id: serial('id').primaryKey(),
   ts: timestamp('ts', { withTimezone: true }).notNull().defaultNow(),
-  // Who did the thing. Null for system actions (sweepers, internal).
-  // `set null` so user-account deletion preserves the historical row
-  // (the audit trail is more valuable than the FK).
+  // Null for system actions. `set null` so account deletion keeps the row.
   actorUserId: integer('actor_user_id').references(() => users.id, { onDelete: 'set null' }),
   // Captured at action time, truncated to /24 (IPv4) / /48 (IPv6).
   // Null for server-internal actions.
   actorIp: text('actor_ip'),
-  // What kind of thing was acted on. The (scope, scope_id) pair is the
-  // primary cross-axis filter for the audit query UI. Text-enum (not
-  // pgEnum) so adding values is TS-only.
+  // What was acted on; (scope, scope_id) is the main filter.
   scope: text('scope', { enum: ['doc', 'workspace', 'user', 'billing', 'system'] }).notNull(),
-  // The id of the scoped entity. Doc id (text), workspace id (text),
-  // user id (number-as-text). Stored as text for uniformity across
-  // scopes; the consumer interprets it per-scope.
+  // Id of the scoped entity (doc id, workspace id, or user id as text).
   scopeId: text('scope_id'),
-  // The action namespace + verb. Examples:
-  //   'doc.deleted', 'doc.access_mode_changed', 'doc.password_set',
-  //   'doc.password_removed', 'doc.workspace_moved',
-  //   'workspace.member_removed', 'workspace.member_role_changed',
-  //   'workspace.deleted', 'workspace.billing_owner_changed',
-  //   'user.session_invalidated', 'billing.plan_changed'.
-  // Always lowercase, dot-separated, namespace-first.
+  // Lowercase, dot-separated, namespace-first: 'doc.deleted',
+  // 'workspace.member_role_changed', 'billing.plan_changed'. Registry:
+  // `server/legal/auditActions.ts`.
   action: text('action').notNull(),
-  // State before the action. JSONB so we can shape per-action.
-  // Example for 'doc.access_mode_changed': { accessMode: 'open-edit' }.
-  // Never stores secrets — passwords are recorded as { hasPassword: bool }.
+  // State before the action, shaped per action, e.g. { accessMode: 'open-edit' }.
+  // Never holds secrets: passwords are recorded as { hasPassword: bool }.
   before: jsonb('before'),
   // State after.
   after: jsonb('after'),
   // Free-form context. Examples: { reason: 'workspace_cascade' },
   // { affectedUserId: 42 }, { stripeEventId: 'evt_xxx' }.
   metadata: jsonb('metadata'),
-  // The workspace the event belongs to (WP15: the workspace audit-log
+  // The workspace the event belongs to (for the workspace audit-log
   // viewer). Set for every `workspace` / `billing` event (= scope_id) and
   // for document events of a workspace document (the workspace at the
   // time). Plain text, no FK: the record outlives the workspace.
   workspaceId: text('workspace_id')
 }, t => [
-  // Most queries are "show me audit events for this scoped entity".
   index('idx_audit_scope').on(t.scope, t.scopeId, t.ts.desc()),
-  // "Show me everything actor X did" — for investigating compromised accounts.
+  // Everything one actor did (compromised-account investigations).
   index('idx_audit_actor').on(t.actorUserId, t.ts.desc()),
-  // The workspace audit-log viewer + export (WP15).
+  // Workspace audit-log viewer + export.
   index('idx_audit_workspace').on(t.workspaceId, t.ts.desc())
 ])
 
-// Stripe webhook event-id dedup table. Stripe redelivers webhooks on
-// 5xx with exponential backoff (and at-least-once even on 2xx); the
-// retry payload carries the SAME `event.id` as the original delivery.
-// Naive UPSERT idempotency is fine for true replays of identical
-// values, but it loses defence against:
+// Stripe webhook event-id dedup. Stripe redelivers at least once, with
+// the same `event.id`. Plain UPSERT idempotency is not enough: a stale
+// redelivery after a manual correction (e.g. plan reset to 'free' for a
+// refund) or after cancel-then-resubscribe would clobber newer state.
 //
-//   1. Replays after concurrent state mutation (e.g. ops manually
-//      flipped a row to plan='free' for a refund — a stale
-//      subscription.updated redelivery clobbers the correction).
-//   2. Replays after a customer cancels-then-resubscribes (an old
-//      "active" event redelivered late could re-activate a cancelled
-//      subscription).
-//
-// We INSERT into this table inside the same transaction as the user
-// row update; on conflict we short-circuit with a 200 + `replayed:true`.
-// Stripe replays only within ~3 days, but we keep 90 days for forensic
-// "did we see this event in the suspect window?" investigations. A
-// daily sweeper prunes rows older than 90d.
+// The INSERT happens in the same transaction as the user-row update; on
+// conflict the handler answers 200 + `replayed:true`. Stripe replays
+// within ~3 days; rows are kept 90 days for forensics, then pruned by a
+// daily sweeper.
 export const processedWebhookEvents = pgTable('processed_webhook_events', {
-  // Stripe's event.id is the PK. Replays land on the same id and the
-  // INSERT ... ON CONFLICT DO NOTHING short-circuits.
   eventId: text('event_id').primaryKey(),
-  // What kind of event we processed — useful for ops grep without
-  // joining back to Stripe's API.
   type: text('type').notNull(),
-  // When we first processed it. Indexed for the aged-out cleanup
-  // sweep + forensic queries.
   processedAt: timestamp('processed_at', { withTimezone: true }).notNull().defaultNow()
 }, t => [
   index('idx_pwe_processed_at').on(t.processedAt)
 ])
 
-// Out-of-order webhook stash. Stripe's webhook delivery is at-least-
-// once and intentionally NOT ordered: subscription.* events can arrive
-// BEFORE checkout.session.completed, while `users.stripe_customer_id`
-// is still null. A subscription handler keying on `stripe_customer_id`
-// matches zero rows and silently drops.
+// Out-of-order webhook stash. Stripe doesn't order deliveries:
+// subscription.* events can arrive BEFORE checkout.session.completed,
+// while `users.stripe_customer_id` is still null, so a handler keyed on
+// it matches nothing. `handleCheckoutSessionCompleted` also fetches the
+// live subscription, which masks the drop; don't remove that fetch
+// without this stash. Unmatched events are stored by `customerId`, then
+// drained in `received_at` order and marked `processed=true` once
+// `checkout.session.completed` binds the customer to the user.
 //
-// Today this is masked because `handleCheckoutSessionCompleted` runs a
-// synchronous `stripe.subscriptions.retrieve` and applies canonical
-// state from the live API. If anyone removes that fetch for perf, the
-// dropped event becomes a real bug. We stash unmatched subscription
-// events here keyed by `customerId`; on `checkout.session.completed`
-// (after the customer id is bound to the user row) we drain matching
-// rows in `received_at` order and replay them, then mark
-// `processed=true`.
-//
-// A daily sweeper prunes processed=true rows older than 7 days AND
-// drops never-replayed rows older than 30 days (dead customers — the
-// checkout never landed, so we'd be holding the stash forever).
+// A daily sweeper prunes processed rows after 7 days and never-replayed
+// rows after 30 (the checkout never landed).
 export const pendingStripeEvents = pgTable('pending_stripe_events', {
-  // Stripe's event.id — keeps INSERT idempotent against retries of
-  // the same orphan event. PK so a redelivery of an already-stashed
-  // event is a no-op.
+  // Stripe's event.id: PK, so redelivering a stashed event is a no-op.
   eventId: text('event_id').primaryKey(),
-  // Customer this event belongs to. Indexed because the drain query
-  // is "fetch all unprocessed rows for this customer ordered by
-  // received_at".
   customerId: text('customer_id').notNull(),
-  // Event type for ops grep ("how many subscription.created sit in
-  // stash right now?").
   type: text('type').notNull(),
-  // Full JSON payload — replayed verbatim through the dispatcher when
-  // the customer binding lands.
+  // Replayed verbatim through the dispatcher once the customer is bound.
   payload: jsonb('payload').notNull(),
   receivedAt: timestamp('received_at', { withTimezone: true }).notNull().defaultNow(),
-  // Flipped to true once the event has been replayed against a bound
-  // user row. Kept (not deleted) for a week so ops can audit what was
-  // late-applied; sweeper prunes after that.
+  // True once replayed against a bound user row; kept a week for audit.
   processed: boolean('processed').notNull().default(false),
   processedAt: timestamp('processed_at', { withTimezone: true })
 }, t => [
-  // Drain query is "WHERE customer_id = $1 AND processed = false
-  // ORDER BY received_at ASC".
+  // Drain: customer_id = $1 AND processed = false ORDER BY received_at.
   index('idx_pse_customer_unprocessed').on(t.customerId, t.processed, t.receivedAt),
-  // Sweeper queries scan by received_at across all rows.
   index('idx_pse_received_at').on(t.receivedAt)
 ])
 
-// Postgres mirror of the doc's comment threads. Y.js is the source of
-// truth (live sync, anchor positions, reactivity). This table is a
-// best-effort write-side index that lets us answer cross-doc questions
-// — "comments mentioning user X", "recent comment activity in this
-// workspace" — without iterating every Y.Doc on disk.
+// Postgres mirror of the doc's comment threads, for cross-doc questions
+// ("comments mentioning user X") without loading every Y.Doc. Y.js is the
+// source of truth; the editor sidebar reads it directly.
 //
-// Sync model: the sync server's `onStoreDocument` hook posts a full
-// snapshot of the doc's comments Y.Array to `/api/internal/comments-snapshot`,
-// which replaces the doc's rows. Eventually consistent — a few seconds
-// of lag after a comment edit is acceptable for the use cases this
-// table supports. There is no read path that anchors UX on it (the
-// editor's sidebar reads Y.js directly).
+// The sync server's `onStoreDocument` hook posts a full snapshot of the
+// comments Y.Array to `/api/internal/comments-snapshot`, which replaces
+// the doc's rows, so the table lags by a few seconds.
 //
-// Replies are stored in the same table with `parentCommentId` non-null;
-// thread roots have `parentCommentId = null`. Single-table simplifies
-// snapshot upserts at the cost of one nullable column.
+// Replies share the table: `parentCommentId` is set for replies and null
+// for thread roots.
 export const documentComments = pgTable('document_comments', {
-  // Composite PK is (docId, commentOrReplyId) — the snapshot endpoint
-  // delete-by-doc + bulk-insert pattern relies on knowing every row
-  // for a given docId.
   docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
-  // Y.js entry id (nanoid(12)). For replies this is the reply's own id;
-  // we don't reuse comment ids across roots and replies.
+  // Y.js entry id (nanoid(12)); a reply has its own id.
   entryId: text('entry_id').notNull(),
-  // NULL = thread root; set = this row is a reply, parent is the
-  // matching `entry_id` row in the same docId.
+  // NULL = thread root; otherwise the `entry_id` of the parent in the same doc.
   parentCommentId: text('parent_comment_id'),
-  // Author identity captured at write time. Author may have left the
-  // workspace since; we store the snapshot as the comment shows it.
+  // Author name snapshot, as shown on the comment.
   authorId: integer('author_id').references(() => users.id, { onDelete: 'set null' }),
   authorName: text('author_name').notNull(),
   body: text('body').notNull(),
-  // Y.js epoch-ms timestamps mirrored verbatim — kept as the canonical
-  // ordering signal so cross-doc queries match what the user sees.
+  // Y.js epoch-ms timestamps, mirrored verbatim so ordering matches the editor.
   createdAtMs: timestamp('created_at_ms', { withTimezone: true, mode: 'date' }).notNull(),
   updatedAtMs: timestamp('updated_at_ms', { withTimezone: true, mode: 'date' }).notNull(),
   resolved: boolean('resolved').notNull().default(false),
-  // Set if the Y.js anchor returned null at snapshot time. The sync
-  // server doesn't compute this directly (relative-position resolution
-  // requires the live Y.Doc) — fixed false for now; future work could
-  // surface it for "find my orphaned threads".
+  // Always false today: resolving the anchor needs the live Y.Doc, which
+  // the snapshot path doesn't have.
   orphaned: boolean('orphaned').notNull().default(false)
 }, table => [
   primaryKey({ columns: [table.docId, table.entryId] }),
-  // Mention notifications: a future endpoint will scan recent rows
-  // whose body matches `@[...](user:N)` for a given N.
   index('idx_document_comments_author').on(table.authorId),
   index('idx_document_comments_updated').on(table.updatedAtMs)
 ])
 
-// Append-only consent ledger. GDPR Article 7(1) requires the controller
-// to be able to "demonstrate that the data subject has consented" — this
-// table is that proof. Each row is a single consent decision (granted
-// or refused) for a single processing purpose at a point in time.
+// Append-only consent ledger (GDPR Art. 7(1) proof of consent): one row
+// per decision, per purpose, per point in time.
 //
-// Anonymous consent is supported: a logged-out visitor still needs to
-// answer the cookie banner before any non-essential storage happens.
-// `userId` is nullable; `anonId` is the first-party cookie that anchors
-// pre-login decisions and is later linked once the user logs in (a new
-// row records the link, the old anonymous rows are kept for audit).
+// Anonymous visitors are covered: `userId` is nullable and `anonId` is the
+// first-party cookie that anchors pre-login decisions; a later login adds
+// a row linking them and keeps the anonymous rows.
 //
-// Privacy posture: full IP is never stored. `ipTruncated` follows the
-// `audit_log.actor_ip` convention — /24 for IPv4, /48 for IPv6. The
-// user-agent string is fingerprinting-grade so we keep only a SHA-256
-// hash. Both columns are evidence that "someone with this network +
-// device fingerprint consented" without storing values that could
-// re-identify the subject if the table leaked.
+// Full IPs are never stored: `ipTruncated` follows the
+// `audit_log.actor_ip` convention (/24 IPv4, /48 IPv6) and the
+// user-agent is kept only as a SHA-256 hash.
 //
-// Append-only: the repo exposes no UPDATE or DELETE. Withdrawing consent
-// is recorded as a NEW row with `granted=false`. The latest row per
-// (subject, purpose) wins at read time.
+// The repo exposes no UPDATE or DELETE. Withdrawing consent is a NEW row
+// with `granted=false`; the latest row per (subject, purpose) wins.
 export const consentLog = pgTable('consent_log', {
   id: serial('id').primaryKey(),
-  // Logged-in subject. Nullable for anonymous (cookie-only) consent.
-  // `set null` so account deletion doesn't strip the proof — the row
-  // survives anonymized.
+  // NULL for anonymous consent. `set null` so account deletion keeps the
+  // proof, anonymised.
   userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
-  // First-party cookie id for anonymous tracking of consent state.
-  // ALWAYS populated, even for logged-in users, so a re-prompt after
-  // consent-version bump can be served before the session resolves.
+  // First-party cookie id. Always set, even for signed-in users, so a
+  // re-prompt after a consent-version bump works before the session
+  // resolves.
   anonId: text('anon_id').notNull(),
-  // The processing purpose this row decides. Text-enum (not pgEnum) so
-  // we can add purposes (e.g. `marketing_email`) without a migration.
-  // `essential` decisions are still recorded for completeness even
-  // though they aren't togglable in the banner.
+  // The processing purpose this row decides. Only `essential` is
+  // recordable now (`server/utils/privacy/consentDecisions.ts`); the other
+  // two values stay for rows written under consent version 1.
   purpose: text('purpose', {
     enum: ['essential', 'analytics', 'session_replay']
   }).notNull(),
   granted: boolean('granted').notNull(),
-  // Banner version the user actually saw. Bumping `consentVersion` in
-  // `shared/legal/versions.ts` invalidates prior consent: the app
-  // re-prompts and a new row lands at the new version.
+  // Consent version the user saw. Bumping `consentVersion` in
+  // `shared/legal/versions.ts` invalidates prior consent.
   version: integer('version').notNull(),
-  // Locale the banner was rendered in. Important for "did the user
-  // actually understand what they consented to" forensic queries if a
-  // translation drifts from the authoritative English text.
+  // Locale the text was shown in, in case a translation drifts from the
+  // authoritative English.
   locale: text('locale').notNull(),
-  // /24 (IPv4) or /48 (IPv6) — same convention as audit_log.actorIp.
-  // NEVER store full IPs.
+  // /24 (IPv4) or /48 (IPv6), as in audit_log.actorIp.
   ipTruncated: text('ip_truncated'),
-  // SHA-256 of the User-Agent header. Hashed so the raw fingerprint is
-  // not retained, but two consents from the same browser still match
-  // for fraud / "did the same client toggle this back and forth"
-  // forensic queries.
+  // SHA-256 of the User-Agent: the raw fingerprint isn't kept, but two
+  // consents from one browser still match.
   userAgentHash: text('user_agent_hash'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  // Hot read: "what's the latest consent state for this user, across
-  // purposes". Composite (user, purpose, time) covers it.
+  // Latest consent state per purpose, by user or by anon id.
   index('idx_consent_log_user').on(table.userId, table.purpose, table.createdAt.desc()),
-  // Anonymous read path mirrors the user one.
   index('idx_consent_log_anon').on(table.anonId, table.purpose, table.createdAt.desc())
 ])
 
-// DSA Article 16 notice-and-action mechanism. Anyone — logged-in or
-// anonymous — can flag a public document as illegal content via
-// `/legal/abuse` or the in-product "Report this document" menu item.
-// We acknowledge promptly, triage, and act (or dismiss with reason).
+// DSA Art. 16 notice-and-action: anyone, signed in or not, can report a
+// public document via `/legal/abuse` or the in-product menu.
 //
-// Reporter email is optional: anonymous reports are accepted (DSA does
-// not require reporter identity), but acknowledgement only flows if an
-// email is provided. The reporter's IP is truncated to /24 / /48 for
-// the same reason as audit_log + consent_log.
+// The reporter email is optional (the DSA doesn't require identity), but
+// acknowledgements only go out when one is given. The reporter's IP is
+// truncated like in audit_log + consent_log.
 //
-// `docId` is nullable so platform-wide reports (e.g. "this user is
-// abusing markoto across multiple docs") still have a home; the doc-
-// scoped link is the common case.
+// `docId` is nullable so platform-wide reports have a home.
 export const abuseReports = pgTable('abuse_reports', {
   id: serial('id').primaryKey(),
   reportId: text('report_id').notNull().unique(),
-  // Subject of the report — pure free-text. Reporters paste URLs,
-  // bare doc ids, typos, "platform-wide", or whatever the moderator
-  // can interpret. Deliberately NOT FK'd to documents.doc_id —
-  // the report is independently meaningful (and useful as evidence)
-  // even if the referenced doc never existed or has since been
-  // deleted in response to the report itself.
+  // Free text: reporters paste URLs, bare doc ids, typos, "platform-wide".
+  // Deliberately NOT an FK to documents.doc_id: the report stays evidence
+  // even if the doc never existed or was deleted because of the report.
   docId: text('doc_id'),
   // The reported location exactly as the reporter gave it (DSA
   // Art.16(2)(b) "exact electronic location") — usually the document
-  // URL. `doc_id` is what we could parse out of it. NULL on legacy rows.
+  // URL. `doc_id` is what we could parse out of it.
   contentUrl: text('content_url'),
-  // Logged-in reporter — populated when the form-submission path
-  // is used. NULL for email-channel reports + for legacy rows.
-  // Set null on user delete (we anonymise, don't cascade-delete
-  // — the report itself is still actionable evidence even after
-  // the reporter deletes their account).
+  // Signed-in reporter; NULL for email-channel reports. `set null` on user
+  // delete: the report stays actionable evidence.
   reporterUserId: integer('reporter_user_id').references(() => users.id, { onDelete: 'set null' }),
-  // Optional reporter contact. Anonymous reports allowed.
   reporterEmail: text('reporter_email'),
   // Reporter's name as typed in the form (Art.16(2)(c); optional for
   // CSAM reports). Signed-in reporters default to their profile name.
@@ -1247,16 +1040,11 @@ export const abuseReports = pgTable('abuse_reports', {
   // notice emails.
   reporterLocale: text('reporter_locale'),
   // When the reporter confirmed the good-faith statement (Art.16(2)(d)).
-  // NULL only on legacy rows (before the statement existed).
   goodFaithConfirmedAt: timestamp('good_faith_confirmed_at', { withTimezone: true }),
-  // Truncated reporter IP for forensic correlation only — paired with
-  // user_agent_hash so we can detect a single actor flooding reports
-  // without storing identifying detail.
+  // Truncated IP + user-agent hash, only to detect one actor flooding reports.
   reporterIpTruncated: text('reporter_ip_truncated'),
   reporterUserAgentHash: text('reporter_user_agent_hash'),
-  // Closed enum of report categories. Text-enum so we can add (e.g.
-  // `terrorism`, `hate_speech`) without a migration. `other` is the
-  // catch-all and forces a body.
+  // `other` is the catch-all and requires a body.
   category: text('category', {
     enum: ['illegal_content', 'copyright', 'csam', 'harassment', 'spam', 'other']
   }).notNull(),
@@ -1264,8 +1052,8 @@ export const abuseReports = pgTable('abuse_reports', {
   status: text('status', {
     enum: ['open', 'acknowledged', 'actioned', 'dismissed']
   }).notNull().default('open'),
-  // Internal moderator who handled the report. `set null` to preserve
-  // the audit trail when staff accounts are deactivated.
+  // Moderator who handled the report; `set null` keeps the record when
+  // the account goes.
   actionedBy: integer('actioned_by').references(() => users.id, { onDelete: 'set null' }),
   // Free-form internal notes (resolution rationale, communications log).
   // Never surfaced to the reporter.
@@ -1284,9 +1072,8 @@ export const abuseReports = pgTable('abuse_reports', {
   acknowledgedAt: timestamp('acknowledged_at', { withTimezone: true }),
   actionedAt: timestamp('actioned_at', { withTimezone: true })
 }, table => [
-  // Triage queue: open reports oldest-first.
+  // Triage queue, oldest first; per-doc lookup.
   index('idx_abuse_reports_status').on(table.status, table.createdAt),
-  // Per-doc lookup for "any open reports against this doc?".
   index('idx_abuse_reports_doc').on(table.docId)
 ])
 
@@ -1317,20 +1104,14 @@ export const moderationNotices = pgTable('moderation_notices', {
   index('idx_moderation_notices_report').on(table.reportId, table.createdAt)
 ])
 
-// GDPR Article 20 data-portability export jobs. The user requests an
-// export from `/settings/account/export`; we enqueue a row here, an
-// async worker streams a ZIP to S3, the user gets an email with a
-// presigned URL valid until `expiresAt`. Past expiry the sweeper
-// purges both the row and the S3 blob.
+// GDPR Art. 20 data-export jobs. A request enqueues a row; a worker
+// streams a ZIP to S3 and emails a presigned URL valid until
+// `expiresAt`, after which the sweeper purges the row and the blob.
 //
-// Hard cap: 1 active job per user (the worker checks `status IN
-// ('queued', 'running')` before enqueueing). Prevents cost-amplifying
-// retry loops if a malicious script POSTs `/export` repeatedly.
+// At most one active job per user (checked on `status IN ('queued',
+// 'running')` before enqueueing), so repeated POSTs can't amplify cost.
 //
-// Cascade-delete on user removal — once the account is gone, no
-// remaining party has lawful basis to hold export blobs. The sweeper
-// removes the S3 object as part of the user-deletion cascade in
-// `accountDeletionSweep`.
+// Cascades with the user; `accountDeletionSweep` also removes the S3 object.
 export const dataExportJobs = pgTable('data_export_jobs', {
   id: serial('id').primaryKey(),
   jobId: text('job_id').notNull().unique(),
@@ -1338,154 +1119,104 @@ export const dataExportJobs = pgTable('data_export_jobs', {
   status: text('status', {
     enum: ['queued', 'running', 'ready', 'expired', 'failed']
   }).notNull().default('queued'),
-  // S3 key once the worker uploads the ZIP. Null while queued/running
-  // and on failure.
+  // Set once the worker uploads the ZIP.
   s3Key: text('s3_key'),
-  // Worker-emitted error message on failure. Free-form text; surfaced
-  // to the user in the export-history list ("Export failed — try again
-  // or contact support").
+  // Worker error on failure, shown in the export-history list.
   errorMessage: text('error_message'),
-  // Bytes of the produced ZIP, captured at upload time. Null until ready.
   sizeBytes: integer('size_bytes'),
-  // 7d after `ready`. The sweeper expires past this point and purges
-  // the S3 object. Renewal is a fresh export job — we don't extend
-  // existing exports because the underlying data may have changed.
+  // 7 days after `ready`. Exports are never extended, since the data may
+  // have changed; renewal is a new job.
   expiresAt: timestamp('expires_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   startedAt: timestamp('started_at', { withTimezone: true }),
   completedAt: timestamp('completed_at', { withTimezone: true })
 }, table => [
-  // History list: most-recent-first per user.
   index('idx_data_export_jobs_user').on(table.userId, table.createdAt.desc()),
-  // Worker queue scan: oldest queued row first.
   index('idx_data_export_jobs_status').on(table.status, table.createdAt)
 ])
 
-// MCP Personal Access Tokens. Long-lived bearer tokens that external MCP
-// clients (Claude Desktop, Cursor, ChatGPT app store, ad-hoc scripts)
-// present in `Authorization: Bearer <token>` to call our /mcp endpoint.
+// MCP Personal Access Tokens: long-lived bearer tokens external MCP
+// clients send in `Authorization: Bearer <token>` to /mcp.
 //
-// Auth model: SHA-256-hashed at rest (the plaintext is shown ONCE on
-// creation and never reconstructed — same pattern as GitHub PATs). The
-// `Authorization` header is hashed on each MCP request and looked up
-// against `tokenHash`; positive results are Valkey-cached for 60s to
-// avoid a DB hit per tool call.
+// Stored SHA-256-hashed; the plaintext is shown once on creation. Each
+// request's header is hashed and looked up against `tokenHash`; hits are
+// Valkey-cached for 60s.
 //
-// Cascade-delete on user removal — a token without an owner has no
-// principal to act as, so it's deleted alongside the user. Revocation
-// (`revokedAt`) is a soft-delete: the row stays for audit but the
-// verifier rejects it. Expiry (`expiresAt`) is optional; null = does
-// not expire (rotation is the user's responsibility, surfaced in the
-// /settings/integrations UI as a "last used" timestamp).
+// Cascades with the user. Revocation (`revokedAt`) is a soft delete: the
+// row stays for audit but the verifier rejects it. `expiresAt` is
+// optional (null = no expiry).
 //
-// Scopes are a typed subset of `documents:read | documents:write |
-// knowledge:read | web:fetch`. Stored as a text array; per-tool
-// `enabled` guards in server/mcp/tools/*.ts check membership before
-// the tool is exposed.
+// Scopes are a subset of `documents:read | documents:write |
+// knowledge:read | web:fetch`; per-tool `enabled` guards in
+// server/mcp/tools/*.ts check membership.
 export const mcpPersonalTokens = pgTable('mcp_personal_tokens', {
   id: serial('id').primaryKey(),
-  // Public-facing handle (`mkt_pat_<nanoid>`); used in the API responses
-  // and the URL of DELETE /api/mcp/tokens/:tokenId. Distinct from `id`
-  // so leaks of the URL don't disclose row counts / creation order.
+  // Public handle (`mkt_pat_<nanoid>`) used in API responses and
+  // DELETE /api/mcp/tokens/:tokenId; distinct from `id` so URLs don't
+  // reveal row counts or creation order.
   tokenId: text('token_id').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  // User-supplied label ("Claude Desktop on laptop", "CI script"). Free-
-  // form, ≤80 chars (validated at the API layer). Helps the user pick
-  // the right token to revoke.
+  // User-supplied label, ≤80 chars (validated in the API).
   name: text('name').notNull(),
-  // SHA-256 of the plaintext token. The plaintext is `mkt_<32-char-base32>`
-  // and exists only in memory long enough to return to the issuer; we
-  // never store or log it. Hash is hex-encoded (64 chars).
+  // Hex SHA-256 of the plaintext `mkt_<32-char-base32>` token, which is
+  // never stored or logged.
   tokenHash: text('token_hash').notNull().unique(),
-  // Granted scope list. v1 supports the four named scopes; tools gate
-  // visibility via `enabled: event => hasScope(event, '...')`. Stored
-  // as a text array (Postgres native) — we don't need joins here, just
-  // membership checks at request time.
+  // Granted scopes; tools gate on `enabled: event => hasScope(event, '...')`.
   scopes: text('scopes').array().notNull(),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  // Bumped by the verifier on every successful authentication, capped to
-  // once-per-minute via Valkey to avoid hot-row contention. Surfaced in
-  // the UI so users can spot dormant tokens to revoke.
+  // Bumped on successful authentication, at most once a minute (Valkey)
+  // to avoid hot-row contention.
   lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
-  // Soft-delete. Set when the user clicks "Revoke" or when a sweeper
-  // (future) ages out tokens past `expiresAt`. The verifier rejects any
-  // row where this is non-null.
+  // Soft delete; the verifier rejects any row where this is set.
   revokedAt: timestamp('revoked_at', { withTimezone: true }),
-  // Optional hard expiry. v1 leaves this null (manual revocation only);
-  // a follow-up phase will default to 1y to force rotation.
+  // Null = never expires (manual revocation only).
   expiresAt: timestamp('expires_at', { withTimezone: true })
 }, table => [
-  // Verifier hot path: lookup by hash. Unique above already creates the
-  // index — no extra index needed.
-  // List endpoint: most-recent-first per user.
+  // The unique `tokenHash` already indexes the verifier lookup.
   index('idx_mcp_personal_tokens_user').on(table.userId, table.createdAt.desc())
 ])
 
-// MCP Sessions. One row per Claude Desktop / Cursor / ChatGPT
-// connection — assigned by the toolkit at `initialize` time, stable
-// across every tool call in the same connection. Exists to close the
-// audit-attribution gap: `activity_log` rows from MCP-driven edits
-// are stamped `userId='mcp:{mcpSessionId}'` (synthetic principal,
-// non-numeric — matches the existing AI loop pattern). Without this
-// table, that string is a dead pointer — the forensic question "what
-// did Claude Desktop do at 14:32" can only answer "MCP did it", not
-// "user 42 via the 'home laptop' token". The join chain:
+// MCP sessions: one row per client connection, assigned at `initialize`
+// and stable across its tool calls. `activity_log` rows from MCP edits
+// carry the principal `mcp:{mcpSessionId}`; this table resolves it to the
+// human and the credential. Join chain:
 //
 //   activity_log.user_id = 'mcp:{mcpSessionId}'
 //     → mcp_sessions.mcp_session_id  (strip 'mcp:' prefix)
 //       → mcp_sessions.user_id       → users.id (the human)
 //       → mcp_sessions.token_id      → mcp_personal_tokens (which credential)
 //
-// Writer: `touchMcpSession` in `server/utils/mcp/mcpAuth.ts`, called from
-// the MCP middleware. INSERT … ON CONFLICT DO UPDATE bumps
-// `last_active_at`; Valkey throttles to once-per-minute so a chatty
-// MCP client doesn't write 50 UPDATEs/sec to the same row.
+// Writer: `touchMcpSession` in `server/utils/mcp/mcpAuth.ts` (MCP
+// middleware): INSERT … ON CONFLICT DO UPDATE bumps `last_active_at`,
+// throttled to once a minute by Valkey.
 //
-// Cascade rules:
-//   - user_id → users(id) ON DELETE CASCADE — a deleted user's
-//     sessions go with them (no orphan rows pointing at nothing).
-//   - token_id → mcp_personal_tokens(token_id) ON DELETE SET NULL —
-//     if the PAT is hard-deleted (e.g. user-deletion cascade), the
-//     session row survives with `token_id=NULL` so the audit trail
-//     stays joinable to user_id. Soft-revocation (revoked_at) doesn't
-//     null this column; it stays linked.
+// user_id cascades with the user. token_id is SET NULL when the PAT is
+// hard-deleted, so the session stays joinable to user_id; soft revocation
+// keeps the link.
 export const mcpSessions = pgTable('mcp_sessions', {
   id: serial('id').primaryKey(),
-  // Toolkit-assigned UUID from `Mcp-Session-Id` response header.
-  // Unique across all clients and times. Stripped of the `mcp:`
-  // prefix used in activity_log (the prefix is applied at the join
-  // boundary, not stored here).
+  // UUID from the `Mcp-Session-Id` response header, without the `mcp:`
+  // prefix activity_log uses.
   mcpSessionId: text('mcp_session_id').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
-  // Which PAT minted this session. `tokenId` (not the `id`) so the
-  // FK works across PAT rotation + reveals nothing about row counts.
+  // Which PAT minted this session (by `tokenId`, not the serial `id`).
   tokenId: text('token_id').references(() => mcpPersonalTokens.tokenId, { onDelete: 'set null' }),
-  // Free-form client identification from MCP `clientInfo.name` in the
-  // initialize call ("Claude Desktop", "Cursor", "ChatGPT app", or
-  // user-defined for ad-hoc scripts). May be null if we miss the
-  // initialize call (we only see session-id starting on the second
-  // call). Surfaced to users in `/settings/integrations` audit views.
+  // `clientInfo.name` from the initialize call ("Claude Desktop", "Cursor").
+  // NULL if that call wasn't seen: the session id only appears from the
+  // second call on.
   clientName: text('client_name'),
-  // User-Agent header on the FIRST request that carried the session
-  // id (typically the `initialized` notification). Captured once;
-  // not updated on subsequent calls.
+  // User-Agent of the first request carrying the session id; not updated.
   userAgent: text('user_agent'),
   startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
-  // Bumped on every authenticated tool call. Valkey-throttled to
-  // once-per-minute. Used for session-lifetime analysis + idle
-  // pruning (future sweeper). Surfaced in /settings/integrations.
+  // Bumped on authenticated tool calls, at most once a minute (Valkey).
   lastActiveAt: timestamp('last_active_at', { withTimezone: true }).notNull().defaultNow()
 }, table => [
-  // Audit-forensics index: "every MCP session for this user, most
-  // recent first". Also covers the FK lookup from user-deletion
-  // cascade.
   index('idx_mcp_sessions_user').on(table.userId, table.lastActiveAt.desc()),
-  // Token-attribution index: "every session that used this PAT".
-  // Useful when triaging a leaked-token incident.
+  // Every session that used a PAT (leaked-token triage).
   index('idx_mcp_sessions_token').on(table.tokenId)
 ])
 
-// Paid-plans waitlist (WP3). Only active while billing is OFF and the
+// Paid-plans waitlist. Only active while billing is OFF and the
 // deployment advertises upcoming plans (`NUXT_PLANS_COMING_SOON`). Lawful
 // basis: consent (GDPR Art.6(1)(a) / FADP Art.6(6)) — see
 // `server/legal/lawfulBasis.ts#paid_plans_waitlist`.
@@ -1528,7 +1259,7 @@ export const waitlistSignups = pgTable('waitlist_signups', {
   index('idx_waitlist_signups_unconfirmed').on(table.confirmTokenExpiresAt).where(sql`${table.confirmedAt} IS NULL`)
 ])
 
-// Bring-your-own-key AI provider configs (WP4). One row per user per
+// Bring-your-own-key AI provider configs. One row per user per
 // capability (`chat` | `image` | `transcription`). Every LLM call for
 // that capability is routed through LiteLLM's zero-cost `byok/*`
 // deployment with these values as clientside credentials, so the

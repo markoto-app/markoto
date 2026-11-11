@@ -6,7 +6,7 @@ import { oidcSettingsForConnection, ssoErrorPath, takeSsoFlowCookie } from '../.
 import { finishSsoSignIn } from '../../../../utils/sso/finish'
 
 // GET /auth/sso/:connectionId/callback — OIDC redirect back from a
-// workspace's identity provider (WP14). The flow cookie (signed, single
+// workspace's identity provider. The flow cookie (signed, single
 // use, bound to this connection) carries state / nonce / PKCE; the ID
 // token is fully validated by openid-client (signature against the IdP's
 // JWKS, iss, aud, exp, nonce); every request to the IdP goes through the

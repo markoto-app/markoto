@@ -32,7 +32,7 @@ export const WORKSPACE_REF_PREFIX = 'workspace:'
 // surface we need; we don't actually narrow further.
 type DbOrTx = ReturnType<typeof useDatabase> | Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0]>[0]
 
-// Phase 7: handlers queue side-effects that must run AFTER the
+// Handlers queue side-effects that must run AFTER the
 // surrounding transaction commits — primarily LiteLLM virtual-key
 // budget syncs. Calling `updateUserKeyBudget` inline acquires its own
 // pool connection while the surrounding TX still holds an exclusive
@@ -59,8 +59,7 @@ type DeferredAfterCommit = (() => Promise<void>)[]
 //     scheduled cancel). Flip plan back to Free + null the stripe
 //     anchor so the resolver uses the calendar fallback.
 //   - `invoice.paid` — renewal charge succeeded. Update the period
-//     start/end so the Model C billing anchor advances to the new
-//     cycle (counter key changes → fresh quota row).
+//     start/end so the billing anchor advances to the new cycle.
 //   - `invoice.payment_failed` — retained for observability; we do
 //     NOT downgrade on first failure (Stripe retries automatically).
 //     The user's plan stays until the eventual subscription.deleted.
@@ -258,7 +257,7 @@ function deferWorkspaceTeamSync(deferAfterCommit: DeferredAfterCommit | undefine
 }
 
 /**
- * A paid credit top-up (WP4): record the grant (once per payment intent)
+ * A paid credit top-up: record the grant (once per payment intent)
  * and raise the subject's AI budget after commit. The subject comes from
  * the session metadata our checkout set (`subject_type` / `subject_id`);
  * a personal buyer's first customer id is stamped on the user.
@@ -382,7 +381,7 @@ export async function handleCheckoutSessionCompleted(
   }
 ): Promise<{ matched: number, plan: PlanName | null }> {
   const session = event.data.object
-  // One-time top-up purchase (WP4), not a subscription.
+  // One-time top-up purchase, not a subscription.
   if (session.mode === 'payment') {
     return handleTopupCheckout(session, opts)
   }
@@ -743,7 +742,7 @@ export async function handleInvoicePaymentFailed(
   const invoice = event.data.object
   const customerId = typeof invoice.customer === 'string' ? invoice.customer : invoice.customer?.id ?? null
   // Team / Business: Stripe retries for about two weeks; the admins hear
-  // about the FIRST failure (WP3). Personal plans: Stripe's own dunning
+  // about the FIRST failure. Personal plans: Stripe's own dunning
   // emails cover it.
   if (customerId && (invoice.attempt_count ?? 1) <= 1) {
     const subject = await subjectForCustomer(customerId, db ?? useDatabase())
@@ -903,7 +902,7 @@ export async function dispatchStripeEvent(
   }
 ): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
   const db = useDatabase()
-  // Phase 7: handlers push LiteLLM key-sync closures here (instead of
+  // Handlers push LiteLLM key-sync closures here (instead of
   // running them inline) — the surrounding TX holds an exclusive lock
   // on the user row, and `updateUserKeyBudget` opens its own pool
   // connection to UPDATE the same row. We flush these AFTER the TX

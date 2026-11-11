@@ -1,17 +1,12 @@
 <script setup lang="ts">
-// Onboarding gate. Blocks the app on first login (or after a
-// material privacy-policy / ToS bump) until the user confirms
-// they're at least 16 (GDPR Article 8) AND accepts the current
-// versions of the Privacy Policy + Terms of Service.
+// Onboarding gate. Blocks the app on first login (or after a material
+// privacy-policy / ToS bump) until the user confirms they're at least 16
+// (GDPR Article 8) and accepts the current Privacy Policy + Terms of Service.
 //
-// DPA acceptance is workspace-owner only — handled at workspace
-// creation, NOT here. A casual user signing up should never see
-// "Data Processing Addendum" in the gate.
-//
-// Mounted globally in app.vue. The modal is a *blocking* surface
-// — closing it without accepting is not an option, only a
-// "Sign out" escape hatch. Anonymous users never see this (they
-// have no row to attach acceptance to).
+// DPA acceptance is workspace-owner only and handled at workspace creation,
+// not here. The modal is blocking: the only way out besides accepting is
+// "Sign out". Anonymous users never see it (no row to attach acceptance to).
+// Mounted globally via AppOverlays.
 
 const { t, locale } = useI18n()
 const route = useRoute()
@@ -26,11 +21,9 @@ const ageChecked = ref(false)
 const privacyChecked = ref(false)
 const tosChecked = ref(false)
 
-// Routes where the gate is suppressed. The legal documents are
-// what the user is being asked to accept; blocking them with the
-// gate creates a chicken-and-egg "I can't read what I'm being
-// asked to accept" trap. The gate re-arms when the user navigates
-// off a /legal/* page (the watcher below reacts to route changes).
+// Routes where the gate is suppressed: the legal documents are what the user
+// is asked to accept, so blocking them would be a chicken-and-egg trap. The
+// gate re-arms on navigating off /legal/*.
 function isExemptRoute(path: string): boolean {
   return path.startsWith('/legal/')
 }

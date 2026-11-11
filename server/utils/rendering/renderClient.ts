@@ -53,7 +53,7 @@ interface RendererSuccess {
   web?: WebSnapshot
 }
 
-/** The web snapshot a published page is made of (renderer format 'html', WP13). */
+/** The web snapshot a published page is made of (renderer format 'html'). */
 export interface WebSnapshot {
   html: string
   css: string
@@ -262,12 +262,11 @@ export async function renderDocument(
 ): Promise<RenderResult> {
   // The render reads the persisted Y.js rows (snapshot id + the print
   // page's bootstrap). Edits from the last 2–10 s may still sit in the
-  // sync-server's debounced store — a PDF exported right after typing
-  // came out with only the cover page (v0.2.4 release flow run). Persist
-  // them first; on failure render what is stored, as before.
+  // sync-server's debounced store, so a PDF exported right after typing
+  // would miss them. Persist them first; on failure render what is stored.
   await flushSyncDocument(docId)
   const snapshotId = await getLatestSnapshotId(docId)
-  // Brand kit (WP10): a change to the workspace's fonts or locked design
+  // Brand kit: a change to the workspace's fonts or locked design
   // writes no Y.js row, so the snapshot id alone would serve a stale
   // render — the brand fingerprint is part of the cache folder.
   const variant = await brandRenderVariant(docId)
@@ -341,7 +340,7 @@ export async function renderPngUncached(id: string, round: number): Promise<{ pa
 }
 
 /**
- * The document's current state as a web snapshot (WP13 publish): the
+ * The document's current state as a web snapshot (publish): the
  * print page's sanitised HTML + theme CSS without pagination or cover.
  * Uncached — publishing is an explicit, rate-limited action and the
  * result is stored in `published_pages` by the caller.

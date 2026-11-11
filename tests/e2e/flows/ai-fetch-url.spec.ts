@@ -31,7 +31,7 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
     + 'network addresses are refused.'
   )
 
-  // ─── Prompt with a URL ──────────────────────────────────────────
+  // Prompt with a URL
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,

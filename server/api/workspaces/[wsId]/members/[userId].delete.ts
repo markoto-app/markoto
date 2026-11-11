@@ -24,7 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const isSelf = targetUserId === session.user.id
   const myRole = await getWorkspaceRole(session.user.id, wsId)
-  // A guest (WP11) has no workspace role but may leave on their own.
+  // A guest has no workspace role but may leave on their own.
   const leavingGuest = myRole === null && isSelf && (await getMembershipRole(wsId, session.user.id)) === 'guest'
   if (myRole === null && !leavingGuest) throw createError({ statusCode: 404, message: 'Workspace not found' })
 
@@ -35,12 +35,12 @@ export default defineEventHandler(async (event) => {
   // Capture the removed member's role BEFORE the delete so the audit
   // row can record what they had. Cheap extra query — this endpoint
   // isn't hot-path.
-  // The TARGET's membership, regardless of single sign-on (WP14) — a
+  // The TARGET's membership, regardless of single sign-on — a
   // member who hasn't signed in through the IdP is still a member — and
-  // including guests (WP11).
+  // including guests.
   const targetRoleBefore = await getMembershipRole(wsId, targetUserId)
 
-  // Team / Business (WP3): the member's key in the workspace's LiteLLM
+  // Team / Business: the member's key in the workspace's LiteLLM
   // team goes with the membership. Deleted first (the row holds the
   // token); if the removal is then refused the key is simply re-created
   // on the next AI use.
@@ -55,7 +55,7 @@ export default defineEventHandler(async (event) => {
     throw e
   }
 
-  // A guest's shares on this workspace's documents go with them (WP11).
+  // A guest's shares on this workspace's documents go with them.
   if (targetRoleBefore === 'guest') await deleteSharesForUserInWorkspace(targetUserId, wsId)
 
   // Kick any live Y.js connections the removed member holds to workspace
