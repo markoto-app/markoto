@@ -14,6 +14,7 @@ nuxt_session_password: "REPLACE_ME"        # openssl rand -base64 48
 nuxt_jwt_secret: "REPLACE_ME"              # openssl rand -hex 64
 nuxt_internal_api_secret: "REPLACE_ME"     # openssl rand -hex 32
 nuxt_altcha_hmac_key: "REPLACE_ME"         # openssl rand -hex 32 — anonymous gate (ALTCHA bot check)
+nuxt_markitdown_api_secret: "REPLACE_ME"   # openssl rand -hex 32 — app <-> markitdown converter
 
 # Optional rotation slots — leave empty unless mid-rollover.
 nuxt_jwt_secret_previous: ""

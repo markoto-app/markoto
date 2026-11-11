@@ -18,6 +18,17 @@ image_tag: latest
 nuxt_billing_enabled: false
 nuxt_plans_coming_soon: true
 
+# ─── Legal pages (shared/legal/entity.ts) ───
+# The rendered stack runs with the legal surfaces on, so these two are
+# required (the app refuses to boot without them); every other
+# nuxt_legal_* value (controller_name, privacy_contact_email,
+# abuse_contact_email, governing_law, legal_form, registered_office, uid,
+# ch_id, ehra_id) is optional and falls back to the code default.
+nuxt_legal_controller_address: ""
+nuxt_legal_represented_by: ""
+# Comma-separated emails promoted to instance admin at their next sign-in.
+nuxt_admin_user_emails: ""
+
 # ─── Backup sidecar tunables ───
 backup_interval_seconds: 86400
 backup_retention_count: 30

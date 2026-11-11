@@ -208,7 +208,7 @@ const PAID_PLAN_ENTITLEMENTS = {
 // resolved map from `GET /api/billing/tiers`.
 export const DEFAULT_TIERS = {
   free: {
-    litellmBudgetUsd: 1, // 500 AI Points
+    litellmBudgetUsd: 1, // 1000 AI Points
     workspacesOwned: 1,
     knowledgeFiles: 5,
     knowledgeBytesPerWorkspace: 50 * 1024 * 1024,

@@ -39,11 +39,16 @@ export default defineNitroPlugin(() => {
   const errors: string[] = []
 
   errors.push(...validateSecrets([
-    { name: 'SESSION_PASSWORD', value: config.session?.password },
-    { name: 'JWT_SECRET', value: config.jwtSecret },
-    { name: 'INTERNAL_API_SECRET', value: config.internalApiSecret },
-    { name: 'JWT_SECRET_PREVIOUS', value: config.jwtSecretPrevious, required: false },
-    { name: 'INTERNAL_API_SECRET_PREVIOUS', value: config.internalApiSecretPrevious, required: false },
+    { name: 'NUXT_SESSION_PASSWORD', value: config.session?.password },
+    { name: 'NUXT_JWT_SECRET', value: config.jwtSecret },
+    { name: 'NUXT_INTERNAL_API_SECRET', value: config.internalApiSecret },
+    { name: 'NUXT_JWT_SECRET_PREVIOUS', value: config.jwtSecretPrevious, required: false },
+    { name: 'NUXT_INTERNAL_API_SECRET_PREVIOUS', value: config.internalApiSecretPrevious, required: false },
+    // Imports, knowledge uploads and design extraction all go through
+    // markitdown (NUXT_MARKITDOWN_URL is required below), which refuses
+    // every unauthenticated request, so a missing secret is a broken
+    // deploy rather than a disabled feature.
+    { name: 'NUXT_MARKITDOWN_API_SECRET', value: process.env.NUXT_MARKITDOWN_API_SECRET?.trim() },
     // Anonymous gate (ALTCHA bot check + remembered-terms cookie): the key
     // is only needed while the gate is on, but then it must be real.
     { name: 'NUXT_ALTCHA_HMAC_KEY', value: process.env.NUXT_ALTCHA_HMAC_KEY, required: anonGateEnabled() }

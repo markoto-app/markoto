@@ -255,6 +255,13 @@ if [ "$(grep -c 'ensure_secret NUXT_ALTCHA_HMAC_KEY hex' install.sh)" -lt 2 ]; t
   exit 1
 fi
 echo "ok: anonymous gate wiring (prod on + key required, self-host key generated)"
+# Markitdown refuses unauthenticated requests: an existing install that
+# upgrades must get the secret generated too, not only a fresh one.
+if [ "$(grep -c 'ensure_secret NUXT_MARKITDOWN_API_SECRET hex' install.sh)" -lt 2 ]; then
+  echo "FAIL: install.sh must generate NUXT_MARKITDOWN_API_SECRET on install and upgrade" >&2
+  exit 1
+fi
+echo "ok: install.sh generates the markitdown secret (install + upgrade)"
 render_config "$tmp/local.json" "$tmp/prod.env" "docker-compose.local.yml"
 check_isolation "local" "$tmp/local.json"
 
@@ -271,6 +278,16 @@ for cfg in salt-prod salt-selfhost local; do
   fi
 done
 echo "ok: the app receives LITELLM_SALT_KEY (prod, self-host, local)"
+
+# App and sync server key their rate limits on the same X-Forwarded-For
+# entry only while both get the same trusted-proxy hop count.
+for cfg in salt-prod salt-selfhost; do
+  if ! jq -e '.services.app.environment.NUXT_TRUSTED_PROXY_HOPS != null and .services.app.environment.NUXT_TRUSTED_PROXY_HOPS == .services.sync.environment.TRUSTED_PROXY_HOPS' "$tmp/$cfg.json" > /dev/null; then
+    echo "FAIL: app NUXT_TRUSTED_PROXY_HOPS and sync TRUSTED_PROXY_HOPS must match ($cfg)" >&2
+    exit 1
+  fi
+done
+echo "ok: app and sync agree on the trusted proxy hops (prod, self-host)"
 
 # ─── LiteLLM is recreated when its config changes ─────────────────────
 # LiteLLM reads its config once at boot and the single-file bind mounts

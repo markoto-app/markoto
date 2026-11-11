@@ -14,6 +14,38 @@ nuxt_internal_api_secret=v_internal
 nuxt_jwt_secret_previous=v_jwt_prev
 nuxt_internal_api_secret_previous=v_internal_prev
 nuxt_altcha_hmac_key=v_altcha
+nuxt_markitdown_api_secret=v_markitdown
+nuxt_publish_domains_target=pages.example.test
+nuxt_publish_traefik_token=v_traefik_token
+nuxt_legal_controller_name=v_controller
+nuxt_legal_controller_address=Street 1, 8000 Zurich
+nuxt_legal_privacy_contact_email=privacy@example.test
+nuxt_legal_abuse_contact_email=abuse@example.test
+nuxt_legal_governing_law=v_law
+nuxt_legal_legal_form=v_form
+nuxt_legal_registered_office=v_office
+nuxt_legal_represented_by=v_representative
+nuxt_legal_uid=v_uid
+nuxt_legal_ch_id=v_chid
+nuxt_legal_ehra_id=v_ehra
+nuxt_admin_user_emails=a@example.test,b@example.test
+nuxt_email_provider=stub
+nuxt_inactive_doc_ttl_days=60
+nuxt_audit_log_retention_days=800
+nuxt_abuse_report_retention_days=400
+nuxt_ai_realtime_model=v_realtime
+nuxt_trusted_proxy_hops=2
+renderer_allowed_origins=https://img.example.test
+sync_max_message_bytes=111
+sync_max_update_bytes=222
+sync_max_document_bytes=333
+sync_max_preauth_bytes=444
+sync_max_preauth_total_bytes=555
+sync_auth_timeout_ms=666
+sync_max_connections_per_ip=77
+compact_threshold=88
+compact_interval_ms=99
+compact_max_docs_per_run=11
 postgres_user=v_pguser
 postgres_password=v_pgpw
 postgres_db=v_pgdb
@@ -129,6 +161,44 @@ else
   echo "PARITY FAILED — render-env.sh drifted from env.j2 (diff above)"
   exit 1
 fi
+
+# 3a. Managed-Postgres TLS branch: deploy.yml has no PGSSL* inputs; both
+#     renderers derive PGSSLROOTCERT / PGSSL / POSTGRES_SSLMODE from
+#     OVH_PG_HOST + OVH_PG_CA_REMOTE_PATH (the branch above is the in-stack
+#     one, TLS off).
+jinja_tls=$(python3 - <<PY
+import jinja2
+ctx = dict(line.split('=',1) for line in """$VARS""".strip().splitlines())
+ctx['ovh_pg_host'] = 'pg.example.test'
+ctx['ovh_pg_ca_remote_path'] = '/opt/markoto/secrets/ovh-pg-ca.pem'
+t = jinja2.Template(open('infra/templates/env.j2').read(), undefined=jinja2.StrictUndefined,
+                    trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
+print(t.render(**ctx))
+PY
+)
+bash_tls=$(env -i "${ENVARGS[@]}" OVH_PG_HOST=pg.example.test OVH_PG_CA_REMOTE_PATH=/opt/markoto/secrets/ovh-pg-ca.pem bash infra/render-env.sh)
+if diff <(echo "$jinja_tls" | grep -E '^(PGSSL|POSTGRES_SSLMODE)' | sort) \
+        <(echo "$bash_tls"  | grep -E '^(PGSSL|POSTGRES_SSLMODE)' | sort) \
+   && echo "$bash_tls" | grep -qx 'POSTGRES_SSLMODE=require'; then
+  echo "PG TLS OK — both renderers switch to cert-pinned TLS for a managed host"
+else
+  echo "PG TLS FAILED — render-env.sh and env.j2 disagree on the managed-Postgres TLS lines"
+  exit 1
+fi
+
+# 3c. The legal surfaces are always on in the rendered stack, so a missing
+#     controller address or representative must fail the render (not the boot).
+for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
+  declare -a NOLEGAL=()
+  for kv in "${ENVARGS[@]}"; do
+    case "$kv" in "$v="*) ;; *) NOLEGAL+=("$kv") ;; esac
+  done
+  if env -i "${NOLEGAL[@]}" bash infra/render-env.sh >/dev/null 2>&1; then
+    echo "LEGAL GATE FAILED — render-env.sh rendered without $v"
+    exit 1
+  fi
+done
+echo "LEGAL GATE OK — controller address + representative are required"
 
 # 3b. Backup storage falls back to the app's S3 values when no BACKUP_S3_* is
 #     set, in BOTH renderers (and identically).

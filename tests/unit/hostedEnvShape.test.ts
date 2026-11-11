@@ -5,6 +5,7 @@ import { resolve } from 'node:path'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../shared/ai/providers'
 import { byokUrlPolicyErrors } from '../../server/utils/aiProviders/config'
 import { resolveTiersFromEnv } from '../../shared/config/tiers'
+import { legalEntityErrors } from '../../shared/legal/entity'
 
 // The hosted SaaS shape is pure configuration: infra/render-env.sh (CI
 // deploys) and infra/templates/env.j2 (Ansible) render the .env that the
@@ -25,13 +26,18 @@ const REQUIRED = [
   'NUXT_S3_ENDPOINT', 'NUXT_S3_ACCESS_KEY', 'NUXT_S3_SECRET_KEY', 'NUXT_S3_BUCKET',
   'LITELLM_MASTER_KEY', 'LITELLM_SALT_KEY',
   'JINA_AI_API_KEY', 'STAAN_API_KEY', 'MISTRAL_API_KEY', 'BFL_API_KEY',
-  'BACKUP_GPG_PASSPHRASE', 'DOMAIN', 'ACME_EMAIL', 'REGISTRY', 'IMAGE_TAG'
+  'BACKUP_GPG_PASSPHRASE', 'DOMAIN', 'ACME_EMAIL', 'REGISTRY', 'IMAGE_TAG',
+  'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY'
 ]
 
-function renderHostedEnv(): Map<string, string> {
+function renderEnv(omit?: string) {
   const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
-  for (const name of REQUIRED) env[name] = `test-${name.toLowerCase()}`
-  const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
+  for (const name of REQUIRED) if (name !== omit) env[name] = `test-${name.toLowerCase()}`
+  return spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
+}
+
+function renderHostedEnv(): Map<string, string> {
+  const out = renderEnv()
   expect(out.status, out.stderr).toBe(0)
   const vars = new Map<string, string>()
   for (const line of out.stdout.split('\n')) {
@@ -58,12 +64,22 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
     expect(vars.get('NUXT_ALTCHA_HMAC_KEY')).toBe('test-nuxt_altcha_hmac_key')
   })
 
-  it('refuses to render without the ALTCHA key', () => {
-    const env: Record<string, string> = { PATH: process.env.PATH ?? '/usr/bin:/bin' }
-    for (const name of REQUIRED) if (name !== 'NUXT_ALTCHA_HMAC_KEY') env[name] = `test-${name.toLowerCase()}`
-    const out = spawnSync('bash', [resolve(ROOT, 'infra/render-env.sh')], { env, encoding: 'utf8' })
-    expect(out.status).not.toBe(0)
-    expect(out.stderr).toContain('NUXT_ALTCHA_HMAC_KEY')
+  it.each(['NUXT_ALTCHA_HMAC_KEY', 'NUXT_MARKITDOWN_API_SECRET', 'NUXT_LEGAL_CONTROLLER_ADDRESS', 'NUXT_LEGAL_REPRESENTED_BY'])(
+    'refuses to render without %s',
+    (name) => {
+      const out = renderEnv(name)
+      expect(out.status).not.toBe(0)
+      expect(out.stderr).toContain(name)
+    }
+  )
+
+  it('carries the markitdown secret', () => {
+    expect(vars.get('NUXT_MARKITDOWN_API_SECRET')).toBe('test-nuxt_markitdown_api_secret')
+  })
+
+  it('carries an operator identity the legal-surfaces boot check accepts', () => {
+    const env = Object.fromEntries([...vars].filter(([k]) => k.startsWith('NUXT_LEGAL_')))
+    expect(legalEntityErrors(env)).toEqual([])
   })
 
   it('limits BYOK base URLs to the SaaS provider allowlist, no private URLs', () => {
@@ -179,6 +195,27 @@ describe('Ansible env.j2 hosted defaults', () => {
   it('uses the same BYOK allowlist default as shared/ai/providers.ts', () => {
     const m = /NUXT_AI_BYOK_ALLOWED_BASE_URLS=\{\{ nuxt_ai_byok_allowed_base_urls \| default\('([^']*)'\) \}\}/.exec(template)
     expect(m?.[1]).toBe(RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(','))
+  })
+})
+
+// Every variable the prod stack interpolates must be renderable from the
+// deploy, or setting it in GitHub silently has no effect.
+describe('render-env.sh covers every variable the prod compose stack reads', () => {
+  // LITELLM_CONFIG_HASH is exported by the deploy step itself;
+  // NUXT_PRODUCT_TOUR_ENABLED is a one-release alias the hosted stack never sets.
+  const NOT_RENDERED = new Set(['LITELLM_CONFIG_HASH', 'NUXT_PRODUCT_TOUR_ENABLED'])
+
+  it('emits each ${VAR} of docker-compose.prod.yml + docker-compose.base.yml', () => {
+    const rendered = renderHostedEnv()
+    const compose = ['docker-compose.prod.yml', 'docker-compose.base.yml']
+      .map(f => readFileSync(resolve(ROOT, f), 'utf8'))
+      .join('\n')
+      .split('\n')
+      .filter(line => !line.trim().startsWith('#'))
+      .join('\n')
+    const used = new Set([...compose.matchAll(/\$\{([A-Z][A-Z0-9_]*)/g)].map(m => m[1]!))
+    const missing = [...used].filter(name => !rendered.has(name) && !NOT_RENDERED.has(name)).sort()
+    expect(missing).toEqual([])
   })
 })
 

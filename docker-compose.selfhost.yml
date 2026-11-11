@@ -411,6 +411,9 @@ services:
       - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-}
       - NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      # Workspace single sign-on against an IdP on a private network (an
+      # on-prem Keycloak, say). Default false (server/utils/sso/urlPolicy.ts).
+      - NUXT_SSO_ALLOW_PRIVATE_URLS=${NUXT_SSO_ALLOW_PRIVATE_URLS:-false}
       # Web tools for the AI: web_search (Staan) / fetch_url (Jina Reader).
       # Hidden from the AI without a key.
       - STAAN_API_KEY=${STAAN_API_KEY:-}

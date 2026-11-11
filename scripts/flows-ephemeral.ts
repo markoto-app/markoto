@@ -96,6 +96,9 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_S3_SECRET_KEY: 'ypad-secret-key',
   NUXT_S3_BUCKET: 'ypad',
   NUXT_MARKITDOWN_URL: 'http://localhost:8081',
+  // MARKITDOWN_API_SECRET of markitdown-test (docker-compose.test.yml); without
+  // it every import answers 401.
+  NUXT_MARKITDOWN_API_SECRET: 'test-markitdown-api-secret-isolated',
   // renderer-test publishes :9000 on host :9101 (docker-compose.test.yml).
   // Without this override the prod build falls back to the runtimeConfig
   // default (`http://localhost:9000`), so the /api/health renderer probe is

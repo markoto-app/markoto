@@ -256,7 +256,7 @@ Meant for instances run for one organisation; see [MANAGED-INSTANCE.md](MANAGED-
 
 ### Secrets (generated)
 
-`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`. Rotation: [SECRETS-ROTATION.md](SECRETS-ROTATION.md). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
+`POSTGRES_PASSWORD`, `VALKEY_PASSWORD`, `NUXT_SESSION_PASSWORD`, `NUXT_JWT_SECRET`, `NUXT_INTERNAL_API_SECRET`, `NUXT_AI_DICTATE_JWT_SECRET`, `NUXT_MARKITDOWN_API_SECRET` (app ↔ document converter), `LITELLM_MASTER_KEY`, `LITELLM_SALT_KEY` (encrypts stored keys: never change it on a running instance), `NUXT_S3_ACCESS_KEY` / `NUXT_S3_SECRET_KEY`, `BACKUP_GPG_PASSPHRASE` (needed to restore backups: store a copy outside this machine), `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD`. Rotation: [SECRETS-ROTATION.md](SECRETS-ROTATION.md). `POSTGRES_PASSWORD` is set when the database volume is first created; changing it later needs an `ALTER USER` inside Postgres too.
 
 Database roles: `POSTGRES_USER` (default `markoto`) is the admin role; only the `db-init` one-shot and the backup use it. The app and the collaboration server connect as `POSTGRES_APP_USER` (default `markoto_app`), which owns the application database and nothing else; LiteLLM connects as `POSTGRES_LITELLM_USER` (default `litellm`), which owns only the `litellm` database. Neither role can connect to the other's database. `db-init` re-applies the two role passwords on every start, so changing `POSTGRES_APP_PASSWORD` / `POSTGRES_LITELLM_PASSWORD` in `.env` followed by `docker compose up -d` rotates them. Setting a role's user to the value of `POSTGRES_USER` turns that separation off.
 
@@ -269,6 +269,7 @@ Database roles: `POSTGRES_USER` (default `markoto`) is the admin role; only the 
 | `NUXT_OAUTH_OIDC_ISSUER`, `_CLIENT_ID`, `_CLIENT_SECRET` | Your own OpenID Connect provider ([Login](#your-own-identity-provider-openid-connect)). |
 | `NUXT_OAUTH_OIDC_NAME`, `_SCOPES` | Optional button label and scopes for it. |
 | `NUXT_ADMIN_USER_EMAILS` | Comma-separated emails promoted to admin on login (`/admin/abuse-reports`, `/admin/ai-spend`). Only a verified email counts (GitHub/Google verified address, IdP `email_verified: true`). |
+| `NUXT_SSO_ALLOW_PRIVATE_URLS` | `true` lets workspace single sign-on reach an identity provider on a private network (an on-prem Keycloak, say). Default `false`. |
 
 ### Limits
 
@@ -281,7 +282,7 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE` | `1073741824` (1 GiB) | |
 | `TIER_FREE_KNOWLEDGE_BYTES_PER_USER` | `10737418240` (10 GiB) | |
 | `TIER_FREE_IMAGE_BYTES_PER_USER` | `10737418240` (10 GiB) | Document images per user: uploads, AI-generated images and the copies made by duplicating a doc. Pending uploads count from the moment the upload starts. |
-| `TIER_FREE_LITELLM_BUDGET_USD` | `1` | Monthly AI Points budget per user, only for platform-paid instance defaults. Applied when a user's AI key is created (first AI use); a change reaches existing users at the next app start. |
+| `TIER_FREE_LITELLM_BUDGET_USD` | empty (= `1`, i.e. 1000 AI Points) | Monthly AI budget per user in USD, only for platform-paid instance defaults (markoto.app uses `0.5`). Applied when a user's AI key is created (first AI use); a change reaches existing users at the next app start. |
 | `NUXT_FREE_TIER_TOTAL_BUDGET_USD` | empty (none) | Optional monthly ceiling in USD on platform-paid AI for all users together (a LiteLLM team budget). When it is used up, users without their own key are told the month's free allowance is used up; own-key calls are unaffected. See [AI-MODELS.md](./AI-MODELS.md#free-ai-allowance-hosted). |
 | `NUXT_INACTIVE_DOC_TTL_DAYS` | `30` | Anonymous documents (no owner, not in a workspace) untouched this long are deleted. `0` disables. |
 | `NUXT_WEB_TOOLS_HOURLY_LIMIT` / `_DAILY_LIMIT` | `30` / `100` | Web tool calls per user. |
@@ -298,6 +299,8 @@ Billing is off on a self-hosted instance (`NUXT_BILLING_ENABLED=false`), so ever
 | `TIER_FREE_FEATURE_AI_STRONG_MODEL` | `true` | Users may pick the strong chat model (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`) in Settings → AI provider. |
 
 Every feature is on and these limits are off by default on a self-hosted instance; the variables exist so you can narrow them if you want to.
+
+Retention and the collaboration server have their own optional knobs (empty = default): `NUXT_AUDIT_LOG_RETENTION_DAYS` (730) and `NUXT_ABUSE_REPORT_RETENTION_DAYS` (365, `0` = keep forever); `SYNC_MAX_MESSAGE_BYTES`, `SYNC_MAX_UPDATE_BYTES`, `SYNC_MAX_DOCUMENT_BYTES`, `SYNC_MAX_PREAUTH_BYTES`, `SYNC_MAX_PREAUTH_TOTAL_BYTES`, `SYNC_AUTH_TIMEOUT_MS`, `SYNC_MAX_CONNECTIONS_PER_IP` (20) and the document compaction sweep `COMPACT_THRESHOLD` (500 rows), `COMPACT_INTERVAL_MS` (900000, `0` = off), `COMPACT_MAX_DOCS_PER_RUN` (50). `.env.example` in the repository explains each.
 
 ### Storage
 
@@ -338,6 +341,7 @@ Without email configuration, transactional emails (account-deletion confirmation
 | `NUXT_DOCS_CANONICAL_BASE` | `https://markoto.app` | Where the bundled `/docs` pages point their canonical link, so search engines treat markoto.app's copy as the original instead of ranking the copies against each other. Set it empty to make your instance's docs self-canonical. |
 | `NUXT_SITE_INDEXABLE` | `true` | `false` keeps the whole instance out of search engines: `/robots.txt` answers `Disallow: /` and every response carries `X-Robots-Tag: noindex, nofollow`. Documents are never indexed either way. Canonical links and `og:url` are built from `MARKOTO_PUBLIC_URL`. |
 | `NUXT_LEGAL_CONTROLLER_NAME` | | Shown in the footer ("© 2026 …"). |
+| `NUXT_LEGAL_CONTROLLER_ADDRESS` / `NUXT_LEGAL_REPRESENTED_BY` | | Postal address and authorised representative on the legal pages. Required (the app refuses to start without them) once `NUXT_LEGAL_SURFACES_ENABLED=true`. |
 | `NUXT_LEGAL_ABUSE_CONTACT_EMAIL` | | Receives a notification for each in-app abuse report (needs email delivery). Reports are always listed under `/admin/abuse-reports`. |
 
 ## Ports and networking
@@ -400,6 +404,8 @@ Changes that can need action when you upgrade an existing instance. Newest first
 
 | Change | Affects | What to do |
 |---|---|---|
+| **The document converter (markitdown) requires a shared secret.** The app sends `NUXT_MARKITDOWN_API_SECRET` with every import, knowledge upload and design extraction; markitdown answers 401 without it, and `docker compose up` refuses to start while it is unset. | Everyone | Run `./install.sh upgrade` (it generates the secret). If you start the stack with plain `docker compose`, add `NUXT_MARKITDOWN_API_SECRET=` with the output of `openssl rand -hex 32` to `.env` first. |
+| **With the legal surfaces on, the operator's address and representative are required.** `NUXT_LEGAL_CONTROLLER_ADDRESS` and `NUXT_LEGAL_REPRESENTED_BY` no longer fall back to the hosted operator's details; the app refuses to start without them while `NUXT_LEGAL_SURFACES_ENABLED=true`. | Instances with `NUXT_LEGAL_SURFACES_ENABLED=true` | Set both in `.env` ([Legal pages](#legal-pages)). |
 | **Rootless Podman is supported.** `install.sh` detects Podman, adds `docker-compose.podman.yml` and sets `CONTAINER_SOCKET`. The compose files now declare service healthchecks, relabel bind mounts for SELinux (`:z`), and Traefik sets the low-port sysctl itself; on Docker nothing changes. | Podman hosts; SELinux hosts | Re-run `./install.sh` once on Podman. See [CONTAINER-ENGINES.md](./CONTAINER-ENGINES.md). |
 | **Plan limits and feature switches.** New optional `TIER_FREE_*` variables (members per workspace, history window, saved themes, import size, web-tool and MCP calls per day, custom CSS, MCP write access; see [Limits](#limits)). The defaults keep every feature on and set no new limit, so nothing changes unless you set them. | Nobody, unless you set the new variables | Nothing. |
 | **`NUXT_PRODUCT_TOUR_ENABLED` is now `NUXT_MARKETING_SITE_ENABLED`.** The old name is still read for one release, then ignored. New: pages carry a canonical link built from `MARKOTO_PUBLIC_URL`; the bundled `/docs` pages point theirs at markoto.app (`NUXT_DOCS_CANONICAL_BASE`); `NUXT_SITE_INDEXABLE=false` keeps an instance out of search engines. | Instances that set the tour flag (it advertises the hosted service, so normally nobody); instances whose `/docs` should rank on their own | Rename the variable if you set it. Set `NUXT_DOCS_CANONICAL_BASE=` (empty) to make your docs self-canonical. |
@@ -504,7 +510,7 @@ It is resumable and degrades only knowledge search while it runs. Details: [AI-M
 
 The hosted service shows an onboarding gate (age confirmation, privacy policy, terms), a data-processing addendum step for workspace owners, and `/legal/*` pages. Those texts describe the hosted markoto.app service and name LatentSpace Labs GmbH as the operator, so on a self-hosted instance they are **off** (`NUXT_LEGAL_SURFACES_ENABLED=false`): no gate, no DPA step, `/legal/*` answers 404, the footer shows no legal links. markoto itself sets no tracking or analytics cookies; the session, locale and anonymous-document creator cookies are functional.
 
-You are the operator of your instance. If it is open to the public you may need your own privacy notice or imprint; host it wherever you like. To reuse the in-app legal surfaces instead, adapt the texts in `content/legal/` (and `server/legal/` registries), set `NUXT_LEGAL_SURFACES_ENABLED=true` and every `NUXT_LEGAL_*` variable (`CONTROLLER_NAME`, `CONTROLLER_ADDRESS`, `PRIVACY_CONTACT_EMAIL`, `ABUSE_CONTACT_EMAIL`, `GOVERNING_LAW`, `LEGAL_FORM`, `REGISTERED_OFFICE`, `REPRESENTED_BY`, `UID`, `CH_ID`, `EHRA_ID`); any unset one falls back to the hosted operator's details.
+You are the operator of your instance. If it is open to the public you may need your own privacy notice or imprint; host it wherever you like. To reuse the in-app legal surfaces instead, adapt the texts in `content/legal/` (and `server/legal/` registries), set `NUXT_LEGAL_SURFACES_ENABLED=true` and every `NUXT_LEGAL_*` variable (`CONTROLLER_NAME`, `CONTROLLER_ADDRESS`, `PRIVACY_CONTACT_EMAIL`, `ABUSE_CONTACT_EMAIL`, `GOVERNING_LAW`, `LEGAL_FORM`, `REGISTERED_OFFICE`, `REPRESENTED_BY`, `UID`, `CH_ID`, `EHRA_ID`). `CONTROLLER_ADDRESS` and `REPRESENTED_BY` have no default: the app refuses to start without them while the surfaces are on. Any other unset one falls back to the hosted operator's details, so set them all.
 
 ## Security notes
 

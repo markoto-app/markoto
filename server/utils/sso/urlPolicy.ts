@@ -24,6 +24,7 @@ import { isAlwaysForbiddenIp, isPrivateIp } from '../agentic/urlGuard'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { readStreamWithCap } from '../streamCap'
 import type { PinnedRequestInit } from '../safeFetch'
+import { parseBooleanFlag } from '~~/shared/config/billingMode'
 
 export const SSO_FETCH_MAX_BYTES = 1024 * 1024
 export const SSO_FETCH_TIMEOUT_MS = 10_000
@@ -37,7 +38,7 @@ export const systemSsoResolver: SsoResolver = async (host) => {
 
 /** Read per call so tests and self-hosters can switch it without a restart. */
 export function ssoAllowsPrivateUrls(env: NodeJS.ProcessEnv = process.env): boolean {
-  return ['1', 'true', 'yes', 'on'].includes((env.NUXT_SSO_ALLOW_PRIVATE_URLS ?? '').trim().toLowerCase())
+  return parseBooleanFlag(env.NUXT_SSO_ALLOW_PRIVATE_URLS)
 }
 
 export class SsoUrlRefused extends Error {

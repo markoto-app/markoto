@@ -150,6 +150,18 @@
   when: ovh_pg_host | length > 0
   failed_when: false
 
+# The template renders the legal surfaces on; the app would crash-loop
+# without these, after the running stack was already replaced.
+- name: Require the legal-page operator identity
+  ansible.builtin.assert:
+    that:
+      - nuxt_legal_controller_address | default('') | trim | length > 0
+      - nuxt_legal_represented_by | default('') | trim | length > 0
+    fail_msg: >-
+      Set nuxt_legal_controller_address and nuxt_legal_represented_by
+      (group_vars/all.yml): the legal pages need a postal address and the
+      authorised representative.
+
 - name: Render .env from template
   ansible.builtin.template:
     src: env.j2

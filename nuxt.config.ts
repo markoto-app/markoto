@@ -233,23 +233,10 @@ export default defineNuxtConfig({
     // Host header, which is only trustworthy behind a host-matching
     // proxy rule (as in docker-compose.prod.yml's Traefik router).
     siteUrl: '',
-    // Transactional email. All empty in dev (the helper falls back
-    // to a console log via `[email-stub]`); set via NUXT_EMAIL_* in
-    // prod to enable real delivery. See `server/utils/email/sendEmail.ts`
-    // for the dispatch shape. Today supports `provider: 'resend'`;
-    // adding a second provider is one branch in that file.
-    email: {
-      // Empty = stub mode. Set to 'resend' to enable real delivery
-      // (requires apiKey + fromAddress to also be set).
-      provider: '',
-      // Provider API key. Resend keys start `re_…`.
-      apiKey: '',
-      // Verified sending address — must be on a domain whose SPF +
-      // DKIM DNS records are set in the provider. Format: `Name
-      // <address@domain>`. NEVER set this to an unverified domain;
-      // the provider will silently bounce.
-      fromAddress: ''
-    },
+    // Transactional email has no runtimeConfig entry on purpose:
+    // server/utils/email/sendEmail.ts reads RESEND_API_KEY,
+    // NUXT_EMAIL_FROM and NUXT_EMAIL_PROVIDER from process.env per call,
+    // so jobs that run outside a Nitro request context see the same values.
     public: {
       syncUrl: '',
       sentry: {

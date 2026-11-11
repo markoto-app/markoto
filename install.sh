@@ -342,6 +342,7 @@ configure() {
   ensure_secret NUXT_INTERNAL_API_SECRET hex
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret NUXT_ALTCHA_HMAC_KEY hex
+  ensure_secret NUXT_MARKITDOWN_API_SECRET hex
   ensure_secret LITELLM_MASTER_KEY sk
   ensure_secret LITELLM_SALT_KEY sk
   ensure_secret NUXT_S3_ACCESS_KEY key
@@ -534,6 +535,7 @@ cmd_upgrade() {
   # Secrets introduced by newer versions get generated; existing ones stay.
   ensure_secret NUXT_AI_DICTATE_JWT_SECRET hex
   ensure_secret NUXT_ALTCHA_HMAC_KEY hex
+  ensure_secret NUXT_MARKITDOWN_API_SECRET hex
   ensure_secret BACKUP_GPG_PASSPHRASE hex
   ensure_db_roles
   info "Upgrading to image tag $(env_get IMAGE_TAG)"

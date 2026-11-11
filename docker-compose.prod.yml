@@ -208,6 +208,8 @@ services:
       - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:?NUXT_AI_BYOK_ALLOWED_BASE_URLS required (BYOK provider allowlist)}
       - NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}
       - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      # Voxtral Realtime model for live dictation; empty = the code default.
+      - NUXT_AI_REALTIME_MODEL=${NUXT_AI_REALTIME_MODEL:-}
       # LiteLLM proxy. server/plugins/01-validate-secrets.ts requires the
       # LiteLLM pair unconditionally, so the app crash-loops at boot without
       # these. The URL targets the in-network proxy; the master key matches
@@ -240,6 +242,24 @@ services:
       # they default ON here (the code default is off, for self-hosters —
       # see docker-compose.selfhost.yml).
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
+      # Operator identity rendered into the legal pages (shared/legal/entity.ts).
+      # Empty = the code default, except CONTROLLER_ADDRESS and REPRESENTED_BY,
+      # which have none: the app refuses to boot without them while the legal
+      # surfaces are on.
+      - NUXT_LEGAL_CONTROLLER_NAME=${NUXT_LEGAL_CONTROLLER_NAME:-}
+      - NUXT_LEGAL_CONTROLLER_ADDRESS=${NUXT_LEGAL_CONTROLLER_ADDRESS:-}
+      - NUXT_LEGAL_PRIVACY_CONTACT_EMAIL=${NUXT_LEGAL_PRIVACY_CONTACT_EMAIL:-}
+      - NUXT_LEGAL_ABUSE_CONTACT_EMAIL=${NUXT_LEGAL_ABUSE_CONTACT_EMAIL:-}
+      - NUXT_LEGAL_GOVERNING_LAW=${NUXT_LEGAL_GOVERNING_LAW:-}
+      - NUXT_LEGAL_LEGAL_FORM=${NUXT_LEGAL_LEGAL_FORM:-}
+      - NUXT_LEGAL_REGISTERED_OFFICE=${NUXT_LEGAL_REGISTERED_OFFICE:-}
+      - NUXT_LEGAL_REPRESENTED_BY=${NUXT_LEGAL_REPRESENTED_BY:-}
+      - NUXT_LEGAL_UID=${NUXT_LEGAL_UID:-}
+      - NUXT_LEGAL_CH_ID=${NUXT_LEGAL_CH_ID:-}
+      - NUXT_LEGAL_EHRA_ID=${NUXT_LEGAL_EHRA_ID:-}
+      # Comma-separated emails promoted to instance admin at their next
+      # sign-in with a verified address (server/utils/adminBootstrap.ts).
+      - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
       # Terms + bot check before anonymous documents / reports
       # (shared/config/anonGate.ts). ON for the hosted service.
       - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-true}
@@ -279,6 +299,8 @@ services:
       # present; NUXT_EMAIL_FROM must be a verified-domain address.
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
+      # `stub` logs emails instead of sending them even with a key set.
+      - NUXT_EMAIL_PROVIDER=${NUXT_EMAIL_PROVIDER:-}
       # Public origin for absolute links in emails (waitlist confirm /
       # unsubscribe). Pinned to DOMAIN so links never follow a spoofed Host.
       - NUXT_SITE_URL=https://${DOMAIN:?DOMAIN required}
@@ -317,6 +339,15 @@ services:
       # Days an unreferenced doc image is kept before the image GC deletes
       # it. Empty = 30, 0 = GC off.
       - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
+      # Anonymous documents are deleted after this many inactive days (0 =
+      # never). Defaulted here, not left empty: it is a runtimeConfig key,
+      # and an empty env value would override the code default and turn
+      # the sweep off.
+      - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-30}
+      # Audit-log entries / closed abuse reports are deleted after this many
+      # days. Empty = 730 / 365, 0 = keep forever.
+      - NUXT_AUDIT_LOG_RETENTION_DAYS=${NUXT_AUDIT_LOG_RETENTION_DAYS:-}
+      - NUXT_ABUSE_REPORT_RETENTION_DAYS=${NUXT_ABUSE_REPORT_RETENTION_DAYS:-}
       - NUXT_PUBLIC_SYNC_URL=wss://sync.${DOMAIN:?DOMAIN required}
       - NUXT_SYNC_INTERNAL_URL=http://sync:4001
       - NUXT_MARKITDOWN_URL=http://markitdown:8080
@@ -495,6 +526,9 @@ services:
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
       - SENTRY_DSN=${SENTRY_DSN}
       - APP_URL=http://app:3000
+      # Must match the app's value, or the two key their rate limits on
+      # different X-Forwarded-For entries.
+      - TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
       # Postgres TLS posture — same as the app container. y-postgresql's
       # internal pool inherits the ssl config we pass via PoolConfig.
       - NODE_ENV=production

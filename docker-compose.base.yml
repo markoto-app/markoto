@@ -298,6 +298,15 @@ services:
       - SYNC_MAX_PREAUTH_BYTES=${SYNC_MAX_PREAUTH_BYTES:-}
       - SYNC_MAX_PREAUTH_TOTAL_BYTES=${SYNC_MAX_PREAUTH_TOTAL_BYTES:-}
       - SYNC_AUTH_TIMEOUT_MS=${SYNC_AUTH_TIMEOUT_MS:-}
+      # Open connections per client IP. Empty = 20 in production, 200
+      # otherwise (sync-server/src/rate-limiter.ts).
+      - SYNC_MAX_CONNECTIONS_PER_IP=${SYNC_MAX_CONNECTIONS_PER_IP:-}
+      # Y.js row compaction sweep. Empty = 500 rows per document before
+      # compacting / every 900000 ms (<= 0 turns it off) / 50 documents per
+      # run (sync-server/src/compaction.ts).
+      - COMPACT_THRESHOLD=${COMPACT_THRESHOLD:-}
+      - COMPACT_INTERVAL_MS=${COMPACT_INTERVAL_MS:-}
+      - COMPACT_MAX_DOCS_PER_RUN=${COMPACT_MAX_DOCS_PER_RUN:-}
     # Image user `bun`; source is root-owned. Bun only needs /tmp.
     read_only: true
     tmpfs:

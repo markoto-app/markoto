@@ -8,7 +8,7 @@ import { getMemberRoleIgnoringSso } from '../../repos/workspaceMembers'
 import { listSsoDomains, type SsoConnectionFields, type SsoConnectionRow, type SsoDomainRow } from '../../repos/sso'
 import { assertPlanFeature, planHasFeature, resolveWorkspacePlan } from '../entitlements'
 import { encryptToken } from '../litellm/tokenCrypto'
-import { checkSsoUrl, SsoUrlRefused } from './urlPolicy'
+import { checkSsoUrl, ssoAllowsPrivateUrls, SsoUrlRefused } from './urlPolicy'
 import { samlAcsUrl, samlSpEntityId, ssoBaseUrl, ssoCallbackUrl } from './http'
 import { DOMAIN_TXT_PREFIX } from './domains'
 
@@ -95,7 +95,7 @@ export async function parseSsoSettings(body: unknown, existing: SsoConnectionRow
   }
   // The browser goes there, not the server — https is all we require
   // (http only on an instance that allows private IdPs, e.g. tests).
-  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ['1', 'true'].includes(process.env.NUXT_SSO_ALLOW_PRIVATE_URLS ?? ''))) {
+  if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && ssoAllowsPrivateUrls())) {
     throw invalid('samlSsoUrl', 'The SSO URL must start with https://.')
   }
   if (parsed.username || parsed.password) throw invalid('samlSsoUrl', 'The SSO URL must not contain a user name or password.')
