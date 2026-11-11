@@ -15,7 +15,6 @@ import { sanitizeCustomCssForRender } from '~/utils/preview/customCssLoader'
 import { themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
 import { attachRenderFileTokens, renderBrandFileUrl, withRenderFileToken, type RenderFileAccess } from '~/utils/preview/renderFileTokens'
 import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
-import type { BrandFont } from '~~/shared/config/brandKit'
 
 // Cheap structural sanity check — the bootstrap endpoint already returns
 // a DB-validated theme, so we just need a guard against truly broken
@@ -56,20 +55,7 @@ const route = useRoute()
 const docId = route.params.docId as string
 const t = route.query.t as string | undefined
 
-const { data: bootstrap, error: bootstrapError } = await useFetch<{
-  snapshotId: number
-  markdown: string
-  theme: DocTheme | null
-  title: string
-  description: string
-  audience: string
-  language: string
-  fileAccessToken: string
-  fileIds?: string[]
-  brandFonts?: BrandFont[]
-  brandFiles?: string[]
-  appOrigins?: string[]
-}>('/api/_internal/render-bootstrap', {
+const { data: bootstrap, error: bootstrapError } = await useFetch('/api/_internal/render-bootstrap', {
   query: { docId, t },
   key: `render-bootstrap-${docId}-${t ?? ''}`,
   retry: false

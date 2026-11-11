@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { SavedTheme } from '~/utils/api/types/themes'
+import type { ApiResponse } from '~/utils/api/client'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import type { DocTheme } from '~~/shared/types/theme'
 import { AUDIENCE_KINDS, type AudienceKind } from '~~/shared/audiences'
@@ -115,14 +117,6 @@ const { loggedIn } = useUserSession()
 
 // Caller's saved themes — only fetched for logged-in users. Each becomes a
 // "Blank in <design>" card, and names a workspace default that matches one.
-interface SavedTheme {
-  themeId: string
-  name: string
-  description?: string
-  theme: DocTheme
-  createdAt: string
-  updatedAt: string
-}
 const savedThemes = ref<SavedTheme[]>([])
 
 // Workspace default theme (when filing into a workspace): the design Blank
@@ -130,14 +124,14 @@ const savedThemes = ref<SavedTheme[]>([])
 const workspaceDefaultTheme = ref<DocTheme | null>(null)
 // The workspace's own templates: a copy of a workspace
 // document's current text + design. Only when filing into a workspace.
-interface WorkspaceTemplate { id: string, name: string, description: string, docTitle: string }
+type WorkspaceTemplate = ApiResponse<'/api/workspaces/:wsId/templates', 'get'>['templates'][number]
 const workspaceTemplates = ref<WorkspaceTemplate[]>([])
 
 async function loadThemeContext() {
   // 1. The user's saved themes — only meaningful when logged in.
   if (loggedIn.value) {
     try {
-      const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
+      const res = await apiFetch('/api/themes')
       savedThemes.value = res.themes
     } catch { /* non-fatal — list stays empty */ }
   } else {
@@ -146,13 +140,13 @@ async function loadThemeContext() {
   // 2. The workspace default — only when filing into a workspace.
   if (props.workspaceId) {
     try {
-      const res = await $fetch<{ workspace: { defaultTheme: DocTheme | null } }>(
-        `/api/workspaces/${props.workspaceId}`
-      )
+      const res = await apiFetch('/api/workspaces/:wsId', {
+        path: { wsId: props.workspaceId }
+      })
       workspaceDefaultTheme.value = res.workspace.defaultTheme
     } catch { workspaceDefaultTheme.value = null }
     try {
-      const res = await $fetch<{ templates: WorkspaceTemplate[] }>(`/api/workspaces/${props.workspaceId}/templates`)
+      const res = await apiFetch('/api/workspaces/:wsId/templates', { path: { wsId: props.workspaceId } })
       workspaceTemplates.value = res.templates
     } catch { workspaceTemplates.value = [] }
   } else {
@@ -296,8 +290,9 @@ async function submit() {
     if (c.kind === 'workspace' && props.workspaceId) {
       // A workspace template copies its document (text + design + images);
       // the title is the one typed here, else the template's name.
-      const res = await $fetch<{ docId: string }>(`/api/workspaces/${props.workspaceId}/templates/${c.templateId}/documents`, {
-        method: 'POST',
+      const res = await apiFetch('/api/workspaces/:wsId/templates/:templateId/documents', {
+        method: 'post',
+        path: { wsId: props.workspaceId, templateId: c.templateId },
         body: trimmedTitle ? { title: trimmedTitle } : {}
       })
       rememberCreatedDoc()

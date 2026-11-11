@@ -1,17 +1,12 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // Workspace member roster. Up to THRESHOLD members render as rows (avatar,
 // name, role caption); beyond that it falls back to a compact avatar stack
 // so the header doesn't grow unbounded. Both modes have an explicit "Manage
 // members" pill, since the avatar group alone doesn't read as clickable.
 
-export interface WorkspaceMember {
-  userId: number
-  name: string
-  email: string | null
-  login: string | null
-  // `guest`: sees only documents shared with them.
-  role: 'admin' | 'editor' | 'viewer' | 'guest'
-}
+export type WorkspaceMember = ApiResponse<'/api/workspaces/:wsId', 'get'>['members'][number]
 
 const props = defineProps<{
   members: WorkspaceMember[]

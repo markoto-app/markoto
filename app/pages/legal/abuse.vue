@@ -98,8 +98,8 @@ function onClose(): void {
 }
 
 async function post(altcha: string | null): Promise<{ reportId: string }> {
-  return $fetch<{ reportId: string }>('/api/abuse-reports', {
-    method: 'POST',
+  return apiFetch('/api/abuse-reports', {
+    method: 'post',
     body: {
       contentUrl: contentUrl.value.trim(),
       category: category.value,
@@ -117,8 +117,8 @@ const { extractError } = useErrorHandler()
 
 /** The refusal's text in the reader's language (from its code); the form's own text when the request never got an answer. */
 function messageFor(e: unknown): string {
-  const { code, message } = extractError(e)
-  return code !== null || fetchErrorMessage(e) ? message : t('legal.abuse.errors.generic')
+  const { statusCode, message } = extractError(e)
+  return statusCode !== null ? message : t('legal.abuse.errors.generic')
 }
 
 async function onSubmit(): Promise<void> {

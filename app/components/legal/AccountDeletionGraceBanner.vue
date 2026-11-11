@@ -8,6 +8,7 @@
 const { t } = useI18n()
 const { status, refresh } = useAccountStatus()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 const cancelling = ref(false)
 
@@ -46,7 +47,7 @@ async function onCancel(): Promise<void> {
   if (cancelling.value) return
   cancelling.value = true
   try {
-    await $fetch('/api/user/delete-cancel', { method: 'POST' })
+    await apiFetch('/api/user/delete-cancel', { method: 'post' })
     await refresh()
     toast.add({
       title: t('legal.delete.cancelledToast'),
@@ -55,10 +56,9 @@ async function onCancel(): Promise<void> {
       color: 'neutral'
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not cancel deletion',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

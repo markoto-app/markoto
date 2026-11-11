@@ -11,23 +11,25 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { extractError } = useErrorHandler()
 const password = ref('')
 const error = ref('')
 
 const { isLoading: loading, execute: runVerify } = useAsyncState(
-  () => $fetch<{ success: boolean, token: string, readOnly: boolean }>(
-    `/api/docs/${props.docId}/password`,
-    { method: 'POST', body: { action: 'verify', password: password.value } }
-  ),
+  () => apiFetch('/api/docs/:docId/password', {
+    method: 'post',
+    path: { docId: props.docId },
+    body: { action: 'verify', password: password.value }
+  }),
   null,
   {
     immediate: false,
     onSuccess: (result) => {
-      if (result) emit('verified', result.token)
+      // The route's response type is `{ success }` for every action, so the token is checked at runtime.
+      if (result && 'token' in result && typeof result.token === 'string') emit('verified', result.token)
     },
     onError: (e) => {
-      const err = e as { data?: { message?: string } }
-      error.value = err.data?.message || t('share.invalidPassword')
+      error.value = extractError(e).message
       password.value = ''
     }
   }

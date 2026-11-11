@@ -11,12 +11,11 @@ import type { ApiResponse } from '~/utils/api/client'
 
 type IssuedToken = ApiResponse<'/api/mcp/tokens', 'get'>[number]
 
-interface IssueResponse extends IssuedToken {
-  token: string
-}
+type IssueResponse = ApiResponse<'/api/mcp/tokens', 'post'>
 
 const router = useRouter()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 // Login starts at the first configured OAuth provider ('/' when none).
 const { primaryLoginPath } = useInstanceConfig()
@@ -45,10 +44,9 @@ async function refreshTokens(): Promise<void> {
   try {
     tokens.value = await apiFetch('/api/mcp/tokens')
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not load tokens',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -76,8 +74,8 @@ async function onIssue(): Promise<void> {
   if (!name) return
   issuing.value = true
   try {
-    const created = await $fetch<IssueResponse>('/api/mcp/tokens', {
-      method: 'POST',
+    const created = await apiFetch('/api/mcp/tokens', {
+      method: 'post',
       body: { name }
     })
     justIssued.value = created
@@ -85,10 +83,9 @@ async function onIssue(): Promise<void> {
     newName.value = ''
     await refreshTokens()
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not issue token',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -127,7 +124,7 @@ async function onRevoke(tokenId: string): Promise<void> {
   if (revokingId.value !== null) return
   revokingId.value = tokenId
   try {
-    await $fetch(`/api/mcp/tokens/${encodeURIComponent(tokenId)}`, { method: 'DELETE' })
+    await apiFetch('/api/mcp/tokens/:tokenId', { method: 'delete', path: { tokenId } })
     await refreshTokens()
     toast.add({
       title: 'Token revoked',
@@ -135,10 +132,9 @@ async function onRevoke(tokenId: string): Promise<void> {
       color: 'neutral'
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not revoke token',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

@@ -2,6 +2,7 @@
 import { languageBadge, resolveLanguageDisplayName } from '~~/shared/languages'
 
 import { workspaceDocPermissions } from '~/utils/workspace/docRowActions'
+import type { ApiResponse } from '~/utils/api/client'
 
 // Doc list for the workspace detail page. Every member gets a row menu
 // (Open / Open in new tab); the rest follows `docRowActionGroups`:
@@ -10,18 +11,7 @@ import { workspaceDocPermissions } from '~/utils/workspace/docRowActions'
 // The server re-checks all rules on the underlying endpoints — the UI
 // gates are UX-only.
 
-export interface WorkspaceDoc {
-  docId: string
-  title: string
-  description: string
-  language: string
-  accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
-  wordCount: number | null
-  sizeBytes: number | null
-  lastActive: string | number | Date
-  ownerId: number | null
-  isOwner: boolean
-}
+export type WorkspaceDoc = ApiResponse<'/api/workspaces/:wsId', 'get'>['documents'][number]
 
 const props = defineProps<{
   documents: WorkspaceDoc[]

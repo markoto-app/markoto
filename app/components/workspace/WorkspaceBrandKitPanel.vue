@@ -4,18 +4,10 @@
 // the workspace templates. Server: `server/api/workspaces/[wsId]/brand/`.
 import { formatBytes } from '~/utils/billing/usageMeter'
 import { brandFontFaceCss } from '~~/shared/utils/theme/brandFonts'
-import type { BrandFont, BrandFontFormat } from '~~/shared/config/brandKit'
+import { isAddedFont, kitFonts, type BrandKit, type BrandKitFontRow } from '~/utils/api/types/brandKit'
 import type { DocTheme } from '~~/shared/types/theme'
 
-interface FontRow { id: string, file: string, family: string, weight: number, style: 'normal' | 'italic', format: BrandFontFormat, sizeBytes: number }
-interface ImageRow { id: string, file: string, name: string, format: string, sizeBytes: number, url: string }
-interface BrandKit {
-  available: boolean
-  canManage: boolean
-  limits: { fonts: number, images: number }
-  fonts: FontRow[]
-  images: ImageRow[]
-}
+type FontRow = BrandKitFontRow
 
 const props = defineProps<{
   workspaceId: string
@@ -34,7 +26,7 @@ const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspac
 
 async function load(): Promise<void> {
   try {
-    kit.value = await $fetch<BrandKit>(base.value)
+    kit.value = await apiFetch('/api/workspaces/:wsId/brand', { path: { wsId: props.workspaceId } })
   } catch (e) {
     showError('brandKit.loadFailed', e)
   }
@@ -46,7 +38,7 @@ useHead(() => ({
   style: kit.value?.fonts.length
     ? [{
         key: 'brand-kit-panel-fonts',
-        textContent: brandFontFaceCss(kit.value.fonts as BrandFont[], file => `${base.value}/files/${file}`)
+        textContent: brandFontFaceCss(kitFonts(kit.value), file => `${base.value}/files/${file}`)
       }]
     : []
 }))
@@ -80,8 +72,10 @@ async function uploadFont(): Promise<void> {
     form.append('file', fontFile.value)
     form.append('licence', 'true')
     if (fontFamily.value.trim()) form.append('family', fontFamily.value.trim())
-    const added = await $fetch<{ family: string, weight: number, style: string }>(`${base.value}/fonts`, { method: 'POST', body: form })
-    toast.add({ title: t('brandKit.fontAdded', { name: `${added.family} ${added.weight}${added.style === 'italic' ? ' italic' : ''}` }), icon: 'i-lucide-check', color: 'neutral' })
+    // Not apiFetch: the contract types a multipart (`body: 'custom'`) route's
+    // body as `undefined`, so a FormData is refused.
+    const added: unknown = await $fetch(`${base.value}/fonts`, { method: 'POST', body: form })
+    if (isAddedFont(added)) toast.add({ title: t('brandKit.fontAdded', { name: `${added.family} ${added.weight}${added.style === 'italic' ? ' italic' : ''}` }), icon: 'i-lucide-check', color: 'neutral' })
     fontFile.value = null
     await load()
     emit('changed')
@@ -116,7 +110,7 @@ const busy = ref<string | null>(null)
 async function remove(id: string): Promise<void> {
   busy.value = id
   try {
-    await $fetch(`${base.value}/assets/${id}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/brand/assets/:assetId', { method: 'delete', path: { wsId: props.workspaceId, assetId: id } })
     await load()
     emit('changed')
   } catch (e) {

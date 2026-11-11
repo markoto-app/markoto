@@ -13,41 +13,11 @@
 // Backwards transitions (closed → open) are intentionally NOT
 // supported — see the endpoint comment.
 
+import type { ApiResponse } from '~/utils/api/client'
 import { MODERATION_RULES, isModerationRule, type ModerationRule } from '~~/shared/config/moderation'
 
-interface ModerationNotice {
-  kind: 'receipt' | 'decision' | 'statement_of_reasons'
-  recipientRole: 'reporter' | 'owner'
-  status: 'sent' | 'not_delivered_no_contact' | 'failed'
-  subject: string
-  body: string
-  createdAt: string
-}
-
-interface AbuseReport {
-  reportId: string
-  docId: string | null
-  contentUrl: string | null
-  goodFaithConfirmedAt: string | null
-  decision: { action: string, rule: string | null, explanation: string | null } | null
-  notices: ModerationNotice[]
-  category: string
-  body: string
-  status: 'open' | 'acknowledged' | 'actioned' | 'dismissed'
-  notes: string | null
-  createdAt: string
-  acknowledgedAt: string | null
-  actionedAt: string | null
-  reporterIpTruncated: string | null
-  reporter: {
-    userId: number | null
-    name: string | null
-    email: string | null
-    stillExists: boolean
-    signedIn: boolean
-  } | null
-  actionedBy: { userId: number, name: string | null, email: string | null } | null
-}
+type AbuseReport = ApiResponse<'/api/admin/abuse-reports', 'get'>[number]
+type ModerationNotice = AbuseReport['notices'][number]
 
 const router = useRouter()
 const { t } = useI18n()
@@ -56,6 +26,7 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 useHead({ title: 'Abuse reports · Admin' })
 
@@ -126,14 +97,13 @@ async function refresh(): Promise<void> {
     // Map our two-status default to a server query — server treats
     // 'open+acknowledged' as the default when no `status=` is given.
     const statusParam = filter.value === 'open+acknowledged' ? '' : filter.value
-    reports.value = await $fetch<AbuseReport[]>('/api/admin/abuse-reports', {
+    reports.value = await apiFetch('/api/admin/abuse-reports', {
       query: statusParam ? { status: statusParam } : {}
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not load reports',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -159,8 +129,9 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
   acting.value[reportId] = true
   try {
     const draft = draftFor(reportId)
-    await $fetch(`/api/admin/abuse-reports/${reportId}`, {
-      method: 'PATCH',
+    await apiFetch('/api/admin/abuse-reports/:reportId', {
+      method: 'patch',
+      path: { reportId },
       body: {
         status,
         notes: (noteDrafts.value[reportId] ?? '').trim() || undefined,
@@ -186,7 +157,7 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
   } catch (e) {
     toast.add({
       title: `Could not ${status} report`,
-      description: fetchErrorMessage(e) ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

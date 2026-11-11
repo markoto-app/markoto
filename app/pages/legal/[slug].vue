@@ -27,31 +27,18 @@ const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
 
-interface LegalDocResponse {
-  slug: string
-  title: string
-  version: number
-  effectiveDate: string
-  requestedLocale: string
-  actualLocale: string
-  isFallback: boolean
-  authoritativeLocale: string
-  html: string
-}
-
 const slug = computed(() => String(route.params.slug ?? ''))
 
 // SSR-friendly fetch: useFetch hits the internal endpoint with the
 // active i18n locale. The page renders the doc via `v-html` since
 // the markdown comes back already rendered + sanitised by the
 // server (markdown-it with html: false).
-const { data, error, pending, refresh } = await useFetch<LegalDocResponse>(
-  () => `/api/_internal/legal/${slug.value}`,
-  {
-    query: computed(() => ({ locale: locale.value })),
-    // Re-fetch when the user switches language while reading.
-    watch: [locale]
-  }
+const api = useApi()
+const { data, error, pending, refresh } = await useAsyncData(
+  // The key follows the slug and the language: a change of either re-fetches
+  // (the page component is reused when the slug changes).
+  () => `legal:${slug.value}:${locale.value}`,
+  () => api('/api/_internal/legal/:slug', { path: { slug: slug.value }, query: { locale: locale.value } })
 )
 
 const pageTitle = computed(() => data.value?.title ?? 'Legal')

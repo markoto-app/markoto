@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { defaultCurrencyForLocale } from '~~/shared/config/pricing'
+import type { ApiResponse } from '~/utils/api/client'
 import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 // User profile page. The single canonical surface for account-level
 // management: who you are, the data we hold about you, and the
@@ -10,17 +11,7 @@ import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 // side via redirect; the data-fetching endpoints are session-required
 // so deep-linking without a session lands in the 401-toast surface.
 
-interface ExportJob {
-  jobId: string
-  status: 'queued' | 'running' | 'ready' | 'expired' | 'failed'
-  sizeBytes: number | null
-  errorMessage: string | null
-  expiresAt: string | null
-  createdAt: string
-  startedAt: string | null
-  completedAt: string | null
-  downloadable: boolean
-}
+type ExportJob = ApiResponse<'/api/user/exports', 'get'>[number]
 
 const router = useRouter()
 const { t } = useI18n()
@@ -28,7 +19,7 @@ const { t } = useI18n()
 // billing is off (self-hosted / free-only SaaS).
 const { billingEnabled } = useBillingMode()
 const toast = useToast()
-const { handleReauthRequired, showError } = useErrorHandler()
+const { handleReauthRequired, showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 const { status, refresh: refreshAccountStatus } = useAccountStatus()
 // Legal acceptance section only where the legal surfaces
@@ -58,7 +49,7 @@ async function onLogoutEverywhere(): Promise<void> {
   if (revokingSessions.value) return
   revokingSessions.value = true
   try {
-    await $fetch('/api/user/sessions/revoke', { method: 'POST' })
+    await apiFetch('/api/user/sessions/revoke', { method: 'post' })
     await logout()
   } catch (e) {
     showError('settings.profile.sessions.failed', e)
@@ -74,12 +65,11 @@ async function refreshExports(): Promise<void> {
   if (!loggedIn.value) return
   exportsLoading.value = true
   try {
-    exports.value = await $fetch<ExportJob[]>('/api/user/exports')
+    exports.value = await apiFetch('/api/user/exports')
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not load exports',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -125,7 +115,7 @@ async function onRequestExport(): Promise<void> {
   if (requestingExport.value) return
   requestingExport.value = true
   try {
-    await $fetch('/api/user/export', { method: 'POST' })
+    await apiFetch('/api/user/export', { method: 'post' })
     toast.add({
       title: t('settings.profile.data.exportInProgress'),
       description: '',
@@ -135,10 +125,9 @@ async function onRequestExport(): Promise<void> {
     await refreshExports()
   } catch (e) {
     if (handleReauthRequired(e)) return
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not request export',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -155,7 +144,7 @@ const openingPortal = ref(false)
 async function openPortal(): Promise<void> {
   openingPortal.value = true
   try {
-    const res = await $fetch<{ url: string }>('/api/billing/portal', { method: 'POST' })
+    const res = await apiFetch('/api/billing/portal', { method: 'post' })
     goToExternal(res.url)
   } catch (e) {
     showError('settings.profile.spending.portalFailed', e)
@@ -216,7 +205,7 @@ async function onCancelDeletion(): Promise<void> {
   if (cancellingDeletion.value) return
   cancellingDeletion.value = true
   try {
-    await $fetch('/api/user/delete-cancel', { method: 'POST' })
+    await apiFetch('/api/user/delete-cancel', { method: 'post' })
     await refreshAccountStatus()
     toast.add({
       title: t('legal.delete.cancelledToast'),
@@ -225,10 +214,9 @@ async function onCancelDeletion(): Promise<void> {
       color: 'neutral'
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not cancel deletion',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

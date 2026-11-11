@@ -5,27 +5,11 @@
 // and removal. Admins only; works without a current SSO sign-in (the
 // break-glass), so it is also shown on the "sign in with your
 // organisation" screen. Server: `server/api/workspaces/[wsId]/sso/`.
+import type { ApiRequest, ApiResponse } from '~/utils/api/client'
 
-interface DomainView { id: number, domain: string, verified: boolean, txtName: string, txtValue: string }
-interface SsoView {
-  available: boolean
-  connection: null | {
-    id: string
-    protocol: 'oidc' | 'saml'
-    status: 'draft' | 'active'
-    defaultRole: 'editor' | 'viewer'
-    oidcIssuer: string | null
-    oidcClientId: string | null
-    hasClientSecret: boolean
-    samlIdpEntityId: string | null
-    samlSsoUrl: string | null
-    samlCertificate: null | { subject: string, validTo: string }
-    hasScimToken: boolean
-    activatedAt: string | null
-    sp: { loginUrl: string, callbackUrl: string, entityId: string, acsUrl: string, metadataUrl: string, scimBaseUrl: string }
-  }
-  domains: DomainView[]
-}
+type SsoView = ApiResponse<'/api/workspaces/:wsId/sso', 'get'>
+type DomainView = SsoView['domains'][number]
+type SsoSettingsBody = NonNullable<ApiRequest<'/api/workspaces/:wsId/sso', 'put'>['body']>
 
 const props = defineProps<{ workspaceId: string }>()
 const emit = defineEmits<{ changed: [] }>()
@@ -42,7 +26,7 @@ const EMPTY_VIEW: SsoView = { available: false, connection: null, domains: [] }
 const cur = computed<SsoView>(() => view.value ?? EMPTY_VIEW)
 const loading = ref(true)
 const busy = ref<string | null>(null)
-const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspaceId)}/sso`)
+const path = computed(() => ({ wsId: props.workspaceId }))
 
 const protocol = ref<'oidc' | 'saml'>('oidc')
 const oidcIssuer = ref('')
@@ -71,7 +55,7 @@ function seedForm(v: SsoView): void {
 async function load(): Promise<void> {
   loading.value = true
   try {
-    view.value = await $fetch<SsoView>(base.value)
+    view.value = await apiFetch('/api/workspaces/:wsId/sso', { path: path.value })
     seedForm(view.value)
   } catch (e) {
     showError('sso.loadFailed', e)
@@ -94,10 +78,10 @@ const roleItems = computed(() => [
 async function save(): Promise<void> {
   busy.value = 'save'
   try {
-    const body = protocol.value === 'oidc'
+    const body: SsoSettingsBody = protocol.value === 'oidc'
       ? { protocol: 'oidc', oidcIssuer: oidcIssuer.value, oidcClientId: oidcClientId.value, ...(oidcClientSecret.value ? { oidcClientSecret: oidcClientSecret.value } : {}), defaultRole: defaultRole.value }
       : { protocol: 'saml', samlIdpEntityId: samlIdpEntityId.value, samlSsoUrl: samlSsoUrl.value, samlIdpCert: samlIdpCert.value || undefined, defaultRole: defaultRole.value }
-    view.value = await $fetch<SsoView>(base.value, { method: 'PUT', body })
+    view.value = await apiFetch('/api/workspaces/:wsId/sso', { method: 'put', path: path.value, body })
     seedForm(view.value)
     toast.add({ title: t('sso.saved'), icon: 'i-lucide-check', color: 'neutral' })
     emit('changed')
@@ -117,7 +101,7 @@ async function addDomain(): Promise<void> {
   if (!newDomain.value.trim()) return
   busy.value = 'domain'
   try {
-    const row = await $fetch<DomainView>(`${base.value}/domains`, { method: 'POST', body: { domain: newDomain.value } })
+    const row = await apiFetch('/api/workspaces/:wsId/sso/domains', { method: 'post', path: path.value, body: { domain: newDomain.value } })
     view.value?.domains.push(row)
     newDomain.value = ''
   } catch (e) {
@@ -130,7 +114,7 @@ async function addDomain(): Promise<void> {
 async function verifyDomain(domain: DomainView): Promise<void> {
   busy.value = `verify-${domain.id}`
   try {
-    const row = await $fetch<DomainView>(`${base.value}/domains/${domain.id}/verify`, { method: 'POST' })
+    const row = await apiFetch('/api/workspaces/:wsId/sso/domains/:domainId/verify', { method: 'post', path: { wsId: props.workspaceId, domainId: domain.id } })
     Object.assign(domain, row)
     toast.add({ title: t('sso.domainVerified', { domain: domain.domain }), icon: 'i-lucide-check', color: 'neutral' })
   } catch (e) {
@@ -143,7 +127,7 @@ async function verifyDomain(domain: DomainView): Promise<void> {
 async function removeDomain(domain: DomainView): Promise<void> {
   busy.value = `remove-${domain.id}`
   try {
-    await $fetch(`${base.value}/domains/${domain.id}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/sso/domains/:domainId', { method: 'delete', path: { wsId: props.workspaceId, domainId: domain.id } })
     if (view.value) view.value.domains = view.value.domains.filter(x => x.id !== domain.id)
   } catch (e) {
     showError('sso.domainRemoveFailed', e)
@@ -155,7 +139,7 @@ async function removeDomain(domain: DomainView): Promise<void> {
 async function createScimToken(): Promise<void> {
   busy.value = 'scim'
   try {
-    const res = await $fetch<{ token: string }>(`${base.value}/scim-token`, { method: 'POST' })
+    const res = await apiFetch('/api/workspaces/:wsId/sso/scim-token', { method: 'post', path: path.value })
     scimToken.value = res.token
     if (view.value?.connection) view.value.connection.hasScimToken = true
   } catch (e) {
@@ -168,7 +152,7 @@ async function createScimToken(): Promise<void> {
 async function revokeScimToken(): Promise<void> {
   busy.value = 'scim'
   try {
-    await $fetch(`${base.value}/scim-token`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/sso/scim-token', { method: 'delete', path: path.value })
     scimToken.value = null
     if (view.value?.connection) view.value.connection.hasScimToken = false
   } catch (e) {
@@ -181,7 +165,7 @@ async function revokeScimToken(): Promise<void> {
 async function removeConnection(): Promise<void> {
   busy.value = 'remove'
   try {
-    await $fetch(base.value, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/sso', { method: 'delete', path: path.value })
     confirmRemove.value = false
     await load()
     toast.add({ title: t('sso.removed'), icon: 'i-lucide-check', color: 'neutral' })

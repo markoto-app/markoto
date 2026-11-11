@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import type { DropdownMenuItem } from '@nuxt/ui'
+import type { ApiResponse } from '~/utils/api/client'
+import { apiErrorData, errorStatus } from '~/utils/api/errors'
 import type { WorkspaceDoc } from '~/components/workspace/WorkspaceDocTable.vue'
 import { isPaymentProblem } from '~/utils/billing/workspaceBilling'
 import type { WorkspaceMember } from '~/components/workspace/WorkspaceMemberAvatars.vue'
@@ -8,40 +10,12 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
-const { showError } = useErrorHandler()
+const { showError, extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
 
 const workspaceId = computed(() => route.params.id as string)
 
-interface WorkspaceDetail {
-  workspace: {
-    workspaceId: string
-    name: string
-    description: string | null
-    createdAt: string
-    myRole: 'admin' | 'editor' | 'viewer'
-    ownerId: number
-    // Effective plan (Team / Business subscription, else the creator's plan).
-    plan: import('~~/shared/config/tiers').PlanName
-    // NEW: workspace default theme. NULL = use the markoto preset.
-    // Read by NewDocumentDialog when seeding the theme card grid for
-    // docs created in this workspace.
-    defaultTheme: import('~~/shared/types/theme').DocTheme | null
-    // A Team / Business subscription currently covers the workspace.
-    pooled?: boolean
-    // Admins only: seats + status of the subscription.
-    billing?: import('~/utils/billing/workspaceBilling').WorkspaceSeatBilling | null
-    /** Admins only. */
-    sso?: { available: boolean, status: 'none' | 'draft' | 'active' } | null
-    /** Admins only. */
-    auditLog?: { available: boolean } | null
-    guests?: { available: boolean } | null
-    brandKit?: { available: boolean, inUse: boolean } | null
-    brandLocked?: boolean
-  }
-  documents: WorkspaceDoc[]
-  members: WorkspaceMember[]
-}
+type WorkspaceDetail = ApiResponse<'/api/workspaces/:wsId', 'get'>
 
 const notFound = ref(false)
 const forbidden = ref(false)
@@ -59,7 +33,7 @@ const {
     notFound.value = false
     forbidden.value = false
     ssoRequired.value = null
-    return await $fetch<WorkspaceDetail>(`/api/workspaces/${workspaceId.value}`)
+    return await apiFetch('/api/workspaces/:wsId', { path: { wsId: workspaceId.value } })
   },
   null,
   {
@@ -70,12 +44,12 @@ const {
     // useAsyncState default) wouldn't notify on those nested writes.
     shallow: false,
     onError: (e: unknown) => {
-      const err = e as { statusCode?: number, data?: { data?: { code?: string, loginUrl?: string, canManageSso?: boolean } } } | null
-      const sso = err?.data?.data
-      if (err?.statusCode === 403 && sso?.code === 'sso/required' && sso.loginUrl) {
+      const status = errorStatus(e)
+      const sso = apiErrorData(e)
+      if (status === 403 && sso?.code === 'sso/required' && typeof sso.loginUrl === 'string' && sso.loginUrl) {
         ssoRequired.value = { loginUrl: sso.loginUrl, canManageSso: sso.canManageSso === true }
-      } else if (err?.statusCode === 404) notFound.value = true
-      else if (err?.statusCode === 403 || err?.statusCode === 401) forbidden.value = true
+      } else if (status === 404) notFound.value = true
+      else if (status === 403 || status === 401) forbidden.value = true
       else showError('workspace.notFound', e)
     }
   }
@@ -310,13 +284,12 @@ const workspaceMenuItems = computed<DropdownMenuItem[][]>(() => {
 async function leaveWorkspace() {
   if (!data.value || myUserId.value == null) return
   try {
-    await $fetch(`/api/workspaces/${data.value.workspace.workspaceId}/members/${myUserId.value}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/members/:userId', { method: 'delete', path: { wsId: data.value.workspace.workspaceId, userId: myUserId.value } })
     onLeftWorkspace()
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('workspace.members.leaveFailed'),
-      description: err?.data?.message || err?.message,
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

@@ -14,6 +14,7 @@ const { loggedIn } = useUserSession()
 const { logout } = useLogout()
 const { status, refresh } = useAccountStatus()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 const open = ref(false)
 const submitting = ref(false)
@@ -66,8 +67,8 @@ async function onSubmit(): Promise<void> {
   if (!canSubmit.value || submitting.value) return
   submitting.value = true
   try {
-    await $fetch('/api/user/onboarding-accept', {
-      method: 'POST',
+    await apiFetch('/api/user/onboarding-accept', {
+      method: 'post',
       body: {
         ageConfirmed: ageChecked.value || !ageRequired.value,
         privacyVersion: privacyVersion.value,
@@ -84,8 +85,8 @@ async function onSubmit(): Promise<void> {
       color: 'neutral'
     })
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string, code?: string } }
-    if (err.data?.code === 'onboarding/privacy-version-stale' || err.data?.code === 'onboarding/tos-version-stale') {
+    const err = extractError(e)
+    if (err.code === 'onboarding/privacy-version-stale' || err.code === 'onboarding/tos-version-stale') {
       // The user opened the modal, we bumped a version mid-read;
       // refetch and re-prompt. The watcher on `needsGate` re-opens.
       await refresh()
@@ -93,14 +94,14 @@ async function onSubmit(): Promise<void> {
       tosChecked.value = false
       toast.add({
         title: 'Document updated — please review again',
-        description: err.data?.message,
+        description: err.message,
         icon: 'i-lucide-refresh-cw',
         color: 'neutral'
       })
     } else {
       toast.add({
         title: 'Could not record your acceptance',
-        description: err.data?.message ?? err.message ?? 'Unknown error',
+        description: err.message,
         icon: 'i-lucide-alert-circle',
         color: 'error'
       })

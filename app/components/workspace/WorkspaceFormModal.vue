@@ -28,6 +28,7 @@ const emit = defineEmits<{
 
 const { t, locale } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const { status: accountStatus, refresh: refreshAccountStatus } = useAccountStatus()
 
 const name = ref('')
@@ -65,8 +66,8 @@ async function handleSubmit() {
     description: description.value.trim() || null
   }
   try {
-    if (isEdit.value) {
-      await $fetch(`/api/workspaces/${props.workspaceId}`, { method: 'PUT', body: payload })
+    if (props.workspaceId) {
+      await apiFetch('/api/workspaces/:wsId', { method: 'put', path: { wsId: props.workspaceId }, body: payload })
       emit('updated', payload)
     } else {
       // Record DPA acceptance FIRST if required. The workspace POST
@@ -75,8 +76,8 @@ async function handleSubmit() {
       // and the audit log records DPA acceptance distinctly from
       // workspace creation.
       if (dpaRequired.value) {
-        await $fetch('/api/user/dpa-accept', {
-          method: 'POST',
+        await apiFetch('/api/user/dpa-accept', {
+          method: 'post',
           body: {
             dpaVersion: dpaCurrentVersion.value,
             locale: locale.value
@@ -86,27 +87,27 @@ async function handleSubmit() {
         // updates next time the user opens it.
         void refreshAccountStatus()
       }
-      const res = await $fetch<{ workspaceId: string }>('/api/workspaces', { method: 'POST', body: payload })
+      const res = await apiFetch('/api/workspaces', { method: 'post', body: payload })
       emit('created', res.workspaceId)
     }
     open.value = false
   } catch (e) {
-    const err = e as { data?: { message?: string, code?: string }, message?: string }
-    if (err.data?.code === 'dpa/version-stale' || err.data?.code === 'workspace/dpa-required') {
+    const err = extractError(e)
+    if (err.code === 'dpa/version-stale' || err.code === 'workspace/dpa-required') {
       // DPA bumped between modal-open and submit — refresh status
       // and reset the checkbox so the user re-confirms.
       await refreshAccountStatus()
       dpaChecked.value = false
       toast.add({
         title: 'Data Processing Addendum updated — please review again',
-        description: err.data?.message,
+        description: err.message,
         icon: 'i-lucide-refresh-cw',
         color: 'neutral'
       })
     } else {
       toast.add({
         title: isEdit.value ? t('workspace.saveFailed') : t('workspace.createFailed'),
-        description: err?.data?.message || err?.message,
+        description: err.message,
         icon: 'i-lucide-alert-circle',
         color: 'error'
       })

@@ -1,21 +1,13 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // The workspace audit log: who changed what, when and from which
 // (shortened) network address — members, roles, invitations, sharing,
 // deletions, billing, single sign-on. Admins of a plan that includes it.
 // Filter by kind and dates, page with "Show older", download as CSV or
 // JSON Lines. Server: `server/api/workspaces/[wsId]/audit/`.
 
-interface AuditEvent {
-  id: number
-  at: string
-  actor: { id: number | null, name: string | null }
-  ip: string | null
-  action: string
-  target: { type: string, id: string | null }
-  before: unknown
-  after: unknown
-  details: Record<string, unknown> | null
-}
+type AuditEvent = ApiResponse<'/api/workspaces/:wsId/audit', 'get'>['events'][number]
 
 const props = defineProps<{ workspaceId: string }>()
 const { t, te, locale } = useI18n()
@@ -42,21 +34,22 @@ const kindItems = computed(() => [
 
 const base = computed(() => `/api/workspaces/${encodeURIComponent(props.workspaceId)}/audit`)
 
-function query(extra: Record<string, string | number | undefined> = {}): Record<string, string | number> {
-  const q: Record<string, string | number> = {}
+// The filters shared by the list and the export link.
+function query(): { action?: string, from?: string, to?: string } {
+  const q: { action?: string, from?: string, to?: string } = {}
   if (kind.value !== 'all') q.action = kind.value
   // Dates are local calendar days; `to` is inclusive (up to the next midnight).
   if (from.value) q.from = new Date(`${from.value}T00:00:00`).toISOString()
   if (to.value) q.to = new Date(new Date(`${to.value}T00:00:00`).getTime() + 86_400_000).toISOString()
-  for (const [k, v] of Object.entries(extra)) if (v !== undefined) q[k] = v
   return q
 }
 
 async function load(more = false): Promise<void> {
   loading.value = true
   try {
-    const res = await $fetch<{ events: AuditEvent[], nextBefore: number | null, retentionDays: number }>(base.value, {
-      query: query(more && nextBefore.value ? { before: nextBefore.value } : {})
+    const res = await apiFetch('/api/workspaces/:wsId/audit', {
+      path: { wsId: props.workspaceId },
+      query: { ...query(), ...(more && nextBefore.value ? { before: nextBefore.value } : {}) }
     })
     events.value = more ? [...events.value, ...res.events] : res.events
     nextBefore.value = res.nextBefore
@@ -72,7 +65,7 @@ onMounted(() => load())
 watch([kind, from, to], () => load())
 
 function exportUrl(format: 'csv' | 'jsonl'): string {
-  const params = new URLSearchParams(Object.entries(query({ format })).map(([k, v]) => [k, String(v)]))
+  const params = new URLSearchParams(Object.entries({ ...query(), format }))
   return `${base.value}/export?${params.toString()}`
 }
 

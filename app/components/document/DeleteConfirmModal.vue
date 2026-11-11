@@ -17,6 +17,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 // Mobile haptic on delete-confirm tap. Double-pulse pattern reinforces
 // "intentional, irreversible" — distinct from a casual click. iOS has
 // no Web Vibration API, so isSupported is false there and vibrate()
@@ -38,7 +39,7 @@ async function handleDelete() {
   deleting.value = true
   emit('deleting')
   try {
-    await $fetch(`/api/docs/${props.docId}`, { method: 'DELETE' })
+    await apiFetch('/api/docs/:docId', { method: 'delete', path: { docId: props.docId } })
     toast.add({
       title: t('delete.success'),
       description: t('delete.successDesc', { title: props.title }),
@@ -49,13 +50,7 @@ async function handleDelete() {
     emit('deleted')
   } catch (e) {
     emit('failed')
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('delete.failed'),
-      description: err.data?.message || err.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('delete.failed', e)
   } finally {
     deleting.value = false
   }

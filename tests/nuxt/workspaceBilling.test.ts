@@ -72,6 +72,7 @@ beforeEach(() => {
     isBillingAdmin: true,
     subscription: null,
     pool: null,
+    credits: null,
     members: [
       { userId: 1, name: 'Ada', role: 'admin', limitUsd: null, limitIsDefault: true, unlimited: false, spendUsd: null },
       { userId: 2, name: 'Ben', role: 'editor', limitUsd: null, limitIsDefault: true, unlimited: false, spendUsd: null }
@@ -172,7 +173,7 @@ describe('invite dialog — paid seats', () => {
         return () => h(WorkspaceMembersModal, {
           'workspaceId': 'ws1',
           'workspaceName': 'Acme',
-          'members': [{ userId: 1, name: 'Ada', email: null, login: null, role: 'admin' }],
+          'members': [{ userId: 1, name: 'Ada', email: null, login: null, role: 'admin', joinedAt: '2026-01-01T00:00:00.000Z' }],
           'myRole': 'admin',
           'myUserId': 1,
           'billing': { seats: 3, seatsUsed: 3, status: 'active', plan: 'team', interval: 'month', currency: 'eur' },

@@ -58,6 +58,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   // async click handler); `locale.value` is read lazily so language changes
   // are still picked up.
   const { locale } = useI18n()
+  const { extractError } = useErrorHandler()
 
   const state = ref<VoiceDictationState>('idle')
   const errorMessage = ref<string | null>(null)
@@ -168,14 +169,13 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     // Short-lived JWT, minted over POST so it never appears in a URL or log.
     let token: string
     try {
-      const res = await $fetch<{ token: string }>('/api/ai/dictate/token', {
-        method: 'POST',
+      const res = await apiFetch('/api/ai/dictate/token', {
+        method: 'post',
         body: { docId: toValue(options.docId) }
       })
       token = res.token
     } catch (e) {
-      const err = e as { data?: { message?: string }, message?: string }
-      fail(err.data?.message || err.message || 'Could not authorize dictation.')
+      fail(extractError(e).message)
       return
     }
 

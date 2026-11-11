@@ -27,6 +27,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 const {
   comments,
@@ -81,7 +82,7 @@ const workspaceMembers = ref<MentionableUser[]>([])
 onMounted(async () => {
   if (!props.docWorkspaceId) return
   try {
-    const data = await $fetch<{ users: MentionableUser[] }>(`/api/docs/${props.docId}/mentionable-users`)
+    const data = await apiFetch('/api/docs/:docId/mentionable-users', { path: { docId: props.docId } })
     workspaceMembers.value = data.users
   } catch {
     // Degrade quietly: the composer works without typeahead.
@@ -187,18 +188,20 @@ async function maybeTriggerAi(commentId: string, replyId: string | null) {
     return
   }
   try {
-    await $fetch(`/api/docs/${props.docId}/comments/${commentId}/trigger-ai`, {
-      method: 'POST',
+    await apiFetch('/api/docs/:docId/comments/:commentId/trigger-ai', {
+      method: 'post',
+      path: { docId: props.docId, commentId },
       body: { replyId: replyId ?? undefined }
     })
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { code?: string } }
-    if (err?.data?.code === 'ai/provider-missing') {
+    // The code sits in the response body's own `data`; extractError unwraps it.
+    const err = extractError(e)
+    if (err.code === 'ai/provider-missing') {
       showAiProviderMissingToast()
       void refreshAiAvailability()
       return
     }
-    if (err?.statusCode === 402 || err?.data?.code === 'ai/budget-exhausted') {
+    if (err.statusCode === 402 || err.code === 'ai/budget-exhausted') {
       toast.add({
         title: t('comments.aiTriggerExhausted'),
         icon: 'i-lucide-zap-off',
@@ -206,7 +209,7 @@ async function maybeTriggerAi(commentId: string, replyId: string | null) {
       })
       return
     }
-    if (err?.statusCode === 409) {
+    if (err.statusCode === 409) {
       // An AI session already runs on this doc: ignore silently rather than toast a duplicate error.
       return
     }

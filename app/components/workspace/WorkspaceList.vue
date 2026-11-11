@@ -1,16 +1,9 @@
 <script setup lang="ts">
 // Grid of workspace cards for the dashboard.
+import type { ApiResponse } from '~/utils/api/client'
 
 /** Card row payload from `/api/user/workspaces`. */
-export interface WorkspaceListItem {
-  workspaceId: string
-  name: string
-  description: string | null
-  docCount: number
-  lastActive: string | number | Date | null
-  createdAt: string | number | Date
-  role: 'admin' | 'editor' | 'viewer'
-}
+export type WorkspaceListItem = ApiResponse<'/api/user/workspaces', 'get'>[number]
 
 defineProps<{
   workspaces: WorkspaceListItem[]

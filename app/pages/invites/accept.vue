@@ -33,15 +33,17 @@ async function onAct(action: 'accept' | 'decline'): Promise<void> {
   state.value = 'working'
   errorMessage.value = null
   try {
-    const res = await $fetch<{ workspaceId?: string, role?: string }>('/api/user/invites/by-token', {
-      method: 'POST',
+    const res = await apiFetch('/api/user/invites/by-token', {
+      method: 'post',
       body: { token: token.value, action }
     })
     clearPendingInviteToken()
-    if (action === 'accept' && typeof res.workspaceId === 'string') {
+    // The route's inferred type is the narrower decline answer (`{ ok }`); an
+    // accept adds the workspace, so test for the fields before reading them.
+    if (action === 'accept' && 'workspaceId' in res && typeof res.workspaceId === 'string') {
       // A guest has no workspace page: their shared documents
       // are on the dashboard.
-      await router.push(res.role === 'guest' ? '/' : `/w/${res.workspaceId}`)
+      await router.push('role' in res && res.role === 'guest' ? '/' : `/w/${res.workspaceId}`)
       return
     }
     state.value = 'declined'

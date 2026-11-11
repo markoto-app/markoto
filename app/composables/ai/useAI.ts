@@ -174,6 +174,7 @@ function statusCodeOf(e: unknown): number | undefined {
 export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOptions = {}) {
   const { loggedIn, user: sessionUser } = useUserSession()
   const { refresh: refreshAiAvailability } = useAiAvailability()
+  const { extractError } = useErrorHandler()
   const pollMs = options.pollIntervalMs ?? DEFAULT_POLL_MS
   const createEventSource = options.createEventSource === undefined
     ? defaultEventSourceFactory()
@@ -268,7 +269,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   /** One fetch; resolves false when the session is gone (404) so polling stops. */
   async function fetchStatus(sid: string): Promise<boolean> {
     try {
-      const s = await $fetch<PrivateSessionStatus>(`/api/ai/sessions/${encodeURIComponent(sid)}`)
+      const s = await apiFetch('/api/ai/sessions/:sessionId', { path: { sessionId: sid } })
       if (trackedSessionId.value === sid || mySessionId.value === null) applyStatus(s)
       return true
     } catch (e) {
@@ -411,16 +412,16 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     if (!sid || !c || answeringConfirmation.value) return
     answeringConfirmation.value = true
     try {
-      await $fetch(`/api/ai/sessions/${encodeURIComponent(sid)}/confirm`, {
-        method: 'POST',
+      await apiFetch('/api/ai/sessions/:sessionId/confirm', {
+        method: 'post',
+        path: { sessionId: sid },
         body: { confirmationId: c.id, allow }
       })
     } catch (e) {
       // 409 = already answered / timed out — the next update shows the
       // current state; anything else is worth a toast.
       if (statusCodeOf(e) !== 409) {
-        const msg = isRecord(e) && typeof e.message === 'string' ? e.message : 'Request failed'
-        lastError.value = msg
+        lastError.value = extractError(e).message
       }
     } finally {
       answeringConfirmation.value = false
@@ -445,34 +446,28 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     // over `options.getEditorSelection`. Absent = server treats it as `kind: 'none'`.
     const editorSelection = overrides?.editorSelection ?? options.getEditorSelection?.()
     try {
-      const res = await $fetch<{ sessionId: string }>('/api/ai/prompt', {
-        method: 'POST',
+      const res = await apiFetch('/api/ai/prompt', {
+        method: 'post',
         body: { docId: docId.value, prompt: trimmed, editorSelection }
       })
       if (typeof res?.sessionId === 'string') startedSessionId.value = res.sessionId
       return true
     } catch (e) {
-      const err = e as {
-        statusCode?: number
-        status?: number
-        data?: { statusCode?: number, message?: string, code?: string, messageKey?: string }
-        message?: string
-      }
-      const code = err.statusCode ?? err.status ?? err.data?.statusCode
-      if (err.data?.code === 'ai/provider-missing') {
+      const { statusCode, code, message } = extractError(e)
+      if (code === 'ai/provider-missing') {
         // Availability snapshot was stale (provider removed in another
         // tab, instance default dropped) — refresh so the prompt bar
         // swaps to the "Add your API key" call-to-action.
         void refreshAiAvailability()
       }
-      if (err.data?.code === 'ai/free-allowance-exhausted') {
+      if (code === 'ai/free-allowance-exhausted') {
         // Shared free pool used up: the prompt bar shows the
         // "add your own key" toast, not the per-user points one.
         freeAllowanceExhausted.value = true
-      } else if (code === 402) {
+      } else if (statusCode === 402) {
         budgetExhausted.value = true
       }
-      lastError.value = err.data?.message || err.message || 'Request failed'
+      lastError.value = message
       return false
     } finally {
       submitting.value = false
@@ -483,15 +478,15 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
     const id = mySessionId.value
     if (!id) return
     try {
-      await $fetch('/api/ai/abort', {
-        method: 'POST',
+      await apiFetch('/api/ai/abort', {
+        method: 'post',
         body: { sessionId: id }
       })
     } catch (e) {
-      const err = e as { statusCode?: number, data?: { statusCode?: number, message?: string }, message?: string }
+      const { statusCode, message } = extractError(e)
       // 404: the session finished between reading mySessionId and sending; benign race.
-      if (err?.statusCode === 404 || err?.data?.statusCode === 404) return
-      lastError.value = err.data?.message || err.message || 'Abort failed'
+      if (statusCode === 404) return
+      lastError.value = message
     }
   }
 

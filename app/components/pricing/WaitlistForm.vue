@@ -25,8 +25,8 @@ async function onSubmit(): Promise<void> {
   submitting.value = true
   errorMessage.value = null
   try {
-    await $fetch('/api/waitlist', {
-      method: 'POST',
+    await apiFetch('/api/waitlist', {
+      method: 'post',
       body: { email: email.value.trim(), locale: locale.value, consent: consent.value }
     })
     submitted.value = true

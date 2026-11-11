@@ -30,7 +30,7 @@ const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ saved: [name: string] }>()
 
 const { t } = useI18n()
-const toast = useToast()
+const { showError } = useErrorHandler()
 
 const name = ref('')
 const description = ref('')
@@ -59,29 +59,27 @@ async function submit() {
   const n = nameCheck.value
   const d = descriptionCheck.value
   if (!n.ok || !d.ok || submitting.value) return
+  // The create request needs the theme; callers always pass it in create mode.
+  const theme = props.theme
+  if (props.mode === 'create' && !theme) return
   submitting.value = true
   try {
-    if (props.mode === 'create') {
-      await $fetch('/api/themes', {
-        method: 'POST',
-        body: { name: n.value, description: d.value, theme: props.theme }
+    if (props.mode === 'create' && theme) {
+      await apiFetch('/api/themes', {
+        method: 'post',
+        body: { name: n.value, description: d.value, theme }
       })
     } else if (props.savedTheme) {
-      await $fetch(`/api/themes/${props.savedTheme.themeId}`, {
-        method: 'PATCH',
+      await apiFetch('/api/themes/:themeId', {
+        method: 'patch',
+        path: { themeId: props.savedTheme.themeId },
         body: { name: n.value, description: d.value }
       })
     }
     open.value = false
     emit('saved', n.value)
   } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: props.mode === 'create' ? t('theme.saved.saveFailedTitle') : t('theme.saved.updateFailedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError(props.mode === 'create' ? 'theme.saved.saveFailedTitle' : 'theme.saved.updateFailedTitle', e)
   } finally {
     submitting.value = false
   }

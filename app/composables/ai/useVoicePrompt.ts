@@ -77,6 +77,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
   // `useI18n()` must run during setup (it throws in the async transcribe
   // path); `locale.value` is read lazily at send time.
   const { locale } = useI18n()
+  const { extractError } = useErrorHandler()
   // The open document's workspace: its Team / Business plan may include
   // voice where the personal plan doesn't.
   const aiWorkspace = useAiWorkspaceContext()
@@ -327,8 +328,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     try {
       // The UI locale as `languageCode`; the server normalizer accepts both
       // BCP-47 (`de-DE`) and the short ISO 639-1 code (`de`).
-      const res = await $fetch<{ text: string, inaudible: boolean }>('/api/ai/transcribe', {
-        method: 'POST',
+      const res = await apiFetch('/api/ai/transcribe', {
+        method: 'post',
         body: { audio: audioB64, mimeType, languageCode: locale.value, ...(aiWorkspace.value ? { workspaceId: aiWorkspace.value } : {}) }
       })
       if (res.inaudible || !res.text) {
@@ -340,8 +341,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       resetState()
       await opts.onTranscript(res.text)
     } catch (e) {
-      const err = e as { data?: { message?: string }, message?: string }
-      fail(err.data?.message || err.message || 'Transcription failed.')
+      fail(extractError(e).message)
     }
   }
 

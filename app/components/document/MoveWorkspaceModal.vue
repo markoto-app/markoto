@@ -1,15 +1,11 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // Move a document into, between, or out of a workspace. Only
 // workspaces where the user is admin/editor show up as targets —
 // viewer workspaces would reject the move on the server anyway.
 
-interface WorkspaceOption {
-  workspaceId: string
-  name: string
-  role: 'admin' | 'editor' | 'viewer'
-  /** Team / Business plan covering the workspace, else null. */
-  plan?: 'team' | 'business' | null
-}
+type WorkspaceOption = ApiResponse<'/api/user/workspaces', 'get'>[number]
 
 const props = defineProps<{
   docId: string
@@ -26,6 +22,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const saving = ref(false)
 
@@ -42,7 +39,7 @@ const {
   execute: loadWorkspaces
 } = useAsyncState<WorkspaceOption[]>(
   async () => {
-    const rows = await $fetch<WorkspaceOption[]>('/api/user/workspaces')
+    const rows = await apiFetch('/api/user/workspaces')
     sourcePlan.value = rows.find(w => w.workspaceId === props.currentWorkspaceId)?.plan ?? null
     // Only admin/editor can receive a doc — filter viewer-only workspaces
     // out so the user can't pick something the server would reject.
@@ -75,8 +72,9 @@ async function handleMove() {
   if (saving.value || !hasChange.value) return
   saving.value = true
   try {
-    await $fetch(`/api/docs/${props.docId}/workspace`, {
-      method: 'PATCH',
+    await apiFetch('/api/docs/:docId/workspace', {
+      method: 'patch',
+      path: { docId: props.docId },
       body: { workspaceId: selected.value }
     })
     toast.add({
@@ -93,13 +91,7 @@ async function handleMove() {
     open.value = false
     emit('moved', selected.value)
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('move.failed'),
-      description: err.data?.message || err.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('move.failed', e)
   } finally {
     saving.value = false
   }

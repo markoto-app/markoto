@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { DAY_MS } from '~~/shared/config/units'
+import type { ApiResponse } from '~/utils/api/client'
 
 // Operator dashboard: per-feature AI spend over a date window. Reads
 // LiteLLM's /spend/tags via /api/admin/ai-spend (admin-gated server-
@@ -12,21 +13,7 @@ import { DAY_MS } from '~~/shared/config/units'
 // regression (a call site forgot to stamp metadata). The "other"
 // row catches anything outside the known set.
 
-interface SpendRow {
-  tag: string
-  spendUsd: number
-  requests: number
-  totalTokens: number
-  sharePct: number
-}
-
-interface SpendResponse {
-  from: string
-  to: string
-  totalSpendUsd: number
-  totalRequests: number
-  breakdown: SpendRow[]
-}
+type SpendResponse = ApiResponse<'/api/admin/ai-spend', 'get'>
 
 const router = useRouter()
 const { loggedIn } = useUserSession()
@@ -34,6 +21,7 @@ const { loggedIn } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const { status: accountStatus } = useAccountStatus()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 useHead({ title: 'AI spend · Admin' })
 
@@ -64,14 +52,13 @@ const loading = ref(false)
 async function load(): Promise<void> {
   loading.value = true
   try {
-    data.value = await $fetch<SpendResponse>('/api/admin/ai-spend', {
+    data.value = await apiFetch('/api/admin/ai-spend', {
       query: { from: fromDate.value, to: toDate.value }
     })
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: 'Could not load AI spend',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

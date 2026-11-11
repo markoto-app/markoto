@@ -7,7 +7,8 @@
 // Text, most precise first (app/utils/api/errors.ts): a per-occurrence key
 // (plan feature, provider refusal), the registered code's text
 // (`apiErrors.<ns>.<slug>`, shared/api/errors/), the route's `messageKey`,
-// the raw server message (codes not in the registry), a status-based text.
+// a status-based text (`error.forbidden`, ...), `error.generic`. The server's
+// English `message` is never shown.
 //
 // `createSharedComposable` shares the toast + i18n lookups across consumers
 // and cleans up when the last one unmounts.
@@ -16,7 +17,8 @@ import { createSharedComposable } from '@vueuse/core'
 import { loginPath, type LoginProvider } from '~~/shared/config/instance'
 import { isPlanErrorCode } from '~~/shared/config/planErrors'
 import { REAUTH_REQUIRED_CODE } from '~~/shared/config/reauth'
-import { apiErrorData, apiErrorTexts, fieldErrors, type FieldErrorText } from '~~/app/utils/api/errors'
+import { apiErrorData, errorStatus, fieldErrors, resolveErrorMessage, type FieldErrorText } from '~~/app/utils/api/errors'
+import { isApiErrorCode, type ApiErrorCode } from '~~/shared/api/errors'
 
 interface FetchErrorLike {
   statusCode?: number
@@ -43,20 +45,13 @@ export interface ExtractedError {
   statusCode: number | null
   /** Localised message, already passed through `t(...)` when applicable. */
   message: string
-  code: string | null
+  /** The server's machine code when it is a registered one (every code the API sends is, see shared/api/errors). */
+  code: ApiErrorCode | null
   recovery: FetchErrorLike['data'] extends undefined
     ? null
     : NonNullable<FetchErrorLike['data']>['recovery'] | null
   /** Per-field texts of a validation error (`data.fields`), already translated. */
   fields: Array<{ path: string, message: string }>
-}
-
-// Status-based texts for a code-less error without a message.
-const STATUS_KEYS: Record<number, string> = {
-  401: 'error.unauthorized',
-  403: 'error.forbidden',
-  404: 'error.notFound',
-  429: 'error.rateLimited'
 }
 
 export interface ToastAction {
@@ -72,21 +67,12 @@ function useErrorHandlerImpl() {
   /** Accepts whatever shape $fetch, useFetch or a raw error produces. */
   function extractError(err: unknown): ExtractedError {
     const e = (err ?? {}) as FetchErrorLike
-    const statusCode = e.statusCode ?? e.status ?? e.data?.statusCode ?? null
+    const statusCode = errorStatus(e)
     // `$fetch` nests our fields one level down (`e.data.data`); apiErrorData unwraps either shape.
     const data = apiErrorData(e)
-    const code = typeof data?.code === 'string' ? data.code : null
+    const code = isApiErrorCode(data?.code) ? data.code : null
     const recovery = (data?.recovery ?? null) as ExtractedError['recovery']
-
-    // `te` (translation exists) avoids missing-key warnings when probing optional keys.
-    const known = apiErrorTexts(data).find(c => te(c.key))
-    // An unregistered code's raw message is English but still informative.
-    const rawMessage = (typeof data?.message === 'string' ? data.message : null) ?? e.message ?? null
-    const statusKey = statusCode === null ? undefined : STATUS_KEYS[statusCode]
-    let message: string
-    if (known) message = t(known.key, known.params)
-    else if (rawMessage) message = rawMessage
-    else message = statusKey && te(statusKey) ? t(statusKey) : t('error.generic')
+    const message = resolveErrorMessage(err, { t, te })
     const fields = fieldErrors(data)
       .filter((f: FieldErrorText) => te(f.key))
       .map(f => ({ path: f.path, message: t(f.key, f.params) }))

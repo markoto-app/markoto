@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
 import type { WorkspaceListItem } from '~/components/workspace/WorkspaceList.vue'
 import type { WorkspaceInviteItem } from '~/components/workspace/WorkspaceInviteList.vue'
 
@@ -57,18 +58,7 @@ function onCapReachedClick() {
   toast.add({ title: workspaceCapShortLabel.value, description: workspaceCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
 }
 
-interface DocumentListItem {
-  docId: string
-  title: string
-  description: string
-  language: string
-  accessMode: 'private' | 'open-edit' | 'open-view' | 'password-protected'
-  wordCount: number
-  lastActive: string | number | Date
-  sizeBytes: number
-  workspaceId: string | null
-  isOwner: boolean | number
-}
+type DocumentListItem = ApiResponse<'/api/user/documents', 'get'>[number]
 
 // Track "has the first fetch resolved" explicitly. `useAsyncState` with
 // `immediate: false` reports `isLoading: false` until the first
@@ -86,7 +76,7 @@ const {
   isLoading: _loadingDocs,
   execute: loadDocs
 } = useAsyncState<DocumentListItem[]>(
-  () => loggedIn.value ? $fetch<DocumentListItem[]>('/api/user/documents') : Promise.resolve([]),
+  () => loggedIn.value ? apiFetch('/api/user/documents') : Promise.resolve([]),
   [],
   {
     immediate: false,
@@ -105,7 +95,7 @@ const {
   isLoading: _loadingWorkspaces,
   execute: loadWorkspaces
 } = useAsyncState<WorkspaceListItem[]>(
-  () => loggedIn.value ? $fetch<WorkspaceListItem[]>('/api/user/workspaces') : Promise.resolve([]),
+  () => loggedIn.value ? apiFetch('/api/user/workspaces') : Promise.resolve([]),
   [],
   {
     immediate: false,
@@ -129,14 +119,14 @@ async function loadInvites(): Promise<void> {
     return
   }
   try {
-    myInvites.value = await $fetch<WorkspaceInviteItem[]>('/api/user/invites')
+    myInvites.value = await apiFetch('/api/user/invites')
   } catch {
     myInvites.value = []
   }
 }
 // Documents shared with this account as a workspace GUEST — a
 // guest's only way into a workspace. Hidden when there are none.
-interface SharedDoc { docId: string, title: string, access: 'view' | 'edit', workspaceId: string, workspaceName: string, lastActive: string | null }
+type SharedDoc = ApiResponse<'/api/user/shared-documents', 'get'>[number]
 const sharedDocs = ref<SharedDoc[]>([])
 async function loadSharedDocs(): Promise<void> {
   if (!loggedIn.value) {
@@ -144,7 +134,7 @@ async function loadSharedDocs(): Promise<void> {
     return
   }
   try {
-    sharedDocs.value = await $fetch<SharedDoc[]>('/api/user/shared-documents')
+    sharedDocs.value = await apiFetch('/api/user/shared-documents')
   } catch {
     sharedDocs.value = []
   }
@@ -161,7 +151,7 @@ function onInviteAccepted(): void {
 
 // Defer the load to AFTER hydration (VueUse `tryOnMounted` =
 // SSR-safe `onMounted`). Two SSR↔client mismatches collapse here:
-//   1) Bare `$fetch` on SSR doesn't forward the request's cookies, so
+//   1) A bare client fetch on SSR doesn't forward the request's cookies, so
 //      the server sees an anonymous call and 401s → onError toast
 //      lands in the SSR HTML, but the client toast queue starts empty
 //      → `<ToastRoot>` hydration mismatch → app crash.

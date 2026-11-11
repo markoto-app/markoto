@@ -19,16 +19,11 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 
 const restoring = ref(false)
 
-interface RestoreResponse {
-  ok: boolean
-  restoredFromActivityId: number
-  restoredFromTime: string
-}
-
-function restoreErrorTitleKey(status: number | undefined): string {
+function restoreErrorTitleKey(status: number | null): string {
   if (status === 403) return 'activity.restore.error.unauthorized'
   if (status === 410) return 'activity.restore.error.unavailable'
   if (status === 404) return 'activity.restore.error.notFound'
@@ -39,10 +34,10 @@ async function handleRestore() {
   restoring.value = true
 
   try {
-    await $fetch<RestoreResponse>(
-      `/api/docs/${props.docId}/activity/${props.activityId}/restore`,
-      { method: 'POST' }
-    )
+    await apiFetch('/api/docs/:docId/activity/:activityId/restore', {
+      method: 'post',
+      path: { docId: props.docId, activityId: props.activityId }
+    })
     toast.add({
       title: t('activity.restore.success'),
       icon: 'i-lucide-history',
@@ -51,13 +46,13 @@ async function handleRestore() {
     open.value = false
     emit('restored')
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
+    const err = extractError(e)
     // Status-specific messages follow the endpoint contract in
     // server/api/docs/[docId]/activity/[activityId]/restore.post.ts.
     const titleKey = restoreErrorTitleKey(err.statusCode)
     toast.add({
       title: t(titleKey),
-      description: err.data?.message || err.message,
+      description: err.message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

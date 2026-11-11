@@ -1,20 +1,13 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // Dashboard "Invitations" section: open workspace invitations addressed
 // to the signed-in user's account email (`GET /api/user/invites`).
 // Accepting creates the membership and emits `accepted` so the parent
 // refreshes its workspace list; declining just removes the card. Renders
 // nothing when there are no invitations.
 
-export interface WorkspaceInviteItem {
-  inviteId: string
-  workspaceName: string
-  role: 'admin' | 'editor' | 'viewer' | 'guest'
-  invitedByName: string | null
-  /** Team / Business plan of the workspace: shown as what it includes. */
-  workspacePlan?: 'team' | 'business' | null
-  createdAt: string
-  expiresAt: string
-}
+export type WorkspaceInviteItem = ApiResponse<'/api/user/invites', 'get'>[number]
 
 const props = defineProps<{
   invites: WorkspaceInviteItem[]
@@ -38,18 +31,19 @@ async function act(invite: WorkspaceInviteItem, action: 'accept' | 'decline'): P
   if (busy.value) return
   busy.value = invite.inviteId
   try {
-    const res = await $fetch<{ workspaceId?: string, workspaceName?: string }>(
-      `/api/user/invites/${invite.inviteId}/${action}`,
-      { method: 'POST' }
-    )
-    emit('removed', invite.inviteId)
-    if (action === 'accept' && typeof res.workspaceId === 'string') {
+    const path = { inviteId: invite.inviteId }
+    if (action === 'accept') {
+      const res = await apiFetch('/api/user/invites/:inviteId/accept', { method: 'post', path })
+      emit('removed', invite.inviteId)
       toast.add({
         title: t('workspace.invites.accepted', { name: res.workspaceName ?? invite.workspaceName }),
         icon: 'i-lucide-check',
         color: 'neutral'
       })
       emit('accepted', res.workspaceId)
+    } else {
+      await apiFetch('/api/user/invites/:inviteId/decline', { method: 'post', path })
+      emit('removed', invite.inviteId)
     }
   } catch (e) {
     showError(action === 'accept' ? 'workspace.invites.acceptFailed' : 'workspace.invites.declineFailed', e)

@@ -7,21 +7,10 @@
 // Modal-style page like /settings/profile: close button returns to the
 // previous route; auth-gated client-side, endpoints are session-only.
 
-import type {
-  AiAvailability,
-  AiCapability,
-  AiProviderConfigView,
-  ProviderPreset
-} from '~~/shared/ai/providers'
+import type { AiCapability, AiProviderConfigView } from '~~/shared/ai/providers'
+import type { ApiResponse } from '~/utils/api/client'
 
-interface ProvidersResponse {
-  providers: AiProviderConfigView[]
-  instanceDefaults: Record<AiCapability, boolean>
-  availability: AiAvailability
-  policy: { allowedBaseUrls: string[], allowPrivate: boolean }
-  presets: ProviderPreset[]
-  capabilities: AiCapability[]
-}
+type ProvidersResponse = ApiResponse<'/api/user/ai-providers', 'get'>
 
 const router = useRouter()
 const { t } = useI18n()
@@ -52,7 +41,7 @@ const savingTier = ref(false)
 async function saveTier(tier: 'fast' | 'strong'): Promise<void> {
   savingTier.value = true
   try {
-    await $fetch('/api/user/ai-model', { method: 'PUT', body: { tier } })
+    await apiFetch('/api/user/ai-model', { method: 'put', body: { tier } })
     await load()
     await refreshAvailability()
   } catch {
@@ -67,7 +56,7 @@ async function load(): Promise<void> {
   if (!loggedIn.value) return
   loading.value = true
   try {
-    data.value = await $fetch<ProvidersResponse>('/api/user/ai-providers')
+    data.value = await apiFetch('/api/user/ai-providers')
   } catch {
     toast.add({ title: t('aiProvider.errors.loadFailed'), color: 'error', icon: 'i-lucide-alert-circle' })
   } finally {

@@ -7,6 +7,11 @@ import { setResponseStatus } from 'h3'
 
 import { useImageUpload } from '~/composables/document/useImageUpload'
 
+// The real English texts (error.* in i18n/locales/en.json): a 5xx answer shows the
+// server-side text whatever message it carries, anything else without a code the generic one.
+const SERVER_ERROR_TEXT = 'Something broke on our side. We\'ve been notified.'
+const GENERIC_ERROR_TEXT = 'Something went wrong. Please try again.'
+
 // Composable under test: 3-step presigned upload + placeholder-rewrite
 // helper for CodeMirror. Two surfaces:
 //
@@ -277,7 +282,7 @@ describe('upload() — error handling', () => {
     requestEp.handler = () => new ApiError(500, { message: 'first' })
     const { upload, error } = useImageUpload('doc-xyz')
     await upload(makeFile())
-    expect(error.value).toBe('first')
+    expect(error.value).toBe(SERVER_ERROR_TEXT)
 
     // Happy-path second call should reset error to null.
     requestEp.handler = () => ({
@@ -293,7 +298,7 @@ describe('upload() — error handling', () => {
 
     const result = await upload(makeFile())
     expect(result).toBe(null)
-    expect(error.value).toBe('Service down')
+    expect(error.value).toBe(SERVER_ERROR_TEXT)
     // Subsequent steps must not run once step 1 errored.
     expect(fetchCalls.find(c => c.url.startsWith('https://s3.test/'))).toBeUndefined()
     expect(confirmCalls).toHaveLength(0)
@@ -319,12 +324,12 @@ describe('upload() — error handling', () => {
     expect(error.value).toBe('login_required')
   })
 
-  it('sets error to "S3 upload failed: N" when the PUT returns non-2xx', async () => {
+  it('sets the generic text when the PUT to S3 returns non-2xx (not an API error)', async () => {
     s3Fetch.handler = () => new Response(null, { status: 403 })
     const { upload, error } = useImageUpload('doc-xyz')
     const result = await upload(makeFile())
     expect(result).toBe(null)
-    expect(error.value).toBe('S3 upload failed: 403')
+    expect(error.value).toBe(GENERIC_ERROR_TEXT)
     // Confirm must not fire — upload failed at step 2.
     expect(confirmCalls).toHaveLength(0)
   })
@@ -334,10 +339,10 @@ describe('upload() — error handling', () => {
     const { upload, error } = useImageUpload('doc-xyz')
     const result = await upload(makeFile())
     expect(result).toBe(null)
-    expect(error.value).toBe('confirm failed')
+    expect(error.value).toBe(SERVER_ERROR_TEXT)
   })
 
-  it('falls back to "Upload failed" for errors with no message fields', async () => {
+  it('shows a text for errors with no code or message fields', async () => {
     requestEp.handler = () => new ApiError(500, {})
     const { upload, error } = useImageUpload('doc-xyz')
     await upload(makeFile())

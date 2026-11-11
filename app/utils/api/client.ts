@@ -51,7 +51,7 @@ function fillPath(route: string, path: Record<string, string | number> | undefin
 /**
  * A typed caller over `fetcher` (default: the global `$fetch`, looked up at
  * call time). An SSR caller that must forward cookies passes
- * `useRequestFetch()`; export a `useApi` for that when the first one needs it.
+ * `useRequestFetch()` (`useApi`).
  */
 function createApi(fetcher?: $Fetch) {
   return function api<R extends ApiRoute, M extends ApiMethod<R> = 'get' & ApiMethod<R>>(
@@ -69,3 +69,13 @@ function createApi(fetcher?: $Fetch) {
 
 /** Client-side calls (event handlers, `onMounted`). */
 export const apiFetch = createApi()
+
+/**
+ * Calls made while the page renders (`useAsyncData`, `await` in setup): on
+ * the server `useRequestFetch()` forwards the request's cookies and headers,
+ * so a session-gated route answers the visitor, not an anonymous caller. On
+ * the client it is the plain `$fetch`. Call it in setup, once per component.
+ */
+export function useApi() {
+  return createApi(useRequestFetch())
+}

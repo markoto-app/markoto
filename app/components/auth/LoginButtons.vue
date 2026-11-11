@@ -20,8 +20,8 @@ async function continueWithSso(): Promise<void> {
   ssoBusy.value = true
   ssoError.value = null
   try {
-    const res = await $fetch<{ loginUrl: string }>('/api/auth/sso/discover', {
-      method: 'POST',
+    const res = await apiFetch('/api/auth/sso/discover', {
+      method: 'post',
       body: { email: ssoEmail.value, returnTo: route.fullPath }
     })
     globalThis.location.href = res.loginUrl

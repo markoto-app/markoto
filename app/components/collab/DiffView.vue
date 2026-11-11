@@ -1,21 +1,11 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
 // Renders a structured unified diff; the caller owns fetching and loading
 // states. Unified rather than side-by-side because the sidebar is narrow. The
 // gutter shows the new-file line number for context/add lines and `−` for
 // removed lines.
 
-interface DiffLine {
-  kind: 'context' | 'add' | 'remove'
-  text: string
-}
-
-interface DiffHunk {
-  oldStart: number
-  oldLines: number
-  newStart: number
-  newLines: number
-  lines: DiffLine[]
-}
+type DiffHunk = ApiResponse<'/api/docs/:docId/activity/:activityId/diff', 'get'>['hunks'][number]
 
 defineProps<{
   hunks: DiffHunk[]

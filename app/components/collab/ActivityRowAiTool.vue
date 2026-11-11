@@ -4,40 +4,28 @@
 // no extra request).
 
 import { safeLinkUrl } from '~/utils/collab/activityFeedHelpers'
+import type { ActivityMetadataAiTool } from '~/utils/api/types/activity'
 
 interface Source { title: string, uri: string }
 interface FetchImage { url: string, description?: string }
 
-interface AiToolMetadata {
-  kind: 'ai.tool'
-  tool: 'web_search' | 'fetch_url' | 'generate_image' | 'view_image' | 'search_knowledge' | 'get_knowledge_file'
-  query?: string
-  url?: string
-  prompt?: string
-  src?: string
-  knowledgeId?: string
-  sources?: Source[]
-  summary?: string
-  images?: FetchImage[]
-}
-
 const props = defineProps<{
-  metadata: AiToolMetadata
+  metadata: ActivityMetadataAiTool
 }>()
 
 // Every URL below comes from a tool input or a fetched page, so it is
 // bound only after `safeLinkUrl` (http(s) or a relative path); entries
 // without a usable URL are not rendered as links/images.
-const sources = computed(() => (props.metadata.sources ?? [])
+const sources = computed(() => (props.metadata.tool === 'web_search' ? props.metadata.sources ?? [] : [])
   .map(src => ({ title: src.title, uri: safeLinkUrl(src.uri) }))
   .filter((src): src is Source => src.uri !== undefined))
-const pageUrl = computed(() => safeLinkUrl(props.metadata.url))
-const images = computed(() => (props.metadata.images ?? [])
+const pageUrl = computed(() => safeLinkUrl(props.metadata.tool === 'fetch_url' ? props.metadata.url : undefined))
+const images = computed(() => (props.metadata.tool === 'fetch_url' ? props.metadata.images ?? [] : [])
   .flatMap((img): FetchImage[] => {
     const url = safeLinkUrl(img.url)
     return url === undefined ? [] : [{ description: img.description, url }]
   }))
-const viewedSrc = computed(() => safeLinkUrl(props.metadata.src))
+const viewedSrc = computed(() => safeLinkUrl(props.metadata.tool === 'view_image' ? props.metadata.src : undefined))
 
 const { t } = useI18n()
 

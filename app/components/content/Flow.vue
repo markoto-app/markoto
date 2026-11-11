@@ -158,6 +158,7 @@ async function fetchWithFallbacks(id: string): Promise<Manifest> {
   for (const locale of locales) {
     for (const variant of variantChain()) {
       try {
+        // eslint-disable-next-line no-restricted-syntax -- static manifest.json under /flows/, not an API route
         return await $fetch<Manifest>(flowUrl(id, locale, variant))
       } catch (e) {
         lastErr = e
@@ -179,6 +180,7 @@ const { data: manifest, error } = useAsyncData<Manifest | null>(
   async () => {
     if (props.path) {
       const url = props.path.startsWith('http') ? props.path : `${reqUrl.origin}${props.path}`
+      // eslint-disable-next-line no-restricted-syntax -- static manifest.json, not an API route
       return await $fetch<Manifest>(url)
     }
     if (!props.id) throw new Error('<Flow> requires either `id` or `path`')

@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // Pre-deletion consequence modal. Pulls /api/user/me/deletion-preview
 // when opened so the rendered text reflects live state — names of
 // workspaces that will cascade vs the names of members who will be
@@ -9,28 +11,7 @@
 // deletion (30-day grace begins). The grace banner takes over from
 // here as the persistent visible signal.
 
-interface OwnedDoc {
-  docId: string
-  title: string
-  accessMode: string
-  workspaceId: string | null
-}
-
-type WorkspaceFate
-  = | { kind: 'cascade_delete', workspaceId: string, name: string, docCount: number, knowledgeCount: number }
-    | { kind: 'promote_admin', workspaceId: string, name: string, newAdminUserId: number, newAdminName: string, newAdminPreviousRole: 'admin' | 'editor' | 'viewer' }
-    | { kind: 'remove_member', workspaceId: string, name: string, currentRole: 'admin' | 'editor' | 'viewer' }
-
-interface DeletionPreview {
-  userId: number
-  ownedDocs: { total: number, sample: OwnedDoc[] }
-  commentsToAnonymise: number
-  workspaces: WorkspaceFate[]
-  aiUsage: { sessions: number, sessionMessages: number }
-  dataExportJobs: number
-  stripeCustomerWillBeDeleted: boolean
-  retainedAnonymised: { activityLog: number, auditLog: number, consentLog: number }
-}
+type DeletionPreview = ApiResponse<'/api/user/deletion-preview', 'get'>
 
 const open = defineModel<boolean>('open', { required: true })
 
@@ -40,7 +21,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
-const { handleReauthRequired } = useErrorHandler()
+const { handleReauthRequired, extractError } = useErrorHandler()
 const { refresh: refreshAccountStatus } = useAccountStatus()
 
 const preview = ref<DeletionPreview | null>(null)
@@ -62,10 +43,9 @@ watch(open, async (isOpen) => {
   }
   previewLoading.value = true
   try {
-    preview.value = await $fetch<DeletionPreview>('/api/user/deletion-preview')
+    preview.value = await apiFetch('/api/user/deletion-preview')
   } catch (e) {
-    const err = e as { message?: string, data?: { message?: string } }
-    previewError.value = err.data?.message ?? err.message ?? 'Could not load deletion preview'
+    previewError.value = extractError(e).message
   } finally {
     previewLoading.value = false
   }
@@ -85,7 +65,7 @@ async function onConfirm(): Promise<void> {
   if (!phraseMatches.value || submitting.value) return
   submitting.value = true
   try {
-    await $fetch('/api/user/delete', { method: 'POST' })
+    await apiFetch('/api/user/delete', { method: 'post' })
     await refreshAccountStatus()
     toast.add({
       title: t('legal.delete.graceBannerTitle'),
@@ -97,10 +77,9 @@ async function onConfirm(): Promise<void> {
     emit('scheduled')
   } catch (e) {
     if (handleReauthRequired(e)) return
-    const err = e as { message?: string, data?: { message?: string } }
     toast.add({
       title: 'Could not schedule deletion',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

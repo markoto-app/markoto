@@ -37,7 +37,7 @@ export function useAiAvailability() {
     loading.value = true
     try {
       const workspaceId = workspaceContext.value
-      state.value = await $fetch<AiAvailability>('/api/ai/availability', { query: workspaceId ? { workspaceId } : {} })
+      state.value = await apiFetch('/api/ai/availability', { query: workspaceId ? { workspaceId } : {} })
     } catch {
       // Keep the last known snapshot on a transient failure; the server
       // still refuses AI calls without a provider (409 ai/provider-missing).

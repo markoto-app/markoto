@@ -1,7 +1,6 @@
 import {
   ANON_GATE_CODES,
   ANON_GATE_RETRYABLE_CODES,
-  type AnonGateChallengeResponse,
   type AnonGatePurpose
 } from '~~/shared/config/anonGate'
 import {
@@ -11,6 +10,7 @@ import {
   type AltchaChallenge,
   type WorkerLike
 } from '~/utils/platform/altchaSolver'
+import { apiErrorData } from '~/utils/api/errors'
 import { useAnonTermsPrompt } from '~/composables/account/useAnonTermsPrompt'
 
 // Client side of the anonymous gate (shared/config/anonGate.ts):
@@ -39,20 +39,8 @@ function isChallenge(value: unknown): value is AltchaChallenge {
 
 /** Error code from a `$fetch` error (`data.data.code` / `data.code`). */
 export function fetchErrorCode(e: unknown): string | null {
-  if (!isRecord(e)) return null
-  const data = e.data
-  if (!isRecord(data)) return null
-  if (typeof data.code === 'string') return data.code
-  const inner = data.data
-  return isRecord(inner) && typeof inner.code === 'string' ? inner.code : null
-}
-
-/** Server message from a `$fetch` error (4xx bodies pass through the sanitiser). */
-export function fetchErrorMessage(e: unknown): string | null {
-  if (!isRecord(e)) return null
-  const data = e.data
-  if (isRecord(data) && typeof data.message === 'string' && data.message) return data.message
-  return null
+  const code = apiErrorData(e)?.code
+  return typeof code === 'string' ? code : null
 }
 
 export function useAnonBotCheck(purpose: AnonGatePurpose) {
@@ -65,7 +53,7 @@ export function useAnonBotCheck(purpose: AnonGatePurpose) {
     solving.value = true
     failed.value = false
     try {
-      const res = await $fetch<AnonGateChallengeResponse>('/api/anon-gate/challenge', { query: { purpose } })
+      const res = await apiFetch('/api/anon-gate/challenge', { query: { purpose } })
       termsAccepted.value = res.termsAccepted
       if (!res.enabled) return null
       const challenge = res.challenge
@@ -130,7 +118,7 @@ export function useAnonDocCreate() {
   }
 
   async function post(body: Record<string, unknown>): Promise<string> {
-    const res = await $fetch<{ docId: string }>('/api/docs', { method: 'POST', body })
+    const res = await apiFetch('/api/docs', { method: 'post', body })
     return res.docId
   }
 

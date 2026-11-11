@@ -7,27 +7,15 @@
 // new sub-processor is one TypeScript edit, no template change.
 import { LEGAL_PAGE_DESCRIPTIONS } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
+import type { ApiResponse } from '~/utils/api/client'
 import { PRIVACY_EFFECTIVE_DATE } from '~~/shared/legal/versions'
 
-interface SubProcessor {
-  id: string
-  name: string
-  purpose: string
-  location: 'eu' | 'us' | 'global'
-  transferMechanism: 'intra_eu' | 'dpf' | 'sccs' | 'dpf_with_sccs_fallback'
-  dpfCertified: boolean
-  privacyPolicyUrl: string
-  dpaUrl: string | null
-}
-
-definePageMeta({ middleware: 'legal-surfaces' })
-// Public page: no modulepreload / prefetch hints (useLeanResourceHints).
-useLeanResourceHints()
+type SubProcessor = ApiResponse<'/api/_internal/sub-processors', 'get'>[number]
 
 const router = useRouter()
 const { t } = useI18n()
 
-const { data: subProcessors, pending } = await useFetch<SubProcessor[]>(
+const { data: subProcessors, pending } = await useFetch(
   '/api/_internal/sub-processors'
 )
 

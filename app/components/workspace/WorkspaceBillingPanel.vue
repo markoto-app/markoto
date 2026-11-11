@@ -46,8 +46,8 @@ const busy = ref<string | null>(null)
 async function load() {
   try {
     const [o, p] = await Promise.all([
-      $fetch<WorkspaceBillingOverview>(`/api/workspaces/${props.workspaceId}/billing`),
-      $fetch<PlanPricesResponse>('/api/billing/prices').catch(() => null)
+      apiFetch('/api/workspaces/:wsId/billing', { path: { wsId: props.workspaceId } }),
+      apiFetch('/api/billing/prices').catch(() => null)
     ])
     overview.value = o
     prices.value = p
@@ -114,11 +114,13 @@ async function startCheckout() {
   if (!paidTermsAccepted.value) return
   busy.value = 'checkout'
   try {
-    const res = await $fetch<{ url?: string }>(`/api/workspaces/${props.workspaceId}/billing/checkout`, {
-      method: 'POST',
+    const res = await apiFetch('/api/workspaces/:wsId/billing/checkout', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
       body: { plan: plan.value, interval: interval.value, currency: currency.value, seats: seatsDraft.value, acceptPaidTerms: true }
     })
-    if (res.url) goToExternal(res.url)
+    // A plan switch of a live subscription answers `{ updated, plan }` instead of a checkout.
+    if ('url' in res && res.url) goToExternal(res.url)
   } catch (e) {
     showError('workspace.billing.checkoutFailed', e)
   } finally {
@@ -130,8 +132,9 @@ async function changePlan(next: { plan?: 'team' | 'business', interval?: Billing
   if (!sub.value || !paidTermsAccepted.value) return
   busy.value = 'plan'
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/billing/checkout`, {
-      method: 'POST',
+    await apiFetch('/api/workspaces/:wsId/billing/checkout', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
       body: { plan: next.plan ?? sub.value.plan, interval: next.interval ?? sub.value.interval, currency: sub.value.currency, acceptPaidTerms: true }
     })
     toast.add({ title: t('workspace.billing.planChanged'), icon: 'i-lucide-check', color: 'neutral' })
@@ -148,7 +151,7 @@ async function saveSeats() {
   if (!sub.value || seatsDraft.value === sub.value.seats) return
   busy.value = 'seats'
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/billing/seats`, { method: 'POST', body: { seats: seatsDraft.value } })
+    await apiFetch('/api/workspaces/:wsId/billing/seats', { method: 'post', path: { wsId: props.workspaceId }, body: { seats: seatsDraft.value } })
     toast.add({ title: t('workspace.billing.seatsChanged', { seats: seatsDraft.value }), icon: 'i-lucide-check', color: 'neutral' })
     await load()
     emit('changed')
@@ -162,7 +165,7 @@ async function saveSeats() {
 async function openPortal() {
   busy.value = 'portal'
   try {
-    const res = await $fetch<{ url: string }>(`/api/workspaces/${props.workspaceId}/billing/portal`, { method: 'POST' })
+    const res = await apiFetch('/api/workspaces/:wsId/billing/portal', { method: 'post', path: { wsId: props.workspaceId } })
     goToExternal(res.url)
   } catch (e) {
     showError('workspace.billing.portalFailed', e)
@@ -195,7 +198,7 @@ async function saveLimit(userId: number) {
   busy.value = `limit-${userId}`
   const body = draft.mode === 'default' ? { default: true } : draft.mode === 'none' ? { limitUsd: null } : { limitUsd: draft.amount }
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/billing/members/${userId}`, { method: 'PATCH', body })
+    await apiFetch('/api/workspaces/:wsId/billing/members/:userId', { method: 'patch', path: { wsId: props.workspaceId, userId }, body })
     toast.add({ title: t('workspace.billing.limitSaved'), icon: 'i-lucide-check', color: 'neutral' })
     await load()
   } catch (e) {
@@ -440,7 +443,7 @@ function usd(amount: number | null | undefined): string {
           <CommonAiCreditsCard
             :credits="overview.credits ?? null"
             :currency="sub.currency"
-            :endpoint="`/api/workspaces/${workspaceId}/billing/topup`"
+            :workspace-id="workspaceId"
             :can-buy="sub.entitled"
             testid-prefix="workspace-billing"
           />

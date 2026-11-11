@@ -39,7 +39,7 @@ afterEach(() => {
 describe('AI credits card', () => {
   it('shows the balance, the packs with their prices, and buys one', async () => {
     const wrapper = await mountSuspended(CommonAiCreditsCard, {
-      props: { credits, currency: 'chf', endpoint: '/api/billing/topup', canBuy: true, testidPrefix: 'profile' }
+      props: { credits, currency: 'chf', canBuy: true, testidPrefix: 'profile' }
     })
     mounted.push(wrapper)
     expect(wrapper.text()).toContain('$32.50 in AI credits left')
@@ -59,7 +59,7 @@ describe('AI credits card', () => {
 
   it('without a paid plan shows why instead of the buttons', async () => {
     const wrapper = await mountSuspended(CommonAiCreditsCard, {
-      props: { credits: null, currency: 'eur', endpoint: '/api/billing/topup', canBuy: false, blockedReason: 'Upgrade first.', testidPrefix: 'profile' }
+      props: { credits: null, currency: 'eur', canBuy: false, blockedReason: 'Upgrade first.', testidPrefix: 'profile' }
     })
     mounted.push(wrapper)
     expect(wrapper.find('[data-testid="profile-buy-10"]').exists()).toBe(false)

@@ -4,9 +4,8 @@ import { mockNuxtImport } from '@nuxt/test-utils/runtime'
 import { useErrorHandler } from '~/composables/platform/useErrorHandler'
 
 // Text resolution for registered error codes (shared/api/errors/): the
-// code's translated text first, but never at the cost of what unconverted
-// routes already show (their messageKey, their raw message, the per-feature
-// plan texts).
+// code's translated text first, then the route's messageKey, the per-feature
+// plan texts, a status-based text. The server's English message is never shown.
 
 const { translations } = vi.hoisted(() => ({ translations: {} as Record<string, string> }))
 
@@ -22,6 +21,9 @@ beforeEach(() => {
   Object.assign(translations, {
     'error.generic': 'Something went wrong.',
     'error.forbidden': 'No permission.',
+    'error.badRequest': 'Bad request.',
+    'error.serverError': 'Our side broke.',
+    'error.network': 'Offline.',
     'apiErrors.share.not-allowed': 'Nicht erlaubt.',
     'apiErrors.share.expiry-too-far': 'Höchstens {maxDays} Tage.',
     'apiErrors.request.invalid': 'Ungültig.',
@@ -42,10 +44,10 @@ describe('useErrorHandler — registered codes', () => {
     expect(extractError({ statusCode: 400, data: { code: 'share/expiry-too-far', maxDays: 366 } }).message).toBe('Höchstens 366 Tage.')
   })
 
-  it('falls back to the route\'s messageKey / raw message when a required param is missing (unconverted route)', () => {
+  it('falls back to the route\'s messageKey, then the status text, when a required param is missing', () => {
     const { extractError } = useErrorHandler()
     expect(extractError({ statusCode: 400, data: { code: 'share/expiry-too-far', messageKey: 'legacy.key' } }).message).toBe('Alte Übersetzung.')
-    expect(extractError({ statusCode: 400, data: { code: 'share/expiry-too-far', message: 'At most 366 days.' } }).message).toBe('At most 366 days.')
+    expect(extractError({ statusCode: 400, data: { code: 'share/expiry-too-far', message: 'At most 366 days.' } }).message).toBe('Bad request.')
   })
 
   it('plan codes keep their per-feature text', () => {
@@ -55,9 +57,20 @@ describe('useErrorHandler — registered codes', () => {
     expect(extractError({ statusCode: 409, data: { code: 'plan/feature-unavailable', feature: 'unknown' } }).message).toBe('Nicht im Plan.')
   })
 
-  it('an unregistered code still shows the server message', () => {
+  it('an unregistered code shows the status text, never the server message', () => {
     const { extractError } = useErrorHandler()
-    expect(extractError({ statusCode: 400, data: { code: 'nope/unknown', message: 'Raw text' } }).message).toBe('Raw text')
+    const r = extractError({ statusCode: 400, data: { code: 'nope/unknown', message: 'Raw text' } })
+    expect(r.message).toBe('Bad request.')
+    expect(r.code).toBeNull()
+  })
+
+  it('status text by class: 5xx is the server-side text, an answerless request the network text', () => {
+    const { extractError } = useErrorHandler()
+    expect(extractError({ statusCode: 502, data: { message: 'Bad gateway' } }).message).toBe('Our side broke.')
+    expect(extractError({ name: 'FetchError', message: '[GET] "/api/x": <no response> Failed to fetch' }).message).toBe('Offline.')
+    // A status with no key of its own, and a plain Error: the generic text.
+    expect(extractError({ statusCode: 418, data: { message: 'Teapot' } }).message).toBe('Something went wrong.')
+    expect(extractError(new Error('boom')).message).toBe('Something went wrong.')
   })
 
   it('without code or message, a status-based text', () => {
@@ -95,13 +108,15 @@ describe('useErrorHandler — real $fetch errors (nested body)', () => {
     expect(plan.recovery).toEqual({ kind: 'link', href: '/pricing' })
   })
 
-  it('an unregistered code shows the body\'s message, not the fetch wrapper\'s', () => {
+  it('an unregistered code shows neither the body\'s message nor the fetch wrapper\'s', () => {
     const { extractError } = useErrorHandler()
-    expect(extractError(fetchError(400, { code: 'nope/unknown' }, 'Raw body text')).message).toBe('Raw body text')
+    expect(extractError(fetchError(400, { code: 'nope/unknown' }, 'Raw body text')).message).toBe('Bad request.')
   })
 
   it('a code like "constructor" never reaches a prototype member', () => {
     const { extractError } = useErrorHandler()
-    expect(extractError(fetchError(400, { code: 'constructor' }, 'Raw')).message).toBe('Raw')
+    const r = extractError(fetchError(400, { code: 'constructor' }, 'Raw'))
+    expect(r.message).toBe('Bad request.')
+    expect(r.code).toBeNull()
   })
 })

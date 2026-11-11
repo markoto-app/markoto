@@ -51,6 +51,20 @@ const { sessionState } = vi.hoisted(() => ({
   }
 }))
 
+// The error texts come from the error's code (apiErrors.<ns>.<slug>), never the
+// server's English message: a translation table stands in for vue-i18n.
+const TEXTS: Record<string, string> = {
+  'apiErrors.common.internal': 'Text for internal',
+  'apiErrors.auth.forbidden': 'Text for forbidden',
+  'error.generic': 'Generic text'
+}
+mockNuxtImport('useToast', () => () => ({ add: vi.fn() }))
+mockNuxtImport('useI18n', () => () => ({
+  t: (key: string) => TEXTS[key] ?? `[missing:${key}]`,
+  te: (key: string) => key in TEXTS,
+  locale: ref('en')
+}))
+
 mockNuxtImport('useUserSession', () => {
   return () => ({
     loggedIn: sessionState.loggedIn,
@@ -758,29 +772,21 @@ describe('useAI — prompt()', () => {
     expect(ok).toBe(true)
   })
 
-  it('returns false and captures data.message from a server error', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'Service unavailable' })
+  it('returns false and captures the code\'s text from a server error, not its English message', async () => {
+    promptEp.handler = () => new ApiError(500, { message: 'Service unavailable', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     const ok = await ai.prompt('hi')
     expect(ok).toBe(false)
-    expect(ai.lastError.value).toBe('Service unavailable')
+    expect(ai.lastError.value).toBe('Text for internal')
   })
 
-  it('falls back to "Request failed" when the error carries no message payload', async () => {
-    // 5xx with an empty-object body — composable's catch sees
-    // err.data.message undefined and err.message undefined (or a
-    // generic $fetch string).
-    promptEp.handler = () => new ApiError(500, {})
+  it('falls back to the generic text when the error carries no code', async () => {
+    promptEp.handler = () => new ApiError(418, { message: 'English only' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('hi')
-    // Either "Request failed" (no fields) or $fetch's generic message
-    // fallback ("[POST] …: 500 …") — the composable picks `.message`
-    // over "Request failed" when present. What we really care about is
-    // that SOME non-null string lands; the exact fallback string
-    // depends on $fetch's error format across versions.
-    expect(ai.lastError.value).toBeTruthy()
+    expect(ai.lastError.value).toBe('Generic text')
   })
 
   it('blocks a second submit while the first is in flight', async () => {
@@ -827,11 +833,11 @@ describe('useAI — prompt()', () => {
   })
 
   it('clears lastError on a fresh submit', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'first failure' })
+    promptEp.handler = () => new ApiError(500, { message: 'first failure', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('one')
-    expect(ai.lastError.value).toBe('first failure')
+    expect(ai.lastError.value).toBe('Text for internal')
 
     promptEp.handler = () => ({ sessionId: 'ok' })
     await ai.prompt('two')
@@ -909,11 +915,11 @@ describe('useAI — abort()', () => {
     pushAiClient(awareness, {
       sessionId: 'sid-mine', initiatorName: 'Me', initiatorUserId: 7
     })
-    abortEp.handler = () => new ApiError(403, { message: 'Not the initiator' })
+    abortEp.handler = () => new ApiError(403, { message: 'Not the initiator', code: 'auth/forbidden' })
     const ai = useAI(docId, awareness)
 
     await ai.abort()
-    expect(ai.lastError.value).toBe('Not the initiator')
+    expect(ai.lastError.value).toBe('Text for forbidden')
   })
 })
 
@@ -921,11 +927,11 @@ describe('useAI — abort()', () => {
 
 describe('useAI — clearLastError + submitting', () => {
   it('clearLastError resets lastError to null', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'boom' })
+    promptEp.handler = () => new ApiError(500, { message: 'boom', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('hi')
-    expect(ai.lastError.value).toBe('boom')
+    expect(ai.lastError.value).toBe('Text for internal')
 
     ai.clearLastError()
     expect(ai.lastError.value).toBe(null)
@@ -961,7 +967,7 @@ describe('useAI — clearLastError + submitting', () => {
   })
 
   it('submitting returns to false even when the server errors', async () => {
-    promptEp.handler = () => new ApiError(500, { message: 'boom' })
+    promptEp.handler = () => new ApiError(500, { message: 'boom', code: 'internal' })
     const { awareness, docId } = makeCtx()
     const ai = useAI(docId, awareness)
     await ai.prompt('hi')

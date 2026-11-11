@@ -1,5 +1,6 @@
 import { ANON_GATE_CODES } from '~~/shared/config/anonGate'
 import { DOC_TITLE_MAX_LENGTH } from '~~/shared/config/docCreate'
+import { apiErrorData, errorStatus } from '~/utils/api/errors'
 
 export { withoutTitleHeading } from '~~/shared/utils/markdown/markdownTitle'
 
@@ -27,19 +28,8 @@ export function titleFromMarkdown(markdown: string): string {
 
 /** Status + code of a `$fetch` error, whatever its exact shape. */
 function errorParts(e: unknown): { status: number | null, code: string | null } {
-  if (typeof e !== 'object' || e === null) return { status: null, code: null }
-  const err = e as Record<string, unknown>
-  const status = typeof err.statusCode === 'number'
-    ? err.statusCode
-    : typeof err.status === 'number' ? err.status : null
-  const data = typeof err.data === 'object' && err.data !== null ? err.data as Record<string, unknown> : null
-  const inner = data && typeof data.data === 'object' && data.data !== null ? data.data as Record<string, unknown> : null
-  const pick = (k: string): string | null => {
-    if (data && typeof data[k] === 'string') return data[k]
-    if (inner && typeof inner[k] === 'string') return inner[k]
-    return null
-  }
-  return { status, code: pick('code') }
+  const code = apiErrorData(e)?.code
+  return { status: errorStatus(e), code: typeof code === 'string' ? code : null }
 }
 
 /**

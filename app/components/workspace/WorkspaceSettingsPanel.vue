@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { SavedTheme } from '~/utils/api/types/themes'
 import type { DocTheme } from '~~/shared/types/theme'
 import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
@@ -27,22 +28,14 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
-
-interface SavedTheme {
-  themeId: string
-  name: string
-  description?: string
-  theme: DocTheme
-  createdAt: string
-  updatedAt: string
-}
+const { showError } = useErrorHandler()
 
 const savedThemes = ref<SavedTheme[]>([])
 const saving = ref(false)
 
 async function loadSavedThemes() {
   try {
-    const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
+    const res = await apiFetch('/api/themes')
     savedThemes.value = res.themes
   } catch {
     // Ignore — non-blocking. The built-in presets are still pickable.
@@ -83,8 +76,9 @@ async function persist(theme: DocTheme | null) {
   if (saving.value) return
   saving.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}`, {
-      method: 'PUT',
+    await apiFetch('/api/workspaces/:wsId', {
+      method: 'put',
+      path: { wsId: props.workspaceId },
       body: { defaultTheme: theme }
     })
     emit('updated', theme)
@@ -97,13 +91,7 @@ async function persist(theme: DocTheme | null) {
       color: 'success'
     })
   } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: t('workspace.settings.defaultTheme.failedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.settings.defaultTheme.failedTitle', e)
   } finally {
     saving.value = false
   }

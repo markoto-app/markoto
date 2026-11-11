@@ -1,12 +1,15 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
+
 // Guests of the document's workspace this document is shared with.
 // Admins and editors of the workspace pick a guest and give
 // them view or edit access; a guest sees only the documents shared with
 // them. Server: `server/api/docs/[docId]/shares/`.
 
-type Access = 'view' | 'edit'
-interface Share { userId: number, name: string, email: string | null, access: Access }
-interface Guest { userId: number, name: string, email: string | null }
+type Listing = ApiResponse<'/api/docs/:docId/shares', 'get'>
+type Share = Listing['shares'][number]
+type Guest = Listing['guests'][number]
+type Access = Share['access']
 
 const props = defineProps<{ docId: string }>()
 const { t } = useI18n()
@@ -19,11 +22,9 @@ const busy = ref<number | null>(null)
 const pick = ref<number | undefined>(undefined)
 const pickAccess = ref<Access>('view')
 
-const base = computed(() => `/api/docs/${encodeURIComponent(props.docId)}/shares`)
-
 async function load(): Promise<void> {
   try {
-    const res = await $fetch<{ shares: Share[], guests: Guest[] }>(base.value)
+    const res = await apiFetch('/api/docs/:docId/shares', { path: { docId: props.docId } })
     shares.value = res.shares
     guests.value = res.guests
   } catch (e) {
@@ -46,7 +47,7 @@ const accessItems = computed(() => [
 async function setAccess(userId: number, access: Access): Promise<void> {
   busy.value = userId
   try {
-    await $fetch(base.value, { method: 'PUT', body: { userId, access } })
+    await apiFetch('/api/docs/:docId/shares', { method: 'put', path: { docId: props.docId }, body: { userId, access } })
     await load()
   } catch (e) {
     showError('share.guests.saveFailed', e)
@@ -65,7 +66,7 @@ async function add(): Promise<void> {
 async function remove(userId: number): Promise<void> {
   busy.value = userId
   try {
-    await $fetch(`${base.value}/${userId}`, { method: 'DELETE' })
+    await apiFetch('/api/docs/:docId/shares/:userId', { method: 'delete', path: { docId: props.docId, userId } })
     shares.value = shares.value.filter(s => s.userId !== userId)
   } catch (e) {
     showError('share.guests.saveFailed', e)

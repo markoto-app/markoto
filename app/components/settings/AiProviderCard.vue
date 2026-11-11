@@ -131,18 +131,16 @@ async function onSave(): Promise<void> {
   saving.value = true
   lastMessage.value = null
   try {
-    const resp = await $fetch<{ provider: AiProviderConfigView, verify: { code: string, message: string } }>(
-      `/api/user/ai-providers/${props.capability}`,
-      {
-        method: 'PUT',
-        body: {
-          baseUrl: baseUrl.value.trim(),
-          model: model.value.trim(),
-          apiKey: apiKey.value.trim() || undefined,
-          supportsVision: props.capability === 'chat' ? supportsVision.value : undefined
-        }
+    const resp = await apiFetch('/api/user/ai-providers/:capability', {
+      method: 'put',
+      path: { capability: props.capability },
+      body: {
+        baseUrl: baseUrl.value.trim(),
+        model: model.value.trim(),
+        apiKey: apiKey.value.trim() || undefined,
+        supportsVision: props.capability === 'chat' ? supportsVision.value : undefined
       }
-    )
+    })
     editing.value = false
     apiKey.value = ''
     const warn = resp.verify.code !== 'ok'
@@ -162,10 +160,10 @@ async function onVerify(): Promise<void> {
   verifying.value = true
   lastMessage.value = null
   try {
-    const resp = await $fetch<{ ok: boolean, code: string, message: string }>(
-      `/api/user/ai-providers/${props.capability}/verify`,
-      { method: 'POST' }
-    )
+    const resp = await apiFetch('/api/user/ai-providers/:capability/verify', {
+      method: 'post',
+      path: { capability: props.capability }
+    })
     const text = t(`aiProvider.verify.${codeKey(resp.code)}`)
     lastMessage.value = { tone: resp.ok ? (resp.code === 'ok' ? 'success' : 'warning') : 'error', text: resp.ok ? text : `${text} — ${resp.message}` }
     emit('changed')
@@ -181,7 +179,7 @@ async function onRemove(): Promise<void> {
   removing.value = true
   lastMessage.value = null
   try {
-    await $fetch(`/api/user/ai-providers/${props.capability}`, { method: 'DELETE' })
+    await apiFetch('/api/user/ai-providers/:capability', { method: 'delete', path: { capability: props.capability } })
     toast.add({ title: t('aiProvider.toast.removed'), color: 'neutral', icon: 'i-lucide-check' })
     emit('changed')
   } catch (e) {

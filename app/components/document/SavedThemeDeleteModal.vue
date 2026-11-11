@@ -16,6 +16,7 @@ const emit = defineEmits<{ deleted: [] }>()
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const deleting = ref(false)
 
@@ -23,7 +24,7 @@ async function handleDelete() {
   if (deleting.value) return
   deleting.value = true
   try {
-    await $fetch(`/api/themes/${props.themeId}`, { method: 'DELETE' })
+    await apiFetch('/api/themes/:themeId', { method: 'delete', path: { themeId: props.themeId } })
     toast.add({
       title: t('theme.saved.deleted'),
       description: props.name,
@@ -33,13 +34,7 @@ async function handleDelete() {
     open.value = false
     emit('deleted')
   } catch (e) {
-    const err = e as { data?: { message?: string }, statusMessage?: string, message?: string }
-    toast.add({
-      title: t('theme.saved.deleteFailedTitle'),
-      description: err.data?.message ?? err.statusMessage ?? err.message ?? '',
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('theme.saved.deleteFailedTitle', e)
   } finally {
     deleting.value = false
   }

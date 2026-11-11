@@ -11,22 +11,14 @@
 // `_internal/flows-index` server route which walks `public/flows/`
 // and reads each manifest's title + hero + next-link.
 
-interface FlowSummary {
-  slug: string
-  title: string
-  heroPath: string | null
-  next?: { slug: string, why: string }
-  hasMobile: boolean
-}
-
-const origin = useRequestURL().origin
+const api = useApi()
 
 // SSR fetch through the internal endpoint. The gallery is page-load
 // only; no client-side polling needed (the underlying flows directory
 // only changes when someone runs `flows:build`, which the dev server
 // picks up after a refresh).
 const { data } = await useAsyncData('docs:flows-gallery', () =>
-  $fetch<{ flows: FlowSummary[] }>(`${origin}/api/_internal/flows-index`)
+  api('/api/_internal/flows-index')
 )
 
 const flows = computed(() => data.value?.flows ?? [])

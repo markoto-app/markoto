@@ -65,7 +65,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   const controller = createVersionCheckController({
     fetchBuildId: async () => {
       try {
-        const res = await $fetch<{ buildId: string }>('/api/version')
+        const res = await apiFetch('/api/version')
         return res?.buildId ?? null
       } catch {
         return null

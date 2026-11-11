@@ -13,6 +13,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const deleting = ref(false)
 const confirmText = ref('')
@@ -22,7 +23,7 @@ async function handleDelete() {
   if (!canConfirm.value) return
   deleting.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId', { method: 'delete', path: { wsId: props.workspaceId } })
     toast.add({
       title: t('workspace.deleteSuccess'),
       icon: 'i-lucide-check-circle',
@@ -31,13 +32,7 @@ async function handleDelete() {
     open.value = false
     emit('deleted')
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.deleteFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.deleteFailed', e)
   } finally {
     deleting.value = false
   }

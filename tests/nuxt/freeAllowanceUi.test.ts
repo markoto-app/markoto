@@ -35,7 +35,9 @@ const BILLING: UserBilling = {
   knowledgeBytesUsed: 10 * MB,
   knowledgeBytesPerUserLimit: 50 * MB,
   imageBytesUsed: 20 * MB,
-  imageBytesPerUserLimit: 100 * MB
+  imageBytesPerUserLimit: 100 * MB,
+  credits: null,
+  coveringWorkspaces: []
 }
 let billingHits = 0
 registerEndpoint('/api/user/billing', () => {
@@ -82,7 +84,8 @@ function setCredits(poolExhausted: boolean): void {
       plan: 'free',
       periodEnd: new Date().toISOString(),
       attribution: 'user',
-      freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null }
+      freeAllowance: { pooled: true, exhausted: poolExhausted, resetsAt: null },
+      workspace: null
     }
   }
 }

@@ -79,11 +79,23 @@ describe('useErrorHandler — load-bearing contracts', () => {
     }))
   })
 
-  it('server description is preserved even on MAPPED-status toasts', async () => {
-    // Generic title, specific description. Without this, every 404
-    // looks identical ("Not found.") — users can't tell WHICH doc is
-    // missing. Breaks diagnostic UX in a subtle way that no status-
-    // code-only test would catch.
+  it('a registered code\'s text is the description even on MAPPED-status toasts', async () => {
+    // Generic title, specific description (from the code, in the reader's
+    // language). Without this, every 404 looks identical ("Not found.") and
+    // users can't tell WHICH resource is missing.
+    translations['apiErrors.docs.not-found'] = 'That document does not exist.'
+    const { showContextualError } = useErrorHandler()
+    showContextualError(
+      { statusCode: 404, data: { code: 'docs/not-found', message: 'Document abc123 not found' } },
+      'delete.failed'
+    )
+    expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
+      title: 'Not found.',
+      description: 'That document does not exist.'
+    }))
+  })
+
+  it('the server\'s English message is never shown: without a usable code it is the status text', async () => {
     const { showContextualError } = useErrorHandler()
     showContextualError(
       { statusCode: 404, data: { message: 'Document abc123 not found' } },
@@ -91,18 +103,18 @@ describe('useErrorHandler — load-bearing contracts', () => {
     )
     expect(toastAddMock.fn).toHaveBeenCalledWith(expect.objectContaining({
       title: 'Not found.',
-      description: 'Document abc123 not found'
+      description: 'Not found.'
     }))
   })
 
-  it('messageKey unknown to client falls back to raw server message (deploy-window safety)', async () => {
+  it('messageKey unknown to client falls back to the status text (deploy-window safety)', async () => {
     // Server ships new key `foo.bar`; client hasn't deployed its
-    // translation yet. Must NOT show "[missing:foo.bar]" — must
-    // fall back to the raw English message the server also sent.
+    // translation yet. Must NOT show "[missing:foo.bar]" and not the raw
+    // English message either: the status text (or the generic one).
     missingKeys.add('foo.bar')
     const { extractError } = useErrorHandler()
     const r = extractError({ data: { messageKey: 'foo.bar', message: 'Raw English explanation' } })
-    expect(r.message).toBe('Raw English explanation')
+    expect(r.message).toBe('Something went wrong.')
   })
 
   it('null/undefined error does not crash (defensive for weird throwables)', async () => {

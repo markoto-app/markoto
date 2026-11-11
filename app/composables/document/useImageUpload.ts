@@ -1,6 +1,6 @@
 import type { EditorView } from '@codemirror/view'
 import { nanoid } from 'nanoid'
-import { apiErrorData, apiErrorTexts } from '~/utils/api/errors'
+import { errorStatus, resolveErrorMessage } from '~/utils/api/errors'
 
 interface UploadResult {
   fileId: string
@@ -19,12 +19,8 @@ export function useImageUpload(docId: string) {
     error.value = null
 
     try {
-      const { uploadUrl, fileId, key } = await $fetch<{
-        uploadUrl: string
-        fileId: string
-        key: string
-      }>('/api/upload/request', {
-        method: 'POST',
+      const { uploadUrl, fileId, key } = await apiFetch('/api/upload/request', {
+        method: 'post',
         body: {
           docId,
           filename: file.name,
@@ -43,27 +39,17 @@ export function useImageUpload(docId: string) {
         throw new Error(`S3 upload failed: ${putResponse.status}`)
       }
 
-      await $fetch('/api/upload/confirm', {
-        method: 'POST',
+      await apiFetch('/api/upload/confirm', {
+        method: 'post',
         body: { key }
       })
 
       const url = `/api/files/${docId}/${fileId}`
       return { fileId, url }
     } catch (e) {
-      const err = e as { statusCode?: number, status?: number, data?: { statusCode?: number }, message?: string }
-      const statusCode = err.statusCode || err.data?.statusCode || err.status
-      const data = apiErrorData(e)
       // The refusal's text in the reader's language, from its code (e.g. 409
-      // `upload/storage-quota`), instead of the English server message.
-      const known = apiErrorTexts(data).find(c => i18n.te(c.key))
-      if (statusCode === 401) {
-        error.value = 'login_required'
-      } else if (known) {
-        error.value = i18n.t(known.key, known.params)
-      } else {
-        error.value = (typeof data?.message === 'string' && data.message) || err.message || 'Upload failed'
-      }
+      // `upload/storage-quota`), never the English server message.
+      error.value = errorStatus(e) === 401 ? 'login_required' : resolveErrorMessage(e, i18n)
       return null
     } finally {
       uploading.value = false

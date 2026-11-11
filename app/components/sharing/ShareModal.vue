@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useQRCode } from '@vueuse/integrations/useQRCode'
 import { DOC_PASSWORD_MIN_LENGTH } from '~~/shared/config/docPassword'
+import type { AccessMode } from '~~/shared/utils/documents/docPermissions'
 
 const props = defineProps<{
   docId: string
@@ -39,7 +40,7 @@ watch(() => props.currentAccessMode, (v) => {
   accessMode.value = v
 })
 
-const accessOptions = [
+const accessOptions: Array<{ value: AccessMode, label: string, icon: string }> = [
   { value: 'private', label: 'share.private', icon: 'i-lucide-lock-keyhole' },
   { value: 'open-edit', label: 'share.openEdit', icon: 'i-lucide-pencil' },
   { value: 'open-view', label: 'share.openView', icon: 'i-lucide-eye' },
@@ -78,7 +79,7 @@ async function shareLink() {
   }
 }
 
-async function saveAccessMode(mode: string) {
+async function saveAccessMode(mode: AccessMode) {
   if (mode === 'password-protected') {
     settingPassword.value = true
     accessMode.value = mode
@@ -87,15 +88,17 @@ async function saveAccessMode(mode: string) {
 
   saving.value = true
   try {
-    if (props.currentAccessMode === 'password-protected' && mode !== 'password-protected') {
-      await $fetch(`/api/docs/${props.docId}/password`, {
-        method: 'POST',
+    if (props.currentAccessMode === 'password-protected') {
+      await apiFetch('/api/docs/:docId/password', {
+        method: 'post',
+        path: { docId: props.docId },
         body: { action: 'remove' }
       })
     }
 
-    await $fetch(`/api/docs/${props.docId}/meta`, {
-      method: 'PUT',
+    await apiFetch('/api/docs/:docId/meta', {
+      method: 'put',
+      path: { docId: props.docId },
       body: { accessMode: mode }
     })
     accessMode.value = mode
@@ -112,8 +115,9 @@ async function setPassword() {
 
   saving.value = true
   try {
-    await $fetch(`/api/docs/${props.docId}/password`, {
-      method: 'POST',
+    await apiFetch('/api/docs/:docId/password', {
+      method: 'post',
+      path: { docId: props.docId },
       body: { action: 'set', password: password.value }
     })
     settingPassword.value = false

@@ -64,7 +64,7 @@ function registryText(data: ApiErrorData): ErrorText | null {
 }
 
 /** Candidate texts, most precise first; the caller takes the first one its locale has. */
-export function apiErrorTexts(data: ApiErrorData | undefined): ErrorText[] {
+function apiErrorTexts(data: ApiErrorData | undefined): ErrorText[] {
   if (!data) return []
   const out: ErrorText[] = []
   // Own keys only: a code like "constructor" must not reach Object.prototype.
@@ -87,4 +87,60 @@ export function fieldErrors(data: ApiErrorData | undefined): FieldErrorText[] {
   return fields
     .filter((f): f is { path: string, issue: string } & Record<string, unknown> => typeof f?.path === 'string' && typeof f?.issue === 'string')
     .map(f => ({ path: f.path, key: `apiErrors.validation.${f.issue}`, params: f }))
+}
+
+// Status-based texts for an error whose code the client has no text for (or
+// that has no code): short common phrases, never the server's English message.
+const STATUS_KEYS: Record<number, string> = {
+  400: 'error.badRequest',
+  401: 'error.unauthorized',
+  403: 'error.forbidden',
+  404: 'error.notFound',
+  409: 'error.conflict',
+  413: 'error.payloadTooLarge',
+  429: 'error.rateLimited'
+}
+
+/** The status-based text key of an HTTP status (any 5xx is the server-side one). */
+function statusErrorKey(status: number | null): string | undefined {
+  if (status === null) return undefined
+  if (status >= 500) return 'error.serverError'
+  return STATUS_KEYS[status]
+}
+
+interface StatusShape {
+  statusCode?: unknown
+  status?: unknown
+  name?: unknown
+  data?: { statusCode?: unknown }
+}
+
+/** HTTP status of a thrown error, whatever wrapped it (`$fetch`, `useFetch`, a Nuxt error). */
+export function errorStatus(err: unknown): number | null {
+  const e = (err ?? {}) as StatusShape
+  for (const candidate of [e.statusCode, e.status, e.data?.statusCode]) {
+    if (typeof candidate === 'number') return candidate
+  }
+  return null
+}
+
+export interface ErrorTranslator {
+  t: (key: string, params?: Record<string, unknown>) => string
+  /** Whether the locale (or its fallback) has the key; avoids missing-key warnings. */
+  te: (key: string) => boolean
+}
+
+/**
+ * The translated text of any thrown error, most precise first: a
+ * per-occurrence key, the registered code's text, the route's `messageKey`,
+ * the status-based text, a network text for a request that never got an
+ * answer, `error.generic`. The server's English `message` is never shown.
+ */
+export function resolveErrorMessage(err: unknown, i18n: ErrorTranslator): string {
+  const known = apiErrorTexts(apiErrorData(err)).find(c => i18n.te(c.key))
+  if (known) return i18n.t(known.key, known.params)
+  const status = errorStatus(err)
+  const isNetwork = status === null && (err as StatusShape | null)?.name === 'FetchError'
+  const key = isNetwork ? 'error.network' : statusErrorKey(status)
+  return i18n.t(key && i18n.te(key) ? key : 'error.generic')
 }

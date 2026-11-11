@@ -1,54 +1,12 @@
 // Client shapes + pure helpers for Team / Business workspace billing.
 
-import type { BillingInterval, Currency, PaidPlanName } from '~~/shared/config/pricing'
+import type { ApiResponse } from '~/utils/api/client'
 
 /** `workspace.billing` of `GET /api/workspaces/:wsId` (admins only). */
-export interface WorkspaceSeatBilling {
-  seats: number
-  seatsUsed: number
-  status: string
-  plan: Extract<PaidPlanName, 'team' | 'business'>
-  interval: BillingInterval
-  currency: Currency
-}
+export type WorkspaceSeatBilling = NonNullable<ApiResponse<'/api/workspaces/:wsId', 'get'>['workspace']['billing']>
 
 /** `GET /api/workspaces/:wsId/billing`. */
-export interface WorkspaceBillingOverview {
-  billingEnabled: boolean
-  minSeats: number
-  seatsUsed: number
-  isBillingAdmin: boolean
-  subscription: {
-    plan: 'team' | 'business'
-    seats: number
-    status: string
-    entitled: boolean
-    interval: BillingInterval
-    currency: Currency
-    currentPeriodStart: string | null
-    validUntil: string | null
-    billingAdminId: number | null
-  } | null
-  pool: {
-    aiBudgetUsd: number
-    aiSpendUsd: number | null
-    defaultMemberLimitUsd: number
-    knowledgeBytes: number
-    imageBytes: number
-    resetsAt: string | null
-  } | null
-  members: Array<{
-    userId: number
-    name: string | null
-    role: 'admin' | 'editor' | 'viewer'
-    limitUsd: number | null
-    limitIsDefault: boolean
-    unlimited: boolean
-    spendUsd: number | null
-  }>
-  /** AI credit top-ups; null with billing off. */
-  credits?: import('~/utils/billing/aiCredits').CreditBalanceView | null
-}
+export type WorkspaceBillingOverview = ApiResponse<'/api/workspaces/:wsId/billing', 'get'>
 
 /** Statuses where Stripe is still trying to collect: admins see a notice. */
 export function isPaymentProblem(status: string | null | undefined): boolean {

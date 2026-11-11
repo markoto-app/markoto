@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { UserBilling } from '~/composables/billing/useBilling'
 import { DEFAULT_TIERS, PLAN_NAMES, type PlanName } from '~~/shared/config/tiers'
 import {
   CURRENCIES,
@@ -10,8 +11,7 @@ import {
   isPerSeatPlan,
   type BillingInterval,
   type Currency,
-  type PaidPlanName,
-  type PlanPricesResponse
+  type PaidPlanName
 } from '~~/shared/config/pricing'
 import { pricingStructuredData, type FaqItem, type PricingOffer } from '~~/shared/seo/structuredData'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
@@ -50,7 +50,7 @@ const { billingEnabled, plansComingSoon } = useBillingMode()
 
 const [{ data: tiersData }, { data: pricesData }] = await Promise.all([
   useFetch('/api/billing/tiers'),
-  useFetch<PlanPricesResponse>('/api/billing/prices')
+  useFetch('/api/billing/prices')
 ])
 const TIERS = computed(() => tiersData.value ?? DEFAULT_TIERS)
 const PRICE_TABLE = computed(() => pricesData.value?.prices ?? DEFAULT_PLAN_PRICES)
@@ -92,9 +92,6 @@ function priceUnitKey(plan: PlanName): string {
   return interval.value === 'year' ? 'pricing.price.perYear' : 'pricing.price.perMonth'
 }
 
-interface UserBilling {
-  plan: PlanName
-}
 const billing = ref<UserBilling | null>(null)
 
 const optionsLayout = computed(() => billingEnabled.value || plansComingSoon.value)
@@ -122,7 +119,7 @@ onMounted(async () => {
   currency.value = defaultCurrencyForLocale(globalThis.navigator?.language)
   if (!loggedIn.value) return
   try {
-    billing.value = await $fetch<UserBilling>('/api/user/billing')
+    billing.value = await apiFetch('/api/user/billing')
     // Open the tab of the plan the caller is on.
     const current = paidPlanFor(billing.value.plan)
     if (current) paidTab.value = current
@@ -165,6 +162,7 @@ function ctaKind(plan: PlanName): CtaKind {
 }
 
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const checkoutLoading = ref<PlanName | null>(null)
 // The Paid Plans Terms box: required for every purchase.
 const paidTermsAccepted = ref(false)
@@ -194,11 +192,11 @@ async function onChangePlan(plan: PlanName): Promise<void> {
   // never a second concurrent subscription.
   checkoutLoading.value = plan
   try {
-    const resp = await $fetch<{ url?: string, sessionId?: string, updated?: boolean, plan?: PlanName }>('/api/billing/checkout', {
-      method: 'POST',
+    const resp = await apiFetch('/api/billing/checkout', {
+      method: 'post',
       body: { plan, interval: interval.value, currency: currency.value, acceptPaidTerms: true }
     })
-    if (resp.updated) {
+    if ('updated' in resp) {
       toast.add({
         title: 'Plan updated',
         description: `You are now on the ${resp.plan} plan. Your new AI budget is available immediately.`,
@@ -210,10 +208,10 @@ async function onChangePlan(plan: PlanName): Promise<void> {
       // the plan can lag the API response by a beat — refetch once now
       // and once shortly after so the page settles on the new state.
       try {
-        billing.value = await $fetch<UserBilling>('/api/user/billing')
+        billing.value = await apiFetch('/api/user/billing')
         setTimeout(async () => {
           try {
-            billing.value = await $fetch<UserBilling>('/api/user/billing')
+            billing.value = await apiFetch('/api/user/billing')
           } catch { /* highlight refresh only */ }
         }, 2500)
       } catch { /* highlight refresh only */ }
@@ -221,12 +219,11 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     }
     // Full-page redirect — Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
-    if (resp.url) globalThis.location.href = resp.url
+    if ('url' in resp) globalThis.location.href = resp.url
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({
       title: 'Could not start checkout',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -239,15 +236,14 @@ async function openPortal(): Promise<void> {
   if (!billingEnabled.value || portalLoading.value) return
   portalLoading.value = true
   try {
-    const { url } = await $fetch<{ url: string }>('/api/billing/portal', {
-      method: 'POST'
+    const { url } = await apiFetch('/api/billing/portal', {
+      method: 'post'
     })
     globalThis.location.href = url
   } catch (e) {
-    const err = e as { statusCode?: number, data?: { message?: string }, message?: string }
     toast.add({
       title: 'Could not open billing portal',
-      description: err.data?.message ?? err.message ?? 'Unknown error',
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

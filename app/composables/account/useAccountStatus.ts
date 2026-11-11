@@ -5,29 +5,14 @@
 // Refreshed on first mount of any consumer, on login, and explicitly after
 // requesting/cancelling deletion and after accepting a policy version.
 
-export interface AccountStatus {
-  isAdmin: boolean
-  email: string | null
-  locale: string | null
-  age: { confirmedAt: string | null, confirmationRequired: boolean }
-  deletion: { requestedAt: string | null, graceUntil: string | null, pending: boolean }
-  policy: {
-    privacy: PolicyAcceptance
-    tos: PolicyAcceptance
-    dpa: PolicyAcceptance
-  }
-}
+import type { ApiResponse } from '~/utils/api/client'
 
-export interface PolicyAcceptance {
-  currentVersion: number
-  acceptedVersion: number | null
-  acceptedLocale: string | null
-  acceptanceRequired: boolean
-}
+export type AccountStatus = ApiResponse<'/api/user/account-status', 'get'>
 
 export function useAccountStatus() {
   const { loggedIn } = useUserSession()
   const state = useState<AccountStatus | null>('account-status', () => null)
+  const { extractError } = useErrorHandler()
   const loading = useState<boolean>('account-status-loading', () => false)
   const error = useState<string | null>('account-status-error', () => null)
 
@@ -39,10 +24,9 @@ export function useAccountStatus() {
     loading.value = true
     error.value = null
     try {
-      state.value = await $fetch<AccountStatus>('/api/user/account-status')
+      state.value = await apiFetch('/api/user/account-status')
     } catch (e) {
-      const err = e as { message?: string, data?: { message?: string } }
-      error.value = err?.data?.message ?? err?.message ?? 'Could not load account status'
+      error.value = extractError(e).message
     } finally {
       loading.value = false
     }

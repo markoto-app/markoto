@@ -1,11 +1,12 @@
 <script setup lang="ts">
+import type { SavedTheme } from '~/utils/api/types/themes'
+import { kitFonts, type BrandKit } from '~/utils/api/types/brandKit'
 import type { DocTheme, CaptionLabelStyle, CaptionNumbering, CaptionPosition, CodeTheme, CodeBackground, CodeFrame, DateFormat, HeadingLevelKey, HeadingLevels, HeadingLevelStyle, HeadingNumbering, HeadingStyle, MermaidTheme, NumberingDepth, ReferenceStyle, SectionMode, TocLeaderStyle, TocMaxDepth } from '~~/shared/types/theme'
 import { HEADING_LEVEL_KEYS } from '~~/shared/types/theme'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { CODE_FONT_NAMES, THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { brandFontFaceCss, brandFontFamilies } from '~~/shared/utils/theme/brandFonts'
 import { brandAssetDocUrl, brandImageFile, themeImagesForDoc } from '~~/shared/utils/theme/themeImages'
-import type { BrandFont } from '~~/shared/config/brandKit'
 import { CODE_OPTION_DEFAULTS, coverDateFormat, headingNumbering, mirrorMargins, numberingDepth, referenceStyle, repeatTitle, resolveCaptions, resolveChapterLabel, resolveHeadingLevel, resolvePageMargins, resolveSectionToken, resolveTitleBlock, runningRule } from '~~/shared/utils/theme/themeOptions'
 import { HEADING_SCALE_EXPONENTS } from '~~/shared/utils/theme/themeToCss'
 import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils/theme/themePresets'
@@ -54,6 +55,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const { extractError } = useErrorHandler()
 const toast = useToast()
 
 const draft = ref<DocTheme>(structuredClone(toRaw(props.theme)))
@@ -87,26 +89,22 @@ if (import.meta.client) {
 
 // Workspace brand kit: fonts + logos the members can pick. Loaded
 // once per panel; a failure just leaves the built-in choices.
-interface BrandKitResponse {
-  fonts: BrandFont[]
-  images: Array<{ file: string, name: string, url: string }>
-}
-const brandKit = ref<BrandKitResponse | null>(null)
+const brandKit = ref<BrandKit | null>(null)
 onMounted(async () => {
   if (!props.workspaceId) return
   try {
-    brandKit.value = await $fetch<BrandKitResponse>(`/api/workspaces/${encodeURIComponent(props.workspaceId)}/brand`)
+    brandKit.value = await apiFetch('/api/workspaces/:wsId/brand', { path: { wsId: props.workspaceId } })
   } catch {
     brandKit.value = null
   }
 })
 const brandImages = computed(() => brandKit.value?.images ?? [])
-const brandFamilies = computed(() => brandFontFamilies(brandKit.value?.fonts))
+const brandFamilies = computed(() => brandFontFamilies(kitFonts(brandKit.value)))
 // Declare the workspace fonts in the app too, so the picker items show
 // in their own face (the document route answers members by session).
 useHead(() => ({
   style: brandKit.value?.fonts.length
-    ? [{ key: 'theme-brand-fonts', textContent: brandFontFaceCss(brandKit.value.fonts, file => brandAssetDocUrl(props.docId, file)) }]
+    ? [{ key: 'theme-brand-fonts', textContent: brandFontFaceCss(kitFonts(brandKit.value), file => brandAssetDocUrl(props.docId, file)) }]
     : []
 }))
 /** Where the panel previews a theme image (a brand URL loads through the document's brand route). */
@@ -194,21 +192,16 @@ async function uploadHeaderImage(file: File) {
   headerImageUploading.value = true
   headerImageError.value = null
   try {
-    const { uploadUrl, fileId, key } = await $fetch<{
-      uploadUrl: string
-      fileId: string
-      key: string
-    }>('/api/upload/request', {
-      method: 'POST',
+    const { uploadUrl, fileId, key } = await apiFetch('/api/upload/request', {
+      method: 'post',
       body: { docId: props.docId, filename: file.name, contentType: file.type, size: file.size }
     })
     const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
     if (!putRes.ok) throw new Error(`Upload failed: ${putRes.status}`)
-    await $fetch('/api/upload/confirm', { method: 'POST', body: { key } })
+    await apiFetch('/api/upload/confirm', { method: 'post', body: { key } })
     draft.value.header.imageUrl = `/api/files/${props.docId}/${fileId}`
   } catch (e) {
-    const err = e as { message?: string }
-    headerImageError.value = err.message || 'Upload failed'
+    headerImageError.value = extractError(e).message
   } finally {
     headerImageUploading.value = false
   }
@@ -551,21 +544,16 @@ async function uploadLogo(file: File) {
   logoUploading.value = true
   logoError.value = null
   try {
-    const { uploadUrl, fileId, key } = await $fetch<{
-      uploadUrl: string
-      fileId: string
-      key: string
-    }>('/api/upload/request', {
-      method: 'POST',
+    const { uploadUrl, fileId, key } = await apiFetch('/api/upload/request', {
+      method: 'post',
       body: { docId: props.docId, filename: file.name, contentType: file.type, size: file.size }
     })
     const putRes = await fetch(uploadUrl, { method: 'PUT', headers: { 'Content-Type': file.type }, body: file })
     if (!putRes.ok) throw new Error(`Upload failed: ${putRes.status}`)
-    await $fetch('/api/upload/confirm', { method: 'POST', body: { key } })
+    await apiFetch('/api/upload/confirm', { method: 'post', body: { key } })
     draft.value.brand.logoUrl = `/api/files/${props.docId}/${fileId}`
   } catch (e) {
-    const err = e as { message?: string }
-    logoError.value = err.message || 'Upload failed'
+    logoError.value = extractError(e).message
   } finally {
     logoUploading.value = false
   }
@@ -733,15 +721,6 @@ function applyPreset(preset: ThemePreset) {
 // section ABOVE the built-in presets and a "Save current theme" button
 // beside the section eyebrow: one-click apply, plus rename + delete.
 
-interface SavedTheme {
-  themeId: string
-  name: string
-  description?: string
-  theme: DocTheme
-  createdAt: string
-  updatedAt: string
-}
-
 const { loggedIn } = useUserSession()
 const savedThemes = ref<SavedTheme[]>([])
 const savedLoading = ref(false)
@@ -753,7 +732,7 @@ async function refreshSavedThemes() {
   }
   savedLoading.value = true
   try {
-    const res = await $fetch<{ themes: SavedTheme[] }>('/api/themes')
+    const res = await apiFetch('/api/themes')
     savedThemes.value = res.themes
   } catch {
     // Non-fatal — anonymous users hit 401 here, which we already

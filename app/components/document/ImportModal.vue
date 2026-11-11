@@ -2,6 +2,7 @@
 import type { Text as YText } from 'yjs'
 import type { ImportedDocProperties } from '~~/shared/utils/markdown/markdownFrontmatter'
 import { MIB } from '~~/shared/config/units'
+import type { ApiResponse } from '~/utils/api/client'
 
 const props = defineProps<{
   ytext: YText
@@ -17,16 +18,10 @@ const emit = defineEmits<{
   'apply-properties': [properties: ImportedDocProperties, notes: { ignored: string[], droppedCustomCssRules: number }]
 }>()
 
-interface ImportResponse {
-  markdown: string
-  source: string
-  filename?: string
-  properties?: ImportedDocProperties
-  ignored?: string[]
-  droppedCustomCssRules?: number
-}
+type ImportResponse = ApiResponse<'/api/import', 'post'>
 
 const { t } = useI18n()
+const { extractError } = useErrorHandler()
 
 const selectedFile = ref<File | null>(null)
 // Last import response (for the properties of a markoto Markdown file).
@@ -51,10 +46,10 @@ const {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('docId', props.docId)
-    const result = await $fetch<ImportResponse>(
-      '/api/import',
-      { method: 'POST', body: formData }
-    )
+    // Not apiFetch: the contract types a multipart (`body: 'custom'`) route's
+    // body as `undefined`, so a FormData is refused. The literal URL still
+    // gives `$fetch` the handler's response type.
+    const result = await $fetch('/api/import', { method: 'POST', body: formData })
     importedResult.value = result
     applyProperties.value = true
     return result.markdown
@@ -73,8 +68,7 @@ const {
       else applyImport('replace')
     },
     onError: (e) => {
-      const err = e as { data?: { message?: string }, message?: string }
-      error.value = err.data?.message || err.message || t('import.error')
+      error.value = extractError(e).message
     }
   }
 )

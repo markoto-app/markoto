@@ -1,31 +1,6 @@
-import type { PlanName } from '~~/shared/config/tiers'
+import type { ApiResponse } from '~/utils/api/client'
 
-export interface AiCredits {
-  pointsRemaining: number
-  pointsTotal: number
-  plan: PlanName
-  periodEnd: string
-  attribution: 'user' | 'workspace'
-  /**
-   * The shared monthly free-tier pool (hosted SaaS): null when the plan
-   * isn't pooled. `exhausted` = nobody on the free tier can use the
-   * platform-paid AI until `resetsAt`, whatever their own points say.
-   */
-  freeAllowance?: { pooled: boolean, exhausted: boolean, resetsAt: string | null } | null
-  /**
-   * Team / Business workspace: the member's limit and the pooled
-   * team budget, in USD. Null outside a subscribed workspace.
-   */
-  workspace?: {
-    workspaceId: string
-    teamBudgetUsd: number
-    teamSpendUsd: number
-    memberLimitUsd: number | null
-    memberSpendUsd: number
-    exhausted: boolean
-    teamExhausted: boolean
-  } | null
-}
+export type AiCredits = ApiResponse<'/api/ai/credits', 'get'>
 
 /**
  * AI Points UI state. Backed by `useState` so every consumer (the
@@ -47,6 +22,7 @@ export interface AiCredits {
  */
 export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | undefined>) {
   const { loggedIn } = useUserSession()
+  const { extractError } = useErrorHandler()
   // One entry per budget: '' = the user's own, else the workspace id.
   const states = useState<Record<string, AiCredits | null>>('ai-credits', () => ({}))
   const loadings = useState<Record<string, boolean>>('ai-credits-loading', () => ({}))
@@ -70,13 +46,10 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
     loadings.value = { ...loadings.value, [k]: true }
     errors.value = { ...errors.value, [k]: null }
     try {
-      const query: Record<string, string> = {}
-      if (k) query.workspaceId = k
-      const next = await $fetch<AiCredits>('/api/ai/credits', { query })
+      const next = await apiFetch('/api/ai/credits', { query: k ? { workspaceId: k } : {} })
       states.value = { ...states.value, [k]: next }
     } catch (e) {
-      const err = e as { message?: string, data?: { message?: string } }
-      errors.value = { ...errors.value, [k]: err?.data?.message ?? err?.message ?? 'Could not load AI credits' }
+      errors.value = { ...errors.value, [k]: extractError(e).message }
       // Keep the last known state so a transient failure doesn't blank the badge.
     } finally {
       loadings.value = { ...loadings.value, [k]: false }

@@ -1,3 +1,4 @@
+import { apiFetch, type ApiResponse } from '~/utils/api/client'
 import { PAGEDJS_POLYFILL_URL, PAGEDJS_POLYFILL_SRI } from '~~/shared/utils/vendor/pagedjsAssets'
 import { KATEX_CSS_URL, KATEX_CSS_SRI } from '~~/shared/utils/vendor/katexAssets'
 import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/vendor/mermaidAssets'
@@ -330,7 +331,7 @@ export function buildRenderMessage(opts: {
   }
 }
 
-interface FileTokenResponse { token: string, expiresAt: number }
+type FileTokenResponse = ApiResponse<'/api/docs/:docId/file-token', 'get'>
 
 /** Refresh this long before the token expires. */
 const FILE_TOKEN_REFRESH_MARGIN_MS = 2 * MINUTE_MS
@@ -357,7 +358,8 @@ export function createFileTokenSource(docId: () => string, getDocJwt?: () => Pro
     inflight = (async () => {
       try {
         const jwt = getDocJwt ? await getDocJwt() : null
-        const res = await $fetch<FileTokenResponse>(`/api/docs/${encodeURIComponent(id)}/file-token`, {
+        const res = await apiFetch('/api/docs/:docId/file-token', {
+          path: { docId: id },
           headers: jwt ? { Authorization: `Bearer ${jwt}` } : undefined
         })
         cached = { ...res, docId: id }

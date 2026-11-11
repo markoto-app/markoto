@@ -5,18 +5,10 @@
 // page in the document's share dialog. Modal-style page like
 // /settings/ai; the endpoints are session-only.
 
-interface DomainView {
-  id: string
-  hostname: string
-  status: 'pending' | 'verified' | 'failed'
-  problem: 'txt-missing' | 'txt-mismatch' | 'not-pointing' | 'lookup-failed' | 'in-use' | null
-  verifiedAt: string | null
-  lastCheckedAt: string | null
-  dns: { txtName: string, txtValue: string, cnameTarget: string }
-  page: { docId: string | null, title: string | null, url: string } | null
-  url: string
-}
-interface DomainsResponse { available: boolean, limit: number, target: string, domains: DomainView[] }
+import type { ApiResponse } from '~/utils/api/client'
+
+type DomainsResponse = ApiResponse<'/api/user/custom-domains', 'get'>
+type DomainView = DomainsResponse['domains'][number]
 
 const router = useRouter()
 const { t, locale } = useI18n()
@@ -46,7 +38,7 @@ async function load(): Promise<void> {
   if (!loggedIn.value || !domainsOnInstance.value) return
   loading.value = true
   try {
-    data.value = await $fetch<DomainsResponse>('/api/user/custom-domains')
+    data.value = await apiFetch('/api/user/custom-domains')
   } catch (e) {
     showContextualError(e, 'customDomains.loadFailed')
   } finally {
@@ -59,7 +51,7 @@ async function add(): Promise<void> {
   if (!hostname.value.trim()) return
   adding.value = true
   try {
-    await $fetch('/api/user/custom-domains', { method: 'POST', body: { hostname: hostname.value } })
+    await apiFetch('/api/user/custom-domains', { method: 'post', body: { hostname: hostname.value } })
     hostname.value = ''
     await load()
   } catch (e) {
@@ -72,7 +64,7 @@ async function add(): Promise<void> {
 async function check(d: DomainView): Promise<void> {
   busyId.value = d.id
   try {
-    const next = await $fetch<DomainView>(`/api/user/custom-domains/${d.id}/verify`, { method: 'POST' })
+    const next = await apiFetch('/api/user/custom-domains/:domainId/verify', { method: 'post', path: { domainId: d.id } })
     if (data.value) data.value.domains = data.value.domains.map(x => x.id === d.id ? next : x)
   } catch (e) {
     showContextualError(e, 'customDomains.checkFailed')
@@ -84,7 +76,7 @@ async function check(d: DomainView): Promise<void> {
 async function remove(d: DomainView): Promise<void> {
   busyId.value = d.id
   try {
-    await $fetch(`/api/user/custom-domains/${d.id}`, { method: 'DELETE' })
+    await apiFetch('/api/user/custom-domains/:domainId', { method: 'delete', path: { domainId: d.id } })
     await load()
   } catch (e) {
     showContextualError(e, 'customDomains.removeFailed')

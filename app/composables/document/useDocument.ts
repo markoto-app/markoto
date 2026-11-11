@@ -10,6 +10,7 @@ import {
 } from '~~/shared/utils/documents/documentHelpers'
 import { normalizeAwarenessStates, normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 import { clampMetaString } from '~~/shared/utils/documents/ymetaValidation'
+import { isAudienceKind, type AudienceKind } from '~~/shared/audiences'
 
 /**
  * Thin orchestrator that wires together the three sub-composables a document
@@ -227,8 +228,9 @@ export function useDocument(docId: string) {
    * replays the update history; Y.js stays the live source of truth.
    */
   const persistTheme = useDebounceFn((next: DocTheme) => {
-    $fetch(`/api/docs/${docId}/meta`, {
-      method: 'PUT',
+    apiFetch('/api/docs/:docId/meta', {
+      method: 'put',
+      path: { docId },
       body: { theme: next }
     }).catch(() => {})
   }, 800)
@@ -241,13 +243,14 @@ export function useDocument(docId: string) {
   // runs the last call's arguments: setting audience then language within
   // 800 ms would otherwise persist only the language, and the AI reads
   // these fields from the row.
-  type DocContextPatch = { description?: string, audience?: string, language?: string, templateId?: string }
+  type DocContextPatch = { description?: string, audience?: AudienceKind, language?: string, templateId?: string }
   let pendingDocContext: DocContextPatch = {}
   const flushDocContext = useDebounceFn(() => {
     const body = pendingDocContext
     pendingDocContext = {}
-    $fetch(`/api/docs/${docId}/meta`, {
-      method: 'PUT',
+    apiFetch('/api/docs/:docId/meta', {
+      method: 'put',
+      path: { docId },
       body
     }).catch(() => {})
   }, 800)
@@ -269,8 +272,9 @@ export function useDocument(docId: string) {
     ymeta.delete('theme')
     _themeRef.value = defaultTheme
     if (tokenState.isOwner.value) {
-      $fetch(`/api/docs/${docId}/meta`, {
-        method: 'PUT',
+      apiFetch('/api/docs/:docId/meta', {
+        method: 'put',
+        path: { docId },
         body: { theme: null }
       }).catch(() => {})
     }
@@ -293,7 +297,8 @@ export function useDocument(docId: string) {
     set: (v: string) => {
       if (tokenState.isReadOnly.value) return
       ymeta.set('audience', v)
-      if (tokenState.isOwner.value) persistDocContext({ audience: v })
+      // The route accepts only the known audiences; anything else would be a 400 it swallows.
+      if (tokenState.isOwner.value && isAudienceKind(v)) persistDocContext({ audience: v })
     }
   })
   const language = computed({

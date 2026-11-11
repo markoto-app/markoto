@@ -2,7 +2,8 @@
 import type { WorkspaceMember } from './WorkspaceMemberAvatars.vue'
 import type { WorkspaceSeatBilling } from '~/utils/billing/workspaceBilling'
 import { formatPrice } from '~/utils/billing/pricing'
-import type { PlanPricesResponse } from '~~/shared/config/pricing'
+import { isCurrency } from '~~/shared/config/pricing'
+import type { ApiResponse } from '~/utils/api/client'
 
 // Members management modal. Single modal for admin + member views; the role
 // gates feature visibility:
@@ -55,17 +56,10 @@ const rowBusy = ref<number | null>(null)
 
 const isAdmin = computed(() => props.myRole === 'admin')
 
-interface PendingInvite {
-  inviteId: string
-  email: string
-  role: InviteRole
-  invitedByName: string | null
-  createdAt: string
-  expiresAt: string
-}
+type PendingInvite = ApiResponse<'/api/workspaces/:wsId/invites', 'get'>[number]
 const invites = ref<PendingInvite[]>([])
 const inviteBusy = ref<string | null>(null)
-const { showError } = useErrorHandler()
+const { showError, extractError } = useErrorHandler()
 
 async function loadInvites(): Promise<void> {
   if (!isAdmin.value) {
@@ -73,7 +67,7 @@ async function loadInvites(): Promise<void> {
     return
   }
   try {
-    invites.value = await $fetch<PendingInvite[]>(`/api/workspaces/${props.workspaceId}/invites`)
+    invites.value = await apiFetch('/api/workspaces/:wsId/invites', { path: { wsId: props.workspaceId } })
   } catch {
     invites.value = []
   }
@@ -97,7 +91,7 @@ function fmtDate(iso: string): string {
 async function revokeInvite(invite: PendingInvite) {
   inviteBusy.value = invite.inviteId
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/invites/${invite.inviteId}`, { method: 'DELETE' })
+    await apiFetch('/api/workspaces/:wsId/invites/:inviteId', { method: 'delete', path: { wsId: props.workspaceId, inviteId: invite.inviteId } })
     invites.value = invites.value.filter(i => i.inviteId !== invite.inviteId)
     emit('billingChanged')
   } catch (e) {
@@ -132,20 +126,17 @@ const seatsLabel = computed(() => props.billing
 async function loadSeatPrice() {
   const billing = props.billing
   seatPrice.value = null
-  if (!billing) return
+  if (!billing || !isCurrency(billing.currency)) return
   try {
-    const prices = await $fetch<PlanPricesResponse>('/api/billing/prices')
-    const row = prices.prices[billing.currency]?.[billing.plan]
+    const prices = await apiFetch('/api/billing/prices')
+    // The workspace's plan arrives as a plain string; only per-seat plans have a seat price.
+    const row = billing.plan === 'team' || billing.plan === 'business' ? prices.prices[billing.currency]?.[billing.plan] : undefined
     if (!row) return
-    const amount = formatPrice(row[billing.interval], billing.currency.toUpperCase(), locale.value)
+    const amount = formatPrice(billing.interval === 'year' ? row.year : row.month, billing.currency.toUpperCase(), locale.value)
     seatPrice.value = t(billing.interval === 'year' ? 'workspace.billing.pricePerSeatYear' : 'workspace.billing.pricePerSeatMonth', { price: amount })
   } catch {
     seatPrice.value = null
   }
-}
-
-function errorCode(e: unknown): string | undefined {
-  return (e as { data?: { data?: { code?: string } } })?.data?.data?.code
 }
 
 async function addMember(addSeat = false) {
@@ -153,8 +144,9 @@ async function addMember(addSeat = false) {
   if (!email) return
   adding.value = true
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/members`, {
-      method: 'POST',
+    await apiFetch('/api/workspaces/:wsId/members', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
       body: { email, role: newRole.value, ...(addSeat ? { addSeat: true } : {}) }
     })
     seatConfirm.value = null
@@ -169,7 +161,7 @@ async function addMember(addSeat = false) {
     newRole.value = 'editor'
     await loadInvites()
   } catch (e) {
-    if (!addSeat && errorCode(e) === 'billing/seats-full' && props.billing) {
+    if (!addSeat && extractError(e).code === 'billing/seats-full' && props.billing) {
       seatConfirm.value = { email, seats: props.billing.seats }
       void loadSeatPrice()
     } else {
@@ -184,20 +176,15 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
   if (member.role === role) return
   rowBusy.value = member.userId
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/members/${member.userId}`, {
-      method: 'PATCH',
+    await apiFetch('/api/workspaces/:wsId/members/:userId', {
+      method: 'patch',
+      path: { wsId: props.workspaceId, userId: member.userId },
       body: { role }
     })
     localMembers.value = localMembers.value.map(m => m.userId === member.userId ? { ...m, role } : m)
     emit('updated', localMembers.value)
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.members.roleChangeFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.members.roleChangeFailed', e)
   } finally {
     rowBusy.value = null
   }
@@ -206,8 +193,9 @@ async function changeRole(member: WorkspaceMember, role: 'admin' | 'editor' | 'v
 async function removeMember(member: WorkspaceMember) {
   rowBusy.value = member.userId
   try {
-    await $fetch(`/api/workspaces/${props.workspaceId}/members/${member.userId}`, {
-      method: 'DELETE'
+    await apiFetch('/api/workspaces/:wsId/members/:userId', {
+      method: 'delete',
+      path: { wsId: props.workspaceId, userId: member.userId }
     })
     const wasMe = member.userId === props.myUserId
     localMembers.value = localMembers.value.filter(m => m.userId !== member.userId)
@@ -218,13 +206,7 @@ async function removeMember(member: WorkspaceMember) {
       emit('leave')
     }
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('workspace.members.removeFailed'),
-      description: err?.data?.message || err?.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('workspace.members.removeFailed', e)
   } finally {
     rowBusy.value = null
   }

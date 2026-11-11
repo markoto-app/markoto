@@ -21,6 +21,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { showError } = useErrorHandler()
 
 const duplicating = ref(false)
 const newTitle = ref('')
@@ -40,10 +41,11 @@ async function handleDuplicate() {
   if (title.length === 0) return
   duplicating.value = true
   try {
-    const { docId: newDocId } = await $fetch<{ docId: string }>(
-      `/api/docs/${props.docId}/duplicate`,
-      { method: 'POST', body: { title } }
-    )
+    const { docId: newDocId } = await apiFetch('/api/docs/:docId/duplicate', {
+      method: 'post',
+      path: { docId: props.docId },
+      body: { title }
+    })
     toast.add({
       title: t('duplicate.success'),
       description: t('duplicate.successDesc', { title }),
@@ -53,13 +55,7 @@ async function handleDuplicate() {
     open.value = false
     emit('duplicated', newDocId)
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
-    toast.add({
-      title: t('duplicate.failed'),
-      description: err.data?.message || err.message,
-      icon: 'i-lucide-alert-circle',
-      color: 'error'
-    })
+    showError('duplicate.failed', e)
   } finally {
     duplicating.value = false
   }

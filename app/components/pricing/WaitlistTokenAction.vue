@@ -26,7 +26,9 @@ async function onAct(): Promise<void> {
   state.value = 'working'
   errorMessage.value = null
   try {
-    await $fetch(`/api/waitlist/${props.action}`, { method: 'POST', body: { token: token.value } })
+    const body = { token: token.value }
+    if (props.action === 'confirm') await apiFetch('/api/waitlist/confirm', { method: 'post', body })
+    else await apiFetch('/api/waitlist/unsubscribe', { method: 'post', body })
     state.value = 'done'
   } catch (e) {
     errorMessage.value = extractError(e).message

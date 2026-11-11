@@ -185,7 +185,8 @@ async function downloadPdf(): Promise<void> {
     return
   }
   try {
-    const res = await $fetch<{ url: string }>(`/api/docs/${encodeURIComponent(docId)}/pdf`, {
+    const res = await apiFetch('/api/docs/:docId/pdf', {
+      path: { docId },
       query: { response: 'json' },
       // One request = one render allowance (10/min): never retry a 5xx.
       retry: 0

@@ -779,8 +779,9 @@ watch(synced, (isSynced) => {
 // Persist word count, debounced to 10 s after the last content change.
 const persistStats = useDebounceFn(() => {
   if (!isOwner.value || requiresPassword.value || !textContent.value) return
-  $fetch(`/api/docs/${props.docId}/meta`, {
-    method: 'PUT',
+  apiFetch('/api/docs/:docId/meta', {
+    method: 'put',
+    path: { docId: props.docId },
     body: {
       wordCount: wordCount.value,
       sizeBytes: new Blob([textContent.value]).size
@@ -828,8 +829,9 @@ async function saveTitle() {
     title.value = newTitle
     // Persist to the DB so the title appears in document lists.
     try {
-      await $fetch(`/api/docs/${props.docId}/meta`, {
-        method: 'PUT',
+      await apiFetch('/api/docs/:docId/meta', {
+        method: 'put',
+        path: { docId: props.docId },
         body: { title: newTitle }
       })
     } catch {

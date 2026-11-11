@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { ApiResponse } from '~/utils/api/client'
 import { GIB, MIB } from '~~/shared/config/units'
 
 // Knowledge base panel for the workspace page. Uploads go through the
@@ -12,28 +13,9 @@ import { GIB, MIB } from '~~/shared/config/units'
 //   - editors can upload + delete their own rows
 //   - admins can upload + delete anything
 
-interface KnowledgeItem {
-  knowledgeId: string
-  filename: string
-  sourceExt: string
-  mimeType: string
-  sizeBytes: number
-  status: 'processing' | 'ready' | 'failed'
-  errorMessage: string | null
-  chunkCount: number
-  tokenCount: number
-  uploaderId: number | null
-  createdAt: string | Date
-  processedAt: string | Date | null
-}
-
-interface KnowledgeUsage {
-  count: number
-  totalBytes: number
-  maxFiles: number
-  maxBytes: number
-  maxFileBytes: number
-}
+type KnowledgeListing = ApiResponse<'/api/workspaces/:wsId/knowledge', 'get'>
+type KnowledgeItem = KnowledgeListing['items'][number]
+type KnowledgeUsage = KnowledgeListing['usage']
 
 const props = defineProps<{
   workspaceId: string
@@ -48,6 +30,7 @@ const props = defineProps<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { extractError, showError } = useErrorHandler()
 
 const usage = ref<KnowledgeUsage | null>(null)
 const uploading = ref(false)
@@ -59,9 +42,9 @@ const {
   execute: load
 } = useAsyncState<KnowledgeItem[]>(
   async () => {
-    const resp = await $fetch<{ items: KnowledgeItem[], usage: KnowledgeUsage }>(
-      `/api/workspaces/${props.workspaceId}/knowledge`
-    )
+    const resp = await apiFetch('/api/workspaces/:wsId/knowledge', {
+      path: { wsId: props.workspaceId }
+    })
     usage.value = resp.usage
     return resp.items
   },
@@ -69,15 +52,7 @@ const {
   {
     immediate: false,
     resetOnExecute: false,
-    onError: (e: { data?: { message?: string }, message?: string } | unknown) => {
-      const err = e as { data?: { message?: string }, message?: string }
-      toast.add({
-        title: t('knowledge.loadFailed'),
-        description: err?.data?.message || err?.message,
-        icon: 'i-lucide-alert-circle',
-        color: 'error'
-      })
-    }
+    onError: (e) => { showError('knowledge.loadFailed', e) }
   }
 )
 
@@ -180,35 +155,25 @@ async function uploadOne(file: File) {
   uploading.value = true
   uploadProgress.value = { filename: file.name, percent: 0 }
   try {
-    const step1 = await $fetch<{
-      knowledgeId: string
-      uploadUrl: string
-      s3Key: string
-      ext: string
-      mimeType: string
-    }>(
-      `/api/workspaces/${props.workspaceId}/knowledge/upload-request`,
-      {
-        method: 'POST',
-        body: { filename: file.name, size: file.size }
-      }
-    )
+    const step1 = await apiFetch('/api/workspaces/:wsId/knowledge/upload-request', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
+      body: { filename: file.name, size: file.size }
+    })
     await putWithProgress(step1.uploadUrl, file, step1.mimeType, (p) => {
       uploadProgress.value = { filename: file.name, percent: p }
     })
-    await $fetch(
-      `/api/workspaces/${props.workspaceId}/knowledge/confirm`,
-      {
-        method: 'POST',
-        body: {
-          knowledgeId: step1.knowledgeId,
-          s3Key: step1.s3Key,
-          filename: file.name,
-          ext: step1.ext,
-          mimeType: step1.mimeType
-        }
+    await apiFetch('/api/workspaces/:wsId/knowledge/confirm', {
+      method: 'post',
+      path: { wsId: props.workspaceId },
+      body: {
+        knowledgeId: step1.knowledgeId,
+        s3Key: step1.s3Key,
+        filename: file.name,
+        ext: step1.ext,
+        mimeType: step1.mimeType
       }
-    )
+    })
     toast.add({
       title: t('knowledge.uploadQueued'),
       description: file.name,
@@ -216,10 +181,9 @@ async function uploadOne(file: File) {
       color: 'success'
     })
   } catch (e) {
-    const err = e as { data?: { message?: string }, message?: string }
     toast.add({
       title: t('knowledge.uploadFailed'),
-      description: err?.data?.message || err?.message || String(e),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })

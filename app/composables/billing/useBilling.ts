@@ -1,25 +1,6 @@
-import type { PlanName } from '~~/shared/config/tiers'
+import type { ApiResponse } from '~/utils/api/client'
 
-export interface UserBilling {
-  plan: PlanName
-  periodStart: string
-  periodEnd: string
-  // Caps are echoed alongside the counted values so the UI can compare
-  // `used >= limit` without importing TIERS.
-  ownedWorkspaces: number
-  workspacesOwnedLimit: number
-  knowledgeFilesUsed: number
-  knowledgeFilesLimit: number
-  knowledgeBytesUsed: number
-  knowledgeBytesPerUserLimit: number
-  /** Document image storage (pending uploads included) vs. the per-user quota. */
-  imageBytesUsed: number
-  imageBytesPerUserLimit: number
-  /** AI credit top-ups; null with billing off. */
-  credits?: import('~/utils/billing/aiCredits').CreditBalanceView | null
-  /** Workspaces whose Team / Business plan covers the user inside them. */
-  coveringWorkspaces?: Array<{ workspaceId: string, name: string, plan: 'team' | 'business' }>
-}
+export type UserBilling = ApiResponse<'/api/user/billing', 'get'>
 
 /**
  * Shared billing state. Backed by `useState` so every consumer (topbar
@@ -34,6 +15,7 @@ export interface UserBilling {
 export function useBilling() {
   const { loggedIn } = useUserSession()
   const state = useState<UserBilling | null>('billing', () => null)
+  const { extractError } = useErrorHandler()
   const loading = useState<boolean>('billing-loading', () => false)
   const error = useState<string | null>('billing-error', () => null)
 
@@ -45,10 +27,9 @@ export function useBilling() {
     loading.value = true
     error.value = null
     try {
-      state.value = await $fetch<UserBilling>('/api/user/billing')
+      state.value = await apiFetch('/api/user/billing')
     } catch (e) {
-      const err = e as { message?: string, data?: { message?: string } }
-      error.value = err?.data?.message ?? err?.message ?? 'Could not load billing info'
+      error.value = extractError(e).message
       // Keep the last known state so a transient failure doesn't erase the plan badge.
     } finally {
       loading.value = false

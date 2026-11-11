@@ -1,26 +1,12 @@
 <script setup lang="ts">
 import { parseCommentBody } from '~/utils/comments/commentBody'
+import type { ApiResponse } from '~/utils/api/client'
 
 // Fetches the comment thread behind an activity row and highlights the row's
 // own entry. Doesn't reuse `<CommentItem>`: its delete/resolve actions make no
 // sense in read-only history, and the narrow sidebar needs a tighter layout.
 
-interface CommentContextRow {
-  entryId: string
-  parentCommentId: string | null
-  authorId: number | null
-  authorName: string
-  body: string
-  createdAtMs: number
-  updatedAtMs: number
-  resolved: boolean
-}
-
-interface CommentContextResponse {
-  activityId: number
-  rows: CommentContextRow[]
-  focusEntryId: string
-}
+type CommentContextResponse = ApiResponse<'/api/docs/:docId/activity/:activityId/comment-context', 'get'>
 
 const props = defineProps<{
   docId: string
@@ -30,7 +16,7 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const data = ref<CommentContextResponse | null>(null)
-const error = ref<{ kind: 'unavailable' | 'unknown', message?: string } | null>(null)
+const error = ref<{ kind: 'unavailable' | 'unknown' } | null>(null)
 const loading = ref(true)
 
 async function load() {
@@ -38,16 +24,16 @@ async function load() {
   error.value = null
   data.value = null
   try {
-    data.value = await $fetch<CommentContextResponse>(
-      `/api/docs/${props.docId}/activity/${props.activityId}/comment-context`
-    )
+    data.value = await apiFetch('/api/docs/:docId/activity/:activityId/comment-context', {
+      path: { docId: props.docId, activityId: props.activityId }
+    })
   } catch (e: unknown) {
     const status = (e as { statusCode?: number, status?: number })?.statusCode
       ?? (e as { status?: number })?.status
     if (status === 410) {
       error.value = { kind: 'unavailable' }
     } else {
-      error.value = { kind: 'unknown', message: e instanceof Error ? e.message : String(e) }
+      error.value = { kind: 'unknown' }
     }
   } finally {
     loading.value = false

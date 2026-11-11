@@ -236,7 +236,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
       }, 'comments')
       return
     }
-    await $fetch(`/api/docs/${docId}/comments/${id}`, { method: 'DELETE' })
+    await apiFetch('/api/docs/:docId/comments/:commentId', { method: 'delete', path: { docId, commentId: id } })
   }
 
   function setResolved(id: string, resolved: boolean): void {
@@ -283,7 +283,7 @@ export function useComments(ydoc: Y.Doc, awareness: Awareness, docId?: string) {
       }, 'comments')
       return
     }
-    await $fetch(`/api/docs/${docId}/comments/${commentId}/replies/${replyId}`, { method: 'DELETE' })
+    await apiFetch('/api/docs/:docId/comments/:commentId/replies/:replyId', { method: 'delete', path: { docId, commentId, replyId } })
   }
 
   return {

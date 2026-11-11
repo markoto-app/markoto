@@ -130,31 +130,12 @@ export function useDocToken(docId: string) {
 
   async function fetchToken() {
     try {
-      const data = await $fetch<{
-        token: string | null
-        readOnly: boolean
-        requiresPassword?: boolean
-        forbidden?: boolean
-        accessMode: string
-        ownerId: number | null
-        workspaceId: string | null
-        workspaceRole: 'admin' | 'editor' | 'viewer' | null
-        theme?: DocTheme | null
-        title?: string
-        description?: string
-        audience?: string
-        language?: string
-        initialBody?: string | null
-        templateId?: string
-        canDelete?: boolean
-        planFeatures?: { customCss?: boolean } | null
-        brandKit?: { fonts?: BrandFont[], lockedTheme?: DocTheme | null } | null
-        noDownload?: boolean
-        shareExpired?: boolean
-        workspacePlan?: 'team' | 'business' | null
-        ssoLoginUrl?: string | null
-      }>(`/api/docs/${docId}/token`)
+      const data = await apiFetch('/api/docs/:docId/token', { path: { docId } })
 
+      // The route answers `token: null` plus only the gate fields to a caller
+      // who may not open the document; everything else exists only with a token.
+      const granted = data.token === null ? null : data
+      const denied = data.token === null ? data : null
       tokenData.value = { token: data.token ?? '', readOnly: data.readOnly }
       isReadOnly.value = data.readOnly
       requiresPassword.value = !!data.requiresPassword
@@ -165,17 +146,17 @@ export function useDocToken(docId: string) {
       workspaceRole.value = data.workspaceRole
       initialTheme.value = data.theme ?? null
       customCssAllowed.value = data.planFeatures?.customCss !== false
-      brandFonts.value = data.brandKit?.fonts ?? []
-      brandLockedTheme.value = data.brandKit?.lockedTheme ?? null
-      noDownload.value = data.noDownload === true
-      shareExpired.value = data.shareExpired === true
+      brandFonts.value = granted?.brandKit?.fonts ?? []
+      brandLockedTheme.value = granted?.brandKit?.lockedTheme ?? null
+      noDownload.value = granted?.noDownload === true
+      shareExpired.value = denied?.shareExpired === true
       workspacePlan.value = data.workspacePlan ?? null
-      ssoLoginUrl.value = data.ssoLoginUrl ?? null
-      if (typeof data.title === 'string') initialTitle.value = data.title
-      if (typeof data.description === 'string') initialDescription.value = data.description
-      if (typeof data.audience === 'string') initialAudience.value = data.audience
-      if (typeof data.language === 'string') initialLanguage.value = data.language
-      if (typeof data.templateId === 'string') templateId.value = data.templateId
+      ssoLoginUrl.value = denied?.ssoLoginUrl ?? null
+      if (typeof granted?.title === 'string') initialTitle.value = granted.title
+      if (typeof granted?.description === 'string') initialDescription.value = granted.description
+      if (typeof granted?.audience === 'string') initialAudience.value = granted.audience
+      if (typeof granted?.language === 'string') initialLanguage.value = granted.language
+      if (typeof granted?.templateId === 'string') templateId.value = granted.templateId
       initialBody.value = typeof data.initialBody === 'string' ? data.initialBody : null
 
       const userId = sessionUser.value?.id
@@ -215,16 +196,8 @@ export function useDocToken(docId: string) {
   async function refetchTokenOnly(): Promise<string | null> {
     try {
       // `refresh`: not a new open of the doc (view counts skip it).
-      const data = await $fetch<{
-        token: string | null
-        readOnly: boolean
-        requiresPassword?: boolean
-        forbidden?: boolean
-        noDownload?: boolean
-        shareExpired?: boolean
-        ssoLoginUrl?: string | null
-      }>(`/api/docs/${docId}/token`, { query: { refresh: '1' } })
-      if (!data.token) {
+      const data = await apiFetch('/api/docs/:docId/token', { path: { docId }, query: { refresh: '1' } })
+      if (data.token === null) {
         if (data.forbidden || data.requiresPassword) {
           shareExpired.value = data.shareExpired === true
           ssoLoginUrl.value = data.ssoLoginUrl ?? null
@@ -235,6 +208,7 @@ export function useDocToken(docId: string) {
         }
         return null
       }
+      if (!data.token) return null
       tokenData.value = { token: data.token, readOnly: data.readOnly }
       isReadOnly.value = data.readOnly
       if (typeof data.noDownload === 'boolean') noDownload.value = data.noDownload
@@ -293,25 +267,18 @@ export function useDocToken(docId: string) {
    */
   async function hydrateAfterUnlock(newToken: string): Promise<void> {
     try {
-      const data = await $fetch<{
-        theme?: DocTheme | null
-        title?: string
-        description?: string
-        audience?: string
-        language?: string
-        initialBody?: string | null
-        brandKit?: { fonts?: BrandFont[], lockedTheme?: DocTheme | null } | null
-        noDownload?: boolean
-      }>(`/api/docs/${docId}/meta`, { headers: { Authorization: `Bearer ${newToken}` } })
-      initialTheme.value = data.theme ?? null
-      brandFonts.value = data.brandKit?.fonts ?? []
-      brandLockedTheme.value = data.brandKit?.lockedTheme ?? null
-      noDownload.value = data.noDownload === true
-      if (typeof data.title === 'string') initialTitle.value = data.title
-      if (typeof data.description === 'string') initialDescription.value = data.description
-      if (typeof data.audience === 'string') initialAudience.value = data.audience
-      if (typeof data.language === 'string') initialLanguage.value = data.language
-      initialBody.value = typeof data.initialBody === 'string' ? data.initialBody : null
+      const data = await apiFetch('/api/docs/:docId/meta', { path: { docId }, headers: { Authorization: `Bearer ${newToken}` } })
+      // A response without the document (still gated) carries none of the metadata.
+      const meta = 'theme' in data ? data : null
+      initialTheme.value = meta?.theme ?? null
+      brandFonts.value = meta?.brandKit?.fonts ?? []
+      brandLockedTheme.value = meta?.brandKit?.lockedTheme ?? null
+      noDownload.value = meta?.noDownload === true
+      if (typeof meta?.title === 'string') initialTitle.value = meta.title
+      if (typeof meta?.description === 'string') initialDescription.value = meta.description
+      if (typeof meta?.audience === 'string') initialAudience.value = meta.audience
+      if (typeof meta?.language === 'string') initialLanguage.value = meta.language
+      initialBody.value = typeof meta?.initialBody === 'string' ? meta.initialBody : null
     } catch {
       // Non-fatal — sync is the live source of these values.
     }

@@ -6,6 +6,7 @@ import {
   expansionToggleLabelKey,
   type FilterKey
 } from '~/utils/collab/activityFeedHelpers'
+import type { ActivityEntry, ActivityMetadataAiTool } from '~/utils/api/types/activity'
 
 // Lazy-loaded so the per-kind expansion deps ship only when a card is expanded.
 const ActivityRowDiff = defineAsyncComponent(() => import('./ActivityRowDiff.vue'))
@@ -24,62 +25,6 @@ const { t } = useI18n()
 const { showContextualError } = useErrorHandler()
 const loadErrored = ref(false)
 
-type ActivityAction
-  = | 'edit' | 'join' | 'leave'
-    | 'comment.added' | 'comment.replied' | 'comment.resolved' | 'comment.reopened' | 'comment.deleted'
-    | 'theme.changed' | 'title.changed' | 'ai.tool'
-    | 'restore'
-
-interface ActivityMetadataAdded { kind: 'comment.added' | 'comment.resolved' | 'comment.reopened', commentId: string, bodyPreview: string }
-interface ActivityMetadataReplied { kind: 'comment.replied', commentId: string, parentCommentId: string, bodyPreview: string }
-interface ActivityMetadataDeleted { kind: 'comment.deleted', commentId: string, bodyPreview: string, isReply: boolean }
-interface ActivityMetadataTitle { kind: 'title.changed', from: string, to: string }
-interface ActivityMetadataTheme { kind: 'theme.changed' }
-interface ActivityMetadataAiTool {
-  kind: 'ai.tool'
-  tool: 'web_search' | 'fetch_url' | 'generate_image' | 'view_image' | 'search_knowledge' | 'get_knowledge_file'
-  query?: string
-  url?: string
-  prompt?: string
-  src?: string
-  knowledgeId?: string
-}
-interface ActivityMetadataRestore {
-  kind: 'restore'
-  restoredFromActivityId: number
-  restoredFromTime: string
-}
-type ActivityMetadata
-  = | ActivityMetadataAdded | ActivityMetadataReplied | ActivityMetadataDeleted
-    | ActivityMetadataTitle | ActivityMetadataTheme | ActivityMetadataAiTool
-    | ActivityMetadataRestore
-
-interface ActivityEntry {
-  id: number
-  docId: string
-  userId: number | null
-  userName: string | null
-  action: ActivityAction
-  wordCount: number | null
-  linesAdded: number | null
-  linesRemoved: number | null
-  metadata: ActivityMetadata | null
-  yjsDocIdBefore: number | null
-  yjsDocIdAfter: number | null
-  // Agent-driven rows carry a synthetic principal ('ai:assistant:{sid}' /
-  // 'mcp:{sid}'); the resolved agent* fields come from the server's join to
-  // ai_sessions / mcp_sessions. All null for human rows. Anonymous rows carry
-  // the editor's per-tab avatar token so the row shows the same face as the
-  // presence bar.
-  actorPrincipal: string | null
-  actorAvatarSeed?: string | null
-  agentKind: 'ai' | 'mcp' | null
-  agentInitiatorUserId: number | null
-  agentInitiatorName: string | null
-  agentClientName: string | null
-  createdAt: string | number
-}
-
 // Days of history the document's plan includes; set only when older rows are hidden.
 const historyLimitedDays = ref<number | null>(null)
 
@@ -89,13 +34,19 @@ const {
   execute: loadActivity
 } = useAsyncState<ActivityEntry[]>(
   async () => {
-    const res = await $fetch.raw<ActivityEntry[]>(`/api/docs/${props.docId}/activity`)
+    // `onResponse` hands us the headers; the body is the typed result.
+    const rows = await apiFetch('/api/docs/:docId/activity', {
+      path: { docId: props.docId },
+      onResponse: ({ response }) => {
+        if (!response.ok) return
+        // Present when the plan limits history and older rows exist
+        // (server/utils/billing/entitlements.ts#HISTORY_LIMITED_HEADER).
+        const limitedDays = Number(response.headers.get('x-markoto-history-limited-days'))
+        historyLimitedDays.value = Number.isFinite(limitedDays) && limitedDays > 0 ? limitedDays : null
+      }
+    })
     loadErrored.value = false
-    // Present when the plan limits history and older rows exist
-    // (server/utils/billing/entitlements.ts#HISTORY_LIMITED_HEADER).
-    const limitedDays = Number(res.headers.get('x-markoto-history-limited-days'))
-    historyLimitedDays.value = Number.isFinite(limitedDays) && limitedDays > 0 ? limitedDays : null
-    return res._data ?? []
+    return rows ?? []
   },
   [],
   {
@@ -141,7 +92,7 @@ onUnmounted(() => {
 
 // Small per-action icon next to the verb. AI rows keep their action icon; the
 // AI identity is carried by the avatar.
-const actionIcons: Record<ActivityAction, string> = {
+const actionIcons: Record<ActivityEntry['action'], string> = {
   'edit': 'i-lucide-pencil',
   'join': 'i-lucide-log-in',
   'leave': 'i-lucide-log-out',
@@ -200,15 +151,21 @@ function detailFor(entry: ActivityEntry): string | null {
 
 /** Each AI tool has its own salient field (web_search -> query, fetch_url -> url, ...). */
 function detailForAiTool(m: ActivityMetadataAiTool): string | null {
-  const formatters: Record<ActivityMetadataAiTool['tool'], (m: ActivityMetadataAiTool) => string | null> = {
-    web_search: m => m.query ? `"${truncate(m.query, 120)}"` : null,
-    fetch_url: m => m.url ? truncate(m.url, 120) : null,
-    generate_image: m => m.prompt ? `"${truncate(m.prompt, 120)}"` : null,
-    view_image: m => m.src ? truncate(m.src, 120) : null,
-    search_knowledge: m => m.query ? `"${truncate(m.query, 120)}"` : null,
-    get_knowledge_file: m => m.knowledgeId ? truncate(m.knowledgeId, 64) : null
+  switch (m.tool) {
+    case 'web_search':
+    case 'search_knowledge':
+      return m.query ? `"${truncate(m.query, 120)}"` : null
+    case 'fetch_url':
+      return m.url ? truncate(m.url, 120) : null
+    case 'generate_image':
+      return m.prompt ? `"${truncate(m.prompt, 120)}"` : null
+    case 'view_image':
+      return m.src ? truncate(m.src, 120) : null
+    case 'get_knowledge_file':
+      return m.knowledgeId ? truncate(m.knowledgeId, 64) : null
+    default:
+      return null
   }
-  return formatters[m.tool]?.(m) ?? null
 }
 
 function actionLabel(entry: ActivityEntry): string {

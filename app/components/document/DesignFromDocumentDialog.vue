@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { DocTheme } from '~~/shared/types/theme'
+import type { ApiResponse } from '~/utils/api/client'
 import {
   DESIGN_IMPORT_ERROR_CODES,
   DESIGN_IMPORT_MAX_BYTES,
@@ -36,30 +37,15 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const toast = useToast()
+const { extractError } = useErrorHandler()
 const { availability } = useAiAvailability()
 const aiSettingsRoute = AI_SETTINGS_ROUTE
 
 type Step = 'pick' | 'working' | 'result' | 'error'
 type Phase = 'uploading' | 'reading' | 'designing' | 'rendering'
 
-interface JobResult {
-  theme: DocTheme
-  name: string
-  description: string
-  preview: string[]
-  original: string[]
-  fonts: Array<{ from: string, to: string, exact: boolean }>
-  swatches: string[]
-  rounds: number
-}
-interface JobView {
-  phase: 'reading' | 'designing' | 'rendering' | 'done' | 'error'
-  round: number
-  maxRounds: number
-  format: 'pdf' | 'docx'
-  result?: JobResult
-  error?: { code: string, message: string }
-}
+type JobView = ApiResponse<'/api/themes/from-document/jobs/:jobId', 'get'>
+type JobResult = NonNullable<JobView['result']>
 
 const step = ref<Step>('pick')
 const phase = ref<Phase>('uploading')
@@ -111,21 +97,15 @@ function stopPolling() {
 
 /** Stable i18n suffix for a failed request. */
 function errorKeyFrom(e: unknown): string {
-  if (typeof e !== 'object' || e === null) return 'internal'
-  const data = (e as Record<string, unknown>).data
-  const statusCode = (e as Record<string, unknown>).statusCode
-  if (typeof data === 'object' && data !== null) {
-    const inner = (data as Record<string, unknown>).data
-    const code = typeof inner === 'object' && inner !== null ? (inner as Record<string, unknown>).code : undefined
-    if (code === 'design-import/no-vision') return 'no-vision'
-    if (code === 'ai/provider-missing') return 'provider-missing'
-    if (code === 'design-import/too-large') return 'too-large'
-    if (code === 'design-import/unsupported-format') return 'format'
-    if (code === 'design-import/rate-limited') return 'rate-limited'
-    if (code === 'design-import/busy') return 'busy'
-    if (code === 'design-import/content-mismatch') return 'unreadable'
-    if (code === 'ai/free-allowance-exhausted' || code === 'ai/budget-exhausted') return 'budget'
-  }
+  const { code, statusCode } = extractError(e)
+  if (code === 'design-import/no-vision') return 'no-vision'
+  if (code === 'ai/provider-missing') return 'provider-missing'
+  if (code === 'design-import/too-large') return 'too-large'
+  if (code === 'design-import/unsupported-format') return 'format'
+  if (code === 'design-import/rate-limited') return 'rate-limited'
+  if (code === 'design-import/busy') return 'busy'
+  if (code === 'design-import/content-mismatch') return 'unreadable'
+  if (code === 'ai/free-allowance-exhausted' || code === 'ai/budget-exhausted') return 'budget'
   if (statusCode === 404) return 'upload-failed'
   return 'internal'
 }
@@ -157,14 +137,14 @@ async function onFile(event: Event) {
   phase.value = 'uploading'
   round.value = 0
   try {
-    const ticket = await $fetch<{ uploadId: string, uploadUrl: string, mimeType: string }>('/api/themes/from-document/upload-request', {
-      method: 'POST',
+    const ticket = await apiFetch('/api/themes/from-document/upload-request', {
+      method: 'post',
       body: { filename: file.name, size: file.size }
     })
     const put = await fetch(ticket.uploadUrl, { method: 'PUT', headers: { 'Content-Type': ticket.mimeType || DESIGN_IMPORT_MIME[ext] }, body: file })
     if (!put.ok) return fail('upload-failed')
-    const { jobId } = await $fetch<{ jobId: string }>('/api/themes/from-document/start', {
-      method: 'POST',
+    const { jobId } = await apiFetch('/api/themes/from-document/start', {
+      method: 'post',
       body: { uploadId: ticket.uploadId }
     })
     if (token !== runToken) return
@@ -179,7 +159,7 @@ function poll(jobId: string, token: number) {
   pollTimer = setTimeout(async () => {
     if (token !== runToken || !open.value) return
     try {
-      const job = await $fetch<JobView>(`/api/themes/from-document/jobs/${jobId}`)
+      const job = await apiFetch('/api/themes/from-document/jobs/:jobId', { path: { jobId } })
       if (token !== runToken) return
       maxRounds.value = job.maxRounds
       round.value = job.round
@@ -250,29 +230,19 @@ async function save() {
   if (!r || !n.ok || !d.ok || saving.value) return
   saving.value = true
   try {
-    await $fetch('/api/themes', { method: 'POST', body: { name: n.value, description: d.value, theme: r.theme } })
+    await apiFetch('/api/themes', { method: 'post', body: { name: n.value, description: d.value, theme: r.theme } })
     emit('saved', n.value)
     open.value = false
   } catch (e) {
     toast.add({
       title: t('theme.saved.saveFailedTitle'),
-      description: saveErrorText(e),
+      description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
   } finally {
     saving.value = false
   }
-}
-
-function saveErrorText(e: unknown): string {
-  if (typeof e !== 'object' || e === null) return ''
-  const data = (e as Record<string, unknown>).data
-  if (typeof data === 'object' && data !== null) {
-    const message = (data as Record<string, unknown>).message
-    if (typeof message === 'string') return message
-  }
-  return ''
 }
 
 function apply() {

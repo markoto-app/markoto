@@ -4,23 +4,10 @@
 // domains. Owner and workspace admins. Publishing again replaces the
 // copy; the document itself keeps its access mode.
 // Server: `server/api/docs/[docId]/publish/`, `server/api/user/custom-domains/`.
+import type { ApiResponse } from '~/utils/api/client'
 
-interface PublishedPage {
-  slug: string
-  url: string
-  indexable: boolean
-  publishedAt: string
-  updatedAt: string
-}
-interface PublishState { published: boolean, page: PublishedPage | null }
-interface DomainView {
-  id: string
-  hostname: string
-  status: 'pending' | 'verified' | 'failed'
-  page: { docId: string | null } | null
-  url: string
-}
-interface DomainsResponse { available: boolean, domains: DomainView[] }
+type PublishState = ApiResponse<'/api/docs/:docId/publish', 'get'>
+type DomainsResponse = ApiResponse<'/api/user/custom-domains', 'get'>
 
 const props = defineProps<{ docId: string }>()
 const { t, locale } = useI18n()
@@ -33,12 +20,12 @@ const domains = ref<DomainsResponse | null>(null)
 const busy = ref(false)
 const indexableOnPublish = ref(false)
 const slugInput = ref('')
-const base = computed(() => `/api/docs/${encodeURIComponent(props.docId)}/publish`)
+const path = computed(() => ({ docId: props.docId }))
 
 async function loadDomains(): Promise<void> {
   if (!domainsOnInstance.value) return
   try {
-    domains.value = await $fetch<DomainsResponse>('/api/user/custom-domains')
+    domains.value = await apiFetch('/api/user/custom-domains')
   } catch {
     domains.value = null
   }
@@ -46,7 +33,7 @@ async function loadDomains(): Promise<void> {
 
 async function load(): Promise<void> {
   try {
-    state.value = await $fetch<PublishState>(base.value)
+    state.value = await apiFetch('/api/docs/:docId/publish', { path: path.value })
   } catch {
     state.value = null
   }
@@ -71,17 +58,17 @@ async function run(fn: () => Promise<PublishState>, errorKey: string): Promise<v
 
 function publish(): Promise<void> {
   const body = state.value?.published ? {} : { indexable: indexableOnPublish.value }
-  return run(() => $fetch<PublishState>(base.value, { method: 'POST', body }), 'publish.failed')
+  return run(() => apiFetch('/api/docs/:docId/publish', { method: 'post', path: path.value, body }), 'publish.failed')
 }
 function unpublish(): Promise<void> {
   return run(async () => {
-    await $fetch(base.value, { method: 'DELETE' })
+    await apiFetch('/api/docs/:docId/publish', { method: 'delete', path: path.value })
     await loadDomains()
     return { published: false, page: null }
   }, 'publish.unpublishFailed')
 }
 function patch(body: { slug?: string, indexable?: boolean }): Promise<void> {
-  return run(() => $fetch<PublishState>(base.value, { method: 'PATCH', body }), 'publish.saveFailed')
+  return run(() => apiFetch('/api/docs/:docId/publish', { method: 'patch', path: path.value, body }), 'publish.saveFailed')
 }
 function saveSlug(): void {
   const slug = slugInput.value.trim().toLowerCase()
@@ -105,10 +92,10 @@ async function setDomain(id: string): Promise<void> {
   try {
     const previous = currentDomain.value
     if (previous && previous.id !== id) {
-      await $fetch(`/api/user/custom-domains/${previous.id}`, { method: 'PATCH', body: { docId: null } })
+      await apiFetch('/api/user/custom-domains/:domainId', { method: 'patch', path: { domainId: previous.id }, body: { docId: null } })
     }
     if (id !== NO_DOMAIN) {
-      await $fetch(`/api/user/custom-domains/${id}`, { method: 'PATCH', body: { docId: props.docId } })
+      await apiFetch('/api/user/custom-domains/:domainId', { method: 'patch', path: { domainId: id }, body: { docId: props.docId } })
     }
     await loadDomains()
   } catch (e) {

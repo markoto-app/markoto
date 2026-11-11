@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Awareness } from 'y-protocols/awareness'
+import type { ApiResponse } from '~/utils/api/client'
 import { normalizeAwarenessUser } from '~~/shared/utils/documents/awarenessUser'
 
 // Shows:
@@ -51,12 +52,7 @@ interface LiveEntry {
 
 type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 
-interface RosterMember {
-  userId: number
-  name: string
-  role: WorkspaceRole
-  isDocOwner: boolean
-}
+type RosterMember = ApiResponse<'/api/docs/:docId/members', 'get'>['members'][number]
 
 interface OfflineEntry {
   kind: 'offline'
@@ -117,7 +113,7 @@ function updateLive() {
 
 async function loadRoster() {
   try {
-    const res = await $fetch<{ members: RosterMember[] }>(`/api/docs/${props.docId}/members`)
+    const res = await apiFetch('/api/docs/:docId/members', { path: { docId: props.docId } })
     roster.value = res.members
   } catch {
     // Non-member fetchers get an empty array anyway; a failure falls back to live-only display.
