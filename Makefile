@@ -4,12 +4,12 @@ SHELL := /usr/bin/env bash
 # Each env file pulls in docker-compose.base.yml via Compose's `include:`
 # directive. Compose 5.0 or newer is required (the files redefine included
 # services, which older versions reject). Single -f flag is enough; the merge is
-# transparent. See AGENTS.md §5.
+# transparent. See docs/ARCHITECTURE.md ("Design decisions").
 LOCAL := docker compose -f docker-compose.local.yml
 DEV   := docker compose -f docker-compose.dev.yml
 PROD  := docker compose -f docker-compose.prod.yml
 # The test stack goes through a helper that adds the Podman overlay when
-# the engine is Podman (docs/CONTAINER-ENGINES.md).
+# the engine is Podman (docs/contributing/CONTAINER-ENGINES.md).
 TEST  := bash scripts/test-compose.sh
 
 CERT_DIR  := traefik/local
@@ -19,7 +19,7 @@ KEY       := $(CERT_DIR)/$(CERT_NAME)-key.pem
 
 .PHONY: help
 help: ## Show this help
-	@printf "markoto — task runner. Run \033[1mmake <target>\033[0m or see \033[1mdocs/CHEATSHEET.md\033[0m for a use-case-keyed index.\n\n"
+	@printf "markoto — task runner. Run \033[1mmake <target>\033[0m or see \033[1mdocs/contributing/CHEATSHEET.md\033[0m for a use-case-keyed index.\n\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@printf "\nAnsible/deploy subcommands: \033[1mcd infra && make help\033[0m\n"
@@ -255,9 +255,9 @@ theme-shots: ## PNG per page + contact sheet per theme preset from a running app
 
 # === Reference ===
 .PHONY: cheatsheet
-cheatsheet: ## Print docs/CHEATSHEET.md
-	@cat docs/CHEATSHEET.md 2>/dev/null || echo "See docs/CHEATSHEET.md"
+cheatsheet: ## Print docs/contributing/CHEATSHEET.md
+	@cat docs/contributing/CHEATSHEET.md 2>/dev/null || echo "See docs/contributing/CHEATSHEET.md"
 
 .PHONY: runbook
-runbook: ## Print docs/RUNBOOK.md
-	@cat docs/RUNBOOK.md 2>/dev/null || echo "See docs/RUNBOOK.md"
+runbook: ## Print docs/operations/RUNBOOK.md
+	@cat docs/operations/RUNBOOK.md 2>/dev/null || echo "See docs/operations/RUNBOOK.md"

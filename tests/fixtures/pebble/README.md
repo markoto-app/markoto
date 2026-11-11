@@ -1,4 +1,4 @@
-# Pebble fixtures (custom domains, WP13)
+# Pebble fixtures (custom domains)
 
 `docker-compose.test.yml` runs Let's Encrypt's test CA (`pebble-test`), its
 DNS test server (`challtestsrv-test`) and a Traefik (`traefik-test`) that

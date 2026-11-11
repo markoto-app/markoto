@@ -3,8 +3,8 @@
 Agentless, GPL-3.0, OVH-targeted automation. From "fresh VPS IP + clicked
 managed Postgres + clicked S3 bucket" to a running stack in ~25 minutes.
 
-For the click-by-click walkthrough see [`../docs/DEPLOY-OVH.md`](../docs/DEPLOY-OVH.md).
-For the manual runbook (no Ansible) see [`../docs/DEPLOY.md`](../docs/DEPLOY.md).
+For the click-by-click walkthrough see [`../docs/operations/DEPLOY-OVH.md`](../docs/operations/DEPLOY-OVH.md).
+For the manual runbook (no Ansible) see [`../docs/operations/DEPLOY.md`](../docs/operations/DEPLOY.md).
 
 ## Why Ansible (vs Terraform / Pulumi / OpenTofu)
 
@@ -20,7 +20,7 @@ For the manual runbook (no Ansible) see [`../docs/DEPLOY.md`](../docs/DEPLOY.md)
 
 ```
 infra/
-├── Makefile                # convenience targets (provision/deploy/rollback/logs/ssh/status/lint)
+├── Makefile                # convenience targets (provision/deploy/rollback/logs/ssh/status/backup-test/lint)
 ├── README.md               # this file
 ├── ansible.cfg             # roles_path, ssh args, stdout callback
 ├── .ansible-lint           # production profile, offline by default
@@ -34,7 +34,7 @@ infra/
 │   ├── provision.yml       # one-time: base + os_hardening + docker + ssh_hardening
 │   ├── deploy.yml          # idempotent: markoto + backup_cron
 │   ├── rollback.yml        # set target_image_tag, re-deploy
-│   └── backup-test.yml     # decrypt + sniff most-recent gpg backup
+│   └── backup-test.yml     # restore drill: newest backup into a throwaway DB, then drop it
 ├── roles/                  # roles WE wrote — see §What's hand-rolled below
 │   ├── base/               # ufw, fail2ban, journald, timezone, markoto user, LUKS check
 │   ├── ssh_hardening/      # PasswordAuth no, root login no, validate before reload
@@ -44,6 +44,10 @@ infra/
 │   ├── ansible_collections/
 │   └── ansible_roles/
 ├── files/                  # ovh-pg-ca.pem (drop here if pinning OVH managed PG)
+├── litellm/                # LiteLLM proxy config.yaml + custom_handlers.py (bind-mounted)
+├── postgres/               # db-init.sh (per-service DB roles) + init SQL
+├── render-env.sh           # CI: renders .env from GitHub Environment secrets/variables
+├── render-env-parity-test.sh  # asserts render-env.sh and env.j2 produce the same .env
 └── templates/
     └── env.j2              # renders /opt/markoto/.env from group_vars + vault
 ```
@@ -67,7 +71,7 @@ make status                                  # curl /api/health
 
 ## Galaxy dependencies (and why)
 
-`requirements.yml` pins each dep to an exact version. Surprise upgrades on
+`requirements.yml` pins the roles and `devsec.hardening` to an exact version (the other collections have a minimum version). Surprise upgrades on
 Docker apt-key handling or CIS sysctl baselines are exactly what we want
 to NOT absorb silently — bumps land via PR after manual review.
 
@@ -78,6 +82,7 @@ to NOT absorb silently — bumps land via PR after manual review.
 | `ansible.posix` | `>=1.5.4` | `authorized_key` module. |
 | `devsec.hardening` | `10.5.2` | CIS-aligned `os_hardening` role — replaces ~50 lines of hand-rolled sysctl/PAM/perm tuning we'd have to chase as CIS evolves. |
 | `geerlingguy.docker` | `8.0.0` | Docker apt-repo handling is the single most fragile piece of any Ansible role — Geerling's gets patched within days when a distro changes things. |
+| `geerlingguy.security` | `3.0.0` | Unattended upgrades + reboot window. |
 
 ## Apprise notification wrapper (`/usr/local/bin/markoto-notify`)
 
@@ -85,17 +90,16 @@ A single entry point for "something noteworthy happened on the box, ping me." Dr
 
 **Call sites:**
 
-- **APT post-Invoke hook** (`roles/base/templates/markoto-apt-hook.j2`) — fires on every `apt-get install/upgrade` so unattended-upgrades surface in the operator's notifications without the legacy `mail` setup.
+- **APT post-invoke hook** (`/etc/apt/apt.conf.d/99-markoto-notify`, written by `roles/base/tasks/main.yml`) — after an apt run it sends the tail of the unattended-upgrades log, so OS updates surface in the operator's notifications without a `mail` setup.
 - **Backup cron failure path** (`roles/backup_cron/tasks/main.yml`) — runs `/usr/local/bin/backup.sh --once` in the sidecar (non-zero exit on a failed dump/upload; `scripts/selfhost-check.sh` asserts that path exists in the built image), appends to `backup-cron-failures.log` AND fires `markoto-notify "Backup failed on <host>"`. Soft-fails if Apprise isn't configured (the wrapper exits 0 with no URLs set), so the cron doesn't go red on a misconfigured host.
-- **`playbooks/deploy.yml` post-deploy step** — fires success / failure summary including the new `IMAGE_TAG` and `/api/health` outcome.
 
-The wrapper is intentionally tiny (just a shell exec into `apprise --config /etc/markoto/apprise.env`). Adding a new call site = `markoto-notify "<message>"`. Don't shell out to `apprise` directly anywhere else; the wrapper centralises the env lookup + soft-fail behaviour.
+The wrapper is intentionally tiny: it sources `/etc/markoto/apprise.env` and runs the `apprise` CLI installed under `/opt/markoto-tools/` with `markoto-notify "<title>" "<body>"`. Adding a new call site = `markoto-notify "<title>" "<body>"`. Don't shell out to `apprise` directly anywhere else; the wrapper centralises the env lookup + soft-fail behaviour.
 
 ## `group_vars` / vault structure
 
 - **`group_vars/all.yml`** — non-secret defaults. Domain, image tag, paths, OS-hardening overrides, anything safe to commit in plaintext. Source of truth for "what version of markoto is deployed."
 - **`group_vars/all.vault.example.yml`** — the secret template. Every `*_password` / `*_secret` / `*_key` from `.env.example` lives here, plus Apprise URLs and the GHCR pull token. The example file has REPLACE_ME placeholders and IS committed.
-- **`group_vars/all.vault.yml`** — the encrypted secret bundle. NOT committed in plaintext; encrypted with `ansible-vault encrypt` (the encrypted form may be committed if you want — we keep it in `.gitignore` for now). The vault password lives in `.vault-password` (mode `0600`, gitignored) so the Makefile + CI can run unattended.
+- **`group_vars/all.vault.yml`** — the encrypted secret bundle, encrypted with `ansible-vault encrypt` and gitignored: never commit it, encrypted or not (ciphertext in a public repo is an offline brute-force target). The vault password lives in `.vault-password` (mode `0600`, gitignored) so the Makefile can run unattended. CI does not use the vault: `deploy.yml` renders `.env` from GitHub Environment secrets via `render-env.sh`.
 
 Editing the vault: `ansible-vault edit group_vars/all.vault.yml` opens `$EDITOR` against the decrypted contents and re-encrypts on save. Don't `cat` it then re-encrypt — that loses the per-line encryption that vault uses for diffability.
 
@@ -130,8 +134,8 @@ We deliberately did NOT replace these with Galaxy roles:
   ours has a load-bearing safety check: it refuses to disable password auth
   if the markoto user has no `authorized_keys` yet, and it forces a handler
   flush + `meta: reset_connection` between sshd reload and the next play.
-  Port-testing devsec's flow against our "fresh OVH VPS, no user keys" path
-  is a follow-up Phase. Until then we keep our safer wrapper.
+  devsec's flow is not tested against our "fresh OVH VPS, no user keys"
+  path, so we keep our safer wrapper.
 - **`roles/markoto/`** — entirely app-specific (compose file sync from the
   same git repo, `.env` render from our jinja template, `/api/health`
   retry-loop, `deploys.log` audit trail). Nothing to outsource.
@@ -165,8 +169,8 @@ Documented in `playbooks/provision.yml`; reproduced here for visibility:
 make rollback TAG=v1.2.3
 ```
 
-Re-renders `.env` with `IMAGE_TAG=v1.2.3` and runs `compose up -d --pull missing`.
-Tagged in `/opt/markoto/deploys.log`.
+Runs `playbooks/rollback.yml` with `target_image_tag=v1.2.3`: the `markoto` role re-renders `.env` with that `IMAGE_TAG`, pulls and runs `compose up -d`.
+Logged as `ROLLBACK` in `/opt/markoto/deploys.log`.
 
 ## Disaster recovery
 
@@ -175,7 +179,7 @@ Same recipe as initial deploy:
 1. Provision a new OVH VPS (note new IP), keep the same managed-PG + S3.
 2. Edit `inventory.ini` → new IP.
 3. `make provision && make deploy`.
-4. Restore from latest gpg backup via the runbook in `docs/DEPLOY.md` §6.
+4. Restore from latest gpg backup via the runbook in `docs/operations/DEPLOY.md` §6.
 
 The managed Postgres holds all user data, so as long as it survives the
 new VPS picks up the existing dataset on first boot.
@@ -195,7 +199,6 @@ new VPS picks up the existing dataset on first boot.
 ## Secrets-in-vault (what's encrypted)
 
 Every `_password`, `_secret`, `_key` from `.env.example` lives in
-`group_vars/all.vault.yml`. The vault file is encrypted with
-`ansible-vault encrypt`; the encrypted form is safe to commit. The
-plaintext is gitignored. The vault password lives in `.vault-password`
-(also gitignored) so the Makefile can run unattended in CI later.
+`group_vars/all.vault.yml`, encrypted with `ansible-vault encrypt` and
+gitignored (see above). The vault password lives in `.vault-password`
+(also gitignored).

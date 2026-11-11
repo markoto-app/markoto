@@ -1,10 +1,10 @@
 # Building a design template
 
 How a design template (a built-in theme preset in
-`shared/utils/theme/themePresets.ts`) gets made. The arXiv preprint preset was the
-pilot; follow the same steps for the next one. The theme system itself is
-described in `app/utils/AGENTS.md` (theme system, optional fields, heading
-scale, numbering, title block, bundled fonts, custom CSS, theme shots).
+`shared/utils/theme/themePresets.ts`) gets made. The theme fields are
+defined in `shared/types/theme.ts`; `shared/utils/theme/themeToCss.ts`
+compiles a theme into the stylesheet that drives both the preview and the
+PDF.
 
 A template is a theme: preset values first, a small block of template CSS
 for what no theme field covers, and a Markdown fixture that shows it off.
@@ -25,7 +25,8 @@ for what no theme field covers, and a Markdown fixture that shows it off.
      it is the spec.
    - Design templates without an original (a report, a newsletter): write a
      short design brief first (purpose, reader, page size, type pairing,
-     colour, mood, two or three reference documents) and get it agreed.
+     colour, mood, two or three reference documents) and agree on it with
+     the maintainers.
 2. **Fixture.** The same content as Markdown in
    `tests/fixtures/theme-shots/<id>.md` (images as small PNG data URIs),
    plus `<id>-patch.json` for what is per document (authors,
@@ -37,11 +38,12 @@ for what no theme field covers, and a Markdown fixture that shows it off.
    paragraph spacing and indent, heading sizes per level, rules, running
    head and foot. Write the source next to each value in the preset
    comment.
-4. **Render and compare.** Build and start the app with test mode (so
-   `--patch` works), then:
+4. **Render and compare.** Start the app with `TEST_MODE=1` (`--patch`
+   creates the documents through the test login) and
+   `NUXT_ANON_GATE_ENABLED=false`, then:
 
    ```bash
-   bun scripts/render-theme-shots.ts --base http://127.0.0.1:3309 --out /tmp/<id> \
+   bun scripts/render-theme-shots.ts --base http://127.0.0.1:3000 --out /tmp/<id> \
      --md tests/fixtures/theme-shots/<id>.md --title "<title>" \
      --patch tests/fixtures/theme-shots/<id>-patch.json <id>
    scripts/compare-template-reference.sh ref /tmp/<id> <id> <pages>
@@ -57,7 +59,7 @@ for what no theme field covers, and a Markdown fixture that shows it off.
      rules, a run-in abstract, the label format of a caption);
    - **engine variable** — something CSS can't do cleanly, or several
      templates need (a running-head rule, per-level heading sizes):
-     propose a theme field to the owner;
+     propose a theme field;
    - **can't do** — a limit of Markdown or of the medium (floats,
      `\thanks` footnotes on authors, microtype font expansion,
      cross-reference labels).
@@ -78,9 +80,9 @@ for what no theme field covers, and a Markdown fixture that shows it off.
    fixture has the expected page count and its fonts are embedded
    TrueType/OpenType (`pdffonts`), never Type 3 (a Type 3 font means the
    web font did not load and Chromium rasterised glyphs).
-9. **Before/after for the owner.** Post the side-by-side and overlay
-   images of the final version (and the previous one if this replaces a
-   look) with the list of remaining "can't do" differences.
+9. **Before and after in the pull request.** Post the side-by-side and
+   overlay images of the final version (and the previous one if this
+   replaces a look) with the list of remaining "can't do" differences.
 
 ## Template CSS rules
 
@@ -111,15 +113,15 @@ generated theme CSS.
   marks the elements it matches in the unpaginated document
   (`data-following` / `data-nth-of-type`) and re-inserts the declarations
   for the marked elements — so `h1 + p` still styles the paragraph when the
-  break falls between the two. `pagedHandlers.ts` re-inserts them as
-  `:where(<mark>):is(<your selector>, :where(<mark>))`, which keeps your
-  selector's specificity (until 2026-11 they dropped to one attribute,
-  (0,1,0), and lost to engine rules such as `.paged-doc p`; several
-  presets' `h1 + p` / `.markoto-title-block + …` rules never applied). A
-  trailing pseudo-element (`h1 + p::first-line`) works. `~` is not
+  break falls between the two. `app/utils/preview/pagedHandlers.ts`
+  re-inserts them as `:where(<mark>):is(<your selector>, :where(<mark>))`,
+  which keeps your selector's specificity, so it still beats engine rules
+  such as `.paged-doc p`. A trailing pseudo-element (`h1 + p::first-line`)
+  works. `~` is not
   rewritten: it is matched per page like any other selector.
 - No `@import`, `@font-face`, external `url()`: the sanitizer refuses them.
-  Fonts come from the bundled / self-hosted families (`themeFonts.ts`).
+  Fonts come from the bundled / self-hosted families
+  (`shared/utils/theme/themeFonts.ts`).
 - **Follow the author's choices: use the variables, not names.** The
   engine sets these on `.paged-doc` and on every `.pagedjs_page` (so they
   reach the running heads too): `--doc-body-font`, `--doc-heading-font`,
@@ -161,14 +163,11 @@ generated theme CSS.
 - Comment every rule with the line of the original it reproduces.
 
 **Variables before CSS.** If a template needs more than about 40 lines of
-CSS, or several templates need the same thing, propose a theme variable
-instead (owner approval). That is how `header.rule` / `footer.rule`,
-`headings.levels`, `cover.titleWeight` and `{.unnumbered}` headings came
-about: the arXiv pilot needed them in CSS, and they were brittle there.
-The IEEE, corporate-report and tech-docs templates added numbering
-styles, heading alignment, per-side margins, table captions, figure and
-table numbers, the reference-list class + style, `{section}` and the font
-variables the same way.
+CSS, or several templates need the same thing, propose a theme field
+instead and discuss it in an issue first. Theme fields such as
+`header.rule` / `footer.rule`, `headings.levels`, `cover.titleWeight`,
+the numbering styles and the per-side margins exist because CSS for them
+was brittle.
 
 ## Design checklist
 

@@ -1,8 +1,6 @@
 # Security Hardening
 
-> Operator docs for the hosted markoto.app deployment; self-hosters see [SELF-HOSTING.md](./SELF-HOSTING.md).
-
-Cross-cutting hardening notes for the production stack. Three sections today:
+How the markoto stack is hardened, for self-hosted instances and the hosted service alike (setup steps for self-hosters: [SELF-HOSTING.md](./SELF-HOSTING.md)).
 
 - §A. HTTP headers + CSP — the CSP + CORP come from the app itself, the rest
   from the Traefik edge; preview iframe isolation.
@@ -11,11 +9,15 @@ Cross-cutting hardening notes for the production stack. Three sections today:
 - §C. Containers, networks and database roles — least-privilege
   containers, the Chromium sandbox in the renderer, purpose networks,
   the Docker socket proxy, separate Postgres roles.
+- §D. Public edge and access control — internal endpoints kept off the
+  edge, default-deny API authentication, sync connections that end with
+  their authorization, published pages on their own hostname.
 
-For Postgres TLS see `shared/utils/runtime/postgresSsl.ts` (similar shape — opt-in
-via env, system CA by default, `PGSSLROOTCERT` for cert pinning). For
-secret rotation procedures see `docs/SECRETS-ROTATION.md`. For deploy
-prerequisites see `docs/DEPLOY.md`.
+Postgres connections of a production build use TLS with certificate
+verification (`shared/utils/runtime/postgresSsl.ts`): against the system CA
+store, or against the CA in `PGSSLROOTCERT` (an unreadable path stops the
+app at boot). `PGSSL=disable` turns TLS off, for a database on the same
+Docker network such as the bundled self-host Postgres.
 
 ---
 
@@ -29,10 +31,12 @@ middleware in `docker-compose.prod.yml`, `markoto-headers` in
 policies in `server/utils/rendering/csp.ts`): the CSP carries a per-response script
 nonce that has to match the HTML, `/api/files` needs a different CORP than the
 rest, and one builder in code means hosted, self-host, local and the test
-stacks all serve the same policy. Traefik must NOT set either header — a
-Traefik CSP would be enforced in addition to the app's (pinned by
-`tests/unit/rendering/csp.test.ts`). The sync subdomain (Hocuspocus WS + `/health`)
-carries a parallel `sync-security-headers` middleware (no HTML, no CSP).
+stacks all serve the same policy. Traefik must NOT set either header on
+the app — a Traefik CSP would be enforced in addition to the app's (pinned
+by `tests/unit/rendering/csp.test.ts`). The hosted deployment serves sync
+from its own subdomain with a parallel `sync-security-headers` middleware
+(no HTML, no CSP); the self-host stack serves it under `/sync` on the app's
+origin.
 
 This file documents what each header is for, the CSP rationale, the isolation
 of the preview/print iframes, and the verification recipe.
@@ -41,7 +45,8 @@ of the preview/print iframes, and the verification recipe.
 
 ## 1. The header set
 
-Final exact values applied to every response from the app router:
+Values applied to every response from the app router (hosted deployment,
+`docker-compose.prod.yml`):
 
 ```
 Strict-Transport-Security: max-age=31536000; includeSubDomains; preload
@@ -54,15 +59,19 @@ Permissions-Policy: camera=(), microphone=(self), geolocation=(), payment=(self)
 Content-Security-Policy: <see §2>
 ```
 
+The self-host stack (`markoto-headers` in `docker-compose.selfhost.yml`)
+sends the same set with HSTS `max-age=31536000` only (no
+`includeSubDomains`, no `preload`) and `payment=()`.
+
 | Header | Why |
 |---|---|
-| `Strict-Transport-Security` | Forces HTTPS for one year, including all subdomains. `preload` opts the domain into Chrome's HSTS preload list — listing on chromestatus.com is a separate **manual** step (see follow-ups). Once a browser sees this header, it pins HTTPS even if the user types `http://` — there is no quick way back, so do not deploy this until TLS on `${DOMAIN}` and `sync.${DOMAIN}` is fully working. |
+| `Strict-Transport-Security` | Forces HTTPS for one year. On the hosted domain it includes all subdomains, and `preload` makes the domain eligible for the browsers' HSTS preload list (submission at hstspreload.org is a separate manual step). Once a browser sees this header, it pins HTTPS even if the user types `http://` — there is no quick way back, so serve it only once TLS works on every covered host. Browsers ignore it on plain http. |
 | `X-Content-Type-Options: nosniff` | Blocks MIME-sniffing; an asset served with the wrong `Content-Type` cannot be retroactively interpreted as JS by the browser. Defense in depth against any future content-type bug. |
-| `X-Frame-Options: DENY` | No origin can iframe markoto. Mitigates click-jacking. If we ever want third-party embeds, switch to `SAMEORIGIN` or replace with CSP `frame-ancestors`. The CSP already sets `frame-ancestors 'none'`, so DENY is duplicative-but-belt-and-braces for older browsers. |
+| `X-Frame-Options: DENY` | No origin can iframe markoto. Mitigates click-jacking. The CSP already sets `frame-ancestors 'none'`; DENY covers older browsers. |
 | `Referrer-Policy: strict-origin-when-cross-origin` | Same-origin requests carry the full URL; cross-origin requests carry only the origin (no path). External links from a doc don't leak which doc the user was reading. |
 | `Cross-Origin-Opener-Policy: same-origin` | A new tab opened from markoto cannot keep a `window.opener` reference back to markoto. Tightens postMessage / Spectre-style surfaces. |
-| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. Same for `/markoto-logos/*`, the public brand marks the default theme puts on cover pages, and `/vendor/*`, the self-hosted paged.js / Mermaid / KaTeX / highlight.js files and web fonts (`crossOriginResourcePolicyFor` in `server/utils/rendering/csp.ts`; `/vendor/*` also answers `Access-Control-Allow-Origin: *` because fonts and the SRI-locked tags load in CORS mode — `server/utils/rendering/vendorAssetHeaders.ts`). |
-| `Permissions-Policy` | Disables camera + geolocation outright. Allows microphone (live dictation needs it) and payment (future Stripe checkout) only on our own origin. No third-party iframe can hijack any of these. |
+| `Cross-Origin-Resource-Policy: same-site` | Other origins cannot embed our static resources via `<img>`/`<script>`/etc. unless they're under the same site. Set by the app. Exception: `/api/files/*` (a 302 to a presigned S3 URL) is `cross-origin` — the preview iframe runs in an opaque origin, which is never "same site", and its images go through this route; access there is decided by the session / file-access token, not by the requesting origin. Same for `/markoto-logos/*`, the public brand marks the default theme puts on cover pages, `/vendor/*`, the self-hosted paged.js / Mermaid / KaTeX / highlight.js files and web fonts, and `/api/docs/:docId/brand/*`, a workspace's brand-kit fonts and logos (token-gated like `/api/files`). `/vendor/*` and the brand files also answer `Access-Control-Allow-Origin: *` because fonts and the SRI-locked tags load in CORS mode (`server/utils/rendering/vendorAssetHeaders.ts`). The files of published pages (`/api/published/*`) are `same-origin`: only the page that serves them may load them. All in `crossOriginResourcePolicyFor` (`server/utils/rendering/csp.ts`). |
+| `Permissions-Policy` | Disables camera + geolocation outright. Allows microphone (live dictation needs it) only on our own origin; payment is `self` on the hosted service and off on self-host. No third-party iframe can use any of these. |
 
 ---
 
@@ -107,7 +116,7 @@ from `'self'`, the S3 origin and `RENDERER_ALLOWED_ORIGINS`, `connect-src
 | Sentry ingest origin | Browser error reporting (derived from the DSN — no wildcard). |
 | `blob:` in `worker-src` / `img-src` / `media-src` | PWA service-worker plumbing, paste-upload previews, dictation audio. |
 
-Stripe origins are gone: billing uses the Checkout **redirect**, not Stripe.js.
+No Stripe origin: billing uses the Stripe Checkout **redirect**, not Stripe.js.
 
 ### What still needs `'unsafe-inline'` and why
 
@@ -153,7 +162,7 @@ intercepted (fragments scroll, everything else is inert) and `frame-src
 'self'` refuses navigation elsewhere. `allow-modals` (print only) is what
 lets `window.print()` open the dialog.
 
-How the preview still works (details: `app/utils/AGENTS.md`):
+How the preview still works:
 
 - **postMessage protocol** (`app/utils/preview/previewFrame.ts`): render requests and
   the app's color mode go in; ready / page count / errors / print shortcut /
@@ -201,7 +210,7 @@ allowlist is missing a host or whether the offending code is wrong. The
 Network tab should show no request to any host but the app, sync, S3 and
 (if configured) Sentry — no font or script CDN.
 
-For the sync subdomain:
+On the hosted layout, sync has its own subdomain:
 
 ```bash
 curl -sI "https://sync.${DOMAIN}/health" | grep -iE 'strict-transport|x-frame|cross-origin'
@@ -209,23 +218,19 @@ curl -sI "https://sync.${DOMAIN}/health" | grep -iE 'strict-transport|x-frame|cr
 
 Should match the app-domain headers minus CSP.
 
-Compose-file syntax validation:
-
-```bash
-docker compose -f docker-compose.prod.yml config > /dev/null
-```
-
-This expands all label substitutions and surfaces any quoting bug before deploy. The CSP is not in the compose file any more — `curl -sI https://${DOMAIN}/ | grep -i content-security` shows the app's header (a new nonce on every request).
+`docker compose -f <compose file> config > /dev/null` expands all label
+substitutions and surfaces a quoting bug before deploy. The CSP is not in
+any compose file: `curl -sI https://${DOMAIN}/ | grep -i content-security`
+shows the app's header, with a new nonce on every request.
 
 ---
 
-## 5. Follow-ups (not done here)
+## 5. Known gaps
 
-- **HSTS preload submission** — manual step at https://hstspreload.org/ once HSTS has run unmodified for ~30 days. Removal takes weeks.
-- **CSP violation reporting** — add `report-uri /api/_internal/csp-report` once a Nitro endpoint exists to ingest reports into Sentry as `component=csp` events.
-- **`docker-compose.local.yml`** — the local stack does not apply the Traefik header set (HSTS, frame-deny, …). It does get the app's CSP + CORP, like every production build.
-- **`style-src 'unsafe-inline'`** — would need nonces/hashes for Nuxt UI's token block plus a KaTeX/paged.js pipeline without inline styles; not planned.
-- **S3 bucket-policy audit** — orthogonal to headers but listed in AGENTS.md §4. `aws s3api get-bucket-acl --bucket $BUCKET` post-deploy must show `ListBucket` denied to public.
+- **No CSP violation reporting.** The policy has no `report-uri`; violations show only in the browser console.
+- **`docker-compose.local.yml`** does not apply the Traefik header set (HSTS, frame-deny, …). It does get the app's CSP + CORP, like every production build.
+- **`style-src 'unsafe-inline'`** stays: removing it would need nonces or hashes for Nuxt UI's token block and a KaTeX / paged.js pipeline without inline styles.
+- **The S3 bucket must be private** (no public `ListBucket` or read): the app never relies on public access, but it cannot check the bucket's policy. See [S3-SETUP.md](S3-SETUP.md#1-create-the-bucket).
 
 ---
 
@@ -233,20 +238,18 @@ This expands all label substitutions and surfaces any quoting bug before deploy.
 
 ## Threat model
 
-We trust the VPS provider for disk encryption + the managed Postgres
-provider (when used) for at-rest encryption. We do **NOT** extend the
-trust boundary to include the Valkey container's host port — Valkey
-requires a password and is bound to the internal `data` network only
-in production (§C.3). The threat we're closing: any process on the VPS host
-(including a misconfigured neighbour container or a future ops tool
-running with looser permissions) being able to read/write rate-limit
-counters, presence keys, render-singleflight locks, and per-doc edit
+At-rest encryption of disks and managed databases is left to the hosting
+provider. The trust boundary does **not** include a Valkey host port —
+Valkey requires a password and sits on the internal `data` network only
+(§C.3). The threat this closes: any process on the host (a misconfigured
+neighbour container, an ops tool with looser permissions) reading or
+writing rate-limit counters, presence keys, render locks and per-doc edit
 attribution by connecting to `127.0.0.1:6379`.
 
-The data in Valkey is operational, not user-private — losing it would
-let an attacker bypass rate limits or briefly corrupt activity-log
-attribution, not exfiltrate user content. So password + network
-isolation is enough; we do **not** turn on TLS today (see §B.4).
+The data in Valkey is operational, not user content — tampering with it
+could bypass rate limits or briefly corrupt activity-log attribution, not
+exfiltrate documents. So password + network isolation is enough; TLS is
+off by default (see §B.4).
 
 ## B.1 Password enforcement
 
@@ -304,15 +307,11 @@ the password on the command line. The env var is already visible via
 Dev + test use the same shape with the literal password in place of the
 substitution.
 
-## B.4 Optional TLS (deferred — plumbing in place)
+## B.4 Optional TLS
 
-For our single-VPS deployment with both app and Valkey containers on the
-same docker network, the network IS the trust boundary — TLS is overkill.
-But if Valkey ever moves to a separate host (Infomaniak managed Valkey,
-OVH Redis-as-a-service, AWS ElastiCache, Upstash, etc.), TLS becomes
-mandatory.
-
-Plumbing today:
+With app and Valkey containers on the same Docker network, the network is
+the trust boundary and TLS adds nothing. A Valkey on a separate host (a
+managed Redis / Valkey service) needs TLS:
 
 | Var | Default | When set |
 |---|---|---|
@@ -325,15 +324,15 @@ Wire-up: `valkeyClientConfigFromEnv()` (in
 `server/utils/platform/valkey.ts` and `sync-server/src/valkey.ts` spread the
 returned options into `new Redis(url, options)`. Docs in `.env.example`.
 
-When you turn it on at the server side, you'll also need `--tls-port`,
-`--port 0`, `--tls-cert-file`, `--tls-key-file`, and `--tls-ca-cert-file`
-on the valkey-server invocation — but if you're at that point you're
-running managed Valkey and the provider hands you a pre-configured
-endpoint, so the compose file doesn't need to add those args today.
+The bundled Valkey container does not serve TLS; a self-run TLS Valkey
+needs `--tls-port`, `--port 0`, `--tls-cert-file`, `--tls-key-file` and
+`--tls-ca-cert-file` on the `valkey-server` command. A managed service
+hands you a TLS endpoint ready to use.
 
 ## B.5 Verification recipe
 
-Post-deploy or post-rotate, run from the VPS:
+After a deploy or a password change, run on the host (the commands use the
+hosted compose file; on self-host plain `docker compose` works):
 
 ```bash
 # Without auth — expect NOAUTH error.
@@ -353,16 +352,12 @@ docker compose -f docker-compose.prod.yml exec app sh -c \
 ss -ltnp | grep -E ':6379|:6380' || echo "ok: no valkey on host"
 ```
 
-## B.6 Cross-references
+## B.6 Rotating the password
 
-- Secret rotation: `docs/SECRETS-ROTATION.md` covers the dual-secret
-  pattern for `JWT_SECRET` / `INTERNAL_API_SECRET`. `VALKEY_PASSWORD`
-  is rotated by stop-the-world (rate-limit / activity-attribution
-  state survives the restart via AOF in prod, and is intentionally
-  ephemeral in dev/test).
-- Deploy prerequisites: `docs/DEPLOY.md`.
-- Postgres TLS counterpart: `shared/utils/runtime/postgresSsl.ts` plus the
-  existing TLS section in `docs/DEPLOY.md`.
+`VALKEY_PASSWORD` has no rollover window: change it in `.env` and recreate
+Valkey and every service that connects to it (`docker compose up -d`). The
+bundled Valkey runs with `--appendonly yes`, so rate-limit and attribution
+state survive the restart.
 
 ---
 
@@ -387,7 +382,7 @@ Every service: `cap_drop: [ALL]` + `security_opt: [no-new-privileges:true]`.
 | markitdown | `app` (image) | read-only, tmpfs `/tmp` | no network except `import` (§C.3) |
 | litellm | `65534:65534` (nobody) | read-only, tmpfs `/tmp` | admin UI off (`DISABLE_ADMIN_UI=True`) |
 | valkey | `999:1000` (the image's `valkey` user, no root entrypoint) | read-only, data on its volume | |
-| traefik | root **without capabilities** | read-only | binding 80/443 needs no capability (Docker sets `ip_unprivileged_port_start=0`); prod keeps `DAC_OVERRIDE` only while `traefik/acme.json` is owned by the deploy user (see docs/LAUNCH-CHECKLIST.md) |
+| traefik | root **without capabilities** | read-only | binding 80/443 needs no capability (Docker sets `ip_unprivileged_port_start=0`); the hosted compose keeps `DAC_OVERRIDE` only while its `traefik/acme.json` is owned by the deploy user rather than root |
 | socket-proxy | root without capabilities (to open the `root:docker` socket) | read-only, tmpfs `/tmp` `/run` | §C.4 |
 | db-init | `postgres` | read-only | one-shot, §C.5 |
 | backup | `postgres` (uid 70) | writable | stages the encrypted dump in `/tmp`, which can be large |
@@ -395,15 +390,14 @@ Every service: `cap_drop: [ALL]` + `security_opt: [no-new-privileges:true]`.
 
 ## C.2 Renderer: Chromium's sandbox
 
-The renderer used to run as root with `--no-sandbox`. It now runs as
-`pwuser` and launches Chromium **with** its sandbox (`chromiumSandbox:
-true`, `renderer/src/render.ts`). As an unprivileged process without
+The renderer runs as `pwuser` and launches Chromium **with** its sandbox
+(`chromiumSandbox: true`, `renderer/src/render.ts`). As an unprivileged process without
 capabilities, Chromium's zygote sandboxes renderer processes in new user /
 PID / network namespaces. Docker's default seccomp profile only allows
 `clone(CLONE_NEWUSER)` / `unshare` / `chroot` with `CAP_SYS_ADMIN` /
 `CAP_SYS_CHROOT`, so the renderer gets its own profile,
 `renderer/seccomp.json`: Docker's default profile
-(github.com/moby/profiles, `seccomp/default.json`, Apache-2.0) plus one
+(the default seccomp profile of github.com/moby/profiles, Apache-2.0) plus one
 rule allowing `chroot`, `clone` and `unshare` unconditionally. The kernel
 still checks every namespace operation; only the seccomp pre-filter is
 relaxed. Trade-off accepted: user namespaces add kernel attack surface,
@@ -433,8 +427,9 @@ section still applies, so the blast radius stays the renderer container.
 
 ## C.3 Purpose networks
 
-The flat `internal` network is gone. `internal: true` networks have no
-route off the host.
+Each service joins only the networks it needs. `internal: true` networks
+have no route off the host. The self-host stack prefixes every name with
+the instance (`<instance>-data`, …).
 
 | Network | Members | Internal |
 |---|---|---|
@@ -469,8 +464,8 @@ Traefik's docker provider talks to `tcp://socket-proxy:2375`
 `/var/run/docker.sock`. The proxy allows `GET` on containers, events,
 ping and version only (`CONTAINERS=1`, `POST=0`); every write endpoint and
 everything else (images, exec, volumes, networks, …) answers 403. A
-compromised Traefik can therefore no longer create a privileged container,
-i.e. no longer become root on the host. It can still read container
+compromised Traefik therefore cannot create a privileged container,
+i.e. cannot become root on the host. It can still read container
 metadata (including environment variables) — inherent to the docker
 provider. Verify: `docker compose exec traefik wget -qO- --post-data= http://socket-proxy:2375/containers/create` → `403 Forbidden`.
 
@@ -500,9 +495,7 @@ That widens nothing — the app already holds the LiteLLM master key; the
 separation protects the app database *from* a compromised proxy.
 
 `install.sh` generates the roles for every self-host install and upgrade.
-The hosted deployment opts in by setting the GitHub Environment values
-(docs/LAUNCH-CHECKLIST.md); without them, everything keeps using the admin
-role exactly as before.
+Without the four variables set, every service connects as the admin role.
 
 ## C.6 Dev and test stacks
 
@@ -525,3 +518,89 @@ docker compose exec renderer sh -c 'cat /proc/1/status | grep -E "^(Uid|CapEff|N
 docker compose exec renderer bun -e 'require("net").connect(5432,"postgres").on("error",e=>console.log(e.code))'   # ENOTFOUND
 docker compose exec postgres psql -U "$POSTGRES_USER" -c "select usename, datname from pg_stat_activity where usename is not null"
 ```
+
+---
+
+# Section D — Public edge and access control
+
+## D.1 Internal endpoints stay off the public edge
+
+Some routes exist only for other containers of the stack:
+
+| Route | Caller | Authentication |
+|---|---|---|
+| app `/api/internal/**` | sync server | `X-Internal-Secret` (`NUXT_INTERNAL_API_SECRET`, or its `_PREVIOUS` value during a rotation) |
+| app `/api/internal/traefik/custom-domains` | Traefik's HTTP provider | its own token (`NUXT_PUBLISH_TRAEFIK_TOKEN`) |
+| app `/_internal/render/**`, `/api/_internal/render-bootstrap` | the renderer's Chromium | a short-lived render JWT |
+| sync `/internal/**` | app | `X-Internal-Secret` |
+| renderer | app | `X-Internal-Secret` |
+| markitdown (every endpoint but `/health`) | app | `X-Markitdown-Secret` (`NUXT_MARKITDOWN_API_SECRET`) |
+
+Three layers keep them private:
+
+1. **Routing.** The public Traefik routers of the hosted, self-host and
+   local stacks exclude these path prefixes (`scripts/selfhost-check.sh`
+   asserts it); the renderer and markitdown have no public router at all.
+2. **Edge-header check.** App and sync server answer **404** to a request
+   on an internal route that carries a header Traefik adds to every
+   forwarded request (`X-Forwarded-Server`, `X-Forwarded-Host`,
+   `X-Real-IP`, `Forwarded`), even with a valid secret
+   (`shared/utils/security/internalSecret.ts`,
+   `server/utils/platform/internalRoutes.ts`). Internal callers reach the
+   service directly over the Docker network and never send them.
+3. **Secret.** One constant-time, rotation-aware check
+   (`checkInternalSecret`) shared by app, sync server and renderer. A
+   service without a configured secret refuses the request.
+
+The checks run in `server/middleware/auth.ts` on the normalised path
+(decoded, lower-cased, repeated slashes collapsed), so a new route under
+one of these prefixes cannot be public by accident.
+
+## D.2 Default-deny API authentication
+
+`server/middleware/auth.ts` requires a valid session for every `/api/**`
+route that is not on its explicit list of public routes. A new public
+endpoint needs an entry there; a route that forgets its own check stays
+closed. Public routes (document token, metadata, file access, PDF, …) make
+their access decision in the handler. State-changing `/api` requests must
+also pass the Origin / `Sec-Fetch-Site` check in `server/middleware/csrf.ts`.
+
+## D.3 Sync connections end when their authorization ends
+
+The sync server checks a document token when a connection authenticates
+and then tracks its expiry (`sync-server/src/connection-expiry.ts`):
+
+- Shortly before a token expires, the server asks the client for a fresh
+  one; the editor fetches it from the app's token endpoint, which checks
+  access again, and the connection continues.
+- A connection whose token is not renewed by its expiry is closed with a
+  re-authenticate reason.
+- When access to a document becomes stricter (access mode, password, share
+  link expiry, view-only, moderation, workspace move), the app calls the
+  sync server's `/internal/reauth-document`; tokens issued before the
+  change no longer open the document, and open connections must
+  re-authenticate.
+
+Document tokens live at most 2 hours, and never past a share link's expiry
+(`server/utils/documents/docJwt.ts`).
+
+## D.4 Published pages on their own hostname
+
+A published page is HTML a user wrote. With `NUXT_PUBLISH_PAGES_HOST` set,
+pages are served from that hostname, and `/p/<slug>` on the app redirects
+there (`server/utils/publish/pagesHost.ts`,
+`server/middleware/00.custom-domain.ts`). The pages host and every custom
+domain:
+
+- serve only the page, its files (`/api/published/…`), `/vendor/…` and
+  `robots.txt` — no app, no API, no sign-in, GET and HEAD only;
+- never receive or set a session cookie: the session cookie is host-only
+  on the app's hostname, the incoming `Cookie` header is dropped and
+  `Set-Cookie` is blocked on every response from these hosts;
+- serve page files with `Cross-Origin-Resource-Policy: same-origin`.
+
+Without it (the self-host default), pages share the app's origin at
+`<app>/p/<slug>`. With `NUXT_LEGAL_SURFACES_ENABLED=true` (the hosted
+shape) the app refuses to boot without it; for a public self-hosted
+instance it is recommended (see
+[SELF-HOSTING.md](SELF-HOSTING.md#published-pages)).

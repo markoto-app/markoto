@@ -1,41 +1,53 @@
-# S3 Bucket Setup
+# S3 bucket setup
 
-markoto uses external S3 in production — **OVH Object Storage** (region `s3.de`, Frankfurt, chosen for EU data residency); any S3-compatible endpoint works via `NUXT_S3_ENDPOINT`. Browsers talk to the bucket **directly** for image uploads (presigned PUT) and image reads (302-redirect to presigned GET from `/api/files/:docId/:fileId`). Traefik never proxies S3 traffic in prod — so CORS must be configured on the bucket itself.
+How to prepare an external S3-compatible bucket for markoto. The self-host stack ships SeaweedFS and needs none of this; use this guide when you point `NUXT_S3_ENDPOINT` at an external provider instead (see [SELF-HOSTING.md](SELF-HOSTING.md#storage)). The hosted service uses OVH Object Storage.
 
-> The provider-specific `### Infomaniak` subsections below are a **console example**. For **OVH Object Storage** (our actual provider) and any other S3-compatible endpoint, use the `aws s3api` commands in the sibling subsections — they work identically against your `NUXT_S3_ENDPOINT`. OVH's console does not expose CORS / lifecycle / default-encryption directly, so the S3-API path is the supported route.
+Browsers talk to the bucket **directly**: image and knowledge uploads use presigned PUT URLs, and image reads, PDF downloads and data-export downloads redirect to presigned GET URLs. The app never proxies that traffic, so CORS must be configured on the bucket itself.
+
+The `aws s3api` commands below work against any S3-compatible endpoint (`--endpoint-url`). Many provider consoles do not expose CORS, lifecycle or default-encryption settings; the S3 API does.
 
 ## 1. Create the bucket
 
-Whatever you set in `S3_BUCKET`. Region doesn't matter to the app.
+Any name; set it as `NUXT_S3_BUCKET`. The region does not matter to the app.
 
-Object layout (app-managed, don't pre-create):
+Keep the bucket **private**: no public-read ACL, no bucket policy that grants anonymous `s3:GetObject` or `s3:ListBucket`. Every object the app hands out goes through a short-lived presigned URL, so nothing needs public access. A bucket that allows public listing lets anyone enumerate keys. Check it after setup:
+
+```bash
+aws s3api get-bucket-acl    --endpoint-url "$NUXT_S3_ENDPOINT" --bucket "$NUXT_S3_BUCKET"
+aws s3api get-bucket-policy --endpoint-url "$NUXT_S3_ENDPOINT" --bucket "$NUXT_S3_BUCKET"   # expect: no policy, or none granting "*"
+```
+
+Object layout (created by the app; don't pre-create anything):
 
 ```
-docs/{docId}/{fileId}.{ext}                            # image uploads
-workspaces/{wsId}/knowledge/{kId}.{ext}                # transient — deleted after processing
-renders/{docId}/{snapshotId}/document.pdf              # PDF renders (cached)
-renders/{docId}/{snapshotId}/page-{n}.png              # per-page screenshots (cached)
-renders/{docId}/{snapshotId}/manifest.json             # render readiness sentinel
-backups/postgres/{ISO8601}.sql.gz                      # daily pg_dump
+docs/{docId}/{fileId}.{ext}                       # document images
+docs/{docId}/staging/{fileId}.{ext}               # upload target of a presigned PUT, copied to the final key on confirm
+workspaces/{wsId}/knowledge/{kId}.{ext}           # knowledge originals, deleted after processing
+workspaces/{wsId}/brand/{id}.{ext}                # workspace brand-kit fonts and logos
+design-imports/{userId}/staging/{id}.{ext}        # files for "create a design from a document", transient
+renders/{docId}/{snapshotId}[-{variant}]/…        # cached PDF, page PNGs and manifest.json
+published/{pageId}/…                              # images and fonts of published pages
+exports/{userId}/{jobId}.zip                      # data exports, 7-day download window
+backups/postgres/{timestamp}.sql.gz.gpg           # encrypted database dumps (prefix: BACKUP_S3_PREFIX)
 ```
 
 ## 2. Create an access key scoped to the bucket
 
-Set `S3_ACCESS_KEY` and `S3_SECRET_KEY` in `.env`. The key needs:
+Set `NUXT_S3_ACCESS_KEY` and `NUXT_S3_SECRET_KEY`. The key needs, and should get, nothing more than:
 
-- `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:HeadObject` on `${S3_BUCKET}/*`
-- `s3:ListBucket` on `${S3_BUCKET}` (used by the orphan-cleanup plugin and the backup retention prune)
+- `s3:PutObject`, `s3:GetObject`, `s3:DeleteObject` on `<bucket>/*` (HEAD and server-side copy are covered by these)
+- `s3:ListBucket` on `<bucket>` (used by the storage clean-up sweeps and the backup retention prune)
 
-No bucket-level create/delete permissions required.
+No bucket-level create or delete permissions. The backup service can use a separate bucket and key (`BACKUP_S3_*`, see [SELF-HOSTING.md](SELF-HOSTING.md#backups)); then the app's key needs no access to the backups.
 
-## 3. CORS policy — required
+## 3. CORS policy (required)
 
-Browsers PUT images directly to presigned URLs on the bucket host. Without CORS, the preflight fails and uploads never start. Apply this policy:
+Browsers PUT uploads to presigned URLs on the bucket host. Without CORS the preflight fails and uploads never start. Apply:
 
 ```json
 [
   {
-    "AllowedOrigins": ["https://${DOMAIN}"],
+    "AllowedOrigins": ["https://docs.example.org"],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
     "AllowedHeaders": ["Content-Type", "Content-Length"],
     "ExposeHeaders": ["ETag"],
@@ -44,133 +56,87 @@ Browsers PUT images directly to presigned URLs on the bucket host. Without CORS,
 ]
 ```
 
-Replace `${DOMAIN}` literally (e.g. `https://markoto.example.com`). No trailing slash. No wildcards — presigned URLs carry SigV4 auth in the querystring so broad CORS isn't needed.
-
-### Infomaniak
-
-Dashboard → Public Cloud → Object Storage → your bucket → *Settings / CORS* → paste the policy.
-
-### AWS / R2 / MinIO
+Use your instance's public URL as the origin, without trailing slash and without wildcards. Presigned URLs carry their signature in the query string, so a broad CORS policy is not needed.
 
 ```bash
 aws s3api put-bucket-cors \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --bucket "${S3_BUCKET}" \
+  --endpoint-url "$NUXT_S3_ENDPOINT" \
+  --bucket "$NUXT_S3_BUCKET" \
   --cors-configuration file://cors.json
 ```
 
 where `cors.json` wraps the rules above in `{ "CORSRules": [ ... ] }`.
 
-## 4. Verify
+## 4. Verify CORS
 
-From a browser devtools console on `https://${DOMAIN}`:
+From the browser devtools console on your instance:
 
 ```js
 fetch('https://<bucket-host>/<any-key>', { method: 'HEAD' })
   .then(r => console.log(r.headers.get('access-control-allow-origin')))
 ```
 
-Should log your domain. If it logs `null` or CORS-errors, the policy didn't stick.
+It should log your origin. `null` or a CORS error means the policy did not apply.
 
-## 5. Lifecycle policy — recommended
+## 5. Lifecycle policy (recommended)
 
-Renders under `renders/` are CACHE artefacts. The app re-creates them on demand and `deleteDocument` cleans up per-doc renders eagerly, but bucket-side expiration is the safety net for orphaned snapshots (the snapshotId in the key changes on every Y.Doc update — old snapshots are unreachable but linger). Set up a 30-day expiration so the bucket doesn't grow unbounded.
-
-### Infomaniak
-
-The dashboard does NOT expose lifecycle rules. Use the S3 API directly (Infomaniak supports the standard `PutBucketLifecycleConfiguration` call).
-
-### AWS / R2 / MinIO / Infomaniak (S3 API)
+Renders under `renders/` are a cache: the app recreates them on demand and removes a document's renders when the document is deleted, but each document change produces a new snapshot folder and the old ones are never read again. An expiration rule keeps the bucket from growing. Data exports under `exports/` are deleted by the app after their 7-day window; a rule is the safety net if that deletion fails.
 
 ```bash
 cat > lifecycle.json <<'EOF'
 {
   "Rules": [
-    {
-      "ID": "expire-renders-30d",
-      "Status": "Enabled",
-      "Filter": { "Prefix": "renders/" },
-      "Expiration": { "Days": 30 }
-    }
+    { "ID": "expire-renders-30d", "Status": "Enabled", "Filter": { "Prefix": "renders/" }, "Expiration": { "Days": 30 } },
+    { "ID": "expire-exports-8d",  "Status": "Enabled", "Filter": { "Prefix": "exports/" }, "Expiration": { "Days": 8 } }
   ]
 }
 EOF
 
 aws s3api put-bucket-lifecycle-configuration \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --bucket "${S3_BUCKET}" \
+  --endpoint-url "$NUXT_S3_ENDPOINT" \
+  --bucket "$NUXT_S3_BUCKET" \
   --lifecycle-configuration file://lifecycle.json
+
+aws s3api get-bucket-lifecycle-configuration --endpoint-url "$NUXT_S3_ENDPOINT" --bucket "$NUXT_S3_BUCKET"
 ```
 
-Verify:
+Never add `docs/`, `workspaces/`, `published/` or `backups/` to an expiration rule: those are not cache. Old backups are pruned by the backup service (`BACKUP_RETENTION_COUNT`).
 
-```bash
-aws s3api get-bucket-lifecycle-configuration \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --bucket "${S3_BUCKET}"
-```
+## 6. Default encryption (required)
 
-A user re-downloading a 31-day-old PDF triggers a fresh render — wasteful but rare. Keep the rule scoped to `renders/` only; image uploads under `docs/` and pg backups under `backups/` are not cache, do NOT add them to the rule.
+Every object should be stored server-side encrypted (SSE-S3, AES-256, provider-managed key). Browser uploads go through presigned PUTs that do **not** carry an `x-amz-server-side-encryption` header (signing it into the URL would force the browser to send it exactly), and the app's own uploads (AI-generated images, brand assets, exports) don't set it either. The bucket's default encryption is what encrypts those.
 
-## 6. Default encryption — required
-
-Every PUT into the bucket must land server-side-encrypted (SSE-S3, AES-256, provider-managed key). Browser-uploaded images flow through presigned PUTs that intentionally do **not** carry an explicit `x-amz-server-side-encryption` header (signing the header into the URL would force the browser to echo it exactly or get `SignatureDoesNotMatch`). The bucket-level default-encryption policy is what guarantees encryption for those.
-
-Server-side direct PUTs (renderer artefacts, AI-generated images, the backup sidecar) **also** set the header per-object as defense-in-depth. The two layers stack: even if the bucket policy is later misconfigured, the renderer + AI + backup paths still encrypt; even if a future code change forgets the header, the bucket default still encrypts presigned uploads.
-
-### Threat boundary
-
-- SSE-S3 means the storage **provider** holds the at-rest key. It encrypts your bytes against physical-disk theft and rogue tenant access. It does **not** protect against:
-  - A leaked S3 access key (the provider decrypts on any signed GET).
-  - An accidentally-public bucket (CORS misconfig + public-read = readable plaintext).
-  - A malicious provider employee.
-- For the backup sidecar, we add a **client-side** layer with `gpg --symmetric --cipher-algo AES256` — the passphrase (`BACKUP_GPG_PASSPHRASE`) is never seen by S3. A leaked S3 bucket alone is not enough to read backups; you also need the passphrase. See `docs/DEPLOY.md` §6.
-- Image uploads / knowledge originals / render artefacts rely on SSE-S3 alone — adding a client-side layer per object would break the presigned-PUT pattern (browser PUTs would have to handle ciphertext) and the renderer's idempotent re-render-on-cache-miss flow. The accepted residual risk: a leaked S3 key exposes those objects in plaintext.
-
-### Infomaniak
-
-Dashboard → Public Cloud → Object Storage → your bucket → Settings → Default encryption → enable AES-256 (SSE-S3). Save.
-
-### AWS / R2 / MinIO
+The renderer (PDF and page images) and the backup service also set the header on each object. Both read `S3_SSE` (default `AES256`); set `S3_SSE=none` on those two services only if your provider rejects the header.
 
 ```bash
 cat > encryption.json <<'EOF'
 {
   "Rules": [
-    {
-      "ApplyServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" },
-      "BucketKeyEnabled": true
-    }
+    { "ApplyServerSideEncryptionByDefault": { "SSEAlgorithm": "AES256" }, "BucketKeyEnabled": true }
   ]
 }
 EOF
 
 aws s3api put-bucket-encryption \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --bucket "${S3_BUCKET}" \
+  --endpoint-url "$NUXT_S3_ENDPOINT" \
+  --bucket "$NUXT_S3_BUCKET" \
   --server-side-encryption-configuration file://encryption.json
-```
 
-### Verify
-
-```bash
-aws s3api get-bucket-encryption \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --bucket "${S3_BUCKET}"
+aws s3api get-bucket-encryption --endpoint-url "$NUXT_S3_ENDPOINT" --bucket "$NUXT_S3_BUCKET"
 # Expect: SSEAlgorithm = AES256
 ```
 
-Also pull a recently-PUT object's metadata and confirm it has `ServerSideEncryption: AES256`:
+To confirm on a real object, run `aws s3api head-object` on any recent key and look for `ServerSideEncryption: AES256`.
 
-```bash
-aws s3api head-object \
-  --endpoint-url "${S3_ENDPOINT}" \
-  --bucket "${S3_BUCKET}" \
-  --key "backups/postgres/$(aws --endpoint-url=${S3_ENDPOINT} s3 ls s3://${S3_BUCKET}/backups/postgres/ | tail -1 | awk '{print $4}')"
-```
+What SSE-S3 does and does not protect:
 
-## 7. What NOT to do
+- The provider holds the key. It protects against physical-disk theft and other tenants, not against a leaked access key (the provider decrypts for any signed request), a bucket made public by mistake, or the provider itself.
+- Database backups get a client-side layer on top: the backup service encrypts each dump with gpg (AES-256, `BACKUP_GPG_PASSPHRASE`) before upload, so the bucket alone is not enough to read them.
+- Images, knowledge originals and renders rely on SSE-S3 alone; a leaked access key exposes them.
 
-- Don't proxy S3 through Traefik in prod — it doubles egress and defeats the point of presigned URLs. The dev setup uses `devProxy` in `nuxt.config.ts` only to work around SeaweedFS's stricter-than-AWS CORS behaviour locally.
-- Don't allow `*` as `AllowedOrigins`. Presigned URLs are short-lived but still credential-bearing; a leaked URL + permissive CORS = cross-origin exfil window.
-- Don't omit `ExposeHeaders: ETag` — the SDK's multipart-upload path reads it and silently fails without it.
+## 7. What not to do
+
+- Don't allow `*` in `AllowedOrigins`. Presigned URLs are short-lived but still carry credentials; a leaked URL plus permissive CORS lets any site read it.
+- Don't make the bucket or any prefix public (section 1).
+- Don't omit `ExposeHeaders: ETag` from the CORS rule.
+- Don't share the access key with other applications; give markoto a key limited to its bucket (section 2).

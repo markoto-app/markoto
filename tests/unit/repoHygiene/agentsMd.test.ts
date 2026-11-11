@@ -13,27 +13,10 @@ const NESTED_MAX_LINES = 100
 // This list only shrinks: trim a file, then lower or delete its entry. The
 // "stale entry" test below fails once a file fits its budget, so a finished
 // cleanup cannot silently keep its allowance.
-const OVER_BUDGET_ALLOWANCE: Record<string, number> = {
-  'AGENTS.md': 591,
-  'app/AGENTS.md': 200,
-  'app/utils/AGENTS.md': 132,
-  'server/AGENTS.md': 215,
-  'server/db/AGENTS.md': 132,
-  'server/legal/AGENTS.md': 113,
-  'server/mcp/AGENTS.md': 152,
-  'server/utils/AGENTS.md': 236,
-  'server/utils/agentic/AGENTS.md': 210,
-  'tests/e2e/AGENTS.md': 319,
-  'tests/integration/AGENTS.md': 106
-}
+const OVER_BUDGET_ALLOWANCE: Record<string, number> = {}
 
 // AGENTS.md files missing from the root index table today. Also shrink-only.
-const UNINDEXED_ALLOWANCE = new Set<string>([
-  'app/components/ai/AGENTS.md',
-  'server/db/AGENTS.md',
-  'server/repos/AGENTS.md',
-  'tests/integration/AGENTS.md'
-])
+const UNINDEXED_ALLOWANCE = new Set<string>([])
 
 const repoRoot = join(__dirname, '..', '..', '..')
 const read = (p: string) => readFileSync(join(repoRoot, p), 'utf8')
