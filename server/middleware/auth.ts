@@ -20,7 +20,11 @@ export default defineEventHandler(async (event) => {
     rejectIfFromEdge(event)
     if (internalKind === 'internal-api') {
       requireInternalSecret(event)
-      return
+      // The classifier normalises the path (decoding, case, slashes) and the
+      // router does not. Skip the session check only for a path the router
+      // would itself send to an internal handler; anything else that merely
+      // normalises to the prefix still needs a session below.
+      if (path.startsWith('/api/internal/')) return
     }
   }
 
