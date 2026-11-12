@@ -52,13 +52,10 @@ import threading
 import time
 import zipfile
 
-from fastapi import FastAPI, Request, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, PlainTextResponse
 from markitdown import MarkItDown, StreamInfo
-from markitdown._exceptions import (
-    UnsupportedFormatException,
-    MissingDependencyException
-)
+from markitdown._exceptions import MissingDependencyException, UnsupportedFormatException
 
 # Matches the cap in server/api/import.post.ts. Defense in depth — Nuxt
 # already rejects oversize bodies before they reach us, but the FastAPI
@@ -92,7 +89,20 @@ ARCHIVE_CHECK_TIMEOUT_SECONDS = _env_int("MARKITDOWN_ARCHIVE_CHECK_TIMEOUT_SECON
 CONVERT_TIMEOUT_SECONDS = _env_int("MARKITDOWN_TIMEOUT_SECONDS", 60)
 CHILD_MEMORY_BYTES = _env_int("MARKITDOWN_CHILD_MEMORY_MB", 384) * 1024 * 1024
 
-ZIP_EXTENSIONS = {"docx", "docm", "dotx", "pptx", "pptm", "xlsx", "xlsm", "epub", "odt", "ods", "odp", "zip"}
+ZIP_EXTENSIONS = {
+    "docx",
+    "docm",
+    "dotx",
+    "pptx",
+    "pptm",
+    "xlsx",
+    "xlsm",
+    "epub",
+    "odt",
+    "ods",
+    "odp",
+    "zip",
+}
 ZIP_MAGIC = b"PK\x03\x04"
 _INFLATE_CHUNK = 64 * 1024
 
@@ -170,7 +180,10 @@ def archive_inflate_limit(body_length: int) -> int:
     so a bomb is refused after ~ratio x upload size of work instead of
     after inflating everything up to the absolute cap.
     """
-    return min(MAX_ARCHIVE_UNCOMPRESSED_BYTES, max(RATIO_FLOOR_BYTES, MAX_ARCHIVE_RATIO * max(body_length, 1)))
+    return min(
+        MAX_ARCHIVE_UNCOMPRESSED_BYTES,
+        max(RATIO_FLOOR_BYTES, MAX_ARCHIVE_RATIO * max(body_length, 1)),
+    )
 
 
 def check_archive(body: bytes, time_budget: float = ARCHIVE_CHECK_TIMEOUT_SECONDS) -> int:
@@ -191,7 +204,9 @@ def check_archive(body: bytes, time_budget: float = ARCHIVE_CHECK_TIMEOUT_SECOND
     with archive:
         entries = archive.infolist()
         if len(entries) > MAX_ARCHIVE_ENTRIES:
-            raise ArchiveRejected(f"archive has {len(entries)} entries (limit {MAX_ARCHIVE_ENTRIES})")
+            raise ArchiveRejected(
+                f"archive has {len(entries)} entries (limit {MAX_ARCHIVE_ENTRIES})"
+            )
         declared = sum(e.file_size for e in entries)
         if declared > MAX_ARCHIVE_UNCOMPRESSED_BYTES:
             raise ArchiveRejected("archive expands beyond the size limit")
@@ -243,7 +258,9 @@ def _child_design(conn, body: bytes, ext: str, pages: int) -> None:
         conn.send(("failed", str(e)[:200]))
     except Exception as e:
         message = str(e)
-        conn.send(("memory", "") if "MemoryError" in message else ("failed", "could not read the file"))
+        conn.send(
+            ("memory", "") if "MemoryError" in message else ("failed", "could not read the file")
+        )
     finally:
         conn.close()
 
@@ -319,7 +336,9 @@ def health() -> PlainTextResponse:
     "/convert",
     responses={
         400: {"description": "Empty body or missing 'ext' query param"},
-        413: {"description": "Request body exceeds the size cap, or the archive / conversion exceeds the resource limits"},
+        413: {
+            "description": "Request body exceeds the size cap, or the archive / conversion exceeds the resource limits"
+        },
         415: {"description": "Markitdown does not support the requested format"},
         422: {"description": "Conversion failed (corrupt file, malformed input, etc.)"},
         501: {"description": "Format requires an optional dependency that isn't installed"},
@@ -375,7 +394,9 @@ DESIGN_EXTENSIONS = {"pdf", "docx"}
     "/design/extract",
     responses={
         400: {"description": "Empty body, or 'ext' is not pdf / docx"},
-        413: {"description": "Body too large, or the archive / extraction exceeds the resource limits"},
+        413: {
+            "description": "Body too large, or the archive / extraction exceeds the resource limits"
+        },
         422: {"description": "The file can't be read as the claimed format"},
         504: {"description": "Archive inspection or extraction took longer than the time limit"},
     },

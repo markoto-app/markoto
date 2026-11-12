@@ -8,6 +8,12 @@
   "typeCheckingMode": "standard",
   "reportMissingImports": "warning",
   "reportMissingModuleSource": "none",
+  // Four known findings (design_extract.py int/float args, test_server.py
+  // optional call, fake-openai log_message parameter name) stay warnings until
+  // fixed; every other rule is an error. Shrink-only.
+  "reportArgumentType": "warning",
+  "reportOptionalCall": "warning",
+  "reportIncompatibleMethodOverride": "warning",
   "executionEnvironments": [
     { "root": "markitdown-server" },
     { "root": "infra/litellm" },

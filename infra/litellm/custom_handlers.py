@@ -23,13 +23,12 @@ from litellm import CustomLLM
 from litellm.types.utils import (
     Choices,
     EmbeddingResponse,
-    ImageResponse,
     ImageObject,
+    ImageResponse,
     Message,
     ModelResponse,
     Usage,
 )
-
 
 # Outbound HTTP clients for OpenAI-compatible upstreams: never follow redirects
 #
@@ -165,12 +164,14 @@ class BFLFluxProvider(CustomLLM):
         # cause off-by-one cents under repeated calls.
         completion_tokens = max(1, round(cost_usd / 0.0001))
 
-        body = _json.dumps({
-            "b64_json": b64,
-            "url": sample_url,
-            "cost_credits": cost_credits,
-            "cost_usd": cost_usd,
-        })
+        body = _json.dumps(
+            {
+                "b64_json": b64,
+                "url": sample_url,
+                "cost_credits": cost_credits,
+                "cost_usd": cost_usd,
+            }
+        )
         resp = ModelResponse()
         resp.id = f"bfl-{uuid4().hex[:12]}"
         resp.created = int(time.time())
@@ -245,7 +246,7 @@ class JinaEmbeddingsProvider(CustomLLM):
         }
         if "dimensions" in kwargs and kwargs["dimensions"] is not None:
             body["dimensions"] = kwargs["dimensions"]
-        if "task" in kwargs and kwargs["task"]:
+        if kwargs.get("task"):
             body["task"] = kwargs["task"]
 
         async with httpx.AsyncClient(timeout=30.0) as http:
@@ -346,7 +347,15 @@ class MistralTranscribeProvider(CustomLLM):
 
         # Decode audio + post as multipart form.
         audio_bytes = base64.b64decode(audio_b64)
-        ext = "webm" if "webm" in mime else "ogg" if "ogg" in mime else "wav" if "wav" in mime else "mp4"
+        ext = (
+            "webm"
+            if "webm" in mime
+            else "ogg"
+            if "ogg" in mime
+            else "wav"
+            if "wav" in mime
+            else "mp4"
+        )
         files = {"file": (f"audio.{ext}", audio_bytes, mime)}
         data = {"model": mistral_model, "language": language}
 

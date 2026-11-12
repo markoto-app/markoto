@@ -10,16 +10,26 @@ import { RAW_HANDLER_EXCEPTIONS } from './tests/unit/platform/apiRoutes.exceptio
 
 const ROOT = import.meta.dirname
 
-// Every lint rule added alongside the original Nuxt preset starts at `warn`:
-// a recommended set may ship rules at `error`, and the backlog is burned down
-// before anything blocks CI. `warnAll` downgrades whichever severity a preset
-// picked so the rollout is uniform.
-const warnAll = rules => Object.fromEntries(
+// Recommended rule sets are taken at `error`. `strict` upgrades whichever
+// severity a preset picked so the whole tree is uniform; the only rules that
+// stay `warn` are the three size/complexity rules under the ratchet in
+// scripts/checks/lint-budget.mjs (listed in BUDGETED_RULES there).
+const strict = rules => Object.fromEntries(
   Object.entries(rules).map(([name, value]) => [
     name,
-    Array.isArray(value) ? ['warn', ...value.slice(1)] : (value === 'off' || value === 0 ? value : 'warn')
+    Array.isArray(value) ? ['error', ...value.slice(1)] : (value === 'off' || value === 0 ? value : 'error')
   ])
 )
+
+// Lint modes (LINT_TYPES), selected by the package scripts:
+//   all  (default) every rule — what `bun run lint` and CI run.
+//   off  everything except the type-aware rules: no TypeScript project is
+//        loaded, so it takes seconds instead of minutes (`lint:fast`).
+//   only just the type-aware rules (`lint:types`).
+// Type-aware rules cost ~95 % of the lint time (every call is resolved through
+// the type checker), which is why they can be split out.
+const LINT_TYPES = process.env.LINT_TYPES ?? 'all'
+if (!['all', 'off', 'only'].includes(LINT_TYPES)) throw new Error(`LINT_TYPES must be all, off or only (got ${LINT_TYPES})`)
 
 const TS_GLOBS = ['**/*.ts', '**/*.vue', '**/*.mts']
 const TESTS = ['tests/**', 'sync-server/**/*.test.ts', 'sync-server/tests/**', 'renderer/**/*.test.ts']
@@ -108,12 +118,12 @@ const markoto = {
 const nuxtProjects = ['app', 'server', 'shared', 'node'].map(n => `.nuxt/tsconfig.${n}.json`)
 
 const typeAwareRules = {
-  '@typescript-eslint/no-floating-promises': 'warn',
-  '@typescript-eslint/no-misused-promises': 'warn',
-  '@typescript-eslint/await-thenable': 'warn',
-  '@typescript-eslint/require-array-sort-compare': 'warn',
-  '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
-  '@typescript-eslint/switch-exhaustiveness-check': 'warn'
+  '@typescript-eslint/no-floating-promises': 'error',
+  '@typescript-eslint/no-misused-promises': 'error',
+  '@typescript-eslint/await-thenable': 'error',
+  '@typescript-eslint/require-array-sort-compare': 'error',
+  '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+  '@typescript-eslint/switch-exhaustiveness-check': 'error'
 }
 
 // Time-arithmetic literals duplicate the shared constants and drift.
@@ -169,22 +179,11 @@ const HANDLER_GLOBS = ['server/api/**/*.ts', 'server/routes/**/*.ts']
 const IRRELEVANT_SONAR = /^sonarjs\/(aws-|jsx-|no-uniq-key|no-useless-react|no-hook-setter|no-angular|prefer-native-jquery|prefer-cypress|prefer-native-axios|no-vue-class|no-vue-mixins|no-debounce-throttle|testing-library|no-forced-browser|no-debug-commands|no-networkidle|review-blockchain|xml-parser|web-sql|prefer-read-only-props|no-mutate-reactive|memoize-cache|avoid-mutating)/
 
 const sonarRules = Object.fromEntries(
-  Object.entries(warnAll(sonarjs.configs.recommended.rules))
+  Object.entries(strict(sonarjs.configs.recommended.rules))
     .map(([name, value]) => [name, IRRELEVANT_SONAR.test(name) ? 'off' : value])
 )
 
-export default withNuxt(
-  {
-    // Galaxy collections / roles fetched into infra/collections/ ship JS
-    // fixtures + sample policies that aren't ours to lint. Same for
-    // infra/.ansible/ runtime cache.
-    ignores: [
-      'infra/collections/**',
-      'infra/.ansible/**'
-    ]
-  },
-
-  // --- Type-aware typescript-eslint --------------------------------------
+const typeAwareBlocks = [
   {
     name: 'markoto/type-aware-nuxt',
     files: TS_GLOBS,
@@ -202,14 +201,29 @@ export default withNuxt(
       parserOptions: { project: [`${dir}/tsconfig.json`], tsconfigRootDir: ROOT }
     },
     rules: typeAwareRules
-  })),
+  }))
+]
+
+const composed = withNuxt(
+  {
+    // Galaxy collections / roles fetched into infra/collections/ ship JS
+    // fixtures + sample policies that aren't ours to lint. Same for
+    // infra/.ansible/ runtime cache.
+    ignores: [
+      'infra/collections/**',
+      'infra/.ansible/**'
+    ]
+  },
+
+  // --- Type-aware typescript-eslint --------------------------------------
+  ...(LINT_TYPES === 'off' ? [] : typeAwareBlocks),
   {
     name: 'markoto/ts-syntax-rules',
     files: TS_GLOBS,
     rules: {
-      '@typescript-eslint/no-explicit-any': 'warn',
-      '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/consistent-type-assertions': ['warn', { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' }]
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-non-null-assertion': 'error',
+      '@typescript-eslint/consistent-type-assertions': ['error', { assertionStyle: 'as', objectLiteralTypeAssertions: 'never' }]
     }
   },
 
@@ -310,7 +324,7 @@ export default withNuxt(
     files: BACKEND.map(g => `${g}/**/*.{ts,mts,js,mjs}`),
     ignores: TESTS,
     rules: {
-      ...warnAll(security.configs.recommended.rules),
+      ...strict(security.configs.recommended.rules),
       // Fires on every `obj[key]`; far too noisy to act on.
       'security/detect-object-injection': 'off'
     }
@@ -330,7 +344,7 @@ export default withNuxt(
     name: 'markoto/restricted-syntax',
     files: ['**/*.{ts,mts,js,mjs,vue}'],
     ignores: ['shared/config/**', ...TESTS],
-    rules: { 'no-restricted-syntax': ['warn', ...timeSelectors, createErrorCode] }
+    rules: { 'no-restricted-syntax': ['error', ...timeSelectors, createErrorCode] }
   },
   // Later blocks replace the rule's options instead of merging them, so each
   // re-spreads the general selectors.
@@ -343,22 +357,34 @@ export default withNuxt(
   {
     name: 'markoto/api-client',
     files: ['app/**/*.{ts,vue}'],
-    rules: { 'no-restricted-syntax': ['warn', ...timeSelectors, createErrorCode, ...apiClientSelectors] }
+    rules: { 'no-restricted-syntax': ['error', ...timeSelectors, createErrorCode, ...apiClientSelectors] }
   },
   {
     name: 'markoto/milestone-vocabulary',
     files: ['**/*.{ts,mts,js,mjs,vue}'],
     ignores: ['infra/**', '.nuxt/**', 'drizzle/**'],
     plugins: { markoto },
-    rules: { 'markoto/no-milestone-vocabulary': 'warn' }
+    rules: { 'markoto/no-milestone-vocabulary': 'error' }
   },
 
   // --- Vue accessibility ---------------------------------------------------
   ...a11y.configs['flat/recommended'].map(c => ({
     ...c,
     files: ['app/**/*.vue'],
-    ...(c.rules ? { rules: warnAll(c.rules) } : {})
+    ...(c.rules ? { rules: strict(c.rules) } : {})
   })),
+  {
+    name: 'markoto/a11y-label-has-for',
+    files: ['app/**/*.vue'],
+    rules: {
+      // A label is associated by `for`/`id` OR by wrapping its control. Nuxt UI
+      // inputs render the native control themselves, so they count as controls.
+      'vuejs-accessibility/label-has-for': ['error', {
+        required: { some: ['nesting', 'id'] },
+        controlComponents: ['UInput', 'UTextarea', 'USelect', 'USelectMenu', 'UInputMenu', 'UInputNumber', 'UCheckbox', 'URadioGroup', 'USwitch', 'USlider', 'UPinInput']
+      }]
+    }
+  },
 
   // --- vue-i18n ------------------------------------------------------------
   ...vueI18n.configs['flat/base'],
@@ -391,7 +417,7 @@ export default withNuxt(
         ]
       }],
       '@intlify/vue-i18n/no-missing-keys': 'error',
-      '@intlify/vue-i18n/no-unused-keys': ['warn', { src: './app', extensions: ['.vue', '.ts'] }]
+      '@intlify/vue-i18n/no-unused-keys': ['error', { src: './app', extensions: ['.vue', '.ts'] }]
     }
   },
   {
@@ -400,13 +426,21 @@ export default withNuxt(
     settings: {
       'vue-i18n': { localeDir: './i18n/locales/*.json', messageSyntaxVersion: '^11.0.0' }
     },
-    rules: { '@intlify/vue-i18n/no-duplicate-keys-in-locale': 'warn' }
+    rules: { '@intlify/vue-i18n/no-duplicate-keys-in-locale': 'error' }
   },
 
   {
     name: 'markoto/scripts-and-locales',
     files: ['scripts/**'],
     rules: { 'sonarjs/no-os-command-from-path': 'off' }
+  },
+  {
+    // The content database lives on the container's own tmpfs (the app image
+    // runs read-only with a private /tmp), not a shared world-writable dir;
+    // see the comment next to it in nuxt.config.ts.
+    name: 'markoto/nuxt-config-tmp',
+    files: ['nuxt.config.ts'],
+    rules: { 'sonarjs/publicly-writable-directories': 'off' }
   },
   {
     // French typography uses non-breaking spaces before : ; ! ? on purpose.
@@ -421,16 +455,18 @@ export default withNuxt(
     name: 'markoto/vitest',
     files: ['tests/{unit,dom,nuxt,repos,integration}/**/*.{ts,mts}', 'sync-server/**/*.test.ts', 'renderer/**/*.test.ts'],
     rules: {
-      ...warnAll(vitest.configs.recommended.rules),
+      ...strict(vitest.configs.recommended.rules),
       // `expect(value, 'message')` is valid Vitest API.
-      'vitest/valid-expect': ['warn', { maxArgs: 2 }]
+      'vitest/valid-expect': ['error', { maxArgs: 2 }],
+      // Helpers named `expectSomething(...)` hold the assertions of many tests.
+      'vitest/expect-expect': ['error', { assertFunctionNames: ['expect', 'expect*'] }]
     }
   },
   {
     ...playwright.configs['flat/recommended'],
     name: 'markoto/playwright',
     files: ['tests/e2e/**/*.ts', 'tests/smoke/**/*.ts'],
-    rules: warnAll(playwright.configs['flat/recommended'].rules)
+    rules: strict(playwright.configs['flat/recommended'].rules)
   },
   {
     name: 'markoto/tests-loosened',
@@ -455,7 +491,60 @@ export default withNuxt(
       'sonarjs/code-eval': 'off',
       'sonarjs/publicly-writable-directories': 'off',
       'sonarjs/no-nested-functions': 'off',
-      'security/detect-non-literal-fs-filename': 'off'
+      'security/detect-non-literal-fs-filename': 'off',
+      // Tests shell out to docker / git / bun by name, use `static` helpers
+      // freely and write explicit cases instead of `it.each` tables.
+      'sonarjs/no-os-command-from-path': 'off',
+      'sonarjs/public-static-readonly': 'off',
+      'sonarjs/parameterized-tests': 'off'
     }
+  },
+  {
+    // Browser specs skip on purpose (live-AI suites without a key, mobile vs
+    // desktop) and assert through page helpers / `expect.poll`.
+    name: 'markoto/e2e-skips',
+    files: ['tests/e2e/**/*.ts', 'tests/smoke/**/*.ts'],
+    rules: {
+      'playwright/no-skipped-test': ['error', { allowConditional: true }],
+      'sonarjs/no-skipped-tests': 'off',
+      'sonarjs/assertions-in-tests': 'off'
+    }
+  },
+  {
+    // One spec per flow that branches on mobile vs desktop is the convention
+    // (tests/e2e/AGENTS.md), so conditionals inside a flow are intended.
+    name: 'markoto/e2e-flows',
+    files: ['tests/e2e/flows/**/*.ts'],
+    rules: {
+      'playwright/no-conditional-in-test': 'off',
+      'playwright/no-conditional-expect': 'off'
+    }
+  },
+  {
+    // Screenshot / video capture scripts that happen to use the Playwright
+    // runner; they are not tests.
+    name: 'markoto/e2e-tour',
+    files: ['tests/e2e/tour/**/*.ts'],
+    rules: Object.fromEntries(Object.keys(playwright.configs['flat/recommended'].rules).map(name => [name, 'off']))
   }
 )
+
+// `lint:types` keeps only the type-aware rules. Plugins and parsers stay
+// registered (rule configs of other blocks are just emptied), and unused
+// disable directives are not reported because the rules they name are off.
+if (LINT_TYPES === 'only') {
+  const typeAwareNames = new Set(Object.keys(typeAwareRules))
+  composed.onResolved((configs) => {
+    for (const config of configs) {
+      if (!config.rules) continue
+      config.rules = Object.fromEntries(Object.entries(config.rules).filter(([name]) => typeAwareNames.has(name)))
+    }
+    configs.push({ name: 'markoto/lint-types-only', linterOptions: { reportUnusedDisableDirectives: 'off' } })
+    return configs
+  })
+}
+if (LINT_TYPES === 'off') {
+  composed.append({ name: 'markoto/lint-fast', linterOptions: { reportUnusedDisableDirectives: 'off' } })
+}
+
+export default composed

@@ -96,27 +96,37 @@ How the tiers are configured, the test-stack details, Podman notes and the rules
 
 ## Checks
 
-The fast pre-push check, no Docker needed:
+One command runs the fast local gate, no Docker needed:
 
 ```sh
-bun run lint && bun run typecheck && bun run test
+bun run check        # or: make check
 ```
 
-| Command | What it checks | In CI |
+In order: generated env files, Markdown paths, internal vocabulary, schema-vs-migrations drift, `depcruise`, `knip`, ESLint (everything except the type-aware rules) with the lint budget ratchet, `nuxt typecheck` + the `.vue` guard, `typecheck:tests`, `typecheck:scripts`, sync-server + renderer typechecks and the unit tests. `bun run check:full` (`make check-full`) adds the type-aware lint rules and the checks that need an external tool: shellcheck, hadolint, lychee and `uv` (ruff, pyright).
+
+| Command | What it checks | In CI job |
 |---|---|---|
-| `bun run lint` | ESLint | yes |
-| `bun run typecheck` | `nuxt typecheck` (vue-tsc) over the app, server and shared code | yes |
-| `bun run typecheck:guard` | Fails when the type check silently skips `.vue` files | yes |
-| `bun run typecheck:tests`, `bun run typecheck:scripts` | Types of `tests/`, `scripts/` and the root configs | not yet |
-| `bun run knip` | Unused files, exports and dependencies | not yet |
-| `bun run depcruise` | Import-layer rules and cycles (`.dependency-cruiser.cjs`) | not yet |
-| `bun run check:vocab`, `check:md-paths`, `check:links`, `check:i18n-unused` | Internal planning labels, dangling paths and broken links in Markdown, unused i18n keys | not yet |
-| `bun run check:shell`, `check:docker`, `check:py` | shellcheck, hadolint, ruff | not yet |
+| `bun run lint` | The whole ESLint config (CI truth, about 4 minutes) | `lint-types` |
+| `bun run lint:fast` | Everything except the type-aware rules (`no-floating-promises`, ...): seconds | `lint-typecheck` |
+| `bun run lint:types` | Only the type-aware rules | covered by `lint` |
+| `bun run lint:budget` | `lint:fast` plus the budget ratchet below | `lint-typecheck` |
+| `bun run typecheck`, `typecheck:guard` | `nuxt typecheck` (vue-tsc) over app, server and shared; the guard fails when `.vue` files are silently skipped | `lint-typecheck` |
+| `bun run typecheck:tests`, `typecheck:scripts`, `typecheck:services` | Types of `tests/`, `scripts/` + root configs, `sync-server/` + `renderer/` | `lint-typecheck` |
+| `bun run knip` | Unused files, exports and dependencies | `repo-checks` |
+| `bun run depcruise` | Import-layer rules and cycles (`.dependency-cruiser.cjs`; three known cycles are listed there and may only shrink) | `repo-checks` |
+| `bun run db:check-drift` | `server/db/schema.ts` matches the committed migrations (`bun run db:generate` would create nothing) | `repo-checks` |
+| `bun run check:env` | Generated `.env.example`, config reference and renderer env are current (`bun run env:gen`) | `lint-typecheck` |
+| `bun run check:vocab`, `check:md-paths`, `check:links` | Internal planning labels, dangling paths, broken relative links and anchors in Markdown | `repo-checks`, `docs-checks` |
+| `bun run check:shell`, `check:docker` | shellcheck, hadolint (`.hadolint.yaml`) | `shell-docker-lint` |
+| `bun run check:py`, `check:pyright` | ruff (lint + format), pyright (`ruff.toml`, `pyrightconfig.json`) | `python-checks` |
+| `bun run check:i18n-unused` | Unused i18n keys (informational) | no |
 | `make lint` | ESLint, the type checks incl. `sync-server/` and `renderer/`, ansible-lint, yamllint, actionlint | partly |
 
-**Run the type check under Node, never with `bun --bun`.** Under the Bun runtime the Vue language plugin of `vue-tsc` does not load, so every `.vue` file drops out of the check and it still exits 0. `bun run typecheck` keeps the script's Node shebang; `typecheck:guard` catches the silent case.
+Every ESLint rule is an `error` except three that still have a backlog: `max-lines` (600), `max-lines-per-function` (150) and `sonarjs/cognitive-complexity` (15). They warn, and `scripts/checks/lint-budget.mjs` keeps the backlog from growing: it compares the files with hits against `scripts/checks/lint-budget.baseline.json` and fails when a file not in the baseline gets a hit, when a listed file gets more hits, or when any other rule warns. When you split a file or simplify a function the check also fails, telling you the baseline can shrink: run `bun run lint:budget:update` and commit the smaller baseline. Never regenerate the baseline to make a new hit pass; split the code instead.
 
-The checks marked "not yet" report existing problems that are being cleaned up; do not add new findings. CI additionally runs a secret scan (gitleaks), actionlint, the migration guard, `scripts/selfhost-check.sh` (shellcheck on `install.sh`, `docker compose config` for every compose combination) and, for ready-for-review pull requests that touch code, the repos and integration tiers.
+**Run the type check under Node, never with `bun --bun`.** Under the Bun runtime the Vue language plugin of `vue-tsc` does not load, so every `.vue` file drops out of the check and it still exits 0. `bun run typecheck` keeps the script's Node shebang; `typecheck:guard` catches the silent case. ESLint and `depcruise` are the opposite and run under Bun (`bun --bun`).
+
+CI additionally runs a secret scan (gitleaks), actionlint, the migration guard, `scripts/selfhost-check.sh` (shellcheck on `install.sh`, `docker compose config` for every compose combination) and, for ready-for-review pull requests that touch code, the repos and integration tiers. All of these run on fork pull requests too, except SonarCloud. The required checks are listed in [`docs/operations/GITHUB-CONFIG.md`](./docs/operations/GITHUB-CONFIG.md).
 
 ## Coding rules
 

@@ -33,6 +33,12 @@ A validation failure answers `apiError(invalidCode ?? 'request/invalid', { field
 
 **Status changes to list in the PR** when they apply: a body-sourced document id is now checked for shape (400) before access (403/404); rate limits now run after access and input validation, so an over-limit caller with a bad body gets 400, not 429; an unconditional plan check moves after access and input.
 
+## Form uploads: `body: 'multipart'`
+
+A handler that accepts a file upload declares `body: 'multipart'`. The wrapper then does NOT read or parse the body (a size limit has to apply before anything is buffered), and the request type for the route is `FormData`, so the client calls `apiFetch('/api/import', { method: 'post', body: formData })` with a `FormData` it built (no `Content-Type` header: the browser adds the boundary).
+
+The handler reads the body itself through a size-limited reader and refuses with a registered code: `readBodyWithLimit(event, maxBytes, 'import/file-too-large')` followed by `parseMultipart(event, body)` (`server/api/import.post.ts`; brand uploads use `readBrandUpload`). Check the file's presence, size and type after parsing. A multipart route still declares its `access`, `rateLimit` and (for anonymous-reachable routes) `phase: 'before-access'` like any other: only the body schema is replaced by the handler's own reader. Use `'custom'` for any other body the handler must read itself.
+
 ## Policies
 
 | `access:` | Who passes | Context | Sessionless |
@@ -111,7 +117,7 @@ The route is the pattern (`:param`), not a template literal, so the response typ
 
 ## Enforcement
 
-- `eslint.config.mjs`: in every handler file except the raw exceptions `defineEventHandler`, `readBody` / `getQuery` / `getRouterParam` / `requireDocId` / …, `requireValidatedUserSession` / `requireAdminUser` / …, and `createError` are errors. In `app/`, `$fetch<T>(…)` and `.data.message` reads warn.
+- `eslint.config.mjs`: in every handler file except the raw exceptions `defineEventHandler`, `readBody` / `getQuery` / `getRouterParam` / `requireDocId` / …, `requireValidatedUserSession` / `requireAdminUser` / …, and `createError` are errors. In `app/`, `$fetch<T>(…)` and `.data.message` reads are errors too.
 - `tests/unit/platform/apiRoutes.test.ts`: every handler uses `defineApiHandler` or is a listed raw exception; `access` is an `allow.*` call with a reason where required; writes declare `body`; sessionless ⇔ public allowlist; no stale allowlist entry.
 - `tests/unit/repoHygiene/apiErrorKeys.test.ts`: texts in all six locales, placeholders ⊆ required params, no orphan texts, every `code: '…'` literal under `server/` registered.
 - `tests/unit/platform/defineApiHandler.test.ts`: the policy matrix against `docPermissions`, the order of the steps, fail-closed cases.
@@ -119,4 +125,4 @@ The route is the pattern (`:param`), not a template literal, so the response typ
 
 ## Verify
 
-`bun run typecheck`, `bun run lint` (no warnings left in the batch's files), `bun run test`, `bun run test:integration` on the batch's files (the full suite once per wave), `bun run knip`, `bun run depcruise`. In the integration output, look for `[api-error] unregistered code` lines.
+`bun run typecheck`, `bun run lint` (no errors, and no budget growth: see CONTRIBUTING), `bun run test`, `bun run test:integration` on the batch's files (the full suite once per wave), `bun run knip`, `bun run depcruise`. In the integration output, look for `[api-error] unregistered code` lines.

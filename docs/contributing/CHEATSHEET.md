@@ -58,7 +58,8 @@ For repos / integration / flows: bring up the test stack first if it is not alre
 | Goal | Command |
 |---|---|
 | All linters at once (ESLint, the type checks incl. `sync-server/` + `renderer/`, ansible-lint, yamllint, actionlint) | `make lint` |
-| Just ESLint + TypeScript | `bun run lint && bun run typecheck` |
+| The whole fast local gate | `bun run check` (or `make check`) |
+| Just ESLint + TypeScript | `bun run lint:fast && bun run typecheck` (`bun run lint` adds the slow type-aware rules) |
 | Just Ansible (ansible-lint + yamllint) | `cd infra && make lint` |
 | Just GitHub Actions workflows | `make lint-actions` |
 

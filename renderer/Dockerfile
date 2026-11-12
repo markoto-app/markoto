@@ -10,6 +10,10 @@
 # tag + digest together.
 FROM mcr.microsoft.com/playwright:v1.64.1-jammy@sha256:a3966b653e8d48a30901889081b616307fca73e0d843a117fadf6609397dac38
 
+# pipefail so a failed `curl` in the `curl | bash` below fails the build
+# instead of being masked by the last stage's exit code.
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+
 # Bun via the official curl install. We don't need bun for Playwright (which
 # ships its Node), but the renderer's own HTTP server runs under Bun for
 # stack consistency. The Bun installer requires `unzip` which the Playwright

@@ -150,7 +150,9 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _error(self, status, message, code):
-        self._send_json(status, {"error": {"message": message, "type": "invalid_request_error", "code": code}})
+        self._send_json(
+            status, {"error": {"message": message, "type": "invalid_request_error", "code": code}}
+        )
 
     def _read_body(self):
         length = int(self.headers.get("Content-Length", "0") or "0")
@@ -196,10 +198,13 @@ class Handler(BaseHTTPRequestHandler):
             if not self._check_auth():
                 return
             self._record("")
-            self._send_json(200, {
-                "object": "list",
-                "data": [{"id": m, "object": "model", "owned_by": "fake"} for m in MODELS],
-            })
+            self._send_json(
+                200,
+                {
+                    "object": "list",
+                    "data": [{"id": m, "object": "model", "owned_by": "fake"} for m in MODELS],
+                },
+            )
             return
         self._error(404, "Not found", "not_found")
 
@@ -250,7 +255,14 @@ class Handler(BaseHTTPRequestHandler):
         # Tool results the model was given (truncated) — lets tests prove
         # what content did or did not reach the "provider".
         tool_results = [_content_text(m)[:4000] for m in messages if m.get("role") == "tool"]
-        self._record(model, {"tools": [t.get("function", {}).get("name") for t in tools], "toolResults": tool_results, "images": _image_count(messages)})
+        self._record(
+            model,
+            {
+                "tools": [t.get("function", {}).get("name") for t in tools],
+                "toolResults": tool_results,
+                "images": _image_count(messages),
+            },
+        )
         if not self._check_auth():
             return
         if model == "missing-model":
@@ -266,7 +278,9 @@ class Handler(BaseHTTPRequestHandler):
                 proposal["matches_original"] = True
             tool_call = ("propose_design", proposal)
         elif model == "obedient-chat":
-            tool_call = _obedient_tool_call(messages, [t.get("function", {}).get("name") for t in tools])
+            tool_call = _obedient_tool_call(
+                messages, [t.get("function", {}).get("name") for t in tools]
+            )
         elif tools and model != "no-tools-model" and last_role != "tool":
             names = [t.get("function", {}).get("name") for t in tools]
             if "insert_text" in names:
@@ -280,11 +294,13 @@ class Handler(BaseHTTPRequestHandler):
             message = {
                 "role": "assistant",
                 "content": None,
-                "tool_calls": [{
-                    "id": "call_fake_1",
-                    "type": "function",
-                    "function": {"name": tool_call[0], "arguments": json.dumps(tool_call[1])},
-                }],
+                "tool_calls": [
+                    {
+                        "id": "call_fake_1",
+                        "type": "function",
+                        "function": {"name": tool_call[0], "arguments": json.dumps(tool_call[1])},
+                    }
+                ],
             }
             finish = "tool_calls"
         else:
@@ -297,14 +313,17 @@ class Handler(BaseHTTPRequestHandler):
         if req.get("stream"):
             self._stream_chat(completion_id, model, message, finish, usage, created)
             return
-        self._send_json(200, {
-            "id": completion_id,
-            "object": "chat.completion",
-            "created": created,
-            "model": model,
-            "choices": [{"index": 0, "message": message, "finish_reason": finish}],
-            "usage": usage,
-        })
+        self._send_json(
+            200,
+            {
+                "id": completion_id,
+                "object": "chat.completion",
+                "created": created,
+                "model": model,
+                "choices": [{"index": 0, "message": message, "finish_reason": finish}],
+                "usage": usage,
+            },
+        )
 
     def _stream_chat(self, completion_id, model, message, finish, usage, created):
         self.send_response(200)
@@ -327,11 +346,26 @@ class Handler(BaseHTTPRequestHandler):
 
         if message.get("tool_calls"):
             call = message["tool_calls"][0]
-            emit({"role": "assistant", "tool_calls": [{
-                "index": 0, "id": call["id"], "type": "function",
-                "function": {"name": call["function"]["name"], "arguments": ""},
-            }]})
-            emit({"tool_calls": [{"index": 0, "function": {"arguments": call["function"]["arguments"]}}]})
+            emit(
+                {
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "index": 0,
+                            "id": call["id"],
+                            "type": "function",
+                            "function": {"name": call["function"]["name"], "arguments": ""},
+                        }
+                    ],
+                }
+            )
+            emit(
+                {
+                    "tool_calls": [
+                        {"index": 0, "function": {"arguments": call["function"]["arguments"]}}
+                    ]
+                }
+            )
         else:
             emit({"role": "assistant", "content": message["content"]})
         emit({}, finish_reason=finish, with_usage=True)
@@ -363,7 +397,7 @@ class Handler(BaseHTTPRequestHandler):
             start = raw.find(b"\r\n\r\n", idx)
             end = raw.find(b"\r\n", start + 4)
             if start >= 0 and end > start:
-                model = raw[start + 4:end].decode("utf-8", "replace")
+                model = raw[start + 4 : end].decode("utf-8", "replace")
         self._record(model, {"bytes": len(raw)})
         if not self._check_auth():
             return

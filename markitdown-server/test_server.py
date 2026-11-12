@@ -49,8 +49,10 @@ class CheckArchiveTest(unittest.TestCase):
 
     def test_absolute_cap_still_applies_when_ratio_would_allow_more(self):
         body = make_zip({"a.xml": os.urandom(2 * MIB)}, level=0)
-        with mock.patch.object(server, "MAX_ARCHIVE_UNCOMPRESSED_BYTES", 1 * MIB), \
-                mock.patch.object(server, "RATIO_FLOOR_BYTES", 1 * MIB):
+        with (
+            mock.patch.object(server, "MAX_ARCHIVE_UNCOMPRESSED_BYTES", 1 * MIB),
+            mock.patch.object(server, "RATIO_FLOOR_BYTES", 1 * MIB),
+        ):
             with self.assertRaises(server.ArchiveRejected) as raised:
                 server.check_archive(body)
         # Declared size already exceeds the cap: refused before inflating.
@@ -109,11 +111,15 @@ class AuthMiddlewareTest(unittest.TestCase):
         self.assertEqual(res.status_code, 401)
 
     def test_design_extract_with_wrong_secret_is_refused(self):
-        res = self.client.post("/design/extract?ext=pdf", content=b"x", headers={"X-Markitdown-Secret": "nope"})
+        res = self.client.post(
+            "/design/extract?ext=pdf", content=b"x", headers={"X-Markitdown-Secret": "nope"}
+        )
         self.assertEqual(res.status_code, 401)
 
     def test_convert_with_secret_reaches_the_handler(self):
-        res = self.client.post("/convert?ext=txt", content=b"", headers={"X-Markitdown-Secret": "test-secret"})
+        res = self.client.post(
+            "/convert?ext=txt", content=b"", headers={"X-Markitdown-Secret": "test-secret"}
+        )
         self.assertEqual(res.status_code, 400)  # empty body: the handler ran
 
 

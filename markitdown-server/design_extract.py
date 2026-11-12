@@ -69,9 +69,16 @@ DOCX_STYLE_NAMES = {
 }
 
 THEME_COLOR_ALIASES = {
-    "text1": "dk1", "background1": "lt1", "text2": "dk2", "background2": "lt2",
-    "dark1": "dk1", "light1": "lt1", "dark2": "dk2", "light2": "lt2",
-    "hyperlink": "hlink", "followedHyperlink": "folHlink",
+    "text1": "dk1",
+    "background1": "lt1",
+    "text2": "dk2",
+    "background2": "lt2",
+    "dark1": "dk1",
+    "light1": "lt1",
+    "dark2": "dk2",
+    "light2": "lt2",
+    "hyperlink": "hlink",
+    "followedHyperlink": "folHlink",
 }
 
 
@@ -135,7 +142,9 @@ def _rels(archive: zipfile.ZipFile, part: str) -> dict[str, str]:
         target = rel.get("Target") or ""
         if rel.get("TargetMode") == "External" or not target:
             continue
-        out[rel.get("Id", "")] = target.lstrip("/") if target.startswith("/") else f"{folder}/{target}"
+        out[rel.get("Id", "")] = (
+            target.lstrip("/") if target.startswith("/") else f"{folder}/{target}"
+        )
     return out
 
 
@@ -158,7 +167,13 @@ def _theme(archive: zipfile.ZipFile) -> dict[str, Any]:
             name = slot.tag.replace(A, "")
             srgb = slot.find(A + "srgbClr")
             sys_clr = slot.find(A + "sysClr")
-            color = _hex(srgb.get("val")) if srgb is not None else _hex(sys_clr.get("lastClr")) if sys_clr is not None else None
+            color = (
+                _hex(srgb.get("val"))
+                if srgb is not None
+                else _hex(sys_clr.get("lastClr"))
+                if sys_clr is not None
+                else None
+            )
             if color:
                 out["colors"][name] = color
     return out
@@ -205,17 +220,27 @@ class _DocxResolver:
         font = self.font(rpr.find(W + "rFonts"))
         if font:
             props["font"] = font
-        size = _num((rpr.find(W + "sz").get(W + "val") if rpr.find(W + "sz") is not None else None))
+        size = _num(rpr.find(W + "sz").get(W + "val") if rpr.find(W + "sz") is not None else None)
         if size:
             props["sizePt"] = size / 2
-        for tag, key in (("b", "bold"), ("i", "italic"), ("caps", "allCaps"), ("smallCaps", "smallCaps"), ("u", "underline")):
+        for tag, key in (
+            ("b", "bold"),
+            ("i", "italic"),
+            ("caps", "allCaps"),
+            ("smallCaps", "smallCaps"),
+            ("u", "underline"),
+        ):
             el = rpr.find(W + tag)
             if el is not None:
                 props[key] = el.get(W + "val") not in ("none",) if tag == "u" else _on(el)
         color = self.color(rpr.find(W + "color"))
         if color:
             props["color"] = color
-        spacing = _num(rpr.find(W + "spacing").get(W + "val")) if rpr.find(W + "spacing") is not None else None
+        spacing = (
+            _num(rpr.find(W + "spacing").get(W + "val"))
+            if rpr.find(W + "spacing") is not None
+            else None
+        )
         if spacing:
             props["letterSpacingPt"] = round(spacing / 20, 2)
         shd = rpr.find(W + "shd")
@@ -284,7 +309,11 @@ def _styles(archive: zipfile.ZipFile, res: _DocxResolver) -> tuple[dict[str, Any
         props = {}
         props.update(res.para_props(style.find(W + "pPr")))
         props.update(res.run_props(style.find(W + "rPr")))
-        raw[style_id] = {"name": name, "basedOn": based.get(W + "val") if based is not None else None, "props": props}
+        raw[style_id] = {
+            "name": name,
+            "basedOn": based.get(W + "val") if based is not None else None,
+            "props": props,
+        }
 
     def resolved(style_id: str, depth: int = 0) -> dict[str, Any]:
         entry = raw.get(style_id)
@@ -337,13 +366,22 @@ def _part_text(archive: zipfile.ZipFile, part: str) -> dict[str, Any]:
         text = re.sub(r"\s+", " ", "".join(line)).strip(" |")
         if text:
             out.append(text)
-    has_image = any(True for _ in root.iter(W + "drawing")) or any(True for _ in root.iter("{urn:schemas-microsoft-com:vml}imagedata"))
+    has_image = any(True for _ in root.iter(W + "drawing")) or any(
+        True for _ in root.iter("{urn:schemas-microsoft-com:vml}imagedata")
+    )
     return {"text": " / ".join(out)[:300], "hasImage": has_image}
 
 
 def _field_token(instr: str) -> str:
     word = instr.strip().split(" ")[0].upper() if instr.strip() else ""
-    return {"PAGE": "{page}", "NUMPAGES": "{pages}", "SECTIONPAGES": "{pages}", "TITLE": "{title}", "DATE": "{date}", "AUTHOR": "{author}"}.get(word, "")
+    return {
+        "PAGE": "{page}",
+        "NUMPAGES": "{pages}",
+        "SECTIONPAGES": "{pages}",
+        "TITLE": "{title}",
+        "DATE": "{date}",
+        "AUTHOR": "{author}",
+    }.get(word, "")
 
 
 def _section(archive: zipfile.ZipFile, body, rels: dict[str, str]) -> dict[str, Any]:
@@ -359,16 +397,26 @@ def _section(archive: zipfile.ZipFile, body, rels: dict[str, str]) -> dict[str, 
         w, h = _num(size.get(W + "w")), _num(size.get(W + "h"))
         if w and h:
             out["pageWidthMm"], out["pageHeightMm"] = _twips_to_mm(w), _twips_to_mm(h)
-        out["orientation"] = size.get(W + "orient") or ("landscape" if (w or 0) > (h or 0) else "portrait")
+        out["orientation"] = size.get(W + "orient") or (
+            "landscape" if (w or 0) > (h or 0) else "portrait"
+        )
     margins = sect.find(W + "pgMar")
     if margins is not None:
-        out["marginsMm"] = {k: _twips_to_mm(_num(margins.get(W + k)) or 0) for k in ("top", "right", "bottom", "left", "header", "footer")}
+        out["marginsMm"] = {
+            k: _twips_to_mm(_num(margins.get(W + k)) or 0)
+            for k in ("top", "right", "bottom", "left", "header", "footer")
+        }
     cols = sect.find(W + "cols")
     if cols is not None and _num(cols.get(W + "num")):
         out["columns"] = int(_num(cols.get(W + "num")) or 1)
-    out["differentFirstPage"] = sect.find(W + "titlePg") is not None and _on(sect.find(W + "titlePg")) is not False
+    out["differentFirstPage"] = (
+        sect.find(W + "titlePg") is not None and _on(sect.find(W + "titlePg")) is not False
+    )
     for kind in ("header", "footer"):
-        refs = {ref.get(W + "type", "default"): ref.get(R + "id") for ref in sect.iter(W + f"{kind}Reference")}
+        refs = {
+            ref.get(W + "type", "default"): ref.get(R + "id")
+            for ref in sect.iter(W + f"{kind}Reference")
+        }
         for which in ("default", "first"):
             part = rels.get(refs.get(which) or "")
             if part:
@@ -409,12 +457,21 @@ def extract_docx(body: bytes) -> dict[str, Any]:
             for para in body_el.iter(W + "p"):
                 ppr = para.find(W + "pPr")
                 style_el = ppr.find(W + "pStyle") if ppr is not None else None
-                style = style_names.get(style_el.get(W + "val", ""), style_el.get(W + "val", "")) if style_el is not None else "Normal"
+                style = (
+                    style_names.get(style_el.get(W + "val", ""), style_el.get(W + "val", ""))
+                    if style_el is not None
+                    else "Normal"
+                )
                 text = "".join(t.text or "" for t in para.iter(W + "t")).strip()
                 # Is the Title a title PAGE (a page break follows soon) or a
                 # title at the top of the first text page?
-                breaks = any(b.get(W + "type") == "page" for b in para.iter(W + "br")) \
-                    or (ppr is not None and (ppr.find(W + "pageBreakBefore") is not None or ppr.find(W + "sectPr") is not None))
+                breaks = any(b.get(W + "type") == "page" for b in para.iter(W + "br")) or (
+                    ppr is not None
+                    and (
+                        ppr.find(W + "pageBreakBefore") is not None
+                        or ppr.find(W + "sectPr") is not None
+                    )
+                )
                 if title_seen and title_page_break is None and breaks:
                     title_page_break = True
                 if style.lower() == "title":
@@ -443,7 +500,12 @@ def extract_docx(body: bytes) -> dict[str, Any]:
                 "themeColors": theme["colors"],
                 "styles": styles,
                 "section": section,
-                "directFormatting": {"fonts": _top(fonts, 6), "sizesPt": _top(sizes, 6), "colors": _top(colors, 8), "cellFills": _top(fills, 6)},
+                "directFormatting": {
+                    "fonts": _top(fonts, 6),
+                    "sizesPt": _top(sizes, 6),
+                    "colors": _top(colors, 8),
+                    "cellFills": _top(fills, 6),
+                },
                 "tables": tables,
                 # None: no Title-style paragraph. False: the title sits on
                 # the first text page (no separate title page).
@@ -486,7 +548,6 @@ def _pt_to_mm(pt: float) -> float:
     return round(pt / 72 * 25.4, 1)
 
 
-
 def render_pdf_pages(body: bytes, max_pages: int) -> tuple[int, list[dict[str, Any]]]:
     import pypdfium2 as pdfium
 
@@ -504,7 +565,13 @@ def render_pdf_pages(body: bytes, max_pages: int) -> tuple[int, list[dict[str, A
             image = page.render(scale=scale).to_pil().convert("RGB")
             buf = io.BytesIO()
             image.save(buf, format="PNG", optimize=True)
-            pages.append({"png": base64.b64encode(buf.getvalue()).decode("ascii"), "width": image.width, "height": image.height})
+            pages.append(
+                {
+                    "png": base64.b64encode(buf.getvalue()).decode("ascii"),
+                    "width": image.width,
+                    "height": image.height,
+                }
+            )
             page.close()
         return count, pages
     finally:
@@ -529,7 +596,10 @@ def extract_pdf(body: bytes, max_pages: int = MAX_PAGES) -> dict[str, Any]:
         with pdfplumber.open(io.BytesIO(body)) as pdf:
             for index, page in enumerate(pdf.pages[:max_pages]):
                 if not page_size:
-                    page_size = {"widthMm": _pt_to_mm(page.width), "heightMm": _pt_to_mm(page.height)}
+                    page_size = {
+                        "widthMm": _pt_to_mm(page.width),
+                        "heightMm": _pt_to_mm(page.height),
+                    }
                 chars = [c for c in page.chars if (c.get("text") or "").strip()]
                 for c in chars:
                     font = _font_name(c.get("fontname", ""))
@@ -539,13 +609,15 @@ def extract_pdf(body: bytes, max_pages: int = MAX_PAGES) -> dict[str, Any]:
                     if hexc:
                         colors[hexc] += 1
                 if chars:
-                    margins.append({
-                        "page": index + 1,
-                        "top": _pt_to_mm(min(c["top"] for c in chars)),
-                        "right": _pt_to_mm(page.width - max(c["x1"] for c in chars)),
-                        "bottom": _pt_to_mm(page.height - max(c["bottom"] for c in chars)),
-                        "left": _pt_to_mm(min(c["x0"] for c in chars)),
-                    })
+                    margins.append(
+                        {
+                            "page": index + 1,
+                            "top": _pt_to_mm(min(c["top"] for c in chars)),
+                            "right": _pt_to_mm(page.width - max(c["x1"] for c in chars)),
+                            "bottom": _pt_to_mm(page.height - max(c["bottom"] for c in chars)),
+                            "left": _pt_to_mm(min(c["x0"] for c in chars)),
+                        }
+                    )
                 area = float(page.width * page.height) or 1.0
                 for shape in list(page.rects) + list(page.curves):
                     if not shape.get("fill"):
@@ -553,25 +625,37 @@ def extract_pdf(body: bytes, max_pages: int = MAX_PAGES) -> dict[str, Any]:
                     hexc = _color_hex(shape.get("non_stroking_color"))
                     if not hexc or hexc == "#FFFFFF":
                         continue
-                    fills[hexc] += float(shape.get("width", 0)) * float(shape.get("height", 0)) / area
-                words = page.extract_words(extra_attrs=["fontname", "size"], keep_blank_chars=False, use_text_flow=True)
+                    fills[hexc] += (
+                        float(shape.get("width", 0)) * float(shape.get("height", 0)) / area
+                    )
+                words = page.extract_words(
+                    extra_attrs=["fontname", "size"], keep_blank_chars=False, use_text_flow=True
+                )
                 by_line: dict[tuple[int, str, float], list[dict[str, Any]]] = {}
                 for w in words:
-                    key = (round(w["top"] / 2), _font_name(w["fontname"]), round(float(w["size"]), 1))
+                    key = (
+                        round(w["top"] / 2),
+                        _font_name(w["fontname"]),
+                        round(float(w["size"]), 1),
+                    )
                     by_line.setdefault(key, []).append(w)
-                for (_, font, size), ws in sorted(by_line.items(), key=lambda item: (item[1][0]["top"], item[1][0]["x0"])):
+                for (_, font, size), ws in sorted(
+                    by_line.items(), key=lambda item: (item[1][0]["top"], item[1][0]["x0"])
+                ):
                     if len(lines) >= MAX_LINES:
                         break
                     text = " ".join(w["text"] for w in ws)[:160]
                     first = ws[0]
-                    lines.append({
-                        "page": index + 1,
-                        "yMm": _pt_to_mm(first["top"]),
-                        "xMm": _pt_to_mm(first["x0"]),
-                        "font": font,
-                        "sizePt": size,
-                        "text": text,
-                    })
+                    lines.append(
+                        {
+                            "page": index + 1,
+                            "yMm": _pt_to_mm(first["top"]),
+                            "xMm": _pt_to_mm(first["x0"]),
+                            "font": font,
+                            "sizePt": size,
+                            "text": text,
+                        }
+                    )
                 if sum(len(p) for p in text_parts) < TEXT_SAMPLE_CHARS:
                     text_parts.append((page.extract_text() or "")[:TEXT_SAMPLE_CHARS])
     except ExtractError:
@@ -591,7 +675,10 @@ def extract_pdf(body: bytes, max_pages: int = MAX_PAGES) -> dict[str, Any]:
             "fonts": _top(fonts, 8),
             "sizesPt": _top(sizes, 8),
             "textColors": _top(colors, 8),
-            "filledShapes": [{"value": k, "pageShare": round(v / max(1, len(pages)), 3)} for k, v in fills.most_common(6)],
+            "filledShapes": [
+                {"value": k, "pageShare": round(v / max(1, len(pages)), 3)}
+                for k, v in fills.most_common(6)
+            ],
             "lines": lines,
         },
         "textSample": "\n".join(text_parts)[:TEXT_SAMPLE_CHARS],

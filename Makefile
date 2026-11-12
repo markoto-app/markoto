@@ -105,6 +105,14 @@ lint: ## Run all lint+typecheck (eslint + tsc incl. sync-server + renderer + ans
 	$(MAKE) -C infra lint
 	$(MAKE) lint-actions
 
+.PHONY: check
+check: ## The one-command local gate: generated files, graph checks, fast lint + ratchet, every typecheck, unit tests
+	bun run check
+
+.PHONY: check-full
+check-full: ## `make check` + the type-aware lint rules + the checks that need external tools (shellcheck, hadolint, lychee, uv)
+	bun run check:full
+
 .PHONY: lint-actions
 lint-actions: ## Lint .github/workflows/*.yml via actionlint
 	@which actionlint > /dev/null || (echo "actionlint not installed. Install: https://github.com/rhysd/actionlint/blob/main/docs/install.md"; exit 1)
