@@ -3,7 +3,7 @@ import type { ApiResponse } from '~/utils/api/client'
 // MCP integrations management. Issue, list, and revoke Personal Access
 // Tokens for external MCP clients (Claude Desktop, Cursor, ChatGPT app
 // store, ad-hoc scripts). Token plaintext is shown ONCE on creation and
-// never reconstructed — same pattern as GitHub PATs.
+// never reconstructed: same pattern as GitHub PATs.
 //
 // Auth-gated client-side via redirect; the token endpoints are session-
 // required so deep-linking without a session lands in the 401-toast
@@ -65,7 +65,7 @@ const issuing = ref(false)
 
 // Plaintext shown exactly once after issuance. Cleared when the user
 // dismisses the inline alert. We deliberately don't persist it anywhere
-// else — refreshing the page wipes it forever, mirroring GitHub PATs.
+// else: refreshing the page wipes it forever, mirroring GitHub PATs.
 const justIssued = ref<IssueResponse | null>(null)
 const justIssuedCopied = ref(false)
 
@@ -145,12 +145,16 @@ async function onRevoke(tokenId: string): Promise<void> {
 }
 
 // Uses the just-issued plaintext when available; otherwise a placeholder.
-// The MCP URL is derived from the running origin so localhost users see
-// `http://localhost:3000/mcp` and prod users see their domain.
-const mcpUrl = computed(() => {
-  if (!import.meta.client) return 'https://markoto.app/mcp'
-  return `${globalThis.location.origin}/mcp`
+// The MCP URL follows the address the page is opened on, so a self-hosted
+// instance shows its own domain. The server's view of the origin travels in
+// the payload (identical markup on both sides, no hydration mismatch); the
+// browser's own address replaces it after mount, because behind a
+// TLS-terminating proxy the server may see http where the browser has https.
+const pageOrigin = useState('integrations-origin', () => useRequestURL().origin)
+onMounted(() => {
+  pageOrigin.value = globalThis.location.origin
 })
+const mcpUrl = computed(() => `${pageOrigin.value}/mcp`)
 
 const configSnippet = computed(() => {
   const plaintext = justIssued.value?.token ?? '<paste-your-token-here>'
@@ -182,7 +186,7 @@ async function copySnippet(): Promise<void> {
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return new Date(iso).toLocaleString(locale.value, {
       year: 'numeric', month: 'short', day: 'numeric',
@@ -194,7 +198,7 @@ function fmtDate(iso: string | null): string {
 }
 
 // Surface the litellm key id for debugging from the user object only when
-// it's actually meaningful — keeps the Vue compiler from complaining about
+// it's actually meaningful: keeps the Vue compiler from complaining about
 // `config` being unused.
 void config
 void user
@@ -226,7 +230,7 @@ void user
         </p>
       </header>
 
-      <!-- Just-issued banner. Plaintext is here ONCE — refresh wipes it forever. -->
+      <!-- Just-issued banner. Plaintext is here ONCE, refresh wipes it forever. -->
       <section
         v-if="justIssued"
         class="mb-8 border border-default rounded-lg px-4 py-4 bg-elevated"
