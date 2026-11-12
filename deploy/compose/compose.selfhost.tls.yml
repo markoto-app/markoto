@@ -1,8 +1,8 @@
 # Self-host overlay: HTTPS with Let's Encrypt for ${MARKOTO_DOMAIN}.
-# Used together with docker-compose.selfhost.yml (install.sh puts both in
+# Used together with deploy/compose/compose.selfhost.yml (install.sh puts both in
 # COMPOSE_FILE when you give it a domain):
 #
-#   COMPOSE_FILE=docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml
+#   COMPOSE_FILE=deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml
 #
 # Requirements: DNS A/AAAA record for MARKOTO_DOMAIN pointing at this host,
 # and ports 80 + 443 reachable from the internet (the TLS-ALPN challenge
@@ -38,7 +38,7 @@ services:
     ports:
       - "${MARKOTO_HTTPS_BIND:-0.0.0.0}:${MARKOTO_HTTPS_PORT:-443}:443"
     # No Docker socket here: Traefik reads the Docker API through the
-    # read-only socket-proxy (docker-compose.selfhost.yml).
+    # read-only socket-proxy (deploy/compose/compose.selfhost.yml).
     volumes:
       - letsencrypt:/letsencrypt
 

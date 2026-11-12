@@ -8,7 +8,7 @@
 //   … <playwright args>                    # anything else, e.g. --project=tour-light -g "Tour: write$"
 //
 // Recording drives the real app with tests/e2e/tour/*.capture.ts
-// (playwright.tour.config.ts: 1440×900 @2x, light + dark) and writes PNG
+// (tests/e2e/tour/playwright.config.ts: 1440×900 @2x, light + dark) and writes PNG
 // frames + clip.json per scene (see tests/e2e/tour/fixture.ts). It needs
 // the flow test stack and an app server in the hosted shape (no
 // NUXT_AI_DEFAULT_* — the AI runs on the user's own key), plus
@@ -324,7 +324,7 @@ async function encode(only: ReadonlySet<string> | null): Promise<void> {
 
 async function record(args: string[]): Promise<number> {
   const proc = spawn({
-    cmd: ['bunx', 'playwright', 'test', '-c', 'playwright.tour.config.ts', ...args],
+    cmd: ['bunx', 'playwright', 'test', '-c', 'tests/e2e/tour/playwright.config.ts', ...args],
     env: { ...process.env, PLAYWRIGHT_BASE_URL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://markoto.localhost:3001' },
     stdout: 'inherit',
     stderr: 'inherit'

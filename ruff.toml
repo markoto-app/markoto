@@ -1,5 +1,5 @@
 # Python is small and lives in a few places: markitdown-server/ (FastAPI, 3.13),
-# infra/litellm/custom_handlers.py (LiteLLM plugin, runs on the LiteLLM image's
+# deploy/config/litellm/custom_handlers.py (LiteLLM plugin, runs on the LiteLLM image's
 # Python), tests/fixtures/fake-openai/ (stdlib test double) and a few scripts.
 # Sonar pins 3.13; the markitdown Dockerfile is python:3.13-slim.
 target-version = "py313"

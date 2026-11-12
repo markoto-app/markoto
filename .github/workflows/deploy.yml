@@ -114,7 +114,7 @@ jobs:
       # Render /opt/markoto/.env on the VM from the GitHub Environment
       # secrets/variables (provider keys included). This makes GitHub
       # the single source of truth for deploy config — no laptop ansible-vault
-      # in the loop. render-env.sh is a faithful, parity-tested port of env.j2;
+      # in the loop. render-env.sh is also what the Ansible role runs;
       # it fails loud if any required secret is empty, so a broken/partial
       # GitHub config aborts the deploy BEFORE the running stack is touched.
       # The previous .env is kept as .env.prev for manual recovery (the
@@ -312,18 +312,18 @@ jobs:
       - name: Sync compose + mounted config to the host
         run: |
           set -euo pipefail
-          # infra/postgres/init is deliberately NOT synced: the initdb
+          # deploy/config/postgres/init is deliberately NOT synced: the initdb
           # scripts only run on the FIRST boot of a fresh postgres data
           # dir (a provision-time concern), and the host copy is
           # root-owned from provisioning, so the deploy user can't
           # overwrite it. Changing an init script requires an Ansible pass.
           tar czf - \
-            docker-compose.prod.yml \
-            docker-compose.base.yml \
-            infra/litellm/config.yaml \
-            infra/litellm/custom_handlers.py \
-            infra/postgres/db-init.sh \
-            renderer/seccomp.json \
+            deploy/compose/compose.prod.yml \
+            deploy/compose/compose.base.yml \
+            deploy/config/litellm/config.yaml \
+            deploy/config/litellm/custom_handlers.py \
+            deploy/config/postgres/db-init.sh \
+            deploy/config/renderer/seccomp.json \
             | ssh "${DEPLOY_USER}@${DEPLOY_HOST}" 'tar xzf - -C /opt/markoto'
 
       - name: Roll forward + health check
@@ -351,13 +351,13 @@ jobs:
           # LiteLLM loads its config only at boot, and its single-file
           # bind mounts keep the old file after the tar sync replaced it.
           # A changed hash changes the litellm container's label, so
-          # `up -d` recreates it (docker-compose.base.yml).
-          LITELLM_CONFIG_HASH="$(cat infra/litellm/config.yaml infra/litellm/custom_handlers.py | sha256sum | cut -c1-16)"
+          # `up -d` recreates it (deploy/compose/compose.base.yml).
+          LITELLM_CONFIG_HASH="$(cat deploy/config/litellm/config.yaml deploy/config/litellm/custom_handlers.py | sha256sum | cut -c1-16)"
           export LITELLM_CONFIG_HASH
           # Login is already established at provision time via the
           # ghcr_pat vault entry — no additional `docker login` here.
-          docker compose -f docker-compose.prod.yml pull
-          docker compose -f docker-compose.prod.yml up -d
+          docker compose pull
+          docker compose up -d
 
           # Health-check loop: 60 attempts × 5 s = 300 s. Sized for a COLD
           # first boot: litellm runs ~118 Prisma migrations before turning
@@ -383,8 +383,8 @@ jobs:
           if [ "$ok" -ne 1 ]; then
             echo "Health check failed after 300s — rolling back to $PREV" >&2
             export IMAGE_TAG="$PREV"
-            docker compose -f docker-compose.prod.yml pull || true
-            docker compose -f docker-compose.prod.yml up -d
+            docker compose pull || true
+            docker compose up -d
             # Try to confirm rollback health. If even rollback fails,
             # the workflow will surface that too.
             for i in $(seq 1 20); do

@@ -69,7 +69,7 @@ For repos / integration / flows: bring up the test stack first if it is not alre
 |---|---|
 | Dev infra (services only — Nuxt on host) | `make dev` / `make dev-down` |
 | Local full stack (Traefik + mkcert TLS at https://ypad.127.0.0.1.nip.io) | `make local-up` / `make local-down` / `make local-clean` |
-| Test stack (`docker-compose.test.yml`: Postgres, Valkey, SeaweedFS, LiteLLM, sync, renderer, markitdown, fakes) | `make test-stack-up` / `make test-stack-down` |
+| Test stack (`deploy/compose/compose.test.yml`: Postgres, Valkey, SeaweedFS, LiteLLM, sync, renderer, markitdown, fakes) | `make test-stack-up` / `make test-stack-down` |
 
 First-time only for the local stack: `make mkcert-install` then `make certs` (wired into `local-up`).
 

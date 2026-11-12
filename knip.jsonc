@@ -32,14 +32,13 @@
       "project": [
         "app/**/*.{ts,vue,css}",
         "server/**/*.ts",
-        "shared/**/*.ts",
         "modules/**/*.ts",
         "scripts/**/*.{ts,mjs}",
         "tests/**/*.{ts,mjs}",
         "*.{ts,mjs}"
       ],
-      // all three playwright configs (flows, smoke, tour capture)
-      "playwright": { "config": ["playwright*.config.ts"] },
+      // all three playwright configs (flows at the root, smoke, tour capture)
+      "playwright": { "config": ["playwright.config.ts", "tests/smoke/playwright.config.ts", "tests/e2e/tour/playwright.config.ts"] },
       "ignoreDependencies": [
         // Vendored assets: modules/vendor-assets.ts + scripts/lib/vendorAssets.ts
         // read files out of node_modules by path (fonts, pagedjs, mermaid IIFE
@@ -62,8 +61,12 @@
       // on the host, not npm packages.
       "ignoreBinaries": ["pdftoppm", "openssl", "uv", "uvx", "shellcheck", "hadolint", "lychee"]
     },
-    // sync-server and renderer are NOT Bun workspaces; knip reads their own
-    // package.json and bun.lock-installed node_modules.
+    // The other Bun workspaces (package.json `workspaces`). shared/ is
+    // TypeScript source without entry points of its own: its files are used
+    // through the app's, the sync server's and the renderer's imports.
+    "shared": {
+      "project": ["**/*.ts"]
+    },
     "sync-server": {
       "project": ["src/**/*.ts"]
     },
@@ -71,13 +74,17 @@
       "project": ["src/**/*.ts"]
     }
   },
+  // The `workspace:*` edge to @markoto/shared makes `bun install --filter`
+  // install shared's dependencies for each package; the code itself imports
+  // shared/ by path (relative, `~~/shared`, `#shared`), not by package name.
+  "ignoreDependencies": ["@markoto/shared"],
   "ignoreIssues": {
     // `bun scripts/flows-ephemeral.ts` in a spawnSync argument list is not an import.
     "scripts/flows-test-changed.ts": ["unresolved"],
     // `#nitro-internal-pollyfills` is a Nitro virtual module, resolved by the bundler.
     "server/runtime/bunEntry.ts": ["unresolved"],
     // renderer/src/shared/ mirrors the shared/ files the renderer needs, byte for byte
-    // (its image is built from renderer/ alone; pinned by tests/unit/logging/core.test.ts,
+    // (pinned by tests/unit/logging/core.test.ts,
     // tests/unit/platform/{internalSecret,sentryScrub}.test.ts), so the exports its own
     // code does not call must stay.
     "renderer/src/shared/**": ["exports"],

@@ -3,14 +3,14 @@
 # (The `ypad.` prefix is a leftover from the old project codename — purely a
 #  local-dev hostname, not the brand. Renaming would force every dev to
 #  regenerate certs, so we keep it.)
-# Run: docker compose -f docker-compose.local.yml up -d --build
+# Run: docker compose --env-file .env -f deploy/compose/compose.local.yml up -d --build
 #
 # First-time setup: see docs/contributing/LOCAL.md.
 #
 # Access:
 #   App:           https://ypad.127.0.0.1.nip.io
 #   Sync:          wss://sync.ypad.127.0.0.1.nip.io
-#   Traefik UI:    `docker compose -f docker-compose.local.yml exec traefik wget -qO- localhost:8080/api/rawdata`
+#   Traefik UI:    `docker compose --env-file .env -f deploy/compose/compose.local.yml exec traefik wget -qO- localhost:8080/api/rawdata`
 #                  (dashboard isn't bound to host to avoid port clashes with
 #                  other dev tools; run via exec when you need it)
 #
@@ -20,14 +20,18 @@
 # from .env via `${VAR:?required}` so a missing entry crashes
 # `docker compose up` instead of silently booting empty.
 #
-# Common service shape lives in docker-compose.base.yml (see header).
+# Common service shape lives in deploy/compose/compose.base.yml (see header).
 # This file adds Traefik (mkcert TLS), the Nuxt `app` service, and
 # wires every backend service onto its purpose networks.
 
-include:
-  - docker-compose.base.yml
+# Project name: fixed, so it does not follow this file's directory (the
+# default, `compose`) and stays the same for every checkout path.
+name: markoto-local
 
-# Same purpose networks as docker-compose.prod.yml (see its header), plus
+include:
+  - compose.base.yml
+
+# Same purpose networks as deploy/compose/compose.prod.yml (see its header), plus
 # `storage` for the bundled SeaweedFS. `storage` is not `internal: true`
 # here only because SeaweedFS publishes 8333 on 127.0.0.1 for the browser.
 networks:
@@ -45,8 +49,17 @@ networks:
   egress: {}
   renderer-egress: {}
 
+# Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
+# no Linux capabilities, no privilege gain through setuid binaries. A service
+# that needs more (a seccomp profile, a capability) spells its keys out.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
+
 services:
-  # Read-only Docker API for Traefik — see docker-compose.prod.yml.
+  # Read-only Docker API for Traefik — see deploy/compose/compose.prod.yml.
   socket-proxy:
     image: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
     restart: unless-stopped
@@ -95,16 +108,13 @@ services:
       - "127.0.0.1:80:80"
       - "127.0.0.1:443:443"
     volumes:
-      - ./traefik/local:/etc/traefik/dynamic:ro,z
+      - ../config/traefik/local:/etc/traefik/dynamic:ro,z
     read_only: true
     # Docker sets this in every container's network namespace; Podman does
     # not. Without it Traefik (no capabilities) can't bind :80 / :443.
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 0
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     depends_on:
       - socket-proxy
     networks:
@@ -126,7 +136,7 @@ services:
     networks:
       - data
 
-  # litellm + db-init are declared in docker-compose.base.yml without
+  # litellm + db-init are declared in deploy/compose/compose.base.yml without
   # `networks:`. Compose's `include:` merges the service block verbatim, so
   # without an override they'd land on the auto-created `default` network
   # and lose access to Postgres (which is `data`-only). Same in prod.
@@ -140,7 +150,7 @@ services:
       - data
 
   # Defined inline (not in base) — prod uses external S3 and `include:`
-  # has no "drop service" mechanic. See header in docker-compose.base.yml.
+  # has no "drop service" mechanic. See header in deploy/compose/compose.base.yml.
   seaweedfs:
     image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
     restart: unless-stopped
@@ -159,7 +169,7 @@ services:
       - "127.0.0.1:8333:8333"
     volumes:
       - seaweed_data:/data
-      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
+      - ../config/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
     # The image's entrypoint chowns /data as root, then drops to `seaweed`.
     cap_drop:
       - ALL
@@ -183,7 +193,7 @@ services:
       timeout: 10s
       start_period: 30s
       retries: 3
-    build: .
+    build: ../..
     restart: unless-stopped
     stop_grace_period: 30s
     # Match prod's cap so the pre-push full-stack run behaves like prod.
@@ -233,7 +243,7 @@ services:
       # service; master key matches the one mounted into the litellm
       # container (which reads LITELLM_MASTER_KEY from .env via base.yml).
       - NUXT_LITELLM_URL=http://litellm:4000
-      # Embeddings (see docker-compose.prod.yml / docs/AI-MODELS.md#embeddings).
+      # Embeddings (see deploy/compose/compose.prod.yml / docs/AI-MODELS.md#embeddings).
       - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-jina-embeddings-v5-text-nano}
       - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-768}
       - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
@@ -297,13 +307,13 @@ services:
       - "3000"
     labels:
       - "traefik.enable=true"
-      # Internal routes off the edge, as in docker-compose.prod.yml.
+      # Internal routes off the edge, as in deploy/compose/compose.prod.yml.
       - "traefik.http.routers.app.rule=Host(`ypad.127.0.0.1.nip.io`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
       - "traefik.http.routers.app.priority=1"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls=true"
       - "traefik.http.services.app.loadbalancer.server.port=3000"
-      # The published-pages host, as in docker-compose.prod.yml.
+      # The published-pages host, as in deploy/compose/compose.prod.yml.
       - "traefik.http.routers.pages.rule=Host(`pages.ypad.127.0.0.1.nip.io`) && (PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`))"
       - "traefik.http.routers.pages.entrypoints=websecure"
       - "traefik.http.routers.pages.tls=true"
@@ -316,10 +326,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=256m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     networks:
       web: {}
       data: {}
@@ -334,7 +341,7 @@ services:
 
   sync:
     build:
-      context: .
+      context: ../..
       dockerfile: sync-server/Dockerfile
     environment:
       - JWT_SECRET=local-jwt-secret-change-me-64chars-for-real-deployments-only-xx
@@ -354,7 +361,7 @@ services:
       - data
 
   markitdown:
-    build: ./markitdown-server
+    build: ../../markitdown-server
     environment:
       - MARKITDOWN_API_SECRET=local-markitdown-api-secret-change-me
     expose:
@@ -362,11 +369,14 @@ services:
     networks:
       - import
 
-  # Backend PDF + PNG renderer — see docker-compose.base.yml for the
+  # Backend PDF + PNG renderer — see deploy/compose/compose.base.yml for the
   # rationale. In local mode it sits on the render + storage networks only; the
   # app reaches it via http://renderer:9000.
   renderer:
-    build: ./renderer
+    build:
+      # Workspace root: one lockfile, and the renderer imports shared/.
+      context: ../..
+      dockerfile: renderer/Dockerfile
     environment:
       # Hardcoded literal to mirror the app+sync hardcoded secrets in
       # this file — local boots without a populated .env.
@@ -385,7 +395,7 @@ services:
       - renderer-egress
 
   backup:
-    build: ./backup-server
+    build: ../../backup-server
     environment:
       - S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-http://seaweedfs:8333}
       - BACKUP_INTERVAL_SECONDS=3600
@@ -407,5 +417,5 @@ services:
 
 volumes:
   # Declared here (not in base) because seaweedfs is defined per-env —
-  # see header in docker-compose.base.yml.
+  # see header in deploy/compose/compose.base.yml.
   seaweed_data:

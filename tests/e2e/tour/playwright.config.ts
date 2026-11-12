@@ -13,7 +13,9 @@ const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://markoto.localhost:30
 const VIEWPORT = { width: 1440, height: 900 }
 
 export default defineConfig({
-  testDir: './tests/e2e/tour',
+  testDir: '.',
+  // Artifacts in the gitignored root dir, with the other Playwright runs'.
+  outputDir: '../../../test-results',
   testMatch: '**/*.capture.ts',
   timeout: 360_000,
   retries: 0,

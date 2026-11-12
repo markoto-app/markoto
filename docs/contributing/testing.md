@@ -44,9 +44,9 @@ it('…', () => {
 
 ## The test stack
 
-`docker-compose.test.yml` holds the infrastructure for repos, integration and flow tests. It runs next to the dev stack: ports are shifted (Postgres 5433, Valkey 6380, SeaweedFS 8334, sync 4002, markitdown 8081, LiteLLM 4100, stripe-mock 12111, renderer 9101, fake OpenAI provider 4120, OIDC provider 4130, Traefik TLS 8443, DNS test server 8053/8055) and every port is published on `127.0.0.1` only. Storage is disposable.
+`deploy/compose/compose.test.yml` holds the infrastructure for repos, integration and flow tests. It runs next to the dev stack: ports are shifted (Postgres 5433, Valkey 6380, SeaweedFS 8334, sync 4002, markitdown 8081, LiteLLM 4100, stripe-mock 12111, renderer 9101, fake OpenAI provider 4120, OIDC provider 4130, Traefik TLS 8443, DNS test server 8053/8055) and every port is published on `127.0.0.1` only. Storage is disposable.
 
-Always drive it through `scripts/test-compose.sh`, which adds `docker-compose.test.podman.yml` on rootless Podman (see [CONTAINER-ENGINES.md](CONTAINER-ENGINES.md)):
+Always drive it through `scripts/test-compose.sh`, which adds `deploy/compose/compose.test.podman.yml` on rootless Podman (see [CONTAINER-ENGINES.md](CONTAINER-ENGINES.md)):
 
 ```bash
 bun run test:integration:up      # start and wait for health checks
@@ -60,7 +60,7 @@ bun run test:integration:down    # stop and delete volumes
 Notable services:
 
 - `fake-openai-test` (`tests/fixtures/fake-openai/server.py`) is a fake OpenAI-compatible provider for bring-your-own-key tests. The app (on the host) and `litellm-test` (in a container) both have to reach it at one non-loopback address, so the stack's network has the fixed subnet `10.213.47.0/24` and the service is also published on the gateway `10.213.47.1`. Override with `TEST_NETWORK_SUBNET` / `TEST_NETWORK_GATEWAY` (set them for `up` as well) or `TEST_FAKE_OPENAI_BASE_URL`. Its `/_test/requests` endpoint shows what reached it. The model `obedient-chat` calls whatever tool a `FAKE_DIRECTIVE <tool> <json>` line in the latest tool result names, to simulate a prompt-injected model.
-- `litellm-test` uses its own database role, created by `infra/postgres/db-init.sh`.
+- `litellm-test` uses its own database role, created by `deploy/config/postgres/db-init.sh`.
 - `challtestsrv-test`, `pebble-test` and `traefik-test` (Let's Encrypt's DNS test server and test CA, plus a Traefik that polls the app for custom domains) back the custom-domain tests in `tests/integration/endpoints/customDomains.test.ts`.
 - `oidc-test` is an OpenID Connect provider for the generic OIDC and workspace single sign-on tests.
 
@@ -89,7 +89,7 @@ See [flow-docs.md](flow-docs.md). `bun run flows:test` starts the test stack its
 
 ## Smoke tests
 
-`tests/smoke/` (`playwright.smoke.config.ts`, `bun run smoke`) runs against a deployed instance, by default `https://staging.markoto.app`; set `PLAYWRIGHT_BASE_URL` for another. `staging-gate.yml` runs it after each staging deploy.
+`tests/smoke/` (`tests/smoke/playwright.config.ts`, `bun run smoke`) runs against a deployed instance, by default `https://staging.markoto.app`; set `PLAYWRIGHT_BASE_URL` for another. `staging-gate.yml` runs it after each staging deploy.
 
 ## Coverage
 

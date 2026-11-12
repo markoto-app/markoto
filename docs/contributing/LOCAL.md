@@ -1,6 +1,6 @@
 # Local full stack
 
-Runs the production shape on your machine: every service in a container, Traefik with TLS, locally trusted certificates. Daily development uses `docker-compose.dev.yml` and `bun run dev` on the host instead; use this to check Traefik labels, TLS behaviour, or anything that only shows up in containers.
+Runs the production shape on your machine: every service in a container, Traefik with TLS, locally trusted certificates. Daily development uses `deploy/compose/compose.dev.yml` and `bun run dev` on the host instead; use this to check Traefik labels, TLS behaviour, or anything that only shows up in containers.
 
 Prerequisites: Docker Compose 5.0 or newer, and a `.env` (run `make setup` once; it generates the required secrets).
 
@@ -27,7 +27,7 @@ This adds mkcert's root CA to your OS and browser trust stores, so browsers on t
 `make certs` does this (and `make local-up` runs it when the files are missing). By hand:
 
 ```bash
-cd traefik/local
+cd deploy/config/traefik/local
 mkcert -cert-file ypad.127.0.0.1.nip.io.pem \
        -key-file  ypad.127.0.0.1.nip.io-key.pem \
        "ypad.127.0.0.1.nip.io" "*.ypad.127.0.0.1.nip.io"
@@ -42,7 +42,7 @@ The two `.pem` files are gitignored. The bare name covers the app; the wildcard 
 ## 3. Start the stack
 
 ```bash
-make local-up     # = docker compose -f docker-compose.local.yml up -d --build
+make local-up     # = docker compose --env-file .env -f deploy/compose/compose.local.yml up -d --build
 ```
 
 The first build takes a few minutes (base images, the Nuxt app, the sync server, the renderer and markitdown).
@@ -76,7 +76,7 @@ make local-down    # make local-clean also wipes the Postgres and SeaweedFS volu
 ## Troubleshooting
 
 - **`ERR_CERT_AUTHORITY_INVALID`**: `mkcert -install` was not run, or did not reach the browser's trust store (Firefox has its own; `mkcert -install` covers it when `nss` / `libnss3-tools` is installed).
-- **Traefik finds no certificate**: check `docker compose -f docker-compose.local.yml logs traefik`. The `.pem` file names in `traefik/local/tls.yml` must match the files in `traefik/local/`.
+- **Traefik finds no certificate**: check `docker compose --env-file .env -f deploy/compose/compose.local.yml logs traefik`. The `.pem` file names in `deploy/config/traefik/local/tls.yml` must match the files in `deploy/config/traefik/local/`.
 - **Port 443 already in use**: another stack or a local reverse proxy holds it (`sudo lsof -i :443`).
 - **No `host.docker.internal`**: unlike the dev stack, the app runs in a container here, so the sync server reaches it at `http://app:3000`.
-- **A change to `renderer/` or `sync-server/` has no effect after `docker compose restart`**: `restart` reuses the existing image. Rebuild with `docker compose -f docker-compose.local.yml up -d --build renderer` (or `sync`); the same applies to the dev stack.
+- **A change to `renderer/` or `sync-server/` has no effect after `docker compose restart`**: `restart` reuses the existing image. Rebuild with `docker compose --env-file .env -f deploy/compose/compose.local.yml up -d --build renderer` (or `sync`); the same applies to the dev stack.

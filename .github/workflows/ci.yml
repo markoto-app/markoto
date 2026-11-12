@@ -77,23 +77,32 @@ jobs:
         uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         with:
           filters: |
+            # One Bun workspace, one lockfile: every image installs from the
+            # root manifests, so a dependency change anywhere can move any of
+            # the three JavaScript images.
             app:
               - 'Dockerfile'
               - '.dockerignore'
               - 'package.json'
               - 'bun.lock'
+              - 'bunfig.toml'
+              - '*/package.json'
               - '.github/workflows/image-scan.yml'
             sync-server:
               - 'sync-server/Dockerfile'
-              - 'sync-server/package.json'
-              - 'sync-server/bun.lock'
-              - 'shared/package.json'
-              - 'shared/bun.lock'
+              - 'sync-server/Dockerfile.dockerignore'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bunfig.toml'
+              - '*/package.json'
               - '.github/workflows/image-scan.yml'
             renderer:
               - 'renderer/Dockerfile'
-              - 'renderer/package.json'
-              - 'renderer/bun.lock'
+              - 'renderer/Dockerfile.dockerignore'
+              - 'package.json'
+              - 'bun.lock'
+              - 'bunfig.toml'
+              - '*/package.json'
               - '.github/workflows/image-scan.yml'
             markitdown:
               - 'markitdown-server/Dockerfile'
@@ -114,7 +123,7 @@ jobs:
               - 'tests/fixtures/design-import/**'
               - '.github/workflows/ci.yml'
 
-      # Python lives in markitdown-server/, infra/litellm/, a few scripts and
+      # Python lives in markitdown-server/, deploy/config/litellm/, a few scripts and
       # test fixtures; the linters read these configs.
       - name: Detect Python changes
         id: python
@@ -273,7 +282,7 @@ jobs:
       contents: read
     runs-on: ubuntu-latest
     # Static validation of the self-host deployment shape: install.sh is
-    # shellcheck-clean and docker-compose.selfhost*.yml (+ the shared base)
+    # shellcheck-clean and deploy/compose/compose.selfhost*.yml (+ the shared base)
     # render for HTTP, HTTPS, build-from-source and backup combinations.
     # The runner image ships shellcheck but Compose v2.x, which rejects a
     # file that overrides services it `include:`s ("conflicts with imported
@@ -379,34 +388,20 @@ jobs:
       - name: Typecheck scripts
         run: bun run typecheck:scripts
 
-      # sync-server/ and renderer/ ship as separate packages with their own
-      # lockfiles, so `nuxt typecheck` never sees them. Each has its own
-      # tsconfig + `typecheck` script.
-      - name: Install sync-server + renderer dependencies
-        run: |
-          bun install --frozen-lockfile --cwd sync-server
-          bun install --frozen-lockfile --cwd renderer
-
-      - name: Typecheck sync-server
-        run: bun --bun run typecheck
-        working-directory: sync-server
-
-      - name: Typecheck renderer
-        run: bun --bun run typecheck
-        working-directory: renderer
+      # sync-server and renderer are workspace packages with their own
+      # tsconfig + `typecheck` script; `nuxt typecheck` never sees them.
+      - name: Typecheck sync-server + renderer
+        run: bun run typecheck:services
 
       # .env.example, the configuration reference and the renderer's env
       # loader are generated from the env registry (shared/env).
       - name: Generated env files are current
         run: bun run check:env
 
-      # render-env.sh (CI deploy path) and env.j2 (Ansible path) must emit
-      # byte-identical .env content; this step fails the PR when they drift
-      # (a var added to one file only).
-      - name: render-env ↔ env.j2 parity
-        run: |
-          pip install --quiet jinja2==3.1.6
-          bash infra/render-env-parity-test.sh
+      # infra/render-env.sh renders the hosted .env for both deploy paths
+      # (deploy.yml and the Ansible role).
+      - name: render-env.sh behaviour
+        run: bash infra/render-env-test.sh
 
   # The type-aware typescript-eslint rules (no-floating-promises, ...) cost
   # ~95 % of the lint time, so they run as their own job in parallel with the
@@ -431,15 +426,11 @@ jobs:
         with:
           bun-version: 1.4.4
 
+      # One install at the workspace root covers sync-server and the
+      # renderer too: the type-aware rules resolve their imports through
+      # their own tsconfig.
       - name: Install dependencies
         run: bun install --frozen-lockfile
-
-      # The type-aware rules resolve sync-server's and the renderer's imports
-      # through their own tsconfig, so their packages must be installed.
-      - name: Install sync-server + renderer dependencies
-        run: |
-          bun install --frozen-lockfile --cwd sync-server
-          bun install --frozen-lockfile --cwd renderer
 
       - name: Lint (full config, type-aware rules included)
         run: bun --bun run lint
@@ -637,16 +628,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # sync-server/ ships as a separate package with its own node_modules.
-      # A handful of unit tests import sync-server source directly
-      # (syncAuth.test.ts, contractsJwt.test.ts → sync-server/src/auth.ts →
-      # sentry.ts → @sentry/bun), so those deps must be present or the
-      # imports fail with ERR_MODULE_NOT_FOUND. The coverage job already does
-      # this; the unit job needs it too.
-      - name: Install sync-server dependencies
-        run: bun install --frozen-lockfile
-        working-directory: sync-server
-
       - name: Unit tests
         run: bun run test:unit
 
@@ -676,7 +657,7 @@ jobs:
     # A 20 min limit cancels healthy runs mid-suite.
     timeout-minutes: 30
     env:
-      # Test stack defaults — match docker-compose.test.yml.
+      # Test stack defaults — match deploy/compose/compose.test.yml.
       TEST_MODE: "1"
       NUXT_VOXTRAL_REALTIME_MOCK: "1"
       # No live-AI provider keys here (the PR gate runs no flow suite).
@@ -703,17 +684,6 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # sync-server/ has its own package.json (it ships as a separate
-      # container — `@sentry/bun` etc. don't belong at the root). The
-      # root install doesn't reach it, but vitest's `coverage.all: true`
-      # instruments every file in `include:` — including
-      # `sync-server/src/**/*.ts` — at coverage-suite time. Without
-      # these deps installed, `import '@sentry/bun'` ERR_MODULE_NOT_FOUND
-      # crashes the coverage run.
-      - name: Install sync-server dependencies
-        run: bun install --frozen-lockfile
-        working-directory: sync-server
-
       # The integration app binds :3101 (TEST_PORT); sync-test posts
       # activity-log rows back to it, so its APP_URL must point there.
       # The default baked into the compose file is :3001; this override
@@ -722,7 +692,7 @@ jobs:
       - name: Bring up test stack
         env:
           SYNC_TEST_APP_URL: http://host.docker.internal:3101
-        run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
+        run: bash scripts/test-compose.sh --profile flows up -d --wait
 
       # Replaces `bun run test:repos` — covers the same project plus
       # unit + dom + nuxt under one vitest invocation with --coverage.
@@ -738,7 +708,7 @@ jobs:
       # about the whole 25-min budget on its own. It runs in release.yml.
       - name: Tear down test stack
         if: always()
-        run: docker compose -f docker-compose.test.yml --profile flows down -v
+        run: bash scripts/test-compose.sh --profile flows down -v
 
       - name: Upload coverage for sonar
         if: success()

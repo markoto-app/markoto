@@ -20,7 +20,7 @@ import { fileURLToPath } from 'node:url'
 //   - tests/repos/**       — DB-backed repository tests. Serialized, share
 //                            the test Postgres.
 //   - tests/integration/** — REST endpoints + sync-server. Need the dev
-//                            Postgres from docker-compose.dev.yml and a
+//                            Postgres from deploy/compose/compose.dev.yml and a
 //                            running app. Opted-in via the `integration`
 //                            project; bun run test runs unit + dom + nuxt.
 // Node 25 defines its own global `localStorage` (Web Storage, on by

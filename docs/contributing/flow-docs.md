@@ -120,17 +120,19 @@ Tag a test with `test('…', { tag: '@marketing' }, …)` when it needs the host
 
 `FLOWS_SERVE_ONLY=1 bun run flows:test` keeps one server running for `flows:test:against-running`; `FLOWS_BILLING=on` or `FLOWS_MARKETING=on` serve the other shapes.
 
-The flows use the same compose file as the integration tests (`docker-compose.test.yml`, see [testing.md](testing.md)). Teardown runs `down -v` without `--remove-orphans`.
+The flows use the same compose file as the integration tests (`deploy/compose/compose.test.yml`, see [testing.md](testing.md)). Teardown runs `down -v` without `--remove-orphans`.
 
 ## Publishing
 
-`scripts/build-flows.ts` publishes only slugs that a page under `content/docs/` embeds with `::flow{id="…"}`, so test-only flows (for example the `@billing` checkout flows) never ship. A variant is republished only if its `.passed` sentinel exists; a failed variant keeps its previously published frames. Slugs without a source directory or an embedding page are removed.
+`scripts/build-flows.ts` publishes only slugs that a page under `content/docs/` embeds with `::flow{id="…"}`, so test-only flows (for example the `@billing` checkout flows) never ship. A variant is republished only if its `.passed` sentinel exists; a failed variant keeps its previously published frames. Slugs without a source directory or an embedding page are removed, and so are variants a flow no longer records.
+
+Republishing does not churn git history. Two runs never paint a screen byte-for-byte alike, so each new frame is compared with the committed one at the same path by decoded pixels (`scripts/lib/flowShots.ts`): a frame that looks the same keeps the committed file untouched, only a visibly different one is replaced; frames the run no longer has are deleted. "Looks the same": same size, and no 16 × 16 square (on four grids shifted by 8 px) holds 24 or more pixels whose red, green, blue or alpha moved by more than 24. That ignores text anti-aliasing and the app's animations (recording pulse, "Thinking…" shimmer) but catches a changed word, digit or icon; a single added period or a one-pixel nudge stays below it. `tests/unit/platform/flowShots.test.ts` pins the cases. A manifest is rewritten only when it changed beyond the run's random document and workspace ids in the address-bar paths. `bun run flows:build -- --summary FILE` writes the kept / replaced / added / removed counts; the release pull request carries them.
 
 "Try next" cards resolve `next.slug` to the docs page that embeds it (`shared/docs/flowDocPages.ts`, scanned at build time into `appConfig.flowDocPages`). `tests/unit/seo/flowDocPages.test.ts` fails when a spec's `flow.next` names a flow no page embeds.
 
 ### From a release
 
-CI does not run flows on pull requests. `release.yml` (job `run-flows-and-collect-outputs`, `release:*`-labelled merges only) runs `bun run flows:test` with live AI and uploads `tests/e2e/output/flows` as the `flow-output` artifact, including the `.passed` sentinels. `.github/workflows/publish-flow-shots.yml` then rebuilds `public/flows/` from that artifact and opens a `docs: publish the vX.Y.Z flow screenshots` pull request labelled `release:none`.
+CI does not run flows on pull requests. `release.yml` (job `run-flows-and-collect-outputs`, `release:*`-labelled merges only) runs `bun run flows:test` with live AI and uploads `tests/e2e/output/flows` as the `flow-output` artifact, including the `.passed` sentinels. `.github/workflows/publish-flow-shots.yml` then rebuilds `public/flows/` from that artifact and opens a `docs: publish the vX.Y.Z flow screenshots` pull request labelled `release:none`, with the frame summary in its description. When no frame looks different and no manifest changed, it opens nothing.
 
 The screenshots are part of the app image, so they reach a deployment with the next release. Never label the screenshots pull request `release:*`: its release would capture new screenshots and open another such pull request.
 
@@ -152,4 +154,6 @@ Workarounds in the flow specs that nobody has re-checked since they were added. 
 
 ## Product-tour captures
 
-The product page's scene videos are recorded from the real app by `tests/e2e/tour/*.capture.ts` with `playwright.tour.config.ts` (projects `tour-light` / `tour-dark`), using the fixture in `tests/e2e/tour/fixture.ts`. Frames are captured step by step, not screen-recorded, and written to `$TOUR_OUTPUT_DIR/<mode>/<scene>/`. The demo content is `tests/e2e/tour/content/demoDocument.ts`. `bun run tour:capture` (`scripts/capture-tour.ts`) records and encodes (ffmpeg with libsvtav1 and libx264) and writes `public/tour/manifest.json`, whose schema `shared/tour/manifest.ts` is checked by `tests/unit/seo/tourManifest.test.ts`. The AI scenes need `MISTRAL_API_KEY` and `JINA_AI_API_KEY`.
+The product page's scene videos are recorded from the real app by `tests/e2e/tour/*.capture.ts` with `tests/e2e/tour/playwright.config.ts` (projects `tour-light` / `tour-dark`), using the fixture in `tests/e2e/tour/fixture.ts`. Frames are captured step by step, not screen-recorded, and written to `$TOUR_OUTPUT_DIR/<mode>/<scene>/`. The demo content is `tests/e2e/tour/content/demoDocument.ts`. `bun run tour:capture` (`scripts/capture-tour.ts`) records and encodes (ffmpeg with libsvtav1 and libx264) and writes `public/tour/manifest.json`, whose schema `shared/tour/manifest.ts` is checked by `tests/unit/seo/tourManifest.test.ts`. The AI scenes need `MISTRAL_API_KEY` and `JINA_AI_API_KEY`.
+
+The tour assets are committed by hand, not by a workflow: re-capture and commit only the scenes you changed (`--only <scene>`). The encoders are not bit-reproducible, so re-encoding an unchanged scene adds a full copy of its videos to git history; unlike the flow frames, videos have no cheap pixel comparison, so this is a rule for whoever re-captures rather than a check.

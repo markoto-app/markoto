@@ -84,7 +84,7 @@ export const TEMPLATE_DOC_BODY: Record<string, unknown> = Object.freeze({ templa
 
 export function smokeDoc(kind: SmokeDoc): string {
   const raw = process.env[SMOKE_DOCS_ENV]
-  if (!raw) throw new Error(`${SMOKE_DOCS_ENV} is not set — run the smoke suite through playwright.smoke.config.ts (it has the global setup)`)
+  if (!raw) throw new Error(`${SMOKE_DOCS_ENV} is not set — run the smoke suite through tests/smoke/playwright.config.ts (it has the global setup)`)
   const parsed: unknown = JSON.parse(raw)
   const id = isRecord(parsed) ? parsed[kind] : null
   if (typeof id !== 'string') throw new Error(`no shared smoke document "${kind}"`)

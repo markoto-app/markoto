@@ -35,9 +35,9 @@ Every environment variable markoto reads or passes is declared once, in the regi
    ```
 
    Optional fields: `required` (`'always'`, `'production'`, or `{ when }` documenting a rule), `secret` (never printed, empty in `.env.example`), `aliases` (the name another container reads the same value under, e.g. `{ sync: 'JWT_SECRET' }`), `emptyIsValue`, `example` (uncommented in `.env.example`), `notPassed` (the compose files deliberately don't pass it — say why), `internal` (set by compose, not an operator setting), `deprecatedNames`.
-2. Pass it in the compose file(s) of the shapes in `scope` (or set `notPassed`), and in `infra/render-env.sh` + `infra/templates/env.j2` when the hosted deploy must set it.
+2. Pass it in the compose file(s) of the shapes in `scope` (or set `notPassed`). For the app in `deploy/compose/compose.prod.yml` and `compose.selfhost.yml` a plain `${NAME}` passthrough is generated between the `# BEGIN env:gen app` markers by step 4 (`scripts/lib/composeEnv.ts`: `${NAME:?…}` in prod for a variable required at boot, else `${NAME:-}`); write a line by hand below the markers only for another value (a default, a derived URL, a pinned value). Then add it to `infra/render-env.sh` (its `INPUTS` list and the output) when the hosted deploy must set it — both hosted deploy paths run that script.
 3. Read it: `useEnv().<namespace>.<key>` in the app, `syncEnv()` in the sync server, `env` from `renderer/src/env.ts` in the renderer. The value is already typed and defaulted.
-4. Run `bun run env:gen` (writes `.env.example`, the reference and the renderer loader) and `bun run test:unit tests/unit/env`.
+4. Run `bun run env:gen` (writes `.env.example`, the reference, the renderer loader and the generated compose regions) and `bun run test:unit tests/unit/env`.
 
 A value that two variables must agree on, or that is only required in some shape, is a rule in `shared/env/rules/`: return one message per problem, naming the real variable(s). Mark presence rules `relaxedInTestMode`, advisory ones `warning`.
 
@@ -66,7 +66,7 @@ Invalid values fail boot instead of silently falling back to the default. Unset 
 
 ## The renderer
 
-The renderer image is built from `renderer/` alone, so it can't import `shared/`. `bun run env:gen` writes `renderer/src/env.generated.ts`: a copy of `coerce.ts` plus the renderer's slice of the registry. `tests/unit/env/generated.test.ts` checks it is current and parses exactly like `loadEnv('renderer')`; CI runs `bun run check:env`.
+The renderer reads its configuration through a generated loader instead of `shared/env`: `bun run env:gen` writes `renderer/src/env.generated.ts`: a copy of `coerce.ts` plus the renderer's slice of the registry. `tests/unit/env/generated.test.ts` checks it is current and parses exactly like `loadEnv('renderer')`; CI runs `bun run check:env`.
 
 ## Tests
 

@@ -1,6 +1,6 @@
 #!/bin/sh
 # Idempotent database + role bootstrap, run by the `db-init` one-shot
-# (docker-compose.base.yml) before the app and LiteLLM start, on every
+# (deploy/compose/compose.base.yml) before the app and LiteLLM start, on every
 # `docker compose up`.
 #
 # Connects as the ADMIN role (POSTGRES_USER: the bundled image's bootstrap

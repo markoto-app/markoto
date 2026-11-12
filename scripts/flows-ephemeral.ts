@@ -23,7 +23,7 @@ import { testRoutesInBuild } from './lib/testRoutesInBuild'
 
 // One compose file serves integration and flow tests; flows need the extra
 // sync + markitdown services behind `--profile flows`. The wrapper runs
-// `docker compose -f docker-compose.test.yml` (+ the Podman overlay on
+// `docker compose -f deploy/compose/compose.test.yml` (+ the Podman overlay on
 // Podman, docs/contributing/CONTAINER-ENGINES.md).
 const TEST_COMPOSE = `${import.meta.dir}/test-compose.sh`
 const COMPOSE_PROFILE = 'flows'
@@ -62,7 +62,7 @@ const FLOWS_ENV: Record<string, string> = {
   VALKEY_HOST: 'localhost',
   VALKEY_PORT: '6380',
   // valkey-test boots with `--requirepass testpassword`
-  // (docker-compose.test.yml); an empty value fails every op with NOAUTH
+  // (deploy/compose/compose.test.yml); an empty value fails every op with NOAUTH
   // and the health probe never turns green.
   VALKEY_PASSWORD: 'testpassword',
   VALKEY_DB: '0',
@@ -75,10 +75,10 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_S3_SECRET_KEY: 'ypad-secret-key',
   NUXT_S3_BUCKET: 'ypad',
   NUXT_MARKITDOWN_URL: 'http://localhost:8081',
-  // MARKITDOWN_API_SECRET of markitdown-test (docker-compose.test.yml); without
+  // MARKITDOWN_API_SECRET of markitdown-test (deploy/compose/compose.test.yml); without
   // it every import answers 401.
   NUXT_MARKITDOWN_API_SECRET: 'test-markitdown-api-secret-isolated',
-  // renderer-test publishes :9000 on host :9101 (docker-compose.test.yml).
+  // renderer-test publishes :9000 on host :9101 (deploy/compose/compose.test.yml).
   // Without this override the renderer health probe targets the runtimeConfig
   // default (`http://localhost:9000`), health returns 503 and no flow runs.
   // Same value as tests/integration/setup/server.ts.

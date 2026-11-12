@@ -11,7 +11,7 @@ import { createCompactionSweeper } from './compaction'
 
 // The process-wide persistence wired from env: one Postgres pool for loads,
 // stores and compaction (same TLS posture as the app's pool,
-// server/utils/platform/database.ts).
+// server/db/client.ts).
 
 const env = syncEnv()
 const log = useLogger('persistence')

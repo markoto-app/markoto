@@ -44,13 +44,16 @@ infra/
 │   ├── ansible_collections/
 │   └── ansible_roles/
 ├── files/                  # ovh-pg-ca.pem (drop here if pinning OVH managed PG)
-├── litellm/                # LiteLLM proxy config.yaml + custom_handlers.py (bind-mounted)
-├── postgres/               # db-init.sh (per-service DB roles) + init SQL
-├── render-env.sh           # CI: renders .env from GitHub Environment secrets/variables
-├── render-env-parity-test.sh  # asserts render-env.sh and env.j2 produce the same .env
-└── templates/
-    └── env.j2              # renders /opt/markoto/.env from group_vars + vault
+├── render-env.sh           # renders /opt/markoto/.env: deploy.yml (GitHub Environment) and the markoto role (group_vars + vault)
+└── render-env-test.sh      # pins render-env.sh (passthrough, --keys, required values, quoting)
 ```
+
+The compose files and the config they mount (LiteLLM, Postgres init, the
+renderer's seccomp profile) live in `../deploy/` — not Ansible-specific, the
+self-host installer and the test stacks use them too. The role copies the
+production subset to the same relative paths under `/opt/markoto`, where a
+plain `docker compose <command>` works: the rendered `.env` sets
+`COMPOSE_FILE=deploy/compose/compose.prod.yml`.
 
 ## Quick start
 
@@ -137,7 +140,7 @@ We deliberately did NOT replace these with Galaxy roles:
   devsec's flow is not tested against our "fresh OVH VPS, no user keys"
   path, so we keep our safer wrapper.
 - **`roles/markoto/`** — entirely app-specific (compose file sync from the
-  same git repo, `.env` render from our jinja template, `/api/health`
+  same git repo, `.env` render through `infra/render-env.sh`, `/api/health`
   retry-loop, `deploys.log` audit trail). Nothing to outsource.
 - **`roles/backup_cron/`** — 30-line cron wrapper. `ansible.builtin.cron`
   IS the Galaxy answer; the role's just a tiny consumer.
@@ -158,7 +161,7 @@ Documented in `playbooks/provision.yml`; reproduced here for visibility:
 
 `make deploy` is safe to re-run any time:
 
-- `.env` rendered atomically via the `template` module — diff-only updates.
+- `.env` rendered by `infra/render-env.sh` and written atomically via the `copy` module — diff-only updates.
 - Compose files synced via `copy` — only changed files trigger compose re-eval.
 - `docker_compose_v2` recreates only services whose config changed.
 - `/api/health` probe with retry; soft-fail prints diagnostics on miss.

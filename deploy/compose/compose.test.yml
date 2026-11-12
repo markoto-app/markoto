@@ -1,4 +1,4 @@
-# Test-only infrastructure. Mirrors docker-compose.dev.yml but on isolated
+# Test-only infrastructure. Mirrors deploy/compose/compose.dev.yml but on isolated
 # ports and a disposable volume so the dev database is never touched.
 #
 # Two use cases share this compose file via `profiles`:
@@ -35,12 +35,25 @@
 # (tests/integration/setup/env.ts). Override both variables together if
 # 10.213.47.0/24 collides with a network on your machine.
 
+# Project name: fixed, so it does not follow this file's directory (the
+# default, `compose`) and stays the same for every checkout path.
+name: markoto-test
+
 networks:
   default:
     ipam:
       config:
         - subnet: ${TEST_NETWORK_SUBNET:-10.213.47.0/24}
           gateway: ${TEST_NETWORK_GATEWAY:-10.213.47.1}
+
+# Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
+# no Linux capabilities, no privilege gain through setuid binaries. A service
+# that needs more (a seccomp profile, a capability) spells its keys out.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
 
 services:
   postgres-test:
@@ -121,7 +134,7 @@ services:
     tmpfs:
       - /data
     volumes:
-      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
+      - ../config/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
 
   # Official Stripe mock server. Implements Stripe's full REST API
   # surface from their OpenAPI spec, so our code can use the real SDK
@@ -147,10 +160,13 @@ services:
   # SECRETS are pinned to the same TEST_* values setup/env.ts uses, so
   # render-token JWTs verify on both sides without env-passing.
   renderer-test:
-    build: ./renderer
+    build:
+      # Workspace root: one lockfile, and the renderer imports shared/.
+      context: ../..
+      dockerfile: renderer/Dockerfile
     restart: unless-stopped
     stop_grace_period: 30s
-    # Same hardening as docker-compose.base.yml's renderer, so the suites
+    # Same hardening as deploy/compose/compose.base.yml's renderer, so the suites
     # exercise the shape production runs (incl. Chromium's sandbox).
     read_only: true
     tmpfs:
@@ -160,8 +176,8 @@ services:
     security_opt:
       - no-new-privileges:true
       # Podman can't take this profile through Compose — see
-      # docker-compose.test.podman.yml.
-      - seccomp=./renderer/seccomp.json
+      # deploy/compose/compose.test.podman.yml.
+      - seccomp=../config/renderer/seccomp.json
     pids_limit: 2048
     environment:
       - PORT=9000
@@ -214,7 +230,7 @@ services:
   # provisioned upstream model keys — the tests don't actually
   # invoke models, only the admin surface (/key/*).
 
-  # Same bootstrap script as the real stacks (infra/postgres/db-init.sh):
+  # Same bootstrap script as the real stacks (deploy/config/postgres/db-init.sh):
   # creates `litellm_test` owned by its own `litellm_test` role, which
   # litellm-test and the app's spend-log paths (NUXT_LITELLM_DB_USER in
   # tests/integration/setup/server.ts) use. The app itself stays on the
@@ -227,10 +243,7 @@ services:
         condition: service_healthy
     user: postgres
     read_only: true
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     environment:
       - PGHOST=postgres-test
       - PGUSER=ypad
@@ -240,7 +253,7 @@ services:
       - LITELLM_DB_USER=litellm_test
       - LITELLM_DB_PASSWORD=litellmtestpassword
     volumes:
-      - ./infra/postgres/db-init.sh:/db-init.sh:ro,z
+      - ../config/postgres/db-init.sh:/db-init.sh:ro,z
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm-test:
@@ -269,18 +282,15 @@ services:
       - LITELLM_LOG=ERROR
       - DISABLE_ADMIN_UI=True
     volumes:
-      - ./infra/litellm/config.yaml:/app/config.yaml:ro,z
-      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
+      - ../config/litellm/config.yaml:/app/config.yaml:ro,z
+      - ../config/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
     user: "65534:65534"
     read_only: true
     tmpfs:
       - /tmp:size=256m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     ports:
       - "127.0.0.1:4100:4000"
     depends_on:
@@ -316,7 +326,7 @@ services:
     environment:
       - PORT=8090
     volumes:
-      - ./tests/fixtures/fake-openai:/fake:ro,z
+      - ../../tests/fixtures/fake-openai:/fake:ro,z
     ports:
       - "127.0.0.1:4120:8090"
       # Docker: the bridge gateway is a host address. Rootless Podman: it
@@ -359,7 +369,7 @@ services:
       - PEBBLE_VA_NOSLEEP=1
       - PEBBLE_WFE_NONCEREJECT=0
     volumes:
-      - ./tests/fixtures/pebble/pebble-config.json:/config/pebble-config.json:ro,z
+      - ../../tests/fixtures/pebble/pebble-config.json:/config/pebble-config.json:ro,z
     depends_on:
       - challtestsrv-test
     networks:
@@ -385,7 +395,7 @@ services:
       - "--certificatesresolvers.pebble.acme.storage=/tmp/acme.json"
       - "--certificatesresolvers.pebble.acme.keytype=EC256"
     volumes:
-      - ./tests/fixtures/pebble/pebble.minica.pem:/pebble/pebble.minica.pem:ro,z
+      - ../../tests/fixtures/pebble/pebble.minica.pem:/pebble/pebble.minica.pem:ro,z
     tmpfs:
       - /tmp
     ports:
@@ -440,7 +450,7 @@ services:
 
   sync-test:
     build:
-      context: .
+      context: ../..
       dockerfile: sync-server/Dockerfile
     # No profile — sync-test always runs: every MCP doc-bound tool (and the
     # AI agentic loop) opens a real Hocuspocus WS connection. Flow tests
@@ -512,7 +522,7 @@ services:
   # archive / memory / time limits directly
   # (tests/integration/endpoints/importLimits.test.ts).
   markitdown-test:
-    build: ./markitdown-server
+    build: ../../markitdown-server
     mem_limit: 1g
     environment:
       # Pinned in tests/integration/setup/server.ts (NUXT_MARKITDOWN_API_SECRET)

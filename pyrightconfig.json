@@ -1,7 +1,7 @@
 {
   "include": [
     "markitdown-server",
-    "infra/litellm/custom_handlers.py",
+    "deploy/config/litellm/custom_handlers.py",
     "tests/fixtures/fake-openai"
   ],
   "pythonVersion": "3.13",
@@ -10,7 +10,7 @@
   "reportMissingModuleSource": "none",
   "executionEnvironments": [
     { "root": "markitdown-server" },
-    { "root": "infra/litellm" },
+    { "root": "deploy/config/litellm" },
     { "root": "tests/fixtures/fake-openai" }
   ]
 }

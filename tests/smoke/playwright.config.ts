@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test'
-import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from './app/utils/editor/editorTour'
+import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../app/utils/editor/editorTour'
 
 // Staging/prod SMOKE suite — deliberately separate from the flow-docs
 // system (playwright.config.ts). Flows need TEST_MODE (login shim, AI
@@ -20,11 +20,13 @@ import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from './app/utils/editor/ed
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'https://staging.markoto.app'
 
 export default defineConfig({
-  testDir: './tests/smoke',
+  testDir: '.',
+  // Artifacts in the gitignored root dir, with the other Playwright runs'.
+  outputDir: '../../test-results',
   // Creates the run's two shared anonymous documents once (hosted
   // anonymous creation is rate-limited per network; specs + retries
   // reuse them). See tests/smoke/globalSetup.ts.
-  globalSetup: './tests/smoke/globalSetup.ts',
+  globalSetup: './globalSetup.ts',
   timeout: 120_000,
   expect: { timeout: 30_000 },
   // Retry once (twice in CI) — smoke runs against a live network + the

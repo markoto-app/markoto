@@ -23,7 +23,7 @@
     # forever and stack an orphaned loop process every night.
     job: >-
       cd {{ markoto_root }} &&
-      docker compose -f docker-compose.prod.yml exec -T backup /usr/local/bin/backup.sh --once
+      docker compose exec -T backup /usr/local/bin/backup.sh --once
       >> {{ markoto_root }}/backup-cron.log 2>&1
       || (
       ec=$?;

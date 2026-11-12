@@ -25,11 +25,20 @@
 # and `no-new-privileges`, and on a read-only root filesystem where the
 # service allows it (writable paths are explicit tmpfs mounts / volumes).
 # Networks are NOT set here — each env file assigns its services to purpose
-# networks (data / render / import / ...), see docker-compose.prod.yml.
+# networks (data / render / import / ...), see deploy/compose/compose.prod.yml.
 #
-# `docker-compose.test.yml` does NOT include this base: test infra
+# `deploy/compose/compose.test.yml` does NOT include this base: test infra
 # uses suffixed service names (postgres-test, valkey-test, etc.) on
 # different ports with tmpfs storage — almost no shared shape.
+
+# Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
+# no Linux capabilities, no privilege gain through setuid binaries. A service
+# that needs more (a seccomp profile, a capability) spells its keys out.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
 
 services:
   postgres:
@@ -56,7 +65,7 @@ services:
       # used to create the `litellm` DB alongside the app DB. For
       # already-initialised volumes, the litellm-db-init one-shot service
       # below ensures the DB exists.
-      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro,z
+      - ../config/postgres/init:/docker-entrypoint-initdb.d:ro,z
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -83,7 +92,7 @@ services:
   # LiteLLM (POSTGRES_LITELLM_USER), hands existing objects over to them and
   # revokes cross-database CONNECT. Connects as the admin role
   # (POSTGRES_USER). Unset role vars = both keep using the admin role, the
-  # pre-roles behaviour. Logic + rationale: infra/postgres/db-init.sh.
+  # pre-roles behaviour. Logic + rationale: deploy/config/postgres/db-init.sh.
   # (/docker-entrypoint-initdb.d/ only fires on a *fresh* volume, so it
   # can't carry this for existing installs.)
   db-init:
@@ -94,10 +103,7 @@ services:
         condition: service_healthy
     user: postgres
     read_only: true
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     environment:
       - PGHOST=postgres
       - PGPORT=5432
@@ -110,7 +116,7 @@ services:
       - LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}
       - LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
     volumes:
-      - ./infra/postgres/db-init.sh:/db-init.sh:ro,z
+      - ../config/postgres/db-init.sh:/db-init.sh:ro,z
     entrypoint: ["/bin/sh", "/db-init.sh"]
 
   litellm:
@@ -140,7 +146,7 @@ services:
       # defined-but-empty keeps LiteLLM from crashing on an unset os.environ/ ref.
       - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
       # Self-hosting: operator-configurable embeddings deployment
-      # (`custom-embeddings` in infra/litellm/config.yaml). Selected only when
+      # (`custom-embeddings` in deploy/config/litellm/config.yaml). Selected only when
       # NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings. The proxy crashes at
       # startup if these are undefined, hence the placeholder defaults.
       # See docs/AI-MODELS.md#embeddings.
@@ -153,14 +159,14 @@ services:
       - BFL_API_KEY=${BFL_API_KEY:-}
       - STORE_MODEL_IN_DB=false
       - LITELLM_LOG=INFO
-      # No admin UI (see general_settings in infra/litellm/config.yaml).
+      # No admin UI (see general_settings in deploy/config/litellm/config.yaml).
       - DISABLE_ADMIN_UI=True
     volumes:
-      - ./infra/litellm/config.yaml:/app/config.yaml:ro,z
+      - ../config/litellm/config.yaml:/app/config.yaml:ro,z
       # custom_handlers.py is loaded by litellm_settings.custom_provider_map
       # in config.yaml. Imported eagerly on every boot, so a broken file
       # fails at startup.
-      - ./infra/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
+      - ../config/litellm/custom_handlers.py:/app/custom_handlers.py:ro,z
     working_dir: /app
     command: ["--config", "/app/config.yaml", "--port", "4000", "--num_workers", "1"]
     # LiteLLM reads its config once at boot, and the single-file bind
@@ -179,10 +185,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=256m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     depends_on:
       postgres:
         condition: service_healthy
@@ -239,10 +242,7 @@ services:
     # chowned existing volumes).
     user: "999:1000"
     read_only: true
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
 
   # NOTE: `seaweedfs` is defined per-env in dev/local (not in base).
   # Compose's `include:` always merges every service from the included
@@ -306,10 +306,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=64m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     depends_on:
       postgres:
         condition: service_healthy
@@ -341,10 +338,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=256m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     environment:
       # Its own secret, not INTERNAL_API_SECRET: a converter compromised by
       # a hostile upload must not be able to call sync or /api/internal.
@@ -389,7 +383,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-      - seccomp=./renderer/seccomp.json
+      - seccomp=../config/renderer/seccomp.json
     pids_limit: 2048
     environment:
       - PORT=9000
@@ -425,10 +419,7 @@ services:
     # The sidecar runs as an unprivileged user; it needs no capabilities.
     # Not read-only: the encrypted dump is staged in /tmp before upload and
     # can be large (a tmpfs would count it against mem_limit).
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     depends_on:
       postgres:
         condition: service_healthy

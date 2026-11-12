@@ -12,7 +12,7 @@ ioredis, Stripe SDK, LiteLLM, and Markitdown. The full dependency set and
 license metadata are recorded in package.json / bun.lock of each workspace
 (root, sync-server/, renderer/, markitdown-server/).
 
-renderer/seccomp.json is derived from the Moby project's default seccomp profile
+deploy/config/renderer/seccomp.json is derived from the Moby project's default seccomp profile
 (https://github.com/moby/profiles, seccomp/default.json), licensed under the
 Apache License 2.0, with one added rule for Chromium's sandbox.
 

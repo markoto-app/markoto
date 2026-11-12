@@ -6,7 +6,7 @@
 // machine.
 //
 // Needs a running app with TEST_MODE=1 + NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1
-// on top of the flow test stack (docker-compose.test.yml — Postgres on
+// on top of the flow test stack (deploy/compose/compose.test.yml — Postgres on
 // :5433), e.g. `FLOWS_SERVE_ONLY=1 bun run flows:test`. Then:
 //
 //   PERF_BASE_URL=http://localhost:3001 bun scripts/measure-preview-perf.ts [label]

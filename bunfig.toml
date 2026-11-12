@@ -1,0 +1,8 @@
+[install]
+# One flat node_modules at the workspace root, as before the repo became a
+# Bun workspace (for workspaces Bun otherwise defaults to the isolated
+# linker). Code reads packages by path from there: modules/vendor-assets.ts
+# copies fonts, paged.js, Mermaid, KaTeX and highlight.js files out of
+# node_modules/, and shared/ resolves its imports by walking up to it, in
+# the repository and in the sync and renderer images alike.
+linker = "hoisted"

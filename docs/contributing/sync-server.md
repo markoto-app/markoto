@@ -17,7 +17,7 @@ A document's Y.js state is an append-only log in the `yjs_updates` table, declar
 
 **State at an id.** The state at id X is every row with id ≤ X applied, which equals the newest snapshot ≤ X plus the updates after it. Loading is the same rule at the newest id. Snapshots hold no information of their own, so writing one never changes any state.
 
-**Code.** All of the sync server's SQL is in `sync-server/src/yjs-store.ts`. `sync-server/src/persistence.ts` is the Hocuspocus side; `persistence-instance.ts` wires both to the env. The app reads and writes the table only through `server/utils/documents/yjsLog.ts`. The two modules share the lock namespace `YJS_LOCK_NAMESPACE` (pinned equal by `tests/repos/yjsPersistence.test.ts`).
+**Code.** All of the sync server's SQL is in `sync-server/src/yjs-store.ts`. `sync-server/src/persistence.ts` is the Hocuspocus side; `persistence-instance.ts` wires both to the env. The app reads and writes the table only through `server/repos/yjsLog.ts`. The two modules share the lock namespace `YJS_LOCK_NAMESPACE` (pinned equal by `tests/repos/yjsPersistence.test.ts`).
 
 **Load.** `onLoadDocument` reads the newest snapshot plus the updates after it in one statement and returns the document. A database error is re-thrown, so Hocuspocus refuses the connection and the client retries; it must never answer with an empty `Y.Doc`, because connected clients would then present their state as new. A row that cannot be decoded is skipped and reported to Sentry (it stays in the table).
 
@@ -87,7 +87,7 @@ Valkey errors never block sync: a missing baseline skips that edit row, a missin
 
 ## Multiple instances
 
-Hocuspocus keeps each loaded document in one process, so production routes WebSocket clients with a sticky cookie at Traefik (`docker-compose.prod.yml`). Two instances can still store the same document at the same time; the partial unique index `uq_activity_doc_yjsafter` on `activity_log` drops the duplicate `edit` / `title.changed` / `theme.changed` row (`server/api/internal/activity.post.ts` logs `[activity] dedup skipped insert`). When two instances read the same `prev-text` baseline, the surviving row's line counts can be slightly off. That is accepted: the counts are a summary, and a lock around every store would make writes depend on Valkey.
+Hocuspocus keeps each loaded document in one process, so production routes WebSocket clients with a sticky cookie at Traefik (`deploy/compose/compose.prod.yml`). Two instances can still store the same document at the same time; the partial unique index `uq_activity_doc_yjsafter` on `activity_log` drops the duplicate `edit` / `title.changed` / `theme.changed` row (`server/api/internal/activity.post.ts` logs `[activity] dedup skipped insert`). When two instances read the same `prev-text` baseline, the surviving row's line counts can be slightly off. That is accepted: the counts are a summary, and a lock around every store would make writes depend on Valkey.
 
 ## Shutdown
 
@@ -97,4 +97,4 @@ SIGTERM stops the compaction sweeper, retries unsaved documents once, calls `ser
 
 - Unit tests run from the root workspace and import `sync-server/src/*` directly: `tests/unit/sync/`. Tests that build `Y.Doc`s for sync-server helpers import Y from `sync-server/src/yjs.ts`, because Y.js relies on `instanceof` and the sync server has its own copy of the package.
 - Persistence against the real test Postgres (store, load, failures, two instances, snapshots, pruning, restore semantics): `tests/repos/yjsPersistence.test.ts`.
-- Integration tests against the real sync container: `tests/integration/sync/` (for example `persistence.test.ts`, `syncHardening.test.ts` and `connectionRevocation.test.ts`). `docker-compose.test.yml` sets low `SYNC_MAX_*` / `SYNC_AUTH_TIMEOUT_MS` values that must match the constants in `syncHardening.test.ts`.
+- Integration tests against the real sync container: `tests/integration/sync/` (for example `persistence.test.ts`, `syncHardening.test.ts` and `connectionRevocation.test.ts`). `deploy/compose/compose.test.yml` sets low `SYNC_MAX_*` / `SYNC_AUTH_TIMEOUT_MS` values that must match the constants in `syncHardening.test.ts`.

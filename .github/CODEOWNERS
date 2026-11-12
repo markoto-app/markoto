@@ -16,11 +16,13 @@
 /scripts/                  @joelbarmettlerUZH
 /install.sh                @joelbarmettlerUZH
 
-# Compose files and container images
-/docker-compose*.yml       @joelbarmettlerUZH
+# Compose files, the config they mount, container images, the workspace
+/deploy/                   @joelbarmettlerUZH
 /Dockerfile                @joelbarmettlerUZH
 /*/Dockerfile              @joelbarmettlerUZH
+/*/Dockerfile.dockerignore @joelbarmettlerUZH
 /.dockerignore             @joelbarmettlerUZH
+/bunfig.toml               @joelbarmettlerUZH
 
 # Instructions that AI agents load into maintainers' sessions
 AGENTS.md                  @joelbarmettlerUZH

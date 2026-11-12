@@ -34,7 +34,7 @@ The row's existence is re-checked after conversion and after embedding, so a fil
 
 All embedding calls go through LiteLLM. The hosted default is Jina `jina-embeddings-v5-text-nano` (768 dimensions). A self-hoster can point `NUXT_LITELLM_EMBEDDINGS_MODEL=custom-embeddings` at any OpenAI-compatible embeddings endpoint; operator documentation is in `docs/AI-MODELS.md`. Request parameters (Jina's `task` hint, `retrieval.passage` on ingest and `retrieval.query` on search; the `dimensions` field) are decided in `shared/utils/runtime/embeddingConfig.ts`.
 
-Jina reports only `total_tokens`, which LiteLLM's built-in Jina provider prices at zero. `JinaEmbeddingsProvider` in `infra/litellm/custom_handlers.py` rewrites the usage so spend is recorded.
+Jina reports only `total_tokens`, which LiteLLM's built-in Jina provider prices at zero. `JinaEmbeddingsProvider` in `deploy/config/litellm/custom_handlers.py` rewrites the usage so spend is recorded.
 
 ### Column dimension and re-embedding
 
@@ -46,7 +46,7 @@ The schema declares `vector(768)`. At boot, `server/plugins/02-embeddings-dimens
 
 The maximum is 2000 dimensions (`MAX_EMBEDDING_DIMS`), the HNSW limit for `vector`.
 
-`bun run knowledge:reembed` (`scripts/reembed-knowledge.ts` → `server/utils/knowledge/reembedKnowledge.ts`) retypes the column if needed and re-embeds every stale file from the stored chunk text, file by file, so a rerun continues where it stopped. Options: `--dry-run`, `--force`, `--batch-size`, `--concurrency`, `--pause-ms`. A model change with the same dimension is visible only in `embedding_version`; use `--force` once in that case.
+`bun run knowledge:reembed` (`scripts/reembed-knowledge.ts` → `server/db/reembedKnowledge.ts`) retypes the column if needed and re-embeds every stale file from the stored chunk text, file by file, so a rerun continues where it stopped. Options: `--dry-run`, `--force`, `--batch-size`, `--concurrency`, `--pause-ms`. A model change with the same dimension is visible only in `embedding_version`; use `--force` once in that case.
 
 ## Search
 

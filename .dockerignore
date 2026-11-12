@@ -32,6 +32,14 @@ AGENTS.md
 renovate.json
 eslint.config.mjs
 
+# The other workspace packages build their own images (their
+# Dockerfile.dockerignore); the app image needs only their manifests, for
+# the frozen-lockfile install.
+sync-server/*
+!sync-server/package.json
+renderer/*
+!renderer/package.json
+
 # Compose / deploy files — not needed inside the image itself.
 docker-compose*.yml
 Dockerfile

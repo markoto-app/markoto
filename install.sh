@@ -122,7 +122,7 @@ ensure_secret() {
 }
 
 # Separate least-privilege Postgres roles for the app and for LiteLLM
-# (created by the db-init one-shot, infra/postgres/db-init.sh). POSTGRES_USER
+# (created by the db-init one-shot, deploy/config/postgres/db-init.sh). POSTGRES_USER
 # stays the admin role, used only by db-init and the backup sidecar.
 ensure_db_roles() {
   set_config POSTGRES_APP_USER "" "markoto_app"
@@ -208,10 +208,14 @@ engine_socket() {
 compose() {
   # LiteLLM reads its config only at boot: a changed hash changes the
   # litellm container's label, so `up -d` recreates it after an upgrade
-  # that changed infra/litellm/ (docker-compose.base.yml).
-  LITELLM_CONFIG_HASH="$(cat "$ROOT/infra/litellm/config.yaml" "$ROOT/infra/litellm/custom_handlers.py" | sha256sum | cut -c1-16)"
+  # that changed deploy/config/litellm/ (deploy/compose/compose.base.yml).
+  LITELLM_CONFIG_HASH="$(cat "$ROOT/deploy/config/litellm/config.yaml" "$ROOT/deploy/config/litellm/custom_handlers.py" | sha256sum | cut -c1-16)"
   export LITELLM_CONFIG_HASH
-  docker compose --project-directory "$ROOT" --env-file "$ENV_FILE" "$@"
+  # COMPOSE_FILE (in .env) lists deploy/compose/* relative to this checkout,
+  # and compose resolves it against the working directory. The project
+  # directory is the compose files' own: their relative paths (config
+  # mounts, the renderer's seccomp profile, ../../branding) start there.
+  (cd "$ROOT" && docker compose --project-directory "$ROOT/deploy/compose" --env-file "$ENV_FILE" "$@")
 }
 
 # Configuration
@@ -266,7 +270,7 @@ configure() {
     env_set ACME_EMAIL "$acme_email"
     env_set MARKOTO_HTTP_PORT "80"
     env_set MARKOTO_PUBLIC_URL "$public_url"
-    COMPOSE_FILES="docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml"
+    COMPOSE_FILES="deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml"
   else
     env_set MARKOTO_DOMAIN ""
     http_port="${http_port:-$(env_get MARKOTO_HTTP_PORT)}"
@@ -287,7 +291,7 @@ configure() {
     public_url="${public_url%/}"
     case "$public_url" in http://* | https://*) ;; *) die "public URL must start with http:// or https://" ;; esac
     env_set MARKOTO_PUBLIC_URL "$public_url"
-    COMPOSE_FILES="docker-compose.selfhost.yml"
+    COMPOSE_FILES="deploy/compose/compose.selfhost.yml"
   fi
   case "$public_url" in
     https://*) sync_url="wss://${public_url#https://}/sync" ;;
@@ -299,16 +303,16 @@ configure() {
 
   if [ "$OPT_BUILD" = 1 ] || [ "$(env_get MARKOTO_BUILD)" = 1 ]; then
     env_set MARKOTO_BUILD "1"
-    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.build.yml"
+    COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.selfhost.build.yml"
   fi
   # Managed private instance: a ./branding directory holds the
   # customer's logo (docs/operations/MANAGED-INSTANCE.md).
   if [ -d "$ROOT/branding" ]; then
-    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.selfhost.brand.yml"
+    COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.selfhost.brand.yml"
   fi
   # Podman: renderer seccomp overlay + the engine socket (docs/contributing/CONTAINER-ENGINES.md).
   if engine_is_podman; then
-    COMPOSE_FILES="${COMPOSE_FILES}:docker-compose.podman.yml"
+    COMPOSE_FILES="${COMPOSE_FILES}:deploy/compose/compose.podman.yml"
     local unpriv
     unpriv="$(cat /proc/sys/net/ipv4/ip_unprivileged_port_start 2>/dev/null || echo 1024)"
     if [ "$(id -u)" != 0 ] && [ "$(env_get MARKOTO_HTTP_PORT)" -lt "$unpriv" ]; then
@@ -458,7 +462,7 @@ pull_or_build() {
     warn "Pulling failed (images not published for this tag, or the registry needs a login)."
     warn "Falling back to building from this checkout. Make it permanent with --build."
     env_set MARKOTO_BUILD "1"
-    env_set COMPOSE_FILE "$(env_get COMPOSE_FILE):docker-compose.selfhost.build.yml"
+    env_set COMPOSE_FILE "$(env_get COMPOSE_FILE):deploy/compose/compose.selfhost.build.yml"
     compose build
   fi
 }

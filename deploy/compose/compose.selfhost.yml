@@ -6,7 +6,7 @@
 # Full guide: docs/SELF-HOSTING.md.
 #
 # Same images and code as the hosted service (GHCR, `${IMAGE_TAG}`); the
-# differences are configuration only. Compared with docker-compose.prod.yml
+# differences are configuration only. Compared with deploy/compose/compose.prod.yml
 # this file bundles what a self-hoster doesn't have:
 #   - Postgres (pgvector image, persistent volume) — prod uses a managed cluster
 #   - S3-compatible storage (SeaweedFS, persistent volume, bucket auto-created)
@@ -15,13 +15,13 @@
 #     ONE Traefik entrypoint — a single DNS name / port, no CORS
 #
 # Shapes (picked by COMPOSE_FILE in .env, written by install.sh):
-#   docker-compose.selfhost.yml                         plain HTTP on ${MARKOTO_HTTP_PORT}
+#   deploy/compose/compose.selfhost.yml                         plain HTTP on ${MARKOTO_HTTP_PORT}
 #                                                       (LAN, or behind your own TLS proxy)
-#   + docker-compose.selfhost.tls.yml                   Let's Encrypt on 80/443 for ${MARKOTO_DOMAIN}
-#   + docker-compose.selfhost.build.yml                 build images from this checkout instead of pulling
+#   + deploy/compose/compose.selfhost.tls.yml                   Let's Encrypt on 80/443 for ${MARKOTO_DOMAIN}
+#   + deploy/compose/compose.selfhost.build.yml                 build images from this checkout instead of pulling
 #   COMPOSE_PROFILES=backup                             daily encrypted pg_dump into the bucket
 #
-# Semantics reminder (see docker-compose.base.yml header): `command`,
+# Semantics reminder (see deploy/compose/compose.base.yml header): `command`,
 # `volumes`, `depends_on` and `networks` REPLACE the base definition.
 #
 # Every host port is configurable; nothing but Traefik publishes a port.
@@ -42,7 +42,7 @@
 # input — can't reach Postgres, Valkey, LiteLLM or sync.
 
 include:
-  - docker-compose.base.yml
+  - compose.base.yml
 
 networks:
   # Explicit names (prefixed with the instance name) so Traefik can be told
@@ -72,6 +72,15 @@ networks:
 
 volumes:
   seaweed_data:
+
+# Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
+# no Linux capabilities, no privilege gain through setuid binaries. A service
+# that needs more (a seccomp profile, a capability) spells its keys out.
+x-hardening: &hardening
+  cap_drop:
+    - ALL
+  security_opt:
+    - no-new-privileges:true
 
 services:
   # Read-only Docker API for Traefik's docker provider: container list,
@@ -137,10 +146,7 @@ services:
     # not. Without it Traefik (no capabilities) can't bind :80 / :443.
     sysctls:
       net.ipv4.ip_unprivileged_port_start: 0
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     healthcheck:
       test: ["CMD", "traefik", "healthcheck", "--ping"]
       interval: 10s
@@ -167,14 +173,14 @@ services:
       - data
 
   # install.sh generates POSTGRES_APP_* and POSTGRES_LITELLM_*, so the app
-  # and LiteLLM each get a least-privilege role (infra/postgres/db-init.sh).
+  # and LiteLLM each get a least-privilege role (deploy/config/postgres/db-init.sh).
   db-init:
     networks:
       - data
 
   # LiteLLM boots with NO provider keys: every os.environ/ reference in
-  # infra/litellm/config.yaml is defaulted to an empty-but-defined value in
-  # docker-compose.base.yml (an undefined one crashes the proxy). Without
+  # deploy/config/litellm/config.yaml is defaulted to an empty-but-defined value in
+  # deploy/compose/compose.base.yml (an undefined one crashes the proxy). Without
   # keys the bundled model aliases simply fail when called; users bring
   # their own key (Settings → AI provider) or the operator sets
   # NUXT_AI_DEFAULT_* below.
@@ -200,7 +206,7 @@ services:
       - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
       - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
     entrypoint: ["/bin/sh", "-c"]
-    # `-master.volumeSizeLimitMB=256`: see docker-compose.dev.yml — keeps
+    # `-master.volumeSizeLimitMB=256`: see deploy/compose/compose.dev.yml — keeps
     # enough volume slots on small disks. The image's own entrypoint drops
     # to the `seaweed` user, hence the chown.
     #
@@ -294,10 +300,7 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=16m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     networks:
       - storage
 
@@ -315,95 +318,38 @@ services:
     stop_grace_period: 30s
     mem_limit: 2g
     environment:
-      - NODE_ENV=production
-      # Public origin
-      # MARKOTO_PUBLIC_URL: what users type (https://docs.example.com or
-      # http://192.168.1.10:8080). Absolute links in emails, the OAuth
-      # callback URLs and the browser-facing S3 endpoint all derive from it.
-      - NUXT_SITE_URL=${MARKOTO_PUBLIC_URL:?MARKOTO_PUBLIC_URL required}
-      - NUXT_PUBLIC_SYNC_URL=${MARKOTO_SYNC_URL:?MARKOTO_SYNC_URL required}
-      # Secrets (install.sh generates them)
-      - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD:?NUXT_SESSION_PASSWORD required}
-      - NUXT_JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
+      # BEGIN env:gen app — plain passthrough of the registry variables (shared/env/); regenerate with `bun run env:gen`.
+      - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-}
+      - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
       - NUXT_JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS:-}
-      - NUXT_INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
       - NUXT_INTERNAL_API_SECRET_PREVIOUS=${NUXT_INTERNAL_API_SECRET_PREVIOUS:-}
+      - NUXT_ENCRYPTION_KEY_PREVIOUS=${NUXT_ENCRYPTION_KEY_PREVIOUS:-}
       - NUXT_AI_DICTATE_JWT_SECRET=${NUXT_AI_DICTATE_JWT_SECRET:-}
-      # Key of the self-hosted ALTCHA bot check (anonymous gate, below).
-      # install.sh generates it; required only while the gate is on.
-      - NUXT_ALTCHA_HMAC_KEY=${NUXT_ALTCHA_HMAC_KEY:-}
-      # Login (optional; without a pair the instance is anonymous-only)
-      # Callback URLs to register with the provider: <public URL>/auth/github
-      # and <public URL>/auth/google. Pinned here so they stay right behind
-      # an extra proxy that rewrites X-Forwarded-Proto.
       - NUXT_OAUTH_GITHUB_CLIENT_ID=${NUXT_OAUTH_GITHUB_CLIENT_ID:-}
       - NUXT_OAUTH_GITHUB_CLIENT_SECRET=${NUXT_OAUTH_GITHUB_CLIENT_SECRET:-}
-      - NUXT_OAUTH_GITHUB_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/github
       - NUXT_OAUTH_GOOGLE_CLIENT_ID=${NUXT_OAUTH_GOOGLE_CLIENT_ID:-}
       - NUXT_OAUTH_GOOGLE_CLIENT_SECRET=${NUXT_OAUTH_GOOGLE_CLIENT_SECRET:-}
-      - NUXT_OAUTH_GOOGLE_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/google
-      # Your own OpenID Connect provider (Authentik, Keycloak, Authelia,
-      # Pocket ID, Zitadel, Dex, ...). Issuer + id + secret, all or none.
-      # Redirect URI to register at the IdP: <public URL>/auth/oidc.
       - NUXT_OAUTH_OIDC_ISSUER=${NUXT_OAUTH_OIDC_ISSUER:-}
       - NUXT_OAUTH_OIDC_CLIENT_ID=${NUXT_OAUTH_OIDC_CLIENT_ID:-}
       - NUXT_OAUTH_OIDC_CLIENT_SECRET=${NUXT_OAUTH_OIDC_CLIENT_SECRET:-}
       - NUXT_OAUTH_OIDC_NAME=${NUXT_OAUTH_OIDC_NAME:-}
       - NUXT_OAUTH_OIDC_SCOPES=${NUXT_OAUTH_OIDC_SCOPES:-}
-      - NUXT_OAUTH_OIDC_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/oidc
-      # Emails promoted to instance admin on their first login (/admin/*).
-      - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
-      # Storage (bundled SeaweedFS)
-      - NUXT_S3_ENDPOINT=http://seaweedfs:8333
-      - NUXT_S3_PUBLIC_ENDPOINT=${MARKOTO_PUBLIC_URL}
-      - NUXT_S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY}
-      - NUXT_S3_SECRET_KEY=${NUXT_S3_SECRET_KEY}
-      - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:-markoto-files}
-      # Internal services
-      - NUXT_SYNC_INTERNAL_URL=http://sync:4001
-      - NUXT_MARKITDOWN_URL=http://markitdown:8080
-      - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
-      - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
-      # Mirrored into the print-page CSP (server/utils/rendering/csp.ts); the renderer reads the same variable.
+      - POSTGRES_DB=${POSTGRES_DB:-}
+      - VALKEY_PASSWORD=${VALKEY_PASSWORD:-}
+      - NUXT_S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:-}
+      - NUXT_S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:-}
+      - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
       - RENDERER_ALLOWED_ORIGINS=${RENDERER_ALLOWED_ORIGINS:-}
-      - NUXT_LITELLM_URL=http://litellm:4000
-      - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
-      # Encrypts the secrets the app stores (LiteLLM virtual keys, BYOK
-      # provider keys, SSO client secrets; server/utils/platform/secretBox.ts).
-      # Its own secret, not LiteLLM's salt: a compromised LiteLLM container
-      # must not also open the app's stored credentials. Losing it makes
-      # those values unreadable; rotate through _PREVIOUS.
-      - NUXT_ENCRYPTION_KEY=${NUXT_ENCRYPTION_KEY:?NUXT_ENCRYPTION_KEY required}
-      - NUXT_ENCRYPTION_KEY_PREVIOUS=${NUXT_ENCRYPTION_KEY_PREVIOUS:-}
-      # LiteLLM's own role, for the spend-log sweep + admin spend query
-      # (server/utils/litellm/litellmDb.ts); empty = the app role.
-      - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
-      - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
-      # The app's own role (owner of the app database only) — db-init.
-      - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
-      - POSTGRES_PASSWORD=${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
-      - POSTGRES_DB=${POSTGRES_DB}
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      # In-stack Postgres on the private docker network: no TLS.
-      - PGSSL=disable
-      - VALKEY_HOST=valkey
-      - VALKEY_PORT=6379
-      - VALKEY_PASSWORD=${VALKEY_PASSWORD}
-      - VALKEY_DB=${VALKEY_DB:-0}
-      # Reverse proxies in front of the app: 1 = this Traefik. Behind your own
-      # TLS proxy set 2 (and TRAEFIK_TRUSTED_IPS). shared/utils/security/clientIp.ts.
-      - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
-      # AI (all optional; docs/SELF-HOSTING.md#ai)
-      # Instance defaults per capability; empty = users bring their own key.
+      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
+      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
+      - STAAN_API_KEY=${STAAN_API_KEY:-}
+      - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
+      - NUXT_WEB_TOOLS_DAILY_LIMIT=${NUXT_WEB_TOOLS_DAILY_LIMIT:-}
       - NUXT_AI_DEFAULT_CHAT_MODEL=${NUXT_AI_DEFAULT_CHAT_MODEL:-}
       - NUXT_AI_DEFAULT_CHAT_BASE_URL=${NUXT_AI_DEFAULT_CHAT_BASE_URL:-}
       - NUXT_AI_DEFAULT_CHAT_API_KEY=${NUXT_AI_DEFAULT_CHAT_API_KEY:-}
       - NUXT_AI_DEFAULT_CHAT_VISION=${NUXT_AI_DEFAULT_CHAT_VISION:-}
       - NUXT_AI_DEFAULT_CHAT_STRONG_MODEL=${NUXT_AI_DEFAULT_CHAT_STRONG_MODEL:-}
-      # Global monthly ceiling (USD) on platform-paid AI for all free-tier
-      # users together (LiteLLM team budget); empty / 0 = none.
-      - NUXT_FREE_TIER_TOTAL_BUDGET_USD=${NUXT_FREE_TIER_TOTAL_BUDGET_USD:-}
       - NUXT_AI_DEFAULT_IMAGE_MODEL=${NUXT_AI_DEFAULT_IMAGE_MODEL:-}
       - NUXT_AI_DEFAULT_IMAGE_BASE_URL=${NUXT_AI_DEFAULT_IMAGE_BASE_URL:-}
       - NUXT_AI_DEFAULT_IMAGE_API_KEY=${NUXT_AI_DEFAULT_IMAGE_API_KEY:-}
@@ -412,37 +358,8 @@ services:
       - NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY=${NUXT_AI_DEFAULT_TRANSCRIBE_API_KEY:-}
       - NUXT_AI_REALTIME_MODEL=${NUXT_AI_REALTIME_MODEL:-}
       - NUXT_AI_BYOK_ALLOWED_BASE_URLS=${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-}
-      - NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}
-      - MISTRAL_API_KEY=${MISTRAL_API_KEY:-}
-      # Workspace single sign-on against an IdP on a private network (an
-      # on-prem Keycloak, say). Default false (server/utils/sso/urlPolicy.ts).
-      - NUXT_SSO_ALLOW_PRIVATE_URLS=${NUXT_SSO_ALLOW_PRIVATE_URLS:-false}
-      # Web tools for the AI: web_search (Staan) / fetch_url (Jina Reader).
-      # Hidden from the AI without a key.
-      - STAAN_API_KEY=${STAAN_API_KEY:-}
-      - JINA_AI_API_KEY=${JINA_AI_API_KEY:-}
-      - NUXT_WEB_TOOLS_HOURLY_LIMIT=${NUXT_WEB_TOOLS_HOURLY_LIMIT:-}
-      - NUXT_WEB_TOOLS_DAILY_LIMIT=${NUXT_WEB_TOOLS_DAILY_LIMIT:-}
-      # Knowledge-base embeddings (docs/AI-MODELS.md#embeddings). The Jina
-      # default needs JINA_AI_API_KEY; otherwise point custom-embeddings at
-      # any provider (EMBEDDINGS_UPSTREAM_* are read by the litellm service).
-      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-jina-embeddings-v5-text-nano}
-      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-768}
-      - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
-      - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
-      - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
-      # Limits
-      # Billing is off, so everyone is on the free tier and TIER_FREE_* ARE
-      # the limits. The hosted free tier is tight (1 workspace, 5 knowledge
-      # files); a self-hosted instance defaults to roomier values.
-      - NUXT_BILLING_ENABLED=false
-      - NUXT_PLANS_COMING_SOON=false
+      - NUXT_FREE_TIER_TOTAL_BUDGET_USD=${NUXT_FREE_TIER_TOTAL_BUDGET_USD:-}
       - TIER_FREE_LITELLM_BUDGET_USD=${TIER_FREE_LITELLM_BUDGET_USD:-}
-      - TIER_FREE_WORKSPACES_OWNED=${TIER_FREE_WORKSPACES_OWNED:-50}
-      - TIER_FREE_KNOWLEDGE_FILES=${TIER_FREE_KNOWLEDGE_FILES:-500}
-      - TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE=${TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE:-1073741824}
-      - TIER_FREE_KNOWLEDGE_BYTES_PER_USER=${TIER_FREE_KNOWLEDGE_BYTES_PER_USER:-10737418240}
-      - TIER_FREE_IMAGE_BYTES_PER_USER=${TIER_FREE_IMAGE_BYTES_PER_USER:-10737418240}
       - TIER_FREE_MEMBERS_PER_WORKSPACE=${TIER_FREE_MEMBERS_PER_WORKSPACE:-}
       - TIER_FREE_HISTORY_DAYS=${TIER_FREE_HISTORY_DAYS:-}
       - TIER_FREE_SAVED_THEMES=${TIER_FREE_SAVED_THEMES:-}
@@ -460,11 +377,105 @@ services:
       - TIER_FREE_FEATURE_BRAND_KIT=${TIER_FREE_FEATURE_BRAND_KIT:-}
       - TIER_FREE_FEATURE_SHARE_CONTROLS=${TIER_FREE_FEATURE_SHARE_CONTROLS:-}
       - TIER_FREE_FEATURE_CUSTOM_DOMAINS=${TIER_FREE_FEATURE_CUSTOM_DOMAINS:-}
-      # Days an unreferenced doc image is kept before the image GC deletes
-      # it. Empty = 30, 0 = GC off.
-      - NUXT_IMAGE_GC_RETENTION_DAYS=${NUXT_IMAGE_GC_RETENTION_DAYS:-}
       - NUXT_AUDIT_LOG_RETENTION_DAYS=${NUXT_AUDIT_LOG_RETENTION_DAYS:-}
       - NUXT_ABUSE_REPORT_RETENTION_DAYS=${NUXT_ABUSE_REPORT_RETENTION_DAYS:-}
+      - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-}
+      - NUXT_ALTCHA_HMAC_KEY=${NUXT_ALTCHA_HMAC_KEY:-}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
+      - NUXT_EMAIL_PROVIDER=${NUXT_EMAIL_PROVIDER:-}
+      - NUXT_INSTANCE_BRAND_NAME=${NUXT_INSTANCE_BRAND_NAME:-}
+      - NUXT_INSTANCE_SUPPORT_URL=${NUXT_INSTANCE_SUPPORT_URL:-}
+      - NUXT_INSTANCE_SUPPORT_EMAIL=${NUXT_INSTANCE_SUPPORT_EMAIL:-}
+      - NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST:-}
+      - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
+      - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
+      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      # END env:gen app
+      - NODE_ENV=production
+      # Public origin
+      # MARKOTO_PUBLIC_URL: what users type (https://docs.example.com or
+      # http://192.168.1.10:8080). Absolute links in emails, the OAuth
+      # callback URLs and the browser-facing S3 endpoint all derive from it.
+      - NUXT_SITE_URL=${MARKOTO_PUBLIC_URL:?MARKOTO_PUBLIC_URL required}
+      - NUXT_PUBLIC_SYNC_URL=${MARKOTO_SYNC_URL:?MARKOTO_SYNC_URL required}
+      # Secrets (install.sh generates them)
+      - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD:?NUXT_SESSION_PASSWORD required}
+      - NUXT_JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
+      - NUXT_INTERNAL_API_SECRET=${NUXT_INTERNAL_API_SECRET:?NUXT_INTERNAL_API_SECRET required}
+      # Login (optional; without a pair the instance is anonymous-only)
+      # Callback URLs to register with the provider: <public URL>/auth/github
+      # and <public URL>/auth/google. Pinned here so they stay right behind
+      # an extra proxy that rewrites X-Forwarded-Proto.
+      - NUXT_OAUTH_GITHUB_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/github
+      - NUXT_OAUTH_GOOGLE_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/google
+      # Your own OpenID Connect provider (Authentik, Keycloak, Authelia,
+      # Pocket ID, Zitadel, Dex, ...). Issuer + id + secret, all or none.
+      # Redirect URI to register at the IdP: <public URL>/auth/oidc.
+      - NUXT_OAUTH_OIDC_REDIRECT_URL=${MARKOTO_PUBLIC_URL}/auth/oidc
+      # Storage (bundled SeaweedFS)
+      - NUXT_S3_ENDPOINT=http://seaweedfs:8333
+      - NUXT_S3_PUBLIC_ENDPOINT=${MARKOTO_PUBLIC_URL}
+      - NUXT_S3_BUCKET=${NUXT_S3_BUCKET:-markoto-files}
+      # Internal services
+      - NUXT_SYNC_INTERNAL_URL=http://sync:4001
+      - NUXT_MARKITDOWN_URL=http://markitdown:8080
+      - NUXT_MARKITDOWN_API_SECRET=${NUXT_MARKITDOWN_API_SECRET:?NUXT_MARKITDOWN_API_SECRET required}
+      - NUXT_RENDERER_INTERNAL_URL=http://renderer:9000
+      - NUXT_LITELLM_URL=http://litellm:4000
+      - NUXT_LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
+      # Encrypts the secrets the app stores (LiteLLM virtual keys, BYOK
+      # provider keys, SSO client secrets; server/utils/platform/secretBox.ts).
+      # Its own secret, not LiteLLM's salt: a compromised LiteLLM container
+      # must not also open the app's stored credentials. Losing it makes
+      # those values unreadable; rotate through _PREVIOUS.
+      - NUXT_ENCRYPTION_KEY=${NUXT_ENCRYPTION_KEY:?NUXT_ENCRYPTION_KEY required}
+      # LiteLLM's own role, for the spend-log sweep + admin spend query
+      # (server/utils/litellm/litellmDb.ts); empty = the app role.
+      - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
+      - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
+      # The app's own role (owner of the app database only) — db-init.
+      - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
+      - POSTGRES_PASSWORD=${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      # In-stack Postgres on the private docker network: no TLS.
+      - PGSSL=disable
+      - VALKEY_HOST=valkey
+      - VALKEY_PORT=6379
+      - VALKEY_DB=${VALKEY_DB:-0}
+      # Reverse proxies in front of the app: 1 = this Traefik. Behind your own
+      # TLS proxy set 2 (and TRAEFIK_TRUSTED_IPS). shared/utils/security/clientIp.ts.
+      - NUXT_TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
+      # Bring-your-own-key providers on a private network (Ollama, vLLM).
+      # Default false (server/utils/aiProviders/urlPolicy.ts).
+      - NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}
+      # Workspace single sign-on against an IdP on a private network (an
+      # on-prem Keycloak, say). Default false (server/utils/sso/urlPolicy.ts).
+      - NUXT_SSO_ALLOW_PRIVATE_URLS=${NUXT_SSO_ALLOW_PRIVATE_URLS:-false}
+      # Knowledge-base embeddings (docs/AI-MODELS.md#embeddings). The Jina
+      # default needs JINA_AI_API_KEY; otherwise point custom-embeddings at
+      # any provider (EMBEDDINGS_UPSTREAM_* are read by the litellm service).
+      - NUXT_LITELLM_EMBEDDINGS_MODEL=${NUXT_LITELLM_EMBEDDINGS_MODEL:-jina-embeddings-v5-text-nano}
+      - NUXT_LITELLM_EMBEDDINGS_DIMS=${NUXT_LITELLM_EMBEDDINGS_DIMS:-768}
+      - NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS=${NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS:-auto}
+      - NUXT_LITELLM_EMBEDDINGS_TASK_HINTS=${NUXT_LITELLM_EMBEDDINGS_TASK_HINTS:-auto}
+      - NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL=${EMBEDDINGS_UPSTREAM_MODEL:-}
+      # Limits
+      # Billing is off, so everyone is on the free tier and TIER_FREE_* ARE
+      # the limits. The hosted free tier is tight (1 workspace, 5 knowledge
+      # files); a self-hosted instance defaults to roomier values.
+      - NUXT_BILLING_ENABLED=false
+      - NUXT_PLANS_COMING_SOON=false
+      - TIER_FREE_WORKSPACES_OWNED=${TIER_FREE_WORKSPACES_OWNED:-50}
+      - TIER_FREE_KNOWLEDGE_FILES=${TIER_FREE_KNOWLEDGE_FILES:-500}
+      - TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE=${TIER_FREE_KNOWLEDGE_BYTES_PER_WORKSPACE:-1073741824}
+      - TIER_FREE_KNOWLEDGE_BYTES_PER_USER=${TIER_FREE_KNOWLEDGE_BYTES_PER_USER:-10737418240}
+      - TIER_FREE_IMAGE_BYTES_PER_USER=${TIER_FREE_IMAGE_BYTES_PER_USER:-10737418240}
+      # Anonymous documents are deleted after this many inactive days (0 =
+      # never). Defaulted, not left empty: an empty value would override the
+      # code default and turn the sweep off.
       - NUXT_INACTIVE_DOC_TTL_DAYS=${NUXT_INACTIVE_DOC_TTL_DAYS:-30}
       # Operator surfaces (shared/config/instance.ts)
       # The bundled privacy policy / terms / DPA / imprint describe the
@@ -472,39 +483,22 @@ services:
       # cookie banner, no DPA step, no /legal/* pages. Turn on only with your
       # own NUXT_LEGAL_* identity and adapted content/legal/ texts.
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-false}
-      # Anonymous gate: terms checkbox + invisible ALTCHA bot check before an
-      # anonymous visitor creates a document; anonymous abuse reports.
-      # Empty = follows NUXT_LEGAL_SURFACES_ENABLED. Set true to gate
-      # anonymous use without the legal pages (needs NUXT_ALTCHA_HMAC_KEY).
-      - NUXT_ANON_GATE_ENABLED=${NUXT_ANON_GATE_ENABLED:-}
       # Search engines (shared/config/instance.ts)
       # The bundled /docs pages point their canonical link at markoto.app,
       # the original, so search engines don't rank copies against each
       # other. Set NUXT_DOCS_CANONICAL_BASE= (empty) to make your copy
       # self-canonical, or another https origin. Unset = markoto.app.
       - NUXT_DOCS_CANONICAL_BASE=${NUXT_DOCS_CANONICAL_BASE-https://markoto.app}
-      # Custom domains of published pages (HTTPS overlay only):
-      # NUXT_PUBLISH_DOMAINS_TARGET = the host your users CNAME to,
-      # NUXT_PUBLISH_TRAEFIK_TOKEN = ≥ 32 random characters.
-      - NUXT_PUBLISH_DOMAINS_TARGET=${NUXT_PUBLISH_DOMAINS_TARGET:-}
-      - NUXT_PUBLISH_TRAEFIK_TOKEN=${NUXT_PUBLISH_TRAEFIK_TOKEN:-}
+      # Custom domains and the published-pages host (HTTPS overlay): the
+      # routers Traefik's HTTP provider gets from the app point at this
+      # service and these middlewares. Set NUXT_PUBLISH_DOMAINS_TARGET (the
+      # host your users CNAME to), NUXT_PUBLISH_TRAEFIK_TOKEN (≥ 32 random
+      # characters) and NUXT_PUBLISH_PAGES_HOST in .env;
+      # docs/SELF-HOSTING.md → Published pages.
       - NUXT_PUBLISH_TRAEFIK_SERVICE=markoto-app@docker
-      # Published pages on their own hostname (recommended for a public
-      # instance; empty = <your URL>/p/<slug>). HTTPS overlay: routed with
-      # its certificate by Traefik's HTTP provider, which needs
-      # NUXT_PUBLISH_TRAEFIK_TOKEN. Plain HTTP: any hostname reaching this
-      # Traefik is served. docs/SELF-HOSTING.md → Published pages.
-      - NUXT_PUBLISH_PAGES_HOST=${NUXT_PUBLISH_PAGES_HOST:-}
       - NUXT_PUBLISH_TRAEFIK_MIDDLEWARES=markoto-headers@docker,markoto-compress@docker
-      # Managed private instance: the customer's name beside the
-      # markoto wordmark and their service desk in the account menu +
-      # footer. The logo needs docker-compose.selfhost.brand.yml.
-      - NUXT_INSTANCE_BRAND_NAME=${NUXT_INSTANCE_BRAND_NAME:-}
-      - NUXT_INSTANCE_SUPPORT_URL=${NUXT_INSTANCE_SUPPORT_URL:-}
-      - NUXT_INSTANCE_SUPPORT_EMAIL=${NUXT_INSTANCE_SUPPORT_EMAIL:-}
-      # false = keep the whole instance out of search engines (robots.txt
-      # Disallow: / + X-Robots-Tag: noindex). Empty = indexable.
-      - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-}
+      # Operator identity on the legal pages (read only with
+      # NUXT_LEGAL_SURFACES_ENABLED=true).
       - NUXT_LEGAL_CONTROLLER_NAME=${NUXT_LEGAL_CONTROLLER_NAME:-}
       - NUXT_LEGAL_CONTROLLER_ADDRESS=${NUXT_LEGAL_CONTROLLER_ADDRESS:-}
       - NUXT_LEGAL_PRIVACY_CONTACT_EMAIL=${NUXT_LEGAL_PRIVACY_CONTACT_EMAIL:-}
@@ -516,15 +510,6 @@ services:
       - NUXT_LEGAL_UID=${NUXT_LEGAL_UID:-}
       - NUXT_LEGAL_CH_ID=${NUXT_LEGAL_CH_ID:-}
       - NUXT_LEGAL_EHRA_ID=${NUXT_LEGAL_EHRA_ID:-}
-      # Email (optional)
-      # Without RESEND_API_KEY emails are logged, not sent ([email-stub]);
-      # every flow still completes.
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - NUXT_EMAIL_FROM=${NUXT_EMAIL_FROM:-}
-      - NUXT_EMAIL_PROVIDER=${NUXT_EMAIL_PROVIDER:-}
-      # Telemetry (optional; nothing is sent without a DSN)
-      - NUXT_PUBLIC_SENTRY_DSN=${NUXT_PUBLIC_SENTRY_DSN:-}
-      - SENTRY_DSN=${SENTRY_DSN:-}
     # The BYOK URL policy resolves provider hostnames in the app before
     # LiteLLM connects, so the app must resolve host.docker.internal too.
     extra_hosts:
@@ -533,17 +518,14 @@ services:
     read_only: true
     tmpfs:
       - /tmp:size=256m
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
+    <<: *hardening
     expose:
       - "3000"
     labels:
       - "markoto.instance=${MARKOTO_INSTANCE:-markoto}"
       - "traefik.enable=true"
       # Service-to-service routes stay off the public edge: /api/internal/**
-      # and the renderer's print page + bootstrap (see docker-compose.prod.yml).
+      # and the renderer's print page + bootstrap (see deploy/compose/compose.prod.yml).
       - "traefik.http.routers.markoto-app.rule=PathPrefix(`/`) && !PathPrefix(`/api/internal/`) && !PathPrefix(`/_internal/render/`) && !Path(`/api/_internal/render-bootstrap`)"
       # Explicit lowest priority: Traefik ranks routers by rule length, and
       # the exclusions above made this catch-all longer than the /sync,
@@ -553,7 +535,7 @@ services:
       - "traefik.http.routers.markoto-app.middlewares=markoto-headers,markoto-compress"
       # Compress dynamic responses; precompressed static assets keep their
       # encoding, media/archives and text/event-stream (AI session stream)
-      # are excluded. See docker-compose.prod.yml.
+      # are excluded. See deploy/compose/compose.prod.yml.
       - "traefik.http.middlewares.markoto-compress.compress=true"
       - "traefik.http.middlewares.markoto-compress.compress.excludedcontenttypes=text/event-stream,image/png,image/jpeg,image/webp,image/avif,image/gif,video/mp4,video/webm,font/woff2,application/zip,application/pdf,application/octet-stream"
       # /api/import (anonymous document import, 50 MB file cap) gets its own

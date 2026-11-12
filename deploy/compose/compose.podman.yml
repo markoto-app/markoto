@@ -1,7 +1,7 @@
 # Podman overlay for the dev, local and self-host stacks (the test stack
-# has its own: docker-compose.test.podman.yml). Add it after the main file:
+# has its own: deploy/compose/compose.test.podman.yml). Add it after the main file:
 #
-#   docker compose -f docker-compose.dev.yml -f docker-compose.podman.yml up -d --wait
+#   docker compose --env-file .env -f deploy/compose/compose.dev.yml -f deploy/compose/compose.podman.yml up -d --wait
 #
 # See docs/contributing/CONTAINER-ENGINES.md.
 

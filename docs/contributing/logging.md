@@ -12,7 +12,7 @@ log.warn('LiteLLM key budget sync failed', { userId, err: e })
 log.with({ sessionId }).debug('turn finished', { turn })       // bound fields on every record
 ```
 
-The implementation is `shared/logging/core.ts`, with its redaction rules in `shared/logging/redaction.ts` (no package imports). The Sentry scrubber (`shared/utils/security/sentryScrub.ts`) uses the same redaction core with a stricter key policy, so a new secret shape added there covers logs and telemetry alike. The renderer image is built from `renderer/` alone, so `renderer/src/shared/` carries byte-identical copies of these files at the same relative paths, pinned by `tests/unit/logging/core.test.ts` and `tests/unit/platform/sentryScrub.test.ts`; after editing a shared file, copy it over.
+The implementation is `shared/logging/core.ts`, with its redaction rules in `shared/logging/redaction.ts` (no package imports). The Sentry scrubber (`shared/utils/security/sentryScrub.ts`) uses the same redaction core with a stricter key policy, so a new secret shape added there covers logs and telemetry alike. `renderer/src/shared/` carries byte-identical copies of these files at the same relative paths, pinned by `tests/unit/logging/core.test.ts` and `tests/unit/platform/sentryScrub.test.ts`; after editing a shared file, copy it over.
 
 ## Output
 

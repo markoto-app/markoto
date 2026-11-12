@@ -14,8 +14,16 @@ USER bun
 # compromised package can't execute code here); same as the sync-server and
 # renderer images. The one script the app needs, the root `postinstall`
 # (`nuxt prepare`), runs explicitly once the source is in.
-COPY --chown=bun:bun package.json bun.lock ./
-RUN bun install --frozen-lockfile --ignore-scripts
+# The repo is a Bun workspace (root app + shared, sync-server, renderer):
+# every workspace manifest must be present for `--frozen-lockfile` to match
+# the one lockfile, and `--filter markoto` installs the app's dependencies
+# (devDependencies included: the build needs them) without the sync
+# server's or the renderer's.
+COPY --chown=bun:bun package.json bun.lock bunfig.toml ./
+COPY --chown=bun:bun shared/package.json shared/
+COPY --chown=bun:bun sync-server/package.json sync-server/
+COPY --chown=bun:bun renderer/package.json renderer/
+RUN bun install --frozen-lockfile --ignore-scripts --filter markoto
 
 COPY --chown=bun:bun . .
 RUN bun run postinstall && bun run build

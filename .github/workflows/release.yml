@@ -247,14 +247,15 @@ jobs:
             context: .
             dockerfile: Dockerfile
             image: markoto-app
+          # sync-server and renderer build from the workspace root (one
+          # lockfile, and they import shared/); each Dockerfile has its own
+          # Dockerfile.dockerignore that narrows the context.
           - service: sync-server
-            # Repo-root context: the sync Dockerfile COPYs both sync-server/src
-            # AND the top-level shared/ dir, so ./sync-server can't see shared/.
             context: .
             dockerfile: ./sync-server/Dockerfile
             image: markoto-sync
           - service: renderer
-            context: ./renderer
+            context: .
             dockerfile: ./renderer/Dockerfile
             image: markoto-renderer
           - service: markitdown
@@ -440,7 +441,7 @@ jobs:
           JINA_AI_API_KEY: ${{ secrets.JINA_AI_API_KEY }}
           BFL_API_KEY: ${{ secrets.BFL_API_KEY }}
           STAAN_API_KEY: ${{ secrets.STAAN_API_KEY }}
-        run: docker compose -f docker-compose.test.yml --profile flows up -d --wait
+        run: bash scripts/test-compose.sh --profile flows up -d --wait
 
       # flows:test (scripts/flows-ephemeral.ts) runs three Playwright passes
       # on this one stack, restarting only the app server between them:
@@ -458,7 +459,7 @@ jobs:
 
       - name: Tear down test stack
         if: always()
-        run: docker compose -f docker-compose.test.yml --profile flows down -v
+        run: bash scripts/test-compose.sh --profile flows down -v
 
       # Uploaded even when some flows failed: build-flows.ts republishes
       # only variants with a `.passed` sentinel, so publish-flow-shots.yml

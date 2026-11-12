@@ -5,7 +5,7 @@ How it works (persistence and its durability argument, snapshots and pruning, au
 ## Rules
 
 - **Never return a fresh `Y.Doc` from `onLoadDocument` on error.** Re-throw so the connection is refused; an empty doc would let clients' cached state overwrite the real document. A document without rows legitimately loads empty.
-- **All `yjs_updates` SQL lives in `src/yjs-store.ts`** (the app's in `server/utils/documents/yjsLog.ts`). No DDL here: the table belongs to the app's migrations.
+- **All `yjs_updates` SQL lives in `src/yjs-store.ts`** (the app's in `server/repos/yjsLog.ts`). No DDL here: the table belongs to the app's migrations.
 - **Every write holds the per-document lock** (`pg_advisory_xact_lock(YJS_LOCK_NAMESPACE, hashtext(doc_id))`) until COMMIT. The activity "before" id and the snapshot invariant depend on it.
 - **Advance a document's persisted state vector only after its append committed** (`persistence.ts`). Moving it earlier loses the delta of a failed store.
 - **A snapshot must cover every row below its id; only pruning deletes, and only below a snapshot.** Never delete rows any other way, and never snapshot a document with an unreadable row.
@@ -23,8 +23,8 @@ How it works (persistence and its durability argument, snapshots and pruning, au
 
 ## `shared/` imports
 
-- The sync image installs only `shared/package.json`'s dependencies into the shared package's own `node_modules` (there is no root `node_modules` in the image). Anything `sync-server/src` imports from `shared/` must have its npm dependencies listed in `shared/package.json`.
-- Code the sync server imports from `shared/` must not import `yjs`: the app and the sync server have separate copies, and Y.js relies on `instanceof`. Tests that build `Y.Doc`s for sync-server helpers import Y from `sync-server/src/yjs.ts`.
+- `sync-server` is a Bun workspace package that depends on `@markoto/shared` (`workspace:*`). The image builds from the repo root and installs with `bun install --filter markoto-sync-server --production`: the sync server's dependencies plus `shared/package.json`'s, hoisted into `/app/node_modules`. Anything `sync-server/src` imports from `shared/` must have its npm dependencies listed in `shared/package.json`, or the image fails at startup.
+- Code the sync server imports from `shared/` must not import `yjs` (it would pull `yjs` into `@markoto/shared`'s runtime dependencies; Y.js relies on `instanceof`, so a second copy breaks it). Tests that build `Y.Doc`s for sync-server helpers import Y from `sync-server/src/yjs.ts`.
 
 ## Changing `ymeta` keys
 

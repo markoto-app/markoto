@@ -1,18 +1,21 @@
 SHELL := /usr/bin/env bash
 .DEFAULT_GOAL := help
 
-# Each env file pulls in docker-compose.base.yml via Compose's `include:`
-# directive. Compose 5.0 or newer is required (the files redefine included
-# services, which older versions reject). Single -f flag is enough; the merge is
-# transparent. See docs/ARCHITECTURE.md ("Design decisions").
-LOCAL := docker compose -f docker-compose.local.yml
-DEV   := docker compose -f docker-compose.dev.yml
-PROD  := docker compose -f docker-compose.prod.yml
+# The stacks live in deploy/compose/; each pulls in compose.base.yml via
+# Compose's `include:` directive. Compose 5.0 or newer is required (the files
+# redefine included services, which older versions reject). Single -f flag is
+# enough; the merge is transparent. See docs/ARCHITECTURE.md ("Design decisions").
+# Compose reads `.env` from the compose file's directory, so the repository's
+# is handed over explicitly (when there is one).
+ENV_FILE := $(if $(wildcard .env),--env-file .env)
+LOCAL := docker compose $(ENV_FILE) -f deploy/compose/compose.local.yml
+DEV   := docker compose $(ENV_FILE) -f deploy/compose/compose.dev.yml
+PROD  := docker compose $(ENV_FILE) -f deploy/compose/compose.prod.yml
 # The test stack goes through a helper that adds the Podman overlay when
 # the engine is Podman (docs/contributing/CONTAINER-ENGINES.md).
 TEST  := bash scripts/test-compose.sh
 
-CERT_DIR  := traefik/local
+CERT_DIR  := deploy/config/traefik/local
 CERT_NAME := ypad.127.0.0.1.nip.io
 CERT      := $(CERT_DIR)/$(CERT_NAME).pem
 KEY       := $(CERT_DIR)/$(CERT_NAME)-key.pem
@@ -27,11 +30,9 @@ help: ## Show this help
 
 # === Local development ===
 .PHONY: setup
-setup: ## First run: create .env with generated secrets, install deps (root, sync-server, renderer)
+setup: ## First run: create .env with generated secrets, install deps (one Bun workspace: app, shared, sync-server, renderer)
 	bash scripts/setup-env.sh
 	bun install
-	bun install --cwd sync-server
-	bun install --cwd renderer
 
 .PHONY: dev
 dev: ## Start dev infra (Postgres, Valkey, etc) — Nuxt runs on host
@@ -100,8 +101,7 @@ test-all: ## Run EVERY test suite (slow — ~15min)
 lint: ## Run all lint+typecheck (eslint + tsc incl. sync-server + renderer + ansible-lint + yamllint + actionlint)
 	bun run lint
 	bun run typecheck
-	cd sync-server && bun --bun run typecheck
-	cd renderer && bun --bun run typecheck
+	bun run typecheck:services
 	$(MAKE) -C infra lint
 	$(MAKE) lint-actions
 

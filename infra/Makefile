@@ -27,7 +27,7 @@ rollback: ## Roll back to a specific IMAGE_TAG: make rollback TAG=v1.2.3
 	ansible-playbook $(ANSIBLE_OPTS) playbooks/rollback.yml -e target_image_tag=$(TAG)
 
 logs: ## Tail compose logs from the remote
-	ansible -i $(INVENTORY) markoto -m shell -a "cd /opt/markoto && docker compose -f docker-compose.prod.yml logs --tail=200" --become
+	ansible -i $(INVENTORY) markoto -m shell -a "cd /opt/markoto && docker compose logs --tail=200" --become
 
 ssh: ## SSH into the VPS as the markoto user
 	ssh markoto@$$(awk -F= '/ansible_host/{gsub(/ /,"",$$2); print $$2}' $(INVENTORY) | head -1 | awk '{print $$1}')

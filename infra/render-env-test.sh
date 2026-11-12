@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Proves infra/render-env.sh (the CI path) emits byte-identical KEY=VALUE lines
-# to infra/templates/env.j2 (the ansible/laptop path) for the same value set.
-# Guards against the two drifting. Run from repo root; needs python3 + jinja2.
+# Pins infra/render-env.sh, the one renderer of the hosted .env (used by
+# deploy.yml and by the Ansible role): sample values reach the .env
+# unchanged, `--keys` lists every input it reads (the Ansible role builds
+# its environment from that list), required values fail the render, and
+# values compose would mangle are quoted or refused. Run from the repo
+# root: bash infra/render-env-test.sh
 set -euo pipefail
 cd "$(dirname "$0")/.."   # repo root
 
-# One distinct sample value per templated var (ansible-var name -> value).
-# The .env-key env vars for render-env.sh use the UPPERCASE of the same name.
+# One distinct sample value per input, by Ansible variable name (the
+# lower-case .env key, as the role passes them); render-env.sh gets the
+# UPPERCASE names.
 read -r -d '' VARS <<'PY' || true
 nuxt_session_password=v_session
 nuxt_jwt_secret=v_jwt
@@ -138,53 +142,52 @@ backup_s3_region=v_backup_region
 backup_s3_prefix=v/backup/prefix
 PY
 
-# 1. env.j2 render (ansible var names). ovh_pg_host empty -> PGSSL=disable branch.
-jinja_out=$(python3 - <<PY
-import jinja2
-ctx = dict(line.split('=',1) for line in """$VARS""".strip().splitlines())
-ctx['ovh_pg_host'] = ''
-ctx['ovh_pg_ca_remote_path'] = '/opt/markoto/secrets/ovh-pg-ca.pem'
-t = jinja2.Template(open('infra/templates/env.j2').read(), undefined=jinja2.StrictUndefined,
-                    trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
-print(t.render(**ctx))
-PY
-)
-
-# 2. render-env.sh render (.env-key env vars = UPPERCASE of the same names).
 declare -a ENVARGS=()
 while IFS='=' read -r k v; do [ -n "$k" ] && ENVARGS+=("$(echo "$k" | tr '[:lower:]' '[:upper:]')=$v"); done <<<"$VARS"
 bash_out=$(env -i "${ENVARGS[@]}" bash infra/render-env.sh)
 
-# 3. Compare ONLY the KEY=VALUE lines (ignore header comments, which differ).
-if diff <(echo "$jinja_out" | grep -E '^[A-Z]' | sort) \
-        <(echo "$bash_out"  | grep -E '^[A-Z]' | sort); then
-  echo "PARITY OK — render-env.sh ≡ env.j2 for the KEY=VALUE set"
-else
-  echo "PARITY FAILED — render-env.sh drifted from env.j2 (diff above)"
+# 1. Every sample value reaches the .env unchanged.
+while IFS='=' read -r k v; do
+  [ -n "$k" ] || continue
+  key=$(echo "$k" | tr '[:lower:]' '[:upper:]')
+  # Booleans compose hands to the app verbatim are normalised to lower case.
+  case "$key" in NUXT_AI_BYOK_ALLOW_PRIVATE_URLS | NUXT_SITE_INDEXABLE) v=$(echo "$v" | tr '[:upper:]' '[:lower:]') ;; esac
+  if ! echo "$bash_out" | grep -qxF "${key}=${v}"; then
+    echo "PASSTHROUGH FAILED — ${key} is not rendered as its input value"
+    exit 1
+  fi
+done <<<"$VARS"
+echo "PASSTHROUGH OK — every sample input is rendered unchanged"
+
+# 2. `--keys` lists every variable the script reads from its environment
+#    (a `${NAME…}` it does not assign itself before use), so the Ansible
+#    path passes them all.
+keys=$(bash infra/render-env.sh --keys | sort -u)
+read_vars=$(grep -oE '\$\{[A-Z][A-Z0-9_]*' infra/render-env.sh | cut -c3- | grep -vx INPUTS | sort -u)
+missing=$(comm -13 <(echo "$keys") <(echo "$read_vars") || true)
+if [ -n "$missing" ]; then
+  echo "KEYS FAILED — read but not listed in INPUTS (--keys): $missing"
+  exit 1
+fi
+echo "KEYS OK — --keys covers every variable render-env.sh reads"
+
+# 3. The stack the host's plain `docker compose` uses.
+if ! echo "$bash_out" | grep -qx 'COMPOSE_FILE=deploy/compose/compose.prod.yml'; then
+  echo "COMPOSE_FILE FAILED — the .env must name the production stack"
   exit 1
 fi
 
-# 3a. Managed-Postgres TLS branch: deploy.yml has no PGSSL* inputs; both
-#     renderers derive PGSSLROOTCERT / PGSSL / POSTGRES_SSLMODE from
-#     OVH_PG_HOST + OVH_PG_CA_REMOTE_PATH (the branch above is the in-stack
-#     one, TLS off).
-jinja_tls=$(python3 - <<PY
-import jinja2
-ctx = dict(line.split('=',1) for line in """$VARS""".strip().splitlines())
-ctx['ovh_pg_host'] = 'pg.example.test'
-ctx['ovh_pg_ca_remote_path'] = '/opt/markoto/secrets/ovh-pg-ca.pem'
-t = jinja2.Template(open('infra/templates/env.j2').read(), undefined=jinja2.StrictUndefined,
-                    trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
-print(t.render(**ctx))
-PY
-)
+# 3a. Managed-Postgres TLS: PGSSLROOTCERT / PGSSL / POSTGRES_SSLMODE derive
+#     from OVH_PG_HOST + OVH_PG_CA_REMOTE_PATH (deploy.yml has no PGSSL*
+#     inputs); without a managed host TLS is off (in-stack Postgres).
 bash_tls=$(env -i "${ENVARGS[@]}" OVH_PG_HOST=pg.example.test OVH_PG_CA_REMOTE_PATH=/opt/markoto/secrets/ovh-pg-ca.pem bash infra/render-env.sh)
-if diff <(echo "$jinja_tls" | grep -E '^(PGSSL|POSTGRES_SSLMODE)' | sort) \
-        <(echo "$bash_tls"  | grep -E '^(PGSSL|POSTGRES_SSLMODE)' | sort) \
-   && echo "$bash_tls" | grep -qx 'POSTGRES_SSLMODE=require'; then
-  echo "PG TLS OK — both renderers switch to cert-pinned TLS for a managed host"
+if echo "$bash_tls" | grep -qx 'POSTGRES_SSLMODE=require' \
+   && echo "$bash_tls" | grep -qx 'PGSSLROOTCERT=/opt/markoto/secrets/ovh-pg-ca.pem' \
+   && echo "$bash_out" | grep -qx 'POSTGRES_SSLMODE=disable' \
+   && echo "$bash_out" | grep -qx 'PGSSL=disable'; then
+  echo "PG TLS OK — cert-pinned TLS for a managed host, off for the in-stack one"
 else
-  echo "PG TLS FAILED — render-env.sh and env.j2 disagree on the managed-Postgres TLS lines"
+  echo "PG TLS FAILED — wrong managed-Postgres TLS lines"
   exit 1
 fi
 
@@ -203,7 +206,7 @@ done
 echo "LEGAL GATE OK — controller address + representative are required"
 
 # 3b. Backup storage falls back to the app's S3 values when no BACKUP_S3_* is
-#     set, in BOTH renderers (and identically).
+#     set.
 declare -a NOBACKUP=()
 for kv in "${ENVARGS[@]}"; do
   case "$kv" in BACKUP_S3_*) ;; *) NOBACKUP+=("$kv") ;; esac
@@ -218,23 +221,7 @@ for pair in ENDPOINT:endpoint BUCKET:bucket ACCESS_KEY:access_key SECRET_KEY:sec
     exit 1
   fi
 done
-jinja_fallback=$(python3 - <<PY
-import jinja2
-ctx = {k: v for k, v in (line.split('=',1) for line in """$VARS""".strip().splitlines()) if not k.startswith('backup_s3_')}
-ctx['ovh_pg_host'] = ''
-ctx['ovh_pg_ca_remote_path'] = '/opt/markoto/secrets/ovh-pg-ca.pem'
-t = jinja2.Template(open('infra/templates/env.j2').read(), undefined=jinja2.StrictUndefined,
-                    trim_blocks=True, lstrip_blocks=True, keep_trailing_newline=True)
-print(t.render(**ctx))
-PY
-)
-if diff <(echo "$jinja_fallback" | grep -E '^BACKUP_S3_' | sort) \
-        <(echo "$fallback_out"  | grep -E '^BACKUP_S3_' | sort); then
-  echo "BACKUP FALLBACK OK — BACKUP_S3_* defaults to NUXT_S3_* in render-env.sh and env.j2"
-else
-  echo "BACKUP FALLBACK FAILED — render-env.sh and env.j2 disagree on the defaults (diff above)"
-  exit 1
-fi
+echo "BACKUP FALLBACK OK — BACKUP_S3_* defaults to NUXT_S3_*"
 
 # 4. Billing gate: with billing OFF (the default) the Stripe vars are
 #    optional; with billing ON an empty Stripe secret must fail the render.
@@ -257,8 +244,7 @@ if env -i "${NOSTRIPE[@]}" NUXT_BILLING_ENABLED=true bash infra/render-env.sh >/
 fi
 echo "BILLING GATE OK — Stripe vars optional when billing is off, required when on"
 
-# 5. Value safety (render-env.sh only — env.j2 is the legacy laptop path and
-#    expects plain values). Every rendered key must survive a compose-style
+# 5. Value safety. Every rendered key must survive a compose-style
 #    parse byte-for-byte even when the input is full of characters that
 #    compose would interpolate, truncate or mangle; values that cannot be
 #    represented (single quote, embedded newline) must fail the render.

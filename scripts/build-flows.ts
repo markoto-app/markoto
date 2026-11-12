@@ -2,6 +2,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import { flowEmbedSlugs } from '../shared/docs/flowDocPages'
+import { addStats, countFiles, emptyStats, summaryMarkdown, syncVariant, type SyncStats } from './lib/flowShots'
 
 // Publishes Playwright flow output to the static dir so <Flow> can fetch
 // the manifests + frame images by URL. Mirrors the shape:
@@ -21,9 +22,20 @@ import { flowEmbedSlugs } from '../shared/docs/flowDocPages'
 // the sentinel is missing, the prior published output is kept
 // untouched so a single flaky run doesn't drop the flow from the docs.
 //
-// Garbage collection: variants that no longer have a source dir at
-// all (test renamed or deleted) ARE removed, so stale slugs don't
-// linger forever.
+// No churn: a passed variant is synced frame by frame (scripts/lib/flowShots.ts).
+// A frame that looks the same as the committed one keeps the committed
+// file byte-for-byte; only visibly changed frames are rewritten, frames
+// the run no longer has are deleted, and the manifest is rewritten only
+// when it changed beyond the run's random document ids.
+//
+// Garbage collection: flows no docs page embeds, flows without a source
+// dir (test renamed or deleted) and variants a flow no longer records are
+// removed, so stale output doesn't linger.
+//
+//   bun scripts/build-flows.ts [--summary FILE]
+//
+// `--summary` writes the kept / replaced / added / removed counts as
+// Markdown (the screenshots PR's body, .github/workflows/publish-flow-shots.yml).
 //
 // Frames are lossless WebP at capture time (see
 // tests/e2e/fixtures/flow.ts) — manifest already references `.webp`,
@@ -44,21 +56,11 @@ const DOCS_DIR = 'content/docs'
 // place: embed a flow in a docs page and it gets published; drop the
 // embed and the next build reaps it.
 
-interface VariantStats {
-  /** True if `.passed` sentinel was present and we re-published. */
-  published: boolean
-  /** True if `.passed` was missing and we kept the prior published output. */
-  skipped: boolean
-  frameCount: number
-  totalBytes: number
-}
-
 interface RunStats {
   publishedVariants: number
   skippedVariants: number
-  frameCount: number
-  totalBytes: number
   publishedSlugs: Set<string>
+  files: SyncStats
 }
 
 async function main() {
@@ -71,13 +73,18 @@ async function main() {
 
   const referenced = await referencedFlowSlugs()
   const stats = await publishAllVariants(referenced)
-  await garbageCollectStaleSlugs(referenced)
+  stats.files.removed += await garbageCollect(referenced)
 
   console.log(
     `[flows] published ${stats.publishedVariants} variant(s) across ${stats.publishedSlugs.size} flow(s); `
     + `skipped ${stats.skippedVariants} unpassed variant(s)`
   )
-  console.log(`[flows] ${stats.frameCount} fresh frame(s), ${formatBytes(stats.totalBytes)} total`)
+  const f = stats.files
+  console.log(`[flows] frames: ${f.kept} kept, ${f.replaced} replaced, ${f.added} added, ${f.removed} removed; ${f.manifestsWritten} manifest(s) written`)
+  const summaryFile = process.argv[process.argv.indexOf('--summary') + 1]
+  if (process.argv.includes('--summary') && summaryFile) {
+    await fs.writeFile(summaryFile, `${summaryMarkdown(f, stats.skippedVariants)}\n`)
+  }
 
   // Surface a non-zero exit when nothing passed at all — the most
   // common shape of "the whole run was broken" so CI fails loudly.
@@ -95,24 +102,22 @@ async function publishAllVariants(referenced: Set<string>): Promise<RunStats> {
   const stats: RunStats = {
     publishedVariants: 0,
     skippedVariants: 0,
-    frameCount: 0,
-    totalBytes: 0,
-    publishedSlugs: new Set()
+    publishedSlugs: new Set(),
+    files: emptyStats()
   }
 
   for await (const variant of walkVariants()) {
     if (!referenced.has(variant.slug)) continue
     const result = await publishVariant(variant)
-    if (result.published) {
+    if (result) {
       stats.publishedVariants += 1
       stats.publishedSlugs.add(variant.slug)
-    } else if (result.skipped) {
+      addStats(stats.files, result)
+    } else {
       stats.skippedVariants += 1
       // If a prior published variant survives the skip, the slug is still live.
       if (await isDir(variant.dstDir)) stats.publishedSlugs.add(variant.slug)
     }
-    stats.frameCount += result.frameCount
-    stats.totalBytes += result.totalBytes
   }
   return stats
 }
@@ -149,58 +154,63 @@ async function* walkVariants(): AsyncGenerator<VariantPath> {
 }
 
 /**
- * Publish one variant. Honours the `.passed` sentinel: missing
- * sentinel → keep last-good output (skip). Present sentinel → wipe
- * + recopy so a re-run with fewer frames doesn't leave stale frames
- * orphaned next to the new manifest.
+ * Publish one variant, or keep the last-good output when its test did
+ * not pass (no `.passed` sentinel; returns null then).
  */
-async function publishVariant(v: VariantPath): Promise<VariantStats> {
-  const stats: VariantStats = { published: false, skipped: false, frameCount: 0, totalBytes: 0 }
-
+async function publishVariant(v: VariantPath): Promise<SyncStats | null> {
   if (!(await fileExists(path.join(v.srcDir, '.passed')))) {
-    stats.skipped = true
     const lastGood = await isDir(v.dstDir)
     console.log(
       `[flows] SKIP ${v.slug}/${v.locale}/${v.variant} — test did not pass `
       + `(${lastGood ? 'keeping last-good output' : 'no prior output to keep'})`
     )
-    return stats
+    return null
   }
-
-  await fs.rm(v.dstDir, { recursive: true, force: true })
-  await fs.mkdir(v.dstDir, { recursive: true })
-
-  for (const f of await fs.readdir(v.srcDir)) {
-    if (f !== 'manifest.json' && !f.endsWith('.webp')) continue
-    const dst = path.join(v.dstDir, f)
-    await fs.copyFile(path.join(v.srcDir, f), dst)
-    if (f.endsWith('.webp')) {
-      const stat = await fs.stat(dst)
-      stats.totalBytes += stat.size
-      stats.frameCount += 1
-    }
-  }
-  stats.published = true
-  return stats
+  return syncVariant(v.srcDir, v.dstDir)
 }
 
 /**
- * Drop published slugs whose source directory disappeared entirely
- * (test renamed or deleted) so they don't 404 forever.
+ * Remove published output nothing produces any more: flows no docs page
+ * embeds, flows without a source directory (test renamed or deleted), and
+ * (locale, variant) directories a flow that still runs no longer records.
+ * Returns the number of frames removed.
  */
-async function garbageCollectStaleSlugs(referenced: Set<string>): Promise<void> {
+async function garbageCollect(referenced: Set<string>): Promise<number> {
+  let removed = 0
   for (const slug of await fs.readdir(FLOWS_OUT)) {
     const slugOut = path.join(FLOWS_OUT, slug)
     if (!(await isDir(slugOut))) continue
-    if (!referenced.has(slug)) {
-      await fs.rm(slugOut, { recursive: true, force: true })
-      console.log(`[flows] GC ${slug} — no docs page embeds it, removed from ${FLOWS_OUT}`)
-      continue
-    }
-    if (await isDir(path.join(FLOWS_SRC, slug))) continue
-    await fs.rm(slugOut, { recursive: true, force: true })
-    console.log(`[flows] GC ${slug} — no source directory, removed from ${FLOWS_OUT}`)
+    const slugSrc = path.join(FLOWS_SRC, slug)
+    if (!referenced.has(slug)) removed += await drop(slugOut, 'no docs page embeds it')
+    else if (!(await isDir(slugSrc))) removed += await drop(slugOut, 'no source directory')
+    else removed += await dropUnrecordedVariants(slugOut, slugSrc)
   }
+  return removed
+}
+
+/** Drop the (locale, variant) dirs of a flow that its source no longer has. */
+async function dropUnrecordedVariants(slugOut: string, slugSrc: string): Promise<number> {
+  let removed = 0
+  for (const locale of await fs.readdir(slugOut)) {
+    const localeOut = path.join(slugOut, locale)
+    if (!(await isDir(localeOut))) continue
+    for (const variant of await fs.readdir(localeOut)) {
+      const variantOut = path.join(localeOut, variant)
+      if (await isDir(variantOut) && !(await isDir(path.join(slugSrc, locale, variant)))) {
+        removed += await drop(variantOut, 'the flow no longer records this variant')
+      }
+    }
+    if ((await fs.readdir(localeOut)).length === 0) await fs.rm(localeOut, { recursive: true })
+  }
+  return removed
+}
+
+/** Remove a published dir; returns how many frames it held. */
+async function drop(dir: string, why: string): Promise<number> {
+  const frames = await countFiles(dir)
+  await fs.rm(dir, { recursive: true, force: true })
+  console.log(`[flows] GC ${path.relative(FLOWS_OUT, dir)} — ${why}`)
+  return frames
 }
 
 /** Every flow slug a page under content/docs embeds. */
@@ -216,12 +226,6 @@ async function referencedFlowSlugs(): Promise<Set<string>> {
 
 const isDir = async (p: string) => fs.stat(p).then(s => s.isDirectory(), () => false)
 const fileExists = async (p: string) => fs.stat(p).then(s => s.isFile(), () => false)
-
-function formatBytes(n: number): string {
-  if (n < 1024) return `${n}B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)}KB`
-  return `${(n / 1024 / 1024).toFixed(2)}MB`
-}
 
 try {
   await main()

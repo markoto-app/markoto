@@ -53,7 +53,7 @@ openrc.sh
 .env.staging-openrc
 .eslintcache
 
-# Managed private instance: the customer logo (docker-compose.selfhost.brand.yml)
+# Managed private instance: the customer logo (deploy/compose/compose.selfhost.brand.yml)
 /branding/
 
 __pycache__/

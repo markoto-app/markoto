@@ -1,0 +1,12 @@
+# Build context is the repo root (the workspace root); send only what the
+# renderer image copies. Read by BuildKit for renderer/Dockerfile only.
+*
+!package.json
+!bun.lock
+!bunfig.toml
+!shared/
+!sync-server/package.json
+!renderer/package.json
+!renderer/src/
+**/node_modules
+**/*.test.ts

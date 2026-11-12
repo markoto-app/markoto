@@ -4,7 +4,7 @@
 # from .env (NUXT_INSTANCE_BRAND_NAME, NUXT_INSTANCE_SUPPORT_URL,
 # NUXT_INSTANCE_SUPPORT_EMAIL — see docs/operations/MANAGED-INSTANCE.md).
 #
-#   COMPOSE_FILE=docker-compose.selfhost.yml:docker-compose.selfhost.tls.yml:docker-compose.selfhost.brand.yml
+#   COMPOSE_FILE=deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml:deploy/compose/compose.selfhost.brand.yml
 #
 # Put the logo at ./branding/logo.svg (or set NUXT_INSTANCE_BRAND_LOGO to
 # /app/branding/<file>.png|webp|jpg). At most 1 MB; it is drawn at the
@@ -16,6 +16,6 @@
 services:
   app:
     volumes:
-      - ./branding:/app/branding:ro,z
+      - ../../branding:/app/branding:ro,z
     environment:
       - NUXT_INSTANCE_BRAND_LOGO=${NUXT_INSTANCE_BRAND_LOGO:-/app/branding/logo.svg}

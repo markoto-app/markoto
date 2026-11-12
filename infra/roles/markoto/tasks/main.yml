@@ -78,48 +78,30 @@
       package (re-run provision.yml or apt-get install --only-upgrade
       docker-compose-plugin).
 
-# docker-compose.base.yml is pulled in by the prod file's `include:`; without
-# it on the host `compose up` fails outright.
-- name: Discover compose files in repo
-  ansible.builtin.find:
-    paths: "{{ markoto_repo_root }}"
-    patterns: "docker-compose.prod.yml,docker-compose.prod.*.yml,docker-compose.base.yml"
-    file_type: file
-    recurse: false
-  delegate_to: localhost
-  become: false
-  register: markoto_compose_files
-
-- name: Sync the production compose file(s) to the VPS
-  ansible.builtin.copy:
-    src: "{{ item.path }}"
-    dest: "{{ markoto_root }}/{{ item.path | basename }}"
-    owner: "{{ markoto_user }}"
-    group: "{{ markoto_user }}"
-    mode: "0640"
-  loop: "{{ markoto_compose_files.files }}"
-  loop_control:
-    label: "{{ item.path | basename }}"
-
-# Every repo path the compose files bind-mount (same set the GitHub deploy
-# workflows sync, plus the provision-time Postgres initdb scripts).
-- name: Ensure bind-mounted config dirs exist
+# The host mirrors the repository layout below {{ markoto_root }}: the
+# production stack (deploy/compose/compose.prod.yml + the compose.base.yml it
+# `include:`s) and every config file it bind-mounts (deploy/config/), so
+# the compose files' relative paths resolve the same way on both. The same
+# set the GitHub deploy workflow syncs.
+- name: Ensure the deploy/ dirs exist
   ansible.builtin.file:
     path: "{{ markoto_root }}/{{ item }}"
     state: directory
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
     mode: "0755"
-  # infra/postgres is listed on its own: creating only infra/postgres/init
-  # leaves the implicitly created parent root-owned, and the deploy
-  # workflows' tar sync can't write infra/postgres/db-init.sh into it.
+  # Each level listed on its own: a parent created implicitly would be
+  # root-owned, and the deploy workflow's tar sync could not write into it.
   loop:
-    - infra/litellm
-    - infra/postgres
-    - infra/postgres/init
-    - renderer
+    - deploy
+    - deploy/compose
+    - deploy/config
+    - deploy/config/litellm
+    - deploy/config/postgres
+    - deploy/config/postgres/init
+    - deploy/config/renderer
 
-- name: Sync bind-mounted config files to the VPS
+- name: Sync the production stack + its mounted config to the VPS
   ansible.builtin.copy:
     src: "{{ markoto_repo_root }}/{{ item }}"
     dest: "{{ markoto_root }}/{{ item }}"
@@ -127,13 +109,15 @@
     group: "{{ markoto_user }}"
     mode: "0644"
   loop:
-    - infra/litellm/config.yaml
-    - infra/litellm/custom_handlers.py
-    - infra/postgres/init/01-litellm-db.sql
-    # Run by the db-init one-shot (docker-compose.base.yml).
-    - infra/postgres/db-init.sh
+    - deploy/compose/compose.prod.yml
+    - deploy/compose/compose.base.yml
+    - deploy/config/litellm/config.yaml
+    - deploy/config/litellm/custom_handlers.py
+    - deploy/config/postgres/init/01-litellm-db.sql
+    # Run by the db-init one-shot (deploy/compose/compose.base.yml).
+    - deploy/config/postgres/db-init.sh
     # The renderer's seccomp profile (Chromium sandbox).
-    - renderer/seccomp.json
+    - deploy/config/renderer/seccomp.json
 
 # CA copy is best-effort: many OVH plans don't pin a CA, but if you DO drop
 # the .pem at infra/files/ovh-pg-ca.pem we honour it. `failed_when: false`
@@ -162,40 +146,79 @@
       (group_vars/all.yml): the legal pages need a postal address and the
       authorised representative.
 
-- name: Render .env from template
-  ansible.builtin.template:
-    src: env.j2
+# One renderer for both deploy paths: infra/render-env.sh, run here on the
+# control node with every input it lists (`--keys`) taken from the Ansible
+# variable of the same name in lower case (group_vars + vault; unset = empty,
+# so its own defaults and required checks apply exactly as in deploy.yml).
+- name: List the .env inputs
+  ansible.builtin.command:
+    cmd: bash {{ markoto_repo_root }}/infra/render-env.sh --keys
+  delegate_to: localhost
+  become: false
+  register: markoto_env_keys
+  changed_when: false
+
+- name: Render .env
+  ansible.builtin.command:
+    cmd: bash {{ markoto_repo_root }}/infra/render-env.sh
+  delegate_to: localhost
+  become: false
+  environment: "{{ markoto_env_inputs }}"
+  vars:
+    markoto_env_inputs: >-
+      {%- set inputs = {} -%}
+      {%- for key in markoto_env_keys.stdout_lines -%}
+      {%- set _ = inputs.update({key: lookup('vars', key | lower, default='') | string}) -%}
+      {%- endfor -%}
+      {{ inputs }}
+  register: markoto_env_rendered
+  changed_when: false
+  no_log: true
+
+- name: Write .env
+  ansible.builtin.copy:
+    content: "{{ markoto_env_rendered.stdout }}\n"
     dest: "{{ markoto_root }}/.env"
     owner: "{{ markoto_user }}"
     group: "{{ markoto_user }}"
     mode: "0600"
+  no_log: true
   register: markoto_env_render
 
 # LiteLLM loads its config only at boot, and its single-file bind mounts
 # keep the old file after the copy above replaced it. The hash feeds a
 # label on the litellm service, so a changed config recreates it on
-# `compose up` (docker-compose.base.yml).
+# `compose up` (deploy/compose/compose.base.yml).
 - name: Hash the LiteLLM config files
   ansible.builtin.shell:
-    cmd: set -o pipefail && cat infra/litellm/config.yaml infra/litellm/custom_handlers.py | sha256sum | cut -c1-16
+    cmd: >-
+      set -o pipefail &&
+      cat deploy/config/litellm/config.yaml deploy/config/litellm/custom_handlers.py
+      | sha256sum | cut -c1-16
     chdir: "{{ markoto_root }}"
     executable: /bin/bash
   register: markoto_litellm_config_hash
   changed_when: false
 
+# project_src is the compose files' own directory: their relative paths
+# (config mounts, the renderer's seccomp profile, ../../traefik/acme.json)
+# start there. The .env stays at the root, where a plain `docker compose`
+# on the host finds it.
 - name: Compose pull (refresh images per IMAGE_TAG)
   community.docker.docker_compose_v2_pull:
-    project_src: "{{ markoto_root }}"
+    project_src: "{{ markoto_root }}/deploy/compose"
     files:
-      - docker-compose.prod.yml
-  environment:
-    COMPOSE_FILE: docker-compose.prod.yml
+      - compose.prod.yml
+    env_files:
+      - "{{ markoto_root }}/.env"
 
 - name: Compose up -d (apply current state)
   community.docker.docker_compose_v2:
-    project_src: "{{ markoto_root }}"
+    project_src: "{{ markoto_root }}/deploy/compose"
     files:
-      - docker-compose.prod.yml
+      - compose.prod.yml
+    env_files:
+      - "{{ markoto_root }}/.env"
     state: present
     pull: missing
     remove_orphans: true
@@ -238,9 +261,9 @@
 
 # Opportunistic boot diagnostic — read-only, soft-fail.
 - name: Tail last 50 app log lines (boot-cleanly check)
-  ansible.builtin.command: >-
-    docker compose -f {{ markoto_root }}/docker-compose.prod.yml
-    logs --tail=50 app
+  ansible.builtin.command:
+    cmd: docker compose logs --tail=50 app
+    chdir: "{{ markoto_root }}"
   register: markoto_app_logs
   changed_when: false
   failed_when: false

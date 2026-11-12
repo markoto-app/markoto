@@ -38,20 +38,30 @@ RUN apt-get update \
 
 WORKDIR /app
 
-# Layered COPYs so source edits don't bust the install cache.
-# Installs from the committed lockfile so the image gets exactly the
-# versions CI tested (`bun install --no-save` without a lockfile resolved
-# the semver ranges fresh on every build). Everything under /app stays
-# root-owned: the runtime user can read it but not change it.
-COPY package.json bun.lock ./
-RUN bun install --frozen-lockfile --ignore-scripts
+# Build context is the repo root, the Bun workspace root (one lockfile;
+# renderer/Dockerfile.dockerignore narrows it to the files below). Every
+# workspace manifest must be present for `--frozen-lockfile` to match the
+# lockfile; `--filter` installs only the renderer's dependencies plus those
+# of @markoto/shared, `--production` skips devDependencies. Install layer
+# first so source edits don't bust the package cache. Everything under
+# /app stays root-owned: the runtime user can read it but not change it.
+COPY package.json bun.lock bunfig.toml ./
+COPY shared/package.json shared/
+COPY sync-server/package.json sync-server/
+COPY renderer/package.json renderer/
+RUN bun install --frozen-lockfile --ignore-scripts --production --filter markoto-renderer
 
-COPY src ./src
+# `shared/` sits next to the renderer as in the repository, so
+# `renderer/src` can import shared modules by the same relative paths
+# the app and the sync server use.
+COPY shared ./shared
+COPY renderer/src ./renderer/src
+WORKDIR /app/renderer
 
 # Run unprivileged as the base image's `pwuser` (uid 1000). Chromium keeps
 # its own sandbox (no --no-sandbox, see src/render.ts): as a non-root user
 # it uses unprivileged user namespaces, which compose allows through the
-# seccomp profile in renderer/seccomp.json. HOME points at /tmp because the
+# seccomp profile in deploy/config/renderer/seccomp.json. HOME points at /tmp because the
 # compose files mount the root filesystem read-only with a tmpfs on /tmp
 # (Chromium writes its profile, crashpad and font caches under HOME).
 ENV HOME=/tmp

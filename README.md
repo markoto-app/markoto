@@ -69,7 +69,7 @@ You need [Bun](https://bun.sh) 1.4 or newer, Docker with Compose 5.0 or newer
 (or rootless Podman), `make` and `openssl`. No external accounts or API keys.
 
 ```sh
-make setup      # .env with generated secrets, then bun install for the root, sync-server and renderer
+make setup      # .env with generated secrets, then bun install (one workspace: app, shared, sync-server, renderer)
 make dev        # infra containers: Postgres, Valkey, SeaweedFS, LiteLLM, sync, markitdown, renderer
 make dev-app    # the Nuxt app on the host, with hot reload
 ```

@@ -138,7 +138,7 @@ model_list:
 
   # ---- Free AI allowance (hosted SaaS): Z.ai GLM-5.3 Flash on Mistral ----
   # The hosted SaaS's instance chat default (NUXT_AI_DEFAULT_CHAT_MODEL,
-  # rendered by infra/render-env.sh + infra/templates/env.j2): signed-in
+  # rendered by infra/render-env.sh): signed-in
   # users without their own key get a monthly allowance on this model.
   # See docs/AI-MODELS.md#free-ai-allowance.
   #
@@ -316,7 +316,7 @@ general_settings:
   # app over the API (master key); the UI would be one more login surface on
   # a service that holds every provider key and per-user virtual key. It is
   # switched off with the DISABLE_ADMIN_UI=True env var on the litellm
-  # service (docker-compose.base.yml / docker-compose.test.yml): v1.106.4
+  # service (deploy/compose/compose.base.yml / deploy/compose/compose.test.yml): v1.106.4
   # ignores a `disable_admin_ui` key here.
 
 router_settings:

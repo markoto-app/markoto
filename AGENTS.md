@@ -9,7 +9,7 @@ markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API,
 | First setup (`.env` with generated secrets, all installs) | `make setup` |
 | Dev infra (Postgres, Valkey, SeaweedFS, sync, markitdown, renderer, LiteLLM) | `make dev`, then `bun run dev --host 0.0.0.0` (the sync container reaches the app via `host.docker.internal`) |
 | Lint | `bun run lint` |
-| Type-check app + server | `bun run typecheck` and `bun run typecheck:guard`. Run under Node: never `bun --bun run typecheck` (vue-tsc then skips every `.vue` file and still exits 0). `sync-server/` and `renderer/` have their own `typecheck` scripts. |
+| Type-check app + server | `bun run typecheck` and `bun run typecheck:guard`. Run under Node: never `bun --bun run typecheck` (vue-tsc then skips every `.vue` file and still exits 0). `sync-server/` and `renderer/`: `bun run typecheck:services`. |
 | Type-check tests / scripts | `bun run typecheck:tests`, `bun run typecheck:scripts` |
 | Unused code and dependencies | `bun run knip` |
 | Import layering and cycles | `bun run depcruise` |
@@ -33,14 +33,15 @@ The test stack runs through `scripts/test-compose.sh` (detects rootless Podman).
 |---|---|
 | `app/` | Vue frontend: `components/`, `composables/<domain>/`, `pages/`, `utils/<domain>/`, `layouts/`, `plugins/`, `middleware/` |
 | `server/` | Nitro: `api/`, `routes/` (OAuth, SSO, SCIM, published pages), `middleware/`, `plugins/` (migrations, sweepers, workers), `db/`, `repos/`, `utils/<domain>/`, `mcp/`, `legal/`, `error.ts` |
-| `shared/` | Client + server code: `config/`, `contracts/`, `types/`, `utils/<domain>/`, `templates/`, `audiences/`, `languages/`, `legal/` |
-| `sync-server/` | Hocuspocus container (own `package.json`) |
+| `shared/` | Client + server code: `config/`, `contracts/`, `types/`, `utils/<domain>/`, `templates/`, `audiences/`, `languages/`, `legal/`. Workspace package `@markoto/shared` (TypeScript source, imported by path) |
+| `sync-server/` | Hocuspocus container (workspace package) |
 | `renderer/`, `markitdown-server/`, `backup-server/` | Sidecars |
 | `modules/` | Nuxt modules (copies vendored browser assets to `/vendor/`) |
 | `drizzle/` | Generated migrations + snapshots |
 | `content/` | User docs (`/docs`), legal texts, marketing pages |
 | `i18n/locales/` | UI strings (en is the source) |
-| `infra/` | Ansible, LiteLLM config + custom providers, hosted env rendering |
+| `deploy/` | `compose/` (every stack: `compose.dev.yml`, `compose.prod.yml`, …), `config/` (what they mount: LiteLLM, Postgres, Traefik, SeaweedFS, the renderer's seccomp profile) |
+| `infra/` | Ansible, hosted `.env` rendering (`render-env.sh`, both deploy paths) |
 | `scripts/` | Standalone Bun scripts and repo checks |
 | `tests/` | `unit/<domain>/`, `dom/`, `nuxt/`, `repos/`, `integration/`, `e2e/` |
 | `docs/` | Architecture, self-hosting, AI models, hardening, `contributing/`, `reference/`, `operations/` |
@@ -58,9 +59,9 @@ Database
 - Drizzle uses `node-postgres`: no `.get()` / `.all()`; use `(await db.select()...limit(1))[0]`. Raw `tx.execute(sql\`…\`)` returns timestamps as strings.
 - drizzle-kit does not emit `CREATE EXTENSION`; hand-prepend it to a generated migration that needs one (see `drizzle/0000_baseline.sql`).
 - Enums are `text('col', { enum: [...] })`, not `pgEnum`. Migrations are forward-only.
-- Document Y.js state is the `yjs_updates` log (in the schema). Read it only through `server/utils/documents/yjsLog.ts` (app) / `sync-server/src/yjs-store.ts` (sync); never delete its rows by hand (pruning keeps the history floor consistent, `docs/contributing/sync-server.md`).
+- Document Y.js state is the `yjs_updates` log (in the schema). Read it only through `server/repos/yjsLog.ts` (app) / `sync-server/src/yjs-store.ts` (sync); never delete its rows by hand (pruning keeps the history floor consistent, `docs/contributing/sync-server.md`).
 - The knowledge embedding column's dimension is set at boot (`server/plugins/02-embeddings-dimension.ts`). Do not change `vector(768)` in `server/db/schema/knowledge.ts` and never migrate that column's type.
-- Sweepers take `pg_try_advisory_lock` on a dedicated, checked-out client held for the whole sweep (`server/utils/platform/sweepLock.ts`); the `_xact_` variant releases at commit and is wrong here.
+- Sweepers take `pg_try_advisory_lock` on a dedicated, checked-out client held for the whole sweep (`server/repos/sweepLocks.ts`); the `_xact_` variant releases at commit and is wrong here.
 
 Security
 - Never read `X-Forwarded-For` / `X-Real-IP` in an endpoint: use `getClientIp(event)`, and `getClientRateLimitKey(event)` for limits (`server/utils/platform/clientIp.ts`).
@@ -83,8 +84,9 @@ AI
 - Adding processing of personal data requires an entry in `server/legal/lawfulBasis.ts` (see `server/legal/AGENTS.md`).
 
 Infrastructure
-- Compose files `include:` `docker-compose.base.yml` (Compose ≥ 5 required). `environment:` merges per key; `command:`, `volumes:`, `depends_on:`, `networks:` are replaced wholesale. An included file is interpolated on its own, so its `${VAR:?}` must be satisfiable. There is no way to drop an included service, so env-specific services (SeaweedFS) are defined per env.
-- LiteLLM fails at startup on an `os.environ/VAR` in `infra/litellm/config.yaml` that is undefined: give each a compose default. It reads the config once; deploy paths export `LITELLM_CONFIG_HASH` so a changed config recreates the container. A new deploy path must too.
+- One Bun workspace (root app, `shared`, `sync-server`, `renderer`), one `bun.lock`, hoisted `node_modules` (`bunfig.toml`). Add a dependency to the package that imports it; `shared/package.json` must list what `shared/` imports, or the sync / renderer image fails at start (they install with `--filter`).
+- Compose files live in `deploy/compose/` and `include:` `compose.base.yml` (Compose ≥ 5 required). Compose reads `.env` from the compose file's directory: by hand, pass `--env-file .env` (make targets and `scripts/test-compose.sh` do). The app's plain passthrough env in `compose.prod.yml` / `compose.selfhost.yml` is generated between `# BEGIN env:gen` markers (`bun run env:gen`); hand-write only values that are not a plain `${NAME}`. `environment:` merges per key; `command:`, `volumes:`, `depends_on:`, `networks:` are replaced wholesale. An included file is interpolated on its own, so its `${VAR:?}` must be satisfiable. There is no way to drop an included service, so env-specific services (SeaweedFS) are defined per env.
+- LiteLLM fails at startup on an `os.environ/VAR` in `deploy/config/litellm/config.yaml` that is undefined: give each a compose default. It reads the config once; deploy paths export `LITELLM_CONFIG_HASH` so a changed config recreates the container. A new deploy path must too.
 
 Tests
 - `vi.mock` paths resolve relative to the test file, not the source file.

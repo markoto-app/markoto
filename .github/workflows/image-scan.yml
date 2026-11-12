@@ -39,7 +39,7 @@ jobs:
           FULL='[
             {"service":"app","context":".","dockerfile":"Dockerfile"},
             {"service":"sync-server","context":".","dockerfile":"./sync-server/Dockerfile"},
-            {"service":"renderer","context":"./renderer","dockerfile":"./renderer/Dockerfile"},
+            {"service":"renderer","context":".","dockerfile":"./renderer/Dockerfile"},
             {"service":"markitdown","context":"./markitdown-server","dockerfile":"./markitdown-server/Dockerfile"},
             {"service":"backup","context":"./backup-server","dockerfile":"./backup-server/Dockerfile"}
           ]'

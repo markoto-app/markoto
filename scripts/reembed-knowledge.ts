@@ -38,7 +38,7 @@
 import { Pool } from 'pg'
 import OpenAI from 'openai'
 import { buildEmbeddingsConfig, embedDocuments, embeddingVersionTag } from '../server/utils/knowledge/embeddings'
-import { runReembed } from '../server/utils/knowledge/reembedKnowledge'
+import { runReembed } from '../server/db/reembedKnowledge'
 import { postgresUrlFromEnv } from '../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../shared/utils/runtime/postgresSsl'
 import { useEnv } from '../shared/env/load'

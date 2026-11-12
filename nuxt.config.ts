@@ -385,7 +385,7 @@ export default defineNuxtConfig({
       periodicSyncForUpdates: 3600
     },
     // `autoUpdate` defaults to registering the SW in prod only. The dev
-    // option lets us smoke-test PWA flows against docker-compose.local
+    // option lets us smoke-test PWA flows against the local stack (deploy/compose/compose.local.yml)
     // without shipping a prod build.
     devOptions: {
       enabled: false,

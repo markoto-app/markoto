@@ -40,7 +40,7 @@ make dev        # infra containers: Postgres (pgvector), Valkey, SeaweedFS, Lite
 make dev-app    # the Nuxt app on the host with hot reload (bun run dev --host 0.0.0.0)
 ```
 
-`make setup` runs `scripts/setup-env.sh`, then `bun install` in the repository root, `sync-server/` and `renderer/` (each is its own package; some unit tests and the type check import them). The script copies `.env.example` to `.env` and fills the secrets the stack refuses to start without (session, JWT, internal API, ALTCHA and LiteLLM keys) with random values. It is idempotent: an existing `.env` is kept and secrets that already have a value are never changed. The Postgres, Valkey and S3 values in `.env.example` are throwaway development credentials that match `docker-compose.dev.yml`; the dev ports bind to `127.0.0.1` only.
+`make setup` runs `scripts/setup-env.sh`, then one `bun install` at the repository root. The repository is a Bun workspace with one lockfile (`bun.lock`): the app at the root, `shared/` (`@markoto/shared`, TypeScript source imported by the app, the sync server and the renderer), `sync-server/` and `renderer/`; dependencies are hoisted into the root `node_modules` (`bunfig.toml`). Add a dependency to the package that imports it: `bun add <pkg> --cwd sync-server`. The script copies `.env.example` to `.env` and fills the secrets the stack refuses to start without (session, JWT, internal API, ALTCHA and LiteLLM keys) with random values. It is idempotent: an existing `.env` is kept and secrets that already have a value are never changed. The Postgres, Valkey and S3 values in `.env.example` are throwaway development credentials that match `deploy/compose/compose.dev.yml`; the dev ports bind to `127.0.0.1` only.
 
 Open the URL Nuxt prints (usually `http://localhost:3000`). Anonymous editing works without further configuration; to test sign-in or AI, add the OAuth and provider keys to `.env` (see the comments in [`.env.example`](./.env.example) and [`docs/AI-MODELS.md`](./docs/AI-MODELS.md)). The host app must listen on `0.0.0.0` so the sync container can reach it through `host.docker.internal`.
 
@@ -52,7 +52,7 @@ Open the URL Nuxt prints (usually `http://localhost:3000`). Anonymous editing wo
 | Full-stack local run with TLS (to check Traefik or compose changes) | [`docs/contributing/LOCAL.md`](./docs/contributing/LOCAL.md) |
 | Flat command reference | [`docs/contributing/CHEATSHEET.md`](./docs/contributing/CHEATSHEET.md) |
 
-If you change `renderer/` or `sync-server/`, rebuild the container (`docker compose -f docker-compose.dev.yml up -d --build renderer`); `restart` does not rebuild.
+If you change `renderer/` or `sync-server/`, rebuild the container (`docker compose --env-file .env -f deploy/compose/compose.dev.yml up -d --build renderer`); `restart` does not rebuild. The compose files live in `deploy/compose/`; Compose looks for `.env` next to them, so commands run by hand pass the repository's with `--env-file .env` (`make` targets and `scripts/test-compose.sh` do it for you).
 
 ## Where things live
 
@@ -63,7 +63,7 @@ The architecture overview is [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md). T
 | `app/` | Vue frontend (Nuxt 4): `pages/`, `components/<area>/`, `composables/<domain>/`, `utils/<domain>/` |
 | `server/` | Nitro API: `api/` (routes), `repos/` (database access), `db/schema/`, `middleware/`, `plugins/`, `mcp/`, `legal/`, `utils/<domain>/` |
 | `shared/` | Code used by client and server: `config/`, `types/`, `templates/`, `utils/<domain>/` |
-| `sync-server/`, `renderer/`, `markitdown-server/` | The sync server (Hocuspocus), the PDF renderer (Playwright) and the import service (Python), each its own package |
+| `sync-server/`, `renderer/`, `markitdown-server/` | The sync server (Hocuspocus), the PDF renderer (Playwright) and the import service (Python); the first two are workspace packages, each with its own image |
 | `tests/` | `unit/<domain>/`, `dom/`, `nuxt/`, `repos/`, `integration/`, `e2e/` |
 | `content/docs/` | User documentation, served at `/docs` |
 | `infra/` | Ansible for the hosted deployment |
@@ -90,7 +90,7 @@ Rules an AI coding agent (or a person) would otherwise get wrong are in `AGENTS.
 | integration | `bun run test:integration` | yes (test stack) | REST API and sync server against a running app (several minutes) |
 | flows | `bun run flows:test` | yes (starts its own) | Playwright user flows, which double as the user docs; first run: `bunx playwright install chromium` |
 
-`bun run test:integration:up` / `:down` (or `make test-stack-up` / `make test-stack-down`) start and stop the disposable test stack from `docker-compose.test.yml`. Its ports (Postgres 5433, Valkey 6380, …) do not collide with the dev stack, and the suites refuse to run against any database other than `ypad_test`. Only one person or agent should use the test stack on a machine at a time.
+`bun run test:integration:up` / `:down` (or `make test-stack-up` / `make test-stack-down`) start and stop the disposable test stack from `deploy/compose/compose.test.yml`. Its ports (Postgres 5433, Valkey 6380, …) do not collide with the dev stack, and the suites refuse to run against any database other than `ypad_test`. Only one person or agent should use the test stack on a machine at a time.
 
 How the tiers are configured, the test-stack details, Podman notes and the rules for writing tests are in [`docs/contributing/testing.md`](./docs/contributing/testing.md). Writing a flow: [`docs/contributing/flow-docs.md`](./docs/contributing/flow-docs.md). You do not regenerate flow screenshots in your pull request; the release pipeline does that.
 
@@ -140,7 +140,7 @@ The ones that matter most in review:
 - **Authorization goes through the central helpers** (`canEditDoc`, `canManageDoc`, `canManageWorkspace`); never read `workspaces.ownerId` for authorization.
 - **Never return `passwordHash`**; project columns explicitly on public endpoints.
 - **New personal-data processing** needs an entry in `server/legal/lawfulBasis.ts` (and in `server/legal/subProcessors.ts` if a new vendor is involved).
-- **New periodic sweepers** acquire `acquireSweepLock(name)` and release it with `releaseSweepLock(name)` in a `finally` (`server/utils/platform/sweepLock.ts`).
+- **New periodic sweepers** acquire `acquireSweepLock(name)` and release it with `releaseSweepLock(name)` in a `finally` (`server/repos/sweepLocks.ts`).
 - **Keep EU data residency** in mind when adding a provider; see [`docs/AI-MODELS.md`](./docs/AI-MODELS.md) and the sub-processor registry.
 
 ## Pull requests
@@ -164,7 +164,7 @@ Migrations are forward-only and applied at app start.
 ## Documentation
 
 - **User docs** (`content/docs/**`, rendered at `/docs`) are Nuxt Content pages written in the user's voice: no internals, no table names, no hand-made screenshots (pages embed flows). See [`docs/contributing/flow-docs.md`](./docs/contributing/flow-docs.md).
-- **Self-hosting** lives in `docs/SELF-HOSTING.md`; every variable and command there must match `install.sh`, `docker-compose.selfhost.yml` and `.env.example`.
+- **Self-hosting** lives in `docs/SELF-HOSTING.md`; every variable and command there must match `install.sh`, `deploy/compose/compose.selfhost.yml` and `.env.example`.
 - **Contributor guides** live in `docs/contributing/`.
 - **`docs/operations/`** describes how the hosted markoto.app instance is run; it is published for transparency, not required reading.
 

@@ -1,5 +1,5 @@
 # Development infrastructure only.
-# Run: docker compose -f docker-compose.dev.yml up -d
+# Run: docker compose --env-file .env -f deploy/compose/compose.dev.yml up -d
 #
 # This starts Postgres, Valkey, SeaweedFS (S3 for image uploads + backups in dev),
 # Hocuspocus sync, markitdown (file → markdown converter), and the backup sidecar.
@@ -17,7 +17,7 @@
 # No hardcoded passwords. .env is the single source of truth — `docker
 # compose up` fails fast if a value is missing.
 #
-# Common service shape lives in docker-compose.base.yml (see header).
+# Common service shape lives in deploy/compose/compose.base.yml (see header).
 # This file overrides only what's dev-specific: ports published to the
 # host (vs internal-only `expose:`), the host-gateway extra_host so the
 # sync/renderer containers can reach `bun run dev` on the host, and the
@@ -25,12 +25,16 @@
 # a populated .env (prod is `:?required`).
 #
 # Every published port binds to 127.0.0.1: the stack runs with throwaway
-# credentials (devpassword, the committed seaweedfs/s3.json keys) and must
+# credentials (devpassword, the committed deploy/config/seaweedfs/s3.json keys) and must
 # never be reachable from the LAN. Containers that need the host's `bun run
 # dev` reach it through host.docker.internal (the app binds 0.0.0.0).
 
+# Project name: fixed, so it does not follow this file's directory (the
+# default, `compose`) and stays the same for every checkout path.
+name: markoto-dev
+
 include:
-  - docker-compose.base.yml
+  - compose.base.yml
 
 services:
   postgres:
@@ -82,7 +86,7 @@ services:
       - "127.0.0.1:${VALKEY_PORT:?VALKEY_PORT required}:6379"
 
   # Defined inline (not in base) — prod uses external S3 and `include:`
-  # has no "drop service" mechanic. See header in docker-compose.base.yml.
+  # has no "drop service" mechanic. See header in deploy/compose/compose.base.yml.
   seaweedfs:
     image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
     restart: unless-stopped
@@ -101,7 +105,7 @@ services:
       - "127.0.0.1:8333:8333"
     volumes:
       - seaweed_data:/data
-      - ./seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
+      - ../config/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro,z
     # The image's entrypoint chowns /data as root, then drops to `seaweed`.
     cap_drop:
       - ALL
@@ -118,7 +122,7 @@ services:
     build:
       # Build from the repo root so shared/utils/ is visible to the
       # sync-server Dockerfile's COPY step.
-      context: .
+      context: ../..
       dockerfile: sync-server/Dockerfile
     environment:
       - JWT_SECRET=${NUXT_JWT_SECRET:?NUXT_JWT_SECRET required}
@@ -144,14 +148,17 @@ services:
       - "127.0.0.1:4001:4001"
 
   markitdown:
-    build: ./markitdown-server
+    build: ../../markitdown-server
     ports:
       - "127.0.0.1:8080:8080"
 
   # Dev publishes 9000 so the host `bun run dev` can call the renderer
   # directly. In prod/local the renderer is internal-network-only.
   renderer:
-    build: ./renderer
+    build:
+      # Workspace root: one lockfile, and the renderer imports shared/.
+      context: ../..
+      dockerfile: renderer/Dockerfile
     environment:
       # Renderer's Chromium navigates back to the Nuxt app's print page.
       # Dev = host bun via host.docker.internal.
@@ -177,7 +184,7 @@ services:
   # loop without waiting a day; retention low so SeaweedFS doesn't grow
   # unbounded.
   backup:
-    build: ./backup-server
+    build: ../../backup-server
     environment:
       - S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-http://seaweedfs:8333}
       - BACKUP_INTERVAL_SECONDS=3600   # 1 h in dev (tight loop for testing)
@@ -196,5 +203,5 @@ services:
 
 volumes:
   # Declared here (not in base) because seaweedfs is defined per-env —
-  # see header in docker-compose.base.yml.
+  # see header in deploy/compose/compose.base.yml.
   seaweed_data:

@@ -2,9 +2,10 @@
 # Vault template — copy to all.vault.yml, fill in, then:
 #   ansible-vault encrypt group_vars/all.vault.yml
 #
-# Every value below is referenced in templates/env.j2 (which renders the
-# .env file the compose stack reads). Missing values cause the playbook
-# to fail loudly at template-render time, not at compose-up time.
+# Every value below is an input of infra/render-env.sh (which renders the
+# .env file the compose stack reads): the variable name is the .env key in
+# lower case (`bash infra/render-env.sh --keys` lists them all). Missing
+# required values fail the playbook at render time, not at compose-up time.
 #
 # Generation hints inline. Re-read docs/operations/SECRETS-ROTATION.md before rotating
 # anything tagged "never-rotate" (the backup gpg passphrase in particular).
