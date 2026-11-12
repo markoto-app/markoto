@@ -4,10 +4,10 @@
     "tagline": "Kollaborativer Markdown-Editor",
     "offline": "Sie sind offline — Änderungen bleiben lokal, bis Sie wieder verbunden sind.",
     "update": {
-      "title": "New version available",
-      "description": "Reloading in 30 seconds.",
-      "reloadNow": "Reload now",
-      "snooze": "Snooze 5 min"
+      "title": "Neue Version verfügbar",
+      "description": "Neuladen in 30 Sekunden.",
+      "reloadNow": "Jetzt neu laden",
+      "snooze": "5 Min. später"
     }
   },
   "landing": {
@@ -71,14 +71,14 @@
     "table": "Tabelle",
     "hideFromPreview": "Unsichtbar machen (aus der Vorschau ausblenden)",
     "footer": {
-      "words": "word | words",
-      "pages": "page | pages",
-      "chars": "char | chars",
-      "readOnly": "read only"
+      "words": "Wort | Wörter",
+      "pages": "Seite | Seiten",
+      "chars": "Zeichen | Zeichen",
+      "readOnly": "schreibgeschützt"
     },
-    "previewReloadHint": "Reload the page to retry.",
-    "previewFailed": "Preview failed to load.",
-    "previewFrameTitle": "Document preview"
+    "previewReloadHint": "Laden Sie die Seite neu, um es erneut zu versuchen.",
+    "previewFailed": "Vorschau konnte nicht geladen werden.",
+    "previewFrameTitle": "Dokumentvorschau"
   },
   "previewZoom": {
     "menu": "Zoom",
@@ -253,7 +253,7 @@
       "imageInDoc": "Das generierte Bild wurde in das Dokument eingefügt.",
       "knowledgeNote": "Workspace-Wissensfunktion."
     },
-    "viaAgent": "via {agent}"
+    "viaAgent": "über {agent}"
   },
   "comments": {
     "title": "Kommentare",
@@ -289,9 +289,9 @@
     "aiResponding": "markoto antwortet…",
     "aiTriggerFailed": "markoto konnte für diesen Thread nicht erreicht werden.",
     "aiTriggerExhausted": "Kontingent aufgebraucht — führen Sie ein Upgrade durch, um markoto aus Kommentaren heraus zu fragen.",
-    "hintPost": "post",
-    "hintCancel": "cancel",
-    "notificationFallbackTitle": "New reply"
+    "hintPost": "senden",
+    "hintCancel": "abbrechen",
+    "notificationFallbackTitle": "Neue Antwort"
   },
   "image": {
     "loginToUpload": "Bitte melden Sie sich an, um Bilder hochzuladen.",
@@ -504,8 +504,8 @@
     "menu": "Menü",
     "docs": "Doku",
     "documentation": "Dokumentation",
-    "homeLinkLabel": "markoto home",
-    "dragToClose": "Drag to close"
+    "homeLinkLabel": "markoto Startseite",
+    "dragToClose": "Zum Schliessen ziehen"
   },
   "menu": {
     "lightMode": "Heller Modus",
@@ -575,7 +575,7 @@
       "docs": "Dokumentation",
       "tour": "Rundgang starten"
     },
-    "label": "Menu bar"
+    "label": "Menüleiste"
   },
   "ai": {
     "workingGeneric": "markoto arbeitet…",
@@ -669,22 +669,22 @@
       "ownKey": "Eigenen Schlüssel hinzufügen"
     },
     "voiceErrors": {
-      "transcription": "Transcription error.",
-      "dictationConnection": "Dictation connection error.",
-      "micDenied": "Microphone permission denied.",
-      "micNotFound": "No microphone found.",
-      "micAccess": "Could not access microphone.",
-      "streamUnavailable": "Microphone stream not available.",
-      "pipeline": "Could not start audio pipeline.",
-      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
-      "unsupportedVoice": "Voice input is not supported in this browser.",
-      "unsupportedRecording": "Audio recording is not supported in this browser.",
-      "recorderStart": "Could not start recorder.",
-      "recordingFailed": "Recording failed.",
-      "stopFailed": "Could not stop recording.",
-      "noAudio": "No audio was captured.",
-      "tooShort": "Recording was too short.",
-      "encodeFailed": "Could not encode audio."
+      "transcription": "Transkriptionsfehler.",
+      "dictationConnection": "Verbindungsfehler beim Diktieren.",
+      "micDenied": "Mikrofonzugriff verweigert.",
+      "micNotFound": "Kein Mikrofon gefunden.",
+      "micAccess": "Auf das Mikrofon konnte nicht zugegriffen werden.",
+      "streamUnavailable": "Mikrofon-Stream nicht verfügbar.",
+      "pipeline": "Audio-Pipeline konnte nicht gestartet werden.",
+      "sampleRate": "Ihr Browser hat Audio mit {rate} Hz erzwungen; das Diktieren braucht 16000 Hz.",
+      "unsupportedVoice": "Spracheingabe wird in diesem Browser nicht unterstützt.",
+      "unsupportedRecording": "Audioaufnahme wird in diesem Browser nicht unterstützt.",
+      "recorderStart": "Aufnahme konnte nicht gestartet werden.",
+      "recordingFailed": "Aufnahme fehlgeschlagen.",
+      "stopFailed": "Aufnahme konnte nicht beendet werden.",
+      "noAudio": "Es wurde kein Audio aufgenommen.",
+      "tooShort": "Die Aufnahme war zu kurz.",
+      "encodeFailed": "Audio konnte nicht kodiert werden."
     }
   },
   "mobileTabBar": {
@@ -1019,7 +1019,7 @@
       "sectionModeHelp": "Welcher Abschnitt in der Kopf- oder Fusszeile einer Seite steht.",
       "sectionModeFirst": "Die erste Abschnittsüberschrift auf der Seite",
       "sectionModeStart": "Den Abschnitt, in dem die Seite beginnt",
-      "imagePreview": "Header preview"
+      "imagePreview": "Kopfzeilenvorschau"
     },
     "code": {
       "theme": "Farbschema",
@@ -1167,7 +1167,7 @@
       "replaceLogo": "Logo ersetzen",
       "clearLogo": "Entfernen",
       "logoHeight": "Logohöhe (px)",
-      "logoPreview": "Logo preview"
+      "logoPreview": "Logovorschau"
     },
     "toc": {
       "showTitle": "Überschrift \"Inhaltsverzeichnis\" anzeigen",
@@ -1554,9 +1554,9 @@
       }
     },
     "dpa": {
-      "staleTitle": "Data Processing Addendum updated — please review again",
-      "heading": "One-time acceptance",
-      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
+      "staleTitle": "Auftragsverarbeitungsvertrag aktualisiert – bitte erneut prüfen",
+      "heading": "Einmalige Zustimmung",
+      "body": "Mit dem Erstellen eines Arbeitsbereichs werden Sie zum Verantwortlichen für die personenbezogenen Daten, die Ihre Mitglieder darin ablegen, und die LatentSpace Labs GmbH wird Ihr Auftragsverarbeiter. Unser Auftragsverarbeitungsvertrag ist der Vertrag, der dies regelt."
     }
   },
   "knowledge": {
@@ -1586,8 +1586,8 @@
     "capFilesReachedFree": "Dieser Workspace hat sein Dateilimit ({limit}) erreicht. Löschen Sie eine Datei, um eine weitere hinzuzufügen.",
     "capBytesReachedFree": "Dieser Workspace hat sein Speicherlimit ({limit} MB) erreicht. Löschen Sie eine Datei, um Platz zu schaffen.",
     "capReachedShortFree": "Limit erreicht",
-    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
-    "uploadNetworkError": "Network error during upload."
+    "uploadStorageFailed": "Die Datei konnte nicht in den Speicher hochgeladen werden (Status {status}).",
+    "uploadNetworkError": "Netzwerkfehler beim Hochladen."
   },
   "designImport": {
     "button": "Design aus einem Dokument erstellen",
@@ -1744,10 +1744,10 @@
         },
         "timing": "Die eigentliche Kaskade läuft einmal pro Stunde als Hintergrundjob. Nach Ablauf der Kulanzfrist werden Ihre Daten innerhalb von etwa einer Stunde vollständig gelöscht.",
         "noRecovery": "Sobald die Kaskade läuft, sind Ihr Konto und Ihre Inhalte dauerhaft verschwunden — es gibt keinen Wiederherstellungsweg.",
-        "loading": "Reading your account…"
+        "loading": "Ihr Konto wird gelesen…"
       },
       "cancelledToast": "Löschung abgebrochen. Ihr Konto bleibt, wie es ist.",
-      "scheduleFailed": "Could not schedule deletion"
+      "scheduleFailed": "Löschung konnte nicht geplant werden"
     },
     "export": {
       "emailReadySubject": "Ihr markoto-Datenexport ist bereit",
@@ -1819,25 +1819,25 @@
       "lastUpdated": "Zuletzt aktualisiert am {date}",
       "version": "Version {version}",
       "missingLocale": "Wir haben diese Seite noch nicht in Ihre Sprache übersetzt. Es wird die massgebliche englische Version angezeigt.",
-      "notFoundTitle": "Document not found",
-      "notFoundBody": "The legal document at {path} doesn't exist."
+      "notFoundTitle": "Dokument nicht gefunden",
+      "notFoundBody": "Das Rechtsdokument unter {path} existiert nicht."
     },
     "onboarding": {
-      "title": "Welcome to markoto",
-      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
-      "documentsTitle": "Documents to accept",
-      "documentsIntro": "We've published these in plain language — open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
-      "acceptDocument": "I have read and accept the {document}",
-      "continue": "Continue to markoto",
-      "welcomeToast": "Welcome to markoto",
-      "staleTitle": "Document updated — please review again",
-      "failedTitle": "Could not record your acceptance"
+      "title": "Willkommen bei markoto",
+      "intro": "Bevor Sie mit dem Schreiben beginnen, brauchen wir kurz Ihre Bestätigung zu den folgenden Punkten. Sie sehen dies nur einmal oder wenn wir eines der Dokumente wesentlich aktualisieren.",
+      "documentsTitle": "Zu akzeptierende Dokumente",
+      "documentsIntro": "Wir haben diese in verständlicher Sprache verfasst – öffnen Sie jedes in einem neuen Tab, um es vollständig zu lesen. Ihre Zustimmung wird mit der gelesenen Version gespeichert, damit wir nachweisen können, was Sie gesehen haben.",
+      "acceptDocument": "Ich habe {document} gelesen und akzeptiere es",
+      "continue": "Weiter zu markoto",
+      "welcomeToast": "Willkommen bei markoto",
+      "staleTitle": "Dokument aktualisiert – bitte erneut prüfen",
+      "failedTitle": "Ihre Zustimmung konnte nicht gespeichert werden"
     },
     "subProcessors": {
-      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
-      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "intro": "Die Dritten, die markoto in unserem Auftrag mit der Verarbeitung personenbezogener Daten beauftragt, mit Standort, Übermittlungsgrundlage und öffentlichen Links. Offenlegung gemäss Art. 13 Abs. 1 lit. e DSGVO. Wir informieren Kunden mit Arbeitsbereichen mindestens 30 Tage im Voraus über jeden neuen Unterauftragsverarbeiter.",
+      "dpfCertified": "Nach dem EU-US Data Privacy Framework zertifiziert",
       "dpf": "DPF",
-      "transfer": "Transfer"
+      "transfer": "Übermittlung"
     }
   },
   "settings": {
@@ -1872,10 +1872,10 @@
         "exportHistoryEmpty": "Keine früheren Exporte.",
         "exportExpiresAt": "Verfügbar bis {date}",
         "exportDownload": "Herunterladen",
-        "loadFailed": "Could not load exports",
-        "requestFailed": "Could not request export",
-        "exportRequested": "requested",
-        "exportAvailableUntil": "available until"
+        "loadFailed": "Exporte konnten nicht geladen werden",
+        "requestFailed": "Export konnte nicht angefordert werden",
+        "exportRequested": "angefordert",
+        "exportAvailableUntil": "verfügbar bis"
       },
       "delete": {
         "heading": "Konto löschen",
@@ -1883,7 +1883,7 @@
         "button": "Kontolöschung anfordern",
         "scheduled": "Löschung geplant für den {date}",
         "cancel": "Löschung abbrechen",
-        "cancelFailed": "Could not cancel deletion"
+        "cancelFailed": "Löschung konnte nicht abgebrochen werden"
       },
       "legal": {
         "heading": "Rechtliches",
@@ -1907,28 +1907,28 @@
     },
     "integrations": {
       "menu": "Integrationen (MCP)",
-      "title": "Integrations",
-      "intro": "Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
-      "loadFailed": "Could not load tokens",
-      "issueFailed": "Could not issue token",
-      "tokenCopied": "Token copied to clipboard",
-      "copyFailed": "Could not copy — select and copy manually",
-      "revoked": "Token revoked",
-      "revokeFailed": "Could not revoke token",
-      "snippetCopied": "Config snippet copied",
-      "createdTitle": "Token created — copy it now",
-      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
-      "copy": "Copy",
-      "generateTitle": "Generate token",
-      "namePlaceholder": "e.g. Claude Desktop on laptop",
-      "generate": "Generate",
-      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
-      "activeTitle": "Active tokens",
-      "empty": "No tokens yet.",
-      "createdLastUsed": "created {created} · last used {lastUsed}",
-      "revoke": "Revoke",
-      "connectTitle": "Connect Claude Desktop",
-      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
+      "title": "Integrationen",
+      "intro": "Persönliche Zugriffstokens für externe MCP-Clients – Claude Desktop, Cursor, ChatGPT-App-Store oder Ihre eigenen Skripte.",
+      "loadFailed": "Tokens konnten nicht geladen werden",
+      "issueFailed": "Token konnte nicht ausgestellt werden",
+      "tokenCopied": "Token in die Zwischenablage kopiert",
+      "copyFailed": "Kopieren fehlgeschlagen – bitte manuell markieren und kopieren",
+      "revoked": "Token widerrufen",
+      "revokeFailed": "Token konnte nicht widerrufen werden",
+      "snippetCopied": "Konfigurationsausschnitt kopiert",
+      "createdTitle": "Token erstellt – jetzt kopieren",
+      "createdBody": "Aus Sicherheitsgründen wird dieses Token nur ein einziges Mal angezeigt. Wir können es nicht für Sie wiederherstellen. Wenn Sie es verlieren, widerrufen Sie es und erstellen Sie ein neues.",
+      "copy": "Kopieren",
+      "generateTitle": "Token erzeugen",
+      "namePlaceholder": "z. B. Claude Desktop auf dem Laptop",
+      "generate": "Erzeugen",
+      "scopesNote": "Tokens gewähren denselben Zugriff wie Ihr Konto, beschränkt auf Lesen, Schreiben, Wissen und Web-Abruf.",
+      "activeTitle": "Aktive Tokens",
+      "empty": "Noch keine Tokens.",
+      "createdLastUsed": "erstellt {created} · zuletzt verwendet {lastUsed}",
+      "revoke": "Widerrufen",
+      "connectTitle": "Claude Desktop verbinden",
+      "connectBody": "Fügen Sie diesen Block in Ihre Datei {file} ein (Einstellungen → Entwickler → Konfiguration bearbeiten)."
     }
   },
   "billing": {
@@ -1941,8 +1941,8 @@
       "required": "Akzeptieren Sie die Bedingungen für kostenpflichtige Pläne, um fortzufahren."
     },
     "planUpdated": {
-      "title": "Plan updated",
-      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
+      "title": "Plan aktualisiert",
+      "description": "Sie nutzen jetzt den Plan {plan}. Ihr neues KI-Budget steht sofort zur Verfügung."
     }
   },
   "plan": {
@@ -2361,15 +2361,15 @@
     "greeting": "Willkommen zurück, {name}",
     "description": "Ihre Workspaces und Dokumente.",
     "access": {
-      "private": "Private",
-      "protected": "Protected"
+      "private": "Privat",
+      "protected": "Geschützt"
     }
   },
   "docRow": {
     "actions": "Dokumentaktionen",
     "open": "Öffnen",
     "openNewTab": "In neuem Tab öffnen",
-    "words": "{n} word | {n} words"
+    "words": "{n} Wort | {n} Wörter"
   },
   "credits": {
     "title": "KI-Guthaben",
@@ -2687,42 +2687,42 @@
     "support": "Hilfe & Support"
   },
   "docs": {
-    "searchLabel": "Search the docs...",
-    "openMenu": "Open documentation menu",
+    "searchLabel": "Dokumentation durchsuchen...",
+    "openMenu": "Dokumentationsmenü öffnen",
     "flow": {
-      "loadFailed": "Flow {id} failed to load: {message}",
-      "first": "Jump to first slide",
-      "previous": "Previous slide",
-      "next": "Next slide",
-      "last": "Jump to last slide",
-      "play": "Play autoplay",
-      "pause": "Pause autoplay",
-      "tryNext": "try next",
-      "chapter": "chapter",
-      "toggle": "Toggle slideshow playback"
+      "loadFailed": "Ablauf {id} konnte nicht geladen werden: {message}",
+      "first": "Zur ersten Folie springen",
+      "previous": "Vorherige Folie",
+      "next": "Nächste Folie",
+      "last": "Zur letzten Folie springen",
+      "play": "Automatische Wiedergabe starten",
+      "pause": "Automatische Wiedergabe pausieren",
+      "tryNext": "als Nächstes ausprobieren",
+      "chapter": "Kapitel",
+      "toggle": "Wiedergabe der Diashow umschalten"
     },
     "sections": {
-      "gettingStarted": "Your first ten minutes — create a doc, name it, share it.",
-      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
-      "sharing": "Access modes, password protection, anonymous links, workspaces.",
-      "themes": "Per-document themes that drive both live preview and PDF export.",
-      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+      "gettingStarted": "Ihre ersten zehn Minuten – Dokument erstellen, benennen, teilen.",
+      "writing": "Markdown-Erweiterungen, Formatierung, Hinweise, Formeln, Diagramme, Tabellen.",
+      "sharing": "Zugriffsmodi, Passwortschutz, anonyme Links, Arbeitsbereiche.",
+      "themes": "Designs pro Dokument, die sowohl die Live-Vorschau als auch den PDF-Export steuern.",
+      "importExport": "DOCX/PDF/PPTX importieren; als sauberes Markdown oder gestaltetes PDF exportieren."
     },
     "landing": {
-      "eyebrow": "field guide · vol. 01",
-      "title": "Everything you can do in {product}.",
-      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
-      "begin": "begin walkthrough",
-      "search": "search",
-      "startHere": "Start here",
-      "startHereHint": "Most-load-bearing flows",
-      "browse": "Browse by topic"
+      "eyebrow": "Feldführer · Bd. 01",
+      "title": "Alles, was Sie in {product} tun können.",
+      "lede": "Ein kollaborativer Markdown-Editor mit optionalen Konten. Anonym schreiben, per URL teilen, gestalten, als PDF exportieren. Jeder Screenshot hier wurde live in der laufenden App aufgenommen.",
+      "begin": "Rundgang starten",
+      "search": "suchen",
+      "startHere": "Hier starten",
+      "startHereHint": "Die wichtigsten Abläufe",
+      "browse": "Nach Thema durchsuchen"
     },
     "pagination": {
-      "label": "Documentation pagination",
-      "previous": "previous",
-      "next": "next"
+      "label": "Seitennavigation der Dokumentation",
+      "previous": "zurück",
+      "next": "weiter"
     },
-    "onThisPage": "On this page"
+    "onThisPage": "Auf dieser Seite"
   }
 }

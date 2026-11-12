@@ -4,10 +4,10 @@
     "tagline": "Éditeur markdown collaboratif",
     "offline": "Vous êtes hors ligne — les modifications restent locales jusqu'à votre reconnexion.",
     "update": {
-      "title": "New version available",
-      "description": "Reloading in 30 seconds.",
-      "reloadNow": "Reload now",
-      "snooze": "Snooze 5 min"
+      "title": "Nouvelle version disponible",
+      "description": "Rechargement dans 30 secondes.",
+      "reloadNow": "Recharger maintenant",
+      "snooze": "Reporter de 5 min"
     }
   },
   "landing": {
@@ -71,14 +71,14 @@
     "table": "Tableau",
     "hideFromPreview": "Rendre invisible (masquer de l'aperçu)",
     "footer": {
-      "words": "word | words",
+      "words": "mot | mots",
       "pages": "page | pages",
-      "chars": "char | chars",
-      "readOnly": "read only"
+      "chars": "caractère | caractères",
+      "readOnly": "lecture seule"
     },
-    "previewReloadHint": "Reload the page to retry.",
-    "previewFailed": "Preview failed to load.",
-    "previewFrameTitle": "Document preview"
+    "previewReloadHint": "Rechargez la page pour réessayer.",
+    "previewFailed": "Échec du chargement de l’aperçu.",
+    "previewFrameTitle": "Aperçu du document"
   },
   "previewZoom": {
     "menu": "Zoom",
@@ -289,9 +289,9 @@
     "aiResponding": "markoto répond…",
     "aiTriggerFailed": "Impossible de joindre markoto pour ce fil.",
     "aiTriggerExhausted": "Quota épuisé — passez à un forfait supérieur pour solliciter markoto depuis les commentaires.",
-    "hintPost": "post",
-    "hintCancel": "cancel",
-    "notificationFallbackTitle": "New reply"
+    "hintPost": "publier",
+    "hintCancel": "annuler",
+    "notificationFallbackTitle": "Nouvelle réponse"
   },
   "image": {
     "loginToUpload": "Veuillez vous connecter pour téléverser des images.",
@@ -504,8 +504,8 @@
     "menu": "Menu",
     "docs": "Docs",
     "documentation": "Documentation",
-    "homeLinkLabel": "markoto home",
-    "dragToClose": "Drag to close"
+    "homeLinkLabel": "Accueil markoto",
+    "dragToClose": "Faites glisser pour fermer"
   },
   "menu": {
     "lightMode": "Mode clair",
@@ -575,7 +575,7 @@
       "docs": "Documentation",
       "tour": "Faire la visite"
     },
-    "label": "Menu bar"
+    "label": "Barre de menus"
   },
   "ai": {
     "workingGeneric": "markoto travaille…",
@@ -669,22 +669,22 @@
       "ownKey": "Ajouter votre propre clé"
     },
     "voiceErrors": {
-      "transcription": "Transcription error.",
-      "dictationConnection": "Dictation connection error.",
-      "micDenied": "Microphone permission denied.",
-      "micNotFound": "No microphone found.",
-      "micAccess": "Could not access microphone.",
-      "streamUnavailable": "Microphone stream not available.",
-      "pipeline": "Could not start audio pipeline.",
-      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
-      "unsupportedVoice": "Voice input is not supported in this browser.",
-      "unsupportedRecording": "Audio recording is not supported in this browser.",
-      "recorderStart": "Could not start recorder.",
-      "recordingFailed": "Recording failed.",
-      "stopFailed": "Could not stop recording.",
-      "noAudio": "No audio was captured.",
-      "tooShort": "Recording was too short.",
-      "encodeFailed": "Could not encode audio."
+      "transcription": "Erreur de transcription.",
+      "dictationConnection": "Erreur de connexion de la dictée.",
+      "micDenied": "Autorisation du microphone refusée.",
+      "micNotFound": "Aucun microphone trouvé.",
+      "micAccess": "Impossible d’accéder au microphone.",
+      "streamUnavailable": "Flux du microphone indisponible.",
+      "pipeline": "Impossible de démarrer le traitement audio.",
+      "sampleRate": "Votre navigateur a imposé un audio à {rate} Hz ; la dictée nécessite 16000 Hz.",
+      "unsupportedVoice": "La saisie vocale n’est pas prise en charge par ce navigateur.",
+      "unsupportedRecording": "L’enregistrement audio n’est pas pris en charge par ce navigateur.",
+      "recorderStart": "Impossible de démarrer l’enregistreur.",
+      "recordingFailed": "Échec de l’enregistrement.",
+      "stopFailed": "Impossible d’arrêter l’enregistrement.",
+      "noAudio": "Aucun son n’a été capté.",
+      "tooShort": "L’enregistrement était trop court.",
+      "encodeFailed": "Impossible d’encoder l’audio."
     }
   },
   "mobileTabBar": {
@@ -1019,7 +1019,7 @@
       "sectionModeHelp": "La section qu’une page indique dans son en-tête ou son pied de page.",
       "sectionModeFirst": "Le premier titre de section de la page",
       "sectionModeStart": "La section dans laquelle la page commence",
-      "imagePreview": "Header preview"
+      "imagePreview": "Aperçu de l’en-tête"
     },
     "code": {
       "theme": "Thème de couleurs",
@@ -1167,7 +1167,7 @@
       "replaceLogo": "Remplacer le logo",
       "clearLogo": "Retirer",
       "logoHeight": "Hauteur du logo (px)",
-      "logoPreview": "Logo preview"
+      "logoPreview": "Aperçu du logo"
     },
     "toc": {
       "showTitle": "Afficher le titre « Table des matières »",
@@ -1554,9 +1554,9 @@
       }
     },
     "dpa": {
-      "staleTitle": "Data Processing Addendum updated — please review again",
-      "heading": "One-time acceptance",
-      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
+      "staleTitle": "Avenant de traitement des données mis à jour — veuillez le relire",
+      "heading": "Acceptation unique",
+      "body": "En créant un espace de travail, vous devenez responsable du traitement des données personnelles que vos membres y déposent, et LatentSpace Labs GmbH devient votre sous-traitant. Notre avenant de traitement des données est le contrat qui encadre cela."
     }
   },
   "knowledge": {
@@ -1586,8 +1586,8 @@
     "capFilesReachedFree": "Cet espace de travail a atteint sa limite de fichiers ({limit}). Supprimez un fichier pour en ajouter un autre.",
     "capBytesReachedFree": "Cet espace de travail a atteint sa limite de stockage ({limit} Mo). Supprimez un fichier pour libérer de la place.",
     "capReachedShortFree": "Limite atteinte",
-    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
-    "uploadNetworkError": "Network error during upload."
+    "uploadStorageFailed": "Le fichier n’a pas pu être téléversé vers le stockage (statut {status}).",
+    "uploadNetworkError": "Erreur réseau pendant le téléversement."
   },
   "designImport": {
     "button": "Créer un design à partir d’un document",
@@ -1744,10 +1744,10 @@
         },
         "timing": "La cascade proprement dite s'exécute en tâche de fond une fois par heure. Après la fin de la période de grâce, vos données sont entièrement purgées en environ une heure.",
         "noRecovery": "Une fois la cascade exécutée, votre compte et votre contenu sont perdus définitivement — il n'existe aucun moyen de récupération.",
-        "loading": "Reading your account…"
+        "loading": "Lecture de votre compte…"
       },
       "cancelledToast": "Suppression annulée. Votre compte reste tel quel.",
-      "scheduleFailed": "Could not schedule deletion"
+      "scheduleFailed": "Impossible de planifier la suppression"
     },
     "export": {
       "emailReadySubject": "Votre export de données markoto est prêt",
@@ -1819,25 +1819,25 @@
       "lastUpdated": "Dernière mise à jour le {date}",
       "version": "Version {version}",
       "missingLocale": "Nous n'avons pas encore traduit cette page dans votre langue. Affichage de la version anglaise faisant foi.",
-      "notFoundTitle": "Document not found",
-      "notFoundBody": "The legal document at {path} doesn't exist."
+      "notFoundTitle": "Document introuvable",
+      "notFoundBody": "Le document juridique à l’adresse {path} n’existe pas."
     },
     "onboarding": {
-      "title": "Welcome to markoto",
-      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
-      "documentsTitle": "Documents to accept",
-      "documentsIntro": "We've published these in plain language — open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
-      "acceptDocument": "I have read and accept the {document}",
-      "continue": "Continue to markoto",
-      "welcomeToast": "Welcome to markoto",
-      "staleTitle": "Document updated — please review again",
-      "failedTitle": "Could not record your acceptance"
+      "title": "Bienvenue sur markoto",
+      "intro": "Avant de commencer à écrire, nous avons besoin de votre accord sur les points ci-dessous. Vous ne le voyez qu’une fois, ou après une mise à jour substantielle de l’un des documents.",
+      "documentsTitle": "Documents à accepter",
+      "documentsIntro": "Nous les avons rédigés en langage clair — ouvrez chacun dans un nouvel onglet pour le lire en entier. Votre acceptation est enregistrée avec la version que vous avez lue, afin que nous puissions prouver ce que vous avez vu.",
+      "acceptDocument": "J’ai lu et j’accepte : {document}",
+      "continue": "Continuer vers markoto",
+      "welcomeToast": "Bienvenue sur markoto",
+      "staleTitle": "Document mis à jour — veuillez le relire",
+      "failedTitle": "Impossible d’enregistrer votre acceptation"
     },
     "subProcessors": {
-      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
-      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "intro": "Les tiers que markoto mandate pour traiter des données personnelles pour notre compte, avec le lieu, le mécanisme de transfert et les liens publics de chacun. Information requise par l’article 13, paragraphe 1, point e), du RGPD. Nous prévenons les clients propriétaires d’espaces de travail au moins 30 jours avant tout nouveau sous-traitant.",
+      "dpfCertified": "Certifié selon le cadre de protection des données UE-États-Unis",
       "dpf": "DPF",
-      "transfer": "Transfer"
+      "transfer": "Transfert"
     }
   },
   "settings": {
@@ -1872,10 +1872,10 @@
         "exportHistoryEmpty": "Aucun export précédent.",
         "exportExpiresAt": "Disponible jusqu'au {date}",
         "exportDownload": "Télécharger",
-        "loadFailed": "Could not load exports",
-        "requestFailed": "Could not request export",
-        "exportRequested": "requested",
-        "exportAvailableUntil": "available until"
+        "loadFailed": "Impossible de charger les exports",
+        "requestFailed": "Impossible de demander l’export",
+        "exportRequested": "demandé",
+        "exportAvailableUntil": "disponible jusqu’au"
       },
       "delete": {
         "heading": "Supprimer votre compte",
@@ -1883,7 +1883,7 @@
         "button": "Demander la suppression du compte",
         "scheduled": "Planifié pour suppression le {date}",
         "cancel": "Annuler la suppression",
-        "cancelFailed": "Could not cancel deletion"
+        "cancelFailed": "Impossible d’annuler la suppression"
       },
       "legal": {
         "heading": "Mentions légales",
@@ -1907,28 +1907,28 @@
     },
     "integrations": {
       "menu": "Intégrations (MCP)",
-      "title": "Integrations",
-      "intro": "Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
-      "loadFailed": "Could not load tokens",
-      "issueFailed": "Could not issue token",
-      "tokenCopied": "Token copied to clipboard",
-      "copyFailed": "Could not copy — select and copy manually",
-      "revoked": "Token revoked",
-      "revokeFailed": "Could not revoke token",
-      "snippetCopied": "Config snippet copied",
-      "createdTitle": "Token created — copy it now",
-      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
-      "copy": "Copy",
-      "generateTitle": "Generate token",
-      "namePlaceholder": "e.g. Claude Desktop on laptop",
-      "generate": "Generate",
-      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
-      "activeTitle": "Active tokens",
-      "empty": "No tokens yet.",
-      "createdLastUsed": "created {created} · last used {lastUsed}",
-      "revoke": "Revoke",
-      "connectTitle": "Connect Claude Desktop",
-      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
+      "title": "Intégrations",
+      "intro": "Jetons d’accès personnels pour des clients MCP externes — Claude Desktop, Cursor, la boutique d’applications ChatGPT ou vos propres scripts.",
+      "loadFailed": "Impossible de charger les jetons",
+      "issueFailed": "Impossible d’émettre le jeton",
+      "tokenCopied": "Jeton copié dans le presse-papiers",
+      "copyFailed": "Copie impossible — sélectionnez et copiez manuellement",
+      "revoked": "Jeton révoqué",
+      "revokeFailed": "Impossible de révoquer le jeton",
+      "snippetCopied": "Extrait de configuration copié",
+      "createdTitle": "Jeton créé — copiez-le maintenant",
+      "createdBody": "Par sécurité, ce jeton n’est affiché qu’une seule fois. Nous ne pouvons pas le récupérer pour vous. Si vous le perdez, révoquez-le et créez-en un nouveau.",
+      "copy": "Copier",
+      "generateTitle": "Générer un jeton",
+      "namePlaceholder": "p. ex. Claude Desktop sur le portable",
+      "generate": "Générer",
+      "scopesNote": "Les jetons donnent le même accès que votre compte, limité à la lecture, l’écriture, les connaissances et la récupération de pages web.",
+      "activeTitle": "Jetons actifs",
+      "empty": "Aucun jeton pour l’instant.",
+      "createdLastUsed": "créé {created} · dernière utilisation {lastUsed}",
+      "revoke": "Révoquer",
+      "connectTitle": "Connecter Claude Desktop",
+      "connectBody": "Ajoutez ce bloc à votre fichier {file} (Réglages → Développeur → Modifier la configuration)."
     }
   },
   "billing": {
@@ -1941,8 +1941,8 @@
       "required": "Acceptez les Conditions des offres payantes pour continuer."
     },
     "planUpdated": {
-      "title": "Plan updated",
-      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
+      "title": "Plan mis à jour",
+      "description": "Vous êtes maintenant sur le plan {plan}. Votre nouveau budget IA est disponible immédiatement."
     }
   },
   "plan": {
@@ -2361,15 +2361,15 @@
     "greeting": "Bon retour, {name}",
     "description": "Vos espaces de travail et vos documents.",
     "access": {
-      "private": "Private",
-      "protected": "Protected"
+      "private": "Privé",
+      "protected": "Protégé"
     }
   },
   "docRow": {
     "actions": "Actions du document",
     "open": "Ouvrir",
     "openNewTab": "Ouvrir dans un nouvel onglet",
-    "words": "{n} word | {n} words"
+    "words": "{n} mot | {n} mots"
   },
   "credits": {
     "title": "Crédits IA",
@@ -2687,42 +2687,42 @@
     "support": "Aide et assistance"
   },
   "docs": {
-    "searchLabel": "Search the docs...",
-    "openMenu": "Open documentation menu",
+    "searchLabel": "Rechercher dans la documentation...",
+    "openMenu": "Ouvrir le menu de la documentation",
     "flow": {
-      "loadFailed": "Flow {id} failed to load: {message}",
-      "first": "Jump to first slide",
-      "previous": "Previous slide",
-      "next": "Next slide",
-      "last": "Jump to last slide",
-      "play": "Play autoplay",
-      "pause": "Pause autoplay",
-      "tryNext": "try next",
-      "chapter": "chapter",
-      "toggle": "Toggle slideshow playback"
+      "loadFailed": "Le flux {id} n’a pas pu être chargé : {message}",
+      "first": "Aller à la première diapositive",
+      "previous": "Diapositive précédente",
+      "next": "Diapositive suivante",
+      "last": "Aller à la dernière diapositive",
+      "play": "Lancer la lecture automatique",
+      "pause": "Mettre en pause la lecture automatique",
+      "tryNext": "à essayer ensuite",
+      "chapter": "chapitre",
+      "toggle": "Activer ou désactiver la lecture du diaporama"
     },
     "sections": {
-      "gettingStarted": "Your first ten minutes — create a doc, name it, share it.",
-      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
-      "sharing": "Access modes, password protection, anonymous links, workspaces.",
-      "themes": "Per-document themes that drive both live preview and PDF export.",
-      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+      "gettingStarted": "Vos dix premières minutes — créer un document, le nommer, le partager.",
+      "writing": "Extensions Markdown, mise en forme, encadrés, formules, diagrammes, tableaux.",
+      "sharing": "Modes d’accès, protection par mot de passe, liens anonymes, espaces de travail.",
+      "themes": "Des thèmes par document qui pilotent à la fois l’aperçu en direct et l’export PDF.",
+      "importExport": "Importez du DOCX/PDF/PPTX ; exportez en Markdown propre ou en PDF avec thème."
     },
     "landing": {
-      "eyebrow": "field guide · vol. 01",
-      "title": "Everything you can do in {product}.",
-      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
-      "begin": "begin walkthrough",
-      "search": "search",
-      "startHere": "Start here",
-      "startHereHint": "Most-load-bearing flows",
-      "browse": "Browse by topic"
+      "eyebrow": "guide pratique · vol. 01",
+      "title": "Tout ce que vous pouvez faire dans {product}.",
+      "lede": "Un éditeur markdown collaboratif avec comptes facultatifs. Écrivez de façon anonyme, partagez par URL, appliquez un thème, exportez en PDF. Chaque capture d’écran ici est prise en direct depuis l’application en fonctionnement.",
+      "begin": "commencer la visite",
+      "search": "rechercher",
+      "startHere": "Commencer ici",
+      "startHereHint": "Les parcours les plus importants",
+      "browse": "Parcourir par thème"
     },
     "pagination": {
-      "label": "Documentation pagination",
-      "previous": "previous",
-      "next": "next"
+      "label": "Pagination de la documentation",
+      "previous": "précédent",
+      "next": "suivant"
     },
-    "onThisPage": "On this page"
+    "onThisPage": "Sur cette page"
   }
 }

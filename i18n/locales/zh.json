@@ -4,10 +4,10 @@
     "tagline": "协作式 Markdown 编辑器",
     "offline": "你已离线 — 在重新连接前，编辑仅保存在本地。",
     "update": {
-      "title": "New version available",
-      "description": "Reloading in 30 seconds.",
-      "reloadNow": "Reload now",
-      "snooze": "Snooze 5 min"
+      "title": "有新版本可用",
+      "description": "将在 30 秒后重新加载。",
+      "reloadNow": "立即重新加载",
+      "snooze": "5 分钟后再提醒"
     }
   },
   "landing": {
@@ -71,14 +71,14 @@
     "table": "表格",
     "hideFromPreview": "设为不可见（在预览中隐藏）",
     "footer": {
-      "words": "word | words",
-      "pages": "page | pages",
-      "chars": "char | chars",
-      "readOnly": "read only"
+      "words": "字 | 字",
+      "pages": "页 | 页",
+      "chars": "字符 | 字符",
+      "readOnly": "只读"
     },
-    "previewReloadHint": "Reload the page to retry.",
-    "previewFailed": "Preview failed to load.",
-    "previewFrameTitle": "Document preview"
+    "previewReloadHint": "请重新加载页面后重试。",
+    "previewFailed": "预览加载失败。",
+    "previewFrameTitle": "文档预览"
   },
   "previewZoom": {
     "menu": "缩放",
@@ -253,7 +253,7 @@
       "imageInDoc": "生成的图片已插入到文档中。",
       "knowledgeNote": "工作区知识功能。"
     },
-    "viaAgent": "via {agent}"
+    "viaAgent": "通过 {agent}"
   },
   "comments": {
     "title": "评论",
@@ -289,9 +289,9 @@
     "aiResponding": "markoto 正在回复…",
     "aiTriggerFailed": "无法为此会话连接到 markoto。",
     "aiTriggerExhausted": "额度已用尽 — 升级你的套餐即可从评论中调用 markoto。",
-    "hintPost": "post",
-    "hintCancel": "cancel",
-    "notificationFallbackTitle": "New reply"
+    "hintPost": "发布",
+    "hintCancel": "取消",
+    "notificationFallbackTitle": "新回复"
   },
   "image": {
     "loginToUpload": "请登录以上传图片。",
@@ -504,8 +504,8 @@
     "menu": "菜单",
     "docs": "文档",
     "documentation": "使用文档",
-    "homeLinkLabel": "markoto home",
-    "dragToClose": "Drag to close"
+    "homeLinkLabel": "markoto 首页",
+    "dragToClose": "拖动以关闭"
   },
   "menu": {
     "lightMode": "浅色模式",
@@ -575,7 +575,7 @@
       "docs": "使用文档",
       "tour": "开始导览"
     },
-    "label": "Menu bar"
+    "label": "菜单栏"
   },
   "ai": {
     "workingGeneric": "markoto 正在工作…",
@@ -669,22 +669,22 @@
       "ownKey": "添加自己的密钥"
     },
     "voiceErrors": {
-      "transcription": "Transcription error.",
-      "dictationConnection": "Dictation connection error.",
-      "micDenied": "Microphone permission denied.",
-      "micNotFound": "No microphone found.",
-      "micAccess": "Could not access microphone.",
-      "streamUnavailable": "Microphone stream not available.",
-      "pipeline": "Could not start audio pipeline.",
-      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
-      "unsupportedVoice": "Voice input is not supported in this browser.",
-      "unsupportedRecording": "Audio recording is not supported in this browser.",
-      "recorderStart": "Could not start recorder.",
-      "recordingFailed": "Recording failed.",
-      "stopFailed": "Could not stop recording.",
-      "noAudio": "No audio was captured.",
-      "tooShort": "Recording was too short.",
-      "encodeFailed": "Could not encode audio."
+      "transcription": "转写出错。",
+      "dictationConnection": "听写连接出错。",
+      "micDenied": "麦克风权限被拒绝。",
+      "micNotFound": "未找到麦克风。",
+      "micAccess": "无法访问麦克风。",
+      "streamUnavailable": "麦克风音频流不可用。",
+      "pipeline": "无法启动音频处理管线。",
+      "sampleRate": "你的浏览器强制使用 {rate} Hz 音频；听写需要 16000 Hz。",
+      "unsupportedVoice": "此浏览器不支持语音输入。",
+      "unsupportedRecording": "此浏览器不支持录音。",
+      "recorderStart": "无法启动录音。",
+      "recordingFailed": "录音失败。",
+      "stopFailed": "无法停止录音。",
+      "noAudio": "未录到任何音频。",
+      "tooShort": "录音时间太短。",
+      "encodeFailed": "无法编码音频。"
     }
   },
   "mobileTabBar": {
@@ -1019,7 +1019,7 @@
       "sectionModeHelp": "页眉或页脚中显示哪一节。",
       "sectionModeFirst": "本页的第一个节标题",
       "sectionModeStart": "本页开始时所在的节",
-      "imagePreview": "Header preview"
+      "imagePreview": "页眉预览"
     },
     "code": {
       "theme": "配色主题",
@@ -1167,7 +1167,7 @@
       "replaceLogo": "替换徽标",
       "clearLogo": "移除",
       "logoHeight": "徽标高度（px）",
-      "logoPreview": "Logo preview"
+      "logoPreview": "标志预览"
     },
     "toc": {
       "showTitle": "显示“目录”标题",
@@ -1322,15 +1322,15 @@
       "docsLink": "如何编写自定义 CSS"
     },
     "fontWeight": {
-      "thin": "Thin",
-      "extraLight": "Extra Light",
-      "light": "Light",
-      "regular": "Regular",
-      "medium": "Medium",
-      "semibold": "Semibold",
-      "bold": "Bold",
-      "extraBold": "Extra Bold",
-      "black": "Black"
+      "thin": "极细",
+      "extraLight": "特细",
+      "light": "细体",
+      "regular": "常规",
+      "medium": "中等",
+      "semibold": "半粗",
+      "bold": "粗体",
+      "extraBold": "特粗",
+      "black": "黑体"
     }
   },
   "table": {
@@ -1554,9 +1554,9 @@
       }
     },
     "dpa": {
-      "staleTitle": "Data Processing Addendum updated — please review again",
-      "heading": "One-time acceptance",
-      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
+      "staleTitle": "数据处理附录已更新，请重新查看",
+      "heading": "一次性接受",
+      "body": "创建工作区后，你将成为成员在其中存放的个人数据的控制者，LatentSpace Labs GmbH 则成为你的处理者。我们的数据处理附录就是规范这一关系的合同。"
     }
   },
   "knowledge": {
@@ -1586,8 +1586,8 @@
     "capFilesReachedFree": "此工作区已达到文件数量上限（{limit}）。请删除一个文件后再添加。",
     "capBytesReachedFree": "此工作区已达到存储上限（{limit} MB）。请删除文件以释放空间。",
     "capReachedShortFree": "已达上限",
-    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
-    "uploadNetworkError": "Network error during upload."
+    "uploadStorageFailed": "文件无法上传到存储（状态码 {status}）。",
+    "uploadNetworkError": "上传时发生网络错误。"
   },
   "designImport": {
     "button": "从文档创建设计",
@@ -1744,10 +1744,10 @@
         },
         "timing": "实际的级联操作作为后台任务每小时运行一次。宽限期结束后，你的数据将在约一小时内被完全清除。",
         "noRecovery": "级联操作一旦执行，你的账号和内容将永久消失 — 无任何恢复途径。",
-        "loading": "Reading your account…"
+        "loading": "正在读取你的账户信息…"
       },
       "cancelledToast": "已取消删除。你的账户保持不变。",
-      "scheduleFailed": "Could not schedule deletion"
+      "scheduleFailed": "无法安排删除"
     },
     "export": {
       "emailReadySubject": "你的 markoto 数据导出已就绪",
@@ -1819,25 +1819,25 @@
       "lastUpdated": "最后更新于 {date}",
       "version": "版本 {version}",
       "missingLocale": "我们尚未将本页面翻译成你的语言。现显示权威英文版本。",
-      "notFoundTitle": "Document not found",
-      "notFoundBody": "The legal document at {path} doesn't exist."
+      "notFoundTitle": "未找到文档",
+      "notFoundBody": "位于 {path} 的法律文档不存在。"
     },
     "onboarding": {
-      "title": "Welcome to markoto",
-      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
-      "documentsTitle": "Documents to accept",
-      "documentsIntro": "We've published these in plain language — open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
-      "acceptDocument": "I have read and accept the {document}",
-      "continue": "Continue to markoto",
-      "welcomeToast": "Welcome to markoto",
-      "staleTitle": "Document updated — please review again",
-      "failedTitle": "Could not record your acceptance"
+      "title": "欢迎使用 markoto",
+      "intro": "开始写作之前，需要你对下列事项做一次简短确认。此提示只会出现一次，或在我们对其中某份文档做出重大更新之后再次出现。",
+      "documentsTitle": "需要接受的文档",
+      "documentsIntro": "我们用通俗易懂的语言撰写了这些文档，请在新标签页中逐一打开并完整阅读。你的接受会连同你所阅读的版本一并记录，以便我们证明你当时看到的内容。",
+      "acceptDocument": "我已阅读并接受{document}",
+      "continue": "继续使用 markoto",
+      "welcomeToast": "欢迎使用 markoto",
+      "staleTitle": "文档已更新，请重新查看",
+      "failedTitle": "无法记录你的接受"
     },
     "subProcessors": {
-      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
-      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "intro": "markoto 委托其代为处理个人数据的第三方，附有各自所在地、传输机制和公开链接。这是 GDPR 第 13(1)(e) 条要求的披露。如有新增分处理者，我们会至少提前 30 天通知作为工作区所有者的客户。",
+      "dpfCertified": "已通过欧美数据隐私框架认证",
       "dpf": "DPF",
-      "transfer": "Transfer"
+      "transfer": "传输"
     }
   },
   "settings": {
@@ -1872,10 +1872,10 @@
         "exportHistoryEmpty": "暂无之前的导出。",
         "exportExpiresAt": "有效期至 {date}",
         "exportDownload": "下载",
-        "loadFailed": "Could not load exports",
-        "requestFailed": "Could not request export",
-        "exportRequested": "requested",
-        "exportAvailableUntil": "available until"
+        "loadFailed": "无法加载导出记录",
+        "requestFailed": "无法请求导出",
+        "exportRequested": "请求于",
+        "exportAvailableUntil": "可下载至"
       },
       "delete": {
         "heading": "删除你的账号",
@@ -1883,7 +1883,7 @@
         "button": "请求删除账号",
         "scheduled": "已安排于 {date} 删除",
         "cancel": "取消删除",
-        "cancelFailed": "Could not cancel deletion"
+        "cancelFailed": "无法取消删除"
       },
       "legal": {
         "heading": "法律",
@@ -1907,28 +1907,28 @@
     },
     "integrations": {
       "menu": "集成 (MCP)",
-      "title": "Integrations",
-      "intro": "Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
-      "loadFailed": "Could not load tokens",
-      "issueFailed": "Could not issue token",
-      "tokenCopied": "Token copied to clipboard",
-      "copyFailed": "Could not copy — select and copy manually",
-      "revoked": "Token revoked",
-      "revokeFailed": "Could not revoke token",
-      "snippetCopied": "Config snippet copied",
-      "createdTitle": "Token created — copy it now",
-      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
-      "copy": "Copy",
-      "generateTitle": "Generate token",
-      "namePlaceholder": "e.g. Claude Desktop on laptop",
-      "generate": "Generate",
-      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
-      "activeTitle": "Active tokens",
-      "empty": "No tokens yet.",
-      "createdLastUsed": "created {created} · last used {lastUsed}",
-      "revoke": "Revoke",
-      "connectTitle": "Connect Claude Desktop",
-      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
+      "title": "集成",
+      "intro": "用于外部 MCP 客户端的个人访问令牌，例如 Claude Desktop、Cursor、ChatGPT 应用商店，或你自己的脚本。",
+      "loadFailed": "无法加载令牌",
+      "issueFailed": "无法生成令牌",
+      "tokenCopied": "令牌已复制到剪贴板",
+      "copyFailed": "无法复制，请手动选择并复制",
+      "revoked": "令牌已撤销",
+      "revokeFailed": "无法撤销令牌",
+      "snippetCopied": "配置片段已复制",
+      "createdTitle": "令牌已创建，请立即复制",
+      "createdBody": "出于安全考虑，此令牌只会显示这一次，我们无法为你找回。如果丢失，请撤销并重新创建。",
+      "copy": "复制",
+      "generateTitle": "生成令牌",
+      "namePlaceholder": "例如：笔记本电脑上的 Claude Desktop",
+      "generate": "生成",
+      "scopesNote": "令牌拥有与你的账户相同的访问权限，范围限于读取、写入、知识库和网页获取。",
+      "activeTitle": "有效令牌",
+      "empty": "暂无令牌。",
+      "createdLastUsed": "创建于 {created} · 最近使用 {lastUsed}",
+      "revoke": "撤销",
+      "connectTitle": "连接 Claude Desktop",
+      "connectBody": "将此代码块添加到你的 {file}（设置 → 开发者 → 编辑配置）。"
     }
   },
   "billing": {
@@ -1941,8 +1941,8 @@
       "required": "请接受付费方案条款以继续。"
     },
     "planUpdated": {
-      "title": "Plan updated",
-      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
+      "title": "套餐已更新",
+      "description": "你现在使用的是 {plan} 套餐。新的 AI 额度立即可用。"
     }
   },
   "plan": {
@@ -2361,15 +2361,15 @@
     "greeting": "欢迎回来，{name}",
     "description": "你的工作区和文档",
     "access": {
-      "private": "Private",
-      "protected": "Protected"
+      "private": "私有",
+      "protected": "受保护"
     }
   },
   "docRow": {
     "actions": "文档操作",
     "open": "打开",
     "openNewTab": "在新标签页中打开",
-    "words": "{n} word | {n} words"
+    "words": "{n} 字 | {n} 字"
   },
   "credits": {
     "title": "AI 额度",
@@ -2687,42 +2687,42 @@
     "support": "帮助与支持"
   },
   "docs": {
-    "searchLabel": "Search the docs...",
-    "openMenu": "Open documentation menu",
+    "searchLabel": "搜索文档…",
+    "openMenu": "打开文档菜单",
     "flow": {
-      "loadFailed": "Flow {id} failed to load: {message}",
-      "first": "Jump to first slide",
-      "previous": "Previous slide",
-      "next": "Next slide",
-      "last": "Jump to last slide",
-      "play": "Play autoplay",
-      "pause": "Pause autoplay",
-      "tryNext": "try next",
-      "chapter": "chapter",
-      "toggle": "Toggle slideshow playback"
+      "loadFailed": "流程 {id} 加载失败：{message}",
+      "first": "跳到第一张幻灯片",
+      "previous": "上一张幻灯片",
+      "next": "下一张幻灯片",
+      "last": "跳到最后一张幻灯片",
+      "play": "开始自动播放",
+      "pause": "暂停自动播放",
+      "tryNext": "接下来试试",
+      "chapter": "章节",
+      "toggle": "切换幻灯片播放"
     },
     "sections": {
-      "gettingStarted": "Your first ten minutes — create a doc, name it, share it.",
-      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
-      "sharing": "Access modes, password protection, anonymous links, workspaces.",
-      "themes": "Per-document themes that drive both live preview and PDF export.",
-      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+      "gettingStarted": "最初的十分钟：创建文档、命名、分享。",
+      "writing": "Markdown 扩展、格式、提示框、公式、图表、表格。",
+      "sharing": "访问模式、密码保护、匿名链接、工作区。",
+      "themes": "每份文档独立的主题，同时作用于实时预览和 PDF 导出。",
+      "importExport": "导入 DOCX/PDF/PPTX；导出为简洁的 Markdown 或带主题的 PDF。"
     },
     "landing": {
-      "eyebrow": "field guide · vol. 01",
-      "title": "Everything you can do in {product}.",
-      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
-      "begin": "begin walkthrough",
-      "search": "search",
-      "startHere": "Start here",
-      "startHereHint": "Most-load-bearing flows",
-      "browse": "Browse by topic"
+      "eyebrow": "使用指南 · 第 01 卷",
+      "title": "{product} 的全部功能。",
+      "lede": "一款可选账户的协作式 Markdown 编辑器。匿名写作，通过 URL 分享，设置主题，导出为 PDF。这里的每张截图都取自正在运行的应用。",
+      "begin": "开始演示",
+      "search": "搜索",
+      "startHere": "从这里开始",
+      "startHereHint": "最重要的流程",
+      "browse": "按主题浏览"
     },
     "pagination": {
-      "label": "Documentation pagination",
-      "previous": "previous",
-      "next": "next"
+      "label": "文档分页",
+      "previous": "上一页",
+      "next": "下一页"
     },
-    "onThisPage": "On this page"
+    "onThisPage": "本页内容"
   }
 }

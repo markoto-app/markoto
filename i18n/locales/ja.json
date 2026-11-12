@@ -4,10 +4,10 @@
     "tagline": "共同編集できるMarkdownエディター",
     "offline": "オフラインです — 再接続するまで編集内容はローカルに保存されます。",
     "update": {
-      "title": "New version available",
-      "description": "Reloading in 30 seconds.",
-      "reloadNow": "Reload now",
-      "snooze": "Snooze 5 min"
+      "title": "新しいバージョンがあります",
+      "description": "30秒後に再読み込みします。",
+      "reloadNow": "今すぐ再読み込み",
+      "snooze": "5分後に再通知"
     }
   },
   "landing": {
@@ -71,14 +71,14 @@
     "table": "表",
     "hideFromPreview": "非表示にする（プレビューから隠す）",
     "footer": {
-      "words": "word | words",
-      "pages": "page | pages",
-      "chars": "char | chars",
-      "readOnly": "read only"
+      "words": "語 | 語",
+      "pages": "ページ | ページ",
+      "chars": "文字 | 文字",
+      "readOnly": "読み取り専用"
     },
-    "previewReloadHint": "Reload the page to retry.",
-    "previewFailed": "Preview failed to load.",
-    "previewFrameTitle": "Document preview"
+    "previewReloadHint": "ページを再読み込みしてもう一度お試しください。",
+    "previewFailed": "プレビューを読み込めませんでした。",
+    "previewFrameTitle": "ドキュメントのプレビュー"
   },
   "previewZoom": {
     "menu": "ズーム",
@@ -253,7 +253,7 @@
       "imageInDoc": "生成された画像はドキュメントに挿入されました。",
       "knowledgeNote": "ワークスペースナレッジ機能。"
     },
-    "viaAgent": "via {agent}"
+    "viaAgent": "{agent}経由"
   },
   "comments": {
     "title": "コメント",
@@ -289,9 +289,9 @@
     "aiResponding": "markotoが応答しています…",
     "aiTriggerFailed": "このスレッドでmarkotoに接続できませんでした。",
     "aiTriggerExhausted": "クレジットを使い切りました — プランをアップグレードすると、コメントからmarkotoに依頼できます。",
-    "hintPost": "post",
-    "hintCancel": "cancel",
-    "notificationFallbackTitle": "New reply"
+    "hintPost": "送信",
+    "hintCancel": "キャンセル",
+    "notificationFallbackTitle": "新しい返信"
   },
   "image": {
     "loginToUpload": "画像をアップロードするにはログインしてください。",
@@ -504,8 +504,8 @@
     "menu": "メニュー",
     "docs": "ドキュメント",
     "documentation": "ドキュメンテーション",
-    "homeLinkLabel": "markoto home",
-    "dragToClose": "Drag to close"
+    "homeLinkLabel": "markotoのホーム",
+    "dragToClose": "ドラッグして閉じる"
   },
   "menu": {
     "lightMode": "ライトモード",
@@ -575,7 +575,7 @@
       "docs": "ドキュメンテーション",
       "tour": "ツアーを見る"
     },
-    "label": "Menu bar"
+    "label": "メニューバー"
   },
   "ai": {
     "workingGeneric": "markoto が作業中…",
@@ -669,22 +669,22 @@
       "ownKey": "自分のキーを追加"
     },
     "voiceErrors": {
-      "transcription": "Transcription error.",
-      "dictationConnection": "Dictation connection error.",
-      "micDenied": "Microphone permission denied.",
-      "micNotFound": "No microphone found.",
-      "micAccess": "Could not access microphone.",
-      "streamUnavailable": "Microphone stream not available.",
-      "pipeline": "Could not start audio pipeline.",
-      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
-      "unsupportedVoice": "Voice input is not supported in this browser.",
-      "unsupportedRecording": "Audio recording is not supported in this browser.",
-      "recorderStart": "Could not start recorder.",
-      "recordingFailed": "Recording failed.",
-      "stopFailed": "Could not stop recording.",
-      "noAudio": "No audio was captured.",
-      "tooShort": "Recording was too short.",
-      "encodeFailed": "Could not encode audio."
+      "transcription": "文字起こしエラー。",
+      "dictationConnection": "音声入力の接続エラー。",
+      "micDenied": "マイクの使用が許可されていません。",
+      "micNotFound": "マイクが見つかりません。",
+      "micAccess": "マイクにアクセスできませんでした。",
+      "streamUnavailable": "マイクのストリームを利用できません。",
+      "pipeline": "オーディオ処理を開始できませんでした。",
+      "sampleRate": "ブラウザが {rate} Hz の音声を強制しましたが、音声入力には 16000 Hz が必要です。",
+      "unsupportedVoice": "このブラウザは音声入力に対応していません。",
+      "unsupportedRecording": "このブラウザは音声録音に対応していません。",
+      "recorderStart": "録音を開始できませんでした。",
+      "recordingFailed": "録音に失敗しました。",
+      "stopFailed": "録音を停止できませんでした。",
+      "noAudio": "音声が録音されませんでした。",
+      "tooShort": "録音が短すぎました。",
+      "encodeFailed": "音声をエンコードできませんでした。"
     }
   },
   "mobileTabBar": {
@@ -1019,7 +1019,7 @@
       "sectionModeHelp": "ヘッダーやフッターにどの節を表示するかを選びます。",
       "sectionModeFirst": "ページ内の最初の節見出し",
       "sectionModeStart": "ページが始まる節",
-      "imagePreview": "Header preview"
+      "imagePreview": "ヘッダーのプレビュー"
     },
     "code": {
       "theme": "カラーテーマ",
@@ -1167,7 +1167,7 @@
       "replaceLogo": "ロゴを置き換える",
       "clearLogo": "削除",
       "logoHeight": "ロゴの高さ（px）",
-      "logoPreview": "Logo preview"
+      "logoPreview": "ロゴのプレビュー"
     },
     "toc": {
       "showTitle": "「目次」の見出しを表示",
@@ -1322,15 +1322,15 @@
       "docsLink": "カスタム CSS の書き方"
     },
     "fontWeight": {
-      "thin": "Thin",
-      "extraLight": "Extra Light",
-      "light": "Light",
-      "regular": "Regular",
-      "medium": "Medium",
-      "semibold": "Semibold",
-      "bold": "Bold",
-      "extraBold": "Extra Bold",
-      "black": "Black"
+      "thin": "極細",
+      "extraLight": "特細",
+      "light": "細字",
+      "regular": "標準",
+      "medium": "中字",
+      "semibold": "やや太字",
+      "bold": "太字",
+      "extraBold": "特太",
+      "black": "極太"
     }
   },
   "table": {
@@ -1554,9 +1554,9 @@
       }
     },
     "dpa": {
-      "staleTitle": "Data Processing Addendum updated — please review again",
-      "heading": "One-time acceptance",
-      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
+      "staleTitle": "データ処理契約が更新されました — もう一度ご確認ください",
+      "heading": "一度だけの同意",
+      "body": "ワークスペースを作成すると、メンバーがその中に置く個人データについてあなたが管理者（コントローラー）となり、LatentSpace Labs GmbHがあなたの処理者（プロセッサー）となります。これを定める契約がデータ処理契約です。"
     }
   },
   "knowledge": {
@@ -1586,8 +1586,8 @@
     "capFilesReachedFree": "このワークスペースはファイル数の上限（{limit}）に達しました。追加するにはファイルを削除してください。",
     "capBytesReachedFree": "このワークスペースはストレージの上限（{limit} MB）に達しました。空き容量を作るにはファイルを削除してください。",
     "capReachedShortFree": "上限に達しました",
-    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
-    "uploadNetworkError": "Network error during upload."
+    "uploadStorageFailed": "ファイルをストレージにアップロードできませんでした（ステータス {status}）。",
+    "uploadNetworkError": "アップロード中にネットワークエラーが発生しました。"
   },
   "designImport": {
     "button": "文書からデザインを作成",
@@ -1744,10 +1744,10 @@
         },
         "timing": "実際の連鎖削除は、1時間に1回のバックグラウンドジョブとして実行されます。猶予期間の終了後、あなたのデータは約1時間以内に完全に消去されます。",
         "noRecovery": "連鎖削除が実行されると、アカウントと内容は完全に失われます — 復元する方法はありません。",
-        "loading": "Reading your account…"
+        "loading": "アカウントを確認しています…"
       },
       "cancelledToast": "削除を取り消しました。アカウントはそのまま残ります。",
-      "scheduleFailed": "Could not schedule deletion"
+      "scheduleFailed": "削除を予約できませんでした"
     },
     "export": {
       "emailReadySubject": "markotoのデータエクスポートの準備ができました",
@@ -1819,25 +1819,25 @@
       "lastUpdated": "最終更新：{date}",
       "version": "バージョン{version}",
       "missingLocale": "このページはまだあなたの言語に翻訳されていません。正文である英語版を表示しています。",
-      "notFoundTitle": "Document not found",
-      "notFoundBody": "The legal document at {path} doesn't exist."
+      "notFoundTitle": "文書が見つかりません",
+      "notFoundBody": "{path}の法的文書は存在しません。"
     },
     "onboarding": {
-      "title": "Welcome to markoto",
-      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
-      "documentsTitle": "Documents to accept",
-      "documentsIntro": "We've published these in plain language — open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
-      "acceptDocument": "I have read and accept the {document}",
-      "continue": "Continue to markoto",
-      "welcomeToast": "Welcome to markoto",
-      "staleTitle": "Document updated — please review again",
-      "failedTitle": "Could not record your acceptance"
+      "title": "markotoへようこそ",
+      "intro": "書き始める前に、以下の項目について簡単な確認が必要です。表示されるのは初回のみ、またはいずれかの文書が大きく更新されたときだけです。",
+      "documentsTitle": "同意が必要な文書",
+      "documentsIntro": "分かりやすい言葉で公開しています。それぞれ新しいタブで開いて全文をお読みください。同意は、あなたが読んだバージョンとともに記録され、何をご覧になったかを証明できるようにしています。",
+      "acceptDocument": "{document}を読み、同意します",
+      "continue": "markotoを開始",
+      "welcomeToast": "markotoへようこそ",
+      "staleTitle": "文書が更新されました — もう一度ご確認ください",
+      "failedTitle": "同意を記録できませんでした"
     },
     "subProcessors": {
-      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
-      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "intro": "markotoが当社に代わって個人データを処理させている第三者です。所在地、移転の仕組み、公開リンクを併記しています。GDPR第13条第1項(e)に基づく開示事項です。新しい委託先（サブプロセッサー）を追加する場合は、ワークスペースオーナーのお客様に30日以上前に通知します。",
+      "dpfCertified": "EU-USデータプライバシーフレームワーク認証済み",
       "dpf": "DPF",
-      "transfer": "Transfer"
+      "transfer": "移転"
     }
   },
   "settings": {
@@ -1872,10 +1872,10 @@
         "exportHistoryEmpty": "過去のエクスポートはありません。",
         "exportExpiresAt": "{date}まで利用可能",
         "exportDownload": "ダウンロード",
-        "loadFailed": "Could not load exports",
-        "requestFailed": "Could not request export",
-        "exportRequested": "requested",
-        "exportAvailableUntil": "available until"
+        "loadFailed": "エクスポートを読み込めませんでした",
+        "requestFailed": "エクスポートを申請できませんでした",
+        "exportRequested": "申請日時",
+        "exportAvailableUntil": "利用可能期限"
       },
       "delete": {
         "heading": "アカウントを削除",
@@ -1883,7 +1883,7 @@
         "button": "アカウントの削除を申請",
         "scheduled": "{date}に削除予定",
         "cancel": "削除をキャンセル",
-        "cancelFailed": "Could not cancel deletion"
+        "cancelFailed": "削除をキャンセルできませんでした"
       },
       "legal": {
         "heading": "法的事項",
@@ -1907,28 +1907,28 @@
     },
     "integrations": {
       "menu": "連携 (MCP)",
-      "title": "Integrations",
-      "intro": "Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
-      "loadFailed": "Could not load tokens",
-      "issueFailed": "Could not issue token",
-      "tokenCopied": "Token copied to clipboard",
-      "copyFailed": "Could not copy — select and copy manually",
-      "revoked": "Token revoked",
-      "revokeFailed": "Could not revoke token",
-      "snippetCopied": "Config snippet copied",
-      "createdTitle": "Token created — copy it now",
-      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
-      "copy": "Copy",
-      "generateTitle": "Generate token",
-      "namePlaceholder": "e.g. Claude Desktop on laptop",
-      "generate": "Generate",
-      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
-      "activeTitle": "Active tokens",
-      "empty": "No tokens yet.",
-      "createdLastUsed": "created {created} · last used {lastUsed}",
-      "revoke": "Revoke",
-      "connectTitle": "Connect Claude Desktop",
-      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
+      "title": "連携",
+      "intro": "外部のMCPクライアント（Claude Desktop、Cursor、ChatGPTアプリストア、自作のスクリプトなど）向けのパーソナルアクセストークンです。",
+      "loadFailed": "トークンを読み込めませんでした",
+      "issueFailed": "トークンを発行できませんでした",
+      "tokenCopied": "トークンをクリップボードにコピーしました",
+      "copyFailed": "コピーできませんでした — 手動で選択してコピーしてください",
+      "revoked": "トークンを無効にしました",
+      "revokeFailed": "トークンを無効にできませんでした",
+      "snippetCopied": "設定スニペットをコピーしました",
+      "createdTitle": "トークンを作成しました — 今すぐコピーしてください",
+      "createdBody": "セキュリティ上、このトークンは一度しか表示されません。再取得はできません。紛失した場合は、無効にして新しく作成してください。",
+      "copy": "コピー",
+      "generateTitle": "トークンを生成",
+      "namePlaceholder": "例：ノートPCのClaude Desktop",
+      "generate": "生成",
+      "scopesNote": "トークンはあなたのアカウントと同じアクセス権を持ち、読み取り、書き込み、ナレッジ、Web取得に限定されます。",
+      "activeTitle": "有効なトークン",
+      "empty": "トークンはまだありません。",
+      "createdLastUsed": "作成 {created} · 最終使用 {lastUsed}",
+      "revoke": "無効にする",
+      "connectTitle": "Claude Desktopに接続",
+      "connectBody": "このブロックを{file}に追加してください（設定 → 開発者 → 設定を編集）。"
     }
   },
   "billing": {
@@ -1941,8 +1941,8 @@
       "required": "続けるには有料プラン規約に同意してください。"
     },
     "planUpdated": {
-      "title": "Plan updated",
-      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
+      "title": "プランを更新しました",
+      "description": "{plan}プランに切り替わりました。新しいAI予算はすぐに利用できます。"
     }
   },
   "plan": {
@@ -2361,15 +2361,15 @@
     "greeting": "おかえりなさい、{name}さん",
     "description": "ワークスペースとドキュメント",
     "access": {
-      "private": "Private",
-      "protected": "Protected"
+      "private": "非公開",
+      "protected": "保護あり"
     }
   },
   "docRow": {
     "actions": "ドキュメントの操作",
     "open": "開く",
     "openNewTab": "新しいタブで開く",
-    "words": "{n} word | {n} words"
+    "words": "{n} 語 | {n} 語"
   },
   "credits": {
     "title": "AI クレジット",
@@ -2687,42 +2687,42 @@
     "support": "ヘルプとサポート"
   },
   "docs": {
-    "searchLabel": "Search the docs...",
-    "openMenu": "Open documentation menu",
+    "searchLabel": "ドキュメントを検索…",
+    "openMenu": "ドキュメントメニューを開く",
     "flow": {
-      "loadFailed": "Flow {id} failed to load: {message}",
-      "first": "Jump to first slide",
-      "previous": "Previous slide",
-      "next": "Next slide",
-      "last": "Jump to last slide",
-      "play": "Play autoplay",
-      "pause": "Pause autoplay",
-      "tryNext": "try next",
-      "chapter": "chapter",
-      "toggle": "Toggle slideshow playback"
+      "loadFailed": "フロー {id} を読み込めませんでした：{message}",
+      "first": "最初のスライドへ移動",
+      "previous": "前のスライド",
+      "next": "次のスライド",
+      "last": "最後のスライドへ移動",
+      "play": "自動再生を開始",
+      "pause": "自動再生を一時停止",
+      "tryNext": "次に試す",
+      "chapter": "章",
+      "toggle": "スライドショーの再生を切り替え"
     },
     "sections": {
-      "gettingStarted": "Your first ten minutes — create a doc, name it, share it.",
-      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
-      "sharing": "Access modes, password protection, anonymous links, workspaces.",
-      "themes": "Per-document themes that drive both live preview and PDF export.",
-      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+      "gettingStarted": "最初の10分：ドキュメントを作成し、名前を付けて、共有します。",
+      "writing": "Markdown拡張、書式、アラート、数式、図、表。",
+      "sharing": "アクセスモード、パスワード保護、匿名リンク、ワークスペース。",
+      "themes": "ライブプレビューとPDF書き出しの両方に反映される、ドキュメントごとのテーマ。",
+      "importExport": "DOCX/PDF/PPTXを取り込み、クリーンなMarkdownやテーマ付きPDFに書き出します。"
     },
     "landing": {
-      "eyebrow": "field guide · vol. 01",
-      "title": "Everything you can do in {product}.",
-      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
-      "begin": "begin walkthrough",
-      "search": "search",
-      "startHere": "Start here",
-      "startHereHint": "Most-load-bearing flows",
-      "browse": "Browse by topic"
+      "eyebrow": "フィールドガイド · 第1巻",
+      "title": "{product}でできることのすべて。",
+      "lede": "アカウント任意の共同編集Markdownエディター。匿名で書き、URLで共有し、テーマを整え、PDFに書き出せます。ここにあるスクリーンショットはすべて、実際に動作中のアプリから撮影したものです。",
+      "begin": "ガイドを始める",
+      "search": "検索",
+      "startHere": "はじめに",
+      "startHereHint": "最も重要なフロー",
+      "browse": "トピックから探す"
     },
     "pagination": {
-      "label": "Documentation pagination",
-      "previous": "previous",
-      "next": "next"
+      "label": "ドキュメントのページ送り",
+      "previous": "前へ",
+      "next": "次へ"
     },
-    "onThisPage": "On this page"
+    "onThisPage": "このページの内容"
   }
 }
