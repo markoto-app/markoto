@@ -15,6 +15,7 @@ import {
 } from '../../utils/oidc/flowCookie'
 import type { H3Event } from 'h3'
 import { oidcSignInQuery } from '~~/shared/api/sso'
+import { useEnv } from '~~/shared/env/load'
 
 // Generic OpenID Connect sign-in for self-hosted identity providers.
 // One route, two legs — like the nuxt-auth-utils handlers:
@@ -32,7 +33,7 @@ const isDevelopment = process.env.NODE_ENV === 'development'
 // Configured URLs only — never the request Host header (boot validation
 // refuses an OIDC setup with neither `_REDIRECT_URL` nor `NUXT_SITE_URL`).
 function redirectUriFor(event: H3Event, settings: OidcSettings): string {
-  const uri = oidcRedirectUri(settings, useRuntimeConfig(event).siteUrl)
+  const uri = oidcRedirectUri(settings, useEnv().core.siteUrl)
   if (uri) return uri
   throw apiError('auth/oidc-misconfigured')
 }
@@ -49,7 +50,7 @@ export default defineApiHandler({
   access: allow.public('sign-in itself: the callback leg is bound to this browser by the signed single-use flow cookie (state, nonce, PKCE)'),
   query: oidcSignInQuery,
   handler: async ({ event, query }) => {
-    const { settings } = resolveOidcSettings(process.env)
+    const settings = resolveOidcSettings()
     if (!settings) throw apiError('auth/oidc-disabled')
     const secret = useRuntimeConfig(event).session.password
     const redirectUri = redirectUriFor(event, settings)

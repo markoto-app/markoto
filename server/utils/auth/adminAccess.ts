@@ -1,5 +1,6 @@
 import type { H3Event } from 'h3'
 import { findUserById } from '../../repos/users'
+import { useEnv } from '~~/shared/env/load'
 
 // Admin authorisation.
 //
@@ -24,7 +25,7 @@ import { findUserById } from '../../repos/users'
 // at that user's next sign-in.
 
 function parseAdminEmails(): Set<string> {
-  const raw = process.env.NUXT_ADMIN_USER_EMAILS ?? ''
+  const raw = useEnv().core.adminUserEmails
   return new Set(
     raw
       .split(',')

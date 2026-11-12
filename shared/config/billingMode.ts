@@ -22,8 +22,11 @@
 // A self-hoster leaves it off so their users are never pointed at
 // LatentSpace Labs' commercial offering.
 //
-// Pure — takes an env-shaped record so every test tier can drive it
-// without a Nitro context (same pattern as `resolveTiersFromEnv`).
+// Reads the typed env (shared/env); a test passes its own env-shaped
+// record instead of process.env.
+
+import { useEnv } from '../env/load'
+import type { RawEnv } from '../env/define'
 
 export interface BillingMode {
   /** Stripe checkout / portal / webhooks / paid tiers are live. */
@@ -41,23 +44,10 @@ export const BILLING_DISABLED_MODE: BillingMode = Object.freeze({
   plansComingSoon: false
 })
 
-const TRUTHY = new Set(['1', 'true', 'yes', 'on'])
-
-/**
- * Parse a boolean env flag. Accepts `1` / `true` / `yes` / `on`
- * (case-insensitive, whitespace-tolerant); anything else — including
- * absent — is false. A typo therefore fails CLOSED to "billing off",
- * which is the safe direction: nobody gets charged by accident.
- */
-export function parseBooleanFlag(raw: string | undefined): boolean {
-  if (raw === undefined) return false
-  return TRUTHY.has(raw.trim().toLowerCase())
-}
-
-export function resolveBillingMode(env: Record<string, string | undefined>): BillingMode {
-  const billingEnabled = parseBooleanFlag(env.NUXT_BILLING_ENABLED)
+export function resolveBillingMode(source?: RawEnv): BillingMode {
+  const { billing } = useEnv(source)
   return {
-    billingEnabled,
-    plansComingSoon: !billingEnabled && parseBooleanFlag(env.NUXT_PLANS_COMING_SOON)
+    billingEnabled: billing.enabled,
+    plansComingSoon: !billing.enabled && billing.plansComingSoon
   }
 }

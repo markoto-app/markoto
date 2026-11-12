@@ -4,7 +4,8 @@
 // app. Unset everywhere else (markoto.app, ordinary self-hosts): nothing
 // changes. markoto's own design system stays (the seal is the AI).
 
-type Env = Record<string, string | undefined>
+import { useEnv } from '../env/load'
+import type { RawEnv } from '../env/define'
 
 export interface InstanceBrand {
   /** Customer name shown beside the wordmark, e.g. "Kanton Musterstadt". Empty = none. */
@@ -36,19 +37,15 @@ export function instanceBrandLogoExt(path: string | undefined): string | null {
   return ext && Object.hasOwn(INSTANCE_BRAND_LOGO_TYPES, ext) ? ext : null
 }
 
-export function resolveInstanceBrand(env: Env): InstanceBrand {
+export function resolveInstanceBrand(source?: RawEnv): InstanceBrand {
+  const { brand } = useEnv(source)
   // \p{Cc}: control characters (C0, DEL, C1) — kept out of the title and header.
-  const name = (env.NUXT_INSTANCE_BRAND_NAME ?? '').replace(/\p{Cc}/gu, '').trim().slice(0, INSTANCE_BRAND_NAME_MAX)
-  const ext = instanceBrandLogoExt(env.NUXT_INSTANCE_BRAND_LOGO)
-  let supportUrl = ''
-  const rawUrl = (env.NUXT_INSTANCE_SUPPORT_URL ?? '').trim()
-  if (rawUrl) {
-    try {
-      const u = new URL(rawUrl)
-      if (u.protocol === 'https:' || u.protocol === 'http:') supportUrl = u.href
-    } catch { /* invalid → none */ }
+  const name = brand.name.replace(/\p{Cc}/gu, '').trim().slice(0, INSTANCE_BRAND_NAME_MAX)
+  const ext = instanceBrandLogoExt(brand.logo)
+  return {
+    name,
+    logoUrl: ext ? `/instance-brand/logo.${ext}` : null,
+    supportUrl: brand.supportUrl ? new URL(brand.supportUrl).href : '',
+    supportEmail: brand.supportEmail ?? ''
   }
-  const rawEmail = (env.NUXT_INSTANCE_SUPPORT_EMAIL ?? '').trim()
-  const supportEmail = /^[^\s@<>"]+@[^\s@<>"]+\.[^\s@<>"]+$/.test(rawEmail) && rawEmail.length <= 254 ? rawEmail : ''
-  return { name, logoUrl: ext ? `/instance-brand/logo.${ext}` : null, supportUrl, supportEmail }
 }

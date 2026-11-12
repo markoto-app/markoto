@@ -1,17 +1,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 
 // The runtime gate for knowledge features: ok / dimension_mismatch /
 // invalid_config / check_failed, cached briefly, and recovering on its own.
 
 const state = vi.hoisted(() => ({
-  config: { litellm: { embeddingsDims: 768 as unknown } },
   columnType: 'vector(768)' as string | null,
   stored: 0,
   queries: 0,
   failQuery: false
 }))
 
-;(globalThis as unknown as { useRuntimeConfig: () => typeof state.config }).useRuntimeConfig = () => state.config
+// The configured dimension comes from the typed env (shared/env).
+function stubDims(dims: number): void {
+  stubEnv({ NUXT_LITELLM_EMBEDDINGS_DIMS: String(dims) })
+}
 
 vi.mock('../../../server/utils/platform/database', () => ({
   useDatabasePool: () => ({
@@ -28,7 +31,7 @@ const { getKnowledgeEmbeddingsStatus, assertKnowledgeEmbeddingsReady, resetKnowl
   = await import('../../../server/utils/knowledge/knowledgeEmbeddingsStatus')
 
 beforeEach(() => {
-  state.config = { litellm: { embeddingsDims: 768 } }
+  stubDims(768)
   state.columnType = 'vector(768)'
   state.stored = 0
   state.queries = 0
@@ -43,7 +46,7 @@ describe('getKnowledgeEmbeddingsStatus', () => {
   })
 
   it('dimension_mismatch names both sizes, the stored vectors and the re-embed command', async () => {
-    state.config = { litellm: { embeddingsDims: 1536 } }
+    stubDims(1536)
     state.stored = 42
     const s = await getKnowledgeEmbeddingsStatus()
     expect(s.ok).toBe(false)
@@ -57,7 +60,7 @@ describe('getKnowledgeEmbeddingsStatus', () => {
   })
 
   it('invalid_config for a dimension beyond the HNSW limit, without touching the database', async () => {
-    state.config = { litellm: { embeddingsDims: 3072 } }
+    stubDims(3072)
     const s = await getKnowledgeEmbeddingsStatus()
     expect(s).toMatchObject({ ok: false, code: 'invalid_config' })
     expect(state.queries).toBe(0)
@@ -69,7 +72,7 @@ describe('getKnowledgeEmbeddingsStatus', () => {
   })
 
   it('caches the answer, and recovers after a reset (e.g. boot reconciliation)', async () => {
-    state.config = { litellm: { embeddingsDims: 16 } }
+    stubDims(16)
     expect((await getKnowledgeEmbeddingsStatus()).ok).toBe(false)
     const after = state.queries
     await getKnowledgeEmbeddingsStatus()

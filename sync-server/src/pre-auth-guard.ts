@@ -42,12 +42,12 @@
 
 import { SYNC_CLOSE_CODES, SYNC_CLOSE_REASONS, SYNC_AUTH_TIMEOUT_REASON } from '../../shared/contracts/syncClose'
 import { MESSAGE_TYPE, readFrameHeader } from './frame'
-import { MIB } from '../../shared/config/units'
-import { positiveInt } from './env'
+import type { SyncEnv } from '../../shared/env/registry'
+import { sync } from '../../shared/env/vars/sync'
 
-export const DEFAULT_MAX_PREAUTH_BYTES = 32 * MIB
-export const DEFAULT_MAX_PREAUTH_TOTAL_BYTES = 256 * MIB
-export const DEFAULT_AUTH_TIMEOUT_MS = 15_000
+export const DEFAULT_MAX_PREAUTH_BYTES = sync.vars.maxPreauthBytes.default
+export const DEFAULT_MAX_PREAUTH_TOTAL_BYTES = sync.vars.maxPreauthTotalBytes.default
+export const DEFAULT_AUTH_TIMEOUT_MS = sync.vars.authTimeoutMs.default
 /** Bookkeeping cost charged per queued frame on top of its length. */
 export const PREAUTH_MESSAGE_OVERHEAD_BYTES = 128
 /** Grace period between the close frame and a hard terminate. */
@@ -62,11 +62,11 @@ export interface PreAuthLimits {
   authTimeoutMs: number
 }
 
-export function parsePreAuthLimits(env: Record<string, string | undefined>): PreAuthLimits {
+export function parsePreAuthLimits(env: SyncEnv): PreAuthLimits {
   return {
-    maxBytesPerSocket: positiveInt(env.SYNC_MAX_PREAUTH_BYTES, DEFAULT_MAX_PREAUTH_BYTES),
-    maxBytesTotal: positiveInt(env.SYNC_MAX_PREAUTH_TOTAL_BYTES, DEFAULT_MAX_PREAUTH_TOTAL_BYTES),
-    authTimeoutMs: positiveInt(env.SYNC_AUTH_TIMEOUT_MS, DEFAULT_AUTH_TIMEOUT_MS)
+    maxBytesPerSocket: env.sync.maxPreauthBytes,
+    maxBytesTotal: env.sync.maxPreauthTotalBytes,
+    authTimeoutMs: env.sync.authTimeoutMs
   }
 }
 

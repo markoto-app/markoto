@@ -1,13 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import {
   FREE_TIER_TEAM_ID,
-  freeTierTotalBudgetProblems,
   freeTierTotalBudgetUsd,
   isDuplicateTeamError,
   isFreeAllowanceExhaustedError,
   teamIdForPlan
 } from '../../../server/utils/litellm/freeTierTeam'
 import { desiredKeyState, keyNeedsUpdate } from '../../../server/utils/litellm/keyReconcile'
+import { bootProblems } from '../env/fixtures'
 
 // The global monthly ceiling on platform-paid AI for free-tier users is a
 // LiteLLM team budget. These pin the pure parts: config parsing, which
@@ -20,17 +20,17 @@ describe('NUXT_FREE_TIER_TOTAL_BUDGET_USD', () => {
     expect(freeTierTotalBudgetUsd({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: ' 12.5 ' })).toBe(12.5)
   })
 
-  it('unset, empty, 0, negative or junk = no ceiling (self-host default)', () => {
-    for (const raw of [undefined, '', '0', '-3', 'lots', 'Infinity']) {
+  it('unset, empty or 0 = no ceiling (self-host default)', () => {
+    for (const raw of [undefined, '', '0']) {
       expect(freeTierTotalBudgetUsd({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: raw }), String(raw)).toBeNull()
     }
   })
 
-  it('reports junk at boot, but not the "off" spellings', () => {
-    expect(freeTierTotalBudgetProblems({})).toEqual([])
-    expect(freeTierTotalBudgetProblems({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: '0' })).toEqual([])
-    expect(freeTierTotalBudgetProblems({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: 'lots' })).toHaveLength(1)
-    expect(freeTierTotalBudgetProblems({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: '-1' })).toHaveLength(1)
+  it('refuses negative or junk values at boot', () => {
+    expect(bootProblems({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: '0' })).toEqual([])
+    for (const raw of ['lots', '-1', 'Infinity']) {
+      expect(bootProblems({ NUXT_FREE_TIER_TOTAL_BUDGET_USD: raw }), raw).toEqual(['NUXT_FREE_TIER_TOTAL_BUDGET_USD: expected a number ≥ 0'])
+    }
   })
 })
 

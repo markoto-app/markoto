@@ -1,5 +1,6 @@
 import { getRequestHeader, getRequestIP, type H3Event } from 'h3'
-import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../../shared/utils/security/clientIp'
+import { rateLimitIpKey, resolveClientIp } from '../../../shared/utils/security/clientIp'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * The requesting client's IP address, or `null` when it can't be told.
@@ -11,15 +12,14 @@ import { parseTrustedProxyHops, rateLimitIpKey, resolveClientIp } from '../../..
  * for the trusted-hop rule.
  *
  * `NUXT_TRUSTED_PROXY_HOPS` (default 1 = the Traefik in every shipped
- * compose file) is read from `process.env` on every call, so tests can flip
- * it and the helper works outside Nitro.
+ * compose file) comes from the typed env (shared/env).
  */
 export function getClientIp(event: H3Event): string | null {
   return resolveClientIp({
     forwardedFor: getRequestHeader(event, 'x-forwarded-for'),
     // Without `xForwardedFor`, h3 returns the socket peer address.
     remoteAddress: getRequestIP(event),
-    trustedHops: parseTrustedProxyHops(process.env.NUXT_TRUSTED_PROXY_HOPS)
+    trustedHops: useEnv().core.trustedProxyHops
   })
 }
 

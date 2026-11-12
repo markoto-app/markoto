@@ -3,12 +3,14 @@
 // INTERNAL_API_SECRET: a compromised converter must not be able to call
 // the sync-server or the app's /api/internal routes.
 //
-// Read from process.env on every call so the helper works outside Nitro.
+// Read from the typed env (validated at boot; required there).
+
+import { useEnv } from '~~/shared/env/load'
 
 const MARKITDOWN_SECRET_HEADER = 'X-Markitdown-Secret'
 
 /** Auth header for a markitdown request; empty when no secret is configured (markitdown then answers 401). */
 export function markitdownAuthHeaders(): Record<string, string> {
-  const secret = process.env.NUXT_MARKITDOWN_API_SECRET?.trim()
+  const secret = useEnv().markitdown.apiSecret
   return secret ? { [MARKITDOWN_SECRET_HEADER]: secret } : {}
 }

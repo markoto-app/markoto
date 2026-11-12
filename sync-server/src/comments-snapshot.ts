@@ -6,9 +6,10 @@
 import * as Y from 'yjs'
 import { injectTraceHeaders } from './sentry'
 import { normalizeAvatarSeed } from '../../shared/utils/documents/awarenessUser'
+import { syncEnv } from './env'
 
-const APP_URL = process.env.APP_URL
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
+const APP_URL = syncEnv().sync.appUrl
+const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
 
 interface SnapshotEntry {
   entryId: string

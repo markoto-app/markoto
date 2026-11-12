@@ -10,6 +10,7 @@ import { assertNotModerationRestricted } from '../../../utils/privacy/moderation
 import { notifySyncReauthDocument } from '../../../utils/documents/syncNotify'
 import { docPasswordBody } from '~~/shared/api/docs'
 import type { ValidatedUser } from '../../../utils/api/policyTypes'
+import { useEnv } from '~~/shared/env/load'
 
 // POST /api/docs/:docId/password — `{ action: 'set' | 'verify' | 'remove', password? }`.
 // Verify is open to anyone who has the link (brute-force limited below);
@@ -128,8 +129,8 @@ function passwordGrant(row: DocAuthzRow, state: DocState, actor: ActorState): { 
 
 /** Mint a doc JWT (≤ 2h, never past the share link's expiry) for a verified caller. Carries name for sync-server attribution — matches token.get.ts. */
 function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: boolean, shareExpiresAt: Date | null): string {
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) {
+  const env = useEnv()
+  if (!env.auth.jwtSecret) {
     throw apiError('internal')
   }
   return jwt.sign(
@@ -139,7 +140,7 @@ function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: 
       userName: user?.name ?? null,
       readOnly
     },
-    config.jwtSecret,
+    env.auth.jwtSecret,
     { expiresIn: docJwtLifetimeSeconds(shareExpiresAt) }
   )
 }

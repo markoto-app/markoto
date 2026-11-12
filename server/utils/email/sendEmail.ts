@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nuxt'
 import { Resend } from 'resend'
+import { useEnv } from '~~/shared/env/load'
 
 // Transactional email helper.
 //
@@ -105,8 +106,9 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
 const SANDBOX_FROM = 'markoto <onboarding@resend.dev>'
 
 export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendEmailResult> {
-  const explicitProvider = (process.env.NUXT_EMAIL_PROVIDER || '').trim().toLowerCase()
-  const apiKey = process.env.RESEND_API_KEY
+  const { email } = useEnv()
+  const explicitProvider = email.provider
+  const apiKey = email.resendApiKey
   const label = NORMALISED_KIND_LABELS[args.kind]
 
   if (!args.to) {
@@ -128,12 +130,7 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
 
   // Resend (auto-detected via RESEND_API_KEY). To explicitly opt
   // OUT of Resend despite the key being set, use NUXT_EMAIL_PROVIDER=stub.
-  if (!explicitProvider || explicitProvider === 'resend') {
-    return sendViaResend(args, label, apiKey)
-  }
-
-  console.warn(`[email] provider=${explicitProvider} requested but no dispatch branch implemented; falling back to stub`)
-  return { delivered: false }
+  return sendViaResend(args, label, apiKey, email.from)
 }
 
 // Resend dispatch via the official SDK. The SDK is ~12 KB and gives
@@ -145,9 +142,9 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
 // end. Production should set `NUXT_EMAIL_FROM` to a verified-domain
 // address; a misconfigured `from` returns a 422 from Resend which
 // we surface in the thrown error.
-async function sendViaResend(args: SendEmailArgs, label: string, apiKey: string): Promise<SendEmailResult> {
-  const from = process.env.NUXT_EMAIL_FROM || SANDBOX_FROM
-  if (!process.env.NUXT_EMAIL_FROM) {
+async function sendViaResend(args: SendEmailArgs, label: string, apiKey: string, configuredFrom: string | undefined): Promise<SendEmailResult> {
+  const from = configuredFrom || SANDBOX_FROM
+  if (!configuredFrom) {
     // Soft warn so devs running with just the API key see the
     // sandbox limitation in their server logs.
     console.warn(`[email] NUXT_EMAIL_FROM not set; using Resend sandbox sender ${SANDBOX_FROM}. This delivers only to the Resend account owner.`)

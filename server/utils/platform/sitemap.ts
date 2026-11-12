@@ -119,7 +119,7 @@ function updatedOf(versions: MarketingVersion[], locale: string, slug: string): 
  * Origin the sitemap's URLs are built on, or null when this instance
  * publishes no sitemap (not the marketing site, or no valid site URL).
  */
-export function sitemapBaseUrl(env: Env): string | null {
+export function sitemapBaseUrl(env?: Env): string | null {
   if (!resolveMarketingSiteEnabled(env)) return null
   return resolveCanonicalSiteUrl(env) || null
 }

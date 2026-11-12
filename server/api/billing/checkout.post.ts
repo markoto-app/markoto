@@ -8,6 +8,7 @@ import { findLiveSubscription, changeSubscriptionPrice } from '../../utils/billi
 import { stripePriceIdFor } from '../../utils/billing/stripePrices'
 import { startCheckoutBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // POST /api/billing/checkout: plan purchase/upgrade. Without a live
 // subscription it creates a Stripe Checkout Session and returns
@@ -44,7 +45,7 @@ export default defineApiHandler({
 
     const stripe = useStripeClient()
     if (!stripe) throw apiError('billing/not-configured')
-    const config = useRuntimeConfig()
+    const env = useEnv()
 
     // Reuse an existing Customer so Stripe shows one continuous history.
     const db = useDatabase()
@@ -116,15 +117,15 @@ export default defineApiHandler({
     const hostHeader: string | undefined = getRequestHeader(event, 'host')
     const origin = originHeader ?? hostHeader ?? ''
     const base = origin.startsWith('http') ? origin : `https://${origin}`
-    const successUrl = base + (config.stripe.successUrl || '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}')
-    const cancelUrl = base + (config.stripe.cancelUrl || '/pricing?checkout=cancelled')
+    const successUrl = base + (env.billing.stripeSuccessUrl || '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}')
+    const cancelUrl = base + (env.billing.stripeCancelUrl || '/pricing?checkout=cancelled')
 
     // Stripe Tax is opt-in via NUXT_STRIPE_AUTOMATIC_TAX=1: `automatic_tax`
     // hard-errors unless Stripe Tax is activated and an origin address is set in
     // the dashboard. With an existing customer Stripe also needs
     // `customer_update` to save the collected address/name back.
     // `tax_id_collection` lets B2B customers enter a VAT id (EU reverse charge).
-    const taxEnabled = ['1', 'true', 'yes'].includes(String(config.stripe.automaticTax || '').toLowerCase())
+    const taxEnabled = ['1', 'true', 'yes'].includes(String(env.billing.stripeAutomaticTax || '').toLowerCase())
     const taxFields = taxEnabled
       ? {
           automatic_tax: { enabled: true },

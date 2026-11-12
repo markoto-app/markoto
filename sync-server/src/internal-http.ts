@@ -7,6 +7,7 @@ import { flushPendingStore } from './flushDocument'
 import { performReauthDocument } from './connection-expiry'
 import { writeDocNotBefore } from './doc-not-before'
 import { Sentry } from './sentry'
+import { syncEnv } from './env'
 
 export type { HocuspocusInstance } from './kickUser'
 
@@ -144,8 +145,8 @@ function authenticateInternalRequest(request: IncomingMessage, response: ServerR
   }
   const verdict = checkInternalSecret(
     request.headers[INTERNAL_SECRET_HEADER],
-    process.env.INTERNAL_API_SECRET,
-    process.env.INTERNAL_API_SECRET_PREVIOUS || null
+    syncEnv().auth.internalApiSecret,
+    syncEnv().auth.internalApiSecretPrevious || null
   )
   if (verdict === 'unconfigured') {
     sendJson(response, 500, { error: 'Internal secret not configured' })

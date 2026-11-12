@@ -1,16 +1,17 @@
 import { S3Client } from '@aws-sdk/client-s3'
+import { useEnv } from '~~/shared/env/load'
 
 let s3: S3Client | null = null
 let presignS3: S3Client | null = null
 
 function buildClient(endpoint: string): S3Client {
-  const config = useRuntimeConfig()
+  const env = useEnv()
   return new S3Client({
     endpoint,
     region: 'us-east-1',
     credentials: {
-      accessKeyId: config.s3.accessKey,
-      secretAccessKey: config.s3.secretKey
+      accessKeyId: env.storage.accessKey,
+      secretAccessKey: env.storage.secretKey
     },
     forcePathStyle: true,
     // Only send / verify checksums when an operation requires them. The SDK
@@ -26,7 +27,7 @@ function buildClient(endpoint: string): S3Client {
 
 /** Server-to-S3 client (uploads, HEAD, delete, list) on `NUXT_S3_ENDPOINT`. */
 export function useS3Client(): S3Client {
-  if (!s3) s3 = buildClient(useRuntimeConfig().s3.endpoint)
+  if (!s3) s3 = buildClient(useEnv().storage.endpoint)
   return s3
 }
 
@@ -43,7 +44,7 @@ export function useS3Client(): S3Client {
  * it is the regular client.
  */
 export function usePresignS3Client(): S3Client {
-  const publicEndpoint = useRuntimeConfig().s3.publicEndpoint
+  const publicEndpoint = useEnv().storage.publicEndpoint
   if (!publicEndpoint) return useS3Client()
   if (!presignS3) presignS3 = buildClient(publicEndpoint)
   return presignS3

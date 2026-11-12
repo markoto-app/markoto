@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/nuxt'
 import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import { markExpiredJobs } from '../../repos/dataExportJobs'
 import { useS3Client } from '../storage/s3'
+import { useEnv } from '~~/shared/env/load'
 
 // Expiry sweeper for data-export jobs. Hourly. Picks rows whose
 // `expires_at` has elapsed AND status is `ready`, flips them to
@@ -34,14 +35,14 @@ export async function runDataExportExpirySweep(): Promise<DataExportExpirySweepR
 
   if (flipped.length === 0) return result
 
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const s3 = useS3Client()
 
   for (const row of flipped) {
     if (!row.s3Key) continue
     try {
       await s3.send(new DeleteObjectCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Key: row.s3Key
       }))
       result.s3DeleteSucceeded += 1

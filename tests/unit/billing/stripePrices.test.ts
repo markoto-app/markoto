@@ -31,7 +31,7 @@ describe('lookup key prefix + overrides', () => {
   it('defaults to markoto and accepts a sane custom prefix only', () => {
     expect(lookupKeyPrefix({})).toBe('markoto')
     expect(lookupKeyPrefix({ NUXT_STRIPE_LOOKUP_KEY_PREFIX: 'staging' })).toBe('staging')
-    expect(lookupKeyPrefix({ NUXT_STRIPE_LOOKUP_KEY_PREFIX: 'bad prefix!' })).toBe('markoto')
+    expect(() => lookupKeyPrefix({ NUXT_STRIPE_LOOKUP_KEY_PREFIX: 'bad prefix!' })).toThrow(/NUXT_STRIPE_LOOKUP_KEY_PREFIX/)
   })
 
   it('parses key=id pairs and skips foreign keys and junk', () => {

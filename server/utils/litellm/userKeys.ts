@@ -8,6 +8,7 @@ import { encryptToken, decryptToken } from './tokenCrypto'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, teamIdForPlan } from './freeTierTeam'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
+import { useEnv } from '~~/shared/env/load'
 
 /** Plan budget + the user's top-up credits, USD. */
 export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<number> {
@@ -32,7 +33,7 @@ export async function userKeyBudgetUsd(userId: number, plan: PlanName): Promise<
 const TEST_STUB_TOKEN = 'sk-fake-test-virtual-key'
 const TEST_STUB_KEY_ID_PREFIX = 'test-stub-'
 function isStubMode(): boolean {
-  return process.env.LITELLM_TEST_STUB === '1'
+  return useEnv().test.litellmStub
 }
 
 /**

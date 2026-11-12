@@ -1,5 +1,6 @@
 import Redis from 'ioredis'
 import { valkeyClientConfigFromEnv } from '../../../shared/utils/runtime/connectionStrings'
+import { useEnv } from '~~/shared/env/load'
 
 // Singleton ioredis client for Valkey (Redis-compatible), shared by all
 // consumers via key prefixes.
@@ -14,7 +15,7 @@ export function useValkey(): Redis {
 
   // TLS is opt-in via VALKEY_TLS_ENABLED (`options` is undefined when off).
   // See docs/SECURITY-HARDENING.md.
-  const { url, options: tlsOptions } = valkeyClientConfigFromEnv()
+  const { url, options: tlsOptions } = valkeyClientConfigFromEnv(useEnv().valkey)
   client = new Redis(url, {
     // Connect eagerly; ioredis queues commands until the connection is up.
     lazyConnect: false,

@@ -31,9 +31,44 @@ const BACKEND = ['server/**', 'sync-server/src/**', 'renderer/src/**']
 const MILESTONE_RE = /\b(WP ?\d+[a-z]?|Phase \d+|Batch \d+|[Ss]ecurity batch|Workstream [A-Z])\b/
 const MESSAGE = 'Internal milestone vocabulary ({{ match }}); describe the behaviour or reason instead.'
 
+// Configuration is read through the typed env registry (shared/env,
+// docs/contributing/configuration.md), never `process.env` directly — a
+// raw read bypasses boot validation, the documented default and the
+// generated reference. `process.env.NODE_ENV` stays allowed: bundlers
+// replace it at build time. The files in RAW_ENV_ALLOWED are the env
+// module itself and the few places that must see the raw record.
+const RAW_ENV_ALLOWED = [
+  'shared/env/**',
+  'renderer/src/env.generated.ts',
+  // Copy of nitropack's bun preset entry (NITRO_* listen options), kept
+  // byte-close to upstream (tests/unit/platform/bunEntryUpstream.test.ts).
+  'server/runtime/bunEntry.ts',
+  // Test-mode guard: decides whether required values are relaxed, so it
+  // reads the raw record before the registry is parsed.
+  'shared/utils/security/testMode.ts',
+  // Boot validation hands the whole process environment to loadEnv.
+  'server/plugins/01-validate-secrets.ts'
+]
+const RAW_ENV_MESSAGE = 'Read configuration through the typed env (useEnv() / syncEnv() / renderer env), not process.env — see docs/contributing/configuration.md.'
+
 /** @type {import('eslint').ESLint.Plugin} */
 const markoto = {
   rules: {
+    'no-raw-env': {
+      meta: { type: 'problem', schema: [], messages: { raw: RAW_ENV_MESSAGE } },
+      create(context) {
+        return {
+          'MemberExpression[object.type="Identifier"][object.name="process"][property.name="env"]'(node) {
+            const parent = node.parent
+            const key = parent?.type === 'MemberExpression' && parent.object === node
+              ? (parent.computed ? parent.property.value : parent.property.name)
+              : undefined
+            if (key === 'NODE_ENV') return
+            context.report({ node, messageId: 'raw' })
+          }
+        }
+      }
+    },
     'no-milestone-vocabulary': {
       meta: { type: 'suggestion', schema: [], messages: { milestone: MESSAGE } },
       create(context) {
@@ -270,6 +305,15 @@ export default withNuxt(
     }
   },
 
+  // --- Configuration -------------------------------------------------------
+  {
+    name: 'markoto/no-raw-env',
+    files: ['server/**', 'shared/**', 'sync-server/src/**', 'renderer/src/**'].map(g => `${g}/*.{ts,mts,js,mjs}`),
+    ignores: [...TESTS, ...RAW_ENV_ALLOWED],
+    plugins: { markoto },
+    rules: { 'markoto/no-raw-env': 'error' }
+  },
+
   // --- Restricted syntax + milestone vocabulary ---------------------------
   {
     name: 'markoto/restricted-syntax',
@@ -318,12 +362,24 @@ export default withNuxt(
       }
     },
     rules: {
-      '@intlify/vue-i18n/no-raw-text': ['warn', {
+      '@intlify/vue-i18n/no-raw-text': ['error', {
         attributes: { '/.+/': ['placeholder', 'title', 'aria-label', 'label', 'alt'] },
-        // Strings without a single letter (symbols, arrows, digits) are not translatable text.
-        ignorePattern: '^[^A-Za-z\\u00C0-\\u024F\\u3040-\\u9FFF]+$'
+        // Not translatable text: strings without a single letter (symbols,
+        // arrows, digits, and the empty `alt=""` of decorative images), URL
+        // paths shown as eyebrows ("/settings/ai") and example web addresses.
+        ignorePattern: '^([^A-Za-z\\u00C0-\\u024F\\u3040-\\u9FFF]*|/[\\w/ ·-]*|https?://\\S+)$',
+        ignoreText: [
+          // Product and brand names, plan names (kept literal on the pricing page too).
+          'markoto', 'markoto.app', 'GitHub', 'Pro', 'Team', 'Business',
+          // Keyboard keys and heading level marks.
+          'Esc', 'esc', '⌘K', 'H1', 'H2', 'H3',
+          // Format, DNS and protocol names, "v" in a version number ("v3"), a font specimen.
+          'CSV', 'JSON Lines', 'TXT', 'CNAME', 'v', 'Aa',
+          // Placeholder examples of values the user types.
+          'example.com', '-----BEGIN CERTIFICATE-----', 'claude_desktop_config.json'
+        ]
       }],
-      '@intlify/vue-i18n/no-missing-keys': 'warn',
+      '@intlify/vue-i18n/no-missing-keys': 'error',
       '@intlify/vue-i18n/no-unused-keys': ['warn', { src: './app', extensions: ['.vue', '.ts'] }]
     }
   },

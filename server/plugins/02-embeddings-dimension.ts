@@ -4,6 +4,7 @@ import { migrationsComplete } from '../utils/platform/migrations'
 import { reconcileEmbeddingColumn } from '../utils/knowledge/embeddingColumn'
 import { resetKnowledgeEmbeddingsStatus } from '../utils/knowledge/knowledgeEmbeddingsStatus'
 import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../shared/utils/runtime/embeddingConfig'
+import { useEnv } from '~~/shared/env/load'
 
 // After migrations: make the pgvector column match NUXT_LITELLM_EMBEDDINGS_DIMS
 // (see server/utils/knowledge/embeddingColumn.ts for the rules). Never fails the boot:
@@ -16,7 +17,7 @@ export default defineNitroPlugin(() => {
     await migrationsComplete
     let dims: number
     try {
-      dims = parseEmbeddingDims(useRuntimeConfig().litellm?.embeddingsDims ?? DEFAULT_EMBEDDINGS_DIMS)
+      dims = parseEmbeddingDims(useEnv().litellm.embeddingsDims ?? DEFAULT_EMBEDDINGS_DIMS)
     } catch (e) {
       console.error('[embeddings] Knowledge features disabled:', e instanceof Error ? e.message : e)
       return

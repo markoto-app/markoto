@@ -8,25 +8,20 @@
 //   - expired token is rejected (default jsonwebtoken `exp` enforcement)
 //   - rotation: a token signed with the previous secret still verifies
 //
-// Mocks: useRuntimeConfig() — renderTokens reads `internalApiSecret` /
-// `internalApiSecretPrevious` straight off it.
+// Config: renderTokens reads the internal secret and its rotation
+// predecessor from the typed env (shared/env), stubbed per test.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 import jwt from 'jsonwebtoken'
 import { mintRenderToken, verifyRenderToken } from '../../../server/utils/rendering/renderTokens'
 
 const CURRENT_SECRET = 'a'.repeat(64)
 const PREVIOUS_SECRET = 'b'.repeat(64)
 
-// useRuntimeConfig is only called at function-call time inside the SUT,
-// so the global stub can be installed after the import.
-vi.stubGlobal('useRuntimeConfig', () => ({
-  internalApiSecret: CURRENT_SECRET,
-  internalApiSecretPrevious: PREVIOUS_SECRET
-}))
-
 describe('renderTokens', () => {
   beforeEach(() => {
+    stubEnv({ NUXT_INTERNAL_API_SECRET: CURRENT_SECRET, NUXT_INTERNAL_API_SECRET_PREVIOUS: PREVIOUS_SECRET })
     vi.useRealTimers()
   })
 

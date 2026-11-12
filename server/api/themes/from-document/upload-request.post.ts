@@ -9,6 +9,7 @@ import {
 import { designImportStagingKey, recordPendingDesignUpload, requireVisionChatProvider } from '../../../utils/designImport/guard'
 import { designImportUploadRequestBody } from '~~/shared/api/brand'
 import { HOUR_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * "Create a design from a document", step 1: presigned PUT for the file.
@@ -39,7 +40,7 @@ export default defineApiHandler({
     if (!isDesignImportExt(ext)) throw apiError('design-import/unsupported-format')
     if (size > DESIGN_IMPORT_MAX_BYTES) throw apiError('design-import/too-large')
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const uploadId = nanoid(16)
     const stagingKey = designImportStagingKey(userId, uploadId, ext)
     const mimeType = DESIGN_IMPORT_MIME[ext]
@@ -47,7 +48,7 @@ export default defineApiHandler({
     // them, see server/api/upload/request.post.ts).
     const uploadUrl = await getSignedUrl(
       usePresignS3Client(),
-      new PutObjectCommand({ Bucket: config.s3.bucket, Key: stagingKey, ContentType: mimeType, ContentLength: size }),
+      new PutObjectCommand({ Bucket: env.storage.bucket, Key: stagingKey, ContentType: mimeType, ContentLength: size }),
       { expiresIn: PUT_TTL_SECONDS, signableHeaders: new Set(['content-type']) }
     )
     await recordPendingDesignUpload(userId, uploadId, { stagingKey, ext, mimeType, size })

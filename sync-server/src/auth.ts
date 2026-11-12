@@ -2,6 +2,7 @@ import { verifyJwtWithRotation } from '../../shared/utils/security/secrets'
 import type { SessionJwtPayload } from '../../shared/contracts/jwt'
 import { captureMessage } from './sentry'
 import { readDocNotBefore } from './doc-not-before'
+import { syncEnv } from './env'
 
 // Hocuspocus `onAuthenticate` hook — runs on every new WS connection and
 // MUST reject anything not carrying a valid, in-scope JWT. This is the
@@ -197,13 +198,13 @@ export function createAuth(options: CreateAuthOptions) {
  * check here guards against misuse from non-index callers.
  */
 export function authFromEnv() {
-  const secret = process.env.JWT_SECRET
+  const secret = syncEnv().auth.jwtSecret
   if (!secret) {
     throw new Error('[auth] JWT_SECRET environment variable is required')
   }
   const options: CreateAuthOptions = {
     secret,
-    previousSecret: process.env.JWT_SECRET_PREVIOUS || undefined,
+    previousSecret: syncEnv().auth.jwtSecretPrevious || undefined,
     notBeforeFor: readDocNotBefore
   }
   return {

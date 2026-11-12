@@ -7,6 +7,7 @@ import { isDuplicateTeamError } from './freeTierTeam'
 import { memberLimitUsd, pooledFromRow, workspaceAiBudgetUsd, workspacePoolCaps, type PooledWorkspace } from '../billing/workspaceBilling'
 import { isBillingEnabled } from '../billing/billingMode'
 import { creditBudgetExtraUsd } from '../billing/aiCreditBudget'
+import { useEnv } from '~~/shared/env/load'
 
 // One LiteLLM team per Team / Business workspace.
 //
@@ -38,7 +39,7 @@ export const MEMBER_LIMIT_REACHED_MESSAGE
   = 'You\'ve reached your AI limit in this workspace for this month. Ask a workspace admin to raise it.'
 
 function isStubMode(): boolean {
-  return process.env.LITELLM_TEST_STUB === '1'
+  return useEnv().test.litellmStub
 }
 
 export function workspaceTeamId(workspaceId: string): string {

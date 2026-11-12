@@ -1,9 +1,10 @@
 import Stripe from 'stripe'
 import { STRIPE_API_VERSION } from '~~/shared/contracts/stripe'
+import { useEnv } from '~~/shared/env/load'
 
 // Stripe SDK singleton. One client per process; constructed lazily so
 // tests that never touch Stripe don't pay for it, and so a test-mode
-// override of `config.stripe.apiBase` (pointing at stripe-mock) is
+// override of `env.billing.stripeApiBase` (pointing at stripe-mock) is
 // picked up correctly when the first caller shows up.
 //
 // Why a singleton: Stripe's SDK is cheap to construct but holds an
@@ -35,8 +36,8 @@ let client: Stripe | null = null
 
 export function useStripeClient(): Stripe | null {
   if (client) return client
-  const config = useRuntimeConfig()
-  const secret = config.stripe.secretKey
+  const env = useEnv()
+  const secret = env.billing.stripeSecretKey
   if (!secret) return null
   client = new Stripe(secret, {
     // Cast required because the SDK constructor types `apiVersion` as
@@ -49,7 +50,7 @@ export function useStripeClient(): Stripe | null {
     // Override the API base URL when pointed at `stripe-mock`. Stripe's
     // SDK requires both `host` (hostname) and `port` + `protocol`
     // separately. Do the parsing here so callers only need one env var.
-    ...buildHostOverride(config.stripe.apiBase || '')
+    ...buildHostOverride(env.billing.stripeApiBase || '')
   })
   return client
 }

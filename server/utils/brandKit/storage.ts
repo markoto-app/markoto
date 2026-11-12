@@ -2,6 +2,7 @@ import { DeleteObjectsCommand, GetObjectCommand, NoSuchKey, PutObjectCommand } f
 import type { H3Event } from 'h3'
 import { BRAND_ASSET_CONTENT_TYPES, type BrandAssetFormat } from '~~/shared/config/brandKit'
 import { listBrandAssetKeys, type BrandAssetRow } from '../../repos/brandAssets'
+import { useEnv } from '~~/shared/env/load'
 
 // S3 side of the brand kit. Objects at
 // `workspaces/{wsId}/brand/{id}.{format}`. The app streams them itself
@@ -15,7 +16,7 @@ export function brandAssetKey(workspaceId: string, id: string, format: BrandAsse
 
 export async function putBrandObject(key: string, bytes: Uint8Array, format: BrandAssetFormat): Promise<void> {
   await useS3Client().send(new PutObjectCommand({
-    Bucket: useRuntimeConfig().s3.bucket,
+    Bucket: useEnv().storage.bucket,
     Key: key,
     Body: bytes,
     ContentType: BRAND_ASSET_CONTENT_TYPES[format]
@@ -28,7 +29,7 @@ export async function deleteBrandObjects(keys: string[]): Promise<void> {
     const batch = keys.slice(i, i + 1000)
     try {
       await useS3Client().send(new DeleteObjectsCommand({
-        Bucket: useRuntimeConfig().s3.bucket,
+        Bucket: useEnv().storage.bucket,
         Delete: { Objects: batch.map(Key => ({ Key })), Quiet: true }
       }))
     } catch (e) {
@@ -52,7 +53,7 @@ export async function sendBrandAsset(event: H3Event, row: BrandAssetRow, opts: {
   let body: ReadableStream
   let length: number | undefined
   try {
-    const res = await useS3Client().send(new GetObjectCommand({ Bucket: useRuntimeConfig().s3.bucket, Key: row.s3Key }))
+    const res = await useS3Client().send(new GetObjectCommand({ Bucket: useEnv().storage.bucket, Key: row.s3Key }))
     if (!res.Body) throw new NoSuchKey({ message: 'empty body', $metadata: {} })
     body = res.Body.transformToWebStream()
     length = res.ContentLength

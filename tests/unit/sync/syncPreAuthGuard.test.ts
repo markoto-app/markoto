@@ -11,6 +11,9 @@ import {
   type PreAuthLimits
 } from '../../../sync-server/src/pre-auth-guard'
 import { SYNC_CLOSE_CODES } from '../../../shared/contracts/syncClose'
+import { syncEnvFrom } from '../../../sync-server/src/env'
+
+const preAuthLimitsFrom = (raw: Record<string, string | undefined>) => parsePreAuthLimits(syncEnvFrom(raw))
 
 // Hocuspocus queues every message a socket sends for a document until that
 // document has authenticated. The pre-auth guard bounds what such a queue
@@ -188,22 +191,19 @@ describe('pre-auth guard — auth timeout', () => {
 
 describe('parsePreAuthLimits', () => {
   it('defaults', () => {
-    expect(parsePreAuthLimits({})).toEqual({
+    expect(preAuthLimitsFrom({})).toEqual({
       maxBytesPerSocket: DEFAULT_MAX_PREAUTH_BYTES,
       maxBytesTotal: DEFAULT_MAX_PREAUTH_TOTAL_BYTES,
       authTimeoutMs: DEFAULT_AUTH_TIMEOUT_MS
     })
   })
 
-  it('reads positive integers and ignores junk', () => {
-    expect(parsePreAuthLimits({
-      SYNC_MAX_PREAUTH_BYTES: '1000',
-      SYNC_MAX_PREAUTH_TOTAL_BYTES: 'abc',
-      SYNC_AUTH_TIMEOUT_MS: '-5'
-    })).toEqual({
-      maxBytesPerSocket: 1000,
-      maxBytesTotal: DEFAULT_MAX_PREAUTH_TOTAL_BYTES,
-      authTimeoutMs: DEFAULT_AUTH_TIMEOUT_MS
-    })
+  it('reads positive integers', () => {
+    expect(preAuthLimitsFrom({ SYNC_MAX_PREAUTH_BYTES: '1000' }).maxBytesPerSocket).toBe(1000)
+  })
+
+  it('refuses junk instead of silently keeping the default', () => {
+    expect(() => preAuthLimitsFrom({ SYNC_MAX_PREAUTH_TOTAL_BYTES: 'abc' })).toThrow(/SYNC_MAX_PREAUTH_TOTAL_BYTES: expected bytes/)
+    expect(() => preAuthLimitsFrom({ SYNC_AUTH_TIMEOUT_MS: '-5' })).toThrow(/SYNC_AUTH_TIMEOUT_MS/)
   })
 })

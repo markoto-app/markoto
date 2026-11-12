@@ -1,4 +1,5 @@
 import { publicPageHostKind, sealAgainstCookies } from '../utils/publish/publicHost'
+import { useEnv } from '~~/shared/env/load'
 
 // Requests for the pages host or a custom domain (user-written published
 // pages) never get a cookie and never read one — on every path, method
@@ -11,7 +12,7 @@ import { publicPageHostKind, sealAgainstCookies } from '../utils/publish/publicH
 // tests/integration/endpoints/publish.test.ts.
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', async (event) => {
-    const kind = await publicPageHostKind(getRequestHeader(event, 'host'), useRuntimeConfig(event).siteUrl)
+    const kind = await publicPageHostKind(getRequestHeader(event, 'host'), useEnv().core.siteUrl)
     if (!kind) return
     event.context.publicPageHost = kind
     sealAgainstCookies(event)

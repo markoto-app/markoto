@@ -7,6 +7,7 @@ import { canWriteDocContent } from '../../utils/documents/documentAccess'
 import { imageQuotaError, resolveImageQuota } from '../../utils/storage/imageQuota'
 import { confirmUploadBody } from '~~/shared/api/ai'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // The key is client-supplied, so it must have the exact shape
 // `/api/upload/request` mints AND resolve to an `uploads` row issued to the
@@ -88,7 +89,7 @@ async function confirmUpload(args: {
 }) {
   const { key, userId, row } = args
   const s3 = useS3Client()
-  const bucket = useRuntimeConfig().s3.bucket
+  const bucket = useEnv().storage.bucket
   const stagingKey = stagingKeyFor(key)
 
   const discard = async () => {

@@ -36,18 +36,19 @@ describe('planned plan prices', () => {
     }
   })
 
-  it('takes positive TIER_<PLAN>_PRICE_<CUR>[_YEAR] overrides and ignores anything else', () => {
+  it('takes positive TIER_<PLAN>_PRICE_<CUR>[_YEAR] overrides, refuses invalid ones', () => {
     const prices = resolvePlanPricesFromEnv({
       TIER_PRO_PRICE_EUR: '12',
       TIER_PRO_PRICE_CHF_YEAR: '99',
-      TIER_TEAM_PRICE_EUR: '-1',
-      TIER_BUSINESS_PRICE_CHF: 'abc',
+      TIER_TEAM_PRICE_EUR: '',
       TIER_FREE_PRICE_EUR: '5'
     })
     expect(prices.eur.pro.month).toBe(12)
     expect(prices.chf.pro.year).toBe(99)
     expect(prices.eur.team.month).toBe(DEFAULT_PLAN_PRICES.eur.team.month)
-    expect(prices.chf.business.month).toBe(DEFAULT_PLAN_PRICES.chf.business.month)
+    // A typo must never make a plan free: boot validation refuses it.
+    expect(() => resolvePlanPricesFromEnv({ TIER_TEAM_PRICE_EUR: '-1' })).toThrow(/TIER_TEAM_PRICE_EUR: expected a number > 0/)
+    expect(() => resolvePlanPricesFromEnv({ TIER_BUSINESS_PRICE_CHF: 'abc' })).toThrow(/TIER_BUSINESS_PRICE_CHF/)
   })
 
   it('returns the defaults without overrides and never mutates them', () => {

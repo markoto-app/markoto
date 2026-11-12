@@ -12,6 +12,9 @@
 // Storage caps (knowledge files / bytes) bind real S3 + DB cost, not LLM
 // cost. `workspacesOwned` is a capacity cap.
 
+import { bool, EnvValueError, limitOrUnlimited, positiveNumber, type Coercer } from '../env/coerce'
+import { processEnv } from '../env/source'
+
 // Free and Pro are PERSONAL plans (`users.plan`); Team and Business are
 // WORKSPACE subscriptions (`workspace_subscriptions`), billed per seat.
 // For Team / Business the per-user style caps (`litellmBudgetUsd`,
@@ -311,20 +314,23 @@ const TIER_FIELD_ENV_SUFFIX: Record<keyof TierCaps, string> = {
   customDomains: 'FEATURE_CUSTOM_DOMAINS'
 }
 
-const BOOLEAN_TRUE = new Set(['1', 'true', 'yes', 'on'])
-const BOOLEAN_FALSE = new Set(['0', 'false', 'no', 'off'])
+/** Env name of one override, e.g. `TIER_FREE_HISTORY_DAYS`. */
+export function tierEnvName(plan: PlanName, field: keyof TierCaps): string {
+  return `TIER_${plan.toUpperCase()}_${TIER_FIELD_ENV_SUFFIX[field]}`
+}
 
-/** Parse one override; `undefined` = keep the default. */
-function parseOverride(field: keyof TierCaps, raw: string): number | boolean | null | undefined {
-  const value = raw.trim().toLowerCase()
-  if ((FEATURE_FIELDS as readonly string[]).includes(field)) {
-    if (BOOLEAN_TRUE.has(value)) return true
-    if (BOOLEAN_FALSE.has(value)) return false
-    return undefined
-  }
-  if (value === 'unlimited' && (UNLIMITED_CAP_FIELDS as readonly string[]).includes(field)) return null
-  const n = Number(value)
-  return Number.isFinite(n) && n > 0 ? n : undefined
+/** Fields that can be overridden, in declaration order. */
+export const TIER_FIELDS = Object.keys(TIER_FIELD_ENV_SUFFIX) as (keyof TierCaps)[]
+
+/**
+ * Parser of one override (shared with the env registry, shared/env/vars/billing.ts):
+ * feature switches take the boolean words, the `UNLIMITED_CAP_FIELDS`
+ * also `unlimited`, everything else a number > 0.
+ */
+export function tierOverrideType(field: keyof TierCaps): Coercer<number | boolean | null> {
+  if ((FEATURE_FIELDS as readonly string[]).includes(field)) return bool
+  if ((UNLIMITED_CAP_FIELDS as readonly string[]).includes(field)) return limitOrUnlimited(positiveNumber)
+  return positiveNumber
 }
 
 /**
@@ -332,26 +338,26 @@ function parseOverride(field: keyof TierCaps, raw: string): number | boolean | n
  * process.env access — so every test tier can drive it directly.
  *
  * Override key shape: `TIER_<PLAN>_<FIELD>`, e.g.
- * `TIER_FREE_LITELLM_BUDGET_USD=2`, `TIER_ULTRA_KNOWLEDGE_FILES=5000`,
+ * `TIER_FREE_LITELLM_BUDGET_USD=2`, `TIER_PRO_KNOWLEDGE_FILES=5000`,
  * `TIER_FREE_MEMBERS_PER_WORKSPACE=unlimited`,
- * `TIER_FREE_FEATURE_CUSTOM_CSS=false`.
- * Numbers: only positive finite values; the fields in
- * `UNLIMITED_CAP_FIELDS` also accept `unlimited`. Feature switches:
- * `true|false|1|0|yes|no|on|off`. Anything else (absent, empty, NaN,
- * zero, negative) leaves the committed default in place — a typo'd
- * override must degrade to the default, never to a disabled product.
+ * `TIER_FREE_FEATURE_CUSTOM_CSS=false`. Unset / empty keeps the
+ * committed default; an invalid value throws `EnvValueError` (boot
+ * validation reports it before any request runs).
  */
-export function resolveTiersFromEnv(
-  env: Record<string, string | undefined>
-): TiersMap {
+export function resolveTiersFromEnv(env: Record<string, string | undefined> = processEnv()): TiersMap {
   const resolved = {} as Record<PlanName, TierCaps>
   for (const plan of PLAN_NAMES) {
     const caps = { ...DEFAULT_TIERS[plan] } as TierCaps
-    for (const field of Object.keys(TIER_FIELD_ENV_SUFFIX) as (keyof TierCaps)[]) {
-      const raw = env[`TIER_${plan.toUpperCase()}_${TIER_FIELD_ENV_SUFFIX[field]}`]
-      if (raw === undefined || raw.trim() === '') continue
-      const value = parseOverride(field, raw)
-      if (value !== undefined) (caps as unknown as Record<string, unknown>)[field] = value
+    for (const field of TIER_FIELDS) {
+      const name = tierEnvName(plan, field)
+      const raw = env[name]?.trim()
+      if (!raw) continue
+      try {
+        (caps as unknown as Record<string, unknown>)[field] = tierOverrideType(field).parse(raw)
+      } catch (e) {
+        if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
+        throw e
+      }
     }
     resolved[plan] = caps
   }
@@ -377,33 +383,3 @@ export const KNOWLEDGE_PLATFORM_LIMITS = {
   /** `status='failed'` TTL before the sweep reaps the row + its S3 bytes. */
   failedRetentionDays: 7
 } as const
-
-// Stripe runtime-config keys. Populated from env vars in prod; empty
-// strings in dev. Mirrored in `nuxt.config.ts` so a single source of
-// truth drives both the unit tests and the Nitro runtimeConfig.
-//
-// `apiBase` is an override used by integration tests (pointed at the
-// `stripe-mock` container). Empty string = default SDK behaviour
-// (api.stripe.com).
-export const STRIPE_CONFIG_DEFAULTS = {
-  secretKey: '',
-  webhookSecret: '',
-  apiBase: '',
-  successUrl: '/pricing?checkout=success&session={CHECKOUT_SESSION_ID}',
-  cancelUrl: '/pricing?checkout=cancelled',
-  // '1' enables Stripe Tax on Checkout Sessions (automatic_tax +
-  // required billing address + VAT-id collection). OFF by default:
-  // `automatic_tax` hard-errors unless Stripe Tax is activated and an
-  // origin address is configured in the Stripe dashboard. Env:
-  // NUXT_STRIPE_AUTOMATIC_TAX — flip it as a live-launch step.
-  automaticTax: ''
-} as const
-
-export const STRIPE_CONFIG_KEYS = [
-  'secretKey',
-  'webhookSecret',
-  'apiBase',
-  'successUrl',
-  'cancelUrl',
-  'automaticTax'
-] as const

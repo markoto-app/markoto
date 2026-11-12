@@ -1,4 +1,5 @@
 import { runAllProbes, isOverallHealthy, probeEmbeddings, type ProbeResult } from '../../utils/platform/healthProbes'
+import { useEnv } from '~~/shared/env/load'
 
 // Auth-gated deep healthcheck: the same probes as `/api/health` plus
 // per-component latencies and (when down) the underlying error string.
@@ -23,14 +24,14 @@ function pick(r: ProbeResult): DeepCheck {
 export default defineApiHandler({
   access: allow.admin(),
   handler: async ({ event }) => {
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const embeddings = await probeEmbeddings()
     const results = await runAllProbes({
-      syncUrl: config.syncInternalUrl,
-      rendererUrl: config.rendererInternalUrl,
-      markitdownUrl: config.markitdownUrl,
-      litellmUrl: config.litellm?.url,
-      s3Bucket: config.s3?.bucket
+      syncUrl: env.sync.internalUrl,
+      rendererUrl: env.renderer.internalUrl,
+      markitdownUrl: env.markitdown.url,
+      litellmUrl: env.litellm.url,
+      s3Bucket: env.storage.bucket
     })
 
     const healthy = isOverallHealthy(results)

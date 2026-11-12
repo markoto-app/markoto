@@ -15,6 +15,8 @@
 //     `TIER_<PRO|TEAM|BUSINESS>_PRICE_<EUR|CHF>` (monthly) and
 //     `..._<EUR|CHF>_YEAR` (annual), e.g. `TIER_PRO_PRICE_CHF=10`.
 
+import { EnvValueError, positiveNumber } from '../env/coerce'
+import { processEnv } from '../env/source'
 import type { PlanName } from './tiers'
 
 export const CURRENCIES = ['eur', 'chf'] as const
@@ -107,21 +109,31 @@ export function allStripePriceLookupKeys(prefix = 'markoto'): string[] {
   return keys
 }
 
+/** Env name of one planned price, e.g. `TIER_PRO_PRICE_EUR_YEAR`. */
+export function planPriceEnvName(plan: PaidPlanName, currency: Currency, interval: BillingInterval): string {
+  return `TIER_${plan.toUpperCase()}_PRICE_${currency.toUpperCase()}${interval === 'year' ? '_YEAR' : ''}`
+}
+
 /**
- * Resolve the planned prices from an env-shaped record. Pure. Only
- * positive finite numbers override a price; anything else keeps the
- * default (a typo must never make a plan free or broken).
+ * Resolve the planned prices from an env-shaped record. Pure. Unset /
+ * empty keeps the default; anything but a number > 0 throws
+ * `EnvValueError` (boot validation reports it first): a typo must never
+ * make a plan free.
  */
-export function resolvePlanPricesFromEnv(env: Record<string, string | undefined>): PlanPriceTable {
+export function resolvePlanPricesFromEnv(env: Record<string, string | undefined> = processEnv()): PlanPriceTable {
   const table = structuredClone(DEFAULT_PLAN_PRICES)
   for (const currency of CURRENCIES) {
     for (const plan of PAID_PLAN_NAMES) {
       for (const interval of BILLING_INTERVALS) {
-        const name = `TIER_${plan.toUpperCase()}_PRICE_${currency.toUpperCase()}${interval === 'year' ? '_YEAR' : ''}`
-        const raw = env[name]
-        if (raw === undefined || raw.trim() === '') continue
-        const value = Number(raw)
-        if (Number.isFinite(value) && value > 0) table[currency][plan][interval] = value
+        const name = planPriceEnvName(plan, currency, interval)
+        const raw = env[name]?.trim()
+        if (!raw) continue
+        try {
+          table[currency][plan][interval] = positiveNumber.parse(raw)
+        } catch (e) {
+          if (e instanceof EnvValueError) throw new EnvValueError(`${name}: ${e.message}`)
+          throw e
+        }
       }
     }
   }

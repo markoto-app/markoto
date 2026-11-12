@@ -9,6 +9,7 @@ import { useS3Client } from '../../utils/storage/s3'
 import { getDocAuthz } from '../../utils/workspaces/workspaceAccess'
 import { toolEnabled } from '../lib/mcpToolContext'
 import { admitToolCall } from '../lib/wrapDocBoundTool'
+import { useEnv } from '~~/shared/env/load'
 
 // MCP-only tool. The in-app agentic loop has no use for a PDF blob —
 // `view_pages` already gives the loop per-page PNGs for visual
@@ -100,10 +101,10 @@ export default defineMcpTool({
     // open authenticated URLs the way browsers can, so we deliver
     // the bytes directly. Typical PDF size is 50KB-2MB; well within
     // the JSON-RPC envelope ceiling.
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = useS3Client()
     const obj = await s3.send(new GetObjectCommand({
-      Bucket: config.s3.bucket,
+      Bucket: env.storage.bucket,
       Key: pdfKey
     }))
     if (!obj.Body) {

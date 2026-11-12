@@ -1,6 +1,7 @@
 import { useDatabasePool } from '../platform/database'
 import { readEmbeddingColumnDims, mismatchMessage, countStoredEmbeddings } from './embeddingColumn'
-import { DEFAULT_EMBEDDINGS_DIMS, parseEmbeddingDims } from '../../../shared/utils/runtime/embeddingConfig'
+import { parseEmbeddingDims } from '../../../shared/utils/runtime/embeddingConfig'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Is the knowledge base usable with the current embeddings configuration?
@@ -27,7 +28,7 @@ let cached: { at: number, status: KnowledgeEmbeddingsStatus } | null = null
 async function evaluate(): Promise<KnowledgeEmbeddingsStatus> {
   let target: number
   try {
-    target = parseEmbeddingDims(useRuntimeConfig().litellm?.embeddingsDims ?? DEFAULT_EMBEDDINGS_DIMS)
+    target = parseEmbeddingDims(useEnv().litellm.embeddingsDims)
   } catch (e) {
     return { ok: false, code: 'invalid_config', message: e instanceof Error ? e.message : String(e) }
   }

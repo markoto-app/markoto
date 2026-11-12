@@ -92,6 +92,7 @@ import { FREE_ALLOWANCE_EXHAUSTED_MESSAGE, isFreeAllowanceExhaustedError } from 
 import { AI_COMMENT_AUTHOR_NAME, isAiCommentAuthor } from '~~/shared/ai/author'
 import { NO_OP_EDIT_ERROR_PREFIX } from '../agentic/editProgress'
 import { MIB } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 export interface ToolResult {
   content: string
@@ -891,7 +892,7 @@ export async function handleDuplicateDocument(
 
   const title = input.title?.trim() || `Copy of ${source.title}`
   const newDocId = nanoid(10)
-  const config = useRuntimeConfig()
+  const env = useEnv()
   try {
     await duplicateDocument(
       {
@@ -903,7 +904,7 @@ export async function handleDuplicateDocument(
       },
       {
         s3: useS3Client(),
-        bucket: config.s3.bucket,
+        bucket: env.storage.bucket,
         imageQuota: await resolveImageQuota(session.initiatorUserId, null, targetWorkspaceId)
       }
     )
@@ -1197,10 +1198,10 @@ export function parseInternalFileRef(src: string): { docId: string, fileId: stri
 
 async function fetchFromS3(docId: string, fileId: string): Promise<{ bytes: Uint8Array, mimeType: string } | { error: string }> {
   const s3 = useS3Client()
-  const config = useRuntimeConfig()
+  const env = useEnv()
   try {
     const resp = await s3.send(new GetObjectCommand({
-      Bucket: config.s3.bucket,
+      Bucket: env.storage.bucket,
       Key: `docs/${docId}/${fileId}`
     }))
     const mimeType = resp.ContentType ?? 'application/octet-stream'
@@ -1278,9 +1279,9 @@ const IMAGE_MIME_EXT: Record<string, string> = {
 interface ImageGenOpts {
   /** The session's image provider (BYOK / instance default). Null = unavailable. */
   provider: ResolvedAiProvider | null
-  /** Output width in pixels. Default from runtimeConfig (1024). */
+  /** Output width in pixels. Default from NUXT_LITELLM_IMAGE_DEFAULT_WIDTH (1024). */
   width?: number
-  /** Output height in pixels. Default from runtimeConfig (1024). */
+  /** Output height in pixels. Default from NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT (1024). */
   height?: number
   /** Per-user LiteLLM virtual-key bearer token. */
   virtualKey?: string
@@ -1348,9 +1349,9 @@ async function generateImageBytesByok(
   opts: ImageGenOpts
 ): Promise<ImageGenResult> {
   if (!opts.virtualKey) return { error: 'Image generation requires a LiteLLM virtual key.' }
-  const config = useRuntimeConfig()
-  const width = opts.width ?? config.litellm?.imageDefaultWidth ?? 1024
-  const height = opts.height ?? config.litellm?.imageDefaultHeight ?? 1024
+  const env = useEnv()
+  const width = opts.width ?? env.litellm.imageDefaultWidth ?? 1024
+  const height = opts.height ?? env.litellm.imageDefaultHeight ?? 1024
   try {
     const litellm = useLitellmForUser(opts.virtualKey)
     const fields = await providerRequestFields(provider)
@@ -1392,10 +1393,10 @@ async function generateImageBytesBfl(
   if (!opts.virtualKey) {
     return { error: 'BFL image gen requires a per-user LiteLLM virtual key.' }
   }
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const litellm = useLitellmForUser(opts.virtualKey)
-  const width = opts.width ?? config.litellm?.imageDefaultWidth ?? 1024
-  const height = opts.height ?? config.litellm?.imageDefaultHeight ?? 1024
+  const width = opts.width ?? env.litellm.imageDefaultWidth ?? 1024
+  const height = opts.height ?? env.litellm.imageDefaultHeight ?? 1024
 
   // Custom provider convention (see infra/litellm/custom_handlers.py:
   // BFLFluxProvider). Single user message with JSON-encoded body.
@@ -1500,7 +1501,7 @@ export async function handleGenerateImage(
   const fileIdWithExt = `${nanoid(12)}.${ext}`
   const key = `docs/${session.docId}/${fileIdWithExt}`
   const s3 = useS3Client()
-  const config = useRuntimeConfig()
+  const env = useEnv()
 
   // 3a. Reserve the bytes (pending `uploads` row) atomically against the
   //     quota BEFORE the PUT, so concurrent generations can't overshoot.
@@ -1531,7 +1532,7 @@ export async function handleGenerateImage(
 
   try {
     await s3.send(new PutObjectCommand({
-      Bucket: config.s3.bucket,
+      Bucket: env.storage.bucket,
       Key: key,
       Body: gen.bytes,
       ContentType: gen.mimeType,
@@ -1635,7 +1636,7 @@ export async function handleViewPages(
     return err(`Error: requested page(s) ${outOfRange.join(', ')} are out of range. The document has ${manifest.pageCount} page(s).`)
   }
 
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const s3 = useS3Client()
   const parts: { inlineData: { mimeType: string, data: string } }[] = []
   const captions: string[] = []
@@ -1648,7 +1649,7 @@ export async function handleViewPages(
     if (!key) return err(`Error: failed to fetch page ${n}: not in the render`)
     try {
       const got = await s3.send(new GetObjectCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Key: key
       }))
       const bytes = await got.Body!.transformToByteArray()

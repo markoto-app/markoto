@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { getJobForUser } from '../../../../repos/dataExportJobs'
 import { usePresignS3Client } from '../../../../utils/storage/s3'
 import { exportJobParams } from '~~/shared/api/account'
+import { useEnv } from '~~/shared/env/load'
 
 // 302 → presigned download URL for a ready data-export ZIP. Tuple-
 // keyed on (jobId, userId) so a guess-the-jobId attempt can't 404
@@ -39,7 +40,7 @@ export default defineApiHandler({
 
     if (job.expiresAt && job.expiresAt <= new Date()) throw apiError('export/expired')
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = usePresignS3Client()
 
     // Filename: include the job's create-date for the user's
@@ -50,7 +51,7 @@ export default defineApiHandler({
     const url = await getSignedUrl(
       s3,
       new GetObjectCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Key: job.s3Key,
         ResponseContentDisposition: `attachment; filename="${filename}"`,
         ResponseContentType: 'application/zip',

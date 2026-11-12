@@ -4,6 +4,7 @@ import { canDownload } from '../../../../shared/utils/documents/docPermissions'
 import { renderDocument } from '../../../utils/rendering/renderClient'
 import { RENDER_RATE_LIMIT } from '../../../utils/rendering/renderRateLimit'
 import { docPdfQuery } from '~~/shared/api/docs'
+import { useEnv } from '~~/shared/env/load'
 
 // Public-facing PDF download. Authorization mirrors GET /api/files/:docId/:fileId
 // (same `decideFileAccess` decision) — anyone who could read the doc's
@@ -54,7 +55,7 @@ export default defineApiHandler({
       throw apiError('internal', undefined, { cause: new Error('Manifest missing pdfKey') })
     }
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = usePresignS3Client()
 
     // ResponseContentDisposition rides in the presigned URL so we don't have
@@ -73,7 +74,7 @@ export default defineApiHandler({
     const url = await getSignedUrl(
       s3,
       new GetObjectCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Key: pdfKey,
         ResponseContentDisposition: disposition,
         ResponseContentType: 'application/pdf',

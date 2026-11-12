@@ -1,6 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { useStripeClient } from '../../utils/billing/stripeClient'
 import { dispatchStripeEvent } from '../../utils/billing/stripeWebhook'
+import { useEnv } from '~~/shared/env/load'
 
 // Stripe webhook entry point: verifies `Stripe-Signature` against the raw body,
 // then dispatches to the handlers in `server/utils/billing/stripeWebhook.ts`.
@@ -21,12 +22,12 @@ export default defineApiHandler({
   instance: 'billing',
   body: 'raw',
   handler: async ({ event, rawBody }) => {
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const stripe = useStripeClient()
     // Misconfigured deployment (no secret key / webhook secret): 503 so Stripe
     // retries once the config is fixed.
     if (!stripe) throw apiError('billing/not-configured')
-    if (!config.stripe.webhookSecret) throw apiError('billing/not-configured')
+    if (!env.billing.stripeWebhookSecret) throw apiError('billing/not-configured')
 
     const sig = getRequestHeader(event, 'stripe-signature')
     if (!sig) throw apiError('billing/webhook-signature-missing')
@@ -39,7 +40,7 @@ export default defineApiHandler({
     try {
       // `constructEventAsync`: under Bun the SDK uses SubtleCrypto and refuses the
       // synchronous variant. Same signature semantics.
-      stripeEvent = await stripe.webhooks.constructEventAsync(raw, sig, config.stripe.webhookSecret)
+      stripeEvent = await stripe.webhooks.constructEventAsync(raw, sig, env.billing.stripeWebhookSecret)
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'verification failed'
       console.warn(`[stripe/webhook] signature verification failed: ${msg}`)

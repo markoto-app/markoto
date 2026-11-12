@@ -7,6 +7,7 @@ import { checkout, release, type PoolEntry } from '../mcp/yDocPool'
 import type { ToolContext, ToolStatusPhase } from '../agentic/toolContext'
 import type { ResolvedAiProviders } from '../aiProviders/resolve'
 import type { AiSessionChannel } from '../agentic/sessionChannel'
+import { useEnv } from '~~/shared/env/load'
 
 // AiSession = ToolContext + the loop-only lifecycle plumbing the
 // runLoop needs (`provider` for telemetry, `destroy()` for the
@@ -58,8 +59,8 @@ export interface SessionMeta {
  * 5-min prompt deadline plus salvage paths.
  */
 function mintLoopJwt(docId: string, sessionId: string): string {
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) throw new Error('JWT secret not configured')
+  const env = useEnv()
+  if (!env.auth.jwtSecret) throw new Error('JWT secret not configured')
   const payload: SessionJwtPayload = {
     docId,
     userId: aiClientUserId(sessionId),
@@ -69,7 +70,7 @@ function mintLoopJwt(docId: string, sessionId: string): string {
     userName: 'markoto',
     readOnly: false
   }
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: '10m' })
+  return jwt.sign(payload, env.auth.jwtSecret, { expiresIn: '10m' })
 }
 
 /**
@@ -93,11 +94,10 @@ export async function createAiSession(
   meta: SessionMeta,
   signal: AbortSignal
 ): Promise<AiSession> {
-  const config = useRuntimeConfig()
-  if (!config.syncInternalUrl) throw new Error('syncInternalUrl not configured')
+  const env = useEnv()
 
   // Convert http(s):// → ws(s):// for Hocuspocus.
-  const syncUrl = config.syncInternalUrl.replace(/^http(s?):\/\//, 'ws$1://')
+  const syncUrl = env.sync.internalUrl.replace(/^http(s?):\/\//, 'ws$1://')
   const principalId = `loop:${meta.sessionId}`
   const key = { docId, principalId }
 

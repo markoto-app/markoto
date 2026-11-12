@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken'
+import { useEnv } from '~~/shared/env/load'
 
 // Short-lived, read-only, doc-scoped JWT that unlocks `/api/files/<docId>/…`
 // image reads for a browsing context that has no session cookie:
@@ -25,8 +26,8 @@ export interface FileAccessToken {
 }
 
 export function mintFileAccessToken(docId: string, ttlSeconds: number): FileAccessToken {
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) {
+  const env = useEnv()
+  if (!env.auth.jwtSecret) {
     throw createError({ statusCode: 500, message: 'jwtSecret not configured' })
   }
   const token = jwt.sign(
@@ -37,7 +38,7 @@ export function mintFileAccessToken(docId: string, ttlSeconds: number): FileAcce
       readOnly: true,
       scope: FILE_ACCESS_SCOPE
     },
-    config.jwtSecret,
+    env.auth.jwtSecret,
     { expiresIn: ttlSeconds }
   )
   return { token, expiresAt: Date.now() + ttlSeconds * 1000 }

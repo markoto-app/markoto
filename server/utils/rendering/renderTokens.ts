@@ -10,10 +10,11 @@
 
 import jwt from 'jsonwebtoken'
 import { RENDER_JWT_FIXED_CLAIMS, RENDER_TOKEN_TTL_SECONDS, type RenderJwtPayload } from '~~/shared/contracts/jwt'
+import { useEnv } from '~~/shared/env/load'
 
 export function mintRenderToken(docId: string, snapshotId: number): string {
-  const config = useRuntimeConfig()
-  if (!config.internalApiSecret) {
+  const env = useEnv()
+  if (!env.auth.internalApiSecret) {
     throw new Error('mintRenderToken: internalApiSecret not configured')
   }
   const payload = {
@@ -21,7 +22,7 @@ export function mintRenderToken(docId: string, snapshotId: number): string {
     snapshotId,
     ...RENDER_JWT_FIXED_CLAIMS
   } satisfies RenderJwtPayload
-  return jwt.sign(payload, config.internalApiSecret, { expiresIn: RENDER_TOKEN_TTL_SECONDS })
+  return jwt.sign(payload, env.auth.internalApiSecret, { expiresIn: RENDER_TOKEN_TTL_SECONDS })
 }
 
 /**
@@ -35,9 +36,9 @@ export function verifyRenderToken(
   token: string,
   expectedDocId: string
 ): RenderJwtPayload | null {
-  const config = useRuntimeConfig()
-  if (!config.internalApiSecret) return null
-  const secrets = [config.internalApiSecret, config.internalApiSecretPrevious].filter(Boolean)
+  const env = useEnv()
+  if (!env.auth.internalApiSecret) return null
+  const secrets = [env.auth.internalApiSecret, env.auth.internalApiSecretPrevious].filter((s): s is string => !!s)
   for (const secret of secrets) {
     try {
       const payload = jwt.verify(token, secret) as RenderJwtPayload

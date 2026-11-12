@@ -7,6 +7,7 @@ import { useDatabase } from '../platform/database'
 import { reconstructDocAtYjsId } from './historyReplay'
 import { restoreClientUserId, type SessionJwtPayload } from '~~/shared/contracts/jwt'
 import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
+import { useEnv } from '~~/shared/env/load'
 
 const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'language', 'templateId'] as const
 
@@ -114,9 +115,8 @@ export class RestorePointCompactedError extends Error {
  * unchanged on any error (Y.js transactions are atomic).
  */
 export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<RestoreDocResult> {
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) throw new Error('JWT secret not configured')
-  if (!config.syncInternalUrl) throw new Error('syncInternalUrl not configured')
+  const env = useEnv()
+  if (!env.auth.jwtSecret) throw new Error('JWT secret not configured')
 
   const db = useDatabase()
   // Per-doc serialization. The lock is held for the lifetime of
@@ -175,13 +175,13 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
       userName: opts.actorName,
       readOnly: false
     } satisfies SessionJwtPayload
-    const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '5m' })
+    const token = jwt.sign(payload, env.auth.jwtSecret, { expiresIn: '5m' })
 
     const ydoc = new Y.Doc()
     const awareness = new Awareness(ydoc)
     awareness.setLocalStateField('user', { name: opts.actorName, color: '#888' })
 
-    const wsUrl = config.syncInternalUrl.replace(/^http(s?):\/\//, 'ws$1://')
+    const wsUrl = env.sync.internalUrl.replace(/^http(s?):\/\//, 'ws$1://')
 
     let syncResolved = false
     let resolveSync!: () => void

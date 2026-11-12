@@ -20,7 +20,8 @@
 // with isolated Maps, which is what unit tests use. Production uses the
 // default singleton exported at the bottom.
 
-import { DEFAULT_TRUSTED_PROXY_HOPS, parseTrustedProxyHops, resolveClientIp } from '../../shared/utils/security/clientIp'
+import { DEFAULT_TRUSTED_PROXY_HOPS, resolveClientIp } from '../../shared/utils/security/clientIp'
+import { syncEnv } from './env'
 
 // Minimal shape of Hocuspocus's onConnect/onDisconnect payload — only the
 // fields we read. Avoids importing Hocuspocus's internal types (which
@@ -226,15 +227,10 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
 // machine — the production default of 20 trips constantly. Default to
 // 200 in dev and 20 in prod via `NODE_ENV`. Override either way with
 // the env var.
-const envOverride = process.env.SYNC_MAX_CONNECTIONS_PER_IP
-const parsedOverride = envOverride ? Number.parseInt(envOverride, 10) : Number.NaN
 const isProd = process.env.NODE_ENV === 'production'
-const defaultCap = isProd ? 20 : 200
-const resolvedCap = Number.isFinite(parsedOverride) && parsedOverride > 0
-  ? parsedOverride
-  : defaultCap
+const resolvedCap = syncEnv().sync.maxConnectionsPerIp ?? (isProd ? 20 : 200)
 
 export const rateLimiter = createRateLimiter({
   maxConnectionsPerIP: resolvedCap,
-  trustedHops: parseTrustedProxyHops(process.env.TRUSTED_PROXY_HOPS)
+  trustedHops: syncEnv().core.trustedProxyHops
 })

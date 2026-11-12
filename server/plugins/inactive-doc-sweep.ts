@@ -5,6 +5,7 @@ import { appendAuditEvent } from '../repos/audit'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { loadInactiveAnonymousDocs, parseInactiveDocTtlDays } from '../utils/documents/inactiveDocSweep'
 import { SWEEPS } from '../config/sweeps'
+import { useEnv } from '~~/shared/env/load'
 
 // Periodic cleanup of abandoned documents.
 //
@@ -31,7 +32,7 @@ import { SWEEPS } from '../config/sweeps'
 const THROTTLE_MS = 100
 
 async function sweep(): Promise<{ candidates: number, reaped: number } | undefined> {
-  const anonTtlDays = parseInactiveDocTtlDays(useRuntimeConfig().inactiveDocTtlDays)
+  const anonTtlDays = parseInactiveDocTtlDays(useEnv().legal.inactiveDocTtlDays)
   if (anonTtlDays <= 0) return
   const candidates = await loadInactiveAnonymousDocs(anonTtlDays)
   if (candidates.length === 0) return

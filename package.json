@@ -62,6 +62,8 @@
     "typecheck:scripts": "vue-tsc --noEmit -p tsconfig.scripts.json",
     "knip": "knip --no-progress",
     "depcruise": "bun --bun x depcruise --config .dependency-cruiser.cjs app server shared modules scripts sync-server/src renderer/src tests",
+    "env:gen": "bun scripts/env-gen.ts",
+    "check:env": "bun scripts/env-gen.ts --check",
     "check:md-paths": "bun scripts/checks/md-paths.mjs",
     "check:vocab": "bun scripts/checks/internal-vocabulary.mjs",
     "check:i18n-unused": "bun scripts/checks/i18n-unused-keys.mjs",

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright'
 import { putBytes } from './s3'
 import { buildAllowedOrigins, hostForLog, isAllowedUrl } from './allowlist'
+import { env } from './env'
 
 // One persistent browser, page-pool of POOL_SIZE. New BrowserContext per
 // render isolates cookies / storage between docs. The pool is a simple
@@ -24,19 +25,15 @@ const MAX_PAGES = 50
 // 401 mid-render. 60 s matches the app-side mint.
 const TOKEN_TTL_SECONDS = 60
 
-const APP_URL = process.env.APP_URL || 'http://app:3000'
-const INTERNAL_SECRET = (() => {
-  const v = process.env.INTERNAL_API_SECRET
-  if (!v) throw new Error('[renderer] INTERNAL_API_SECRET environment variable is required')
-  return v
-})()
+const APP_URL = env.renderer.appUrl
+const INTERNAL_SECRET = env.auth.internalApiSecret
 
 // Origins Chromium may talk to (SSRF lockdown — see ./allowlist.ts).
 const ALLOWED_ORIGINS = buildAllowedOrigins({
-  APP_URL: process.env.APP_URL,
-  S3_ENDPOINT: process.env.S3_ENDPOINT,
-  S3_PUBLIC_ENDPOINT: process.env.S3_PUBLIC_ENDPOINT,
-  RENDERER_ALLOWED_ORIGINS: process.env.RENDERER_ALLOWED_ORIGINS
+  APP_URL: env.renderer.appUrl,
+  S3_ENDPOINT: env.storage.endpoint,
+  S3_PUBLIC_ENDPOINT: env.storage.publicEndpoint,
+  RENDERER_ALLOWED_ORIGINS: env.renderer.allowedOrigins.join(',')
 })
 console.info(`[renderer] network allowlist: ${[...ALLOWED_ORIGINS].join(', ')}`)
 // At most this many distinct blocked hosts are logged per render.
@@ -48,7 +45,7 @@ const MAX_BLOCKED_LOGS_PER_RENDER = 10
 // (docs/SECURITY-HARDENING.md §C.2). RENDERER_CHROMIUM_SANDBOX=false is
 // an operator escape hatch for hosts that forbid user namespaces outright —
 // it is logged loudly because it removes a whole layer.
-const CHROMIUM_SANDBOX = process.env.RENDERER_CHROMIUM_SANDBOX !== 'false'
+const CHROMIUM_SANDBOX = env.renderer.chromiumSandbox
 if (!CHROMIUM_SANDBOX) {
   console.warn('[renderer] RENDERER_CHROMIUM_SANDBOX=false: Chromium runs WITHOUT its sandbox')
 }
@@ -57,11 +54,9 @@ if (!CHROMIUM_SANDBOX) {
 // host by default; the dev and test stacks point it at their SeaweedFS
 // container instead, because they publish ports on 127.0.0.1 only, which
 // the docker host's bridge address doesn't serve.
-const LOCALHOST_TARGET = (() => {
-  const v = process.env.RENDERER_LOCALHOST_TARGET || 'host.docker.internal'
-  if (!/^[A-Za-z0-9.-]+$/.test(v)) throw new Error('[renderer] RENDERER_LOCALHOST_TARGET must be a bare hostname')
-  return v
-})()
+// A bare hostname (validated by the env loader): it is spliced into a
+// Chromium command-line flag.
+const LOCALHOST_TARGET = env.renderer.localhostTarget
 
 let browserPromise: Promise<Browser> | null = null
 function getBrowser(): Promise<Browser> {

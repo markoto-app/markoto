@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, randomBytes, createHash } from 'node:crypto'
+import { useEnv } from '~~/shared/env/load'
 
 // AES-256-GCM at-rest encryption for the per-user LiteLLM virtual-key
 // bearer tokens. Keyed off `LITELLM_SALT_KEY` (the salt LiteLLM itself
@@ -19,9 +20,9 @@ const TOKEN_VERSION = 'v1'
  * silently fall back to a default.
  */
 function deriveTokenKey(): Buffer {
-  const salt = process.env.LITELLM_SALT_KEY
-  if (!salt || salt.length < 16) {
-    throw new Error('[litellmKeys] LITELLM_SALT_KEY must be set (≥16 chars) before encrypting tokens')
+  const salt = useEnv().litellm.saltKey
+  if (!salt) {
+    throw new Error('[litellmKeys] LITELLM_SALT_KEY must be set before encrypting tokens')
   }
   // SHA-256 of the salt → 32 bytes of key material. Deterministic, no
   // additional KDF required given the salt is already a high-entropy

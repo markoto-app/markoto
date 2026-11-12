@@ -43,10 +43,10 @@ describe('getWebToolLimits', () => {
     expect(getWebToolLimits()).toEqual({ hourly: 5, daily: 0 })
   })
 
-  it('falls back to the default for garbage values', () => {
+  it('refuses garbage values (boot validation reports them first)', () => {
     vi.stubEnv('NUXT_WEB_TOOLS_HOURLY_LIMIT', 'lots')
     vi.stubEnv('NUXT_WEB_TOOLS_DAILY_LIMIT', '-3')
-    expect(getWebToolLimits()).toEqual({ hourly: 30, daily: 100 })
+    expect(() => getWebToolLimits()).toThrow(/NUXT_WEB_TOOLS_HOURLY_LIMIT: expected an integer ≥ 0[\s\S]*NUXT_WEB_TOOLS_DAILY_LIMIT/)
   })
 
   it('a plan daily limit narrows the operator ceiling — the stricter wins', () => {

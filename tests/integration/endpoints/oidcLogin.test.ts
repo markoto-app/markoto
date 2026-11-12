@@ -231,8 +231,8 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
       NUXT_OAUTH_OIDC_CLIENT_ID: TEST_OIDC_CLIENT_ID,
       NUXT_OAUTH_OIDC_CLIENT_SECRET: TEST_OIDC_CLIENT_SECRET
     })
-    if (!resolved.settings) throw new Error(resolved.errors.join('; '))
-    settings = resolved.settings
+    if (!resolved) throw new Error('OIDC settings did not resolve')
+    settings = resolved
   })
 
   /** `code: message` of the error and every `cause` below it, newline-joined. */
@@ -364,6 +364,6 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
       NUXT_OAUTH_OIDC_ISSUER: TEST_OIDC_ISSUER,
       NUXT_OAUTH_OIDC_CLIENT_ID: TEST_OIDC_CLIENT_ID,
       NUXT_OAUTH_OIDC_CLIENT_SECRET: TEST_OIDC_CLIENT_SECRET
-    }).settings).toBeNull()
+    })).toBeNull()
   })
 })

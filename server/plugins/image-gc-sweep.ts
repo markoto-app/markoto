@@ -2,6 +2,7 @@ import { resolveImageGcRetentionDays, runImageGc } from '../utils/storage/imageG
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { s3ObjectStore } from '../utils/storage/objectStore'
 import { SWEEPS } from '../config/sweeps'
+import { useEnv } from '~~/shared/env/load'
 
 // Garbage-collects document images that are referenced nowhere — not in
 // the doc, not in any version that can still be restored, not in another
@@ -16,7 +17,7 @@ export default defineSweeper({
   // Without taking the lock when the feature is off.
   shouldRun: () => resolveImageGcRetentionDays() > 0,
   run: async () => {
-    const result = await runImageGc({ store: s3ObjectStore(useS3Client(), useRuntimeConfig().s3.bucket) })
+    const result = await runImageGc({ store: s3ObjectStore(useS3Client(), useEnv().storage.bucket) })
     return result.deleted > 0 ? result : undefined
   }
 })

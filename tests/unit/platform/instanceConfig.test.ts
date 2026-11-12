@@ -18,7 +18,8 @@ import {
   legalSurfacesEnabled,
   LEGAL_DISABLED_CODE
 } from '../../../server/utils/platform/instanceConfig'
-import { legalEntityErrors, resolveLegalEntity } from '../../../shared/legal/entity'
+import { resolveLegalEntity } from '../../../shared/legal/entity'
+import { bootProblems } from '../env/fixtures'
 
 // Instance shape: which login providers are offered and whether the
 // hosted service's legal surfaces exist. Self-hosted is the default; the
@@ -74,7 +75,8 @@ describe('resolveInstanceConfig', () => {
   it('defaults to the self-hosted shape: no legal surfaces, no operator name', () => {
     // Self-hosted: every committed tier includes per-workspace SSO.
     expect(resolveInstanceConfig({})).toEqual({ ...MINIMAL_INSTANCE_CONFIG, workspaceSso: true })
-    expect(resolveLegalSurfacesEnabled({ NUXT_LEGAL_SURFACES_ENABLED: 'nope' })).toBe(false)
+    // A typo fails boot (shared/env) instead of silently picking a shape.
+    expect(() => resolveLegalSurfacesEnabled({ NUXT_LEGAL_SURFACES_ENABLED: 'nope' })).toThrow(/NUXT_LEGAL_SURFACES_ENABLED: expected a boolean/)
   })
 
   it('self-hosted never shows the hosted operator, only an explicitly configured name', () => {
@@ -103,17 +105,17 @@ describe('resolveInstanceConfig', () => {
 
   it('marketing site is off unless NUXT_MARKETING_SITE_ENABLED is truthy (hosted only)', () => {
     expect(resolveInstanceConfig({}).marketingSite).toBe(false)
-    expect(resolveMarketingSiteEnabled({ NUXT_MARKETING_SITE_ENABLED: 'nope' })).toBe(false)
+    expect(() => resolveMarketingSiteEnabled({ NUXT_MARKETING_SITE_ENABLED: 'nope' })).toThrow(/NUXT_MARKETING_SITE_ENABLED/)
     expect(resolveMarketingSiteEnabled({ NUXT_MARKETING_SITE_ENABLED: ' TRUE ' })).toBe(true)
     expect(resolveInstanceConfig({ NUXT_MARKETING_SITE_ENABLED: '1' }).marketingSite).toBe(true)
   })
 
-  it('site URL is the origin of NUXT_SITE_URL, empty when unset or invalid', () => {
+  it('site URL is the origin of NUXT_SITE_URL, empty when unset; invalid fails boot', () => {
     expect(resolveSiteUrl({})).toBe('')
     expect(resolveSiteUrl({ NUXT_SITE_URL: 'https://markoto.app/' })).toBe('https://markoto.app')
     expect(resolveSiteUrl({ NUXT_SITE_URL: ' http://10.0.0.5:8080/x ' })).toBe('http://10.0.0.5:8080')
-    expect(resolveSiteUrl({ NUXT_SITE_URL: 'not a url' })).toBe('')
-    expect(resolveSiteUrl({ NUXT_SITE_URL: 'ftp://example.com' })).toBe('')
+    expect(() => resolveSiteUrl({ NUXT_SITE_URL: 'not a url' })).toThrow(/NUXT_SITE_URL: expected an absolute http\/https URL/)
+    expect(() => resolveSiteUrl({ NUXT_SITE_URL: 'ftp://example.com' })).toThrow(/NUXT_SITE_URL/)
     expect(resolveInstanceConfig({ NUXT_SITE_URL: 'https://docs.example.com' }).siteUrl).toBe('https://docs.example.com')
   })
 
@@ -123,15 +125,15 @@ describe('resolveInstanceConfig', () => {
     expect(resolveDocsCanonicalBase({ NUXT_MARKETING_SITE_ENABLED: 'true' })).toBe('')
     expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: '' })).toBe('')
     expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'https://docs.example.com/' })).toBe('https://docs.example.com')
-    expect(resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'garbage' })).toBe('https://markoto.app')
+    expect(() => resolveDocsCanonicalBase({ NUXT_DOCS_CANONICAL_BASE: 'garbage' })).toThrow(/NUXT_DOCS_CANONICAL_BASE/)
     expect(resolveInstanceConfig({}).docsCanonicalBase).toBe('https://markoto.app')
   })
 
-  it('SEO origin: NUXT_CANONICAL_SITE_URL when valid, else the site URL', () => {
+  it('SEO origin: NUXT_CANONICAL_SITE_URL when set, else the site URL', () => {
     expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app' })).toBe('https://staging.markoto.app')
     expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: '' })).toBe('https://staging.markoto.app')
     expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'https://markoto.app/' })).toBe('https://markoto.app')
-    expect(resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'garbage' })).toBe('https://staging.markoto.app')
+    expect(() => resolveCanonicalSiteUrl({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'garbage' })).toThrow(/NUXT_CANONICAL_SITE_URL/)
     expect(resolveInstanceConfig({ NUXT_SITE_URL: 'https://staging.markoto.app', NUXT_CANONICAL_SITE_URL: 'https://markoto.app' }).siteUrl).toBe('https://markoto.app')
   })
 
@@ -139,7 +141,7 @@ describe('resolveInstanceConfig', () => {
     expect(resolveSiteIndexable({})).toBe(true)
     expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: '' })).toBe(true)
     expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: 'true' })).toBe(true)
-    expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: 'flase' })).toBe(true)
+    expect(() => resolveSiteIndexable({ NUXT_SITE_INDEXABLE: 'flase' })).toThrow(/NUXT_SITE_INDEXABLE/)
     for (const v of ['false', ' FALSE ', '0', 'no', 'off']) {
       expect(resolveSiteIndexable({ NUXT_SITE_INDEXABLE: v }), v).toBe(false)
     }
@@ -195,8 +197,17 @@ describe('legal entity defaults', () => {
   })
 
   it('requires address and representative from the environment', () => {
-    expect(legalEntityErrors({})).toHaveLength(2)
-    expect(legalEntityErrors({
+    const hosted = {
+      NUXT_LEGAL_SURFACES_ENABLED: 'true',
+      NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'https://api.openai.com/v1',
+      NUXT_PUBLISH_PAGES_HOST: 'pages.example.org',
+      NUXT_PUBLISH_TRAEFIK_TOKEN: 't'.repeat(32),
+      NUXT_SITE_URL: 'https://docs.example.org',
+      NUXT_ALTCHA_HMAC_KEY: 'k'.repeat(32)
+    }
+    expect(bootProblems(hosted).filter(p => p.startsWith('NUXT_LEGAL_'))).toHaveLength(2)
+    expect(bootProblems({
+      ...hosted,
       NUXT_LEGAL_CONTROLLER_ADDRESS: '1 Example Street, 8000 Zurich',
       NUXT_LEGAL_REPRESENTED_BY: 'Jane Doe'
     })).toEqual([])

@@ -14,7 +14,7 @@ import { resolveLegalSurfacesEnabled } from '../../shared/config/instance'
 export default defineApiHandler({
   access: allow.public('sitemap.xml is read by crawlers, which have no session; it lists only public pages'),
   handler: async ({ event }) => {
-    const base = sitemapBaseUrl(process.env)
+    const base = sitemapBaseUrl()
     if (!base) throw apiError('resource/not-found')
 
     const [docs, marketing] = await Promise.all([
@@ -26,7 +26,7 @@ export default defineApiHandler({
     const xml = buildSitemapXml(sitemapEntries(base, {
       docsPaths: docs.map(d => docsRoutePath(d.path)),
       docsLastmod,
-      legalSurfaces: resolveLegalSurfacesEnabled(process.env),
+      legalSurfaces: resolveLegalSurfacesEnabled(),
       marketingPages: marketingSitemapPages(marketing)
     }))
 

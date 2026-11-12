@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { parseBooleanFlag, resolveBillingMode } from '../../../shared/config/billingMode'
+import { resolveBillingMode } from '../../../shared/config/billingMode'
 
 // `createError` is a Nitro auto-import in the SUT; stub it with an
 // object carrying the same fields so assertions can read them.
@@ -19,18 +19,6 @@ const {
 
 afterEach(() => {
   vi.unstubAllEnvs()
-})
-
-describe('parseBooleanFlag', () => {
-  it('accepts the usual truthy spellings, case- and whitespace-insensitively', () => {
-    for (const v of ['1', 'true', 'TRUE', ' yes ', 'On']) expect(parseBooleanFlag(v), v).toBe(true)
-  })
-
-  it('treats absent, empty, falsy and typo values as false (fails closed to "billing off")', () => {
-    for (const v of [undefined, '', '0', 'false', 'no', 'off', 'ture', 'enabled']) {
-      expect(parseBooleanFlag(v), String(v)).toBe(false)
-    }
-  })
 })
 
 describe('resolveBillingMode', () => {

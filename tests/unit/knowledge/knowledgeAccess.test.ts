@@ -11,7 +11,6 @@ vi.mock('../../../server/repos/knowledge', () => ({ getKnowledge, deleteKnowledg
 
 const s3Send = vi.fn(async () => {})
 vi.stubGlobal('useS3Client', () => ({ send: s3Send }))
-vi.stubGlobal('useRuntimeConfig', () => ({ s3: { bucket: 'test-bucket' } }))
 
 // Sentry: no-op at runtime, but capture calls for one assertion about
 // the S3-failure path (the artifact delete must Sentry-tag the failure).

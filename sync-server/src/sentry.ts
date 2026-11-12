@@ -1,11 +1,12 @@
 import * as Sentry from '@sentry/bun'
+import { syncEnv } from './env'
 
 // Sync-server Sentry init. Must be imported before anything else in
 // index.ts so Sentry's Bun instrumentation patches the global fetch / ws /
 // stdlib targets before they're referenced. Init is a no-op when
 // SENTRY_DSN is empty — dev/local don't need a telemetry sink.
 
-const dsn = process.env.SENTRY_DSN
+const dsn = syncEnv().observability.dsn
 
 if (dsn) {
   Sentry.init({

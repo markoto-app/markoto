@@ -174,7 +174,7 @@ describe('POST /api/billing/checkout', () => {
   // request → 502) are one-line `if`/`catch` guards whose correctness
   // is obvious from inspection. Triggering them via integration
   // would require per-test env mutation (we can't change
-  // `useRuntimeConfig` after boot) or a live Stripe failure (can't
+  // the server's environment after boot) or a live Stripe failure (can't
   // make stripe-mock reject a valid request). We accept the gap;
   // any refactor that broke these branches would be caught by TS or
   // a plain `grep` during review.

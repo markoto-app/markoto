@@ -1,17 +1,15 @@
 // Server-side accessors for the deployment's billing mode. See
 // `shared/config/billingMode.ts` for the matrix of deployment shapes.
 //
-// Deliberately reads `process.env` instead of `useRuntimeConfig()` —
-// same reasoning as `tierConfig.ts`: the enforcement utils that consult
-// it (billing resolver, knowledge quotas, account deletion, data
-// export) run in the repos/unit test tiers OUTSIDE a Nitro context.
-// Env is re-read on every call so tests can flip the flag per case.
+// Reads the typed env (shared/env), which works outside a Nitro context:
+// the enforcement utils that consult it (billing resolver, knowledge
+// quotas, account deletion, data export) run in the repos/unit test tiers.
 
 import { resolveBillingMode, type BillingMode } from '~~/shared/config/billingMode'
 import type { PlanName } from '~~/shared/config/tiers'
 
 export function getBillingMode(): BillingMode {
-  return resolveBillingMode(process.env)
+  return resolveBillingMode()
 }
 
 export function isBillingEnabled(): boolean {

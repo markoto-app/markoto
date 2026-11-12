@@ -1,6 +1,6 @@
-// Validate secrets first so a misconfigured deploy fails with a clear
-// message before any other module grabs its own process.env references.
-import './validate-secrets'
+// Validate the environment first so a misconfigured deploy fails with a
+// clear message before any other module reads its configuration.
+import './boot-env'
 // Sentry must be imported early so its Bun instrumentation patches stdlib
 // targets before any other module grabs references to them. Importing a
 // name from the module also satisfies the side-effect import.
@@ -31,12 +31,13 @@ import {
 } from './sync-state'
 import { closeValkey } from './valkey'
 import { createConnectionExpiry, type ReauthConnection } from './connection-expiry'
+import { syncEnv } from './env'
 
 // Auth singleton — wired from env here (not inside auth.ts) so unit tests
 // can import `createAuth` without tripping a top-level env guard.
 const auth = authFromEnv()
 
-const port = Number.parseInt(process.env.PORT || '4001')
+const port = syncEnv().sync.port
 
 // Per-doc attribution + diff baseline state lives in Valkey (`sync-state.ts`).
 //   - last-editor: populated in onChange (authoritative — JWT payload from
@@ -53,7 +54,7 @@ const port = Number.parseInt(process.env.PORT || '4001')
 
 // Size limits (SYNC_MAX_{MESSAGE,UPDATE,DOCUMENT}_BYTES) + pre-apply
 // validation of every client update. See limits.ts / update-guard.ts.
-const syncLimits = parseSyncLimits(process.env)
+const syncLimits = parseSyncLimits(syncEnv())
 const updateGuard = createUpdateGuard(syncLimits)
 
 // Memory cap for messages queued before a document authenticates
@@ -67,7 +68,7 @@ const connectionExpiry = createConnectionExpiry({
   }
 })
 
-const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(process.env), {
+const preAuthGuard = createPreAuthGuard(parsePreAuthLimits(syncEnv()), {
   onReject: (reason, detail) => {
     console.warn(`[hocuspocus] closing socket before authentication: ${reason} (${detail})`)
     captureMessage('[hocuspocus] pre-auth socket closed', {

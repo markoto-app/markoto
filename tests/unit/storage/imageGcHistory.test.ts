@@ -77,12 +77,12 @@ describe('findFileIdsInHistory', () => {
 })
 
 describe('resolveImageGcRetentionDays', () => {
-  it('defaults when unset, empty or invalid', () => {
+  it('defaults when unset or empty; refuses invalid values', () => {
     expect(resolveImageGcRetentionDays({})).toBe(IMAGE_GC_DEFAULT_RETENTION_DAYS)
     expect(resolveImageGcRetentionDays({ NUXT_IMAGE_GC_RETENTION_DAYS: '' })).toBe(IMAGE_GC_DEFAULT_RETENTION_DAYS)
-    expect(resolveImageGcRetentionDays({ NUXT_IMAGE_GC_RETENTION_DAYS: 'soon' })).toBe(IMAGE_GC_DEFAULT_RETENTION_DAYS)
-    expect(resolveImageGcRetentionDays({ NUXT_IMAGE_GC_RETENTION_DAYS: '-3' })).toBe(IMAGE_GC_DEFAULT_RETENTION_DAYS)
-    expect(resolveImageGcRetentionDays({ NUXT_IMAGE_GC_RETENTION_DAYS: '1.5' })).toBe(IMAGE_GC_DEFAULT_RETENTION_DAYS)
+    for (const raw of ['soon', '-3', '1.5']) {
+      expect(() => resolveImageGcRetentionDays({ NUXT_IMAGE_GC_RETENTION_DAYS: raw }), raw).toThrow(/NUXT_IMAGE_GC_RETENTION_DAYS: expected an integer ≥ 0/)
+    }
   })
 
   it('accepts a whole number of days, 0 = disabled', () => {

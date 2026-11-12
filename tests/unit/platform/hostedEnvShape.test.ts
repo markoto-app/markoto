@@ -3,9 +3,8 @@ import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { RECOMMENDED_SAAS_ALLOWED_BASE_URLS } from '../../../shared/ai/providers'
-import { byokUrlPolicyErrors } from '../../../server/utils/aiProviders/config'
 import { resolveTiersFromEnv } from '../../../shared/config/tiers'
-import { legalEntityErrors } from '../../../shared/legal/entity'
+import { bootProblems } from '../env/fixtures'
 
 // The hosted SaaS shape is pure configuration: infra/render-env.sh (CI
 // deploys) and infra/templates/env.j2 (Ansible) render the .env that the
@@ -95,7 +94,9 @@ describe('hosted .env shape (infra/render-env.sh defaults)', () => {
 
   it('carries an operator identity the legal-surfaces boot check accepts', () => {
     const env = Object.fromEntries([...vars].filter(([k]) => k.startsWith('NUXT_LEGAL_')))
-    expect(legalEntityErrors(env)).toEqual([])
+    // Only the operator-identity problems count here; the other hosted-shape
+    // rules (allowlist, pages host, ALTCHA) need values this slice leaves out.
+    expect(bootProblems(env).filter(p => p.startsWith('NUXT_LEGAL_'))).toEqual([])
   })
 
   it('limits BYOK base URLs to the SaaS provider allowlist, no private URLs', () => {
@@ -250,26 +251,32 @@ describe('compose files never default the hosted BYOK allowlist to empty', () =>
   })
 })
 
+const HOSTED = {
+  NUXT_LEGAL_SURFACES_ENABLED: 'true',
+  NUXT_LEGAL_CONTROLLER_ADDRESS: '1 Example Street, 8000 Zurich',
+  NUXT_LEGAL_REPRESENTED_BY: 'Jane Doe',
+  NUXT_PUBLISH_PAGES_HOST: 'pages.example.org',
+  NUXT_PUBLISH_TRAEFIK_TOKEN: 't'.repeat(32),
+  NUXT_SITE_URL: 'https://docs.example.org',
+  NUXT_ALTCHA_HMAC_KEY: 'k'.repeat(32)
+}
+
 describe('boot check of the BYOK URL policy', () => {
   it('regression: the hosted shape with an empty allowlist refuses to boot', () => {
-    expect(byokUrlPolicyErrors({}, true).join(' ')).toMatch(/NUXT_AI_BYOK_ALLOWED_BASE_URLS is empty/)
-    expect(byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: ' , ' }, true)).toHaveLength(1)
+    expect(bootProblems(HOSTED).join(' ')).toMatch(/NUXT_AI_BYOK_ALLOWED_BASE_URLS is empty/)
+    expect(bootProblems({ ...HOSTED, NUXT_AI_BYOK_ALLOWED_BASE_URLS: ' , ' })).toHaveLength(1)
   })
 
   it('the hosted shape with the SaaS list boots', () => {
-    expect(byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',') }, true)).toEqual([])
+    expect(bootProblems({ ...HOSTED, NUXT_AI_BYOK_ALLOWED_BASE_URLS: RECOMMENDED_SAAS_ALLOWED_BASE_URLS.join(',') })).toEqual([])
   })
 
   it('self-host may leave it empty (free-form URLs)', () => {
-    expect(byokUrlPolicyErrors({}, false)).toEqual([])
+    expect(bootProblems({})).toEqual([])
   })
 
   it('reports entries that are not absolute http(s) URLs in any shape', () => {
-    const errors = byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'https://api.mistral.ai/v1,api.openai.com/v1' }, false)
-    expect(errors.join(' ')).toContain('"api.openai.com/v1"')
-  })
-
-  it('a list with only invalid entries counts as empty on the hosted shape', () => {
-    expect(byokUrlPolicyErrors({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'not-a-url' }, true)).toHaveLength(2)
+    expect(bootProblems({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'https://api.mistral.ai/v1,api.openai.com/v1' }))
+      .toEqual(['NUXT_AI_BYOK_ALLOWED_BASE_URLS: entry 2: expected an absolute http/https URL'])
   })
 })

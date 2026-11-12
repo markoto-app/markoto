@@ -33,6 +33,7 @@ import {
   normaliseInviteEmail,
   normaliseInviteLocale
 } from '../../../../utils/workspaces/workspaceInvites'
+import { useEnv } from '~~/shared/env/load'
 
 // POST /api/workspaces/:wsId/members — invite someone by email. Admin-only.
 //
@@ -84,7 +85,7 @@ export default defineApiHandler({
     // admins inviting at once can't both take the last seat or both buy the
     // same one. The pool is re-read under the lock.
     const releaseSeatLock = await getPooledWorkspace(wsId, now) ? await acquireWorkspaceSeatLock(wsId) : null
-    const baseUrl = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
+    const baseUrl = emailLinkBaseUrl(useEnv().core.siteUrl)
     let inviteId: string
     let token: string | null
     try {

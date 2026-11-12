@@ -12,19 +12,17 @@
 // LiteLLM master key, so it learning LiteLLM's DB role widens nothing; the
 // separation protects the app database FROM a compromised proxy.
 
-function nonEmpty(value: string | undefined): string | undefined {
-  return value === undefined || value === '' ? undefined : value
-}
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
-export function litellmDbUrl(env: NodeJS.ProcessEnv = process.env): string {
-  const override = nonEmpty(env.NUXT_LITELLM_DB_URL)
-  if (override) return override
-  const user = nonEmpty(env.NUXT_LITELLM_DB_USER) ?? env.POSTGRES_USER ?? 'ypad'
-  const password = nonEmpty(env.NUXT_LITELLM_DB_USER)
-    ? (env.NUXT_LITELLM_DB_PASSWORD ?? '')
-    : (env.POSTGRES_PASSWORD ?? '')
-  const host = env.POSTGRES_HOST ?? 'localhost'
-  const port = env.POSTGRES_PORT ?? '5432'
-  const db = env.NUXT_LITELLM_DB_NAME ?? 'litellm'
+export function litellmDbUrl(source?: RawEnv): string {
+  const { litellm, database } = useEnv(source)
+  if (litellm.dbUrl) return litellm.dbUrl
+  // The fallbacks only matter outside a validated boot (scripts, tests).
+  const user = litellm.dbUser || database.user || 'ypad'
+  const password = litellm.dbUser ? (litellm.dbPassword ?? '') : database.password
+  const host = database.host || 'localhost'
+  const port = database.port
+  const db = litellm.dbName
   return `postgres://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${db}`
 }

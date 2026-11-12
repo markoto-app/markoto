@@ -89,22 +89,15 @@ describe('sendTransactionalEmail (stub mode)', () => {
     expect(String(logSpy.mock.calls[0]![0])).toContain('no-recipient skip')
   })
 
-  it('warns + falls back to stub when provider is set to an unknown name', async () => {
-    // Both an API key AND an explicit-but-unknown provider — the
-    // dispatch path with the unknown provider name returns false
-    // and warns. Without the key set, we'd hit the stub branch
-    // first and never reach the warning.
+  it('an unknown provider name is a configuration error (boot validation refuses it)', async () => {
     process.env.RESEND_API_KEY = 're_unused'
     process.env.NUXT_EMAIL_PROVIDER = 'mailgun'
-    const result = await sendTransactionalEmail({
+    await expect(sendTransactionalEmail({
       kind: 'account.delete_executed',
       to: 'alice@example.com',
       locale: 'en',
       subject: 's', body: 'b'
-    })
-    expect(result.delivered).toBe(false)
-    expect(warnSpy).toHaveBeenCalledTimes(1)
-    expect(String(warnSpy.mock.calls[0]![0])).toContain('provider=mailgun')
+    })).rejects.toThrow(/NUXT_EMAIL_PROVIDER: expected one of resend, stub/)
   })
 
   it('treats NUXT_EMAIL_PROVIDER=stub as an explicit opt-out even when RESEND_API_KEY is set', async () => {

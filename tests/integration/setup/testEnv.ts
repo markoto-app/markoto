@@ -73,7 +73,7 @@ export function buildTestEnv(): Record<string, string> {
     // setting it here keeps the env shape uniform.
     TEST_MODE: '1',
     // Repo-tier tests don't bring up the LiteLLM proxy (no
-    // Nuxt subprocess, no useRuntimeConfig). Stub the per-user key
+    // Nuxt subprocess, no LiteLLM URL). Stub the per-user key
     // path so `resolveBillingContext` can run without hitting the
     // network. Integration tests do NOT set this — they exercise the
     // real proxy.

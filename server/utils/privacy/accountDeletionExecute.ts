@@ -32,6 +32,7 @@ import { AUDIT_ACCOUNT_DELETE_EXECUTED } from '../../legal/auditActions'
 import type { AccountDeletionSummary } from './accountDeletionPlan'
 import { deleteAllMemberKeys, endWorkspaceBilling, handOverBillingAdmin } from '../billing/workspaceBillingLifecycle'
 import { deleteCreditsForSubject } from '../../repos/aiCreditGrants'
+import { useEnv } from '~~/shared/env/load'
 
 // Cascading account deletion executor. Policy:
 //
@@ -315,7 +316,7 @@ async function deleteStripeCustomer(
  */
 async function cleanupExportS3Blobs(keys: string[]): Promise<void> {
   if (keys.length === 0) return
-  const bucket = useRuntimeConfig().s3.bucket
+  const bucket = useEnv().storage.bucket
   const s3 = useS3Client()
   for (const key of keys) {
     try {

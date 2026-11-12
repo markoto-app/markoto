@@ -13,6 +13,7 @@ import {
 import { WAITLIST_CONSENT_TEXT_ID, WAITLIST_CONSENT_VERSION } from '~~/shared/legal/versions'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { joinWaitlistBody } from '~~/shared/api/legal'
+import { useEnv } from '~~/shared/env/load'
 
 // POST /api/waitlist: join the paid-plans waitlist (double opt-in). Body:
 // { email, locale?, consent: true }.
@@ -82,7 +83,7 @@ export default defineApiHandler({
     // X-Forwarded-* (client-influenced: a poisoned host would mail the
     // single-use tokens to an attacker's domain). Without a site URL (only
     // possible outside production) the email is skipped; the response stays 202.
-    const baseUrl = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
+    const baseUrl = emailLinkBaseUrl(useEnv().core.siteUrl)
     if (outcome !== 'unchanged' && baseUrl === null) {
       console.warn('[waitlist] NUXT_SITE_URL is not set — confirmation email not sent')
     }

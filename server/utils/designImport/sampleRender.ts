@@ -4,6 +4,7 @@ import { DocThemeSchema, type DocTheme } from '~~/shared/types/theme'
 import { cleanupRendersForDoc, renderPngUncached } from '../rendering/renderClient'
 import { useS3Client } from '../storage/s3'
 import { useValkey } from '../platform/valkey'
+import { useEnv } from '~~/shared/env/load'
 
 // Renders a fixed sample document in a proposed theme through the normal
 // renderer sidecar → print page path, so the model (and the dialog) see
@@ -104,11 +105,11 @@ export async function renderDesignSample(theme: DocTheme, round: number): Promis
   await valkey.set(sampleKey(id), JSON.stringify(sample), 'EX', SAMPLE_TTL_SECONDS)
   try {
     const { pageKeys } = await renderPngUncached(id, round)
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = useS3Client()
     const pages: string[] = []
     for (const key of pageKeys.slice(0, SAMPLE_PAGES)) {
-      const got = await s3.send(new GetObjectCommand({ Bucket: config.s3.bucket, Key: key }))
+      const got = await s3.send(new GetObjectCommand({ Bucket: env.storage.bucket, Key: key }))
       const bytes = await got.Body?.transformToByteArray()
       if (bytes) pages.push(Buffer.from(bytes).toString('base64'))
     }

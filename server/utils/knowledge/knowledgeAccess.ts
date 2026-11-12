@@ -1,6 +1,7 @@
 import { DeleteObjectCommand } from '@aws-sdk/client-s3'
 import * as Sentry from '@sentry/nuxt'
 import { getKnowledge, deleteKnowledgeRow } from '../../repos/knowledge'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Knowledge-base access rules (declared by the routes under
@@ -30,11 +31,11 @@ export async function deleteKnowledgeArtifact(knowledgeId: string): Promise<void
 
   await deleteKnowledgeRow(knowledgeId)
 
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const s3 = useS3Client()
   try {
     await s3.send(new DeleteObjectCommand({
-      Bucket: config.s3.bucket,
+      Bucket: env.storage.bucket,
       Key: row.s3Key
     }))
   } catch (e) {

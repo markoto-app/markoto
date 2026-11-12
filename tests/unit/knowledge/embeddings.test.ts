@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 
 // Embeddings wrapper over a single backend (Jina
 // via LiteLLM). The shape of `embedDocuments` / `embedQuery` /
@@ -6,19 +7,17 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 // processKnowledge.ts and the re-embed script depend on.
 
 const mockState = vi.hoisted(() => ({
-  config: {
-    litellm: {
-      url: 'http://litellm:4000',
-      masterKey: 'sk-master',
-      embeddingsModel: 'jina-embeddings-v5-text-nano',
-      embeddingsDims: 768
-    }
-  },
   jinaCalls: [] as Array<Record<string, unknown>>,
   jinaResponse: { data: [{ embedding: new Array(768).fill(0.01) }] } as unknown
 }))
 
-;(globalThis as unknown as { useRuntimeConfig: () => typeof mockState.config }).useRuntimeConfig = () => mockState.config
+// Configuration comes from the typed env (shared/env), stubbed per test.
+const JINA_ENV = {
+  NUXT_LITELLM_URL: 'http://litellm:4000',
+  NUXT_LITELLM_MASTER_KEY: 'sk-master',
+  NUXT_LITELLM_EMBEDDINGS_MODEL: 'jina-embeddings-v5-text-nano',
+  NUXT_LITELLM_EMBEDDINGS_DIMS: '768'
+}
 
 vi.mock('../../../server/utils/ai/litellmClient', () => ({
   useLitellmAdmin: () => ({
@@ -40,21 +39,14 @@ const {
 
 beforeEach(() => {
   mockState.jinaCalls = []
-  mockState.config = {
-    litellm: {
-      url: 'http://litellm:4000',
-      masterKey: 'sk-master',
-      embeddingsModel: 'jina-embeddings-v5-text-nano',
-      embeddingsDims: 768
-    }
-  }
+  stubEnv(JINA_ENV)
   mockState.jinaResponse = { data: [{ embedding: new Array(768).fill(0.01) }] }
 })
 
 // resolveEmbeddingsConfig + embeddingVersionTag
 
 describe('resolveEmbeddingsConfig', () => {
-  it('resolves the jina config from runtimeConfig', () => {
+  it('resolves the jina config from the environment', () => {
     const cfg = resolveEmbeddingsConfig()
     expect(cfg.provider).toBe('jina')
     expect(cfg.model).toBe('jina-embeddings-v5-text-nano')
@@ -63,7 +55,7 @@ describe('resolveEmbeddingsConfig', () => {
   })
 
   it('throws when NUXT_LITELLM_MASTER_KEY is missing', () => {
-    mockState.config.litellm.masterKey = ''
+    stubEnv({ NUXT_LITELLM_MASTER_KEY: undefined })
     expect(() => resolveEmbeddingsConfig()).toThrow(/NUXT_LITELLM_MASTER_KEY/)
   })
 })
@@ -95,16 +87,8 @@ describe('embeddingVersionTag', () => {
 })
 
 describe('custom (non-Jina) configuration', () => {
-  function useCustom(extra: Record<string, unknown> = {}, dims = 1536): void {
-    mockState.config = {
-      litellm: {
-        url: 'http://litellm:4000',
-        masterKey: 'sk-master',
-        embeddingsModel: 'custom-embeddings',
-        embeddingsDims: dims,
-        ...extra
-      }
-    } as unknown as typeof mockState.config
+  function useCustom(extra: Record<string, string> = {}, dims = 1536): void {
+    stubEnv({ ...JINA_ENV, NUXT_LITELLM_EMBEDDINGS_MODEL: 'custom-embeddings', NUXT_LITELLM_EMBEDDINGS_DIMS: String(dims), ...extra })
     mockState.jinaResponse = { data: [{ embedding: new Array(dims).fill(0.01) }] }
   }
 
@@ -121,14 +105,14 @@ describe('custom (non-Jina) configuration', () => {
   })
 
   it('sends dimensions when the operator opts in', async () => {
-    useCustom({ embeddingsSendDimensions: 'true' })
+    useCustom({ NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS: 'true' })
     await embedDocuments(['hello'])
     expect(mockState.jinaCalls[0]!.dimensions).toBe(1536)
     expect(mockState.jinaCalls[0]).not.toHaveProperty('task')
   })
 
   it('sends the task hint when the operator opts in', async () => {
-    useCustom({ embeddingsTaskHints: 'true' })
+    useCustom({ NUXT_LITELLM_EMBEDDINGS_TASK_HINTS: 'true' })
     await embedQuery('hello')
     expect(mockState.jinaCalls[0]!.task).toBe('retrieval.query')
   })
@@ -141,7 +125,7 @@ describe('custom (non-Jina) configuration', () => {
 
   it('rejects dimensions beyond the HNSW limit', () => {
     useCustom({}, 3072)
-    expect(() => resolveEmbeddingsConfig()).toThrow(/2000/)
+    expect(() => resolveEmbeddingsConfig()).toThrow(/NUXT_LITELLM_EMBEDDINGS_DIMS: expected an integer 1–2000/)
   })
 })
 

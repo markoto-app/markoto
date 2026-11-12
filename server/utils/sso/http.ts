@@ -19,6 +19,7 @@ import {
   type SsoFlow
 } from './flowCookie'
 import type { SsoLoginResult } from './completeLogin'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * The origin markoto is reached at (`NUXT_SITE_URL`). Callback URLs and
@@ -26,7 +27,7 @@ import type { SsoLoginResult } from './completeLogin'
  * test mode without a site URL, the request origin.
  */
 export function ssoBaseUrl(event: H3Event): string {
-  const site = String(useRuntimeConfig(event).siteUrl ?? '').trim()
+  const site = String(useEnv().core.siteUrl ?? '').trim()
   if (site) return site.replace(/\/+$/, '')
   if (isTestModeEnabled()) return getRequestURL(event).origin
   throw createError({

@@ -3,8 +3,8 @@
 // Self-hosters point markoto at their own IdP (Authentik, Keycloak,
 // Authelia, Pocket ID, Zitadel, Dex, ...). The provider is offered only
 // when issuer + client id + client secret are all set; a partial set is
-// a boot error (`server/plugins/01-validate-secrets.ts`), same rule as
-// the GitHub / Google pairs.
+// a boot error (shared/env/rules/auth.ts), same rule as the GitHub /
+// Google pairs.
 //
 //   NUXT_OAUTH_OIDC_ISSUER         issuer identifier, exactly as the IdP
 //                                  publishes it in its discovery document
@@ -15,11 +15,11 @@
 //   NUXT_OAUTH_OIDC_NAME           optional button label ("Continue with <name>"),
 //                                  read by `shared/config/instance.ts`
 //
-// Pure — takes an env-shaped record so every test tier can drive it.
+// Reads the typed env (shared/env); tests pass an env-shaped record.
 
 import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
-
-type Env = Record<string, string | undefined>
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 const OIDC_DEFAULT_SCOPES = ['openid', 'email', 'profile'] as const
 
@@ -50,93 +50,34 @@ export interface OidcSettings {
   cacheScope?: string
 }
 
-export interface OidcSettingsResult {
-  /** Null when OIDC is not configured (or misconfigured — see `errors`). */
-  settings: OidcSettings | null
-  /** Human-readable configuration errors; non-empty fails boot. */
-  errors: string[]
-}
-
-function trimmed(raw: string | undefined): string {
-  return typeof raw === 'string' ? raw.trim() : ''
-}
-
 export function parseOidcScopes(raw: string | undefined): string[] {
-  const parts = trimmed(raw).split(/[\s,]+/).filter(s => s.length > 0)
+  const parts = (raw ?? '').trim().split(/[\s,]+/).filter(s => s.length > 0)
   const scopes = parts.length > 0 ? parts : [...OIDC_DEFAULT_SCOPES]
   if (!scopes.includes('openid')) scopes.unshift('openid')
   return [...new Set(scopes)]
 }
 
-function insecureHttpAllowed(env: Env): boolean {
-  return isTestModeEnabled(env) || env.NODE_ENV === 'development'
-}
-
-function parseIssuer(raw: string, allowInsecureHttp: boolean, errors: string[]): URL | null {
-  let issuer: URL
-  try {
-    issuer = new URL(raw)
-  } catch {
-    errors.push(`NUXT_OAUTH_OIDC_ISSUER is not a valid URL: "${raw}"`)
-    return null
-  }
-  if (issuer.protocol !== 'https:' && !(allowInsecureHttp && issuer.protocol === 'http:')) {
-    errors.push(`NUXT_OAUTH_OIDC_ISSUER must use https: (got "${issuer.protocol}")`)
-    return null
-  }
-  if (issuer.search || issuer.hash) {
-    errors.push('NUXT_OAUTH_OIDC_ISSUER must not contain a query string or fragment')
-    return null
-  }
-  return issuer
-}
-
-function parseRedirectUrl(raw: string, errors: string[]): string | null {
-  if (!raw) return null
-  try {
-    const url = new URL(raw)
-    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
-      errors.push(`NUXT_OAUTH_OIDC_REDIRECT_URL must use http(s): (got "${url.protocol}")`)
-      return null
-    }
-    return url.toString()
-  } catch {
-    errors.push(`NUXT_OAUTH_OIDC_REDIRECT_URL is not a valid URL: "${raw}"`)
-    return null
-  }
-}
-
-export function resolveOidcSettings(env: Env): OidcSettingsResult {
-  const issuerRaw = trimmed(env.NUXT_OAUTH_OIDC_ISSUER)
-  const clientId = trimmed(env.NUXT_OAUTH_OIDC_CLIENT_ID)
-  const clientSecret = trimmed(env.NUXT_OAUTH_OIDC_CLIENT_SECRET)
-  const present = [issuerRaw, clientId, clientSecret].filter(v => v.length > 0).length
-  if (present === 0) return { settings: null, errors: [] }
-
-  const errors: string[] = []
-  if (present !== 3) {
-    errors.push(
-      'NUXT_OAUTH_OIDC_ISSUER, NUXT_OAUTH_OIDC_CLIENT_ID and NUXT_OAUTH_OIDC_CLIENT_SECRET must be set together '
-      + `(got: issuer=${issuerRaw ? 'set' : 'empty'}, id=${clientId ? 'set' : 'empty'}, secret=${clientSecret ? 'set' : 'empty'})`
-    )
-    return { settings: null, errors }
-  }
-
-  const allowInsecureHttp = insecureHttpAllowed(env)
-  const issuer = parseIssuer(issuerRaw, allowInsecureHttp, errors)
-  const redirectUrl = parseRedirectUrl(trimmed(env.NUXT_OAUTH_OIDC_REDIRECT_URL), errors)
-  if (!issuer || errors.length > 0) return { settings: null, errors }
-
+/**
+ * The instance's own OIDC provider, or null when it is not configured.
+ * Boot validation (shared/env/rules/auth.ts) refuses a partial set, an
+ * http issuer outside development / test mode and an issuer with a query
+ * or fragment, so a set value here is usable.
+ */
+export function resolveOidcSettings(source?: RawEnv): OidcSettings | null {
+  const env = useEnv(source)
+  const { oidcIssuer, oidcClientId, oidcClientSecret, oidcRedirectUrl, oidcScopes } = env.oauth
+  if (!oidcIssuer || !oidcClientId || !oidcClientSecret) return null
+  const issuer = new URL(oidcIssuer)
+  const allowInsecureHttp = isTestModeEnabled(source) || env.core.nodeEnv === 'development'
+  if (issuer.protocol !== 'https:' && !(allowInsecureHttp && issuer.protocol === 'http:')) return null
+  if (issuer.search || issuer.hash) return null
   return {
-    settings: {
-      issuer,
-      clientId,
-      clientSecret,
-      scopes: parseOidcScopes(env.NUXT_OAUTH_OIDC_SCOPES),
-      redirectUrl,
-      allowInsecureHttp
-    },
-    errors
+    issuer,
+    clientId: oidcClientId,
+    clientSecret: oidcClientSecret,
+    scopes: parseOidcScopes(oidcScopes),
+    redirectUrl: oidcRedirectUrl ? new URL(oidcRedirectUrl).toString() : null,
+    allowInsecureHttp
   }
 }
 
@@ -154,10 +95,4 @@ export function oidcRedirectUri(settings: Pick<OidcSettings, 'redirectUrl'>, sit
   } catch {
     return null
   }
-}
-
-/** Boot-time error when OIDC is configured but no redirect URI can be built. */
-export function oidcRedirectErrors(settings: Pick<OidcSettings, 'redirectUrl'> | null, siteUrl: unknown): string[] {
-  if (!settings || oidcRedirectUri(settings, siteUrl) !== null) return []
-  return ['OpenID Connect sign-in needs NUXT_OAUTH_OIDC_REDIRECT_URL or NUXT_SITE_URL (the redirect URI is never taken from the request Host header)']
 }

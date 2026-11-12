@@ -11,13 +11,14 @@
 // makes the singleflight Map's cross-test state hard to assert reliably
 // from a unit test.
 //
-// Mocks: useRuntimeConfig, useS3Client, the database pool, Sentry.
+// Mocks: the typed env (stubbed), useS3Client, the database pool, Sentry.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 import { renderDocument, __testing } from '../../../server/utils/rendering/renderClient'
 
 const RENDERER_URL = 'http://renderer:9000'
-const SECRET = 'internal-api-secret-for-test'
+const SECRET = 'internal-api-secret-for-test-0123456789'
 const BUCKET = 'ypad-test'
 
 // renderClient imports useS3Client from `./s3` (explicit import), so a
@@ -46,13 +47,8 @@ vi.mock('../../../server/utils/documents/syncNotify', () => ({
   flushSyncDocument: (docId: string) => flushSyncDocument(docId)
 }))
 
-// useRuntimeConfig + global fetch are only read at function-call time
-// inside the SUT, so we can install these stubs after the import.
-vi.stubGlobal('useRuntimeConfig', () => ({
-  internalApiSecret: SECRET,
-  rendererInternalUrl: RENDERER_URL,
-  s3: { bucket: BUCKET, endpoint: 'http://s3', accessKey: 'k', secretKey: 's' }
-}))
+// Global fetch is only read at function-call time inside the SUT, so the
+// stub can be installed after the import.
 const fetchMock = vi.fn()
 vi.stubGlobal('fetch', fetchMock)
 
@@ -68,6 +64,14 @@ function manifest(format: 'pdf' | 'png' | 'both') {
 }
 
 beforeEach(() => {
+  stubEnv({
+    NUXT_INTERNAL_API_SECRET: SECRET,
+    NUXT_RENDERER_INTERNAL_URL: RENDERER_URL,
+    NUXT_S3_BUCKET: BUCKET,
+    NUXT_S3_ENDPOINT: 'http://s3',
+    NUXT_S3_ACCESS_KEY: 'k',
+    NUXT_S3_SECRET_KEY: 's'
+  })
   __testing.inflight.clear()
   fetchMock.mockReset()
   dbQuery.mockReset()

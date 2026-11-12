@@ -1,5 +1,5 @@
-import { MIB } from '../../shared/config/units'
-import { positiveInt } from './env'
+import type { SyncEnv } from '../../shared/env/registry'
+import { sync } from '../../shared/env/vars/sync'
 
 // Size limits for what a client may push into a document.
 //
@@ -23,10 +23,9 @@ import { positiveInt } from './env'
 // can grow to twice that before writes are refused. A restore re-sends a
 // whole document as one update, so the update cap equals the doc cap.
 
-export const DEFAULT_MAX_DOCUMENT_BYTES = 16 * MIB
-const DEFAULT_MAX_UPDATE_BYTES = 16 * MIB
-/** Frame overhead on top of the update: document name + message framing. */
-const DEFAULT_MAX_MESSAGE_BYTES = 17 * MIB
+// Defaults live in the env registry (shared/env/vars/sync.ts): 17 MiB frame
+// (update + document name + framing), 16 MiB update, 16 MiB document.
+export const DEFAULT_MAX_DOCUMENT_BYTES = sync.vars.maxDocumentBytes.default
 
 export interface SyncLimits {
   maxMessageBytes: number
@@ -34,10 +33,10 @@ export interface SyncLimits {
   maxDocumentBytes: number
 }
 
-export function parseSyncLimits(env: Record<string, string | undefined>): SyncLimits {
+export function parseSyncLimits(env: SyncEnv): SyncLimits {
   return {
-    maxMessageBytes: positiveInt(env.SYNC_MAX_MESSAGE_BYTES, DEFAULT_MAX_MESSAGE_BYTES),
-    maxUpdateBytes: positiveInt(env.SYNC_MAX_UPDATE_BYTES, DEFAULT_MAX_UPDATE_BYTES),
-    maxDocumentBytes: positiveInt(env.SYNC_MAX_DOCUMENT_BYTES, DEFAULT_MAX_DOCUMENT_BYTES)
+    maxMessageBytes: env.sync.maxMessageBytes,
+    maxUpdateBytes: env.sync.maxUpdateBytes,
+    maxDocumentBytes: env.sync.maxDocumentBytes
   }
 }

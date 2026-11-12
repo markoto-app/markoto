@@ -5,7 +5,10 @@ import * as Y from '../../../sync-server/src/yjs'
 import * as encoding from 'lib0/encoding'
 import { createUpdateGuard, extractSyncUpdate, SyncRejection } from '../../../sync-server/src/update-guard'
 import { parseSyncLimits, DEFAULT_MAX_DOCUMENT_BYTES } from '../../../sync-server/src/limits'
+import { syncEnvFrom } from '../../../sync-server/src/env'
 import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
+
+const limitsFrom = (raw: Record<string, string | undefined>) => parseSyncLimits(syncEnvFrom(raw))
 
 // Pre-apply validation of client updates (H3 size limits + H4 ymeta
 // validation on the WebSocket path). Each test plays a client against a
@@ -59,13 +62,13 @@ describe('update guard — sizes', () => {
   })
 
   it('accepts an ordinary edit', () => {
-    const guard = createUpdateGuard(parseSyncLimits({}))
+    const guard = createUpdateGuard(limitsFrom({}))
     const update = clientUpdate(server, c => c.getText('content').insert(0, 'hello'))
     expect(() => guard.check(server, syncMessage(update), false)).not.toThrow()
   })
 
   it('rejects an update above SYNC_MAX_UPDATE_BYTES', () => {
-    const guard = createUpdateGuard(parseSyncLimits({ SYNC_MAX_UPDATE_BYTES: '1000' }))
+    const guard = createUpdateGuard(limitsFrom({ SYNC_MAX_UPDATE_BYTES: '1000' }))
     const update = clientUpdate(server, c => c.getText('content').insert(0, 'x'.repeat(2000)))
     const r = rejectionOf(() => guard.check(server, syncMessage(update), false))
     expect(r?.reason).toBe('update-too-large')
@@ -73,13 +76,13 @@ describe('update guard — sizes', () => {
   })
 
   it('rejects a message above SYNC_MAX_MESSAGE_BYTES', () => {
-    const guard = createUpdateGuard(parseSyncLimits({ SYNC_MAX_MESSAGE_BYTES: '500' }))
+    const guard = createUpdateGuard(limitsFrom({ SYNC_MAX_MESSAGE_BYTES: '500' }))
     const update = clientUpdate(server, c => c.getText('content').insert(0, 'x'.repeat(600)))
     expect(rejectionOf(() => guard.check(server, syncMessage(update), false))?.reason).toBe('update-too-large')
   })
 
   it('rejects updates that grow the document past SYNC_MAX_DOCUMENT_BYTES, across many small updates', () => {
-    const guard = createUpdateGuard(parseSyncLimits({ SYNC_MAX_DOCUMENT_BYTES: '4000' }))
+    const guard = createUpdateGuard(limitsFrom({ SYNC_MAX_DOCUMENT_BYTES: '4000' }))
     const client = new Y.Doc()
     let rejected: SyncRejection | null = null
     for (let i = 0; i < 20 && !rejected; i++) {
@@ -95,19 +98,19 @@ describe('update guard — sizes', () => {
     const big = new Y.Doc()
     big.getText('content').insert(0, 'z'.repeat(5000))
     Y.applyUpdate(server, Y.encodeStateAsUpdate(big))
-    const guard = createUpdateGuard(parseSyncLimits({ SYNC_MAX_DOCUMENT_BYTES: '1000' }))
+    const guard = createUpdateGuard(limitsFrom({ SYNC_MAX_DOCUMENT_BYTES: '1000' }))
     const update = clientUpdate(server, c => c.getText('content').delete(0, 4000))
     expect(() => guard.check(server, syncMessage(update), false)).not.toThrow()
   })
 
   it('skips validation for read-only connections (their updates are never applied)', () => {
-    const guard = createUpdateGuard(parseSyncLimits({ SYNC_MAX_UPDATE_BYTES: '10' }))
+    const guard = createUpdateGuard(limitsFrom({ SYNC_MAX_UPDATE_BYTES: '10' }))
     const update = clientUpdate(server, c => c.getText('content').insert(0, 'x'.repeat(100)))
     expect(() => guard.check(server, syncMessage(update), true)).not.toThrow()
   })
 
   it('ignores non-update messages', () => {
-    const guard = createUpdateGuard(parseSyncLimits({}))
+    const guard = createUpdateGuard(limitsFrom({}))
     expect(() => guard.check(server, awarenessMessage(), false)).not.toThrow()
   })
 
@@ -119,7 +122,7 @@ describe('update guard — sizes', () => {
 
 describe('update guard — ymeta validation on the WebSocket path', () => {
   let server: Y.Doc
-  const guard = createUpdateGuard(parseSyncLimits({}))
+  const guard = createUpdateGuard(limitsFrom({}))
 
   function accept(update: Uint8Array) {
     guard.check(server, syncMessage(update), false)
@@ -232,14 +235,19 @@ describe('update guard — ymeta validation on the WebSocket path', () => {
 })
 
 describe('parseSyncLimits', () => {
-  it('uses defaults for missing / invalid values', () => {
-    const l = parseSyncLimits({ SYNC_MAX_DOCUMENT_BYTES: 'abc', SYNC_MAX_UPDATE_BYTES: '-5' })
+  it('uses defaults for missing values', () => {
+    const l = limitsFrom({})
     expect(l.maxDocumentBytes).toBe(DEFAULT_MAX_DOCUMENT_BYTES)
     expect(l.maxUpdateBytes).toBeGreaterThan(0)
   })
 
+  it('refuses invalid values instead of silently keeping the default', () => {
+    expect(() => limitsFrom({ SYNC_MAX_DOCUMENT_BYTES: 'abc' })).toThrow(/SYNC_MAX_DOCUMENT_BYTES/)
+    expect(() => limitsFrom({ SYNC_MAX_UPDATE_BYTES: '-5' })).toThrow(/SYNC_MAX_UPDATE_BYTES/)
+  })
+
   it('reads positive integers', () => {
-    expect(parseSyncLimits({ SYNC_MAX_MESSAGE_BYTES: '1234' }).maxMessageBytes).toBe(1234)
+    expect(limitsFrom({ SYNC_MAX_MESSAGE_BYTES: '1234' }).maxMessageBytes).toBe(1234)
   })
 })
 
@@ -254,7 +262,7 @@ describe('update guard — stateless messages', () => {
   }
 
   it('refuses broadcast and plain stateless messages from a read-only connection', () => {
-    const guard = createUpdateGuard(parseSyncLimits({}))
+    const guard = createUpdateGuard(limitsFrom({}))
     const server = new Y.Doc()
     for (const type of [5, 6] as const) {
       const r = rejectionOf(() => guard.check(server, statelessMessage(type), true))
@@ -264,14 +272,14 @@ describe('update guard — stateless messages', () => {
   })
 
   it('keeps stateless messages from writers', () => {
-    const guard = createUpdateGuard(parseSyncLimits({}))
+    const guard = createUpdateGuard(limitsFrom({}))
     const server = new Y.Doc()
     expect(() => guard.check(server, statelessMessage(6), false)).not.toThrow()
     expect(() => guard.check(server, statelessMessage(5), false)).not.toThrow()
   })
 
   it('still lets read-only connections send awareness and sync messages', () => {
-    const guard = createUpdateGuard(parseSyncLimits({}))
+    const guard = createUpdateGuard(limitsFrom({}))
     const server = new Y.Doc()
     expect(() => guard.check(server, awarenessMessage(), true)).not.toThrow()
     const update = clientUpdate(server, c => c.getText('content').insert(0, 'x'))

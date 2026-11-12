@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { injectTraceHeaders } from '../platform/traceHeaders'
 import { DESIGN_IMPORT_MAX_PAGES, type DesignImportExt } from '~~/shared/config/designImport'
 import { markitdownAuthHeaders } from '../platform/markitdownAuth'
+import { useEnv } from '~~/shared/env/load'
 
 // Client for markitdown's `POST /design/extract` (markitdown-server/
 // design_extract.py). The uploaded file is parsed THERE — in a forked,
@@ -61,9 +62,9 @@ export function parseExtractResponse(json: unknown): DesignFacts {
 }
 
 export async function extractDesignFacts(bytes: Uint8Array, ext: DesignImportExt, signal?: AbortSignal): Promise<DesignFacts> {
-  const config = useRuntimeConfig()
-  if (!config.markitdownUrl) throw new DesignExtractError(503, 'markitdown service not configured')
-  const url = `${config.markitdownUrl}/design/extract?ext=${ext}&pages=${DESIGN_IMPORT_MAX_PAGES}`
+  const env = useEnv()
+  if (!env.markitdown.url) throw new DesignExtractError(503, 'markitdown service not configured')
+  const url = `${env.markitdown.url}/design/extract?ext=${ext}&pages=${DESIGN_IMPORT_MAX_PAGES}`
   const response = await fetch(url, {
     method: 'POST',
     headers: injectTraceHeaders({

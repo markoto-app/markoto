@@ -6,6 +6,7 @@ import { resolveBillingContext } from '../billing/billing'
 import { resolveAiProviders } from '../aiProviders/resolve'
 import { getDoc } from '../../repos/documents'
 import { useValkey } from '../platform/valkey'
+import { useEnv } from '~~/shared/env/load'
 
 // MCP equivalent of `createAiSession`. Builds a `ToolContext`-shaped
 // handle for a single MCP tool call, backed by the YDocPool so
@@ -120,8 +121,8 @@ async function releaseUserDocSlot(userId: number, docId: string): Promise<void> 
 }
 
 function mintMcpJwt(docId: string, mcpSessionId: string): string {
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) throw new Error('JWT secret not configured')
+  const env = useEnv()
+  if (!env.auth.jwtSecret) throw new Error('JWT secret not configured')
   const payload: SessionJwtPayload = {
     docId,
     userId: mcpClientUserId(mcpSessionId),
@@ -139,13 +140,12 @@ function mintMcpJwt(docId: string, mcpSessionId: string): string {
   // connected longer (it's evicted by refCount, not by expiry): the pool
   // calls this minter again whenever the sync server asks for a fresh
   // token or the provider reconnects.
-  return jwt.sign(payload, config.jwtSecret, { expiresIn: '10m' })
+  return jwt.sign(payload, env.auth.jwtSecret, { expiresIn: '10m' })
 }
 
 export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promise<McpClientHandle> {
-  const config = useRuntimeConfig()
-  if (!config.syncInternalUrl) throw new Error('syncInternalUrl not configured')
-  const syncUrl = config.syncInternalUrl.replace(/^http(s?):\/\//, 'ws$1://')
+  const env = useEnv()
+  const syncUrl = env.sync.internalUrl.replace(/^http(s?):\/\//, 'ws$1://')
 
   // Per-user cap. Reserved BEFORE the pool checkout so a misbehaving
   // client can't hold N+1 in-flight checkouts that all eventually

@@ -66,10 +66,10 @@ describe('resolveAnonDocTtlDays', () => {
   it('defaults to exactly 30 days (what the Terms state)', () => {
     expect(resolveAnonDocTtlDays({})).toBe(30)
   })
-  it('accepts a positive integer, 0 / garbage = never', () => {
+  it('accepts a non-negative integer, 0 = never; garbage fails boot', () => {
     expect(resolveAnonDocTtlDays({ NUXT_INACTIVE_DOC_TTL_DAYS: '90' })).toBe(90)
     expect(resolveAnonDocTtlDays({ NUXT_INACTIVE_DOC_TTL_DAYS: '0' })).toBe(0)
-    expect(resolveAnonDocTtlDays({ NUXT_INACTIVE_DOC_TTL_DAYS: 'soon' })).toBe(0)
+    expect(() => resolveAnonDocTtlDays({ NUXT_INACTIVE_DOC_TTL_DAYS: 'soon' })).toThrow(/NUXT_INACTIVE_DOC_TTL_DAYS/)
   })
 })
 

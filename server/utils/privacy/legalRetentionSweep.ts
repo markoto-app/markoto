@@ -2,6 +2,8 @@ import { and, inArray, isNotNull, lt } from 'drizzle-orm'
 import { abuseReports, auditLog } from '../../db/schema'
 import { useDatabase } from '../platform/database'
 import { DAY_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 // Retention enforcement for the two compliance tables that grow forever
 // otherwise. Both periods are stated in the privacy policy (§2b, §5) and
@@ -22,23 +24,14 @@ import { DAY_MS } from '~~/shared/config/units'
 export const AUDIT_LOG_DEFAULT_RETENTION_DAYS = 730
 export const ABUSE_REPORT_DEFAULT_RETENTION_DAYS = 365
 
-type Env = Record<string, string | undefined>
-
-function resolveDays(raw: string | undefined, fallback: number): number {
-  if (raw === undefined || raw.trim() === '') return fallback
-  const n = Number(raw)
-  if (!Number.isInteger(n) || n < 0) return fallback
-  return n
+/** `NUXT_AUDIT_LOG_RETENTION_DAYS`; `0` disables the sweep. Unset → 730. */
+export function resolveAuditLogRetentionDays(source?: RawEnv): number {
+  return useEnv(source).legal.auditLogRetentionDays
 }
 
-/** `NUXT_AUDIT_LOG_RETENTION_DAYS`; `0` disables the sweep. Absent / invalid → 730. */
-export function resolveAuditLogRetentionDays(env: Env = process.env): number {
-  return resolveDays(env.NUXT_AUDIT_LOG_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS)
-}
-
-/** `NUXT_ABUSE_REPORT_RETENTION_DAYS`; `0` disables the sweep. Absent / invalid → 365. */
-export function resolveAbuseReportRetentionDays(env: Env = process.env): number {
-  return resolveDays(env.NUXT_ABUSE_REPORT_RETENTION_DAYS, ABUSE_REPORT_DEFAULT_RETENTION_DAYS)
+/** `NUXT_ABUSE_REPORT_RETENTION_DAYS`; `0` disables the sweep. Unset → 365. */
+export function resolveAbuseReportRetentionDays(source?: RawEnv): number {
+  return useEnv(source).legal.abuseReportRetentionDays
 }
 
 /** Delete audit-log rows older than the retention window. Returns the count. */

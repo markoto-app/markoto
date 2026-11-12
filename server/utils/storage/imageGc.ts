@@ -10,6 +10,8 @@ import {
 import { useDatabasePool } from '../platform/database'
 import type { ObjectStore } from './objectStore'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 // Garbage collection of document images nobody can see or restore any more.
 //
@@ -51,12 +53,8 @@ const IMAGE_GC_MAX_DOCS_PER_RUN = 50
  * `NUXT_IMAGE_GC_RETENTION_DAYS`: days an image must stay unreferenced
  * before it is deleted. `0` disables the GC. Absent / invalid → default.
  */
-export function resolveImageGcRetentionDays(env: Record<string, string | undefined> = process.env): number {
-  const raw = env.NUXT_IMAGE_GC_RETENTION_DAYS
-  if (raw === undefined || raw.trim() === '') return IMAGE_GC_DEFAULT_RETENTION_DAYS
-  const n = Number(raw)
-  if (!Number.isInteger(n) || n < 0) return IMAGE_GC_DEFAULT_RETENTION_DAYS
-  return n
+export function resolveImageGcRetentionDays(source?: RawEnv): number {
+  return useEnv(source).storage.imageGcRetentionDays
 }
 
 /**

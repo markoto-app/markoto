@@ -189,7 +189,7 @@ new VPS picks up the existing dataset on first boot.
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | `ssh: connection refused` after provision | ssh hardening locked you out — pubkey path was wrong | OVH rescue console → restore a backed-up `~/.ssh/authorized_keys` |
-| `/api/health` non-200 | DNS not propagated, ACME still in progress, or app crashed on boot | `make logs` → grep for `validate-secrets` and `db-migrate` |
+| `/api/health` non-200 | DNS not propagated, ACME still in progress, or app crashed on boot | `make logs` → grep for `Invalid configuration` and `db-migrate` |
 | `acme.json permission denied` | mode drifted | `chmod 600 /opt/markoto/traefik/acme.json` (the role enforces this on every run) |
 | `IMAGE_TAG required` | image_tag missing from `group_vars/all.yml` | re-edit, re-deploy |
 | Backup cron FAIL log growing | in-stack `backup` container down | `docker compose ps backup`, `docker compose logs backup`, restart |

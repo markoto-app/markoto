@@ -19,6 +19,7 @@ import {
   settleMonth,
   type CreditSubject
 } from '../../repos/aiCreditGrants'
+import { useEnv } from '~~/shared/env/load'
 
 // AI credit top-ups: orchestration.
 //
@@ -42,7 +43,7 @@ function spendDb(): Pool {
 }
 
 function isStubMode(): boolean {
-  return process.env.LITELLM_TEST_STUB === '1'
+  return useEnv().test.litellmStub
 }
 
 function monthBounds(period: string): { from: Date, to: Date } {

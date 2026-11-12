@@ -2,9 +2,10 @@
 // Fire-and-forget — failures are logged but never block Y.js sync.
 
 import { injectTraceHeaders, captureException } from './sentry'
+import { syncEnv } from './env'
 
-const APP_URL = process.env.APP_URL
-const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET
+const APP_URL = syncEnv().sync.appUrl
+const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
 
 // Mirror of the app-side ActivityAction union. Kept in lockstep with
 // server/repos/activity.ts; the internal endpoint validates the action

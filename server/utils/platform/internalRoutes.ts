@@ -1,5 +1,6 @@
 import { createError, getRequestHeader, type H3Event } from 'h3'
 import { cameThroughEdgeProxy, checkInternalSecret, INTERNAL_SECRET_HEADER } from '../../../shared/utils/security/internalSecret'
+import { useEnv } from '~~/shared/env/load'
 
 // Routes that only other containers of the stack may call. The public
 // Traefik routers exclude these prefixes (asserted by
@@ -61,11 +62,11 @@ export function rejectIfFromEdge(event: H3Event): void {
  * and 401 on a missing or wrong one.
  */
 export function requireInternalSecret(event: H3Event): void {
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const verdict = checkInternalSecret(
     getRequestHeader(event, INTERNAL_SECRET_HEADER),
-    config.internalApiSecret,
-    config.internalApiSecretPrevious || null
+    env.auth.internalApiSecret,
+    env.auth.internalApiSecretPrevious || null
   )
   if (verdict === 'unconfigured') {
     throw createError({ statusCode: 500, message: 'Internal API secret not configured' })

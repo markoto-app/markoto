@@ -3,6 +3,7 @@ import {
   isPagesHostRequest, pagesHostRedirect, publishPagesErrors, publishPagesSettings, publishedPageAddress, requestHostname
 } from '../../../server/utils/publish/pagesHost'
 import { isRequestOriginAllowed } from '../../../server/utils/auth/csrf'
+import { bootProblems } from '../env/fixtures'
 
 // Published pages on their own hostname (NUXT_PUBLISH_PAGES_HOST): the
 // setting, the boot check, host matching, the app-origin redirects and
@@ -32,13 +33,15 @@ describe('publishPagesSettings', () => {
 
 describe('publishPagesErrors (boot)', () => {
   it('the hosted shape requires it', () => {
-    expect(publishPagesErrors({ ...SITE, ...TOKEN }, true).join(' ')).toMatch(/NUXT_PUBLISH_PAGES_HOST is empty/)
-    expect(publishPagesErrors({ ...SITE, ...TOKEN, NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' }, true)).toEqual([])
+    const hosted = { ...SITE, NUXT_LEGAL_SURFACES_ENABLED: 'true', NUXT_LEGAL_CONTROLLER_ADDRESS: 'a', NUXT_LEGAL_REPRESENTED_BY: 'b', NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'https://api.openai.com/v1', NUXT_ALTCHA_HMAC_KEY: 'k'.repeat(32) }
+    expect(bootProblems({ ...hosted, ...TOKEN }).join(' ')).toMatch(/NUXT_PUBLISH_PAGES_HOST is empty/)
+    expect(bootProblems({ ...hosted, ...TOKEN, NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' })).toEqual([])
+    expect(bootProblems({ ...hosted, NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' }).join(' ')).toMatch(/NUXT_PUBLISH_TRAEFIK_TOKEN is missing/)
   })
 
   it('self-host may leave it empty', () => {
-    expect(publishPagesErrors({ ...SITE }, false)).toEqual([])
-    expect(publishPagesErrors({ ...SITE, NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' }, false)).toEqual([])
+    expect(publishPagesErrors({ ...SITE })).toEqual([])
+    expect(publishPagesErrors({ ...SITE, NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' })).toEqual([])
   })
 
   it('refuses the app host, internal and non-public names, paths, other schemes', () => {
@@ -47,13 +50,13 @@ describe('publishPagesErrors (boot)', () => {
       'pages.markoto.app/p', 'https://pages.markoto.app/x', 'ftp://pages.markoto.app', 'https://u:p@pages.markoto.app', 'http://pages.markoto.app',
       'pages.markoto.app`) || Host(`evil.example'
     ]) {
-      expect(publishPagesErrors({ ...SITE, NUXT_PUBLISH_PAGES_HOST: bad }, false), bad).toHaveLength(1)
+      expect(publishPagesErrors({ ...SITE, NUXT_PUBLISH_PAGES_HOST: bad }), bad).toHaveLength(1)
       expect(publishPagesSettings({ ...SITE, NUXT_PUBLISH_PAGES_HOST: bad }), bad).toBeNull()
     }
   })
 
   it('needs the site URL to link back to the app', () => {
-    expect(publishPagesErrors({ NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' }, false).join(' ')).toMatch(/NUXT_SITE_URL/)
+    expect(bootProblems({ NUXT_PUBLISH_PAGES_HOST: 'pages.markoto.app' }).join(' ')).toMatch(/NUXT_SITE_URL/)
   })
 })
 

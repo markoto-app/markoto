@@ -7,6 +7,7 @@ import { flushSyncDocument } from '../documents/syncNotify'
 import { resolveDocBrand } from '../brandKit/docBrand'
 import { getDoc } from '../../repos/documents'
 import * as Sentry from '@sentry/nuxt'
+import { useEnv } from '~~/shared/env/load'
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
 //   1. Compute the doc's current snapshotId (latest yjs_documents row id).
@@ -189,17 +190,17 @@ async function getLatestSnapshotId(docId: string): Promise<number> {
  * idempotent so a wasteful re-render is preferable to a confusing 500).
  */
 async function readManifest(docId: string, snapshotId: number, variant: string | null = null): Promise<RenderManifest | null> {
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const s3 = useS3Client()
   const key = `renders/${docId}/${renderFolder(snapshotId, variant)}/manifest.json`
   try {
-    await s3.send(new HeadObjectCommand({ Bucket: config.s3.bucket, Key: key }))
+    await s3.send(new HeadObjectCommand({ Bucket: env.storage.bucket, Key: key }))
   } catch {
     return null
   }
   // Manifest exists — fetch + parse.
   try {
-    const got = await s3.send(new GetObjectCommand({ Bucket: config.s3.bucket, Key: key }))
+    const got = await s3.send(new GetObjectCommand({ Bucket: env.storage.bucket, Key: key }))
     const text = await got.Body!.transformToString()
     return JSON.parse(text) as RenderManifest
   } catch (e) {
@@ -220,19 +221,19 @@ async function callRenderer(
   format: RenderFormat | 'html',
   variant: string | null = null
 ): Promise<RendererSuccess> {
-  const config = useRuntimeConfig()
-  if (!config.rendererInternalUrl) {
+  const env = useEnv()
+  if (!env.renderer.internalUrl) {
     throw new Error('Renderer not configured (NUXT_RENDERER_INTERNAL_URL missing)')
   }
-  if (!config.internalApiSecret) {
+  if (!env.auth.internalApiSecret) {
     throw new Error('Renderer call requires internalApiSecret')
   }
 
-  const res = await fetch(`${config.rendererInternalUrl}/render`, {
+  const res = await fetch(`${env.renderer.internalUrl}/render`, {
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/json',
-      'X-Internal-Secret': config.internalApiSecret
+      'X-Internal-Secret': env.auth.internalApiSecret
     }),
     body: JSON.stringify(variant ? { docId, snapshotId, format, variant } : { docId, snapshotId, format }),
     signal: AbortSignal.timeout(RENDER_TIMEOUT_MS)
@@ -364,7 +365,7 @@ function manifestSatisfies(m: RenderManifest, want: 'pdf' | 'png' | 'both'): boo
  * Mirrors `cleanupDocS3` in documentLifecycle.ts.
  */
 export async function cleanupRendersForDoc(docId: string): Promise<number> {
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const s3 = useS3Client()
   const prefix = `renders/${docId}/`
   try {
@@ -372,7 +373,7 @@ export async function cleanupRendersForDoc(docId: string): Promise<number> {
     let continuationToken: string | undefined
     do {
       const list = await s3.send(new ListObjectsV2Command({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Prefix: prefix,
         ContinuationToken: continuationToken
       }))
@@ -384,7 +385,7 @@ export async function cleanupRendersForDoc(docId: string): Promise<number> {
     for (let i = 0; i < keysToDelete.length; i += 1000) {
       const batch = keysToDelete.slice(i, i + 1000)
       await s3.send(new DeleteObjectsCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Delete: { Objects: batch, Quiet: true }
       }))
     }

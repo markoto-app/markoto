@@ -15,6 +15,8 @@ import {
   type TopupPackId
 } from '~~/shared/config/pricing'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 // The Stripe price catalogue: which Stripe Price sells which
 // plan / interval / currency.
@@ -27,7 +29,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
 //   NUXT_STRIPE_PRICE_IDS=markoto_pro_month_eur=price_123,markoto_pro_year_eur=price_456
 // An id listed there wins over the lookup key Stripe reports.
 //
-// The catalogue is cached in-process for 10 minutes. Reads process.env per
+// The catalogue is cached in-process for 10 minutes. Reads the typed env per
 // call, like tierConfig.ts.
 
 const CACHE_TTL_MS = 10 * MINUTE_MS
@@ -47,9 +49,8 @@ export interface StripeCatalogue {
 
 let cache: { at: number, catalogue: StripeCatalogue } | null = null
 
-export function lookupKeyPrefix(env: Record<string, string | undefined> = process.env): string {
-  const raw = env.NUXT_STRIPE_LOOKUP_KEY_PREFIX?.trim()
-  return raw && /^[a-z0-9-]+$/i.test(raw) ? raw : 'markoto'
+export function lookupKeyPrefix(source?: RawEnv): string {
+  return useEnv(source).billing.stripeLookupKeyPrefix
 }
 
 /** Parse `NUXT_STRIPE_PRICE_IDS` (`key=price_id,…`) into key → id. Pure. */
@@ -74,7 +75,7 @@ export async function getStripeCatalogue(stripe: Stripe, now: number = Date.now(
   if (cache && now - cache.at < CACHE_TTL_MS) return cache.catalogue
   const prefix = lookupKeyPrefix()
   const byKey = new Map<string, CatalogueEntry>()
-  const overrides = parsePriceIdOverrides(process.env.NUXT_STRIPE_PRICE_IDS, prefix)
+  const overrides = parsePriceIdOverrides(useEnv().billing.stripePriceIds, prefix)
   for (const [key, entry] of overrides) byKey.set(key, { ...entry, amount: null })
 
   const missing = allStripePriceLookupKeys(prefix).filter(key => !byKey.has(key))
@@ -121,7 +122,7 @@ export async function identifyStripePrice(
 ): Promise<PriceIdentity | null> {
   if (!price) return null
   const prefix = lookupKeyPrefix()
-  const overrides = parsePriceIdOverrides(process.env.NUXT_STRIPE_PRICE_IDS, prefix)
+  const overrides = parsePriceIdOverrides(useEnv().billing.stripePriceIds, prefix)
   for (const entry of overrides.values()) {
     if (entry.priceId === price.id) return { plan: entry.plan, interval: entry.interval, currency: entry.currency }
   }
@@ -140,7 +141,7 @@ export async function identifyStripePrice(
  * (an id override, or a key the operator hasn't created yet).
  */
 export async function livePlanPriceTable(stripe: Stripe): Promise<PlanPriceTable> {
-  const table = resolvePlanPricesFromEnv(process.env)
+  const table = resolvePlanPricesFromEnv()
   const catalogue = await getStripeCatalogue(stripe)
   for (const entry of catalogue.byKey.values()) {
     if (entry.amount !== null && (CURRENCIES as readonly string[]).includes(entry.currency)) {
@@ -160,7 +161,7 @@ const topupCache = new Map<string, { at: number, priceId: string | null }>()
 export async function stripeTopupPriceIdFor(stripe: Stripe, pack: TopupPackId, currency: Currency, now: number = Date.now()): Promise<string | null> {
   const prefix = lookupKeyPrefix()
   const key = stripeTopupLookupKey(pack, currency, prefix)
-  for (const pair of (process.env.NUXT_STRIPE_PRICE_IDS ?? '').split(',')) {
+  for (const pair of (useEnv().billing.stripePriceIds).split(',')) {
     const [k, id] = pair.split('=').map(s => s?.trim())
     if (k === key && id) return id
   }

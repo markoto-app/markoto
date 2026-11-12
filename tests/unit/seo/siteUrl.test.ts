@@ -1,23 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { emailLinkBaseUrl, siteUrlErrors } from '../../../server/utils/platform/siteUrl'
+import { emailLinkBaseUrl } from '../../../server/utils/platform/siteUrl'
+import { bootProblems } from '../env/fixtures'
 
 // Email links are built from NUXT_SITE_URL only — never from the
 // client-influenced request Host — so production must configure it.
 
-describe('siteUrlErrors', () => {
+describe('NUXT_SITE_URL at boot', () => {
   it('requires NUXT_SITE_URL in production', () => {
-    expect(siteUrlErrors('', true)).toHaveLength(1)
-    expect(siteUrlErrors(undefined, true)).toHaveLength(1)
-    expect(siteUrlErrors('https://markoto.app', true)).toEqual([])
+    expect(bootProblems({ NODE_ENV: 'production' })).toEqual(['NUXT_SITE_URL: required, not set'])
+    expect(bootProblems({ NODE_ENV: 'production', NUXT_SITE_URL: 'https://markoto.app' })).toEqual([])
   })
 
   it('does not require it outside production', () => {
-    expect(siteUrlErrors('', false)).toEqual([])
+    expect(bootProblems({})).toEqual([])
   })
 
   it('rejects malformed values everywhere', () => {
-    expect(siteUrlErrors('markoto.app', false)).toHaveLength(1)
-    expect(siteUrlErrors('ftp://markoto.app', true)).toHaveLength(1)
+    expect(bootProblems({ NUXT_SITE_URL: 'markoto.app' })).toHaveLength(1)
+    expect(bootProblems({ NODE_ENV: 'production', NUXT_SITE_URL: 'ftp://markoto.app' })).toHaveLength(1)
   })
 })
 

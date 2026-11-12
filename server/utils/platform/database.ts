@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/nuxt'
 import * as schema from '../../db/schema'
 import { postgresUrlFromEnv } from '../../../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../../../shared/utils/runtime/postgresSsl'
+import { useEnv } from '~~/shared/env/load'
 
 let db: ReturnType<typeof drizzle<typeof schema>> | null = null
 let pool: Pool | null = null
@@ -13,11 +14,6 @@ let pool: Pool | null = null
  * queries raise a warning-level Sentry event. Read once at module load, so
  * changing it needs a restart.
  */
-const SLOW_QUERY_THRESHOLD_MS = (() => {
-  const raw = process.env.NUXT_DB_SLOW_QUERY_MS
-  const n = raw ? Number(raw) : Number.NaN
-  return Number.isFinite(n) && n > 0 ? n : 200
-})()
 
 /**
  * Wrap `pool.query` with a timing probe. Slow queries are reported with the
@@ -28,6 +24,9 @@ const SLOW_QUERY_THRESHOLD_MS = (() => {
  * passes through unwrapped so callers that consume its events still work.
  */
 function instrumentPoolForSlowQueries(p: Pool): void {
+  // Read when the pool is created, not at import: a module-level read would
+  // run before boot validation and report only part of the problems.
+  const SLOW_QUERY_THRESHOLD_MS = useEnv().server.slowQueryMs
   const orig = p.query.bind(p)
   // Cast through `unknown`: `pg.Pool.query` has too many overloads to type.
   // The wrapper does not change semantics, so the cast is sound.
@@ -80,10 +79,10 @@ function instrumentPoolForSlowQueries(p: Pool): void {
 export function useDatabase() {
   if (!db) {
     pool = new Pool({
-      connectionString: postgresUrlFromEnv(),
+      connectionString: postgresUrlFromEnv(useEnv().database),
       // Prod verifies the server cert (pinned CA or system bundle); dev keeps
       // TLS off for the local TLS-less Postgres. See shared/utils/runtime/postgresSsl.ts.
-      ssl: resolvePostgresSsl(),
+      ssl: resolvePostgresSsl(useEnv().database, process.env.NODE_ENV === 'production'),
       // The default of 10 is too tight: many handlers hold a connection across
       // S3 / LiteLLM / markitdown calls. 30 stays well under Postgres
       // `max_connections` even with the sync container sharing the DB.

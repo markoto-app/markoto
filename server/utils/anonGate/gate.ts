@@ -3,7 +3,6 @@ import { getCookie, getRequestProtocol, setCookie } from 'h3'
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from '../platform/valkey'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
-import { SECRET_MIN_LENGTH } from '~~/shared/utils/security/validateSecrets'
 import { TOS_VERSION } from '~~/shared/legal/versions'
 import {
   ANON_GATE_CODES,
@@ -32,20 +31,20 @@ import {
 } from './termsCookie'
 import { apiError } from '../api/apiError'
 import type { ApiErrorCode } from '~~/shared/api/errors'
+import { useEnv } from '~~/shared/env/load'
 
 // H3 glue around the pure ALTCHA + terms-cookie cores. Endpoints call
 // `enforceAnonGate(event, body, purpose)` for anonymous callers only.
-// Reads process.env per call (like billingMode / instanceConfig) so tests
-// can flip the flags.
+// Reads the typed env per call (like billingMode / instanceConfig) so
+// tests can flip the flags.
 
 export function anonGateEnabled(): boolean {
-  return resolveAnonGateEnabled(process.env)
+  return resolveAnonGateEnabled()
 }
 
 /** NUXT_ALTCHA_HMAC_KEY when usable (≥ 32 chars), else null. */
 function altchaMasterKey(): string | null {
-  const key = process.env.NUXT_ALTCHA_HMAC_KEY?.trim() ?? ''
-  return key.length >= SECRET_MIN_LENGTH ? key : null
+  return useEnv().legal.altchaHmacKey ?? null
 }
 
 function powDifficulty(): PowDifficulty {

@@ -15,6 +15,7 @@ import { HLJS_THEMES, hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
 import { PUBLISH_ERROR_CODES, PUBLISH_MAX_SNAPSHOT_CHARS, slugFromTitle } from '~~/shared/config/publish'
 import { sanitizeSnapshotHtml } from './sanitizeSnapshot'
 import { collectSnapshotAssets, publishedObjectKey, publishedPrefix, rewriteSnapshotAssets, type SnapshotAssetRefs } from './snapshotAssets'
+import { useEnv } from '~~/shared/env/load'
 
 // Publish a document as a web page: render the web snapshot, copy
 // the files it shows to the page's own prefix, store it. Re-publishing
@@ -66,7 +67,7 @@ async function brandKeys(workspaceId: string | null, files: Set<string>): Promis
 
 async function copyAll(pageId: string, kind: 'files' | 'brand', sources: Map<string, string>, copied: Set<string>): Promise<void> {
   const s3 = useS3Client()
-  const bucket = useRuntimeConfig().s3.bucket
+  const bucket = useEnv().storage.bucket
   for (const [file, key] of sources) {
     try {
       await s3.send(new CopyObjectCommand({ Bucket: bucket, CopySource: `/${bucket}/${key}`, Key: publishedObjectKey(pageId, kind, file) }))
@@ -82,7 +83,7 @@ async function copyAll(pageId: string, kind: 'files' | 'brand', sources: Map<str
 /** Delete the page's objects that the new snapshot no longer uses (or all of them). */
 export async function prunePublishedObjects(pageId: string, keep: ReadonlySet<string> = new Set()): Promise<void> {
   const s3 = useS3Client()
-  const bucket = useRuntimeConfig().s3.bucket
+  const bucket = useEnv().storage.bucket
   try {
     const stale: { Key: string }[] = []
     let token: string | undefined

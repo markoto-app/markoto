@@ -1,6 +1,7 @@
 import { IncomingMessage, ServerResponse } from 'node:http'
 import { Socket } from 'node:net'
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 import { createEvent } from 'h3'
 import {
   classifyInternalRoute,
@@ -12,8 +13,11 @@ import {
 // Which app routes only other containers may call, and the gates the auth
 // middleware applies to them (server/middleware/auth.ts).
 
-const runtimeConfig = { internalApiSecret: 'current-secret', internalApiSecretPrevious: 'previous-secret' }
-vi.stubGlobal('useRuntimeConfig', () => runtimeConfig)
+const CURRENT = 'current-secret-current-secret-0123456789'
+const PREVIOUS = 'previous-secret-previous-secret-012345678'
+beforeEach(() => {
+  stubEnv({ NUXT_INTERNAL_API_SECRET: CURRENT, NUXT_INTERNAL_API_SECRET_PREVIOUS: PREVIOUS })
+})
 
 function eventWith(headers: Record<string, string>) {
   const req = new IncomingMessage(new Socket())
@@ -78,8 +82,8 @@ describe('rejectIfFromEdge', () => {
 
 describe('requireInternalSecret', () => {
   it('accepts the current and the previous secret', () => {
-    expect(statusOf(() => requireInternalSecret(eventWith({ 'x-internal-secret': 'current-secret' })))).toBeNull()
-    expect(statusOf(() => requireInternalSecret(eventWith({ 'x-internal-secret': 'previous-secret' })))).toBeNull()
+    expect(statusOf(() => requireInternalSecret(eventWith({ 'x-internal-secret': CURRENT })))).toBeNull()
+    expect(statusOf(() => requireInternalSecret(eventWith({ 'x-internal-secret': PREVIOUS })))).toBeNull()
   })
 
   it('401s a missing or wrong secret', () => {
@@ -88,12 +92,7 @@ describe('requireInternalSecret', () => {
   })
 
   it('500s when the app has no secret configured', () => {
-    const saved = runtimeConfig.internalApiSecret
-    runtimeConfig.internalApiSecret = ''
-    try {
-      expect(statusOf(() => requireInternalSecret(eventWith({ 'x-internal-secret': 'previous-secret' })))).toBe(500)
-    } finally {
-      runtimeConfig.internalApiSecret = saved
-    }
+    stubEnv({ NUXT_INTERNAL_API_SECRET: undefined })
+    expect(statusOf(() => requireInternalSecret(eventWith({ 'x-internal-secret': PREVIOUS })))).toBe(500)
   })
 })

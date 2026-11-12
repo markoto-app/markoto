@@ -16,6 +16,7 @@ import {
 } from '../../../../legal/auditActions'
 import { startWorkspaceCheckoutBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // POST /api/workspaces/:wsId/billing/checkout — buy Team / Business for a
 // workspace, or change the plan / billing period of its live subscription
@@ -113,7 +114,7 @@ export default defineApiHandler({
     })
 
     const base = requestBaseUrl(event)
-    const taxEnabled = ['1', 'true', 'yes'].includes(String(useRuntimeConfig(event).stripe.automaticTax || '').toLowerCase())
+    const taxEnabled = ['1', 'true', 'yes'].includes(String(useEnv().billing.stripeAutomaticTax || '').toLowerCase())
     const metadata = { subject_type: 'workspace', subject_id: wsId, billing_admin_id: String(userId) }
     try {
       // Only the newest Checkout of a workspace can be paid.

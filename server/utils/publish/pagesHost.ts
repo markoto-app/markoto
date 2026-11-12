@@ -2,6 +2,8 @@ import { normalizeCustomHostname } from '~~/shared/config/customDomains'
 import { PUBLISHED_PAGE_PREFIX, PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { isTestModeEnabled } from '~~/shared/utils/security/testMode'
 import { isInternalHostname } from '../aiProviders/urlPolicy'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 // The separate hostname published pages are served from
 // (`NUXT_PUBLISH_PAGES_HOST`, e.g. `pages.markoto.app`).
@@ -17,8 +19,6 @@ import { isInternalHostname } from '../aiProviders/urlPolicy'
 // Unset (the self-host default) keeps one origin: pages at
 // `<app>/p/<slug>`. Read per call so tests can stub the environment.
 
-type Env = NodeJS.ProcessEnv
-
 export interface PublishPagesSettings {
   /** Lowercase hostname without port — what the Host header is compared to. */
   hostname: string
@@ -31,20 +31,15 @@ interface Parsed {
   error: string | null
 }
 
-function siteUrlOf(env: Env): URL | null {
-  const raw = (env.NUXT_SITE_URL ?? '').trim()
-  if (!raw) return null
-  try {
-    return new URL(raw)
-  } catch {
-    return null
-  }
+function siteUrlOf(source: RawEnv | undefined): URL | null {
+  const raw = useEnv(source).core.siteUrl
+  return raw ? new URL(raw) : null
 }
 
 const NAME = 'NUXT_PUBLISH_PAGES_HOST'
 
 /** Scheme, port and hostname part of a value given as an origin (`https://host[:port]`). */
-function splitOrigin(raw: string, env: Env, site: URL | null): { scheme: string, port: string, hostPart: string } | string {
+function splitOrigin(raw: string, source: RawEnv | undefined, site: URL | null): { scheme: string, port: string, hostPart: string } | string {
   let url: URL
   try {
     url = new URL(raw)
@@ -58,19 +53,19 @@ function splitOrigin(raw: string, env: Env, site: URL | null): { scheme: string,
   // Plain http only where the app itself runs on plain http (a LAN
   // self-host without TLS, the test stacks): a published page must
   // never be the one insecure origin of an https instance.
-  if (url.protocol === 'http:' && site?.protocol !== 'http:' && !isTestModeEnabled(env)) {
+  if (url.protocol === 'http:' && site?.protocol !== 'http:' && !isTestModeEnabled(source)) {
     return `${NAME} uses http://, but the app (NUXT_SITE_URL) is not served over plain http — use https:// or a bare hostname`
   }
   return { scheme: url.protocol, port: url.port, hostPart: url.hostname }
 }
 
-function parse(env: Env): Parsed {
-  const raw = (env[NAME] ?? '').trim()
+function parse(source: RawEnv | undefined): Parsed {
+  const raw = useEnv(source).publish.pagesHost ?? ''
   if (!raw) return { settings: null, error: null }
-  const site = siteUrlOf(env)
-  const parts = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? splitOrigin(raw, env, site) : { scheme: 'https:', port: '', hostPart: raw }
+  const site = siteUrlOf(source)
+  const parts = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? splitOrigin(raw, source, site) : { scheme: 'https:', port: '', hostPart: raw }
   if (typeof parts === 'string') return { settings: null, error: parts }
-  const hostname = normalizeCustomHostname(parts.hostPart, { allowTestNames: isTestModeEnabled(env) })
+  const hostname = normalizeCustomHostname(parts.hostPart, { allowTestNames: isTestModeEnabled(source) })
   if (!hostname || hostname !== parts.hostPart.toLowerCase().replace(/\.$/, '')) {
     return { settings: null, error: `${NAME} must be a public DNS name such as pages.example.com (no IP address, no single label, no .local / .internal / .localhost): "${raw.slice(0, 80)}"` }
   }
@@ -84,31 +79,19 @@ function parse(env: Env): Parsed {
 }
 
 /** The configured pages host, or null (unset or invalid — boot validation reports invalid values). */
-export function publishPagesSettings(env: Env = process.env): PublishPagesSettings | null {
-  return parse(env).settings
+export function publishPagesSettings(source?: RawEnv): PublishPagesSettings | null {
+  return parse(source).settings
 }
 
 /**
- * Boot-time errors. The hosted shape (`NUXT_LEGAL_SURFACES_ENABLED=true`)
- * must serve pages from their own host — publishing is open to every
- * account there — and that host is routed by Traefik's HTTP provider,
- * which only polls with the provider token.
+ * Boot-time check of the value's shape (a public DNS name or https origin,
+ * not the app's own host, not an internal service). Presence rules — the
+ * hosted shape needs a pages host and the Traefik token — live with the
+ * env registry (shared/env/rules/legal.ts).
  */
-export function publishPagesErrors(env: Env, hostedShape: boolean): string[] {
-  const { settings, error } = parse(env)
-  if (error) return [error]
-  const errors: string[] = []
-  if (settings && !siteUrlOf(env)) {
-    errors.push('NUXT_PUBLISH_PAGES_HOST is set but NUXT_SITE_URL is not: links from a published page back to the app (report form, redirects) are built from it')
-  }
-  if (hostedShape) {
-    if (!settings) {
-      errors.push('NUXT_PUBLISH_PAGES_HOST is empty, but this instance runs the hosted shape (NUXT_LEGAL_SURFACES_ENABLED=true): published pages must be served from their own hostname (e.g. pages.<your domain>), never the app\'s origin — see docs/operations/LAUNCH-CHECKLIST.md')
-    } else if ((env.NUXT_PUBLISH_TRAEFIK_TOKEN ?? '').trim().length < 32) {
-      errors.push('NUXT_PUBLISH_PAGES_HOST is set but NUXT_PUBLISH_TRAEFIK_TOKEN is missing or shorter than 32 characters: Traefik learns the pages host\'s router and certificate from the app\'s HTTP provider, which only answers with the token')
-    }
-  }
-  return errors
+export function publishPagesErrors(source?: RawEnv): string[] {
+  const { error } = parse(source)
+  return error ? [error] : []
 }
 
 /** Lowercase request hostname without port or trailing dot. */

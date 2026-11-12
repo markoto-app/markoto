@@ -3,6 +3,7 @@ import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
 import { z } from 'zod'
 import { ID_PATTERN } from '~~/shared/config/identifiers'
 import { ownValue } from '~~/shared/utils/ownValue'
+import { useEnv } from '~~/shared/env/load'
 
 // fileId is a nanoid(12) with a content-type-derived extension. Not a security
 // boundary (S3 keys are opaque); it just stops malformed clients from presigning
@@ -28,7 +29,7 @@ export default defineApiHandler({
   params: z.object({ docId: z.string().min(1), fileId: z.string().regex(FILE_ID_RE) }),
   handler: async ({ event, docId, params: { fileId } }) => {
     const s3 = usePresignS3Client()
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const key = `docs/${docId}/${fileId}`
 
     // Short TTL because a presigned URL can't be revoked: it outlives a deletion,
@@ -41,7 +42,7 @@ export default defineApiHandler({
     const url = await getSignedUrl(
       s3,
       new GetObjectCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Key: key,
         ResponseContentType: ownValue(EXT_CONTENT_TYPE, ext) ?? 'application/octet-stream',
         ResponseContentDisposition: `inline; filename="${fileId}"`

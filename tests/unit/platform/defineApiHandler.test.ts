@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 import jwt from 'jsonwebtoken'
 import { createApp, createError, createRouter, toWebHandler, type EventHandler } from 'h3'
 import { z } from 'zod'
@@ -110,7 +111,6 @@ vi.mock('../../../server/utils/rendering/renderTokens', () => ({
 
 const SECRET = 'unit-test-jwt-secret-0123456789abcdef'
 const INTERNAL = 'unit-test-internal-secret-0123456789'
-vi.stubGlobal('useRuntimeConfig', () => ({ jwtSecret: SECRET, jwtSecretPrevious: '', internalApiSecret: INTERNAL, internalApiSecretPrevious: '' }))
 
 const { defineApiHandler, lenientBody } = await import('../../../server/utils/api/defineApiHandler')
 const { allow } = await import('../../../server/utils/api/policy')
@@ -135,6 +135,7 @@ async function call(handler: EventHandler, route: string, url: string, init: Req
 }
 
 beforeEach(() => {
+  stubEnv({ NUXT_JWT_SECRET: SECRET, NUXT_INTERNAL_API_SECRET: INTERNAL })
   Object.assign(m, {
     user: null, recent: true, isAdmin: false, row: null, memberRole: null, memberRoleIgnoringSso: null, membership: null,
     ssoError: null, rateAllowed: true, billingOn: true, planOk: true, idempotencyCalls: [], scimDeny: null, rateCalls: [], customDomains: true, traefik: null

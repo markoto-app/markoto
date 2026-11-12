@@ -42,6 +42,7 @@ import {
   SectionModeSchema,
   DropCapSchema
 } from '~~/shared/types/theme'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Function declarations + runtime arg schemas. Single source of truth — the
@@ -1059,7 +1060,7 @@ async function webSearchViaStaan(
   signal: AbortSignal,
   spendCtx: WebToolSpendContext = {}
 ): Promise<WebSearchResult> {
-  const staanKey = process.env.STAAN_API_KEY
+  const staanKey = useEnv().providers.staanApiKey
   if (!staanKey) {
     throw new Error('STAAN_API_KEY not configured (required for web_search)')
   }
@@ -1190,7 +1191,7 @@ async function fetchUrlViaJina(
   signal: AbortSignal,
   spendCtx: WebToolSpendContext = {}
 ): Promise<FetchUrlResult> {
-  const jinaKey = process.env.JINA_AI_API_KEY
+  const jinaKey = useEnv().providers.jinaApiKey
   if (!jinaKey) {
     throw new Error('JINA_AI_API_KEY not configured (required for fetch_url via mistral path)')
   }

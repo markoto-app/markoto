@@ -6,6 +6,7 @@ import { ID_RE } from '~~/shared/config/identifiers'
 import { MIB } from '~~/shared/config/units'
 import { IMPORT_MARKDOWN_MAX_BYTES, IMPORT_MAX_BYTES, IMPORT_REQUEST_MAX_BYTES } from '~~/shared/config/uploads'
 import { MARKITDOWN_IMPORT_TIMEOUT_MS } from '../config/markitdown'
+import { useEnv } from '~~/shared/env/load'
 
 // Subset of formats markitdown handles well as document imports. It also
 // supports CSV/JSON/XML/audio/images, but those round-trip into markdown
@@ -64,13 +65,13 @@ export default defineApiHandler({
 
     if (!ALLOWED_EXTENSIONS.has(ext)) throw apiError('import/unsupported-format')
 
-    const config = useRuntimeConfig()
-    if (!config.markitdownUrl) throw apiError('import/not-configured')
+    const env = useEnv()
+    if (!env.markitdown.url) throw apiError('import/not-configured')
 
     // Markitdown's converter routing is extension-driven (StreamInfo in
     // markitdown-server/server.py), so pass the validated extension as a query
     // param instead of relying on Content-Type sniffing.
-    const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
+    const url = `${env.markitdown.url}/convert?ext=${encodeURIComponent(ext)}`
 
     let response: Response
     try {

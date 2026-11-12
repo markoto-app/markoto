@@ -29,16 +29,16 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 // The integration project runs files in ONE worker without isolation:
 // snapshot what this file changes and put it back in afterAll.
 const envBefore = { ...process.env }
-const globalsBefore = { useRuntimeConfig: Reflect.get(globalThis, 'useRuntimeConfig'), createError: Reflect.get(globalThis, 'createError') }
+const globalsBefore = { createError: Reflect.get(globalThis, 'createError') }
 
 applyTestEnv()
 process.env.LITELLM_TEST_STUB = ''
 process.env.NUXT_FREE_TIER_TOTAL_BUDGET_USD = '500'
 process.env.TIER_FREE_LITELLM_BUDGET_USD = '0.5'
-Object.assign(globalThis, {
-  useRuntimeConfig: () => ({ litellm: { url: LITELLM_URL, masterKey: LITELLM_MASTER_KEY } }),
-  createError
-})
+// The code under test reads the proxy from the typed env (shared/env).
+process.env.NUXT_LITELLM_URL = LITELLM_URL
+process.env.NUXT_LITELLM_MASTER_KEY = LITELLM_MASTER_KEY
+Object.assign(globalThis, { createError })
 
 const { createUserKey, getUserKeyToken, updateUserKeyBudget } = await import('../../../server/utils/litellm/userKeys')
 const team = await import('../../../server/utils/litellm/freeTierTeam')

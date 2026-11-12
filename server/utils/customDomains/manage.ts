@@ -14,6 +14,7 @@ import {
 import { isInternalHostname } from '../aiProviders/urlPolicy'
 import { appendAuditEvent } from '../../repos/audit'
 import { AUDIT_CUSTOM_DOMAIN_DROPPED, AUDIT_CUSTOM_DOMAIN_VERIFIED } from '../../legal/auditActions'
+import { useEnv } from '~~/shared/env/load'
 
 // Custom domains: the signed-in user's own domains. Adding one
 // needs the plan feature `customDomains`; the domain is routed only once
@@ -34,7 +35,7 @@ export async function customDomainContext(userId: number): Promise<{ settings: C
 export function validateNewHostname(event: H3Event, input: unknown, settings: CustomDomainSettings): string {
   const host = normalizeCustomHostname(input, { allowTestNames: settings.allowTestNames })
   if (!host) throw apiError('custom-domain/invalid', { field: 'hostname' })
-  const site = emailLinkBaseUrl(useRuntimeConfig(event).siteUrl)
+  const site = emailLinkBaseUrl(useEnv().core.siteUrl)
   const own = [settings.target, site ? new URL(site).hostname : null, new URL(publicBaseUrl(event)).hostname, publishPagesSettings()?.hostname ?? null].filter((h): h is string => !!h)
   if (own.some(o => host === o || host.endsWith(`.${o}`))) throw apiError('custom-domain/reserved', { field: 'hostname' })
   if (isInternalHostname(host)) throw apiError('custom-domain/invalid', { field: 'hostname' })

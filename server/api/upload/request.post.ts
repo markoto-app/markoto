@@ -8,6 +8,7 @@ import { IMAGE_UPLOAD_MAX_BYTES } from '~~/shared/config/uploads'
 import { requestUploadBody } from '~~/shared/api/ai'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { ownValue } from '~~/shared/utils/ownValue'
+import { useEnv } from '~~/shared/env/load'
 
 // Presigned PUT lifetime. S3 checks expiry when the request STARTS, so a
 // slow 10 MB upload that begins in time still completes; a short window
@@ -41,7 +42,7 @@ export default defineApiHandler({
     if (size > IMAGE_UPLOAD_MAX_BYTES) throw apiError('upload/file-too-large')
 
     const s3 = usePresignS3Client()
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const fileId = nanoid(12)
     const key = buildUploadKey(docId, fileId, ext)
 
@@ -81,7 +82,7 @@ export default defineApiHandler({
     const uploadUrl = await getSignedUrl(
       s3,
       new PutObjectCommand({
-        Bucket: config.s3.bucket,
+        Bucket: env.storage.bucket,
         Key: stagingKeyFor(key),
         ContentType: contentType,
         ContentLength: size

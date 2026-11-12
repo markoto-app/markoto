@@ -19,6 +19,7 @@ import { getDoc } from '../../../repos/documents'
 import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // WebSocket relay for live voice dictation. Bridges the browser's PCM
 // audio stream to Mistral Voxtral Realtime via the official
@@ -339,8 +340,8 @@ async function fireVoiceTick(peer: PeerLike, ctx: DictatePeerContext): Promise<v
   if (!ctx.virtualKey) return
   try {
     const litellm = useLitellmForUser(ctx.virtualKey)
-    const config = useRuntimeConfig()
-    const model = config.litellm?.realtimeTickModel || 'voxtral-realtime-tick'
+    const env = useEnv()
+    const model = env.litellm.realtimeTickModel || 'voxtral-realtime-tick'
     await litellmCompletion(litellm, {
       model,
       messages: [{ role: 'user', content: 'tick' }],
@@ -378,8 +379,8 @@ async function fireRoundUpTick(ctx: DictatePeerContext): Promise<void> {
   if (!ctx.virtualKey) return
   try {
     const litellm = useLitellmForUser(ctx.virtualKey)
-    const config = useRuntimeConfig()
-    const model = config.litellm?.realtimeTickModel || 'voxtral-realtime-tick'
+    const env = useEnv()
+    const model = env.litellm.realtimeTickModel || 'voxtral-realtime-tick'
     await litellmCompletion(litellm, {
       model,
       messages: [{ role: 'user', content: 'round-up' }],
@@ -403,8 +404,8 @@ async function handleAuth(
   token: unknown,
   languageCode: unknown
 ) {
-  const config = useRuntimeConfig()
-  const secret = config.aiDictateJwtSecret || config.jwtSecret
+  const env = useEnv()
+  const secret = env.auth.dictateJwtSecret || env.auth.jwtSecret
   if (!secret) {
     peer.send(encodeServerFrame({ type: 'error', message: 'Server misconfigured' }))
     peer.close(1011, 'no jwt secret')

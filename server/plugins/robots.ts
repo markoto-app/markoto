@@ -7,7 +7,7 @@ import { resolveSiteIndexable } from '../../shared/config/instance'
 // so it also covers the SPA fallback and error responses of those paths.
 
 export default defineNitroPlugin((nitroApp) => {
-  const indexable = resolveSiteIndexable(process.env)
+  const indexable = resolveSiteIndexable()
   nitroApp.hooks.hook('request', (event) => {
     const tag = robotsTagFor(event.path, indexable)
     if (tag) setResponseHeader(event, 'X-Robots-Tag', tag)

@@ -323,6 +323,11 @@ jobs:
         run: bun --bun run typecheck
         working-directory: renderer
 
+      # .env.example, the configuration reference and the renderer's env
+      # loader are generated from the env registry (shared/env).
+      - name: Generated env files are current
+        run: bun run check:env
+
       # render-env.sh (CI deploy path) and env.j2 (Ansible path) must emit
       # byte-identical .env content; this step fails the PR when they drift
       # (a var added to one file only).

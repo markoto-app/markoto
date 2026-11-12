@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { oidcRedirectErrors, oidcRedirectUri, parseOidcScopes, resolveOidcSettings } from '../../../server/utils/oidc/settings'
+import { oidcRedirectUri, parseOidcScopes, resolveOidcSettings } from '../../../server/utils/oidc/settings'
+import { bootProblems } from '../env/fixtures'
 import { OidcProfileError, profileFromClaims } from '../../../server/utils/oidc/profile'
 import { OIDC_FLOW_MAX_AGE_SECONDS, decodeFlowCookie, encodeFlowCookie } from '../../../server/utils/oidc/flowCookie'
 
@@ -28,28 +29,27 @@ describe('oidcRedirectUri', () => {
   })
 
   it('boot validation refuses OIDC without a redirect URI source', () => {
-    expect(oidcRedirectErrors({ redirectUrl: null }, '')).toHaveLength(1)
-    expect(oidcRedirectErrors({ redirectUrl: null }, 'https://docs.example.org')).toEqual([])
-    expect(oidcRedirectErrors(null, '')).toEqual([])
+    expect(bootProblems(FULL).join('\n')).toMatch(/needs NUXT_OAUTH_OIDC_REDIRECT_URL or NUXT_SITE_URL/)
+    expect(bootProblems({ ...FULL, NUXT_SITE_URL: 'https://docs.example.org' })).toEqual([])
+    expect(bootProblems({})).toEqual([])
   })
 })
 
 describe('resolveOidcSettings', () => {
   it('is off without any OIDC variable', () => {
-    expect(resolveOidcSettings({})).toEqual({ settings: null, errors: [] })
+    expect(resolveOidcSettings({})).toBeNull()
   })
 
   it('needs issuer, client id and secret together', () => {
-    const { settings, errors } = resolveOidcSettings({ NUXT_OAUTH_OIDC_ISSUER: ISSUER, NUXT_OAUTH_OIDC_CLIENT_ID: 'x' })
-    expect(settings).toBeNull()
-    expect(errors[0]).toMatch(/must be set together/)
-    expect(errors[0]).toContain('secret=empty')
-    expect(errors[0]).not.toContain('x')
+    expect(resolveOidcSettings({ NUXT_OAUTH_OIDC_ISSUER: ISSUER, NUXT_OAUTH_OIDC_CLIENT_ID: 'x' })).toBeNull()
+    const [problem] = bootProblems({ NUXT_OAUTH_OIDC_ISSUER: ISSUER, NUXT_OAUTH_OIDC_CLIENT_ID: 'x', NUXT_SITE_URL: 'https://docs.example.org' })
+    expect(problem).toMatch(/must be set together/)
+    expect(problem).toContain('secret=empty')
+    expect(problem).not.toContain('=x')
   })
 
   it('parses a complete config with defaults', () => {
-    const { settings, errors } = resolveOidcSettings(FULL)
-    expect(errors).toEqual([])
+    const settings = resolveOidcSettings(FULL)
     expect(settings).toMatchObject({
       clientId: 'markoto',
       clientSecret: 's3cret',
@@ -61,23 +61,23 @@ describe('resolveOidcSettings', () => {
   })
 
   it('requires an https issuer in production', () => {
-    const { settings, errors } = resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_ISSUER: 'http://idp.local' })
-    expect(settings).toBeNull()
-    expect(errors[0]).toMatch(/must use https/)
+    expect(resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_ISSUER: 'http://idp.local' })).toBeNull()
+    expect(bootProblems({ ...FULL, NUXT_OAUTH_OIDC_ISSUER: 'http://idp.local', NUXT_SITE_URL: 'https://docs.example.org' }).join('\n')).toMatch(/must use https/)
   })
 
   it('allows a plain-http issuer only under TEST_MODE or development', () => {
     const http = { ...FULL, NUXT_OAUTH_OIDC_ISSUER: 'http://127.0.0.1:4130/markoto' }
-    expect(resolveOidcSettings({ ...http, TEST_MODE: '1' }).settings?.allowInsecureHttp).toBe(true)
-    expect(resolveOidcSettings({ ...http, NODE_ENV: 'development' }).settings?.allowInsecureHttp).toBe(true)
-    expect(resolveOidcSettings({ ...http, NODE_ENV: 'production' }).settings).toBeNull()
+    expect(resolveOidcSettings({ ...http, TEST_MODE: '1' })?.allowInsecureHttp).toBe(true)
+    expect(resolveOidcSettings({ ...http, NODE_ENV: 'development' })?.allowInsecureHttp).toBe(true)
+    expect(resolveOidcSettings({ ...http, NODE_ENV: 'production' })).toBeNull()
   })
 
-  it('rejects malformed issuer and redirect URLs', () => {
-    expect(resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_ISSUER: 'not a url' }).errors[0]).toMatch(/not a valid URL/)
-    expect(resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_ISSUER: `${ISSUER}?x=1` }).errors[0]).toMatch(/query string/)
-    expect(resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_REDIRECT_URL: 'nope' }).errors[0]).toMatch(/REDIRECT_URL/)
-    expect(resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_REDIRECT_URL: 'https://docs.example.org/auth/oidc' }).settings?.redirectUrl)
+  it('rejects malformed issuer and redirect URLs at boot', () => {
+    const site = { NUXT_SITE_URL: 'https://docs.example.org' }
+    expect(bootProblems({ ...FULL, ...site, NUXT_OAUTH_OIDC_ISSUER: 'not a url' }).join('\n')).toMatch(/NUXT_OAUTH_OIDC_ISSUER: expected an absolute/)
+    expect(bootProblems({ ...FULL, ...site, NUXT_OAUTH_OIDC_ISSUER: `${ISSUER}?x=1` }).join('\n')).toMatch(/query string/)
+    expect(bootProblems({ ...FULL, NUXT_OAUTH_OIDC_REDIRECT_URL: 'nope' }).join('\n')).toMatch(/NUXT_OAUTH_OIDC_REDIRECT_URL: expected/)
+    expect(resolveOidcSettings({ ...FULL, NUXT_OAUTH_OIDC_REDIRECT_URL: 'https://docs.example.org/auth/oidc' })?.redirectUrl)
       .toBe('https://docs.example.org/auth/oidc')
   })
 })

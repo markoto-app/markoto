@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, beforeAll, afterAll, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { createUser, createWorkspace, setMemberRole } from '../integration/setup/fixtures'
 import { resolveBillingContext } from '../../server/utils/billing/billing'
@@ -12,13 +12,11 @@ import { resolveBillingContext } from '../../server/utils/billing/billing'
 
 // These cases exercise PAID-plan behaviour, which only exists with
 // billing switched on (default is off — see shared/config/billingMode.ts).
-// `isBillingEnabled()` reads process.env per call, so stub it for this
-// file and restore afterwards (repos tests share one worker).
-beforeAll(() => {
+// `isBillingEnabled()` reads process.env per call.
+// Stubbed per test: every stub is undone before the next one
+// (`unstubEnvs` in vitest.config.ts).
+beforeEach(() => {
   vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
-})
-afterAll(() => {
-  vi.unstubAllEnvs()
 })
 
 describe('resolveBillingContext — base shape', () => {

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 
 // Pin the dispatch CONTRACT for `notifySyncKickUser`. The integration tests in
 // `tests/integration/endpoints/workspaceMembers.test.ts` run against the real `sync-test` Hocuspocus
@@ -15,17 +16,16 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 //   7. Fetch failure is caught + Sentry-captured (caller never throws)
 
 const SYNC_URL = 'http://sync-test:4001'
-const SECRET = 'integration-test-internal-secret'
+const SECRET = 'integration-test-internal-secret-0123456789'
 
 const fetchSpy = vi.fn<(input: RequestInfo | URL, init?: RequestInit) => Promise<Response>>(() => Promise.resolve(new Response(null, { status: 200 })))
 
 vi.stubGlobal('fetch', fetchSpy)
 
-// `useRuntimeConfig` is a Nuxt auto-import (no source-file path) — stub
-// it as a global the same way the runtime would. Mutate the returned
-// object per-test to simulate missing-config branches.
-const runtimeConfigStub = { syncInternalUrl: SYNC_URL, internalApiSecret: SECRET }
-vi.stubGlobal('useRuntimeConfig', () => runtimeConfigStub)
+// Configuration comes from the typed env (shared/env), stubbed per test.
+function stubConfig(internalApiSecret: string | undefined): void {
+  stubEnv({ NUXT_SYNC_INTERNAL_URL: SYNC_URL, NUXT_INTERNAL_API_SECRET: internalApiSecret })
+}
 
 vi.mock('../../../server/utils/platform/throttledSentry', () => ({
   captureExceptionThrottled: vi.fn()
@@ -41,6 +41,7 @@ const { captureExceptionThrottled } = await import('../../../server/utils/platfo
 
 describe('notifySyncKickUser — dispatch contract', () => {
   beforeEach(() => {
+    stubConfig(SECRET)
     fetchSpy.mockClear()
     fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 200 })))
   })
@@ -107,19 +108,11 @@ describe('notifySyncKickUser — config gating', () => {
   beforeEach(() => {
     fetchSpy.mockClear()
     // Reset to a populated config so cross-test state can't leak.
-    runtimeConfigStub.syncInternalUrl = SYNC_URL
-    runtimeConfigStub.internalApiSecret = SECRET
-  })
-
-  it('short-circuits when syncInternalUrl is missing', async () => {
-    runtimeConfigStub.syncInternalUrl = ''
-    notifySyncKickUser(42, ['doc-a'])
-    await new Promise(r => setImmediate(r))
-    expect(fetchSpy).not.toHaveBeenCalled()
+    stubConfig(SECRET)
   })
 
   it('short-circuits when internalApiSecret is missing', async () => {
-    runtimeConfigStub.internalApiSecret = ''
+    stubConfig(undefined)
     notifySyncKickUser(42, ['doc-a'])
     await new Promise(r => setImmediate(r))
     expect(fetchSpy).not.toHaveBeenCalled()
@@ -130,8 +123,7 @@ describe('notifySyncReauthDocument — dispatch contract', () => {
   beforeEach(() => {
     fetchSpy.mockClear()
     fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 200 })))
-    runtimeConfigStub.syncInternalUrl = SYNC_URL
-    runtimeConfigStub.internalApiSecret = SECRET
+    stubConfig(SECRET)
     vi.mocked(captureExceptionThrottled).mockClear()
   })
 
@@ -160,8 +152,8 @@ describe('notifySyncReauthDocument — dispatch contract', () => {
     expect(captureExceptionThrottled).toHaveBeenCalledTimes(2)
   })
 
-  it('short-circuits without sync config', async () => {
-    runtimeConfigStub.syncInternalUrl = ''
+  it('short-circuits without the internal secret', async () => {
+    stubConfig(undefined)
     notifySyncReauthDocument('doc-a')
     await new Promise(r => setImmediate(r))
     expect(fetchSpy).not.toHaveBeenCalled()

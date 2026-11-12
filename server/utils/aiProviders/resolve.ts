@@ -34,6 +34,8 @@ import {
   type AiCapability,
   type AiCapabilityStatus
 } from '~~/shared/ai/providers'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 /** LiteLLM deployment prefix for clientside-credential (BYOK) calls. */
 const BYOK_MODEL_PREFIX = 'byok/'
@@ -103,9 +105,8 @@ export const CAPABILITY_PLAN_FEATURE: Partial<Record<AiCapability, FeatureField>
 }
 
 /** The stronger platform chat model (`NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`), or null. */
-function strongChatModel(env: Record<string, string | undefined> = process.env): string | null {
-  const v = (env.NUXT_AI_DEFAULT_CHAT_STRONG_MODEL ?? '').trim()
-  return v === '' ? null : v
+function strongChatModel(source?: RawEnv): string | null {
+  return useEnv(source).ai.chatStrongModel || null
 }
 
 export interface AiAccess {
@@ -186,7 +187,7 @@ export function liveDictationTarget(transcription: ResolvedAiProvider | null): L
     if (!MISTRAL_LIVE_DICTATION_HOSTS.includes(host)) return null
     return { apiKey: transcription.credentials.apiKey, model, serverURL: `https://${host}`, platformBilled: false }
   }
-  const platformKey = (process.env.MISTRAL_API_KEY ?? '').trim()
+  const platformKey = useEnv().providers.mistralApiKey
   if (!platformKey) return null
   // Operator-paid: always Mistral's EU endpoint, like every LiteLLM
   // Mistral deployment (infra/litellm/config.yaml).

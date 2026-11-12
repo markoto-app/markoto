@@ -27,6 +27,8 @@ import { listSubjectsWithCredits } from '../../repos/aiCreditGrants'
 import { litellmAdminFetch } from './litellmAdmin'
 import { ensureFreeTierTeam, ensureFreeTierTeamMember, FREE_TIER_BUDGET_DURATION, teamIdForPlan } from './freeTierTeam'
 import { DAY_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 const PAGE_SIZE = 100
 /** Hard stop for the listing loop (100k keys) — guards against a proxy that never reports its last page. */
@@ -54,7 +56,7 @@ export interface DesiredKeyState {
 }
 
 /** Pure: what a user's key should look like. */
-export function desiredKeyState(plan: PlanName, planValidUntil: Date | null, env: Record<string, string | undefined> = process.env): DesiredKeyState {
+export function desiredKeyState(plan: PlanName, planValidUntil: Date | null, env?: RawEnv): DesiredKeyState {
   const effective = effectivePlan(plan, planValidUntil)
   return {
     teamId: teamIdForPlan(effective, env),
@@ -99,7 +101,7 @@ async function listAllKeys(): Promise<Map<string, ListedKey>> {
 
 export async function reconcileUserKeys(): Promise<KeyReconcileSummary> {
   const summary: KeyReconcileSummary = { checked: 0, updated: 0, missing: 0, failed: 0 }
-  if (process.env.LITELLM_TEST_STUB === '1') return summary
+  if (useEnv().test.litellmStub) return summary
 
   const db = useDatabase()
   const rows = await db.select({

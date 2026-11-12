@@ -23,7 +23,6 @@ const fakeS3 = {
 }
 
 vi.stubGlobal('useS3Client', () => fakeS3)
-vi.stubGlobal('useRuntimeConfig', () => ({ s3: { bucket: 'test-bucket' } }))
 vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) => {
   const err = new Error(opts.message) as Error & { statusCode: number }
   err.statusCode = opts.statusCode

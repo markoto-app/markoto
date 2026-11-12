@@ -1,8 +1,8 @@
 // Atomic env vars → connection strings. Single place that owns the
 // mapping, so .env never needs to carry a composed URL alongside the
-// parts it was built from (which always drift). Used by the Nuxt app
-// (server/utils/{database,valkey}.ts), the sync-server
-// (sync-server/src/persistence.ts), and the boot-time validator.
+// parts it was built from (which always drift). The parts come from the
+// typed env (shared/env: `database`, `valkey`), validated at boot by the
+// app and the sync server.
 
 export interface PostgresParts {
   user: string
@@ -62,49 +62,35 @@ function buildValkeyUrl(p: ValkeyParts): string {
   return `${scheme}://${auth}${p.host}:${p.port}/${db}`
 }
 
-const POSTGRES_REQUIRED_VARS = [
-  'POSTGRES_USER',
-  'POSTGRES_PASSWORD',
-  'POSTGRES_HOST',
-  'POSTGRES_PORT',
-  'POSTGRES_DB'
-] as const
-
-const VALKEY_REQUIRED_VARS = ['VALKEY_HOST', 'VALKEY_PORT'] as const
-
-export function postgresUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
-  const missing = POSTGRES_REQUIRED_VARS.filter(k => !env[k])
-  if (missing.length > 0) {
-    throw new Error(`[postgres] missing required env vars: ${missing.join(', ')}`)
-  }
-  // The integration test setup (tests/integration/setup/server.ts)
-  // owns its own boot guard that refuses to spawn the test subprocess
-  // when env still points at the dev DB. We deliberately don't repeat
-  // a `TEST_MODE=1`-gated guard here: TEST_MODE has dual use (enables
-  // `_test/login` AND signals integration runs), so this layer would
-  // false-positive on interactive dev testing with the test-login
-  // bypass.
-  return buildPostgresUrl({
-    user: env.POSTGRES_USER!,
-    password: env.POSTGRES_PASSWORD!,
-    host: env.POSTGRES_HOST!,
-    port: env.POSTGRES_PORT!,
-    database: env.POSTGRES_DB!
-  })
+/** Postgres parts as the typed env carries them (`env.database`). */
+export interface DatabaseEnv {
+  user: string
+  password: string
+  host: string
+  port: number
+  db: string
 }
 
-function valkeyUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
-  const missing = VALKEY_REQUIRED_VARS.filter(k => !env[k])
+/** Valkey parts as the typed env carries them (`env.valkey`). */
+export interface ValkeyEnv {
+  host: string
+  port: number
+  password?: string
+  db: number
+  tlsEnabled: boolean
+  tlsCaPath?: string
+}
+
+/** Connection URL from the typed env's `database` group (validated at boot). */
+export function postgresUrlFromEnv(db: DatabaseEnv): string {
+  // Boot validation requires these; outside a validated boot (scripts,
+  // test tiers) a missing one must still fail loudly, not connect to ''.
+  const missing = (['user', 'password', 'host', 'db'] as const).filter(k => !db[k])
   if (missing.length > 0) {
-    throw new Error(`[valkey] missing required env vars: ${missing.join(', ')}`)
+    const names = { user: 'POSTGRES_USER', password: 'POSTGRES_PASSWORD', host: 'POSTGRES_HOST', db: 'POSTGRES_DB' }
+    throw new Error(`[postgres] missing required env vars: ${missing.map(k => names[k]).join(', ')}`)
   }
-  return buildValkeyUrl({
-    host: env.VALKEY_HOST!,
-    port: env.VALKEY_PORT!,
-    password: env.VALKEY_PASSWORD,
-    db: env.VALKEY_DB,
-    tlsEnabled: env.VALKEY_TLS_ENABLED === 'true'
-  })
+  return buildPostgresUrl({ user: db.user, password: db.password, host: db.host, port: db.port, database: db.db })
 }
 
 /**
@@ -113,31 +99,26 @@ function valkeyUrlFromEnv(env: NodeJS.ProcessEnv = process.env): string {
  * without TLS this returns `{ url, options: undefined }` so callers can use
  * a single shape regardless of TLS state.
  *
- * The CA file is loaded synchronously at first call. We do this in the
- * shared helper rather than at each call site because the file IO is
- * one-shot at boot and the throw-on-missing surface should match the
- * existing fail-fast posture for env vars.
+ * The CA file is loaded synchronously at first call: the file IO is
+ * one-shot at boot and a missing file should fail as loudly as a missing
+ * variable.
  */
 export function valkeyClientConfigFromEnv(
-  env: NodeJS.ProcessEnv = process.env,
+  valkey: ValkeyEnv,
   fs: { readFileSync: (path: string) => Buffer } | null = null
 ): ValkeyClientConfig {
-  const url = valkeyUrlFromEnv(env)
-  const tlsEnabled = env.VALKEY_TLS_ENABLED === 'true'
-  if (!tlsEnabled) return { url }
-
-  const caPath = env.VALKEY_TLS_CA_PATH
-  if (!caPath) {
+  if (!valkey.host) throw new Error('[valkey] missing required env vars: VALKEY_HOST')
+  const url = buildValkeyUrl({ host: valkey.host, port: valkey.port, password: valkey.password, db: valkey.db, tlsEnabled: valkey.tlsEnabled })
+  if (!valkey.tlsEnabled) return { url }
+  if (!valkey.tlsCaPath) {
     // Default cert validation against the system CA store. ioredis sees
     // `rediss://` in the URL and starts TLS; an empty `tls: {}` is the
     // documented way to opt into TLS without overriding defaults.
     return { url, options: { tls: {} } }
   }
-
   // Lazy-require to avoid pulling node:fs into client bundles. Tests can
   // inject a fake; runtime callers pass null and we resolve via require.
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const reader = fs ?? (require('node:fs') as { readFileSync: (path: string) => Buffer })
-  const ca = reader.readFileSync(caPath)
-  return { url, options: { tls: { ca } } }
+  return { url, options: { tls: { ca: reader.readFileSync(valkey.tlsCaPath) } } }
 }

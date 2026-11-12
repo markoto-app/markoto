@@ -13,7 +13,7 @@ markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API,
 | Type-check tests / scripts | `bun run typecheck:tests`, `bun run typecheck:scripts` |
 | Unused code and dependencies | `bun run knip` |
 | Import layering and cycles | `bun run depcruise` |
-| Repo checks | `bun run check:md-paths`, `check:vocab`, `check:i18n-unused`, `check:links`, `check:shell`, `check:docker`, `check:py` |
+| Repo checks | `bun run check:env` (generated env files current), `check:md-paths`, `check:vocab`, `check:i18n-unused`, `check:links`, `check:shell`, `check:docker`, `check:py` |
 | New migration from `server/db/schema.ts` | `bun run db:generate` (applied at app boot) |
 
 Tests (details: [`docs/contributing/testing.md`](docs/contributing/testing.md)):
@@ -48,6 +48,7 @@ The test stack runs through `scripts/test-compose.sh` (detects rootless Podman).
 ## Rules an agent gets wrong
 
 Runtime and build
+- Configuration: every environment variable is declared once in `shared/env/vars/` (then `bun run env:gen`); read it with `useEnv()` / `syncEnv()` / the renderer's `env`, never `process.env` (ESLint `markoto/no-raw-env`). Invalid values fail boot. Guide: `docs/contributing/configuration.md`.
 - `nitro.preset` stays `bun`: lib0 and others ship Bun conditional exports that the `node-server` preset traces wrongly.
 - `server/runtime/bunEntry.ts` is a copy of nitropack's bun preset entry. When `tests/unit/platform/bunEntryUpstream.test.ts` fails, re-derive the file from the new upstream entry; never just refresh the snapshot.
 - OAuth handlers live in `server/routes/auth/`; there is no `server/auth/` route directory.
@@ -86,6 +87,7 @@ Infrastructure
 
 Tests
 - `vi.mock` paths resolve relative to the test file, not the source file.
+- Tests set configuration with `vi.stubEnv` / `stubEnv()` (`tests/helpers/env.ts`) in `beforeEach`, never by mocking `useRuntimeConfig`; stubs are undone before every test.
 - The sync server debounces stores for 2 s: tests that need distinct activity rows must wait out the debounce window between edits.
 - Rate limits are bypassed in test mode; `TEST_ENFORCE_RATE_LIMITS` turns chosen namespaces back on.
 

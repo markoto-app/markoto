@@ -14,14 +14,17 @@
 // identity** (LatentSpace Labs GmbH: name, register numbers, role
 // mailboxes). No natural person's name and no street address is a code
 // default: `controllerAddress` and `representedBy` have none, and
-// `legalEntityErrors` makes boot fail while the legal surfaces are on
-// and either is unset. The defaults only ever surface while the legal
+// the boot validation makes it fail while the legal surfaces are on
+// and either is unset (shared/env/rules/legal.ts). The defaults only ever surface while the legal
 // surfaces are ON
 // (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`) —
 // the hosted SaaS. A self-hosted instance runs with them OFF by default
 // and never presents LatentSpace Labs as its operator; a self-hoster who
 // switches them on must set every `NUXT_LEGAL_*` value (and adapt
 // `content/legal/`) — see docs/SELF-HOSTING.md#legal-pages.
+
+import { useEnv } from '../env/load'
+import type { RawEnv } from '../env/define'
 
 export interface LegalEntity {
   // The legal entity operating markoto. Appears as "the controller"
@@ -51,44 +54,20 @@ export interface LegalEntity {
   ehraId: string
 }
 
-type Env = Record<string, string | undefined>
-
-export function resolveLegalEntity(env: Env = process.env): LegalEntity {
+/** The operator identity: configured `NUXT_LEGAL_*` values over the hosted operator's defaults. */
+export function resolveLegalEntity(source?: RawEnv): LegalEntity {
+  const { legal } = useEnv(source)
   return {
-    controllerName: (env.NUXT_LEGAL_CONTROLLER_NAME?.trim())
-      || 'LatentSpace Labs GmbH',
-    controllerAddress: env.NUXT_LEGAL_CONTROLLER_ADDRESS?.trim() ?? '',
-    privacyContactEmail: (env.NUXT_LEGAL_PRIVACY_CONTACT_EMAIL?.trim())
-      || 'privacy@markoto.app',
-    abuseContactEmail: (env.NUXT_LEGAL_ABUSE_CONTACT_EMAIL?.trim())
-      || 'abuse@markoto.app',
-    governingLaw: (env.NUXT_LEGAL_GOVERNING_LAW?.trim())
-      || 'Swiss law',
-    legalForm: (env.NUXT_LEGAL_LEGAL_FORM?.trim())
-      || 'Gesellschaft mit beschränkter Haftung (GmbH)',
-    registeredOffice: (env.NUXT_LEGAL_REGISTERED_OFFICE?.trim())
-      || 'Zürich, Switzerland',
-    representedBy: env.NUXT_LEGAL_REPRESENTED_BY?.trim() ?? '',
-    uid: (env.NUXT_LEGAL_UID?.trim())
-      || 'CHE-170.986.632',
-    chId: (env.NUXT_LEGAL_CH_ID?.trim())
-      || 'CH-020-4092420-2',
-    ehraId: (env.NUXT_LEGAL_EHRA_ID?.trim())
-      || '1753104'
+    controllerName: legal.controllerName || 'LatentSpace Labs GmbH',
+    controllerAddress: legal.controllerAddress ?? '',
+    privacyContactEmail: legal.privacyContactEmail || 'privacy@markoto.app',
+    abuseContactEmail: legal.abuseContactEmail || 'abuse@markoto.app',
+    governingLaw: legal.governingLaw || 'Swiss law',
+    legalForm: legal.legalForm || 'Gesellschaft mit beschränkter Haftung (GmbH)',
+    registeredOffice: legal.registeredOffice || 'Zürich, Switzerland',
+    representedBy: legal.representedBy ?? '',
+    uid: legal.uid || 'CHE-170.986.632',
+    chId: legal.chId || 'CH-020-4092420-2',
+    ehraId: legal.ehraId || '1753104'
   }
-}
-
-// The two facts that identify a person or a private residence cannot
-// have a safe default, so an operator who turns the legal pages on must
-// supply them. Returns boot-validation messages (empty when fine).
-export function legalEntityErrors(env: Env = process.env): string[] {
-  const entity = resolveLegalEntity(env)
-  const errors: string[] = []
-  if (!entity.controllerAddress) {
-    errors.push('NUXT_LEGAL_CONTROLLER_ADDRESS is required when NUXT_LEGAL_SURFACES_ENABLED=true (the legal pages need a postal address)')
-  }
-  if (!entity.representedBy) {
-    errors.push('NUXT_LEGAL_REPRESENTED_BY is required when NUXT_LEGAL_SURFACES_ENABLED=true (the Impressum names the authorised representative)')
-  }
-  return errors
 }

@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as Y from 'yjs'
 import { first } from '../../helpers/assert'
+import { stubEnv } from '../../helpers/env'
 
 // Mocks have to register BEFORE the import of `restoreDoc.ts` —
 // vitest hoists `vi.mock` calls automatically, but the factory
@@ -150,16 +151,11 @@ vi.mock('../../../server/utils/documents/historyReplay', () => ({
   reconstructDocAtYjsId: (...args: unknown[]) => replayMock(...args)
 }))
 
-// useRuntimeConfig mock
-//
-// A real `useRuntimeConfig` lives in Nuxt's auto-imports. The unit
-// project doesn't have Nuxt runtime, so we stub a global one. Tests
-// flip values via the shared `runtimeConfigState` object.
-interface FakeRuntimeConfig { jwtSecret: string, syncInternalUrl: string }
-const runtimeConfigState: { value: FakeRuntimeConfig } = {
-  value: { jwtSecret: 'unit-test-secret', syncInternalUrl: 'http://sync:4001' }
+// Configuration comes from the typed env (shared/env), stubbed per test.
+const JWT_SECRET = 'unit-test-secret-unit-test-secret-0123'
+function stubConfig(jwtSecret: string | undefined, syncInternalUrl = 'http://sync:4001'): void {
+  stubEnv({ NUXT_JWT_SECRET: jwtSecret, NUXT_SYNC_INTERNAL_URL: syncInternalUrl })
 }
-;(globalThis as Record<string, unknown>).useRuntimeConfig = () => runtimeConfigState.value
 
 // Now safe to import the unit under test — all mocks registered.
 const { restoreDocToYjsId, readRestorableMeta } = await import('../../../server/utils/documents/restoreDoc')
@@ -181,23 +177,16 @@ beforeEach(() => {
     doc.getText('content').insert(0, 'past content')
     return doc
   })
-  runtimeConfigState.value = { jwtSecret: 'unit-test-secret', syncInternalUrl: 'http://sync:4001' }
+  stubConfig(JWT_SECRET)
 })
 
 describe('restoreDocToYjsId', () => {
   describe('config validation', () => {
     it('throws when jwtSecret is not configured', async () => {
-      runtimeConfigState.value = { jwtSecret: '', syncInternalUrl: 'http://sync:4001' }
+      stubConfig(undefined)
       await expect(
         restoreDocToYjsId({ docId: 'd', targetYjsId: 50, actorUserId: 1, actorName: 'A', sessionId: 's' })
       ).rejects.toThrow(/JWT secret/)
-    })
-
-    it('throws when syncInternalUrl is not configured', async () => {
-      runtimeConfigState.value = { jwtSecret: 'x', syncInternalUrl: '' }
-      await expect(
-        restoreDocToYjsId({ docId: 'd', targetYjsId: 50, actorUserId: 1, actorName: 'A', sessionId: 's' })
-      ).rejects.toThrow(/syncInternalUrl/)
     })
   })
 
@@ -263,7 +252,7 @@ describe('restoreDocToYjsId', () => {
     })
 
     it('converts http:// syncInternalUrl to ws:// for the WS connection', async () => {
-      runtimeConfigState.value = { jwtSecret: 's', syncInternalUrl: 'http://sync:4001' }
+      stubConfig(JWT_SECRET, 'http://sync:4001')
       await restoreDocToYjsId({
         docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })
@@ -271,7 +260,7 @@ describe('restoreDocToYjsId', () => {
     })
 
     it('converts https:// syncInternalUrl to wss:// for TLS', async () => {
-      runtimeConfigState.value = { jwtSecret: 's', syncInternalUrl: 'https://sync.prod:443' }
+      stubConfig(JWT_SECRET, 'https://sync.prod:443')
       await restoreDocToYjsId({
         docId: 'd', targetYjsId: 1, actorUserId: 1, actorName: 'A', sessionId: 's'
       })

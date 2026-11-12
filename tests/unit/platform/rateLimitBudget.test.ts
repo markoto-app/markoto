@@ -67,7 +67,7 @@ class FakeValkey {
 
 const fake = new FakeValkey()
 
-// Nitro exposes `useRuntimeConfig` / `useValkey` as globals via its
+// Nitro exposes `useValkey` as a global via its
 // auto-imports; in unit tests we replace with the fake. We do the
 // mock via `vi.mock` at the top level so imports of rateLimit.ts
 // pick it up.

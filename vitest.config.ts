@@ -48,6 +48,11 @@ export default defineConfig({
   },
   test: {
     execArgv: WORKER_EXEC_ARGV,
+    // Tests hand configuration to the code under test with
+    // `vi.stubEnv('NUXT_X', …)` (the typed env re-reads process.env per
+    // call under Vitest, shared/env/load.ts); every stub is undone after
+    // each test so no value leaks into the next one.
+    unstubEnvs: true,
     // Coverage config. V8 provider (no Istanbul transform — faster + no
     // source-map surprises).
     //

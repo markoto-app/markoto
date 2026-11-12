@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, type Mock } from 'vitest'
+import { beforeEach, describe, it, expect, vi, type Mock } from 'vitest'
 import type Stripe from 'stripe'
 import {
   handleCheckoutSessionCompleted,
@@ -81,7 +81,9 @@ vi.mock('../../../server/utils/platform/database', () => ({
 
 // The price catalogue maps this test price id to Pro (monthly, EUR): prices are identified by lookup key or
 // by the NUXT_STRIPE_PRICE_IDS override, read per call.
-vi.stubEnv('NUXT_STRIPE_PRICE_IDS', 'markoto_pro_month_eur=price_pro_abc')
+beforeEach(() => {
+  vi.stubEnv('NUXT_STRIPE_PRICE_IDS', 'markoto_pro_month_eur=price_pro_abc')
+})
 
 // The spy `makeStripeMock` put on the fake client; the real client type doesn't expose mock APIs.
 function retrieveOf(stripe: unknown) {

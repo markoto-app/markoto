@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken'
 import { HocuspocusProvider } from '@hocuspocus/provider'
 import { Awareness } from 'y-protocols/awareness'
 import type { SessionJwtPayload } from '~~/shared/contracts/jwt'
+import { useEnv } from '~~/shared/env/load'
 
 // Minimal trusted-client helper for server-side comment mutations.
 //
@@ -37,9 +38,8 @@ export async function openTrustedCommentClient(
   docId: string,
   actorPrincipal: string
 ): Promise<TrustedClient> {
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) throw new Error('jwtSecret not configured')
-  if (!config.syncInternalUrl) throw new Error('syncInternalUrl not configured')
+  const env = useEnv()
+  if (!env.auth.jwtSecret) throw new Error('jwtSecret not configured')
 
   const payload = {
     docId,
@@ -47,12 +47,12 @@ export async function openTrustedCommentClient(
     userName: 'Comments Service',
     readOnly: false
   } satisfies SessionJwtPayload
-  const token = jwt.sign(payload, config.jwtSecret, { expiresIn: '5m' })
+  const token = jwt.sign(payload, env.auth.jwtSecret, { expiresIn: '5m' })
 
   const ydoc = new Y.Doc()
   const awareness = new Awareness(ydoc)
 
-  const wsUrl = config.syncInternalUrl.replace(/^http(s?):\/\//, 'ws$1://')
+  const wsUrl = env.sync.internalUrl.replace(/^http(s?):\/\//, 'ws$1://')
 
   let resolved = false
   let resolveSync!: () => void

@@ -1,6 +1,7 @@
 import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { useDatabase } from '../utils/platform/database'
 import { signalMigrationsComplete } from '../utils/platform/migrations'
+import { useEnv } from '~~/shared/env/load'
 
 // Apply Drizzle migrations at boot. Idempotent: drizzle-kit's migrator tracks
 // applied migrations in `__drizzle_migrations` and only runs new ones.
@@ -17,7 +18,7 @@ export default defineNitroPlugin(async () => {
   // skip. The plugin still runs at every real container start.
   if (import.meta.prerender) return
 
-  const migrationsFolder = process.env.DRIZZLE_MIGRATIONS_DIR || './drizzle'
+  const migrationsFolder = useEnv().server.migrationsDir
   try {
     const db = useDatabase()
     await migrate(db, { migrationsFolder })

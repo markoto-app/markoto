@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { publishedPageAddress } from './pagesHost'
 import type { PublishedPageSummary } from '../../repos/publishedPages'
+import { useEnv } from '~~/shared/env/load'
 
 // Published-page addresses and the publish endpoints' response. Who may
 // publish (owner + workspace admins: `allow.doc('manage')`) is declared by
@@ -9,7 +10,7 @@ import type { PublishedPageSummary } from '../../repos/publishedPages'
 
 /** The instance origin published-page links use: NUXT_SITE_URL, else the request's. */
 export function publicBaseUrl(event: H3Event): string {
-  return emailLinkBaseUrl(useRuntimeConfig(event).siteUrl) ?? getRequestURL(event).origin
+  return emailLinkBaseUrl(useEnv().core.siteUrl) ?? getRequestURL(event).origin
 }
 
 /** Address of a page at `/p/<slug>`: on the pages host when configured, else on the instance. */

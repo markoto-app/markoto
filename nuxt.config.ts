@@ -1,6 +1,6 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import { fileURLToPath } from 'node:url'
-import { KNOWLEDGE_PLATFORM_LIMITS, STRIPE_CONFIG_DEFAULTS } from './shared/config/tiers'
+import { observability } from './shared/env/vars/sync'
 import { DAY_SECONDS } from './shared/config/units'
 import { scanFlowDocPages } from './scripts/lib/flowDocPagesFs'
 
@@ -139,121 +139,20 @@ export default defineNuxtConfig({
         clientSecret: ''
       }
     },
-    s3: {
-      endpoint: '',
-      // NUXT_S3_PUBLIC_ENDPOINT — base URL browsers use for presigned S3
-      // URLs when it differs from `endpoint` (self-host compose: SeaweedFS
-      // is `http://seaweedfs:8333` inside the stack and published through
-      // Traefik on the public origin). Empty = same as `endpoint`. See
-      // server/utils/storage/s3.ts#usePresignS3Client.
-      publicEndpoint: '',
-      accessKey: '',
-      secretKey: '',
-      bucket: 'ypad'
-    },
-    aiDictateJwtSecret: '', // NUXT_AI_DICTATE_JWT_SECRET — falls back to `jwtSecret` if unset
-    // LiteLLM proxy — vendor-agnostic gateway for every AI surface. It
-    // enforces per-key budgets and unifies cost tracking across providers
-    // (Mistral / Jina / BFL).
-    litellm: {
-      url: '', // NUXT_LITELLM_URL — internal HTTP URL, e.g. http://litellm:4000 (prod) / http://localhost:4000 (dev with host bun)
-      masterKey: '', // NUXT_LITELLM_MASTER_KEY — admin key; per-user virtual keys are minted from it
-      // Embedding model + dims used when the knowledge pipeline routes
-      // through LiteLLM. jina-embeddings-v5-text-nano is natively 768-d
-      // (perfect fit for the existing pgvector(768) HNSW index — zero
-      // DDL needed). Smallest in Jina's v5 family = fastest + cheapest;
-      // quality is sufficient for writing-doc retrieval. Bumping to
-      // jina-embeddings-v5-text-small (1024-d native, MRL-truncate to
-      // 768) is a config-only change if quality becomes the bottleneck.
-      embeddingsModel: 'jina-embeddings-v5-text-nano', // NUXT_LITELLM_EMBEDDINGS_MODEL
-      embeddingsDims: 768, // NUXT_LITELLM_EMBEDDINGS_DIMS
-      // Self-hosters: swap the model/size via env. The pgvector column is
-      // re-typed to match at boot when empty (server/utils/knowledge/embeddingColumn.ts);
-      // max 2000 dims (HNSW). See docs/AI-MODELS.md#embeddings.
-      embeddingsSendDimensions: 'auto', // NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS — auto|true|false (auto = Jina only)
-      embeddingsTaskHints: 'auto', // NUXT_LITELLM_EMBEDDINGS_TASK_HINTS — Jina `task` param; auto|true|false (auto = Jina only)
-      embeddingsUpstreamModel: '', // NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL — label only (version tag); mirrors the proxy's EMBEDDINGS_UPSTREAM_MODEL
-      // The chat / image / transcription MODELS are not runtime config.
-      // They resolve per request from the user's own provider (bring your
-      // own key) or the operator's instance default
-      // (`NUXT_AI_DEFAULT_{CHAT,IMAGE,TRANSCRIBE}_*`, read from process.env
-      // by server/utils/aiProviders/config.ts).
-      imageDefaultWidth: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_WIDTH
-      imageDefaultHeight: 1024, // NUXT_LITELLM_IMAGE_DEFAULT_HEIGHT
-      // Voice-tick metering stub. Each "call" against this fake
-      // chat model bills $0.006 (1 minute of Voxtral Realtime audio) —
-      // see infra/litellm/custom_handlers.py:VoxtralTickProvider. The
-      // dictate WS orchestrator hits this once per minute of audio.
-      // Real Voxtral Realtime transcription stays direct from our backend
-      // via @mistralai/mistralai/extra/realtime SDK — this stub exists
-      // only so spend lands in the same per-key budget as everything else.
-      realtimeTickModel: 'voxtral-realtime-tick' // NUXT_LITELLM_REALTIME_TICK_MODEL
-    },
-    jwtSecret: '',
-    // Optional: previous JWT_SECRET, accepted by verifiers during rotation.
-    // See docs/operations/SECRETS-ROTATION.md.
-    jwtSecretPrevious: '',
-    internalApiSecret: '',
-    // Optional: previous INTERNAL_API_SECRET, accepted during rotation.
-    internalApiSecretPrevious: '',
-    markitdownUrl: '',
-    // Internal HTTP URL of the Hocuspocus sync-server (for server→server calls).
-    // In Docker Compose: http://sync:4001. In dev: http://localhost:4001.
-    syncInternalUrl: 'http://localhost:4001',
-    // Internal HTTP URL of the Playwright renderer container (PDF + per-page
-    // PNGs). Same network shape as syncInternalUrl: dev = host:9000, compose
-    // = http://renderer:9000. Empty disables the user-facing /api/docs/:id/pdf
-    // endpoint and the AI's view_pages tool — useful for tests that don't
-    // spin up the renderer container.
-    rendererInternalUrl: 'http://localhost:9000',
-    // Anonymous-doc auto-cleanup threshold (in days). Only docs with no
-    // owner AND no workspace are reaped once last_active is past this
-    // many days — owned docs (any age) and workspace-attached docs are
-    // never auto-reaped. 0 disables sweeping entirely. Override via
-    // NUXT_INACTIVE_DOC_TTL_DAYS. 30 = what the hosted Terms + privacy
-    // policy promise; self-hosters may pick another period.
-    inactiveDocTtlDays: 30,
-    // Per-tier caps are NOT mirrored here: enforcement resolves them
-    // via `server/utils/billing/tierConfig.ts#getTiers()` (committed defaults
-    // in `shared/config/tiers.ts` + TIER_* env overrides), and the
-    // client fetches the resolved map from GET /api/billing/tiers.
-    // Knowledge-upload platform limits that don't vary by plan
-    // (single-file size, chunker ceiling, failed-row TTL). Tier-
-    // varying caps (file count, bytes, etc.) live in the tier caps (see shared/config/tiers.ts).
-    knowledge: KNOWLEDGE_PLATFORM_LIMITS,
-    // Stripe config — all empty in dev, set via NUXT_STRIPE_* in prod.
-    // Only read when NUXT_BILLING_ENABLED=true. The billing-mode flags
-    // themselves (NUXT_BILLING_ENABLED / NUXT_PLANS_COMING_SOON) are NOT
-    // runtimeConfig keys: they're parsed from the environment by
-    // `shared/config/billingMode.ts` (server guards + SSR-hydrated
-    // `useBillingMode()`), so enforcement utils that run outside Nitro
-    // (repos tests) see the same value. See server/utils/billing/billingMode.ts.
-    stripe: STRIPE_CONFIG_DEFAULTS,
-    // Public origin of this deployment (e.g. https://markoto.app), used
-    // to build absolute links in emails (waitlist confirm/unsubscribe).
-    // Set via NUXT_SITE_URL in prod. Empty → derived from the request's
-    // Host header, which is only trustworthy behind a host-matching
-    // proxy rule (as in docker-compose.prod.yml's Traefik router).
-    siteUrl: '',
-    // Transactional email has no runtimeConfig entry on purpose:
-    // server/utils/email/sendEmail.ts reads RESEND_API_KEY,
-    // NUXT_EMAIL_FROM and NUXT_EMAIL_PROVIDER from process.env per call,
-    // so jobs that run outside a Nitro request context see the same values.
+    // Server code reads its configuration from the typed env registry
+    // (`useEnv()`, shared/env/), not from here. runtimeConfig keeps only
+    // what a module or the browser reads: `session` + `oauth`
+    // (nuxt-auth-utils) and `public`. Their names and defaults are declared
+    // in the registry too (tests/unit/env/runtimeConfig.test.ts pins the names).
     public: {
-      syncUrl: '',
+      syncUrl: '', // NUXT_PUBLIC_SYNC_URL
       sentry: {
-        // sentry.io DSN for browser error reporting. Empty in dev;
-        // set via NUXT_PUBLIC_SENTRY_DSN in prod .env.
-        dsn: ''
+        dsn: '' // NUXT_PUBLIC_SENTRY_DSN
       },
       docs: {
-        // Cosmetic domain shown in the fake browser-bar above embedded
-        // flow screenshots. Override per-environment via
-        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN if the docs subdomain differs
-        // from the app subdomain. The <Flow> component reads this as
-        // its default; individual flow embeds can still pass their own
-        // chrome-domain prop.
-        chromeDomain: 'markoto.app'
+        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN — fake browser bar above the docs'
+        // flow screenshots; a flow embed can pass its own.
+        chromeDomain: observability.vars.docsChromeDomain.default
       },
       // Test-only: when true, useDocument.ts exposes the active
       // ydoc + ytext on `window.__DEBUG_*` so e2e specs can assert

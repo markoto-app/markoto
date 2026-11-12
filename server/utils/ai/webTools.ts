@@ -3,6 +3,7 @@ import { checkRateLimit } from '../platform/rateLimit'
 import { limitRecovery } from '../billing/billingMode'
 import { capsFor, resolveUserPlan } from '../billing/entitlements'
 import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // Platform-provided web tools: `web_search` (Staan) and `fetch_url` (Jina
 // Reader). The operator pays the upstream search / reader call — it never
@@ -17,21 +18,11 @@ export type WebToolName = 'web_search' | 'fetch_url'
 
 export const WEB_TOOLS_RATE_LIMITED_CODE = 'ai/web-tools-rate-limited'
 
-const DEFAULT_HOURLY_LIMIT = 30
-const DEFAULT_DAILY_LIMIT = 100
-
 export interface WebToolLimits {
   /** 0 = unlimited. */
   hourly: number
   /** 0 = unlimited. */
   daily: number
-}
-
-function readLimit(name: string, fallback: number): number {
-  const raw = process.env[name]?.trim()
-  if (!raw) return fallback
-  const n = Number(raw)
-  return Number.isInteger(n) && n >= 0 ? n : fallback
 }
 
 /**
@@ -41,12 +32,13 @@ function readLimit(name: string, fallback: number): number {
  * window further — the stricter of the two wins.
  */
 export function getWebToolLimits(planDailyLimit: number | null = null): WebToolLimits {
-  const operatorDaily = readLimit('NUXT_WEB_TOOLS_DAILY_LIMIT', DEFAULT_DAILY_LIMIT)
+  const { providers } = useEnv()
+  const operatorDaily = providers.webToolsDailyLimit
   const daily = planDailyLimit === null
     ? operatorDaily
     : operatorDaily === 0 ? planDailyLimit : Math.min(operatorDaily, planDailyLimit)
   return {
-    hourly: readLimit('NUXT_WEB_TOOLS_HOURLY_LIMIT', DEFAULT_HOURLY_LIMIT),
+    hourly: providers.webToolsHourlyLimit,
     daily
   }
 }
@@ -60,9 +52,10 @@ export interface WebToolAvailability {
 
 /** Which web tools the operator has upstream keys for. Read per call. */
 export function getWebToolAvailability(): WebToolAvailability {
+  const { providers } = useEnv()
   return {
-    search: Boolean(process.env.STAAN_API_KEY?.trim()),
-    fetch: Boolean(process.env.JINA_AI_API_KEY?.trim())
+    search: Boolean(providers.staanApiKey),
+    fetch: Boolean(providers.jinaApiKey)
   }
 }
 

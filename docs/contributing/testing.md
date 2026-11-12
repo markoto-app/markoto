@@ -24,6 +24,24 @@ markoto has six test tiers. Five run under Vitest (`vitest.config.ts` defines on
 
 Rule of thumb: "the right rows land in the right table" is a repos test; "this request with this cookie gets this status" is an integration test; "the user sees this" is a flow.
 
+## Configuration in tests
+
+Code reads its configuration through the typed env (`shared/env`, [configuration.md](configuration.md)). Under Vitest the runtime accessors (`useEnv()`, `syncEnv()`) parse `process.env` on every call, so a test sets configuration the way an operator does, by variable name:
+
+```ts
+import { stubEnv } from '../../helpers/env'
+
+beforeEach(() => {
+  stubEnv({ NUXT_LITELLM_URL: 'http://litellm:4000', NUXT_LITELLM_MASTER_KEY: 'sk-test' })
+})
+
+it('…', () => {
+  stubEnv({ NUXT_LITELLM_MASTER_KEY: undefined }) // unset for this test
+})
+```
+
+`unstubEnvs` in `vitest.config.ts` undoes every `vi.stubEnv` before the next test, so stub in `beforeEach` (or in the test), not in `beforeAll` or at module level. Don't mock `useRuntimeConfig` for server configuration; it only carries the session, OAuth and public keys. Values are parsed like at boot: a secret shorter than 32 characters or a malformed number throws, so use realistic values. Helpers that take an env-shaped record (`resolveInstanceConfig({...})`, `resolveTiersFromEnv({...})`) get the record directly. Boot validation itself is tested through `bootProblems()` in `tests/unit/env/fixtures.ts`.
+
 ## The test stack
 
 `docker-compose.test.yml` holds the infrastructure for repos, integration and flow tests. It runs next to the dev stack: ports are shifted (Postgres 5433, Valkey 6380, SeaweedFS 8334, sync 4002, markitdown 8081, LiteLLM 4100, stripe-mock 12111, renderer 9101, fake OpenAI provider 4120, OIDC provider 4130, Traefik TLS 8443, DNS test server 8053/8055) and every port is published on `127.0.0.1` only. Storage is disposable.

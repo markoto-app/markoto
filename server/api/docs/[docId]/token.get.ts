@@ -11,6 +11,7 @@ import { planHasFeature, resolveDocPlanFor } from '../../../utils/billing/entitl
 import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 import { docTokenQuery } from '~~/shared/api/docs'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // The Y.js connection token of a document, for everyone who opens its link
 // (also anonymous visitors). A missing document is 404 rather than an
@@ -26,8 +27,8 @@ export default defineApiHandler({
   // Before the lookup: every request counts, so probing for document ids is throttled too.
   rateLimit: { namespace: 'token', max: 30, windowMs: MINUTE_MS, key: 'ip', phase: 'before-access' },
   handler: async ({ event, user, docId, doc: row, state: doc, actor, query }) => {
-    const config = useRuntimeConfig()
-    if (!config.jwtSecret) {
+    const env = useEnv()
+    if (!env.auth.jwtSecret) {
       throw apiError('internal')
     }
 
@@ -137,7 +138,7 @@ export default defineApiHandler({
       readOnly: decision.readOnly
     } satisfies SessionJwtPayload
     // ≤ 2 h, and never past the share link's expiry.
-    const token = jwt.sign(payload, config.jwtSecret, { expiresIn: docJwtLifetimeSeconds(row.shareExpiresAt) })
+    const token = jwt.sign(payload, env.auth.jwtSecret, { expiresIn: docJwtLifetimeSeconds(row.shareExpiresAt) })
 
     // View counts: an open by someone other than the owner and the
     // workspace members, on a plan with share controls. Aggregate per day,

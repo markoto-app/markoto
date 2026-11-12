@@ -12,6 +12,7 @@ import {
   type EmbeddingRequestShape,
   type EmbeddingTaskType
 } from '../../../shared/utils/runtime/embeddingConfig'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Embeddings wrapper for the workspace knowledge base.
@@ -23,7 +24,7 @@ import {
  * differences only through configuration.
  *
  * Behaviour:
- *   - Pin model + dimensionality from runtimeConfig so all calls produce
+ *   - Pin model + dimensionality from the typed env so all calls produce
  *     vectors in one space (per-call drift breaks `1 - cosineDistance`).
  *   - Provider-specific request parameters (Jina `task` hint, OpenAI
  *     `dimensions`) are decided in `shared/utils/runtime/embeddingConfig.ts`: sent
@@ -67,7 +68,7 @@ export interface EmbeddingsConfig {
   apiKey: string
 }
 
-/** Raw (unvalidated) settings, from runtimeConfig or the process env. */
+/** Raw settings, from the typed env or (re-embed script) the process env. */
 export interface RawEmbeddingsSettings {
   model?: string
   upstreamModel?: string
@@ -97,14 +98,14 @@ export function buildEmbeddingsConfig(raw: RawEmbeddingsSettings): EmbeddingsCon
 }
 
 export function resolveEmbeddingsConfig(): EmbeddingsConfig {
-  const litellm = useRuntimeConfig().litellm
+  const { litellm } = useEnv()
   return buildEmbeddingsConfig({
-    model: litellm?.embeddingsModel,
-    upstreamModel: litellm?.embeddingsUpstreamModel,
-    dims: litellm?.embeddingsDims,
-    sendDimensions: litellm?.embeddingsSendDimensions,
-    taskHints: litellm?.embeddingsTaskHints,
-    apiKey: litellm?.masterKey
+    model: litellm.embeddingsModel,
+    upstreamModel: litellm.embeddingsUpstreamModel,
+    dims: litellm.embeddingsDims,
+    sendDimensions: litellm.embeddingsSendDimensions,
+    taskHints: litellm.embeddingsTaskHints,
+    apiKey: litellm.masterKey
   })
 }
 

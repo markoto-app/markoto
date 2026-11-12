@@ -3,6 +3,7 @@ import { Pool } from 'pg'
 import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { captureException } from './sentry'
+import { syncEnv } from './env'
 
 // Background compaction of the `yjs_documents` append-log.
 //
@@ -38,12 +39,12 @@ import { captureException } from './sentry'
 // loaded docs, not ones the on-load path would compact anyway. Each `v1`
 // row ≈ one 2-10 s edit batch, so 500 retains a generous per-doc restore
 // window between compactions.
-const COMPACT_THRESHOLD = Number.parseInt(process.env.COMPACT_THRESHOLD || '500')
+const COMPACT_THRESHOLD = syncEnv().sync.compactThreshold
 // How often the sweep runs. `<= 0` disables it entirely.
-const COMPACT_INTERVAL_MS = Number.parseInt(process.env.COMPACT_INTERVAL_MS || '900000')
+const COMPACT_INTERVAL_MS = syncEnv().sync.compactIntervalMs
 // Cap docs compacted per run so one sweep can't monopolise the DB / a
 // connection for minutes on a table with many bloated docs.
-const COMPACT_MAX_DOCS_PER_RUN = Number.parseInt(process.env.COMPACT_MAX_DOCS_PER_RUN || '50')
+const COMPACT_MAX_DOCS_PER_RUN = syncEnv().sync.compactMaxDocsPerRun
 // Advisory-lock name (hashed in SQL, same convention as the app sweepers)
 // so only one sync-server instance sweeps at a time.
 const COMPACT_LOCK_NAME = 'yjs-compaction-sweep'
@@ -58,9 +59,9 @@ let _pool: Pool | null = null
 function getPool(): Pool {
   if (!_pool) {
     _pool = new Pool({
-      connectionString: postgresUrlFromEnv(),
+      connectionString: postgresUrlFromEnv(syncEnv().database),
       max: 4,
-      ssl: resolvePostgresSsl()
+      ssl: resolvePostgresSsl(syncEnv().database, process.env.NODE_ENV === 'production')
     })
   }
   return _pool

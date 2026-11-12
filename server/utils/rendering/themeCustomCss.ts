@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { sanitizeCustomCss, formatCustomCssIssues } from '~~/shared/utils/theme/customCss'
 import { CUSTOM_CSS_INVALID_CODE, type CustomCssIssue } from '~~/shared/types/customCss'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Write-path gate for `theme.customCss`. Every endpoint / tool that
@@ -13,7 +14,7 @@ import { CUSTOM_CSS_INVALID_CODE, type CustomCssIssue } from '~~/shared/types/cu
 /** Origins whose absolute `/api/files/…` URLs count as "this app". */
 export function customCssAppOrigins(event?: H3Event): string[] {
   const origins = new Set<string>()
-  const siteUrl = useRuntimeConfig().siteUrl
+  const siteUrl = useEnv().core.siteUrl
   if (typeof siteUrl === 'string' && siteUrl) {
     try {
       origins.add(new URL(siteUrl).origin)

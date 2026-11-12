@@ -4,14 +4,15 @@ import { PostgresqlPersistence } from 'y-postgresql'
 import { postgresUrlFromEnv } from '../../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../../shared/utils/runtime/postgresSsl'
 import { captureException } from './sentry'
+import { syncEnv } from './env'
 
-const DATABASE_URL = postgresUrlFromEnv()
+const DATABASE_URL = postgresUrlFromEnv(syncEnv().database)
 // Same TLS posture as the Nuxt app's pool (server/utils/platform/database.ts).
 // Both pools land on the same managed Postgres in prod; both must
 // verify the server cert. y-postgresql's internal pool inherits this
 // because we pass the resolved config object straight through to
 // PostgresqlPersistence.build below.
-const PG_SSL = resolvePostgresSsl()
+const PG_SSL = resolvePostgresSsl(syncEnv().database, process.env.NODE_ENV === 'production')
 
 // Small dedicated pool for ad-hoc queries against the yjs_documents
 // table — separate from y-postgresql's internal pool because that

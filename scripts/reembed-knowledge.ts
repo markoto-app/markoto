@@ -41,6 +41,7 @@ import { buildEmbeddingsConfig, embedDocuments, embeddingVersionTag } from '../s
 import { runReembed } from '../server/utils/knowledge/reembedKnowledge'
 import { postgresUrlFromEnv } from '../shared/utils/runtime/connectionStrings'
 import { resolvePostgresSsl } from '../shared/utils/runtime/postgresSsl'
+import { useEnv } from '../shared/env/load'
 import { trimTrailingSlashes } from '../shared/utils/trimTrailingSlashes'
 
 function flag(argv: string[], name: string): string | undefined {
@@ -57,21 +58,25 @@ function positiveInt(raw: string | undefined, fallback: number, name: string): n
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2)
-  const env = process.env
+  const env = useEnv()
 
   const cfg = buildEmbeddingsConfig({
-    model: env.NUXT_LITELLM_EMBEDDINGS_MODEL,
-    upstreamModel: env.NUXT_LITELLM_EMBEDDINGS_UPSTREAM_MODEL || env.EMBEDDINGS_UPSTREAM_MODEL,
-    dims: env.NUXT_LITELLM_EMBEDDINGS_DIMS || undefined,
-    sendDimensions: env.NUXT_LITELLM_EMBEDDINGS_SEND_DIMENSIONS,
-    taskHints: env.NUXT_LITELLM_EMBEDDINGS_TASK_HINTS,
-    apiKey: env.NUXT_LITELLM_MASTER_KEY
+    model: env.litellm.embeddingsModel,
+    upstreamModel: env.litellm.embeddingsUpstreamModel || process.env.EMBEDDINGS_UPSTREAM_MODEL,
+    dims: env.litellm.embeddingsDims,
+    sendDimensions: env.litellm.embeddingsSendDimensions,
+    taskHints: env.litellm.embeddingsTaskHints,
+    apiKey: env.litellm.masterKey
   })
-  if (!env.NUXT_LITELLM_URL) throw new Error('NUXT_LITELLM_URL is required')
+  if (!env.litellm.url) throw new Error('NUXT_LITELLM_URL is required')
 
-  const litellm = new OpenAI({ apiKey: cfg.apiKey, baseURL: trimTrailingSlashes(env.NUXT_LITELLM_URL) + '/v1' })
+  const litellm = new OpenAI({ apiKey: cfg.apiKey, baseURL: trimTrailingSlashes(env.litellm.url) + '/v1' })
   const concurrency = positiveInt(flag(argv, 'concurrency'), 5, 'concurrency')
-  const pool = new Pool({ connectionString: env.DATABASE_URL || postgresUrlFromEnv(env), ssl: resolvePostgresSsl(env) })
+  // DATABASE_URL: a full URL for a run outside the stack (otherwise the POSTGRES_* parts).
+  const pool = new Pool({
+    connectionString: process.env.DATABASE_URL || postgresUrlFromEnv(env.database),
+    ssl: resolvePostgresSsl(env.database, process.env.NODE_ENV === 'production')
+  })
 
   console.log(`[reembed] model=${cfg.model} dims=${cfg.dimensions} tag=${embeddingVersionTag(cfg)}`)
   try {

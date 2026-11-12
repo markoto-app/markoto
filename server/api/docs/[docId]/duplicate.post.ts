@@ -6,6 +6,7 @@ import { imageQuotaError, resolveImageQuota } from '../../../utils/storage/image
 import { flushSyncDocument } from '../../../utils/documents/syncNotify'
 import { canDownload } from '~~/shared/utils/documents/docPermissions'
 import { duplicateDocBody } from '~~/shared/api/sharing'
+import { useEnv } from '~~/shared/env/load'
 
 // Duplicate a document into a new docId. The duplicator becomes the
 // new owner — duplicates are "my copy of their template". Same
@@ -50,7 +51,7 @@ export default defineApiHandler({
     // segment also keeps a key from short-circuiting a different doc's
     // duplicate (why this isn't the wrapper's static `idempotency` option).
     // See `server/utils/platform/idempotency.ts` for the contract.
-    const config = useRuntimeConfig()
+    const env = useEnv()
     return withIdempotency(event, `duplicate:${sourceDocId}`, user.id, async () => {
       const newDocId = nanoid(10)
       // The copied images count against the target Team / Business
@@ -63,7 +64,7 @@ export default defineApiHandler({
       try {
         await duplicateDocument(
           { sourceDocId, newDocId, ownerId: user.id, workspaceId: targetWorkspaceId, title },
-          { s3: useS3Client(), bucket: config.s3.bucket, imageQuota }
+          { s3: useS3Client(), bucket: env.storage.bucket, imageQuota }
         )
       } catch (e) {
         if (e instanceof ImageQuotaExceededError) throw imageQuotaError(e.limitBytes)

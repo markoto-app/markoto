@@ -29,6 +29,8 @@
 
 import type { PlanName } from '~~/shared/config/tiers'
 import { litellmAdminFetch } from './litellmAdmin'
+import { useEnv } from '~~/shared/env/load'
+import type { RawEnv } from '~~/shared/env/define'
 
 /** Fixed LiteLLM team id (LiteLLM accepts a caller-chosen `team_id`), so no app-side storage is needed. */
 export const FREE_TIER_TEAM_ID = 'markoto-free-tier'
@@ -46,29 +48,12 @@ export const FREE_ALLOWANCE_EXHAUSTED_MESSAGE_KEY = 'ai.freeAllowanceExhausted'
 export const FREE_ALLOWANCE_EXHAUSTED_MESSAGE
   = 'This month\'s free AI allowance is used up. Add your own key in Settings → AI provider to keep going.'
 
-type Env = Record<string, string | undefined>
+type Env = RawEnv | undefined
 
-/**
- * The configured ceiling in USD, or null when there is none (unset, empty,
- * `0`, negative or not a number — self-hosters run without a pool).
- */
-export function freeTierTotalBudgetUsd(env: Env = process.env): number | null {
-  const raw = (env.NUXT_FREE_TIER_TOTAL_BUDGET_USD ?? '').trim()
-  if (raw === '') return null
-  const value = Number(raw)
-  if (!Number.isFinite(value) || value <= 0) return null
-  return value
-}
-
-/** Problems with the configured value, logged once at boot. */
-export function freeTierTotalBudgetProblems(env: Env = process.env): string[] {
-  const raw = (env.NUXT_FREE_TIER_TOTAL_BUDGET_USD ?? '').trim()
-  if (raw === '' || raw === '0') return []
-  const value = Number(raw)
-  if (!Number.isFinite(value) || value < 0) {
-    return [`NUXT_FREE_TIER_TOTAL_BUDGET_USD="${raw.slice(0, 40)}" is not a non-negative number — no global free-tier ceiling is applied.`]
-  }
-  return []
+/** The configured ceiling in USD, or null when there is none (unset or `0` — self-hosters run without a pool). */
+export function freeTierTotalBudgetUsd(env?: Env): number | null {
+  const value = useEnv(env).ai.freeTierTotalBudgetUsd
+  return value > 0 ? value : null
 }
 
 /**
@@ -76,7 +61,7 @@ export function freeTierTotalBudgetProblems(env: Env = process.env): string[] {
  * free users while a ceiling is configured, otherwise none. Callers pass
  * the EFFECTIVE plan (billing off → always `free`).
  */
-export function teamIdForPlan(plan: PlanName, env: Env = process.env): string | null {
+export function teamIdForPlan(plan: PlanName, env?: Env): string | null {
   if (plan !== 'free') return null
   return freeTierTotalBudgetUsd(env) === null ? null : FREE_TIER_TEAM_ID
 }
@@ -135,7 +120,7 @@ async function readTeam(): Promise<TeamInfo | null> {
  * to the configured values. Idempotent; a no-op without a ceiling.
  * Returns the team id when a ceiling is active, else null.
  */
-export async function ensureFreeTierTeam(env: Env = process.env): Promise<string | null> {
+export async function ensureFreeTierTeam(env?: Env): Promise<string | null> {
   const budget = freeTierTotalBudgetUsd(env)
   if (budget === null) return null
   if (ensuredBudget === budget) return FREE_TIER_TEAM_ID
@@ -234,7 +219,7 @@ let poolCache: { at: number, value: FreeTierPoolStatus | null } | null = null
  * gate anyway. Null without a ceiling, or when the proxy can't be read
  * (fail open: the UI then behaves as before and the proxy still refuses).
  */
-export async function getFreeTierPoolStatus(env: Env = process.env): Promise<FreeTierPoolStatus | null> {
+export async function getFreeTierPoolStatus(env?: Env): Promise<FreeTierPoolStatus | null> {
   const budget = freeTierTotalBudgetUsd(env)
   if (budget === null) return null
   const now = Date.now()

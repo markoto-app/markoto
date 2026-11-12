@@ -1,4 +1,5 @@
 import { getCachedProbeResults, isOverallHealthy, type ProbeResult } from '../utils/platform/healthProbes'
+import { useEnv } from '~~/shared/env/load'
 
 // Public status endpoint for an external status page (e.g. a scheduled job that
 // polls this and publishes it). Reports EVERY component's up/down state
@@ -29,13 +30,13 @@ function pick(r: ProbeResult): StatusCheck {
 export default defineApiHandler({
   access: allow.public('Status board for an external status page; up/down and latency per component, no error strings'),
   handler: async () => {
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const results = await getCachedProbeResults({
-      syncUrl: config.syncInternalUrl,
-      rendererUrl: config.rendererInternalUrl,
-      markitdownUrl: config.markitdownUrl,
-      litellmUrl: config.litellm?.url,
-      s3Bucket: config.s3?.bucket
+      syncUrl: env.sync.internalUrl,
+      rendererUrl: env.renderer.internalUrl,
+      markitdownUrl: env.markitdown.url,
+      litellmUrl: env.litellm.url,
+      s3Bucket: env.storage.bucket
     })
 
     return {

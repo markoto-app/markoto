@@ -1,6 +1,7 @@
 import { GetObjectCommand } from '@aws-sdk/client-s3'
 import { fileTypeFromBuffer } from 'file-type'
 import { ownValue } from '~~/shared/utils/ownValue'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Content-type guard run at confirm time, BEFORE the DB row is
@@ -103,7 +104,7 @@ export async function requireContentMatchesExtension(args: {
   s3Key: string
   ext: string
 }): Promise<void> {
-  const config = useRuntimeConfig()
+  const env = useEnv()
   const ext = args.ext.toLowerCase()
 
   if (TEXT_EXTS.has(ext)) {
@@ -111,7 +112,7 @@ export async function requireContentMatchesExtension(args: {
     // printable-UTF-8 ratio on the first 1 KB.
     let bytes: Uint8Array
     try {
-      bytes = await fetchBytes(config.s3.bucket, args.s3Key, TEXT_PROBE_BYTES - 1)
+      bytes = await fetchBytes(env.storage.bucket, args.s3Key, TEXT_PROBE_BYTES - 1)
     } catch (e) {
       throw createError({ statusCode: 500, message: `Could not read uploaded object: ${e instanceof Error ? e.message : 'unknown'}` })
     }
@@ -135,7 +136,7 @@ export async function requireContentMatchesExtension(args: {
   // that, so we give it a generous head).
   let bytes: Uint8Array
   try {
-    bytes = await fetchBytes(config.s3.bucket, args.s3Key, 4095)
+    bytes = await fetchBytes(env.storage.bucket, args.s3Key, 4095)
   } catch (e) {
     throw createError({ statusCode: 500, message: `Could not read uploaded object: ${e instanceof Error ? e.message : 'unknown'}` })
   }

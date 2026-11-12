@@ -6,6 +6,7 @@ import { flushSyncDocument } from '../../../../../utils/documents/syncNotify'
 import { withIdempotency } from '../../../../../utils/platform/idempotency'
 import { createDocFromTemplateBody, templateParams } from '~~/shared/api/brand'
 import { HOUR_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // POST /api/workspaces/:wsId/templates/:templateId/documents — {title?}
 // — a new document in the workspace from a template — a copy of
@@ -37,7 +38,7 @@ export default defineApiHandler({
       try {
         await duplicateDocument(
           { sourceDocId: template.docId, newDocId, ownerId: user.id, workspaceId: wsId, title, fromTemplate: true },
-          { s3: useS3Client(), bucket: useRuntimeConfig().s3.bucket, imageQuota }
+          { s3: useS3Client(), bucket: useEnv().storage.bucket, imageQuota }
         )
       } catch (e) {
         if (e instanceof ImageQuotaExceededError) throw imageQuotaError(e.limitBytes)

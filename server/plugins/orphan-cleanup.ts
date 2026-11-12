@@ -11,6 +11,7 @@ import { s3ObjectStore } from '../utils/storage/objectStore'
 import { stagingKeyFor } from '../utils/storage/uploadKey'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 // Reconciles S3 against the documents + uploads + workspace_knowledge
 // tables. Four layers:
@@ -49,7 +50,7 @@ export default defineSweeper({
   // this body never throws.
   run: async () => {
     const s3 = useS3Client()
-    const bucket = useRuntimeConfig().s3.bucket
+    const bucket = useEnv().storage.bucket
     const now = Date.now()
 
     try {

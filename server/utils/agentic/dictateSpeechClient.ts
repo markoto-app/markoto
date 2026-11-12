@@ -6,6 +6,7 @@ import {
 } from '@mistralai/mistralai/extra/realtime'
 import { isTestModeEnabled } from '../../../shared/utils/security/testMode'
 import { MISTRAL_EU_API_HOST } from '../../../shared/ai/providers'
+import { useEnv } from '~~/shared/env/load'
 
 // Factory for the dictate streaming client. Voxtral realtime is the only
 // real path; the mock-streaming fixture lets integration tests drive the
@@ -119,7 +120,7 @@ const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
  * which makes no location commitment, so it is always passed explicitly.
  */
 export function createDictateRealtimeClient(apiKey: string, model: string = DEFAULT_REALTIME_MODEL, serverURL: string = MISTRAL_EU_SERVER_URL): SpeechClientLike {
-  if (isTestModeEnabled() && process.env.NUXT_VOXTRAL_REALTIME_MOCK === '1') {
+  if (isTestModeEnabled() && useEnv().test.voxtralRealtimeMock) {
     return new MockRealtimeClient()
   }
   return new VoxtralRealtimeClient(apiKey, model, serverURL)

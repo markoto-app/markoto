@@ -24,16 +24,16 @@ describe('resolveInstanceBrand', () => {
     })
   })
 
-  it('drops what it can\'t use', () => {
+  it('drops what it can\'t use; refuses an invalid support link at boot', () => {
     const b = resolveInstanceBrand({
       NUXT_INSTANCE_BRAND_NAME: `A\u0000B\n${'x'.repeat(80)}`,
-      NUXT_INSTANCE_BRAND_LOGO: '/app/branding/logo.gif',
-      NUXT_INSTANCE_SUPPORT_URL: 'javascript:alert(1)',
-      NUXT_INSTANCE_SUPPORT_EMAIL: 'not an email'
+      NUXT_INSTANCE_BRAND_LOGO: '/app/branding/logo.gif'
     })
     expect(b.name).toHaveLength(60)
     expect(b.name.startsWith('AB')).toBe(true)
     expect(b).toMatchObject({ logoUrl: null, supportUrl: '', supportEmail: '' })
+    expect(() => resolveInstanceBrand({ NUXT_INSTANCE_SUPPORT_URL: 'javascript:alert(1)' })).toThrow(/NUXT_INSTANCE_SUPPORT_URL: expected an absolute http\/https URL/)
+    expect(() => resolveInstanceBrand({ NUXT_INSTANCE_SUPPORT_EMAIL: 'not an email' })).toThrow(/NUXT_INSTANCE_SUPPORT_EMAIL: expected an email address/)
     expect(instanceBrandLogoExt('/x/logo.webp')).toBe('webp')
     expect(instanceBrandLogoExt('/x/logo')).toBeNull()
     expect(instanceBrandLogoExt(undefined)).toBeNull()

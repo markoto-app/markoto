@@ -8,6 +8,7 @@ import { deleteActivityForDoc } from '../../repos/activity'
 import { deleteUploadsForDoc } from '../../repos/uploads'
 import { deleteDocRow } from '../../repos/documents'
 import { injectTraceHeaders } from '../platform/traceHeaders'
+import { useEnv } from '~~/shared/env/load'
 
 // Full-cascade deletion for a document. Used by:
 // - `server/api/docs/[docId]/index.delete.ts` (user-initiated delete)
@@ -139,15 +140,15 @@ export async function deleteDocument(docId: string): Promise<void> {
   const published = await getPublishedPageSummary(docId)
   await deleteDocDbRows(docId)
 
-  const config = useRuntimeConfig()
-  await cleanupDocS3(docId, { s3: useS3Client(), bucket: config.s3.bucket })
+  const env = useEnv()
+  await cleanupDocS3(docId, { s3: useS3Client(), bucket: env.storage.bucket })
   // Wipe any cached PDF / PNG renders for this doc. Same swallow-on-error
   // semantics as cleanupDocS3 — orphaned render objects cost nothing
   // material and the bucket lifecycle policy will reap them eventually.
   await cleanupRendersForDoc(docId)
   if (published) await prunePublishedObjects(published.id)
   notifySyncDeleted(docId, {
-    syncInternalUrl: config.syncInternalUrl,
-    internalApiSecret: config.internalApiSecret
+    syncInternalUrl: env.sync.internalUrl,
+    internalApiSecret: env.auth.internalApiSecret
   })
 }

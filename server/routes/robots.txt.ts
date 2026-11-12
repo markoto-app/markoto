@@ -12,9 +12,9 @@ export default defineApiHandler({
   handler: ({ event }) => {
     setResponseHeader(event, 'Content-Type', 'text/plain; charset=utf-8')
     setResponseHeader(event, 'Cache-Control', 'public, max-age=3600')
-    const base = sitemapBaseUrl(process.env)
+    const base = sitemapBaseUrl()
     return robotsTxt({
-      indexable: resolveSiteIndexable(process.env),
+      indexable: resolveSiteIndexable(),
       sitemapUrl: base ? `${base}/sitemap.xml` : null
     })
   }

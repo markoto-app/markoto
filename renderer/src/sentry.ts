@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/bun'
+import { env } from './env'
 
 // Renderer Sentry init. Must be imported BEFORE any handler so Sentry's
 // Bun instrumentation patches stdlib targets (fetch / http / s3) before
@@ -12,7 +13,7 @@ import * as Sentry from '@sentry/bun'
 // child of the app-side transaction. End result: one trace in Sentry's
 // Trace Explorer covers browser → app → renderer → S3.
 
-const dsn = process.env.SENTRY_DSN
+const dsn = env.observability.dsn
 
 if (dsn) {
   Sentry.init({

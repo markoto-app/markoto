@@ -18,10 +18,10 @@ describe('NUXT_AUDIT_LOG_RETENTION_DAYS', () => {
     expect(resolveAuditLogRetentionDays({ NUXT_AUDIT_LOG_RETENTION_DAYS: '0' })).toBe(0)
   })
 
-  it('falls back to the default on invalid input', () => {
-    expect(resolveAuditLogRetentionDays({ NUXT_AUDIT_LOG_RETENTION_DAYS: '-1' })).toBe(730)
-    expect(resolveAuditLogRetentionDays({ NUXT_AUDIT_LOG_RETENTION_DAYS: '1.5' })).toBe(730)
-    expect(resolveAuditLogRetentionDays({ NUXT_AUDIT_LOG_RETENTION_DAYS: 'two years' })).toBe(730)
+  it('refuses invalid input (boot validation reports it)', () => {
+    for (const raw of ['-1', '1.5', 'two years']) {
+      expect(() => resolveAuditLogRetentionDays({ NUXT_AUDIT_LOG_RETENTION_DAYS: raw }), raw).toThrow(/NUXT_AUDIT_LOG_RETENTION_DAYS: expected an integer ≥ 0/)
+    }
   })
 })
 
@@ -35,7 +35,7 @@ describe('NUXT_ABUSE_REPORT_RETENTION_DAYS', () => {
     expect(resolveAbuseReportRetentionDays({ NUXT_ABUSE_REPORT_RETENTION_DAYS: '0' })).toBe(0)
   })
 
-  it('falls back to the default on invalid input', () => {
-    expect(resolveAbuseReportRetentionDays({ NUXT_ABUSE_REPORT_RETENTION_DAYS: 'x' })).toBe(365)
+  it('refuses invalid input (boot validation reports it)', () => {
+    expect(() => resolveAbuseReportRetentionDays({ NUXT_ABUSE_REPORT_RETENTION_DAYS: 'x' })).toThrow(/NUXT_ABUSE_REPORT_RETENTION_DAYS/)
   })
 })

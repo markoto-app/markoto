@@ -118,15 +118,18 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
     expect(tiers.free.imageBytesPerUser).toBe(123456)
   })
 
-  it('rejects invalid values — typos degrade to the default, never to a broken product', () => {
-    const tiers = resolveTiersFromEnv({
-      TIER_FREE_LITELLM_BUDGET_USD: 'not-a-number',
-      TIER_PRO_LITELLM_BUDGET_USD: '0', // zero = disabled product, refused
-      TIER_TEAM_LITELLM_BUDGET_USD: '-5',
-      TIER_BUSINESS_LITELLM_BUDGET_USD: '', // empty string = unset
-      TIER_BUSINESS_KNOWLEDGE_FILES: 'Infinity'
-    })
-    expect(tiers).toEqual(DEFAULT_TIERS)
+  it('empty = unset; an invalid value is refused, never a broken product', () => {
+    expect(resolveTiersFromEnv({ TIER_BUSINESS_LITELLM_BUDGET_USD: '' })).toEqual(DEFAULT_TIERS)
+    // Every TIER_* variable is in the env registry, so boot validation
+    // (shared/env) refuses these before any request reads the tiers.
+    for (const [name, raw] of [
+      ['TIER_FREE_LITELLM_BUDGET_USD', 'not-a-number'],
+      ['TIER_PRO_LITELLM_BUDGET_USD', '0'], // zero = disabled product
+      ['TIER_TEAM_LITELLM_BUDGET_USD', '-5'],
+      ['TIER_BUSINESS_KNOWLEDGE_FILES', 'Infinity']
+    ] as const) {
+      expect(() => resolveTiersFromEnv({ [name]: raw }), name).toThrow(new RegExp(`${name}: expected a number > 0`))
+    }
   })
 
   it('does not mutate DEFAULT_TIERS', () => {
@@ -193,9 +196,8 @@ describe('resolveTiersFromEnv — entitlement overrides', () => {
   })
 
   it('accepts `unlimited` only where the field allows it', () => {
-    const tiers = resolveTiersFromEnv({ TIER_FREE_SAVED_THEMES: 'unlimited', TIER_FREE_WORKSPACES_OWNED: 'unlimited' })
-    expect(tiers.free.savedThemes).toBe(DEFAULT_TIERS.free.savedThemes)
-    expect(tiers.free.workspacesOwned).toBe(DEFAULT_TIERS.free.workspacesOwned)
+    expect(() => resolveTiersFromEnv({ TIER_FREE_SAVED_THEMES: 'unlimited' })).toThrow(/TIER_FREE_SAVED_THEMES: expected a number > 0/)
+    expect(() => resolveTiersFromEnv({ TIER_FREE_WORKSPACES_OWNED: 'unlimited' })).toThrow(/TIER_FREE_WORKSPACES_OWNED/)
   })
 
   it('parses feature switches (true/false/1/0/yes/no/on/off, any case)', () => {
@@ -206,14 +208,15 @@ describe('resolveTiersFromEnv — entitlement overrides', () => {
     expect(resolveTiersFromEnv({ TIER_FREE_FEATURE_CUSTOM_CSS: 'true' }).free.customCss).toBe(true)
   })
 
-  it('keeps the default for an unparseable switch or number', () => {
-    const tiers = resolveTiersFromEnv({
-      TIER_FREE_FEATURE_CUSTOM_CSS: 'maybe',
-      TIER_FREE_HISTORY_DAYS: '0',
-      TIER_FREE_MEMBERS_PER_WORKSPACE: '-1',
-      TIER_FREE_IMPORT_MAX_BYTES: 'big'
-    })
-    expect(tiers.free).toEqual(DEFAULT_TIERS.free)
+  it('refuses an unparseable switch or number', () => {
+    for (const [name, raw] of [
+      ['TIER_FREE_FEATURE_CUSTOM_CSS', 'maybe'],
+      ['TIER_FREE_HISTORY_DAYS', '0'],
+      ['TIER_FREE_MEMBERS_PER_WORKSPACE', '-1'],
+      ['TIER_FREE_IMPORT_MAX_BYTES', 'big']
+    ] as const) {
+      expect(() => resolveTiersFromEnv({ [name]: raw }), name).toThrow(new RegExp(name))
+    }
   })
 })
 

@@ -4,13 +4,13 @@ The same code runs a self-hosted instance (billing off), the free-only hosted se
 
 ## Billing mode
 
-`NUXT_BILLING_ENABLED` (default off) is parsed in `shared/config/billingMode.ts` from `process.env` on every call, so tests can stub it. Server helpers are in `server/utils/billing/billingMode.ts`:
+`NUXT_BILLING_ENABLED` (default off) is read through the typed env (`shared/config/billingMode.ts`), which tests stub with `vi.stubEnv`. Server helpers are in `server/utils/billing/billingMode.ts`:
 
 - `assertBillingEnabled()` — 404 `billing/disabled` at the top of checkout, portal, seats, top-up and the Stripe webhook.
 - `effectivePlan(plan, validUntil)` — `free` whenever billing is off, and for a lapsed paid plan.
 - `limitRecovery()`, `limitUpgradeHint()`, `budgetExhausted*()` — limit messages that point at an upgrade only when one can be bought.
 
-With billing off, Stripe environment variables are not required at boot (`server/utils/billing/stripeStartupCheck.ts`), the billing jobs do not start, and account deletion and data export skip their Stripe steps. `NUXT_PLANS_COMING_SOON=true` opens the paid-plans waitlist (`server/utils/privacy/waitlist.ts`).
+With billing off, Stripe environment variables are not required at boot (the billing rule in `shared/env/rules/billing.ts`), the billing jobs do not start, and account deletion and data export skip their Stripe steps. `NUXT_PLANS_COMING_SOON=true` opens the paid-plans waitlist (`server/utils/privacy/waitlist.ts`).
 
 ## Plans and entitlements
 

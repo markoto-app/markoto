@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import type { PoolConfig } from 'pg'
 
-// Resolve TLS posture for the pg Pool from env. Returns the value to plug
+// Resolve TLS posture for the pg Pool from the typed env (`env.database`
+// plus whether NODE_ENV is production). Returns the value to plug
 // into `new Pool({ ssl: ... })`.
 //
 // Threat model: TLS-in-transit between app (and sync-server) and a managed
@@ -24,16 +25,18 @@ import type { PoolConfig } from 'pg'
 //     managed-PG migration scenarios where the provider lets you disable
 //     TLS at the network edge — emit a console warning so the choice
 //     shows up in deploy logs.
-export function resolvePostgresSsl(env: NodeJS.ProcessEnv = process.env): PoolConfig['ssl'] {
-  const nodeEnv = env.NODE_ENV ?? ''
-  if (env.PGSSL === 'disable') {
+export function resolvePostgresSsl(
+  db: { ssl?: 'disable', sslRootCert?: string },
+  production: boolean
+): PoolConfig['ssl'] {
+  if (db.ssl === 'disable') {
     console.warn('[postgres] PGSSL=disable — TLS-in-transit explicitly turned off. Verify this is intentional.')
     return false
   }
-  if (nodeEnv !== 'production') {
+  if (!production) {
     return false
   }
-  const caPath = env.PGSSLROOTCERT
+  const caPath = db.sslRootCert
   if (caPath) {
     try {
       const ca = fs.readFileSync(caPath, 'utf-8')

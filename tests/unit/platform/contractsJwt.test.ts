@@ -178,9 +178,9 @@ describe('JWT contract: mintRenderJwt', () => {
   })
 
   it('round-trips through verifyRenderToken when secrets align', () => {
-    // verifyRenderToken reads `useRuntimeConfig().internalApiSecret`, so to round-trip we would need to mock the
-    // runtime config. Instead we call the verifier directly with a known secret via the jsonwebtoken API: same
-    // code path as the verifier's inner `jwt.verify`, just without the runtime-config indirection.
+    // verifyRenderToken reads the internal secret from the typed env, so to round-trip we would need to stub
+    // it. Instead we call the verifier directly with a known secret via the jsonwebtoken API: same
+    // code path as the verifier's inner `jwt.verify`, just without the env indirection.
     //
     // The shape pin above is the load-bearing assertion; the
     // round-trip here is a defense-in-depth check that the verifier
@@ -194,11 +194,9 @@ describe('JWT contract: mintRenderJwt', () => {
   })
 
   it('verifyRenderToken accepts the minted token end-to-end', () => {
-    // verifyRenderToken pulls the secret from runtime config — we
-    // can't easily override that from a unit test without mocking
-    // `useRuntimeConfig`. So this end-to-end round-trip is left to
-    // `tests/unit/rendering/renderTokens.test.ts` which sets up the runtime
-    // config fixture properly. This contract test stops at the
+    // verifyRenderToken pulls the secret from the typed env. The
+    // end-to-end round-trip is left to
+    // `tests/unit/rendering/renderTokens.test.ts`, which stubs it. This contract test stops at the
     // shape assertion above — the verifyRenderToken import here is
     // a guard that the function exists and is callable (catches
     // the case where someone deletes/renames it).

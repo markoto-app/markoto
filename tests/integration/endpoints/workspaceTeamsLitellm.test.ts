@@ -18,15 +18,15 @@ import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
 // $0.006, no upstream call).
 
 const envBefore = { ...process.env }
-const globalsBefore = { useRuntimeConfig: Reflect.get(globalThis, 'useRuntimeConfig'), createError: Reflect.get(globalThis, 'createError') }
+const globalsBefore = { createError: Reflect.get(globalThis, 'createError') }
 
 applyTestEnv()
 process.env.LITELLM_TEST_STUB = ''
 process.env.NUXT_BILLING_ENABLED = 'true'
-Object.assign(globalThis, {
-  useRuntimeConfig: () => ({ litellm: { url: LITELLM_URL, masterKey: LITELLM_MASTER_KEY } }),
-  createError
-})
+// The code under test reads the proxy from the typed env (shared/env).
+process.env.NUXT_LITELLM_URL = LITELLM_URL
+process.env.NUXT_LITELLM_MASTER_KEY = LITELLM_MASTER_KEY
+Object.assign(globalThis, { createError })
 
 const teams = await import('../../../server/utils/litellm/workspaceTeams')
 const { getPooledWorkspace } = await import('../../../server/utils/billing/workspaceBilling')

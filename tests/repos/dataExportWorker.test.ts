@@ -16,13 +16,6 @@ vi.mock('../../server/utils/email/sendEmail', () => ({
   safeSendTransactionalEmail: vi.fn(async () => ({ delivered: true }))
 }))
 
-// `useRuntimeConfig()` is a Nuxt auto-import in the running app but
-// undefined in the repos test env. Stub it on globalThis so the
-// worker's `config.s3.bucket` access works.
-;(globalThis as { useRuntimeConfig?: () => Record<string, unknown> }).useRuntimeConfig = () => ({
-  s3: { bucket: 'test-bucket' }
-})
-
 const { runDataExportWorker } = await import('../../server/utils/privacy/dataExportWorker')
 
 describe('runDataExportWorker', () => {

@@ -2,6 +2,7 @@ import jwt from 'jsonwebtoken'
 import { resolveBillingContext } from '../../../utils/billing/billing'
 import { DICTATE_JWT_FIXED_CLAIMS, type DictateJwtPayload } from '../../../../shared/contracts/jwt'
 import { dictateTokenBody } from '~~/shared/api/ai'
+import { useEnv } from '~~/shared/env/load'
 
 // Mints a short-lived JWT for the live-dictation WebSocket. The WS `upgrade`
 // hook gets a raw Request, not the H3Event `nuxt-auth-utils` needs to decrypt
@@ -15,10 +16,10 @@ export default defineApiHandler({
   body: dictateTokenBody,
   handler: async ({ user, docId }) => {
     const userId = user.id
-    const config = useRuntimeConfig()
+    const env = useEnv()
     // Dictation-specific secret, falling back to the Hocuspocus jwtSecret so dev
     // works without a second var. Prod should set both independently.
-    const secret = config.aiDictateJwtSecret || config.jwtSecret
+    const secret = env.auth.dictateJwtSecret || env.auth.jwtSecret
     if (!secret) {
       throw apiError('internal')
     }

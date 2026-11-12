@@ -7,6 +7,7 @@ import { deleteKnowledgeArtifact } from '../utils/knowledge/knowledgeAccess'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 import { DAY_MS } from '~~/shared/config/units'
+import { KNOWLEDGE_PLATFORM_LIMITS } from '~~/shared/config/tiers'
 
 // Re-kicks knowledge-base uploads that got stuck in `status='processing'`
 // past the deadline. Normal ingestion runs fire-and-forget from the
@@ -58,8 +59,7 @@ async function sweepStuck() {
  * what's going wrong before cleanup.
  */
 async function sweepFailed() {
-  const cfg = useRuntimeConfig().knowledge
-  const cutoffDays = cfg.failedRetentionDays
+  const cutoffDays = KNOWLEDGE_PLATFORM_LIMITS.failedRetentionDays
   if (cutoffDays <= 0) return
   const cutoff = new Date(Date.now() - cutoffDays * DAY_MS)
   let rows: Array<{ knowledgeId: string }>

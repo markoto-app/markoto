@@ -4,6 +4,7 @@ import { publishedObjectKey } from '../../../../utils/publish/snapshotAssets'
 import { PUBLISHED_FILE_RE, PUBLISHED_PAGE_ID_RE } from '~~/shared/config/publish'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { publishedFileParams } from '~~/shared/api/platform'
+import { useEnv } from '~~/shared/env/load'
 
 // GET /api/published/:pageId/(files|brand)/:file: an image or font of a
 // published web page (the copy made at publish time), served only while the
@@ -38,7 +39,7 @@ export default defineApiHandler({
     let body: ReadableStream
     let length: number | undefined
     try {
-      const res = await useS3Client().send(new GetObjectCommand({ Bucket: useRuntimeConfig().s3.bucket, Key: publishedObjectKey(pageId, kind, file) }))
+      const res = await useS3Client().send(new GetObjectCommand({ Bucket: useEnv().storage.bucket, Key: publishedObjectKey(pageId, kind, file) }))
       if (!res.Body) throw new Error('empty body')
       body = res.Body.transformToWebStream()
       length = res.ContentLength

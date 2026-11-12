@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { instanceDefaultProblems, readInstanceDefault, resolveByokUrlPolicy } from '../../../server/utils/aiProviders/config'
+import { readInstanceDefault, resolveByokUrlPolicy } from '../../../server/utils/aiProviders/config'
+import { bootProblems, bootWarnings } from '../env/fixtures'
 import { AiProviderCallError, PROVIDER_ERROR_MESSAGES, classifyProviderError, providerErrorMessage, redactSecret, withProviderErrors } from '../../../server/utils/aiProviders/requestFields'
 import { AiProviderUrlRefused } from '../../../server/utils/aiProviders/urlPolicy'
 import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resolve'
@@ -33,7 +34,7 @@ describe('readInstanceDefault', () => {
   it('base URL without key is treated as unset and reported', () => {
     const env = { NUXT_AI_DEFAULT_CHAT_MODEL: 'm', NUXT_AI_DEFAULT_CHAT_BASE_URL: 'https://x.test/v1' }
     expect(readInstanceDefault('chat', env)).toBeNull()
-    expect(instanceDefaultProblems(env).join(' ')).toContain('NUXT_AI_DEFAULT_CHAT_API_KEY')
+    expect(bootWarnings(env).join(' ')).toContain('NUXT_AI_DEFAULT_CHAT_API_KEY')
   })
 
   it('_VISION=false turns vision off', () => {
@@ -47,9 +48,13 @@ describe('resolveByokUrlPolicy', () => {
   })
   it('parses + normalises the allowlist and the opt-in', () => {
     expect(resolveByokUrlPolicy({
-      NUXT_AI_BYOK_ALLOWED_BASE_URLS: ' https://api.mistral.ai/v1/ , https://api.openai.com/v1,,not a url',
+      NUXT_AI_BYOK_ALLOWED_BASE_URLS: ' https://api.mistral.ai/v1/ , https://api.openai.com/v1,,',
       NUXT_AI_BYOK_ALLOW_PRIVATE_URLS: 'TRUE'
     })).toEqual({ allowedBaseUrls: ['https://api.mistral.ai/v1', 'https://api.openai.com/v1'], allowPrivate: true })
+  })
+  it('refuses an entry that is not an absolute http(s) URL at boot', () => {
+    expect(bootProblems({ NUXT_AI_BYOK_ALLOWED_BASE_URLS: 'https://api.openai.com/v1,not a url' }))
+      .toEqual(['NUXT_AI_BYOK_ALLOWED_BASE_URLS: entry 2: expected an absolute http/https URL'])
   })
 })
 

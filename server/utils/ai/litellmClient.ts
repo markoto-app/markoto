@@ -1,5 +1,6 @@
 import OpenAI from 'openai'
 import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Thin OpenAI-SDK factory pointed at our self-hosted LiteLLM proxy.
@@ -27,13 +28,13 @@ let cachedAdminClient: OpenAI | null = null
  * For user-attributed calls, use `useLitellmForUser(virtualKey)`.
  *
  * The client is cached across calls — the SDK manages its own keep-alive
- * connection pool, and `useRuntimeConfig()` is cheap but not free.
+ * connection pool.
  */
 export function useLitellmAdmin(): OpenAI {
   if (cachedAdminClient) return cachedAdminClient
-  const config = useRuntimeConfig()
-  const url = config.litellm?.url
-  const masterKey = config.litellm?.masterKey
+  const env = useEnv()
+  const url = env.litellm.url
+  const masterKey = env.litellm.masterKey
   if (!url || !masterKey) {
     throw new Error('[litellm] NUXT_LITELLM_URL and NUXT_LITELLM_MASTER_KEY must be set')
   }
@@ -52,8 +53,8 @@ export function useLitellmAdmin(): OpenAI {
  * per user).
  */
 export function useLitellmForUser(virtualKey: string): OpenAI {
-  const config = useRuntimeConfig()
-  const url = config.litellm?.url
+  const env = useEnv()
+  const url = env.litellm.url
   if (!url) {
     throw new Error('[litellm] NUXT_LITELLM_URL not configured')
   }
@@ -63,7 +64,7 @@ export function useLitellmForUser(virtualKey: string): OpenAI {
   })
 }
 
-/** Test-only: drops the cached admin client so a fresh useRuntimeConfig() is read on next call. */
+/** Test-only: drops the cached admin client so the next call reads the env again. */
 export function _resetLitellmCache(): void {
   cachedAdminClient = null
 }

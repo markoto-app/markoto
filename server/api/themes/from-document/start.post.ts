@@ -11,6 +11,7 @@ import { writeJob } from '../../../utils/designImport/job'
 import { DESIGN_IMPORT_LOCK, runDesignImportJob } from '../../../utils/designImport/run'
 import { designImportStartBody } from '~~/shared/api/brand'
 import { MINUTE_MS } from '~~/shared/config/units'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * "Create a design from a document", step 2: read the uploaded file and
@@ -39,9 +40,9 @@ export default defineApiHandler({
     const pending = await claimPendingDesignUpload(userId, uploadId)
     if (!pending) throw apiError('design-import/upload-not-found')
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = useS3Client()
-    const bucket = config.s3.bucket
+    const bucket = env.storage.bucket
     const deleteObject = () => s3.send(new DeleteObjectCommand({ Bucket: bucket, Key: pending.stagingKey })).catch(() => undefined)
 
     if (!(await tryAcquireSessionLock(DESIGN_IMPORT_LOCK, String(userId), LOCK_TTL_MS))) {

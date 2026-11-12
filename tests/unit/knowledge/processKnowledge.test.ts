@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 
 // processKnowledge is a fire-and-forget pipeline: fetch S3 → markitdown
 // parse → chunk → embed → DB bulk insert → flip status to ready → delete
@@ -109,12 +110,10 @@ vi.mock('../../../server/utils/platform/rateLimit', () => ({
 const s3Send = vi.fn<(cmd: unknown) => Promise<unknown>>()
 vi.stubGlobal('useS3Client', () => ({ send: s3Send }))
 
-const runtimeConfig = {
-  markitdownUrl: 'http://markitdown:8080',
-  s3: { bucket: 'test-bucket' },
-  knowledge: { maxChunksPerFile: 300 }
+// Configuration comes from the typed env (shared/env), stubbed per test.
+function stubConfig(markitdownUrl = 'http://markitdown:8080'): void {
+  stubEnv({ NUXT_MARKITDOWN_URL: markitdownUrl, NUXT_S3_BUCKET: 'test-bucket' })
 }
-vi.stubGlobal('useRuntimeConfig', () => runtimeConfig)
 
 const fetchMock = vi.fn<(url: string, init?: RequestInit) => Promise<Response>>()
 vi.stubGlobal('fetch', fetchMock)
@@ -153,6 +152,7 @@ function errResponse(status: number, body: string): Response {
 }
 
 beforeEach(() => {
+  stubConfig()
   selectQueue.length = 0
   updateCalls.length = 0
   insertCalls.length = 0
@@ -432,17 +432,12 @@ describe('processKnowledge — pipeline exceptions', () => {
   })
 
   it('markFailed when markitdown URL is missing (config error surfaces cleanly)', async () => {
-    const original = runtimeConfig.markitdownUrl
-    runtimeConfig.markitdownUrl = ''
-    try {
-      selectQueue.push([row()])
-      await processKnowledge('k1')
-      expect(updateCalls).toHaveLength(1)
-      expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage)
-        .toContain('markitdown service not configured')
-    } finally {
-      runtimeConfig.markitdownUrl = original
-    }
+    stubEnv({ NUXT_MARKITDOWN_URL: undefined })
+    selectQueue.push([row()])
+    await processKnowledge('k1')
+    expect(updateCalls).toHaveLength(1)
+    expect((updateCalls[0]!.set as { errorMessage: string }).errorMessage)
+      .toContain('markitdown service not configured')
   })
 })
 

@@ -12,6 +12,7 @@ import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { abuseNotificationRecipient } from '../platform/instanceConfig'
 import { buildDecisionNotice, buildStatementOfReasons, deliverNotice, type NoticeStatus } from './moderationNotices'
 import { actionRestrictsContent, type ModerationAction, type ModerationRule } from '~~/shared/config/moderation'
+import { useEnv } from '~~/shared/env/load'
 
 // Carries out a moderator's decision on an abuse report:
 //   1. snapshot the reported document (owner, title) BEFORE touching it,
@@ -43,7 +44,7 @@ export interface ModerationOutcome {
 }
 
 function documentUrl(docId: string, fallback: string | null): string {
-  const base = emailLinkBaseUrl(useRuntimeConfig().siteUrl)
+  const base = emailLinkBaseUrl(useEnv().core.siteUrl)
   return base ? `${base}/d/${docId}` : (fallback ?? `/d/${docId}`)
 }
 

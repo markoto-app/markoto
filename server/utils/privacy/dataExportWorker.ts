@@ -15,6 +15,7 @@ import { useS3Client } from '../storage/s3'
 import { buildExportZip } from './dataExport'
 import { safeSendTransactionalEmail } from '../email/sendEmail'
 import { DATA_EXPORT_RETENTION_DAYS } from '~~/shared/config/retention'
+import { useEnv } from '~~/shared/env/load'
 
 // Worker that drives queued data-export jobs to completion. Picks up
 // the oldest queued row, builds the ZIP via `buildExportZip`,
@@ -73,10 +74,10 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
     const { bytes, counts } = await buildExportZip(job.userId)
     const s3Key = `${S3_KEY_PREFIX}/${job.userId}/${job.jobId}.zip`
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = useS3Client()
     await s3.send(new PutObjectCommand({
-      Bucket: config.s3.bucket,
+      Bucket: env.storage.bucket,
       Key: s3Key,
       Body: bytes,
       ContentType: 'application/zip',

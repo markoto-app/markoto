@@ -9,6 +9,7 @@ import { assertCapsOnConfirm, releaseKnowledgeUploadSlots } from '../../../../ut
 import { claimPendingKnowledgeUpload, restorePendingKnowledgeUpload } from '../../../../utils/knowledge/knowledgePendingUpload'
 import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
 import { confirmKnowledgeUploadBody } from '~~/shared/api/workspaces'
+import { useEnv } from '~~/shared/env/load'
 
 /** The original's stored Content-Type must be exactly the type upload-request signed. */
 function requireStoredContentType(stored: string | undefined, expected: string): void {
@@ -73,7 +74,7 @@ export default defineApiHandler({
       throw apiError('knowledge/upload-not-found')
     }
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const s3 = useS3Client()
     // The browser PUT the staging key; the final key only ever holds the
     // copy confirm made (and sniffed) below.
@@ -82,7 +83,7 @@ export default defineApiHandler({
     const cleanupOrphanS3 = async () => {
       for (const Key of [stagingKey, s3Key]) {
         try {
-          await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key }))
+          await s3.send(new DeleteObjectCommand({ Bucket: env.storage.bucket, Key }))
         } catch { /* object may already be gone */ }
       }
     }
@@ -91,7 +92,7 @@ export default defineApiHandler({
       let head
       try {
         head = await s3.send(new HeadObjectCommand({
-          Bucket: config.s3.bucket,
+          Bucket: env.storage.bucket,
           Key: stagingKey
         }))
       } catch {
@@ -113,13 +114,13 @@ export default defineApiHandler({
       try {
         requireStoredContentType(head.ContentType, mimeType)
         await s3.send(new CopyObjectCommand({
-          Bucket: config.s3.bucket,
-          CopySource: `/${config.s3.bucket}/${stagingKey}`,
+          Bucket: env.storage.bucket,
+          CopySource: `/${env.storage.bucket}/${stagingKey}`,
           Key: s3Key,
           ContentType: mimeType,
           MetadataDirective: 'REPLACE'
         }))
-        await s3.send(new DeleteObjectCommand({ Bucket: config.s3.bucket, Key: stagingKey }))
+        await s3.send(new DeleteObjectCommand({ Bucket: env.storage.bucket, Key: stagingKey }))
         await requireContentMatchesExtension({ s3Key, ext })
       } catch (e) {
         await cleanupOrphanS3()

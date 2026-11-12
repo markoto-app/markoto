@@ -43,8 +43,8 @@ const instance = { documents: new Map() }
 
 describe('handleInternalRequest', () => {
   beforeEach(() => {
-    vi.stubEnv('INTERNAL_API_SECRET', 'current-secret')
-    vi.stubEnv('INTERNAL_API_SECRET_PREVIOUS', 'previous-secret')
+    vi.stubEnv('INTERNAL_API_SECRET', 'current-secret-current-secret-0123456789')
+    vi.stubEnv('INTERNAL_API_SECRET_PREVIOUS', 'previous-secret-previous-secret-012345678')
     sentry.continueTrace.mockClear()
     sentry.startSpan.mockClear()
   })
@@ -66,7 +66,7 @@ describe('handleInternalRequest', () => {
   })
 
   it('404s an edge-forwarded request even with the right secret', async () => {
-    const r = request('/internal/kick-user', { 'x-internal-secret': 'current-secret', 'x-real-ip': '203.0.113.7' })
+    const r = request('/internal/kick-user', { 'x-internal-secret': 'current-secret-current-secret-0123456789', 'x-real-ip': '203.0.113.7' })
     await handleInternalRequest(r.req, r.res, instance as never)
     expect(r.status()).toBe(404)
     expect(sentry.startSpan).not.toHaveBeenCalled()
@@ -74,13 +74,13 @@ describe('handleInternalRequest', () => {
 
   it('500s when no secret is configured', async () => {
     vi.stubEnv('INTERNAL_API_SECRET', '')
-    const r = request('/internal/kick-user', { 'x-internal-secret': 'previous-secret' })
+    const r = request('/internal/kick-user', { 'x-internal-secret': 'previous-secret-previous-secret-012345678' })
     await handleInternalRequest(r.req, r.res, instance as never)
     expect(r.status()).toBe(500)
   })
 
   it('accepts the previous secret during a rotation and then traces the work', async () => {
-    const r = request('/internal/does-not-exist', { 'x-internal-secret': 'previous-secret' })
+    const r = request('/internal/does-not-exist', { 'x-internal-secret': 'previous-secret-previous-secret-012345678' })
     await handleInternalRequest(r.req, r.res, instance as never)
     expect(r.status()).toBe(404)
     expect(sentry.continueTrace).toHaveBeenCalledOnce()
@@ -89,14 +89,14 @@ describe('handleInternalRequest', () => {
 })
 
 describe('/internal/reauth-document', () => {
-  const SECRET_HEADER = { 'x-internal-secret': 'current-secret' }
+  const SECRET_HEADER = { 'x-internal-secret': 'current-secret-current-secret-0123456789' }
 
   function connection(userId: string | number) {
     return { context: { userId }, close: vi.fn(), webSocket: { close: vi.fn() } }
   }
 
   beforeEach(() => {
-    vi.stubEnv('INTERNAL_API_SECRET', 'current-secret')
+    vi.stubEnv('INTERNAL_API_SECRET', 'current-secret-current-secret-0123456789')
     notBefore.write.mockClear()
   })
   afterEach(() => {

@@ -11,6 +11,8 @@ import { injectTraceHeaders } from '../platform/traceHeaders'
 import { markitdownAuthHeaders } from '../platform/markitdownAuth'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { MARKITDOWN_KNOWLEDGE_TIMEOUT_MS } from '../../config/markitdown'
+import { useEnv } from '~~/shared/env/load'
+import { KNOWLEDGE_PLATFORM_LIMITS } from '~~/shared/config/tiers'
 
 /**
  * End-to-end ingestion for one knowledge file:
@@ -96,8 +98,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
       return
     }
 
-    const knowledgeCfg = useRuntimeConfig().knowledge
-    const chunks = chunkMarkdown(markdown, { maxChunks: knowledgeCfg.maxChunksPerFile })
+    const chunks = chunkMarkdown(markdown, { maxChunks: KNOWLEDGE_PLATFORM_LIMITS.maxChunksPerFile })
     if (chunks.length === 0) {
       await markFailed(knowledgeId, 'no chunks produced from parsed content')
       return
@@ -166,8 +167,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
     // try again if this fails (ignored 404s).
     try {
       const s3 = useS3Client()
-      const s3cfg = useRuntimeConfig().s3
-      await s3.send(new DeleteObjectCommand({ Bucket: s3cfg.bucket, Key: row.s3Key }))
+      await s3.send(new DeleteObjectCommand({ Bucket: useEnv().storage.bucket, Key: row.s3Key }))
     } catch (e) {
       console.warn(`[processKnowledge] ${knowledgeId} original S3 delete failed (keeping row):`, e instanceof Error ? e.message : e)
       Sentry.captureException(e, {
@@ -205,19 +205,19 @@ async function rowStillExists(knowledgeId: string): Promise<boolean> {
 }
 
 async function runConversion(s3Key: string, ext: string): Promise<string> {
-  const config = useRuntimeConfig()
-  if (!config.markitdownUrl) {
+  const env = useEnv()
+  if (!env.markitdown.url) {
     throw new Error('markitdown service not configured')
   }
 
   const s3 = useS3Client()
   const object = await s3.send(new GetObjectCommand({
-    Bucket: config.s3.bucket,
+    Bucket: env.storage.bucket,
     Key: s3Key
   }))
   const bytes = await object.Body!.transformToByteArray()
 
-  const url = `${config.markitdownUrl}/convert?ext=${encodeURIComponent(ext)}`
+  const url = `${env.markitdown.url}/convert?ext=${encodeURIComponent(ext)}`
   // Markitdown doesn't parse sentry-trace headers, but they are still sent
   // so the app-side transaction shows this call as an outbound HTTP span.
   const response = await fetch(url, {

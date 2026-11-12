@@ -2,6 +2,7 @@ import { readFile, stat } from 'node:fs/promises'
 import { INSTANCE_BRAND_LOGO_TYPES, instanceBrandLogoExt } from '~~/shared/config/instanceBrand'
 import { MIB } from '~~/shared/config/units'
 import { instanceBrandParams } from '~~/shared/api/platform'
+import { useEnv } from '~~/shared/env/load'
 
 // GET /instance-brand/logo.<ext> — the customer logo of a managed private
 // instance: the file the operator names in NUXT_INSTANCE_BRAND_LOGO
@@ -15,7 +16,7 @@ export default defineApiHandler({
   access: allow.public('Customer logo of a managed instance: shown on the sign-in and public pages, so no session'),
   params: instanceBrandParams,
   handler: async ({ event, params }) => {
-    const path = (process.env.NUXT_INSTANCE_BRAND_LOGO ?? '').trim()
+    const path = useEnv().brand.logo
     const ext = instanceBrandLogoExt(path)
     if (!ext || params.file !== `logo.${ext}`) throw apiError('resource/not-found')
     let bytes: Buffer

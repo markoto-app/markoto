@@ -40,9 +40,11 @@
 //    and whether search engines may index the instance at all
 //    (`NUXT_SITE_INDEXABLE`, server-only — staging renders false).
 //
-// Pure — takes an env-shaped record so every test tier can drive it.
+// Reads the typed env (shared/env); tests pass an env-shaped record.
 
-import { parseBooleanFlag, resolveBillingMode } from './billingMode'
+import { resolveBillingMode } from './billingMode'
+import { useEnv } from '../env/load'
+import type { RawEnv } from '../env/define'
 import { EMPTY_INSTANCE_BRAND, resolveInstanceBrand, type InstanceBrand } from './instanceBrand'
 import { resolveTiersFromEnv } from './tiers'
 import { resolveLegalEntity } from '../legal/entity'
@@ -141,114 +143,93 @@ export const MINIMAL_INSTANCE_CONFIG: InstanceConfig = Object.freeze({
   brand: EMPTY_INSTANCE_BRAND
 })
 
-type Env = Record<string, string | undefined>
-
-function isSet(raw: string | undefined): boolean {
-  return typeof raw === 'string' && raw.trim().length > 0
-}
-
-export function resolveLoginProviders(env: Env): LoginProvider[] {
-  return LOGIN_PROVIDERS.filter((p) => {
-    const upper = p.toUpperCase()
-    const pair = isSet(env[`NUXT_OAUTH_${upper}_CLIENT_ID`]) && isSet(env[`NUXT_OAUTH_${upper}_CLIENT_SECRET`])
-    return p === 'oidc' ? pair && isSet(env.NUXT_OAUTH_OIDC_ISSUER) : pair
-  })
-}
-
-function resolveOidcProviderName(env: Env): string {
-  return (env.NUXT_OAUTH_OIDC_NAME ?? '').trim().slice(0, OIDC_PROVIDER_NAME_MAX_LENGTH)
-}
-
-export function resolveLegalSurfacesEnabled(env: Env): boolean {
-  return parseBooleanFlag(env.NUXT_LEGAL_SURFACES_ENABLED)
-}
-
-export function resolveMarketingSiteEnabled(env: Env): boolean {
-  return parseBooleanFlag(env.NUXT_MARKETING_SITE_ENABLED)
-}
-
-/** http(s) origin of a URL string, or '' when empty / invalid. */
-function originOf(raw: string | undefined): string {
-  const value = raw?.trim() ?? ''
-  if (!value) return ''
-  try {
-    const url = new URL(value)
-    return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : ''
-  } catch {
-    return ''
+export function resolveLoginProviders(source?: RawEnv): LoginProvider[] {
+  const { oauth } = useEnv(source)
+  const configured: Record<LoginProvider, boolean> = {
+    oidc: !!(oauth.oidcIssuer && oauth.oidcClientId && oauth.oidcClientSecret),
+    github: !!(oauth.githubClientId && oauth.githubClientSecret),
+    google: !!(oauth.googleClientId && oauth.googleClientSecret)
   }
+  return LOGIN_PROVIDERS.filter(p => configured[p])
 }
 
-/** `NUXT_SITE_URL` as an origin, '' when unset or invalid. */
-export function resolveSiteUrl(env: Env): string {
-  return originOf(env.NUXT_SITE_URL)
+export function resolveLegalSurfacesEnabled(source?: RawEnv): boolean {
+  return useEnv(source).legal.surfacesEnabled
+}
+
+export function resolveMarketingSiteEnabled(source?: RawEnv): boolean {
+  return useEnv(source).core.marketingSite
+}
+
+/** Origin of a validated http(s) URL, '' when unset. */
+function originOf(value: string | undefined): string {
+  return value ? new URL(value).origin : ''
+}
+
+/** `NUXT_SITE_URL` as an origin, '' when unset. */
+export function resolveSiteUrl(source?: RawEnv): string {
+  return originOf(useEnv(source).core.siteUrl)
 }
 
 /**
  * Origin the SEO tags name — canonical links, og:url / og:image, the
- * JSON-LD and the sitemap: `NUXT_CANONICAL_SITE_URL` when set to a valid
- * origin, otherwise this instance's own `NUXT_SITE_URL`. Staging renders
+ * JSON-LD and the sitemap: `NUXT_CANONICAL_SITE_URL` when set, otherwise
+ * this instance's own `NUXT_SITE_URL`. Staging renders
  * `https://markoto.app`, so a copy of the site on staging.markoto.app
  * points search engines at the real one instead of competing with it.
  */
-export function resolveCanonicalSiteUrl(env: Env): string {
-  return originOf(env.NUXT_CANONICAL_SITE_URL) || resolveSiteUrl(env)
+export function resolveCanonicalSiteUrl(source?: RawEnv): string {
+  const { core } = useEnv(source)
+  return originOf(core.canonicalSiteUrl) || originOf(core.siteUrl)
 }
 
 /**
  * Origin for `/docs/**` canonicals; '' = this instance's own site URL.
  * The marketing site is the original, so it is always self-canonical.
  * Elsewhere: `NUXT_DOCS_CANONICAL_BASE` when set (an empty value opts
- * into self-canonical docs), otherwise markoto.app. An unparsable value
- * falls back to markoto.app.
+ * into self-canonical docs), otherwise markoto.app.
  */
-export function resolveDocsCanonicalBase(env: Env): string {
-  if (resolveMarketingSiteEnabled(env)) return ''
-  const raw = env.NUXT_DOCS_CANONICAL_BASE
-  if (raw === undefined) return DEFAULT_DOCS_CANONICAL_BASE
-  if (raw.trim() === '') return ''
-  return originOf(raw) || DEFAULT_DOCS_CANONICAL_BASE
+export function resolveDocsCanonicalBase(source?: RawEnv): string {
+  const { core } = useEnv(source)
+  if (core.marketingSite) return ''
+  if (core.docsCanonicalBase === undefined) return DEFAULT_DOCS_CANONICAL_BASE
+  return originOf(core.docsCanonicalBase)
 }
-
-const FALSY = new Set(['0', 'false', 'no', 'off'])
 
 /**
  * `NUXT_SITE_INDEXABLE` — may search engines index this instance?
- * Default true; only an explicit `0` / `false` / `no` / `off` turns it
- * off (robots.txt `Disallow: /` + `X-Robots-Tag: noindex` on every
- * response). Staging renders false. A typo keeps the site indexable, so
- * production can never drop out of search by accident.
+ * Default true; false = robots.txt `Disallow: /` + `X-Robots-Tag:
+ * noindex` on every response. Staging renders false.
  */
-export function resolveSiteIndexable(env: Env): boolean {
-  const raw = env.NUXT_SITE_INDEXABLE
-  if (raw === undefined) return true
-  return !FALSY.has(raw.trim().toLowerCase())
+export function resolveSiteIndexable(source?: RawEnv): boolean {
+  return useEnv(source).core.siteIndexable
 }
 
-export function resolveInstanceConfig(env: Env): InstanceConfig {
-  const legalSurfaces = resolveLegalSurfacesEnabled(env)
+export function resolveInstanceConfig(source?: RawEnv): InstanceConfig {
+  const env = useEnv(source)
+  const legalSurfaces = env.legal.surfacesEnabled
   return {
-    loginProviders: resolveLoginProviders(env),
-    oidcProviderName: resolveOidcProviderName(env),
+    loginProviders: resolveLoginProviders(source),
+    oidcProviderName: env.oauth.oidcName.slice(0, OIDC_PROVIDER_NAME_MAX_LENGTH),
     legalSurfaces,
     operatorName: legalSurfaces
-      ? resolveLegalEntity(env).controllerName
-      : (env.NUXT_LEGAL_CONTROLLER_NAME?.trim() ?? ''),
-    marketingSite: resolveMarketingSiteEnabled(env),
-    siteUrl: resolveCanonicalSiteUrl(env),
-    docsCanonicalBase: resolveDocsCanonicalBase(env),
-    anonGate: resolveAnonGateEnabled(env),
-    anonDocTtlDays: resolveAnonDocTtlDays(env),
-    workspaceSso: resolveWorkspaceSsoAvailable(env),
-    customDomains: (env.NUXT_PUBLISH_DOMAINS_TARGET ?? '').trim() !== '',
-    brand: resolveInstanceBrand(env)
+      ? resolveLegalEntity(source).controllerName
+      : (env.legal.controllerName ?? ''),
+    marketingSite: env.core.marketingSite,
+    siteUrl: resolveCanonicalSiteUrl(source),
+    docsCanonicalBase: resolveDocsCanonicalBase(source),
+    anonGate: resolveAnonGateEnabled(source),
+    anonDocTtlDays: resolveAnonDocTtlDays(source),
+    workspaceSso: resolveWorkspaceSsoAvailable(source),
+    customDomains: !!env.publish.domainsTarget,
+    brand: resolveInstanceBrand(source)
   }
 }
 
 /** See `InstanceConfig.workspaceSso`. */
-export function resolveWorkspaceSsoAvailable(env: Env): boolean {
-  const tiers = resolveTiersFromEnv(env)
-  if (!resolveBillingMode(env).billingEnabled) return tiers.free.sso
+export function resolveWorkspaceSsoAvailable(source?: RawEnv): boolean {
+  const tiers = resolveTiersFromEnv(source)
+  if (!resolveBillingMode(source).billingEnabled) return tiers.free.sso
   return Object.values(tiers).some(caps => caps.sso)
 }
 

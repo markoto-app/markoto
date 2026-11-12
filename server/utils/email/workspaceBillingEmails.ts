@@ -5,6 +5,7 @@ import { useValkey } from '../platform/valkey'
 import { emailLinkBaseUrl } from '../platform/siteUrl'
 import { safeSendTransactionalEmail } from './sendEmail'
 import { normaliseInviteLocale, type InviteEmailLocale } from '../workspaces/workspaceInvites'
+import { useEnv } from '~~/shared/env/load'
 
 // Billing emails to a Team / Business workspace's admins:
 //   budget_80 / budget_100 — the workspace's AI budget is 80 % / fully used
@@ -133,7 +134,7 @@ export async function notifyWorkspaceAdmins(args: {
       .from(workspaceMembers)
       .innerJoin(users, eq(users.id, workspaceMembers.userId))
       .where(and(eq(workspaceMembers.workspaceId, args.workspaceId), eq(workspaceMembers.role, 'admin'), isNotNull(users.email)))
-    const base = emailLinkBaseUrl(useRuntimeConfig().siteUrl)
+    const base = emailLinkBaseUrl(useEnv().core.siteUrl)
     const billingUrl = base ? `${base}/w/${encodeURIComponent(args.workspaceId)}?tab=billing` : null
     let sent = 0
     for (const admin of admins) {

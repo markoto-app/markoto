@@ -85,7 +85,7 @@ Sync connections end when their authorization ends: each connection closes when 
 - Identity keys: `users.github_id`, `users.google_id`, and for OIDC the pair `(oidc_issuer, oidc_subject)`. Never the email.
 - Only a verified email is stored (`utils/auth/oauthEmail.ts`, `utils/oidc/profile.ts`); an unverified one is stored as NULL.
 - A first sign-in merges into an existing account only if the incoming email is verified, matches case-insensitively, and that account has no identity of the same provider yet.
-- OIDC settings (`NUXT_OAUTH_OIDC_*`) are validated at boot in `plugins/01-validate-secrets.ts` via `utils/oidc/settings.ts`.
+- OIDC settings (`NUXT_OAUTH_OIDC_*`) are validated at boot by the env registry rules (`shared/env/rules/auth.ts`, run from `plugins/01-validate-secrets.ts`).
 
 Admin access is the `users.is_admin` column (`requireAdminUser`, `utils/auth/adminAccess.ts`). `NUXT_ADMIN_USER_EMAILS` only promotes a matching verified email at sign-in.
 

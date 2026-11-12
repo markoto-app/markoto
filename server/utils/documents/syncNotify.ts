@@ -9,6 +9,7 @@
 
 import { captureExceptionThrottled } from '../platform/throttledSentry'
 import { injectTraceHeaders } from '../platform/traceHeaders'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Force-close all live Y.js connections for `userId` on the given docs.
@@ -24,15 +25,15 @@ import { injectTraceHeaders } from '../platform/traceHeaders'
  */
 export function notifySyncKickUser(userId: number, docIds: string[]): void {
   if (docIds.length === 0) return
-  const config = useRuntimeConfig()
-  if (!config.syncInternalUrl || !config.internalApiSecret) return
+  const env = useEnv()
+  if (!env.auth.internalApiSecret) return
 
   // No await — fire-and-forget. 3 s timeout matches notify-deleted.
-  fetch(`${config.syncInternalUrl}/internal/kick-user`, {
+  fetch(`${env.sync.internalUrl}/internal/kick-user`, {
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/json',
-      'X-Internal-Secret': config.internalApiSecret
+      'X-Internal-Secret': env.auth.internalApiSecret
     }),
     body: JSON.stringify({ userId, docIds }),
     signal: AbortSignal.timeout(3000)
@@ -59,14 +60,14 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
  * (the token cutoff applies on all of them).
  */
 export function notifySyncReauthDocument(docId: string): void {
-  const config = useRuntimeConfig()
-  if (!config.syncInternalUrl || !config.internalApiSecret) return
+  const env = useEnv()
+  if (!env.auth.internalApiSecret) return
 
-  fetch(`${config.syncInternalUrl}/internal/reauth-document`, {
+  fetch(`${env.sync.internalUrl}/internal/reauth-document`, {
     method: 'POST',
     headers: injectTraceHeaders({
       'Content-Type': 'application/json',
-      'X-Internal-Secret': config.internalApiSecret
+      'X-Internal-Secret': env.auth.internalApiSecret
     }),
     body: JSON.stringify({ docId, notBefore: Math.floor(Date.now() / 1000) }),
     signal: AbortSignal.timeout(3000)
@@ -94,14 +95,14 @@ export function notifySyncReauthDocument(docId: string): void {
  * flushed; sticky sessions keep a document's writers on one instance.
  */
 export async function flushSyncDocument(docId: string): Promise<boolean> {
-  const config = useRuntimeConfig()
-  if (!config.syncInternalUrl || !config.internalApiSecret) return false
+  const env = useEnv()
+  if (!env.auth.internalApiSecret) return false
   try {
-    const res = await fetch(`${config.syncInternalUrl}/internal/flush-document`, {
+    const res = await fetch(`${env.sync.internalUrl}/internal/flush-document`, {
       method: 'POST',
       headers: injectTraceHeaders({
         'Content-Type': 'application/json',
-        'X-Internal-Secret': config.internalApiSecret
+        'X-Internal-Secret': env.auth.internalApiSecret
       }),
       body: JSON.stringify({ docId }),
       signal: AbortSignal.timeout(12_000)

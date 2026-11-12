@@ -1,4 +1,5 @@
 import { getCachedHealth } from '../utils/platform/healthProbes'
+import { useEnv } from '~~/shared/env/load'
 
 // Healthcheck for Traefik / docker-compose / on-call dashboards.
 //
@@ -19,13 +20,13 @@ import { getCachedHealth } from '../utils/platform/healthProbes'
 export default defineApiHandler({
   access: allow.public('Liveness probe for Traefik, docker-compose and monitors; component status only, no hostnames or timings'),
   handler: async ({ event }) => {
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const cached = await getCachedHealth({
-      syncUrl: config.syncInternalUrl,
-      rendererUrl: config.rendererInternalUrl,
-      markitdownUrl: config.markitdownUrl,
-      litellmUrl: config.litellm?.url,
-      s3Bucket: config.s3?.bucket
+      syncUrl: env.sync.internalUrl,
+      rendererUrl: env.renderer.internalUrl,
+      markitdownUrl: env.markitdown.url,
+      litellmUrl: env.litellm.url,
+      s3Bucket: env.storage.bucket
     })
     setResponseStatus(event, cached.status)
     return cached.body

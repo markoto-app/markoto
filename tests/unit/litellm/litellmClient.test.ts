@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
+import { stubEnv } from '../../helpers/env'
 
 // litellmClient.ts is a thin OpenAI SDK factory pointed at the LiteLLM
 // proxy. The unit-level value is small (the SDK does the work), but the
@@ -7,38 +8,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 //   2. Master-key path caches across calls.
 //   3. Per-user-key path returns a fresh client per call.
 
-const mockState = vi.hoisted(() => ({
-  config: {
-    litellm: {
-      url: 'http://litellm:4000',
-      masterKey: 'sk-master-test-key',
-      embeddingsModel: 'jina-embeddings-v5-text-nano',
-      embeddingsDims: 768
-    }
-  }
-}))
-
-vi.mock('#imports', () => ({
-  useRuntimeConfig: () => mockState.config
-}))
-
-// The factory uses Nuxt's auto-imported `useRuntimeConfig`; we provide
-// our own globally so the OpenAI SDK constructor is exercised against
-// known values without booting Nitro.
-;(globalThis as unknown as { useRuntimeConfig: () => typeof mockState.config }).useRuntimeConfig = () => mockState.config
+// The factory reads the typed env (shared/env); each test stubs the
+// variables, so the OpenAI SDK constructor runs against known values
+// without booting Nitro.
 
 const { useLitellmAdmin, useLitellmForUser, _resetLitellmCache } = await import('../../../server/utils/ai/litellmClient')
 
 beforeEach(() => {
   _resetLitellmCache()
-  mockState.config = {
-    litellm: {
-      url: 'http://litellm:4000',
-      masterKey: 'sk-master-test-key',
-      embeddingsModel: 'jina-embeddings-v5-text-nano',
-      embeddingsDims: 768
-    }
-  }
+  stubEnv({ NUXT_LITELLM_URL: 'http://litellm:4000', NUXT_LITELLM_MASTER_KEY: 'sk-master-test-key' })
 })
 
 describe('useLitellmAdmin', () => {
@@ -50,7 +28,7 @@ describe('useLitellmAdmin', () => {
   })
 
   it('strips trailing slashes from the URL before joining /v1', () => {
-    mockState.config.litellm.url = 'http://litellm:4000/'
+    stubEnv({ NUXT_LITELLM_URL: 'http://litellm:4000/' })
     const client = useLitellmAdmin()
     expect(client.baseURL).toBe('http://litellm:4000/v1')
   })
@@ -62,12 +40,12 @@ describe('useLitellmAdmin', () => {
   })
 
   it('throws when NUXT_LITELLM_URL is missing', () => {
-    mockState.config.litellm.url = ''
+    stubEnv({ NUXT_LITELLM_URL: undefined })
     expect(() => useLitellmAdmin()).toThrow(/NUXT_LITELLM_URL/)
   })
 
   it('throws when NUXT_LITELLM_MASTER_KEY is missing', () => {
-    mockState.config.litellm.masterKey = ''
+    stubEnv({ NUXT_LITELLM_MASTER_KEY: undefined })
     expect(() => useLitellmAdmin()).toThrow(/NUXT_LITELLM_MASTER_KEY/)
   })
 })
@@ -87,7 +65,7 @@ describe('useLitellmForUser', () => {
   })
 
   it('still throws when NUXT_LITELLM_URL is missing', () => {
-    mockState.config.litellm.url = ''
+    stubEnv({ NUXT_LITELLM_URL: undefined })
     expect(() => useLitellmForUser('sk-virtual')).toThrow(/NUXT_LITELLM_URL/)
   })
 })

@@ -107,10 +107,12 @@ describe('Traefik dynamic config', () => {
 })
 
 describe('settings', () => {
-  it('custom domains are off without a target; the provider endpoint without a long token', () => {
+  it('custom domains are off without a target; the provider endpoint without a token', () => {
     expect(customDomainSettings({})).toBeNull()
     expect(customDomainSettings({ NUXT_PUBLISH_DOMAINS_TARGET: 'Pages.Markoto.App.', NUXT_PUBLISH_DNS_SERVERS: '1.1.1.1, 9.9.9.9:53' })).toEqual({ target: 'pages.markoto.app', dnsServers: ['1.1.1.1', '9.9.9.9:53'], allowTestNames: false })
-    expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'short' })).toBeNull()
+    expect(traefikProviderSettings({})).toBeNull()
+    // A short token is a configuration error at boot, not a silently closed endpoint.
+    expect(() => traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'short' })).toThrow(/NUXT_PUBLISH_TRAEFIK_TOKEN: expected at least 32 characters/)
     expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'y'.repeat(32) })).toMatchObject({ entryPoint: 'websecure', certResolver: 'le', service: 'app@docker', upstream: null, middlewares: [], pagesRouter: false })
     expect(traefikProviderSettings({ NUXT_PUBLISH_TRAEFIK_TOKEN: 'y'.repeat(32), NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER: 'true' })?.pagesRouter).toBe(true)
   })

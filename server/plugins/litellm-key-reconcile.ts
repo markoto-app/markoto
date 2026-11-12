@@ -1,6 +1,6 @@
 import { reconcileUserKeys } from '../utils/litellm/keyReconcile'
 import { reconcileWorkspaceTeams } from '../utils/litellm/workspaceTeams'
-import { freeTierTotalBudgetProblems } from '../utils/litellm/freeTierTeam'
+import { useEnv } from '~~/shared/env/load'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
 
@@ -14,11 +14,8 @@ export default defineSweeper({
   name: 'litellm-key-reconcile',
   schedule: SWEEPS.litellmKeyReconcile,
   enabled: () => {
-    const config = useRuntimeConfig()
-    return Boolean(config.litellm?.url && config.litellm?.masterKey)
-  },
-  setup: () => {
-    for (const problem of freeTierTotalBudgetProblems()) console.warn(`[litellm-key-reconcile] ${problem}`)
+    const { litellm } = useEnv()
+    return Boolean(litellm.url && litellm.masterKey)
   },
   // The proxy may still be starting (boot order) — the next run retries.
   reportErrors: false,

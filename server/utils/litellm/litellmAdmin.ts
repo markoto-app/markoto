@@ -3,6 +3,7 @@
 // callable from one place. No DB, no encryption — pure HTTP.
 
 import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
+import { useEnv } from '~~/shared/env/load'
 
 interface LitellmAdminConfig {
   url: string
@@ -10,9 +11,9 @@ interface LitellmAdminConfig {
 }
 
 function adminConfig(): LitellmAdminConfig {
-  const config = useRuntimeConfig()
-  const url = config.litellm?.url
-  const masterKey = config.litellm?.masterKey
+  const env = useEnv()
+  const url = env.litellm.url
+  const masterKey = env.litellm.masterKey
   if (!url || !masterKey) {
     throw new Error('[litellmKeys] NUXT_LITELLM_URL and NUXT_LITELLM_MASTER_KEY must be set')
   }

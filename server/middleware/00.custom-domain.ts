@@ -8,6 +8,7 @@ import { isInstanceHost } from '../utils/publish/publicHost'
 import { NOINDEX_VALUE } from '../utils/platform/robots'
 import { PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { resolveSiteIndexable } from '~~/shared/config/instance'
+import { useEnv } from '~~/shared/env/load'
 
 // Hosts that serve published pages and nothing else: the instance's pages
 // host (`NUXT_PUBLISH_PAGES_HOST`, pages at `/p/<slug>`) and every live
@@ -44,7 +45,7 @@ async function servePagesHost(event: H3Event, path: string): Promise<string | un
   if (PUBLISHED_FILE_PATH.test(path)) return
   if (path === '/robots.txt') {
     // Each page says itself whether it may be indexed (meta + header).
-    return robots(event, resolveSiteIndexable(process.env) ? 'User-agent: *\nDisallow: /api/\n' : 'User-agent: *\nDisallow: /\n')
+    return robots(event, resolveSiteIndexable() ? 'User-agent: *\nDisallow: /api/\n' : 'User-agent: *\nDisallow: /\n')
   }
   const slug = /^\/p\/([^/]+)$/.exec(path)?.[1]
   if (slug === undefined) return notFound(event)
@@ -85,7 +86,7 @@ export default defineEventHandler(async (event) => {
     return servePagesHost(event, path)
   }
 
-  if (customDomainSettings() && !isInstanceHost(host, useRuntimeConfig(event).siteUrl)) {
+  if (customDomainSettings() && !isInstanceHost(host, useEnv().core.siteUrl)) {
     const domain = await liveCustomDomainForHost(host)
     if (domain) return serveCustomDomain(event, path, host, domain)
     // A customer's domain that isn't live (pending, dropped, plan lapsed —

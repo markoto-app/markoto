@@ -1,6 +1,7 @@
 import type { H3Event } from 'h3'
 import { getRequestHeader, getQuery } from 'h3'
 import { verifyJwtWithRotation } from '../../../shared/utils/security/secrets'
+import { useEnv } from '~~/shared/env/load'
 
 // Accepts a Y.js connection JWT as an HTTP request parameter and checks
 // its `docId` claim against the doc being accessed. This is the only
@@ -14,7 +15,7 @@ import { verifyJwtWithRotation } from '../../../shared/utils/security/secrets'
 //
 // Split so unit tests can exercise the pure halves without an H3 event:
 // `extractToken` (HTTP parsing), `verifyDocJwt` (crypto + scope check),
-// `hasValidDocJwt` (wires runtimeConfig into both).
+// `hasValidDocJwt` (wires the configured secrets into both).
 
 /**
  * Look for a Y.js JWT on the request — `Authorization: Bearer …`
@@ -85,7 +86,7 @@ export function verifyDocJwt(
 }
 
 /**
- * Production orchestrator. Pulls secrets from runtimeConfig, extracts
+ * Production orchestrator. Pulls secrets from the typed env, extracts
  * the token off the request, delegates to `verifyDocJwt`. Unit tests
  * call the two pure halves directly; this function is exercised by
  * integration tests.
@@ -98,7 +99,7 @@ export function hasValidDocJwt(
   const token = extractToken(event)
   if (!token) return false
 
-  const config = useRuntimeConfig()
-  if (!config.jwtSecret) return false
-  return verifyDocJwt(token, expectedDocId, config.jwtSecret, config.jwtSecretPrevious || undefined, acceptedScopes)
+  const env = useEnv()
+  if (!env.auth.jwtSecret) return false
+  return verifyDocJwt(token, expectedDocId, env.auth.jwtSecret, env.auth.jwtSecretPrevious || undefined, acceptedScopes)
 }

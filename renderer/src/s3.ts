@@ -1,18 +1,8 @@
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { env } from './env'
 
-// Reads env once at module load. The renderer is a single-process container
-// — env is fixed for its lifetime; no need for the lazy-singleton dance the
-// app's S3 client does (which has to wait for nuxt runtime config).
-const endpoint = required('S3_ENDPOINT')
-const accessKey = required('S3_ACCESS_KEY')
-const secretKey = required('S3_SECRET_KEY')
-const BUCKET = required('S3_BUCKET')
-
-function required(name: string): string {
-  const v = process.env[name]
-  if (!v) throw new Error(`[renderer] ${name} environment variable is required`)
-  return v
-}
+// Env is fixed for the container's lifetime and validated at load (./env.ts).
+const { endpoint, accessKey, secretKey, bucket: BUCKET } = env.storage
 
 // SSE-S3 on every render artefact (defense-in-depth) — see docs/S3-SETUP.md.
 // SeaweedFS (dev + test S3 backend) does NOT support SSE-S3 and returns an
@@ -20,8 +10,7 @@ function required(name: string): string {
 // generic "Renderer 500" on every PDF export in those envs. Gate the header
 // so those backends can disable it (S3_SSE=none) while prod (OVH) keeps the
 // default. Unset → AES256 (prod-safe default).
-const sseValue = process.env.S3_SSE ?? 'AES256'
-const useSse = sseValue !== '' && sseValue.toLowerCase() !== 'none'
+const useSse = env.storage.sse !== '' && env.storage.sse.toLowerCase() !== 'none'
 
 const s3 = new S3Client({
   endpoint,
@@ -50,6 +39,6 @@ export async function putBytes(
     // default — see docs/S3-SETUP.md §6. Direct server-side PUTs set
     // the header per-object so a misconfigured bucket can't silently
     // drop encryption. Omitted when S3_SSE=none (SeaweedFS dev/test).
-    ...(useSse ? { ServerSideEncryption: sseValue as 'AES256' } : {})
+    ...(useSse ? { ServerSideEncryption: env.storage.sse as 'AES256' } : {})
   }))
 }

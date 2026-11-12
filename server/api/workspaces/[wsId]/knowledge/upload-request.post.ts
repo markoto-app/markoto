@@ -7,6 +7,7 @@ import { stagingKeyFor } from '../../../../utils/storage/uploadKey'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { requestKnowledgeUploadBody } from '~~/shared/api/workspaces'
 import { ownValue } from '~~/shared/utils/ownValue'
+import { useEnv } from '~~/shared/env/load'
 
 /**
  * Step 1 of knowledge upload: mint a presigned PUT URL.
@@ -74,7 +75,7 @@ export default defineApiHandler({
       size
     })
 
-    const config = useRuntimeConfig()
+    const env = useEnv()
     const knowledgeId = nanoid(12)
     const s3Key = `workspaces/${wsId}/knowledge/${knowledgeId}.${ext}`
 
@@ -93,7 +94,7 @@ export default defineApiHandler({
       uploadUrl = await getSignedUrl(
         s3,
         new PutObjectCommand({
-          Bucket: config.s3.bucket,
+          Bucket: env.storage.bucket,
           Key: stagingKeyFor(s3Key),
           ContentType: mimeType,
           ContentLength: size

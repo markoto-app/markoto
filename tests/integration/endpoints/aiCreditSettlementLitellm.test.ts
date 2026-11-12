@@ -15,7 +15,7 @@ import { LITELLM_MASTER_KEY, LITELLM_URL, waitFor } from '../setup/byok'
 // Spend comes from the dictation billing tick ($0.006, no upstream).
 
 const envBefore = { ...process.env }
-const globalsBefore = { useRuntimeConfig: Reflect.get(globalThis, 'useRuntimeConfig'), createError: Reflect.get(globalThis, 'createError') }
+const globalsBefore = { createError: Reflect.get(globalThis, 'createError') }
 
 applyTestEnv()
 process.env.LITELLM_TEST_STUB = ''
@@ -23,14 +23,14 @@ process.env.NUXT_BILLING_ENABLED = 'true'
 // A Pro plan budget so small that every tick is paid from credits.
 process.env.TIER_PRO_LITELLM_BUDGET_USD = '0.001'
 // Free below Pro, so a cancellation lowers today's plan budget.
-process.env.TIER_FREE_LITELLM_BUDGET_USD = '0'
+process.env.TIER_FREE_LITELLM_BUDGET_USD = '0.0005'
 process.env.NUXT_LITELLM_DB_NAME = 'litellm_test'
 process.env.NUXT_LITELLM_DB_USER = TEST_LITELLM_DB_USER
 process.env.NUXT_LITELLM_DB_PASSWORD = TEST_LITELLM_DB_PASSWORD
-Object.assign(globalThis, {
-  useRuntimeConfig: () => ({ litellm: { url: LITELLM_URL, masterKey: LITELLM_MASTER_KEY } }),
-  createError
-})
+// The code under test reads the proxy from the typed env (shared/env).
+process.env.NUXT_LITELLM_URL = LITELLM_URL
+process.env.NUXT_LITELLM_MASTER_KEY = LITELLM_MASTER_KEY
+Object.assign(globalThis, { createError })
 
 const { createUserKey, getUserKeyToken } = await import('../../../server/utils/litellm/userKeys')
 const { insertCreditGrant, sumUsableCredits } = await import('../../../server/repos/aiCreditGrants')

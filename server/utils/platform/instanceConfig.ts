@@ -1,15 +1,15 @@
 // Server-side accessors for the instance shape (login providers + legal
 // surfaces). See `shared/config/instance.ts` for the deployment matrix.
 //
-// Reads `process.env` on every call so tests can flip flags per case and the
-// helpers work outside Nitro.
+// Read from the typed env (shared/env); tests change process.env per case.
 
 import { createError } from 'h3'
 import { resolveLegalSurfacesEnabled } from '~~/shared/config/instance'
 import { resolveLegalEntity } from '~~/shared/legal/entity'
+import { useEnv } from '~~/shared/env/load'
 
 export function legalSurfacesEnabled(): boolean {
-  return resolveLegalSurfacesEnabled(process.env)
+  return resolveLegalSurfacesEnabled()
 }
 
 /** Stable machine code for "this deployment has no legal pages". */
@@ -39,7 +39,7 @@ export function assertLegalSurfacesEnabled(): void {
  * the admin queue (/admin/abuse-reports).
  */
 export function abuseNotificationRecipient(): string | null {
-  const explicit = process.env.NUXT_LEGAL_ABUSE_CONTACT_EMAIL?.trim()
+  const explicit = useEnv().legal.abuseContactEmail
   if (explicit) return explicit
-  return legalSurfacesEnabled() ? resolveLegalEntity(process.env).abuseContactEmail : null
+  return legalSurfacesEnabled() ? resolveLegalEntity().abuseContactEmail : null
 }
