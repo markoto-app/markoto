@@ -83,7 +83,7 @@ watch(() => route.path, () => {
         color="neutral"
         variant="ghost"
         size="sm"
-        :aria-label="'Open documentation menu'"
+        :aria-label="$t('docs.openMenu')"
         @click="mobileNavOpen = true"
       />
       <!-- Topbar anchor: wordmark + hairline + Fraunces section
@@ -93,7 +93,7 @@ watch(() => route.path, () => {
       <NuxtLink
         to="/"
         class="flex items-center shrink-0"
-        aria-label="markoto home"
+        :aria-label="$t('common.homeLinkLabel')"
       >
         <CommonWordmark :size="20" />
       </NuxtLink>
@@ -105,7 +105,7 @@ watch(() => route.path, () => {
         to="/docs"
         class="hidden sm:inline-flex font-serif text-lg font-normal tracking-tight text-default hover:text-muted transition-colors"
       >
-        Documentation
+        {{ $t('common.documentation') }}
       </NuxtLink>
       <!-- Search bar centered horizontally in the topbar regardless
            of viewport. `flex-1 justify-center` lets the input column
@@ -118,7 +118,7 @@ watch(() => route.path, () => {
       <div class="flex-1 min-w-0 flex justify-center">
         <UContentSearchButton
           :collapsed="false"
-          label="Search the docs..."
+          :label="$t('docs.searchLabel')"
           class="w-full min-w-0 max-w-md justify-start text-toned overflow-hidden"
           @pointerenter="warmSearch"
           @focus="warmSearch"
@@ -159,7 +159,7 @@ watch(() => route.path, () => {
       v-model:open="mobileNavOpen"
       side="left"
       :ui="{ content: 'max-w-[280px]' }"
-      :title="'Documentation'"
+      :title="$t('common.documentation')"
     >
       <template #body>
         <DocsSidebar

@@ -309,7 +309,7 @@ async function leaveWorkspace() {
         <NuxtLink
           to="/"
           class="flex items-center"
-          aria-label="markoto home"
+          :aria-label="t('common.homeLinkLabel')"
         >
           <CommonWordmark :size="20" />
         </NuxtLink>

@@ -104,7 +104,7 @@ const effectiveChromeDomain = computed(
   () => props.chromeDomain ?? runtimeConfig.public.docs.chromeDomain
 )
 
-const { locale: i18nLocale } = useI18n()
+const { locale: i18nLocale, t } = useI18n()
 // Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
 // (no prefers-color-scheme + no localStorage), so reading at top-level causes
 // hydration mismatch when the user's actual mode is dark. Manifest fetch is
@@ -472,7 +472,17 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
     v-if="error"
     class="my-6 p-4 border border-red-500/40 bg-red-500/5 rounded text-sm"
   >
-    Flow <code>{{ id ?? path }}</code> failed to load: {{ error.message }}
+    <i18n-t
+      keypath="docs.flow.loadFailed"
+      scope="global"
+    >
+      <template #id>
+        <code>{{ id ?? path }}</code>
+      </template>
+      <template #message>
+        {{ error.message }}
+      </template>
+    </i18n-t>
   </div>
 
   <!-- docs-wide opts this component into the full-bleed grid column
@@ -565,10 +575,10 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
       <!-- Control row: jump-start / prev / play / next / jump-end. -->
       <div class="flex items-center justify-between px-2 py-1.5 bg-elevated/50">
         <div class="flex items-center">
-          <UTooltip text="Jump to first slide">
+          <UTooltip :text="t('docs.flow.first')">
             <button
               class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
-              aria-label="Jump to first slide"
+              :aria-label="t('docs.flow.first')"
               :disabled="slideIdx === 0"
               @click="goStart"
             >
@@ -578,10 +588,10 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
               />
             </button>
           </UTooltip>
-          <UTooltip text="Previous slide">
+          <UTooltip :text="t('docs.flow.previous')">
             <button
               class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
-              aria-label="Previous slide"
+              :aria-label="t('docs.flow.previous')"
               :disabled="slideIdx === 0"
               @click="goPrev"
             >
@@ -591,10 +601,10 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
               />
             </button>
           </UTooltip>
-          <UTooltip :text="isPlaying ? 'Pause autoplay' : 'Play autoplay'">
+          <UTooltip :text="isPlaying ? t('docs.flow.pause') : t('docs.flow.play')">
             <button
               class="size-8 inline-flex items-center justify-center rounded text-default hover:bg-elevated transition-colors"
-              :aria-label="isPlaying ? 'Pause autoplay' : 'Play autoplay'"
+              :aria-label="isPlaying ? t('docs.flow.pause') : t('docs.flow.play')"
               @click="togglePlay"
             >
               <UIcon
@@ -603,10 +613,10 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
               />
             </button>
           </UTooltip>
-          <UTooltip text="Next slide">
+          <UTooltip :text="t('docs.flow.next')">
             <button
               class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
-              aria-label="Next slide"
+              :aria-label="t('docs.flow.next')"
               :disabled="slideIdx === entries.length - 1"
               @click="goNext"
             >
@@ -616,10 +626,10 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
               />
             </button>
           </UTooltip>
-          <UTooltip text="Jump to last slide">
+          <UTooltip :text="t('docs.flow.last')">
             <button
               class="size-8 inline-flex items-center justify-center rounded text-default disabled:opacity-30 hover:bg-elevated transition-colors"
-              aria-label="Jump to last slide"
+              :aria-label="t('docs.flow.last')"
               :disabled="slideIdx === entries.length - 1"
               @click="goEnd"
             >
@@ -645,7 +655,7 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
         :to="nextHref"
         class="mt-4 flex items-center gap-3 px-4 py-3 rounded-lg border border-default bg-elevated/50 hover:bg-elevated transition-colors group"
       >
-        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted shrink-0">try next</span>
+        <span class="font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted shrink-0">{{ t('docs.flow.tryNext') }}</span>
         <span class="flex-1 min-w-0 text-default text-sm">{{ nextLink.why }}</span>
         <UIcon
           name="i-lucide-arrow-right"

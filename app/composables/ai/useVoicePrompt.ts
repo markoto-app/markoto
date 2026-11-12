@@ -76,7 +76,7 @@ async function blobToBase64(blob: Blob): Promise<string> {
 export function useVoicePrompt(opts: UseVoicePromptOptions) {
   // `useI18n()` must run during setup (it throws in the async transcribe
   // path); `locale.value` is read lazily at send time.
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const { extractError } = useErrorHandler()
   // The open document's workspace: its Team / Business plan may include
   // voice where the personal plan doesn't.
@@ -185,7 +185,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     state.value = 'requesting-permission'
 
     if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      fail('Voice input is not supported in this browser.')
+      fail(t('ai.voiceErrors.unsupportedVoice'))
       return
     }
 
@@ -195,7 +195,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
 
     const mimeType = pickMimeType()
     if (!mimeType) {
-      fail('Audio recording is not supported in this browser.')
+      fail(t('ai.voiceErrors.unsupportedRecording'))
       return
     }
 
@@ -220,11 +220,11 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
       // NotAllowedError = dismissed or blocked, NotFoundError = no hardware.
       const name = (e as { name?: string })?.name
       if (name === 'NotAllowedError') {
-        fail('Microphone permission denied.')
+        fail(t('ai.voiceErrors.micDenied'))
       } else if (name === 'NotFoundError') {
-        fail('No microphone found.')
+        fail(t('ai.voiceErrors.micNotFound'))
       } else {
-        fail(e instanceof Error ? e.message : 'Could not access microphone.')
+        fail(t('ai.voiceErrors.micAccess'))
       }
       return null
     }
@@ -239,8 +239,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     let recorder: MediaRecorder
     try {
       recorder = new MediaRecorder(stream, { mimeType })
-    } catch (e) {
-      fail(e instanceof Error ? e.message : 'Could not start recorder.')
+    } catch {
+      fail(t('ai.voiceErrors.recorderStart'))
       return null
     }
     recorder.ondataavailable = (ev) => {
@@ -249,9 +249,8 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     recorder.onstop = () => {
       void finalizeAndTranscribe(mimeType)
     }
-    recorder.onerror = (ev) => {
-      const err = (ev as unknown as { error?: Error }).error
-      fail(err?.message || 'Recording failed.')
+    recorder.onerror = () => {
+      fail(t('ai.voiceErrors.recordingFailed'))
     }
     mediaRecorder = recorder
     return recorder
@@ -282,7 +281,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     try {
       mediaRecorder?.stop()
     } catch {
-      fail('Could not stop recording.')
+      fail(t('ai.voiceErrors.stopFailed'))
     }
   }
 
@@ -303,7 +302,7 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     state.value = 'transcribing'
 
     if (chunks.length === 0) {
-      fail('No audio was captured.')
+      fail(t('ai.voiceErrors.noAudio'))
       return
     }
 
@@ -313,15 +312,15 @@ export function useVoicePrompt(opts: UseVoicePromptOptions) {
     // Very short recordings yield near-empty blobs; the server rejects
     // under 100 bytes, this gives a cleaner error.
     if (blob.size < 256) {
-      fail('Recording was too short.')
+      fail(t('ai.voiceErrors.tooShort'))
       return
     }
 
     let audioB64: string
     try {
       audioB64 = await blobToBase64(blob)
-    } catch (e) {
-      fail(e instanceof Error ? e.message : 'Could not encode audio.')
+    } catch {
+      fail(t('ai.voiceErrors.encodeFailed'))
       return
     }
 

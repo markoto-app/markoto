@@ -25,7 +25,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{ 'update:modelValue': [string] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const host = ref<HTMLElement | null>(null)
 const view = shallowRef<EditorView | null>(null)
@@ -38,7 +38,7 @@ let lastEmitted = props.modelValue ?? ''
 
 const bytes = computed(() => customCssByteLength(text.value))
 const overLimit = computed(() => bytes.value > CUSTOM_CSS_MAX_BYTES)
-const numberFormat = new Intl.NumberFormat()
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 
 let checkSeq = 0
 async function check(value: string) {

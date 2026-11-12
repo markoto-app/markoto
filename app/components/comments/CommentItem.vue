@@ -39,9 +39,9 @@ const avatarSeed = computed(() => avatarSeedFor({ id: props.authorId, avatarSeed
 
 const segments = computed(() => parseCommentBody(props.body))
 
-// Live "X ago" string; owns a 30 s ticker and uses Intl.RelativeTimeFormat,
-// so no per-locale i18n keys.
-const relativeTime = useTimeAgoIntl(() => new Date(props.createdAt))
+// Live "X ago" string in the UI language (Intl.RelativeTimeFormat, no
+// per-locale i18n keys).
+const relativeTime = useRelativeTime(() => new Date(props.createdAt))
 </script>
 
 <template>

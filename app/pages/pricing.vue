@@ -198,8 +198,8 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     })
     if ('updated' in resp) {
       toast.add({
-        title: 'Plan updated',
-        description: `You are now on the ${resp.plan} plan. Your new AI budget is available immediately.`,
+        title: t('billing.planUpdated.title'),
+        description: t('billing.planUpdated.description', { plan: PAID_DISPLAY[resp.plan] }),
         icon: 'i-lucide-check-circle',
         color: 'success'
       })
@@ -222,7 +222,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
     if ('url' in resp) globalThis.location.href = resp.url
   } catch (e) {
     toast.add({
-      title: 'Could not start checkout',
+      title: t('workspace.billing.checkoutFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -242,7 +242,7 @@ async function openPortal(): Promise<void> {
     globalThis.location.href = url
   } catch (e) {
     toast.add({
-      title: 'Could not open billing portal',
+      title: t('settings.profile.spending.portalFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'

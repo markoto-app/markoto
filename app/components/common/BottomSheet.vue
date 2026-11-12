@@ -126,7 +126,7 @@ onUnmounted(() => {
           <div
             data-drag-handle
             class="mk-sheet__handle-area"
-            :aria-label="'Drag to close'"
+            :aria-label="$t('common.dragToClose')"
           >
             <div class="mk-sheet__handle" />
           </div>

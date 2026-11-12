@@ -99,7 +99,7 @@ async function handleSubmit() {
       await refreshAccountStatus()
       dpaChecked.value = false
       toast.add({
-        title: 'Data Processing Addendum updated — please review again',
+        title: t('workspace.dpa.staleTitle'),
         description: err.message,
         icon: 'i-lucide-refresh-cw',
         color: 'neutral'
@@ -170,28 +170,32 @@ async function handleSubmit() {
           data-testid="workspace-form-dpa-section"
         >
           <p class="text-xs text-muted mb-2 font-mono uppercase tracking-wider">
-            One-time acceptance
+            {{ t('workspace.dpa.heading') }}
           </p>
           <p class="text-sm text-muted mb-3">
-            By creating a workspace you become a controller for personal
-            data your members place inside it, and LatentSpace Labs GmbH
-            becomes your processor. Our Data Processing Addendum is the
-            contract that governs that.
+            {{ t('workspace.dpa.body') }}
           </p>
           <UCheckbox
             v-model="dpaChecked"
             data-testid="workspace-form-dpa-checkbox"
           >
             <template #label>
-              <span>I have read and accept the </span>
-              <NuxtLink
-                to="/legal/dpa"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="underline"
+              <i18n-t
+                keypath="legal.onboarding.acceptDocument"
+                tag="span"
+                scope="global"
               >
-                Data Processing Addendum
-              </NuxtLink>
+                <template #document>
+                  <NuxtLink
+                    to="/legal/dpa"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="underline"
+                  >
+                    {{ t('legal.policyAcceptance.documentNames.dpa') }}
+                  </NuxtLink>
+                </template>
+              </i18n-t>
               <span class="font-mono text-[11px] text-muted ml-1">
                 v{{ dpaCurrentVersion }}
               </span>

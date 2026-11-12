@@ -160,7 +160,7 @@ function onManage(): void {
     <button
       type="button"
       class="usage-badge hidden sm:flex items-center gap-2 pl-2.5 pr-3 py-1 rounded-full border border-default bg-default/60 backdrop-blur-sm transition-colors hover:bg-muted/40 cursor-pointer"
-      aria-label="AI credits"
+      :aria-label="t('credits.title')"
       data-testid="usage-badge"
     >
       <span
@@ -200,8 +200,8 @@ function onManage(): void {
         <div>
           <div class="flex items-baseline justify-between text-xs text-muted mb-1">
             <span class="tabular-nums text-default font-medium">
-              {{ pointsRemaining.toLocaleString() }}
-              <span class="text-muted font-normal">/ {{ pointsTotal.toLocaleString() }}</span>
+              {{ pointsRemaining.toLocaleString(locale) }}
+              <span class="text-muted font-normal">/ {{ pointsTotal.toLocaleString(locale) }}</span>
             </span>
             <span class="tabular-nums">{{ pctRemaining }}%</span>
           </div>

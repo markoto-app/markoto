@@ -14,6 +14,7 @@ type IssuedToken = ApiResponse<'/api/mcp/tokens', 'get'>[number]
 type IssueResponse = ApiResponse<'/api/mcp/tokens', 'post'>
 
 const router = useRouter()
+const { t, locale } = useI18n()
 const toast = useToast()
 const { extractError } = useErrorHandler()
 const { loggedIn, user } = useUserSession()
@@ -21,7 +22,7 @@ const { loggedIn, user } = useUserSession()
 const { primaryLoginPath } = useInstanceConfig()
 const config = useRuntimeConfig()
 
-useHead({ title: 'Integrations' })
+useHead({ title: () => t('settings.integrations.title') })
 
 if (import.meta.client && !loggedIn.value) {
   globalThis.location.href = primaryLoginPath.value ?? '/'
@@ -45,7 +46,7 @@ async function refreshTokens(): Promise<void> {
     tokens.value = await apiFetch('/api/mcp/tokens')
   } catch (e) {
     toast.add({
-      title: 'Could not load tokens',
+      title: t('settings.integrations.loadFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -84,7 +85,7 @@ async function onIssue(): Promise<void> {
     await refreshTokens()
   } catch (e) {
     toast.add({
-      title: 'Could not issue token',
+      title: t('settings.integrations.issueFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -100,13 +101,13 @@ async function copyToken(): Promise<void> {
     await navigator.clipboard.writeText(justIssued.value.token)
     justIssuedCopied.value = true
     toast.add({
-      title: 'Token copied to clipboard',
+      title: t('settings.integrations.tokenCopied'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
   } catch {
     toast.add({
-      title: 'Could not copy — select and copy manually',
+      title: t('settings.integrations.copyFailed'),
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -127,13 +128,13 @@ async function onRevoke(tokenId: string): Promise<void> {
     await apiFetch('/api/mcp/tokens/:tokenId', { method: 'delete', path: { tokenId } })
     await refreshTokens()
     toast.add({
-      title: 'Token revoked',
+      title: t('settings.integrations.revoked'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
   } catch (e) {
     toast.add({
-      title: 'Could not revoke token',
+      title: t('settings.integrations.revokeFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -167,13 +168,13 @@ async function copySnippet(): Promise<void> {
   try {
     await navigator.clipboard.writeText(configSnippet.value)
     toast.add({
-      title: 'Config snippet copied',
+      title: t('settings.integrations.snippetCopied'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
   } catch {
     toast.add({
-      title: 'Could not copy — select and copy manually',
+      title: t('settings.integrations.copyFailed'),
       icon: 'i-lucide-alert-circle',
       color: 'error'
     })
@@ -183,7 +184,7 @@ async function copySnippet(): Promise<void> {
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'
   try {
-    return new Date(iso).toLocaleString(undefined, {
+    return new Date(iso).toLocaleString(locale.value, {
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     })
@@ -208,7 +209,7 @@ void user
       variant="ghost"
       size="md"
       class="absolute top-4 right-4 z-10"
-      aria-label="Close"
+      :aria-label="t('common.close')"
       @click="onClose"
     />
 
@@ -218,10 +219,10 @@ void user
           /settings/integrations
         </p>
         <h1 class="font-serif text-3xl sm:text-4xl font-normal tracking-tight">
-          Integrations
+          {{ t('settings.integrations.title') }}
         </h1>
         <p class="text-sm text-muted mt-2">
-          Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.
+          {{ t('settings.integrations.intro') }}
         </p>
       </header>
 
@@ -234,10 +235,10 @@ void user
         <div class="flex items-start justify-between gap-3 mb-3">
           <div>
             <p class="font-serif text-base font-normal">
-              Token created — copy it now
+              {{ t('settings.integrations.createdTitle') }}
             </p>
             <p class="text-xs text-muted mt-1">
-              For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.
+              {{ t('settings.integrations.createdBody') }}
             </p>
           </div>
           <UButton
@@ -245,7 +246,7 @@ void user
             color="neutral"
             variant="ghost"
             size="xs"
-            aria-label="Dismiss"
+            :aria-label="t('ai.responseDismiss')"
             @click="dismissIssued"
           />
         </div>
@@ -262,7 +263,7 @@ void user
             size="sm"
             @click="copyToken"
           >
-            {{ justIssuedCopied ? 'Copied' : 'Copy' }}
+            {{ justIssuedCopied ? t('sso.copied') : t('settings.integrations.copy') }}
           </UButton>
         </div>
       </section>
@@ -273,7 +274,7 @@ void user
         data-testid="integrations-issue-section"
       >
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          Generate token
+          {{ t('settings.integrations.generateTitle') }}
         </h2>
         <div class="border border-default rounded-lg px-4 py-4">
           <form
@@ -282,7 +283,7 @@ void user
           >
             <UInput
               v-model="newName"
-              placeholder="e.g. Claude Desktop on laptop"
+              :placeholder="t('settings.integrations.namePlaceholder')"
               maxlength="80"
               class="flex-1"
               data-testid="new-token-name"
@@ -296,11 +297,11 @@ void user
               :disabled="!newName.trim() || issuing"
               data-testid="issue-token-button"
             >
-              Generate
+              {{ t('settings.integrations.generate') }}
             </UButton>
           </form>
           <p class="text-xs text-muted mt-3">
-            Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.
+            {{ t('settings.integrations.scopesNote') }}
           </p>
         </div>
       </section>
@@ -311,7 +312,7 @@ void user
         data-testid="integrations-list-section"
       >
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          Active tokens
+          {{ t('settings.integrations.activeTitle') }}
         </h2>
         <div
           v-if="tokensLoading"
@@ -321,33 +322,33 @@ void user
             name="i-lucide-loader-2"
             class="size-4 animate-spin inline mr-2"
           />
-          Loading…
+          {{ t('common.loading') }}
         </div>
         <div
           v-else-if="tokens.length === 0"
           class="text-sm text-muted font-mono border border-default rounded-lg px-4 py-6 text-center"
         >
-          No tokens yet.
+          {{ t('settings.integrations.empty') }}
         </div>
         <ul
           v-else
           class="space-y-2"
         >
           <li
-            v-for="t in tokens"
-            :key="t.tokenId"
+            v-for="token in tokens"
+            :key="token.tokenId"
             class="border border-default rounded-lg px-4 py-3 flex items-center justify-between gap-3"
-            :data-testid="`token-row-${t.tokenId}`"
+            :data-testid="`token-row-${token.tokenId}`"
           >
             <div class="min-w-0 flex-1">
               <p class="font-serif text-base font-normal truncate">
-                {{ t.name }}
+                {{ token.name }}
               </p>
               <p class="text-xs text-muted font-mono mt-0.5">
-                created {{ fmtDate(t.createdAt) }} · last used {{ fmtDate(t.lastUsedAt) }}
+                {{ t('settings.integrations.createdLastUsed', { created: fmtDate(token.createdAt), lastUsed: fmtDate(token.lastUsedAt) }) }}
               </p>
               <p class="text-[10px] text-muted font-mono mt-0.5 uppercase tracking-wider">
-                {{ t.scopes.join(' · ') }}
+                {{ token.scopes.join(' · ') }}
               </p>
             </div>
             <UButton
@@ -355,12 +356,12 @@ void user
               color="error"
               variant="ghost"
               icon="i-lucide-trash-2"
-              :loading="revokingId === t.tokenId"
+              :loading="revokingId === token.tokenId"
               :disabled="revokingId !== null"
-              :data-testid="`revoke-${t.tokenId}`"
-              @click="onRevoke(t.tokenId)"
+              :data-testid="`revoke-${token.tokenId}`"
+              @click="onRevoke(token.tokenId)"
             >
-              Revoke
+              {{ t('settings.integrations.revoke') }}
             </UButton>
           </li>
         </ul>
@@ -372,12 +373,18 @@ void user
         data-testid="integrations-howto-section"
       >
         <h2 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-3">
-          Connect Claude Desktop
+          {{ t('settings.integrations.connectTitle') }}
         </h2>
         <div class="border border-default rounded-lg px-4 py-4">
           <p class="text-sm text-muted mb-3">
-            Add this block to your <code class="font-mono text-xs">claude_desktop_config.json</code>
-            (Settings → Developer → Edit Config).
+            <i18n-t
+              keypath="settings.integrations.connectBody"
+              scope="global"
+            >
+              <template #file>
+                <code class="font-mono text-xs">claude_desktop_config.json</code>
+              </template>
+            </i18n-t>
           </p>
           <div class="flex items-start gap-2">
             <pre
@@ -391,7 +398,7 @@ void user
               size="sm"
               @click="copySnippet"
             >
-              Copy
+              {{ t('settings.integrations.copy') }}
             </UButton>
           </div>
         </div>

@@ -16,6 +16,7 @@ import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 definePageMeta({ layout: 'docs' })
 
 const route = useRoute()
+const { t } = useI18n()
 
 const { data: page } = await useAsyncData(`docs:${route.path}`, async () => {
   const direct = await queryCollection('docs').path(route.path).first()
@@ -64,7 +65,7 @@ const crumbs = computed(() => {
   const parts = route.path.split('/').filter(Boolean)
   // First segment is always 'docs' — represent as "Docs" → /docs.
   // Subsequent segments build their own paths cumulatively.
-  const items: Array<{ label: string, to: string }> = [{ label: 'Docs', to: '/docs' }]
+  const items: Array<{ label: string, to: string }> = [{ label: t('common.docs'), to: '/docs' }]
   for (let i = 1; i < parts.length; i++) {
     const seg = parts[i]!
     const to = '/' + parts.slice(0, i + 1).join('/')
@@ -110,7 +111,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
       <nav
         v-if="surround && (surround[0] || surround[1])"
         class="not-prose mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
-        aria-label="Documentation pagination"
+        :aria-label="$t('docs.pagination.label')"
       >
         <NuxtLink
           v-if="surround[0]"
@@ -122,7 +123,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
               name="i-lucide-arrow-left"
               class="size-3"
             />
-            previous
+            {{ $t('docs.pagination.previous') }}
           </div>
           <div class="font-serif text-base font-normal tracking-tight text-default">
             {{ surround[0].title }}
@@ -141,7 +142,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
           class="group block p-4 rounded-lg border border-default/60 bg-default hover:border-default hover:bg-default/80 transition-colors sm:text-right"
         >
           <div class="flex items-center gap-1.5 sm:justify-end font-mono text-[10.5px] tracking-[0.06em] uppercase text-muted mb-1.5">
-            next
+            {{ $t('docs.pagination.next') }}
             <UIcon
               name="i-lucide-arrow-right"
               class="size-3"
@@ -170,7 +171,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
     >
       <div class="sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto overflow-x-hidden break-words">
         <UContentToc
-          :title="'On this page'"
+          :title="$t('docs.onThisPage')"
           :links="page.body.toc?.links ?? []"
           highlight
           class="text-sm"

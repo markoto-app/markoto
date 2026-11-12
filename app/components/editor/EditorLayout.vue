@@ -963,7 +963,7 @@ const _statusIcon = computed(() => {
         <NuxtLink
           to="/"
           class="flex items-center shrink-0"
-          aria-label="markoto home"
+          :aria-label="t('common.homeLinkLabel')"
         >
           <CommonWordmark :size="18" />
         </NuxtLink>
@@ -1349,7 +1349,7 @@ const _statusIcon = computed(() => {
           name="i-lucide-lock"
           class="size-3.5 mr-1 align-text-bottom"
         />
-        View only
+        {{ t('share.viewOnly') }}
       </div>
 
       <!-- Flex siblings with `flex-1` / `min-w-0` share the width. Triple-split
@@ -1613,7 +1613,7 @@ const _statusIcon = computed(() => {
       <!-- Mono micro-meta (10.5px, lowercase, 0.04em tracking, middot separators), like a colophon strip. -->
       <footer class="border-t border-default/60 bg-muted px-4 py-1.5 flex items-center justify-between font-mono text-[10.5px] tracking-[0.04em] text-muted shrink-0">
         <div class="flex items-center gap-3">
-          <span data-testid="word-count">{{ wordCount }} <span class="opacity-70">words</span></span>
+          <span data-testid="word-count">{{ wordCount }} <span class="opacity-70">{{ t('editor.footer.words', wordCount) }}</span></span>
           <span
             class="opacity-50"
             aria-hidden="true"
@@ -1621,13 +1621,13 @@ const _statusIcon = computed(() => {
           <span
             v-if="viewMode !== 'edit' && pageCount > 0"
             data-testid="page-count"
-          >{{ pageCount }} <span class="opacity-70">{{ pageCount === 1 ? 'page' : 'pages' }}</span></span>
+          >{{ pageCount }} <span class="opacity-70">{{ t('editor.footer.pages', pageCount) }}</span></span>
           <span
             v-if="viewMode !== 'edit' && pageCount > 0"
             class="opacity-50"
             aria-hidden="true"
           >·</span>
-          <span data-testid="char-count">{{ charCount }} <span class="opacity-70">chars</span></span>
+          <span data-testid="char-count">{{ charCount }} <span class="opacity-70">{{ t('editor.footer.chars', charCount) }}</span></span>
         </div>
         <div
           class="flex items-center gap-3"
@@ -1651,7 +1651,7 @@ const _statusIcon = computed(() => {
               name="i-lucide-lock"
               class="size-3"
             />
-            read only
+            {{ t('editor.footer.readOnly') }}
           </span>
         </div>
       </footer>

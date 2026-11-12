@@ -395,7 +395,7 @@ const triggerClass = 'px-2.5 py-1 text-sm rounded hover:bg-elevated focus-visibl
 <template>
   <nav
     class="flex items-center gap-0 px-2 border-b border-default shrink-0"
-    aria-label="Menu bar"
+    :aria-label="t('menubar.label')"
   >
     <UDropdownMenu
       :items="fileItems"

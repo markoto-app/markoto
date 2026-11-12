@@ -106,14 +106,14 @@ watch(pgCount, (n) => {
       />
       <p>{{ error }}</p>
       <p class="text-xs text-muted">
-        Reload the page to retry.
+        {{ $t('editor.previewReloadHint') }}
       </p>
     </div>
     <div
       v-else-if="!isReady"
       class="absolute inset-0 flex items-center justify-center text-sm text-muted bg-[var(--ui-bg-muted)] pointer-events-none"
     >
-      Loading preview…
+      {{ $t('marketing.tryIt.previewLoading') }}
     </div>
   </div>
 </template>

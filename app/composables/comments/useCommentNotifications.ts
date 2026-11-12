@@ -50,6 +50,7 @@ function snapshot(comments: CommentsApi['comments']): ReplyKey[] {
 }
 
 export function useCommentNotifications(opts: UseCommentNotificationsOptions) {
+  const { t } = useI18n()
   // `'unsupported'` (Firefox, iOS) is treated as "skip silently".
   const permission = usePermission('notifications', { controls: false })
   const visibility = useDocumentVisibility()
@@ -93,7 +94,7 @@ export function useCommentNotifications(opts: UseCommentNotificationsOptions) {
     if (!last) return
     const preview = last.body.length > 120 ? `${last.body.slice(0, 117)}…` : last.body
     show({
-      title: opts.docTitle.value || 'New reply',
+      title: opts.docTitle.value || t('comments.notificationFallbackTitle'),
       body: `${last.authorName}: ${preview}`,
       tag: `comment-thread-${opts.docId}-${last.threadId}`,
       icon: '/icon-192.png'

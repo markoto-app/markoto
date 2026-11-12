@@ -86,6 +86,7 @@ export function usePagedPreview(opts: {
     onApplied: (scale: number, fitScale: number) => void
   }
 }) {
+  const { t } = useI18n()
   const pageCount = ref(0)
   const isPaginating = ref(false)
   const isReady = ref(false)
@@ -123,7 +124,7 @@ export function usePagedPreview(opts: {
         render()
       }
     } else if (data.type === 'iframe-error') {
-      error.value = data.message || 'Preview failed to load.'
+      error.value = data.message || t('editor.previewFailed')
       isPaginating.value = false
       if (pendingRender) {
         pendingRender = false
@@ -308,7 +309,7 @@ export function usePagedPreview(opts: {
   onMounted(() => {
     if (!opts.container.value) return
     iframe = document.createElement('iframe')
-    iframe.title = 'Document preview'
+    iframe.title = t('editor.previewFrameTitle')
     iframe.style.cssText = 'width: 100%; height: 100%; border: 0; display: block; background: transparent;'
     // Sandbox: scripts only. NO allow-same-origin: the preview renders
     // content any editor (or the AI) controls, and an opaque origin keeps

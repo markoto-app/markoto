@@ -15,7 +15,7 @@ withDefaults(defineProps<Props>(), { size: 20 })
   <NuxtLink
     to="/"
     class="absolute top-4 left-4 z-10 inline-flex items-center gap-2.5 hover:opacity-80 transition-opacity"
-    aria-label="markoto — home"
+    :aria-label="$t('common.homeLinkLabel')"
     data-testid="page-home-link"
   >
     <CommonWordmark :size="size" />

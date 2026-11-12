@@ -39,19 +39,20 @@ function reloadNow() {
 
 export default defineNuxtPlugin((nuxtApp) => {
   const toast = useToast()
+  const { t } = nuxtApp.$i18n
   const pwa = nuxtApp.$pwa as Pwa | undefined
 
   function renderPrompt(h: VersionCheckPromptHandlers) {
     toast.add({
-      title: 'New version available',
-      description: 'Reloading in 30 seconds.',
+      title: t('app.update.title'),
+      description: t('app.update.description'),
       icon: 'i-lucide-refresh-cw',
       color: 'primary',
       duration: 0,
       actions: [
-        { label: 'Reload now', onClick: h.onReloadNow },
+        { label: t('app.update.reloadNow'), onClick: h.onReloadNow },
         {
-          label: 'Snooze 5 min',
+          label: t('app.update.snooze'),
           color: 'neutral',
           variant: 'subtle',
           onClick: h.onSnooze

@@ -445,7 +445,7 @@ function onRestored() {
               class="font-mono text-[10px] uppercase tracking-wider text-muted shrink-0"
               :title="entry.actorPrincipal ?? undefined"
             >
-              via {{ agentBadgeText(entry) }}
+              {{ t('activity.viaAgent', { agent: agentBadgeText(entry) }) }}
             </span>
             <span class="text-muted shrink-0">{{ formatTime(entry.createdAt) }}</span>
           </div>

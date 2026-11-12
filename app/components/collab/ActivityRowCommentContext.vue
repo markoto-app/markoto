@@ -13,7 +13,7 @@ const props = defineProps<{
   activityId: number
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const data = ref<CommentContextResponse | null>(null)
 const error = ref<{ kind: 'unavailable' | 'unknown' } | null>(null)
@@ -43,7 +43,7 @@ async function load() {
 onMounted(load)
 
 function formatTime(ms: number): string {
-  return new Date(ms).toLocaleString()
+  return new Date(ms).toLocaleString(locale.value)
 }
 
 // Strips mention tokens (`@[Name](user:N)` and bare `@ai`) to plain text; the

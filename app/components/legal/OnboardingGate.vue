@@ -79,8 +79,7 @@ async function onSubmit(): Promise<void> {
     await refresh()
     open.value = false
     toast.add({
-      title: 'Welcome to markoto',
-      description: '',
+      title: t('legal.onboarding.welcomeToast'),
       icon: 'i-lucide-check',
       color: 'neutral'
     })
@@ -93,14 +92,14 @@ async function onSubmit(): Promise<void> {
       privacyChecked.value = false
       tosChecked.value = false
       toast.add({
-        title: 'Document updated — please review again',
+        title: t('legal.onboarding.staleTitle'),
         description: err.message,
         icon: 'i-lucide-refresh-cw',
         color: 'neutral'
       })
     } else {
       toast.add({
-        title: 'Could not record your acceptance',
+        title: t('legal.onboarding.failedTitle'),
         description: err.message,
         icon: 'i-lucide-alert-circle',
         color: 'error'
@@ -132,12 +131,10 @@ async function onSignOut(): Promise<void> {
       >
         <header class="mb-4 shrink-0">
           <h2 class="font-serif text-2xl font-normal tracking-tight mb-1">
-            Welcome to markoto
+            {{ t('legal.onboarding.title') }}
           </h2>
           <p class="text-sm text-muted">
-            Before you start writing, we need a quick acknowledgement
-            on the items below. You only see this once, or after we
-            materially update one of the documents.
+            {{ t('legal.onboarding.intro') }}
           </p>
         </header>
 
@@ -168,12 +165,10 @@ async function onSignOut(): Promise<void> {
             data-testid="onboarding-policies-section"
           >
             <h3 class="font-mono text-[11px] uppercase tracking-wider text-muted mb-2">
-              Documents to accept
+              {{ t('legal.onboarding.documentsTitle') }}
             </h3>
             <p class="text-sm text-muted mb-3">
-              We've published these in plain language — open each in a
-              new tab to read in full. Your acceptance is recorded with
-              the version you read so we can prove what you saw.
+              {{ t('legal.onboarding.documentsIntro') }}
             </p>
             <div class="space-y-2">
               <UCheckbox
@@ -182,15 +177,22 @@ async function onSignOut(): Promise<void> {
                 data-testid="onboarding-privacy-checkbox"
               >
                 <template #label>
-                  <span>I have read and accept the </span>
-                  <NuxtLink
-                    to="/legal/privacy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline"
+                  <i18n-t
+                    keypath="legal.onboarding.acceptDocument"
+                    tag="span"
+                    scope="global"
                   >
-                    Privacy Policy
-                  </NuxtLink>
+                    <template #document>
+                      <NuxtLink
+                        to="/legal/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="underline"
+                      >
+                        {{ t('legal.policyAcceptance.documentNames.privacy') }}
+                      </NuxtLink>
+                    </template>
+                  </i18n-t>
                   <span class="font-mono text-[11px] text-muted ml-1">
                     v{{ privacyVersion }}
                   </span>
@@ -202,15 +204,22 @@ async function onSignOut(): Promise<void> {
                 data-testid="onboarding-tos-checkbox"
               >
                 <template #label>
-                  <span>I have read and accept the </span>
-                  <NuxtLink
-                    to="/legal/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="underline"
+                  <i18n-t
+                    keypath="legal.onboarding.acceptDocument"
+                    tag="span"
+                    scope="global"
                   >
-                    Terms of Service
-                  </NuxtLink>
+                    <template #document>
+                      <NuxtLink
+                        to="/legal/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="underline"
+                      >
+                        {{ t('legal.policyAcceptance.documentNames.tos') }}
+                      </NuxtLink>
+                    </template>
+                  </i18n-t>
                   <span class="font-mono text-[11px] text-muted ml-1">
                     v{{ tosVersion }}
                   </span>
@@ -230,7 +239,7 @@ async function onSignOut(): Promise<void> {
             class="sm:!w-auto"
             @click="onSignOut"
           >
-            Sign out
+            {{ t('auth.logout') }}
           </UButton>
           <UButton
             color="neutral"
@@ -241,7 +250,7 @@ async function onSignOut(): Promise<void> {
             data-testid="onboarding-submit"
             @click="onSubmit"
           >
-            Continue to markoto
+            {{ t('legal.onboarding.continue') }}
           </UButton>
         </div>
       </div>

@@ -17,6 +17,7 @@ type Annotation = {
 }
 type Card = { kind: 'chapter' | 'narration', text: string } | null
 
+const { t } = useI18n()
 const props = defineProps<{
   /** Image URL — null when rendering a card body. */
   src: string | null
@@ -197,7 +198,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
         type="button"
         class="block w-full text-left relative bg-default cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-shu-500"
         :style="{ aspectRatio: `${viewport.w} / ${viewport.h}` }"
-        :aria-label="card ? card.text : 'Toggle slideshow playback'"
+        :aria-label="card ? card.text : t('docs.flow.toggle')"
         @click="$emit('click')"
       >
         <!-- Text card. Two variants:
@@ -219,7 +220,7 @@ function lineToRectEdge(x1: number, y1: number, x2: number, y2: number, a: Annot
               class="block w-[22px] h-px bg-current opacity-60"
               aria-hidden="true"
             />
-            <span>chapter</span>
+            <span>{{ t('docs.flow.chapter') }}</span>
           </div>
           <p
             v-if="card.kind === 'chapter'"

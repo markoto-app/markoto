@@ -2,7 +2,13 @@
   "app": {
     "name": "markoto",
     "tagline": "Editor de markdown colaborativo",
-    "offline": "Estás sin conexión — los cambios se guardan localmente hasta que te vuelvas a conectar."
+    "offline": "Estás sin conexión — los cambios se guardan localmente hasta que te vuelvas a conectar.",
+    "update": {
+      "title": "New version available",
+      "description": "Reloading in 30 seconds.",
+      "reloadNow": "Reload now",
+      "snooze": "Snooze 5 min"
+    }
   },
   "landing": {
     "hero": "{markdown}, bien maquetado.",
@@ -63,7 +69,16 @@
     "horizontalRule": "Regla horizontal",
     "pageBreak": "Salto de página",
     "table": "Tabla",
-    "hideFromPreview": "Hacer invisible (ocultar de la vista previa)"
+    "hideFromPreview": "Hacer invisible (ocultar de la vista previa)",
+    "footer": {
+      "words": "word | words",
+      "pages": "page | pages",
+      "chars": "char | chars",
+      "readOnly": "read only"
+    },
+    "previewReloadHint": "Reload the page to retry.",
+    "previewFailed": "Preview failed to load.",
+    "previewFrameTitle": "Document preview"
   },
   "previewZoom": {
     "menu": "Zoom",
@@ -237,7 +252,8 @@
       "noSources": "No se mostraron fuentes.",
       "imageInDoc": "La imagen generada se insertó en el documento.",
       "knowledgeNote": "Función de conocimiento del espacio de trabajo."
-    }
+    },
+    "viaAgent": "via {agent}"
   },
   "comments": {
     "title": "Comentarios",
@@ -272,7 +288,10 @@
     "aiMentionHint": "Consejo: incluye {'@'}markoto en un comentario para pedirle a markoto que actúe sobre él.",
     "aiResponding": "markoto está respondiendo…",
     "aiTriggerFailed": "No se pudo contactar con markoto para este hilo.",
-    "aiTriggerExhausted": "Cuota agotada — mejora tu plan para pedirle a markoto desde los comentarios."
+    "aiTriggerExhausted": "Cuota agotada — mejora tu plan para pedirle a markoto desde los comentarios.",
+    "hintPost": "post",
+    "hintCancel": "cancel",
+    "notificationFallbackTitle": "New reply"
   },
   "image": {
     "loginToUpload": "Inicia sesión para subir imágenes.",
@@ -484,7 +503,9 @@
     "loading": "Cargando...",
     "menu": "Menú",
     "docs": "Docs",
-    "documentation": "Documentación"
+    "documentation": "Documentación",
+    "homeLinkLabel": "markoto home",
+    "dragToClose": "Drag to close"
   },
   "menu": {
     "lightMode": "Modo claro",
@@ -553,7 +574,8 @@
       "github": "Ver en GitHub",
       "docs": "Documentación",
       "tour": "Hacer el recorrido"
-    }
+    },
+    "label": "Menu bar"
   },
   "ai": {
     "workingGeneric": "markoto está trabajando…",
@@ -645,6 +667,24 @@
       "comingSoon": "Llega con los planes de pago, que estarán disponibles pronto. Con tu propia clave de proveedor funciona ya.",
       "operator": "Esta instancia no la ofrece para tu cuenta. Puedes usar tu propia clave de proveedor.",
       "ownKey": "Añadir tu propia clave"
+    },
+    "voiceErrors": {
+      "transcription": "Transcription error.",
+      "dictationConnection": "Dictation connection error.",
+      "micDenied": "Microphone permission denied.",
+      "micNotFound": "No microphone found.",
+      "micAccess": "Could not access microphone.",
+      "streamUnavailable": "Microphone stream not available.",
+      "pipeline": "Could not start audio pipeline.",
+      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
+      "unsupportedVoice": "Voice input is not supported in this browser.",
+      "unsupportedRecording": "Audio recording is not supported in this browser.",
+      "recorderStart": "Could not start recorder.",
+      "recordingFailed": "Recording failed.",
+      "stopFailed": "Could not stop recording.",
+      "noAudio": "No audio was captured.",
+      "tooShort": "Recording was too short.",
+      "encodeFailed": "Could not encode audio."
     }
   },
   "mobileTabBar": {
@@ -978,7 +1018,8 @@
       "sectionMode": "{token} muestra",
       "sectionModeHelp": "Qué sección nombra una página en su encabezado o pie de página.",
       "sectionModeFirst": "El primer encabezado de sección de la página",
-      "sectionModeStart": "La sección en la que empieza la página"
+      "sectionModeStart": "La sección en la que empieza la página",
+      "imagePreview": "Header preview"
     },
     "code": {
       "theme": "Tema de color",
@@ -1125,7 +1166,8 @@
       "uploadLogo": "Subir logotipo",
       "replaceLogo": "Reemplazar logotipo",
       "clearLogo": "Eliminar",
-      "logoHeight": "Altura del logotipo (px)"
+      "logoHeight": "Altura del logotipo (px)",
+      "logoPreview": "Logo preview"
     },
     "toc": {
       "showTitle": "Mostrar el encabezado «Tabla de contenidos»",
@@ -1278,6 +1320,17 @@
         "value": "Este valor no se pudo leer de forma segura."
       },
       "docsLink": "Cómo escribir CSS propio"
+    },
+    "fontWeight": {
+      "thin": "Thin",
+      "extraLight": "Extra Light",
+      "light": "Light",
+      "regular": "Regular",
+      "medium": "Medium",
+      "semibold": "Semibold",
+      "bold": "Bold",
+      "extraBold": "Extra Bold",
+      "black": "Black"
     }
   },
   "table": {
@@ -1499,6 +1552,11 @@
         "subscriptionActive": "Este espacio todavía tiene una suscripción activa. Contacta con soporte para eliminarlo.",
         "seatsBusy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento."
       }
+    },
+    "dpa": {
+      "staleTitle": "Data Processing Addendum updated — please review again",
+      "heading": "One-time acceptance",
+      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
     }
   },
   "knowledge": {
@@ -1527,7 +1585,9 @@
     },
     "capFilesReachedFree": "Este espacio de trabajo ha alcanzado su límite de archivos ({limit}). Elimina un archivo para añadir otro.",
     "capBytesReachedFree": "Este espacio de trabajo ha alcanzado su límite de almacenamiento ({limit} MB). Elimina un archivo para liberar espacio.",
-    "capReachedShortFree": "Límite alcanzado"
+    "capReachedShortFree": "Límite alcanzado",
+    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
+    "uploadNetworkError": "Network error during upload."
   },
   "designImport": {
     "button": "Crear un diseño a partir de un documento",
@@ -1683,9 +1743,11 @@
           "downloadKnowledge": "Para los archivos de la base de conocimiento que quieras conservar, descárgalos fuera de markoto primero."
         },
         "timing": "La cascada real se ejecuta como una tarea en segundo plano una vez por hora. Una vez que termina la ventana de gracia, tus datos se purgan por completo en aproximadamente una hora.",
-        "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente — no hay forma de recuperarlos."
+        "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente — no hay forma de recuperarlos.",
+        "loading": "Reading your account…"
       },
-      "cancelledToast": "Eliminación cancelada. Tu cuenta sigue igual."
+      "cancelledToast": "Eliminación cancelada. Tu cuenta sigue igual.",
+      "scheduleFailed": "Could not schedule deletion"
     },
     "export": {
       "emailReadySubject": "Tu exportación de datos de markoto está lista",
@@ -1756,7 +1818,26 @@
       "viewAuthoritative": "Ver en inglés (autorizado)",
       "lastUpdated": "Última actualización: {date}",
       "version": "Versión {version}",
-      "missingLocale": "Aún no hemos traducido esta página a tu idioma. Mostrando la versión inglesa autorizada."
+      "missingLocale": "Aún no hemos traducido esta página a tu idioma. Mostrando la versión inglesa autorizada.",
+      "notFoundTitle": "Document not found",
+      "notFoundBody": "The legal document at {path} doesn't exist."
+    },
+    "onboarding": {
+      "title": "Welcome to markoto",
+      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
+      "documentsTitle": "Documents to accept",
+      "documentsIntro": "We've published these in plain language — open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
+      "acceptDocument": "I have read and accept the {document}",
+      "continue": "Continue to markoto",
+      "welcomeToast": "Welcome to markoto",
+      "staleTitle": "Document updated — please review again",
+      "failedTitle": "Could not record your acceptance"
+    },
+    "subProcessors": {
+      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
+      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "dpf": "DPF",
+      "transfer": "Transfer"
     }
   },
   "settings": {
@@ -1790,14 +1871,19 @@
         "exportHistoryHeading": "Exportaciones recientes",
         "exportHistoryEmpty": "No hay exportaciones anteriores.",
         "exportExpiresAt": "Disponible hasta el {date}",
-        "exportDownload": "Descargar"
+        "exportDownload": "Descargar",
+        "loadFailed": "Could not load exports",
+        "requestFailed": "Could not request export",
+        "exportRequested": "requested",
+        "exportAvailableUntil": "available until"
       },
       "delete": {
         "heading": "Eliminar tu cuenta",
         "description": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente — documentos, comentarios, membresías de espacios de trabajo, historial de facturación. Los espacios de trabajo donde eres el único miembro se eliminan en cascada; los espacios de trabajo con otros miembros reciben un nuevo administrador automáticamente.",
         "button": "Solicitar eliminación de la cuenta",
         "scheduled": "Programada para eliminación el {date}",
-        "cancel": "Cancelar eliminación"
+        "cancel": "Cancelar eliminación",
+        "cancelFailed": "Could not cancel deletion"
       },
       "legal": {
         "heading": "Legal",
@@ -1820,7 +1906,29 @@
       }
     },
     "integrations": {
-      "menu": "Integraciones (MCP)"
+      "menu": "Integraciones (MCP)",
+      "title": "Integrations",
+      "intro": "Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
+      "loadFailed": "Could not load tokens",
+      "issueFailed": "Could not issue token",
+      "tokenCopied": "Token copied to clipboard",
+      "copyFailed": "Could not copy — select and copy manually",
+      "revoked": "Token revoked",
+      "revokeFailed": "Could not revoke token",
+      "snippetCopied": "Config snippet copied",
+      "createdTitle": "Token created — copy it now",
+      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
+      "copy": "Copy",
+      "generateTitle": "Generate token",
+      "namePlaceholder": "e.g. Claude Desktop on laptop",
+      "generate": "Generate",
+      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
+      "activeTitle": "Active tokens",
+      "empty": "No tokens yet.",
+      "createdLastUsed": "created {created} · last used {lastUsed}",
+      "revoke": "Revoke",
+      "connectTitle": "Connect Claude Desktop",
+      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
     }
   },
   "billing": {
@@ -1831,6 +1939,10 @@
       "consentTopup": "Acepto las {terms} y pido los créditos de inmediato. Mi derecho de desistimiento termina en cuanto los uso.",
       "link": "Condiciones de los planes de pago",
       "required": "Acepte las Condiciones de los planes de pago para continuar."
+    },
+    "planUpdated": {
+      "title": "Plan updated",
+      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
     }
   },
   "plan": {
@@ -2247,12 +2359,17 @@
   "home": {
     "title": "Inicio",
     "greeting": "Hola de nuevo, {name}",
-    "description": "Tus espacios de trabajo y documentos."
+    "description": "Tus espacios de trabajo y documentos.",
+    "access": {
+      "private": "Private",
+      "protected": "Protected"
+    }
   },
   "docRow": {
     "actions": "Acciones del documento",
     "open": "Abrir",
-    "openNewTab": "Abrir en una pestaña nueva"
+    "openNewTab": "Abrir en una pestaña nueva",
+    "words": "{n} word | {n} words"
   },
   "credits": {
     "title": "Créditos de IA",
@@ -2568,5 +2685,44 @@
   },
   "instanceBrand": {
     "support": "Ayuda y soporte"
+  },
+  "docs": {
+    "searchLabel": "Search the docs...",
+    "openMenu": "Open documentation menu",
+    "flow": {
+      "loadFailed": "Flow {id} failed to load: {message}",
+      "first": "Jump to first slide",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "last": "Jump to last slide",
+      "play": "Play autoplay",
+      "pause": "Pause autoplay",
+      "tryNext": "try next",
+      "chapter": "chapter",
+      "toggle": "Toggle slideshow playback"
+    },
+    "sections": {
+      "gettingStarted": "Your first ten minutes — create a doc, name it, share it.",
+      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
+      "sharing": "Access modes, password protection, anonymous links, workspaces.",
+      "themes": "Per-document themes that drive both live preview and PDF export.",
+      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+    },
+    "landing": {
+      "eyebrow": "field guide · vol. 01",
+      "title": "Everything you can do in {product}.",
+      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
+      "begin": "begin walkthrough",
+      "search": "search",
+      "startHere": "Start here",
+      "startHereHint": "Most-load-bearing flows",
+      "browse": "Browse by topic"
+    },
+    "pagination": {
+      "label": "Documentation pagination",
+      "previous": "previous",
+      "next": "next"
+    },
+    "onThisPage": "On this page"
   }
 }

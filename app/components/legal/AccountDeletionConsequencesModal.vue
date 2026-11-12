@@ -78,7 +78,7 @@ async function onConfirm(): Promise<void> {
   } catch (e) {
     if (handleReauthRequired(e)) return
     toast.add({
-      title: 'Could not schedule deletion',
+      title: t('legal.delete.scheduleFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -132,7 +132,7 @@ async function onConfirm(): Promise<void> {
             name="i-lucide-loader-2"
             class="size-5 animate-spin mb-2 mx-auto"
           />
-          Reading your account…
+          {{ t('legal.delete.consequences.loading') }}
         </div>
         <div
           v-else-if="previewError"

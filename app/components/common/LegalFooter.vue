@@ -117,7 +117,7 @@ const columns = computed<FooterColumn[]>(() => {
           <template #left>
             <NuxtLink
               to="/"
-              aria-label="markoto home"
+              :aria-label="t('common.homeLinkLabel')"
               class="inline-flex w-fit items-center gap-2.5"
             >
               <CommonWordmark :size="18" />

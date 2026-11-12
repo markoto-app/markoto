@@ -85,7 +85,7 @@ watch(open, (v) => {
 function fmtDate(iso: string): string {
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+  return date.toLocaleDateString(locale.value, { month: 'short', day: 'numeric' })
 }
 
 async function revokeInvite(invite: PendingInvite) {

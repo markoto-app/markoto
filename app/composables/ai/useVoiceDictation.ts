@@ -57,7 +57,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
   // `useI18n()` must run synchronously during setup (it throws inside an
   // async click handler); `locale.value` is read lazily so language changes
   // are still picked up.
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const { extractError } = useErrorHandler()
 
   const state = ref<VoiceDictationState>('idle')
@@ -115,7 +115,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
             break
           case 'budget-exhausted':
             options.onBudgetExhausted?.(msg.remaining)
-            fail('Daily dictation budget reached.')
+            fail(t('ai.dictateBudgetExhaustedTitle'))
             break
           case 'session-cap':
             options.onSessionCap?.()
@@ -126,7 +126,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
             stop()
             break
           case 'error':
-            fail('Transcription error.')
+            fail(t('ai.voiceErrors.transcription'))
             break
         }
       } catch { /* ignore malformed frames */ }
@@ -138,7 +138,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       }
     },
     onError() {
-      fail('Dictation connection error.')
+      fail(t('ai.voiceErrors.dictationConnection'))
     }
   })
 
@@ -154,13 +154,13 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       stream = await media.start()
     } catch (e) {
       const name = (e as { name?: string })?.name
-      if (name === 'NotAllowedError') fail('Microphone permission denied.')
-      else if (name === 'NotFoundError') fail('No microphone found.')
-      else fail(e instanceof Error ? e.message : 'Could not access microphone.')
+      if (name === 'NotAllowedError') fail(t('ai.voiceErrors.micDenied'))
+      else if (name === 'NotFoundError') fail(t('ai.voiceErrors.micNotFound'))
+      else fail(t('ai.voiceErrors.micAccess'))
       return
     }
     if (!stream) {
-      fail('Could not access microphone.')
+      fail(t('ai.voiceErrors.micAccess'))
       return
     }
 
@@ -191,7 +191,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
     // 16 kHz; the worklet does not resample.
     const stream = media.stream.value
     if (!stream) {
-      fail('Microphone stream not available.')
+      fail(t('ai.voiceErrors.streamUnavailable'))
       return
     }
 
@@ -200,7 +200,7 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       if (audioCtx.sampleRate !== 16000) {
         // iOS Safari sometimes ignores the sampleRate hint. Fail rather
         // than send the wrong rate (a resampler would be the fix).
-        fail(`Browser forced ${audioCtx.sampleRate}Hz; dictation requires 16000Hz.`)
+        fail(t('ai.voiceErrors.sampleRate', { rate: audioCtx.sampleRate }))
         return
       }
       await audioCtx.audioWorklet.addModule('/worklets/pcm-recorder.js')
@@ -217,8 +217,8 @@ export function useVoiceDictation(options: UseVoiceDictationOptions) {
       // Firefox pump the graph as long as a MediaStreamSource feeds it.
       state.value = 'recording'
       vibrate(50)
-    } catch (e) {
-      fail(e instanceof Error ? e.message : 'Could not start audio pipeline.')
+    } catch {
+      fail(t('ai.voiceErrors.pipeline'))
     }
   }
 

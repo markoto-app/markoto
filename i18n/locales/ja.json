@@ -2,7 +2,13 @@
   "app": {
     "name": "markoto",
     "tagline": "共同編集できるMarkdownエディター",
-    "offline": "オフラインです — 再接続するまで編集内容はローカルに保存されます。"
+    "offline": "オフラインです — 再接続するまで編集内容はローカルに保存されます。",
+    "update": {
+      "title": "New version available",
+      "description": "Reloading in 30 seconds.",
+      "reloadNow": "Reload now",
+      "snooze": "Snooze 5 min"
+    }
   },
   "landing": {
     "hero": "{markdown}を、美しく組版。",
@@ -63,7 +69,16 @@
     "horizontalRule": "水平線",
     "pageBreak": "改ページ",
     "table": "表",
-    "hideFromPreview": "非表示にする（プレビューから隠す）"
+    "hideFromPreview": "非表示にする（プレビューから隠す）",
+    "footer": {
+      "words": "word | words",
+      "pages": "page | pages",
+      "chars": "char | chars",
+      "readOnly": "read only"
+    },
+    "previewReloadHint": "Reload the page to retry.",
+    "previewFailed": "Preview failed to load.",
+    "previewFrameTitle": "Document preview"
   },
   "previewZoom": {
     "menu": "ズーム",
@@ -237,7 +252,8 @@
       "noSources": "ソースは見つかりませんでした。",
       "imageInDoc": "生成された画像はドキュメントに挿入されました。",
       "knowledgeNote": "ワークスペースナレッジ機能。"
-    }
+    },
+    "viaAgent": "via {agent}"
   },
   "comments": {
     "title": "コメント",
@@ -272,7 +288,10 @@
     "aiMentionHint": "ヒント：コメントに{'@'}markotoを含めると、markotoに対応を依頼できます。",
     "aiResponding": "markotoが応答しています…",
     "aiTriggerFailed": "このスレッドでmarkotoに接続できませんでした。",
-    "aiTriggerExhausted": "クレジットを使い切りました — プランをアップグレードすると、コメントからmarkotoに依頼できます。"
+    "aiTriggerExhausted": "クレジットを使い切りました — プランをアップグレードすると、コメントからmarkotoに依頼できます。",
+    "hintPost": "post",
+    "hintCancel": "cancel",
+    "notificationFallbackTitle": "New reply"
   },
   "image": {
     "loginToUpload": "画像をアップロードするにはログインしてください。",
@@ -484,7 +503,9 @@
     "loading": "読み込み中...",
     "menu": "メニュー",
     "docs": "ドキュメント",
-    "documentation": "ドキュメンテーション"
+    "documentation": "ドキュメンテーション",
+    "homeLinkLabel": "markoto home",
+    "dragToClose": "Drag to close"
   },
   "menu": {
     "lightMode": "ライトモード",
@@ -553,7 +574,8 @@
       "github": "GitHubで見る",
       "docs": "ドキュメンテーション",
       "tour": "ツアーを見る"
-    }
+    },
+    "label": "Menu bar"
   },
   "ai": {
     "workingGeneric": "markoto が作業中…",
@@ -645,6 +667,24 @@
       "comingSoon": "まもなく提供される有料プランに含まれます。ご自身のプロバイダーキーなら今すぐ使えます。",
       "operator": "このインスタンスではあなたのアカウントで提供されていません。ご自身のプロバイダーキーを使えます。",
       "ownKey": "自分のキーを追加"
+    },
+    "voiceErrors": {
+      "transcription": "Transcription error.",
+      "dictationConnection": "Dictation connection error.",
+      "micDenied": "Microphone permission denied.",
+      "micNotFound": "No microphone found.",
+      "micAccess": "Could not access microphone.",
+      "streamUnavailable": "Microphone stream not available.",
+      "pipeline": "Could not start audio pipeline.",
+      "sampleRate": "Your browser forced {rate} Hz audio; dictation needs 16000 Hz.",
+      "unsupportedVoice": "Voice input is not supported in this browser.",
+      "unsupportedRecording": "Audio recording is not supported in this browser.",
+      "recorderStart": "Could not start recorder.",
+      "recordingFailed": "Recording failed.",
+      "stopFailed": "Could not stop recording.",
+      "noAudio": "No audio was captured.",
+      "tooShort": "Recording was too short.",
+      "encodeFailed": "Could not encode audio."
     }
   },
   "mobileTabBar": {
@@ -978,7 +1018,8 @@
       "sectionMode": "{token} の表示",
       "sectionModeHelp": "ヘッダーやフッターにどの節を表示するかを選びます。",
       "sectionModeFirst": "ページ内の最初の節見出し",
-      "sectionModeStart": "ページが始まる節"
+      "sectionModeStart": "ページが始まる節",
+      "imagePreview": "Header preview"
     },
     "code": {
       "theme": "カラーテーマ",
@@ -1125,7 +1166,8 @@
       "uploadLogo": "ロゴをアップロード",
       "replaceLogo": "ロゴを置き換える",
       "clearLogo": "削除",
-      "logoHeight": "ロゴの高さ（px）"
+      "logoHeight": "ロゴの高さ（px）",
+      "logoPreview": "Logo preview"
     },
     "toc": {
       "showTitle": "「目次」の見出しを表示",
@@ -1278,6 +1320,17 @@
         "value": "この値を安全に読み取れませんでした。"
       },
       "docsLink": "カスタム CSS の書き方"
+    },
+    "fontWeight": {
+      "thin": "Thin",
+      "extraLight": "Extra Light",
+      "light": "Light",
+      "regular": "Regular",
+      "medium": "Medium",
+      "semibold": "Semibold",
+      "bold": "Bold",
+      "extraBold": "Extra Bold",
+      "black": "Black"
     }
   },
   "table": {
@@ -1499,6 +1552,11 @@
         "subscriptionActive": "このワークスペースには有効なサブスクリプションが残っています。削除するにはサポートにお問い合わせください。",
         "seatsBusy": "別の席数変更または招待が処理中です。しばらくしてからもう一度お試しください。"
       }
+    },
+    "dpa": {
+      "staleTitle": "Data Processing Addendum updated — please review again",
+      "heading": "One-time acceptance",
+      "body": "By creating a workspace you become a controller for personal data your members place inside it, and LatentSpace Labs GmbH becomes your processor. Our Data Processing Addendum is the contract that governs that."
     }
   },
   "knowledge": {
@@ -1527,7 +1585,9 @@
     },
     "capFilesReachedFree": "このワークスペースはファイル数の上限（{limit}）に達しました。追加するにはファイルを削除してください。",
     "capBytesReachedFree": "このワークスペースはストレージの上限（{limit} MB）に達しました。空き容量を作るにはファイルを削除してください。",
-    "capReachedShortFree": "上限に達しました"
+    "capReachedShortFree": "上限に達しました",
+    "uploadStorageFailed": "The file could not be uploaded to storage (status {status}).",
+    "uploadNetworkError": "Network error during upload."
   },
   "designImport": {
     "button": "文書からデザインを作成",
@@ -1683,9 +1743,11 @@
           "downloadKnowledge": "残したいナレッジベースのファイルは、先にmarkotoの外にダウンロードしてください。"
         },
         "timing": "実際の連鎖削除は、1時間に1回のバックグラウンドジョブとして実行されます。猶予期間の終了後、あなたのデータは約1時間以内に完全に消去されます。",
-        "noRecovery": "連鎖削除が実行されると、アカウントと内容は完全に失われます — 復元する方法はありません。"
+        "noRecovery": "連鎖削除が実行されると、アカウントと内容は完全に失われます — 復元する方法はありません。",
+        "loading": "Reading your account…"
       },
-      "cancelledToast": "削除を取り消しました。アカウントはそのまま残ります。"
+      "cancelledToast": "削除を取り消しました。アカウントはそのまま残ります。",
+      "scheduleFailed": "Could not schedule deletion"
     },
     "export": {
       "emailReadySubject": "markotoのデータエクスポートの準備ができました",
@@ -1756,7 +1818,26 @@
       "viewAuthoritative": "英語版（正文）を見る",
       "lastUpdated": "最終更新：{date}",
       "version": "バージョン{version}",
-      "missingLocale": "このページはまだあなたの言語に翻訳されていません。正文である英語版を表示しています。"
+      "missingLocale": "このページはまだあなたの言語に翻訳されていません。正文である英語版を表示しています。",
+      "notFoundTitle": "Document not found",
+      "notFoundBody": "The legal document at {path} doesn't exist."
+    },
+    "onboarding": {
+      "title": "Welcome to markoto",
+      "intro": "Before you start writing, we need a quick acknowledgement on the items below. You only see this once, or after we materially update one of the documents.",
+      "documentsTitle": "Documents to accept",
+      "documentsIntro": "We've published these in plain language — open each in a new tab to read in full. Your acceptance is recorded with the version you read so we can prove what you saw.",
+      "acceptDocument": "I have read and accept the {document}",
+      "continue": "Continue to markoto",
+      "welcomeToast": "Welcome to markoto",
+      "staleTitle": "Document updated — please review again",
+      "failedTitle": "Could not record your acceptance"
+    },
+    "subProcessors": {
+      "intro": "The third parties markoto engages to process personal data on our behalf, with the location, transfer mechanism, and public links for each. Required disclosure under GDPR Article 13(1)(e). We notify workspace-owner customers at least 30 days in advance of any new sub-processor.",
+      "dpfCertified": "EU-US Data Privacy Framework certified",
+      "dpf": "DPF",
+      "transfer": "Transfer"
     }
   },
   "settings": {
@@ -1790,14 +1871,19 @@
         "exportHistoryHeading": "最近のエクスポート",
         "exportHistoryEmpty": "過去のエクスポートはありません。",
         "exportExpiresAt": "{date}まで利用可能",
-        "exportDownload": "ダウンロード"
+        "exportDownload": "ダウンロード",
+        "loadFailed": "Could not load exports",
+        "requestFailed": "Could not request export",
+        "exportRequested": "requested",
+        "exportAvailableUntil": "available until"
       },
       "delete": {
         "heading": "アカウントを削除",
         "description": "お考えが変わった場合に備えて、データは30日間保持します。その後、すべてが完全に削除されます — ドキュメント、コメント、ワークスペースのメンバーシップ、請求履歴。あなたが唯一のメンバーであるワークスペースは連鎖削除され、共同メンバーがいるワークスペースには自動的に新しい管理者が割り当てられます。",
         "button": "アカウントの削除を申請",
         "scheduled": "{date}に削除予定",
-        "cancel": "削除をキャンセル"
+        "cancel": "削除をキャンセル",
+        "cancelFailed": "Could not cancel deletion"
       },
       "legal": {
         "heading": "法的事項",
@@ -1820,7 +1906,29 @@
       }
     },
     "integrations": {
-      "menu": "連携 (MCP)"
+      "menu": "連携 (MCP)",
+      "title": "Integrations",
+      "intro": "Personal access tokens for external MCP clients — Claude Desktop, Cursor, ChatGPT app store, or your own scripts.",
+      "loadFailed": "Could not load tokens",
+      "issueFailed": "Could not issue token",
+      "tokenCopied": "Token copied to clipboard",
+      "copyFailed": "Could not copy — select and copy manually",
+      "revoked": "Token revoked",
+      "revokeFailed": "Could not revoke token",
+      "snippetCopied": "Config snippet copied",
+      "createdTitle": "Token created — copy it now",
+      "createdBody": "For security, this token is shown exactly once. We can't recover it for you. If you lose it, revoke and create a new one.",
+      "copy": "Copy",
+      "generateTitle": "Generate token",
+      "namePlaceholder": "e.g. Claude Desktop on laptop",
+      "generate": "Generate",
+      "scopesNote": "Tokens grant the same access as your account, scoped to read, write, knowledge, and web fetch.",
+      "activeTitle": "Active tokens",
+      "empty": "No tokens yet.",
+      "createdLastUsed": "created {created} · last used {lastUsed}",
+      "revoke": "Revoke",
+      "connectTitle": "Connect Claude Desktop",
+      "connectBody": "Add this block to your {file} (Settings → Developer → Edit Config)."
     }
   },
   "billing": {
@@ -1831,6 +1939,10 @@
       "consentTopup": "{terms}に同意し、クレジットをすぐに受け取ります。使用を始めた時点で撤回権は終了します。",
       "link": "有料プラン規約",
       "required": "続けるには有料プラン規約に同意してください。"
+    },
+    "planUpdated": {
+      "title": "Plan updated",
+      "description": "You are now on the {plan} plan. Your new AI budget is available immediately."
     }
   },
   "plan": {
@@ -2247,12 +2359,17 @@
   "home": {
     "title": "ホーム",
     "greeting": "おかえりなさい、{name}さん",
-    "description": "ワークスペースとドキュメント"
+    "description": "ワークスペースとドキュメント",
+    "access": {
+      "private": "Private",
+      "protected": "Protected"
+    }
   },
   "docRow": {
     "actions": "ドキュメントの操作",
     "open": "開く",
-    "openNewTab": "新しいタブで開く"
+    "openNewTab": "新しいタブで開く",
+    "words": "{n} word | {n} words"
   },
   "credits": {
     "title": "AI クレジット",
@@ -2568,5 +2685,44 @@
   },
   "instanceBrand": {
     "support": "ヘルプとサポート"
+  },
+  "docs": {
+    "searchLabel": "Search the docs...",
+    "openMenu": "Open documentation menu",
+    "flow": {
+      "loadFailed": "Flow {id} failed to load: {message}",
+      "first": "Jump to first slide",
+      "previous": "Previous slide",
+      "next": "Next slide",
+      "last": "Jump to last slide",
+      "play": "Play autoplay",
+      "pause": "Pause autoplay",
+      "tryNext": "try next",
+      "chapter": "chapter",
+      "toggle": "Toggle slideshow playback"
+    },
+    "sections": {
+      "gettingStarted": "Your first ten minutes — create a doc, name it, share it.",
+      "writing": "Markdown extensions, formatting, alerts, math, diagrams, tables.",
+      "sharing": "Access modes, password protection, anonymous links, workspaces.",
+      "themes": "Per-document themes that drive both live preview and PDF export.",
+      "importExport": "Bring DOCX/PDF/PPTX in; export to clean Markdown or themed PDF."
+    },
+    "landing": {
+      "eyebrow": "field guide · vol. 01",
+      "title": "Everything you can do in {product}.",
+      "lede": "A collaborative markdown editor with optional accounts. Write anonymously, share by URL, theme it, export to PDF. Every screenshot in here is captured live from the running app.",
+      "begin": "begin walkthrough",
+      "search": "search",
+      "startHere": "Start here",
+      "startHereHint": "Most-load-bearing flows",
+      "browse": "Browse by topic"
+    },
+    "pagination": {
+      "label": "Documentation pagination",
+      "previous": "previous",
+      "next": "next"
+    },
+    "onThisPage": "On this page"
   }
 }

@@ -206,9 +206,9 @@ function putWithProgress(url: string, file: File, contentType: string, onProgres
     })
     xhr.onload = () => {
       if (xhr.status >= 200 && xhr.status < 300) resolve()
-      else reject(new Error(`S3 PUT failed: ${xhr.status} ${xhr.statusText}`))
+      else reject(new Error(t('knowledge.uploadStorageFailed', { status: xhr.status })))
     }
-    xhr.onerror = () => reject(new Error('Network error during upload'))
+    xhr.onerror = () => reject(new Error(t('knowledge.uploadNetworkError')))
     xhr.send(file)
   })
 }

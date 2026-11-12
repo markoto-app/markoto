@@ -480,12 +480,12 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
                 variant="subtle"
               >
                 {{
-                  doc.accessMode === 'private' ? 'Private'
-                  : doc.accessMode === 'open-view' ? 'View only'
-                    : 'Protected'
+                  doc.accessMode === 'private' ? t('home.access.private')
+                  : doc.accessMode === 'open-view' ? t('share.viewOnly')
+                    : t('home.access.protected')
                 }}
               </UBadge>
-              <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+              <span class="hidden sm:inline text-xs text-muted">{{ t('docRow.words', { n: doc.wordCount || 0 }) }}</span>
               <DocumentDocRowMenu
                 :doc-id="doc.docId"
                 :can-edit="!!doc.isOwner"

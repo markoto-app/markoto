@@ -29,7 +29,7 @@ const open = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{ saved: [name: string] }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { showError } = useErrorHandler()
 
 const name = ref('')
@@ -85,7 +85,7 @@ async function submit() {
   }
 }
 
-const numberFormat = new Intl.NumberFormat()
+const numberFormat = computed(() => new Intl.NumberFormat(locale.value))
 </script>
 
 <template>

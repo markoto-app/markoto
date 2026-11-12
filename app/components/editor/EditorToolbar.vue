@@ -109,8 +109,8 @@ const actions = computed(() => [
   // `toggleHeading` replaces an existing prefix (H1 on `## Foo` gives `# Foo`;
   // H1 again gives `Foo`).
   { icon: 'i-lucide-heading-1', label: t('editor.heading'), action: withView(v => toggleHeading(v, 1)) },
-  { icon: 'i-lucide-heading-2', label: 'Heading 2', action: withView(v => toggleHeading(v, 2)) },
-  { icon: 'i-lucide-heading-3', label: 'Heading 3', action: withView(v => toggleHeading(v, 3)) },
+  { icon: 'i-lucide-heading-2', label: t('editorCommands.heading2'), action: withView(v => toggleHeading(v, 2)) },
+  { icon: 'i-lucide-heading-3', label: t('editorCommands.heading3'), action: withView(v => toggleHeading(v, 3)) },
   { divider: true },
   { icon: 'i-lucide-code', label: t('editor.code'), action: withView(v => toggleCode(v)) },
   { icon: 'i-lucide-quote', label: t('editor.quote'), action: withView(v => toggleLinePrefix(v, '> ')) },

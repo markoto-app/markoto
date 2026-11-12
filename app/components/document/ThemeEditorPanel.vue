@@ -386,17 +386,20 @@ const footerRuleModel = computed({
   get: () => runningRule(draft.value.footer),
   set: (v: boolean) => { draft.value.footer.rule = v }
 })
-const FONT_WEIGHT_ITEMS = [
-  { label: 'Thin (100)', value: 100 },
-  { label: 'Extra Light (200)', value: 200 },
-  { label: 'Light (300)', value: 300 },
-  { label: 'Regular (400)', value: 400 },
-  { label: 'Medium (500)', value: 500 },
-  { label: 'Semibold (600)', value: 600 },
-  { label: 'Bold (700)', value: 700 },
-  { label: 'Extra Bold (800)', value: 800 },
-  { label: 'Black (900)', value: 900 }
-]
+// Weight names are words ("Light"), the number is the CSS value.
+const WEIGHT_KEYS = {
+  100: 'theme.fontWeight.thin',
+  200: 'theme.fontWeight.extraLight',
+  300: 'theme.fontWeight.light',
+  400: 'theme.fontWeight.regular',
+  500: 'theme.fontWeight.medium',
+  600: 'theme.fontWeight.semibold',
+  700: 'theme.fontWeight.bold',
+  800: 'theme.fontWeight.extraBold',
+  900: 'theme.fontWeight.black'
+} as const
+const weightLabel = (weight: keyof typeof WEIGHT_KEYS): string => `${t(WEIGHT_KEYS[weight])} (${weight})`
+const FONT_WEIGHT_ITEMS = computed(() => ([100, 200, 300, 400, 500, 600, 700, 800, 900] as const).map((value): { label: string, value: number } => ({ label: weightLabel(value), value })))
 /** 0 = "same as the headings" (the field is then absent). */
 const coverTitleWeightModel = computed({
   get: () => draft.value.cover.titleWeight ?? 0,
@@ -407,7 +410,7 @@ const coverTitleWeightModel = computed({
 })
 const coverTitleWeightItems = computed(() => [
   { label: t('theme.cover.titleWeightInherit', { weight: draft.value.headings.weight }), value: 0 },
-  ...FONT_WEIGHT_ITEMS
+  ...FONT_WEIGHT_ITEMS.value
 ])
 
 // Per-level heading look (headings.levels.h1–h4). Each control shows the
@@ -584,14 +587,7 @@ const headingScaleItems = computed(() => {
     value
   }))
 })
-const headingWeightItems = [
-  { label: 'Regular (400)', value: 400 },
-  { label: 'Medium (500)', value: 500 },
-  { label: 'Semibold (600)', value: 600 },
-  { label: 'Bold (700)', value: 700 },
-  { label: 'Extra Bold (800)', value: 800 },
-  { label: 'Black (900)', value: 900 }
-]
+const headingWeightItems = computed(() => ([400, 500, 600, 700, 800, 900] as const).map((value): { label: string, value: number } => ({ label: weightLabel(value), value })))
 const codeThemeItems = computed(() => [
   { label: 'GitHub Light', value: 'github-light' as CodeTheme },
   { label: 'GitHub Dark', value: 'github-dark' as CodeTheme },
@@ -1281,7 +1277,7 @@ function deleteSaved(saved: SavedTheme) {
                     >
                       <img
                         :src="imagePreviewSrc(draft.brand.logoUrl)"
-                        alt="Logo preview"
+                        :alt="t('theme.brand.logoPreview')"
                         class="border border-default rounded bg-default"
                         :style="{ height: `${draft.brand.logoHeight}px`, maxWidth: '120px', objectFit: 'contain' }"
                       >
@@ -2013,7 +2009,7 @@ function deleteSaved(saved: SavedTheme) {
                   >
                     <img
                       :src="imagePreviewSrc(draft.header.imageUrl)"
-                      alt="Header preview"
+                      :alt="t('theme.runningSlots.imagePreview')"
                       class="border border-default rounded bg-default"
                       :style="{ height: `${draft.header.imageHeight * 1.5}px`, maxWidth: '120px', objectFit: 'contain' }"
                     >

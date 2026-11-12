@@ -14,7 +14,7 @@ import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 type ExportJob = ApiResponse<'/api/user/exports', 'get'>[number]
 
 const router = useRouter()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 // The spending section is a billing surface — hidden entirely when
 // billing is off (self-hosted / free-only SaaS).
 const { billingEnabled } = useBillingMode()
@@ -68,7 +68,7 @@ async function refreshExports(): Promise<void> {
     exports.value = await apiFetch('/api/user/exports')
   } catch (e) {
     toast.add({
-      title: 'Could not load exports',
+      title: t('settings.profile.data.loadFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -126,7 +126,7 @@ async function onRequestExport(): Promise<void> {
   } catch (e) {
     if (handleReauthRequired(e)) return
     toast.add({
-      title: 'Could not request export',
+      title: t('settings.profile.data.requestFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -172,7 +172,7 @@ const fmtBytes = formatBytes
 function fmtDate(iso: string | null): string {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleString(undefined, {
+    return new Date(iso).toLocaleString(locale.value, {
       year: 'numeric', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     })
@@ -184,7 +184,7 @@ function fmtDate(iso: string | null): string {
 function fmtDateOnly(iso: string | null): string {
   if (!iso) return ''
   try {
-    return new Date(iso).toLocaleDateString(undefined, {
+    return new Date(iso).toLocaleDateString(locale.value, {
       year: 'numeric', month: 'long', day: 'numeric'
     })
   } catch {
@@ -215,7 +215,7 @@ async function onCancelDeletion(): Promise<void> {
     })
   } catch (e) {
     toast.add({
-      title: 'Could not cancel deletion',
+      title: t('settings.profile.delete.cancelFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'
@@ -410,7 +410,7 @@ const policies = computed(() => {
         <div class="border border-default rounded-lg px-4 py-4 space-y-4">
           <div class="flex items-center justify-between gap-3 flex-wrap">
             <p class="text-sm">
-              {{ t('settings.profile.spending.plan', { plan: billing?.plan === 'pro' ? 'Pro' : 'Free' }) }}
+              {{ t('settings.profile.spending.plan', { plan: billing?.plan === 'pro' ? 'Pro' : t('pricing.price.free') }) }}
             </p>
             <div class="flex gap-2">
               <UButton
@@ -521,7 +521,7 @@ const policies = computed(() => {
               name="i-lucide-loader-2"
               class="size-4 animate-spin inline mr-2"
             />
-            Loading…
+            {{ t('common.loading') }}
           </div>
           <div
             v-else-if="exports.length === 0"
@@ -566,11 +566,11 @@ const policies = computed(() => {
                 </div>
                 <div class="flex flex-col sm:flex-row sm:gap-3 text-muted font-mono">
                   <span>
-                    <span class="uppercase tracking-wider">requested</span>
+                    <span class="uppercase tracking-wider">{{ t('settings.profile.data.exportRequested') }}</span>
                     {{ fmtDate(job.createdAt) }}
                   </span>
                   <span v-if="job.expiresAt && job.status === 'ready'">
-                    <span class="uppercase tracking-wider">available until</span>
+                    <span class="uppercase tracking-wider">{{ t('settings.profile.data.exportAvailableUntil') }}</span>
                     {{ fmtDate(job.expiresAt) }}
                   </span>
                 </div>

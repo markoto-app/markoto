@@ -105,7 +105,7 @@ function setMenuOpen(doc: WorkspaceDoc, open: boolean) {
               : t('share.passwordProtected')
           }}
         </UBadge>
-        <span class="hidden sm:inline text-xs text-muted">{{ doc.wordCount || 0 }} words</span>
+        <span class="hidden sm:inline text-xs text-muted">{{ t('docRow.words', { n: doc.wordCount || 0 }) }}</span>
         <DocumentDocRowMenu
           :doc-id="doc.docId"
           :can-edit="permsFor(doc).canEdit"

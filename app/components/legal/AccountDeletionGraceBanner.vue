@@ -5,7 +5,7 @@
 // the AI seal. The /settings/profile page shows the same state with more
 // context.
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const { status, refresh } = useAccountStatus()
 const toast = useToast()
 const { extractError } = useErrorHandler()
@@ -18,7 +18,7 @@ const formattedDate = computed(() => {
   const grace = status.value?.deletion?.graceUntil
   if (!grace) return ''
   try {
-    return new Date(grace).toLocaleString(undefined, {
+    return new Date(grace).toLocaleString(locale.value, {
       year: 'numeric', month: 'long', day: 'numeric',
       hour: '2-digit', minute: '2-digit'
     })
@@ -35,7 +35,7 @@ const formattedDateCompact = computed(() => {
   const grace = status.value?.deletion?.graceUntil
   if (!grace) return ''
   try {
-    return new Date(grace).toLocaleDateString(undefined, {
+    return new Date(grace).toLocaleDateString(locale.value, {
       month: 'short', day: 'numeric'
     })
   } catch {
@@ -57,7 +57,7 @@ async function onCancel(): Promise<void> {
     })
   } catch (e) {
     toast.add({
-      title: 'Could not cancel deletion',
+      title: t('settings.profile.delete.cancelFailed'),
       description: extractError(e).message,
       icon: 'i-lucide-alert-circle',
       color: 'error'

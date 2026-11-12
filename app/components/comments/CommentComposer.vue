@@ -334,13 +334,13 @@ const submitDisabled = computed(() => body.value.trim().length === 0)
     <div class="mt-1.5 flex items-center justify-between gap-2 flex-wrap">
       <span class="inline-flex items-center gap-1.5 font-mono text-[10px] tracking-[0.04em] text-muted lowercase whitespace-nowrap">
         <kbd class="font-mono text-[10px] tracking-normal px-1.5 py-px rounded border border-default/70 bg-default text-default normal-case">{{ cmdLabel }}↵</kbd>
-        <span>post</span>
+        <span>{{ t('comments.hintPost') }}</span>
         <span
           class="opacity-50"
           aria-hidden="true"
         >·</span>
         <kbd class="font-mono text-[10px] tracking-normal px-1.5 py-px rounded border border-default/70 bg-default text-default normal-case">esc</kbd>
-        <span>cancel</span>
+        <span>{{ t('comments.hintCancel') }}</span>
       </span>
       <div class="flex gap-1">
         <UButton

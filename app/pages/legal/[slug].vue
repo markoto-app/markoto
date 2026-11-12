@@ -108,16 +108,16 @@ function fmtDate(iso: string): string {
           name="i-lucide-loader-2"
           class="size-5 animate-spin mb-3 mx-auto"
         />
-        Loading…
+        {{ t('common.loading') }}
       </div>
       <div
         v-else-if="error || !data"
         class="text-sm text-rose-700 dark:text-rose-300 py-12 text-center"
       >
         <p class="font-serif text-2xl mb-2">
-          Document not found
+          {{ t('legal.documentPage.notFoundTitle') }}
         </p>
-        <p>The legal document at /legal/{{ slug }} doesn't exist.</p>
+        <p>{{ t('legal.documentPage.notFoundBody', { path: `/legal/${slug}` }) }}</p>
       </div>
 
       <article
