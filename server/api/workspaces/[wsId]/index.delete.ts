@@ -10,11 +10,11 @@ import { proveWorkspaceDoc } from '../../../utils/access/docProof'
 
 // Cascade delete: wipe every doc in this workspace (S3 + Y.js + activity
 // etc via `deleteDocument`), then drop the workspace row itself. Deletes
-// every doc regardless of which member created it — a workspace delete is
+// every doc regardless of which member created it, a workspace delete is
 // a destructive admin action, not a scoped cleanup.
 //
 // Per-doc cascade rather than a single SQL cascade because each doc needs
-// S3 cleanup and a sync-server notify — the Postgres layer can't do either.
+// S3 cleanup and a sync-server notify, the Postgres layer can't do either.
 // Sequential so a single failure surfaces immediately; workspaces are
 // expected to hold tens of docs, not thousands.
 //
@@ -59,7 +59,7 @@ export default defineApiHandler({
       })
     }
 
-    // Knowledge S3 cleanup is per-object (one key per row) — the FK on
+    // Knowledge S3 cleanup is per-object (one key per row), the FK on
     // workspace_knowledge → workspaces cascades the DB row automatically,
     // but S3 objects are orphaned without this explicit sweep.
     const knowledgeRows = await listKnowledge(workspaceAccess)

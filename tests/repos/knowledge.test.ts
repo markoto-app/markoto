@@ -12,7 +12,7 @@ import { createUser, createWorkspace } from '../integration/setup/fixtures'
 import { wsAs } from '../helpers/access'
 
 // DB-backed tests for the knowledge repo. No S3, no markitdown, no
-// embeddings — those are exercised via endpoint tests + unit tests.
+// embeddings: those are exercised via endpoint tests + unit tests.
 // Focus here: filename disambiguation, aggregate counters, the
 // brief-list projection used for the AI system prompt.
 

@@ -216,7 +216,7 @@ function fmtDate(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString(locale.value, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 function usd(amount: number | null | undefined): string {
-  return amount === null || amount === undefined ? '—' : formatUsd(amount, locale.value)
+  return amount === null || amount === undefined ? '-' : formatUsd(amount, locale.value)
 }
 </script>
 

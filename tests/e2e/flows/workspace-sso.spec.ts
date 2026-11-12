@@ -11,7 +11,7 @@ import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
 // sign-in.
 //
 // The identity provider is the stack's mock OpenID provider (`oidc-test`,
-// navikt mock-oauth2-server) on the test network's private address — the
+// navikt mock-oauth2-server) on the test network's private address, the
 // server refuses loopback IdPs, and the flow stack allows private ones
 // (NUXT_SSO_ALLOW_PRIVATE_URLS). Its login page takes a user name and
 // the claims to put in the token. Domain verification needs a real DNS

@@ -44,7 +44,7 @@ describe('markAbstract', () => {
   })
 })
 
-describe('buildCoverHtml — title-block layout', () => {
+describe('buildCoverHtml: title-block layout', () => {
   it('title, subtitle, author cards with affiliations, date and the abstract', () => {
     const theme = arxiv()
     theme.cover.showSubtitle = true
@@ -88,7 +88,7 @@ describe('pruneTocDepth', () => {
   })
 })
 
-describe('dropTitleHeading — no duplicate title in title-block layouts', () => {
+describe('dropTitleHeading: no duplicate title in title-block layouts', () => {
   const doc = '<nav class="table-of-contents"><ul><li><a href="#edge-cache">Edge cache</a></li><li><a href="#intro">Intro</a></li></ul></nav>'
   const titled = '<h1 id="edge-cache">Edge  cache\n behaviour</h1><h2 id="abstract">Abstract</h2><p>We measure.</p><h1 id="intro">Intro</h1>'
 

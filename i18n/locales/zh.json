@@ -2,7 +2,7 @@
   "app": {
     "name": "markoto",
     "tagline": "协作式 Markdown 编辑器",
-    "offline": "你已离线 — 在重新连接前，编辑仅保存在本地。",
+    "offline": "你已离线，在重新连接前，编辑仅保存在本地。",
     "update": {
       "title": "有新版本可用",
       "description": "将在 30 秒后重新加载。",
@@ -39,7 +39,7 @@
     "titleInputAria": "文档标题",
     "placeholder": "开始写作…",
     "syncAuthFailedTitle": "同步服务器拒绝了此连接",
-    "syncAuthFailedDescription": "你通常在此拥有编辑权限。同步服务器拒绝了握手 — 很可能是单 IP 速率限制或令牌已过期。请重新加载后再试。",
+    "syncAuthFailedDescription": "你通常在此拥有编辑权限。同步服务器拒绝了握手，很可能是单 IP 速率限制或令牌已过期。请重新加载后再试。",
     "syncAuthFailedReload": "重新加载",
     "syncRejected": {
       "title": "你最近的更改未保存",
@@ -104,7 +104,7 @@
     "systemShare": "通过系统分享…",
     "qrCode": "显示二维码",
     "accessMode": "访问模式",
-    "private": "私有 — 仅你自己",
+    "private": "私有：仅你自己",
     "openEdit": "任何人可编辑",
     "openView": "任何人可查看",
     "passwordProtected": "密码保护",
@@ -203,18 +203,18 @@
     "restore": {
       "button": {
         "label": "还原",
-        "tooltip": "将文档还原到此时间点。可逆 — 你可以通过活动记录返回。"
+        "tooltip": "将文档还原到此时间点。可逆，你可以通过活动记录返回。"
       },
       "confirm": {
         "title": "要还原文档吗？",
         "body": "文档将回退到 {when} 时的状态。之后所做的编辑将被移除（但仍可从活动记录中恢复）。",
-        "reversibleHint": "此次还原本身也是可逆的 — 你可以随时返回当前状态。",
+        "reversibleHint": "此次还原本身也是可逆的，你可以随时返回当前状态。",
         "cta": "还原"
       },
       "success": "文档已还原。",
       "error": {
         "unauthorized": "你没有本文档的编辑权限。",
-        "unavailable": "无法从此记录还原 — 它早于还原功能的引入时间。",
+        "unavailable": "无法从此记录还原，它早于还原功能的引入时间。",
         "notFound": "本文档不存在该活动记录。",
         "generic": "还原失败。文档未发生更改。"
       }
@@ -234,7 +234,7 @@
       "unavailable": "此记录无法查看差异。",
       "error": "无法加载差异。",
       "retry": "重试",
-      "truncated": "显示 {total} 个差异块中的 {shown} 个 — 差异已截断。"
+      "truncated": "显示 {total} 个差异块中的 {shown} 个，差异已截断。"
     },
     "commentContext": {
       "view": "查看会话",
@@ -290,7 +290,7 @@
     "aiMentionHint": "提示：在评论中加入 {'@'}markoto，即可请求 markoto 处理它。",
     "aiResponding": "markoto 正在回复…",
     "aiTriggerFailed": "无法为此会话连接到 markoto。",
-    "aiTriggerExhausted": "额度已用尽 — 升级你的套餐即可从评论中调用 markoto。",
+    "aiTriggerExhausted": "额度已用尽，升级你的套餐即可从评论中调用 markoto。",
     "hintPost": "发布",
     "hintCancel": "取消",
     "notificationFallbackTitle": "新回复"
@@ -444,7 +444,7 @@
     "title": "文档",
     "description": {
       "label": "描述",
-      "help": "用一句话说明本文档是什么。AI 在每一轮对话中都会看到它 — 这样模型无需你重复输入就能知道你在做什么。",
+      "help": "用一句话说明本文档是什么。AI 在每一轮对话中都会看到它，这样模型无需你重复输入就能知道你在做什么。",
       "placeholder": "例如：新移动应用的第三季度发布计划"
     },
     "language": {
@@ -617,7 +617,7 @@
     "rateLimited": "请求过于频繁。请在一分钟后重试。",
     "failed": "无法连接到 markoto",
     "micStart": "开始语音输入",
-    "micBlocked": "麦克风被禁用 — 请在浏览器设置中启用它",
+    "micBlocked": "麦克风被禁用，请在浏览器设置中启用它",
     "micStop": "停止并发送",
     "micCancel": "取消语音输入",
     "micRequestingPermission": "正在等待麦克风…",
@@ -634,21 +634,21 @@
     "dictateSessionCapTitle": "听写会话已结束",
     "dictateSessionCapDescription": "单次会话上限为 10 分钟。请开始新会话以继续。",
     "dictateIdleTitle": "听写已暂停",
-    "dictateIdleDescription": "30 秒无音频 — 听写已停止。",
+    "dictateIdleDescription": "30 秒无音频，听写已停止。",
     "dictateErrorTitle": "听写失败",
     "budgetExhaustedTitle": "AI 额度已用尽",
     "budgetExhaustedDescription": "你已用完本计费周期的全部 AI 额度。升级套餐即可继续。",
-    "exhaustedPlaceholder": "AI 额度已用尽 — 升级以继续",
+    "exhaustedPlaceholder": "AI 额度已用尽，升级以继续",
     "workspaceBudgetExhaustedTitle": "工作区 AI 额度已用尽",
     "workspaceBudgetExhaustedDescription": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
-    "workspaceExhaustedPlaceholder": "工作区 AI 预算已用完——请联系管理员",
+    "workspaceExhaustedPlaceholder": "工作区 AI 预算已用完，请联系管理员",
     "upgradeCta": "升级",
     "remainingLabel": "本月剩余 {remaining}/{limit} AI 额度",
     "responseLabel": "markoto 说",
     "responseQuestionLabel": "markoto 询问",
     "responseDismiss": "关闭",
     "responseShowLast": "markoto 的最新回复",
-    "exhaustedPlaceholderFree": "AI 额度已用尽——下个周期将自动补充",
+    "exhaustedPlaceholderFree": "AI 额度已用尽，下个周期将自动补充",
     "budgetExhaustedResetDescription": "您已用完本周期的全部 AI 额度。额度将在下个周期开始时补充。",
     "webToolsHourlyLimit": "您已达到网页搜索和页面抓取的每小时上限。请在一小时内重试，或不使用网页工具继续。",
     "webToolsDailyLimit": "您已达到网页搜索和页面抓取的每日上限。请明天再试，或不使用网页工具继续。",
@@ -656,10 +656,10 @@
     "freeAllowanceExhaustedTitle": "免费 AI 额度已用完",
     "freeAllowanceExhausted": "本月的免费 AI 额度已用完。请在 设置 → AI 服务商 中添加你自己的密钥以继续使用。",
     "freeAllowanceCta": "添加自己的密钥",
-    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完——添加你自己的密钥即可继续",
+    "freeAllowanceExhaustedPlaceholder": "本月的免费 AI 额度已用完，添加你自己的密钥即可继续",
     "memberLimitReachedTitle": "已达到你的 AI 上限",
     "memberLimitReachedDescription": "你本月在此工作区的 AI 上限已用完。请让工作区管理员提高上限。",
-    "memberLimitPlaceholder": "你在此处的 AI 上限已用完——请联系管理员",
+    "memberLimitPlaceholder": "你在此处的 AI 上限已用完，请联系管理员",
     "teamBudgetExhausted": "此工作区本月的 AI 预算已用完。请让管理员增加席位或额度。",
     "memberLimitReached": "你本月在此工作区的 AI 上限已用完。请让管理员提高上限。",
     "locked": {
@@ -1121,16 +1121,16 @@
     },
     "meta": {
       "font": "元信息字体",
-      "fontHelp": "用于页眉/页脚文字、图注和脚注 — 即“关于文档”的表述声音。"
+      "fontHelp": "用于页眉/页脚文字、图注和脚注，即“关于文档”的表述声音。"
     },
     "cover": {
       "enabled": "显示封面页",
       "enabledHelp": "在第 1 页前添加标题页（隐藏页码 + 页眉）。",
       "layout": "布局",
-      "layoutClassic": "经典 — 全部居中",
-      "layoutEditorial": "编辑式 — 徽标居顶、标题在 ⅓ 处、元信息在 ⅔ 处",
-      "layoutBanner": "横幅式 — 徽标 + 标题置于品牌色顶部条带",
-      "layoutMinimal": "极简 — 仅标题居中（隐藏徽标与元信息）",
+      "layoutClassic": "经典：全部居中",
+      "layoutEditorial": "编辑式：徽标居顶、标题在 ⅓ 处、元信息在 ⅔ 处",
+      "layoutBanner": "横幅式：徽标 + 标题置于品牌色顶部条带",
+      "layoutMinimal": "极简：仅标题居中（隐藏徽标与元信息）",
       "align": "文本对齐",
       "titleSize": "标题字号",
       "subtitleSize": "副标题字号",
@@ -1222,7 +1222,7 @@
       "applied": "模板已应用到你的文档",
       "markoto": {
         "name": "markoto",
-        "description": "标志性外观。Fraunces 编辑式标题、Inter 正文置于纯白纸张之上、朱红色点缀 — 沉静如实地指南，而非仪表盘。"
+        "description": "标志性外观。Fraunces 编辑式标题、Inter 正文置于纯白纸张之上、朱红色点缀，沉静如实地指南，而非仪表盘。"
       },
       "modern": {
         "name": "现代",
@@ -1307,7 +1307,7 @@
       "bytes": "{used} / {max} 字节",
       "checking": "检查中…",
       "applied": "已应用",
-      "notApplied": "未应用 — 请修正下面的错误",
+      "notApplied": "未应用，请修正下面的错误",
       "position": "第 {line} 行，第 {column} 列",
       "droppedOnApply": "此主题中的部分 CSS 规则使用了其他文档的图片，已被移除。",
       "issue": {
@@ -1395,8 +1395,8 @@
       "subtitle": "在此工作区中新建文档时的默认设置。",
       "defaultTheme": {
         "title": "默认主题",
-        "help": "应用于在此新建的文档。已有文档不受影响 — 它们保留各自的主题。",
-        "useGlobal": "无默认 — 使用 markoto",
+        "help": "应用于在此新建的文档。已有文档不受影响，它们保留各自的主题。",
+        "useGlobal": "无默认：使用 markoto",
         "useGlobalHelp": "新文档以 markoto 预设开始，直到有人选择其他主题。",
         "savedTitle": "默认主题已更新",
         "appliedToast": "本工作区中的新文档将使用此主题",
@@ -1405,7 +1405,7 @@
       }
     },
     "capReached": "在 {plan} 套餐上已使用 {used}/{limit} 个工作区。删除一个或升级以添加更多。",
-    "capReachedShort": "已达工作区上限 — 升级",
+    "capReachedShort": "已达工作区上限，升级",
     "sectionTitle": "我的工作区",
     "newWorkspace": "新建工作区",
     "createTitle": "创建工作区",
@@ -1452,7 +1452,7 @@
       "adminDescription": "通过邮箱邀请协作者、更改角色或移除成员。",
       "memberDescription": "有权访问此工作区的人员。",
       "addTitle": "邀请成员",
-      "addHint": "输入对方的邮箱地址。对方接受邀请后才会加入——可在使用该邮箱登录的 markoto 中，或通过邀请邮件接受。",
+      "addHint": "输入对方的邮箱地址。对方接受邀请后才会加入，可在使用该邮箱登录的 markoto 中，或通过邀请邮件接受。",
       "emailPlaceholder": "输入电子邮件地址",
       "add": "邀请",
       "addFailed": "无法发送邀请",
@@ -1568,7 +1568,7 @@
     "upload": "上传文件",
     "capFilesReached": "此工作区已达文件数量上限（{limit}）。删除一个文件或升级以添加更多。",
     "capBytesReached": "此工作区已达存储上限（{limit} MB）。删除一个文件或升级以添加更多。",
-    "capReachedShort": "已达上限 — 升级",
+    "capReachedShort": "已达上限，升级",
     "empty": "暂无知识文件。",
     "emptyDescription": "上传一个 PDF 或 Word 文档，让 markoto 在你写作时拥有上下文。",
     "emptyDescriptionViewer": "尚未向此工作区上传任何内容。",
@@ -1652,7 +1652,7 @@
     "badRequest": "该请求无效。",
     "conflict": "这与当前状态冲突。请刷新页面后重试。",
     "payloadTooLarge": "内容过大。",
-    "rateLimited": "请求过于频繁 — 请稍候片刻后重试。",
+    "rateLimited": "请求过于频繁。请稍候片刻后重试。",
     "serverError": "我们这边出了点问题。我们已收到通知。",
     "documentCreateFailed": "无法创建文档",
     "documentCreateFailedDescription": "服务器拒绝了此请求。",
@@ -1677,7 +1677,7 @@
       "checkbox": "我确认我已年满 16 周岁",
       "continue": "继续",
       "underage": "我未满 16 周岁",
-      "underageNotice": "很抱歉 — markoto 仅面向 16 周岁及以上的用户。我们不会存储关于你的任何数据。"
+      "underageNotice": "很抱歉，markoto 仅面向 16 周岁及以上的用户。我们不会存储关于你的任何数据。"
     },
     "policyAcceptance": {
       "newVersionTitle": "我们的隐私条款已变更",
@@ -1742,18 +1742,18 @@
           "removeMember": {
             "title": "你只会被移除",
             "body": "你担任编辑者或查看者的工作区将在没有你的情况下继续运行。",
-            "row": "{name} — 当前为 {currentRole}"
+            "row": "{name}：当前为 {currentRole}"
           }
         },
         "manualSteps": {
           "heading": "你可能想先采取的步骤",
-          "exportFirst": "使用数据导出功能，将我们持有的关于你的一切下载为 ZIP — 无论这里发生什么，都请保留该文件。",
+          "exportFirst": "使用数据导出功能，将我们持有的关于你的一切下载为 ZIP，无论这里发生什么，都请保留该文件。",
           "transferDocs": "对于任何你希望协作者保留的文档，可将其移至他们拥有的工作区，或让他们创建副本。",
           "inviteWorkspaceMember": "对于任何你想保留的工作区，请在删除前邀请至少一位管理员角色的协作者。",
           "downloadKnowledge": "对于你想保留的知识库文件，请先在 markoto 之外下载它们。"
         },
         "timing": "实际的级联操作作为后台任务每小时运行一次。宽限期结束后，你的数据将在约一小时内被完全清除。",
-        "noRecovery": "级联操作一旦执行，你的账号和内容将永久消失 — 无任何恢复途径。",
+        "noRecovery": "级联操作一旦执行，你的账号和内容将永久消失，无任何恢复途径。",
         "loading": "正在读取你的账户信息…"
       },
       "cancelledToast": "已取消删除。你的账户保持不变。",
@@ -1780,7 +1780,7 @@
       "bodyPlaceholder": "描述你看到了什么，以及为什么应当移除它。",
       "emailLabel": "电子邮箱",
       "submit": "提交举报",
-      "submittedTitle": "谢谢 — 我们已收到你的举报",
+      "submittedTitle": "谢谢，我们已收到你的举报",
       "submittedBody": "我们会确认收到每一份举报。如果你提供了电子邮件，我们会将处理结果告知你。",
       "reportThisDoc": "举报此文档",
       "policyHint": "阅读{policy}，了解我们处理哪些内容以及如何作出决定。",
@@ -1886,7 +1886,7 @@
       },
       "spending": {
         "heading": "消费与使用",
-        "comingSoon": "即将推出 — 你的 AI 额度使用情况、套餐历史和发票将显示在这里。目前，请从定价页面管理账单。",
+        "comingSoon": "即将推出：你的 AI 额度使用情况、套餐历史和发票将显示在这里。目前，请从定价页面管理账单。",
         "viewPricing": "查看定价",
         "plan": "当前方案：{plan}",
         "manage": "管理账单",
@@ -1897,9 +1897,9 @@
       "data": {
         "heading": "你的数据",
         "exportTitle": "下载你的数据副本",
-        "exportDescription": "我们将准备一个包含我们持有的关于你的一切的 ZIP — 你的账号资料、你拥有的每个文档（以 Markdown 格式）、你撰写的评论、账单历史、AI 使用日志、审计和同意记录。生成在后台运行，通常不到一分钟。就绪后本页面会刷新，我们也会将下载链接通过电子邮件发给你。该链接有效期为 7 天。",
+        "exportDescription": "我们将准备一个包含我们持有的关于你的一切的 ZIP：你的账号资料、你拥有的每个文档（以 Markdown 格式）、你撰写的评论、账单历史、AI 使用日志、审计和同意记录。生成在后台运行，通常不到一分钟。就绪后本页面会刷新，我们也会将下载链接通过电子邮件发给你。该链接有效期为 7 天。",
         "exportButton": "请求导出",
-        "exportInProgress": "导出进行中 — 就绪后本页面会刷新。",
+        "exportInProgress": "导出进行中，就绪后本页面会刷新。",
         "exportHistoryHeading": "最近的导出",
         "exportHistoryEmpty": "暂无之前的导出。",
         "exportExpiresAt": "有效期至 {date}",
@@ -1911,7 +1911,7 @@
       },
       "delete": {
         "heading": "删除你的账号",
-        "description": "为防你改变主意，我们会保留你的数据 30 天。此后，一切将被永久删除 — 文档、评论、工作区成员资格、账单历史。你是唯一成员的工作区会被级联删除；有共同成员的工作区会自动获得新管理员。",
+        "description": "为防你改变主意，我们会保留你的数据 30 天。此后，一切将被永久删除：文档、评论、工作区成员资格、账单历史。你是唯一成员的工作区会被级联删除；有共同成员的工作区会自动获得新管理员。",
         "button": "请求删除账号",
         "scheduled": "已安排于 {date} 删除",
         "cancel": "取消删除",
@@ -2069,7 +2069,7 @@
       "keyEnding": "尾号 {last4}",
       "noToolSupport": "该模型没有调用测试工具，写作助手可能无法正常工作。请选择支持工具调用的模型。",
       "liveDictation": "可以使用实时听写。",
-      "locked": "不在你的方案中——你自己的密钥可用"
+      "locked": "不在你的方案中：你自己的密钥可用"
     },
     "form": {
       "preset": "服务商",
@@ -2147,7 +2147,7 @@
       "title": "排版精美的 {markdown}。",
       "markdown": "Markdown",
       "body": "一款支持协作的 Markdown 编辑器，带实时分页预览。用纯文本写作，导出的 PDF 与预览逐页一致。",
-      "cta": "开始写作——无需注册",
+      "cta": "开始写作，无需注册",
       "next": "看看它如何工作"
     },
     "scenes": {
@@ -2204,7 +2204,7 @@
     },
     "cta": {
       "title": "用你自己的 Markdown 试试。",
-      "body": "markoto.app 免费使用，无需注册——也可以自行托管。",
+      "body": "markoto.app 免费使用，无需注册，也可以自行托管。",
       "start": "开始写作",
       "selfHost": "自托管"
     },
@@ -2448,7 +2448,7 @@
     "testAndActivate": "测试登录并开启",
     "testAgain": "测试登录",
     "draftHint": "尚未开启。请用你自己在身份提供商的账号测试登录；测试成功后，此工作区的单点登录即会开启。",
-    "testActivated": "登录成功 — 此工作区的单点登录现已开启",
+    "testActivated": "登录成功，此工作区的单点登录现已开启",
     "testOk": "登录成功",
     "status": {
       "active": "已开启",
@@ -2483,7 +2483,7 @@
       "title": "预配（SCIM）",
       "body": "让你的身份提供商自动添加和移除成员。在其 SCIM 设置中填写基础 URL 和令牌。在那里移除某人后，此人会立即被移出此工作区。",
       "baseUrl": "SCIM 基础 URL",
-      "tokenOnce": "请立即复制此令牌 — 它不会再次显示。",
+      "tokenOnce": "请立即复制此令牌，它不会再次显示。",
       "create": "创建令牌",
       "rotate": "替换令牌",
       "revoke": "关闭预配"

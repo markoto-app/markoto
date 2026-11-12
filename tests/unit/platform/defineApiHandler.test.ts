@@ -271,7 +271,7 @@ function expected(need: DocNeed, row: DocAuthzRow, actor: Actor, opts: { anonymo
   }
 }
 
-describe('allow.doc — need × access mode × role × anonymous / JWT, against docPermissions', () => {
+describe('allow.doc: need × access mode × role × anonymous / JWT, against docPermissions', () => {
   for (const need of NEEDS) {
     it(`need '${need}'`, async () => {
       const mismatches: string[] = []

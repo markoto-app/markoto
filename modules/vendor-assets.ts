@@ -7,7 +7,7 @@
 // not the build dir, which `nuxt build` / `prepare` empty after module
 // setup) and registered as a Nitro public-asset directory,
 // so the production build ships them in `.output/public/vendor/`. The copy
-// refuses to run — and the build fails — when an installed package's
+// refuses to run, and the build fails, when an installed package's
 // version or bytes differ from the version + SRI constants in
 // shared/utils/vendor/*Assets.ts.
 //

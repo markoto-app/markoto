@@ -11,7 +11,7 @@ import type { WebToolSpendContext } from './webSearch'
 
 /**
  * Structured shape returned by `fetch_url`. Mirrors the JSON schema
- * passed to Mistral on the synthesis call — kept as a TS interface so
+ * passed to Mistral on the synthesis call, kept as a TS interface so
  * the parser/narrower can type-check the response without an extra
  * schema wrapper.
  */
@@ -28,7 +28,7 @@ export interface FetchUrlResult {
   /** Page summary parsed from the structured response. May be empty
    *  when the synthesis fell back to raw text or the page was unreachable. */
   summary: string
-  /** Image URLs the page exposes — exposed verbatim to the activity
+  /** Image URLs the page exposes, exposed verbatim to the activity
    *  drawer for an inline strip. */
   images: Array<{ url: string, description?: string }>
 }
@@ -53,12 +53,12 @@ export async function fetchUrl(
   // escapes) can't make Jina fetch a host other than the one checked.
   const url = parseToolUrl(rawUrl).href
 
-  // SSRF guard. Reject before forwarding to upstream — private CIDRs,
+  // SSRF guard. Reject before forwarding to upstream, private CIDRs,
   // metadata IPs, link-local, non-HTTP schemes, and hostnames whose DNS
   // records resolve into private space all throw here.
   await assertSafeUrl(url)
 
-  // Platform-paid Jina Reader call — counted only for URLs that passed the
+  // Platform-paid Jina Reader call, counted only for URLs that passed the
   // SSRF guard, so a rejected URL never burns allowance.
   await consumeWebToolQuota(spendCtx.userId)
 
@@ -120,7 +120,7 @@ async function fetchUrlViaJina(
     throw new Error('JINA_AI_API_KEY not configured (required for fetch_url via mistral path)')
   }
 
-  // 1) Jina Reader — returns the page as clean markdown.
+  // 1) Jina Reader: returns the page as clean markdown.
   const readerUrl = `https://r.jina.ai/${url}`
   const readerRes = await fetch(readerUrl, {
     headers: {
@@ -155,14 +155,14 @@ async function fetchUrlViaJina(
   }
 
   // No chat provider configured: return the extracted page text itself
-  // (truncated) — the reader is platform-provided and works without a key.
+  // (truncated): the reader is platform-provided and works without a key.
   const provider = spendCtx.chatProvider
   if (!provider) {
     const excerpt = pageMarkdown.slice(0, 12000)
     return { text: `Page: ${pageTitle || url}\n\n${excerpt}`, url, summary: excerpt, images: [] }
   }
 
-  // 2) Structured-output synthesis — extract {summary, images[]} — on the
+  // 2) Structured-output synthesis, extract {summary, images[]}, on the
   // session's chat provider (the user's own key under BYOK), authenticated
   // with the caller's virtual key. Master key only for a key-less harness.
   // A BYOK model without `json_schema` support returns prose; the
@@ -182,7 +182,7 @@ async function fetchUrlViaJina(
     },
     max_tokens: 800,
     temperature: 0,
-    // Sub-tool of the text agentic loop — same tag set as the
+    // Sub-tool of the text agentic loop, same tag set as the
     // surrounding loop call so workspace + user + doc breakdowns
     // attribute correctly.
     ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)

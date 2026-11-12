@@ -39,7 +39,7 @@ export const BRAND_FONT_CSS_FORMAT: Record<BrandFontFormat, string> = {
   ttf: 'truetype'
 }
 
-/** `<assetId>.<ext>` — the served file name of a brand asset. */
+/** `<assetId>.<ext>`: the served file name of a brand asset. */
 export const BRAND_ASSET_FILE_RE = /^([A-Za-z0-9_-]{16})\.(woff2|woff|ttf|png|jpg|webp)$/
 
 /** A workspace font as the renderers need it. */

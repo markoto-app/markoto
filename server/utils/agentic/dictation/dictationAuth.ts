@@ -34,7 +34,7 @@ function verifyDictateToken(peer: PeerLike, token: unknown): AuthClaims | null {
     rejectPeer(peer, 'Missing token', 4001, 'missing token')
     return null
   }
-  // Type as Partial<DictateJwtPayload> — the verifier can't trust any
+  // Type as Partial<DictateJwtPayload>: the verifier can't trust any
   // field is present until it's narrowed below. Using the shared
   // contract here pins the verify-shape to the mint-shape; a drift
   // (e.g. mint forgetting `scope`) becomes a compile error rather
@@ -52,7 +52,7 @@ function verifyDictateToken(peer: PeerLike, token: unknown): AuthClaims | null {
   }
   // Require explicit `scope: 'dictate'`. Pairs with the
   // sync-server's "any non-empty scope is rejected for WS auth" rule
-  // (sync-server/src/auth.ts) — together they ensure dictate tokens
+  // (sync-server/src/auth.ts): together they ensure dictate tokens
   // are usable HERE and only here. A token minted for any other
   // scope (`render`, `file-access`, future) cannot be replayed
   // against this WS, and a dictate token cannot be replayed against
@@ -104,7 +104,7 @@ export async function handleAuth(
 
   // Normalize language: accept either BCP-47 (`de-DE`) or the short
   // ISO 639-1 UI locale (`de`). Defaults to en-US if nothing usable
-  // arrived — the upstream transcription API requires a valid
+  // arrived: the upstream transcription API requires a valid
   // language code or rejects.
   const sttStream = openSttStream(peer, ctx, payer.target, normalizeLanguageCode(languageCode))
   if (!sttStream) return
@@ -122,13 +122,13 @@ export async function handleAuth(
  */
 async function resolvePayer(peer: PeerLike, ctx: DictatePeerContext, claims: AuthClaims): Promise<{ billing: BillingContext, target: LiveDictationTarget } | null> {
   // Resolve billing context to get the user's virtual-key token. If resolution fails (DB blip, missing user row) close the
-  // session rather than silently fall through — billing is a
+  // session rather than silently fall through, billing is a
   // correctness surface, not a rate limit. The voice-tick orchestrator
   // hits LiteLLM with this key; if the user's $ budget is already 0,
   // the FIRST tick (fired on first audio chunk) returns 4xx and the
   // WS closes cleanly with `budget_exhausted` code 1011.
   // Resolve the doc's workspace first: it tags the spend AND decides
-  // which plan pays (a Team / Business workspace's member key). Best-effort — a doc that
+  // which plan pays (a Team / Business workspace's member key). Best-effort, a doc that
   // disappeared mid-handshake just means we tag with no workspace
   // dimension, which is harmless (the call still bills correctly).
   try {
@@ -151,7 +151,7 @@ async function resolvePayer(peer: PeerLike, ctx: DictatePeerContext, claims: Aut
   }
   // BYOK: live dictation is Voxtral Realtime (Mistral-only, direct WS).
   // Available with the user's own Mistral transcription key (their
-  // account pays — no LiteLLM ticks) or with a platform-alias instance
+  // account pays: no LiteLLM ticks) or with a platform-alias instance
   // default + the operator's MISTRAL_API_KEY (ticks bill the user's
   // LiteLLM budget, as before BYOK). The mic is hidden otherwise; this
   // is the server-side backstop.

@@ -6,7 +6,7 @@ import { settleAnimations } from '../fixtures/waits'
 // User-job: a writer made changes earlier, walked away, came back
 // and wants a quick "what happened" view. Open the Activity tab,
 // click any edit row, the diff drawer expands inline showing the
-// structured patch — green added lines, red removed, line numbers,
+// structured patch: green added lines, red removed, line numbers,
 // `@@` hunks. Read-only; no restore (that's `activity-restore`).
 //
 // Pipeline: ActivityFeed lazy-loads `ActivityRowDiff` on click →
@@ -17,15 +17,15 @@ import { settleAnimations } from '../fixtures/waits'
 // style markers + 200-hunk truncation guard.
 //
 // Distinct from `activity-restore` (Tier 2): this flow is the READ
-// side — show the diff, no rollback. The restore flow walks the
+// side: show the diff, no rollback. The restore flow walks the
 // diff drawer too but ends on the Restore button. This one ends
 // on the diff itself.
 //
 // Runs on desktop AND mobile. The Activity feed renders identically
 // on both surfaces (right-sidebar tab on desktop, bottom-tab-bar on
 // mobile). Mobile stacks the diff drawer below the activity row
-// rather than alongside the editor; the asserted state — the
-// `[data-activity-id]` rows + the diff drawer's hunk markers — is
+// rather than alongside the editor; the asserted state, the
+// `[data-activity-id]` rows + the diff drawer's hunk markers, is
 // the same.
 test('See what changed in past edits', async ({ page, flow, editor }) => {
   test.setTimeout(120_000)
@@ -46,7 +46,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   await editorContent.press(`${accel}+End`)
   await editorContent.press('Enter')
   await editorContent.press('Enter')
-  await editorContent.pressSequentially('Q3 launch checklist — first pass.')
+  await editorContent.pressSequentially('Q3 launch checklist, first pass.')
 
   // Wait for the sync-server to flush the FIRST `edit` activity row. Hocuspocus debounces ~5s before
   // flushing, so poll the activity API instead of a fixed wait: it exits as soon as the row exists,
@@ -74,7 +74,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
 
   await flow.heading('See what changed in past edits', 3)
   await flow.narrate(
-    'Every edit in markoto is logged in the Activity tab — who, '
+    'Every edit in markoto is logged in the Activity tab, who, '
     + 'when, how many lines added or removed. Click any row to '
     + 'expand a diff drawer in place: green added lines, red '
     + 'removed, line numbers, git-style `@@` hunks. Read-only by '
@@ -95,7 +95,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
       annotations: editor.isMobile
         ? []
         : [{ label: 'Activity tab', selector: '[data-testid="sidebar-tab-activity"]', kind: 'arrow' }],
-      result: 'The Activity feed opens — one row per edit, comment, restore, theme/title change.',
+      result: 'The Activity feed opens, one row per edit, comment, restore, theme/title change.',
       after: () => page.locator('[data-activity-id]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
@@ -103,7 +103,7 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   // Click an edit row → diff drawer
   await flow.heading('Click any edit row to see the diff', 3)
   await flow.narrate(
-    'Edit rows are clickable — chevron + "show details" hint. The '
+    'Edit rows are clickable, chevron + "show details" hint. The '
     + 'diff drawer expands inline; the editor stays where it is. '
     + 'No modal, no navigation. Click again to collapse.'
   )
@@ -111,25 +111,25 @@ test('See what changed in past edits', async ({ page, flow, editor }) => {
   // Pick the first edit row in the feed. Each row carries
   // `data-activity-id`; we don't need the specific id, just the
   // first edit. Filter to rows that are expandable (have the
-  // chevron) — that's the "edit" + "comment.*" kinds.
+  // chevron): that's the "edit" + "comment.*" kinds.
   const firstEditRow = page.locator('[data-activity-id]').filter({ hasText: /Maya/i }).first()
   await flow.click(
     'Click the row to expand its diff',
     firstEditRow,
     {
       // Mobile: activity row sits inside the Activity BottomSheet
-      // portal — Reka's overlay intercepts pointer events. See
+      // portal: Reka's overlay intercepts pointer events. See
       // `tests/e2e/AGENTS.md` "Bottom-sheet portal interception".
       force: editor.isMobile,
       hero: true,
-      result: 'The diff drawer expands inline — green for added lines, red for removed, line numbers down the gutter.',
+      result: 'The diff drawer expands inline, green for added lines, red for removed, line numbers down the gutter.',
       after: async () => {
         // Wait for the diff drawer to render its hunk rows. The
         // server replay + structured-patch round-trip is usually
         // <500ms; allow up to 5s for the cold case.
         await firstEditRow.locator('[data-expanded="true"]').or(
           page.locator('[data-activity-id]').filter({ hasText: /Maya/i }).first().locator('xpath=..').filter({ hasText: /Maya/i })
-        ).waitFor({ state: 'visible', timeout: 5_000 }).catch(() => { /* selector may not match — fall through */ })
+        ).waitFor({ state: 'visible', timeout: 5_000 }).catch(() => { /* selector may not match, fall through */ })
         await settleAnimations(page, 1_500)
       }
     }

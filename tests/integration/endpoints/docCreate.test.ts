@@ -12,7 +12,7 @@ import { INITIAL_CONTENT_MAX_LENGTH } from '../../../shared/config/docCreate'
 import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 import { first } from '../../helpers/assert'
 
-// POST /api/docs — creates a document. Defaults matter:
+// POST /api/docs: creates a document. Defaults matter:
 //   - Anonymous creator → ownerId=null, accessMode='open-edit'
 //   - Logged-in creator → ownerId=user.id, accessMode='private'
 // These defaults are load-bearing: anonymous-private would lock the
@@ -172,7 +172,7 @@ describe('POST /api/docs', () => {
       expect(row.language).toBe('de')
       expect(row.template_id).toBe('business-plan')
       // themePreset resolves server-side to the arxiv preset's full
-      // theme object — client cannot inject arbitrary JSONB.
+      // theme object: client cannot inject arbitrary JSONB.
       expect(row.theme).not.toBeNull()
       expect(row.theme).toHaveProperty('color')
     })

@@ -4,7 +4,7 @@ import { brandFileParams } from '~~/shared/api/brand'
 import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'
 import { MINUTE_MS } from '~~/shared/config/units'
 
-// GET /api/docs/:docId/brand/:file — a brand-kit font or logo of the
+// GET /api/docs/:docId/brand/:file: a brand-kit font or logo of the
 // document's workspace, as the document's renderers load it: the
 // live preview + print iframes (opaque origin, the file-access token in
 // `?token=`), the server render page (same token) and the editor itself
@@ -12,7 +12,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
 // to the document's workspace. Rate-limited per client because public
 // documents make it reachable without an account.
 
-/** Per client (/64 for IPv6) and minute — every preview render loads each workspace font. */
+/** Per client (/64 for IPv6) and minute, every preview render loads each workspace font. */
 export const DOC_BRAND_FILE_RATE_PER_MINUTE = 300
 
 export default defineApiHandler({

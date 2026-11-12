@@ -52,7 +52,7 @@ export function createTableCodeRules(q: BlockQueries) {
 
   /**
    * The break for a split between body rows (`rowIndex` > 0): at least
-   * `minRows` body rows on each side — carry more rows over when too few
+   * `minRows` body rows on each side, carry more rows over when too few
    * would follow, move the whole table when too few would stay (a table
    * that starts at the top of a page keeps paged.js's break: there is
    * nowhere better).
@@ -79,7 +79,7 @@ export function createTableCodeRules(q: BlockQueries) {
   }
 
   /**
-   * Tables: break between rows; never leave only the header row behind —
+   * Tables: break between rows; never leave only the header row behind,
    * then the whole table moves. A first row that can't move (top of a
    * continuation page) keeps paged.js's own break (`'keep'`), so a row
    * taller than a page can't loop. Null when `el` is not in a table row.

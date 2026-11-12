@@ -13,17 +13,17 @@ import { TOUR_DARK_FROM } from '~~/shared/tour/config'
  *    reduced-motion preference: ONE browser window. Under the hero it sits
  *    centred; scrolling out of the hero carries it (transforms on a
  *    `scroll()` timeline) to the sticky stage, where it becomes scene 1.
- *    From there it alternates sides — odd scenes right, even scenes left —
+ *    From there it alternates sides, odd scenes right, even scenes left,
  *    sliding across while one scene's copy fades out and the next one's
  *    fades in on the free side (generated keyframes on the track's view
  *    timeline, `stageSideKeyframes`). Every scene section names a view
  *    timeline (`--mk-s-<i>`, lifted to the track by `timeline-scope`)
  *    that cross-fades the stage layers and the copy. At the end the window
  *    leaves before the closing section.
- *  - Phones / tablets: each scene is one screen — its copy, then its own
+ *  - Phones / tablets: each scene is one screen, its copy, then its own
  *    window (the phone cut of the video).
  *  - No scroll-driven animations (older Safari / Firefox) or reduced
- *    motion: the static version of the same — alternating two columns on
+ *    motion: the static version of the same, alternating two columns on
  *    desktop, stacked on phones.
  *
  * One rest position per scene: copy fully in, stage settled, video
@@ -34,11 +34,11 @@ import { TOUR_DARK_FROM } from '~~/shared/tour/config'
  *
  * JS: lazy-mounts the pinned stage's far-away scenes (otherwise every
  * poster would load at once), scrolls the pinned layout (`useTourScroll`),
- * sets the colour phase (`useTourTone`, every engine — the colours
+ * sets the colour phase (`useTourTone`, every engine, the colours
  * transition in CSS), and, in `TourVisual`, plays the video of the scene
  * on stage and fans the share scene's PDF pages out once it has settled.
  */
-// `warm`: the pointer is over / focus is on a "Start writing" button —
+// `warm`: the pointer is over / focus is on a "Start writing" button,
 // the page may fetch the new-document dialog's code (useNewDocDialog).
 const emit = defineEmits<{ start: [], warm: [] }>()
 const { t, locale } = useI18n()
@@ -83,7 +83,7 @@ const LINE_IN = 0.15
 const LINE_OUT = 0.85
 const LINE_STAGGER = 0.015
 const LAYER_FADE_T = 0.125
-// Scroll-snap rest point of every scene: the middle of its window — copy
+// Scroll-snap rest point of every scene: the middle of its window, copy
 // fully in, stage settled, and between the colour flip's ends.
 const SNAP_REST_T = 0.5
 
@@ -160,7 +160,7 @@ const nextLabel = (i: number): string => {
   return next ? t('tour.nextScene', { scene: sceneLabel(next) }) : ''
 }
 
-// Dark once the flip scene's top has passed the middle of the viewport —
+// Dark once the flip scene's top has passed the middle of the viewport,
 // between that scene's rest and the previous one's. The colours themselves
 // transition in CSS (registered custom properties), so this works without
 // scroll-driven animations too.
@@ -448,8 +448,8 @@ const chips = [
             :style="{ viewTimelineName: `--mk-f-${i}` }"
           >
             <LandingTourFrame :ratio="viewportRatio">
-              <!-- Hydrates when it comes into view (its job — playing the
-                   video while on screen — starts there anyway); the
+              <!-- Hydrates when it comes into view (its job, playing the
+                   video while on screen, starts there anyway); the
                    server render is the poster. Keeps the scenes out of
                    the page's first hydration task. -->
               <LazyLandingTourVisual

@@ -6,15 +6,15 @@ import { sync } from '../../shared/env/vars/sync'
 // Before these existed, any writer (including an anonymous editor of an
 // open-edit doc) could insert an arbitrarily large string. The in-memory
 // Y.Doc plus the full-state encode on every debounced store pushed the
-// container into an OOM kill — taking down every document on that
+// container into an OOM kill, taking down every document on that
 // instance, not just the attacker's.
 //
 // Three layers, outermost first:
-//   SYNC_MAX_MESSAGE_BYTES  — WebSocket frame size (`ws` maxPayload). The
+//   SYNC_MAX_MESSAGE_BYTES: WebSocket frame size (`ws` maxPayload). The
 //                             socket is closed with 1009 before the frame
 //                             is buffered further or parsed.
-//   SYNC_MAX_UPDATE_BYTES   — one Y.js update (sync step 2 / update).
-//   SYNC_MAX_DOCUMENT_BYTES — encoded document state after the update.
+//   SYNC_MAX_UPDATE_BYTES: one Y.js update (sync step 2 / update).
+//   SYNC_MAX_DOCUMENT_BYTES: encoded document state after the update.
 //                             Updates that only delete are still accepted
 //                             so an oversized document can be trimmed.
 //

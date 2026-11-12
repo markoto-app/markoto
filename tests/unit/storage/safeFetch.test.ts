@@ -34,7 +34,7 @@ const redirect = (location: string, status = 302) => () => new Response(null, { 
 
 const IMAGE_LIMITS = { allowedTypes: new Set(['image/png']), maxBytes: 1024 }
 
-describe('safeFetch — pinned connection', () => {
+describe('safeFetch: pinned connection', () => {
   it('dials the checked IP with the original Host header and TLS server name', async () => {
     const net = fakeNet({ 'https://93.184.216.34/a.png': png })
     const { response } = await safeFetch('https://img.example.com/a.png', {
@@ -82,7 +82,7 @@ describe('safeFetch — pinned connection', () => {
   })
 })
 
-describe('safeFetch — redirects', () => {
+describe('safeFetch: redirects', () => {
   const resolve = dns({
     'cdn.example.com': ['93.184.216.34'],
     'img.example.com': ['93.184.216.35'],

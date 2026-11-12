@@ -18,8 +18,8 @@ export const TEST_BASE_URL = `http://127.0.0.1:${TEST_PORT}`
 
 // Second Nitro subprocess from the SAME build, booted with billing OFF
 // (NUXT_BILLING_ENABLED unset, NUXT_PLANS_COMING_SOON=true, and no
-// NUXT_STRIPE_* vars at all) so the billing-off surface — 404s on the
-// billing endpoints, the waitlist, free-only limits — is covered over
+// NUXT_STRIPE_* vars at all) so the billing-off surface, 404s on the
+// billing endpoints, the waitlist, free-only limits, is covered over
 // real HTTP. The primary server above runs with billing ON because the
 // Stripe checkout / portal / webhook suites need it. Shares the test
 // Postgres + Valkey; boots after the primary so migrations are no-ops.
@@ -35,7 +35,7 @@ export const TEST_ENFORCED_MCP_RATE_LIMITS: readonly string[] = Object.values(MC
 // X-Forwarded-For address per test (the bucket key).
 export const TEST_ENFORCED_ANON_RATE_LIMITS: readonly string[] = [...ANON_DOC_CREATE_LIMITS, ...ANON_ABUSE_REPORT_LIMITS].map(rule => rule.namespace)
 
-// The DB name guard — fixtures.ts and resetDb refuse to run unless the
+// The DB name guard, fixtures.ts and resetDb refuse to run unless the
 // connection string points at exactly this name. Belt and braces so a
 // misconfigured DATABASE_URL can't TRUNCATE the dev database.
 export const TEST_DB_NAME = 'ypad_test'
@@ -78,7 +78,7 @@ export const TEST_SYNC_URL = `http://127.0.0.1:${TEST_SYNC_PORT}`
 // cookies using TEST_SESSION_PASSWORD; both have to match the values the
 // Nuxt subprocess boots with. JWT_SECRET + INTERNAL_API_SECRET ALSO have
 // to match the sync-test container's build-time env vars (same compose
-// file) — otherwise Nuxt → sync /internal calls 403 and Hocuspocus
+// file): otherwise Nuxt → sync /internal calls 403 and Hocuspocus
 // rejects every WS connection. If you bump these, mirror the change in
 // deploy/compose/compose.test.yml's sync-test environment.
 export const TEST_JWT_SECRET = 'test-jwt-secret-isolated-from-dev-and-prod-stacks-64char'
@@ -89,7 +89,7 @@ export const TEST_ALTCHA_HMAC_KEY = 'test-altcha-hmac-key-isolated-from-dev-and-
 
 // Valkey-compatible endpoint for the test stack. Rate limits and session
 // locks fall open/closed per `server/utils/platform/rateLimit.ts` semantics when
-// Valkey is unreachable — tests that exercise those paths need a live
+// Valkey is unreachable: tests that exercise those paths need a live
 // Valkey. The deploy/compose/compose.test.yml stack maps Valkey to localhost:6380
 // with `--requirepass testpassword`.
 export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/0`
@@ -97,13 +97,13 @@ export const TEST_VALKEY_URL = `redis://:${TEST_VALKEY_PASSWORD}@127.0.0.1:6380/
 // Fake OpenAI-compatible provider (BYOK)
 // `fake-openai-test` in deploy/compose/compose.test.yml, published on host port
 // 4120. The BYOK base URL must be reachable from BOTH the app (on the
-// host, which runs the SSRF policy incl. DNS — loopback is refused) and
+// host, which runs the SSRF policy incl. DNS, loopback is refused) and
 // litellm-test (in a container, which connects). The gateway address of
 // the test stack's network is one both sides share: it is a local
 // interface on the host, and from inside a container it reaches the host.
 // deploy/compose/compose.test.yml pins that network's subnet so the gateway is
 // known up front, and publishes the port on that address (plus loopback)
-// only — never on all interfaces. Override with TEST_NETWORK_GATEWAY
+// only: never on all interfaces. Override with TEST_NETWORK_GATEWAY
 // (set it for `docker compose up` too) or TEST_FAKE_OPENAI_BASE_URL.
 /**
  * Stripe price catalogue for the test stack (stripe-mock has no lookup
@@ -125,13 +125,13 @@ export function fakeOpenAiBaseUrl(): string {
   const override = process.env.TEST_FAKE_OPENAI_BASE_URL
   if (override) return override
   // TEST_FAKE_OPENAI_HOST: where the stack published it (rootless Podman:
-  // a private host address — the bridge gateway isn't on the host there).
+  // a private host address, the bridge gateway isn't on the host there).
   const host = process.env.TEST_FAKE_OPENAI_HOST || process.env.TEST_NETWORK_GATEWAY || TEST_NETWORK_GATEWAY_DEFAULT
   return `http://${host}:${TEST_FAKE_OPENAI_PORT}/v1`
 }
 
 /**
- * The mock IdP (oidc-test) on the private address — what per-workspace
+ * The mock IdP (oidc-test) on the private address, what per-workspace
  * SSO connections use: the SSRF policy refuses loopback, and the
  * test server allows private IdPs (`NUXT_SSO_ALLOW_PRIVATE_URLS`).
  * Every path below it is a separate issuer.
@@ -152,7 +152,7 @@ export const TEST_LITELLM_DB_PASSWORD = 'litellmtestpassword'
 export const TEST_PUBLISH_DOMAINS_TARGET = 'pages.markoto.test'
 export const TEST_TRAEFIK_PROVIDER_TOKEN = 'test-provider-token-0123456789abcdef0123'
 /**
- * Published pages' own host — set on the billing-off (hosted-shaped)
+ * Published pages' own host, set on the billing-off (hosted-shaped)
  * server only; the primary keeps pages on its own origin.
  */
 export const TEST_PUBLISH_PAGES_HOST = 'published.markoto.test'

@@ -1,10 +1,10 @@
-// Product tour — the asset contract between the capture pipeline
+// Product tour: the asset contract between the capture pipeline
 // (`scripts/capture-tour.ts` + `tests/e2e/tour/*.capture.ts`) and the
 // scroll-driven product page (`app/components/landing/ProductTour.vue`).
 //
 // `public/tour/manifest.json` describes, per scene: a poster still (light
 // + dark, `srcset` widths) and a short looping video (AV1 + H.264, light +
-// dark), each also in a phone cut — the region of the capture that
+// dark), each also in a phone cut, the region of the capture that
 // matters, cropped and encoded small. Videos are recorded step by step
 // from the real app with a virtual cursor baked in; the page only plays
 // them while their scene is on stage.
@@ -51,7 +51,7 @@ export function windowToCover(t: number, heightVh: number = SCENE_HEIGHT_VH): nu
 /**
  * Where a scroll-snap marker sits in a scene section (vh from the
  * section's top, aligned `start`) so that resting on it puts the scene's
- * window at `t` — i.e. the section's top is `t·height − 50vh` above the
+ * window at `t`: i.e. the section's top is `t·height − 50vh` above the
  * viewport top (t = 0 is the section's top at the viewport middle).
  */
 export function restOffsetVh(t: number, heightVh: number = SCENE_HEIGHT_VH): number {
@@ -90,7 +90,7 @@ export function stageSideKeyframes(name: string, sceneCount: number, flip: strin
 
 /**
  * Which frame a looping video shows `elapsedMs` into playback, given its
- * frame count, frame rate and the hold on the last frame — the capture
+ * frame count, frame rate and the hold on the last frame, the capture
  * pipeline's timeline.
  */
 export function loopFrameAt(elapsedMs: number, frameCount: number, fps: number, holdMs: number): number {

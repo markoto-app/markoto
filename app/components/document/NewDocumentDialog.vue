@@ -9,7 +9,7 @@ import { THEME_PRESETS, type ThemePresetCategory } from '~~/shared/utils/theme/t
 import { THEME_FONTS, fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 import { DEFAULT_TEMPLATE_ID, getTemplate, resolveTemplateId } from '~~/shared/templates'
 
-// Same trick as ThemeEditorPanel — link every picker font's (same-origin)
+// Same trick as ThemeEditorPanel, link every picker font's (same-origin)
 // stylesheet so each preset card can render its heading in its actual
 // font face. Otherwise we'd see "Modern" / "arXiv preprint" / etc. all in
 // the system fallback and lose the visual signal. The stylesheets only
@@ -27,16 +27,16 @@ if (import.meta.client) {
 /**
  * Dialog shown when the user clicks "New document". Only the title is in
  * view; the rest sits in two collapsed rows that show the current choice
- * as a one-line summary, so a new user sees a name field and a button —
+ * as a one-line summary, so a new user sees a name field and a button,
  * and that there ARE options, without having to read them:
  *
- *   - Template — ONE choice of text + design (`shared/templates`): a
+ *   - Template: ONE choice of text + design (`shared/templates`): a
  *                picture of each template's first page in audience tabs.
  *                Blank gets the user's default design (the workspace
  *                default, else markoto); each saved design is offered as
  *                "Blank in <design>". The design can be changed later in
  *                the editor's theme panel.
- *   - Details  — description / language / audience (AI prompt context)
+ *   - Details : description / language / audience (AI prompt context)
  *
  * The template defaults to Demo for the first document created in this
  * browser and to Blank afterwards (`FIRST_DOC_KEY`), or to
@@ -83,7 +83,7 @@ const choice = ref<Choice>({ kind: 'template', id: DEFAULT_TEMPLATE_ID })
 const designOverride = ref<string | null>(null)
 
 // The first document shows what markoto can do (Demo); after that, people
-// want their own page (Blank). Remembered per browser — reset by logout,
+// want their own page (Blank). Remembered per browser, reset by logout,
 // which clears localStorage, and absent in private windows: then the demo
 // shows once more, which is harmless.
 const FIRST_DOC_KEY = 'markoto-created-first-doc'
@@ -97,7 +97,7 @@ function hasCreatedDoc(): boolean {
 function rememberCreatedDoc(): void {
   try {
     globalThis.localStorage?.setItem(FIRST_DOC_KEY, '1')
-  } catch { /* storage blocked — the demo shows again next time */ }
+  } catch { /* storage blocked, the demo shows again next time */ }
 }
 function defaultTemplateId(): string {
   return resolveTemplateId(props.initialTemplateId) ?? (hasCreatedDoc() ? 'blank' : DEFAULT_TEMPLATE_ID)
@@ -113,7 +113,7 @@ function setSection(section: Section, open: boolean) {
   openSection.value = open ? section : (openSection.value === section ? null : openSection.value)
 }
 
-// Caller's saved themes — only fetched for logged-in users, once the dialog
+// Caller's saved themes: only fetched for logged-in users, once the dialog
 // is open (it stays mounted while closed on the workspace page). Each
 // becomes a "Blank in <design>" card, and names a workspace default that
 // matches one. Saving a theme anywhere invalidates the list.
@@ -128,7 +128,7 @@ type WorkspaceTemplate = ApiResponse<'/api/workspaces/:wsId/templates', 'get'>['
 const workspaceTemplates = ref<WorkspaceTemplate[]>([])
 
 async function loadThemeContext() {
-  // The workspace default — only when filing into a workspace.
+  // The workspace default: only when filing into a workspace.
   if (props.workspaceId) {
     try {
       const res = await apiFetch('/api/workspaces/:wsId', {
@@ -274,9 +274,9 @@ function documentFields(): Record<string, unknown> {
 /**
  * Template + design → API. A template brings its design (sent as
  * `themePreset`, so an older server applies it too). Blank sends no design
- * in a workspace with a default — the server applies that default — and the
+ * in a workspace with a default, the server applies that default, and the
  * markoto preset otherwise. "Blank in <saved design>" sends the saved theme.
- * `themePreset` and `themeId` are mutually exclusive — the server rejects both.
+ * `themePreset` and `themeId` are mutually exclusive, the server rejects both.
  */
 function designFields(c: typeof choice.value): Record<string, unknown> {
   if (c.kind === 'saved') return { templateId: 'blank', themeId: c.themeId }

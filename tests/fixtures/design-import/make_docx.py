@@ -1,6 +1,6 @@
 """
 Builds the DOCX fixtures for "Create a design from a document" by hand
-(plain OOXML in a zip — no python-docx), so they are small, deterministic
+(plain OOXML in a zip, no python-docx), so they are small, deterministic
 and contain only invented content.
 
     python3 tests/fixtures/design-import/make_docx.py

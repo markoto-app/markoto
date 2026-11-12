@@ -8,7 +8,7 @@ ANSIBLE_OPTS = -i $(INVENTORY) --vault-password-file=$(VAULT_PASSWORD_FILE)
 .PHONY: help provision deploy rollback logs ssh status backup-test syntax-check lint requirements
 
 help: ## Show this help
-	@printf "markoto/infra — Ansible deploy commands. Root task runner: \033[1mcd .. && make help\033[0m\n\n"
+	@printf "markoto/infra: Ansible deploy commands. Root task runner: \033[1mcd .. && make help\033[0m\n\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 
@@ -19,7 +19,7 @@ requirements: ## Install Galaxy collections + roles into ./collections (run once
 provision: ## One-time setup of a fresh VPS (~5–10 min)
 	ansible-playbook $(ANSIBLE_OPTS) playbooks/provision.yml
 
-deploy: ## Idempotent deploy — pulls latest images and restarts (~5 min)
+deploy: ## Idempotent deploy, pulls latest images and restarts (~5 min)
 	ansible-playbook $(ANSIBLE_OPTS) playbooks/deploy.yml
 
 rollback: ## Roll back to a specific IMAGE_TAG: make rollback TAG=v1.2.3

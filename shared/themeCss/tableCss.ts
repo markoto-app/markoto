@@ -6,10 +6,10 @@ export function tableBlock(theme: DocTheme): string {
   const { headerBackground, headerTextColor, borders, zebra, cellPadding } = theme.tables
 
   // Border CSS varies by setting:
-  //   all        — border on every cell (the default GFM look)
-  //   horizontal — only between rows (newspaper / report style)
-  //   minimal    — only at table top + bottom + below header
-  //   none       — no borders at all
+  //   all       : border on every cell (the default GFM look)
+  //   horizontal: only between rows (newspaper / report style)
+  //   minimal   : only at table top + bottom + below header
+  //   none      : no borders at all
   let borderRules = ''
   switch (borders) {
     case 'all':
@@ -29,9 +29,9 @@ export function tableBlock(theme: DocTheme): string {
   }
 
   // Header background:
-  //   brand  — full brand color (caller picks header text color)
-  //   muted  — subtle tint of body text color
-  //   none   — transparent (no fill)
+  //   brand : full brand color (caller picks header text color)
+  //   muted : subtle tint of body text color
+  //   none  : transparent (no fill)
   let headerBg = ''
   switch (headerBackground) {
     case 'brand':
@@ -46,9 +46,9 @@ export function tableBlock(theme: DocTheme): string {
   }
 
   // Header text color:
-  //   auto   — pick contrasting text against the bg (white on brand,
+  //   auto  : pick contrasting text against the bg (white on brand,
   //            inherit on muted/none)
-  //   inherit — body color regardless
+  //   inherit: body color regardless
   let headerColor = ''
   if (headerTextColor === 'auto' && headerBackground === 'brand') {
     headerColor = 'color: white;'
@@ -73,9 +73,9 @@ export function tableBlock(theme: DocTheme): string {
 }`,
     // Wide tables fit the text width instead of running off the page: words
     // hyphenate, code in a cell (long identifiers, package names) may break
-    // anywhere — that keeps a column's minimum width small without cutting
-    // ordinary words apart — and tables with many columns get a smaller
-    // type size (one selector each — paged.js splits selector lists).
+    // anywhere: that keeps a column's minimum width small without cutting
+    // ordinary words apart: and tables with many columns get a smaller
+    // type size (one selector each, paged.js splits selector lists).
     `.paged-doc td code { overflow-wrap: anywhere; }`,
     // A number and its unit, a currency and its amount, and short codes
     // like SEV-1 never part (renderMarkdown wraps them in table cells).

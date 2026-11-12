@@ -6,7 +6,7 @@ import { useEnv } from '~~/shared/env/load'
  * Thin OpenAI-SDK factory pointed at our self-hosted LiteLLM proxy.
  *
  * LiteLLM speaks OpenAI's API shape for chat / embeddings / images /
- * audio, so the official `openai` SDK Just Works against it — we don't
+ * audio, so the official `openai` SDK Just Works against it, we don't
  * need a vendor-specific client per provider. The proxy handles routing,
  * cost tracking, and per-user budget enforcement.
  *
@@ -14,7 +14,7 @@ import { useEnv } from '~~/shared/env/load'
  * (ingest re-embed, search-time query embedding); `useLitellmForUser()`
  * uses a per-user virtual key.
  *
- * Don't confuse with `server/utils/ai/aiClient.ts` — that's the Y.js AI
+ * Don't confuse with `server/utils/ai/aiClient.ts`, that's the Y.js AI
  * session client (joins Hocuspocus as the `ai:assistant:*` principal).
  * Both files are needed: the LiteLLM client emits LLM HTTP calls; the
  * Y.js client owns the AI's CRDT identity inside a doc.
@@ -27,7 +27,7 @@ let cachedAdminClient: OpenAI | null = null
  * Use for system operations (ingest pipelines, sweepers, admin endpoints).
  * For user-attributed calls, use `useLitellmForUser(virtualKey)`.
  *
- * The client is cached across calls — the SDK manages its own keep-alive
+ * The client is cached across calls, the SDK manages its own keep-alive
  * connection pool.
  */
 export function useLitellmAdmin(): OpenAI {

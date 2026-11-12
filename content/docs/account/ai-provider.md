@@ -1,6 +1,6 @@
 ---
 title: Use your own AI provider
-description: Settings -> AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
+description: Settings → AI provider. Connect your own Mistral, OpenAI or other OpenAI-compatible account for the writing assistant, images and voice.
 category: account
 order: 6
 featured: true
@@ -17,7 +17,7 @@ limits. Images and voice need your own provider there. Self-hosted instances
 work the same way, with whatever defaults the operator set ([what the AI
 needs](/docs/writing/ai-overview)).
 
-Open **Settings -> AI provider** (at `/settings/ai`, or the key icon in the AI
+Open **Settings → AI provider** (at `/settings/ai`, or the key icon in the AI
 prompt bar) and connect a provider separately for each capability:
 
 | Capability | Used for | Needed? |

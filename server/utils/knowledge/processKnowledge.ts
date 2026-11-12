@@ -20,7 +20,7 @@ const log = useLogger('knowledge-processing')
 /**
  * End-to-end ingestion for one knowledge file:
  *   1. Fetch the original file bytes from S3.
- *   2. POST to the markitdown service — same endpoint the user-facing
+ *   2. POST to the markitdown service, same endpoint the user-facing
  *      /api/import uses, so we share all format support for free.
  *   3. Chunk the returned markdown.
  *   4. Embed each chunk (batched) via LiteLLM → Jina v5-text-nano.
@@ -28,7 +28,7 @@ const log = useLogger('knowledge-processing')
  *
  * This runs fire-and-forget from the confirm endpoint. A sweep plugin
  * (`knowledge-sweep`) re-kicks rows stuck in `processing` past the
- * deadline — crash-safe in case the worker dies between step 2 and
+ * deadline: crash-safe in case the worker dies between step 2 and
  * step 5.
  *
  * Errors are caught at every phase and flip the row to `status='failed'`
@@ -44,7 +44,7 @@ const PROCESS_LOCK_TTL_MS = 10 * MINUTE_MS
 
 export async function processKnowledge(knowledgeId: string): Promise<void> {
   // Claim-check lock: the `status !== 'processing'` guard below is a
-  // TOCTOU — two callers (e.g. the sweep plugin racing with the confirm
+  // TOCTOU: two callers (e.g. the sweep plugin racing with the confirm
   // endpoint's fire-and-forget kick) can both read processing before
   // either writes. Without a claim, both proceed through the full
   // pipeline: double embedding cost and a chunks DELETE-then-INSERT race
@@ -120,7 +120,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
       return
     }
 
-    // Final existence check before the write-heavy phase — embeddings
+    // Final existence check before the write-heavy phase, embeddings
     // are the expensive step, but chunks insert + status flip still
     // waste FK-failed round trips if the row is gone.
     if (!(await rowStillExists(knowledgeId))) {
@@ -146,7 +146,7 @@ async function runPipeline(knowledgeId: string): Promise<void> {
       embeddingVersion: embeddingVersionTag(embedCfg)
     })
 
-    // Original upload is no longer needed — we never serve it back and
+    // Original upload is no longer needed, we never serve it back and
     // `markdown_cache` has the parsed content the AI retrieves. Deleting
     // halves storage and removes the "stored an unvalidated binary
     // forever" concern. Best-effort: the delete on the row later will

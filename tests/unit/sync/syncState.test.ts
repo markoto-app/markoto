@@ -40,7 +40,7 @@ function makeFake(opts: { throwOnGet?: boolean, throwOnSet?: boolean } = {}) {
       }
       return n
     },
-    on() { /* noop — sync-state never subscribes */ }
+    on() { /* noop, sync-state never subscribes */ }
   }
   // The valkey singleton type is `Redis`; the fake satisfies the
   // narrow surface our code uses (`get`, `set`, `del`). Cast at the
@@ -48,7 +48,7 @@ function makeFake(opts: { throwOnGet?: boolean, throwOnSet?: boolean } = {}) {
   return { fake: fake as unknown as Parameters<typeof _setValkeyClientForTests>[0], store, calls }
 }
 
-describe('sync-state — Valkey-backed per-doc state', () => {
+describe('sync-state: Valkey-backed per-doc state', () => {
   beforeEach(() => {
     _setValkeyClientForTests(null)
     vi.restoreAllMocks()

@@ -21,7 +21,7 @@
       "delete-cancel-conflict": "No hay ninguna eliminación de cuenta programada que cancelar.",
       "delete-conflict": "La eliminación de tu cuenta ya está programada.",
       "delete-rate-limited": "Demasiadas solicitudes de eliminación de cuenta. Inténtalo más tarde.",
-      "sessions-revoke-rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "sessions-revoke-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
     },
     "admin": {
       "forbidden": "Se necesita acceso de administrador.",
@@ -59,7 +59,7 @@
       "bot-check-replayed": "Esta comprobación contra bots ya se ha usado. Inténtalo de nuevo.",
       "bot-check-required": "La comprobación automática contra bots ha fallado. Inténtalo de nuevo.",
       "misconfigured": "La comprobación contra bots no está disponible ahora mismo. Inténtalo de nuevo en un momento.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "terms-required": "Primero acepta las condiciones de uso.",
       "unavailable": "La comprobación contra bots no está disponible ahora mismo. Inténtalo de nuevo en un momento."
     },
@@ -95,7 +95,7 @@
       "plan-change-failed": "No se pudo cambiar el plan. No se cambió nada; inténtalo de nuevo.",
       "portal-failed": "No se pudo abrir el portal de facturación. Inténtalo de nuevo.",
       "price-unavailable": "Este plan no está a la venta ahora mismo.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "seats-below-members": "Hay más personas que puestos en este espacio. Quita a alguien o mantén más puestos.",
       "seats-busy": "Hay otro cambio de puestos o invitación en curso. Inténtalo de nuevo en un momento.",
       "seats-full": "Todos los puestos pagados están ocupados. Añade un puesto para invitar a alguien más.",
@@ -122,7 +122,7 @@
       "invalid-weight": "El grosor va de 100 a 900 en pasos de 100.",
       "licence-required": "Confirma que tu licencia permite incrustar esta fuente en documentos.",
       "no-design": "Aún no hay diseño del espacio de trabajo. Tómalo de un documento o elige un diseño predeterminado en Configuración.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "too-many-fonts": "Un espacio de trabajo puede tener hasta {limit} archivos de fuente.",
       "too-many-images": "Un espacio de trabajo puede tener hasta {limit} imágenes de marca."
     },
@@ -132,7 +132,7 @@
     "consent": {
       "no-decisions": "No se envió ninguna decisión de consentimiento.",
       "no-valid-decisions": "No se pudo registrar ninguna de las decisiones de consentimiento.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
     },
     "csrf": {
       "origin-mismatch": "Solicitud de origen cruzado rechazada."
@@ -144,7 +144,7 @@
       "not-found": "No se encontró el dominio.",
       "page-not-allowed": "Solo el propietario y los admins del espacio de trabajo pueden mostrar este documento en un dominio.",
       "page-not-published": "Publica primero el documento como página web.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "reserved": "Este dominio pertenece a este servicio.",
       "taken": "Este dominio ya está en uso."
     },
@@ -172,7 +172,7 @@
       "rate-limited": "Demasiados documentos nuevos desde tu red. Inicia sesión o inténtalo más tarde.",
       "render-failed": "No se pudo generar el PDF. Inténtalo de nuevo.",
       "restore-compacted": "Este punto de restauración es demasiado antiguo: su historial se compactó y ya no se puede restaurar. Restaura a un punto más reciente.",
-      "restore-unavailable": "No se puede restaurar desde esta fila — es anterior a la función de restauración."
+      "restore-unavailable": "No se puede restaurar desde esta fila: es anterior a la función de restauración."
     },
     "dpa": {
       "version-stale": "El Anexo de tratamiento de datos cambió desde que abriste este aviso. Revísalo de nuevo."
@@ -193,7 +193,7 @@
       "no-file": "No se proporcionó ningún archivo.",
       "not-configured": "La conversión de documentos no está configurada en este servidor.",
       "not-utf8": "Este archivo Markdown no es texto UTF-8 válido.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "timeout": "La conversión tardó demasiado.",
       "too-complex": "Este archivo es demasiado grande o complejo para convertirlo.",
       "unavailable": "No se pudo contactar con el servicio de conversión.",
@@ -211,7 +211,7 @@
       "key-mismatch": "knowledgeId debe coincidir con s3Key.",
       "not-found": "No se encontró el archivo de conocimiento.",
       "not-uploader": "Los editores solo pueden eliminar sus propias subidas.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "too-many-pending": "Hay demasiadas subidas pendientes. Inténtalo de nuevo en un momento.",
       "unsupported-format": "Formato no compatible: .{ext}. Permitidos: {allowed}.",
       "upload-not-found": "No se encontró la subida. Solicita una nueva subida e inténtalo de nuevo.",
@@ -250,9 +250,9 @@
     },
     "password": {
       "invalid": "Contraseña incorrecta.",
-      "locked": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "locked": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "not-set": "Este documento no tiene contraseña.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "required": "Introduce la contraseña.",
       "too-short": "La contraseña debe tener al menos {minLength} caracteres."
     },
@@ -272,11 +272,11 @@
       "too-large": "Este documento es demasiado grande para publicarlo como página web."
     },
     "published": {
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "not-found": "Esta página no existe o ya no está publicada."
     },
     "rate": {
-      "limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
     },
     "request": {
       "invalid": "Parte de la información enviada no es válida.",
@@ -296,7 +296,7 @@
       "not-a-guest": "Esta persona no es invitada del espacio de trabajo.",
       "not-allowed": "No tienes permiso para cambiar cómo se comparte este documento.",
       "not-shared": "Este documento no está compartido con esta persona.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
     },
     "sso": {
       "admin-required": "Solo los admins del espacio de trabajo pueden gestionar el inicio de sesión único.",
@@ -317,7 +317,7 @@
       "no-seat": "Todos los puestos de pago de este espacio de trabajo están ocupados.",
       "not-active": "El inicio de sesión único no está activo en este espacio de trabajo.",
       "not-provisioned": "Tu organización aún no te ha dado acceso a este espacio de trabajo.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "required": "Este espacio de trabajo usa inicio de sesión único. Inicia sesión a través de tu organización para continuar.",
       "test-mismatch": "El inicio de sesión de prueba usó otra cuenta.",
       "test-not-admin": "Solo un admin del espacio de trabajo puede probar su inicio de sesión.",
@@ -380,7 +380,7 @@
       "disabled": "La lista de espera no está disponible en este despliegue.",
       "invalid-email": "Introduce una dirección de correo válida.",
       "invalid-token": "Este enlace no es válido o ha caducado.",
-      "rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
     },
     "workspace": {
       "admin-required": "Solo los admins del espacio de trabajo pueden hacer esto.",
@@ -394,12 +394,12 @@
       "invalid-email": "Introduce una dirección de correo válida.",
       "invite-cap": "Este espacio de trabajo tiene demasiadas invitaciones pendientes. Retira algunas primero.",
       "invite-not-found": "Esta invitación ya no existe o ha caducado.",
-      "invite-rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+      "invite-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
       "last-admin": "Un espacio de trabajo debe tener al menos un admin. Asciende primero a otra persona o elimina el espacio de trabajo.",
       "member-not-found": "Esa persona no es miembro de este espacio de trabajo.",
       "not-found": "No se encontró el espacio de trabajo.",
       "role-required": "Los lectores no pueden crear documentos en este espacio de trabajo.",
-      "template-rate-limited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo."
+      "template-rate-limited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo."
     }
   }
 }

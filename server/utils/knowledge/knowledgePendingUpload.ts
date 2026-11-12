@@ -7,7 +7,7 @@ const log = useLogger('knowledge')
 
 // Pending knowledge uploads: the record `upload-request` issues so that
 // `confirm` only ever acts on an upload it handed to THIS caller, for
-// THIS workspace — the knowledge counterpart of the `uploads` row behind
+// THIS workspace: the knowledge counterpart of the `uploads` row behind
 // `/api/upload/confirm`. Without it, an editor who learnt another
 // member's freshly minted knowledgeId + key could confirm it as their
 // own, or make confirm delete that original (cleanup on a failed sniff /
@@ -66,7 +66,7 @@ export async function claimPendingKnowledgeUpload(ref: PendingKnowledgeRef): Pro
   }
 }
 
-/** Put a claimed record back (the object hadn't landed yet — the client may retry confirm). */
+/** Put a claimed record back (the object hadn't landed yet, the client may retry confirm). */
 export async function restorePendingKnowledgeUpload(ref: PendingKnowledgeRef, pending: PendingKnowledgeUpload): Promise<void> {
   try {
     await useValkey().set(pendingKey(ref), JSON.stringify(pending), 'PX', KNOWLEDGE_PENDING_TTL_MS, 'NX')

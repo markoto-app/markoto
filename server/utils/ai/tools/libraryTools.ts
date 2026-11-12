@@ -37,7 +37,7 @@ const CreateDocumentArgs = z.object({
   description: z.string().max(500).optional()
     .describe('Optional one-sentence summary, ≤500 chars. Surfaced in doc listings + injected into AI prompts as the doc\'s purpose statement.'),
   audience: z.enum(AUDIENCE_KINDS as [string, ...string[]]).optional()
-    .describe(`Audience the doc is written for — drives AI tone steering. One of: ${AUDIENCE_KINDS.join(', ')}.`),
+    .describe(`Audience the doc is written for, drives AI tone steering. One of: ${AUDIENCE_KINDS.join(', ')}.`),
   language: z.string().trim().min(1).max(50).optional()
     .describe('Free-form language label ("English", "Deutsch", "Schwiizerdütsch"). Used in AI prompts as the writing language.'),
   template_id: z.enum(TEMPLATE_ID_ENUM).optional()
@@ -66,7 +66,7 @@ async function handleCreateDocument(
   session: MetaToolContext,
   input: z.output<typeof CreateDocumentArgs>
 ): Promise<ToolResult> {
-  // Anonymous initiators can't reach this path — every consumer
+  // Anonymous initiators can't reach this path, every consumer
   // (MCP wrapper + agentic loop's prompt endpoint) requires an
   // authenticated user. The session.initiatorUserId is the real
   // human's id; we pass it through as ownerId.
@@ -92,16 +92,16 @@ async function handleCreateDocument(
     return toolError(`Error: ${msg}`)
   }
 
-  // Optional initial markdown — open a transient Hocuspocus client on
+  // Optional initial markdown: open a transient Hocuspocus client on
   // the new doc, insert the body in one transact, disconnect. Mirrors
   // the `openTrustedCommentClient` pattern (server-side mutation
   // broadcast live so any other client connecting in the next few
   // seconds sees the seeded body via Y.js sync, not a refresh).
   //
-  // Origin tag: 'seed:{userId}' — the activity_log row sync-server
+  // Origin tag: 'seed:{userId}': the activity_log row sync-server
   // emits for this transact carries this string in `actor_principal`,
   // so the audit chain still resolves to the human (no agent kind,
-  // because seeding isn't an agent action — just bootstrapping).
+  // because seeding isn't an agent action, just bootstrapping).
   const seed = input.initial_markdown
   if (seed && seed.length > 0) {
     try {
@@ -169,7 +169,7 @@ async function handleDuplicateDocument(
   if (targetWorkspaceId !== null) {
     const member = await proveWorkspaceAccess(session.initiatorUserId, targetWorkspaceId, 'member')
     if (!member?.allows('editor')) {
-      return toolError(`Error: cannot duplicate into workspace "${targetWorkspaceId}" — must be admin or editor.`)
+      return toolError(`Error: cannot duplicate into workspace "${targetWorkspaceId}", must be admin or editor.`)
     }
     target = member
   }
@@ -216,7 +216,7 @@ async function handleExportDocumentAsMarkdown(
   }
   // Same file the editor's "Download Markdown" writes: markoto YAML
   // frontmatter (theme + properties, live ymeta first, row as fallback)
-  // on top of the raw body. NO line-number prefixes — view_document is
+  // on top of the raw body. NO line-number prefixes, view_document is
   // for inspection; this is for delivery / archival / re-import.
   const props = resolveDocProperties(session.ymeta, doc)
   return toolOk(buildMarkdownExport(session.ytext.toJSON(), {
@@ -231,7 +231,7 @@ async function handleExportDocumentAsMarkdown(
 
 export const createDocumentTool = defineMetaTool({
   name: 'create_document',
-  description: 'Create a NEW document owned by the initiator. Optional initial_markdown seeds the doc body in one call (no follow-up insert_text needed). Optional workspace_id files into a workspace (caller must be admin/editor of it). Returns { doc_id, url } — share the url with the user or follow up with view_document / insert_text against the new doc_id.',
+  description: 'Create a NEW document owned by the initiator. Optional initial_markdown seeds the doc body in one call (no follow-up insert_text needed). Optional workspace_id files into a workspace (caller must be admin/editor of it). Returns { doc_id, url }, share the url with the user or follow up with view_document / insert_text against the new doc_id.',
   schema: CreateDocumentArgs,
   trustBoundary: 'confirm',
   handler: handleCreateDocument
@@ -245,10 +245,10 @@ export const duplicateDocumentTool = defineMetaTool({
   handler: handleDuplicateDocument
 })
 
-// Reads ytext directly — DOC-bound. Pure read; no mutation.
+// Reads ytext directly: DOC-bound. Pure read; no mutation.
 export const exportDocumentAsMarkdownTool = defineDocTool({
   name: 'export_document_as_markdown',
-  description: 'Export a document as a markoto Markdown file — the same file the editor\'s "Download Markdown" writes: YAML frontmatter (markoto version, title, description, audience, language, templateId, theme) followed by the full body without line-number prefixes. Importing the file restores the theme and properties. Use when the caller wants the doc as a file (deliver to user, archive, feed to another tool). Different from view_document, which is for AI inspection of the working text.',
+  description: 'Export a document as a markoto Markdown file, the same file the editor\'s "Download Markdown" writes: YAML frontmatter (markoto version, title, description, audience, language, templateId, theme) followed by the full body without line-number prefixes. Importing the file restores the theme and properties. Use when the caller wants the doc as a file (deliver to user, archive, feed to another tool). Different from view_document, which is for AI inspection of the working text.',
   schema: ExportDocumentAsMarkdownArgs,
   handler: handleExportDocumentAsMarkdown
 })

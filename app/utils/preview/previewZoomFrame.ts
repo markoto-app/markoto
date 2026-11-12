@@ -20,8 +20,8 @@
  * DELIVERY. Like `pagedHandlers.ts`, every function below must stay
  * SELF-CONTAINED (no imports, no references to module scope or to each
  * other): the opaque-origin iframe can't load app scripts, so
- * `buildPreviewSrcdoc` inlines `PREVIEW_ZOOM_SCRIPT` — the stringified
- * parts, joined at the bottom of this file — into the nonce'd bootstrap
+ * `buildPreviewSrcdoc` inlines `PREVIEW_ZOOM_SCRIPT`: the stringified
+ * parts, joined at the bottom of this file, into the nonce'd bootstrap
  * script. The parts reach each other only through the arguments
  * `runPreviewZoom` passes them. `tests/dom/previewZoomFrame.test.ts`
  * evaluates that string.
@@ -62,7 +62,7 @@ interface ZoomState {
 interface ZoomContext {
   state: ZoomState
   toParent: (msg: Record<string, unknown>) => void
-  /** Free-zoom range — keep in sync with PREVIEW_ZOOM_MIN / MAX (previewZoom.ts). */
+  /** Free-zoom range: keep in sync with PREVIEW_ZOOM_MIN / MAX (previewZoom.ts). */
   min: number
   max: number
 }
@@ -200,9 +200,9 @@ function createZoomCamera(ctx: ZoomContext, layout: ZoomLayout) {
 
   /**
    * Scroll so the anchor is where the reader expects it:
-   * 'point' — the same spot of the page under the same viewport point;
-   * 'row'   — the page's overview row centred vertically;
-   * 'top'   — the page's top edge just below the top of the view.
+   * 'point': the same spot of the page under the same viewport point;
+   * 'row'  : the page's overview row centred vertically;
+   * 'top'  : the page's top edge just below the top of the view.
    */
   function restore(anchor: ZoomAnchor, target: 'point' | 'row' | 'top'): void {
     const page = layout.pageList()[anchor.index]
@@ -222,7 +222,7 @@ function createZoomCamera(ctx: ZoomContext, layout: ZoomLayout) {
 
   /**
    * Camera move: transform the whole mount so the anchor page sits where
-   * it was before the change, then let it settle — a pull-back into the
+   * it was before the change, then let it settle, a pull-back into the
    * grid, a push-in onto a page, or a short zoom around the anchor.
    */
   function animateFrom(anchor: ZoomAnchor, duration: number, fadeOthers: boolean): void {
@@ -271,7 +271,7 @@ type ZoomCamera = ReturnType<typeof createZoomCamera>
  * Input inside the frame: Ctrl/Cmd + = / - / 0, a click on an overview
  * page, and gestures (Ctrl+wheel / trackpad pinch, touch pinch). Gestures
  * are applied live inside the frame (one layout per animation frame); the
- * final factor goes to the parent, which stores it — or, pinched past the
+ * final factor goes to the parent, which stores it, or, pinched past the
  * minimum, switches to the overview.
  */
 function installZoomInput(ctx: ZoomContext, layout: ZoomLayout, camera: ZoomCamera): void {

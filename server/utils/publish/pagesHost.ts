@@ -20,7 +20,7 @@ import type { RawEnv } from '~~/shared/env/define'
 // `<app>/p/<slug>`. Read per call so tests can stub the environment.
 
 export interface PublishPagesSettings {
-  /** Lowercase hostname without port — what the Host header is compared to. */
+  /** Lowercase hostname without port, what the Host header is compared to. */
   hostname: string
   /** Origin page links are built from (`https://<hostname>` unless a port / http was configured). */
   origin: string
@@ -54,7 +54,7 @@ function splitOrigin(raw: string, source: RawEnv | undefined, site: URL | null):
   // self-host without TLS, the test stacks): a published page must
   // never be the one insecure origin of an https instance.
   if (url.protocol === 'http:' && site?.protocol !== 'http:' && !isTestModeEnabled(source)) {
-    return `${NAME} uses http://, but the app (NUXT_SITE_URL) is not served over plain http — use https:// or a bare hostname`
+    return `${NAME} uses http://, but the app (NUXT_SITE_URL) is not served over plain http, use https:// or a bare hostname`
   }
   return { scheme: url.protocol, port: url.port, hostPart: url.hostname }
 }
@@ -78,15 +78,15 @@ function parse(source: RawEnv | undefined): Parsed {
   return { settings: { hostname, origin: `${parts.scheme}//${hostname}${parts.port ? `:${parts.port}` : ''}` }, error: null }
 }
 
-/** The configured pages host, or null (unset or invalid — boot validation reports invalid values). */
+/** The configured pages host, or null (unset or invalid, boot validation reports invalid values). */
 export function publishPagesSettings(source?: RawEnv): PublishPagesSettings | null {
   return parse(source).settings
 }
 
 /**
  * Boot-time check of the value's shape (a public DNS name or https origin,
- * not the app's own host, not an internal service). Presence rules — the
- * hosted shape needs a pages host and the Traefik token — live with the
+ * not the app's own host, not an internal service). Presence rules, the
+ * hosted shape needs a pages host and the Traefik token, live with the
  * env registry (shared/env/rules/legal.ts).
  */
 export function publishPagesErrors(source?: RawEnv): string[] {
@@ -116,7 +116,7 @@ export function publishedPageAddress(slug: string, fallbackBase: string, setting
  * goes once pages have their own host, or null (not such a path).
  * `/p/<slug>` keeps old links working; the file paths keep images that
  * other sites embedded from the old address working. The query string is
- * dropped — pages take none.
+ * dropped: pages take none.
  */
 export function pagesHostRedirect(path: string, settings: PublishPagesSettings): string | null {
   const pathname = path.split('?')[0] ?? ''

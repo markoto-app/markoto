@@ -14,7 +14,7 @@ import type { Crumb } from '~~/shared/seo/structuredData'
 
 /**
  * The marketing content item for a route path plus the language versions
- * of the same slug (for hreflang), or null when there is no such page —
+ * of the same slug (for hreflang), or null when there is no such page,
  * the catch-all route (pages/[...marketing].vue) answers 404 then.
  */
 export async function fetchMarketingPage(path: string) {

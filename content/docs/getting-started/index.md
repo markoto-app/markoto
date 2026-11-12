@@ -19,29 +19,29 @@ homepage and ends with a tangible result you can hand to someone.
 
 ## The starter tutorials
 
-- [**Write & share your first document**](/docs/getting-started/quick-share) — Create a doc, name it, and send the link. ~3 minutes.
-- [**Turn your draft into a polished PDF**](/docs/import-export/polished-pdf) — Pick a theme, hit Save as PDF, get a polished file.
-- [**Bring an existing Word or PDF document in**](/docs/import-export/import-existing) — Start from what you already have.
-- [**Start from a template**](/docs/getting-started/templates) — Skip the blank page; pick a shape that matches your project.
+- [**Write & share your first document**](/docs/getting-started/quick-share): Create a doc, name it, and send the link. ~3 minutes.
+- [**Turn your draft into a polished PDF**](/docs/import-export/polished-pdf): Pick a theme, hit Save as PDF, get a polished file.
+- [**Bring an existing Word or PDF document in**](/docs/import-export/import-existing): Start from what you already have.
+- [**Start from a template**](/docs/getting-started/templates): Skip the blank page; pick a shape that matches your project.
 
 ## After that
 
 When you're comfortable with the basics:
 
-- [**Write**](/docs/writing) — the [markdown reference](/docs/writing/markdown-reference),
+- [**Write**](/docs/writing): the [markdown reference](/docs/writing/markdown-reference),
   comments, voice dictation, and the AI assistant.
-- [**Set up the AI**](/docs/writing/ai-overview) — what each AI feature
+- [**Set up the AI**](/docs/writing/ai-overview): what each AI feature
   needs, and how to [connect your own provider](/docs/account/ai-provider).
-- [**Share**](/docs/sharing) — access modes (open-edit, view-only,
+- [**Share**](/docs/sharing): access modes (open-edit, view-only,
   password-protected, QR code).
-- [**Style**](/docs/themes) — themes, presets, cover pages.
-- [**Import & export**](/docs/import-export) — DOCX/PDF/PPTX/XLSX/HTML/EPUB
+- [**Style**](/docs/themes): themes, presets, cover pages.
+- [**Import & export**](/docs/import-export): DOCX/PDF/PPTX/XLSX/HTML/EPUB
   in; Markdown + PDF out.
-- [**Workspaces**](/docs/workspaces) — team-shared docs with three roles
+- [**Workspaces**](/docs/workspaces): team-shared docs with three roles
   and a Team plan for shared AI budget (coming soon).
-- [**History & restore**](/docs/history) — see every change, replay
+- [**History & restore**](/docs/history): see every change, replay
   comments in context, restore any past version.
-- [**Account & privacy**](/docs/account) — AI provider setup, MCP access
+- [**Account & privacy**](/docs/account): AI provider setup, MCP access
   tokens, plans and limits, GDPR data export, account deletion.
-- [**Run it yourself**](/docs/getting-started/self-hosting) — install markoto on
+- [**Run it yourself**](/docs/getting-started/self-hosting): install markoto on
   your own server.

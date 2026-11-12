@@ -1,6 +1,6 @@
 ---
 title: Save your custom theme as a preset
-description: Once you've tuned a theme, save it — every new doc you create lists it next to the built-in presets.
+description: Once you've tuned a theme, save it and every new doc you create lists it next to the built-in presets.
 category: themes
 order: 3
 updated: '2026-11-08'
@@ -31,11 +31,11 @@ settings themselves stay as they were. The bin deletes it after asking
 once. Documents that already use the theme keep their look. The built-in
 presets can't be changed or deleted.
 
-For shared team styling, you don't need to save personally — set the
+For shared team styling, you don't need to save personally: set the
 preset as the [workspace default theme](/docs/workspaces/default-theme)
 and every member sees it on every new doc.
 
 ## What's next
 
-- [Set a workspace default](/docs/workspaces/default-theme) — same idea, but for a team.
-- [Tune more knobs](/docs/themes/customize) — there's more to a theme than colors.
+- [Set a workspace default](/docs/workspaces/default-theme): same idea, but for a team.
+- [Tune more knobs](/docs/themes/customize): there's more to a theme than colors.

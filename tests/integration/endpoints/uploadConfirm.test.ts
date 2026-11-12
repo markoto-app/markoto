@@ -229,7 +229,7 @@ describe('POST /api/upload/confirm', () => {
 // Presigned PUT re-use: the URL must not stay valid for its whole lifetime against the served key, otherwise
 // after confirm sniffed the bytes the uploader could PUT again (same length + type) and swap the confirmed
 // image for arbitrary bytes.
-describe('POST /api/upload/confirm — confirmed images are immutable', () => {
+describe('POST /api/upload/confirm: confirmed images are immutable', () => {
   beforeEach(async () => {
     await resetDb()
   })

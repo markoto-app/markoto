@@ -56,7 +56,7 @@ const {
   }
 )
 
-// Defer to VueUse `tryOnMounted` — see app/pages/index.vue for the
+// Defer to VueUse `tryOnMounted`, see app/pages/index.vue for the
 // full rationale (SSR cookie-less $fetch + setup-time loading-flag
 // flip both cause hydration mismatches; deferring to client mount
 // sidesteps both).
@@ -87,7 +87,7 @@ const tabItems = computed(() => {
     { label: t('workspace.tabs.documents'), icon: 'i-lucide-file-text', slot: 'documents', value: 'documents' },
     { label: t('workspace.tabs.knowledge'), icon: 'i-lucide-library', slot: 'knowledge', value: 'knowledge' }
   ]
-  // Admin-only Settings tab. Hidden for editors / viewers — there's
+  // Admin-only Settings tab. Hidden for editors / viewers, there's
   // nothing actionable for them there. Putting the gate at tab-list
   // level (rather than inside the slot) means the tab strip is the
   // same width for everyone but the order shifts.
@@ -201,7 +201,7 @@ function onDocDeleted() {
 }
 
 function onDocDuplicated(newDocId: string) {
-  // Send the user into their fresh copy — matches the "file → duplicate"
+  // Send the user into their fresh copy, matches the "file → duplicate"
   // flow in desktop apps, and the workspace view will re-hydrate on the
   // next visit. If the duplicate stayed in this workspace, reloading
   // here would surface it in the list too, but we'd rather the user
@@ -306,7 +306,7 @@ async function leaveWorkspace() {
   <div class="min-h-screen flex flex-col">
     <!-- Workspace header. Lockup → back → workspace name, divided by
          hairline rules so the brand mark stays the leftmost anchor on
-         every screen. The folder icon (previously shu) is dropped —
+         every screen. The folder icon (previously shu) is dropped,
          workspace identity is carried by name + Back, and shu stays
          reserved for AI presence. -->
     <header class="border-b border-default px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-2">
@@ -427,7 +427,7 @@ async function leaveWorkspace() {
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-3 flex-wrap">
-              <!-- Workspace title in the editorial register — Fraunces
+              <!-- Workspace title in the editorial register, Fraunces
                    serif, weight 400, tight tracking. Same display as
                    the doc title in the editor toolbar; one consistent
                    editorial voice for every "name of an object" in the
@@ -470,7 +470,7 @@ async function leaveWorkspace() {
               {{ data.workspace.description }}
             </p>
             <!-- Gap between workspace description and the member
-                 roster — `mt-3` was too tight, the member rows
+                 roster: `mt-3` was too tight, the member rows
                  visually merged with the description prose. -->
             <div class="mt-6">
               <WorkspaceMemberAvatars
@@ -510,7 +510,7 @@ async function leaveWorkspace() {
           Tabs. variant=link swaps the shu pill for a subtle
           underlined-tab register that fits the editorial chrome.
           color=neutral makes the active underline sumi-950 instead
-          of shu — shu stays reserved for AI presence. The label slot
+          of shu: shu stays reserved for AI presence. The label slot
           upgrades the tab text to Fraunces serif so tabs read as
           section titles, not chrome buttons.
         -->
@@ -548,7 +548,7 @@ async function leaveWorkspace() {
           </template>
 
           <template #settings>
-            <!-- Workspace settings — admin-only. Currently houses the
+            <!-- Workspace settings: admin-only. Currently houses the
                  default-theme picker; future workspace-wide settings
                  (e.g. retention policy) sit here too. -->
             <WorkspaceSettingsPanel

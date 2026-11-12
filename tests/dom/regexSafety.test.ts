@@ -74,7 +74,7 @@ describe('cover title helpers', () => {
   test('keepNumbersTogether joins neighbouring words that both carry a digit', () => {
     expect(keepNumbersTogether('Q3 2026 Report')).toBe('Q3 2026 Report')
     expect(keepNumbersTogether('ISO 9001 2015 audit')).toBe('ISO 9001 2015 audit')
-    expect(keepNumbersTogether('Chapter 3 — Learning')).toBe('Chapter 3 — Learning')
+    expect(keepNumbersTogether('Chapter 3 \u2014 Learning')).toBe('Chapter 3 \u2014 Learning')
     expect(keepNumbersTogether('a  1 1')).toBe('a  1 1')
   })
 

@@ -31,7 +31,7 @@ export function createBlockQueries() {
    * Kept with the block after it: headings, definition-list terms,
    * code-block captions, table captions set above the table
    * (`{.table-caption}`), and a short paragraph that ends in a colon
-   * ("To run it locally:") — it introduces what follows.
+   * ("To run it locally:"), it introduces what follows.
    */
   function keepsWithNext(el: Element): boolean {
     if (HEADING.test(el.nodeName) || el.nodeName === 'DT' || el.classList.contains('code-title') || el.classList.contains('table-caption')) return true

@@ -17,7 +17,7 @@ import { useEnv } from '~~/shared/env/load'
  * "Create a design from a document", step 2: read the uploaded file and
  * start the design run in the background. Body: `{ uploadId }`.
  *
- *   1. claim the caller's pending upload (404 otherwise — no S3 call)
+ *   1. claim the caller's pending upload (404 otherwise, no S3 call)
  *   2. one run per user at a time (409 `design-import/busy`)
  *   3. vision provider + free-allowance check (same as any AI call)
  *   4. HEAD: stored type + size must be what was signed

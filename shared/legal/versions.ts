@@ -3,7 +3,7 @@
 // invalidates prior acceptance and re-prompts the user on next page
 // load.
 //
-// Bump rules — these are legally load-bearing, not cosmetic:
+// Bump rules: these are legally load-bearing, not cosmetic:
 //   - Privacy / ToS / DPA: bump on ANY material change. Typo fixes
 //     and pure-translation edits do NOT bump (the authoritative English
 //     text didn't change). Anything that adds/removes a processing
@@ -13,7 +13,7 @@
 //     changing what an existing purpose covers (e.g. analytics now
 //     also tracks scroll depth). Don't bump for cosmetic banner copy.
 //
-// Effective date is informational only — the legal "from" date for
+// Effective date is informational only, the legal "from" date for
 // each version. Stored alongside the version so the privacy page can
 // show "Effective 2026-MM-DD" without a registry lookup.
 //
@@ -66,7 +66,7 @@ export const ABUSE_POLICY_VERSION = 2
 export const ABUSE_POLICY_EFFECTIVE_DATE = '2026-11-03'
 
 // Paid Plans Terms: the extra terms for Pro / Team /
-// Business and AI credits, accepted at checkout (not at onboarding — free
+// Business and AI credits, accepted at checkout (not at onboarding, free
 // users never see them). Acceptance is recorded per purchase in the audit
 // log (`policy.accepted`, document `paid-terms`), not on the user row.
 // v1 (2026-11-09): first version.
@@ -89,7 +89,7 @@ export const CONSENT_VERSION = 2
 // `waitlist_signups` row together with `WAITLIST_CONSENT_TEXT_ID` so we can
 // prove WHICH text a person agreed to (GDPR Art.7(1)). Bump on any material
 // change to that text; existing rows keep the version they consented to.
-// Independent of `CONSENT_VERSION` (the cookie banner) — the waitlist
+// Independent of `CONSENT_VERSION` (the cookie banner), the waitlist
 // consent is collected inline on the pricing page, not in the banner.
 export const WAITLIST_CONSENT_VERSION = 1
 export const WAITLIST_CONSENT_TEXT_ID = 'waitlist.consentLabel'

@@ -39,7 +39,7 @@ async function manageable(domainId: string): Promise<boolean> {
   return row.pageManageable
 }
 
-describe('listVerifiedCustomDomains — pageManageable', () => {
+describe('listVerifiedCustomDomains: pageManageable', () => {
   beforeEach(async () => {
     await resetDb()
   })

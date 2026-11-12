@@ -7,7 +7,7 @@ import { hljsTheme } from '~~/shared/utils/vendor/hljsAssets'
 import { buildMermaidConfig } from '~~/shared/utils/markdown/mermaidConfig'
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
-// Markdown source next to what markoto makes of it — for marketing
+// Markdown source next to what markoto makes of it, for marketing
 // content (`::sample` in content/marketing/**):
 //
 //   ::sample{kind="gfm"}
@@ -172,7 +172,7 @@ useHead(() => ({
   border-color: var(--ui-border-accented);
 }
 /* `.mk-sample` in front: beats the article's `.prose pre/code` (and
-   their `.dark` variants) from main.css. Ligatures off — JetBrains Mono
+   their `.dark` variants) from main.css. Ligatures off, JetBrains Mono
    would draw `==` or `~~` as one glyph, and the point here is the
    characters you type. */
 .mk-sample .mk-sample__code {
@@ -277,7 +277,7 @@ html.dark .mk-sample__result :deep(:where(.mk-sample-h)) { color: var(--color-su
 .mk-sample__result :deep(.katex-display) { overflow-x: auto; overflow-y: hidden; }
 
 /* Diagrams sit on a white sheet, in the default theme's colours, also in
-   dark mode — the way they print. */
+   dark mode: the way they print. */
 .mk-sample__result :deep(.mermaid) {
   display: flex;
   justify-content: center;

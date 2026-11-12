@@ -41,7 +41,7 @@ const NOT_MATCHED: CheckoutResult = { matched: 0, plan: null }
  * customer.subscription.updated): Stripe fires BOTH events on a
  * successful checkout, and their delivery order is NOT guaranteed. If
  * subscription.updated arrives first, its handler can't map the customer
- * yet — that is THIS handler's job. By retrieving the subscription
+ * yet: that is THIS handler's job. By retrieving the subscription
  * synchronously here we apply the full state in one write; later
  * subscription.updated events become idempotent no-ops.
  */
@@ -157,7 +157,7 @@ async function bindPersonalCheckout(session: Stripe.Checkout.Session, ref: strin
     set: setFields
   }, opts.db)
 
-  // Sync the LiteLLM virtual-key budget to the new plan — deferred until
+  // Sync the LiteLLM virtual-key budget to the new plan, deferred until
   // after the surrounding TX commits: calling `updateUserKeyBudget` inline
   // would self-deadlock against the row lock held by the UPDATE above.
   if (plan && opts.deferAfterCommit) {

@@ -4,9 +4,9 @@ import { createHash } from 'node:crypto'
  * Edit-progress tracking for the agentic loop.
  *
  * Mistral at temperature 0 does not always know when it is finished.
- * After making the requested edit it can keep calling tools — swapping a
+ * After making the requested edit it can keep calling tools, swapping a
  * sentence back and forth, inserting bare newlines, replacing text
- * with itself — until the 20-turn limit ends the session with an
+ * with itself: until the 20-turn limit ends the session with an
  * error. This module classifies each document edit by its effect on
  * the text so the loop can (a) tell the model plainly that an edit
  * achieved nothing and (b) end a session that keeps stalling with a
@@ -34,11 +34,11 @@ export const NO_OP_EDIT_ERROR_PREFIX = 'Error: No change'
 export const STALLED_TURN_LIMIT = 3
 
 /**
- * - `progress`        — the words of the document changed to a state not seen before
- * - `no-change`       — the text is identical afterwards (incl. the rejected old_str === new_str)
- * - `whitespace-only` — only spaces / line breaks / blank lines changed
- * - `revert`          — the text is back to a state it already had in this session
- * - `repeat`          — the exact same edit call failed before in this session and failed again
+ * - `progress`: the words of the document changed to a state not seen before
+ * - `no-change`: the text is identical afterwards (incl. the rejected old_str === new_str)
+ * - `whitespace-only`: only spaces / line breaks / blank lines changed
+ * - `revert`: the text is back to a state it already had in this session
+ * - `repeat`: the exact same edit call failed before in this session and failed again
  */
 export type EditVerdict = 'progress' | 'no-change' | 'whitespace-only' | 'revert' | 'repeat'
 
@@ -67,11 +67,11 @@ export function stalledEditNote(verdict: EditVerdict): string | null {
     case 'no-change':
       return 'Note: the document did not change. Do not repeat this call. If the user\'s request is done, finish now: reply without calling any tool.'
     case 'whitespace-only':
-      return 'Note: this edit only changed spaces, line breaks or blank lines. Markdown already separates blocks with one blank line — do not keep adjusting spacing. If the user\'s request is done, finish now: reply without calling any tool.'
+      return 'Note: this edit only changed spaces, line breaks or blank lines. Markdown already separates blocks with one blank line, do not keep adjusting spacing. If the user\'s request is done, finish now: reply without calling any tool.'
     case 'revert':
-      return 'Note: the document is now exactly as it was earlier in this session — you are undoing your own edits. Stop editing. If the user\'s request is done, finish now: reply without calling any tool.'
+      return 'Note: the document is now exactly as it was earlier in this session, you are undoing your own edits. Stop editing. If the user\'s request is done, finish now: reply without calling any tool.'
     case 'repeat':
-      return 'Note: you already made this exact call and it failed the same way. Do not repeat it. Only text shown by view_document is in the document — the document context and conversation history are not. If the user\'s request is done, finish now: reply without calling any tool.'
+      return 'Note: you already made this exact call and it failed the same way. Do not repeat it. Only text shown by view_document is in the document, the document context and conversation history are not. If the user\'s request is done, finish now: reply without calling any tool.'
     case 'progress':
       return null
   }
@@ -90,7 +90,7 @@ export interface TurnProgress {
  * Per-session tracker. Feed it every document edit with `noteEdit`, then
  * call `endTurn` once per model turn. Turns without document edits
  * (reading, comments, theme) neither count as stalled nor reset the
- * streak — a `view_document` between two pointless edits is still a
+ * streak: a `view_document` between two pointless edits is still a
  * stall.
  */
 export class EditProgressTracker {
@@ -108,8 +108,8 @@ export class EditProgressTracker {
    * around the call (null when unreadable). `rejectedNoOp` marks the
    * handler's old_str === new_str rejection. `call` identifies the call
    * (tool name + arguments): a failed edit (no match, bad line) is not
-   * classified the first time — the error tells the model what went
-   * wrong and it usually recovers — but the identical call failing again
+   * classified the first time, the error tells the model what went
+   * wrong and it usually recovers, but the identical call failing again
    * is a `repeat`.
    *
    * Returns the verdict, or null when the edit was not classified.

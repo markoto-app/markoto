@@ -1,6 +1,6 @@
 // Audit-action constants for GDPR / DSA / AI-Act compliance events.
 // `audit_log.action` is plain text in the schema (not pgEnum), so adding
-// a new action is a TS-only change — no migration. Keep these grouped
+// a new action is a TS-only change, no migration. Keep these grouped
 // here so the compliance surface has a single audit-action vocabulary.
 //
 // All actions are lowercase, dot-separated, namespace-first. Match the
@@ -25,9 +25,9 @@ export const AUDIT_ABUSE_REPORTED = 'abuse.reported'
 export const AUDIT_ABUSE_ACKNOWLEDGED = 'abuse.acknowledged'
 export const AUDIT_ABUSE_ACTIONED = 'abuse.actioned'
 export const AUDIT_ABUSE_DISMISSED = 'abuse.dismissed'
-// A DSA notice the pipeline produced for a report — confirmation of
+// A DSA notice the pipeline produced for a report, confirmation of
 // receipt (Art.16(4)), decision to the reporter (Art.16(5)) or statement
-// of reasons to the owner (Art.17) — sent or recorded as not deliverable.
+// of reasons to the owner (Art.17), sent or recorded as not deliverable.
 // `scope_id` = report id; metadata: kind, recipient role, status. The text
 // itself lives in `moderation_notices`, never in the audit row.
 export const AUDIT_ABUSE_NOTICE_RECORDED = 'abuse.notice_recorded'
@@ -50,7 +50,7 @@ export const AUDIT_ADMIN_REVOKED = 'admin.revoked'
 // so it's an audit-grade event. `actor` is always the user themselves
 // (PATs are issued + revoked from the user's own session); the
 // `scope_id` is the public token id (`mkt_pat_…`), NOT the SHA-256
-// hash — leaking the hash to the audit log would weaken cache-eviction
+// hash: leaking the hash to the audit log would weaken cache-eviction
 // forensics. The token name is captured in `metadata.name` so the
 // audit row is human-readable ("revoked 'Claude Desktop on laptop'").
 export const AUDIT_MCP_TOKEN_ISSUED = 'mcp.token_issued'
@@ -60,7 +60,7 @@ export const AUDIT_MCP_TOKEN_REVOKED = 'mcp.token_revoked'
 // third-party API key and pointing the server at a base URL is a
 // credential + outbound-traffic change, so it's audit-grade. `scope_id`
 // is the user id; `metadata` carries capability, provider HOST and model
-// — never the key (not even the last four characters).
+// never the key (not even the last four characters).
 export const AUDIT_AI_PROVIDER_SAVED = 'ai_provider.saved'
 export const AUDIT_AI_PROVIDER_DELETED = 'ai_provider.deleted'
 
@@ -80,7 +80,7 @@ export const AUDIT_WORKSPACE_INVITE_DECLINED = 'workspace.invite_declined'
 
 // Team / Business workspace billing. `scope` is `billing`,
 // `scope_id` the workspace id. Metadata: plan / seats / interval /
-// currency, the affected member id for limits — never card data (Stripe
+// currency, the affected member id for limits, never card data (Stripe
 // holds that).
 export const AUDIT_WORKSPACE_BILLING_CHECKOUT_STARTED = 'workspace.billing_checkout_started'
 export const AUDIT_WORKSPACE_BILLING_PLAN_CHANGED = 'workspace.billing_plan_changed'
@@ -96,7 +96,7 @@ export const AUDIT_WORKSPACE_SUBSCRIPTION_CANCELLED = 'workspace.subscription_ca
 export const AUDIT_DESIGN_IMPORT_STARTED = 'design_import.started'
 
 // Per-workspace single sign-on. `scope` workspace, `scope_id` the
-// workspace id. Metadata: protocol, domain, the affected user id — never
+// workspace id. Metadata: protocol, domain, the affected user id, never
 // a client secret, certificate body, SCIM token or assertion.
 export const AUDIT_SSO_CONNECTION_SAVED = 'sso.connection_saved'
 export const AUDIT_SSO_CONNECTION_ACTIVATED = 'sso.connection_activated'
@@ -144,7 +144,7 @@ export const AUDIT_CUSTOM_DOMAIN_REMOVED = 'custom_domain.removed'
 // A live domain whose DNS stayed wrong past the grace period stops (system).
 export const AUDIT_CUSTOM_DOMAIN_DROPPED = 'custom_domain.dropped'
 
-// Tagged union of every compliance audit action — useful for
+// Tagged union of every compliance audit action, useful for
 // exhaustiveness checks at call sites.
 export type ComplianceAuditAction
   = | typeof AUDIT_ACCOUNT_DELETE_REQUESTED

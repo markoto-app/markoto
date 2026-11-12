@@ -17,7 +17,7 @@ const log = useLogger('ai-provenance')
 //
 // Everything else (crash, error before the guard existed, tainted
 // session, a failed update) leaves the row not-clean, so the session's
-// edits keep counting as somebody else's text — the taint gate's
+// edits keep counting as somebody else's text, the taint gate's
 // fail-closed polarity.
 
 /**
@@ -45,7 +45,7 @@ export async function finalizeSessionProvenance(doc: DocAccess<'write'>, session
   try {
     await markAiSessionProvenanceClean(doc, sessionId)
   } catch (e) {
-    // Fail closed: the edits stay "foreign" — at worst a later session
+    // Fail closed: the edits stay "foreign", at worst a later session
     // asks before reaching other documents.
     log.warn('could not mark session clean', { sessionId, err: e })
   }

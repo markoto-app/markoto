@@ -19,7 +19,7 @@ describe('template gallery pictures', () => {
     if (!source) return
     expect(THEME_PRESETS.some(p => p.id === source.theme), `${id}: theme ${source.theme} is not a preset`).toBe(true)
     expect(existsSync(resolve(__dirname, `../../../public/templates/${id}.webp`)), `run make template-gallery IDS=${id}`).toBe(true)
-    expect(recorded[id], `${id}: its example or theme changed — run make template-gallery IDS=${id}`).toBe(galleryHash(source))
+    expect(recorded[id], `${id}: its example or theme changed, run make template-gallery IDS=${id}`).toBe(galleryHash(source))
   })
 
   it('every picture the template hub shows has a gallery source', () => {

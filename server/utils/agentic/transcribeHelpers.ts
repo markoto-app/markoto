@@ -1,6 +1,6 @@
 // Pure helpers for the one-shot voice-to-text endpoint
 // (POST /api/ai/transcribe). Same split rationale as
-// `dictateHelpers.ts` — extracted so unit tests don't pull in Nuxt
+// `dictateHelpers.ts`: extracted so unit tests don't pull in Nuxt
 // runtime + auth machinery just to assert on MIME/language mapping.
 //
 // Language codes go through `normalizeLanguageCode` in `dictateHelpers.ts`
@@ -11,19 +11,19 @@
  * Map a client-reported MIME type to the upstream's encoding enum. We
  * default to WEBM_OPUS for unspecified opus containers because that's
  * what modern Chrome/Firefox MediaRecorder outputs natively. (Enum
- * names are Cloud STT shapes kept for the Voxtral path —
+ * names are Cloud STT shapes kept for the Voxtral path,
  * `mimeToEncoding` runs before the provider router, so one mapping
  * serves every provider.)
  *
- * The transcription upstream doesn't accept MP4/AAC — Safari's
- * MediaRecorder default — so we return `null` for that surface and
+ * The transcription upstream doesn't accept MP4/AAC, Safari's
+ * MediaRecorder default: so we return `null` for that surface and
  * the caller rejects at the MIME gate with a 400. Future Safari
  * voice support will need server-side transcoding (ffmpeg / batch
  * upload path); not actionable from this helper.
  *
  * Must stay in lockstep with the caller's ALLOWED_MIME allowlist: if
  * a MIME passes the allowlist but we return null here, the caller
- * has to surface a separate "unsupported encoding" error — an
+ * has to surface a separate "unsupported encoding" error, an
  * inconsistency that'd confuse debugging.
  */
 export function mimeToEncoding(mimeType: string): string | null {

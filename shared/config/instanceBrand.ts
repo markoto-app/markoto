@@ -1,6 +1,6 @@
 // Co-branding of a managed private instance: the customer's name
 // and logo next to the markoto wordmark, and their support contact. Set
-// by the operator in the instance's .env — nothing to configure in the
+// by the operator in the instance's .env, nothing to configure in the
 // app. Unset everywhere else (markoto.app, ordinary self-hosts): nothing
 // changes. markoto's own design system stays (the seal is the AI).
 
@@ -44,7 +44,7 @@ export function instanceBrandLogoExt(path: string | undefined): InstanceBrandLog
 
 export function resolveInstanceBrand(source?: RawEnv): InstanceBrand {
   const { brand } = useEnv(source)
-  // \p{Cc}: control characters (C0, DEL, C1) — kept out of the title and header.
+  // \p{Cc}: control characters (C0, DEL, C1), kept out of the title and header.
   const name = brand.name.replace(/\p{Cc}/gu, '').trim().slice(0, INSTANCE_BRAND_NAME_MAX)
   const ext = instanceBrandLogoExt(brand.logo)
   return {

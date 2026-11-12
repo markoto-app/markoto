@@ -2,7 +2,7 @@
 // through the app (today: `/api/import`, which anonymous users can call).
 //
 // The hard limits sit in front of this: Bun's `maxRequestBodySize`
-// (server/runtime/bunEntry.ts — the production entry buffers every body
+// (server/runtime/bunEntry.ts: the production entry buffers every body
 // before routing, so only the runtime can refuse one in time) and
 // Traefik's buffering middleware on `/api/import` (prod + self-host
 // compose). This helper is the endpoint-level check that holds in every

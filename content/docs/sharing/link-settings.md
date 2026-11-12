@@ -27,9 +27,9 @@ and the members of the workspace can open the document; everyone else sees
 People who have the document open at that moment can keep reading it for up
 to two hours.
 
-## View only — no download or print
+## View only: no download or print
 
-Turn on **View only — no download or print** and people with the link can
+Turn on **View only: no download or print** and people with the link can
 read the document, but File → Export, Save as PDF and Print are gone for
 them, and markoto refuses to make a PDF for them. You and the workspace's
 members can still download and print. This keeps a document from being
@@ -40,7 +40,7 @@ read on screen.
 
 Under the settings you see how often the document was opened in the last
 30 days by people other than you and the workspace's members, and when it
-was last opened. markoto counts opens per day only — not who opened the
+was last opened. markoto counts opens per day only, not who opened the
 link, from where or how often each person did.
 
 ## What's next

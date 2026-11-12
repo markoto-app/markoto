@@ -23,7 +23,7 @@ import { SOURCE_REPO_URL } from '~~/shared/config/links'
 const { t } = useI18n()
 // Legal links + the cookie note only where the legal surfaces exist
 // (hosted SaaS). The copyright line names the operator when one is
-// configured — never the hosted operator on a self-hosted instance
+// configured: never the hosted operator on a self-hosted instance
 // (shared/config/instance.ts).
 const { legalSurfaces, operatorName, marketingSite } = useInstanceConfig()
 const { supportHref } = useInstanceSupport()

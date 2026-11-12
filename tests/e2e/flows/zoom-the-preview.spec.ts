@@ -4,8 +4,8 @@ import type { EditorPage } from '../page-objects/Editor'
 // "Zoom the preview and see all pages".
 //
 // User-job: a writer working on a long report wants to read a page up
-// close, then step back and see the whole document at once — where the
-// tables land, which page a chapter starts on — and jump straight to a
+// close, then step back and see the whole document at once, where the
+// tables land, which page a chapter starts on, and jump straight to a
 // page from there. Job done when they've zoomed in, pulled back into
 // the all-pages overview, opened a page from it, and found the preview
 // the way they left it after a reload.

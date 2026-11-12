@@ -55,7 +55,7 @@ function setAvailability(a: Omit<AiAvailability, 'webTools'>): void {
   useQueryCache().setQueryData<AiAvailability>(aiKeys.availabilityFor(null), { ...a, webTools: { search: true, fetch: true } })
 }
 
-describe('AIPromptBar — bring your own key', () => {
+describe('AIPromptBar: bring your own key', () => {
   it('no chat provider → settings call-to-action instead of the input, no mic', async () => {
     setAvailability({
       chat: { ...status(false, 'none'), supportsVision: false },
@@ -99,7 +99,7 @@ describe('AIPromptBar — bring your own key', () => {
   })
 })
 
-describe('AIPromptBar — AI by plan', () => {
+describe('AIPromptBar: AI by plan', () => {
   it('voice the plan doesn\'t include → a locked mic that explains, not a hidden one', async () => {
     toastAdd.mockClear()
     setAvailability({

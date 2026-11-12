@@ -18,7 +18,7 @@ import { applyAccessEnded, applyTokenAnswer, applyUnlockedMeta, createDocAccessS
  *     orchestrator confirms a post-reconnect sync. That prevents the "editor
  *     mounts empty, user types, then synced content overwrites" race.
  *   - `clearPendingUnlock()` is called by the orchestrator on first sync after
- *     a password-verified reconnect — it flips `requiresPassword` to false.
+ *     a password-verified reconnect: it flips `requiresPassword` to false.
  */
 
 // Refetch the JWT when it's within this window of expiring. The doc token
@@ -81,13 +81,13 @@ export function useDocToken(docId: string) {
 
   /**
    * Fetch a fresh JWT from `/token` WITHOUT disturbing the rest of the doc
-   * state (theme, doc-context, ownership) — a pure token refresh for the
+   * state (theme, doc-context, ownership), a pure token refresh for the
    * reconnect and renewal paths. Updates `tokenData` + `isReadOnly` +
    * `noDownload` when the server issues a usable token.
    *
    * When it issues none, the access ended while the editor was open (link
    * expired, made private, password set, membership removed): flip to the
-   * same gate a fresh page load would show — the orchestrator tears the
+   * same gate a fresh page load would show, the orchestrator tears the
    * connection down on that. A password-gated visitor lands back on the
    * password prompt: its JWT came from `/password` and can't be re-minted
    * without the password. A failed fetch (offline, 5xx) changes nothing
@@ -117,7 +117,7 @@ export function useDocToken(docId: string) {
    * this on every (re)connect, and when the sync server asks for a fresh
    * token shortly before the current one expires (`renewal`). Returns the
    * current JWT while it's still comfortably valid; refetches when it's
-   * near/at expiry, marked stale, or the server asked — the server only
+   * near/at expiry, marked stale, or the server asked, the server only
    * asks near expiry, so trusting the request rather than our own clock
    * keeps renewal working when the browser's clock is off. Falls back to
    * the current token when a refetch can't issue a new one (offline): the
@@ -163,7 +163,7 @@ export function useDocToken(docId: string) {
       const data = await apiFetch('/api/docs/:docId/meta', { path: { docId }, headers: { Authorization: `Bearer ${newToken}` } })
       applyUnlockedMeta(state, data)
     } catch {
-      // Non-fatal — sync is the live source of these values.
+      // Non-fatal: sync is the live source of these values.
     }
   }
 

@@ -175,8 +175,8 @@ function better(a: readonly number[], b: readonly number[]): boolean {
  * possible for every slice count from 2 to `levels.length` (a chart with
  * n series uses the first n entries; in a pie the last touches the
  * first). `fixed` leading entries keep their place. First the smallest
- * gap over all counts (in 0.01 steps), then the counts in order — few
- * series are the common case — up to a gap that reads clearly (0.12).
+ * gap over all counts (in 0.01 steps), then the counts in order, few
+ * series are the common case, up to a gap that reads clearly (0.12).
  */
 function orderLevels(fixed: readonly number[], free: readonly number[]): number[] {
   let best: number[] = [...fixed, ...free]

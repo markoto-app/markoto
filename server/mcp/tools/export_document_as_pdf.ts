@@ -12,7 +12,7 @@ import { admitToolCall } from '../lib/wrapDocBoundTool'
 import { useEnv } from '~~/shared/env/load'
 import { apiError } from '../../utils/api/apiError'
 
-// MCP-only tool. The in-app agentic loop has no use for a PDF blob —
+// MCP-only tool. The in-app agentic loop has no use for a PDF blob,
 // `view_pages` already gives the loop per-page PNGs for visual
 // inspection, and the loop has no surface to deliver a binary file
 // to the user. MCP clients (Claude Desktop, ChatGPT app store) DO
@@ -21,7 +21,7 @@ import { apiError } from '../../utils/api/apiError'
 //
 // Return shape: a full `CallToolResult` with an `embedded resource`
 // content block carrying the base64-encoded PDF bytes. The toolkit
-// passes this through verbatim — clients render it as an in-chat
+// passes this through verbatim, clients render it as an in-chat
 // file attachment the user can save.
 //
 // Cost: each cache miss kicks the Playwright renderer container
@@ -33,7 +33,7 @@ import { apiError } from '../../utils/api/apiError'
 // delivery channel), and the return shape is genuinely different
 // from every other tool (binary embedded resource, not text). Wiring
 // it through the registry would require extending ToolResult
-// with a resource variant just for one MCP-only tool — not worth it.
+// with a resource variant just for one MCP-only tool, not worth it.
 
 const inputSchema = {
   doc_id: z.string().min(1).describe('The doc id to render as PDF.')
@@ -42,7 +42,7 @@ const inputSchema = {
 export default defineMcpTool({
   name: 'export_document_as_pdf',
   title: 'Export Document As Pdf',
-  description: 'Render a document to PDF and return the bytes as an attached file. Each cache miss runs the Playwright sidecar (~5-15s); cache hits are sub-second. Use to deliver a polished snapshot to the user — for AI inspection of a specific page, use view_pages instead.',
+  description: 'Render a document to PDF and return the bytes as an attached file. Each cache miss runs the Playwright sidecar (~5-15s); cache hits are sub-second. Use to deliver a polished snapshot to the user, for AI inspection of a specific page, use view_pages instead.',
   inputSchema,
   annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
   enabled: event => toolEnabled(event, 'documents:read', 'export_document_as_pdf'),
@@ -74,7 +74,7 @@ export default defineMcpTool({
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'render failed'
       // Tool-level error (not 5xx) so the model sees `isError: true`
-      // and can wrap up gracefully — same treatment as a missing
+      // and can wrap up gracefully, same treatment as a missing
       // page in view_pages.
       return {
         content: [{ type: 'text', text: `PDF render failed: ${msg}` }],
@@ -84,13 +84,13 @@ export default defineMcpTool({
     const pdfKey = result.manifest.pdfKey
     if (!pdfKey) {
       return {
-        content: [{ type: 'text', text: 'PDF render succeeded but the manifest is missing pdfKey — internal inconsistency.' }],
+        content: [{ type: 'text', text: 'PDF render succeeded but the manifest is missing pdfKey, internal inconsistency.' }],
         isError: true
       }
     }
 
     // Fetch the PDF bytes from S3 and inline as base64. The toolkit
-    // doesn't proxy a presigned URL — MCP clients can't reliably
+    // doesn't proxy a presigned URL, MCP clients can't reliably
     // open authenticated URLs the way browsers can, so we deliver
     // the bytes directly. Typical PDF size is 50KB-2MB; well within
     // the JSON-RPC envelope ceiling.

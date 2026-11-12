@@ -5,8 +5,8 @@
  *
  *  - A table continued on the next page repeats its `<thead>`.
  *  - After layout: a plain rule (`<hr>`) that opens or closes a page is
- *    hidden (`data-markoto-page-edge`) — at a page edge it reads as a
- *    stray line; a glyph break (asterism) stays — and the first block on
+ *    hidden (`data-markoto-page-edge`): at a page edge it reads as a
+ *    stray line; a glyph break (asterism) stays, and the first block on
  *    a page loses its top margin (`data-markoto-page-top`).
  */
 export function createPageMarks() {

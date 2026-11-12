@@ -1,4 +1,4 @@
-// Unit tests for renderTokens.ts — the JWT mint/verify pair used by the
+// Unit tests for renderTokens.ts, the JWT mint/verify pair used by the
 // renderer container to authenticate to the internal print page.
 //
 // What we verify:

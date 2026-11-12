@@ -9,7 +9,7 @@ import { SESSION_TOOL_CALL_CAPS } from '../../ai/tools/registry'
  *   - `toolCallCounts`: per-tool ceiling. Crossing returns a TOOL ERROR
  *     so the model can wrap up gracefully (vs aborting the session).
  *
- * Independent of the per-user monthly $ budget — that's LiteLLM's job.
+ * Independent of the per-user monthly $ budget, that's LiteLLM's job.
  */
 export class SessionBudget {
   private interactions = 0

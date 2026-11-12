@@ -5,7 +5,7 @@ import { first } from '../../helpers/assert'
 // Tier 2: "Roles inside a workspace".
 //
 // User-job: a workspace admin needs to bring in someone whose access
-// shouldn't match their own — a viewer who can read but never edit,
+// shouldn't match their own, a viewer who can read but never edit,
 // an editor who can write but can't change permissions. Job done
 // when the reader has seen the role contrast in action: server-side
 // role flips persist immediately, the read-only enforcement runs
@@ -17,7 +17,7 @@ import { first } from '../../helpers/assert'
 // the workspace and zooms in on the consequences of each role.
 //
 // Single-actor flow: Maya (admin) changes Sam's role through the
-// role chip in the members modal — the same click a real admin makes —
+// role chip in the members modal, the same click a real admin makes,
 // and the chip, the server and the last-admin rail are all asserted.
 //
 // Runs on desktop AND mobile. The members modal renders identically
@@ -39,7 +39,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
       `INSERT INTO users (github_id, name, email, plan)
        VALUES ($1, $2, $3, 'free')
        RETURNING id`,
-      // Clean display email — it is on screen in the members modal.
+      // Clean display email: it is on screen in the members modal.
       [`flow-test-teammate-${Date.now()}`, 'Sam Reeves', 'sam.reeves@team.example']
     )
     teammateUserId = first(r.rows).id
@@ -74,7 +74,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
 
   await flow.heading('Roles inside a workspace', 3)
   await flow.narrate(
-    'Three roles. Admins do everything — add members, change '
+    'Three roles. Admins do everything, add members, change '
     + 'permissions, delete the workspace. Editors write content '
     + 'but can\'t touch access controls. Viewers read; their '
     + 'editor is locked. Two safety rails: one workspace must '
@@ -90,7 +90,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'members card', selector: '[data-testid="workspace-members-trigger"]', kind: 'arrow' }
       ],
-      result: 'Members modal opens — admin (you), Sam (viewer), and the role chip beside each name.',
+      result: 'Members modal opens, admin (you), Sam (viewer), and the role chip beside each name.',
       after: () => page.getByText(/Sam Reeves/i).first().waitFor({ state: 'visible', timeout: 5_000 })
     }
   )
@@ -100,7 +100,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
   // Promote Sam to editor (server-side)
   await flow.heading('Promote Sam to editor', 3)
   await flow.narrate(
-    'The role chip beside Sam\'s name opens a dropdown — Admin / '
+    'The role chip beside Sam\'s name opens a dropdown, Admin / '
     + 'Editor / Viewer. Pick Editor and the change is saved right away. '
     + 'Sam\'s documents become writable the next time they open one '
     + '(an editor that is already open picks it up within two hours).'
@@ -110,7 +110,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
     'Click the role chip beside Sam',
     samChip,
     {
-      result: 'The role menu opens — Admin, Editor, Viewer.',
+      result: 'The role menu opens, Admin, Editor, Viewer.',
       after: () => page.getByRole('menuitem', { name: /^editor/i }).waitFor({ state: 'visible' })
     }
   )
@@ -119,7 +119,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
     page.getByRole('menuitem', { name: /^editor/i }),
     {
       hero: true,
-      result: 'Sam\'s chip now reads Editor — the change is saved.',
+      result: 'Sam\'s chip now reads Editor, the change is saved.',
       highlights: [
         { label: 'Sam is now an editor', selector: `[data-testid="workspace-member-row-${teammateUserId}"]` }
       ],
@@ -135,7 +135,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
   // Last-admin invariant
   await flow.heading('The last-admin invariant', 3)
   await flow.narrate(
-    'A workspace must always have at least one admin — otherwise '
+    'A workspace must always have at least one admin, otherwise '
     + 'no one can manage members or close it down. While you are '
     + 'the only admin, the role chip on your own row is locked, and '
     + 'markoto refuses the change even if something tries it anyway.'
@@ -146,7 +146,7 @@ test('Roles inside a workspace', async ({ page, flow, editor }) => {
   }
   const myChip = page.locator(`[data-testid="workspace-member-row-${meCheck.user.id}"] [data-testid="workspace-member-role"]`)
   await expect(myChip).toBeDisabled()
-  await flow.shot('Your own role chip is locked — you are the only admin.', {
+  await flow.shot('Your own role chip is locked, you are the only admin.', {
     highlights: [
       { label: 'Locked: last admin', selector: `[data-testid="workspace-member-row-${meCheck.user.id}"] [data-testid="workspace-member-role"]` }
     ]

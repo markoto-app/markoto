@@ -21,7 +21,7 @@ const log = useLogger('ai-session-channel')
 //     `crossBoundary.ts`).
 //
 // The client follows it through the push stream
-// `GET /api/ai/sessions/:sessionId/stream` (SSE, initiator only — see
+// `GET /api/ai/sessions/:sessionId/stream` (SSE, initiator only, see
 // `sessionStream.ts`), falls back to polling `GET /api/ai/sessions/:id`
 // when the stream breaks, and answers confirmations through
 // `POST …/confirm`.
@@ -30,7 +30,7 @@ const log = useLogger('ai-session-channel')
 // another app instance still works. Every write also PUBLISHes a
 // "changed" ping on `ai:session-channel:{sid}:notify` (Valkey pub/sub,
 // reaches every instance) so open streams re-read right away. The ping
-// carries no data — subscribers re-read the keys, so a lost ping only
+// carries no data: subscribers re-read the keys, so a lost ping only
 // delays an update until the stream's periodic re-read. One key per
 // field, each written by exactly one party, so concurrent writes never
 // read-modify-write the same value.
@@ -39,7 +39,7 @@ const log = useLogger('ai-session-channel')
 //
 // Failure polarity: status / response writes are best-effort (a Valkey
 // blip only hides progress text). A confirmation that cannot be stored
-// or read is DENIED — the gate fails closed.
+// or read is DENIED, the gate fails closed.
 
 const CHANNEL_TTL_MS = 15 * MINUTE_MS
 /** How long the loop waits for an answer before treating it as "deny". */
@@ -369,7 +369,7 @@ export function toSessionView(snapshot: ChannelSnapshot): SessionView {
 /**
  * Record the initiator's answer for the pending confirmation `confirmationId`.
  * Returns false when no such confirmation is pending (expired, answered,
- * or a stale id) — the first answer wins.
+ * or a stale id), the first answer wins.
  */
 export async function answerSessionConfirmation(
   sessionId: string,

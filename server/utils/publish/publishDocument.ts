@@ -70,7 +70,7 @@ async function copyAll(pageId: string, kind: 'files' | 'brand', sources: Map<str
       copied.add(file)
     } catch (e) {
       // A missing source (deleted by the GC meanwhile) leaves its URL as it
-      // was — the page shows a broken image rather than failing to publish.
+      // was: the page shows a broken image rather than failing to publish.
       log.warn('copying a file of the page failed', { pageId, kind, file, err: e })
     }
   }

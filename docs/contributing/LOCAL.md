@@ -10,7 +10,7 @@ Prerequisites: Docker Compose 5.0 or newer, and a `.env` (run `make setup` once;
 # macOS
 brew install mkcert nss
 
-# Linux (Debian/Ubuntu) — mkcert ships in the standard repos
+# Linux (Debian/Ubuntu): mkcert ships in the standard repos
 sudo apt install -y mkcert libnss3-tools
 ```
 

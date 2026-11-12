@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Workspace usage, admins: per person, what they own and added in
-// this workspace — documents, documents shared with guests, knowledge
-// files, image storage — and, in a Team / Business workspace, their AI
+// this workspace: documents, documents shared with guests, knowledge
+// files, image storage: and, in a Team / Business workspace, their AI
 // spend on the shared budget this period. No activity times: this is
 // usage, not monitoring. Server: `server/api/workspaces/[wsId]/usage.get.ts`.
 import { formatBytes } from '~/utils/billing/usageMeter'
@@ -35,7 +35,7 @@ const members = computed(() => rows.value.filter(r => r.role !== 'guest'))
 const guests = computed(() => rows.value.filter(r => r.role === 'guest'))
 
 function usd(n: number | null): string {
-  if (n === null) return '—'
+  if (n === null) return '-'
   return new Intl.NumberFormat(locale.value, { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n)
 }
 

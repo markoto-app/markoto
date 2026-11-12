@@ -28,7 +28,7 @@ const DESIGN_SAMPLE_TITLE = 'Quarterly update'
 /**
  * A short document that shows every part of a design on two pages:
  * headings h1–h3, text, emphasis, a link, a list, a table, a quote, an
- * alert. Neutral English text — the model judges the design, not the words.
+ * alert. Neutral English text, the model judges the design, not the words.
  */
 const DESIGN_SAMPLE_MARKDOWN = `# Summary
 
@@ -95,7 +95,7 @@ export async function loadDesignSample(id: string): Promise<DesignSample | null>
 
 /**
  * Render the sample in `theme`; returns up to three pages as base64 PNG.
- * Throws when the renderer is unavailable — the caller then goes on
+ * Throws when the renderer is unavailable, the caller then goes on
  * without a comparison round.
  */
 export async function renderDesignSample(theme: DocTheme, round: number): Promise<string[]> {

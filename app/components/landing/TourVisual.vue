@@ -9,7 +9,7 @@ import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composable
 
 /**
  * One scene's picture: a poster still and a short looping video, each in
- * light + dark (both rendered, CSS-toggled — the Wordmark pattern, so SSR
+ * light + dark (both rendered, CSS-toggled, the Wordmark pattern, so SSR
  * and client agree and the hidden mode never downloads) and, inline on
  * phones with `phoneCut`, the scene's phone cut (`<source media>`). The cursor is baked
  * into the video by the capture.
@@ -20,12 +20,12 @@ import { TOUR_DEPART_EVENT, TOUR_REST_EVENT, tourEventIndex } from '~/composable
  * out once the scene has settled.
  *
  * Modes:
- *  - `stage`  — a layer of the pinned desktop stage; "on stage" = the
+ *  - `stage` : a layer of the pinned desktop stage; "on stage" = the
  *               scene's section crosses the middle of the viewport.
- *  - `inline` — the figure inside the scene section (phones, tablets and
+ *  - `inline`: the figure inside the scene section (phones, tablets and
  *               browsers without scroll-driven animations); "on stage" =
  *               the figure is mostly in view.
- *  - `hero`   — poster only.
+ *  - `hero`  : poster only.
  */
 const props = withDefaults(defineProps<{
   scene: TourScene
@@ -41,7 +41,7 @@ const props = withDefaults(defineProps<{
    * Which color mode's media this scene shows while the page runs its
    * light → dark scroll flip (see ProductTour.vue): `flip` = the scene the
    * page turns dark on (both, cross-faded). Ignored when the visitor
-   * picked a color mode — then `.dark` on <html> decides.
+   * picked a color mode, then `.dark` on <html> decides.
    */
   tone?: 'light' | 'dark' | 'flip'
   /**
@@ -53,7 +53,7 @@ const props = withDefaults(defineProps<{
   /**
    * The page's LCP image (the hero poster): `eager` loads the light
    * poster without waiting for layout, `high` asks for it first. Only the
-   * light variant — the page starts light, and an eager hidden variant
+   * light variant: the page starts light, and an eager hidden variant
    * would download for nothing.
    */
   priority?: 'eager' | 'high' | 'none'

@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in — protocol layer.
+// Generic OpenID Connect sign-in, protocol layer.
 //
 // Built on `openid-client` (panva; certified OpenID RP library) rather than
 // nuxt-auth-utils' `defineOAuthOidcEventHandler`: as of nuxt-auth-utils
@@ -13,7 +13,7 @@
 //     fresh per attempt and bound to the browser via an httpOnly cookie
 //     (`server/routes/auth/oidc.get.ts`).
 //   - ID token REQUIRED and validated: signature against the IdP's JWKS
-//     (`enableNonRepudiationChecks`; asymmetric algorithms only — HS*
+//     (`enableNonRepudiationChecks`; asymmetric algorithms only, HS*
 //     tokens are rejected), `iss`, `aud` (+ `azp` with multiple
 //     audiences), `exp` / `iat` (30 s clock tolerance), `nonce`. The
 //     `iss` authorization-response parameter is checked when the IdP

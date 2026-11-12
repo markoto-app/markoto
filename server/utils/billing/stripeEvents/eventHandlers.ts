@@ -47,7 +47,7 @@ export async function runStripeEventHandler(
   event: Stripe.Event,
   opts: StripeHandlerOptions
 ): Promise<{ handled: boolean, detail?: unknown }> {
-  // Unhandled events are OK — Stripe sends dozens of types we don't care
+  // Unhandled events are OK, Stripe sends dozens of types we don't care
   // about. Acknowledge them so Stripe stops retrying.
   if (!isHandledType(event.type)) return { handled: false }
   // The table pairs each type with the handler for that type's event.

@@ -4,16 +4,16 @@ Members of a workspace can upload files (PDF, DOCX, PPTX, XLSX, HTML, EPUB, Mark
 
 ## Data
 
-- `workspace_knowledge` — one row per file. Status `processing` → `ready` or `failed`. `markdown_cache` holds the converted text (served to the `get_knowledge_file` AI tool); `embedding_version` records which model and dimension produced the vectors; `s3_key` names the uploaded original, which is deleted after successful processing.
-- `workspace_knowledge_chunks` — one row per chunk: `content`, `embedding vector(768)` with an HNSW cosine index, a stored generated `content_tsv` with a GIN index, and a copy of `workspace_id` so search needs no join.
+- `workspace_knowledge`: one row per file. Status `processing` → `ready` or `failed`. `markdown_cache` holds the converted text (served to the `get_knowledge_file` AI tool); `embedding_version` records which model and dimension produced the vectors; `s3_key` names the uploaded original, which is deleted after successful processing.
+- `workspace_knowledge_chunks`: one row per chunk: `content`, `embedding vector(768)` with an HNSW cosine index, a stored generated `content_tsv` with a GIN index, and a copy of `workspace_id` so search needs no join.
 
 ## Upload
 
 The upload uses the same staging-key pattern as image uploads, so a re-used presigned URL can never overwrite a confirmed file.
 
-1. `POST /api/workspaces/:wsId/knowledge/upload-request` — admin or editor (`requireKnowledgeEditAccess`), 30 requests per user per minute, plan caps checked, and in-flight slots reserved in Valkey per workspace, per user and per member (one member may hold at most half of the workspace's free slots, `memberShareOfWorkspaceSlots` in `server/utils/knowledge/knowledgeQuota.ts`). Returns a 120-second presigned PUT for the staging key `workspaces/{wsId}/knowledge/staging/{id}.{ext}` with `content-type` signed. A pending record in Valkey binds the upload to the caller (`server/utils/knowledge/knowledgePendingUpload.ts`).
+1. `POST /api/workspaces/:wsId/knowledge/upload-request`: admin or editor (`requireKnowledgeEditAccess`), 30 requests per user per minute, plan caps checked, and in-flight slots reserved in Valkey per workspace, per user and per member (one member may hold at most half of the workspace's free slots, `memberShareOfWorkspaceSlots` in `server/utils/knowledge/knowledgeQuota.ts`). Returns a 120-second presigned PUT for the staging key `workspaces/{wsId}/knowledge/staging/{id}.{ext}` with `content-type` signed. A pending record in Valkey binds the upload to the caller (`server/utils/knowledge/knowledgePendingUpload.ts`).
 2. The browser PUTs the file to S3.
-3. `POST /api/workspaces/:wsId/knowledge/confirm` — claims the pending record atomically (Valkey `GETDEL`; unknown uploads get 404 before any S3 call), checks that the stored type equals the signed one (415 `knowledge/content-type-mismatch`), copies the object to its final key, deletes the staging key, and sniffs the first bytes of the copy (`server/utils/storage/fileTypeGuard.ts`). It then takes `pg_advisory_xact_lock(hashtext(wsId))`, re-checks the caps and inserts the row in one transaction, releases the in-flight slots, and starts processing without waiting.
+3. `POST /api/workspaces/:wsId/knowledge/confirm`: claims the pending record atomically (Valkey `GETDEL`; unknown uploads get 404 before any S3 call), checks that the stored type equals the signed one (415 `knowledge/content-type-mismatch`), copies the object to its final key, deletes the staging key, and sniffs the first bytes of the copy (`server/utils/storage/fileTypeGuard.ts`). It then takes `pg_advisory_xact_lock(hashtext(wsId))`, re-checks the caps and inserts the row in one transaction, releases the in-flight slots, and starts processing without waiting.
 
 Content sniffing: binary formats are checked by magic bytes with `file-type` on the first bytes (an S3 range request). Text formats have no magic bytes, so the guard decodes the first 1 KB as UTF-8 and requires at least 90 % printable characters. `file-type` returning nothing is not a pass.
 

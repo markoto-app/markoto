@@ -1,6 +1,6 @@
 ---
 title: Report a document
-description: Report a scam, illegal content or spam on markoto — no account needed.
+description: Report a scam, illegal content or spam on markoto, no account needed.
 category: sharing
 order: 4
 updated: '2026-11-03'

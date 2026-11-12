@@ -21,12 +21,12 @@ const log = useLogger('knowledge')
 
 /**
  * Full-cascade delete: S3 object + DB row. Chunks cascade with the row
- * via FK. Caller is responsible for the authorization check — we just
+ * via FK. Caller is responsible for the authorization check, we just
  * clean up the artifacts.
  *
  * Ordering: DB row first (so the file "disappears" from the user's
  * perspective immediately), then S3. An S3 failure is reported to
- * Sentry but does not throw — the object will be orphaned but the
+ * Sentry but does not throw, the object will be orphaned but the
  * user sees a successful delete.
  */
 export async function deleteKnowledgeArtifact(ws: WorkspaceAccess<'editor'>, knowledgeId: string): Promise<void> {

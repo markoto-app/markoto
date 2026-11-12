@@ -191,7 +191,7 @@ export async function markExpiredJobs(_by: SystemActor): Promise<{ jobId: string
 
 /**
  * History list for the user-facing "/settings/profile/exports" page.
- * Ordered most-recent-first. Bounded to 50 rows — the page shows
+ * Ordered most-recent-first. Bounded to 50 rows, the page shows
  * recent activity, not a permanent archive (rows are anyway expired
  * within a week).
  */
@@ -226,7 +226,7 @@ export async function getJobForUser(self: UserScope, jobId: string): Promise<Dat
 }
 
 /**
- * Read every export-job row for a user — used by the account-deletion
+ * Read every export-job row for a user, used by the account-deletion
  * executor to collect S3 keys for cleanup BEFORE the user row is
  * dropped (the FK CASCADE drops the rows automatically; the S3 blobs
  * outlive that and need explicit deletion).
@@ -244,7 +244,7 @@ export async function listAllJobsForUser(user: UserScope): Promise<DataExportJob
 
 /**
  * Worker-side: count active (queued/running) rows. Defensive guard
- * to detect "stuck running" rows beyond a reasonable runtime — the
+ * to detect "stuck running" rows beyond a reasonable runtime, the
  * sweeper can use this to surface them in Sentry so ops can intervene
  * if the worker died mid-build. Not load-bearing for correctness.
  */

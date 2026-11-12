@@ -28,7 +28,7 @@ export const ssoConnections = pgTable('sso_connections', {
   oidcClientId: text('oidc_client_id'),
   oidcClientSecret: text('oidc_client_secret'),
   // SAML: the IdP's entity id, its SSO (redirect-binding) URL and its
-  // signing certificate (PEM, pasted — never fetched).
+  // signing certificate (PEM, pasted, never fetched).
   samlIdpEntityId: text('saml_idp_entity_id'),
   samlSsoUrl: text('saml_sso_url'),
   samlIdpCert: text('saml_idp_cert'),
@@ -61,7 +61,7 @@ export const userIdentities = pgTable('user_identities', {
   id: serial('id').primaryKey(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   connectionId: text('connection_id').notNull().references(() => ssoConnections.id, { onDelete: 'cascade' }),
-  // OIDC `sub` / SAML NameID (persistent) — never the email.
+  // OIDC `sub` / SAML NameID (persistent), never the email.
   subject: text('subject').notNull(),
   // SCIM `externalId` / `id` mapping: SCIM-created identities carry it.
   scimExternalId: text('scim_external_id'),

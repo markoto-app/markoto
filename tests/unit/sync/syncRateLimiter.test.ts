@@ -10,7 +10,7 @@ const logs = captureLogs()
 //   - active rooms: memory ceiling / large-scale crawl.
 //
 // Tests build fresh limiters via createRateLimiter() so each case is
-// isolated — the production singleton's internal Maps would otherwise
+// isolated: the production singleton's internal Maps would otherwise
 // leak state between cases.
 
 // Builder for the hook-data shape Hocuspocus passes in. Only the fields
@@ -37,7 +37,7 @@ function hookData(opts: {
   }
 }
 
-describe('createRateLimiter — per-IP cap', () => {
+describe('createRateLimiter: per-IP cap', () => {
   it('allows up to the per-IP maximum', () => {
     const rl = createRateLimiter({ maxConnectionsPerIP: 3 })
     for (let i = 0; i < 3; i++) {
@@ -77,7 +77,7 @@ describe('createRateLimiter — per-IP cap', () => {
 
   it('disconnect for an unknown socketId is a silent no-op (underflow guard)', () => {
     const rl = createRateLimiter({ maxConnectionsPerIP: 2 })
-    // Never connected — disconnecting must not crash or go negative.
+    // Never connected: disconnecting must not crash or go negative.
     expect(() => rl.onDisconnect(hookData({ socketId: 'nope' }))).not.toThrow()
     // And the IP is still clean for fresh connections.
     expect(() => rl.onConnect(hookData({ ip: '1.1.1.1', socketId: 's1' }))).not.toThrow()
@@ -94,7 +94,7 @@ describe('createRateLimiter — per-IP cap', () => {
   })
 })
 
-describe('createRateLimiter — IP extraction', () => {
+describe('createRateLimiter: IP extraction', () => {
   it('keys on the entry appended by the trusted proxy (rightmost), not the client-supplied first entry', () => {
     const rl = createRateLimiter({ maxConnectionsPerIP: 1 })
     // A client sent "1.1.1.1, 2.2.2.2"; Traefik (1 trusted hop) appended
@@ -145,7 +145,7 @@ describe('createRateLimiter — IP extraction', () => {
   })
 
   it('missing XFF and socket address buckets into the shared "unknown" slot', () => {
-    // Not a great place to be — in prod, Traefik always sets XFF and this
+    // Not a great place to be, in prod, Traefik always sets XFF and this
     // path is cold. Pin the behaviour so a change to "fail-closed on
     // missing XFF" is an explicit decision.
     const rl = createRateLimiter({ maxConnectionsPerIP: 2 })
@@ -156,7 +156,7 @@ describe('createRateLimiter — IP extraction', () => {
   })
 })
 
-describe('createRateLimiter — room cap', () => {
+describe('createRateLimiter: room cap', () => {
   it('allows connections while rooms are below the cap', () => {
     const rl = createRateLimiter({ maxActiveRooms: 100 })
     expect(() => rl.onConnect(hookData({ roomCount: 50 }))).not.toThrow()
@@ -170,7 +170,7 @@ describe('createRateLimiter — room cap', () => {
   })
 
   it('room cap is checked before the per-IP cap', () => {
-    // If both caps would trip simultaneously, room cap wins — its message
+    // If both caps would trip simultaneously, room cap wins, its message
     // is a global-state signal that clients should interpret as "the
     // whole service is backed up", not "your IP specifically is throttled".
     const rl = createRateLimiter({
@@ -184,7 +184,7 @@ describe('createRateLimiter — room cap', () => {
   })
 
   it('missing instance.documents.size is treated as no-cap', () => {
-    // Hocuspocus hook shape drift — if the counter isn't accessible, fail
+    // Hocuspocus hook shape drift, if the counter isn't accessible, fail
     // open rather than refuse every connection. The per-IP cap still
     // applies.
     const rl = createRateLimiter({ maxActiveRooms: 10 })
@@ -193,10 +193,10 @@ describe('createRateLimiter — room cap', () => {
   })
 })
 
-describe('createRateLimiter — resilience', () => {
+describe('createRateLimiter: resilience', () => {
   it('does not throw on malformed hook data (fails open)', () => {
     // Regression guard for the existing try/catch. A wedged limiter
-    // shouldn't DoS legitimate traffic — defensive behaviour is documented
+    // shouldn't DoS legitimate traffic, defensive behaviour is documented
     // in the module comment.
     const rl = createRateLimiter({ maxConnectionsPerIP: 20 })
     expect(() => rl.onConnect(deliberatelyInvalid({}))).not.toThrow()
@@ -236,7 +236,7 @@ describe('createRateLimiter — resilience', () => {
 // authenticated. A socket whose handshake is rejected therefore never
 // fires `onDisconnect`; its slot must be released when the raw socket
 // closes, or ~20 bad handshakes lock the IP out until a restart.
-describe('createRateLimiter — socket teardown releases slots', () => {
+describe('createRateLimiter: socket teardown releases slots', () => {
   function socketPair(ip: string, socketId: string, documentName = 'doc-1') {
     const request = { headers: { 'x-forwarded-for': ip } }
     return { request, socketId, documentName }

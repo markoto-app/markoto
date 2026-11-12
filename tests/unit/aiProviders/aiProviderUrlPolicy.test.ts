@@ -57,7 +57,7 @@ describe('structure', () => {
 
 describe('internal service hostnames are always refused', () => {
   it.each(['litellm', 'postgres', 'valkey', 'sync', 'renderer', 'markitdown', 'localhost', 'litellm-test', 'metadata.google.internal', 'foo.localhost'])(
-    '%s — even with the private-network opt-in',
+    '%s: even with the private-network opt-in',
     async (host) => {
       expect(await refusal(`http://${host}:4000/v1`, SELF_HOST_PRIVATE, async () => ['10.0.0.9'])).toBe('internal-host')
     }
@@ -119,7 +119,7 @@ describe('SaaS allowlist', () => {
     expect(await refusal('https://api.openai.com/v1/', SAAS)).toBeNull()
   })
 
-  it('refuses anything not on the list — even a perfectly public URL', async () => {
+  it('refuses anything not on the list, even a perfectly public URL', async () => {
     expect(await refusal('https://my-llm.example.com/v1', SAAS)).toBe('not-allowlisted')
   })
 
@@ -148,7 +148,7 @@ describe('isAlwaysForbiddenIp', () => {
 
 // Regression (internal-hostname bypass): a trailing dot is the same name
 // to a resolver, and some compose names were missing from the list.
-describe('internal hostnames — every spelling, every compose name', () => {
+describe('internal hostnames: every spelling, every compose name', () => {
   const resolveToBridge: Resolver = async () => ['172.18.0.7']
   it.each([
     'litellm.',

@@ -1,12 +1,12 @@
 /**
  * Awareness color palette for live-collaboration cursors and presence
- * rings. Calibrated for the paper aesthetic — muted, low-chroma
+ * rings. Calibrated for the paper aesthetic, muted, low-chroma
  * pastels that sit naturally on the bone (sumi-50) page surface
  * without competing with the seal red.
  *
  * Each entry is a desaturated tone in the rough vicinity of a
- * recognizable hue family — sage, slate, rose, ochre, lavender, etc.
- * — so collaborators are still distinguishable, but the overall
+ * recognizable hue family: sage, slate, rose, ochre, lavender, etc.
+ * so collaborators are still distinguishable, but the overall
  * surface stays calm. None of these get close to shu (vermillion)
  * since shu is reserved for AI presence; human collaborators must
  * never wear the seal red.

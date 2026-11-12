@@ -6,7 +6,7 @@
 // that hasn't been overused.
 //
 // Surface: `/docs/_internal/flows`. Not linked from the docs landing
-// (the underscore prefix is the convention for internal pages —
+// (the underscore prefix is the convention for internal pages,
 // reachable by URL, not by navigation). The data comes from the
 // `_internal/flows-index` server route which walks `public/flows/`
 // and reads each manifest's title + hero + next-link.
@@ -31,7 +31,7 @@ const grouped = computed(() => {
   const primaries = flows.value.filter(f => !f.slug.endsWith('-on-mobile'))
   // Quick lookup so primary cards know to surface the mobile pill
   // (the API already returns `hasMobile`, but mobile siblings are
-  // ALSO published as standalone slugs — we want them paired with
+  // ALSO published as standalone slugs, we want them paired with
   // their primary, not double-listed).
   return primaries
 })
@@ -52,7 +52,7 @@ definePageMeta({ layout: 'docs' })
 
 <template>
   <div class="max-w-6xl mx-auto px-4 sm:px-6 md:px-12 py-10 md:py-16">
-    <!-- Header — explain what this is. The fact that it's reachable
+    <!-- Header: explain what this is. The fact that it's reachable
          by URL but not linked is intentional; people who land here
          either typed it or got it from a code comment. -->
     <header class="mb-10">
@@ -171,7 +171,7 @@ definePageMeta({ layout: 'docs' })
       </li>
     </ul>
 
-    <!-- Mobile siblings — listed flat below the primary grid because
+    <!-- Mobile siblings: listed flat below the primary grid because
          they're variants, not their own stories. Compact rows so the
          page doesn't get a second 3-col grid. -->
     <section

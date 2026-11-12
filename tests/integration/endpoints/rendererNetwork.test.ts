@@ -1,12 +1,12 @@
 // SSRF lockdown for the renderer sidecar. The renderer's Chromium reaches the
 // app container directly (no Traefik, so no CSP) and used to fetch ANY URL a
-// document's markdown pointed at — internal services, cloud metadata — while
+// document's markdown pointed at, internal services, cloud metadata, while
 // producing a PDF/PNG. These tests plant two HTTP canaries on the host (the
 // renderer reaches them via host.docker.internal, exactly like it reaches the
 // app on :3101) and assert which of them a render touches:
 //
 //   - ALLOWED canary: its origin is listed in RENDERER_ALLOWED_ORIGINS on the
-//     renderer-test service (deploy/compose/compose.test.yml). Positive control — it
+//     renderer-test service (deploy/compose/compose.test.yml). Positive control, it
 //     proves the allowlist is configurable and that a render CAN fetch images.
 //   - BLOCKED canary: an ephemeral port nobody allowed. Must see zero hits.
 //
@@ -105,7 +105,7 @@ describe('renderer network lockdown (SSRF)', () => {
 
   it('never requests an origin outside the allowlist', async () => {
     const status = await renderPdfWith(`# Doc\n\n![evil](http://host.docker.internal:${blocked.port}/internal-secret.png)\n`)
-    // A blocked image degrades to a broken image — the render itself succeeds.
+    // A blocked image degrades to a broken image, the render itself succeeds.
     expect(status).toBe(302)
     expect(blocked.hits).toEqual([])
   }, 90_000)

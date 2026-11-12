@@ -2,7 +2,7 @@ import { robotsTxt } from '../utils/platform/robots'
 import { sitemapBaseUrl } from '../utils/platform/sitemap'
 import { resolveSiteIndexable } from '../../shared/config/instance'
 
-// robots.txt — documents and internal routes are not for crawlers
+// robots.txt: documents and internal routes are not for crawlers
 // (server/utils/platform/robots.ts). Served by the app so every deployment shape
 // (hosted, self-host) gets the same file. The hosted marketing site adds
 // its `Sitemap:` line; a non-indexable instance (staging) disallows all.

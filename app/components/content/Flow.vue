@@ -1,15 +1,15 @@
 <script setup lang="ts">
 // Embeddable flow component (slides-only).
 //
-//   ::flow{id="quick-share"}                    — default
-//   ::flow{id="quick-share" hide-title}         — minimal embed
-//   ::flow{path="/internal/flows/admin/manifest.json"} — escape hatch
+//   ::flow{id="quick-share"}                   : default
+//   ::flow{id="quick-share" hide-title}        : minimal embed
+//   ::flow{path="/internal/flows/admin/manifest.json"}: escape hatch
 //
 // Slide kinds:
-//   • chapter   — text-only section break (no screenshot)
-//   • narration — exposition; screenshot + large subtitle, no cursor
-//   • approach  — "click X" — cursor on target, before-state
-//   • outcome   — "X happens" — same cursor as approach, after-state
+//   • chapter  : text-only section break (no screenshot)
+//   • narration: exposition; screenshot + large subtitle, no cursor
+//   • approach , "click X", cursor on target, before-state
+//   • outcome  , "X happens", same cursor as approach, after-state
 //
 // i18n: by default reads the current locale from useI18n() and fetches
 // /flows/<id>/<locale>/<variant>/manifest.json. Falls back to
@@ -75,9 +75,9 @@ type Manifest = {
 }
 
 const props = withDefaults(defineProps<{
-  /** Flow id — looks up /flows/<id>/<locale>/<variant>/manifest.json */
+  /** Flow id: looks up /flows/<id>/<locale>/<variant>/manifest.json */
   id?: string
-  /** Explicit manifest URL — overrides id + locale. */
+  /** Explicit manifest URL: overrides id + locale. */
   path?: string
   /** Hide the flow's own title heading (when wrapping with your own h2). */
   hideTitle?: boolean
@@ -105,11 +105,11 @@ const effectiveChromeDomain = computed(
 )
 
 const { locale: i18nLocale, t } = useI18n()
-// Defer color-mode read to onMounted — useColorMode() returns 'light' on SSR
+// Defer color-mode read to onMounted, useColorMode() returns 'light' on SSR
 // (no prefers-color-scheme + no localStorage), so reading at top-level causes
 // hydration mismatch when the user's actual mode is dark. Manifest fetch is
 // already client-only (server: false), so SSR templating doesn't see the
-// derived variant — but exposing the colorMode ref through `currentTheme`
+// derived variant: but exposing the colorMode ref through `currentTheme`
 // would still trigger Vue's hydration tracking on any reactive consumer
 // added later. The brief light-mode flash on first paint is acceptable for
 // this component; see app/AGENTS.md "Common Vue conventions" section.
@@ -134,7 +134,7 @@ const flowUrl = (id: string, locale: string, variant: Variant) =>
 // Variant fallback chain for a given locale: try the exact match
 // first, then degrade ONE axis at a time before degrading both.
 // "Same form, different theme" sits closer to the requested variant
-// than "different form, same theme" — readers tolerate a wrong
+// than "different form, same theme", readers tolerate a wrong
 // theme more than a wrong form factor (mobile users seeing desktop
 // chrome at 390px wide is jarring).
 function variantChain(): Variant[] {
@@ -170,7 +170,7 @@ async function fetchWithFallbacks(id: string): Promise<Manifest> {
 
 // Client-only fetch. The resolved variant depends on the user's
 // color mode AND viewport, both of which can differ between SSR and
-// the client's first paint — committing the SSR payload would force
+// the client's first paint, committing the SSR payload would force
 // a refetch on the client (manifest briefly null), triggering a
 // hydration mismatch on the slideshow tree. `server: false` + `lazy:
 // true` defers the fetch until after hydration; the component starts
@@ -216,7 +216,7 @@ const slideIdx = ref(0)
 const isPlaying = ref(false)
 const playProgress = ref(0)
 
-// URL sync — `?slide-<flowId>=N` (1-indexed for human readability).
+// URL sync: `?slide-<flowId>=N` (1-indexed for human readability).
 // `useRouteQuery` is the router-aware VueUse helper: it round-trips
 // through vue-router's reactive `route.query`, so reads + writes go
 // through the same pipeline Nuxt + the browser already use. `mode:
@@ -238,14 +238,14 @@ const slideQuery = useRouteQuery<string | null, number>(
         const n = Number.parseInt(raw, 10) - 1
         return Number.isInteger(n) && n >= 0 ? n : 0
       },
-      // Slide 1 is the default — return null so the param drops out
+      // Slide 1 is the default, return null so the param drops out
       // of the URL when at the start.
       set: idx => (idx <= 0 ? null : String(idx + 1))
     }
   }
 )
 
-// Slide auto-advance via `useTimeoutFn` — auto-cleans on scope dispose
+// Slide auto-advance via `useTimeoutFn`, auto-cleans on scope dispose
 // and gives us a `stop()` we can call from `stopPlay`/`scheduleAdvance`
 // without tracking the timer id manually. The interval is a getter so
 // each slide can have its own duration. `immediate: false` so the
@@ -307,7 +307,7 @@ const goEnd = () => {
   if (entries.value.length) slideIdx.value = entries.value.length - 1
 }
 
-// Cursor coords for an entry — chapter has none; narration has
+// Cursor coords for an entry, chapter has none; narration has
 // recorded coords but the renderer hides the cursor anyway.
 function visualCursor(e: Entry | undefined): { x: number, y: number } | null {
   if (!e) return null
@@ -340,7 +340,7 @@ watch(slideIdx, (idx) => {
   if (slideQuery.value !== idx) slideQuery.value = idx
 })
 
-// Keyboard nav for slides — bound to the slides container so the
+// Keyboard nav for slides, bound to the slides container so the
 // shortcuts only fire when it has focus (tabIndex on the wrapper).
 const slidesEl = ref<HTMLElement | null>(null)
 onKeyStroke('ArrowLeft', (e) => {
@@ -356,7 +356,7 @@ onKeyStroke(' ', (e) => {
   togglePlay()
 }, { target: slidesEl })
 
-// Touch + mouse-drag swipe nav — universal "next slide on swipe-left,
+// Touch + mouse-drag swipe nav, universal "next slide on swipe-left,
 // prev slide on swipe-right" pattern (Instagram stories / iOS Photos).
 // Uses Pointer Events so a desktop mouse drag also works for testing.
 // The 50px threshold filters out accidental drags during text selection
@@ -516,7 +516,7 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
       class="outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg"
     >
       <!-- Frame + subtitle overlay. Click on the IMAGE region (not
-           the browser chrome) toggles play/pause — FlowFrame emits
+           the browser chrome) toggles play/pause, FlowFrame emits
            the click so the chrome above stays unclickable. -->
       <div class="relative">
         <FlowFrame
@@ -564,7 +564,7 @@ const nextLink = computed<NextLink | null>(() => nextHref.value ? manifest.value
         </Transition>
       </div>
 
-      <!-- Progress bar — flush against the frame. Width transitions
+      <!-- Progress bar: flush against the frame. Width transitions
            over the CURRENT slide's duration during autoplay. -->
       <div class="h-1 bg-elevated overflow-hidden">
         <div

@@ -16,7 +16,7 @@ import { createUser, createDoc, createWorkspace, setMemberRole } from '../setup/
 // container (the in-process syncStub only replays HTTP /internal
 // calls, not WebSocket Y.js sync). So the SUCCESS path for
 // `view_other_document` (which opens openTrustedCommentClient to
-// read live ytext) cannot be exercised here — those branches are
+// read live ytext) cannot be exercised here, those branches are
 // covered by the layer-1 unit tests in `tests/unit/ai/crossDocAiTools.test.ts`,
 // which mock the trusted client and exercise the body-formatting
 // contract.
@@ -25,14 +25,14 @@ import { createUser, createDoc, createWorkspace, setMemberRole } from '../setup/
 //   - All ACCESS-DENIAL branches (short-circuit before any sync open):
 //     missing doc, stranger-on-private, password-required, cross-
 //     workspace isolation, current-doc rejection, garbage URL parsing.
-//   - All `list_workspace_documents` paths (no sync needed —
+//   - All `list_workspace_documents` paths (no sync needed,
 //     listWorkspaceDocsWithOwnerFlag is pure SQL).
 //   - Mid-session membership drift: confirms a member who LOSES
 //     workspace access mid-conversation gets the same denial path
 //     on subsequent reads (real DB mutation between calls).
 //
 // Each test asserts on DESIRED behaviour, not implementation
-// details — message fragments, not full prose, so cosmetic copy
+// details: message fragments, not full prose, so cosmetic copy
 // changes don't break tests but contract violations do.
 
 interface ToolResult {
@@ -50,7 +50,7 @@ async function execTool(
   return { status: res.status, body: await res.json() as ToolResult }
 }
 
-describe('POST /api/_test/exec-ai-tool — gating', () => {
+describe('POST /api/_test/exec-ai-tool: gating', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -89,9 +89,9 @@ describe('POST /api/_test/exec-ai-tool — gating', () => {
   })
 })
 
-// list_workspace_documents — full-stack
+// list_workspace_documents: full-stack
 
-describe('list_workspace_documents — full-stack', () => {
+describe('list_workspace_documents: full-stack', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -118,7 +118,7 @@ describe('list_workspace_documents — full-stack', () => {
     expect(body.content).toContain('Sibling-B')
     expect(body.content).toContain('Sibling-C')
     // The anchor must NOT appear as one of the listed documents.
-    // Asserting on the parsed `documents` array specifically — a bare
+    // Asserting on the parsed `documents` array specifically, a bare
     // `not.toContain(anchor.docId)` would false-match the diagnostic
     // `excluded_current_doc_id` field the payload includes for the
     // model's benefit.
@@ -130,7 +130,7 @@ describe('list_workspace_documents — full-stack', () => {
   it('errors when the anchor doc is standalone (not in a workspace)', async () => {
     // Spec: the tool only makes sense for workspace docs. A
     // standalone-doc caller should get a clear error so the model
-    // can explain to the user — not silently return an empty list.
+    // can explain to the user, not silently return an empty list.
     const user = await createUser()
     const doc = await createDoc({ ownerId: user.id }) // no workspaceId
     const client = await loggedInClient(user.id)
@@ -154,7 +154,7 @@ describe('list_workspace_documents — full-stack', () => {
   })
 
   it('viewer member can list workspace documents (read-only access is enough)', async () => {
-    // Spec: viewer access is sufficient — confirmed with the user.
+    // Spec: viewer access is sufficient, confirmed with the user.
     const owner = await createUser()
     const viewer = await createUser()
     const ws = await createWorkspace(owner.id)
@@ -195,9 +195,9 @@ describe('list_workspace_documents — full-stack', () => {
   })
 })
 
-// view_other_document — access-denial branches (no sync needed)
+// view_other_document: access-denial branches (no sync needed)
 
-describe('view_other_document — anti-enumeration (404-shape)', () => {
+describe('view_other_document: anti-enumeration (404-shape)', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -230,10 +230,10 @@ describe('view_other_document — anti-enumeration (404-shape)', () => {
 
     expect(body.isError).toBe(true)
     expect(body.content.toLowerCase()).toContain('not found')
-    // Critical: must NOT use the word "forbidden" — that distinguishes
+    // Critical: must NOT use the word "forbidden", that distinguishes
     // "exists" from "doesn't exist" and breaks anti-enumeration.
     expect(body.content.toLowerCase()).not.toContain('forbidden')
-    // Must NOT leak the doc title — that would defeat the 404-shape
+    // Must NOT leak the doc title, that would defeat the 404-shape
     // even more directly than a wording difference.
     expect(body.content).not.toContain('Confidential briefing notes')
   })
@@ -266,14 +266,14 @@ describe('view_other_document — anti-enumeration (404-shape)', () => {
   })
 })
 
-describe('view_other_document — password gate', () => {
+describe('view_other_document: password gate', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
   it('non-member of password-protected doc gets the password message (NOT 404)', async () => {
     // Spec: when the user is recognised but the doc requires a
-    // password they don't have, the message must EXPLAIN — so the
+    // password they don't have, the message must EXPLAIN, so the
     // user can ask for a share. We don't 404-mask here because
     // that would hide a fixable problem from the user.
     const owner = await createUser()
@@ -290,12 +290,12 @@ describe('view_other_document — password gate', () => {
     const { body } = await execTool(client, anchor.docId, 'view_other_document', { doc_id: target.docId })
     expect(body.isError).toBe(true)
     expect(body.content.toLowerCase()).toContain('password')
-    // Must not say "not found" — distinguishes from 404-shape.
+    // Must not say "not found", distinguishes from 404-shape.
     expect(body.content.toLowerCase()).not.toContain('not found')
   })
 })
 
-describe('view_other_document — current-doc rejection', () => {
+describe('view_other_document: current-doc rejection', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -326,7 +326,7 @@ describe('view_other_document — current-doc rejection', () => {
   })
 })
 
-describe('view_other_document — URL parsing', () => {
+describe('view_other_document: URL parsing', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -343,7 +343,7 @@ describe('view_other_document — URL parsing', () => {
     })
     expect(body.isError).toBe(true)
     expect(body.content.toLowerCase()).toMatch(/markoto url|extract|parse/i)
-    // Must NOT say "not found" — that would hide the parse failure.
+    // Must NOT say "not found", that would hide the parse failure.
     expect(body.content.toLowerCase()).not.toContain('not found')
   })
 
@@ -364,7 +364,7 @@ describe('view_other_document — URL parsing', () => {
 
 // Mid-session membership drift
 
-describe('view_other_document — membership drift', () => {
+describe('view_other_document: membership drift', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -373,7 +373,7 @@ describe('view_other_document — membership drift', () => {
     // Spec: the access check is per-call. Even though we can't
     // exercise the SUCCESS half here without sync, we CAN confirm
     // that AFTER membership is removed the same call returns the
-    // 404-shape — which proves the access decision is recomputed
+    // 404-shape: which proves the access decision is recomputed
     // per invocation rather than cached at session-open time.
     const owner = await createUser()
     const evictee = await createUser()
@@ -385,7 +385,7 @@ describe('view_other_document — membership drift', () => {
       ownerId: owner.id,
       workspaceId: ws.workspaceId,
       accessMode: 'private',
-      title: 'WS-internal — must not leak after eviction'
+      title: 'WS-internal: must not leak after eviction'
     })
 
     // While member: list_workspace_documents (no sync needed) sees
@@ -393,7 +393,7 @@ describe('view_other_document — membership drift', () => {
     const client = await loggedInClient(evictee.id)
     const { body: anchorListing } = await execTool(
       client,
-      target.docId, // target is in the workspace too — list works
+      target.docId, // target is in the workspace too, list works
       'list_workspace_documents',
       {}
     )

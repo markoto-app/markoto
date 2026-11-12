@@ -6,13 +6,13 @@ import {
   readReplyAuthor
 } from '../../../server/utils/documents/commentsServerClient'
 
-// Pure helpers from `commentsServerClient.ts` — `openTrustedCommentClient`
+// Pure helpers from `commentsServerClient.ts`, `openTrustedCommentClient`
 // itself needs a live Hocuspocus and is exercised in the integration
 // suite. The lookup + author-derivation helpers here are pure and
 // unit-testable against a synthetic Y.Doc.
 //
 // What we lock in:
-//   - findComment returns the entry by id, NOT by index — order in
+//   - findComment returns the entry by id, NOT by index, order in
 //     the array doesn't matter for delete authorisation.
 //   - findComment returns null for an unknown id (no false positives).
 //   - readCommentAuthor extracts authorId only when it's a number;
@@ -24,7 +24,7 @@ import {
 // Y.Map values are only durable once the map is attached to a Y.Doc
 // (via insertion into a Y.Array or assignment into a Y.Map slot). The
 // helpers below build the map, push it into the array first, then
-// populate fields — same lifecycle the production composable uses.
+// populate fields: same lifecycle the production composable uses.
 
 interface CommentFields {
   authorId?: number | null
@@ -105,7 +105,7 @@ describe('readCommentAuthor', () => {
 
   it('returns authorId null for an anonymous comment', () => {
     // Anonymous editors store `authorId: null` and a session-random
-    // name. The server can't author-authorise these — only doc
+    // name. The server can't author-authorise these, only doc
     // owners / workspace admins can delete.
     const ydoc = new Y.Doc()
     const arr = ydoc.getArray<Y.Map<unknown>>('comments')
@@ -115,7 +115,7 @@ describe('readCommentAuthor', () => {
 
   it('coerces a non-number authorId to null', () => {
     // Defensive: a malformed Y.Map (e.g. authorId stored as a string
-    // by an older client) shouldn't grant impersonation rights — we
+    // by an older client) shouldn't grant impersonation rights, we
     // refuse to treat it as a match.
     const ydoc = new Y.Doc()
     const arr = ydoc.getArray<Y.Map<unknown>>('comments')
@@ -132,7 +132,7 @@ describe('readCommentAuthor', () => {
     const map = new Y.Map<unknown>()
     arr.push([map])
     map.set('id', 'c')
-    // No authorName at all — readCommentAuthor must default safely.
+    // No authorName at all, readCommentAuthor must default safely.
     expect(readCommentAuthor(map)).toEqual({ authorId: null, authorName: '' })
   })
 })
@@ -165,7 +165,7 @@ describe('readReplyAuthor', () => {
 
   it('returns null when the parent has no replies array', () => {
     // A malformed/old comment without a `replies` Y.Array shouldn't
-    // crash the lookup — server returns "alreadyGone" idempotency.
+    // crash the lookup: server returns "alreadyGone" idempotency.
     const ydoc = new Y.Doc()
     const arr = ydoc.getArray<Y.Map<unknown>>('comments')
     const map = new Y.Map<unknown>()

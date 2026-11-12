@@ -3,14 +3,14 @@ import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
 // Fetches an image and returns it as inline base64 in the tool
 // response. Two source kinds:
-//   - Internal: `/api/files/{docId}/{fileId}` — needs view access to
+//   - Internal: `/api/files/{docId}/{fileId}`: needs view access to
 //     the SAME doc (the handler asserts docId matches via
 //     parseInternalFileRef).
-//   - External: `http(s)://…` — SSRF-guarded by `assertSafeUrl`.
+//   - External: `http(s)://…`: SSRF-guarded by `assertSafeUrl`.
 // MIME allowlist (PNG/JPEG/GIF/WebP/SVG), 5 MiB cap, 10s timeout.
 export default buildDocBoundTool({
   name: 'view_image',
-  description: 'Fetch an image (internal /api/files/* upload OR external https URL) and inline its bytes into the tool response. Use when you need to reason about what an image actually depicts — alt text, figure summary, chart description.',
+  description: 'Fetch an image (internal /api/files/* upload OR external https URL) and inline its bytes into the tool response. Use when you need to reason about what an image actually depicts, alt text, figure summary, chart description.',
   scope: 'documents:read',
   access: 'view',
   annotations: { readOnlyHint: true, openWorldHint: true },

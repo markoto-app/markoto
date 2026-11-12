@@ -12,7 +12,7 @@ import { parseAiMessageEntry, type AiMessageRow } from '../../../server/repos/ai
 // Pure-function unit tests for the AI conversation memory helpers.
 // These compose into the agentic loop's `<conversation_history>` block
 // and govern the bloat-prevention rules (skip-list, summary, truncation).
-// All branches stay testable in-process — no DB, no Nuxt, no awareness.
+// All branches stay testable in-process, no DB, no Nuxt, no awareness.
 
 function row(
   id: number,
@@ -143,8 +143,8 @@ describe('summarizeToolCall', () => {
   it('comment ops include comment_id + body preview', () => {
     expect(summarizeToolCall('create_comment', { start_line: 4, end_line: 7, body: 'Should we cite the source?' }))
       .toBe('lines=4-7 body≈"Should we cite the source?"')
-    expect(summarizeToolCall('reply_to_comment', { comment_id: 'c_xyz', body: 'Yes — added.' }))
-      .toBe('comment_id=c_xyz body≈"Yes — added."')
+    expect(summarizeToolCall('reply_to_comment', { comment_id: 'c_xyz', body: 'Yes \u2014 added.' }))
+      .toBe('comment_id=c_xyz body≈"Yes \u2014 added."')
     expect(summarizeToolCall('resolve_comment', { comment_id: 'c_xyz', resolved: true }))
       .toBe('comment_id=c_xyz resolved=true')
     expect(summarizeToolCall('delete_comment', { comment_id: 'c_xyz', reply_id: 'r_1' }))
@@ -275,7 +275,7 @@ describe('buildConversationHistoryBlock', () => {
   })
 
   it('skips empty / unknown row kinds gracefully', () => {
-    // Defence against schema drift — a future kind value would
+    // Defence against schema drift, a future kind value would
     // produce no line but shouldn't crash the renderer.
     const rows = [
       row(1, 'user_prompt', { text: 'real' }),
@@ -309,10 +309,10 @@ describe('buildConversationContextForPrompt', () => {
     expect(ctx.since).toBeInstanceOf(Date)
   })
 
-  it('treats null lastActivity as "no prior memory" — loads anyway', async () => {
+  it('treats null lastActivity as "no prior memory", loads anyway', async () => {
     // First-ever prompt for a (doc,user) pair: no rows exist, but we
     // still call the loader (which will return []). Important so that
-    // a new doc behaves identically to an idle-reset doc — empty
+    // a new doc behaves identically to an idle-reset doc, empty
     // block, no error.
     const ctx = await buildConversationContextForPrompt(async () => [], null)
     expect(ctx.idleReset).toBe(false)

@@ -7,7 +7,7 @@ import { test, expect } from '../fixtures/flow'
 // User-job: a workspace admin wants every document of the team to look
 // like the company's: its font, its logo, one locked design. Job done
 // when the font and logo are in the kit, the workspace uses the report's
-// design, the design is locked — and another document of the workspace
+// design, the design is locked, and another document of the workspace
 // shows the lock in its theme panel and renders in the brand font.
 //
 // The flow stack runs the self-hosted free tier, which includes the brand
@@ -41,7 +41,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
   await flow.heading('Add your fonts and logo', 3)
   await flow.narrate(
     'The brand kit holds what makes documents look like your organisation\'s. '
-    + 'Upload each font file — one per weight and style — and confirm your '
+    + 'Upload each font file, one per weight and style, and confirm your '
     + 'licence allows embedding it in PDFs. Logos become available as the '
     + 'cover logo and header image of every document in the workspace.'
   )
@@ -108,7 +108,7 @@ test('Set up a workspace brand kit', async ({ page, flow, editor }) => {
     editor.page.sidebar.theme,
     { chain: true, after: () => page.getByTestId('theme-brand-locked').waitFor({ state: 'visible', timeout: 10_000 }) }
   )
-  await flow.shot('It uses the workspace design — only the cover text is its own', {
+  await flow.shot('It uses the workspace design, only the cover text is its own', {
     hero: true,
     highlights: [{ label: 'Locked by the workspace', selector: '[data-testid="theme-brand-locked"]' }]
   })

@@ -29,11 +29,11 @@ const { data: navigation } = await useAsyncData('docs:nav', () =>
   queryCollectionNavigation('docs', ['order', 'navHidden', 'icon'])
 )
 
-// Search index — every page split into per-heading sections. Used
+// Search index: every page split into per-heading sections. Used
 // only by UContentSearch (Cmd-K modal, client-only), so it is NOT part of
 // the server render (~50 KB gzip per docs page): the
-// browser fetches it once when search is about to open — pointer over /
-// focus on the search button, or the modal opening (Cmd-K) — and keeps
+// browser fetches it once when search is about to open, pointer over /
+// focus on the search button, or the modal opening (Cmd-K), and keeps
 // it across docs pages (same key).
 const { open: searchOpen } = useContentSearch()
 const { data: searchSections, status: searchStatus, execute: loadSearch } = useFetch('/api/_internal/docs-search', {
@@ -89,7 +89,7 @@ watch(() => route.path, () => {
       />
       <!-- Topbar anchor: wordmark + hairline + Fraunces section
            name. The Back button used to live between the rules but
-           cluttered the row — the wordmark itself links to /, so
+           cluttered the row: the wordmark itself links to /, so
            the affordance is preserved without the extra chrome. -->
       <NuxtLink
         to="/"
@@ -135,7 +135,7 @@ watch(() => route.path, () => {
     </header>
 
     <div class="flex-1 grid md:grid-cols-[280px_1fr] min-h-0">
-      <!-- Desktop sidebar — pinned to viewport left, sticky scroll.
+      <!-- Desktop sidebar: pinned to viewport left, sticky scroll.
            `bg-muted` matches every other chrome surface in the app
            (toolbar, status bar, sidebars in the editor) so the docs
            shell reads as part of the same instrument. -->
@@ -171,7 +171,7 @@ watch(() => route.path, () => {
     </USlideover>
 
     <!-- Search modal. Shortcut bound to Cmd/Ctrl-K (UContentSearch's
-         default), but only mounted under the docs layout — won't
+         default), but only mounted under the docs layout, won't
          hijack the hotkey on /d/<id> editor pages where Cmd-K is
          used by other UI. Files come from the search-sections
          payload; navigation feeds the per-section grouping. -->

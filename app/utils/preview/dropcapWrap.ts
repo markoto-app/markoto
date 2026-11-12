@@ -84,7 +84,7 @@ export function wrapFirstLetterAsDropCap(html: string): string {
 }
 
 /**
- * Put the drop cap on `p` (in place) when it qualifies — see the rules
+ * Put the drop cap on `p` (in place) when it qualifies, see the rules
  * above. Returns whether it did. Shared with the every-chapter drop cap
  * (`documentMarkers.ts#markDocumentStructure`).
  */

@@ -7,7 +7,7 @@ import { useLogger } from './logger'
 
 const log = useLogger('auth')
 
-// Hocuspocus `onAuthenticate` hook — runs on every new WS connection and
+// Hocuspocus `onAuthenticate` hook: runs on every new WS connection and
 // MUST reject anything not carrying a valid, in-scope JWT. This is the
 // sync-server's only line of defence; every other hook (onChange, onStore)
 // trusts the context we return from here.
@@ -27,7 +27,7 @@ const log = useLogger('auth')
 //     docs/operations/SECRETS-ROTATION.md and shared/utils/security/secrets.ts.
 
 // The verifier extends the shared `SessionJwtPayload` with an OPTIONAL
-// `scope` claim — the SessionJwtPayload contract intentionally omits
+// `scope` claim: the SessionJwtPayload contract intentionally omits
 // `scope` (mint sites must never set it on session tokens), but we
 // have to be able to OBSERVE it on incoming tokens to reject
 // scope-narrowed JWTs replayed at the WS path. Defense in depth: even
@@ -63,7 +63,7 @@ export type VerifiedDocToken = AuthContext
  */
 export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: CreateAuthOptions) {
   return async function verifyDocToken(token: string | null, documentName: string): Promise<VerifiedDocToken> {
-    // Always require a valid JWT — no anonymous bypass. Empty string and
+    // Always require a valid JWT, no anonymous bypass. Empty string and
     // null both count as missing.
     if (!token) {
       throw new Error('Authentication required')
@@ -78,7 +78,7 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
       )
     } catch (e) {
       // Collapse every verify failure (expired, malformed, wrong signature,
-      // 'alg: none' attempts — jsonwebtoken.verify with a string secret
+      // 'alg: none' attempts: jsonwebtoken.verify with a string secret
       // defaults to HMAC algorithms only and rejects `alg: none`) into a
       // single error. Preserves the log line with the real cause for
       // operators without leaking which specific thing failed to callers.
@@ -95,7 +95,7 @@ export function createTokenVerifier({ secret, previousSecret, notBeforeFor }: Cr
       throw new Error('Invalid token')
     }
 
-    // Scope check — a JWT minted for doc-A must never grant access to
+    // Scope check: a JWT minted for doc-A must never grant access to
     // doc-B. This is the critical cross-doc replay guard.
     if (payload.docId !== documentName) {
       throw new Error('Token scope mismatch')
@@ -171,7 +171,7 @@ export function createAuth(options: CreateAuthOptions) {
     documentName: string
     token: string | null
     // Hocuspocus passes the live connection config in the hook payload. We
-    // MUST mutate `connectionConfig.readOnly` here — the object returned from
+    // MUST mutate `connectionConfig.readOnly` here, the object returned from
     // this hook is merged into request `context` only, which does NOT block
     // writes. The write gate in Hocuspocus reads `connection.readOnly`, seeded
     // from `connectionConfig.readOnly` (default `false`). Optional so unit
@@ -182,7 +182,7 @@ export function createAuth(options: CreateAuthOptions) {
 
     // Enforce read-only server-side. This is the load-bearing line: without
     // it, a read-only JWT still yields a writable connection because
-    // Hocuspocus never reads our returned `readOnly` for write-blocking — it
+    // Hocuspocus never reads our returned `readOnly` for write-blocking, it
     // only reads `connectionConfig.readOnly`, which defaults to `false`. A
     // malicious client (or a devtools bypass of the CM6 read-only compartment)
     // could otherwise send Y.js updates to any doc it can open a token for.

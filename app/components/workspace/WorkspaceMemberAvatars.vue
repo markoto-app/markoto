@@ -37,7 +37,7 @@ function roleLabel(role: WorkspaceMember['role']): string {
 </script>
 
 <template>
-  <!-- Expanded roster — one row per member with avatar + name + role
+  <!-- Expanded roster: one row per member with avatar + name + role
        caption (mono micro-meta). The "Manage members" button on the
        right makes the edit affordance obvious. -->
   <div
@@ -75,7 +75,7 @@ function roleLabel(role: WorkspaceMember['role']): string {
     </button>
   </div>
 
-  <!-- Compact avatar stack — used once the roster grows past
+  <!-- Compact avatar stack: used once the roster grows past
        ROW_THRESHOLD members. Same explicit "Manage members" pill so
        the edit affordance is still obvious even when the avatars
        carry the visual weight. -->

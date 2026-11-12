@@ -15,7 +15,7 @@ import { NotFoundError } from '../../server/repos/errors'
 // members, shares, uploads) are addressed by their own id, but every repo
 // function constrains the query to the parent named by the proof. A proof
 // for workspace / document A must never reach B's rows, even when the
-// caller passes B's sub-resource id — which is what an id taken from a
+// caller passes B's sub-resource id, which is what an id taken from a
 // URL or a model's tool call would be.
 
 interface Tenant { adminId: number, workspaceId: string, docId: string }

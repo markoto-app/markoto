@@ -13,7 +13,7 @@ import { startCommentTrigger } from '../../../../../utils/agentic/sessions/comme
 //
 // Auth: requires login + doc-edit access (same as /api/ai/prompt;
 // viewers can write comments but can't summon AI). The triggering
-// message must be the CALLER's own and must mention the AI — nobody can
+// message must be the CALLER's own and must mention the AI, nobody can
 // start a session (on their own budget) seeded with someone else's
 // message. Per-user-per-doc session cap still applies.
 

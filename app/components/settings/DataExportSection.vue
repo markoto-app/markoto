@@ -164,7 +164,7 @@ function fmtDate(iso: string | null): string {
         >
           <!-- Metadata stack. On mobile each fact lives on its
                own line with a tiny mono label so the user can
-               tell "requested" from "available until" — earlier
+               tell "requested" from "available until", earlier
                the two dates ran together with no separator and
                were visually conflated. On desktop the layout
                compresses to one row. -->

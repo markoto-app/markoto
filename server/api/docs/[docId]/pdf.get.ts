@@ -7,7 +7,7 @@ import { docPdfQuery } from '~~/shared/api/docs'
 import { useEnv } from '~~/shared/env/load'
 
 // Public-facing PDF download. Authorization mirrors GET /api/files/:docId/:fileId
-// (same `decideFileAccess` decision) — anyone who could read the doc's
+// (same `decideFileAccess` decision): anyone who could read the doc's
 // in-doc images can download the PDF. Owners, workspace members, password-
 // holders (via the JWT cookie), and anonymous users on open-* docs all
 // pass; private + non-member is denied; password-protected requires the
@@ -16,12 +16,12 @@ import { useEnv } from '~~/shared/env/load'
 // Flow:
 //   1. Auth check via decideFileAccess (`allow.doc('file')`), then the
 //      render allowance and the share link's no-download rule.
-//   2. renderDocument(format: 'pdf') — cache hit returns near-instantly,
+//   2. renderDocument(format: 'pdf'): cache hit returns near-instantly,
 //      cache miss kicks the renderer container (~5-15s).
 //   3. Mint a 120s presigned GET against the manifest's pdfKey, with the
 //      response Content-Disposition forced to attachment so browsers
 //      download instead of displaying inline.
-//   4. 302 redirect — or, with `?response=json`, `{ url }` (same
+//   4. 302 redirect: or, with `?response=json`, `{ url }` (same
 //      presigned URL, `no-store`). The marketing `::try-it` block uses it
 //      so a refusal (429 / 502 / 503) reaches its script as an error it
 //      can explain, instead of navigating the tab to a JSON error page.
@@ -59,7 +59,7 @@ export default defineApiHandler({
     const s3 = usePresignS3Client()
 
     // ResponseContentDisposition rides in the presigned URL so we don't have
-    // to proxy the bytes through Nuxt — S3 stamps the header at fetch time.
+    // to proxy the bytes through Nuxt, S3 stamps the header at fetch time.
     // Two modes:
     //   ?inline=1  → "inline" disposition, browsers render the PDF in-tab
     //                (used by "Open PDF" menu item, opens via window.open).

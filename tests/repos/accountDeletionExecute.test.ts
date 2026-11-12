@@ -8,7 +8,7 @@ import {
 } from '../integration/setup/fixtures'
 import { first } from '../helpers/assert'
 
-// Mock the side-effects that talk to S3 / sync-server / Stripe — none
+// Mock the side-effects that talk to S3 / sync-server / Stripe, none
 // are reachable in the repos test environment. The executor's logic
 // (which tables get touched, what gets anonymised, what gets promoted)
 // is fully testable without them.
@@ -83,7 +83,7 @@ describe('executeAccountDeletion: full graph', () => {
 
   it('hard-deletes the user row and runs every cascade branch', async () => {
     // Billing on so the Stripe-customer step runs (it's skipped when
-    // billing is off — see the dedicated case below).
+    // billing is off: see the dedicated case below).
     vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
     // Build the test graph
     const alice = await createUser()
@@ -292,7 +292,7 @@ describe('executeAccountDeletion: full graph', () => {
     expect(result.summary.stripeCustomerDeleted).toBe(true)
   })
 
-  it('is idempotent — running on an already-deleted user is a no-op', async () => {
+  it('is idempotent: running on an already-deleted user is a no-op', async () => {
     const alice = await createUser()
     const result1 = await executeAccountDeletion({ userId: alice.id })
     expect(result1.summary.aiSessionsDeleted).toBe(0)

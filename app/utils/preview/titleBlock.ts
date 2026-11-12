@@ -1,7 +1,7 @@
 /**
  * The abstract of a paper, as plain portable Markdown: a section whose
  * heading is "Abstract" (any level, in one of the UI languages), placed
- * before every other heading — usually the first thing in the document:
+ * before every other heading, usually the first thing in the document:
  *
  *     ## Abstract
  *
@@ -118,7 +118,7 @@ export function markAbstract(bodyHtml: string): string {
 /**
  * Mark the TOC entries of `{.unnumbered}` headings so the TOC numbers
  * skip them like the headings do (themeToCss `numberingBlock`). Only the
- * entry's own `li` — numbered sub-headings under it keep their numbers.
+ * entry's own `li`: numbered sub-headings under it keep their numbers.
  */
 export function markUnnumbered(bodyHtml: string): string {
   if (!bodyHtml.includes(UNNUMBERED_CLASS)) return bodyHtml
@@ -140,7 +140,7 @@ function normalisedTitle(text: string): string {
  * Title-block layouts set the document title themselves, so a document
  * whose text opens with `# <its title>` (the academic-paper template, and
  * how most people write a paper) would print the title twice. Drop that
- * leading h1 — and its TOC entry — when its text equals the title
+ * leading h1, and its TOC entry, when its text equals the title
  * (normalised: case, whitespace, Unicode form). A different first h1, or
  * anything before it, leaves the body unchanged.
  */

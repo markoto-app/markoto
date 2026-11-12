@@ -4,7 +4,7 @@ import { resetDb, testDb } from '../setup/db'
 import { createDoc, createUser } from '../setup/fixtures'
 import { mcp, mintPat } from '../setup/mcpClient'
 
-// Documents:write tools — verify the mutation lands in BOTH the Y.js
+// Documents:write tools: verify the mutation lands in BOTH the Y.js
 // state (durable, via sync-test → yjs_updates) AND the activity_log
 // row tagged with `mcp:{sessionId}` actor_principal. The audit-chain
 // resolution (mcp:{sessionId} → mcp_sessions.user_id) is pinned in
@@ -49,7 +49,7 @@ async function activityRowsForDoc(docId: string): Promise<Array<{
 
 const WRITE_SCOPES = ['documents:read', 'documents:write'] as const
 
-describe('MCP write tools — replace_text', () => {
+describe('MCP write tools: replace_text', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -67,7 +67,7 @@ describe('MCP write tools — replace_text', () => {
     })
     expect(res.isError).not.toBe(true)
 
-    // Hocuspocus debounces 2s before flushing — wait for the write to land.
+    // Hocuspocus debounces 2s before flushing, wait for the write to land.
     await new Promise(r => setTimeout(r, 2500))
 
     const ytext = await readYtext(doc.docId)
@@ -95,7 +95,7 @@ describe('MCP write tools — replace_text', () => {
   })
 })
 
-describe('MCP write tools — insert_text', () => {
+describe('MCP write tools: insert_text', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -119,7 +119,7 @@ describe('MCP write tools — insert_text', () => {
   }, 15_000)
 })
 
-describe('MCP write tools — set_title + update_theme persist to documents row', () => {
+describe('MCP write tools: set_title + update_theme persist to documents row', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -208,7 +208,7 @@ describe('MCP write tools — set_title + update_theme persist to documents row'
   }, 15_000)
 })
 
-describe('MCP write tools — comment lifecycle', () => {
+describe('MCP write tools: comment lifecycle', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -248,7 +248,7 @@ describe('MCP write tools — comment lifecycle', () => {
   }, 30_000)
 })
 
-describe('MCP write tools — activity_log attribution', () => {
+describe('MCP write tools: activity_log attribution', () => {
   beforeEach(async () => {
     await resetDb()
   })

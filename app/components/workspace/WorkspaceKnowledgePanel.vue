@@ -64,7 +64,7 @@ const canEdit = computed(() => props.myRole === 'admin' || props.myRole === 'edi
 // bytes. `usage.maxFiles` / `usage.maxBytes` are per-workspace, tier-
 // resolved on the server (a Team / Business workspace uses its pooled caps).
 // Per-user caps are ALSO enforced server-side but aren't surfaced
-// here — if a user tops out their per-user bytes in another
+// here: if a user tops out their per-user bytes in another
 // workspace, they'd click here and see a 409 toast. Acceptable
 // corner case: per-user caps require a dedicated endpoint to surface
 // cleanly, and this is the less common cap to hit.
@@ -121,7 +121,7 @@ watch(() => props.workspaceId, () => {
 // Poll for status transitions when processing items exist. Cheap enough
 // (one GET every 5s, only while items are in flight); stops automatically
 // once all items reach a terminal state. Also pauses while the tab is
-// hidden — `useIntervalFn` cleans up on unmount, no manual onBeforeUnmount.
+// hidden: `useIntervalFn` cleans up on unmount, no manual onBeforeUnmount.
 const visibility = useDocumentVisibility()
 const anyProcessing = computed(() => items.value.some(it => it.status === 'processing'))
 const shouldPoll = computed(() => anyProcessing.value && visibility.value === 'visible')
@@ -202,7 +202,7 @@ async function uploadOne(file: File) {
   }
 }
 
-// XHR not fetch — fetch's ReadableStream progress is supported but
+// XHR not fetch: fetch's ReadableStream progress is supported but
 // inconsistent across browsers, and the S3-compatible endpoint wants a
 // simple PUT with Content-Type anyway.
 function putWithProgress(url: string, file: File, contentType: string, onProgress: (percent: number) => void): Promise<void> {
@@ -276,7 +276,7 @@ function iconFor(ext: string): string {
       v-if="!compact"
       class="flex items-center justify-between gap-3 flex-wrap"
     >
-      <!-- Knowledge-base title — Fraunces editorial register, matching
+      <!-- Knowledge-base title: Fraunces editorial register, matching
            workspace name + sidebar panel titles. The lucide icon
            drops to the toned neutral ramp (was shu, which clashed
            with the seal-only rule). The usage chip shifts to the
@@ -354,14 +354,14 @@ function iconFor(ext: string): string {
         class="size-4 text-muted"
       />
       <div class="flex-1 min-w-0">
-        <!-- Filename in the editorial register — Fraunces serif so a
+        <!-- Filename in the editorial register, Fraunces serif so a
              knowledge file reads as a "named object" the same way a
              doc title or workspace name does. -->
         <p class="font-serif text-base font-normal tracking-tight truncate">
           {{ uploadProgress.filename }}
         </p>
         <div class="mt-1 h-1 rounded-full bg-elevated overflow-hidden">
-          <!-- Progress fill stays neutral (sumi-700) — shu is reserved
+          <!-- Progress fill stays neutral (sumi-700), shu is reserved
                for AI presence; uploads aren't AI work. -->
           <div
             class="h-full bg-sumi-700 dark:bg-sumi-300 transition-all"
@@ -403,7 +403,7 @@ function iconFor(ext: string): string {
       class="space-y-2"
     >
       <!-- Per-file row. Filename in Fraunces editorial register; size
-           and chunk count in JetBrains Mono micro-meta — same colophon
+           and chunk count in JetBrains Mono micro-meta, same colophon
            voice as the editor's status bar and comment timestamps. -->
       <div
         v-for="row in items"

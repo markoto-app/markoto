@@ -5,7 +5,7 @@ import { sentryScrubOptions } from '../../shared/utils/security/sentryScrub'
 // Renderer Sentry init. Must be imported BEFORE any handler so Sentry's
 // Bun instrumentation patches stdlib targets (fetch / http / s3) before
 // renderDocument / Bun.serve grabs references to them. Init is a no-op
-// when SENTRY_DSN is empty — dev/local stay silent.
+// when SENTRY_DSN is empty, dev/local stay silent.
 //
 // Cross-service trace continuation: the app injects sentry-trace + baggage
 // on the POST /render call (server/utils/platform/traceHeaders.ts). The handler in
@@ -20,7 +20,7 @@ if (dsn) {
   Sentry.init({
     dsn,
     environment: process.env.NODE_ENV ?? 'development',
-    // Same prod/dev split as the app — keeps the bill sane in prod,
+    // Same prod/dev split as the app, keeps the bill sane in prod,
     // makes every distributed trace visible while debugging locally.
     tracesSampleRate: process.env.NODE_ENV === 'production' ? 0.1 : 1,
     // Render URLs carry `?t=` tokens and presigned S3 queries: scrubbed in

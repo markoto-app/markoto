@@ -14,7 +14,7 @@ import { addStats, countFiles, emptyStats, summaryMarkdown, syncVariant, type Sy
 //   public/flows/<slug>/<locale>/<variant>/01.webp
 //
 // Per-variant publishing gate: a (slug, locale, variant) directory is
-// only republished if its source has a `.passed` sentinel — written
+// only republished if its source has a `.passed` sentinel, written
 // by the flow fixture at teardown ONLY when the Playwright test
 // reached its expected status. A failed or timed-out test leaves
 // behind a partial manifest + half the frames; without the gate, the
@@ -38,7 +38,7 @@ import { addStats, countFiles, emptyStats, summaryMarkdown, syncVariant, type Sy
 // Markdown (the screenshots PR's body, .github/workflows/publish-flow-shots.yml).
 //
 // Frames are lossless WebP at capture time (see
-// tests/e2e/fixtures/flow.ts) — manifest already references `.webp`,
+// tests/e2e/fixtures/flow.ts): manifest already references `.webp`,
 // no conversion needed. Within-variant content-hash dedup happens in
 // the fixture before publishing.
 
@@ -65,7 +65,7 @@ interface RunStats {
 
 async function main() {
   if (!(await isDir(FLOWS_SRC))) {
-    console.log(`[flows] no source at ${FLOWS_SRC} — run \`bun run flows:test\` first (or \`flows:test:against-running\` if you have an app already running)`)
+    console.log(`[flows] no source at ${FLOWS_SRC}, run \`bun run flows:test\` first (or \`flows:test:against-running\` if you have an app already running)`)
     return
   }
 
@@ -86,10 +86,10 @@ async function main() {
     await fs.writeFile(summaryFile, `${summaryMarkdown(f, stats.skippedVariants)}\n`)
   }
 
-  // Surface a non-zero exit when nothing passed at all — the most
+  // Surface a non-zero exit when nothing passed at all, the most
   // common shape of "the whole run was broken" so CI fails loudly.
   if (stats.publishedVariants === 0 && stats.skippedVariants > 0) {
-    console.error('[flows] no variant passed — refusing to declare success')
+    console.error('[flows] no variant passed, refusing to declare success')
     process.exit(1)
   }
 }
@@ -161,7 +161,7 @@ async function publishVariant(v: VariantPath): Promise<SyncStats | null> {
   if (!(await fileExists(path.join(v.srcDir, '.passed')))) {
     const lastGood = await isDir(v.dstDir)
     console.log(
-      `[flows] SKIP ${v.slug}/${v.locale}/${v.variant} — test did not pass `
+      `[flows] SKIP ${v.slug}/${v.locale}/${v.variant}: test did not pass `
       + `(${lastGood ? 'keeping last-good output' : 'no prior output to keep'})`
     )
     return null
@@ -209,7 +209,7 @@ async function dropUnrecordedVariants(slugOut: string, slugSrc: string): Promise
 async function drop(dir: string, why: string): Promise<number> {
   const frames = await countFiles(dir)
   await fs.rm(dir, { recursive: true, force: true })
-  console.log(`[flows] GC ${path.relative(FLOWS_OUT, dir)} — ${why}`)
+  console.log(`[flows] GC ${path.relative(FLOWS_OUT, dir)}, ${why}`)
   return frames
 }
 

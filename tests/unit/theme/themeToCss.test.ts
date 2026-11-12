@@ -7,7 +7,7 @@ import type { ThemeRuntime } from '../../../shared/utils/theme/themeToCss'
 
 /**
  * Deterministic verification of `themeToCss` output. Independent of
- * paged.js, the iframe, the browser — the function takes a DocTheme
+ * paged.js, the iframe, the browser, the function takes a DocTheme
  * and a runtime and returns a string. We assert specific substrings /
  * regex patterns are present so each preset commits visibly to its
  * intended look. Catches regressions where a refactor accidentally
@@ -25,10 +25,10 @@ const modern = THEME_PRESETS.find(p => p.id === 'modern')!.theme
 const ieee = THEME_PRESETS.find(p => p.id === 'ieee-conference')!.theme
 const thesis = THEME_PRESETS.find(p => p.id === 'thesis')!.theme
 
-describe('themeToCss — markoto preset (the flagship + default)', () => {
+describe('themeToCss: markoto preset (the flagship + default)', () => {
   const css = themeToCss(markoto, runtime)
 
-  describe('Step 1 — preset values', () => {
+  describe('Step 1: preset values', () => {
     test('emits plain white paper background', () => {
       expect(css).toContain('--doc-bg: #FFFFFF')
     })
@@ -52,7 +52,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     })
   })
 
-  describe('Step 2 — per-block alignment classes', () => {
+  describe('Step 2: per-block alignment classes', () => {
     test('emits .text-left helper', () => {
       expect(css).toMatch(/\.paged-doc\s+\.text-left\s*\{[^}]*text-align:\s*left/)
     })
@@ -68,7 +68,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     })
   })
 
-  describe('Step 3 — theme-aware alerts (markoto warm-paper palette)', () => {
+  describe('Step 3: theme-aware alerts (markoto warm-paper palette)', () => {
     test('uses slate blue for note', () => {
       expect(css).toContain('#3D5A80')
     })
@@ -86,7 +86,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     })
   })
 
-  describe('Step 4 — secondary colour (sumi-400)', () => {
+  describe('Step 4: secondary colour (sumi-400)', () => {
     test('emits --doc-secondary CSS variable', () => {
       expect(css).toContain('--doc-secondary: #A39A8A')
     })
@@ -104,7 +104,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     })
   })
 
-  describe('Step 5 — HR styling (asterism for markoto)', () => {
+  describe('Step 5: HR styling (asterism for markoto)', () => {
     test('emits ⁂ glyph via hr::before', () => {
       expect(css).toMatch(/hr::before[^{]*\{[^}]*content:\s*'⁂'/)
     })
@@ -113,7 +113,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     })
   })
 
-  describe('Step 6 — drop cap (span-based for paged.js compatibility)', () => {
+  describe('Step 6: drop cap (span-based for paged.js compatibility)', () => {
     test('emits .markoto-dropcap rule (NOT ::first-letter, paged.js strips it)', () => {
       expect(css).toContain('.markoto-dropcap')
       expect(css).not.toMatch(/::first-letter/)
@@ -129,7 +129,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
     })
   })
 
-  describe('Step 7 — fine-grained typography knobs', () => {
+  describe('Step 7: fine-grained typography knobs', () => {
     test('h1 has line-height 1.25 (markoto value, not the old hardcoded 1.2)', () => {
       expect(css).toMatch(/h1\s*\{[^}]*line-height:\s*1\.25/)
     })
@@ -160,7 +160,7 @@ describe('themeToCss — markoto preset (the flagship + default)', () => {
   })
 })
 
-describe('themeToCss — Step 10: brand logo on cover', () => {
+describe('themeToCss: Step 10: brand logo on cover', () => {
   test('every preset has a brand block with sane logoHeight', () => {
     // markoto pre-fills logoUrl with the public wordmark asset; other
     // presets ship with an empty string until users upload their own.
@@ -189,10 +189,10 @@ describe('themeToCss — Step 10: brand logo on cover', () => {
   })
 })
 
-describe('themeToCss — Step 9: cover page', () => {
+describe('themeToCss: Step 9: cover page', () => {
   test('markoto preset has cover enabled by default', () => {
     expect(markoto.cover.enabled).toBe(true)
-    // Editorial: logo top, title at ⅓, meta at ⅔ — matches the
+    // Editorial: logo top, title at ⅓, meta at ⅔, matches the
     // brand voice. Switched from `centered` when the layout enum
     // expanded to (classic/editorial/banner/minimal).
     expect(markoto.cover.layout).toBe('editorial')
@@ -213,7 +213,7 @@ describe('themeToCss — Step 9: cover page', () => {
     'multi-column theme: the %s cover spans every column (columns start after it)',
     (layout) => {
       // Regression: with `column-count` on `.paged-doc` the cover was laid
-      // out inside the first column — half-width band, title centred in
+      // out inside the first column, half-width band, title centred in
       // the left column. The browser render check lives in the
       // `cover-page-editor` flow; this pins the CSS contract.
       const twoColumn: DocTheme = { ...ieee, cover: { ...ieee.cover, enabled: true, layout } }
@@ -227,7 +227,7 @@ describe('themeToCss — Step 9: cover page', () => {
   test('single-column theme: the cover is NOT a column spanner', () => {
     // paged.js fragments pages with CSS columns itself; a spanning cover
     // in a single-column document made it drop everything after the
-    // cover (a one-page PDF — caught by tests/integration/endpoints/docPdf.test.ts).
+    // cover (a one-page PDF, caught by tests/integration/endpoints/docPdf.test.ts).
     expect(markoto.layout.columns).toBe(1)
     expect(themeToCss(markoto, runtime)).not.toMatch(/markoto-cover\s*\{[^}]*column-span/)
   })
@@ -247,7 +247,7 @@ describe('themeToCss — Step 9: cover page', () => {
   test('layout=editorial uses CSS Grid with 6 rows for the ⅓ rhythm', () => {
     // Editorial pins logo at top, title block at ~⅓, meta at ~⅔ via a
     // 6-row grid (auto / 1fr / auto / 1fr / auto / 1fr). The three
-    // equal `1fr` spacers are what produce the ⅓ rhythm — without
+    // equal `1fr` spacers are what produce the ⅓ rhythm, without
     // them the grid would collapse content to its natural sizes.
     const editorial: DocTheme = { ...markoto, cover: { ...markoto.cover, layout: 'editorial' } }
     const css = themeToCss(editorial, runtime)
@@ -327,7 +327,7 @@ describe('themeToCss — Step 9: cover page', () => {
   })
 })
 
-describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
+describe('themeToCss: Step 8: meta font (eyebrow voice)', () => {
   test('markoto preset: header/footer/figcaption use JetBrains Mono, footnotes the body font', () => {
     const markotoWithFooter: DocTheme = {
       ...markoto,
@@ -362,12 +362,12 @@ describe('themeToCss — Step 8: meta font (eyebrow voice)', () => {
   })
   test('meta font defaults sensibly (markoto = JetBrains Mono, thesis = body font)', () => {
     expect(THEME_PRESETS.find(p => p.id === 'markoto')!.theme.meta.font).toBe('JetBrains Mono')
-    // Thesis keeps it consistent with body — no jarring third-font moment.
+    // Thesis keeps it consistent with body, no jarring third-font moment.
     expect(thesis.meta.font).toBe(thesis.body.font)
   })
 })
 
-describe('themeToCss — modern preset (canonical look stays unchanged)', () => {
+describe('themeToCss: modern preset (canonical look stays unchanged)', () => {
   const css = themeToCss(modern, runtime)
 
   test('keeps GitHub-blue note alert', () => {
@@ -388,10 +388,10 @@ describe('themeToCss — modern preset (canonical look stays unchanged)', () => 
   })
 })
 
-describe('themeToCss — horizontal table borders', () => {
+describe('themeToCss: horizontal table borders', () => {
   test('keeps the rule under the header row; drops it only after the last body row', () => {
     // Regression: `tr:last-child { border-bottom: none }` also matched the
-    // header row (the only — so last — <tr> of <thead>), which left
+    // header row (the only, so last, <tr> of <thead>), which left
     // horizontal-border tables with no line between header and body.
     const theme: DocTheme = { ...markoto, tables: { ...markoto.tables, borders: 'horizontal' } }
     const css = themeToCss(theme, runtime)
@@ -401,7 +401,7 @@ describe('themeToCss — horizontal table borders', () => {
   })
 })
 
-describe('themeToCss — first-line indent (book typography)', () => {
+describe('themeToCss: first-line indent (book typography)', () => {
   const css = themeToCss({ ...modern, body: { ...modern.body, firstLineIndent: true, paragraphSpacing: 0.4, hyphenate: true } }, runtime)
 
   test('emits `p + p` indent rule when firstLineIndent=true', () => {
@@ -415,7 +415,7 @@ describe('themeToCss — first-line indent (book typography)', () => {
   })
 })
 
-describe('themeToCss — literary signature (drop cap, indent, asterism)', () => {
+describe('themeToCss: literary signature (drop cap, indent, asterism)', () => {
   const literary: DocTheme = {
     ...modern,
     body: { ...modern.body, dropCap: true, firstLineIndent: true, paragraphSpacing: 0.2 },
@@ -437,7 +437,7 @@ describe('themeToCss — literary signature (drop cap, indent, asterism)', () =>
   })
 })
 
-describe('themeToCss — defaultTheme matches markoto preset', () => {
+describe('themeToCss: defaultTheme matches markoto preset', () => {
   test('defaultTheme produces the same CSS as the markoto preset', () => {
     const defaultCss = themeToCss(defaultTheme, runtime)
     const markotoCss = themeToCss(markoto, runtime)
@@ -445,7 +445,7 @@ describe('themeToCss — defaultTheme matches markoto preset', () => {
   })
 })
 
-describe('themeToCss — alerts toggle off cleanly', () => {
+describe('themeToCss: alerts toggle off cleanly', () => {
   test('every preset has all 5 alerts', () => {
     for (const preset of THEME_PRESETS) {
       const css = themeToCss(preset.theme, runtime)
@@ -458,7 +458,7 @@ describe('themeToCss — alerts toggle off cleanly', () => {
   })
 })
 
-describe('themeToCss — schema completeness invariants', () => {
+describe('themeToCss: schema completeness invariants', () => {
   test('every preset emits a parseable CSS string', () => {
     for (const preset of THEME_PRESETS) {
       const css = themeToCss(preset.theme, runtime)
@@ -478,7 +478,7 @@ describe('themeToCss — schema completeness invariants', () => {
   })
 })
 
-describe('themeToCss — special characters are interpolated safely', () => {
+describe('themeToCss: special characters are interpolated safely', () => {
   test('does not double-escape title with quotes', () => {
     const themed = themeToCss(markoto, { ...runtime, title: 'It\'s a "test"' })
     // Just verify it doesn't throw and still emits the brand var
@@ -486,7 +486,7 @@ describe('themeToCss — special characters are interpolated safely', () => {
   })
 })
 
-describe('themeToCss — generated CSS strings and image URLs (regression)', () => {
+describe('themeToCss: generated CSS strings and image URLs (regression)', () => {
   const withHeader = (header: Partial<DocTheme['header']>): DocTheme => ({
     ...markoto,
     header: { ...markoto.header, left: '{title}', center: '', right: '', imageUrl: '', ...header }
@@ -543,7 +543,7 @@ describe('themeToCss — generated CSS strings and image URLs (regression)', () 
   })
 })
 
-describe('themeToCss — documents at scale', () => {
+describe('themeToCss: documents at scale', () => {
   const doc = (patch: (t: DocTheme) => void = () => {}) => {
     const t = structuredClone(defaultTheme)
     patch(t)
@@ -595,7 +595,7 @@ describe('themeToCss — documents at scale', () => {
   })
 })
 
-describe('themeToCss — KaTeX keeps its own alignment and spacing', () => {
+describe('themeToCss: KaTeX keeps its own alignment and spacing', () => {
   test('justified text no longer start-aligns accents, fractions and display math', () => {
     const t = structuredClone(defaultTheme)
     t.body.textAlign = 'justify'
@@ -610,7 +610,7 @@ describe('themeToCss — KaTeX keeps its own alignment and spacing', () => {
   })
 })
 
-describe('themeToCss — wide display math is never clipped in print', () => {
+describe('themeToCss: wide display math is never clipped in print', () => {
   test('display math wraps at TeX break points instead of scrolling (= clipped on paper)', () => {
     const css = themeToCss(structuredClone(defaultTheme), runtime)
     const display = /\.paged-doc \.katex-display \{[^}]*\}/.exec(css)?.[0] ?? ''
@@ -626,7 +626,7 @@ describe('themeToCss — wide display math is never clipped in print', () => {
   })
 })
 
-describe('themeToCss — inline math size follows the body font', () => {
+describe('themeToCss: inline math size follows the body font', () => {
   test('text size next to Computer-Modern-sized faces, a small step up elsewhere', () => {
     for (const font of ['Latin Modern Roman', 'TeX Gyre Termes', 'EB Garamond', 'Crimson Text', 'Cormorant Garamond', ' latin modern roman ']) {
       expect(mathFontScale(font), font).toBe(1)
@@ -645,7 +645,7 @@ describe('themeToCss — inline math size follows the body font', () => {
   })
 })
 
-describe('themeToCss — code is literal', () => {
+describe('themeToCss: code is literal', () => {
   test('no programming ligatures in inline code, blocks and code titles', () => {
     const css = themeToCss(structuredClone(markoto), runtime)
     expect(css).toContain('.paged-doc code, .paged-doc pre, .paged-doc .code-title { font-variant-ligatures: none; }')
@@ -660,7 +660,7 @@ describe('themeToCss — code is literal', () => {
   })
 })
 
-describe('themeToCss — column-wide diagrams keep their text size', () => {
+describe('themeToCss: column-wide diagrams keep their text size', () => {
   test('sequence diagrams and gantt charts may run taller than other diagrams', () => {
     const css = themeToCss(structuredClone(defaultTheme), runtime)
     const general = Number(/\.paged-doc \.mermaid > svg \{[^}]*max-height: (\d+)mm/.exec(css)?.[1])

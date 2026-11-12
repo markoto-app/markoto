@@ -21,7 +21,7 @@ const EXT_CONTENT_TYPE: Record<string, string> = {
 
 // Anonymous callers too (images in anonymously shared docs): `decideFileAccess`
 // lets anyone read on open-* docs, and on private / password-protected ones
-// the owner, workspace members and holders of a document JWT — including the
+// the owner, workspace members and holders of a document JWT, including the
 // `file-access` tokens of the render page and the live preview iframe, which
 // have no session cookie. A deleted doc is 404 even if its S3 objects outlived
 // best-effort cleanup.

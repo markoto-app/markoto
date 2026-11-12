@@ -9,7 +9,7 @@ import { getSettledUsd, listGrants, sumUsableCredits, type CreditSubject } from 
 // Kept apart from `aiCredits.ts` (settlement, Stripe) so `userKeys.ts`
 // and `workspaceTeams.ts` can import it without an import cycle.
 
-/** Calendar month (UTC) as 'YYYY-MM' — LiteLLM's budget period. */
+/** Calendar month (UTC) as 'YYYY-MM', LiteLLM's budget period. */
 export function creditPeriod(now: Date = new Date()): string {
   return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`
 }

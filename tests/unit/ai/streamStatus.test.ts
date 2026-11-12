@@ -8,11 +8,11 @@ import {
 import { at, first } from '../../helpers/assert'
 
 // Status-string derivation + per-turn dedupe for the agentic loop.
-// Pure — no yjs, no network, no LLM. Each tool branch gets pinned so
+// Pure: no yjs, no network, no LLM. Each tool branch gets pinned so
 // changes to the user-facing "Reading the document…" / "Editing …" etc.
 // phrasing are explicit edits rather than accidents.
 
-describe('describeToolInput — web_search', () => {
+describe('describeToolInput: web_search', () => {
   it('includes the trimmed query in quotes', () => {
     expect(describeToolInput('web_search', { query: 'mistral pricing' }))
       .toBe('Searching the web for "mistral pricing"')
@@ -29,14 +29,14 @@ describe('describeToolInput — web_search', () => {
   })
 })
 
-describe('describeToolInput — view_document', () => {
+describe('describeToolInput: view_document', () => {
   it('is a constant string regardless of args', () => {
     expect(describeToolInput('view_document', {})).toBe('Reading the document…')
     expect(describeToolInput('view_document', { view_range: [1, 10] })).toBe('Reading the document…')
   })
 })
 
-describe('describeToolInput — replace_text', () => {
+describe('describeToolInput: replace_text', () => {
   it('quotes a short old_str verbatim', () => {
     expect(describeToolInput('replace_text', { old_str: 'foo', new_str: 'bar' }))
       .toBe('Editing "foo"')
@@ -66,21 +66,21 @@ describe('describeToolInput — replace_text', () => {
   })
 })
 
-describe('describeToolInput — insert_text', () => {
+describe('describeToolInput: insert_text', () => {
   it('is a constant string', () => {
     expect(describeToolInput('insert_text', { insert_line: 0, insert_text: 'hi' }))
       .toBe('Inserting text…')
   })
 })
 
-describe('describeToolInput — update_theme', () => {
+describe('describeToolInput: update_theme', () => {
   it('returns generic "Updating theme…" when args has no nested sections', () => {
     expect(describeToolInput('update_theme', {})).toBe('Updating theme…')
   })
 
   it('prefers a named base source over the section-count fallback', () => {
     // preset / theme_id / from_workspace_default are user-meaningful
-    // base sources — surface them in the live status instead of
+    // base sources: surface them in the live status instead of
     // generic "Updating theme…".
     expect(describeToolInput('update_theme', { preset: 'modern' }))
       .toBe('Applying preset "modern"…')
@@ -110,12 +110,12 @@ describe('describeToolInput — update_theme', () => {
 
   it('ignores empty nested objects', () => {
     // An AI call that passes `{ body: {} }` isn't "changing body".
-    // filter requires Object.keys(v).length > 0 — pin it.
+    // filter requires Object.keys(v).length > 0, pin it.
     expect(describeToolInput('update_theme', { body: {} })).toBe('Updating theme…')
   })
 })
 
-describe('describeToolInput — get_theme / list_themes / save_theme_as_preset', () => {
+describe('describeToolInput: get_theme / list_themes / save_theme_as_preset', () => {
   it('get_theme uses a fixed read label', () => {
     expect(describeToolInput('get_theme', {})).toBe('Reading current theme…')
   })
@@ -143,7 +143,7 @@ describe('describeToolInput — get_theme / list_themes / save_theme_as_preset',
   })
 })
 
-describe('describeToolInput — list_workspace_documents / view_other_document', () => {
+describe('describeToolInput: list_workspace_documents / view_other_document', () => {
   it('list_workspace_documents uses a fixed browse label', () => {
     expect(describeToolInput('list_workspace_documents', {}))
       .toBe('Browsing workspace documents…')
@@ -171,7 +171,7 @@ describe('describeToolInput — list_workspace_documents / view_other_document',
   })
 })
 
-describe('describeToolInput — set_title', () => {
+describe('describeToolInput: set_title', () => {
   it('shows the trimmed title in quotes', () => {
     expect(describeToolInput('set_title', { title: 'Project Brief' }))
       .toBe('Setting title to "Project Brief"')
@@ -189,7 +189,7 @@ describe('describeToolInput — set_title', () => {
   })
 })
 
-describe('describeToolInput — view_image', () => {
+describe('describeToolInput: view_image', () => {
   it('shows the path leaf for internal /api/files/... refs', () => {
     expect(describeToolInput('view_image', { src: '/api/files/docABC/img12.png' }))
       .toBe('Looking at "img12.png"')
@@ -218,13 +218,13 @@ describe('describeToolInput — view_image', () => {
   })
 })
 
-describe('describeToolInput — generate_image', () => {
+describe('describeToolInput: generate_image', () => {
   it('shows the prompt in quotes', () => {
     expect(describeToolInput('generate_image', { prompt: 'a handshake', alt: 'h' }))
       .toBe('Generating image: "a handshake"')
   })
 
-  it('truncates prompts longer than 50 chars (not 40 — this tool gets a wider budget)', () => {
+  it('truncates prompts longer than 50 chars (not 40, this tool gets a wider budget)', () => {
     // Regression target: generate_image uses 50 as its preview limit
     // (prompts are usually more descriptive than replace_text's old_str).
     const fifty = 'a'.repeat(50)
@@ -240,7 +240,7 @@ describe('describeToolInput — generate_image', () => {
   })
 })
 
-describe('describeToolInput — fetch_url', () => {
+describe('describeToolInput: fetch_url', () => {
   it('strips http/https scheme and trailing slash', () => {
     expect(describeToolInput('fetch_url', { url: 'https://example.com/' }))
       .toBe('Fetching example.com')
@@ -269,10 +269,10 @@ describe('describeToolInput — fetch_url', () => {
   })
 })
 
-describe('describeToolInput — unknown names', () => {
+describe('describeToolInput: unknown names', () => {
   it('returns null so the loop leaves the previous status in place', () => {
     // Critical: unknown tool names must NOT yield a generic "Running
-    // …" message — that would flash a confusing status when the
+    // …" message: that would flash a confusing status when the
     // model emits a tool name we don't recognize. The loop fires an
     // "unsupported tool" error response back to the model; status
     // stays as whatever it was.
@@ -281,7 +281,7 @@ describe('describeToolInput — unknown names', () => {
   })
 })
 
-describe('processChunk — dedupe + state machine', () => {
+describe('processChunk: dedupe + state machine', () => {
   it('emits setStatus("tool", …) for each new call', () => {
     const setStatus = vi.fn<(phase: StreamStatusPhase, msg?: string) => void>()
     const state = newStreamState()
@@ -302,7 +302,7 @@ describe('processChunk — dedupe + state machine', () => {
     expect(setStatus).toHaveBeenCalledTimes(1)
   })
 
-  it('announces separately when args differ — different replace_text calls', () => {
+  it('announces separately when args differ, different replace_text calls', () => {
     const setStatus = vi.fn<(phase: StreamStatusPhase, msg?: string) => void>()
     const state = newStreamState()
     processChunk({ functionCalls: [{ name: 'replace_text', args: { old_str: 'a', new_str: 'A' } }] }, state, { setStatus })
@@ -321,7 +321,7 @@ describe('processChunk — dedupe + state machine', () => {
   })
 
   it('does NOT setStatus when describeToolInput returns null (unknown tool)', () => {
-    // Regression target — announced tracks the call identity so we
+    // Regression target: announced tracks the call identity so we
     // don't re-process, but `setStatus` must only fire on a
     // non-null message.
     const setStatus = vi.fn<(phase: StreamStatusPhase, msg?: string) => void>()
@@ -333,7 +333,7 @@ describe('processChunk — dedupe + state machine', () => {
   it('skips calls with no name (defensive)', () => {
     const setStatus = vi.fn<(phase: StreamStatusPhase, msg?: string) => void>()
     const state = newStreamState()
-    // Malformed call shape — library consumers could produce this.
+    // Malformed call shape: library consumers could produce this.
     processChunk({ functionCalls: [{ args: {} }] }, state, { setStatus })
     expect(setStatus).not.toHaveBeenCalled()
   })
@@ -351,7 +351,7 @@ describe('processChunk — dedupe + state machine', () => {
   })
 
   it('each turn gets a fresh state (announced set)', () => {
-    // Regression guard — if we accidentally shared state across turns,
+    // Regression guard: if we accidentally shared state across turns,
     // the second turn's identical call would be silently suppressed.
     // State is per-turn by construction (newStreamState() inside the
     // loop), but pin the invariant that newStreamState() really is

@@ -8,14 +8,14 @@ import { openTrustedCommentClient } from '../../documents/commentsServerClient'
 
 // Cross-document reads: two tools that let the AI reach BEYOND the current document:
 //
-//   - list_workspace_documents — enumerate the OTHER docs in the
+//   - list_workspace_documents: enumerate the OTHER docs in the
 //     current session's workspace (current doc excluded). Useful for
 //     "summarise everything in this workspace" or "find the doc
 //     about X that I wrote last week".
-//   - view_other_document — read the full body of any doc the user
+//   - view_other_document: read the full body of any doc the user
 //     could open in their browser. Same access surface: own private
 //     docs, workspace member, public open-edit/open-view, password-
-//     protected (workspace-membership bypass only — there's no way
+//     protected (workspace-membership bypass only, there's no way
 //     to ship the password through the AI surface).
 //
 // Both tools share access semantics with the human session: the
@@ -30,12 +30,12 @@ const ListMyDocumentsArgs = z.object({
 
 const ViewOtherDocumentArgs = z.object({
   doc_id: z.string().trim().min(1).max(2048)
-    .describe('The target document id, OR a markoto URL containing it. Accepted shapes: bare id ("xyz123abc"), absolute URL ("https://markoto.app/d/xyz123abc" — works for any markoto host), root-relative path ("/d/xyz123abc"). The id is extracted server-side; trailing slashes and query strings are tolerated. Pass the URL the user paste-shared verbatim — no need to parse it yourself.'),
+    .describe('The target document id, OR a markoto URL containing it. Accepted shapes: bare id ("xyz123abc"), absolute URL ("https://markoto.app/d/xyz123abc", works for any markoto host), root-relative path ("/d/xyz123abc"). The id is extracted server-side; trailing slashes and query strings are tolerated. Pass the URL the user paste-shared verbatim, no need to parse it yourself.'),
   view_range: z.array(z.number().int()).min(2).max(2)
     .refine(([s, e]) => s !== undefined && (s >= 1) && (e === -1 || (e !== undefined && e >= s)), { message: 'view_range must be [start, end] where start >= 1 and end is either -1 (read to EOF) or >= start' })
     .optional()
     .describe('Optional 1-indexed inclusive line range [start, end]. Use -1 for end to read through to the end of the document. Default: full document, capped at the first 50 000 characters. Page through long docs by repeating the call with non-overlapping ranges.')
-}).describe('Read another document\'s body + metadata. Permission check is the SAME as if the user opened the URL in their browser: their own docs, any doc in any workspace they belong to (any role — viewer is enough), and any anonymous open-edit / open-view doc. Private docs owned by other users return "not found." Password-protected docs are accessible only when the initiator is a member of that doc\'s workspace (workspace membership bypasses the password gate). Returns line-numbered body so you can quote / replace specific lines. The current document cannot be read this way — use `view_document` instead.')
+}).describe('Read another document\'s body + metadata. Permission check is the SAME as if the user opened the URL in their browser: their own docs, any doc in any workspace they belong to (any role, viewer is enough), and any anonymous open-edit / open-view doc. Private docs owned by other users return "not found." Password-protected docs are accessible only when the initiator is a member of that doc\'s workspace (workspace membership bypasses the password gate). Returns line-numbered body so you can quote / replace specific lines. The current document cannot be read this way, use `view_document` instead.')
 
 /**
  * Strip a markoto URL down to a bare doc id. Accepts:
@@ -53,7 +53,7 @@ export function parseDocIdFromInput(raw: string): string | null {
   const trimmed = raw.trim()
   if (!trimmed) return null
   // Try URL-shape match first. Doesn't matter whether the input has a
-  // scheme — `/d/<id>` is the load-bearing piece.
+  // scheme: `/d/<id>` is the load-bearing piece.
   const urlMatch = /\/d\/([A-Za-z0-9_-]+)(?:[/?#]|$)/.exec(trimmed)
   if (urlMatch) return urlMatch[1] ?? null
   // Otherwise treat as a bare id only if the WHOLE string matches the
@@ -72,13 +72,13 @@ async function handleListWorkspaceDocuments(
     return toolError('Error: list_workspace_documents requires the current document to be in a workspace.')
   }
 
-  // Reuse the existing repo helper that powers /api/workspaces/:id —
+  // Reuse the existing repo helper that powers /api/workspaces/:id,
   // identical fields, identical ownership flag computation, and the
   // same membership check happens before we get here (the AI session
   // belongs to a workspace member or it would have been rejected at
   // /api/ai/prompt time).
   const rows = await listWorkspaceDocsWithOwnerFlag(session.workspaceAccess)
-  // Drop the current document from the list — the AI already has it
+  // Drop the current document from the list, the AI already has it
   // open, including it would be confusing and tempt redundant calls
   // to view_other_document on the same id it's editing.
   const visible = rows.filter(r => r.docId !== session.docId)
@@ -113,7 +113,7 @@ async function handleListMyDocuments(
   session: MetaToolContext,
   input: z.output<typeof ListMyDocumentsArgs>
 ): Promise<ToolResult> {
-  // Initiator-scoped — ownership is the truth source. The session's
+  // Initiator-scoped: ownership is the truth source. The session's
   // synthetic principal is irrelevant here; we always look up against
   // the real human's id (same pattern handleListThemes,
   // handleSaveThemeAsPreset use).
@@ -159,7 +159,7 @@ async function handleViewOtherDocument(
     return toolError(`Error: could not extract a document id from "${input.doc_id.slice(0, 80)}". Pass either the bare id or a markoto URL like https://markoto.app/d/<id>.`)
   }
   if (targetId === session.docId) {
-    return toolError('Error: this is the current document — call `view_document` instead.')
+    return toolError('Error: this is the current document, call `view_document` instead.')
   }
 
   const accessResult = await resolveCrossDocAccess(session, targetId)
@@ -167,7 +167,7 @@ async function handleViewOtherDocument(
   const ctx = accessResult.ctx
 
   // Live read via Hocuspocus. Same trusted-client pattern the
-  // comment-trigger endpoint uses for peek reads — opens just long
+  // comment-trigger endpoint uses for peek reads, opens just long
   // enough to get a synced ydoc, reads ytext, disconnects. Catches
   // mid-flight edits that haven't been stored yet.
   session.updateStatus('tool', `Reading ${ctx.title || 'document'}…`)
@@ -194,7 +194,7 @@ async function handleViewOtherDocument(
   // metadata block is parseable JSON for fields the model wants to
   // reuse (title, scope, etc).
   const trailer = view.truncated
-    ? '\n\n[Truncated at 50 000 chars — call view_other_document again with view_range to read more.]'
+    ? '\n\n[Truncated at 50 000 chars, call view_other_document again with view_range to read more.]'
     : ''
   // Readers know documents by their title, not their id: a summary that
   // cited `workspace doc "Kf50UWihca"` showed the raw id to the user.
@@ -208,13 +208,13 @@ type CrossDocAccess = { ok: true, ctx: CrossDocCtx } | { ok: false, error: ToolR
 
 /**
  * Mirror `/api/docs/:id/token` exactly. The initiator's permissions
- * are the source of truth — never the AI's synthetic principal — so
+ * are the source of truth, never the AI's synthetic principal, so
  * the AI sees what the human would see by pasting the URL into a
  * browser, no more and no less. 404-shapes mask "doc exists but
  * you can't see it" so a hallucinated id can't enumerate.
  *
  * Password-protected non-member access is surfaced distinctly (the
- * AI can tell the user) rather than 404-masking — there's no way to
+ * AI can tell the user) rather than 404-masking, there's no way to
  * ship the password through the AI tool surface, so the user has to
  * intervene.
  */
@@ -244,7 +244,7 @@ async function resolveCrossDocAccess(session: MetaToolContext, targetId: string)
 
 /**
  * Title of the document `docRef` (bare id or markoto URL) when `userId`
- * may open it — the same access decision `view_other_document` makes.
+ * may open it: the same access decision `view_other_document` makes.
  * Null when the reference doesn't parse, the doc doesn't exist, or the
  * user can't open it. Used to label confirmation requests for the
  * session's initiator, so it never reveals more than the user could see.
@@ -294,7 +294,7 @@ interface ViewSlice {
 }
 
 /**
- * Apply view_range. Same line-indexing semantics as `view_document` —
+ * Apply view_range. Same line-indexing semantics as `view_document`,
  * 1-indexed inclusive, end=-1 means EOF. Validation already happened
  * at the Zod schema (start >= 1, end >= start || end === -1). We
  * still clamp here so a huge end value doesn't crash anything
@@ -323,7 +323,7 @@ function applyViewRange(body: string, range: z.output<typeof ViewOtherDocumentAr
 }
 
 /**
- * Tells the AI WHY it could read the doc — useful when composing a
+ * Tells the AI WHY it could read the doc, useful when composing a
  * quote ("From your workspace doc 'Q3 plan': …").
  */
 function scopeLabelFor(ctx: CrossDocCtx, initiatorUserId: number): string {
@@ -352,7 +352,7 @@ export const listMyDocumentsTool = defineMetaTool({
 
 export const viewOtherDocumentTool = defineMetaTool({
   name: 'view_other_document',
-  description: 'Read the body and metadata of ANOTHER document — anything the user could open by URL: their own private docs, any doc in any workspace they belong to (viewer role is enough), public open-edit / open-view docs, or workspace docs (membership bypasses password gates). Accepts the doc_id directly OR a full markoto URL like https://markoto.app/d/xyz. Use when the user references a specific doc by id, by name in the workspace, or by URL ("can you summarise https://markoto.app/d/abc into this doc?"). The current document cannot be read this way — call `view_document` instead. Returns line-numbered body and full metadata so you can quote, link, or summarise. Long docs are capped at 50 000 chars; use the optional `view_range` to page through.',
+  description: 'Read the body and metadata of ANOTHER document, anything the user could open by URL: their own private docs, any doc in any workspace they belong to (viewer role is enough), public open-edit / open-view docs, or workspace docs (membership bypasses password gates). Accepts the doc_id directly OR a full markoto URL like https://markoto.app/d/xyz. Use when the user references a specific doc by id, by name in the workspace, or by URL ("can you summarise https://markoto.app/d/abc into this doc?"). The current document cannot be read this way, call `view_document` instead. Returns line-numbered body and full metadata so you can quote, link, or summarise. Long docs are capped at 50 000 chars; use the optional `view_range` to page through.',
   schema: ViewOtherDocumentArgs,
   trustBoundary: 'confirm',
   handler: handleViewOtherDocument

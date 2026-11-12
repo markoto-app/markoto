@@ -1,6 +1,6 @@
 // BYOK redirect SSRF (regression). The app checks a user's provider base
 // URL (and its DNS answers) before every call, but the request itself is
-// made by LiteLLM — whose OpenAI client follows redirects by default. A
+// made by LiteLLM: whose OpenAI client follows redirects by default. A
 // provider host that passes the check could answer 302/307 and make the
 // proxy fetch an internal service the check never saw; the internal
 // response then came back in the error text (or, for transcription, as

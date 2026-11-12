@@ -164,7 +164,7 @@ class Handler(BaseHTTPRequestHandler):
         entry = {
             "path": self.path,
             "model": model,
-            # Never echo a full key back — the suffix is enough for tests
+            # Never echo a full key back, the suffix is enough for tests
             # to prove WHICH key reached the provider.
             "keySuffix": key[-6:] if key else "",
             "at": time.time(),
@@ -253,7 +253,7 @@ class Handler(BaseHTTPRequestHandler):
         model = req.get("model", "")
         tools = req.get("tools") or []
         messages = req.get("messages") or []
-        # Tool results the model was given (truncated) — lets tests prove
+        # Tool results the model was given (truncated), lets tests prove
         # what content did or did not reach the "provider".
         tool_results = [_content_text(m)[:4000] for m in messages if m.get("role") == "tool"]
         self._record(

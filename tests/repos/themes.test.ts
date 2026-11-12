@@ -14,7 +14,7 @@ import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 import { asUser } from '../helpers/access'
 
 // Themes repo. Covers the user-saved preset round-trips + the
-// `(themeId, userId)` cross-user isolation tuple — a row owned by user
+// `(themeId, userId)` cross-user isolation tuple, a row owned by user
 // A must be invisible (not 403) to user B even when they know the id.
 
 describe('createTheme + getThemeById', () => {

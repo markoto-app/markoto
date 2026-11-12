@@ -16,7 +16,7 @@ const log = useLogger('render-client')
 
 // Render orchestrator. Nuxt-side counterpart to renderer/src/render.ts:
 //   1. Compute the doc's current snapshotId (newest yjs_updates row id).
-//   2. HEAD s3://renders/{docId}/{snap}/manifest.json — cache hit short-
+//   2. HEAD s3://renders/{docId}/{snap}/manifest.json: cache hit short-
 //      circuits everything else.
 //   3. POST the renderer container with the docId + snapshotId + format,
 //      gated by INTERNAL_API_SECRET. The renderer materializes the doc
@@ -33,7 +33,7 @@ const log = useLogger('render-client')
 //      last-writer-wins on S3).
 //
 // Caching is keyed on snapshotId (newest yjs_updates.id), which changes
-// any time the Y.Doc is updated — including theme changes pushed via
+// any time the Y.Doc is updated, including theme changes pushed via
 // ymeta. So no separate themeHash is needed.
 
 export type { RenderFormat, RenderManifest, WebSnapshot } from '~~/shared/contracts/render'
@@ -45,7 +45,7 @@ export interface RenderResult {
 
 const RENDER_TIMEOUT_MS = 90_000
 // Lock TTL is set comfortably above RENDER_TIMEOUT_MS so the lock outlives
-// the maximum legal render — without that buffer a slow render risks
+// the maximum legal render, without that buffer a slow render risks
 // having its lock expire mid-flight, letting a second instance start a
 // duplicate. The buffer also covers the S3 manifest write that runs
 // after the renderer's HTTP response.
@@ -58,7 +58,7 @@ const RENDER_POLL_CEILING_MS = RENDER_LOCK_TTL_MS
 
 // In-process singleflight map. Key: `${docId}:${snapshotId}:${format}`.
 // Concurrent calls for the same key share a single Promise. Cheaper than
-// the Valkey lock — avoids one round-trip per duplicate same-process call
+// the Valkey lock: avoids one round-trip per duplicate same-process call
 // (e.g. an AI tool batching `view_pages([1,2,3])` may issue parallel
 // renderClient calls in the same Nitro worker).
 const inflight = new Map<string, Promise<RenderResult>>()
@@ -70,7 +70,7 @@ const inflight = new Map<string, Promise<RenderResult>>()
  *
  * Fails OPEN on Valkey error: if Valkey is unreachable we fall back to
  * single-instance dedup via the in-process Map. The cost is potential
- * duplicate renders (one per instance) which is wasteful but correct —
+ * duplicate renders (one per instance) which is wasteful but correct,
  * the renderer is idempotent and the manifest write is atomic. We'd
  * rather render twice than refuse all renders during a Valkey blip.
  */
@@ -85,7 +85,7 @@ async function tryAcquireRenderLock(key: string): Promise<boolean> {
     Sentry.captureException(e, {
       tags: { component: 'renderClient', event: 'valkey_unavailable' }
     })
-    // Fail open — see header comment.
+    // Fail open: see header comment.
     return true
   }
 }
@@ -94,7 +94,7 @@ async function tryAcquireRenderLock(key: string): Promise<boolean> {
  * Release the render lock. Best-effort: if Valkey is unreachable, the
  * lock self-expires via TTL.
  *
- * NOTE: no fencing token — if our render runs past `RENDER_LOCK_TTL_MS`
+ * NOTE: no fencing token, if our render runs past `RENDER_LOCK_TTL_MS`
  * and another instance acquires the lock, our DEL would step on theirs.
  * The window is huge (≥120s, while typical renders are <15s) and the
  * worst-case consequence is one extra duplicate render. Adding a Lua
@@ -115,7 +115,7 @@ async function releaseRenderLock(key: string): Promise<void> {
  *
  * Why poll instead of pub/sub: pub/sub would require the renderer (in a
  * separate container) to publish on completion, doubling the failure
- * surface — a missed publish would hang the loser forever. Polling
+ * surface: a missed publish would hang the loser forever. Polling
  * costs one S3 HEAD per `RENDER_POLL_INTERVAL_MS` (~80 HEADs/min at 750ms),
  * trivially cheap, and self-heals if the winner crashes silently.
  */
@@ -149,7 +149,7 @@ async function brandRenderVariant(doc: DocAccess<'view'>): Promise<string | null
 }
 
 /**
- * Newest `yjs_updates` id for the doc. Returns 0 when no rows exist —
+ * Newest `yjs_updates` id for the doc. Returns 0 when no rows exist,
  * a doc that was created but never saw a single Y.js update. Note: 0
  * is also what `reconstructDocAtYjsId` treats as "empty doc".
  */
@@ -159,7 +159,7 @@ async function getLatestSnapshotId(doc: DocAccess<'view'>): Promise<number> {
 
 /**
  * HEAD the manifest. Returns the parsed manifest if present, null on 404
- * or any error (we re-render rather than fail closed — the renderer is
+ * or any error (we re-render rather than fail closed, the renderer is
  * idempotent so a wasteful re-render is preferable to a confusing 500).
  */
 async function readManifest(docId: string, snapshotId: number, variant: string | null = null): Promise<RenderManifest | null> {
@@ -171,7 +171,7 @@ async function readManifest(docId: string, snapshotId: number, variant: string |
   } catch {
     return null
   }
-  // Manifest exists — fetch + parse.
+  // Manifest exists: fetch + parse.
   try {
     const got = await s3.send(new GetObjectCommand({ Bucket: env.storage.bucket, Key: key }))
     if (!got.Body) return null
@@ -243,7 +243,7 @@ export async function renderDocument(
   const snapshotId = await getLatestSnapshotId(doc)
   // Brand kit: a change to the workspace's fonts or locked design
   // writes no Y.js row, so the snapshot id alone would serve a stale
-  // render — the brand fingerprint is part of the cache folder.
+  // render: the brand fingerprint is part of the cache folder.
   const variant = await brandRenderVariant(doc)
 
   // First, check the cache. If a usable manifest exists for the requested
@@ -271,7 +271,7 @@ export async function renderDocument(
         // Polling timed out without a manifest. The lock has either
         // expired (winner crashed) or is still held by a slow render
         // we've stopped waiting on. Either way, attempting our own
-        // render here is the correct recovery — better one extra
+        // render here is the correct recovery, better one extra
         // render than an opaque timeout to the user.
         log.warn('poll timeout, attempting own render', { key })
       }
@@ -304,7 +304,7 @@ export async function renderDocument(
 
 /**
  * One uncached PNG render of a render-bootstrap id that is not a stored
- * document — the design-import sample (`designImport/sampleRender.ts`),
+ * document: the design-import sample (`designImport/sampleRender.ts`),
  * whose content lives in Valkey for the render's duration. No snapshot,
  * no cache, no singleflight: every call is a different proposal. The
  * caller deletes `renders/{id}/` afterwards (`cleanupRendersForDoc`).
@@ -317,7 +317,7 @@ export async function renderPngUncached(id: string, round: number): Promise<{ pa
 /**
  * The document's current state as a web snapshot (publish): the
  * print page's sanitised HTML + theme CSS without pagination or cover.
- * Uncached — publishing is an explicit, rate-limited action and the
+ * Uncached: publishing is an explicit, rate-limited action and the
  * result is stored in `published_pages` by the caller.
  */
 export async function renderWebSnapshot(doc: DocAccess<'view'>): Promise<WebSnapshot> {

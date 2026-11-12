@@ -3,7 +3,7 @@ import { ID_RE } from '~~/shared/config/identifiers'
 
 // Where a refused or failed single sign-on lands. The server only
 // ever passes one of our fixed codes (`server/utils/sso/completeLogin.ts`
-// + the callback routes) — never text from the identity provider.
+// + the callback routes): never text from the identity provider.
 const { t } = useI18n()
 const route = useRoute()
 

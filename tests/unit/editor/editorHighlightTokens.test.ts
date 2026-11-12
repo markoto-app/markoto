@@ -6,7 +6,7 @@ import { join } from 'node:path'
  * Pins the CodeMirror markdown highlight tokens (`--mk-md-*`) in
  * `app/assets/css/main.css`. Regression: the dark-mode overrides used to
  * live in a `.dark` rule, which has the same specificity as the light
- * `:root` rule declared after it — so the light values won in dark mode
+ * `:root` rule declared after it, so the light values won in dark mode
  * and headings / strong / code rendered sumi-950 on the sumi-900 editor
  * bg (≈1:1 contrast, invisible). The overrides must sit in a rule that
  * outranks `:root` and must keep content text readable in both modes.

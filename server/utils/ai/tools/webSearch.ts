@@ -13,7 +13,7 @@ import { useEnv } from '~~/shared/env/load'
  *
  * `workspaceId` / `userId` / `docId` drive the four-axis spend TAGS
  * (`featureMetadata` reads them). `virtualKey` is the LiteLLM per-user
- * virtual key the Mistral synthesis call authenticates WITH — so the
+ * virtual key the Mistral synthesis call authenticates WITH, so the
  * token spend lands on the caller's `max_budget` and a budget-exhausted
  * user's `web_search` / `fetch_url` fails at the proxy instead of
  * silently running on the master key. Both production call sites pass it
@@ -55,7 +55,7 @@ export async function webSearch(
   signal: AbortSignal,
   spendCtx: WebToolSpendContext = {}
 ): Promise<WebSearchResult> {
-  // Abort guard — if we're already past the deadline, don't even issue the call.
+  // Abort guard: if we're already past the deadline, don't even issue the call.
   if (signal.aborted) throw new Error('aborted')
   if (!isWebToolAvailable('web_search')) throw new Error('Web search is not configured on this instance.')
   // Platform-paid upstream call: count it against the user's allowance
@@ -64,8 +64,8 @@ export async function webSearch(
   // Web search runs on Staan (staan.ai), a European search index (OVHcloud,
   // EU) with its own index rather than a Google/Bing fan-out through US
   // processors. EU-only routing (disabling Staan's optional US
-  // fallback) is an ACCOUNT-LEVEL setting in the Staan dashboard — there is no
-  // per-request parameter — so it must be verified enabled on the account.
+  // fallback) is an ACCOUNT-LEVEL setting in the Staan dashboard, there is no
+  // per-request parameter: so it must be verified enabled on the account.
   return await webSearchViaStaan(query, signal, spendCtx)
 }
 
@@ -78,7 +78,7 @@ export async function webSearch(
 //                json_schema strict:true extracting {summary, images[]}.
 //                Jina stays for the direct-URL-fetch case: the user (or the
 //                model) supplies a specific URL, so there is no Google/Bing
-//                search backend involved — the EU-sovereignty concern that
+//                search backend involved: the EU-sovereignty concern that
 //                motivated the Staan swap applies only to search fan-out.
 //
 // Staan's synthesising /answer endpoint would collapse this to one call but
@@ -113,7 +113,7 @@ async function webSearchViaStaan(
     throw new Error('STAAN_API_KEY not configured (required for web_search)')
   }
 
-  // 1) Staan search — returns up to 10 ranked results with title/url/snippet.
+  // 1) Staan search: returns up to 10 ranked results with title/url/snippet.
   //    Staan enforces a 400-char query cap and rejects longer queries.
   const staanRes = await fetch('https://api.staan.ai/v2/search/web', {
     method: 'POST',
@@ -144,7 +144,7 @@ async function webSearchViaStaan(
     }
   }
 
-  // 2) Mistral synthesis — pass results as a numbered list, ask for a
+  // 2) Mistral synthesis: pass results as a numbered list, ask for a
   //    concise answer with [n] citations.
   const dump = results.slice(0, 8).map((r, i) =>
     `[${i + 1}] ${r.title ?? ''}\nURL: ${r.url ?? ''}\n${(r.snippet ?? '').slice(0, 1500)}`
@@ -164,7 +164,7 @@ async function webSearchViaStaan(
   }
 
   // Authenticate the synthesis with the caller's virtual key (rpm limits
-  // + spend tags) and run it on the session's chat provider — the user's
+  // + spend tags) and run it on the session's chat provider, the user's
   // own key under BYOK. Fall back to the master key only when a key-less
   // harness path reaches here.
   const litellm = spendCtx.virtualKey ? useLitellmForUser(spendCtx.virtualKey) : useLitellmAdmin()
@@ -181,7 +181,7 @@ async function webSearchViaStaan(
     // contract). `fetch_url` synthesis stays at 0 because it has a strict
     // JSON schema; the outer agentic loop stays at 0 for tool determinism.
     temperature: 0.3,
-    // Sub-step of the text agentic loop — same tag set so /admin/ai-spend's
+    // Sub-step of the text agentic loop, same tag set so /admin/ai-spend's
     // "text-loop" total includes web_search synthesis and the workspace +
     // user breakdowns attribute correctly.
     ...featureMetadata(FEATURE_TAGS.textLoop, spendCtx)

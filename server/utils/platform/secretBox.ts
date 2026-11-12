@@ -16,8 +16,8 @@ import { useEnv } from '~~/shared/env/load'
 //   derived key leaves the others intact.
 // - Bound to its row. The additional authenticated data names the purpose
 //   and the owning row (user id, workspace id, …), so a ciphertext copied
-//   into another user's row — by SQL injection, a mass-assignment bug or a
-//   restore mix-up — fails authentication instead of decrypting for the
+//   into another user's row, by SQL injection, a mass-assignment bug or a
+//   restore mix-up: fails authentication instead of decrypting for the
 //   wrong owner.
 //
 // Wire format: `v2:<nonce>:<tag>:<ciphertext>` (base64url). The version
@@ -37,13 +37,13 @@ const HKDF_SALT = Buffer.from('markoto/at-rest-secrets', 'utf8')
 
 /** What a ciphertext is; each purpose gets its own derived key. */
 export type SecretPurpose
-  /** users.litellm_key_token — context: the user id. */
+  /** users.litellm_key_token: context: the user id. */
   = | 'litellm-user-key'
-  /** workspace_members.litellm_key_token — context: `<workspace id>:<user id>`. */
+  /** workspace_members.litellm_key_token: context: `<workspace id>:<user id>`. */
     | 'litellm-member-key'
-  /** user_ai_providers.api_key_encrypted — context: `<user id>:<capability>`. */
+  /** user_ai_providers.api_key_encrypted: context: `<user id>:<capability>`. */
     | 'ai-provider-key'
-  /** sso_connections.oidc_client_secret — context: the workspace id (unique per connection). */
+  /** sso_connections.oidc_client_secret: context: the workspace id (unique per connection). */
     | 'sso-client-secret'
 
 /**

@@ -59,7 +59,7 @@ describe('GET /api/user/billing', () => {
   })
 
   it('reports a lapsed paid plan as free (defensive downgrade)', async () => {
-    // Pairs with the resolver test of the same name — proves the
+    // Pairs with the resolver test of the same name, proves the
     // endpoint surface also applies the same defensive downgrade,
     // not just the internal resolver.
     const u = await createUser()

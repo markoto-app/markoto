@@ -56,7 +56,7 @@ export async function getWorkspaceSubscription(workspaceId: string): Promise<Wor
 }
 
 /**
- * Subscriptions a user manages as billing admin — for their data export
+ * Subscriptions a user manages as billing admin, for their data export
  * and the account-deletion hand-over. Ids and plan facts only.
  */
 export async function listSubscriptionsByBillingAdmin(userId: number): Promise<Array<Pick<WorkspaceSubscriptionRow, 'workspaceId' | 'plan' | 'seats' | 'status' | 'validUntil' | 'currency' | 'interval' | 'createdAt'>>> {
@@ -80,7 +80,7 @@ export async function listSubscriptionsByBillingAdmin(userId: number): Promise<A
  * SQL subquery: ids of workspaces whose subscription currently grants
  * its plan (same rule as `subscriptionGrantsPlan`). Storage inside them
  * is pooled per workspace, so per-user storage sums leave them out
- * (only while billing is on — the caller decides).
+ * (only while billing is on, the caller decides).
  */
 export function pooledWorkspaceIdsSubquery(): SQL {
   return sql`(select ${workspaceSubscriptions.workspaceId} from ${workspaceSubscriptions}

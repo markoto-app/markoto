@@ -49,7 +49,7 @@ export async function collectBrandObjectKeys(ws: WorkspaceAccess<'admin'>): Prom
 
 /**
  * Stream one asset. `crossOrigin`: the document route, read by the
- * opaque-origin preview iframe (fonts in CORS mode, images cross-site) —
+ * opaque-origin preview iframe (fonts in CORS mode, images cross-site),
  * `Access-Control-Allow-Origin: *` and CORP `cross-origin`; access rides
  * on the URL's token, never on credentials.
  */

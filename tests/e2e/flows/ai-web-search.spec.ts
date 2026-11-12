@@ -3,7 +3,7 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // Tier 2: "Ask the AI a question that needs current information."
 //
 // User-job: a writer is drafting a doc that needs a fact the AI's
-// training data doesn't cover — latest version of a library, current
+// training data doesn't cover, latest version of a library, current
 // stock price, who won last week's match. Job done when the AI runs
 // a web search, gets sources, folds them into its reply, and inserts
 // a paragraph into the doc with the grounded answer.
@@ -24,9 +24,9 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
 
   await flow.heading('Ask the AI for current information', 3)
   await flow.narrate(
-    'The AI\'s training data has a cutoff. For anything more recent — '
+    'The AI\'s training data has a cutoff. For anything more recent, '
     + 'current library versions, latest news, who shipped what last '
-    + 'week — it can search the web and weave the result into your doc. '
+    + 'week: it can search the web and weave the result into your doc. '
     + 'The search runs on the instance\'s European search provider; your '
     + 'AI provider writes the answer. It links the sources it used, so '
     + 'you can verify before publishing.'
@@ -36,7 +36,7 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,
-    { result: 'The prompt bar lifts and glows — ready for your prompt.' }
+    { result: 'The prompt bar lifts and glows, ready for your prompt.' }
   )
 
   // Phrase the prompt so web_search is the obvious tool. "Latest"
@@ -54,7 +54,7 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — it searches the web, then writes the answer into the doc.',
+      result: 'The AI is working, it searches the web, then writes the answer into the doc.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -87,7 +87,7 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
 
   await flow.shot(
     'The AI searched the web, found the current Vue.js release, and '
-    + 'wrote the note into the doc — with a link to its source.',
+    + 'wrote the note into the doc, with a link to its source.',
     {
       hero: true,
       highlights: [
@@ -98,6 +98,6 @@ test('Ask the AI for current information', async ({ page, flow, editor }) => {
 
   flow.next({
     slug: 'tell-the-ai-who-you-re-writing-for',
-    why: 'Steer the AI\'s tone + language too — set the document context'
+    why: 'Steer the AI\'s tone + language too, set the document context'
   })
 })

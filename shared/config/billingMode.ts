@@ -1,4 +1,4 @@
-// Billing mode — which commercial surface this deployment runs.
+// Billing mode: which commercial surface this deployment runs.
 //
 // markoto ships ONE codebase for three deployment shapes; configuration
 // alone picks between them:
@@ -13,7 +13,7 @@
 // required at boot, `/api/billing/{checkout,portal}` + the Stripe webhook
 // + workspace AI sponsorship answer 404 `billing/disabled`, Stripe
 // sweepers don't run, and every user resolves to the FREE tier for
-// limits (raise the free tier via `TIER_FREE_*` env vars — see
+// limits (raise the free tier via `TIER_FREE_*` env vars, see
 // `shared/config/tiers.ts#resolveTiersFromEnv`).
 //
 // `plansComingSoon` is only meaningful while billing is OFF: it turns

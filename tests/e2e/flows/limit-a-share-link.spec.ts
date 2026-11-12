@@ -5,7 +5,7 @@ import { test, expect } from '../fixtures/flow'
 //
 // User-job: a writer shares a draft by link but doesn't want it to end up
 // as a file in someone's downloads, nor to stay open forever. Job done
-// when the link is view-only with an end date — a visitor in their own
+// when the link is view-only with an end date, a visitor in their own
 // browser can read but has no export or print, and after the end date
 // the link says it expired.
 //
@@ -81,7 +81,7 @@ test('Limit a share link', async ({ page, flow, editor }) => {
   await expect(visitor.page.getByRole('menuitem', { name: /^print/i })).toHaveCount(0)
   await expect(visitor.page.getByRole('menuitem', { name: /export/i })).toHaveCount(0)
   expect((await visitor.page.request.get(`/api/docs/${docId}/pdf`)).status()).toBe(403)
-  await visitor.flow.shot('No export, no PDF, no print — for them only')
+  await visitor.flow.shot('No export, no PDF, no print, for them only')
   await visitor.page.keyboard.press('Escape')
 
   // The end date passes.

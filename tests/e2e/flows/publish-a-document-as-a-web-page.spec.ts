@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/flow'
 // "Publish a document as a web page".
 //
 // User-job: a writer wants a document readable by anyone at a clean,
-// public address — without opening the document itself to the world.
+// public address: without opening the document itself to the world.
 // Job done when the page is published, its address is copied, a visitor
 // in their own browser reads the page, and the document stays private.
 
@@ -22,7 +22,7 @@ test('Publish a document as a web page', async ({ page, flow, editor }) => {
   await flow.heading('Publish it', 3)
   await flow.narrate(
     'Publishing puts a copy of the document at its own public address. '
-    + 'The document itself stays exactly as shared as before — here it is '
+    + 'The document itself stays exactly as shared as before, here it is '
     + 'private. Publish again whenever you want the page to show your latest changes.'
   )
   await flow.click(
@@ -59,7 +59,7 @@ test('Publish a document as a web page', async ({ page, flow, editor }) => {
   await reader.page.goto(url)
   await reader.page.getByRole('heading', { name: 'Harbourline depot guide' }).waitFor({ state: 'visible', timeout: 15_000 })
   await expect(reader.page.getByText('The airport depot has the shortest queues')).toBeVisible()
-  await reader.flow.shot('Anyone with the address reads the page — no account, no editor', {
+  await reader.flow.shot('Anyone with the address reads the page, no account, no editor', {
     hero: true,
     addressBar: new URL(url).pathname
   })

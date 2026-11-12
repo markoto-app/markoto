@@ -2,7 +2,7 @@ import { nanoid } from 'nanoid'
 // `createError` is Nuxt-auto-imported in production but the repos test
 // tier runs outside Nuxt's runtime, so we import it explicitly. The
 // runtime auto-import gracefully shadows this symbol when both are
-// in scope (no double-shape risk — h3's createError is a singleton).
+// in scope (no double-shape risk, h3's createError is a singleton).
 import { createError } from 'h3'
 import { createDoc, type CreateDocInput } from '../../repos/documents'
 import { getWorkspace } from '../../repos/workspaces'
@@ -44,7 +44,7 @@ export interface CreateDocumentParams {
   templateId?: string
   /** Mutually exclusive with `themeId`. Must be a key in `THEME_PRESETS`. */
   themePreset?: string
-  /** Mutually exclusive with `themePreset`. Must belong to `ownerId` —
+  /** Mutually exclusive with `themePreset`. Must belong to `ownerId`,
    *  cross-user theme application is rejected. */
   themeId?: string
   /** Optional workspace assignment. Caller must be admin or editor of
@@ -65,9 +65,9 @@ export interface CreateDocumentParams {
 }
 
 export interface CreateDocumentResult {
-  /** Newly minted nanoid (10 chars) — also the URL slug at /d/{docId}. */
+  /** Newly minted nanoid (10 chars), also the URL slug at /d/{docId}. */
   docId: string
-  /** Convenience for tool handlers — saves the model from manually
+  /** Convenience for tool handlers, saves the model from manually
    *  concatenating /d/<docId>. */
   url: string
 }
@@ -78,14 +78,14 @@ export interface CreateDocumentResult {
  * status codes 400 / 401 / 403 / 404; HTTP and tool callers get the same errors.
  *
  * Theme precedence (first match wins):
- *   1. `themeId`     — caller's own saved-theme preset
- *   2. `themePreset` — built-in preset id
+ *   1. `themeId`: caller's own saved-theme preset
+ *   2. `themePreset`: built-in preset id
  *   3. The template's design (a template is a text + design bundle;
  *      Blank has none)
  *   4. Workspace default theme (when filing into a workspace)
- *   5. Schema default — applied by `createDoc()` when none of above set.
+ *   5. Schema default: applied by `createDoc()` when none of above set.
  *
- * `themeId` + `themePreset` are mutex'd — passing both fails fast rather
+ * `themeId` + `themePreset` are mutex'd, passing both fails fast rather
  * than silently letting (1) win, so callers can't smuggle a built-in id
  * past a theme whitelist by also sending a saved id.
  */
@@ -168,7 +168,7 @@ function applyAnonymousCreator(create: Omit<CreateDocInput, 'ownerId' | 'workspa
  * A saved theme / workspace default may carry custom CSS and theme
  * images that point at the uploads of the document it was made in. A
  * brand-new doc has no uploads, so those rules / image URLs are dropped
- * here (the render-time checks would ignore them anyway — this keeps the
+ * here (the render-time checks would ignore them anyway, this keeps the
  * stored theme honest).
  */
 function withCustomCssForNewDoc(theme: DocTheme, docId: string): DocTheme {

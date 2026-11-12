@@ -98,7 +98,7 @@ describe('cross-field rules', () => {
   it('a half-configured AI instance default is a warning, not a boot failure', () => {
     expect(bootProblems({ NUXT_AI_DEFAULT_CHAT_BASE_URL: 'https://api.example.org/v1' })).toEqual([])
     expect(bootWarnings({ NUXT_AI_DEFAULT_CHAT_BASE_URL: 'https://api.example.org/v1' })).toEqual([
-      'NUXT_AI_DEFAULT_CHAT_BASE_URL/_API_KEY set without NUXT_AI_DEFAULT_CHAT_MODEL — the chat default is ignored.'
+      'NUXT_AI_DEFAULT_CHAT_BASE_URL/_API_KEY set without NUXT_AI_DEFAULT_CHAT_MODEL, so the chat default is ignored.'
     ])
   })
 })

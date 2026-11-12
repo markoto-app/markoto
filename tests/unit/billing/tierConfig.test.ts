@@ -12,13 +12,13 @@ import {
 } from '../../../shared/config/tiers'
 
 // Subscription tier caps. These tests intentionally DO NOT restate the
-// exact numbers from the config — that would just duplicate the source
+// exact numbers from the config, that would just duplicate the source
 // of truth. Instead they encode product invariants so that a wrong
 // value fails by violating a relationship (e.g. "Pro gave less than
 // Free for bytes"), not by diverging from a hardcoded twin the test
 // file also has to maintain.
 
-describe('tier config — completeness', () => {
+describe('tier config: completeness', () => {
   it('every plan name has a tier object', () => {
     for (const plan of PLAN_NAMES) {
       expect(DEFAULT_TIERS[plan], `missing tier object for "${plan}"`).toBeDefined()
@@ -40,14 +40,14 @@ describe('tier config — completeness', () => {
         const v = caps[field]
         expect(typeof v, `${plan}.${field} wrong type`).toBe('number')
         expect(Number.isFinite(v), `${plan}.${field} must be finite`).toBe(true)
-        expect(v, `${plan}.${field} must be > 0 — zero is a disabled product, almost always a typo`).toBeGreaterThan(0)
+        expect(v, `${plan}.${field} must be > 0, zero is a disabled product, almost always a typo`).toBeGreaterThan(0)
       }
     }
   })
 })
 
-describe('tier config — monotonicity (paid tiers grant strictly more)', () => {
-  // `knowledgeBytesPerWorkspace` is intentionally NOT in this list —
+describe('tier config: monotonicity (paid tiers grant strictly more)', () => {
+  // `knowledgeBytesPerWorkspace` is intentionally NOT in this list,
   // the per-workspace cap is about one-workspace corpus size, not
   // per-user total.
   for (const field of MONOTONIC_CAP_FIELDS) {
@@ -56,16 +56,16 @@ describe('tier config — monotonicity (paid tiers grant strictly more)', () => 
       const pro = DEFAULT_TIERS.pro[field]
       const team = DEFAULT_TIERS.team[field]
       const business = DEFAULT_TIERS.business[field]
-      expect(pro, `pro.${field} must exceed free.${field} — upgrade gives more`).toBeGreaterThan(free)
+      expect(pro, `pro.${field} must exceed free.${field}, upgrade gives more`).toBeGreaterThan(free)
       expect(team, `team.${field} must be >= pro.${field}`).toBeGreaterThanOrEqual(pro)
       expect(business, `business.${field} must be >= team.${field}`).toBeGreaterThanOrEqual(team)
     })
   }
 })
 
-describe('tier config — Free must be usable AND bounded', () => {
+describe('tier config: Free must be usable AND bounded', () => {
   it('free gives non-zero AI Points budget', () => {
-    // A zero-budget Free tier shows "no AI for you" on first click —
+    // A zero-budget Free tier shows "no AI for you" on first click,
     // anti-funnel, never ship it.
     expect(DEFAULT_TIERS.free.litellmBudgetUsd).toBeGreaterThan(0)
   })
@@ -77,7 +77,7 @@ describe('tier config — Free must be usable AND bounded', () => {
   })
 })
 
-describe('KNOWLEDGE_PLATFORM_LIMITS — non-tier constants', () => {
+describe('KNOWLEDGE_PLATFORM_LIMITS: non-tier constants', () => {
   it('every field is a positive finite number', () => {
     for (const [key, value] of Object.entries(KNOWLEDGE_PLATFORM_LIMITS)) {
       expect(typeof value, `${key} wrong type`).toBe('number')
@@ -87,7 +87,7 @@ describe('KNOWLEDGE_PLATFORM_LIMITS — non-tier constants', () => {
   })
 })
 
-describe('resolveTiersFromEnv — runtime overrides', () => {
+describe('resolveTiersFromEnv: runtime overrides', () => {
   it('returns the committed defaults when no override vars are present', () => {
     expect(resolveTiersFromEnv({})).toEqual(DEFAULT_TIERS)
   })
@@ -142,7 +142,7 @@ describe('resolveTiersFromEnv — runtime overrides', () => {
 
 // Entitlements (plan limits + feature switches)
 
-describe('tier config — self-hosted instances keep every feature', () => {
+describe('tier config: self-hosted instances keep every feature', () => {
   // Billing off (self-host) resolves everyone to `free`, so the COMMITTED
   // free tier is what a self-hoster gets: every feature switch on, no
   // member / history / MCP / web-tool limit. The hosted free tier is
@@ -167,7 +167,7 @@ describe('tier config — self-hosted instances keep every feature', () => {
   })
 })
 
-describe('tier config — paid tiers never give less than free', () => {
+describe('tier config: paid tiers never give less than free', () => {
   const atLeast = (paid: number | null, free: number | null) =>
     paid === null || (free !== null && paid >= free)
   for (const field of [...UNLIMITED_CAP_FIELDS, 'savedThemes', 'importMaxBytes'] as const) {
@@ -179,7 +179,7 @@ describe('tier config — paid tiers never give less than free', () => {
   }
 })
 
-describe('resolveTiersFromEnv — entitlement overrides', () => {
+describe('resolveTiersFromEnv: entitlement overrides', () => {
   it('parses numbers and `unlimited` for the unlimited-capable fields', () => {
     const tiers = resolveTiersFromEnv({
       TIER_FREE_MEMBERS_PER_WORKSPACE: '3',

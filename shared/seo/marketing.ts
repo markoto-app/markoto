@@ -1,6 +1,6 @@
 import { trimChars } from '../utils/trimChars'
 // Marketing pages (hosted markoto.app only): routes, language versions,
-// hreflang and indexing rules. Pure — shared by the catch-all page
+// hreflang and indexing rules. Pure, shared by the catch-all page
 // (app/pages/[...marketing].vue), the URL-locale plugin and the sitemap.
 //
 // Files: content/marketing/<locale>/<slug>.md (Nuxt Content collection
@@ -125,7 +125,7 @@ export interface HreflangLink {
  * hreflang alternates for one slug: every indexable language version
  * that exists, in MARKETING_LOCALES order, plus `x-default` → English
  * when the English version is among them. Unreviewed translations are
- * left out — an alternate pointing at a noindex page is an error for
+ * left out: an alternate pointing at a noindex page is an error for
  * search engines.
  */
 export function hreflangLinks(slug: string, versions: MarketingVersion[]): HreflangLink[] {

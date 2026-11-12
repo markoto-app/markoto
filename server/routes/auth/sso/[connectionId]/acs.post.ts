@@ -11,7 +11,7 @@ import { system } from '../../../../repos/proofs'
 
 const log = useLogger('auth-sso')
 
-// POST /auth/sso/:connectionId/acs — SAML assertion consumer service
+// POST /auth/sso/:connectionId/acs: SAML assertion consumer service
 // (HTTP-POST binding) for a workspace's identity provider.
 // Validation rules: `server/utils/sso/saml.ts`. Only SP-initiated
 // sign-ins: the response must answer the AuthnRequest whose id is in

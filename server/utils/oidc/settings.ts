@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in — env parsing.
+// Generic OpenID Connect sign-in, env parsing.
 //
 // Self-hosters point markoto at their own IdP (Authentik, Keycloak,
 // Authelia, Pocket ID, Zitadel, Dex, ...). The provider is offered only
@@ -84,7 +84,7 @@ export function resolveOidcSettings(source?: RawEnv): OidcSettings | null {
 /**
  * The redirect URI registered at the IdP: `NUXT_OAUTH_OIDC_REDIRECT_URL`,
  * else `<NUXT_SITE_URL>/auth/oidc`. Never derived from the request's Host
- * header (client-controlled); null when neither is configured — boot
+ * header (client-controlled); null when neither is configured, boot
  * validation (`oidcRedirectErrors`) refuses that shape.
  */
 export function oidcRedirectUri(settings: Pick<OidcSettings, 'redirectUrl'>, siteUrl: unknown): string | null {

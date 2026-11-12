@@ -27,10 +27,10 @@ export async function bootstrapAdminFromEnv(args: {
 
   const bootstrap = system('admin-bootstrap')
   const result = await setAdminFlag(bootstrap, args.userId, true)
-  if (!result) return // user not found — should be unreachable here
+  if (!result) return // user not found, should be unreachable here
   if (result.previous === true) return // already admin; no-op
 
-  // Newly promoted — audit.
+  // Newly promoted: audit.
   await appendAuditEvent({
     by: bootstrap,
     actorIp: null,

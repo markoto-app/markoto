@@ -2,7 +2,7 @@ import { test, expect } from '../fixtures/flow'
 
 // Tier 2: "Tune your typography, colors, and details".
 //
-// User-job: a writer landed on a preset that's CLOSE but not quite —
+// User-job: a writer landed on a preset that's CLOSE but not quite,
 // they want a serif for long reading, and to know where the colours and
 // the drop cap live. Job done when they've reached past the preset cards
 // into the per-section settings, changed the body font, and seen the
@@ -67,7 +67,7 @@ test('Tune your typography and colors', async ({ page, flow, editor }) => {
     }
   )
 
-  // "Body text" matches `theme.section.body` exactly — a bare /body/
+  // "Body text" matches `theme.section.body` exactly, a bare /body/
   // regex would also match the menubar's "Body" item.
   const bodySection = page.getByRole('button', { name: /^body text$/i }).first()
   await flow.click(

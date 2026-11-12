@@ -11,7 +11,7 @@ import { asUser, wsAs } from '../helpers/access'
 // now hold at most half of the workspace's free slots.
 //
 // Real Valkey: the repos tier runs with TEST_MODE=1 (which bypasses the
-// limiters) — switched off for this file, like rateLimitAtomic.test.ts.
+// limiters): switched off for this file, like rateLimitAtomic.test.ts.
 
 class HttpError extends Error {
   statusCode: number

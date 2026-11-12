@@ -1,5 +1,5 @@
 // Path rules shared by the server (X-Robots-Tag, sitemap) and the client
-// (canonical links). Pure — no Nitro / Nuxt imports.
+// (canonical links). Pure: no Nitro / Nuxt imports.
 
 /** Paths that are never indexed: documents, render page, document API. */
 const NOINDEX_PREFIXES = ['/d/', '/_internal/', '/api/docs/'] as const

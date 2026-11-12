@@ -8,7 +8,7 @@ const md = new MarkdownIt().use(attrs).use(tableAttrsRowPlugin)
 
 const TABLE = '| a | b |\n|---|--:|\n| x | 1 |\n'
 
-describe('tableAttrsRowPlugin — `{.class}` right under a table', () => {
+describe('tableAttrsRowPlugin: `{.class}` right under a table', () => {
   it('applies the attributes to the table instead of adding an empty row', () => {
     const html = md.render(`${TABLE}{.financials}\n`)
     expect(html).toContain('<table class="financials">')

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { homeStructuredData, pricingStructuredData, serializeJsonLd } from '../../../shared/seo/structuredData'
 
 // JSON-LD on markoto.app's home page: Organization + WebSite +
-// SoftwareApplication (free). Nothing invented — no ratings, no reviews.
+// SoftwareApplication (free). Nothing invented, no ratings, no reviews.
 
 const input = {
   siteUrl: 'https://markoto.app',

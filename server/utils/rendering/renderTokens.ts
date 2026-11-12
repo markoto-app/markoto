@@ -1,11 +1,11 @@
 // JWTs minted by the renderer container (`renderer/src/render.ts`) and
 // verified by the app on the `/_internal/render/:docId` route. Signed with
 // the same `INTERNAL_API_SECRET` already used for sync→app + app→sync
-// internal calls — gives us one rotating-secret surface to track.
+// internal calls: gives us one rotating-secret surface to track.
 //
 // Scope is `'render'` so a leak of an unrelated `INTERNAL_API_SECRET`-signed
 // token (none exist today, but defence in depth) can't pivot to a render
-// route. TTL is intentionally short — the renderer always mints fresh per
+// route. TTL is intentionally short, the renderer always mints fresh per
 // request, so a 60 s window is enough for navigation + Hocuspocus sync.
 
 import jwt from 'jsonwebtoken'
@@ -29,7 +29,7 @@ export function mintRenderToken(docId: string, snapshotId: number): string {
  * Returns the decoded payload if the token is a valid render-token for
  * `expectedDocId`, otherwise `null`. Catches every verify failure (expired,
  * malformed, scope mismatch, docId mismatch) and collapses them into the
- * same null — the caller responds 403 either way; no need to leak which
+ * same null: the caller responds 403 either way; no need to leak which
  * specific check failed.
  */
 export function verifyRenderToken(

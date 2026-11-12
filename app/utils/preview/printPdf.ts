@@ -32,12 +32,12 @@ const PRINT_IFRAME_MAX_LIFETIME_MS = 10 * MINUTE_MS
  *      preview (renderMarkdown + composeFinalHtml, sanitised).
  *   2. Mount a hidden iframe running the SAME bootstrap as the live
  *      preview (`pagedPreviewIframe.html`), sandboxed `allow-scripts
- *      allow-modals` — no `allow-same-origin`, so the printed content runs
+ *      allow-modals`: no `allow-same-origin`, so the printed content runs
  *      in an opaque origin like the preview (see previewFrame.ts). Mermaid
  *      renders inside it, never in the app's origin.
  *   3. Post a `render` message with `print: true`; the iframe paginates
  *      with paged.js, calls `window.print()` (allow-modals) and answers
- *      `print-done` on `afterprint` — whether the user saved or cancelled.
+ *      `print-done` on `afterprint`: whether the user saved or cancelled.
  *
  * Why a hidden iframe instead of printing the live preview: it isolates the
  * print flow from the editor chrome, works when the preview isn't shown
@@ -49,9 +49,9 @@ export async function printDocumentAsPdf(opts: {
   source: string
   theme: DocTheme
   title: string
-  /** Owning document — custom CSS may only reference this doc's uploads. */
+  /** Owning document: custom CSS may only reference this doc's uploads. */
   docId: string
-  /** Document language (`ymeta.language`) — cover date, `{date}`, TOC title. */
+  /** Document language (`ymeta.language`): cover date, `{date}`, TOC title. */
   language?: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
@@ -102,7 +102,7 @@ export async function printDocumentAsPdf(opts: {
     const iframe = document.createElement('iframe')
     iframe.setAttribute('aria-hidden', 'true')
     iframe.title = opts.title || 'Print'
-    // allow-modals lets `window.print()` open the dialog — Chromium no-ops
+    // allow-modals lets `window.print()` open the dialog, Chromium no-ops
     // it in a sandboxed frame without the flag. No allow-same-origin, no
     // allow-top-navigation / allow-popups. See docs/SECURITY-HARDENING.md.
     iframe.setAttribute('sandbox', PRINT_SANDBOX)

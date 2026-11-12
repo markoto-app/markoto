@@ -314,7 +314,7 @@ export function toggleHeading(view: EditorView, level: number): void {
  *   - blank lines untouched
  *
  * For sequentially-numbered ordered lists, use `toggleOrderedList`
- * instead — it numbers each line `1.`, `2.`, `3.` rather than giving
+ * instead: it numbers each line `1.`, `2.`, `3.` rather than giving
  * every line the same prefix.
  */
 export function toggleLinePrefix(view: EditorView, prefix: string): void {

@@ -25,7 +25,7 @@ import type { UserScope } from '../../repos/proofs'
 //     caller's account (accounts only ever store verified addresses), or
 //   - email link: the caller presents the single-use token sent to that
 //     address (possession of the mailbox).
-// Anything else is a uniform 404 — an invite id alone grants nothing.
+// Anything else is a uniform 404, an invite id alone grants nothing.
 
 /** Selector for an in-app action on `inviteId` by the signed-in user. */
 export async function inAppInviteSelector(self: UserScope, rawInviteId: string): Promise<InviteSelector> {

@@ -6,8 +6,8 @@ polls the app's provider endpoint. `tests/integration/endpoints/customDomains.te
 verifies a domain against challtestsrv's records and has Traefik obtain a real
 certificate from pebble over TLS-ALPN-01.
 
-- `pebble.minica.pem` — pebble's public test root (copied from the pinned
+- `pebble.minica.pem`: pebble's public test root (copied from the pinned
   image, `/test/certs/pebble.minica.pem`); Traefik trusts it for pebble's
   ACME directory (`acme.cacertificates`). A test certificate, not a secret.
-- `pebble-config.json` — pebble's own test config with the validation
+- `pebble-config.json`: pebble's own test config with the validation
   ports moved to 80 / 443, where traefik-test listens.

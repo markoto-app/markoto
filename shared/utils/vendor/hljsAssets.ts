@@ -5,7 +5,7 @@ import { vendorUrl } from './vendorAssets'
  * Same-origin URL + SRI hash for the highlight.js theme stylesheet used by
  * the paged.js preview, the browser print iframe and the server render
  * page. Copied (unmodified) from `node_modules/highlight.js/styles/` at
- * build time — modules/vendor-assets.ts, see shared/utils/vendor/vendorAssets.ts.
+ * build time: modules/vendor-assets.ts, see shared/utils/vendor/vendorAssets.ts.
  *
  * Why not imported via Vite: the CSS would land in the parent document,
  * but srcdoc iframes don't inherit parent stylesheets; linking it inside
@@ -38,7 +38,7 @@ export const HLJS_THEMES: Record<HljsThemeName, { path: string, sri: string }> =
 /** Every highlight.js stylesheet lives under this prefix. */
 /**
  * Base colours of each theme (`.hljs { color; background }` in its
- * stylesheet) — `themeToCss` paints the code box itself, so it needs them.
+ * stylesheet): `themeToCss` paints the code box itself, so it needs them.
  * `tests/unit/codeBlockCss.test.ts` checks them against the stylesheets.
  */
 export const HLJS_THEME_COLORS: Record<HljsThemeName, { background: string, color: string, dark: boolean }> = {

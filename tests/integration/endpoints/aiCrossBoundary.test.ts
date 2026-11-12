@@ -19,7 +19,7 @@ import {
 // AI security, end to end through the real loop:
 //   app → litellm-test (BYOK) → fake-openai-test model "obedient-chat",
 // a model that follows instructions planted in content
-// (`FAKE_DIRECTIVE <tool> <json>` lines) — i.e. a successful prompt
+// (`FAKE_DIRECTIVE <tool> <json>` lines), i.e. a successful prompt
 // injection, scripted.
 //
 //   A1  taint + confirm: once the session has read text written by
@@ -123,7 +123,7 @@ async function waitForSessionEnd(docId: string): Promise<void> {
   }, 40_000, 'the AI session to end')
 }
 
-describe('A1 — taint + confirm (prompt injection by another editor)', () => {
+describe('A1: taint + confirm (prompt injection by another editor)', () => {
   beforeEach(async () => {
     await resetDb()
     await resetFake()
@@ -202,7 +202,7 @@ describe('A1 — taint + confirm (prompt injection by another editor)', () => {
   }, 90_000)
 })
 
-describe('A2 — AI status is private to the initiator', () => {
+describe('A2: AI status is private to the initiator', () => {
   beforeEach(async () => {
     await resetDb()
     await resetFake()
@@ -251,7 +251,7 @@ describe('A2 — AI status is private to the initiator', () => {
   }, 90_000)
 })
 
-describe('A6 — @ai trigger only for the caller\'s own message', () => {
+describe('A6: @ai trigger only for the caller\'s own message', () => {
   beforeEach(async () => {
     await resetDb()
     await resetFake()
@@ -280,7 +280,7 @@ describe('A6 — @ai trigger only for the caller\'s own message', () => {
   }, 90_000)
 })
 
-describe('F-7b — provenance of the invoker\'s own AI edits', () => {
+describe('F-7b: provenance of the invoker\'s own AI edits', () => {
   beforeEach(async () => {
     await resetDb()
     await resetFake()

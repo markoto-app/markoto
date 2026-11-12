@@ -1,4 +1,4 @@
-// Integration tests for GET /api/_internal/render-bootstrap — the
+// Integration tests for GET /api/_internal/render-bootstrap, the
 // endpoint the renderer container hits during the SSR pass of the
 // internal print page (`app/pages/_internal/render/[docId].vue`).
 // Validates the render-token, server-replays the doc's Y.js history,
@@ -33,7 +33,7 @@ function mintRenderToken(docId: string, snapshotId: number, opts: {
   // Happy path goes through the shared `mintRenderJwt` so the wire
   // shape (`scope: 'render'` + 60s TTL) is pinned by the contract.
   // Adversarial cases (scope override, secret rotation, expired
-  // tokens) take the raw `jwt.sign` branch — those are testing the
+  // tokens) take the raw `jwt.sign` branch, those are testing the
   // verifier's reject paths so they MUST be free to mint malformed
   // shapes.
   if (opts.scope === undefined && opts.secret === undefined && opts.ttl === undefined) {
@@ -149,7 +149,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
     const doc = await createDoc({ ownerId: owner.id })
     const token = mintRenderToken(doc.docId, 1)
 
-    // Delete the doc OUTSIDE the app — direct DB delete avoids the
+    // Delete the doc OUTSIDE the app, direct DB delete avoids the
     // delete cascade's S3 + sync notify side effects which are
     // irrelevant for this auth-flow test.
     const { testDb } = await import('../setup/db')
@@ -169,7 +169,7 @@ describe('GET /api/_internal/render-bootstrap', () => {
       `/api/_internal/render-bootstrap?docId=${doc.docId}&t=not.a.jwt`
     )
     expect(res.status).toBe(403)
-    // Error message should be generic — not "scope mismatch" or
+    // Error message should be generic, not "scope mismatch" or
     // "expired" or "wrong signature". The endpoint collapses every
     // verify failure into the same 403 to avoid timing/shape oracles.
     const body = await res.json() as { message?: string }

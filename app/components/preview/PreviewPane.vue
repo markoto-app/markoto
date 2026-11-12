@@ -7,10 +7,10 @@ import { isMacPlatform, zoomShortcutAction } from '~/utils/preview/previewZoom'
 const props = defineProps<{
   source: string
   title: string
-  /** Document language — cover date, `{date}`, TOC title, chart numbers. */
+  /** Document language: cover date, `{date}`, TOC title, chart numbers. */
   language?: string
   theme?: DocTheme
-  /** Owning document — custom CSS may only reference this doc's uploads. */
+  /** Owning document: custom CSS may only reference this doc's uploads. */
   docId: string
   /** Doc JWT for session-less viewers (image access token fetch). */
   getDocJwt?: () => Promise<string | null>
@@ -36,7 +36,7 @@ const { rendered } = useMarkdownPreview(sourceRef)
 // Host element the composable will append the preview iframe into.
 const iframeHost = ref<HTMLElement | null>(null)
 
-// Preview zoom — remembered per browser, applied inside the iframe.
+// Preview zoom: remembered per browser, applied inside the iframe.
 const zoom = usePreviewZoom()
 onMounted(() => zoom.load())
 

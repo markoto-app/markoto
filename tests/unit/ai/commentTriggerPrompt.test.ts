@@ -16,7 +16,7 @@ import { AI_COMMENT_AUTHOR_NAME } from '../../../shared/ai/author'
 // rendering + @ai stripping + the AI-loop guard (AI doesn't summon
 // itself).
 
-// Helpers — pre-seed comments into a Y.Doc so we can drive resolveCommentTrigger
+// Helpers: pre-seed comments into a Y.Doc so we can drive resolveCommentTrigger
 // against realistic state.
 
 function newDoc(content = ''): { ydoc: Y.Doc, ytext: Y.Text } {
@@ -161,7 +161,7 @@ describe('resolveCommentTrigger', () => {
     expect(res).not.toBeNull()
     expect(res!.commentId).toBe(commentId)
     expect(res!.triggerIsParent).toBe(true)
-    // @ai stripped from the seed prompt — mentions are repurposed
+    // @ai stripped from the seed prompt, mentions are repurposed
     // not re-fed to the model that's about to write a reply.
     expect(res!.triggerBody).toBe('AI rewrite this please')
     expect(res!.parentBody).toBe('@ai rewrite this please')

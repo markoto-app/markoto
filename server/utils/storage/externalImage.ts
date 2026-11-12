@@ -32,7 +32,7 @@ export async function fetchExternalImage(
     return { error: e instanceof Error ? e.message : 'URL refused' }
   }
   const mb = limits.maxBytes / MIB
-  // 10s hard cap — an AI session that's already racing the 5-minute
+  // 10s hard cap: an AI session that's already racing the 5-minute
   // deadline shouldn't spend a whole minute on one image fetch.
   const signal = AbortSignal.timeout(limits.timeoutMs ?? 10_000)
   try {

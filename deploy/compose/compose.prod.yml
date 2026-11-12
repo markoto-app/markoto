@@ -32,7 +32,7 @@ include:
 #   render           app <-> renderer
 #   import           app <-> markitdown
 #   egress           litellm, db-init, backup        (AI providers, managed Postgres, S3)
-#   renderer-egress  renderer alone                  (S3 — presigned document images)
+#   renderer-egress  renderer alone                  (S3: presigned document images)
 # With managed Postgres, app/sync reach the cluster through `web`, the
 # others through `egress`.
 networks:
@@ -114,7 +114,7 @@ services:
     # Binding 80/443 needs no capability (Docker sets
     # ip_unprivileged_port_start=0). DAC_OVERRIDE only because
     # ./traefik/acme.json (0600) is owned by the deploy user, not root
-    # (infra/roles/markoto) — drop it once the file is root-owned
+    # (infra/roles/markoto): drop it once the file is root-owned
     # (docs/operations/LAUNCH-CHECKLIST.md).
     cap_add:
       - DAC_OVERRIDE
@@ -133,7 +133,7 @@ services:
       - data
 
   valkey:
-    # `expose:` keeps Valkey on the internal `data` network only — no
+    # `expose:` keeps Valkey on the internal `data` network only: no
     # host port. The threat model in docs/SECURITY-HARDENING.md
     # explicitly treats the docker bridge as the trust boundary;
     # publishing 6379 to the VPS host would let any process on the box
@@ -156,7 +156,7 @@ services:
     # than OOMing sync/postgres/renderer alongside it.
     mem_limit: 2g
     environment:
-      # BEGIN env:gen app — plain passthrough of the registry variables (shared/env/); regenerate with `bun run env:gen`.
+      # BEGIN env:gen app, plain passthrough of the registry variables (shared/env/); regenerate with `bun run env:gen`.
       - NUXT_CANONICAL_SITE_URL=${NUXT_CANONICAL_SITE_URL:-}
       - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
       - NUXT_SESSION_PASSWORD=${NUXT_SESSION_PASSWORD:?NUXT_SESSION_PASSWORD required}
@@ -284,7 +284,7 @@ services:
       # query (server/utils/litellm/litellmDb.ts); empty = the app role.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
       - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
-      # Billing mode (shared/config/billingMode.ts). Default: billing OFF —
+      # Billing mode (shared/config/billingMode.ts). Default: billing OFF,
       # no Stripe calls, Stripe vars not required, everyone on the free tier.
       # NUXT_PLANS_COMING_SOON=true is the hosted free-only SaaS (pricing
       # page "coming soon" + waitlist); leave it false when self-hosting.
@@ -292,7 +292,7 @@ services:
       - NUXT_PLANS_COMING_SOON=${NUXT_PLANS_COMING_SOON:-false}
       # Legal surfaces (shared/config/instance.ts): onboarding gate, consent
       # banner, DPA step, /legal/* pages. This file is the HOSTED stack, so
-      # they default ON here (the code default is off, for self-hosters —
+      # they default ON here (the code default is off, for self-hosters,
       # see deploy/compose/compose.selfhost.yml).
       - NUXT_LEGAL_SURFACES_ENABLED=${NUXT_LEGAL_SURFACES_ENABLED:-true}
       # Terms + bot check before anonymous documents / reports
@@ -333,7 +333,7 @@ services:
       # below). The Nuxt app composes the URL via
       # shared/utils/runtime/connectionStrings.ts. NOTE: in managed mode the
       # in-stack postgres container still runs (compose `include:` can't
-      # drop a service) — it sits idle and keeps the depends_on
+      # drop a service): it sits idle and keeps the depends_on
       # healthcheck satisfied; accepted overhead.
       # POSTGRES_APP_* = the app's own least-privilege role (owner of the app
       # database only, deploy/config/postgres/db-init.sh); unset = the admin role.
@@ -345,7 +345,7 @@ services:
       - VALKEY_HOST=valkey
       - VALKEY_PORT=6379
       - VALKEY_DB=${VALKEY_DB:?VALKEY_DB required}
-      # Postgres TLS posture — see docs/operations/DEPLOY.md and shared/utils/runtime/postgresSsl.ts.
+      # Postgres TLS posture: see docs/operations/DEPLOY.md and shared/utils/runtime/postgresSsl.ts.
       # Empty PGSSLROOTCERT is fine: prod default is rejectUnauthorized
       # against the system CA bundle. Set it to a bind-mounted PEM path
       # (e.g. /run/secrets/managed_pg_ca.pem) for cert-pin verification.
@@ -392,7 +392,7 @@ services:
       - "traefik.http.middlewares.security-headers.headers.frameDeny=true"
       - "traefik.http.middlewares.security-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       # Content-Security-Policy and Cross-Origin-Resource-Policy are NOT
-      # set here: the app sends them itself (server/plugins/csp.ts) — the
+      # set here: the app sends them itself (server/plugins/csp.ts): the
       # CSP carries a per-response script nonce, and /api/files needs a
       # different CORP than the rest. A Traefik CSP label would be enforced
       # IN ADDITION to the app's policy. See docs/SECURITY-HARDENING.md §2.
@@ -407,7 +407,7 @@ services:
       - "traefik.http.middlewares.custom-domain-headers.headers.referrerPolicy=strict-origin-when-cross-origin"
       # Published pages on their own hostname (NUXT_PUBLISH_PAGES_HOST,
       # e.g. pages.markoto.app): only the paths of a published page reach
-      # the app — no app route, no internal route — and the app answers
+      # the app, no app route, no internal route, and the app answers
       # anything else there with 404 (server/middleware/00.custom-domain.ts).
       # Same path list as the self-host router in
       # server/utils/customDomains/traefikConfig.ts.
@@ -448,7 +448,7 @@ services:
       db-init:
         condition: service_completed_successfully
     # Managed-Postgres CA (render-env points PGSSLROOTCERT here). The dir
-    # is auto-created empty when unused — the mount is inert in in-stack
+    # is auto-created empty when unused: the mount is inert in in-stack
     # mode.
     volumes:
       - /opt/markoto/secrets:/opt/markoto/secrets:ro
@@ -465,7 +465,7 @@ services:
 
   # LiteLLM + the db-init one-shot come from deploy/compose/compose.base.yml via
   # `include:`. Compose REPLACES `networks:` wholesale on merge, and base
-  # leaves them on the default network — so every service is pinned to its
+  # leaves them on the default network: so every service is pinned to its
   # purpose networks here.
   litellm:
     networks:
@@ -474,13 +474,13 @@ services:
     environment:
       # Managed-Postgres override of base's hardcoded @postgres:5432.
       # sslmode=require (encrypted, no CA pin) is enough for the proxy's
-      # own bookkeeping DB — the primary data path (app + sync) pins the
+      # own bookkeeping DB: the primary data path (app + sync) pins the
       # CA via PGSSLROOTCERT. POSTGRES_LITELLM_* = LiteLLM's own role
       # (owner of the litellm database only); unset = the admin role.
       - DATABASE_URL=postgresql://${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}:${POSTGRES_LITELLM_PASSWORD:-${POSTGRES_PASSWORD}}@${POSTGRES_HOST:-postgres}:${POSTGRES_PORT:-5432}/litellm?sslmode=${POSTGRES_SSLMODE:-disable}
   # Database + roles bootstrap (deploy/config/postgres/db-init.sh). On a managed
   # cluster POSTGRES_USER is the cluster's admin user: it needs CREATEDB and
-  # CREATEROLE (OVH's default admin user has both) — see
+  # CREATEROLE (OVH's default admin user has both): see
   # docs/operations/LAUNCH-CHECKLIST.md for switching the hosted DB to separate roles.
   db-init:
     networks:
@@ -507,7 +507,7 @@ services:
       # Must match the app's value, or the two key their rate limits on
       # different X-Forwarded-For entries.
       - TRUSTED_PROXY_HOPS=${NUXT_TRUSTED_PROXY_HOPS:-1}
-      # Postgres TLS posture — same as the app container.
+      # Postgres TLS posture: same as the app container.
       - NODE_ENV=production
       - PGSSLROOTCERT=${PGSSLROOTCERT:-}
       - PGSSL=${PGSSL:-}
@@ -527,7 +527,7 @@ services:
       # different clients on the same doc CAN land on different
       # instances). The residual cross-instance race on
       # `sync:prev-text:{docId}`: worst case is one duplicate activity
-      # row per cross-container concurrency event — not corrupting,
+      # row per cross-container concurrency event: not corrupting,
       # just noisy.
       - "traefik.http.services.sync.loadbalancer.sticky.cookie=true"
       - "traefik.http.services.sync.loadbalancer.sticky.cookie.name=sync_sticky"
@@ -546,7 +546,7 @@ services:
       # omitted: this endpoint serves the Hocuspocus WebSocket upgrade
       # handshake + a /health JSON probe, never HTML, so a CSP policy
       # has nothing to constrain. HSTS / nosniff / frame-deny / referrer
-      # still apply — keep parity with the app domain.
+      # still apply: keep parity with the app domain.
       - "traefik.http.middlewares.sync-security-headers.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.sync-security-headers.headers.stsIncludeSubdomains=true"
       - "traefik.http.middlewares.sync-security-headers.headers.stsPreload=true"
@@ -568,13 +568,13 @@ services:
     networks:
       - import
 
-  # Backend PDF + PNG renderer — Playwright + Chromium navigates back to the
+  # Backend PDF + PNG renderer: Playwright + Chromium navigates back to the
   # app's /_internal/render/:docId page (gated by INTERNAL_API_SECRET-signed
   # render tokens). Internal-network-only; never reachable from outside.
   renderer:
     image: ${REGISTRY}/markoto-renderer:${IMAGE_TAG}
     environment:
-      # Not http://app:3000 — see the `markoto-app` alias on the app service.
+      # Not http://app:3000: see the `markoto-app` alias on the app service.
       - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=${NUXT_S3_ENDPOINT}
       # Network allowlist (renderer/src/allowlist.ts): app origin, the S3
@@ -592,7 +592,7 @@ services:
       - /opt/markoto/secrets:/opt/markoto/secrets:ro
     environment:
       # Managed-Postgres overrides (base hardcodes the in-stack host).
-      # pg_dump is libpq — PGSSLMODE/PGSSLROOTCERT are honored natively.
+      # pg_dump is libpq: PGSSLMODE/PGSSLROOTCERT are honored natively.
       - POSTGRES_HOST=${POSTGRES_HOST:-postgres}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - PGSSLMODE=${POSTGRES_SSLMODE:-disable}
@@ -602,7 +602,7 @@ services:
       - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:?BACKUP_RETENTION_COUNT required}
       # Symmetric AES-256 passphrase for client-side backup encryption.
       # Without this the sidecar refuses to start. Rotation invalidates
-      # older backups for restore — schedule rotations against the
+      # older backups for restore: schedule rotations against the
       # retention window. See docs/operations/DEPLOY.md §6.
       - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE:?BACKUP_GPG_PASSPHRASE required}
     networks:

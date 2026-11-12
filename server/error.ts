@@ -43,11 +43,11 @@ export function buildSanitizedErrorPayload(error: {
   }
 
   if (isServerError) {
-    // 5xx — strip everything, generic message only.
-    payload.message = 'Something went wrong on our side. Please try again — we\'ve been notified.'
+    // 5xx: strip everything, generic message only.
+    payload.message = 'Something went wrong on our side. Please try again. We\'ve been notified.'
     payload.data = { code: 'internal' }
   } else {
-    // 4xx pass-through — author-controlled strings.
+    // 4xx pass-through: author-controlled strings.
     if (error.message) payload.message = error.message
     if (error.data !== undefined) payload.data = error.data
   }

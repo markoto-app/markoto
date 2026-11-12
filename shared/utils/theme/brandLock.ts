@@ -3,8 +3,8 @@ import type { DocTheme } from '../../types/theme'
 /**
  * The locked workspace design (brand kit). While a workspace's admins
  * lock its design, every document in it renders with the workspace design
- * (`workspaces.default_theme`) — fonts, colours, logo, page, headings,
- * header / footer, custom CSS — and keeps only its own cover TEXT: subtitle,
+ * (`workspaces.default_theme`): fonts, colours, logo, page, headings,
+ * header / footer, custom CSS, and keeps only its own cover TEXT: subtitle,
  * date, authors and affiliations (the title is the document's title anyway).
  *
  * Enforced at render time in all three renderers (live preview, browser

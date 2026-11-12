@@ -29,12 +29,12 @@ import { apiError } from '../../utils/api/apiError'
 // Wrappers that bake the per-class boilerplate every MCP tool needs.
 // Three flavors based on what context the tool needs to operate on:
 //
-//   buildDocBoundTool       — tool reads/mutates a specific doc.
+//   buildDocBoundTool: tool reads/mutates a specific doc.
 //                              Takes `doc_id` arg; opens YDocPool entry.
-//   buildWorkspaceBoundTool — tool operates on a workspace (knowledge,
+//   buildWorkspaceBoundTool: tool operates on a workspace (knowledge,
 //                              workspace docs). Takes `workspace_id` arg;
 //                              membership-checked; no Y handles.
-//   buildUserOnlyTool       — tool operates on the user's own data
+//   buildUserOnlyTool: tool operates on the user's own data
 //                              (saved themes, my docs, web/url tools).
 //                              No doc / workspace context.
 //
@@ -64,7 +64,7 @@ export type ToolCallLimit = 'render' | RateLimitRule
 /**
  * Admission check every MCP tool handler runs first:
  *   - authenticated (the middleware already refused anonymous requests),
- *   - the token CURRENTLY grants the tool's scope — the toolkit fixed the
+ *   - the token CURRENTLY grants the tool's scope, the toolkit fixed the
  *     session's tool list at `initialize`, so this re-check is what makes
  *     scopes binding per call,
  *   - per-user tool-call rate limit, plus the tool's extra limit.
@@ -126,7 +126,7 @@ export interface WrapDocBoundToolOpts<Schema extends ZodRawShape> {
    *  invariant runs in the OTHER direction (META wrappers can't accept
    *  DOC names, see WrapWorkspaceBoundToolOpts / WrapUserOnlyToolOpts).
    *  A META handler wrapped here gets a YDocPool checkout it doesn't
-   *  use — wasteful but not incorrect; we accept it for the case of
+   *  use: wasteful but not incorrect; we accept it for the case of
    *  doc-scoped queries like `search_activity_log` (META) that
    *  conceptually take a doc_id but never read the live Y.Doc. */
   name: ToolName
@@ -191,7 +191,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
       })
       try {
         // The registry runs DOC and META tools alike with handle.ctx
-        // (DocToolContext) — META handlers via structural subtyping
+        // (DocToolContext): META handlers via structural subtyping
         // (DocToolContext extends MetaToolContext).
         // We strip wrapper-injected `doc_id` from the args before
         // dispatch so the handler receives the SAME shape the in-app
@@ -212,7 +212,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
 
 export interface WrapWorkspaceBoundToolOpts<Schema extends ZodRawShape> {
   /** Must be a document-free (`meta`) tool. Compile error if you try to
-   *  pass a doc-bound name (e.g. 'replace_text') — that's the whole
+   *  pass a doc-bound name (e.g. 'replace_text'), that's the whole
    *  point of the type-narrowing. */
   name: MetaToolName
   description: string
@@ -251,7 +251,7 @@ export function buildWorkspaceBoundTool<Schema extends ZodRawShape>(opts: WrapWo
       const ctx = await buildStubContext(auth.userId, workspaceAccess, mcpSessionIdFromEvent(event))
       try {
         // Strip the wrapper-injected `workspace_id` for the same
-        // reason `buildDocBoundTool` strips `doc_id` — keeps the
+        // reason `buildDocBoundTool` strips `doc_id`, keeps the
         // handler's args shape identical to what the in-app loop
         // passes (loop carries workspaceId on MetaToolContext).
         const handlerArgs = stripWrapperArgs(args, 'workspace_id')
@@ -356,7 +356,7 @@ async function assertDocAccess(
 ): Promise<{ workspaceId: string | null, access: DocAccess<'view'> }> {
   const proven = await proveDocMembership(userId, docId, kind)
   if (!proven) {
-    // 404-shape (not 403) for missing and refused alike — matches the
+    // 404-shape (not 403) for missing and refused alike, matches the
     // in-app endpoints' anti-enumeration policy.
     throw apiError('mcp/doc-not-found')
   }
@@ -366,7 +366,7 @@ async function assertDocAccess(
 /**
  * Build a `MetaToolContext` for handlers that don't touch Y.js state
  * (workspace-bound queries, user-only data fetches). MetaToolContext
- * doesn't include `ydoc`/`ytext`/`ymeta`/`awareness` — the type system
+ * doesn't include `ydoc`/`ytext`/`ymeta`/`awareness`: the type system
  * makes it impossible to misroute a doc-bound handler through here.
  *
  * Idiomatically there's no Y.Doc to dispose; the `dispose` field is
@@ -385,7 +385,7 @@ async function buildStubContext(
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
 
   const ctx: MetaToolContext = {
-    // Sentinel — handlers that need a real doc don't take MetaToolContext
+    // Sentinel: handlers that need a real doc don't take MetaToolContext
     // (caught at compile time by the dispatch table split). Logging
     // sites that do happen to read `ctx.docId` see this string and can
     // distinguish "no doc context" from a real id.
@@ -402,16 +402,16 @@ async function buildStubContext(
     virtualKey: billingContext.virtualKey,
     aiProviders,
     updateStatus: (_phase: ToolStatusPhase, _message?: string) => {
-      // No-op — workspace/user-only tools have no doc-level awareness
+      // No-op: workspace/user-only tools have no doc-level awareness
       // to broadcast on. The MCP client gets the result via the normal
       // tool-call return; live doc collaborators can't see this work
-      // happen (which is correct — it's not on a doc).
+      // happen (which is correct, it's not on a doc).
     }
   }
   return {
     ctx,
     dispose: () => {
-      // No-op — no Y.Doc to tear down. Kept for call-site symmetry
+      // No-op: no Y.Doc to tear down. Kept for call-site symmetry
       // with `connectAsMcpClient`'s `release()`.
     }
   }

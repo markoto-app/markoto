@@ -107,7 +107,7 @@ export async function reservePendingUpload(doc: DocAccess<'write'>, input: Omit<
 export type ConfirmOutcome = 'confirmed' | 'already-confirmed' | 'over-quota' | 'missing'
 
 /**
- * Flip the caller's pending upload to confirmed — unless the uploader is
+ * Flip the caller's pending upload to confirmed, unless the uploader is
  * now over quota (e.g. the quota was lowered since the request), in which
  * case the row stays pending and the caller deletes it. The row's own
  * bytes were reserved at request time, so the check is "total <= max".
@@ -241,7 +241,7 @@ export async function listAllS3Keys(_by: SystemActor): Promise<string[]> {
 }
 
 /**
- * Delete every upload row for a doc. Called from deleteDocument —
+ * Delete every upload row for a doc. Called from deleteDocument,
  * cascades the DB side; S3 cleanup is separate.
  */
 export async function deleteUploadsForDoc(doc: DocAccess<'delete'>): Promise<void> {
@@ -252,7 +252,7 @@ export async function deleteUploadsForDoc(doc: DocAccess<'delete'>): Promise<voi
 /**
  * Every confirmed upload row for a doc. Used by the duplicate flow to
  * clone image assets into the new doc's S3 prefix. Unconfirmed rows are
- * skipped — their S3 object may not exist, and they'll be swept away
+ * skipped: their S3 object may not exist, and they'll be swept away
  * within 24h either way.
  */
 export interface UploadRow {
@@ -313,7 +313,7 @@ function toConfirmedValues(doc: DocAccess<'write'>, rows: InsertConfirmedUpload[
 /**
  * Insert already-confirmed rows (a duplicate's image copies) if their
  * total fits the quota scope (same advisory lock as uploads). Returns
- * false — inserting nothing — when it doesn't.
+ * false, inserting nothing, when it doesn't.
  */
 export async function insertConfirmedUploadsWithinQuota(
   doc: DocAccess<'write'>,

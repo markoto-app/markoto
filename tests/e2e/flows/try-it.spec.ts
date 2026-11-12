@@ -12,7 +12,7 @@ import { test, expect } from '../fixtures/flow'
 //   - the block starts as a static rendering (no editor loaded) and turns
 //     into a live editor + paged preview when it scrolls near;
 //   - typing changes the preview (sanitised client render, sandboxed
-//     iframe — the same pipeline as the editor);
+//     iframe: the same pipeline as the editor);
 //   - the notice says both actions create a document (and for how long it
 //     lives without edits);
 //   - "Download PDF" creates the document through the anonymous gate and
@@ -36,7 +36,7 @@ test('Try markoto without a document', { tag: '@marketing' }, async ({ page, flo
   const block = page.getByTestId('try-it')
 
   // ASSERTION: before it is near the viewport the block is static
-  // content — no editor code has run.
+  // content: no editor code has run.
   await expect(page.getByTestId('try-it-static')).toHaveCount(1)
   await expect(block).toHaveAttribute('data-state', 'static')
 

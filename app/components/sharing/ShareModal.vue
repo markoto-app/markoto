@@ -25,7 +25,7 @@ const { t } = useI18n()
 const { copy, copied } = useCopyText()
 // Web Share API: shows the OS share sheet on iOS/Android Safari +
 // Chrome and on Edge/Chrome on Windows. `isSupported` is false on
-// desktop Chrome on Linux and Firefox everywhere — we hide the button
+// desktop Chrome on Linux and Firefox everywhere, we hide the button
 // in that case so the user only sees what works.
 const { share, isSupported: shareSupported } = useShare()
 const { showContextualError } = useErrorHandler()
@@ -58,7 +58,7 @@ function copyLink() {
   copy(shareUrl.value)
 }
 
-// QR code rendering of the share URL — toggled by the user so casual
+// QR code rendering of the share URL, toggled by the user so casual
 // shares (just copy a link) don't ship a 6KB image they didn't ask
 // for. Generated client-side only when shown; the QR is a 160px PNG
 // data-URL that scales crisply on retina without a separate hi-DPI
@@ -74,7 +74,7 @@ async function shareLink() {
       url: shareUrl.value
     })
   } catch {
-    // User dismissed the sheet or browser denied — silent. The copy
+    // User dismissed the sheet or browser denied, silent. The copy
     // button is still right next to it as a fallback.
   }
 }
@@ -176,7 +176,7 @@ async function setPassword() {
               >
                 {{ copied ? t('share.linkCopied') : t('share.copyLink') }}
               </UButton>
-              <!-- Native OS share sheet — only shown when supported
+              <!-- Native OS share sheet, only shown when supported
                    (mobile Safari/Chrome, Edge). On desktop Chrome (Linux)
                    and Firefox everywhere it's hidden. -->
               <UButton
@@ -190,7 +190,7 @@ async function setPassword() {
                 :title="t('share.systemShare')"
                 @click="shareLink"
               />
-              <!-- QR toggle — collapsed by default; opens a 160px square
+              <!-- QR toggle: collapsed by default; opens a 160px square
                    below the link row for mobile-handoff scanning. -->
               <UButton
                 :icon="showQrCode ? 'i-lucide-x' : 'i-lucide-qr-code'"
@@ -205,7 +205,7 @@ async function setPassword() {
               />
             </div>
           </UFormField>
-          <!-- QR rendering — sits beneath the link row. The data-url
+          <!-- QR rendering: sits beneath the link row. The data-url
                is reactive on `shareUrl`, so changing access mode (or
                anything else that mutates the URL) re-renders the QR
                automatically. -->

@@ -7,8 +7,8 @@ import { DAY_MS } from '~~/shared/config/units'
 //
 // The privacy policy commits to purging AI prompt + tool-call records
 // after 90 days ("AI prompt and tool-call records are retained for 90 days
-// for abuse-prevention review, then purged" — content/legal/privacy/en.md).
-// Those records are `ai_session_messages` — the per-(doc, user) conversation
+// for abuse-prevention review, then purged", content/legal/privacy/en.md).
+// Those records are `ai_session_messages`, the per-(doc, user) conversation
 // memory (user_prompt / tool_call / message_to_user rows). They PERSIST
 // after a session ends; the only other way they disappear is the cascade FK
 // on doc/user delete, which has no time bound. This sweep is what actually
@@ -16,7 +16,7 @@ import { DAY_MS } from '~~/shared/config/units'
 //
 // It also reaps orphaned `ai_sessions` rows past the same window. Those are
 // normally removed on session end (or by `ai-session-sweep`'s 7-min abort),
-// but a crashed cleanup could leave one behind — a stale row past 90 days is
+// but a crashed cleanup could leave one behind, a stale row past 90 days is
 // pure storage cost + a dangling reference to a purged conversation.
 
 export const AI_RECORD_RETENTION_DAYS = 90

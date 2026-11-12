@@ -2,13 +2,13 @@ import { describe, it, expect } from 'vitest'
 import jwt from 'jsonwebtoken'
 import { createAuth, createTokenVerifier, type DocJwtPayload } from '../../../sync-server/src/auth'
 
-// Sync-server `onAuthenticate` hook — the second line of defence for every
+// Sync-server `onAuthenticate` hook: the second line of defence for every
 // Y.js WebSocket connection. If this ever accepts a token it shouldn't,
 // every other layer of authz becomes advisory.
 //
 // Every branch in the analysis table is pinned here. Cases labelled
 // "critical" are the ones where a regression silently opens a security
-// hole — no error, no log, just access granted.
+// hole: no error, no log, just access granted.
 
 const SECRET = 'test-secret-' + 'a'.repeat(64)
 const PREVIOUS_SECRET = 'previous-secret-' + 'b'.repeat(64)
@@ -64,7 +64,7 @@ describe('createAuth / onAuthenticate', () => {
     })
   })
 
-  describe('scope check (critical — cross-doc replay guard)', () => {
+  describe('scope check (critical: cross-doc replay guard)', () => {
     it('rejects when docId claim does not match documentName', async () => {
       const token = sign({ docId: 'doc-A', userId: 1, readOnly: false })
       await expect(auth({ documentName: 'doc-B', token }))
@@ -149,12 +149,12 @@ describe('createAuth / onAuthenticate', () => {
     })
   })
 
-  describe('readOnly safe-default (critical — prevents escalation)', () => {
+  describe('readOnly safe-default (critical: prevents escalation)', () => {
     it('returns readOnly=true when claim is missing', async () => {
       // Regression target: if a JWT omits the readOnly claim (e.g. a
       // hand-crafted token from a rotated-out secret compromise, or a
       // future mint change that forgets the field), the connection must
-      // default to read-only — NEVER silently writable.
+      // default to read-only: NEVER silently writable.
       const token = sign({ docId: 'doc-1', userId: 1 }) // readOnly omitted
       const ctx = await auth({ documentName: 'doc-1', token })
       expect(ctx.readOnly).toBe(true)
@@ -177,7 +177,7 @@ describe('createAuth / onAuthenticate', () => {
       // Covers { readOnly: null }, { readOnly: 0 }, { readOnly: "" }, etc.
       // Only the literal boolean `false` unlocks writes.
       for (const val of [null, 0, '', 'false', 1] as unknown[]) {
-        // Force through the signer by casting — the point is testing the
+        // Force through the signer by casting, the point is testing the
         // verifier's handling of junk values it might encounter from a
         // malformed but signed token.
         const token = sign({ docId: 'doc-1', userId: 1, readOnly: val as unknown as boolean })
@@ -187,7 +187,7 @@ describe('createAuth / onAuthenticate', () => {
     })
   })
 
-  describe('connectionConfig.readOnly enforcement (critical — the actual write gate)', () => {
+  describe('connectionConfig.readOnly enforcement (critical: the actual write gate)', () => {
     // Regression guard for the server-side read-only bug: the value returned
     // from onAuthenticate is merged into Hocuspocus request *context* only and
     // does NOT block writes. Hocuspocus blocks writes off `connection.readOnly`,

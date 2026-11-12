@@ -4,7 +4,7 @@ import { structuredPatch } from 'diff'
 // return it as a list of hunks suitable for the activity-log drawer
 // renderer. We use the `diff` library's structuredPatch (which is
 // what powers GitHub's PR review UI under the hood) because it
-// produces clean hunk boundaries with N-line context windows — no
+// produces clean hunk boundaries with N-line context windows, no
 // hand-rolled diff merging needed.
 //
 // Two safety caps applied here:
@@ -37,7 +37,7 @@ const CONTEXT_LINES = 3
 
 /**
  * Build a structured unified diff. Returns hunks in the order they
- * appear in the source text — render them top-to-bottom for a
+ * appear in the source text, render them top-to-bottom for a
  * GitHub-PR-style read.
  *
  * Empty inputs are handled: two empty strings → empty hunks; one

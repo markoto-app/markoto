@@ -65,7 +65,7 @@ function deps(overrides: Partial<Omit<McpGateDeps, 'bindings' | 'rateLimit'>> & 
 }
 
 describe('evaluateMcpRequest', () => {
-  it('refuses a request without a valid token (403 JSON-RPC, never 401) — before any session exists', async () => {
+  it('refuses a request without a valid token (403 JSON-RPC, never 401), before any session exists', async () => {
     const d = deps()
     for (const authHeader of [undefined, 'Bearer nope']) {
       const r = await evaluateMcpRequest({ authHeader, clientKey: '203.0.113.9', sessionId: null }, d)
@@ -114,7 +114,7 @@ describe('evaluateMcpRequest', () => {
   })
 })
 
-describe('evaluateMcpRequest — binding storage failure', () => {
+describe('evaluateMcpRequest: binding storage failure', () => {
   it('refuses the session when the binding lookup fails (fail closed)', async () => {
     const d = deps()
     await d.bindings.bind('sess-1', ALICE_FULL.tokenId, 1)

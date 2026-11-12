@@ -12,7 +12,7 @@ import { startNuxt, stopNuxt } from './server'
 //   3. Nuxt runs migrations on boot (server/plugins/00-db-migrate.ts),
 //      so when Nuxt reports healthy the schema is ready.
 //
-// The sync-server stub is NOT started here — it's started from a
+// The sync-server stub is NOT started here, it's started from a
 // setupFile (stubSetup.ts) inside the test worker so the in-memory
 // `calls` array shares a process with the test assertions. Nuxt still
 // talks to it over HTTP: the port is fixed.

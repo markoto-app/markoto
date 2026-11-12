@@ -26,7 +26,7 @@ on:
 permissions: {}
 
 concurrency:
-  # Serialize releases — never two release runs in flight against main.
+  # Serialize releases: never two release runs in flight against main.
   group: release-main
   cancel-in-progress: false
 
@@ -64,7 +64,7 @@ jobs:
               repo: context.repo.repo,
               commit_sha: context.sha,
             });
-            // A merged PR maps to one merge commit — except a merged stack
+            // A merged PR maps to one merge commit, except a merged stack
             // (gh stack / merge-async on the top PR): ONE merge commit closes
             // every PR of the stack, and the API lists them in no useful
             // order. Take the merged PR that carries a release:major|minor|
@@ -106,7 +106,7 @@ jobs:
             }
             // Releases are OPT-IN: an unlabeled merge does NOT release.
             // The full release chain (5 image builds + the 40-min live-AI
-            // flow suite + staging deploy) costs ~90 billable minutes —
+            // flow suite + staging deploy) costs ~90 billable minutes,
             // far too much to spend on every docs/chore/fix merge. Label
             // the LAST PR of a batch release:patch|minor|major to ship
             // the accumulated work in one release. `release:none` is kept
@@ -117,14 +117,14 @@ jobs:
             core.setOutput('number', String(pr.number));
             core.setOutput('title', pr.title);
             // Empty bodies are common; render a placeholder so the release
-            // page isn't blank — a PR with no body is a smell, but better to
+            // page isn't blank: a PR with no body is a smell, but better to
             // surface it than crash the release.
             core.setOutput('body', pr.body || '_(No description provided.)_');
             core.setOutput('author', pr.user.login);
             core.setOutput('bump', bump);
             core.setOutput('should_release', skip ? 'false' : 'true');
             if (skip) {
-              core.info('PR #' + pr.number + ' labelled release:none — skipping release.');
+              core.info('PR #' + pr.number + ' labelled release:none, skipping release.');
             } else {
               core.info('PR #' + pr.number + ' "' + pr.title + '" → ' + bump);
             }
@@ -157,9 +157,9 @@ jobs:
           echo "Bump: $BUMP  $CURRENT → $NEW"
 
       # A release whose changes since the previous tag touch nothing the app
-      # image runs — the committed flow screenshots (public/flows, a
+      # image runs: the committed flow screenshots (public/flows, a
       # publish-flow-shots PR), operator docs, AGENTS.md / top-level Markdown,
-      # CI workflows (.github/) — has no code for the flow suite to test: it
+      # CI workflows (.github/): has no code for the flow suite to test: it
       # ships new images (the screenshots live in the app image) without the
       # ~45-minute suite. content/ is NOT docs-only: those
       # pages are served by the app and covered by flows.
@@ -195,7 +195,7 @@ jobs:
       tag: v${{ needs.resolve-pr.outputs.new_version }}
     steps:
       # Checked out at the merged commit on main. We create + push an
-      # annotated tag there — NO commit back to main (main is strictly
+      # annotated tag there: NO commit back to main (main is strictly
       # PR-only, enforced by the repository ruleset). Tags are not covered
       # by the branch ruleset, so the tag push is allowed. RELEASE_BOT_TOKEN
       # authenticates the push (GITHUB_TOKEN would also work for tags).
@@ -287,7 +287,7 @@ jobs:
       # above the 7 GB of a private-repo runner and the OOM-killer SIGKILLs
       # `bun run build` inside the Docker build ("cannot allocate memory").
       # bun uses JSC (no V8 heap flag), so the fix is more virtual memory.
-      # Add a SECOND swapfile (the runner already has an active /swapfile —
+      # Add a SECOND swapfile (the runner already has an active /swapfile,
       # fallocate'ing that one fails "Text file busy") on the large 72 GB
       # root disk. NOT /mnt: that's the small disk Docker layers spill onto.
       # Only the app image build is heavy enough to need it.
@@ -325,7 +325,7 @@ jobs:
           # carries packages:write, so it doubles as the GHCR push
           # credential. ${{ secrets.GITHUB_TOKEN }} (the job declares
           # `packages: write`) works too once each package grants this repo
-          # Actions write access — docs/operations/GITHUB-CONFIG.md, owner checklist.
+          # Actions write access: docs/operations/GITHUB-CONFIG.md, owner checklist.
           password: ${{ secrets.RELEASE_BOT_TOKEN }}
 
       # Installed BEFORE the build so a full disk after a large push can
@@ -381,7 +381,7 @@ jobs:
     environment: release
     runs-on: ubuntu-latest
     # The flow suite is 160 Playwright tests on ONE worker by design
-    # (flow-docs record ordered manifests against a shared stack) —
+    # (flow-docs record ordered manifests against a shared stack),
     # ~3.1 tests/min in CI ⇒ ~55 min for the suite alone, plus setup and
     # retries.
     timeout-minutes: 90
@@ -526,7 +526,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-assets
-          # Per-flow tarball — friendlier than uploading thousands of
+          # Per-flow tarball: friendlier than uploading thousands of
           # individual .webp files. Empty flow-output is fine; tar over an
           # empty loop body is a no-op.
           if [ -d flow-output ]; then

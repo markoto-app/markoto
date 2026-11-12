@@ -1,7 +1,7 @@
 import type { DocTheme } from '../../types/theme'
 
 /**
- * Default theme — used as the initial value for newly-created documents
+ * Default theme: used as the initial value for newly-created documents
  * and as the fallback when a doc's stored theme fails validation.
  *
  * This IS the markoto preset (kept in sync with `themePresets.ts`):
@@ -18,7 +18,7 @@ export const defaultTheme: DocTheme = {
     mirrorMargins: false // the same margins on left and right pages
   },
   meta: {
-    // JetBrains Mono — the "instrument" voice. Used for header/footer
+    // JetBrains Mono: the "instrument" voice. Used for header/footer
     // text, figcaptions, footnotes. Distinguishes meta from body
     // (Inter) and from headlines (Fraunces).
     font: 'JetBrains Mono'
@@ -26,7 +26,7 @@ export const defaultTheme: DocTheme = {
   body: {
     font: 'Inter',
     size: 10.5,
-    // 1.55 — proportionally generous compared to print norms (LO/Word
+    // 1.55: proportionally generous compared to print norms (LO/Word
     // sit ~1.15-1.2). Inter at 10.5pt with Fraunces headings reads as
     // "calm field guide" rather than dense report; the extra leading
     // is what carries that voice.
@@ -45,7 +45,7 @@ export const defaultTheme: DocTheme = {
     font: 'Fraunces',
     // h1 = body·scale³ ≈ 2.1× body (see HEADING_SCALE_EXPONENTS in themeToCss)
     scale: 1.28,
-    weight: 500, // brand cap — never 600+
+    weight: 500, // brand cap, never 600+
     underline: false,
     color: '#1F1B14', // sumi-900
     letterSpacing: -0.01, // Fraunces wants slight negative tracking
@@ -58,8 +58,8 @@ export const defaultTheme: DocTheme = {
     chapterWord: '' // the document language's word when the label is on
   },
   color: {
-    brand: '#B5371F', // shu-500 — the seal lives here
-    secondary: '#A39A8A' // sumi-400 — warm muted brown-grey for hairlines
+    brand: '#B5371F', // shu-500, the seal lives here
+    secondary: '#A39A8A' // sumi-400, warm muted brown-grey for hairlines
   },
   brand: {
     // The markoto wordmark lives in `public/markoto-logos/` (used by the
@@ -81,7 +81,7 @@ export const defaultTheme: DocTheme = {
     right: '',
     imageUrl: '',
     imagePosition: 'left',
-    imageHeight: 12, // pt — proportionate to typical 9-11pt header text
+    imageHeight: 12, // pt, proportionate to typical 9-11pt header text
     rule: false,
     sectionNumber: false, // {section} = the title only
     sectionMode: 'first' // {section} = the first section heading on the page
@@ -117,7 +117,7 @@ export const defaultTheme: DocTheme = {
     imageRadius: 0, // sharp print corners, not iOS
     imageMaxWidth: 92,
     blockquoteStyle: 'border',
-    hrStyle: 'asterism', // editorial signature — Penguin Classics scene break
+    hrStyle: 'asterism', // editorial signature, Penguin Classics scene break
     hrThickness: 1, // unused for asterism, kept for schema completeness
     figureLabel: false, // "Figure 1: " before captions
     referenceStyle: 'plain', // reference list like any other list
@@ -128,7 +128,7 @@ export const defaultTheme: DocTheme = {
     theme: 'document'
   },
   alerts: {
-    // Desaturated warm-paper palette — mirrors the markoto preset.
+    // Desaturated warm-paper palette: mirrors the markoto preset.
     note: '#3D5A80',
     tip: '#4A6F4D',
     important: '#6B4F7F',
@@ -160,11 +160,11 @@ export const defaultTheme: DocTheme = {
     smallCaps: false,
     dateFormat: 'locale', // the document language's long date
     repeatTitle: false,
-    // Brand logo on by default — `theme.brand.logoUrl` is pre-filled
+    // Brand logo on by default, `theme.brand.logoUrl` is pre-filled
     // with the markoto wordmark above, so a brand-new doc opens with
     // the mark visible on the cover.
     showLogo: true,
-    titleSize: 2.4, // em multiplier — matches the previous hardcoded value
+    titleSize: 2.4, // em multiplier, matches the previous hardcoded value
     subtitleSize: 1.15
   }
 }

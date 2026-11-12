@@ -6,7 +6,7 @@ time-capped child, see server.py): the file is untrusted and must never be
 parsed by the app process. Returns plain data, no file content beyond a
 short text sample:
 
-  DOCX  — read deterministically from the package XML: theme fonts and
+  DOCX: read deterministically from the package XML: theme fonts and
           colours (`word/theme/theme1.xml`), the resolved paragraph styles
           that matter for a document design (Normal, Title, Subtitle,
           Heading 1-4, Quote, Caption, Hyperlink) from `word/styles.xml`,
@@ -15,7 +15,7 @@ short text sample:
           the body text uses. No page pictures: rendering Word layout
           would need LibreOffice (≈ 600 MB), and the styles describe the
           design more exactly than a picture.
-  PDF   — the first pages rendered to PNG (pypdfium2, already shipped by
+  PDF: the first pages rendered to PNG (pypdfium2, already shipped by
           markitdown[all]) for the vision model, plus measured facts from
           pdfplumber: page size, text margins, the fonts / sizes / colours
           of the text, filled shapes (colour bands, rules), and the text

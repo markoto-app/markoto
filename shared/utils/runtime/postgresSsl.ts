@@ -16,21 +16,21 @@ import type { PoolConfig } from 'pg'
 //     bridge network nobody else can reach).
 //   - Production: TLS on with `rejectUnauthorized: true`. If `PGSSLROOTCERT`
 //     is set and points at a readable PEM file, that CA is loaded explicitly
-//     (cert-pin verification — defends against provider DNS hijack /
+//     (cert-pin verification: defends against provider DNS hijack /
 //     MITM scenarios where the attacker holds a valid public CA cert for
 //     the provider's hostname). When unset, falls back to the system CA
 //     bundle, which works for managed providers that use a public cert
 //     chain (most do today).
 //   - `PGSSL=disable` is honoured as an explicit opt-out. Useful for some
 //     managed-PG migration scenarios where the provider lets you disable
-//     TLS at the network edge — emit a console warning so the choice
+//     TLS at the network edge, emit a console warning so the choice
 //     shows up in deploy logs.
 export function resolvePostgresSsl(
   db: { ssl?: 'disable', sslRootCert?: string },
   production: boolean
 ): PoolConfig['ssl'] {
   if (db.ssl === 'disable') {
-    console.warn('[postgres] PGSSL=disable — TLS-in-transit explicitly turned off. Verify this is intentional.')
+    console.warn('[postgres] PGSSL=disable: TLS-in-transit explicitly turned off. Verify this is intentional.')
     return false
   }
   if (!production) {

@@ -6,7 +6,7 @@ import { smokeDoc } from './_helpers'
 // preview (in the srcdoc iframe) actually paginates. A blank preview would
 // mean the vendored-asset/render pipeline is broken.
 test('anonymous doc loads, editor mounts, live preview paginates', async ({ page }) => {
-  // Shared run document (globalSetup.ts) — never a new one per attempt.
+  // Shared run document (globalSetup.ts), never a new one per attempt.
   const docId = smokeDoc('demo')
   await page.goto(`/d/${docId}`)
 

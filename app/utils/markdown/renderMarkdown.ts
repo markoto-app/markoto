@@ -89,7 +89,7 @@ function commentPlugin(md: MarkdownIt): void {
 
     // Single-line case: open + close on the same line. Anything after
     // `-->` other than whitespace means the user wrote an inline
-    // comment with surrounding content — let the inline rule handle
+    // comment with surrounding content, let the inline rule handle
     // it inside a paragraph.
     const inlineCloseIdx = firstLine.indexOf('-->', 4)
     if (inlineCloseIdx !== -1) {
@@ -164,7 +164,7 @@ let clobberProbe: HTMLFormElement | null = null
 
 /**
  * DOMPurify drops an `id` whose value names a property of `document` or of
- * a `<form>` (`SANITIZE_DOM`, DOM-clobbering protection) — `method`,
+ * a `<form>` (`SANITIZE_DOM`, DOM-clobbering protection), `method`,
  * `title`, `action`, `images`, `forms`, `length`, … A heading "Method"
  * would lose its `id="method"`, leaving the TOC link dangling and
  * paged.js's `target-counter()` printing page 0. Such slugs get a
@@ -219,7 +219,7 @@ export function wrapCodeTokens(content: string, escape: (s: string) => string): 
 
 /**
  * `title="replay.ts"` (or `title='…'` / `title=word`) from a fence's info
- * string after the language — shown as a caption bar above the block.
+ * string after the language, shown as a caption bar above the block.
  */
 export function fenceTitle(info: string): string {
   const m = /(?:^|\s)title=(?:"([^"]*)"|'([^']*)'|(\S+))/.exec(info)
@@ -403,7 +403,7 @@ const useMarkdownPipeline = createGlobalState(async (): Promise<MarkdownPipeline
 
 /**
  * Render markdown source to sanitized HTML. Initializes the singleton on
- * first call. Browser-only — guard with `import.meta.client` in callers.
+ * first call. Browser-only: guard with `import.meta.client` in callers.
  */
 export async function renderMarkdown(source: string): Promise<string> {
   const { md } = await useMarkdownPipeline()
@@ -419,7 +419,7 @@ export async function renderMarkdown(source: string): Promise<string> {
  * window); that is safe only because the source is committed content and
  * `html: false` escapes raw HTML in it anyway. Never pass user input.
  * In the browser (client-side navigation) the sanitiser runs as usual.
- * Footnotes stay as markdown-it renders them (a list at the end) — the
+ * Footnotes stay as markdown-it renders them (a list at the end), the
  * paged-media transform is a preview/PDF concern.
  */
 export async function renderTrustedMarkdown(source: string): Promise<string> {

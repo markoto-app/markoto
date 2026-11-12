@@ -14,7 +14,7 @@ const props = defineProps<{
 }>()
 const { t } = useI18n()
 
-// MM:SS is enough — voice input caps at 60s so minutes are always 0 or 1
+// MM:SS is enough: voice input caps at 60s so minutes are always 0 or 1
 // but the format stays familiar.
 const formattedTime = computed(() => {
   const s = Math.max(0, Math.floor(props.durationSec))
@@ -23,7 +23,7 @@ const formattedTime = computed(() => {
   return `${mm}:${ss}`
 })
 
-// Amber at the last 10s, red at the last 5s — gives the user a moment
+// Amber at the last 10s, red at the last 5s, gives the user a moment
 // to wrap up before the hard auto-stop fires.
 const timerColorClass = computed(() => {
   const remaining = props.maxDurationSec - props.durationSec
@@ -64,7 +64,7 @@ const timerColorClass = computed(() => {
 
 <style scoped>
 /*
- * Transcribing shimmer — a subtle left-to-right gradient sweep on the
+ * Transcribing shimmer: a subtle left-to-right gradient sweep on the
  * "Transcribing…" label so the UI reads as "working" without a full
  * spinner (the primary button already carries one).
  */

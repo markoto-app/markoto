@@ -3,7 +3,7 @@
 // Every release re-records the whole flow suite. The browser never paints
 // two runs byte-for-byte alike (text anti-aliasing, a pulsing recording
 // dot, a shimmering "Thinking…"), and a lossless WebP of a frame that
-// looks the same still gets new bytes — so republishing everything grew
+// looks the same still gets new bytes, so republishing everything grew
 // git history by tens of MB per release. Here a new frame replaces the
 // committed one only when it looks different; otherwise the committed file
 // stays byte-for-byte.

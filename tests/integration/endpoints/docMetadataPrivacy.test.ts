@@ -7,7 +7,7 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 //
 // `GET /api/docs/:id/meta` and the denied branch of `GET /token` apply
 // the same decision (`decideTokenAccess`): a forbidden / password-gated
-// caller learns only what the editor needs to draw the gate — never the
+// caller learns only what the editor needs to draw the gate, never the
 // title, description, owner, workspace or theme.
 
 const SECRET_TITLE = 'Secret merger plan'
@@ -21,7 +21,7 @@ function expectNoLeak(body: Record<string, unknown>) {
   expect(json).not.toContain(SECRET_DESCRIPTION)
 }
 
-describe('GET /api/docs/:id/meta — access-gated', () => {
+describe('GET /api/docs/:id/meta: access-gated', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -97,7 +97,7 @@ describe('GET /api/docs/:id/meta — access-gated', () => {
   })
 })
 
-describe('GET /api/docs/:id/token — denied responses carry no metadata', () => {
+describe('GET /api/docs/:id/token: denied responses carry no metadata', () => {
   beforeEach(async () => {
     await resetDb()
   })

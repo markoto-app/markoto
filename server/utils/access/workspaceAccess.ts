@@ -9,7 +9,7 @@ import { isEffectiveDocOwner, type MembershipRole, type WorkspaceRole } from '..
 //
 // Rule of thumb:
 //
-//   - Owner of the doc is always allowed to do anything to it — except in
+//   - Owner of the doc is always allowed to do anything to it, except in
 //     a workspace that enforces single sign-on, where ownership counts
 //     only while the owner has an effective role there (current SSO
 //     grant + membership; `isEffectiveDocOwner`).
@@ -101,7 +101,7 @@ export async function canManageDoc(userId: number, docId: string): Promise<boole
 
 /**
  * Full authz snapshot. Useful when an endpoint needs to make multiple
- * gating decisions from the same doc — avoids re-querying per check.
+ * gating decisions from the same doc, avoids re-querying per check.
  */
 export interface DocAuthz {
   exists: boolean

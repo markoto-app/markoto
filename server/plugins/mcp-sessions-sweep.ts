@@ -11,19 +11,19 @@ import { DAY_MS } from '~~/shared/config/units'
 // `Mcp-Session-Id` from the toolkit, which we record in
 // `mcp_sessions` for audit-attribution. There's no termination
 // signal we capture (the toolkit handles its own session lifecycle
-// silently). Without this sweeper the table grows monotonically —
+// silently). Without this sweeper the table grows monotonically,
 // one row per conversation, forever.
 //
 // Policy: hard-delete rows where `last_active_at < now - 90 days`.
 // 90 days mirrors the `processed_webhook_events` retention (matches
 // the project's documented forensic-window convention). Activity
 // log rows referencing dead sessions still carry their
-// `actor_principal` text — they just lose the JOIN back to a human
+// `actor_principal` text: they just lose the JOIN back to a human
 // user. That's acceptable for entries that old (Activity Log itself
 // caps at 500 rows per doc, so most agent rows expire long before
 // the 90-day mark anyway).
 //
-// Throttling: not needed — the sweeper does one bulk DELETE WHERE
+// Throttling: not needed: the sweeper does one bulk DELETE WHERE
 // last_active_at < cutoff. Drizzle handles this efficiently via the
 // `idx_mcp_sessions_user` index's secondary key on last_active_at.
 // Daily cadence is plenty.

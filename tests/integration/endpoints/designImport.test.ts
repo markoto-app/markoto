@@ -108,7 +108,7 @@ describe('design from a document', () => {
     expect((await client.post('/api/themes/from-document/upload-request', { filename: 'a.pdf', size: 21 * 1024 * 1024 })).status).toBe(413)
   })
 
-  it('PDF: extracts, proposes, renders, compares — and the result saves as a theme', async () => {
+  it('PDF: extracts, proposes, renders, compares, and the result saves as a theme', async () => {
     const { id, client } = await visionUser()
     const ticket = await upload(client, 'report-cover.pdf', fixture('report-cover.pdf'))
     const start = await client.post('/api/themes/from-document/start', { uploadId: ticket.uploadId })

@@ -4,7 +4,7 @@
 
 <!-- Ein Absatz, höchstens etwa 200 Wörter: das Problem, Ihr Ansatz, das wichtigste Ergebnis mit seiner Zahl und warum es zählt. Keine Zitate, keine erst später erklärten Abkürzungen, keine Formeln. Dieser Abschnitt und die Zeile mit den Schlagwörtern eröffnen die erste Spalte. -->
 
-*Schlagwörter*—Schlagwort, Schlagwort, Schlagwort.
+*Schlagwörter*: Schlagwort, Schlagwort, Schlagwort.
 
 # Einleitung
 
@@ -36,8 +36,8 @@ Table: Tabellenbeschriftung
 
 | Verfahren | Messgrösse | Messgrösse |
 |---|--:|--:|
-| Vergleichsverfahren | — | — |
-| Vorgeschlagenes Verfahren | — | — |
+| Vergleichsverfahren | - | - |
+| Vorgeschlagenes Verfahren | - | - |
 
 # Schluss
 

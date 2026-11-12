@@ -7,12 +7,12 @@ import {
 } from '../../../server/utils/agentic/aiTypes'
 import { soloSessionGuard } from '../fixtures/crossBoundary'
 
-// Tests for Item 1 — AI session telemetry. The runLoop must emit a
+// Tests for Item 1, AI session telemetry. The runLoop must emit a
 // single `Sentry.captureMessage('ai-session-completed', ...)` on every
 // exit path (success / abort / cap / error / turn-limit) with structured
 // tags + extras. Same harness pattern as agenticLimits.test.ts.
 
-// Sentry mock — captures the (msg, options) pairs for assertion.
+// Sentry mock: captures the (msg, options) pairs for assertion.
 const captureMessage = vi.hoisted(() => vi.fn<(msg: string, opts?: unknown) => void>())
 vi.mock('@sentry/nuxt', () => ({
   captureMessage,
@@ -22,7 +22,7 @@ vi.mock('@sentry/nuxt', () => ({
   withScope: vi.fn()
 }))
 
-// Same mocks the existing limits test uses — keep the harness shape
+// Same mocks the existing limits test uses, keep the harness shape
 // identical so future changes to runLoop's deps land in one place.
 const executeFunctionByName = vi.hoisted(() => vi.fn<(session: unknown, name: string, args: unknown) => Promise<{ content: string, isError: boolean, extraParts?: unknown[] }>>())
 const webSearch = vi.hoisted(() => vi.fn<(ai: unknown, model: string, query: string, signal: AbortSignal) => Promise<{ text: string, sources: Array<{ title: string, uri: string }> }>>())
@@ -131,11 +131,11 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")', () => {
+describe('AI session telemetry: Sentry.captureMessage("ai-session-completed")', () => {
   it('emits exactly one event on a successful 5-turn session with view_pages calls', async () => {
     executeFunctionByName.mockResolvedValue({ content: 'page rendered', isError: false })
     // 4 turns calling view_pages (2 per turn = 8 invocations? No,
-    // view_pages cap is 3 — so script 2 view_pages over the first 2
+    // view_pages cap is 3, so script 2 view_pages over the first 2
     // turns, plain text after). The point is: dispatch view_pages
     // twice, then 2 plain text turns, then a final stop. That's a
     // 5-turn session.
@@ -151,7 +151,7 @@ describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")
         }]
       },
       // Turns 2-4: plain text continuations (no calls), no finish so
-      // the loop keeps going. We need a finishReason at some point — fake
+      // the loop keeps going. We need a finishReason at some point, fake
       // it on the LAST turn so the loop exits via the success branch.
       {
         chunks: [{
@@ -209,7 +209,7 @@ describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")
 
   it('tags outcome=session-cap-exceeded when the per-session interaction cap trips', async () => {
     // 11 turns × 1 charge each on a session-cap of 50: trips on the
-    // 11th charge (50 + 1 = 51) — but actually each web_search turn
+    // 11th charge (50 + 1 = 51), but actually each web_search turn
     // costs 5 (1 + 4), so 10 web_search turns hit 50. The 11th turn's
     // upfront +1 trips the cap.
     const turns: FakeTurn[] = []
@@ -224,7 +224,7 @@ describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")
     webSearch.mockResolvedValue({ text: 'ok', sources: [] })
 
     // After the first web_search the session is tainted (web content);
-    // the following identical searches ask the initiator — approve them.
+    // the following identical searches ask the initiator, approve them.
     await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns), crossBoundary: soloSessionGuard({ confirm: async () => true }) }))
 
     expect(captureMessage).toHaveBeenCalledTimes(1)
@@ -249,7 +249,7 @@ describe('AI session telemetry — Sentry.captureMessage("ai-session-completed")
     expect(o.extra.abortReason).toBe('signal')
   })
 
-  it('always emits — even when the loop body throws an unrelated error', async () => {
+  it('always emits: even when the loop body throws an unrelated error', async () => {
     // Force the SDK to reject on the very first call.
     const ai = {
       models: { generateContentStream: vi.fn().mockRejectedValue(new Error('boom')) }

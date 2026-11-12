@@ -9,7 +9,7 @@ import type { HeadingNumbering } from '~~/shared/types/theme'
  * again. Browser-only.
  *
  * - `markoto-section-heading` on every heading of the highest level the
- *   document uses (h1, or h2 in a document without h1) — the `{section}`
+ *   document uses (h1, or h2 in a document without h1), the `{section}`
  *   running-head token reads them (themeToCss `sectionStringBlock`).
  * - `markoto-first-section` on the first of them. paged.js clones the
  *   parents of a page's content onto every page, so `h1:first-of-type`
@@ -20,7 +20,7 @@ import type { HeadingNumbering } from '~~/shared/types/theme'
  *   start at `1` there instead of `0.1` (themeToCss `numberingBlock`).
  *
  * - With `sectionLabels` (the `header.sectionNumber` option, given the
- *   numbering style): `data-markoto-section` on every section heading —
+ *   numbering style): `data-markoto-section` on every section heading,
  *   its number as the theme CSS prints it plus its title ("3 Procedures";
  *   unnumbered: the title). The `{section}` token reads it with `attr()`:
  *   paged.js `string-set` can't see a `::before` number.

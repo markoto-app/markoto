@@ -5,9 +5,9 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 //
 //  1. Cost attribution: they authenticate with the CALLER'S LiteLLM
 //     virtual key (rpm limits + spend tags), never the master key (`useLitellmAdmin()`).
-//  2. BYOK: they run on the session's chat provider — a platform
+//  2. BYOK: they run on the session's chat provider, a platform
 //     alias is sent as-is, a user key goes out as `byok/<model>` with
-//     clientside credentials — and with no chat provider at all the
+//     clientside credentials: and with no chat provider at all the
 //     tools return the raw search results / page text unsynthesised.
 
 const mockClients = vi.hoisted(() => ({
@@ -23,7 +23,7 @@ const litellmCompletion = vi.hoisted(() =>
 
 vi.mock('../../../server/utils/ai/litellmClient', () => ({ useLitellmAdmin, useLitellmForUser }))
 vi.mock('../../../server/utils/litellm/createCompletion', () => ({ litellmCompletion }))
-// fetch_url routes through the SSRF guard before hitting the network —
+// fetch_url routes through the SSRF guard before hitting the network,
 // stub only `assertSafeUrl` so the test doesn't do DNS resolution; the
 // IP classifiers stay real (the BYOK URL policy uses them).
 vi.mock('../../../server/utils/agentic/urlGuard', async (importOriginal) => {

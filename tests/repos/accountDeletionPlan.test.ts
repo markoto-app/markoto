@@ -91,12 +91,12 @@ describe('planAccountDeletion', () => {
     const aliceOwnedDoc = await createDoc({ ownerId: alice.id })
     const bobDoc = await createDoc({ ownerId: bob.id })
 
-    // Comment on alice's own doc — gets purged with the doc, so plan
+    // Comment on alice's own doc, gets purged with the doc, so plan
     // should NOT count it under commentsToAnonymise.
     await insertComment({ docId: aliceOwnedDoc.docId, entryId: 'c1', authorId: alice.id, authorName: alice.name, body: 'self' })
-    // Comment on bob's doc — anonymised.
+    // Comment on bob's doc, anonymised.
     await insertComment({ docId: bobDoc.docId, entryId: 'c2', authorId: alice.id, authorName: alice.name, body: 'foreign' })
-    // Bob's own comment — never touched.
+    // Bob's own comment: never touched.
     await insertComment({ docId: bobDoc.docId, entryId: 'c3', authorId: bob.id, authorName: bob.name, body: 'b' })
 
     const plan = await planAccountDeletion(asUser(alice.id))

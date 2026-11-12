@@ -89,7 +89,7 @@ function updateLive() {
     // normalises on receipt; this keeps the component safe on its own.
     const user: AwarenessUser | null = normalizeAwarenessUser(state?.user)
     if (!user) return
-    // yCollab passes the JWT userId into `user.id` — numeric for real users,
+    // yCollab passes the JWT userId into `user.id`, numeric for real users,
     // absent for unauthenticated, also numeric for AI.
     const userId = parseUserIdFromAwareness(user.id)
     // Drop other tabs of the same human user (AI sessions and anonymous
@@ -153,9 +153,9 @@ const merged = computed<DisplayEntry[]>(() => {
   return [...liveEntries.value, ...offline]
 })
 
-// Tooltip: live roster member "Alice Test — Editor"; live non-roster
-// "Bob — Guest" ("Anonymous" if unauthenticated); AI helper uses the
-// ai.helpingTooltip key; offline "Alice Test — Editor (offline)".
+// Tooltip: live roster member "Alice Test · Editor"; live non-roster
+// "Bob · Guest" ("Anonymous" if unauthenticated); AI helper uses the
+// ai.helpingTooltip key; offline "Alice Test · Editor (offline)".
 function roleLabel(role: WorkspaceRole) {
   if (role === 'admin') return t('workspace.roles.admin')
   if (role === 'editor') return t('workspace.roles.editor')
@@ -170,14 +170,14 @@ function parseUserIdFromAwareness(raw: unknown): number | null {
 
 function tooltipFor(e: DisplayEntry): string {
   if (e.kind === 'live' && e.isAI) {
-    // Deliberately generic ("markoto is helping Joel — markoto is working…"):
+    // Deliberately generic ("markoto is helping Joel, markoto is working…"):
     // what the AI reads or queries is private to whoever started it, so
     // awareness carries only the phase.
     const base = e.aiSession?.initiatorName
       ? t('ai.helpingTooltip', { name: e.aiSession.initiatorName })
       : e.user.name
     if (isActivePhase(e.aiStatus)) {
-      return `${base} — ${t('ai.workingGeneric')}`
+      return `${base}: ${t('ai.workingGeneric')}`
     }
     return base
   }
@@ -185,12 +185,12 @@ function tooltipFor(e: DisplayEntry): string {
     // Match the live user to a roster row to surface the role.
     if (e.userId !== null) {
       const match = roster.value.find(m => m.userId === e.userId)
-      if (match) return `${e.user.name} — ${roleLabel(match.role)}`
+      if (match) return `${e.user.name} · ${roleLabel(match.role)}`
     }
     if (e.userId === null) return t('presence.anonymousEditor')
-    return `${e.user.name} — ${t('presence.guest')}`
+    return `${e.user.name} · ${t('presence.guest')}`
   }
-  return `${e.name} — ${roleLabel(e.role)} (${t('presence.offline')})`
+  return `${e.name} · ${roleLabel(e.role)} (${t('presence.offline')})`
 }
 
 function isActivePhase(status: AiStatus | undefined): boolean {

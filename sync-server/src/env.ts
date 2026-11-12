@@ -7,7 +7,7 @@ import type { SyncEnv } from '../../shared/env/registry'
 
 /**
  * The typed env. After boot it is the validated one; a module imported on
- * its own (unit tests) gets a lenient parse — types checked, required
+ * its own (unit tests) gets a lenient parse, types checked, required
  * values '' when missing (see `runtimeEnv`).
  */
 export function syncEnv(): SyncEnv {

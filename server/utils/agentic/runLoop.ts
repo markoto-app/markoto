@@ -22,7 +22,7 @@ const loopLog = useLogger('ai-loop')
  * function calling, dispatch each tool call, loop until the model replies
  * without a tool call (its finish signal; prose is salvaged into one
  * closing tool call unless the session already edited the document or
- * answered the user) or we hit a stop condition — including
+ * answered the user) or we hit a stop condition, including
  * `STALLED_TURN_LIMIT` turns in a row whose edits changed nothing but
  * whitespace / reverted earlier edits (see `editProgress.ts`).
  *
@@ -34,7 +34,7 @@ const MAX_TURNS = 20
 
 /**
  * Terminal non-STOP finishReasons that indicate the model gave up but
- * didn't end cleanly. We bail even if functionCalls were emitted —
+ * didn't end cleanly. We bail even if functionCalls were emitted,
  * MALFORMED_FUNCTION_CALL means the args are junk and re-trying would
  * just produce more junk.
  */
@@ -60,7 +60,7 @@ async function runOneTurn(ctx: LoopContext, turnCount: number): Promise<TurnResu
   ctx.log(`turn ${turnCount}: finishReason=${finishReason}, parts=${modelParts.length}, calls=${functionCalls.length}`)
 
   // Record the model's response so the next turn (if any) has full
-  // history — the continuation contract requires the model's Content
+  // history: the continuation contract requires the model's Content
   // block to precede the corresponding functionResponse user block.
   ctx.contents.push({ role: 'model', parts: modelParts })
 
@@ -98,7 +98,7 @@ function chargeTurnBudget(ctx: LoopContext, turnCount: number): TurnResult | nul
  * user message whose parts are the functionResponse entries (the
  * continuation contract). Comment-trigger sessions terminate after
  * the trigger thread reply lands but still process all calls in the
- * current turn — a follow-up `replace_text` after `reply_to_comment`
+ * current turn: a follow-up `replace_text` after `reply_to_comment`
  * should still execute its doc edit even though the loop will end.
  */
 async function dispatchToolCallsForTurn(
@@ -123,7 +123,7 @@ async function dispatchToolCallsForTurn(
   }
 
   if (commentTriggerDone) {
-    ctx.log(`turn ${turnCount}: reply_to_comment landed on trigger thread — terminating comment-trigger loop`)
+    ctx.log(`turn ${turnCount}: reply_to_comment landed on trigger thread, terminating comment-trigger loop`)
     ctx.telemetry.outcome = 'success'
     ctx.opts.setStatus('done', 'Done')
     return { kind: 'done', outcome: 'success' }
@@ -133,9 +133,9 @@ async function dispatchToolCallsForTurn(
   if (progress.shouldStop) {
     // The model keeps editing without changing anything: blank lines,
     // no-op replacements, undoing its own edits. Its real work (if any)
-    // is already in the document — end like a normal finish instead of
+    // is already in the document, end like a normal finish instead of
     // burning turns into the turn-limit error.
-    ctx.log(`turn ${turnCount}: ${progress.consecutiveStalledTurns} turns in a row without real edits (limit ${STALLED_TURN_LIMIT}) — ending session`)
+    ctx.log(`turn ${turnCount}: ${progress.consecutiveStalledTurns} turns in a row without real edits (limit ${STALLED_TURN_LIMIT}), ending session`)
     ctx.telemetry.outcome = 'stalled'
     ctx.opts.setStatus('done', 'Done')
     return { kind: 'done', outcome: 'stalled' }

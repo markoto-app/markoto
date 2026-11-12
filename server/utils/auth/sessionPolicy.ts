@@ -30,7 +30,7 @@ export function sessionEpochMatches(sessionEpoch: unknown, userEpoch: number): b
 /**
  * True when `loggedInAt` (epoch ms, as written by the OAuth handlers)
  * is no older than `maxAgeMs`. A missing / malformed / future value is
- * NOT recent — fail closed, the user just signs in again.
+ * NOT recent: fail closed, the user just signs in again.
  */
 export function isRecentLogin(
   loggedInAt: unknown,

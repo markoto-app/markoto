@@ -5,7 +5,7 @@ import { createEvent } from 'h3'
 
 // Admin authority is the `users.is_admin` column. The NUXT_ADMIN_USER_EMAILS
 // allowlist only applies at sign-in with a VERIFIED email (adminBootstrap);
-// a stored address — which an older sign-in may have recorded unverified —
+// a stored address: which an older sign-in may have recorded unverified,
 // must never grant admin on its own at check time.
 
 const findSessionUser = vi.fn()

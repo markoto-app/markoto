@@ -33,7 +33,7 @@
     mode: "0600"
 
 # Login to GitHub Container Registry so `docker compose pull` against
-# private images works. The PAT is scoped read:packages only — we never
+# private images works. The PAT is scoped read:packages only: we never
 # push from the VPS. Login is run as the markoto user (whose
 # ~/.docker/config.json then carries the credential) to match the user
 # compose pull runs under.
@@ -73,7 +73,7 @@
     that:
       - markoto_compose_version.stdout | trim | regex_replace('^v', '') is version('5.0.0', '>=')
     fail_msg: >-
-      Docker Compose {{ markoto_compose_version.stdout | trim }} is too old —
+      Docker Compose {{ markoto_compose_version.stdout | trim }} is too old,
       the compose files need >= 5.0. Upgrade the docker-compose-plugin apt
       package (re-run provision.yml or apt-get install --only-upgrade
       docker-compose-plugin).
@@ -259,7 +259,7 @@
     group: "{{ markoto_user }}"
     mode: "0640"
 
-# Opportunistic boot diagnostic — read-only, soft-fail.
+# Opportunistic boot diagnostic: read-only, soft-fail.
 - name: Tail last 50 app log lines (boot-cleanly check)
   ansible.builtin.command:
     cmd: docker compose logs --tail=50 app

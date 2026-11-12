@@ -178,7 +178,7 @@ export async function listRecentActivity(doc: DocAccess<'view'>, limit = 50, sin
 }
 
 /**
- * Whether the doc has activity rows older than `before` — lets the
+ * Whether the doc has activity rows older than `before`, lets the
  * activity endpoint tell the UI that a plan's history window hides some.
  */
 export async function hasActivityBefore(doc: DocAccess<'view'>, before: Date): Promise<boolean> {
@@ -215,7 +215,7 @@ async function enrichActivityAgentFields(rows: RawActivityRow[]): Promise<Activi
     }
   }
   if (aiSessionIds.size === 0 && mcpSessionIds.size === 0) {
-    // No agent rows — return rows with the agent fields nulled.
+    // No agent rows: return rows with the agent fields nulled.
     return rows.map(r => ({
       ...r,
       agentKind: null,

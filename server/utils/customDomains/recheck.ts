@@ -11,7 +11,7 @@ const log = useLogger('custom-domain-recheck')
 // `custom-domain-recheck` plugin: pending / failed domains added in the
 // last 7 days (so a user doesn't have to come back and click "Check"),
 // and verified domains every 6 hours (a domain whose DNS moved away is
-// dropped after the grace period — `runCustomDomainCheck`).
+// dropped after the grace period, `runCustomDomainCheck`).
 
 const PENDING_WINDOW_MS = 7 * DAY_MS
 const VERIFIED_EVERY_MS = 6 * HOUR_MS

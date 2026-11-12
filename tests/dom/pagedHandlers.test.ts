@@ -271,7 +271,7 @@ describe('pagination handlers (stringified, as the preview iframe runs them)', (
     place(before, [[0, 0, 600, 400]])
     place(diagram, [[0, 400, 600, 380]])
     Object.defineProperty(diagram, 'offsetHeight', { configurable: true, value: 380 })
-    // 340px of room for 380px: the estimate (0.89) is not quite enough —
+    // 340px of room for 380px: the estimate (0.89) is not quite enough,
     // paged.js still finds the diagram overflowing until 0.83.
     const layout = {
       findOverflow: () => overflowFrom(Number.parseFloat(diagram.style.zoom) > 0.84 ? diagram : after, content)

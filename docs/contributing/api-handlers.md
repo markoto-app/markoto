@@ -60,7 +60,7 @@ Document needs (`allow.doc`). Every one is decided by `shared/utils/documents/do
 |---|---|---|
 | `file` | `decideFileAccess` (open docs: everyone; private / password: owner, members, doc JWT) | hand-built DocState + `decideFileAccess` |
 | `activity` | `decideActivityAccess` | same for activity, diff, comment context |
-| `write-content` | `canWriteDocContent` (what a writable token would allow); anonymous → 401 | — |
+| `write-content` | `canWriteDocContent` (what a writable token would allow); anonymous → 401 | - |
 | `edit` | owner, workspace admin / editor | `canEditDoc` |
 | `manage` | owner, workspace admin | `canManageDoc`, `requireShareManager`, `requirePublishManager` |
 | `share-guests` | workspace admin / editor (members, not guests) of a workspace doc | `requireDocSharingAccess` |
@@ -71,11 +71,11 @@ Document needs (`allow.doc`). Every one is decided by `shared/utils/documents/do
 
 The policy hands the handler capability proofs for exactly what it checked, and repo functions demand them (`server/repos/AGENTS.md` → Proofs, `docs/SECURITY-HARDENING.md` → Tenancy):
 
-- `self` — `UserScope` of the signed-in user acting for themselves (null without a session).
-- `prove` — proofs for a second object, for the signed-in caller only (null without a session): `prove.workspace(wsId, need)` (their SSO-checked role, at least `need`) and `prove.doc(docId, 'view' | 'edit' | 'manage')` (owner or workspace role, access mode not considered). Null when not granted; the handler picks the refusal. Never prove from a user id in a handler (`markoto/proof-entry-imports`).
-- `docAccess` — `DocAccess` for the URL document at the need's level: `file` / `activity` → `view`, `write-content` → `write`, `edit`, `manage`, `share-guests` → `share`, `delete`. A `lookup` proof carries whatever the actor holds; narrow it per field with `docAccess.allows('write')`. Its actor is the user (or anonymous), never the document owner.
-- `workspaceAccess` — `WorkspaceAccess` for `:wsId` at the caller's role.
-- `adminActor` — `AdminActor` for instance-wide reads and writes (`adminActor.doc(id)`, `.workspace(id)`, `.user(id)`), recorded as the audit actor.
+- `self`: `UserScope` of the signed-in user acting for themselves (null without a session).
+- `prove`: proofs for a second object, for the signed-in caller only (null without a session): `prove.workspace(wsId, need)` (their SSO-checked role, at least `need`) and `prove.doc(docId, 'view' | 'edit' | 'manage')` (owner or workspace role, access mode not considered). Null when not granted; the handler picks the refusal. Never prove from a user id in a handler (`markoto/proof-entry-imports`).
+- `docAccess`: `DocAccess` for the URL document at the need's level: `file` / `activity` → `view`, `write-content` → `write`, `edit`, `manage`, `share-guests` → `share`, `delete`. A `lookup` proof carries whatever the actor holds; narrow it per field with `docAccess.allows('write')`. Its actor is the user (or anonymous), never the document owner.
+- `workspaceAccess`: `WorkspaceAccess` for `:wsId` at the caller's role.
+- `adminActor`: `AdminActor` for instance-wide reads and writes (`adminActor.doc(id)`, `.workspace(id)`, `.user(id)`), recorded as the audit actor.
 
 Pass these on; never mint a second proof for the same object in a handler. User-facing handlers may not import `system` (ESLint `markoto/no-system-actor-in-handlers`).
 

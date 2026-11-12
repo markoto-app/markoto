@@ -20,7 +20,7 @@ import { isAiCommentAuthor } from '~~/shared/ai/author'
  * can edit in its workspace (admin / editor / guest with an edit share),
  * and every content change in its activity history is theirs (directly
  * or through their own AI / MCP / restore).
- * Anything else — including an unparseable or missing reference — is
+ * Anything else, including an unparseable or missing reference, is
  * treated as shared.
  */
 async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean> {
@@ -44,7 +44,7 @@ async function isDocSoloForUser(docRef: string, userId: number): Promise<boolean
 /**
  * Does the comments array hold anything not written by `userId`?
  * AI-named comments (no user id) are the invoker's own only on a solo
- * document — elsewhere anybody who can comment could have written one
+ * document: elsewhere anybody who can comment could have written one
  * under that name, so they count as foreign.
  */
 export function commentsHaveForeignAuthors(ydoc: Y.Doc, userId: number, sessionDocSolo: boolean): boolean {

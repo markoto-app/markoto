@@ -2,7 +2,7 @@ import { TEST_BASE_URL } from './env'
 
 // Thin fetch wrapper with a cookie jar. Tests use this instead of raw
 // `fetch` so sessions established via /api/_test/login are reused on
-// subsequent calls in the same test — exactly how a browser would.
+// subsequent calls in the same test, exactly how a browser would.
 
 export interface ClientOptions {
   method?: string

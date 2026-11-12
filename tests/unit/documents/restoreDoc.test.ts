@@ -4,7 +4,7 @@ import { first } from '../../helpers/assert'
 import { stubEnv } from '../../helpers/env'
 import { docAs } from '../../helpers/access'
 
-// Mocks have to register BEFORE the import of `restoreDoc.ts` —
+// Mocks have to register BEFORE the import of `restoreDoc.ts`,
 // vitest hoists `vi.mock` calls automatically, but the factory
 // closures still need to capture mutable refs we can drive from
 // each test.
@@ -133,7 +133,7 @@ const txState = {
   maxIdValues: [] as Array<number | null>,
   maxIdCallIndex: 0,
   // Records when the WS provider was constructed relative to the
-  // tx's execute calls — used to assert "yjsDocIdBefore captured
+  // tx's execute calls: used to assert "yjsDocIdBefore captured
   // BEFORE the WS connect."
   providerConstructedAtCallIndex: -1
 }
@@ -146,7 +146,7 @@ const dbMock = {
         callIndex += 1
         // The helper issues the advisory lock first, then SELECT
         // MAX(id) BEFORE, then (much later) SELECT MAX(id) AFTER.
-        // We classify by call ordinal — call 1 is the lock, calls
+        // We classify by call ordinal, call 1 is the lock, calls
         // 2+ are MAX(id) reads.
         if (callIndex === 1) {
           txExecuteCalls.push({ kind: 'lock', orderInTransaction: callIndex })
@@ -187,7 +187,7 @@ function stubConfig(jwtSecret: string | undefined, syncInternalUrl = 'http://syn
   stubEnv({ NUXT_JWT_SECRET: jwtSecret, NUXT_SYNC_INTERNAL_URL: syncInternalUrl })
 }
 
-// Now safe to import the unit under test — all mocks registered.
+// Now safe to import the unit under test, all mocks registered.
 const { restoreDocToYjsId, readRestorableMeta } = await import('../../../server/utils/documents/restoreDoc')
 
 beforeEach(() => {
@@ -241,7 +241,7 @@ describe('restoreDocToYjsId', () => {
       // The MockProvider's constructor records how many tx.execute
       // calls had landed BEFORE it ran. By the time the provider is
       // constructed, the helper must have already issued: (1) the
-      // advisory lock query and (2) the SELECT max(id) for `before` —
+      // advisory lock query and (2) the SELECT max(id) for `before`,
       // that's 2 tx.execute() calls. A smaller value means the helper is
       // reading `before` AFTER the WS connect (the reversibility bug).
       txState.maxIdValues = [40, 41]
@@ -350,7 +350,7 @@ describe('restoreDocToYjsId', () => {
     })
 
     it('destroys the replayed past doc (memory leak guard)', async () => {
-      // The past doc is created, encoded, and then destroyed —
+      // The past doc is created, encoded, and then destroyed,
       // it's not held anywhere after the function returns. Pin
       // the destroy() call so a future refactor doesn't introduce
       // a long-lived reference.
@@ -406,7 +406,7 @@ describe('restoreDocToYjsId', () => {
       // Subtle correctness property: an `xact` lock auto-releases
       // when the tx ends (commit or rollback). A plain
       // `pg_advisory_lock` would hold the lock until explicit
-      // release — leak risk on error paths. Pin the SQL shape.
+      // release: leak risk on error paths. Pin the SQL shape.
       const observedSql: string[] = []
       const origExecute = dbMock.transaction.getMockImplementation()
       dbMock.transaction.mockImplementationOnce(async (fn) => {
@@ -458,7 +458,7 @@ describe('restoreDocToYjsId', () => {
 // The restore client writes past ymeta values through the WebSocket, where
 // the sync server validates them. A past value that fails today's
 // validation (old theme schema, corrupted nested Y type) would get the
-// whole restore update rejected — so it is skipped instead.
+// whole restore update rejected, so it is skipped instead.
 describe('readRestorableMeta', () => {
   it('copies valid restorable keys and skips invalid or corrupted ones', () => {
     const past = new Y.Doc()

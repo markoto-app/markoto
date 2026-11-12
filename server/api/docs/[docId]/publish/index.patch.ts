@@ -8,7 +8,7 @@ import { assertNotModerationRestricted } from '../../../../utils/privacy/moderat
 import { PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { publishDocBody } from '~~/shared/api/sharing'
 
-// PATCH /api/docs/:docId/publish — {slug?, indexable?} without
+// PATCH /api/docs/:docId/publish: {slug?, indexable?} without
 // re-rendering. Owner + workspace admins. A new slug frees the old
 // address at once.
 export default defineApiHandler({

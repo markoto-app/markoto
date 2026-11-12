@@ -3,7 +3,7 @@ import { appendAuditEvent } from '../../../../../repos/audit'
 import { AUDIT_WORKSPACE_TEMPLATE_REMOVED } from '../../../../../legal/auditActions'
 import { templateParams } from '~~/shared/api/brand'
 
-// DELETE /api/workspaces/:wsId/templates/:templateId — admins,
+// DELETE /api/workspaces/:wsId/templates/:templateId: admins,
 // also without the plan feature. The document itself stays.
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),

@@ -21,7 +21,7 @@
       "delete-cancel-conflict": "Es ist keine geplante Kontolöschung vorhanden, die abgebrochen werden könnte.",
       "delete-conflict": "Die Löschung Ihres Kontos ist bereits geplant.",
       "delete-rate-limited": "Zu viele Anfragen zur Kontolöschung. Versuchen Sie es später noch einmal.",
-      "sessions-revoke-rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut."
+      "sessions-revoke-rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
     },
     "admin": {
       "forbidden": "Dafür sind Administratorrechte nötig.",
@@ -59,7 +59,7 @@
       "bot-check-replayed": "Diese Bot-Prüfung wurde bereits verwendet. Bitte versuchen Sie es noch einmal.",
       "bot-check-required": "Die automatische Bot-Prüfung ist fehlgeschlagen. Bitte versuchen Sie es noch einmal.",
       "misconfigured": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuchen Sie es gleich noch einmal.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "terms-required": "Bitte akzeptieren Sie zuerst die Nutzungsbedingungen.",
       "unavailable": "Die Bot-Prüfung ist gerade nicht verfügbar. Bitte versuchen Sie es gleich noch einmal."
     },
@@ -95,7 +95,7 @@
       "plan-change-failed": "Der Plan konnte nicht gewechselt werden. Es wurde nichts geändert; bitte versuchen Sie es noch einmal.",
       "portal-failed": "Das Abrechnungsportal konnte nicht geöffnet werden. Bitte versuchen Sie es noch einmal.",
       "price-unavailable": "Dieser Plan ist gerade nicht erhältlich.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "seats-below-members": "Im Arbeitsbereich sind mehr Personen als Plätze. Entfernen Sie jemanden oder behalten Sie mehr Plätze.",
       "seats-busy": "Gerade läuft eine andere Platzänderung oder Einladung. Bitte versuchen Sie es gleich noch einmal.",
       "seats-full": "Alle bezahlten Plätze sind belegt. Fügen Sie einen Platz hinzu, um jemanden einzuladen.",
@@ -122,7 +122,7 @@
       "invalid-weight": "Die Schriftstärke liegt zwischen 100 und 900 in Schritten von 100.",
       "licence-required": "Bestätigen Sie, dass Ihre Lizenz das Einbetten dieser Schrift in Dokumente erlaubt.",
       "no-design": "Noch kein Design des Arbeitsbereichs. Übernehmen Sie es aus einem Dokument oder wählen Sie in den Einstellungen ein Standarddesign.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "too-many-fonts": "Ein Arbeitsbereich kann bis zu {limit} Schriftdateien haben.",
       "too-many-images": "Ein Arbeitsbereich kann bis zu {limit} Markenbilder haben."
     },
@@ -132,7 +132,7 @@
     "consent": {
       "no-decisions": "Es wurden keine Einwilligungsentscheidungen gesendet.",
       "no-valid-decisions": "Keine der Einwilligungsentscheidungen konnte erfasst werden.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut."
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
     },
     "csrf": {
       "origin-mismatch": "Anfrage von einer anderen Herkunft abgelehnt."
@@ -144,7 +144,7 @@
       "not-found": "Domain nicht gefunden.",
       "page-not-allowed": "Nur die Eigentümerin oder der Eigentümer und Admins des Arbeitsbereichs können dieses Dokument auf einer Domain anzeigen.",
       "page-not-published": "Veröffentlichen Sie das Dokument zuerst als Webseite.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "reserved": "Diese Domain gehört zu diesem Dienst.",
       "taken": "Diese Domain wird bereits verwendet."
     },
@@ -172,7 +172,7 @@
       "rate-limited": "Zu viele neue Dokumente aus Ihrem Netzwerk. Melden Sie sich an oder versuchen Sie es später noch einmal.",
       "render-failed": "Das PDF konnte nicht erstellt werden. Bitte versuchen Sie es noch einmal.",
       "restore-compacted": "Dieser Wiederherstellungspunkt ist zu alt – sein Verlauf wurde verdichtet und kann nicht mehr wiederhergestellt werden. Stellen Sie stattdessen einen neueren Punkt wieder her.",
-      "restore-unavailable": "Kann von dieser Zeile nicht wiederherstellen — sie stammt aus der Zeit vor der Wiederherstellungsfunktion."
+      "restore-unavailable": "Kann von dieser Zeile nicht wiederherstellen: Sie stammt aus der Zeit vor der Wiederherstellungsfunktion."
     },
     "dpa": {
       "version-stale": "Der Auftragsverarbeitungsvertrag hat sich geändert, seit Sie diese Abfrage geöffnet haben. Bitte lesen Sie ihn erneut durch."
@@ -193,7 +193,7 @@
       "no-file": "Es wurde keine Datei angegeben.",
       "not-configured": "Die Dokumentkonvertierung ist auf diesem Server nicht eingerichtet.",
       "not-utf8": "Diese Markdown-Datei ist kein gültiger UTF-8-Text.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "timeout": "Die Konvertierung hat zu lange gedauert.",
       "too-complex": "Diese Datei ist zu gross oder zu komplex für die Konvertierung.",
       "unavailable": "Der Konvertierungsdienst ist nicht erreichbar.",
@@ -211,7 +211,7 @@
       "key-mismatch": "knowledgeId muss mit dem s3Key übereinstimmen.",
       "not-found": "Wissensdatei nicht gefunden.",
       "not-uploader": "Bearbeiter können nur ihre eigenen Uploads löschen.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "too-many-pending": "Zu viele Uploads sind ausstehend. Versuchen Sie es gleich noch einmal.",
       "unsupported-format": "Nicht unterstütztes Format: .{ext}. Erlaubt: {allowed}.",
       "upload-not-found": "Upload nicht gefunden. Fordern Sie einen neuen Upload an und versuchen Sie es erneut.",
@@ -250,9 +250,9 @@
     },
     "password": {
       "invalid": "Ungültiges Passwort.",
-      "locked": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "locked": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "not-set": "Dieses Dokument hat kein Passwort.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "required": "Geben Sie das Passwort ein.",
       "too-short": "Das Passwort muss mindestens {minLength} Zeichen lang sein."
     },
@@ -272,11 +272,11 @@
       "too-large": "Dieses Dokument ist zu gross, um es als Webseite zu veröffentlichen."
     },
     "published": {
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "not-found": "Diese Seite existiert nicht oder ist nicht mehr veröffentlicht."
     },
     "rate": {
-      "limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut."
+      "limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
     },
     "request": {
       "invalid": "Einige der gesendeten Angaben sind ungültig.",
@@ -296,7 +296,7 @@
       "not-a-guest": "Diese Person ist kein Gast des Arbeitsbereichs.",
       "not-allowed": "Sie dürfen die Freigabe dieses Dokuments nicht ändern.",
       "not-shared": "Dieses Dokument ist nicht mit dieser Person geteilt.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut."
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
     },
     "sso": {
       "admin-required": "Nur Admins des Arbeitsbereichs können Single Sign-on verwalten.",
@@ -317,7 +317,7 @@
       "no-seat": "Alle bezahlten Plätze dieses Arbeitsbereichs sind belegt.",
       "not-active": "Single Sign-on ist für diesen Arbeitsbereich nicht aktiv.",
       "not-provisioned": "Ihre Organisation hat Ihnen noch keinen Zugriff auf diesen Arbeitsbereich gegeben.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "required": "Dieser Workspace verwendet Single Sign-on. Melden Sie sich über Ihre Organisation an, um fortzufahren.",
       "test-mismatch": "Bei der Test-Anmeldung wurde ein anderes Konto verwendet.",
       "test-not-admin": "Nur ein Admin des Arbeitsbereichs kann dessen Anmeldung testen.",
@@ -380,7 +380,7 @@
       "disabled": "Die Warteliste ist in dieser Installation nicht verfügbar.",
       "invalid-email": "Bitte geben Sie eine gültige E-Mail-Adresse ein.",
       "invalid-token": "Dieser Link ist ungültig oder abgelaufen.",
-      "rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut."
+      "rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
     },
     "workspace": {
       "admin-required": "Nur Admins des Arbeitsbereichs können das tun.",
@@ -394,12 +394,12 @@
       "invalid-email": "Geben Sie eine gültige E-Mail-Adresse ein.",
       "invite-cap": "Dieser Arbeitsbereich hat zu viele offene Einladungen. Ziehen Sie zuerst einige zurück.",
       "invite-not-found": "Diese Einladung existiert nicht mehr oder ist abgelaufen.",
-      "invite-rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut.",
+      "invite-rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.",
       "last-admin": "Ein Arbeitsbereich braucht mindestens einen Admin. Befördern Sie zuerst jemand anderen oder löschen Sie den Arbeitsbereich.",
       "member-not-found": "Diese Person ist kein Mitglied dieses Arbeitsbereichs.",
       "not-found": "Arbeitsbereich nicht gefunden.",
       "role-required": "Betrachter können in diesem Arbeitsbereich keine Dokumente erstellen.",
-      "template-rate-limited": "Zu viele Anfragen — bitte warten Sie einen Moment und versuchen Sie es erneut."
+      "template-rate-limited": "Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut."
     }
   }
 }

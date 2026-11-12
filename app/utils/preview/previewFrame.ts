@@ -42,7 +42,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
  *   - its `<img>` requests are cross-site and carry no session cookie, so
  *     the document's own upload URLs get a short-lived `file-access` token
  *     appended (`withOwnUploadToken` / `attachOwnUploadTokens`, minted by
- *     `GET /api/docs/:docId/file-token`) — same mechanism as the server
+ *     `GET /api/docs/:docId/file-token`): same mechanism as the server
  *     render page;
  *   - the srcdoc inherits the app's CSP, so its inline scripts carry the
  *     page's CSP nonce (`currentCspNonce`).
@@ -57,7 +57,7 @@ export interface RenderMessage {
   fontsImport: string
   hljsUrl: string
   hljsSri: string
-  /** `JSON.stringify(buildMermaidConfig(theme))` — Mermaid's initialize config. */
+  /** `JSON.stringify(buildMermaidConfig(theme))`: Mermaid's initialize config. */
   mermaidConfig: string
   /** BCP-47 document language (chart number formats). */
   locale: string
@@ -72,7 +72,7 @@ export interface ColorModeMessage {
 
 /**
  * Preview zoom (`usePreviewZoom` → the iframe's zoom engine,
- * `previewZoomFrame.ts`). Presentation only — never re-paginates.
+ * `previewZoomFrame.ts`). Presentation only: never re-paginates.
  */
 export interface ZoomMessage {
   type: 'zoom'
@@ -99,7 +99,7 @@ export type FrameToParentMessage
     /** A pinch / Ctrl+wheel ended at this factor (already applied in the frame). */
     | { type: 'zoom-gesture', scale: number }
 
-/** `sandbox` value of the live preview iframe — deliberately no `allow-same-origin`. */
+/** `sandbox` value of the live preview iframe, deliberately no `allow-same-origin`. */
 export const PREVIEW_SANDBOX = 'allow-scripts'
 /** Print iframe: `allow-modals` lets `window.print()` open the dialog. */
 export const PRINT_SANDBOX = 'allow-scripts allow-modals'
@@ -172,7 +172,7 @@ export function postToFrame(frame: Window, msg: ParentToFrameMessage): void {
 }
 
 /**
- * The CSP nonce of the current page (set per response by the server —
+ * The CSP nonce of the current page (set per response by the server,
  * server/plugins/csp.ts). The srcdoc inherits the page's CSP, so its
  * inline scripts must carry the same nonce. Browsers hide the `nonce`
  * attribute after parsing but keep the `nonce` property. Empty when the
@@ -226,7 +226,7 @@ function jsStringSafe(value: string): string {
 /**
  * `url` with `?token=<file-access JWT>` appended when it is EXACTLY one of
  * this document's image uploads (`/api/files/<docId>/<fileId>`, no query,
- * origin or other path around it — `ownUploadFileId`); otherwise unchanged.
+ * origin or other path around it, `ownUploadFileId`); otherwise unchanged.
  * Same rule as the server render page (`renderFileTokens.ts`): nothing in
  * the content can make the editor attach the token to a link, an external
  * URL that merely contains the path, or another document's file.
@@ -297,7 +297,7 @@ export function buildRenderMessage(opts: {
   html: string
   theme: DocTheme
   title: string
-  /** Document language (`ymeta.language`) — date + TOC title + numbers. */
+  /** Document language (`ymeta.language`): date + TOC title + numbers. */
   language: string
   customCss: CustomCssResult | undefined
   docId: string

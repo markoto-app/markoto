@@ -17,7 +17,7 @@ Extended + punctuation, currency, arrows and the common math operators
 (+ Greek for TeX Gyre, which has the monotonic alphabet), with the
 layout features a document uses, and its CFF outlines converted
 to TrueType quadratics (Chromium's PDF backend embeds CFF fonts as Type 3
-glyph procedures; TrueType outlines embed as real fonts — the server PDF
+glyph procedures; TrueType outlines embed as real fonts, the server PDF
 comes from Chromium). The GUST Font License asks (not requires) that
 derived files get new names, so the files are renamed and the name table
 says "(markoto subset)".

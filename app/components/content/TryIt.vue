@@ -18,11 +18,11 @@ import { DEFAULT_MARKETING_LOCALE, parseMarketingRoute } from '~~/shared/seo/mar
 // Two stages:
 //   1. Static (SSR + until mounted): the committed `source` next to its
 //      result, rendered on the server by `renderTrustedMarkdown` (the
-//      preview's markdown-it pipeline without DOMPurify — committed
+//      preview's markdown-it pipeline without DOMPurify, committed
 //      content only). Crawlers, no-JS readers and slow phones get real
 //      content, and no editor code is loaded.
 //   2. Live: once the block comes near the viewport (or the visitor
-//      clicks / focuses it) `MarketingTryItWorkbench` is imported — a
+//      clicks / focuses it) `MarketingTryItWorkbench` is imported, a
 //      CodeMirror editor and the app's sandboxed preview iframe. What the
 //      visitor types goes ONLY through the client preview path
 //      (`renderMarkdown` = markdown-it + DOMPurify, then the opaque-origin
@@ -60,7 +60,7 @@ const heightPx = computed(() => {
 
 // Trusted render of the COMMITTED source only (never of visitor input).
 // Imported inside the callback so markdown-it stays out of this block's
-// client chunk — on the client the result comes from the payload.
+// client chunk: on the client the result comes from the payload.
 const { data: staticHtml } = await useAsyncData(
   `try-it:${hashOf(initial.value)}`,
   // Headings become styled <div>s (`utils/sampleHeadings.ts`): the

@@ -1,7 +1,7 @@
 // Minimal module declarations for the markdown-it plugins we use. Upstream
 // ships either no types (task-lists, emoji, footnote) or ESM-only types that
 // the TS resolver rejects at our module settings (container). We don't need
-// typed options — these plugins are just handed to markdown-it's `.use()`.
+// typed options: these plugins are just handed to markdown-it's `.use()`.
 //
 // If one of these ever ships proper types, delete the corresponding block.
 

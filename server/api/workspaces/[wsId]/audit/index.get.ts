@@ -5,7 +5,7 @@ import { listAuditEventsQuery } from '~~/shared/api/legal'
 const PAGE = 50
 
 // GET /api/workspaces/:wsId/audit?before=<id>&action=<prefix>&from=&to=
-// — the workspace's audit log for its admins, newest first.
+// the workspace's audit log for its admins, newest first.
 // `nextBefore` is the cursor for the next page (null at the end).
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'audit/admin-required' }),

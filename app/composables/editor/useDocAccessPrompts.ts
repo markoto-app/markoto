@@ -1,8 +1,8 @@
 /**
  * What the editor shows when access to the open document changes: the
  * password prompt (open while `requiresPassword` holds; closable only via
- * verify / cancel), and — when someone else deleted the document (e.g. the
- * owner elsewhere) — a toast and the way home. A deletion started here is
+ * verify / cancel), and, when someone else deleted the document (e.g. the
+ * owner elsewhere): a toast and the way home. A deletion started here is
  * handled by the delete modal (own toast + redirect), so the deleter never
  * sees "deleted by the owner".
  */

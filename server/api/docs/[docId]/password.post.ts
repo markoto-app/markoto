@@ -14,7 +14,7 @@ import { docPasswordBody } from '~~/shared/api/docs'
 import type { ValidatedUser } from '../../../utils/api/policyTypes'
 import { useEnv } from '~~/shared/env/load'
 
-// POST /api/docs/:docId/password — `{ action: 'set' | 'verify' | 'remove', password? }`.
+// POST /api/docs/:docId/password: `{ action: 'set' | 'verify' | 'remove', password? }`.
 // Verify is open to anyone who has the link (brute-force limited below);
 // set and remove need a session and manage rights (owner, workspace admin).
 export default defineApiHandler({
@@ -66,7 +66,7 @@ async function handleSet(event: H3Event, access: DocAccess<'manage'>, doc: DocSn
   // Visitors connected without the (new) password must not stay in.
   notifySyncReauthDocument(docId)
 
-  // Never log the password itself — record presence + access-mode
+  // Never log the password itself, record presence + access-mode
   // transition only. `setDocPassword` flips access_mode to
   // password-protected, so the after-state always has hasPassword=true.
   await appendAuditEvent({
@@ -84,7 +84,7 @@ async function handleSet(event: H3Event, access: DocAccess<'manage'>, doc: DocSn
 }
 
 /**
- * VERIFY password — anyone, brute-force limited (see
+ * VERIFY password: anyone, brute-force limited (see
  * `utils/docPasswordLimits.ts`: per client(/64)+doc, per doc, and a
  * per-doc failure budget).
  *
@@ -131,9 +131,9 @@ async function handleVerify(
  * Read-only flag for a verified caller, derived from `decideTokenAccess`
  * so the two token surfaces can't disagree: a member who already has
  * access keeps exactly that access (viewer → read-only); the password's
- * audience ("password-required") gets edit. Anyone else — above all a
+ * audience ("password-required") gets edit. Anyone else, above all a
  * visitor once the share link has expired, when the doc counts as
- * private — is refused: the password no longer opens it.
+ * private: is refused: the password no longer opens it.
  */
 function passwordGrant(row: DocAuthzRow, state: DocState, actor: ActorState): { readOnly: boolean, shareExpiresAt: Date | null } {
   const decision = decideTokenAccess(state, actor)
@@ -142,7 +142,7 @@ function passwordGrant(row: DocAuthzRow, state: DocState, actor: ActorState): { 
   throw apiError(state.shareExpired ? 'share/expired' : 'auth/forbidden')
 }
 
-/** Mint a doc JWT (≤ 2h, never past the share link's expiry) for a verified caller. Carries name for sync-server attribution — matches token.get.ts. */
+/** Mint a doc JWT (≤ 2h, never past the share link's expiry) for a verified caller. Carries name for sync-server attribution, matches token.get.ts. */
 function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: boolean, shareExpiresAt: Date | null): string {
   const env = useEnv()
   if (!env.auth.jwtSecret) {
@@ -160,7 +160,7 @@ function mintPasswordToken(user: ValidatedUser | null, docId: string, readOnly: 
   )
 }
 
-/** REMOVE password — doc owner or workspace admin. */
+/** REMOVE password: doc owner or workspace admin. */
 async function handleRemove(event: H3Event, access: DocAccess<'manage'>, doc: DocSnapshot): Promise<DocPasswordResponse> {
   const docId = access.docId
   await clearDocPassword(access)

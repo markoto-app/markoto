@@ -35,7 +35,7 @@ import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 const log = useLogger('workspace-invite')
 
 // Inviting someone to a workspace by email (`POST /api/workspaces/:wsId/members`,
-// admins only — the route checks the role, the address and the invite
+// admins only: the route checks the role, the address and the invite
 // rate limits before calling this). Creates (or refreshes) a PENDING
 // invite; nobody becomes a member here. Plan limits, the guest cap and
 // Team / Business seats are enforced under one lock per workspace; the
@@ -129,7 +129,7 @@ async function assertRoomForInvitee(ctx: InviteContext, pool: PooledWorkspace | 
   }
 
   // Plan limit: people in the workspace = members + open invitations
-  // (re-inviting the same address doesn't count twice — the count above
+  // (re-inviting the same address doesn't count twice, the count above
   // excludes it). Invitations count from the moment they're sent, so an
   // accepted invite never pushes a workspace past its limit and accepting
   // needs no second check. A workspace already above the limit (e.g.

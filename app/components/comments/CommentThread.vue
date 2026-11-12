@@ -9,10 +9,10 @@ const props = withDefaults(defineProps<{
   comment: DerivedComment
   /** Disable all mutating actions (read-only viewer / no edit access). */
   readOnly?: boolean
-  /** Greyed out — applied for orphaned and resolved threads in the sidebar. */
+  /** Greyed out: applied for orphaned and resolved threads in the sidebar. */
   muted?: boolean
   mentionableUsers?: readonly MentionableEntry[]
-  /** Highlighted — applied when the user clicked the matching anchor in the doc. */
+  /** Highlighted: applied when the user clicked the matching anchor in the doc. */
   focused?: boolean
   /** True while an AI session is responding to this thread (@ai mention): glow border and "AI is responding…" footer. */
   aiActive?: boolean

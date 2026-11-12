@@ -6,12 +6,12 @@
 //     is 128 MB). The server entry (server/runtime/bunEntry.ts) now sets
 //     Bun's maxRequestBodySize to 51 MiB: a declared Content-Length over it
 //     is refused before anything is read, and a chunked body is cut off
-//     once it passes it — the response arrives while the client is still
+//     once it passes it, the response arrives while the client is still
 //     sending. (Bun answers these 413s itself, with an empty body.)
 //   - Decompression: archive formats (DOCX/PPTX/XLSX/EPUB) went to
 //     markitdown with no expansion cap; a ~300 KB DOCX that inflates to
 //     300 MB OOM-killed a converter worker. markitdown now refuses it with
-//     413 and keeps serving (tested against markitdown-test directly — the
+//     413 and keeps serving (tested against markitdown-test directly, the
 //     integration app server has no markitdown configured). The ratio
 //     check runs while inflating, so a bomb is refused after ~ratio x its
 //     upload size of work, not after inflating up to the absolute cap.
@@ -44,7 +44,7 @@ interface Outcome {
  * length header (omitted → chunked transfer encoding). The request is
  * only ended after ALL chunks were written. A server that answers early
  * and closes the socket may surface to the client as EPIPE / ECONNRESET
- * instead of the response — that is reported as `status: 0`.
+ * instead of the response, that is reported as `status: 0`.
  */
 function postImport(chunkCount: number, chunkBytes: number, contentLength?: number): Promise<Outcome> {
   return new Promise((resolve, reject) => {
@@ -104,7 +104,7 @@ describe('request-body limit (server entry) on /api/import', () => {
     // (the test would time out).
     const out = await Promise.race([
       postImport(1, 1024, 100 * 1024 * 1024),
-      new Promise<Outcome>((_, reject) => setTimeout(() => reject(new Error('no early response — body was being buffered')), 10_000))
+      new Promise<Outcome>((_, reject) => setTimeout(() => reject(new Error('no early response, body was being buffered')), 10_000))
     ])
     expect(out.status).toBe(413)
   }, 20_000)

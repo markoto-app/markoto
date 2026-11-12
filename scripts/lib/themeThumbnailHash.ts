@@ -59,7 +59,7 @@ export function thumbnailHash(presetId: string, source: ThumbnailSource): string
  * content/marketing/en/templates/index.md): one page of the template's
  * example, rendered in its theme. A source is either a fixture file with a
  * title and preset, or a marketing page whose first `::try-it` block
- * (theme + source) is the example — so editing the page's example or the
+ * (theme + source) is the example, so editing the page's example or the
  * preset makes the picture stale (`tests/unit/theme/templateGallery.test.ts`).
  */
 export interface GallerySource { md: string, title: string, theme: string, pageNumber: number }

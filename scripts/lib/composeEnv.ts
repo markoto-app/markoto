@@ -5,7 +5,7 @@
 // A service's `environment:` list carries a marked region:
 //
 //     environment:
-//       # BEGIN env:gen app — every registry variable the app reads ...
+//       # BEGIN env:gen app, every registry variable the app reads ...
 //       - NUXT_FOO=${NUXT_FOO:-}
 //       # END env:gen app
 //       - NUXT_SITE_URL=https://${DOMAIN:?DOMAIN required}   <- hand-written
@@ -104,7 +104,7 @@ export function renderComposeEnv(stack: ComposeEnvStack, text: string): string {
       .filter(spec => !own.has(nameFor(spec, r.service)))
       .map(spec => `${r.indent}${line(spec, r.service, stack)}`)
     out.push(
-      `${r.indent}# BEGIN env:gen ${r.service} — plain passthrough of the registry variables (shared/env/); regenerate with \`bun run env:gen\`.`,
+      `${r.indent}# BEGIN env:gen ${r.service}, plain passthrough of the registry variables (shared/env/); regenerate with \`bun run env:gen\`.`,
       ...generated,
       `${r.indent}# END env:gen ${r.service}`
     )

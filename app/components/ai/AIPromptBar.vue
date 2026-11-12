@@ -29,7 +29,7 @@ const props = defineProps<{
 const { t } = useI18n()
 const { loggedIn } = useUserSession()
 const toast = useToast()
-// Mobile haptic confirming the abort tap landed — slightly longer
+// Mobile haptic confirming the abort tap landed, slightly longer
 // pulse than a casual click because aborting an in-flight AI session
 // is a deliberate "stop this" action. Silent no-op on iOS. Pattern
 // passed at call time because UseVibrateOptions.interval is
@@ -46,7 +46,7 @@ const { explainLocked } = useAiLockedPrompt()
 const input = ref('')
 const inputEl = ref<HTMLInputElement | null>(null)
 // `useFocus` exposes a writable computed boolean; setting it would
-// trigger focus()/blur() on the element. We only read it here — the
+// trigger focus()/blur() on the element. We only read it here, the
 // focused state drives the `is-focused` shell class for the focus
 // ring + glow CSS.
 const { focused } = useFocus(inputEl)
@@ -54,13 +54,13 @@ const { focused } = useFocus(inputEl)
 // Voice input state machine. On a successful transcription we land the
 // text in the input field briefly (so the user sees what we heard) and
 // then auto-submit it as a normal AI prompt. The brief on-screen flash
-// is intentional — silent auto-submit feels like a black box when the
+// is intentional: silent auto-submit feels like a black box when the
 // model mishears.
 const voice = useVoicePrompt({
   onTranscript: async (text) => {
     input.value = text
     // Tiny pause so the transcribed text is visible before submit clears
-    // the input. Chosen by feel — any shorter and it looks like nothing
+    // the input. Chosen by feel, any shorter and it looks like nothing
     // happened, any longer and the user starts to edit.
     await new Promise(resolve => setTimeout(resolve, 150))
     const ok = await props.ai.prompt(text)
@@ -76,7 +76,7 @@ const voice = useVoicePrompt({
   }
 })
 
-// Show voice errors as a toast — same UX as regular AI errors. `clearError`
+// Show voice errors as a toast, same UX as regular AI errors. `clearError`
 // resets the composable so the button isn't stuck showing an error icon.
 watch(() => voice.errorMessage.value, (err) => {
   if (!err) return
@@ -167,7 +167,7 @@ async function onSubmit() {
   if (ok) input.value = ''
 }
 
-// Other people's sessions: only who it is for — their prompt and the
+// Other people's sessions: only who it is for, their prompt and the
 // AI's status text are private to them.
 const otherSessionsTooltip = computed(() =>
   props.ai.otherSessions.value.map(s => t('ai.otherSessionWorking', { name: s.initiatorName })).join('\n')
@@ -197,7 +197,7 @@ const statusIcon = computed(() => {
 
 // Bottom bar animates whenever there's an active session for the
 // caller. The bottom bar and the selection popup both point at
-// the same session — having both surfaces animate in sync reinforces
+// the same session: having both surfaces animate in sync reinforces
 // "AI is working" rather than competing for attention.
 const isActive = computed(() => !!props.ai.mySession.value)
 
@@ -229,7 +229,7 @@ const { bottomOffset } = usePromptBarOffset()
     :data-last-outcome="props.ai.lastOutcome?.value?.phase ?? ''"
     :data-last-outcome-message="props.ai.lastOutcome?.value?.message ?? ''"
   >
-    <!-- Ephemeral response panel — driven by `useAI`'s latched
+    <!-- Ephemeral response panel: driven by `useAI`'s latched
          `lastResponse`. When expanded, it visually merges into the
          prompt bar shell below (single floating section). When
          collapsed it floats as a separate pill above the bar. -->
@@ -271,7 +271,7 @@ const { bottomOffset } = usePromptBarOffset()
 
       <!-- Middle slot: text input, waveform, or a transient label. The
            three voice-state branches sit above the normal `<input>` via
-           `v-if`/`v-else-if` chain so only one mounts at a time — keeps
+           `v-if`/`v-else-if` chain so only one mounts at a time, keeps
            a11y simple and prevents the input from absorbing keystrokes
            while the user is mid-recording. -->
       <!-- `py-2` (not `py-3` like the text input) compensates for the
@@ -313,7 +313,7 @@ const { bottomOffset } = usePromptBarOffset()
         @keydown.enter="onSubmit"
       >
 
-      <!-- Other-sessions indicator — kept compact so the bar doesn't
+      <!-- Other-sessions indicator: kept compact so the bar doesn't
            grow visually when collaborators are also asking the AI. -->
       <UTooltip
         v-if="ai.otherSessions.value.length > 0 && !voiceActive"
@@ -334,7 +334,7 @@ const { bottomOffset } = usePromptBarOffset()
       </UTooltip>
 
       <!-- Secondary slot: mic button (idle) or cancel × (during voice
-           capture). Same physical location keeps the bar visually stable —
+           capture). Same physical location keeps the bar visually stable,
            only the icon + meaning flip. During transcription the slot
            still holds the cancel × so the user has an escape hatch
            while the spinner spins on the primary slot. -->
@@ -394,8 +394,8 @@ const { bottomOffset } = usePromptBarOffset()
         class="ai-prompt-bar__action"
       />
       <!--
-        Send button. When credits are exhausted we do NOT disable it
-        — the click routes to /pricing instead, keeping the escape
+        Send button. When credits are exhausted we do NOT disable it,
+        the click routes to /pricing instead, keeping the escape
         hatch alive so the user can't get stuck. The primary color
         here is shu (red); invoking the AI is the one place where a
         call-to-action SHOULD wear the seal.
@@ -449,7 +449,7 @@ const { bottomOffset } = usePromptBarOffset()
  *   composing" and "AI is doing something" affordances.
  *
  * Using inline classes for layout (Tailwind), inline styles for the
- * gradient/shadow stack — Tailwind's arbitrary-value escapes for
+ * gradient/shadow stack: Tailwind's arbitrary-value escapes for
  * stacked shadows with color-mix become unreadable.
  */
 .ai-prompt-bar__shell {
@@ -530,9 +530,9 @@ html.dark .ai-prompt-bar.is-focused .ai-prompt-bar__shell {
   --_p: var(--mk-pulse);
 
   box-shadow:
-    /* Border ring — stays at the brand shu, thickness pulses 1.5 → 2.5 px */
+    /* Border ring: stays at the brand shu, thickness pulses 1.5 → 2.5 px */
     0 0 0 calc(1.5px + var(--_p) * 1px) color-mix(in srgb, var(--color-shu-500) calc(60% + var(--_p) * 25%), transparent),
-    /* Outer glow — blur and opacity breathe; hue is locked to shu */
+    /* Outer glow: blur and opacity breathe; hue is locked to shu */
     0 calc(16px + var(--_p) * 12px) calc(40px + var(--_p) * 28px) -12px color-mix(in srgb, var(--color-shu-500) calc(35% + var(--_p) * 30%), transparent),
     /* Static warm-tinted drop shadow underneath */
     0 8px 24px -8px rgb(20 17 13 / 0.18);
@@ -579,12 +579,12 @@ html.dark .ai-prompt-bar.is-active .ai-prompt-bar__shell {
   gap: 0 !important;
 }
 .ai-prompt-bar__shell :deep(.ai-prompt-bar__action .iconify) {
-  width: 1.25rem !important;       /* 20 px — proportional to the 48 px button */
+  width: 1.25rem !important;       /* 20 px, proportional to the 48 px button */
   height: 1.25rem !important;
 }
 
 /*
- * Secondary button — mic (idle), cancel (×). Smaller + ghost so the
+ * Secondary button: mic (idle), cancel (×). Smaller + ghost so the
  * primary send button reads as the main action. Square-ish with
  * rounded corners to sit comfortably next to the round primary.
  */
@@ -637,9 +637,9 @@ html.dark .ai-prompt-bar.is-active .ai-prompt-bar__shell {
   border-top-right-radius: 1.5rem;
   background: color-mix(in srgb, var(--ui-bg-muted) 88%, transparent);
   box-shadow:
-    /* Outset 1px shu ring — same recipe as the shell's static ring */
+    /* Outset 1px shu ring, same recipe as the shell's static ring */
     0 0 0 1px color-mix(in srgb, var(--color-shu-500) 70%, transparent),
-    /* Soft top glow — pulled UP so it doesn't bleed into the seam */
+    /* Soft top glow: pulled UP so it doesn't bleed into the seam */
     0 -10px 22px -10px color-mix(in srgb, var(--color-shu-500) 28%, transparent);
   /* Trim padding-bottom so the merged section reads as one card with
      consistent vertical rhythm rather than panel-feels-tall + bar. */

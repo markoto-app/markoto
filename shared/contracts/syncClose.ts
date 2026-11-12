@@ -1,7 +1,7 @@
 /**
  * Reasons the sync server gives when it closes a document connection
  * because of what the client sent. The editor maps them to a user-facing
- * message and stops reconnecting — resending the same state would only
+ * message and stops reconnecting, resending the same state would only
  * be rejected again.
  *
  * Wire shape: Hocuspocus delivers a server-side close to the provider as
@@ -40,7 +40,7 @@ export const SYNC_CLOSE_CODES = {
  * document's access just became stricter. Not a sync rejection: the
  * editor fetches a fresh token and reconnects, and lands on the
  * no-access screen when the token endpoint no longer issues one. The
- * reason arrives twice — on the document-level CLOSE message and on the
+ * reason arrives twice: on the document-level CLOSE message and on the
  * socket close that follows.
  */
 export const SYNC_REAUTH_REASON = 'reauthenticate'
@@ -58,7 +58,7 @@ export function isReauthClose(event: { reason?: unknown } | null | undefined): b
  */
 export const SYNC_AUTH_TIMEOUT_REASON = 'auth-timeout'
 
-/** RFC 6455 "message too big" — sent by the `ws` server on frames above maxPayload. */
+/** RFC 6455 "message too big", sent by the `ws` server on frames above maxPayload. */
 const WS_CLOSE_MESSAGE_TOO_BIG = 1009
 
 /**

@@ -3,7 +3,7 @@ import { getCustomDomainForUser, listCustomDomainsForUser } from '../../../../re
 import { customDomainParams } from '~~/shared/api/account'
 import { HOUR_MS } from '~~/shared/config/units'
 
-// POST /api/user/custom-domains/:domainId/verify — check the DNS records
+// POST /api/user/custom-domains/:domainId/verify: check the DNS records
 // now (the sweeper also re-checks pending domains every 15 min).
 export default defineApiHandler({
   access: allow.user(),

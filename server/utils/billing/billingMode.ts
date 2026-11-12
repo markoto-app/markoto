@@ -22,7 +22,7 @@ const BILLING_DISABLED_CODE = 'billing/disabled'
 /**
  * Guard for every billing-only HTTP surface (checkout, portal, Stripe
  * webhook). When billing is off the feature
- * does not exist on this deployment, so the answer is 404 — not 503:
+ * does not exist on this deployment, so the answer is 404, not 503:
  * 503 means "temporarily unavailable, retry", which would make Stripe
  * (or any client) retry forever against a permanent configuration
  * state. The `code` lets the client tell "billing is off" apart from

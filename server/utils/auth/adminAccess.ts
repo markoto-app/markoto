@@ -13,7 +13,7 @@ import { apiError } from '../api/apiError'
 // comma-separated, case-insensitive list of emails that get
 // auto-promoted to is_admin=true on their next OAuth login (see
 // `upsertOAuthUser`). After that promotion, the column is the
-// durable record — env-list changes only matter for new
+// durable record: env-list changes only matter for new
 // bootstrapping users, not for users who have already logged in.
 //
 //   NUXT_ADMIN_USER_EMAILS=admin@example.com,founder@example.com
@@ -57,7 +57,7 @@ export async function isAdminUser(userId: number): Promise<boolean> {
 
 /**
  * Endpoint guard. Calls `requireValidatedUserSession`, then checks
- * the `users.is_admin` column. Throws 403 otherwise (does NOT 401 —
+ * the `users.is_admin` column. Throws 403 otherwise (does NOT 401,
  * they ARE logged in, they just don't have admin rights).
  */
 export async function requireAdminUser(event: H3Event): Promise<{ userId: number, name: string, email: string }> {

@@ -4,7 +4,7 @@
 
 <!-- One paragraph, at most about 200 words: the problem, your approach, the main result with its number, and why it matters. No citations, no abbreviations that are only defined later, no equations. This section and the index terms line open the first column. -->
 
-*Index Terms*—keyword, keyword, keyword.
+*Index Terms*: keyword, keyword, keyword.
 
 # Introduction
 
@@ -36,8 +36,8 @@ Table: Table Caption
 
 | Method | Metric | Metric |
 |---|--:|--:|
-| Baseline | — | — |
-| Proposed | — | — |
+| Baseline | - | - |
+| Proposed | - | - |
 
 # Conclusion
 

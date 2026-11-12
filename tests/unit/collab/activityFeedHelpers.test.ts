@@ -48,7 +48,7 @@ describe('categoryOf', () => {
   })
 
   it('routes ANY action by AI Assistant to ai (cross-cutting rule)', () => {
-    // This is the rule that powers the AI filter chip — every row
+    // This is the rule that powers the AI filter chip, every row
     // the AI authored converges there, regardless of action kind.
     expect(categoryOf(entry({ action: 'edit', userName: 'AI Assistant' }))).toBe('ai')
     expect(categoryOf(entry({ action: 'comment.added', userName: 'AI Assistant' }))).toBe('ai')
@@ -57,7 +57,7 @@ describe('categoryOf', () => {
   })
 
   it('classifies join + leave under all (no dedicated bucket)', () => {
-    // Defensive — these are rare and don't deserve their own chip.
+    // Defensive: these are rare and don't deserve their own chip.
     // Pin the behavior so a future "Sessions" chip lands as a
     // deliberate UI change, not a silent accident.
     expect(categoryOf(entry({ action: 'join' }))).toBe('all')
@@ -68,7 +68,7 @@ describe('categoryOf', () => {
     expect(categoryOf(entry({ action: 'edit', userName: null }))).toBe('edits')
   })
 
-  it('does NOT match a userName like "AI Assistant " (trailing space) — exact equality only', () => {
+  it('does NOT match a userName like "AI Assistant " (trailing space), exact equality only', () => {
     // The rule is value equality on userName, not a fuzzy match.
     // A different identity that happens to start with "AI Assistant"
     // shouldn't accidentally hijack the AI bucket.

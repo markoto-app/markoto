@@ -7,7 +7,7 @@ import { SWEEPS } from '../config/sweeps'
 // in `dataExportWorker.ts` so tests can import it.
 //
 // The repo's claim uses `SELECT … FOR UPDATE SKIP LOCKED`, so two concurrent
-// claims pick different rows by design — the lock just keeps the noise floor
+// claims pick different rows by design, the lock just keeps the noise floor
 // low and ensures one S3 PUT per tick.
 
 export default defineSweeper({

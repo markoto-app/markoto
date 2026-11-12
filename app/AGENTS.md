@@ -21,7 +21,7 @@ Contributor docs: [design system](../docs/contributing/design-system.md), [marke
 - **Hide the preview with CSS (`hidden xl:block`), not `v-if`**, so resizing past `xl` restores it without remounting.
 - **`EditorLayout.vue` composes; it doesn't render details.** Top bar, banners, sidebar panels, status bar … are `components/editor/layout/*` (props down, events up); shared state stays in the layout (`useDocument`, the open sidebar panel, view mode, modals) and the wiring in `composables/editor/`. The theme panel follows the same split (`components/document/theme/`, one component per section on `v-model:theme`).
 - **CodeMirror `readOnly` and theme go through Compartments**; read-only state arrives after the token fetch.
-- **`ymeta` values are not reactive** — bridge with `ymeta.observe()` (see `app/composables/AGENTS.md`).
+- **`ymeta` values are not reactive**: bridge with `ymeta.observe()` (see `app/composables/AGENTS.md`).
 - **Never write `:global(.dark) .x` in scoped CSS.** Vue compiles it to a bare `.dark { … }` that styles `<html>`. Write `html.dark .x`.
 - **`useColorMode()` at template top level causes hydration mismatches** (SSR has no stored mode). Prefer rendering both variants and toggling with CSS (the `Wordmark.vue` pattern), else defer to `onMounted` with a neutral default, else `<ClientOnly>`.
 - **`data-testid` on `UModal` doesn't reach the DOM**: put it on a wrapper inside `<template #content>`. For dropdown menu items, put it on the rendered `<button>`.

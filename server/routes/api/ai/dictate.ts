@@ -19,19 +19,19 @@ const log = useLogger('dictate')
 //
 // Wire format:
 //   Client → server (JSON, before auth):
-//     - `{ type: 'auth', token, languageCode? }` — FIRST message after
+//     - `{ type: 'auth', token, languageCode? }`: FIRST message after
 //       open. Must arrive within `AUTH_DEADLINE_MS` or we close. Token
 //       is the short-lived JWT from POST /api/ai/dictate/token.
 //       Passing the token in the first WS MESSAGE (not `?token=` in the
 //       URL) avoids leaking it into access logs, referer headers, and
-//       browser history — the URL never carries a credential.
+//       browser history: the URL never carries a credential.
 //   Client → server (after auth):
 //     - binary frames: raw int16 PCM chunks from the AudioWorklet
 //       (2048 samples @ 16 kHz = 128 ms per chunk).
 //     - `{ type: 'stop' }` JSON: graceful shutdown; caller finalizes.
 //   Server → client (JSON, always):
-//     - `{ type: 'hello' }` immediately on open — "send auth now"
-//     - `{ type: 'ready' }` after auth + STT stream up — "send audio now"
+//     - `{ type: 'hello' }` immediately on open, "send auth now"
+//     - `{ type: 'ready' }` after auth + STT stream up, "send audio now"
 //     - `{ type: 'partial', text }` interim transcripts
 //     - `{ type: 'final', text }` finalized phrases
 //     - `{ type: 'error', message }` fatal; socket closes next
@@ -62,7 +62,7 @@ export default defineEventHandler({
     // Authorization header support, so it can't authenticate. The socket
     // is closed after `AUTH_DEADLINE_MS` if nothing valid arrives.
     upgrade() {
-      // Intentionally empty — every connection is allowed to OPEN.
+      // Intentionally empty: every connection is allowed to OPEN.
       // Authentication + user binding happen in the `message` hook
       // below; the `open` hook arms a deadline that closes the socket
       // if no valid auth arrives in time.
@@ -85,7 +85,7 @@ export default defineEventHandler({
       // Text-vs-binary detection is tricky with crossws over the Node
       // `ws` library: text frames arrive as Buffer too, so `typeof
       // rawData === 'string'` is not reliable. We distinguish by
-      // trying to parse the frame as JSON via `message.text()` — a
+      // trying to parse the frame as JSON via `message.text()`, a
       // valid JSON object with a known `type` is a control frame;
       // anything else is treated as binary audio. This is safe because
       // our audio path is raw int16 PCM (never valid JSON).

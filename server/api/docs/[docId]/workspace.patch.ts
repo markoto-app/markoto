@@ -15,7 +15,7 @@ import { moveDocWorkspaceBody } from '~~/shared/api/sharing'
 //
 // Authz:
 //   - `manage` on the source (owner or current workspace admin). Editors
-//     of the current workspace intentionally can't move a doc — that's a
+//     of the current workspace intentionally can't move a doc, that's a
 //     sharing change, not a content edit.
 //   - When targeting a workspace, actor must be admin OR editor of it
 //     (creation-grade grant). Viewers can't pull docs into their own
@@ -34,7 +34,7 @@ export default defineApiHandler({
       targetAccess = member
     }
 
-    // No-op if nothing would change — saves a write and keeps lastActive
+    // No-op if nothing would change, saves a write and keeps lastActive
     // stable when the client posts a redundant patch.
     if (doc.workspaceId === target) {
       return { success: true, workspaceId: target }
@@ -42,7 +42,7 @@ export default defineApiHandler({
 
     await moveDocToWorkspace(docAccess, targetAccess)
     // Guest shares belong to the workspace the document left. The
-    // guests' open editor connections are closed, as on unshare — their
+    // guests' open editor connections are closed, as on unshare, their
     // token no longer authorises the document.
     const unsharedGuestIds = await deleteSharesForDoc(docAccess)
     for (const guestId of unsharedGuestIds) notifySyncKickUser(guestId, [docId])

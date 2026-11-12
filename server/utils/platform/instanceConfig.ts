@@ -33,7 +33,7 @@ export function assertLegalSurfacesEnabled(): void {
 /**
  * Where abuse-report notifications go. An explicitly configured
  * `NUXT_LEGAL_ABUSE_CONTACT_EMAIL` always wins. Otherwise the legal
- * entity's default inbox — but only while the legal surfaces are on (the
+ * entity's default inbox: but only while the legal surfaces are on (the
  * hosted SaaS): a self-hosted instance must never mail its users' reports
  * to the hosted operator. `null` = no email; the report still lands in
  * the admin queue (/admin/abuse-reports).

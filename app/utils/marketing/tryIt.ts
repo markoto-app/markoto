@@ -10,7 +10,7 @@ export { withoutTitleHeading } from '~~/shared/utils/markdown/markdownTitle'
 
 /**
  * The document title for the visitor's text: the first ATX heading
- * (`# Title`, any level), without closing hashes. '' when there is none —
+ * (`# Title`, any level), without closing hashes. '' when there is none,
  * the server then uses its default title.
  */
 export function titleFromMarkdown(markdown: string): string {

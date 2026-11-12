@@ -1,4 +1,4 @@
-// GET /api/billing/tiers — the resolved tier-cap map (committed
+// GET /api/billing/tiers: the resolved tier-cap map (committed
 // defaults + any TIER_* env overrides).
 //
 // PUBLIC: the pricing page renders these caps for logged-out visitors,

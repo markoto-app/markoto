@@ -1,6 +1,6 @@
 import { listWorkspaceInvites } from '../../../../repos/workspaceInvites'
 
-// GET /api/workspaces/:wsId/invites — open invitations. Admin-only.
+// GET /api/workspaces/:wsId/invites: open invitations. Admin-only.
 // Shows the address the admin typed, the role and who invited; never
 // whether the address belongs to an account.
 export default defineApiHandler({

@@ -1,4 +1,4 @@
-# Integration tests — agent rules
+# Integration tests: agent rules
 
 REST + WebSocket tests against a production build of the app, backed by the real test stack. How the tiers, the stack and the two test servers work: [`docs/contributing/testing.md`](../../docs/contributing/testing.md).
 

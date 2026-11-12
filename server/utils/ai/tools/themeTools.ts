@@ -45,7 +45,7 @@ const log = useLogger('ai-tools')
 // All three reuse the `initiatorUserId` already on the AI session;
 // they're light enough to be ALWAYS-ON (no workspace-gated split).
 
-const GetThemeArgs = z.object({}).describe('Read the document\'s current theme as JSON. Use BEFORE calling `update_theme` for "mix theme X with theme Y" or "tweak the current colors" — without it you don\'t know what the doc looks like right now. Pure read; no edits.')
+const GetThemeArgs = z.object({}).describe('Read the document\'s current theme as JSON. Use BEFORE calling `update_theme` for "mix theme X with theme Y" or "tweak the current colors", without it you don\'t know what the doc looks like right now. Pure read; no edits.')
 
 const ListThemesArgs = z.object({}).describe('List the user\'s saved theme presets AND the workspace default theme (if the document is in a workspace and a default is set). Each saved theme returns its theme_id, name, and full theme JSON; pass the theme_id to `update_theme` to apply one as the base. Use when the user mentions a theme by name ("apply my Brand red", "use the workspace default"). Pure read; no edits.')
 
@@ -54,7 +54,7 @@ export const SaveThemeAsPresetArgs = z.object({
     .describe(`User-visible name for the preset (1–${SAVED_THEME_NAME_MAX} chars). Should describe what the theme is for ("Brand red", "Quarterly report", "Academic mix"). Becomes the label in the user's saved-themes list.`),
   description: z.string().trim().max(SAVED_THEME_DESCRIPTION_MAX).optional()
     .describe(`Optional one-line description shown under the name (≤${SAVED_THEME_DESCRIPTION_MAX} chars), e.g. "Two columns, serif body, for papers".`)
-}).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user — call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
+}).describe('Save the document\'s CURRENT theme as a personal preset for the initiator. Available across all their documents from the theme picker afterwards. Capped at 20 saved themes per user, call returns an error if the cap is reached. Only call when the user explicitly asks to save / bookmark / remember a theme. Does NOT change the current document\'s theme; pair with `update_theme` if they also want it applied somewhere.')
 
 async function checkBrandLock(access: DocAccess<'view'>, input: UpdateThemeInput): Promise<ToolResult | null> {
   const doc = await getDoc(access)
@@ -64,7 +64,7 @@ async function checkBrandLock(access: DocAccess<'view'>, input: UpdateThemeInput
   const cover = (input as { cover?: Record<string, unknown> }).cover
   const coverOutside = cover ? Object.keys(cover).filter(k => cover[k] !== undefined && !(DOC_OWNED_COVER_FIELDS as readonly string[]).includes(k)) : []
   if (outside.length === 0 && coverOutside.length === 0) return null
-  return toolError(`Error: this workspace's admins locked the design — nothing was changed. Every document in the workspace uses the workspace design; only the cover ${DOC_OWNED_COVER_FIELDS.join(', ')} can be changed per document. Tell the user to ask a workspace admin to change the workspace design (Brand kit) if they need a different look.`)
+  return toolError(`Error: this workspace's admins locked the design, nothing was changed. Every document in the workspace uses the workspace design; only the cover ${DOC_OWNED_COVER_FIELDS.join(', ')} can be changed per document. Tell the user to ask a workspace admin to change the workspace design (Brand kit) if they need a different look.`)
 }
 
 async function handleUpdateTheme(
@@ -74,7 +74,7 @@ async function handleUpdateTheme(
   const conflictErr = checkBaseSourceConflict(input)
   if (conflictErr) return conflictErr
 
-  // Brand kit: a locked workspace design — only the cover text is
+  // Brand kit: a locked workspace design, only the cover text is
   // the document's own. Anything else would be stored but never shown.
   const lockErr = await checkBrandLock(session.docAccess, input)
   if (lockErr) return lockErr
@@ -83,24 +83,24 @@ async function handleUpdateTheme(
   if (!baseResult.ok) return baseResult.error
 
   // Image URLs (cover logo, header/footer image) may only point at this
-  // document's uploads. Foreign or malformed ones — from the patch or
-  // from a base theme made in another document — are cleared first so
+  // document's uploads. Foreign or malformed ones, from the patch or
+  // from a base theme made in another document, are cleared first so
   // the result can validate, and the model is told.
   const images = themeImagesForDoc(mergeTheme(baseResult.theme, coerceThemePatch(input)), session.docId)
   const merged = images.theme
   if (!isValidTheme(merged)) {
-    // Should never happen — the Zod schema's enums/ranges mirror
-    // isValidTheme — but this is defence-in-depth so we never write
+    // Should never happen: the Zod schema's enums/ranges mirror
+    // isValidTheme: but this is defence-in-depth so we never write
     // structurally invalid JSON into the DB or Y.Doc.
     return toolError('Error: merged theme failed validation. Try narrower changes.')
   }
 
   // Plan gate: a document whose plan lacks custom CSS can't get NEW CSS
   // from the model (CSS already stored, or carried by the base theme, is
-  // kept but not applied — the renderers drop it).
+  // kept but not applied, the renderers drop it).
   if (typeof input.customCss === 'string' && input.customCss.trim() !== ''
     && !planHasFeature(await resolveDocPlan(session.docId), 'customCss')) {
-    return toolError('Error: custom CSS is not included in this document\'s plan — nothing was changed. Retry without customCss, or tell the user it needs a plan with custom CSS.')
+    return toolError('Error: custom CSS is not included in this document\'s plan, nothing was changed. Retry without customCss, or tell the user it needs a plan with custom CSS.')
   }
 
   const css = resolveThemeCustomCss(merged, input.customCss !== undefined, session.docId, customCssAppOrigins())
@@ -122,7 +122,7 @@ async function handleUpdateTheme(
  * the call with line/column details so it can fix and retry. CSS that
  * only came along with the base theme (a saved theme / workspace
  * default made in another document) is adapted instead: rules that
- * can't work here — usually another document's uploaded images — are
+ * can't work here, usually another document's uploaded images, are
  * dropped and the result says so.
  *
  * @internal exported for unit tests; not part of the public API.
@@ -136,7 +136,7 @@ export function resolveThemeCustomCss(
   if (cssFromPatch) {
     const issues = themeCustomCssIssues(merged, docId, origins)
     if (issues.length > 0) {
-      return { ok: false, error: `Error: customCss rejected — nothing was changed. Fix these and retry:\n${formatCustomCssIssues(issues)}` }
+      return { ok: false, error: `Error: customCss rejected, nothing was changed. Fix these and retry:\n${formatCustomCssIssues(issues)}` }
     }
     return { ok: true, theme: merged, note: '' }
   }
@@ -153,10 +153,10 @@ type BaseResolution = { ok: true, theme: DocTheme } | { ok: false, error: ToolRe
 
 /**
  * Base theme sources are mutually exclusive in priority order:
- *   - `preset`                 — built-in id (markoto, modern, …)
- *   - `theme_id`               — initiator's own saved-theme id
- *   - `from_workspace_default` — workspace default (snapshot)
- *   - default                  — current ymeta.theme → DB → markoto
+ *   - `preset`: built-in id (markoto, modern, …)
+ *   - `theme_id`: initiator's own saved-theme id
+ *   - `from_workspace_default`: workspace default (snapshot)
+ *   - default: current ymeta.theme → DB → markoto
  *
  * Passing more than one is a usage error; surface it loudly so the
  * model self-corrects rather than silently picking one. Other fields
@@ -177,7 +177,7 @@ function checkBaseSourceConflict(input: UpdateThemeInput): ToolResult | null {
 /**
  * Resolve the base theme by source. Saved themes are per-user; we tie
  * ownership to the SESSION INITIATOR (the human who triggered the
- * loop), not the AI's synthetic principal — so an AI session can't
+ * loop), not the AI's synthetic principal, so an AI session can't
  * access another user's saved themes even if the caller hallucinates
  * an id. Returns a `ToolResult` with `error:true` on resolution
  * failure (preset id unknown, saved theme missing, workspace default
@@ -187,7 +187,7 @@ async function resolveBaseTheme(session: DocToolContext, input: UpdateThemeInput
   if (input.preset) {
     const preset = THEME_PRESETS.find(p => p.id === input.preset)
     if (!preset) {
-      // Should be unreachable — Zod enum restricts `preset` to known ids.
+      // Should be unreachable: Zod enum restricts `preset` to known ids.
       return { ok: false, error: toolError(`Error: Unknown preset "${input.preset}".`) }
     }
     // Keep the document's own custom CSS; a preset's template CSS goes in
@@ -264,7 +264,7 @@ async function handleGetTheme(
 ): Promise<ToolResult> {
   const theme = await resolveCurrentTheme(session)
   // Pretty-print so the model can read structure in the conversation
-  // log. Stringification is bounded — DocTheme is small and flat (a
+  // log. Stringification is bounded, DocTheme is small and flat (a
   // few hundred chars when minified).
   return toolOk(JSON.stringify(theme, null, 2))
 }
@@ -273,7 +273,7 @@ async function handleListThemes(
   session: MetaToolContext,
   _input: z.output<typeof ListThemesArgs>
 ): Promise<ToolResult> {
-  // Saved themes are SCOPED TO THE SESSION INITIATOR — never the AI's
+  // Saved themes are SCOPED TO THE SESSION INITIATOR, never the AI's
   // synthetic principal. This is the same ownership boundary
   // `handleUpdateTheme` enforces when accepting a `theme_id`.
   const saved = await listThemesByUser(session.self)
@@ -287,7 +287,7 @@ async function handleListThemes(
   // saved themes (ids included for `theme_id` callbacks) plus the
   // workspace default as a separate field. Dumping JSON is more
   // useful than a prose summary because the next likely action is
-  // `update_theme` with field-level overrides — the model wants to
+  // `update_theme` with field-level overrides, the model wants to
   // diff the JSONs.
   const payload = {
     savedThemes: saved.map(s => ({
@@ -324,14 +324,14 @@ async function handleSaveThemeAsPreset(
     return toolError(`Error: description too long (max ${SAVED_THEME_DESCRIPTION_MAX}).`)
   }
 
-  // Saved themes are personal — anonymous AI sessions (no logged-in
+  // Saved themes are personal, anonymous AI sessions (no logged-in
   // initiator) can't have saved themes. The `/api/ai/prompt` route
   // requires login, so this branch is defence-in-depth.
   if (!session.initiatorUserId) {
     return toolError('Error: saving a theme requires a logged-in user.')
   }
 
-  // Cap check before write — the same plan limit (`savedThemes`) the
+  // Cap check before write, the same plan limit (`savedThemes`) the
   // REST endpoint enforces. The cap is correctness-critical (storage
   // growth), not a rate limit, so we re-check rather than relying on a
   // Valkey hint.
@@ -358,7 +358,7 @@ async function handleSaveThemeAsPreset(
 
 export const updateThemeTool = defineDocTool({
   name: 'update_theme',
-  description: 'Update the document theme (page size, fonts, colors, margins, columns, headers/footers, code styling, tables, TOC, etc.). Pass ONLY the fields you want to change — omitted keys keep their current value. Changes appear live in the preview and persist. Use this whenever the user asks for typographic, layout, or styling changes. Three optional base sources (mutually exclusive): `preset` (built-in id), `theme_id` (one of the user\'s saved themes from list_themes), or `from_workspace_default: true` (the workspace\'s default theme). Without any base source, your patch merges over the CURRENT theme.',
+  description: 'Update the document theme (page size, fonts, colors, margins, columns, headers/footers, code styling, tables, TOC, etc.). Pass ONLY the fields you want to change, omitted keys keep their current value. Changes appear live in the preview and persist. Use this whenever the user asks for typographic, layout, or styling changes. Three optional base sources (mutually exclusive): `preset` (built-in id), `theme_id` (one of the user\'s saved themes from list_themes), or `from_workspace_default: true` (the workspace\'s default theme). Without any base source, your patch merges over the CURRENT theme.',
   schema: UpdateThemeArgs,
   handler: handleUpdateTheme
 })
@@ -379,7 +379,7 @@ export const listThemesTool = defineMetaTool({
 
 export const saveThemeAsPresetTool = defineDocTool({
   name: 'save_theme_as_preset',
-  description: 'Save the CURRENT document theme as one of the user\'s personal presets, available across all their documents going forward. Per-user cap is 20 saved themes; over-cap calls error. Only call when the user explicitly asks to save / bookmark / remember a theme — never volunteer this. Does not modify the document.',
+  description: 'Save the CURRENT document theme as one of the user\'s personal presets, available across all their documents going forward. Per-user cap is 20 saved themes; over-cap calls error. Only call when the user explicitly asks to save / bookmark / remember a theme, never volunteer this. Does not modify the document.',
   schema: SaveThemeAsPresetArgs,
   handler: handleSaveThemeAsPreset
 })

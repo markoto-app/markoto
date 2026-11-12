@@ -26,7 +26,7 @@ const warned = new Set<string>()
 /**
  * Render-path sanitize: returns the cleaned CSS to inline (offending
  * rules dropped), or `undefined` when the theme has none. Issues are
- * logged once per distinct input — the editor's Custom CSS section is
+ * logged once per distinct input, the editor's Custom CSS section is
  * where they're shown to the author. Fails closed: if the sanitizer
  * can't be loaded or throws, the document renders without custom CSS
  * instead of failing the preview / print / server render.

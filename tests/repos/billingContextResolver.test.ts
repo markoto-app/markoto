@@ -11,7 +11,7 @@ import { resolveBillingContext } from '../../server/utils/billing/billing'
 //     workspace subscriptions)
 
 // These cases exercise PAID-plan behaviour, which only exists with
-// billing switched on (default is off — see shared/config/billingMode.ts).
+// billing switched on (default is off, see shared/config/billingMode.ts).
 // `isBillingEnabled()` reads process.env per call.
 // Stubbed per test: every stub is undone before the next one
 // (`unstubEnvs` in vitest.config.ts).
@@ -19,7 +19,7 @@ beforeEach(() => {
   vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
 })
 
-describe('resolveBillingContext — base shape', () => {
+describe('resolveBillingContext: base shape', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -106,7 +106,7 @@ describe('resolveBillingContext — base shape', () => {
   })
 
   it('throws when userId does not exist (caller is responsible for session validation)', async () => {
-    // The resolver doesn't gracefully degrade on missing-user — it
+    // The resolver doesn't gracefully degrade on missing-user, it
     // throws so the call site doesn't accidentally bill against a
     // ghost. Every production caller goes through `requireValidatedUserSession`
     // first which 401s before the handler runs.

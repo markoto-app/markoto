@@ -62,7 +62,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     name: 'Mistral AI SAS',
     // Hosted: the free AI allowance runs on Z.ai GLM-5.3 Flash, served and
     // processed by Mistral itself through its EU endpoint
-    // (api.eu.mistral.ai, deploy/config/litellm/config.yaml) — Z.ai receives no
+    // (api.eu.mistral.ai, deploy/config/litellm/config.yaml): Z.ai receives no
     // data, so it is not a sub-processor.
     // Every request goes to Mistral's EU regional endpoint (api.eu.mistral.ai):
     // the LiteLLM deployments and the live-dictation WebSocket.
@@ -139,7 +139,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
     dpaUrl: 'https://stripe.com/legal/dpa'
   },
   // Note: the Markitdown document-parsing service is deliberately NOT
-  // listed here — we operate it ourselves on our own infrastructure
+  // listed here: we operate it ourselves on our own infrastructure
   // (Docker container co-located with the app). It is part of the
   // controller's own processing, not a third-party sub-processor.
   {
@@ -158,7 +158,7 @@ export const SUB_PROCESSORS: readonly SubProcessor[] = [
   {
     id: 'resend',
     name: 'Resend, Inc.',
-    purpose: 'Transactional email delivery — account-deletion confirmations, data-export-ready notifications, breach notifications',
+    purpose: 'Transactional email delivery, account-deletion confirmations, data-export-ready notifications, breach notifications',
     location: 'global',
     transferMechanism: 'dpf_with_sccs_fallback',
     dpfCertified: true,

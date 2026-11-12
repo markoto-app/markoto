@@ -6,11 +6,11 @@ import type { ActivityMetadata } from '~~/shared/contracts/activity'
 import { users } from './users'
 import { documents } from './documents'
 
-// `metadata` carries structured detail per action — comment id + body
+// `metadata` carries structured detail per action, comment id + body
 // preview for `comment.*`, before/after for `title.changed`, tool name +
 // args preview for `ai.tool`. The UI renders human-readable strings via
 // i18n at read time, so the row stays locale-agnostic. Action enum is a
-// text column (not pgEnum) so adding values is TS-only — no ALTER TYPE.
+// text column (not pgEnum) so adding values is TS-only, no ALTER TYPE.
 export const activityLog = pgTable('activity_log', {
   id: serial('id').primaryKey(),
   docId: text('doc_id').notNull().references(() => documents.docId),

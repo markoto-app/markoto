@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { mimeToEncoding } from '../../../server/utils/agentic/transcribeHelpers'
 
 // `mimeToEncoding` must stay in lockstep with the transcribe
-// endpoint's `ALLOWED_MIME` allowlist — if a MIME passes the allow-
+// endpoint's `ALLOWED_MIME` allowlist: if a MIME passes the allow-
 // list but returns null here, the user gets a confusing split
 // between "your format isn't supported" and "encoding rejected".
 // These tests enforce the coupling.
@@ -28,7 +28,7 @@ describe('mimeToEncoding', () => {
 
   it('returns null for MP4 / AAC (Safari)', () => {
     // The transcription upstream doesn't accept MP4. We reject at
-    // the MIME gate upstream — this test pins that contract so a future
+    // the MIME gate upstream, this test pins that contract so a future
     // "let's add Safari support" change has to touch BOTH the
     // allowlist AND this mapper AND the transcoding strategy
     // together.

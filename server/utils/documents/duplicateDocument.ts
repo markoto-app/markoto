@@ -61,7 +61,7 @@ export interface DuplicateDeps {
    * The quota the copies count against (`resolveImageQuota(ownerId, null,
    * targetWorkspaceId)`): the target Team / Business workspace's pool, else
    * the duplicator's personal quota. The copied images are attributed to
-   * the duplicator — not the original uploaders, whose quota a stranger
+   * the duplicator: not the original uploaders, whose quota a stranger
    * could otherwise fill by duplicating their open doc.
    */
   imageQuota: ImageQuota
@@ -98,7 +98,7 @@ export async function duplicateDocument(
   }
 
   // Step 1: documents row. Description/audience/language/templateId
-  // copy through unchanged — a duplicate is the same document content
+  // copy through unchanged: a duplicate is the same document content
   // by another name, so its writing register and audience guidance
   // should match the source.
   await insertDuplicateDoc(input.source, {

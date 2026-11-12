@@ -8,7 +8,7 @@ export const SECTION_STRING = 'mk-section'
 
 /**
  * `{section}`: paged.js `string-set` on the document's top-level section
- * headings (`markoto-section-heading`, marked by `composeFinalHtml` — h1,
+ * headings (`markoto-section-heading`, marked by `composeFinalHtml`, h1,
  * or h2 in a document without h1). The token reads the first one that
  * starts on the page, else the one running on from before. Only emitted
  * when a header/footer slot uses the token.

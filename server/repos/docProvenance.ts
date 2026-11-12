@@ -10,7 +10,7 @@ import type { DocAccess, WorkspaceAccess } from './proofs'
 // is attributed to them directly (`user_id`) or through one of the
 // synthetic principals that act on their behalf:
 //
-//   ai:assistant:<sid>   their AI session — only when its
+//   ai:assistant:<sid>   their AI session, only when its
 //                        `ai_session_provenance` row is theirs AND clean
 //                        (the session ended without reading anybody
 //                        else's content). A session that was tainted, is
@@ -92,7 +92,7 @@ export async function hasForeignContentActivity(doc: DocAccess<'view'>, userId: 
 /**
  * Number of OTHER people who can edit documents in the workspace: its
  * admins / editors plus every guest holding an `edit` share on one of
- * its documents — a guest can change that document's text, title
+ * its documents: a guest can change that document's text, title
  * and description, which the invoker's AI then reads.
  */
 export async function countOtherWorkspaceEditors(ws: WorkspaceAccess<'member'>, userId: number): Promise<number> {

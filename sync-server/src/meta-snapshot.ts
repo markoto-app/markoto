@@ -18,7 +18,7 @@ export const UNREADABLE_THEME_HASH = 'unreadable'
  * Must never throw: it runs inside `onLoadDocument`, where an exception
  * rejects every connection to the document. A theme written before the
  * WebSocket path validated ymeta can be a deeply nested Y type or JSON
- * structure — `JSON.stringify` on that overflowed the stack and made the
+ * structure: `JSON.stringify` on that overflowed the stack and made the
  * document permanently unloadable. Such values hash to
  * UNREADABLE_THEME_HASH instead.
  */

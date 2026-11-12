@@ -13,7 +13,7 @@ const log = useLogger('design-import')
 //   extract (markitdown) → propose (model) → render sample → compare (model)
 //   → … at most DESIGN_IMPORT_MAX_ROUNDS model calls.
 // A round whose answer can't be used (no tool call, invalid theme) still
-// counts — its problems go back to the model as feedback. A failed render
+// counts: its problems go back to the model as feedback. A failed render
 // ends the loop with the best proposal so far (no comparison possible).
 // The model can end early with `matches_original: true`.
 

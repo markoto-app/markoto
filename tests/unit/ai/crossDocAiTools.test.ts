@@ -31,7 +31,7 @@ vi.mock('../../../server/repos/documents', async (importOriginal) => {
     // a behaviour for each function via `vi.mocked(fn).mockResolvedValue(...)`.
     listWorkspaceDocsWithOwnerFlag: vi.fn(),
     // The handler also calls `getDoc` for the current-theme fallback in
-    // theme tools — leave it un-stubbed so unrelated branches don't trip.
+    // theme tools: leave it un-stubbed so unrelated branches don't trip.
     getDoc: actual && (actual as { getDoc?: unknown }).getDoc
       ? (actual as { getDoc: unknown }).getDoc
       : vi.fn()
@@ -67,7 +67,7 @@ const mockedOpenTrusted = vi.mocked(openTrustedCommentClient)
 //   - session.workspaceId     (workspace gating)
 //   - session.initiatorUserId (access decisions)
 //   - session.sessionId       (audit principal in trusted-client open)
-//   - session.ymeta / .ydoc   (theme tools — irrelevant here)
+//   - session.ymeta / .ydoc   (theme tools, irrelevant here)
 //   - session.updateStatus()  (cosmetic, must not throw)
 function makeSession(opts: {
   docId?: string
@@ -135,7 +135,7 @@ beforeEach(() => {
 
 // view_other_document
 
-describe('view_other_document — input parsing precedes access check', () => {
+describe('view_other_document: input parsing precedes access check', () => {
   it('parses a markoto URL down to a bare id BEFORE looking up the doc', async () => {
     // Spec: the handler MUST extract the id from a URL before calling
     // the access helper, so the user can paste a URL verbatim.
@@ -145,7 +145,7 @@ describe('view_other_document — input parsing precedes access check', () => {
     await executeFunctionByName(session, 'view_other_document', {
       doc_id: 'https://markoto.app/d/xyz?slide=2'
     })
-    // The repo call must receive the parsed id — not the raw URL.
+    // The repo call must receive the parsed id, not the raw URL.
     expect(mockedGetCtx).toHaveBeenCalledWith('xyz', 100)
   })
 
@@ -171,10 +171,10 @@ describe('view_other_document — input parsing precedes access check', () => {
   })
 })
 
-describe('view_other_document — current-doc rejection precedes access check', () => {
+describe('view_other_document: current-doc rejection precedes access check', () => {
   it('refuses to read the current document and points at view_document', async () => {
     // Spec: calling view_other_document on the SAME id the session
-    // already has open must be rejected without a DB query — the
+    // already has open must be rejected without a DB query, the
     // model should be steered to view_document for the local doc.
     const session = makeSession({ docId: 'SELF' })
     const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 'SELF' })
@@ -196,7 +196,7 @@ describe('view_other_document — current-doc rejection precedes access check', 
   })
 })
 
-describe('view_other_document — access decisions', () => {
+describe('view_other_document: access decisions', () => {
   it('returns 404-shape when the doc does not exist', async () => {
     // Spec: non-existent ids return the SAME shape as "exists but
     // forbidden" so an attacker can't enumerate ids by error message.
@@ -224,15 +224,15 @@ describe('view_other_document — access decisions', () => {
     const res = await executeFunctionByName(session, 'view_other_document', { doc_id: 'priv' })
     expect(res.isError).toBe(true)
     expect(res.content.toLowerCase()).toContain('not found')
-    // Must not leak "forbidden" wording — that distinguishes the case.
+    // Must not leak "forbidden" wording, that distinguishes the case.
     expect(res.content.toLowerCase()).not.toContain('forbidden')
     expect(mockedOpenTrusted).not.toHaveBeenCalled()
   })
 
   it('returns DISTINCT password message for non-member of password-protected doc', async () => {
     // Spec: when the user IS recognised but the doc requires a
-    // password they don't have, the message must explain — not
-    // 404-mask — because the user's next step is to ask for a share.
+    // password they don't have, the message must explain, not
+    // 404-mask: because the user's next step is to ask for a share.
     mockedGetCtx.mockResolvedValue(ctx({
       ownerId: 999,
       accessMode: 'password-protected',
@@ -260,7 +260,7 @@ describe('view_other_document — access decisions', () => {
 
   it('allows workspace VIEWER on a private workspace doc (read-only is enough)', async () => {
     // Spec: viewer access is sufficient for the AI tool. Confirmed
-    // with the user — symmetric with what a viewer can see in the
+    // with the user: symmetric with what a viewer can see in the
     // browser.
     mockedGetCtx.mockResolvedValue(ctx({
       ownerId: 999,
@@ -339,7 +339,7 @@ describe('view_other_document — access decisions', () => {
   })
 })
 
-describe('view_other_document — body formatting', () => {
+describe('view_other_document: body formatting', () => {
   it('numbers lines starting at 1 (matches view_document)', async () => {
     // Spec: line numbers are 1-indexed and prefixed `N: <line>` so
     // the model can quote/replace specific lines. Same shape as the
@@ -360,7 +360,7 @@ describe('view_other_document — body formatting', () => {
     // Using ASCII-only chars so the byte count == char count.
     const longLine = 'x'.repeat(120)
     const lines = []
-    // ~600 lines × 120 chars = ~72k of body (plus prefixes) — well
+    // ~600 lines × 120 chars = ~72k of body (plus prefixes), well
     // over the 50k cap.
     for (let i = 0; i < 600; i++) lines.push(longLine)
     mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
@@ -374,7 +374,7 @@ describe('view_other_document — body formatting', () => {
   })
 
   it('does NOT emit a truncation marker in the BODY when content is under the cap', async () => {
-    // Look at the body section only — the metadata block has a
+    // Look at the body section only, the metadata block has a
     // `truncated_chars_at` JSON key that must stay regardless (it's
     // null when not truncated). The contract is about the prose
     // marker, not the metadata field.
@@ -446,7 +446,7 @@ describe('view_other_document — body formatting', () => {
   })
 })
 
-describe('view_other_document — metadata + scope label', () => {
+describe('view_other_document: metadata + scope label', () => {
   it('includes a parseable JSON metadata block with title, language, audience, scope', async () => {
     // Spec: the trailing metadata block is JSON so the model can
     // pull stable fields (title, scope) without parsing prose.
@@ -504,7 +504,7 @@ describe('view_other_document — metadata + scope label', () => {
   })
 })
 
-describe('view_other_document — trusted-client lifecycle', () => {
+describe('view_other_document: trusted-client lifecycle', () => {
   it('always destroys the client on the success path', async () => {
     mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
     const tc = makeTrustedClient('hi')
@@ -515,7 +515,7 @@ describe('view_other_document — trusted-client lifecycle', () => {
   })
 
   it('destroys the client even if the open succeeds but reading throws', async () => {
-    // Spec: socket leaks are unacceptable — if any step AFTER the
+    // Spec: socket leaks are unacceptable, if any step AFTER the
     // open fails, we still tear down. Testing this catches the case
     // where someone refactors the handler and forgets a finally.
     mockedGetCtx.mockResolvedValue(ctx({ ownerId: 100 }))
@@ -561,7 +561,7 @@ describe('view_other_document — trusted-client lifecycle', () => {
 
 // list_workspace_documents
 
-describe('list_workspace_documents — gating', () => {
+describe('list_workspace_documents: gating', () => {
   it('errors when the current document is not in a workspace', async () => {
     // Spec: the tool only makes sense for workspace docs. Standalone
     // docs must surface a clear error so the model understands.
@@ -580,7 +580,7 @@ describe('list_workspace_documents — gating', () => {
   })
 })
 
-describe('list_workspace_documents — output shape', () => {
+describe('list_workspace_documents: output shape', () => {
   it('excludes the current document from the result list', async () => {
     // Spec: the AI is already editing the current doc; including it
     // in the list would tempt redundant view_other_document calls.

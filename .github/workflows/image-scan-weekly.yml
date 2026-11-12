@@ -9,7 +9,7 @@ name: image-scan-weekly
 
 on:
   schedule:
-    # Monday 06:00 UTC — after the sonar baseline (05:20), before the work week.
+    # Monday 06:00 UTC: after the sonar baseline (05:20), before the work week.
     - cron: '0 6 * * 1'
   workflow_dispatch:
 

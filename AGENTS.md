@@ -13,7 +13,7 @@ markoto is a collaborative markdown editor. A Nuxt 4 app on Bun (SSR, Nitro API,
 | Type-check tests / scripts | `bun run typecheck:tests`, `bun run typecheck:scripts` |
 | Unused code and dependencies | `bun run knip` |
 | Import layering and cycles | `bun run depcruise` |
-| Repo checks | `bun run check:env` (generated env files current), `check:md-paths`, `check:vocab`, `check:i18n-unused`, `check:links`, `check:shell`, `check:docker`, `check:py` |
+| Repo checks | `bun run check:env` (generated env files current), `check:md-paths`, `check:vocab`, `check:em-dash` (no U+2014 anywhere), `check:i18n-unused`, `check:links`, `check:shell`, `check:docker`, `check:py` |
 | New migration from `server/db/schema/` | `bun run db:generate` (applied at app boot) |
 
 Tests (details: [`docs/contributing/testing.md`](docs/contributing/testing.md)):

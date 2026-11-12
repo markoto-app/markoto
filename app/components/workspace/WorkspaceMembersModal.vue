@@ -13,7 +13,7 @@ import { planPricesQuery } from '~/queries/billing'
 //   - Admin: add new, change role, remove any (incl. self if not last admin)
 //   - Editor / Viewer: read-only list + "leave workspace" on own row
 //
-// Invite-by-email is the only way in — no typeahead search, so the user
+// Invite-by-email is the only way in, no typeahead search, so the user
 // base can't be enumerated. The server records a PENDING invitation and
 // answers the same way whether or not the address has an account; the
 // person joins only after accepting (dashboard, or the invitation email).
@@ -204,7 +204,7 @@ async function removeMember(member: WorkspaceMember) {
     localMembers.value = localMembers.value.filter(m => m.userId !== member.userId)
     emit('updated', localMembers.value)
     if (wasMe) {
-      // Leaving the workspace — close modal + let the parent route away.
+      // Leaving the workspace: close modal + let the parent route away.
       open.value = false
       emit('leave')
     }
@@ -234,7 +234,7 @@ function roleItems(currentRole: WorkspaceRole, member: WorkspaceMember) {
   ]
 }
 
-// Non-admin rendering uses a disabled look for the role chip — no dropdown.
+// Non-admin rendering uses a disabled look for the role chip, no dropdown.
 </script>
 
 <template>

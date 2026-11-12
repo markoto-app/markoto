@@ -12,25 +12,25 @@ PR's title + body, with the version derived from the git tag history. See
 
 ## [Unreleased]
 
-(Populated on next release. Each entry is sourced verbatim from the merged PR's title + description — see `docs/RELEASE-PROCESS.md`.)
+(Populated on next release. Each entry is sourced verbatim from the merged PR's title + description, see `docs/RELEASE-PROCESS.md`.)
 
-## [0.2.2] — 2026-10-29
+## [0.2.2]: 2026-10-29
 
 The AI finishes its work instead of editing until the turn limit; the /docs
 site works in production containers; refreshed docs and screenshots.
 Full notes: the GitHub Release for v0.2.2.
 
-## [0.2.1] — 2026-10-29
+## [0.2.1]: 2026-10-29
 
 Republish of 0.2.0 with signed images (the 0.2.0 image build ran out of
 runner disk before signing). Full notes: the GitHub Release for v0.2.1.
 
-## [0.2.0] — 2026-10-29
+## [0.2.0]: 2026-10-29
 
 Security hardening release plus custom CSS, invite acceptance and AI confirmations.
 Full notes: the GitHub Release for v0.2.0.
 
-## [0.1.0] — 2026-08-18
+## [0.1.0]: 2026-08-18
 
 First public release of the markoto source tree.
 

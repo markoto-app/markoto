@@ -2,7 +2,7 @@
   "app": {
     "name": "markoto",
     "tagline": "Editor de markdown colaborativo",
-    "offline": "Estás sin conexión — los cambios se guardan localmente hasta que te vuelvas a conectar.",
+    "offline": "Estás sin conexión: los cambios se guardan localmente hasta que te vuelvas a conectar.",
     "update": {
       "title": "Nueva versión disponible",
       "description": "Se recargará en 30 segundos.",
@@ -39,7 +39,7 @@
     "titleInputAria": "Título del documento",
     "placeholder": "Empieza a escribir...",
     "syncAuthFailedTitle": "El servidor de sincronización rechazó la conexión",
-    "syncAuthFailedDescription": "Normalmente tienes acceso de edición aquí. El servidor de sincronización rechazó el intercambio — probablemente un límite de solicitudes por IP o un token caducado. Recarga para intentarlo de nuevo.",
+    "syncAuthFailedDescription": "Normalmente tienes acceso de edición aquí. El servidor de sincronización rechazó el intercambio, probablemente un límite de solicitudes por IP o un token caducado. Recarga para intentarlo de nuevo.",
     "syncAuthFailedReload": "Recargar",
     "syncRejected": {
       "title": "Tus últimos cambios no se han guardado",
@@ -104,7 +104,7 @@
     "systemShare": "Compartir mediante el sistema…",
     "qrCode": "Mostrar código QR",
     "accessMode": "Modo de acceso",
-    "private": "Privado — solo tú",
+    "private": "Privado: solo tú",
     "openEdit": "Cualquiera puede editar",
     "openView": "Cualquiera puede ver",
     "passwordProtected": "Protegido con contraseña",
@@ -203,18 +203,18 @@
     "restore": {
       "button": {
         "label": "Restaurar",
-        "tooltip": "Restaura el documento a este punto. Reversible — puedes volver a través del registro de actividad."
+        "tooltip": "Restaura el documento a este punto. Reversible: puedes volver a través del registro de actividad."
       },
       "confirm": {
         "title": "¿Restaurar el documento?",
         "body": "El documento volverá al estado de {when}. Los cambios realizados desde entonces se eliminarán (pero se podrán recuperar desde el registro de actividad).",
-        "reversibleHint": "Esta restauración también es reversible — puedes volver al estado actual en cualquier momento.",
+        "reversibleHint": "Esta restauración también es reversible: puedes volver al estado actual en cualquier momento.",
         "cta": "Restaurar"
       },
       "success": "Documento restaurado.",
       "error": {
         "unauthorized": "No tienes acceso de edición a este documento.",
-        "unavailable": "No se puede restaurar desde esta fila — es anterior a la función de restauración.",
+        "unavailable": "No se puede restaurar desde esta fila: es anterior a la función de restauración.",
         "notFound": "Esa fila de actividad no existe para este documento.",
         "generic": "La restauración falló. El documento no se ha modificado."
       }
@@ -234,7 +234,7 @@
       "unavailable": "Diferencia no disponible para esta fila.",
       "error": "No se pudo cargar la diferencia.",
       "retry": "Reintentar",
-      "truncated": "Mostrando {shown} de {total} fragmentos — diferencia truncada."
+      "truncated": "Mostrando {shown} de {total} fragmentos: diferencia truncada."
     },
     "commentContext": {
       "view": "Ver hilo",
@@ -290,7 +290,7 @@
     "aiMentionHint": "Consejo: incluye {'@'}markoto en un comentario para pedirle a markoto que actúe sobre él.",
     "aiResponding": "markoto está respondiendo…",
     "aiTriggerFailed": "No se pudo contactar con markoto para este hilo.",
-    "aiTriggerExhausted": "Cuota agotada — mejora tu plan para pedirle a markoto desde los comentarios.",
+    "aiTriggerExhausted": "Cuota agotada: mejora tu plan para pedirle a markoto desde los comentarios.",
     "hintPost": "publicar",
     "hintCancel": "cancelar",
     "notificationFallbackTitle": "Nueva respuesta"
@@ -444,7 +444,7 @@
     "title": "Documento",
     "description": {
       "label": "Descripción",
-      "help": "Una línea sobre qué es este documento. La IA lo ve en cada turno — así es como el modelo sabe en qué estás trabajando sin volver a escribirlo.",
+      "help": "Una línea sobre qué es este documento. La IA lo ve en cada turno: así es como el modelo sabe en qué estás trabajando sin volver a escribirlo.",
       "placeholder": "p. ej. Plan de lanzamiento del T3 para la nueva app móvil"
     },
     "language": {
@@ -617,7 +617,7 @@
     "rateLimited": "Demasiadas solicitudes. Inténtalo de nuevo en un minuto.",
     "failed": "No se pudo contactar con markoto",
     "micStart": "Iniciar entrada de voz",
-    "micBlocked": "Micrófono bloqueado — actívalo en la configuración de tu navegador",
+    "micBlocked": "Micrófono bloqueado: actívalo en la configuración de tu navegador",
     "micStop": "Detener y enviar",
     "micCancel": "Cancelar entrada de voz",
     "micRequestingPermission": "Esperando el micrófono…",
@@ -634,11 +634,11 @@
     "dictateSessionCapTitle": "Sesión de dictado finalizada",
     "dictateSessionCapDescription": "Las sesiones tienen un límite de 10 minutos. Inicia una nueva para continuar.",
     "dictateIdleTitle": "Dictado en pausa",
-    "dictateIdleDescription": "Sin audio durante 30 segundos — el dictado se detuvo.",
+    "dictateIdleDescription": "Sin audio durante 30 segundos: el dictado se detuvo.",
     "dictateErrorTitle": "Error en el dictado",
     "budgetExhaustedTitle": "Sin créditos de IA",
     "budgetExhaustedDescription": "Has usado todos tus créditos de IA de este período de facturación. Mejora tu plan para seguir.",
-    "exhaustedPlaceholder": "Sin créditos de IA — mejora tu plan para continuar",
+    "exhaustedPlaceholder": "Sin créditos de IA: mejora tu plan para continuar",
     "workspaceBudgetExhaustedTitle": "Presupuesto de IA del espacio de trabajo agotado",
     "workspaceBudgetExhaustedDescription": "El presupuesto de IA de este espacio está agotado este mes. Pide a un admin que añada puestos o crédito.",
     "workspaceExhaustedPlaceholder": "Presupuesto de IA del espacio agotado; pide a un admin",
@@ -648,7 +648,7 @@
     "responseQuestionLabel": "markoto está preguntando",
     "responseDismiss": "Descartar",
     "responseShowLast": "Última respuesta de markoto",
-    "exhaustedPlaceholderFree": "Sin créditos de IA — se recargan en el próximo periodo",
+    "exhaustedPlaceholderFree": "Sin créditos de IA: se recargan en el próximo periodo",
     "budgetExhaustedResetDescription": "Has usado todos tus créditos de IA de este periodo. Se recargan al comenzar el próximo periodo.",
     "webToolsHourlyLimit": "Has alcanzado el límite por hora de búsqueda web y obtención de páginas. Inténtalo de nuevo dentro de una hora o continúa sin herramientas web.",
     "webToolsDailyLimit": "Has alcanzado el límite diario de búsqueda web y obtención de páginas. Inténtalo de nuevo mañana o continúa sin herramientas web.",
@@ -1121,16 +1121,16 @@
     },
     "meta": {
       "font": "Fuente meta",
-      "fontHelp": "Se usa para el texto de encabezado / pie de página, pies de figura y notas al pie — la voz «sobre el documento»."
+      "fontHelp": "Se usa para el texto de encabezado / pie de página, pies de figura y notas al pie: la voz «sobre el documento»."
     },
     "cover": {
       "enabled": "Mostrar portada",
       "enabledHelp": "Antepone una hoja de título como página 1 (suprime los números de página y el encabezado).",
       "layout": "Diseño",
-      "layoutClassic": "Clásico — todo centrado",
-      "layoutEditorial": "Editorial — logotipo arriba, título a ⅓, meta a ⅔",
-      "layoutBanner": "Banner — logotipo + título en una banda superior con tinte de marca",
-      "layoutMinimal": "Minimalista — solo el título, centrado (logotipo y meta ocultos)",
+      "layoutClassic": "Clásico: todo centrado",
+      "layoutEditorial": "Editorial: logotipo arriba, título a ⅓, meta a ⅔",
+      "layoutBanner": "Banner: logotipo + título en una banda superior con tinte de marca",
+      "layoutMinimal": "Minimalista: solo el título, centrado (logotipo y meta ocultos)",
       "align": "Alineación del texto",
       "titleSize": "Tamaño del título",
       "subtitleSize": "Tamaño del subtítulo",
@@ -1222,7 +1222,7 @@
       "applied": "Plantilla aplicada a tu documento",
       "markoto": {
         "name": "markoto",
-        "description": "El aspecto característico. Encabezados editoriales Fraunces, cuerpo Inter sobre papel blanco sencillo, acento bermellón — una guía de campo serena, no un panel de control."
+        "description": "El aspecto característico. Encabezados editoriales Fraunces, cuerpo Inter sobre papel blanco sencillo, acento bermellón: una guía de campo serena, no un panel de control."
       },
       "modern": {
         "name": "Moderno",
@@ -1395,8 +1395,8 @@
       "subtitle": "Valores predeterminados para los nuevos documentos creados en este espacio de trabajo.",
       "defaultTheme": {
         "title": "Tema predeterminado",
-        "help": "Se aplica a los nuevos documentos creados aquí. Los documentos existentes no se ven afectados — conservan el tema que tengan.",
-        "useGlobal": "Sin predeterminado — usar markoto",
+        "help": "Se aplica a los nuevos documentos creados aquí. Los documentos existentes no se ven afectados: conservan el tema que tengan.",
+        "useGlobal": "Sin predeterminado: usar markoto",
         "useGlobalHelp": "Los nuevos documentos empiezan con el preajuste de markoto hasta que alguien elija uno diferente.",
         "savedTitle": "Tema predeterminado actualizado",
         "appliedToast": "Los nuevos documentos de este espacio de trabajo usarán este tema",
@@ -1405,7 +1405,7 @@
       }
     },
     "capReached": "{used} de {limit} espacios de trabajo usados en el plan {plan}. Elimina uno o mejora el plan para añadir más.",
-    "capReachedShort": "Límite de espacios de trabajo alcanzado — mejora el plan",
+    "capReachedShort": "Límite de espacios de trabajo alcanzado: mejora el plan",
     "sectionTitle": "Mis espacios de trabajo",
     "newWorkspace": "Nuevo espacio de trabajo",
     "createTitle": "Crear un espacio de trabajo",
@@ -1568,7 +1568,7 @@
     "upload": "Subir archivos",
     "capFilesReached": "Este espacio de trabajo ha alcanzado el límite de archivos ({limit}). Elimina un archivo o mejora el plan para añadir más.",
     "capBytesReached": "Este espacio de trabajo ha alcanzado su límite de almacenamiento ({limit} MB). Elimina un archivo o mejora el plan para añadir más.",
-    "capReachedShort": "En el límite — mejora el plan",
+    "capReachedShort": "En el límite: mejora el plan",
     "empty": "Aún no hay archivos de conocimiento.",
     "emptyDescription": "Sube un PDF o documento de Word para que markoto tenga contexto cuando escribas.",
     "emptyDescriptionViewer": "Aún no se ha subido nada a este espacio de trabajo.",
@@ -1652,7 +1652,7 @@
     "badRequest": "Esa solicitud no es válida.",
     "conflict": "Eso entra en conflicto con el estado actual. Recarga la página e inténtalo de nuevo.",
     "payloadTooLarge": "Es demasiado grande.",
-    "rateLimited": "Demasiadas solicitudes — espera un momento e inténtalo de nuevo.",
+    "rateLimited": "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo.",
     "serverError": "Algo se rompió de nuestro lado. Ya hemos sido notificados.",
     "documentCreateFailed": "No se pudo crear el documento",
     "documentCreateFailedDescription": "El servidor rechazó la solicitud.",
@@ -1677,7 +1677,7 @@
       "checkbox": "Confirmo que tengo al menos 16 años",
       "continue": "Continuar",
       "underage": "Soy menor de 16 años",
-      "underageNotice": "Lo sentimos — markoto solo está disponible para personas de 16 años o más. No almacenamos ningún dato sobre ti."
+      "underageNotice": "Lo sentimos, markoto solo está disponible para personas de 16 años o más. No almacenamos ningún dato sobre ti."
     },
     "policyAcceptance": {
       "newVersionTitle": "Nuestros términos de privacidad han cambiado",
@@ -1742,18 +1742,18 @@
           "removeMember": {
             "title": "Simplemente serás eliminado",
             "body": "Los espacios de trabajo donde eres editor o lector continúan sin ti.",
-            "row": "{name} — actualmente {currentRole}"
+            "row": "{name}: actualmente {currentRole}"
           }
         },
         "manualSteps": {
           "heading": "Pasos que quizá quieras dar primero",
-          "exportFirst": "Usa la función de exportación de datos para descargar todo lo que tenemos sobre ti como un ZIP — conserva ese archivo independientemente de lo que pase aquí.",
+          "exportFirst": "Usa la función de exportación de datos para descargar todo lo que tenemos sobre ti como un ZIP: conserva ese archivo independientemente de lo que pase aquí.",
           "transferDocs": "Para cualquier documento que quieras que un colaborador conserve, muévelo a un espacio de trabajo que le pertenezca o pídele que lo duplique.",
           "inviteWorkspaceMember": "Para cualquier espacio de trabajo que quieras preservar, invita al menos a un colaborador con rol de administrador antes de eliminar.",
           "downloadKnowledge": "Para los archivos de la base de conocimiento que quieras conservar, descárgalos fuera de markoto primero."
         },
         "timing": "La cascada real se ejecuta como una tarea en segundo plano una vez por hora. Una vez que termina la ventana de gracia, tus datos se purgan por completo en aproximadamente una hora.",
-        "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente — no hay forma de recuperarlos.",
+        "noRecovery": "Una vez que se ejecuta la cascada, tu cuenta y contenido desaparecen permanentemente: no hay forma de recuperarlos.",
         "loading": "Leyendo tu cuenta…"
       },
       "cancelledToast": "Eliminación cancelada. Tu cuenta sigue igual.",
@@ -1780,7 +1780,7 @@
       "bodyPlaceholder": "Describe lo que viste y por qué debería eliminarse.",
       "emailLabel": "Correo electrónico",
       "submit": "Enviar denuncia",
-      "submittedTitle": "Gracias — se recibió tu denuncia",
+      "submittedTitle": "Gracias, se recibió tu denuncia",
       "submittedBody": "Acusamos recibo de cada denuncia. Si proporcionaste un correo electrónico, te informaremos de lo que decidimos.",
       "reportThisDoc": "Denunciar este documento",
       "policyHint": "Lee la {policy} para saber contra qué actuamos y cómo decidimos.",
@@ -1886,7 +1886,7 @@
       },
       "spending": {
         "heading": "Gasto y uso",
-        "comingSoon": "Próximamente — tu uso de créditos de IA, historial de planes y facturas estarán aquí. Por ahora, gestiona la facturación desde la página de Precios.",
+        "comingSoon": "Próximamente: tu uso de créditos de IA, historial de planes y facturas estarán aquí. Por ahora, gestiona la facturación desde la página de Precios.",
         "viewPricing": "Ver precios",
         "plan": "Plan actual: {plan}",
         "manage": "Gestionar facturación",
@@ -1897,9 +1897,9 @@
       "data": {
         "heading": "Tus datos",
         "exportTitle": "Descarga una copia de tus datos",
-        "exportDescription": "Prepararemos un ZIP con todo lo que tenemos sobre ti — el perfil de tu cuenta, cada documento de tu propiedad en Markdown, comentarios que hayas escrito, historial de facturación, registros de uso de IA, registros de auditoría y consentimiento. La generación se ejecuta en segundo plano, normalmente en menos de un minuto. Esta página se actualiza cuando esté lista, y también te enviaremos un enlace de descarga por correo electrónico. El enlace es válido durante 7 días.",
+        "exportDescription": "Prepararemos un ZIP con todo lo que tenemos sobre ti: el perfil de tu cuenta, cada documento de tu propiedad en Markdown, comentarios que hayas escrito, historial de facturación, registros de uso de IA, registros de auditoría y consentimiento. La generación se ejecuta en segundo plano, normalmente en menos de un minuto. Esta página se actualiza cuando esté lista, y también te enviaremos un enlace de descarga por correo electrónico. El enlace es válido durante 7 días.",
         "exportButton": "Solicitar exportación",
-        "exportInProgress": "Exportación en curso — esta página se actualiza cuando esté lista.",
+        "exportInProgress": "Exportación en curso: esta página se actualiza cuando esté lista.",
         "exportHistoryHeading": "Exportaciones recientes",
         "exportHistoryEmpty": "No hay exportaciones anteriores.",
         "exportExpiresAt": "Disponible hasta el {date}",
@@ -1911,7 +1911,7 @@
       },
       "delete": {
         "heading": "Eliminar tu cuenta",
-        "description": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente — documentos, comentarios, membresías de espacios de trabajo, historial de facturación. Los espacios de trabajo donde eres el único miembro se eliminan en cascada; los espacios de trabajo con otros miembros reciben un nuevo administrador automáticamente.",
+        "description": "Conservaremos tus datos durante 30 días por si cambias de opinión. Después de eso, todo se elimina permanentemente: documentos, comentarios, membresías de espacios de trabajo, historial de facturación. Los espacios de trabajo donde eres el único miembro se eliminan en cascada; los espacios de trabajo con otros miembros reciben un nuevo administrador automáticamente.",
         "button": "Solicitar eliminación de la cuenta",
         "scheduled": "Programada para eliminación el {date}",
         "cancel": "Cancelar eliminación",
@@ -2147,7 +2147,7 @@
       "title": "{markdown}, bien maquetado.",
       "markdown": "Markdown",
       "body": "Un editor de Markdown colaborativo con vista previa paginada en directo. Escribe texto plano y exporta un PDF idéntico a la vista previa, página a página.",
-      "cta": "Empezar a escribir — sin registro",
+      "cta": "Empezar a escribir, sin registro",
       "next": "Ver cómo funciona"
     },
     "scenes": {
@@ -2204,7 +2204,7 @@
     },
     "cta": {
       "title": "Pruébalo con tu propio Markdown.",
-      "body": "Gratis en markoto.app, sin registro — o alójalo tú mismo.",
+      "body": "Gratis en markoto.app, sin registro, o alójalo tú mismo.",
       "start": "Empezar a escribir",
       "selfHost": "Autoalojar"
     },
@@ -2448,7 +2448,7 @@
     "testAndActivate": "Probar el inicio de sesión y activar",
     "testAgain": "Probar el inicio de sesión",
     "draftHint": "Todavía no está activado. Prueba el inicio de sesión con tu propia cuenta en el proveedor de identidad; cuando funcione, el inicio de sesión único se activará para el espacio de trabajo.",
-    "testActivated": "El inicio de sesión funciona — el inicio de sesión único ya está activado para este espacio de trabajo",
+    "testActivated": "El inicio de sesión funciona: el inicio de sesión único ya está activado para este espacio de trabajo",
     "testOk": "El inicio de sesión funciona",
     "status": {
       "active": "Activado",
@@ -2483,7 +2483,7 @@
       "title": "Aprovisionamiento (SCIM)",
       "body": "Deja que tu proveedor de identidad añada y quite miembros automáticamente. Introduce la URL base y el token en su configuración de SCIM. Si quitas a alguien allí, sale de este espacio de trabajo al instante.",
       "baseUrl": "URL base de SCIM",
-      "tokenOnce": "Copia este token ahora — no se volverá a mostrar.",
+      "tokenOnce": "Copia este token ahora: no se volverá a mostrar.",
       "create": "Crear token",
       "rotate": "Sustituir token",
       "revoke": "Desactivar el aprovisionamiento"

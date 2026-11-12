@@ -16,7 +16,7 @@ import {
 // Why these matter even though the protocol is "just JSON": the
 // server's `peer.send(JSON.stringify(...))` and the client's
 // `JSON.parse(...) as { type: string, ... }` were each free-form.
-// A typo on either side produced a silently-degraded session — the
+// A typo on either side produced a silently-degraded session, the
 // user saw "transcripts didn't appear" with no error. Routing both
 // through `encode*Frame` + the discriminated union forces the TS
 // compiler to flag the typo at PR time.
@@ -99,7 +99,7 @@ describe('encodeClientFrame', () => {
 
 describe('discriminated union narrowing', () => {
   it('TS narrows server frames by their `type` field', () => {
-    // This test is mostly compiled away — the assertions are runtime
+    // This test is mostly compiled away, the assertions are runtime
     // sanity checks. The real value is that this file fails to
     // typecheck if the union narrowing breaks. If `case 'final'`
     // doesn't narrow `frame.text` to `string`, the TS compiler

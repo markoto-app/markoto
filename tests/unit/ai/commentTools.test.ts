@@ -17,7 +17,7 @@ vi.mock('../../../server/utils/access/workspaceAccess', () => ({
   getDocAuthz: vi.fn().mockResolvedValue({ exists: true, ownerId: null, workspaceId: null, workspaceRole: null, accessMode: 'open-edit' })
 }))
 
-// Comment tool handlers — read_comments, create_comment, reply_to_comment,
+// Comment tool handlers: read_comments, create_comment, reply_to_comment,
 // resolve_comment, delete_comment. These mutate the Y.js 'comments' array
 // that the real-time UI renders, so correctness (authorId, anchorStart/End
 // encoding, resolved flag, delete auth) is pinned here.
@@ -393,7 +393,7 @@ describe('resolve_comment', () => {
   })
 
   it('applies with no authorization check (anyone can resolve)', async () => {
-    // Thread authored by a different user — AI should still be able to resolve
+    // Thread authored by a different user, AI should still be able to resolve
     const { session, ydoc, ytext } = makeSession('content')
     const id = seedComment(ydoc, ytext, {
       fromLine: 1,

@@ -19,7 +19,7 @@ import {
   insertDefinitionList
 } from '~/utils/editor/editorCommands'
 
-// Test harness — shim an EditorView with only the surface editorCommands
+// Test harness: shim an EditorView with only the surface editorCommands
 // actually touches: `.state` getter + `.dispatch(spec)`. This keeps the
 // suite in the `unit` project (no DOM) and keeps boot time ~0ms per case.
 
@@ -45,7 +45,7 @@ function makeView(
     },
     // Several `insertX` helpers call view.focus() at the end so the
     // toolbar click returns focus to the editor. We don't care about
-    // DOM focus in unit tests — no-op is fine.
+    // DOM focus in unit tests, no-op is fine.
     focus() {}
   }
   return view as unknown as EditorView
@@ -64,7 +64,7 @@ function selectedText(view: EditorView): string {
   return view.state.sliceDoc(from, to)
 }
 
-// toggleWrap — inline wrap with symmetric marker
+// toggleWrap: inline wrap with symmetric marker
 //
 // Black-box spec (from file-header invariants):
 //   - Empty/whitespace-only selection drops a marker pair, cursor inside.
@@ -73,10 +73,10 @@ function selectedText(view: EditorView): string {
 //   - Whitespace-padded: "  foo  " → "  **foo**  " (markers outside trim).
 //   - Multi-line: wraps each non-blank line individually. Blank lines skipped.
 //   - Mixed-state: adds to missing, never partial-removes.
-//   - Disambiguation: `*` italic does not strip from `**foo**` — must
+//   - Disambiguation: `*` italic does not strip from `**foo**`, must
 //     produce `***foo***`. Same rule for `~` vs `~~`.
 
-describe('toggleWrap — bold (**)', () => {
+describe('toggleWrap: bold (**)', () => {
   it('cursor only: inserts empty marker pair with cursor between', () => {
     const v = makeView('', 0)
     toggleWrap(v, '**')
@@ -97,7 +97,7 @@ describe('toggleWrap — bold (**)', () => {
   })
 
   it('toggles off when the inner text is selected but markers are adjacent', () => {
-    // Selecting just "foo" from "**foo**" — user expectation is still
+    // Selecting just "foo" from "**foo**", user expectation is still
     // "turn off bold on this text" since the markers are right there.
     const v = makeView('**foo**', { from: 2, to: 5 })
     toggleWrap(v, '**')
@@ -115,8 +115,8 @@ describe('toggleWrap — bold (**)', () => {
     // "whitespace-only selections behave like empty (drop a marker
     // pair, cursor inside)". The actual implementation returns null
     // from wrapRangeChanges and leaves the doc untouched. This test
-    // pins the code's behavior (silent no-op) — producing `**   **`
-    // would be worse UX than doing nothing — but the header comment
+    // pins the code's behavior (silent no-op), producing `**   **`
+    // would be worse UX than doing nothing, but the header comment
     // is incorrect and should be fixed there, not here.
     const v = makeView('   ', { from: 0, to: 3 })
     toggleWrap(v, '**')
@@ -136,7 +136,7 @@ describe('toggleWrap — bold (**)', () => {
   })
 
   it('mixed-state multi-line: adds markers to missing lines', () => {
-    // One line already bold, one not — single click should bold the
+    // One line already bold, one not, single click should bold the
     // missing one, NOT strip the existing. Invariant #5.
     const v = makeView('foo\n**bar**', { from: 0, to: 11 })
     toggleWrap(v, '**')
@@ -150,7 +150,7 @@ describe('toggleWrap — bold (**)', () => {
   })
 })
 
-describe('toggleWrap — italic (*) disambiguation vs bold', () => {
+describe('toggleWrap: italic (*) disambiguation vs bold', () => {
   it('wraps plain text with single asterisks', () => {
     const v = makeView('foo', { from: 0, to: 3 })
     toggleWrap(v, '*')
@@ -172,7 +172,7 @@ describe('toggleWrap — italic (*) disambiguation vs bold', () => {
   })
 })
 
-describe('toggleWrap — strike (~~) + sub (~) disambiguation', () => {
+describe('toggleWrap: strike (~~) + sub (~) disambiguation', () => {
   it('strike wraps plain text', () => {
     const v = makeView('foo', { from: 0, to: 3 })
     toggleWrap(v, '~~')
@@ -185,15 +185,15 @@ describe('toggleWrap — strike (~~) + sub (~) disambiguation', () => {
     expect(text(v)).toBe('foo')
   })
 
-  it('sub (~) does not strip strike (~~) — produces ~~~foo~~~ when nested', () => {
-    // Invariant #6 — same rule as `*` vs `**`.
+  it('sub (~) does not strip strike (~~), produces ~~~foo~~~ when nested', () => {
+    // Invariant #6: same rule as `*` vs `**`.
     const v = makeView('~~foo~~', { from: 0, to: 7 })
     toggleWrap(v, '~')
     expect(text(v)).toBe('~~~foo~~~')
   })
 })
 
-describe('toggleWrap — other markers (happy-path only)', () => {
+describe('toggleWrap: other markers (happy-path only)', () => {
   it.each([
     ['highlight', '=='],
     ['ins', '++'],
@@ -205,7 +205,7 @@ describe('toggleWrap — other markers (happy-path only)', () => {
   })
 })
 
-// toggleCode — inline vs fenced (invariant #7)
+// toggleCode: inline vs fenced (invariant #7)
 
 describe('toggleCode', () => {
   it('cursor only: inserts empty inline backticks with cursor between', () => {
@@ -228,7 +228,7 @@ describe('toggleCode', () => {
   })
 
   it('multi-line selection: wraps in a fenced code block', () => {
-    // Invariant #7 — multi-line becomes ``` ... ``` rather than backticks
+    // Invariant #7: multi-line becomes ``` ... ``` rather than backticks
     // per line.
     const v = makeView('foo\nbar', { from: 0, to: 7 })
     toggleCode(v)
@@ -245,7 +245,7 @@ describe('toggleCode', () => {
   })
 })
 
-// toggleHeading — levels 1..6, idempotent + replace-level
+// toggleHeading: levels 1..6, idempotent + replace-level
 
 describe('toggleHeading', () => {
   it('adds a heading prefix when the line has none', () => {
@@ -261,7 +261,7 @@ describe('toggleHeading', () => {
   })
 
   it('replaces the level rather than stacking', () => {
-    // Invariant #1 — clicking H3 on an H2 line should produce H3, not
+    // Invariant #1: clicking H3 on an H2 line should produce H3, not
     // `### ## foo` and not `## ### foo`.
     const v = makeView('## foo', 0)
     toggleHeading(v, 3)
@@ -295,7 +295,7 @@ describe('toggleHeading', () => {
   })
 
   it('multi-line mixed: adds to missing rather than partial-removing', () => {
-    // Invariant #5 — single click is never partial.
+    // Invariant #5: single click is never partial.
     const v = makeView('## foo\nbar', { from: 0, to: 10 })
     toggleHeading(v, 2)
     expect(text(v)).toBe('## foo\n## bar')
@@ -308,7 +308,7 @@ describe('toggleHeading', () => {
   })
 })
 
-// toggleLinePrefix — bullets, blockquote, task lists
+// toggleLinePrefix: bullets, blockquote, task lists
 
 describe('toggleLinePrefix', () => {
   it('adds bullet prefix to plain line', () => {
@@ -348,7 +348,7 @@ describe('toggleLinePrefix', () => {
   })
 
   it('toggle-off also removes a checked task (- [x] foo → foo)', () => {
-    // Checked and unchecked tasks are the same list type — clicking
+    // Checked and unchecked tasks are the same list type, clicking
     // "task list" on a checked item must strip the task entirely, not
     // normalize the check state (`- [x] foo` → `- [ ] foo` would be
     // surprising and diverges from Notion/Obsidian behavior).
@@ -358,7 +358,7 @@ describe('toggleLinePrefix', () => {
   })
 
   it('toggle-off also removes an uppercase-X checked task (- [X] foo → foo)', () => {
-    // BLOCK_PREFIX_RE allows both `[x]` and `[X]` — pin that the toggle
+    // BLOCK_PREFIX_RE allows both `[x]` and `[X]`, pin that the toggle
     // honors both spellings.
     const v = makeView('- [X] foo', 0)
     toggleLinePrefix(v, '- [ ] ')
@@ -399,7 +399,7 @@ describe('toggleLinePrefix', () => {
   })
 })
 
-// toggleOrderedList — renumbering
+// toggleOrderedList: renumbering
 
 describe('toggleOrderedList', () => {
   it('single line: adds 1. prefix', () => {
@@ -423,13 +423,13 @@ describe('toggleOrderedList', () => {
   it('mixed unnumbered + numbered: adds numbering, renumbers from 1', () => {
     const v = makeView('1. foo\nbar', { from: 0, to: 10 })
     toggleOrderedList(v)
-    // Invariant #5 — add to missing. Exact numbering should be
+    // Invariant #5: add to missing. Exact numbering should be
     // sequential from 1 across non-blank lines.
     expect(text(v)).toBe('1. foo\n2. bar')
   })
 })
 
-// insertTable — pipe-table skeleton
+// insertTable: pipe-table skeleton
 
 describe('insertTable', () => {
   it('creates a header row + separator + body rows, with correct column count', () => {
@@ -465,7 +465,7 @@ describe('insertTable', () => {
   })
 })
 
-// insertBlock — generic block insertion at cursor
+// insertBlock: generic block insertion at cursor
 
 describe('insertBlock', () => {
   it('inserts the given text into the document', () => {
@@ -475,7 +475,7 @@ describe('insertBlock', () => {
   })
 })
 
-// insertFootnote — [^N] + definition
+// insertFootnote: [^N] + definition
 
 describe('insertFootnote', () => {
   it('in empty doc: inserts [^1] ref and [^1]: definition', () => {
@@ -502,7 +502,7 @@ describe('insertFootnote', () => {
   })
 })
 
-// insertAlert — GitHub-style alert block
+// insertAlert: GitHub-style alert block
 
 describe('insertAlert', () => {
   it('inserts a TIP alert with blockquote body placeholder', () => {
@@ -523,7 +523,7 @@ describe('insertAlert', () => {
   })
 })
 
-// insertMath — inline vs block
+// insertMath: inline vs block
 
 describe('insertMath', () => {
   it('inline: wraps cursor with single $', () => {
@@ -545,7 +545,7 @@ describe('insertMath', () => {
   })
 })
 
-// insertDiagram — fenced mermaid block
+// insertDiagram: fenced mermaid block
 
 describe('insertDiagram', () => {
   const kinds = ['flowchart', 'sequence', 'class', 'state', 'er', 'gantt', 'pie', 'mindmap'] as const
@@ -567,7 +567,7 @@ describe('insertDiagram', () => {
   })
 })
 
-// insertPageBreak — HTML comment on own line
+// insertPageBreak: HTML comment on own line
 
 describe('insertPageBreak', () => {
   it('inserts <!-- pagebreak --> marker', () => {
@@ -587,7 +587,7 @@ describe('insertPageBreak', () => {
   })
 })
 
-// insertToc — [[toc]] marker
+// insertToc: [[toc]] marker
 
 describe('insertToc', () => {
   it('inserts [[toc]]', () => {
@@ -605,9 +605,9 @@ describe('insertToc', () => {
   })
 })
 
-// insertDefinitionList — dl scaffold
+// insertDefinitionList: dl scaffold
 
-// toggleComment — wrap/unwrap selection in <!-- ... -->
+// toggleComment: wrap/unwrap selection in <!-- ... -->
 //
 // Black-box spec:
 //   - Empty selection → drops `<!--  -->` and lands the cursor between
@@ -644,7 +644,7 @@ describe('toggleComment', () => {
     const v = makeView('foo', { from: 0, to: 3 })
     toggleComment(v) // → `<!-- foo -->`, selection on `foo`
     toggleComment(v) // unwrap (selection is `foo`, but adjacent markers)
-    // The inner-text selection is just `foo` — that doesn't start with
+    // The inner-text selection is just `foo`, that doesn't start with
     // `<!--`, so the second click WRAPS again rather than unwrapping.
     // This matches `toggleWrap`'s existing semantics: to unwrap from an
     // inner-text selection, the markers must be in the selection.

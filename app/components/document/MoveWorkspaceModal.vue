@@ -3,7 +3,7 @@ import type { ApiResponse } from '~/utils/api/client'
 import { useMyWorkspaces } from '~/queries/workspaces'
 
 // Move a document into, between, or out of a workspace. Only
-// workspaces where the user is admin/editor show up as targets —
+// workspaces where the user is admin/editor show up as targets,
 // viewer workspaces would reject the move on the server anyway.
 
 type WorkspaceOption = ApiResponse<'/api/user/workspaces', 'get'>[number]
@@ -35,7 +35,7 @@ const selected = ref<string | null>(null)
 const workspacesQuery = useMyWorkspaces(open)
 const allWorkspaces = computed(() => workspacesQuery.data.value ?? [])
 const loadingWorkspaces = computed(() => workspacesQuery.isLoading.value)
-// Only admin/editor can receive a doc — filter viewer-only workspaces
+// Only admin/editor can receive a doc, filter viewer-only workspaces
 // out so the user can't pick something the server would reject.
 const workspaces = computed<WorkspaceOption[]>(() => allWorkspaces.value.filter(w => w.role === 'admin' || w.role === 'editor'))
 // The Team / Business plan of the workspace the doc is in now: a
@@ -130,7 +130,7 @@ async function handleMove() {
             v-else
             class="space-y-1 border border-default rounded-lg max-h-72 overflow-y-auto"
           >
-            <!-- Personal (null) is always an option — detaches from
+            <!-- Personal (null) is always an option, detaches from
                  any workspace. -->
             <button
               type="button"

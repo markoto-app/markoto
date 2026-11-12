@@ -104,9 +104,9 @@ export const PROVIDER_ERROR_MESSAGES: Record<VerifyCode, string> = {
 
 const REDIRECT_PATTERN = /\bError code: 3\d\d\b|\bstatus(?: code)?:? 3\d\d\b/i
 
-/** User-facing message for a failed provider call — never includes upstream text. */
+/** User-facing message for a failed provider call, never includes upstream text. */
 export function providerErrorMessage(code: VerifyCode, e: unknown): string {
-  // Our own policy text (no upstream content) — keep it, it says what to fix.
+  // Our own policy text (no upstream content), keep it, it says what to fix.
   if (e instanceof AiProviderUrlRefused) return e.message
   const status = errorStatus(e)
   const msg = e instanceof Error ? e.message : String(e)
@@ -120,7 +120,7 @@ export function providerErrorMessage(code: VerifyCode, e: unknown): string {
  * Wrap a provider call so any thrown error is re-thrown as an
  * `AiProviderCallError` carrying a stable code and a fixed message (see
  * `providerErrorMessage`); the key-redacted upstream detail is logged
- * server-side only. Budget-exceeded errors are not wrapped — they only
+ * server-side only. Budget-exceeded errors are not wrapped, they only
  * occur on platform-billed calls, which carry no user key, and the
  * callers' `isBudgetExceededError` checks match on their message.
  */

@@ -36,7 +36,7 @@ export function useAiAvailability() {
   const state = computed<AiAvailability | null>(() => loggedIn.value ? query.data.value ?? null : null)
   const refresh = (): Promise<void> => invalidateAvailability()
 
-  /** Known AND unavailable — only then do we swap UI for a call-to-action. */
+  /** Known AND unavailable: only then do we swap UI for a call-to-action. */
   const chatMissing = computed(() => state.value !== null && !state.value.chat.available)
   const transcriptionAvailable = computed(() => state.value === null || state.value.transcription.available)
   const liveDictationAvailable = computed(() => state.value === null || state.value.transcription.liveDictation)
@@ -49,7 +49,7 @@ export function useAiAvailability() {
   const pageFetchAvailable = computed(() => state.value === null || state.value.webTools.fetch)
   /**
    * Does anything the user can do consume platform AI Points? False when
-   * every available capability runs on their own key — then the points
+   * every available capability runs on their own key, then the points
    * meter would be noise.
    */
   const anyPlatformBilled = computed(() => {

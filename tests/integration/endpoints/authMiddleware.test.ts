@@ -6,7 +6,7 @@ import { createAnonDoc } from '../setup/anonGate'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
 
 // server/middleware/auth.ts is the central whitelist that gates every
-// /api/* path. Regressions here have big blast radius — a stray protected
+// /api/* path. Regressions here have big blast radius, a stray protected
 // pattern exposes a mutation to anonymous callers. These tests verify the
 // whitelist is what the code claims it is.
 
@@ -25,7 +25,7 @@ describe('auth middleware whitelist', () => {
 
     it('GET /api/status is public and returns a per-component board', async () => {
       const res = await anonClient().get('/api/status')
-      // Status is a REPORT, not a gate — always 200 so a status-page
+      // Status is a REPORT, not a gate, always 200 so a status-page
       // poller's fetch succeeds even when a component is down.
       expect(res.status).toBe(200)
       const body = await res.json() as {
@@ -61,12 +61,12 @@ describe('auth middleware whitelist', () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const res = await anonClient().get(`/api/docs/${doc.docId}/activity`)
       // 200 on open-edit doc. The important thing is it didn't 401 at the
-      // middleware — the endpoint itself decides what's allowed.
+      // middleware: the endpoint itself decides what's allowed.
       expect(res.status).toBe(200)
     })
 
     it('DELETE /api/docs/:id is public (endpoint decides for anon docs)', async () => {
-      // Anonymous doc created by this (cookie-holding) anonymous browser —
+      // Anonymous doc created by this (cookie-holding) anonymous browser,
       // only the creating browser may delete it.
       const creator = anonClient()
       const created = await createAnonDoc(creator)
@@ -153,7 +153,7 @@ describe('auth middleware whitelist', () => {
 
   describe('default-deny backstop', () => {
     // The middleware is DEFAULT-DENY: any /api route not in the explicit
-    // public whitelist requires a valid session — there is no
+    // public whitelist requires a valid session, there is no
     // fall-through-open branch. These tests pin the model itself, not
     // individual endpoints: a regression back to prefix-matching would
     // flip the unknown-route case below from 401 to 404.
@@ -220,7 +220,7 @@ describe('auth middleware whitelist', () => {
     it('GET /api/files/:docId/:fileId stays public (endpoint-gated)', async () => {
       const doc = await createDoc({ accessMode: 'open-edit' })
       const res = await anonClient().get(`/api/files/${doc.docId}/nonexistent-file`)
-      // The file doesn't exist so the endpoint 404s — the point is the
+      // The file doesn't exist so the endpoint 404s, the point is the
       // middleware didn't 401 an anonymous image read on an open doc.
       expect(res.status).not.toBe(401)
     })

@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken'
 
-// Secret rotation helpers — used on both sides of the app/sync boundary,
+// Secret rotation helpers: used on both sides of the app/sync boundary,
 // hence the `shared/` location (imported via relative paths from both
 // `server/` and `sync-server/src/`). Keep the Nitro app and sync-server
 // Dockerfiles in step when moving files around here: sync-server's
@@ -18,12 +18,12 @@ import jwt from 'jsonwebtoken'
 /**
  * Verify a JWT with the current secret, falling back to the previous
  * secret on signature mismatch. We only swallow `JsonWebTokenError` (the
- * signature-failure path during rotation). Other verify errors — expired,
- * malformed — propagate.
+ * signature-failure path during rotation). Other verify errors, expired,
+ * malformed: propagate.
  *
  * `algorithms: ['HS256']` is pinned explicitly. Without it, `jwt.verify`
  * auto-accepts any HMAC variant the token header declares (HS256, HS384,
- * HS512) — harmless today given our 64-char shared secret, but defense-
+ * HS512): harmless today given our 64-char shared secret, but defense-
  * in-depth against a future change that (a) introduces an asymmetric
  * signer (RSA / ECDSA) and accidentally reuses the public key as an HS*
  * secret somewhere, or (b) some other path that weakens header parsing.

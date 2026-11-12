@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { emailLinkBaseUrl } from '../../../server/utils/platform/siteUrl'
 import { bootProblems } from '../env/fixtures'
 
-// Email links are built from NUXT_SITE_URL only — never from the
-// client-influenced request Host — so production must configure it.
+// Email links are built from NUXT_SITE_URL only, never from the
+// client-influenced request Host: so production must configure it.
 
 describe('NUXT_SITE_URL at boot', () => {
   it('requires NUXT_SITE_URL in production', () => {
@@ -28,7 +28,7 @@ describe('emailLinkBaseUrl', () => {
     expect(emailLinkBaseUrl(' http://localhost:3000 ')).toBe('http://localhost:3000')
   })
 
-  it('returns null (= do not send) when unset or unusable — never a request-derived host', () => {
+  it('returns null (= do not send) when unset or unusable, never a request-derived host', () => {
     expect(emailLinkBaseUrl('')).toBeNull()
     expect(emailLinkBaseUrl(undefined)).toBeNull()
     expect(emailLinkBaseUrl('javascript:alert(1)')).toBeNull()

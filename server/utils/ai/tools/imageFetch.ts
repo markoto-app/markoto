@@ -4,14 +4,14 @@ import { fetchExternalImage as fetchExternalImageGuarded, type ExternalImageResu
 import { MIB } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 
-// Fetching an image for the model to see (`view_image`) — from this
+// Fetching an image for the model to see (`view_image`), from this
 // document's uploads in S3 or from an external URL behind the SSRF guard.
 // Image generation reuses the external fetch for providers that answer
 // with a URL.
 
 // The model accepts a handful of image MIME types inline. Keep the
 // allowlist aligned with what our upload pipeline emits plus what
-// Mistral's vision model actually renders — reject anything else
+// Mistral's vision model actually renders, reject anything else
 // rather than gamble on model behavior.
 const ALLOWED_IMAGE_TYPES = new Set([
   'image/png',

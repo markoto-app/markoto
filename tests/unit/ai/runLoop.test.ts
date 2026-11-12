@@ -70,7 +70,7 @@ function makeFakeAi(turns: FakeTurn[]): {
         // Snapshot: the loop keeps mutating the `contents` array as
         // turns progress, so a reference-capture would reflect the
         // FINAL state, not the state at this call. Deep clone via
-        // JSON round-trip — our chunk shape is pure data.
+        // JSON round-trip: our chunk shape is pure data.
         callsSeen.push({ contents: JSON.parse(JSON.stringify(args.contents)) })
         const turn = turns[cursor++]
         if (!turn) throw new Error(`[fake-ai] unexpected call #${cursor}; harness only scripted ${turns.length} turns`)
@@ -155,7 +155,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('runAgenticLoop — single-turn happy path', () => {
+describe('runAgenticLoop: single-turn happy path', () => {
   it('model returns plain text with STOP → setStatus(done) and return normally', async () => {
     const { ai } = makeFakeAi([
       { chunks: [{ text: 'All done.', finishReason: FinishReason.STOP }] }
@@ -169,7 +169,7 @@ describe('runAgenticLoop — single-turn happy path', () => {
   })
 
   it('MAX_TOKENS finish also ends cleanly (done, not error)', async () => {
-    // Regression target: MAX_TOKENS is a "clean termination" reason —
+    // Regression target: MAX_TOKENS is a "clean termination" reason,
     // loop mustn't flag it as an error. The user just got a truncated
     // reply, not a safety block.
     const { ai } = makeFakeAi([
@@ -180,7 +180,7 @@ describe('runAgenticLoop — single-turn happy path', () => {
     expect(setStatus).toHaveBeenLastCalledWith('done', 'Done')
   })
 
-  it('first chunk has no finishReason but last does — runs to completion', async () => {
+  it('first chunk has no finishReason but last does, runs to completion', async () => {
     const { ai } = makeFakeAi([{
       chunks: [
         { text: 'Hello ' },
@@ -193,7 +193,7 @@ describe('runAgenticLoop — single-turn happy path', () => {
   })
 })
 
-describe('runAgenticLoop — tool dispatch', () => {
+describe('runAgenticLoop: tool dispatch', () => {
   it('single tool call → dispatches, then second turn returns plain text', async () => {
     const { ai } = makeFakeAi([
       // Turn 1: model calls view_document
@@ -209,7 +209,7 @@ describe('runAgenticLoop — tool dispatch', () => {
         assertContents: (contents) => {
           // The contents on the second call must contain our tool
           // response (user-role with a functionResponse part) exactly
-          // once — that's the model's continuation contract.
+          // once: that's the model's continuation contract.
           const last = contents[contents.length - 1] as { role: string, parts: Array<{ functionResponse?: unknown }> }
           expect(last.role).toBe('user')
           expect(first(last.parts).functionResponse).toBeDefined()
@@ -260,7 +260,7 @@ describe('runAgenticLoop — tool dispatch', () => {
 
   it('handler throw is caught and reported as isError to model', async () => {
     // Regression target: if a tool handler throws synchronously, the
-    // loop must NOT propagate — it must capture the message and pass
+    // loop must NOT propagate, it must capture the message and pass
     // isError=true back so the model can self-correct.
     const { ai, callsSeen } = makeFakeAi([
       { chunks: [{ functionCalls: [{ id: 'c1', name: 'replace_text', args: { old_str: 'x', new_str: 'y' } }], finishReason: FinishReason.STOP }] },
@@ -276,10 +276,10 @@ describe('runAgenticLoop — tool dispatch', () => {
   })
 })
 
-describe('runAgenticLoop — Zod validation of tool args', () => {
+describe('runAgenticLoop: Zod validation of tool args', () => {
   it('invalid tool args → loop sends isError response instead of dispatching', async () => {
     // replace_text requires non-empty old_str. Model passes empty; Zod
-    // safeParse catches it. The handler is never called — the model
+    // safeParse catches it. The handler is never called, the model
     // gets a clear schema-level error and can retry with the right shape.
     const { ai, callsSeen } = makeFakeAi([
       { chunks: [{ functionCalls: [{ id: 'c1', name: 'replace_text', args: { old_str: '', new_str: 'x' } }], finishReason: FinishReason.STOP }] },
@@ -295,7 +295,7 @@ describe('runAgenticLoop — Zod validation of tool args', () => {
 
   it('tool name the session did not offer → isError, handler never reached', async () => {
     // The model can name any tool (hallucination, or text in the doc
-    // telling it to). Only tools offered to this session may run — the
+    // telling it to). Only tools offered to this session may run, the
     // knowledge tools, for one, are offered only to workspace members
     // with ready files.
     const { ai, callsSeen } = makeFakeAi([
@@ -314,7 +314,7 @@ describe('runAgenticLoop — Zod validation of tool args', () => {
   })
 })
 
-describe('runAgenticLoop — terminal finishReasons', () => {
+describe('runAgenticLoop: terminal finishReasons', () => {
   it.each([
     FinishReason.MALFORMED_FUNCTION_CALL,
     FinishReason.UNEXPECTED_TOOL_CALL,
@@ -330,7 +330,7 @@ describe('runAgenticLoop — terminal finishReasons', () => {
     const setStatus = vi.fn()
     await runAgenticLoop(makeOpts({ ai, setStatus }))
     expect(setStatus).toHaveBeenLastCalledWith('error', expect.stringContaining(`Stopped: ${reason}`))
-    // And NEVER dispatched the tool — the loop saw the bail reason first.
+    // And NEVER dispatched the tool, the loop saw the bail reason first.
     expect(executeFunctionByName).not.toHaveBeenCalled()
   })
 
@@ -344,7 +344,7 @@ describe('runAgenticLoop — terminal finishReasons', () => {
   })
 })
 
-describe('runAgenticLoop — MAX_TURNS cap', () => {
+describe('runAgenticLoop: MAX_TURNS cap', () => {
   it('terminates with error after 20 turns of tool calls', async () => {
     // Every turn emits a tool call with no bail-out reason. After 20
     // iterations the while loop exits and setStatus('error', 'Hit
@@ -366,7 +366,7 @@ describe('runAgenticLoop — MAX_TURNS cap', () => {
   })
 })
 
-describe('runAgenticLoop — abort', () => {
+describe('runAgenticLoop: abort', () => {
   it('aborts before first turn throws immediately', async () => {
     const abortController = new AbortController()
     abortController.abort()
@@ -426,7 +426,7 @@ describe('runAgenticLoop — abort', () => {
   })
 })
 
-describe('runAgenticLoop — web_search routing', () => {
+describe('runAgenticLoop: web_search routing', () => {
   it('web_search calls the webSearch helper, not executeFunctionByName', async () => {
     const { ai } = makeFakeAi([
       { chunks: [{ functionCalls: [{ id: 'c1', name: 'web_search', args: { query: 'mistral pricing' } }], finishReason: FinishReason.STOP }] },
@@ -474,7 +474,7 @@ describe('runAgenticLoop — web_search routing', () => {
   })
 })
 
-describe('runAgenticLoop — conversation history', () => {
+describe('runAgenticLoop: conversation history', () => {
   it('appends model response parts verbatim before the functionResponse user block', async () => {
     // The model's continuation contract requires the model's own
     // Content block to be present in history before we reply with
@@ -506,7 +506,7 @@ describe('runAgenticLoop — conversation history', () => {
 // (runLoopBudgetExhaustion.test.ts). The full path is exercised by the integration suite, which can spin up a
 // real LiteLLM proxy with a sub-cent budget.
 
-describe('runAgenticLoop — degenerate function-call shapes', () => {
+describe('runAgenticLoop: degenerate function-call shapes', () => {
   it('all calls in a turn have empty `name` → defensive "no responses" exit', async () => {
     // The SUT does `if (!call.name) continue`, then if responseParts
     // is empty after the loop, logs "no function responses to send"
@@ -515,7 +515,7 @@ describe('runAgenticLoop — degenerate function-call shapes', () => {
     const { ai } = makeFakeAi([
       {
         chunks: [{
-          // Two calls, both with empty names — pathological.
+          // Two calls, both with empty names, pathological.
           functionCalls: [
             { id: 'c1', name: '', args: {} },
             { id: 'c2', name: '', args: {} }
@@ -534,7 +534,7 @@ describe('runAgenticLoop — degenerate function-call shapes', () => {
     expect(lastStatus).toEqual(['done', 'Done'])
   })
 
-  it('multi-tool turn where ONE handler throws — others STILL execute (per-call try/catch)', async () => {
+  it('multi-tool turn where ONE handler throws, others STILL execute (per-call try/catch)', async () => {
     // Existing single-tool throw is tested. The multi-tool case
     // matters more in practice: if a model emits 3 parallel tool
     // calls and the SECOND throws, the 1st AND 3rd must still
@@ -575,7 +575,7 @@ describe('runAgenticLoop — degenerate function-call shapes', () => {
   })
 })
 
-describe('runAgenticLoop — terminal finishReason behaviour (no app-side billing)', () => {
+describe('runAgenticLoop: terminal finishReason behaviour (no app-side billing)', () => {
   it('SAFETY-blocked turn surfaces an error status', async () => {
     // No app-side per-turn charge: LiteLLM bills the upstream chat call automatically; this test only checks
     // the status flow.
@@ -611,7 +611,7 @@ describe('runAgenticLoop — terminal finishReason behaviour (no app-side billin
   })
 })
 
-describe('runAgenticLoop — taint + confirm gate (cross-document access)', () => {
+describe('runAgenticLoop: taint + confirm gate (cross-document access)', () => {
   type Parts = Array<{ functionResponse?: { name?: string, response?: { isError?: boolean, output?: string } } }>
   function lastResponseParts(callsSeen: Array<{ contents: unknown[] }>, turn: number): Parts {
     const contents = callsSeen[turn]?.contents as Array<{ parts: Parts }>
@@ -737,7 +737,7 @@ function lastFunctionOutput(contents: unknown[]): string {
   return resp && typeof resp.output === 'string' ? resp.output : ''
 }
 
-describe('runAgenticLoop — stalled edits', () => {
+describe('runAgenticLoop: stalled edits', () => {
   it('bare-newline inserts after the real edit end the session as done, not at the turn limit', async () => {
     const ytext = docWith('# Welcome\n')
     const { ai } = makeFakeAi([
@@ -846,7 +846,7 @@ describe('runAgenticLoop — stalled edits', () => {
   })
 })
 
-describe('runAgenticLoop — finishing after the work is done', () => {
+describe('runAgenticLoop: finishing after the work is done', () => {
   it('closing prose after a document edit ends the session without a message_to_user', async () => {
     const ytext = docWith('# Title\n')
     const { ai } = makeFakeAi([
@@ -882,7 +882,7 @@ describe('runAgenticLoop — finishing after the work is done', () => {
   })
 })
 
-describe('runAgenticLoop — image URLs must come from the session', () => {
+describe('runAgenticLoop: image URLs must come from the session', () => {
   it('refuses an edit that embeds a made-up image URL and points the model at generate_image', async () => {
     const ytext = docWith('# Field notes\n')
     const { ai, callsSeen } = makeFakeAi([

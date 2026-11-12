@@ -22,7 +22,7 @@ KEY       := $(CERT_DIR)/$(CERT_NAME)-key.pem
 
 .PHONY: help
 help: ## Show this help
-	@printf "markoto — task runner. Run \033[1mmake <target>\033[0m or see \033[1mdocs/contributing/CHEATSHEET.md\033[0m for a use-case-keyed index.\n\n"
+	@printf "markoto: task runner. Run \033[1mmake <target>\033[0m or see \033[1mdocs/contributing/CHEATSHEET.md\033[0m for a use-case-keyed index.\n\n"
 	@grep -h -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) \
 	  | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-22s\033[0m %s\n", $$1, $$2}'
 	@printf "\nAnsible/deploy subcommands: \033[1mcd infra && make help\033[0m\n"
@@ -35,7 +35,7 @@ setup: ## First run: create .env with generated secrets, install deps (one Bun w
 	bun install
 
 .PHONY: dev
-dev: ## Start dev infra (Postgres, Valkey, etc) — Nuxt runs on host
+dev: ## Start dev infra (Postgres, Valkey, etc), Nuxt runs on host
 	$(DEV) up -d
 	@echo ""
 	@echo "Dev infra up (first run? 'make setup' creates .env). In another terminal: bun run dev --host 0.0.0.0"
@@ -67,7 +67,7 @@ test: ## Run lint + typecheck + unit + dom + repos (no integration / flows)
 	bun run test:repos
 
 .PHONY: test-unit
-test-unit: ## Run unit tests only (fast — no DB, no Docker)
+test-unit: ## Run unit tests only (fast, no DB, no Docker)
 	bun run test:unit
 
 .PHONY: test-dom
@@ -83,7 +83,7 @@ test-repos: ## Run repos tests (DB-backed; uses test stack)
 	bun run test:repos
 
 .PHONY: test-integration
-test-integration: ## Run integration tests (slow — full stack)
+test-integration: ## Run integration tests (slow, full stack)
 	bun run test:integration
 
 .PHONY: test-flows
@@ -91,7 +91,7 @@ test-flows: ## Run Playwright e2e flow tests
 	bun run flows:test
 
 .PHONY: test-all
-test-all: ## Run EVERY test suite (slow — ~15min)
+test-all: ## Run EVERY test suite (slow, ~15min)
 	$(MAKE) test
 	$(MAKE) test-integration
 	$(MAKE) test-flows

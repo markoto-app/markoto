@@ -5,7 +5,7 @@ import type { Page } from '@playwright/test'
 //
 // Headless Chromium has no built-in PDF viewer, so a flow can't capture
 // "the PDF you just downloaded" the way a reader would see it. This
-// serves a minimal viewer (pdf.js from jsDelivr — the same CDN the app's
+// serves a minimal viewer (pdf.js from jsDelivr, the same CDN the app's
 // preview already loads paged.js from) at `url`, with the PDF's real
 // bytes inlined: the pages in the frame are the file the app produced,
 // rendered, not a mock-up. Only the viewer chrome differs from Chrome's.

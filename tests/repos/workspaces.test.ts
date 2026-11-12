@@ -132,7 +132,7 @@ describe('deleteWorkspaceRow', () => {
 
   it('detaches documents (ownerId set-null FK) but keeps the rows', async () => {
     // The FK on documents.workspace_id is `set null` so docs outlive
-    // their workspace by design — the workspace-delete endpoint does
+    // their workspace by design, the workspace-delete endpoint does
     // the per-doc cascade separately. This pins the raw SQL behavior.
     const user = await createUser()
     const ws = await seedWorkspace(user.id)
@@ -183,13 +183,13 @@ describe('listWorkspacesForUser', () => {
   })
 })
 
-describe('createWorkspace — race', () => {
+describe('createWorkspace: race', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
   it('two concurrent creates with different ids both land cleanly', async () => {
-    // Sanity for the base case — no shared state, so both should
+    // Sanity for the base case, no shared state, so both should
     // succeed independently. If the tx were wrongly using a module-level
     // lock, this would serialize-and-slow-down; we just verify both
     // workspaces exist afterwards.

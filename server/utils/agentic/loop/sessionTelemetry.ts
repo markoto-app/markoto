@@ -79,7 +79,7 @@ export class SessionTelemetry {
           event: 'completed',
           outcome: this.outcome,
           docId: args.aiSession.docId,
-          // String for tag-search compatibility — Sentry's tag filter
+          // String for tag-search compatibility, Sentry's tag filter
           // works on string equality, not numeric comparison.
           initiatorUserId: String(args.aiSession.initiatorUserId)
         },
@@ -87,7 +87,7 @@ export class SessionTelemetry {
           sessionId: args.sessionId,
           turnCount: this.turnCount,
           totalInteractions: args.totalInteractions,
-          // -1 sentinel when the SDK never surfaced usageMetadata —
+          // -1 sentinel when the SDK never surfaced usageMetadata,
           // preserves "no data" vs "actually 0" distinction.
           totalInputTokens: this.sawAnyUsageMetadata ? this.totalInputTokens : -1,
           totalOutputTokens: this.sawAnyUsageMetadata ? this.totalOutputTokens : -1,

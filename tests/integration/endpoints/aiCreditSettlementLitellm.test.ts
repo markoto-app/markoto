@@ -11,7 +11,7 @@ import { sys } from '../../helpers/access'
 // AI credit top-ups against the REAL `litellm-test` proxy, in
 // process: a Pro user's key budget includes their credits, and the
 // settlement reads the key's spend from LiteLLM's spend logs (by the
-// stored key id) and takes what passed the plan budget from the credits —
+// stored key id) and takes what passed the plan budget from the credits,
 // the budget itself stays put for the rest of the month.
 // Spend comes from the dictation billing tick ($0.006, no upstream).
 
@@ -79,7 +79,7 @@ describe('credit settlement (real LiteLLM)', () => {
     const token = await getUserKeyToken(u.id, 'pro')
     expect(Number((await keyInfo(token)).max_budget)).toBeCloseTo(1.001, 6)
 
-    // Two billing ticks = $0.012 — well above the $0.001 plan budget.
+    // Two billing ticks = $0.012, well above the $0.001 plan budget.
     const ai = useLitellmForUser(token)
     for (let i = 0; i < 2; i++) await ai.chat.completions.create({ model: 'voxtral-realtime-tick', messages: [{ role: 'user', content: 'tick' }] })
 
@@ -101,7 +101,7 @@ describe('credit settlement (real LiteLLM)', () => {
 
     // The plan is cancelled mid-month: the spend Pro already covered is
     // still measured against the Pro budget recorded for this month, not
-    // today's (lower) Free budget — no further credits are taken.
+    // today's (lower) Free budget, no further credits are taken.
     await testDb().query(`UPDATE users SET plan = 'free', plan_valid_until = NULL WHERE id = $1`, [u.id])
     await settleSubject(subject)
     expect(await sumUsableCredits(subject)).toBeCloseTo(1 - (spend - 0.001), 6)

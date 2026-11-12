@@ -23,7 +23,7 @@ import type { DocAccess } from '../../repos/proofs'
 
 /**
  * The document's state at `maxYjsId`. The caller owns the lifecycle of the
- * returned doc — call `doc.destroy()` once finished if you've held it for
+ * returned doc: call `doc.destroy()` once finished if you've held it for
  * any meaningful time.
  */
 export async function reconstructDocAtYjsId(

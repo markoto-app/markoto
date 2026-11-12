@@ -7,7 +7,7 @@ import { useLogger } from '../../utils/platform/logger'
 
 const log = useLogger('instance-brand')
 
-// GET /instance-brand/logo.<ext> — the customer logo of a managed private
+// GET /instance-brand/logo.<ext>: the customer logo of a managed private
 // instance: the file the operator names in NUXT_INSTANCE_BRAND_LOGO
 // (a path inside the container, e.g. a read-only mount). Only shown as an
 // <img>; served with a sandbox CSP so an SVG opened directly can't run

@@ -85,7 +85,7 @@ export async function sumUsableCredits(subject: CreditSubject, now: Date = new D
   return Number(row?.total ?? 0)
 }
 
-/** Subjects that have (or had this month) usable credits — the settlement's work list. */
+/** Subjects that have (or had this month) usable credits, the settlement's work list. */
 export async function listSubjectsWithCredits(since: Date, tx?: TxHandle): Promise<CreditSubject[]> {
   const db = executor(tx)
   const rows = await db.selectDistinct({ type: aiCreditGrants.subjectType, id: aiCreditGrants.subjectId })

@@ -163,7 +163,7 @@ export async function deleteUserRow(user: UserScope): Promise<void> {
     .where(eq(users.id, userId))
     .returning({ id: users.id })
   if (removed.length === 0) {
-    throw new Error(`deleteUserRow: user ${userId} already gone — possible double-execution`)
+    throw new Error(`deleteUserRow: user ${userId} already gone, possible double-execution`)
   }
 }
 

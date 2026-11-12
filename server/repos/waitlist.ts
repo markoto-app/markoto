@@ -3,7 +3,7 @@ import { waitlistSignups } from '../db/schema'
 import { useDatabase } from '../db/client'
 import type { SystemActor, UserScope } from './proofs'
 
-// `waitlist_signups` repository — the paid-plans waitlist.
+// `waitlist_signups` repository: the paid-plans waitlist.
 //
 // Every function takes token HASHES, never raw tokens: hashing lives in
 // `server/utils/privacy/waitlist.ts` so the raw value never reaches this layer
@@ -135,7 +135,7 @@ export type WaitlistSignupExport = {
 
 /**
  * The signups linked to a user, for the GDPR data export. Explicit
- * projection — token hashes are internal secrets, not personal data
+ * projection: token hashes are internal secrets, not personal data
  * the person needs, and exporting them would only widen their exposure.
  */
 export async function listWaitlistSignupsForUser(user: UserScope): Promise<WaitlistSignupExport[]> {

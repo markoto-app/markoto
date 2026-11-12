@@ -48,7 +48,7 @@ function lastTheme(wrapper: Awaited<ReturnType<typeof mount>>): DocTheme | undef
   return isValidTheme(value) ? value : undefined
 }
 
-describe('theme panel — header rule, per-level headings, title weight', () => {
+describe('theme panel: header rule, per-level headings, title weight', () => {
   it('opening the panel on a legacy theme emits nothing', async () => {
     const wrapper = await mount(legacy())
     expect(wrapper.emitted('update:theme')).toBeUndefined()

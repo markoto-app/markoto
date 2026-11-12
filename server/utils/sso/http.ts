@@ -94,7 +94,7 @@ export function afterSsoLoginPath(result: SsoLoginResult, flow: SsoFlow): string
 
 /**
  * A refused or failed sign-in lands on a page that explains it (no raw
- * error text from the IdP — only our fixed codes).
+ * error text from the IdP, only our fixed codes).
  */
 export function ssoErrorPath(code: string, workspaceId?: string): string {
   const q = new URLSearchParams({ code })

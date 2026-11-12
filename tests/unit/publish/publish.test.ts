@@ -6,7 +6,7 @@ import { PUBLISH_SLUG_RE, slugFromTitle } from '../../../shared/config/publish'
 import { hljsTheme } from '../../../shared/utils/vendor/hljsAssets'
 import type { ObjectStore } from '../../../server/utils/storage/objectStore'
 
-// Publish as a web page: the pure parts — which files a snapshot
+// Publish as a web page: the pure parts, which files a snapshot
 // shows and how their URLs are rewritten, the page HTML and its CSP,
 // slugs, the orphan sweep.
 
@@ -94,7 +94,7 @@ describe('published page HTML', () => {
 
 describe('slugs', () => {
   it('from a title: folded, hyphenated, suffixed', () => {
-    expect(slugFromTitle('Über die Brücke — Teil 2!', 'k3x9za')).toBe('uber-die-brucke-teil-2-k3x9za')
+    expect(slugFromTitle('Über die Brücke \u2014 Teil 2!', 'k3x9za')).toBe('uber-die-brucke-teil-2-k3x9za')
     expect(slugFromTitle('日本語', 'k3x9za')).toBe('page-k3x9za')
     expect(slugFromTitle('a'.repeat(80), 'k3x9za')).toHaveLength(48 + 7)
     for (const s of [slugFromTitle('Über die Brücke', 'k3x9za'), 'abc', 'a-b-c']) expect(PUBLISH_SLUG_RE.test(s), s).toBe(true)

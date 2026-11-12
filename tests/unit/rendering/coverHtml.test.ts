@@ -12,14 +12,14 @@ import type { DocTheme } from '../../../shared/types/theme'
 
 const baseTheme = defaultTheme // markoto: cover.enabled=true, layout='centered', showTitle/Date true, others false
 
-describe('buildCoverHtml — when disabled', () => {
+describe('buildCoverHtml: when disabled', () => {
   test('returns empty string', () => {
     const off: DocTheme = { ...baseTheme, cover: { ...baseTheme.cover, enabled: false } }
     expect(buildCoverHtml(off, 'Title', '2026-04-29')).toBe('')
   })
 })
 
-describe('buildCoverHtml — markoto default (editorial, logo + title + date)', () => {
+describe('buildCoverHtml: markoto default (editorial, logo + title + date)', () => {
   test('emits <section class="markoto-cover">…</section>', () => {
     const out = buildCoverHtml(baseTheme, 'My Document', '2026-04-29')
     expect(out).toMatch(/^<section class="markoto-cover">/)
@@ -62,7 +62,7 @@ describe('buildCoverHtml — markoto default (editorial, logo + title + date)', 
   })
 })
 
-describe('buildCoverHtml — multi-author collaboration', () => {
+describe('buildCoverHtml: multi-author collaboration', () => {
   test('renders each author on its own line in document order', () => {
     const t: DocTheme = {
       ...baseTheme,
@@ -107,7 +107,7 @@ describe('buildCoverHtml — multi-author collaboration', () => {
   })
 })
 
-describe('buildCoverHtml — subtitle + logo', () => {
+describe('buildCoverHtml: subtitle + logo', () => {
   test('renders subtitle when showSubtitle + non-empty subtitle text', () => {
     const t: DocTheme = {
       ...baseTheme,
@@ -143,7 +143,7 @@ describe('buildCoverHtml — subtitle + logo', () => {
   })
 })
 
-describe('buildCoverHtml — HTML escaping (XSS defense)', () => {
+describe('buildCoverHtml: HTML escaping (XSS defense)', () => {
   test('escapes < > & in the title', () => {
     const out = buildCoverHtml(baseTheme, '<script>alert("x")</script>', '2026-04-29')
     expect(out).toContain('&lt;script&gt;alert("x")&lt;/script&gt;')
@@ -190,7 +190,7 @@ describe('buildCoverHtml — HTML escaping (XSS defense)', () => {
   })
 })
 
-describe('buildCoverHtml — element ordering', () => {
+describe('buildCoverHtml: element ordering', () => {
   test('logo → title → subtitle → meta(authors then date)', () => {
     const t: DocTheme = {
       ...baseTheme,
@@ -227,8 +227,8 @@ describe('buildCoverHtml — element ordering', () => {
   })
 })
 
-describe('buildCoverHtml — never emits <p> tags', () => {
-  test('cover HTML uses <h1>/<div>/<img>/<section> only — so the dropcap-wrap regex skips past it', () => {
+describe('buildCoverHtml: never emits <p> tags', () => {
+  test('cover HTML uses <h1>/<div>/<img>/<section> only, so the dropcap-wrap regex skips past it', () => {
     const t: DocTheme = {
       ...baseTheme,
       cover: {
@@ -246,7 +246,7 @@ describe('buildCoverHtml — never emits <p> tags', () => {
   })
 })
 
-describe('buildCoverHtml — empty values are skipped, not rendered as empty tags', () => {
+describe('buildCoverHtml: empty values are skipped, not rendered as empty tags', () => {
   test('empty title with showTitle=true → no h1', () => {
     expect(buildCoverHtml(baseTheme, '', '2026-04-29')).not.toContain('<h1')
   })
@@ -273,7 +273,7 @@ describe('buildCoverHtml — empty values are skipped, not rendered as empty tag
   })
 })
 
-describe('buildCoverHtml — accent hook + written-out date', () => {
+describe('buildCoverHtml: accent hook + written-out date', () => {
   test('a cover without a logo is marked so the layout CSS can add its accent', () => {
     const noLogo: DocTheme = { ...baseTheme, brand: { ...baseTheme.brand, logoUrl: '' } }
     expect(buildCoverHtml(noLogo, 'T', '29 October 2026')).toMatch(/^<section class="markoto-cover markoto-cover--no-logo">/)

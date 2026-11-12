@@ -5,7 +5,7 @@ import { pooledWorkspaceIdsSubquery } from './workspaceSubscriptions'
 import type { SystemActor, UserScope, WorkspaceAccess } from './proofs'
 
 /**
- * Data access for the workspace knowledge base. Kept thin — business rules
+ * Data access for the workspace knowledge base. Kept thin, business rules
  * (cap enforcement, processing triggers, access control) live in the
  * callers. Vector search is here because it's a single query.
  */
@@ -28,7 +28,7 @@ export interface KnowledgeRow {
   processedAt: Date | null
 }
 
-// Public shape — `markdownCache` is intentionally omitted from list
+// Public shape: `markdownCache` is intentionally omitted from list
 // responses (cache can be large, and the UI doesn't need it).
 const LIST_COLUMNS = {
   knowledgeId: workspaceKnowledge.knowledgeId,
@@ -63,7 +63,7 @@ export interface KnowledgeBrief {
   sizeBytes: number
   sourceExt: string
   tokenCount: number
-  /** Who uploaded the file — the AI loop treats other people's files as untrusted content. */
+  /** Who uploaded the file, the AI loop treats other people's files as untrusted content. */
   uploaderId: number | null
 }
 
@@ -129,7 +129,7 @@ export async function createKnowledge(ws: WorkspaceAccess<'editor'>, input: Crea
  * Pick a non-colliding filename by appending `(2)`, `(3)`, … if needed.
  * Case-sensitive match (Postgres default). The unique index on
  * (workspaceId, filename) still protects against a race where two
- * uploads land on the same suffix — the caller should handle a 23505
+ * uploads land on the same suffix, the caller should handle a 23505
  * by retrying.
  */
 export async function disambiguateFilename(ws: WorkspaceAccess<'member'>, desired: string): Promise<string> {
@@ -170,7 +170,7 @@ export async function sumWorkspaceKnowledgeBytes(ws: WorkspaceAccess<'member'>):
 
 /**
  * Per-uploader counter across every workspace. Used to cap a single
- * user from fanning out — "upload 500 files into 10 workspaces each"
+ * user from fanning out, "upload 500 files into 10 workspaces each"
  * would fit inside every per-workspace cap but blow this one.
  *
  * Intentionally counts rows in ALL statuses (processing/ready/failed).
@@ -236,7 +236,7 @@ export interface SearchHit {
 }
 
 // RRF constant. 60 is the value used in the original Cormack et al.
-// paper and copied widely — small enough that top-ranked items
+// paper and copied widely, small enough that top-ranked items
 // dominate, large enough that rank-4 in one list still counts against
 // rank-1 in the other. Don't tune this; if recall is bad, add a source
 // (title-match, recency) or tune the candidate pool instead.
@@ -244,9 +244,9 @@ const RRF_K = 60
 
 /**
  * Hybrid search across a workspace's chunks, combining:
- *   - Vector cosine similarity (via pgvector / HNSW) — good for
+ *   - Vector cosine similarity (via pgvector / HNSW), good for
  *     semantic / paraphrased queries.
- *   - Postgres BM25-style `ts_rank_cd` over a generated tsvector —
+ *   - Postgres BM25-style `ts_rank_cd` over a generated tsvector,
  *     good for exact-phrase / jargon queries ("section 4.3",
  *     "cross-entropy loss").
  *
@@ -257,7 +257,7 @@ const RRF_K = 60
  *
  * We pull a candidate pool (`candidatePool`, default 4 × topK) from
  * each source, fuse in JS, then cut to topK. Two round-trips instead
- * of a single SQL CTE — simpler, and easy to test against either
+ * of a single SQL CTE, simpler, and easy to test against either
  * source in isolation.
  *
  * The BM25 pass is guarded: if `websearch_to_tsquery` returns an empty
@@ -278,13 +278,13 @@ export async function searchKnowledge(ws: WorkspaceAccess<'member'>, search: {
 
   const similarity = sql<number>`1 - (${cosineDistance(workspaceKnowledgeChunks.embedding, args.queryEmbedding)})`
 
-  // Pass 1 — vector. Candidate-pool sized so the HNSW index returns
+  // Pass 1: vector. Candidate-pool sized so the HNSW index returns
   // enough spread for RRF to combine meaningfully.
   //
   // NaN guard: a chunk with a zero embedding (corruption, manual seed,
   // future ingest bug) produces NaN cosineDistance against a non-zero
-  // query. Postgres breaks IEEE — `NaN > 0.5` returns TRUE and `ORDER
-  // BY DESC` puts NaN at the TOP — so a single corrupt row would
+  // query. Postgres breaks IEEE, `NaN > 0.5` returns TRUE and `ORDER
+  // BY DESC` puts NaN at the TOP, so a single corrupt row would
   // dominate every workspace search. Filter NaN out explicitly. The
   // ingest pipeline shouldn't produce zero vectors today, but the
   // query-side guard is a one-liner defense in depth.
@@ -304,11 +304,11 @@ export async function searchKnowledge(ws: WorkspaceAccess<'member'>, search: {
     .orderBy(desc(similarity))
     .limit(pool)
 
-  // Pass 2 — BM25-style. `websearch_to_tsquery` is lenient: it handles
+  // Pass 2: BM25-style. `websearch_to_tsquery` is lenient: it handles
   // free-form input including OR-ed terms, quoted phrases, and negated
   // words without hand-parsing. If the input is all stopwords the
   // query is empty; `content_tsv @@ q` returns false and we just get
-  // zero rows — the RRF still works with a single source.
+  // zero rows: the RRF still works with a single source.
   const tsQuery = sql`websearch_to_tsquery('english', ${args.queryText})`
   const textScore = sql<number>`ts_rank_cd(${workspaceKnowledgeChunks.contentTsv}, ${tsQuery})`
 
@@ -329,7 +329,7 @@ export async function searchKnowledge(ws: WorkspaceAccess<'member'>, search: {
 
   const [vectorHits, textHits] = await Promise.all([vectorPromise, textPromise])
 
-  // RRF fusion. Key is (knowledgeId, chunkIndex) — ensures chunks
+  // RRF fusion. Key is (knowledgeId, chunkIndex), ensures chunks
   // appearing in both sources merge instead of duplicating.
   type Row = SearchHit
   const byKey = new Map<string, Row>()

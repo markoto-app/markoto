@@ -3,7 +3,7 @@
 // Only markoto.app publishes one (`NUXT_MARKETING_SITE_ENABLED`): a
 // self-hosted instance has nothing to advertise to search engines beyond
 // its copy of the docs, whose canonicals point at markoto.app anyway.
-// Absolute URLs come from `NUXT_SITE_URL` — never the request Host — so
+// Absolute URLs come from `NUXT_SITE_URL`, never the request Host, so
 // without it there is no sitemap either.
 //
 // Pure helpers; the route gathers the docs paths from Nuxt Content.

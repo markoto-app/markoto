@@ -36,7 +36,7 @@ function isSolution(value: unknown): value is AltchaSolution {
   return typeof v.counter === 'number' && typeof v.derivedKey === 'string'
 }
 
-/** How many workers: half the cores (min 1, max 4) — fast without pegging a phone. */
+/** How many workers: half the cores (min 1, max 4), fast without pegging a phone. */
 export function solverConcurrency(hardwareConcurrency: number | undefined): number {
   const cores = typeof hardwareConcurrency === 'number' && hardwareConcurrency > 0 ? hardwareConcurrency : 2
   return Math.min(4, Math.max(1, Math.floor(cores / 2)))

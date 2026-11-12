@@ -1,23 +1,23 @@
 import { describe, it, expect } from 'vitest'
 import { stripWrapperArgs } from '../../../server/mcp/lib/stripWrapperArgs'
 
-// Pin the dispatch contract — the args object that reaches the
+// Pin the dispatch contract, the args object that reaches the
 // underlying TOOL_HANDLER must NEVER carry wrapper-injected fields
 // (`doc_id`, `workspace_id`). Without this isolation, handlers that do
 // `{...args}`-style spread (the original `coerceThemePatch` bug in
-// `update_theme` — leaked `doc_id` into the merged DocTheme and
+// `update_theme`: leaked `doc_id` into the merged DocTheme and
 // failed `.strict()` validation) silently break for the MCP caller
 // while the in-app loop keeps working, because the loop never injects
 // these fields.
 //
 // The wrapper-side wiring (`buildDocBoundTool` / `buildWorkspaceBoundTool`
 // passing the right field names to this helper) is verified at the
-// integration tier — `tests/integration/mcp/tools-write.test.ts` runs
+// integration tier: `tests/integration/mcp/tools-write.test.ts` runs
 // `update_theme` end-to-end through MCP and asserts the merged theme
 // persists correctly. If this helper passes but that integration test
 // fails again, the wrapper forgot to call this helper.
 
-describe('stripWrapperArgs — dispatch shape contract', () => {
+describe('stripWrapperArgs: dispatch shape contract', () => {
   it('removes a single named field', () => {
     const args = { doc_id: 'doc-abc', old_str: 'a', new_str: 'b' }
     const out = stripWrapperArgs(args, 'doc_id')
@@ -51,7 +51,7 @@ describe('stripWrapperArgs — dispatch shape contract', () => {
   it('handles nested objects without flattening or descending into them', () => {
     // The wrapper-injected fields are always top-level scalars
     // (`doc_id: string`, `workspace_id: string`). Nested fields like
-    // `body: { color: '#fff' }` must pass through untouched — they
+    // `body: { color: '#fff' }` must pass through untouched, they
     // ARE the handler's payload.
     const args = {
       doc_id: 'doc-abc',
@@ -63,7 +63,7 @@ describe('stripWrapperArgs — dispatch shape contract', () => {
       page: { margin: 30 },
       body: { color: '#123456' }
     })
-    // Same reference — confirms shallow copy.
+    // Same reference: confirms shallow copy.
     expect((out as { page: object }).page).toBe(args.page)
   })
 })

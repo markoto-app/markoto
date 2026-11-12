@@ -108,7 +108,7 @@ export function scimUserResource(event: H3Event, row: ScimUserRow) {
   }
 }
 
-/** `userName eq "x"` / `externalId eq "x"` / `emails[...] eq` — what IdPs send to look a user up. */
+/** `userName eq "x"` / `externalId eq "x"` / `emails[...] eq`, what IdPs send to look a user up. */
 export function parseScimFilter(filter: string | undefined): { attribute: 'userName' | 'externalId', value: string } | null | 'unsupported' {
   if (!filter) return null
   const m = /^\s*(userName|externalId|emails(?:\[type eq "work"\])?\.value|emails)\s+eq\s+"((?:[^"\\]|\\.)*)"\s*$/i.exec(filter)

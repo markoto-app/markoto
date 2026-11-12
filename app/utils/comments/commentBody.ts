@@ -1,7 +1,7 @@
 // Comment body is plain text plus `@[Display Name](user:123)` mention
 // tokens. Parser turns the string into a sequence of text + mention
 // segments for renderers to walk. Single-pass regex; tokens may be
-// adjacent (`@[A](user:1)@[B](user:2)`) — the global flag with
+// adjacent (`@[A](user:1)@[B](user:2)`): the global flag with
 // `lastIndex` reset handles that.
 //
 // Why not full markdown? Comments are short discussion threads, not
@@ -33,7 +33,7 @@ const MENTION_RE = /@\[([^\]]+)\]\(user:(\d+)\)/g
 // `@markoto` at a word boundary, case-insensitive. The leading guard
 // keeps it from matching inside emails or URLs; the trailing lookahead
 // keeps `@markoto-something` out. `@ai` is still recognised so existing
-// comments keep their chip — both forms render as the markoto pill.
+// comments keep their chip, both forms render as the markoto pill.
 const AI_MENTION_RE = /(^|[^\w@])@(markoto|ai)(?=[^\w]|$)/gi
 
 interface SegmentMatch {
@@ -75,7 +75,7 @@ export function parseCommentBody(body: string): CommentSegment[] {
   const segments: CommentSegment[] = []
   let last = 0
   for (const match of matches) {
-    if (match.index < last) continue // overlapping match — skip
+    if (match.index < last) continue // overlapping match, skip
     if (match.index > last) {
       segments.push({ kind: 'text', text: body.slice(last, match.index) })
     }

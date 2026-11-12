@@ -5,7 +5,7 @@ import { useEnv } from '~~/shared/env/load'
 /**
  * The requesting client's IP address, or `null` when it can't be told.
  *
- * The ONE place an endpoint may read a client address — rate-limit keys
+ * The ONE place an endpoint may read a client address, rate-limit keys
  * and the (truncated) IP on audit / consent / abuse rows both come from
  * here. Never read `X-Forwarded-For` / `X-Real-IP` directly: the leftmost
  * XFF entry is whatever the client sent. See `shared/utils/security/clientIp.ts`
@@ -25,8 +25,8 @@ export function getClientIp(event: H3Event): string | null {
 
 /**
  * Rate-limit key for the requesting client: the IPv4 address, or the
- * IPv6 /64 prefix (see `rateLimitIpKey`). Use this — never the raw
- * `getClientIp` value — whenever a limit is keyed on the client address.
+ * IPv6 /64 prefix (see `rateLimitIpKey`). Use this, never the raw
+ * `getClientIp` value: whenever a limit is keyed on the client address.
  */
 export function getClientRateLimitKey(event: H3Event): string {
   return rateLimitIpKey(getClientIp(event))

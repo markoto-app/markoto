@@ -32,7 +32,7 @@ export interface RunLoopOptions {
    * message, ahead of `initialPrompt`. Kept out of `systemPrompt` so the
    * system message + tool definitions stay a cacheable prefix across
    * prompts (see `promptAssembly.ts`). Not part of the image-provenance
-   * "seen" text — that stays what the user typed + the document.
+   * "seen" text: that stays what the user typed + the document.
    */
   promptPreamble?: string
   aiSession: AiSession
@@ -48,7 +48,7 @@ export interface RunLoopOptions {
    */
   toolDeclarations?: FunctionDeclaration[]
   billingContext: BillingContext
-  /** Optional logger — defaults to the `ai-loop` logger at debug level, tagged with the session id. */
+  /** Optional logger: defaults to the `ai-loop` logger at debug level, tagged with the session id. */
   logger?: (msg: string) => void
   /**
    * Optional callback fired ONCE per validated tool call (after Zod

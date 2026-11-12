@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// "AI provider" settings — bring your own key. One card per
+// "AI provider" settings: bring your own key. One card per
 // capability (chat / image / transcription). Each shows where the
 // capability comes from right now (own key → instance default → none)
 // and lets the user connect their own OpenAI-compatible provider.

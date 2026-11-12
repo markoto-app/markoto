@@ -1,4 +1,4 @@
-// `NUXT_SITE_URL` — the public origin of this instance.
+// `NUXT_SITE_URL`: the public origin of this instance.
 //
 // Links in emails (waitlist confirm / unsubscribe) are built ONLY from
 // it, never from the request's Host / X-Forwarded-* headers: those are
@@ -10,7 +10,7 @@
 /**
  * Base URL for links in outgoing emails: the configured site origin, or
  * null when `NUXT_SITE_URL` is unset / invalid. Callers must NOT fall
- * back to the request host — skip the email instead.
+ * back to the request host, skip the email instead.
  */
 export function emailLinkBaseUrl(configured: unknown): string | null {
   if (typeof configured !== 'string' || configured.trim() === '') return null

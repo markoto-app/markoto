@@ -9,7 +9,7 @@ import { YEAR_SECONDS } from '~~/shared/config/units'
 // an account. Instead the creating browser holds a random 256-bit key in
 // an httpOnly cookie; the doc row stores only its SHA-256
 // (`documents.anon_creator_key_hash`). Deleting an ownerless doc requires
-// presenting the matching key — anyone else with the link can still edit
+// presenting the matching key, anyone else with the link can still edit
 // an open-edit doc, but not delete it.
 //
 // One key per browser (reused across every doc it creates), so the
@@ -35,7 +35,7 @@ export function parseAnonCreatorKey(raw: unknown): string | null {
   return typeof raw === 'string' && KEY_SHAPE.test(raw) ? raw : null
 }
 
-/** SHA-256 hex of a creator key — the only form stored on the doc row. */
+/** SHA-256 hex of a creator key, the only form stored on the doc row. */
 export function hashAnonCreatorKey(key: string): string {
   return createHash('sha256').update(key).digest('hex')
 }

@@ -12,7 +12,7 @@ import { docAs } from '../helpers/access'
 
 // Repo-level tests for the new helpers used by the duplicate flow.
 // `listConfirmedUploadsForDoc` and `insertConfirmedUploads` feed the
-// S3 CopyObject loop in duplicateDocument — wrong behaviour here =
+// S3 CopyObject loop in duplicateDocument, wrong behaviour here =
 // dupe either misses images or inserts bogus rows.
 
 async function rowCount(docId: string): Promise<number> {
@@ -32,7 +32,7 @@ describe('listConfirmedUploadsForDoc', () => {
   it('returns only confirmed uploads for the requested doc', async () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
-    // One confirmed, one pending — only the confirmed one should land in
+    // One confirmed, one pending, only the confirmed one should land in
     // the clone set. Pending rows may not even have an S3 object yet, so
     // copying them would error inside CopyObject.
     await recordPending(docAs(doc.docId), {
@@ -120,7 +120,7 @@ describe('insertConfirmedUploads', () => {
     ])
 
     expect(await rowCount(target.docId)).toBe(2)
-    // Both rows must be confirmed — the duplicate flow skips them
+    // Both rows must be confirmed, the duplicate flow skips them
     // otherwise (listConfirmedUploadsForDoc filters on confirmedAt NOT
     // NULL) so a future move/dupe of the dupe would see an empty set.
     const rows = await listConfirmedUploadsForDoc(docAs(target.docId))

@@ -28,7 +28,7 @@ const formattedDate = computed(() => {
 })
 
 // Compact variant for the mobile banner: date only, no time. At 375px the
-// long "Account scheduled for deletion — May 06, 2026, 12:00 PM" plus a
+// long "Account scheduled for deletion, May 06, 2026, 12:00 PM" plus a
 // button breaks the single-line layout, so `<sm` hides the title text and
 // shortens the date.
 const formattedDateCompact = computed(() => {
@@ -81,10 +81,10 @@ async function onCancel(): Promise<void> {
     />
     <!-- Desktop: full status line with date+time. -->
     <span class="text-default hidden sm:inline">
-      {{ t('legal.delete.graceBannerTitle') }} —
+      {{ t('legal.delete.graceBannerTitle') }}:
       <span class="font-mono">{{ formattedDate }}</span>
     </span>
-    <!-- Mobile: compact date only — the title is implicit from the
+    <!-- Mobile: compact date only, the title is implicit from the
          clock icon + the cancel CTA. Long status copy + a button at
          375px breaks the single-line banner. -->
     <span class="text-default sm:hidden font-mono">

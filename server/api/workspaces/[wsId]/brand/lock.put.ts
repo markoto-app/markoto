@@ -6,9 +6,9 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_BRAND_LOCK_CHANGED } from '../../../../legal/auditActions'
 import { setBrandLockBody } from '~~/shared/api/brand'
 
-// PUT /api/workspaces/:wsId/brand/lock — {locked: boolean}. While
+// PUT /api/workspaces/:wsId/brand/lock: {locked: boolean}. While
 // locked, every document in the workspace renders with the workspace
-// design (its default theme) and keeps only its cover text — enforced at
+// design (its default theme) and keeps only its cover text, enforced at
 // render time (shared/utils/theme/brandLock.ts), documents' own themes stay as
 // they are. Locking: admins, plan feature `brandKit`, a workspace design
 // must be set. Unlocking: admins, always (also after a downgrade).

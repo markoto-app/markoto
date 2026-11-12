@@ -32,7 +32,7 @@ interface CommentContextRow {
 interface CommentContextResponse {
   /** The activity row the response was computed for. */
   activityId: number
-  /** Comments in chronological order — root first, then replies. */
+  /** Comments in chronological order, root first, then replies. */
   rows: CommentContextRow[]
   /** Which entry the activity row was about (for highlight rendering). */
   focusEntryId: string

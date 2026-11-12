@@ -4,7 +4,7 @@ import {
   type VersionCheckPromptHandlers
 } from '../../app/utils/platform/versionCheckController'
 
-// Pure controller test — no Nuxt boot, no `$fetch`, no toast renderer.
+// Pure controller test: no Nuxt boot, no `$fetch`, no toast renderer.
 // We stub the three dependencies the controller needs (fetch, reload,
 // showPrompt) and use Vitest's fake timers to drive the grace-period +
 // snooze + visibility-throttle timing assertions deterministically.
@@ -96,7 +96,7 @@ describe('versionCheckController', () => {
     await ctl.poll()
 
     expect(reload).not.toHaveBeenCalled()
-    // Just under the grace window — still no reload.
+    // Just under the grace window, still no reload.
     vi.advanceTimersByTime(29_999)
     expect(reload).not.toHaveBeenCalled()
     // Tick past 30s.
@@ -136,21 +136,21 @@ describe('versionCheckController', () => {
     vi.advanceTimersByTime(10_000)
     lastHandlers!.onSnooze()
 
-    // Past the original 30s window, no reload — the snooze cleared it.
+    // Past the original 30s window, no reload, the snooze cleared it.
     vi.advanceTimersByTime(30_000)
     expect(reload).not.toHaveBeenCalled()
 
-    // Just under 5 min more — still no reload.
+    // Just under 5 min more, still no reload.
     vi.advanceTimersByTime(5 * 60 * 1000 - 31_000)
     expect(reload).not.toHaveBeenCalled()
 
-    // Cross the 5-minute mark — reload fires.
+    // Cross the 5-minute mark, reload fires.
     vi.advanceTimersByTime(2_000)
     expect(reload).toHaveBeenCalledTimes(1)
     ctl.dispose()
   })
 
-  it('Snooze can be clicked multiple times — each click resets the timer', async () => {
+  it('Snooze can be clicked multiple times, each click resets the timer', async () => {
     fetchBuildId.mockResolvedValueOnce('A').mockResolvedValueOnce('B')
     const ctl = makeController()
     await ctl.poll()
@@ -159,7 +159,7 @@ describe('versionCheckController', () => {
     lastHandlers!.onSnooze()
     vi.advanceTimersByTime(4 * 60 * 1000) // 4 min into snooze
     lastHandlers!.onSnooze() // reset
-    vi.advanceTimersByTime(4 * 60 * 1000) // 4 more min — only 4/5 into the new window
+    vi.advanceTimersByTime(4 * 60 * 1000) // 4 more min, only 4/5 into the new window
     expect(reload).not.toHaveBeenCalled()
     vi.advanceTimersByTime(60_001)
     expect(reload).toHaveBeenCalledTimes(1)
@@ -182,12 +182,12 @@ describe('versionCheckController', () => {
     await ctl.poll() // sets lastPolledAt = 1_000_000
     expect(fetchBuildId).toHaveBeenCalledTimes(1)
 
-    // 30s later — under the 60s throttle, no second poll.
+    // 30s later: under the 60s throttle, no second poll.
     nowMs += 30_000
     ctl.onVisible()
     expect(fetchBuildId).toHaveBeenCalledTimes(1)
 
-    // Past 60s — onVisible polls.
+    // Past 60s: onVisible polls.
     nowMs += 31_000
     ctl.onVisible()
     // The poll is async; flush microtasks.

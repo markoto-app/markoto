@@ -1,8 +1,8 @@
 import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
-// MCP-side `view_document`. Same body as the in-app loop tool — read
-// the doc with 1-indexed line prefixes — gated on `documents:read`
+// MCP-side `view_document`. Same body as the in-app loop tool, read
+// the doc with 1-indexed line prefixes, gated on `documents:read`
 // and the user's view access to the requested doc_id.
 export default buildDocBoundTool({
   name: 'view_document',
@@ -17,6 +17,6 @@ export default buildDocBoundTool({
         message: 'view_range must be [start, end] where start >= 1 and end is either -1 (read to EOF) or >= start'
       })
       .optional()
-      .describe('Inclusive [startLine, endLine], both 1-indexed positive integers. Use -1 ONLY as the endLine sentinel (read to end of file). Never use -1 as start — start must be >= 1.')
+      .describe('Inclusive [startLine, endLine], both 1-indexed positive integers. Use -1 ONLY as the endLine sentinel (read to end of file). Never use -1 as start, start must be >= 1.')
   }
 })

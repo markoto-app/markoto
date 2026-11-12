@@ -3,7 +3,7 @@ import { AUDIT_SSO_SCIM_USER_DEACTIVATED } from '../../../../legal/auditActions'
 import { deleteScimUser, requireScimIdentity } from '../../../../utils/sso/scim'
 import { scimUserParams } from '~~/shared/api/sso'
 
-// DELETE /scim/v2/Users/:id — out of the workspace; the account stays.
+// DELETE /scim/v2/Users/:id: out of the workspace; the account stays.
 export default defineApiHandler({
   access: allow.scim(),
   params: scimUserParams,

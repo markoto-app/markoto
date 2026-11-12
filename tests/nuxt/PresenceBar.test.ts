@@ -11,7 +11,7 @@ import { AWARENESS_FALLBACK_COLOR } from '~~/shared/utils/documents/awarenessUse
 // Awareness states are chosen by each peer and relayed verbatim. A peer
 // could put CSS into `user.color` (lands in inline styles), an image URL
 // into `user.avatar` (would make every viewer fetch it) or a non-string
-// name. PresenceBar must render all of that safely — and avatars are
+// name. PresenceBar must render all of that safely, and avatars are
 // generated locally, never loaded from a URL a peer chose.
 
 registerEndpoint('/api/docs/doc-presence/members', () => ({ members: [] }))
@@ -32,7 +32,7 @@ function receiveRemoteState(target: Awareness, state: Record<string, unknown>) {
   applyAwarenessUpdate(target, encodeAwarenessUpdate(peer, [peer.clientID]), 'remote')
 }
 
-describe('<PresenceBar> — hostile awareness payloads', () => {
+describe('<PresenceBar>: hostile awareness payloads', () => {
   it('renders a peer with a non-string name, CSS in the colour and a script avatar safely', async () => {
     const awareness = new Awareness(new Y.Doc())
     const wrapper = await mountBar(awareness)
@@ -78,7 +78,7 @@ describe('<PresenceBar> — hostile awareness payloads', () => {
   })
 })
 
-describe('<PresenceBar> — avatar seeds', () => {
+describe('<PresenceBar>: avatar seeds', () => {
   it('seeds signed-in peers by user id and anonymous peers by their session token', async () => {
     const awareness = new Awareness(new Y.Doc())
     const wrapper = await mountBar(awareness)

@@ -13,7 +13,7 @@
  * forgetting the other leads to handlers that compile but read
  * fields that no longer exist (silent null), or fields that shifted
  * location (e.g. `current_period_start` moved from the subscription
- * root to the subscription ITEM in the 2025-01-27 release — see
+ * root to the subscription ITEM in the 2025-01-27 release, see
  * `subscriptionPeriod` in `server/utils/billing/stripeEvents/stripeObjects.ts`).
  *
  * The handler table checks each entry against the SDK's own type for its
@@ -30,7 +30,7 @@ import type Stripe from 'stripe'
 
 /**
  * The Stripe API version this codebase speaks. Pinning decouples our
- * code from Stripe's rolling defaults — subscription period fields
+ * code from Stripe's rolling defaults, subscription period fields
  * and other objects change shape across versions, and we want our
  * webhook handlers to see a stable schema across deployments.
  *
@@ -47,14 +47,14 @@ import type Stripe from 'stripe'
 export const STRIPE_API_VERSION = '2025-01-27.acacia'
 
 /**
- * The handled events whose ordering matters — those that
+ * The handled events whose ordering matters, those that
  * can arrive BEFORE `checkout.session.completed` binds the
  * customerId to a user row, and therefore need to be stashed in
  * `pending_stripe_events` until the bind happens.
  *
  * Used by `dispatchStripeEvent` to decide whether to run the stash
  * branch on a customer-id-without-user-row miss. `checkout.session.completed`
- * is intentionally NOT in this list — it's the binding event itself.
+ * is intentionally NOT in this list, it's the binding event itself.
  */
 export const ORDER_SENSITIVE_STRIPE_EVENT_TYPES = [
   'customer.subscription.created',

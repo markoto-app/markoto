@@ -5,8 +5,8 @@ import { AUDIT_POLICY_ACCEPTED } from '../../legal/auditActions'
 import { PAID_TERMS_VERSION } from '~~/shared/legal/versions'
 import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
-// Paid Plans Terms (`content/legal/paid-terms/`). Every purchase —
-// a plan checkout, an in-place plan switch, an AI-credit top-up — needs
+// Paid Plans Terms (`content/legal/paid-terms/`). Every purchase,
+// a plan checkout, an in-place plan switch, an AI-credit top-up, needs
 // the buyer's explicit acceptance in the request (`acceptPaidTerms:
 // true`, the ticked box beside the button). The box also carries the
 // consumer's request to start at once (withdrawal, terms §6). Seat
@@ -15,7 +15,7 @@ import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 //
 // Acceptance is recorded per purchase in the audit log (`policy.accepted`,
 // document `paid-terms`), the same record the onboarding + DPA acceptances
-// use — not on the user row: one person can buy for several workspaces,
+// use: not on the user row: one person can buy for several workspaces,
 // and the record must name what was bought.
 
 export interface PaidTermsPurchase {

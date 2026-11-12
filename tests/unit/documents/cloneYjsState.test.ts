@@ -13,7 +13,7 @@ import { docAs } from '../../helpers/access'
 //     with a regex)
 //
 // Everything else was redundant with the repo test and has been deleted.
-// Coverage loss is zero — we cover the same lines via the repo test.
+// Coverage loss is zero, we cover the same lines via the repo test.
 
 // The Y.js log access is mocked at its module boundary (yjsLog.ts): the
 // source's state is one update, and appends are captured.
@@ -42,7 +42,7 @@ beforeEach(() => {
   appended.length = 0
 })
 
-describe('cloneYjsState — non-obvious contracts', () => {
+describe('cloneYjsState: non-obvious contracts', () => {
   it('SRC\'s full-path rewrite does NOT touch a docId that HAS SRC as a substring (SRCX)', async () => {
     // Security-adjacent: `replaceAll('/api/files/SRC/', ...)` anchors
     // on the TRAILING slash. A refactor that used a non-anchored
@@ -83,7 +83,7 @@ describe('cloneYjsState — non-obvious contracts', () => {
     )
   })
 
-  it('the `_deleted` flag is DROPPED — duplicates must start un-deleted', async () => {
+  it('the `_deleted` flag is DROPPED, duplicates must start un-deleted', async () => {
     // Sentinel contract: the source doc may transiently hold `_deleted:
     // true` during a concurrent delete. If that flag carried over, the
     // duplicate would appear soft-deleted on open. We explicitly filter

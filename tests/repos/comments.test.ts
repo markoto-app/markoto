@@ -18,7 +18,7 @@ import { docAs } from '../helpers/access'
 // tuple keys, so the cross-doc isolation invariant from server/repos/AGENTS.md
 // applies: an entryId from doc B must never resolve via doc A's id.
 
-// Small helper — hand-roll the row shape so tests stay legible. The repo
+// Small helper: hand-roll the row shape so tests stay legible. The repo
 // accepts dates in any order; we set explicit ms so ordering assertions
 // can't be confused by setTimeout jitter.
 function snapshotRow(overrides: Partial<CommentSnapshotRow> = {}): CommentSnapshotRow {
@@ -67,7 +67,7 @@ describe('replaceCommentSnapshot', () => {
     ])
     expect(await countRows(doc.docId)).toBe(1)
 
-    // Replace with a different shape entirely — old row must be gone.
+    // Replace with a different shape entirely, old row must be gone.
     await replaceCommentSnapshot(docAs(doc.docId), [
       snapshotRow({ entryId: 'c', body: 'third' })
     ])
@@ -173,7 +173,7 @@ describe('replaceCommentSnapshot', () => {
     await expect(
       replaceCommentSnapshot(docAs('does-not-exist'), [snapshotRow({ entryId: 'a' })])
     ).rejects.toThrow()
-    // And the row count for the bogus docId remains zero — the
+    // And the row count for the bogus docId remains zero, the
     // transaction must roll back, not silently leave junk behind.
     expect(await countRows('does-not-exist')).toBe(0)
   })
@@ -203,7 +203,7 @@ describe('replaceCommentSnapshot', () => {
 
   it('rolls back the whole transaction on a duplicate entryId within one snapshot', async () => {
     // Composite PK is (docId, entryId). Two rows in one snapshot with
-    // matching entryId must abort the entire transaction — leaving the
+    // matching entryId must abort the entire transaction, leaving the
     // mirror in its prior state, NOT half-applied.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
@@ -260,7 +260,7 @@ describe('getCommentThreadByEntryId', () => {
   })
 
   it('walks the parent chain when called with a reply entryId', async () => {
-    // "Resolve a thread by ANY entry id (root OR reply)" — calling with
+    // "Resolve a thread by ANY entry id (root OR reply)", calling with
     // a reply must still return the whole thread starting at the root.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
@@ -301,7 +301,7 @@ describe('getCommentThreadByEntryId', () => {
     const tB = new Date('2025-01-01T00:00:20.000Z')
     const tC = new Date('2025-01-01T00:00:30.000Z')
     await replaceCommentSnapshot(docAs(doc.docId), [
-      // Insert in shuffled order — DB row order should not influence result.
+      // Insert in shuffled order, DB row order should not influence result.
       snapshotRow({ entryId: 'reply-c', parentCommentId: 'root', body: 'c', createdAt: tC, updatedAt: tC }),
       snapshotRow({ entryId: 'reply-a', parentCommentId: 'root', body: 'a', createdAt: tA, updatedAt: tA }),
       snapshotRow({ entryId: 'root', body: 'r', createdAt: tRoot, updatedAt: tRoot }),
@@ -320,7 +320,7 @@ describe('getCommentThreadByEntryId', () => {
     const tEarly = new Date('2025-01-01T00:00:00.000Z')
     const tLate = new Date('2025-01-01T00:05:00.000Z')
     await replaceCommentSnapshot(docAs(doc.docId), [
-      // Root's timestamp is LATER than the reply — pathological case.
+      // Root's timestamp is LATER than the reply, pathological case.
       snapshotRow({ entryId: 'root', body: 'r', createdAt: tLate, updatedAt: tLate }),
       snapshotRow({ entryId: 'r1', parentCommentId: 'root', body: 'a', createdAt: tEarly, updatedAt: tEarly })
     ])
@@ -362,8 +362,8 @@ describe('getCommentThreadByEntryId', () => {
 
   it('cross-doc isolation: querying entryId from doc B against doc A returns null', async () => {
     // THE security-critical test. server/repos/AGENTS.md: "cross-doc isolation
-    // via tuple keys — getActivityById(activityId, docId) is keyed on the
-    // (id, docId) tuple — a row from doc B accessed via doc A's URL
+    // via tuple keys: getActivityById(activityId, docId) is keyed on the
+    // (id, docId) tuple, a row from doc B accessed via doc A's URL
     // returns null." Same invariant applies here: knowing an entryId on
     // doc B must not let an attacker pull it via doc A's URL.
     const user = await createUser()
@@ -377,7 +377,7 @@ describe('getCommentThreadByEntryId', () => {
       snapshotRow({ entryId: 'b-only', body: 'b-only body' })
     ])
 
-    // Same entryId on both docs — but the repo must scope strictly by docId.
+    // Same entryId on both docs, but the repo must scope strictly by docId.
     const fromA = await getCommentThreadByEntryId(docAs(docA.docId), 'shared-id')
     const fromB = await getCommentThreadByEntryId(docAs(docB.docId), 'shared-id')
     expect(fromA).not.toBeNull()
@@ -394,7 +394,7 @@ describe('getCommentThreadByEntryId', () => {
   it('cross-doc isolation: replies on doc A do not leak into doc B thread expansion', async () => {
     // Defense-in-depth: even if entryIds happen to overlap, the OR-clause
     // that fetches replies (entryId=root OR parentCommentId=root) must
-    // remain doc-scoped — otherwise a reply on doc A whose parentCommentId
+    // remain doc-scoped: otherwise a reply on doc A whose parentCommentId
     // matches doc B's root id would surface in doc B's thread.
     const user = await createUser()
     const docA = await seedDoc({ ownerId: user.id })

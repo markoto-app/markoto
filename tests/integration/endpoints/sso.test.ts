@@ -224,7 +224,7 @@ describe('SSO with OpenID Connect', () => {
     expect(identity).toEqual([{ user_id: admin.id, subject: 'admin-sub' }])
   })
 
-  it('once active, members need a sign-in through the IdP — on every access path', async () => {
+  it('once active, members need a sign-in through the IdP, on every access path', async () => {
     const admin = await createUser({ email: 'admin@acme.test' })
     const ws = await createWorkspace(admin.id)
     const member = await createUser({ email: 'ben@acme.test' })
@@ -705,7 +705,7 @@ describe('SSO enforcement covers the documents a member owns', () => {
     expect(expired).toMatchObject({ token: false, metaPut: false, files: false })
   })
 
-  it('a public-link doc stays public for its owner too — no more than any outsider gets', async () => {
+  it('a public-link doc stays public for its owner too, no more than any outsider gets', async () => {
     const { admin, ws, member } = await memberWithOwnDoc()
     const openView = await createDoc({ ownerId: member.id, workspaceId: ws.workspaceId, accessMode: 'open-view' })
     await activateOidc(admin.id, ws.workspaceId)

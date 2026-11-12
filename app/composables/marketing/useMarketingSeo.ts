@@ -18,7 +18,7 @@ export interface MarketingSeoInput {
   /** Alt text of `image`; default: the group card's. */
   imageAlt?: string | null
   /**
-   * Use the title as-is, without the `· markoto` suffix — for the home
+   * Use the title as-is, without the `· markoto` suffix, for the home
    * page, whose title already leads with the brand.
    */
   bareTitle?: boolean

@@ -16,7 +16,7 @@
 #   4. objects created earlier by the admin role (installs that predate
 #      separate roles) are handed over to the owning role.
 #
-# A role whose name equals POSTGRES_USER means "no separate role" — that
+# A role whose name equals POSTGRES_USER means "no separate role": that
 # consumer keeps using the admin role (compose falls back to it when
 # POSTGRES_APP_USER / POSTGRES_LITELLM_USER are unset). Passwords are re-applied on every run, so rotating one is: edit
 # .env, `docker compose up -d`.

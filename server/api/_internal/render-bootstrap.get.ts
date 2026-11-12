@@ -116,7 +116,7 @@ export default defineApiHandler({
       // `/api/docs/<docId>/brand/<file>`.
       brandFonts: brand.fonts,
       brandFiles: (await listBrandAssetsForDoc(docAccess)).map(a => `${a.id}.${a.format}`),
-      // Public app origin(s) — absolute `https://<app>/api/files/…` URLs in
+      // Public app origin(s): absolute `https://<app>/api/files/…` URLs in
       // custom CSS are treated as this app's (the print page itself is
       // served from the internal container origin, so it can't tell).
       appOrigins: customCssAppOrigins()

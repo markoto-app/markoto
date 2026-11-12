@@ -102,7 +102,7 @@ async function usersBySubject(sub: string) {
   )).rows
 }
 
-describe('GET /auth/oidc — full sign-in against a real IdP', () => {
+describe('GET /auth/oidc: full sign-in against a real IdP', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -219,7 +219,7 @@ describe('GET /auth/oidc — full sign-in against a real IdP', () => {
   })
 })
 
-describe('OIDC protocol layer — ID token validation against the real IdP', () => {
+describe('OIDC protocol layer: ID token validation against the real IdP', () => {
   const REDIRECT = 'http://127.0.0.1:1/cb'
   let settings: OidcSettings
 
@@ -283,7 +283,7 @@ describe('OIDC protocol layer — ID token validation against the real IdP', () 
 
   it('rejects an expired token', async () => {
     // The IdP issues a normal 1 h token; we redeem it with our clock two
-    // hours ahead (only `Date` is faked — network I/O is untouched).
+    // hours ahead (only `Date` is faked, network I/O is untouched).
     const cfg = await getOidcConfiguration(settings)
     const { url, flow } = await buildOidcAuthorizationRequest(cfg, settings, REDIRECT)
     const back = await loginAtIdp(url.href, 'proto-sub', {})

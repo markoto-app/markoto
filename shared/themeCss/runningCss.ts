@@ -13,7 +13,7 @@ type RunningSlotPosition = 'left' | 'center' | 'right'
 
 export function renderMarginBoxes(theme: DocTheme, slots: RunningSlots, edge: 'top' | 'bottom', runtime: ThemeRuntime, textColor: string, metaFont: string, marginMm: number): string {
   // The optional image (if `imageUrl` is set) wins over text in the slot
-  // it lands in — same slot can't show both. Users typically pick one
+  // it lands in: same slot can't show both. Users typically pick one
   // mental model per slot anyway. paged.js margin boxes accept
   // `content: url('...')` per CSS Paged Media; the image inherits the
   // slot's vertical alignment from the @top-X box itself.
@@ -42,7 +42,7 @@ export function renderMarginBoxes(theme: DocTheme, slots: RunningSlots, edge: 't
   for (const pos of positions) {
     const boxName = `${edge}-${pos}`
     if (imgSlot === pos) {
-      // Image slot — URL serialised as a CSS string (shape-checked
+      // Image slot: URL serialised as a CSS string (shape-checked
       // above, so this is belt and braces); height pinned in pt so it
       // lines up with the running header's text-size scale.
       const src = runtime.imageUrl ? runtime.imageUrl(slots.imageUrl) : slots.imageUrl
@@ -68,7 +68,7 @@ export function renderMarginBoxes(theme: DocTheme, slots: RunningSlots, edge: 't
 
 /**
  * `header.rule` / `footer.rule`: the distance between the rule and the
- * text block — 0.35 × the page margin (25 pt at a 1in margin, LaTeX's
+ * text block: 0.35 × the page margin (25 pt at a 1in margin, LaTeX's
  * `headsep` in the arXiv style). The running text sits on the far side
  * of the rule, RUNNING_RULE_TEXT_GAP_PT past it (descenders just clear
  * the rule, as fancyhdr draws it).
@@ -86,7 +86,7 @@ const RUNNING_RULE_WIDTH_PT = 0.4
 /**
  * The running rule spans the whole text width (all three slots), so it
  * is painted on paged.js's margin ROW (`.pagedjs_margin-top` /
- * `-bottom`, exactly as wide as the text block) — not on a slot box,
+ * `-bottom`, exactly as wide as the text block), not on a slot box,
  * which would underline only that slot, and not as a border at the row's
  * edge, which sits a whole margin away from the text. Only for an edge
  * that has running text; never on the first page when the theme has a

@@ -12,18 +12,18 @@ import { testRoutesInBuild } from '../../../scripts/lib/testRoutesInBuild'
 //
 // Why prod build (not `bun run dev`):
 //   - dev mode's WS upgrade handler doesn't reliably wire up under our
-//     Bun + Nuxt + crossws stack — the `/api/ai/dictate` route hangs on
+//     Bun + Nuxt + crossws stack, the `/api/ai/dictate` route hangs on
 //     handshake instead of firing `open`. The prod preset binds the
 //     upgrade handler directly via `crossws/adapters/node` against the
 //     Node `http.Server`, which works.
 //   - Tests run against the SAME bundle that ships to prod; catches
 //     prod-only bugs that the dev SSR transform papers over (lib0
 //     conditional exports, missing `traceInclude` deps, etc.).
-//   - First-request latency vanishes — no Vite transform-on-first-hit.
+//   - First-request latency vanishes: no Vite transform-on-first-hit.
 //
 // Cost: a one-time `bun run build` (~30-60s) at the top of the run.
 // Skip with `INTEGRATION_SKIP_BUILD=1` if you've already got a fresh
-// .output/ from a previous run AND haven't touched app code (rare —
+// .output/ from a previous run AND haven't touched app code (rare,
 // most edits invalidate the bundle).
 
 let proc: ChildProcess | null = null
@@ -36,7 +36,7 @@ export async function startNuxt(): Promise<void> {
   if (proc) return
 
   // Step 1: production build, unless explicitly skipped. Done synchronously
-  // because there's no point streaming progress — vitest holds the test
+  // because there's no point streaming progress, vitest holds the test
   // worker until globalSetup resolves anyway, and a 30-60s pause with no
   // output is normal.
   // A test build (MARKOTO_TEST_BUILD=1): the suite drives the /api/_test/*
@@ -45,7 +45,7 @@ export async function startNuxt(): Promise<void> {
   const reusable = existsSync(OUTPUT_ENTRY) && testRoutesInBuild('.output').length > 0
   if (process.env.INTEGRATION_SKIP_BUILD !== '1' || !reusable) {
     if (process.env.INTEGRATION_SKIP_BUILD === '1' && !reusable) {
-      console.log('[integration] INTEGRATION_SKIP_BUILD=1 set but no test build in .output/ — building anyway.')
+      console.log('[integration] INTEGRATION_SKIP_BUILD=1 set but no test build in .output/, building anyway.')
     } else {
       console.log('[integration] building production bundle (~30-60s, set INTEGRATION_SKIP_BUILD=1 to reuse .output/ between runs)...')
     }
@@ -58,7 +58,7 @@ export async function startNuxt(): Promise<void> {
       throw new Error(`[integration] bun run build failed (status=${buildResult.status}):\n${stderr}`)
     }
   } else {
-    console.log('[integration] INTEGRATION_SKIP_BUILD=1 — reusing existing .output/')
+    console.log('[integration] INTEGRATION_SKIP_BUILD=1: reusing existing .output/')
   }
 
   // Step 2: env for the prod runtime. nuxt.config.ts pins
@@ -68,12 +68,12 @@ export async function startNuxt(): Promise<void> {
   // the in-process test fakes (Speech mock, etc.).
   //
   // The connection-string vars (DATABASE_URL + atomic POSTGRES_* /
-  // VALKEY_*) and test secrets come from `buildTestEnv()` — the same
+  // VALKEY_*) and test secrets come from `buildTestEnv()`, the same
   // helper repo tests use, so a future env-wiring change has ONE place
   // to update. Everything else (NUXT_* runtime config) is owned here
   // because it's specific to the integration subprocess shape.
   //
-  // Keep this list aligned with nuxt.config.ts's runtimeConfig shape —
+  // Keep this list aligned with nuxt.config.ts's runtimeConfig shape,
   // missing a var leaves a runtime default in place (usually '') which
   // shows up as a confusing 500 deep inside a handler.
   const env: NodeJS.ProcessEnv = {
@@ -100,7 +100,7 @@ export async function startNuxt(): Promise<void> {
     NUXT_S3_ACCESS_KEY: 'ypad-access-key',
     NUXT_S3_SECRET_KEY: 'ypad-secret-key',
     NUXT_S3_BUCKET: 'ypad',
-    // OAuth + AI not exercised by these tests — stub values keep Nuxt
+    // OAuth + AI not exercised by these tests, stub values keep Nuxt
     // from failing boot assertions.
     NUXT_OAUTH_GITHUB_CLIENT_ID: 'test',
     NUXT_OAUTH_GITHUB_CLIENT_SECRET: 'test',
@@ -114,7 +114,7 @@ export async function startNuxt(): Promise<void> {
     NUXT_OAUTH_OIDC_CLIENT_SECRET: TEST_OIDC_CLIENT_SECRET,
     NUXT_OAUTH_OIDC_REDIRECT_URL: `${TEST_BASE_URL}/auth/oidc`,
     NUXT_OAUTH_OIDC_NAME: 'Test IdP',
-    // Admin allowlist bootstrap on sign-in — an address no other suite uses.
+    // Admin allowlist bootstrap on sign-in, an address no other suite uses.
     NUXT_ADMIN_USER_EMAILS: TEST_OIDC_ADMIN_EMAIL,
     NUXT_GOOGLE_API_KEY: 'test',
     // LiteLLM proxy: integration tests hit a real `litellm-test` container (deploy/compose/compose.test.yml) on port 4100
@@ -149,7 +149,7 @@ export async function startNuxt(): Promise<void> {
     // use a short suffix that matches their example format.
     // Email: force stub mode. sendEmail.ts auto-enables real Resend
     // delivery when RESEND_API_KEY is present, and the developer's .env
-    // (loaded by the spawned Nuxt subprocess) may carry a REAL key —
+    // (loaded by the spawned Nuxt subprocess) may carry a REAL key,
     // without this, integration tests fire live Resend API calls
     // (observed: sandbox-mode rejections in the test logs). Tests
     // assert on state, never on delivered email, so stub is correct.
@@ -164,25 +164,25 @@ export async function startNuxt(): Promise<void> {
     // inherits this env.
     NUXT_LEGAL_SURFACES_ENABLED: 'true',
     // Anonymous gate follows the legal surfaces (on). The suite solves the
-    // real (test-difficulty) ALTCHA — see setup/anonGate.ts.
+    // real (test-difficulty) ALTCHA: see setup/anonGate.ts.
     NUXT_ALTCHA_HMAC_KEY: TEST_ALTCHA_HMAC_KEY,
     NUXT_STRIPE_SECRET_KEY: 'sk_test_123abc',
     NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_integration',
     NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
     NUXT_STRIPE_PRICE_IDS: TEST_STRIPE_PRICE_IDS,
-    // Inactive-doc sweeper. Set TTL to 0 to disable for tests — no point
+    // Inactive-doc sweeper. Set TTL to 0 to disable for tests, no point
     // letting it fire during a short integration run.
     NUXT_INACTIVE_DOC_TTL_DAYS: '0',
     // Real renderer container (deploy/compose/compose.test.yml renderer-test).
     // Hosts on :9101, drives Playwright + headless Chromium through the
     // actual print page. Tests that need the full render pipeline talk
-    // to this. The stub-based path is gone — it couldn't catch
+    // to this. The stub-based path is gone, it couldn't catch
     // browser/SSR-layer bugs (oklch in Nuxt UI styles, zod imports
     // wedging Vite SSR, etc.).
     NUXT_RENDERER_INTERNAL_URL: 'http://127.0.0.1:9101',
     // Same extra origin as renderer-test in deploy/compose/compose.test.yml (print-page CSP mirror).
     RENDERER_ALLOWED_ORIGINS: 'http://host.docker.internal:3187',
-    // AI providers — the primary server is shaped like a SELF-HOSTED
+    // AI providers: the primary server is shaped like a SELF-HOSTED
     // instance: operator defaults that are LiteLLM model aliases (the
     // bundled Mistral / BFL / Voxtral deployments, i.e. today's setup),
     // free-form BYOK URLs, and the private-network opt-in so BYOK tests
@@ -206,7 +206,7 @@ export async function startNuxt(): Promise<void> {
     JINA_AI_API_KEY: 'stub-jina-key',
     // Custom domains: checked against challtestsrv-test, routed by
     // traefik-test (which polls this server with the same token) with
-    // certificates from pebble-test — deploy/compose/compose.test.yml.
+    // certificates from pebble-test: deploy/compose/compose.test.yml.
     NUXT_PUBLISH_DOMAINS_TARGET: TEST_PUBLISH_DOMAINS_TARGET,
     NUXT_PUBLISH_DNS_SERVERS: '127.0.0.1:8053',
     NUXT_PUBLISH_TRAEFIK_TOKEN: TEST_TRAEFIK_PROVIDER_TOKEN,
@@ -222,7 +222,7 @@ export async function startNuxt(): Promise<void> {
   // subprocess. The `...process.env` spread above means a missed
   // POSTGRES_* override would silently fall through to the dev value
   // loaded from .env. If the resulting env points at the dev DB, refuse
-  // to spawn — fail loud at the boundary instead of letting migrations
+  // to spawn: fail loud at the boundary instead of letting migrations
   // mutate dev data. (`postgresUrlFromEnv` enforces the same gate one
   // layer deeper in case anything bypasses this setup path.)
   if (env.POSTGRES_DB === 'ypad' || env.POSTGRES_PORT === '5432') {
@@ -248,7 +248,7 @@ export async function startNuxt(): Promise<void> {
 /**
  * Same build, billing OFF: NUXT_BILLING_ENABLED off, the hosted-SaaS
  * "plans coming soon" mode on (so the waitlist is open), and EVERY
- * NUXT_STRIPE_* var removed — the app must boot and serve without them.
+ * NUXT_STRIPE_* var removed: the app must boot and serve without them.
  */
 /** The hosted free tier's plan limits applied to the billing-off server. */
 const HOSTED_FREE_TIER_LIMITS = {
@@ -316,7 +316,7 @@ function spawnServer(env: NodeJS.ProcessEnv, label: string): ChildProcess {
   })
 
   // Forward stderr so boot failures surface in the test log. Prod
-  // stdout is much quieter than dev — gate it on DEBUG anyway in case
+  // stdout is much quieter than dev, gate it on DEBUG anyway in case
   // a developer wants to see "listening on :3101" etc.
   child.stderr?.on('data', (d) => {
     process.stderr.write(`[${label}] ${d}`)
@@ -324,7 +324,7 @@ function spawnServer(env: NodeJS.ProcessEnv, label: string): ChildProcess {
   //
   // The pipe MUST be drained either way: an unread pipe fills after
   // ~64 KiB, and the server's next `console.log` then blocks its event
-  // loop for good — every request hangs (the suite saw 30 s timeouts on
+  // loop for good: every request hangs (the suite saw 30 s timeouts on
   // every test after a few hundred AI-loop log lines).
   if (process.env.DEBUG_NUXT_TEST === '1') {
     child.stdout?.on('data', (d) => {
@@ -382,7 +382,7 @@ async function waitForHealth(baseUrl: string, child: ChildProcess): Promise<void
       // `/api/version` is a tiny handler that returns 200 once Nitro is
       // up, with no dependency probes. The deep `/api/health` would 503
       // here because the test env points markitdown at a black-hole port
-      // and may not have the sync container running — that's a
+      // and may not have the sync container running, that's a
       // configuration-aware decision, not a "boot failed" signal.
       const res = await fetch(`${baseUrl}/api/version`, {
         signal: AbortSignal.timeout(1500)

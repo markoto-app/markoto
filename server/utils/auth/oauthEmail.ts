@@ -1,8 +1,8 @@
 // Verified-email extraction for the GitHub + Google sign-in handlers.
 //
-// An email is only used — stored on the user row, offered for the
+// An email is only used, stored on the user row, offered for the
 // verified-email account merge, matched against NUXT_ADMIN_USER_EMAILS,
-// findable by workspace invites — when the provider says it is verified.
+// findable by workspace invites, when the provider says it is verified.
 // An unverified address is dropped (stored as NULL), exactly like the
 // OIDC handler (`server/utils/oidc/profile.ts`): otherwise anyone able to
 // put someone else's address on their provider account unverified could

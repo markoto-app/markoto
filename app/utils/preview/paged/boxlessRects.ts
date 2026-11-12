@@ -5,7 +5,7 @@
  * BOXLESS NODES. paged.js finds the overflow by walking the page's nodes
  * and taking the first one whose rect lies right of or below the page. An
  * element with `display: none` (and everything in it) has an all-zero
- * rect — x = 0, which is RIGHT of the page while paged.js lays it out
+ * rect: x = 0, which is RIGHT of the page while paged.js lays it out
  * off-screen at negative x. So a hidden `<hr>` always counted as
  * overflowing: the page broke before it (page 1 of a two-column
  * newsletter held only the masthead) and the next page, starting at the

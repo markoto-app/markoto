@@ -287,8 +287,8 @@ describe('first section + cover title', () => {
 
 describe('cover title', () => {
   test('words that both contain a digit stay together', () => {
-    expect(keepNumbersTogether('Halden Outdoor AG — Q3 2026 Quarterly Report')).toBe('Halden Outdoor AG — Q3\u00A02026 Quarterly Report')
-    expect(keepNumbersTogether('Chapter 3 — Learning sparse sensors')).toBe('Chapter 3 — Learning sparse sensors')
+    expect(keepNumbersTogether('Halden Outdoor AG \u2014 Q3 2026 Quarterly Report')).toBe('Halden Outdoor AG \u2014 Q3\u00A02026 Quarterly Report')
+    expect(keepNumbersTogether('Chapter 3 \u2014 Learning sparse sensors')).toBe('Chapter 3 \u2014 Learning sparse sensors')
     expect(keepNumbersTogether('ISO 9001 2015 audit')).toBe('ISO 9001\u00A02015 audit')
   })
 })

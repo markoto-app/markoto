@@ -9,12 +9,12 @@ import { createDocFromTemplateBody, templateParams } from '~~/shared/api/brand'
 import { HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 
-// POST /api/workspaces/:wsId/templates/:templateId/documents — {title?}
-// — a new document in the workspace from a template — a copy of
+// POST /api/workspaces/:wsId/templates/:templateId/documents: {title?}
+// A new document in the workspace from a template, a copy of
 // the template document's CURRENT text, design and images (the copy is
 // the caller's, starts private, images count against the workspace pool
 // or the caller's quota). Admins and editors (like creating any document
-// there); templates keep working after a downgrade — only adding new
+// there); templates keep working after a downgrade, only adding new
 // ones needs the plan. Rate-limited per user: each copy duplicates the
 // template's Y.js state and copies its images in storage.
 

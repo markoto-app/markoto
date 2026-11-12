@@ -35,7 +35,7 @@ const docsPage = readFileSync(
 
 const opts = { docId: 'doc123', allowedOrigins: [] }
 
-describe('custom CSS reference — matches themeToCss', () => {
+describe('custom CSS reference: matches themeToCss', () => {
   test.each([...CUSTOM_CSS_HOOKS, ...CUSTOM_CSS_COVER_HOOKS].map(h => h.selector))('%s is a selector themeToCss styles', (selector) => {
     expect(selectorLines.some(line => line.split(',').map(s => s.trim()).includes(selector))).toBe(true)
   })
@@ -51,7 +51,7 @@ describe('custom CSS reference — matches themeToCss', () => {
   })
 })
 
-describe('custom CSS reference — matches the sanitizer', () => {
+describe('custom CSS reference: matches the sanitizer', () => {
   const samples: Record<(typeof CUSTOM_CSS_ALLOWED_AT_RULES)[number], string> = {
     '@media': '@media print { .paged-doc h2 { color: red } }',
     '@supports': '@supports (display: grid) { .paged-doc p { color: red } }',

@@ -26,7 +26,7 @@ const log = useLogger('account-deletion')
 //   - A specific row corruption (e.g. a doc with a broken FK):
 //     the executor re-throws on the offending step; we log + skip
 //     to the next user. The bad user gets retried indefinitely
-//     until ops intervenes — and Sentry surfaces it loudly.
+//     until ops intervenes: and Sentry surfaces it loudly.
 
 export interface DeletionSweepResult {
   scanned: number

@@ -3,7 +3,7 @@ import { sendPublishedPage } from '../../utils/publish/servePage'
 import { PUBLISH_SLUG_RE } from '~~/shared/config/publish'
 import { publishedPageParams } from '~~/shared/api/platform'
 
-// GET /p/:slug — a document published as a web page. A static
+// GET /p/:slug: a document published as a web page. A static
 // snapshot; the document itself stays as private as it is. Public and
 // sessionless: on the pages host and custom domains a request hook
 // (plugins/00-public-page-host.ts) strips cookies, so the policy must never

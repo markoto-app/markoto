@@ -12,7 +12,7 @@ import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/preview/custo
  * (CSS mode) whose text is checked with the same sanitizer the server
  * and every renderer use. Valid CSS is emitted upstream (→ `ymeta.theme`
  * + the owner's debounced DB persist), so the preview updates live;
- * while the text has errors nothing is emitted — the last valid CSS
+ * while the text has errors nothing is emitted, the last valid CSS
  * stays applied and the errors are listed under the editor.
  *
  * Everything heavy (CodeMirror CSS mode, css-tree) is loaded the first

@@ -37,7 +37,7 @@ export class DictatePeerContext {
    * otherwise call `stt.end()`. Guards the audio-write path: any
    * chunks the worklet had queued in postMessage but hadn't yet sent
    * when the client fired stop will arrive here post-end and would
-   * otherwise error with "write after end" — we drop them silently.
+   * otherwise error with "write after end", we drop them silently.
    */
   sttEnded?: boolean
   idleTimer?: ReturnType<typeof setTimeout>

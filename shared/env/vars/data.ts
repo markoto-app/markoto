@@ -152,7 +152,7 @@ export const valkey = defineNamespace({
       name: 'VALKEY_TLS_ENABLED',
       type: bool,
       default: false,
-      doc: 'TLS to Valkey (rediss://) — for a managed or remote Valkey.',
+      doc: 'TLS to Valkey (rediss://), for a managed or remote Valkey.',
       services: ['app', 'sync'],
       scope: 'both',
       notPassed: 'opt-in for a managed Valkey; the stacks run Valkey on the internal network'

@@ -29,14 +29,14 @@ export interface ValkeyParts {
   /**
    * Optional path to a provider-supplied CA PEM. When unset, ioredis uses
    * the system CA store (sufficient for any provider that issues certs
-   * from a public CA — most of them).
+   * from a public CA, most of them).
    */
   tlsCaPath?: string
 }
 
 /**
  * Shape compatible with `new Redis(url, options)`. Splitting the URL from
- * the options means the callers that need to pass `tls: { ca }` (rare —
+ * the options means the callers that need to pass `tls: { ca }` (rare,
  * only managed-Redis deployments) can do so without us encoding TLS hints
  * into the URL string. Common case (no TLS) returns options=undefined and
  * callers can pass it through unchanged.
@@ -95,7 +95,7 @@ export function postgresUrlFromEnv(db: DatabaseEnv): string {
 
 /**
  * Returns the URL plus an optional ioredis options bag carrying TLS config
- * (custom CA, etc.) — pass both to `new Redis(url, options)`. For deploys
+ * (custom CA, etc.): pass both to `new Redis(url, options)`. For deploys
  * without TLS this returns `{ url, options: undefined }` so callers can use
  * a single shape regardless of TLS state.
  *

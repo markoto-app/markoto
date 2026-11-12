@@ -119,7 +119,7 @@ describe('PATCH /api/workspaces/:wsId/members/:userId', () => {
     expect(res.status).toBe(200)
     const body = await res.json() as { noop?: boolean }
     expect(body.noop).toBe(true)
-    // No kick dispatched on no-op — saves a useless round-trip.
+    // No kick dispatched on no-op, saves a useless round-trip.
     // Brief settle so a buggy dispatch would have time to land.
     await new Promise(r => setTimeout(r, 200))
     const kicks = await fetchRecentKicks()

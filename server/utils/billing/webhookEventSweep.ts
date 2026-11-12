@@ -17,7 +17,7 @@ const log = useLogger('webhook-event-sweep')
 //        - processed=true rows older than 7 days (replayed long ago,
 //          ops audit window has expired).
 //        - processed=false rows older than 30 days (the customer never
-//          got a checkout binding — abandoned signup or a delivery
+//          got a checkout binding, abandoned signup or a delivery
 //          shape we'll never reconcile; keep our stash bounded).
 //
 // Standalone module so tests can import it without triggering
@@ -29,7 +29,7 @@ const THIRTY_DAYS_MS = 30 * DAY_MS
 
 /**
  * Run one sweep tick. Returns the number of rows deleted across both
- * tables (mostly for ops logging — caller doesn't act on the value).
+ * tables (mostly for ops logging, caller doesn't act on the value).
  */
 export async function runWebhookEventSweep(): Promise<{ processedDeleted: number, pendingDeleted: number }> {
   let processedDeleted = 0

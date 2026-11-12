@@ -1,6 +1,6 @@
 ---
 title: Delete your account
-description: 30-day grace period — you can cancel anytime in those 30 days. After the deadline, everything goes.
+description: 30-day grace period. You can cancel anytime in those 30 days. After the deadline, everything goes.
 category: account
 order: 5
 featured: true
@@ -49,5 +49,5 @@ completes.
 
 ## What's next
 
-- [Export your data first](/docs/account/data-export) — once the deadline passes, you can't get it back.
-- [Profile page](/docs/account) — where the Delete + Cancel buttons live.
+- [Export your data first](/docs/account/data-export): once the deadline passes, you can't get it back.
+- [Profile page](/docs/account): where the Delete + Cancel buttons live.

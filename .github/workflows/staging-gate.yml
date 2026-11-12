@@ -2,8 +2,8 @@ name: staging-gate
 
 # After a release builds images, deploy them to STAGING and run the PUBLIC
 # smoke suite (tests/smoke) against the real deployment. This catches the
-# class of prod-only drift the ephemeral flow gate structurally can't — Docker
-# COPY gaps, insecure-context APIs, CSP, the mobile <dialog> collapse — every
+# class of prod-only drift the ephemeral flow gate structurally can't: Docker
+# COPY gaps, insecure-context APIs, CSP, the mobile <dialog> collapse: every
 # bug that shipped broken and was only found on staging.
 #
 # Flow: release.yml builds the images and runs the full flow suite (incl.
@@ -34,7 +34,7 @@ concurrency:
 
 jobs:
   # A release run where the PR carried `release:none` (resolve-pr says
-  # should_release=false) still CONCLUDES 'success' — every downstream job
+  # should_release=false) still CONCLUDES 'success': every downstream job
   # just skips. Without this check, such merges would re-deploy unchanged
   # images. Query the triggering
   # run's jobs and only proceed when create-release actually succeeded.
@@ -44,7 +44,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     # check-release reads the triggering release run's job list via the API
-    # (GET /actions/runs/:id/jobs) — without actions:read the default token
+    # (GET /actions/runs/:id/jobs): without actions:read the default token
     # gets "Resource not accessible by integration" (HTTP 403) and the gate
     # shows a red run instead of a clean skip on release:none merges.
     permissions:
@@ -71,7 +71,7 @@ jobs:
             echo "released=true" >> "$GITHUB_OUTPUT"
           else
             echo "released=false" >> "$GITHUB_OUTPUT"
-            echo "No release published by the triggering run (release:none merge) — gate skips."
+            echo "No release published by the triggering run (release:none merge), gate skips."
           fi
 
   # Deploy through the SAME path as a manual `deploy.yml` dispatch: render
@@ -93,7 +93,7 @@ jobs:
       tag: ${{ inputs.tag || 'latest' }}
       # Pin to the exact commit the triggering release was built from so
       # the compose files we sync match the images we deploy. On
-      # workflow_dispatch there is no triggering run — default-branch
+      # workflow_dispatch there is no triggering run: default-branch
       # HEAD is the right answer there.
       ref: ${{ github.event.workflow_run.head_sha || github.ref }}
     # Required even though every secret deploy.yml reads lives only in the
@@ -140,7 +140,7 @@ jobs:
       # predictable state (no doc/rate-limit/sync-state bleed between runs).
       # Truncates the `public` schema only; the drizzle migration ledger lives
       # in a separate schema and is preserved. Guards on DOMAIN containing
-      # "staging" — refuses to run against anything else.
+      # "staging": refuses to run against anything else.
       - name: Reset staging DB
         run: SSH_KEY="$HOME/.ssh/id_ed25519" ./scripts/reset-staging-db.sh
 
@@ -170,7 +170,7 @@ jobs:
           if [ -z "${APPRISE_URLS:-}" ]; then echo "::warning title=Notification skipped::APPRISE_URLS is not set in the staging Environment (docs/operations/GITHUB-CONFIG.md)"; exit 0; fi
           pip install apprise==1.9.9 >/dev/null 2>&1 || true
           apprise -t "Staging gate FAILED (tag ${TAG})" \
-                  -b "Smoke suite failed on staging (deploy.yml notifies deploy failures itself) — prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
+                  -b "Smoke suite failed on staging (deploy.yml notifies deploy failures itself), prod promotion is blocked. Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" \
                   "${APPRISE_URLS}" || true
 
   # promote-prod (dormant)
@@ -181,5 +181,5 @@ jobs:
   # PLAYWRIGHT_BASE_URL=https://<prod> and roll back on failure.
   #
   # Rollback is CODE-only (flip the image tag); the DB is never restored. That
-  # is safe because every migration is backward-compatible — enforced by the
+  # is safe because every migration is backward-compatible: enforced by the
   # migration-guard CI job (scripts/check-destructive-migrations.ts).

@@ -6,13 +6,13 @@ import { capParagraph } from './dropcapWrap'
  * after `markHeadingStructure`; parsed DOM of sanitised markup, sanitised
  * again afterwards; browser-only):
  *
- * - `markoto-lead` on the body's opening paragraph — the first top-level
- *   block, past a contents list, page break or rule — i.e. the paragraph
+ * - `markoto-lead` on the body's opening paragraph, the first top-level
+ *   block, past a contents list, page break or rule, i.e. the paragraph
  *   right after the cover / title block (a one-pager's pitch, a report's
  *   standfirst). A body that opens with a heading has no lead.
  * - `markoto-opening` around the first words of the first paragraph after
  *   every top-level section heading (and of the lead), the way
- *   `dropcapWrap.ts` wraps the first letter — so a book template can set
+ *   `dropcapWrap.ts` wraps the first letter, so a book template can set
  *   the opening words in small capitals. Up to four words, ending early
  *   after clause punctuation; after a drop cap it continues the word.
  * - `body.dropCap: 'every-chapter'`: the drop cap on each of those
@@ -25,7 +25,7 @@ const OPENING_CLASS = 'markoto-opening'
 const BEFORE_LEAD = new Set(['NAV', 'HR'])
 
 const MAX_OPENING_WORDS = 4
-const CLAUSE_END = /[,;:.!?…—–]["'”’»)]*$/
+const CLAUSE_END = /[,;:.!?…\u2014–]["'”’»)]*$/
 
 const TEXT_NODE = 3
 const ELEMENT_NODE = 1

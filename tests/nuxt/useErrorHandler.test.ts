@@ -15,13 +15,13 @@ import { useErrorHandler } from '~/composables/platform/useErrorHandler'
 //
 //   2. Server description preserved on mapped-status toasts. If every
 //      404 shows "Not found." with no description, users can't tell
-//      WHICH resource is missing — broken UX that looks like a correct
+//      WHICH resource is missing, broken UX that looks like a correct
 //      toast.
 //
 //   3. messageKey-unknown-at-client fallback. The error contract says
 //      server ships messageKey, client translates. During a deploy
 //      window the server may ship a key the client doesn't know yet.
-//      Must not show "[missing:key]" — must fall back to the raw
+//      Must not show "[missing:key]", must fall back to the raw
 //      server message.
 //
 //   4. Null/undefined error tolerates without crash. A catch block
@@ -70,8 +70,8 @@ beforeEach(() => {
   })
 })
 
-describe('useErrorHandler — load-bearing contracts', () => {
-  it('402 status DOES NOT intercept — caller title wins (useAI owns the budget-CTA)', async () => {
+describe('useErrorHandler: load-bearing contracts', () => {
+  it('402 status DOES NOT intercept, caller title wins (useAI owns the budget-CTA)', async () => {
     // If someone adds `case 402:` to showContextualError, useAI's
     // AIPromptBar special-cased toast with the /pricing upgrade link
     // never runs. This test fails the moment that happens.

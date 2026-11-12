@@ -10,13 +10,13 @@ import {
   MIN_WORKSPACE_SEATS
 } from '../../../../utils/billing/workspaceBilling'
 
-// GET /api/workspaces/:wsId/billing — the workspace billing tab.
+// GET /api/workspaces/:wsId/billing: the workspace billing tab.
 // Workspace admins only (404 non-member, 403 `billing/admin-required` member).
 //
 // Always answers (also with billing off, so the tab can explain itself):
 //   billingEnabled, subscription (null = never bought), seats used,
-//   whether the caller is the billing admin, the pooled limits and —
-//   while the subscription is entitled — the AI spend of the team and of
+//   whether the caller is the billing admin, the pooled limits and,
+//   while the subscription is entitled, the AI spend of the team and of
 //   every member (live from LiteLLM, best-effort: null when unreadable).
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'billing/admin-required' }),

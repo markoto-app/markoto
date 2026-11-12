@@ -31,19 +31,19 @@ export function mathFontScale(bodyFont: string): number {
  * A display wider than the text column wraps instead of being cut off:
  * KaTeX already splits a formula into one box per stretch between the
  * places TeX allows a break (after a relation or a binary operator on
- * the outer level, TeXbook p. 173 — `=`, `+`, `\le` …), and only its
+ * the outer level, TeXbook p. 173, `=`, `+`, `\le` …), and only its
  * `white-space: nowrap` on display math keeps those boxes on one line.
  * Allowing the wrap continues a long equation on the next line. The
  * pagination handler (`pagedHandlers.ts`, display math) turns that into
  * TeX's display convention: the break comes BEFORE the relation or
  * operator, relations first, and the continuation lines hang at the first
  * relation, the block of lines centred. A single unbreakable piece wider
- * than the column — a huge fraction or matrix — shrinks to 85 % at most;
+ * than the column, a huge fraction or matrix, shrinks to 85 % at most;
  * still too wide, it spans a multi-column page or runs into the margin
  * (never clipped, as `overflow-x: auto` did on paper).
  *
  * KaTeX lays a formula out with nested inline tables whose rows are
- * centred by `text-align` — but inherited text properties of the
+ * centred by `text-align`: but inherited text properties of the
  * surrounding paragraph leak in. A justified paragraph's
  * `text-align-last: left` made every single-line row start-aligned:
  * accents (`\hat{\lambda}`) slid off their base, fraction numerators and
@@ -69,10 +69,10 @@ export function katexBlock(theme: DocTheme): string {
 /**
  * Mermaid diagrams arrive as `<div class="mermaid"><img data:svg></div>`
  * (atomic for paged.js) and are swapped for the inline SVG after
- * pagination (so their text uses the page's web fonts — see
+ * pagination (so their text uses the page's web fonts, see
  * app/utils/markdown/mermaidLoader.ts). Both forms share one sizing rule, so the
  * swap never moves anything: natural size, never wider than the column
- * and never taller than ~45% of the text area — a chart must not eat a
+ * and never taller than ~45% of the text area, a chart must not eat a
  * whole page. Colours + fonts come from `buildMermaidConfig(theme)`.
  */
 export function mermaidBlock(theme: DocTheme): string {

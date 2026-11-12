@@ -23,7 +23,7 @@ import { asUser, wsAs } from '../helpers/access'
 // Repo-level tests for the deletion-cascade helpers. These hit the DB
 // directly and exercise the SQL shape (FK ordering, returning clauses,
 // anonymisation pattern, idempotency). The executor itself is tested
-// at a higher level — see `accountDeletionExecute.test.ts`.
+// at a higher level, see `accountDeletionExecute.test.ts`.
 
 async function insertComment(args: {
   docId: string
@@ -75,7 +75,7 @@ describe('anonymiseCommentsByAuthor', () => {
     expect(await anonymiseCommentsByAuthor(asUser(u.id))).toBe(0)
   })
 
-  it('is idempotent — re-running on already-anonymised state returns 0', async () => {
+  it('is idempotent: re-running on already-anonymised state returns 0', async () => {
     const alice = await createUser()
     const bob = await createUser()
     const doc = await createDoc({ ownerId: bob.id })
@@ -332,7 +332,7 @@ describe('deleteUserRow', () => {
     const userRow = await testDb().query(`SELECT id FROM users WHERE id = $1`, [u.id])
     expect(userRow.rows.length).toBe(0)
 
-    // activity_log row survives — user_id NULL. The name snapshot is
+    // activity_log row survives: user_id NULL. The name snapshot is
     // cleared earlier by the executor (`anonymiseActivityByUser`); this
     // test pins only the FK behaviour of the bare row delete.
     const activityRow = await testDb().query<{ user_id: number | null, user_name: string }>(

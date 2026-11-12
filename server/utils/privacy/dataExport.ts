@@ -38,7 +38,7 @@ import {
 
 // GDPR Article 15 + 20 export builder. Produces a self-describing
 // ZIP archive containing every piece of personal data we hold for
-// the user — in machine-readable formats (JSON, NDJSON, Markdown).
+// the user: in machine-readable formats (JSON, NDJSON, Markdown).
 //
 // **No side effects.** This module is purely "read DB → bytes". The
 // worker (`dataExportWorker.ts`) is the side-effecting wrapper that
@@ -76,7 +76,7 @@ import {
 
 export interface BuildExportZipResult {
   bytes: Uint8Array
-  // Counts for the worker's row update + audit log. Optional — the
+  // Counts for the worker's row update + audit log. Optional, the
   // worker only needs the bytes; counts are nice for telemetry.
   counts: {
     documents: number
@@ -106,7 +106,7 @@ export interface BuildExportZipResult {
  * (typical user has tens of docs, hundreds of comments, thousands
  * of activity rows) this completes in well under a second and the
  * peak buffer is sub-MB. If any individual user's export grows to
- * tens of MB later, the worker can switch to a streaming PUT —
+ * tens of MB later, the worker can switch to a streaming PUT,
  * the layout doesn't change.
  */
 /**
@@ -331,7 +331,7 @@ async function addActivityLogEntry(entries: Entries, user: UserScope): Promise<n
 
 /**
  * Audit-log rows actioned BY the user OR scoped to them. The user
- * has a right of access to data ABOUT them — that includes audit
+ * has a right of access to data ABOUT them, that includes audit
  * entries our system wrote where they were the actor or where the
  * audited entity was them (e.g. `account.delete_requested` with
  * `scope_id = String(userId)`).
@@ -420,7 +420,7 @@ async function addOwnerNoticesEntry(entries: Entries, user: UserScope): Promise<
 
 /**
  * Single sign-on: the workspace identity providers this account
- * is linked to — which workspace, the protocol, the subject the IdP
+ * is linked to: which workspace, the protocol, the subject the IdP
  * knows you by, whether provisioning (SCIM) disabled it, last sign-in.
  */
 async function addSsoIdentitiesEntry(entries: Entries, user: UserScope): Promise<number> {
@@ -445,7 +445,7 @@ async function addDocumentSharesEntry(entries: Entries, user: UserScope): Promis
   const view = (r: typeof received[number]) => ({ docId: r.docId, title: r.title, workspaceId: r.workspaceId, access: r.access, sharedAt: r.createdAt.toISOString() })
   entries['document_shares.json'] = strToU8(JSON.stringify({
     received: received.map(view),
-    // The guest's account id only — their profile isn't yours to export.
+    // The guest's account id only, their profile isn't yours to export.
     granted: granted.map(r => ({ ...view(r), guestUserId: r.userId }))
   }, null, 2))
 }

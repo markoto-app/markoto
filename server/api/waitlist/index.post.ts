@@ -88,7 +88,7 @@ export default defineApiHandler({
     // possible outside production) the email is skipped; the response stays 202.
     const baseUrl = emailLinkBaseUrl(useEnv().core.siteUrl)
     if (outcome !== 'unchanged' && baseUrl === null) {
-      log.warn('NUXT_SITE_URL is not set — confirmation email not sent')
+      log.warn('NUXT_SITE_URL is not set, confirmation email not sent')
     }
     if (outcome !== 'unchanged' && baseUrl !== null) {
       const content = buildWaitlistConfirmEmail({ locale, baseUrl, confirmToken, unsubscribeToken })

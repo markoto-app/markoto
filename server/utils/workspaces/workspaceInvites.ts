@@ -6,7 +6,7 @@ import { trimTrailingSlashes } from '~~/shared/utils/trimTrailingSlashes'
 // Workspace invitations (pending invite + accept).
 //
 // Inviting someone by email creates a `workspace_invites` row; the
-// invitee becomes a member only by accepting it — in-app (the invite
+// invitee becomes a member only by accepting it, in-app (the invite
 // matches the verified email on their account) or through the emailed
 // link (single-use token, SHA-256 at rest). The invite endpoint answers
 // the same way whether or not the address has an account, and never
@@ -58,7 +58,7 @@ export function generateInviteToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
-/** SHA-256 hex — the only form of a token (or address) kept server-side. */
+/** SHA-256 hex: the only form of a token (or address) kept server-side. */
 export function hashInviteSecret(value: string): string {
   return createHash('sha256').update(value).digest('hex')
 }
@@ -93,7 +93,7 @@ interface InviteEmailCopy {
 }
 
 // Plain-text email copy (sendEmail.ts doesn't ship HTML). Server-side,
-// outside the Vue i18n runtime — same approach as the waitlist email.
+// outside the Vue i18n runtime, same approach as the waitlist email.
 const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
   en: {
     subject: w => `You're invited to the workspace "${w}" on markoto`,
@@ -102,7 +102,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
     acceptLabel: 'Accept the invitation:',
     account: 'You\'ll be asked to sign in (or create an account) first. Signed in with this email address, you can also accept or decline from your markoto dashboard.',
     expiry: 'The invitation expires in 14 days.',
-    ignore: 'If you weren\'t expecting this, ignore this email — nothing happens unless you accept.'
+    ignore: 'If you weren\'t expecting this, ignore this email, nothing happens unless you accept.'
   },
   de: {
     subject: w => `Einladung in den Arbeitsbereich «${w}» auf markoto`,
@@ -111,7 +111,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
     acceptLabel: 'Einladung annehmen:',
     account: 'Sie werden zuerst gebeten, sich anzumelden (oder ein Konto zu erstellen). Mit dieser E-Mail-Adresse angemeldet, können Sie die Einladung auch im markoto-Dashboard annehmen oder ablehnen.',
     expiry: 'Die Einladung läuft in 14 Tagen ab.',
-    ignore: 'Falls Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail — ohne Ihre Zustimmung passiert nichts.'
+    ignore: 'Falls Sie diese Einladung nicht erwartet haben, ignorieren Sie diese E-Mail, ohne Ihre Zustimmung passiert nichts.'
   },
   fr: {
     subject: w => `Invitation à l'espace de travail « ${w} » sur markoto`,
@@ -120,7 +120,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
     acceptLabel: 'Accepter l\'invitation :',
     account: 'Vous devrez d\'abord vous connecter (ou créer un compte). Connecté avec cette adresse e-mail, vous pouvez aussi accepter ou refuser depuis votre tableau de bord markoto.',
     expiry: 'L\'invitation expire dans 14 jours.',
-    ignore: 'Si vous n\'attendiez pas cette invitation, ignorez cet e-mail — rien ne se passe sans votre accord.'
+    ignore: 'Si vous n\'attendiez pas cette invitation, ignorez cet e-mail, rien ne se passe sans votre accord.'
   },
   es: {
     subject: w => `Invitación al espacio de trabajo «${w}» en markoto`,
@@ -147,7 +147,7 @@ const INVITE_EMAIL_COPY: Record<InviteEmailLocale, InviteEmailCopy> = {
     acceptLabel: '接受邀请：',
     account: '您需要先登录（或创建账户）。使用此邮箱地址登录后，您也可以在 markoto 控制台中接受或拒绝邀请。',
     expiry: '此邀请将在 14 天后过期。',
-    ignore: '如果您没有预料到这封邀请，请忽略此邮件——除非您接受，否则不会发生任何事情。'
+    ignore: '如果您没有预料到这封邀请，请忽略此邮件，除非您接受，否则不会发生任何事情。'
   }
 }
 

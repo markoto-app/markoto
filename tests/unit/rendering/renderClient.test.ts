@@ -1,4 +1,4 @@
-// Unit tests for renderClient.ts — the orchestrator that decides whether
+// Unit tests for renderClient.ts, the orchestrator that decides whether
 // to short-circuit on a cached manifest or kick the renderer container.
 //
 // What we verify (the SPECIFIED behaviour, not the implementation):
@@ -7,7 +7,7 @@
 //
 // More integration-shaped tests (singleflight, renderer-error surfacing)
 // belong in tests/integration/ where the full lifecycle can be controlled
-// end to end against a real Nitro process — vitest's stubGlobal lifecycle
+// end to end against a real Nitro process, vitest's stubGlobal lifecycle
 // makes the singleflight Map's cross-test state hard to assert reliably
 // from a unit test.
 //
@@ -23,7 +23,7 @@ const SECRET = 'internal-api-secret-for-test-0123456789'
 const BUCKET = 'ypad-test'
 
 // renderClient imports useS3Client from `./s3` (explicit import), so a
-// global stub doesn't intercept it — the module mock does.
+// global stub doesn't intercept it, the module mock does.
 const s3Send = vi.fn()
 vi.mock('../../../server/utils/storage/s3', () => ({
   useS3Client: () => ({ send: s3Send })
@@ -82,7 +82,7 @@ beforeEach(() => {
   callOrder.length = 0
 })
 
-describe('renderClient.renderDocument — pending edits', () => {
+describe('renderClient.renderDocument: pending edits', () => {
   it('flushes the doc on the sync server before reading its snapshot', async () => {
     dbQuery.mockImplementation(async () => {
       callOrder.push('snapshot')

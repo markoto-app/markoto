@@ -37,7 +37,7 @@ export function headingNumbering(theme: DocTheme): HeadingNumbering {
   return theme.headings.numbering ?? 'none'
 }
 
-/** `headings.numberingDepth` — absent = 4 (every level h1–h4 that is numbered at all). */
+/** `headings.numberingDepth`: absent = 4 (every level h1–h4 that is numbered at all). */
 export function numberingDepth(theme: DocTheme): NumberingDepth {
   return theme.headings.numberingDepth ?? 4
 }
@@ -49,7 +49,7 @@ export interface ResolvedChapterLabel {
   word: string
 }
 
-/** `headings.chapterLabel` / `headings.chapterWord` — absent = off / ''. */
+/** `headings.chapterLabel` / `headings.chapterWord`: absent = off / ''. */
 export function resolveChapterLabel(theme: DocTheme): ResolvedChapterLabel {
   return { enabled: theme.headings.chapterLabel ?? false, word: theme.headings.chapterWord ?? '' }
 }
@@ -60,22 +60,22 @@ export interface ResolvedSectionToken {
   mode: SectionMode
 }
 
-/** `header.sectionNumber` / `header.sectionMode` — absent = title only / `first` (the look before the fields). */
+/** `header.sectionNumber` / `header.sectionMode`: absent = title only / `first` (the look before the fields). */
 export function resolveSectionToken(theme: DocTheme): ResolvedSectionToken {
   return { number: theme.header.sectionNumber ?? false, mode: theme.header.sectionMode ?? 'first' }
 }
 
-/** `cover.dateFormat` — absent = `locale`. */
+/** `cover.dateFormat`: absent = `locale`. */
 export function coverDateFormat(theme: Pick<DocTheme, 'cover'>): DateFormat {
   return theme.cover.dateFormat ?? 'locale'
 }
 
-/** `cover.repeatTitle` — absent = off. */
+/** `cover.repeatTitle`: absent = off. */
 export function repeatTitle(theme: DocTheme): boolean {
   return theme.cover.repeatTitle ?? false
 }
 
-/** `page.mirrorMargins` — absent = off. */
+/** `page.mirrorMargins`: absent = off. */
 export function mirrorMargins(theme: DocTheme): boolean {
   return theme.page.mirrorMargins ?? false
 }
@@ -94,7 +94,7 @@ export function resolveTitleBlock(theme: DocTheme): ResolvedTitleBlock {
   }
 }
 
-/** `header.rule` / `footer.rule` — absent = no rule. */
+/** `header.rule` / `footer.rule`: absent = no rule. */
 export function runningRule(slots: RunningSlots): boolean {
   return slots.rule ?? false
 }
@@ -176,7 +176,7 @@ export function resolveCaptions(theme: DocTheme): ResolvedCaptions {
   }
 }
 
-/** `blocks.referenceStyle` — absent = `plain`. */
+/** `blocks.referenceStyle`: absent = `plain`. */
 export function referenceStyle(theme: DocTheme): ReferenceStyle {
   return theme.blocks.referenceStyle ?? 'plain'
 }
@@ -188,7 +188,7 @@ function isLevelKey(key: string): key is HeadingLevelKey {
 /**
  * Fill every optional field with its default (except the inheriting ones:
  * `cover.titleWeight` follows `headings.weight` and `page.marginTop/Right/
- * Bottom/Left` follow `page.margin` while absent) — for UIs that bind each
+ * Bottom/Left` follow `page.margin` while absent), for UIs that bind each
  * field (theme panel) and for showing a theme in full (`get_theme`).
  * Returns a new object; `theme` is not changed.
  */

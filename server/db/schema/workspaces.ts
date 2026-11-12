@@ -18,7 +18,7 @@ export const workspaces = pgTable('workspaces', {
   // docs.
   defaultTheme: jsonb('default_theme').$type<DocTheme>(),
   // Brand kit: while true (and the plan includes `brandKit`), every
-  // document in the workspace renders with `default_theme`'s design —
+  // document in the workspace renders with `default_theme`'s design,
   // only its cover text stays its own (shared/utils/theme/brandLock.ts).
   // Enforced at render time; the documents' own themes are untouched.
   brandLocked: boolean('brand_locked').notNull().default(false),
@@ -39,7 +39,7 @@ export const workspaceMembers = pgTable('workspace_members', {
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   // `guest`: someone outside the team who sees ONLY the documents
   // shared with them (`document_shares`). Not a member for any
-  // workspace-level access — `getMemberRole` returns null for guests.
+  // workspace-level access: `getMemberRole` returns null for guests.
   role: text('role', { enum: ['admin', 'editor', 'viewer', 'guest'] }).notNull().default('editor'),
   joinedAt: timestamp('joined_at', { withTimezone: true }).notNull().defaultNow(),
   // Team / Business: the member's monthly AI limit inside the

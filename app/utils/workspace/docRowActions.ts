@@ -2,7 +2,7 @@
 // page, `components/document/DocRowMenu.vue`). Pure so the permission
 // matrix is unit-testable without mounting Nuxt UI.
 //
-// Mirrors the server's checks (the UI gate is UX only — every endpoint
+// Mirrors the server's checks (the UI gate is UX only, every endpoint
 // re-checks):
 //   - open / open in new tab: anyone who can see the row.
 //   - duplicate: anyone who can edit the document (`canEditDoc`).
@@ -28,7 +28,7 @@ export function docRowActionGroups(perms: DocRowPermissions): DocRowAction[][] {
 
 /**
  * Workspace page: the caller's role in the workspace plus whether they own
- * the row — same rules as the server's `getDocAuthz` (edit = owner /
+ * the row: same rules as the server's `getDocAuthz` (edit = owner /
  * admin / editor, manage = owner / admin). Viewers only open docs they
  * don't own.
  */

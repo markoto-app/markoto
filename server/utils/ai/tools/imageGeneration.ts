@@ -14,7 +14,7 @@ import { fetchViewableExternalImage } from './imageFetch'
 const log = useLogger('ai-tools')
 
 // Map the image-gen output MIME (BFL FLUX.2) to
-// the extension the upload pipeline uses. (Keep the set narrow — the
+// the extension the upload pipeline uses. (Keep the set narrow, the
 // file-id regex in /api/files only accepts these extensions; anything
 // else would be unreachable via /api/files.)
 export const IMAGE_MIME_EXT = {
@@ -54,7 +54,7 @@ interface ImageGenOpts {
   workspaceId?: string | null
   /** Initiating user id for spend-tagging. */
   userId?: number | null
-  /** Doc the image is being inserted into — drives doc-axis spend tag. */
+  /** Doc the image is being inserted into, drives doc-axis spend tag. */
   docId?: string | null
 }
 
@@ -87,7 +87,7 @@ export async function generateImageBytes(
   return generateImageBytesBfl(prompt, provider.model, opts)
 }
 
-/** Sniff PNG / JPEG / WebP from magic bytes — providers don't always say. */
+/** Sniff PNG / JPEG / WebP from magic bytes, providers don't always say. */
 function sniffImageMime(bytes: Uint8Array): GeneratedImageMime | null {
   if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47) return 'image/png'
   if (bytes.length >= 3 && bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF) return 'image/jpeg'
@@ -166,7 +166,7 @@ async function generateImageBytesBfl(
   // Custom provider convention (see deploy/config/litellm/custom_handlers.py:
   // BFLFluxProvider). Single user message with JSON-encoded body.
   // Response's content is JSON with {b64_json, url, cost_credits, cost_usd}.
-  // prompt_upsampling is intentionally false — the prompt is AI-written
+  // prompt_upsampling is intentionally false, the prompt is AI-written
   // and re-LLM-ing it adds latency without benefit.
   try {
     log.debug('BFL image generation started', { model, width, height })

@@ -8,7 +8,7 @@ import { documents } from './documents'
 // A document's Y.js state as an append-only log (written by the sync server,
 // read by history replay, duplicate, render, export and the image GC).
 //
-// - `update`: a Y.js update — what one store added since the previous store of
+// - `update`: a Y.js update, what one store added since the previous store of
 //   the same sync server process (the full delete set included).
 // - `snapshot`: the merged state of EVERY row of the document with a smaller
 //   id. Its data is redundant; it only spares readers the replay of the rows

@@ -27,7 +27,7 @@
 
 | Option | Env variable | Default | Description |
 |---|---|---|---|
-| `option` | `PROJECT_OPTION` | — | |
+| `option` | `PROJECT_OPTION` | - | |
 
 # Features
 

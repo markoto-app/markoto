@@ -5,7 +5,7 @@ import { availabilityFrom, resolveAiAccess } from '../../../utils/aiProviders/re
 import { resolvePayingPlan } from '../../../utils/billing/billing'
 import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
 
-// GET /api/user/ai-providers — everything the "AI provider" settings
+// GET /api/user/ai-providers: everything the "AI provider" settings
 // page needs: the caller's saved configs (key-free views), which
 // capabilities have an instance default, the effective availability,
 // and the URL policy (so the UI can show the allowed providers and hide

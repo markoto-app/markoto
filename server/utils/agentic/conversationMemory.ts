@@ -12,10 +12,10 @@ import { HOUR_MS } from '~~/shared/config/units'
 //
 // So compaction keeps three things and drops the rest:
 //
-//   1. user_prompt   — every word the user typed (small, conversational glue)
-//   2. message_to_user — what the AI said back (the user-visible reply
+//   1. user_prompt: every word the user typed (small, conversational glue)
+//   2. message_to_user: what the AI said back (the user-visible reply
 //                        surface; preserves "you said X earlier")
-//   3. tool_call     — name + a SHORT arg summary, NOT the result
+//   3. tool_call: name + a SHORT arg summary, NOT the result
 //                        ("[generate_image: a portrait of …]")
 //
 // Tool RESULT payloads are never recorded in the first place (see
@@ -163,12 +163,12 @@ export function buildConversationHistoryBlock(rows: AiMessageRow[]): string {
   const lines: string[] = []
   lines.push(
     '<conversation_history>',
-    'Prior turns from your conversation with THIS user on THIS document, oldest first. Use this for context resolution ("now put it on the first page" → "it" = whatever you just built). DO NOT repeat their content back in your reply — just refer to it. If the user asks about something you did but you cannot find it here, say so plainly via message_to_user; do not fabricate a memory.',
+    'Prior turns from your conversation with THIS user on THIS document, oldest first. Use this for context resolution ("now put it on the first page" → "it" = whatever you just built). DO NOT repeat their content back in your reply, just refer to it. If the user asks about something you did but you cannot find it here, say so plainly via message_to_user; do not fabricate a memory.',
     ''
   )
 
   if (omittedCount > 0) {
-    lines.push(`(${omittedCount} earlier turn${omittedCount === 1 ? '' : 's'} omitted — older context is in the document activity log; ask the user if they need you to recall further back than what is shown here)`)
+    lines.push(`(${omittedCount} earlier turn${omittedCount === 1 ? '' : 's'} omitted, older context is in the document activity log; ask the user if they need you to recall further back than what is shown here)`)
   }
 
   for (const row of kept) {

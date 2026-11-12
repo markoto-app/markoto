@@ -14,7 +14,7 @@ const PROVIDER_ICONS: Record<LoginProvider, string> = {
 }
 
 /**
- * The sign-in buttons this instance offers, in display order — only
+ * The sign-in buttons this instance offers, in display order, only
  * providers with complete credentials (see `shared/config/instance.ts`).
  * Shared by `LoginButtons.vue` and the mobile account menu so both
  * label the generic OIDC provider the same way ("Continue with

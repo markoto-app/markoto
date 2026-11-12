@@ -28,7 +28,7 @@ const myWorkspacesQuery = defineQueryOptions(({ api }: { api: ApiFetcher }) => (
 
 /**
  * Loaded after mount (the server render has no list: a cookie-less SSR
- * call would 401), and only while `active` — the move dialog stays mounted
+ * call would 401), and only while `active`, the move dialog stays mounted
  * while closed.
  */
 export function useMyWorkspaces(active: MaybeRefOrGetter<boolean> = true) {

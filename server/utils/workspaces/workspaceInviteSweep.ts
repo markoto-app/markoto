@@ -7,7 +7,7 @@ const log = useLogger('workspace-invite-sweep')
 // Workspace-invite sweeper. Deletes invitations past their 14-day
 // expiry, so an address an admin typed is not kept longer than the
 // invitation is usable (privacy policy: `workspace_invitations`).
-// Idempotent — an already-deleted row simply doesn't match.
+// Idempotent: an already-deleted row simply doesn't match.
 
 export interface WorkspaceInviteSweepResult {
   deletedExpired: number

@@ -6,7 +6,7 @@ import { assertionFromSamlProfile } from '../../../server/utils/sso/saml'
 import type { Profile } from '@node-saml/node-saml'
 import { partial } from '../../helpers/fixtures'
 
-// Per-workspace single sign-on— the pure rules. End-to-end
+// Per-workspace single sign-on: the pure rules. End-to-end
 // sign-ins: tests/integration/endpoints/sso*.test.ts.
 
 describe('SSO domains', () => {

@@ -101,7 +101,7 @@ describe('BYOK provider settings (self-hosted shape)', () => {
     expect(body.verify.code).toBe('no-tool-support')
   })
 
-  it('refuses (and does not save) a rejected key or an unknown model — with a key-free message', async () => {
+  it('refuses (and does not save) a rejected key or an unknown model, with a key-free message', async () => {
     const u = await byokUser()
     const client = await loggedInClient(u.id)
 
@@ -157,7 +157,7 @@ describe('BYOK SSRF policy', () => {
     ['internal service hostname (litellm)', 'http://litellm:4000/v1', 'internal-host'],
     ['internal service hostname (postgres)', 'http://postgres:5432', 'internal-host'],
     ['localhost', 'http://localhost:4120/v1', 'internal-host'],
-    // A public DNS name that resolves to 127.0.0.1 (nip.io wildcard DNS) —
+    // A public DNS name that resolves to 127.0.0.1 (nip.io wildcard DNS),
     // the DNS-rebinding shape: only the resolved address gives it away.
     ['hostname resolving to 127.0.0.1', 'http://127.0.0.1.nip.io:4120/v1', 'private-address'],
     ['credentials in URL', `https://user:pw@api.mistral.ai/v1`, 'credentials-in-url'],
@@ -331,7 +331,7 @@ describe('BYOK round trips through LiteLLM', () => {
     const key = uniqueKey('image')
     const saved = await saveProvider(client, 'image', { baseUrl: FAKE, model: 'fake-image', apiKey: key })
     expect(saved.status).toBe(200)
-    // Verification listed models — it did NOT generate an image.
+    // Verification listed models: it did NOT generate an image.
     const verifyCalls = (await fakeRequests()).filter(r => r.keySuffix === key.slice(-6))
     expect(verifyCalls.map(c => c.path)).toEqual(['/v1/models'])
 

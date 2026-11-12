@@ -27,7 +27,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   const { billingEnabled, plansComingSoon, pricingVisible } = useBillingMode()
 
   // Hosted free tier: the shared monthly pool can run dry before the user's
-  // own points do. Only platform-paid chat is affected — an own key keeps working.
+  // own points do. Only platform-paid chat is affected, an own key keeps working.
   const freePoolExhausted = computed(() => chatPlatformBilled.value && isFreeAllowanceExhausted.value)
   const creditsExhausted = computed(() => freePoolExhausted.value || (chatPlatformBilled.value && pointsExhausted.value))
 
@@ -48,7 +48,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
   }
 
   // Shared free-tier pool used up: the way forward is the user's own key
-  // (Settings → AI provider) — never an upgrade, and not "your points".
+  // (Settings → AI provider), never an upgrade, and not "your points".
   function showFreeAllowanceToast() {
     toast.add({
       title: t('ai.freeAllowanceExhaustedTitle'),
@@ -104,7 +104,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
       void router.push('/pricing')
       return
     }
-    // Self-hosted: nothing to buy — re-explain instead of a dead link.
+    // Self-hosted: nothing to buy, re-explain instead of a dead link.
     showPersonalBudgetToast()
   }
 
@@ -145,7 +145,7 @@ export function useAiBudgetNotices(ai: AiSessionErrors, workspaceId: () => strin
       void refreshAiCredits()
     } else if (ai.budgetExhausted.value) {
       // Dedicated budget-exhausted toast with an Upgrade action. Users
-      // need an obvious path forward — a generic "AI request failed"
+      // need an obvious path forward, a generic "AI request failed"
       // toast doesn't tell them what to do.
       if (creditsAreShared.value) {
         showWorkspaceBudgetToast()

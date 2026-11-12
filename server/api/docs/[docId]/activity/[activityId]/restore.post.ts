@@ -27,7 +27,7 @@ const log = useLogger('restore')
 //   - 404: unknown activityId, or activity row belongs to a different
 //          doc (cross-doc leak guard)
 //   - 410: activity row predates boundary tracking (yjsDocIdBefore null)
-//   - 500: replay or sync failure — doc state unchanged
+//   - 500: replay or sync failure, doc state unchanged
 
 export default defineApiHandler({
   // Edit access: owner, workspace admin / editor, or anyone on an open-edit

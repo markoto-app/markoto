@@ -18,7 +18,7 @@ import { PAGEDJS_POLYFILL_URL } from '~~/shared/utils/vendor/pagedjsAssets'
 import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/vendor/mermaidAssets'
 
 // The live preview + print iframes run in an OPAQUE origin (sandbox without
-// allow-same-origin) — see app/utils/preview/previewFrame.ts. These tests pin the
+// allow-same-origin): see app/utils/preview/previewFrame.ts. These tests pin the
 // host side: the sandbox flags, the srcdoc substitution and the message /
 // URL helpers. The browser-level isolation (no cookie / storage / parent
 // access from inside the preview) is pinned by the Playwright flow
@@ -160,7 +160,7 @@ describe('file-access token attachment (own uploads only)', () => {
     expect(withOwnUploadToken('/api/files/doc-1/x.png', 'doc-1', '')).toBe('/api/files/doc-1/x.png')
   })
 
-  it('touches <img src> only — never links or text', () => {
+  it('touches <img src> only, never links or text', () => {
     const html = '<p><img src="/api/files/doc-1/a.png" alt=""><a href="/api/files/doc-1/a.png">link</a> /api/files/doc-1/a.png</p>'
     const out = attachOwnUploadTokens(html, 'doc-1', 'tok')
     expect(out).toContain('<img src="/api/files/doc-1/a.png?token=tok"')
@@ -179,7 +179,7 @@ describe('file-access token attachment (own uploads only)', () => {
   })
 })
 
-describe('documents at scale — render message + srcdoc', () => {
+describe('documents at scale: render message + srcdoc', () => {
   it('sends the document-matched mermaid config and the document locale', () => {
     const theme = structuredClone(defaultTheme)
     theme.mermaid.theme = 'document'

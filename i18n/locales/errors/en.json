@@ -21,7 +21,7 @@
       "delete-cancel-conflict": "There is no scheduled account deletion to cancel.",
       "delete-conflict": "Your account deletion is already scheduled.",
       "delete-rate-limited": "Too many account-deletion requests. Try again later.",
-      "sessions-revoke-rate-limited": "Too many requests — please wait a moment and try again."
+      "sessions-revoke-rate-limited": "Too many requests. Please wait a moment and try again."
     },
     "admin": {
       "forbidden": "Admin access required.",
@@ -59,7 +59,7 @@
       "bot-check-replayed": "This bot check was already used. Please try again.",
       "bot-check-required": "The automatic bot check failed. Please try again.",
       "misconfigured": "The bot check is not available right now. Please try again in a moment.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "terms-required": "Please accept the Terms of Service first.",
       "unavailable": "The bot check is not available right now. Please try again in a moment."
     },
@@ -95,7 +95,7 @@
       "plan-change-failed": "Could not change the plan. Nothing was changed; please try again.",
       "portal-failed": "Could not open the billing portal. Please try again.",
       "price-unavailable": "This plan is not available for sale right now.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "seats-below-members": "There are more people in this workspace than seats. Remove someone or keep more seats.",
       "seats-busy": "Another seat change or invitation is in progress. Please try again in a moment.",
       "seats-full": "All paid seats are taken. Add a seat to invite someone else.",
@@ -122,17 +122,17 @@
       "invalid-weight": "Weight is 100–900 in steps of 100.",
       "licence-required": "Confirm that your licence allows embedding this font in documents.",
       "no-design": "No workspace design yet. Take it from a document, or choose a default design in Settings.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "too-many-fonts": "A workspace can have up to {limit} font files.",
       "too-many-images": "A workspace can have up to {limit} brand images."
     },
     "common": {
-      "internal": "Something went wrong on our side. Please try again — we've been notified."
+      "internal": "Something went wrong on our side. Please try again. We've been notified."
     },
     "consent": {
       "no-decisions": "No consent decisions were sent.",
       "no-valid-decisions": "None of the consent decisions could be recorded.",
-      "rate-limited": "Too many requests — please wait a moment and try again."
+      "rate-limited": "Too many requests. Please wait a moment and try again."
     },
     "csrf": {
       "origin-mismatch": "Cross-origin request refused."
@@ -144,7 +144,7 @@
       "not-found": "Domain not found.",
       "page-not-allowed": "Only the owner and workspace admins can show this document on a domain.",
       "page-not-published": "Publish the document as a web page first.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "reserved": "This domain belongs to this service.",
       "taken": "This domain is already in use."
     },
@@ -171,8 +171,8 @@
       "not-found": "Document not found.",
       "rate-limited": "Too many new documents from your network. Sign in, or try again later.",
       "render-failed": "The PDF could not be generated. Please try again.",
-      "restore-compacted": "This restore point is too old — its history has been compacted and can no longer be restored. Restore to a more recent point instead.",
-      "restore-unavailable": "Can't restore from this row — it predates the restore feature."
+      "restore-compacted": "This restore point is too old: its history has been compacted and can no longer be restored. Restore to a more recent point instead.",
+      "restore-unavailable": "Can't restore from this row: it predates the restore feature."
     },
     "dpa": {
       "version-stale": "The Data Processing Addendum has changed since you opened this prompt. Please review it again."
@@ -193,7 +193,7 @@
       "no-file": "No file provided.",
       "not-configured": "Document conversion is not set up on this server.",
       "not-utf8": "This Markdown file is not valid UTF-8 text.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "timeout": "Conversion took too long.",
       "too-complex": "This file is too large or too complex to convert.",
       "unavailable": "The conversion service could not be reached.",
@@ -211,7 +211,7 @@
       "key-mismatch": "knowledgeId must match the s3Key.",
       "not-found": "Knowledge file not found.",
       "not-uploader": "Editors can only delete their own uploads.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "too-many-pending": "Too many uploads are pending. Try again in a moment.",
       "unsupported-format": "Unsupported format: .{ext}. Allowed: {allowed}.",
       "upload-not-found": "Upload not found. Request a new upload and try again.",
@@ -250,9 +250,9 @@
     },
     "password": {
       "invalid": "Invalid password.",
-      "locked": "Too many requests — please wait a moment and try again.",
+      "locked": "Too many requests. Please wait a moment and try again.",
       "not-set": "This document has no password.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "required": "Enter the password.",
       "too-short": "The password must be at least {minLength} characters."
     },
@@ -272,11 +272,11 @@
       "too-large": "This document is too large to publish as a web page."
     },
     "published": {
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "not-found": "This page does not exist or is no longer published."
     },
     "rate": {
-      "limited": "Too many requests — please wait a moment and try again."
+      "limited": "Too many requests. Please wait a moment and try again."
     },
     "request": {
       "invalid": "Some of the information sent is not valid.",
@@ -296,7 +296,7 @@
       "not-a-guest": "This person is not a guest of the workspace.",
       "not-allowed": "You are not allowed to change how this document is shared.",
       "not-shared": "This document is not shared with this person.",
-      "rate-limited": "Too many requests — please wait a moment and try again."
+      "rate-limited": "Too many requests. Please wait a moment and try again."
     },
     "sso": {
       "admin-required": "Only workspace admins can manage single sign-on.",
@@ -317,7 +317,7 @@
       "no-seat": "All paid seats of this workspace are taken.",
       "not-active": "Single sign-on is not active for this workspace.",
       "not-provisioned": "Your organisation has not given you access to this workspace yet.",
-      "rate-limited": "Too many requests — please wait a moment and try again.",
+      "rate-limited": "Too many requests. Please wait a moment and try again.",
       "required": "This workspace uses single sign-on. Sign in through your organisation to continue.",
       "test-mismatch": "The test sign-in used a different account.",
       "test-not-admin": "Only an admin of the workspace can test its sign-in.",
@@ -380,7 +380,7 @@
       "disabled": "The waitlist is not available on this deployment.",
       "invalid-email": "Please enter a valid email address.",
       "invalid-token": "This link is invalid or has expired.",
-      "rate-limited": "Too many requests — please wait a moment and try again."
+      "rate-limited": "Too many requests. Please wait a moment and try again."
     },
     "workspace": {
       "admin-required": "Only workspace admins can do this.",
@@ -394,12 +394,12 @@
       "invalid-email": "Enter a valid email address.",
       "invite-cap": "This workspace has too many open invitations. Revoke some first.",
       "invite-not-found": "This invitation doesn't exist any more or has expired.",
-      "invite-rate-limited": "Too many requests — please wait a moment and try again.",
+      "invite-rate-limited": "Too many requests. Please wait a moment and try again.",
       "last-admin": "A workspace must have at least one admin. Promote someone else first, or delete the workspace.",
       "member-not-found": "That person is not a member of this workspace.",
       "not-found": "Workspace not found.",
       "role-required": "Viewers can't create documents in this workspace.",
-      "template-rate-limited": "Too many requests — please wait a moment and try again."
+      "template-rate-limited": "Too many requests. Please wait a moment and try again."
     }
   }
 }

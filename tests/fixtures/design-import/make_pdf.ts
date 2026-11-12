@@ -4,12 +4,12 @@
  *
  *   bun tests/fixtures/design-import/make_pdf.ts
  *
- *   report-cover.pdf    — annual report: full-bleed navy cover with an
+ *   report-cover.pdf: annual report: full-bleed navy cover with an
  *                         orange accent bar, Liberation Sans (an Arial
- *                         clone — not in the font registry, so it has to
+ *                         clone: not in the font registry, so it has to
  *                         be substituted), navy table header, running foot.
- *   brochure-modern.pdf — product brief: Work Sans headings (a registry
- *                         font — exact match), Noto Serif text, teal
+ *   brochure-modern.pdf: product brief: Work Sans headings (a registry
+ *                         font: exact match), Noto Serif text, teal
  *                         accent, tinted call-out boxes, letter-spaced
  *                         uppercase eyebrows.
  *

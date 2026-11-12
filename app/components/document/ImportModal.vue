@@ -94,7 +94,7 @@ function clearSelection(e: Event) {
   resetFileDialog()
 }
 
-// Reset transient state whenever the modal closes — by cancel button,
+// Reset transient state whenever the modal closes, by cancel button,
 // outside-click, or escape. Otherwise re-opening still shows the previous
 // file selection, which reads as "your import is half-done" instead of
 // the fresh state the user expects.

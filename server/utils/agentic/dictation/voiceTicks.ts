@@ -23,7 +23,7 @@ const log = useLogger('dictate')
 //   - On transient failure (network blip, LiteLLM timeout) → silently
 //     continue; the next tick will retry. A genuinely-down proxy
 //     means the next tick also fails, the WS stays open, and the
-//     user keeps dictating "for free" until close — accepted small
+//     user keeps dictating "for free" until close, accepted small
 //     overrun under degraded infra.
 //   - Round-up: on close, fire ONE final tick if any audio flowed in
 //     the partial minute since the last tick. Documented overrun:
@@ -58,7 +58,7 @@ export function stopVoiceTickOrchestrator(ctx: DictatePeerContext): void {
   if (!ctx.voiceTickActive) return
   ctx.voiceTickActive = false
   // Round-up: if any audio flowed since the last tick, fire one final
-  // tick. Fire-and-forget because the WS is closing anyway — we can't
+  // tick. Fire-and-forget because the WS is closing anyway, we can't
   // signal failures back to the user at this point.
   if (ctx.voiceAudioSinceTick) {
     ctx.voiceAudioSinceTick = false
@@ -96,7 +96,7 @@ async function fireVoiceTick(peer: PeerLike, ctx: DictatePeerContext): Promise<v
     if (isBudgetExceededError(e)) {
       // Hard exhaustion → close the WS so the user gets the standard
       // close-event flow (frontend already handles WS close with a
-      // toast). Keep the message short — code:1011 is "internal error"
+      // toast). Keep the message short, code:1011 is "internal error"
       // in WS spec, the most appropriate close code for "we ended your
       // session for an internal reason".
       try {
@@ -108,7 +108,7 @@ async function fireVoiceTick(peer: PeerLike, ctx: DictatePeerContext): Promise<v
       ctx.closed = true
       return
     }
-    // Transient failure (network, LiteLLM hiccup) — log + continue.
+    // Transient failure (network, LiteLLM hiccup), log + continue.
     // The next tick (60s later) will retry.
     log.warn('voice-tick failed (continuing)', { err: e })
   }
@@ -119,7 +119,7 @@ async function fireRoundUpTick(ctx: DictatePeerContext): Promise<void> {
   try {
     await postTick(ctx, 'round-up')
   } catch (e) {
-    // Fire-and-forget — by the time we round-up the WS is gone and
+    // Fire-and-forget: by the time we round-up the WS is gone and
     // there's no one to surface the error to. Telemetry would just be
     // noise.
     log.warn('round-up tick failed', { err: e })

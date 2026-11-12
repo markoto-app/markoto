@@ -1,6 +1,6 @@
 ---
 title: See what changed in past edits
-description: Click any activity row — markoto opens a diff drawer with hunk-level highlights of what was added and removed.
+description: Click any activity row and markoto opens a diff drawer with hunk-level highlights of what was added and removed.
 category: history
 order: 1
 featured: true
@@ -9,7 +9,7 @@ updated: '2026-10-29'
 
 # See what changed in past edits
 
-Every edit to a doc lands as a row in the activity log — title
+Every edit to a doc lands as a row in the activity log: title
 changes, theme changes, content edits, comments, restores. Click any
 edit row and a diff drawer opens with hunk-level highlights:
 red strikethroughs for what came out, green for what went in.
@@ -29,5 +29,5 @@ cut off after 200 changed passages; to see the full earlier text, use
 
 ## What's next
 
-- [Restore an earlier version](/docs/history/restore) — rewind to that exact state.
-- [Replay a comment in context](/docs/writing/comment-replay) — same machinery, applied to comment threads.
+- [Restore an earlier version](/docs/history/restore): rewind to that exact state.
+- [Replay a comment in context](/docs/writing/comment-replay): same machinery, applied to comment threads.

@@ -40,7 +40,7 @@ describe('Budget-exhausted users still pass the session-open boundary', () => {
     const client = await loggedInClient(u.id)
     const res = await client.post('/api/ai/prompt', {
       docId: doc.docId,
-      prompt: 'doomed prompt — proxy will reject mid-loop'
+      prompt: 'doomed prompt: proxy will reject mid-loop'
     })
     // The session opens: runLoop catches the proxy 400 asynchronously and emits the upgrade breadcrumb
     // (there is no 402 `ai/budget-exhausted`).
@@ -58,7 +58,7 @@ describe('Budget-exhausted users still pass the session-open boundary', () => {
     expect(res.status).not.toBe(402)
     expect(res.status).toBe(200)
     const body = await res.json() as { token?: string }
-    // Token is minted — the WS handshake will succeed; budget
+    // Token is minted: the WS handshake will succeed; budget
     // enforcement happens on the first voice-tick post.
     expect(typeof body.token).toBe('string')
   })
@@ -75,7 +75,7 @@ describe('Budget-exhausted users still pass the session-open boundary', () => {
     // If the budget gate were still in place we'd see 402 even with
     // an unknown commentId because that gate ran first. Now we see
     // a 404 (or similar non-402) because the comment lookup fails
-    // — proving the budget gate is gone.
+    // proving the budget gate is gone.
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
     await exhaustBudget(u.id)

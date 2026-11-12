@@ -57,7 +57,7 @@ async function toggle(wrapper: Awaited<ReturnType<typeof mount>>, testid: string
   await flushPromises()
 }
 
-describe('theme panel — {section} options, drop cap per chapter', () => {
+describe('theme panel: {section} options, drop cap per chapter', () => {
   it('opening the panel on a legacy theme emits nothing', async () => {
     const wrapper = await mount(legacy((t) => {
       t.header.left = '{section}'

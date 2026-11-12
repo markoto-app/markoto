@@ -2,10 +2,9 @@ import { listWorkspaceUsage } from '../../../repos/workspaceUsage'
 import { openMemberKey, readMemberKeySpend } from '../../../utils/litellm/workspaceTeams'
 import { getPooledWorkspace } from '../../../utils/billing/workspaceBilling'
 
-// GET /api/workspaces/:wsId/usage — per-person usage of the workspace for
+// GET /api/workspaces/:wsId/usage: per-person usage of the workspace for
 // its admins: documents they own in it, knowledge files and image
-// storage they added to it, and — in a paid Team / Business workspace —
-// their AI spend this budget period on the shared budget. Guests are
+// storage they added to it, and, in a paid Team / Business workspace, // their AI spend this budget period on the shared budget. Guests are
 // listed (documents shared with them), never with AI spend (they use
 // their own budget). No activity times: this is usage, not monitoring.
 export default defineApiHandler({

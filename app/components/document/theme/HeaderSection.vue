@@ -32,7 +32,7 @@ const sectionModeItems = computed<Array<{ label: string, value: SectionMode }>>(
   { label: t('theme.runningSlots.sectionModeStart'), value: 'start' }
 ])
 
-// Header image — same presigned-PUT flow as the cover logo.
+// Header image: same presigned-PUT flow as the cover logo.
 const { inputId: headerImageInputId, uploading: headerImageUploading, error: headerImageError, onFile: onHeaderImageFile } = useThemeImageUpload(() => props.docId, (url) => {
   theme.value.header.imageUrl = url
 })
@@ -78,7 +78,7 @@ const headerImagePositionItems = computed(() => [
       </UFormField>
     </template>
 
-    <!-- Header image — companies typically want their logo in
+    <!-- Header image: companies typically want their logo in
          the running header on every body page. The cover page's
          `@page cover-page { @top-X { content: '' } }` rules
          automatically suppress this on the cover. -->

@@ -153,11 +153,11 @@ while IFS='=' read -r k v; do
   # Booleans compose hands to the app verbatim are normalised to lower case.
   case "$key" in NUXT_AI_BYOK_ALLOW_PRIVATE_URLS | NUXT_SITE_INDEXABLE) v=$(echo "$v" | tr '[:upper:]' '[:lower:]') ;; esac
   if ! echo "$bash_out" | grep -qxF "${key}=${v}"; then
-    echo "PASSTHROUGH FAILED — ${key} is not rendered as its input value"
+    echo "PASSTHROUGH FAILED: ${key} is not rendered as its input value"
     exit 1
   fi
 done <<<"$VARS"
-echo "PASSTHROUGH OK — every sample input is rendered unchanged"
+echo "PASSTHROUGH OK: every sample input is rendered unchanged"
 
 # 2. `--keys` lists every variable the script reads from its environment
 #    (a `${NAME…}` it does not assign itself before use), so the Ansible
@@ -166,14 +166,14 @@ keys=$(bash infra/render-env.sh --keys | sort -u)
 read_vars=$(grep -oE '\$\{[A-Z][A-Z0-9_]*' infra/render-env.sh | cut -c3- | grep -vx INPUTS | sort -u)
 missing=$(comm -13 <(echo "$keys") <(echo "$read_vars") || true)
 if [ -n "$missing" ]; then
-  echo "KEYS FAILED — read but not listed in INPUTS (--keys): $missing"
+  echo "KEYS FAILED: read but not listed in INPUTS (--keys): $missing"
   exit 1
 fi
-echo "KEYS OK — --keys covers every variable render-env.sh reads"
+echo "KEYS OK: --keys covers every variable render-env.sh reads"
 
 # 3. The stack the host's plain `docker compose` uses.
 if ! echo "$bash_out" | grep -qx 'COMPOSE_FILE=deploy/compose/compose.prod.yml'; then
-  echo "COMPOSE_FILE FAILED — the .env must name the production stack"
+  echo "COMPOSE_FILE FAILED: the .env must name the production stack"
   exit 1
 fi
 
@@ -185,9 +185,9 @@ if echo "$bash_tls" | grep -qx 'POSTGRES_SSLMODE=require' \
    && echo "$bash_tls" | grep -qx 'PGSSLROOTCERT=/opt/markoto/secrets/ovh-pg-ca.pem' \
    && echo "$bash_out" | grep -qx 'POSTGRES_SSLMODE=disable' \
    && echo "$bash_out" | grep -qx 'PGSSL=disable'; then
-  echo "PG TLS OK — cert-pinned TLS for a managed host, off for the in-stack one"
+  echo "PG TLS OK, cert-pinned TLS for a managed host, off for the in-stack one"
 else
-  echo "PG TLS FAILED — wrong managed-Postgres TLS lines"
+  echo "PG TLS FAILED, wrong managed-Postgres TLS lines"
   exit 1
 fi
 
@@ -199,11 +199,11 @@ for v in NUXT_LEGAL_CONTROLLER_ADDRESS NUXT_LEGAL_REPRESENTED_BY; do
     case "$kv" in "$v="*) ;; *) NOLEGAL+=("$kv") ;; esac
   done
   if env -i "${NOLEGAL[@]}" bash infra/render-env.sh >/dev/null 2>&1; then
-    echo "LEGAL GATE FAILED — render-env.sh rendered without $v"
+    echo "LEGAL GATE FAILED, render-env.sh rendered without $v"
     exit 1
   fi
 done
-echo "LEGAL GATE OK — controller address + representative are required"
+echo "LEGAL GATE OK, controller address + representative are required"
 
 # 3b. Backup storage falls back to the app's S3 values when no BACKUP_S3_* is
 #     set.
@@ -217,11 +217,11 @@ for pair in ENDPOINT:endpoint BUCKET:bucket ACCESS_KEY:access_key SECRET_KEY:sec
   want=$(echo "$fallback_out" | grep -E "^NUXT_S3_${suffix}=" | cut -d= -f2-)
   got=$(echo "$fallback_out" | grep -E "^BACKUP_S3_${suffix}=" | cut -d= -f2-)
   if [ -z "$want" ] || [ "$want" != "$got" ]; then
-    echo "BACKUP FALLBACK FAILED — BACKUP_S3_${suffix} does not default to NUXT_S3_${suffix}"
+    echo "BACKUP FALLBACK FAILED, BACKUP_S3_${suffix} does not default to NUXT_S3_${suffix}"
     exit 1
   fi
 done
-echo "BACKUP FALLBACK OK — BACKUP_S3_* defaults to NUXT_S3_*"
+echo "BACKUP FALLBACK OK, BACKUP_S3_* defaults to NUXT_S3_*"
 
 # 4. Billing gate: with billing OFF (the default) the Stripe vars are
 #    optional; with billing ON an empty Stripe secret must fail the render.
@@ -230,19 +230,19 @@ for kv in "${ENVARGS[@]}"; do
   case "$kv" in NUXT_STRIPE_*|NUXT_BILLING_ENABLED=*) ;; *) NOSTRIPE+=("$kv") ;; esac
 done
 if ! off_out=$(env -i "${NOSTRIPE[@]}" bash infra/render-env.sh 2>&1); then
-  echo "BILLING GATE FAILED — render-env.sh refused to render without Stripe vars while billing is off:"
+  echo "BILLING GATE FAILED, render-env.sh refused to render without Stripe vars while billing is off:"
   echo "$off_out"
   exit 1
 fi
 if ! echo "$off_out" | grep -qx 'NUXT_BILLING_ENABLED=false'; then
-  echo "BILLING GATE FAILED — billing must default to off (NUXT_BILLING_ENABLED=false)"
+  echo "BILLING GATE FAILED, billing must default to off (NUXT_BILLING_ENABLED=false)"
   exit 1
 fi
 if env -i "${NOSTRIPE[@]}" NUXT_BILLING_ENABLED=true bash infra/render-env.sh >/dev/null 2>&1; then
-  echo "BILLING GATE FAILED — render-env.sh rendered with billing ON but no Stripe secrets"
+  echo "BILLING GATE FAILED, render-env.sh rendered with billing ON but no Stripe secrets"
   exit 1
 fi
-echo "BILLING GATE OK — Stripe vars optional when billing is off, required when on"
+echo "BILLING GATE OK, Stripe vars optional when billing is off, required when on"
 
 # 5. Value safety. Every rendered key must survive a compose-style
 #    parse byte-for-byte even when the input is full of characters that

@@ -3,7 +3,7 @@
 // recipients of personal data, plus the per-recipient transfer
 // mechanism (DPF / SCCs / intra-EU). One row per sub-processor;
 // the registry in `server/legal/subProcessors.ts` is the source
-// of truth and this page renders whatever it contains — adding a
+// of truth and this page renders whatever it contains, adding a
 // new sub-processor is one TypeScript edit, no template change.
 import { legalDescriptionKey } from '~~/shared/seo/meta'
 import { pageBreadcrumbs } from '~~/shared/seo/breadcrumbs'
@@ -85,7 +85,7 @@ const { subProcessorPurpose } = useSubProcessorPurpose()
 
       <!-- One card per sub-processor. A table would pack tighter on
            desktop, but cards survive mobile better and let each row
-           breathe — there's no value in a 50-row dense table here;
+           breathe: there's no value in a 50-row dense table here;
            we have <10 sub-processors and add one per launch. -->
       <ul
         v-else-if="subProcessors"

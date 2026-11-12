@@ -21,14 +21,14 @@ const CreateCommentArgs = z.object({
   end_line: z.number().int().min(1)
     .describe('Last line of the text range (1-indexed, inclusive). Must be >= start_line.'),
   body: z.string().trim().min(1).max(4000)
-    .describe('Comment body (max 4000 chars). Plain text — comments do not render Markdown, so no **bold**, # headings or list markup. May include @[Name](user:ID) mention tokens using IDs from <workspace_members>.')
+    .describe('Comment body (max 4000 chars). Plain text, comments do not render Markdown, so no **bold**, # headings or list markup. May include @[Name](user:ID) mention tokens using IDs from <workspace_members>.')
 }).describe('Place a new comment anchored to a line range. Use for review notes, questions, to-dos, or to communicate with the user about a specific part of the document. Your comment appears as "markoto".')
 
 const ReplyToCommentArgs = z.object({
   comment_id: z.string().min(1).max(64)
     .describe('The id of the comment thread to reply to (from read_comments).'),
   body: z.string().trim().min(1).max(2000)
-    .describe('Reply body (max 2000 chars). Plain text — comments do not render Markdown, so no **bold**, # headings or list markup. May include @[Name](user:ID) mention tokens.')
+    .describe('Reply body (max 2000 chars). Plain text, comments do not render Markdown, so no **bold**, # headings or list markup. May include @[Name](user:ID) mention tokens.')
 }).describe('Add a reply to an existing comment thread. Your reply appears as "markoto" nested under the thread.')
 
 const ResolveCommentArgs = z.object({
@@ -51,7 +51,7 @@ const DeleteCommentArgs = z.object({
 // only), createdAt, updatedAt,
 // resolved, replies (nested Y.Array<Y.Map>).
 //
-// Anchors are encoded as base64 strings via Buffer (not btoa — server context).
+// Anchors are encoded as base64 strings via Buffer (not btoa, server context).
 
 function _toBase64Comment(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString('base64')
@@ -98,7 +98,7 @@ function formatAnchorLabel(
   anchor: { from: number, to: number } | null,
   fullText: string
 ): string {
-  if (!anchor) return '[orphaned — anchored text was deleted]'
+  if (!anchor) return '[orphaned, anchored text was deleted]'
   const anchorText = fullText.slice(anchor.from, anchor.to)
   const preview = anchorText.length > COMMENT_ANCHOR_PREVIEW_MAX
     ? anchorText.slice(0, COMMENT_ANCHOR_PREVIEW_MAX) + '…'
@@ -191,7 +191,7 @@ async function handleCreateComment(
   const now = Date.now()
   const origin = `ai:assistant:${session.sessionId}`
 
-  // Strip any `@ai` tokens the model may have written into its body —
+  // Strip any `@ai` tokens the model may have written into its body,
   // otherwise its own comment would re-trigger the @ai-mention path the
   // next time the doc is loaded by a client. Belt-and-suspenders: the
   // server-side trigger guard ALSO rejects AI-authored messages, but
@@ -248,7 +248,7 @@ function handleReplyToComment(
   const now = Date.now()
   const origin = `ai:assistant:${session.sessionId}`
 
-  // Strip @ai from the reply body — same rationale as create_comment.
+  // Strip @ai from the reply body, same rationale as create_comment.
   const safeBody = plainCommentText(stripAiMention(input.body))
 
   session.ydoc.transact(() => {
@@ -338,7 +338,7 @@ async function deleteReplyFromThread(
     const r = repliesArr.get(j)
     if (!(r instanceof Y.Map) || r.get('id') !== replyId) continue
     if (!canDeleteEntry(r, session.initiatorUserId) && !(await initiatorCanManage())) {
-      return toolError(`Error: cannot delete reply "${replyId}" — it was not authored by markoto or by you, and you do not have document management rights.`)
+      return toolError(`Error: cannot delete reply "${replyId}", it was not authored by markoto or by you, and you do not have document management rights.`)
     }
     const origin = `ai:assistant:${session.sessionId}`
     session.ydoc.transact(() => {
@@ -359,7 +359,7 @@ async function deleteWholeThread(
   initiatorCanManage: () => Promise<boolean>
 ): Promise<ToolResult> {
   if (!canDeleteEntry(parentMap, session.initiatorUserId) && !(await initiatorCanManage())) {
-    return toolError(`Error: cannot delete thread "${commentId}" — it was not authored by markoto or by you, and you do not have document management rights.`)
+    return toolError(`Error: cannot delete thread "${commentId}", it was not authored by markoto or by you, and you do not have document management rights.`)
   }
   const origin = `ai:assistant:${session.sessionId}`
   session.ydoc.transact(() => {
@@ -377,7 +377,7 @@ export const readCommentsTool = defineDocTool({
 
 export const createCommentTool = defineDocTool({
   name: 'create_comment',
-  description: 'Anchor a new comment to a line range (start_line, end_line). Use for review notes, to-dos, questions, or to communicate with the user about a specific part of the document. Your comment appears as "markoto" in the sidebar. PREFER leaving a comment over writing nothing when you make an assumption or notice an issue — users see comments in real time.',
+  description: 'Anchor a new comment to a line range (start_line, end_line). Use for review notes, to-dos, questions, or to communicate with the user about a specific part of the document. Your comment appears as "markoto" in the sidebar. PREFER leaving a comment over writing nothing when you make an assumption or notice an issue, users see comments in real time.',
   schema: CreateCommentArgs,
   handler: handleCreateComment
 })

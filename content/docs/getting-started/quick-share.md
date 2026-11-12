@@ -1,6 +1,6 @@
 ---
 title: Write & share your first document
-description: Create a document, give it a title, and send the link — three minutes, no signup.
+description: Create a document, give it a title, and send the link. Three minutes, no signup.
 category: getting-started
 order: 1
 featured: true
@@ -26,7 +26,7 @@ you to accept the Terms of Service and confirm you're at least 16. You
 see this once per browser. A quick bot check runs in your browser at the
 same time; it doesn't track you.
 
-Anonymous documents start in **open-edit** mode by default — anyone
+Anonymous documents start in **open-edit** mode by default: anyone
 with the link can read AND edit. That's the fastest way to draft
 something with a single collaborator: paste the link, both of you
 type, both of you see each other's edits live.
@@ -43,6 +43,6 @@ markoto. Sign in to keep your documents.
 
 ## What's next
 
-- [Turn your draft into a polished PDF](/docs/import-export/polished-pdf) — pick a theme and export.
-- [Bring an existing Word/PDF document in](/docs/import-export/import-existing) — start from what you already have.
-- [Add tables, alerts, math, and diagrams](/docs/writing/rich-content) — make your docs richer.
+- [Turn your draft into a polished PDF](/docs/import-export/polished-pdf): pick a theme and export.
+- [Bring an existing Word/PDF document in](/docs/import-export/import-existing): start from what you already have.
+- [Add tables, alerts, math, and diagrams](/docs/writing/rich-content): make your docs richer.

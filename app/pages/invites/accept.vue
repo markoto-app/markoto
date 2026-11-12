@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Landing card for the link in a workspace-invitation email
 // (`/invites/accept?token=…`). The token is only sent to the API on an
-// explicit click — never on page load — so mail scanners that prefetch
+// explicit click, never on page load, so mail scanners that prefetch
 // links can't accept or decline on someone's behalf.
 //
 // Accepting needs an account. A signed-out visitor sees the sign-in

@@ -72,7 +72,7 @@ function buildTitleHtml(theme: DocTheme, title: string): string {
  * The balanced title (`text-wrap: balance`) may break after the hyphen of
  * a compound ("field-/service reports"). Every hyphenated compound
  * becomes `<span class="markoto-nobreak">` (`white-space: nowrap`,
- * themeToCss) — not U+2011: many text fonts have no non-breaking-hyphen
+ * themeToCss): not U+2011: many text fonts have no non-breaking-hyphen
  * glyph (a fallback font would print it), and copied PDF text would no
  * longer contain a plain hyphen. Input and output are escaped HTML text:
  * only letters, digits and hyphens are matched, never `&…;` or tags.

@@ -54,7 +54,7 @@ describe('findLiveSubscription', () => {
     expect(await findLiveSubscription(stripe, 'sub_gone')).toBeNull()
   })
 
-  it('propagates non-missing errors — an outage must NOT look like "no subscription"', async () => {
+  it('propagates non-missing errors: an outage must NOT look like "no subscription"', async () => {
     const stripe = stripeWith(async () => {
       throw Object.assign(new Error('rate limited'), { code: 'rate_limit' })
     })

@@ -215,7 +215,7 @@ describe('generated tree', () => {
       const css = readFileSync(join(out, 'fonts', `${font.slug}.variable.css`), 'utf8')
       // Its own family name: under the theme's name it would join the
       // document's static faces on the server render page (an app page)
-      // and win the matching — the PDF would embed it as Type 3 again.
+      // and win the matching, the PDF would embed it as Type 3 again.
       expect(css, font.name).toContain(`font-family: '${font.name} Variable';`)
       expect(css, font.name).not.toContain(`font-family: '${font.name}';`)
       expect(appCss, font.name).toContain(`'${font.name} Variable', '${font.name}'`)

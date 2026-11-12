@@ -1,7 +1,7 @@
 import type { ResolvedAiProviders } from '../../../server/utils/aiProviders/resolve'
 
 /**
- * Every capability available via platform model aliases — the shape a
+ * Every capability available via platform model aliases, the shape a
  * self-hosted instance with today's Mistral/BFL/Voxtral defaults
  * resolves to. Loop tests use it so no tool is filtered out by
  * `filterToolsForProviders`.

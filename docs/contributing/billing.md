@@ -6,9 +6,9 @@ The same code runs a self-hosted instance (billing off), the free-only hosted se
 
 `NUXT_BILLING_ENABLED` (default off) is read through the typed env (`shared/config/billingMode.ts`), which tests stub with `vi.stubEnv`. Server helpers are in `server/utils/billing/billingMode.ts`:
 
-- `assertBillingEnabled()` — 404 `billing/disabled` at the top of checkout, portal, seats, top-up and the Stripe webhook.
-- `effectivePlan(plan, validUntil)` — `free` whenever billing is off, and for a lapsed paid plan.
-- `limitRecovery()`, `limitUpgradeHint()`, `budgetExhausted*()` — limit messages that point at an upgrade only when one can be bought.
+- `assertBillingEnabled()`: 404 `billing/disabled` at the top of checkout, portal, seats, top-up and the Stripe webhook.
+- `effectivePlan(plan, validUntil)`: `free` whenever billing is off, and for a lapsed paid plan.
+- `limitRecovery()`, `limitUpgradeHint()`, `budgetExhausted*()`: limit messages that point at an upgrade only when one can be bought.
 
 With billing off, Stripe environment variables are not required at boot (the billing rule in `shared/env/rules/billing.ts`), the billing jobs do not start, and account deletion and data export skip their Stripe steps. `NUXT_PLANS_COMING_SOON=true` opens the paid-plans waitlist (`server/utils/privacy/waitlist.ts`).
 
@@ -18,9 +18,9 @@ Plans are `free` and `pro` (personal, `users.plan`) and `team` and `business` (p
 
 `server/utils/billing/entitlements.ts` decides whose plan applies:
 
-- `resolveDocPlan` / `resolveDocPlanFor` — document features: the workspace's plan, else the owner's; anonymous documents are `free`.
-- `resolveWorkspacePlan` — the better of the workspace subscription (with billing on) and the workspace creator's personal plan.
-- `resolveUserPlan` — personal limits.
+- `resolveDocPlan` / `resolveDocPlanFor`: document features: the workspace's plan, else the owner's; anonymous documents are `free`.
+- `resolveWorkspacePlan`: the better of the workspace subscription (with billing on) and the workspace creator's personal plan.
+- `resolveUserPlan`: personal limits.
 
 Refusals use `assertPlanFeature`, `assertPlanLimit`, `planLimitError` and `assertWithinHistory`: 409 `plan/feature-unavailable` or `plan/limit-reached` with `messageKey` and `limitRecovery()`. Features that can also be written through Y.js (custom CSS, the brand lock) are enforced again at render time, because Y.js writes bypass the API.
 
@@ -46,10 +46,10 @@ A Stripe customer belongs to one subject: a user (personal Pro, `users.stripe_cu
 
 `POST /api/webhooks/stripe` verifies the signature and calls `dispatchStripeEvent` (`server/utils/billing/stripeWebhook.ts`), which runs in one transaction:
 
-1. **Deduplicate** — insert `event.id` into `processed_webhook_events` with `ON CONFLICT DO NOTHING`; an existing row means a redelivery, answered 200 without re-applying anything.
-2. **Stash out-of-order events** — Stripe does not order deliveries. A `customer.subscription.*` or `invoice.*` event for a customer no subject owns yet is stored in `pending_stripe_events`.
+1. **Deduplicate**: insert `event.id` into `processed_webhook_events` with `ON CONFLICT DO NOTHING`; an existing row means a redelivery, answered 200 without re-applying anything.
+2. **Stash out-of-order events**: Stripe does not order deliveries. A `customer.subscription.*` or `invoice.*` event for a customer no subject owns yet is stored in `pending_stripe_events`.
 3. **Dispatch** to the handler for the event type through the table in `server/utils/billing/stripeEvents/eventHandlers.ts`. The table is the list of handled types (`HANDLED_STRIPE_EVENT_TYPES` is derived from it): an event type without an entry is acknowledged unhandled. One module per event family under `stripeEvents/`: `checkoutCompleted.ts`, `creditTopups.ts` (top-up checkouts, delayed payments, refunds), `subscriptionEvents.ts` (created / updated / deleted), `invoiceEvents.ts` (paid / failed); `billingSubjects.ts` resolves a customer to its user or workspace, `stripeObjects.ts` reads the version-dependent fields. Their writes go through `server/repos/userBilling.ts`, `server/repos/workspaceSubscriptions.ts` and `server/repos/stripeWebhookEvents.ts`.
-4. **Drain** — after `checkout.session.completed`, stashed events for that customer are replayed in arrival order.
+4. **Drain**: after `checkout.session.completed`, stashed events for that customer are replayed in arrival order.
 
 Only the subscription a row tracks is applied: a late event about an older or cancelled subscription cannot bring a plan back. Version-dependent fields are read through `subscriptionPeriod`, `invoiceSubscriptionId` and `invoiceServicePeriod` (`stripeEvents/stripeObjects.ts`), because the pinned API version and the SDK types differ.
 

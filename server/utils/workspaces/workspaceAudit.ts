@@ -5,12 +5,12 @@
 //
 // - Workspace ADMINS of a workspace whose plan includes `auditLog`
 //   (Business on markoto.app; every workspace when self-hosted). Normal
-//   role check — in a workspace that enforces single sign-on, that means
+//   role check: in a workspace that enforces single sign-on, that means
 //   a current SSO sign-in too.
 // - Truncated IPs (/24, /48) are shown; never secrets
 //   (the audit writers store none).
 // - Retention: the instance's audit retention (2 years by default,
-//   `NUXT_AUDIT_LOG_RETENTION_DAYS`) — shown, not configurable here.
+//   `NUXT_AUDIT_LOG_RETENTION_DAYS`): shown, not configurable here.
 
 import type { WorkspaceAuditRow } from '../../repos/audit'
 import { resolveAuditLogRetentionDays } from '../privacy/legalRetentionSweep'

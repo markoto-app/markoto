@@ -15,12 +15,12 @@ const RESTORABLE_META_KEYS = ['title', 'theme', 'description', 'audience', 'lang
 
 /**
  * The past state's restorable ymeta values as plain JS. Only values that
- * pass the sync server's ymeta validation are returned — the server
+ * pass the sync server's ymeta validation are returned, the server
  * rejects (and closes the connection on) an update carrying anything
  * else, which would fail the whole restore. A past theme that no longer
  * matches today's schema, or a corrupted value (e.g. a nested Y type),
  * is skipped: the doc keeps its current value for that key. Values are
- * read per key — never `toJSON()` on the whole map, which recurses into
+ * read per key: never `toJSON()` on the whole map, which recurses into
  * nested Y types without a depth bound.
  */
 export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unknown> {
@@ -34,7 +34,7 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
   return out
 }
 
-// "Snap the live Y.Doc to a past state" — the execution side of restore.
+// "Snap the live Y.Doc to a past state", the execution side of restore.
 //
 // Mechanics:
 //   1. Replay the Y.js log up to `targetYjsId` to produce the past
@@ -46,7 +46,7 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 //   3. Inside ONE Y.js transaction (origin `restore:{userId}:{sessionId}`),
 //      replace ytext + ymeta + ycomments with the past state's
 //      content. The transaction shows up to every connected client
-//      as a single broadcast — no flicker, no partial state.
+//      as a single broadcast, no flicker, no partial state.
 //   4. Wait until the sync server acknowledged the update, have it
 //      store the document now (`flush-document`) and read the newest
 //      row id: the row the restore wrote, so the `restore` activity
@@ -64,7 +64,7 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 // (returns 409 from the endpoint).
 //
 // What does NOT live here:
-//   - Auth (caller's responsibility — the endpoint's
+//   - Auth (caller's responsibility, the endpoint's
 //     `allow.doc('write-content')` policy runs first)
 //   - The activity-log row write (caller writes it after success
 //     so a replay-time exception leaves no orphan)
@@ -74,7 +74,7 @@ const ACK_TIMEOUT_MS = 10_000
 /**
  * Resolves once the sync server has applied every update this provider
  * sent (Hocuspocus answers each one with a sync-status message). Rejects
- * when that takes longer than `ACK_TIMEOUT_MS` — e.g. the server refused
+ * when that takes longer than `ACK_TIMEOUT_MS`, e.g. the server refused
  * the update.
  */
 function waitForServerAck(provider: HocuspocusProvider): Promise<void> {
@@ -99,9 +99,9 @@ export interface RestoreDocOptions {
   doc: DocAccess<'write'>
   /** `yjs_updates` id whose state we'll restore the live doc to.
    *  In the endpoint this is the source activity row's `yjsDocIdBefore`
-   *  — i.e., "the state right before that activity happened." */
+   *  i.e., "the state right before that activity happened." */
   targetYjsId: number
-  /** Real human user requesting the restore — drives JWT identity
+  /** Real human user requesting the restore, drives JWT identity
    *  + the awareness label collaborators see. */
   actorUserId: number
   actorName: string
@@ -111,7 +111,7 @@ export interface RestoreDocOptions {
 }
 
 export interface RestoreDocResult {
-  /** The `yjs_updates` id captured BEFORE the restore landed —
+  /** The `yjs_updates` id captured BEFORE the restore landed,
    *  i.e., the live state right before our inverse update. Stamped
    *  on the new restore activity row's `yjsDocIdBefore` so a FUTURE
    *  restore from this row brings the doc back to the pre-restore
@@ -150,7 +150,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
 
   const docId = opts.doc.docId
   // Per-doc serialization. The lock is held for the lifetime of
-  // this transaction — which we keep open for the whole restore
+  // this transaction: which we keep open for the whole restore
   // duration via a long-running select. That seems heavy but
   // restores are infrequent (manual user action) and short
   // (~250ms in practice).
@@ -166,9 +166,9 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
     // Step 1: replay to get the past state's full Y.Doc, then EXTRACT
     // the values we want to restore (text, comments, meta) as plain
     // JS values. We deliberately do NOT use the past doc's encoded
-    // update — see the rationale at the apply site below.
+    // update: see the rationale at the apply site below.
     // Below the history floor the replay throws instead of returning an
-    // empty doc — applying an empty reconstruction would WIPE the live doc.
+    // empty doc: applying an empty reconstruction would WIPE the live doc.
     let past: Y.Doc
     try {
       past = await reconstructDocAtYjsId(opts.doc, opts.targetYjsId)
@@ -265,7 +265,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
         // Comment threads are Y.Map instances inside the array; we
         // re-insert them as plain Y.Maps populated from the past JSON
         // so anchors / replies survive. RelativePosition base64s land
-        // verbatim — they reference the OLD ytext item ids and become
+        // verbatim: they reference the OLD ytext item ids and become
         // orphaned anchors in the read endpoint, which is the same
         // behaviour the user sees if a passage is deleted manually.
         for (const c of pastComments) {
@@ -280,7 +280,7 @@ export async function restoreDocToYjsId(opts: RestoreDocOptions): Promise<Restor
 
         // ymeta: copy past values for title/theme/description/audience/
         // language/templateId. Transient keys (_deleted, presence flags)
-        // are deliberately NOT touched — restoring a deleted-marker
+        // are deliberately NOT touched, restoring a deleted-marker
         // would re-delete the doc.
         const ymeta = ydoc.getMap('meta')
         for (const [k, v] of Object.entries(pastMeta)) {

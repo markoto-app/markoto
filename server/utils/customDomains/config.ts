@@ -5,7 +5,7 @@ import type { RawEnv } from '~~/shared/env/define'
 // Instance configuration of custom domains, read per call so tests
 // can stub it. The feature is on only when the operator names the host
 // customers point their domain at (`NUXT_PUBLISH_DOMAINS_TARGET`, e.g.
-// `pages.markoto.app`) — that host must reach this instance's Traefik.
+// `pages.markoto.app`): that host must reach this instance's Traefik.
 
 export interface CustomDomainSettings {
   /** CNAME target customers point to (lowercase, no trailing dot). */

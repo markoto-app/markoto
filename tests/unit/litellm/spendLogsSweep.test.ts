@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { deliberatelyInvalid } from '../../helpers/fixtures'
 
 // LiteLLM_SpendLogs retention sweeper. The 90-day cutoff is the
-// load-bearing arithmetic — off by one means we delete a day too
+// load-bearing arithmetic: off by one means we delete a day too
 // much (forensic gap) or too little (table grows). These tests
 // pin both the date math and the failure-tolerant shape (a Postgres
 // hiccup leaves rows around for the next cycle, doesn't crash the
@@ -35,7 +35,7 @@ afterEach(async () => {
   await closeLitellmPool()
 })
 
-describe('runSpendLogsSweep — date math', () => {
+describe('runSpendLogsSweep: date math', () => {
   it('uses a 90-day cutoff against the LiteLLM_SpendLogs.startTime column', async () => {
     queryFn.mockResolvedValueOnce({ rowCount: 42 })
 
@@ -76,7 +76,7 @@ describe('runSpendLogsSweep — date math', () => {
   })
 })
 
-describe('runSpendLogsSweep — failure tolerance', () => {
+describe('runSpendLogsSweep: failure tolerance', () => {
   it('returns null + warns when the DB query throws (does NOT throw)', async () => {
     queryFn.mockRejectedValueOnce(new Error('connection refused'))
     const result = await runSpendLogsSweep()

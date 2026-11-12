@@ -37,7 +37,7 @@ export type AttributedTo = `user:${number}` | `workspace:${string}`
 export interface BillingContext {
   /** The effective plan. Determines tier caps + UI display. */
   plan: PlanName
-  /** Who gets billed — `user:{id}` or `workspace:{wsId}`. */
+  /** Who gets billed, `user:{id}` or `workspace:{wsId}`. */
   attributedTo: AttributedTo
   /**
    * Start of the current billing period. Paid users: Stripe's
@@ -169,7 +169,7 @@ async function getUserPlan(userId: number): Promise<{
  * yet, `ensureUserKey` creates one inline.
  * One round-trip to LiteLLM admin per user lifetime.
  *
- * Throws if `userId` doesn't match any row — all callers go through
+ * Throws if `userId` doesn't match any row, all callers go through
  * `requireValidatedUserSession` first, which rejects missing users
  * at 401 before the handler runs.
  */

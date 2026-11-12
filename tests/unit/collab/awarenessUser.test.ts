@@ -46,7 +46,7 @@ describe('normalizeAwarenessUser', () => {
     expect(normalizeAwarenessUser({ name: 'Al‮ice\u0000' })?.name).toBe('Alice')
   })
 
-  it('drops avatar URLs of every kind — avatars are generated locally', () => {
+  it('drops avatar URLs of every kind, avatars are generated locally', () => {
     for (const avatar of ['https://avatars.githubusercontent.com/u/1', '/api/files/a/b.png', 'javascript:alert(1)', 'data:image/svg+xml,<svg/>']) {
       expect(normalizeAwarenessUser({ name: 'x', avatar })).not.toHaveProperty('avatar')
     }

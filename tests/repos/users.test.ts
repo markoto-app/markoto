@@ -86,7 +86,7 @@ describe('findSessionUser', () => {
   })
 })
 
-describe('upsertOAuthUser — basic outcomes', () => {
+describe('upsertOAuthUser: basic outcomes', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -181,7 +181,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
   })
 })
 
-describe('upsertOAuthUser — email-based merge', () => {
+describe('upsertOAuthUser: email-based merge', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -297,9 +297,9 @@ describe('upsertOAuthUser — email-based merge', () => {
     //   - First tx: email lookup finds the GitHub row, sees
     //     google_id IS NULL → merges.
     //   - Second tx: blocks on `FOR UPDATE` until first commits.
-    //     Then reads the row — google_id is now set (to OUR value
+    //     Then reads the row, google_id is now set (to OUR value
     //     because providerUserId is the same). Branch 1 would
-    //     match, but we never got there — branch 2's
+    //     match, but we never got there, branch 2's
     //     `candidateHasOurProvider` is now TRUE for a row where
     //     the provider id matches ours. Falls through to INSERT,
     //     which collides with the UNIQUE constraint on google_id
@@ -326,13 +326,13 @@ describe('upsertOAuthUser — email-based merge', () => {
 
     // At least one fulfilled; a unique-violation on the second is
     // acceptable outcome (it means the lock-and-merge serialised
-    // correctly — the tx that lost the race can be retried by
+    // correctly: the tx that lost the race can be retried by
     // nuxt-auth-utils on the next click).
     const fulfilled = [a, b].filter(r => r.status === 'fulfilled')
     expect(fulfilled.length).toBeGreaterThanOrEqual(1)
 
     // Exactly ONE row with google_id=g-race-same among the matching
-    // emails — no corruption.
+    // emails: no corruption.
     const rows = await testDb().query<{ c: string }>(
       `SELECT COUNT(*) AS c FROM users WHERE email ILIKE 'race@test.local' AND google_id = 'g-race-same'`
     )
@@ -391,7 +391,7 @@ describe('requestAccountDeletion', () => {
     // Tiny sleep so any reset would produce a measurable diff.
     await new Promise(r => setTimeout(r, 50))
     await expect(requestAccountDeletion(asUser(userId), 30)).rejects.toBeInstanceOf(ConflictError)
-    // Re-read — grace still equals the original.
+    // Re-read: grace still equals the original.
     const status = await getAccountDeletionStatus(asUser(userId))
     expect(status?.deletionGraceUntil?.getTime()).toBe(first.deletionGraceUntil!.getTime())
   })
@@ -546,7 +546,7 @@ describe('setAdminFlag', () => {
   })
 })
 
-describe('findUserById — isAdmin projection', () => {
+describe('findUserById: isAdmin projection', () => {
   beforeEach(async () => {
     await resetDb()
   })

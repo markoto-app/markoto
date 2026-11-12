@@ -5,7 +5,7 @@ import { sentryScrubOptions } from '../../shared/utils/security/sentryScrub'
 // Sync-server Sentry init. Must be imported before anything else in
 // index.ts so Sentry's Bun instrumentation patches the global fetch / ws /
 // stdlib targets before they're referenced. Init is a no-op when
-// SENTRY_DSN is empty — dev/local don't need a telemetry sink.
+// SENTRY_DSN is empty: dev/local don't need a telemetry sink.
 
 const dsn = syncEnv().observability.dsn
 
@@ -32,7 +32,7 @@ export { Sentry }
 
 /**
  * Outbound trace propagation helper. Mirrors `server/utils/platform/traceHeaders.ts`
- * on the app side — the sync-server doesn't share that file because it's
+ * on the app side, the sync-server doesn't share that file because it's
  * a standalone Bun container with its own `node_modules`. When the
  * sync-server POSTs to the app's `/api/internal/activity` or
  * `/api/internal/comments-snapshot`, the headers carry the active span
@@ -42,7 +42,7 @@ export { Sentry }
  *
  * Returns the headers unchanged when no span is active (e.g. the activity
  * logger fired from a periodic flush, not an HTTP-rooted span) or when
- * Sentry isn't initialised — degrades gracefully.
+ * Sentry isn't initialised: degrades gracefully.
  */
 export function injectTraceHeaders(
   headers: Record<string, string>

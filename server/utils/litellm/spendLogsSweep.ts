@@ -12,7 +12,7 @@ const log = useLogger('spend-logs-sweep')
 // dashboard responsiveness.
 //
 // 90-day retention matches the window we keep `processed_webhook_events`
-// — long enough for forensic queries, short enough that the table
+// long enough for forensic queries, short enough that the table
 // stays bounded.
 //
 // Why direct DB access (not the proxy admin API): LiteLLM v1.83.14
@@ -25,7 +25,7 @@ const log = useLogger('spend-logs-sweep')
 // pool, so a sweep window deletion is safe.
 //
 // Connection: the one pool on the litellm DB (same Postgres instance,
-// LiteLLM's own role when configured) — server/db/litellm.ts.
+// LiteLLM's own role when configured), server/db/litellm.ts.
 //
 // Failure-tolerant: a hiccup just leaves stale rows around for one
 // more cycle. The sweep doesn't gate any user-facing behaviour.

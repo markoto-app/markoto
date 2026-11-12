@@ -102,7 +102,7 @@ export function normalizeAwarenessUser(raw: unknown): NormalizedAwarenessUser | 
 }
 
 /** True when `normalizeAwarenessUser` would return the input unchanged
- *  (same keys, same values) — lets callers skip a needless write. */
+ *  (same keys, same values), lets callers skip a needless write. */
 function isNormalizedAwarenessUser(raw: unknown, normalized: NormalizedAwarenessUser | null): boolean {
   if (normalized === null) return raw === undefined
   if (typeof raw !== 'object' || raw === null) return false
@@ -113,7 +113,7 @@ function isNormalizedAwarenessUser(raw: unknown, normalized: NormalizedAwareness
   return normalizedEntries.every(([k, v]) => user[k] === v)
 }
 
-/** Minimal awareness surface the normaliser needs — structurally matches
+/** Minimal awareness surface the normaliser needs, structurally matches
  *  y-protocols' `Awareness` without importing it (shared/ stays yjs-free). */
 export interface AwarenessStatesLike {
   clientID: number

@@ -7,7 +7,7 @@ import { first } from '../../helpers/assert'
 import { docAs } from '../../helpers/access'
 
 // Mock useDatabasePool so we can drive reconstructDocAtYjsId without
-// a real Postgres. The implementation only ever calls pool.query —
+// a real Postgres. The implementation only ever calls pool.query,
 // we stub it to return canned `yjs_updates` rows (with the history
 // floor column the read returns alongside them).
 const mockQuery = vi.fn()
@@ -111,7 +111,7 @@ describe('reconstructDocAtYjsId', () => {
   it('handles a Buffer-with-byteOffset (pg adapter quirk)', async () => {
     // Postgres' bytea decoder hands us Buffers that may share an
     // ArrayBuffer with siblings. Y.js's applyUpdate rejects raw
-    // Buffer in some bundling configs — we must construct a proper
+    // Buffer in some bundling configs, we must construct a proper
     // Uint8Array view from the buffer's offset/length.
     const seed = new Y.Doc()
     seed.getText('content').insert(0, 'shared')

@@ -4,7 +4,7 @@ import { registeredVars } from '../../../shared/env/registry'
 // runtimeConfig keeps only what Nuxt modules and the browser read
 // (session + oauth for nuxt-auth-utils, `public`). Nuxt fills each key
 // from NUXT_<PATH> at runtime, so every such name must be a registered
-// app variable — otherwise boot validation and the reference miss it.
+// app variable: otherwise boot validation and the reference miss it.
 
 vi.stubGlobal('defineNuxtConfig', (config: unknown) => config)
 // Imported through a variable so the tests' type-check doesn't pull in

@@ -9,13 +9,13 @@ import { MIB } from '~~/shared/config/units'
 //
 //   1. Will the font print well? Chromium's PDF backend (Skia) embeds a
 //      variable font (`fvar`) or one with CFF outlines (`OTTO`, `CFF `,
-//      `CFF2`) as Type 3 glyph procedures — the reason the built-in
+//      `CFF2`) as Type 3 glyph procedures, the reason the built-in
 //      document fonts are static TrueType cuts (shared/utils/theme/themeFonts.ts).
 //      Those are refused, as are collections (`ttcf`, several fonts in
 //      one file) and fonts whose OS/2 `fsType` forbids embedding
 //      (restricted licence: bit 1).
 //   2. What is it? Family name (typographic family, else family), weight
-//      class and italic flag — the defaults the upload form shows.
+//      class and italic flag, the defaults the upload form shows.
 //
 // What it does NOT do: validate glyph data. The browsers and the
 // renderer's Chromium run every web font through OTS (the OpenType
@@ -170,7 +170,7 @@ function outlineProblem(flavor: number, tables: Tables): Refusal['reason'] | nul
 /** Embedding permission, weight and italic flag from the `OS/2` table. */
 function readOs2(o: Reader): { weight: number, italic: boolean } | Refusal {
   const fsType = o.u16(8)
-  // Bit 1: restricted licence embedding — the font must not be
+  // Bit 1: restricted licence embedding, the font must not be
   // embedded in documents at all. (Bits 2/3 = preview & print /
   // editable embedding are fine; bit 9 = bitmap only.)
   if ((fsType & 0x0002) !== 0 && (fsType & 0x000C) === 0) return { ok: false, reason: 'no-embedding' }

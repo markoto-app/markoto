@@ -4,7 +4,7 @@
 export const SITE_NAME = 'markoto'
 
 /** `<title>` when a page sets none (and the home page's own title). */
-export const DEFAULT_TITLE = 'markoto — Collaborative Markdown'
+export const DEFAULT_TITLE = 'markoto · Collaborative Markdown'
 
 /** Separator the title template puts between page title and site name. */
 const TITLE_SUFFIX = ` · ${SITE_NAME}`

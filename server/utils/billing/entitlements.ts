@@ -1,4 +1,4 @@
-// Plan entitlements — which plan applies to an action, and what that
+// Plan entitlements: which plan applies to an action, and what that
 // plan allows. One place every plan limit and feature switch goes
 // through, so enforcement and the UI can't disagree.
 //
@@ -11,7 +11,7 @@
 //
 // Whose plan counts:
 //   - Document features (custom CSS, history window): the DOCUMENT's
-//     plan — its workspace's plan for a workspace document, else its
+//     plan: its workspace's plan for a workspace document, else its
 //     owner's plan; anonymous documents are `free`.
 //   - Workspace limits (members): the WORKSPACE's plan.
 //   - Personal limits (saved presets, import size, MCP, web tools):
@@ -19,7 +19,7 @@
 //
 // The workspace plan is its Team / Business subscription
 // (`workspace_subscriptions`) or, when better, its creator's personal plan
-// (`workspaces.owner_id` — never used for authorisation; here it only
+// (`workspaces.owner_id`: never used for authorisation; here it only
 // picks a limit).
 //
 // Reads `process.env` through `getTiers()` / `effectivePlan()` on every
@@ -51,7 +51,7 @@ export async function resolveUserPlan(userId: number | null | undefined): Promis
  * Effective plan of a workspace: the better of
  *   - its Team / Business subscription, while billing is on and the
  *     subscription grants its plan (`subscriptionGrantsPlan`), and
- *   - its creator's personal plan — a Pro user's own small workspaces get
+ *   - its creator's personal plan, a Pro user's own small workspaces get
  *     Pro features without a workspace subscription.
  */
 export async function resolveWorkspacePlan(workspaceId: string): Promise<PlanName> {

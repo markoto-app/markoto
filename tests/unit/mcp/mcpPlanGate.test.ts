@@ -52,7 +52,7 @@ describe('MCP tool list on a read-only plan', () => {
   })
 })
 
-describe('admitToolCall — plan checks', () => {
+describe('admitToolCall: plan checks', () => {
   it('refuses a write tool on a read-only plan with plan/feature-unavailable', async () => {
     const event = fakeEvent({ mcpWrite: false, mcpToolCallsPerDay: null })
     await expect(admitToolCall(event as never, 'replace_text', 'documents:write')).rejects.toMatchObject({

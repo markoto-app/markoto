@@ -201,7 +201,7 @@ jobs:
     steps:
       # Enforces feat:/fix:/docs:/chore:/refactor:/test:/build:/ci: prefix +
       # lower-cased subject. The PR title is ALSO the release name (see
-      # release.yml) — this gate is what stops a sloppy title from shipping
+      # release.yml): this gate is what stops a sloppy title from shipping
       # straight to the public release page.
       - name: Validate PR title
         uses: amannn/action-semantic-pull-request@0723387faaf9b38adef4775cd42cfd5155ed6017 # v5.5.3
@@ -245,7 +245,7 @@ jobs:
       - name: Download actionlint
         id: get_actionlint
         # Pinned to a commit of the download script. The script's first
-        # arg pins the binary version it fetches — both layers are pinned
+        # arg pins the binary version it fetches: both layers are pinned
         # so a tampered `main` can't substitute a different binary.
         run: bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/914e7df21a07ef503a81201c76d2b11c789d3fca/scripts/download-actionlint.bash) 1.7.12
         shell: bash
@@ -286,7 +286,7 @@ jobs:
     # render for HTTP, HTTPS, build-from-source and backup combinations.
     # The runner image ships shellcheck but Compose v2.x, which rejects a
     # file that overrides services it `include:`s ("conflicts with imported
-    # resource" — allowed again since Compose v5.0.0, compose-go#835). Every
+    # resource": allowed again since Compose v5.0.0, compose-go#835). Every
     # compose file here relies on that, so install a pinned v5 plugin.
     env:
       COMPOSE_VERSION: v5.4.0
@@ -493,6 +493,10 @@ jobs:
       - name: Internal vocabulary
         run: bun run check:vocab
 
+      # The em-dash character (U+2014) is never used in the repository.
+      - name: No em-dash
+        run: bun run check:em-dash
+
   docs-checks:
     name: docs-checks
     permissions:
@@ -602,7 +606,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       # fetch-depth: 0 so the guard can diff the PR's new migrations against
-      # the base branch (it only scans CHANGED drizzle/*.sql — historical
+      # the base branch (it only scans CHANGED drizzle/*.sql: historical
       # migrations legitimately contain DROP/TRUNCATE).
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -614,7 +618,7 @@ jobs:
         with:
           bun-version: 1.4.4
 
-      # No `bun install` — the script uses only node builtins, so this stays
+      # No `bun install`: the script uses only node builtins, so this stays
       # fast. Flags backward-incompatible DDL (DROP/RENAME/TYPE/SET NOT NULL/
       # TRUNCATE) that would break code-only rollback in the deploy pipeline.
       # Acknowledge a reviewed exception with `-- allow-destructive: <reason>`
@@ -671,7 +675,7 @@ jobs:
     # A 20 min limit cancels healthy runs mid-suite.
     timeout-minutes: 30
     env:
-      # Test stack defaults — match deploy/compose/compose.test.yml.
+      # Test stack defaults: match deploy/compose/compose.test.yml.
       TEST_MODE: "1"
       NUXT_VOXTRAL_REALTIME_MOCK: "1"
       # No live-AI provider keys here (the PR gate runs no flow suite).
@@ -708,7 +712,7 @@ jobs:
           SYNC_TEST_APP_URL: http://host.docker.internal:3101
         run: bash scripts/test-compose.sh --profile flows up -d --wait
 
-      # Replaces `bun run test:repos` — covers the same project plus
+      # Replaces `bun run test:repos`: covers the same project plus
       # unit + dom + nuxt under one vitest invocation with --coverage.
       # The lcov is uploaded below for the sonar job to consume; running
       # the same test set in a separate workflow would double the cost.
@@ -729,7 +733,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: coverage-lcov
-          # Only the lcov file — the html / json-summary reports add
+          # Only the lcov file: the html / json-summary reports add
           # MBs of artefact weight that sonar doesn't read.
           path: coverage/lcov.info
           if-no-files-found: error
@@ -741,7 +745,7 @@ jobs:
       contents: read
       pull-requests: read
     needs: [changes, test-repos-integration-flows]
-    # Inherits the heavy-job's gates (draft + docs-only) — sonar isn't useful
+    # Inherits the heavy-job's gates (draft + docs-only): sonar isn't useful
     # without the coverage artifact that job produces. Mirror the gates so a
     # draft or docs-only PR skips sonar instead of failing on a missing
     # artifact (a skipped dependency would skip this job anyway; the explicit
@@ -791,7 +795,7 @@ jobs:
       contents: read
     needs: changes
     # Builds + Trivy-scans only the images whose inputs changed in this PR
-    # (Dockerfile, package.json / bun.lock, base-image pins — see the
+    # (Dockerfile, package.json / bun.lock, base-image pins: see the
     # `images` filter in the `changes` job). A skipped job reports as
     # skipped, which satisfies a required check. Unchanged images are
     # covered by the weekly image-scan-weekly.yml run against main.

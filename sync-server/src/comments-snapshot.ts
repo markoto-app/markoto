@@ -1,5 +1,5 @@
 // Mirrors the doc's `comments` Y.Array to the app's Postgres mirror
-// table on every persisted save. Fire-and-forget — a failed snapshot
+// table on every persisted save. Fire-and-forget, a failed snapshot
 // never blocks Y.js sync; the mirror is eventually-consistent by design
 // (see the comments on `document_comments` in server/db/schema/collab.ts).
 
@@ -19,7 +19,7 @@ const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
 /**
  * Build one snapshot entry from a Y.Map carrying a comment-or-reply.
  * Returns null when the map is missing a required string `id` (corrupt
- * row — silently dropped from the snapshot rather than failing the
+ * row: silently dropped from the snapshot rather than failing the
  * whole mirror).
  */
 function entryFromMap(map: Y.Map<unknown>, parentCommentId: string | null): CommentSnapshotEntry | null {
@@ -36,7 +36,7 @@ function entryFromMap(map: Y.Map<unknown>, parentCommentId: string | null): Comm
     updatedAt: c.updatedAt,
     // Replies inherit thread state via parentCommentId; the resolved
     // column is meaningful only on the root. Caller drives this via the
-    // parentCommentId arg — null for roots, set for replies.
+    // parentCommentId arg: null for roots, set for replies.
     resolved: parentCommentId === null && c.resolved
   }
 }
@@ -82,7 +82,7 @@ const lastShipped = new Map<string, string>()
  * to re-fetch it from the database.
  *
  * Optional `boundaries` carry the `yjs_updates` row ids around the
- * triggering store event — passed through so the comment.* activity
+ * triggering store event: passed through so the comment.* activity
  * rows get the same diff-replay anchors as edit rows.
  */
 export async function shipCommentsSnapshot(
@@ -93,7 +93,7 @@ export async function shipCommentsSnapshot(
   if (!APP_URL || !INTERNAL_SECRET) return // dev setups can run without the mirror
 
   const entries = deriveSnapshot(ydoc)
-  // Cheap content fingerprint — JSON.stringify of the small flat list
+  // Cheap content fingerprint: JSON.stringify of the small flat list
   // is fast enough at our scale (dozens-to-hundreds of comments).
   const fingerprint = JSON.stringify(entries)
   if (lastShipped.get(docId) === fingerprint) return

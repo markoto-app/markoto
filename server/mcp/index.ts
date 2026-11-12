@@ -16,7 +16,7 @@ const log = useLogger('mcp')
 //   - a verified personal access token is REQUIRED. Without one the
 //     request is refused with a JSON-RPC error (HTTP 403) before the
 //     toolkit runs, so an anonymous `initialize` never creates a server
-//     session (the toolkit keeps at most 1000 per process — anonymous
+//     session (the toolkit keeps at most 1000 per process, anonymous
 //     callers could otherwise exhaust them for everybody). Never 401:
 //     MCP clients treat 401 as "start OAuth discovery", which we don't
 //     offer,
@@ -32,7 +32,7 @@ const log = useLogger('mcp')
 // (UPSERT, Valkey-throttled to 1/min) so `activity_log` rows tagged
 // `mcp:{mcpSessionId}` can be joined back to the real human. On
 // `initialize` the row is written right away with the client's
-// `clientInfo.name` and the creating token. Fire-and-forget — failure
+// `clientInfo.name` and the creating token. Fire-and-forget, failure
 // here is invisible to the caller, same polarity as `appendAuditEvent`.
 
 declare module 'h3' {
@@ -62,7 +62,7 @@ async function initializeClientName(event: Parameters<typeof readBody>[0]): Prom
     const name = (clientInfo as Record<string, unknown>).name
     return typeof name === 'string' && name.trim().length > 0 ? name.trim().slice(0, 200) : null
   } catch {
-    // Not JSON-RPC (GET stream, malformed body) — nothing to record.
+    // Not JSON-RPC (GET stream, malformed body), nothing to record.
     return null
   }
 }
@@ -71,7 +71,7 @@ async function initializeClientName(event: Parameters<typeof readBody>[0]): Prom
  * Bind a session the toolkit just created to the creating token. If that
  * fails (Valkey error, or the id is somehow already bound) the session
  * stays unbound: its next request is refused and the client
- * re-initializes — never served to an unverified token.
+ * re-initializes: never served to an unverified token.
  */
 async function bindNewSession(bindings: ReturnType<typeof useMcpSessionBindings>, sessionId: string, auth: McpAuthContext): Promise<void> {
   try {
@@ -85,7 +85,7 @@ async function bindNewSession(bindings: ReturnType<typeof useMcpSessionBindings>
 }
 
 export default defineMcpHandler({
-  description: 'markoto — read, search, and edit your collaborative markdown documents.',
+  description: 'markoto: read, search, and edit your collaborative markdown documents.',
   middleware: async (event, next) => {
     const sessionHeader = getHeader(event, 'mcp-session-id')
     const bindings = useMcpSessionBindings()

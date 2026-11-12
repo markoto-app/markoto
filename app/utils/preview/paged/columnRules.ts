@@ -9,8 +9,8 @@ import type { LineGeometry } from './lineGeometry'
  * columns of one page are Chromium's (paged.js only breaks pages), and
  * Chromium ignores `break-after: avoid` there: a heading could end a
  * column with its text at the top of the next one. Before every overflow
- * check (the `layout` hook) a heading — or a definition term, a code-block
- * title, a table caption, a short lead-in ending in a colon — that ends a
+ * check (the `layout` hook) a heading, or a definition term, a code-block
+ * title, a table caption, a short lead-in ending in a colon, that ends a
  * column, or has fewer than `nearLines` lines of its block under it there,
  * gets a forced column break (`data-markoto-column-break`), so it opens
  * the next column with its block. Breaks at the page end are left to
@@ -51,7 +51,7 @@ export function createColumnRules(q: BlockQueries, geo: LineGeometry) {
    * small): measured once with that switched off (`data-markoto-measure`,
    * themeToCss), it spans when it is wider than the column. Each
    * measurement lays the page out twice, so only a complete table with
-   * something that can break apart — code, a word of 16+ characters — is
+   * something that can break apart, code, a word of 16+ characters, is
    * measured, once.
    */
   function spanTableIfUnbroken(table: Element, columnWidth: number, isComplete: (table: Element) => boolean): void {

@@ -20,7 +20,7 @@ import {
 
 describe('parseCommentBody', () => {
   it('returns an empty array for an empty body', () => {
-    // Empty string has no segments at all — callers can rely on
+    // Empty string has no segments at all, callers can rely on
     // `.length === 0` to render an empty-state placeholder.
     expect(parseCommentBody('')).toEqual([])
   })
@@ -64,7 +64,7 @@ describe('parseCommentBody', () => {
   })
 
   it('keeps a malformed token as text when the user id is not numeric', () => {
-    // `user:abc` doesn't match `\d+` — the whole thing should fall
+    // `user:abc` doesn't match `\d+`, the whole thing should fall
     // through to plain text instead of producing a `mention` segment
     // with a NaN id.
     expect(parseCommentBody('@[Alice](user:abc)')).toEqual([
@@ -73,7 +73,7 @@ describe('parseCommentBody', () => {
   })
 
   it('keeps a malformed token as text when the name is empty', () => {
-    // `[^\]]+` requires at least one character — empty `[]` shouldn't
+    // `[^\]]+` requires at least one character, empty `[]` shouldn't
     // produce a mention.
     expect(parseCommentBody('@[](user:5)')).toEqual([
       { kind: 'text', text: '@[](user:5)' }
@@ -81,7 +81,7 @@ describe('parseCommentBody', () => {
   })
 
   it('does NOT match when there are stray brackets between name and id', () => {
-    // `@[A]B](user:5)` — a malicious crafted body shouldn't sneak past
+    // `@[A]B](user:5)`: a malicious crafted body shouldn't sneak past
     // the parser. Either it parses as a clean mention with name "A" or
     // not at all; landing in the text segment is the safe choice.
     expect(parseCommentBody('@[A]B](user:5)')).toEqual([
@@ -160,7 +160,7 @@ describe('@ai mention parsing', () => {
   })
 
   it('does NOT match inside emails', () => {
-    // `joel@ai.example.com` — the `@ai` is preceded by a word char,
+    // `joel@ai.example.com`: the `@ai` is preceded by a word char,
     // not a boundary. Should remain as a single text segment.
     const out = parseCommentBody('contact joel@ai.example.com for help')
     expect(out).toEqual([{ kind: 'text', text: 'contact joel@ai.example.com for help' }])

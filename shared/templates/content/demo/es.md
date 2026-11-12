@@ -25,7 +25,7 @@ Empieza una línea con `#` para un título, `##` para una sección y `###` para 
 
 Escribe una `x` entre los corchetes para marcar una casilla.
 
-- [ ] **Compártelo.** El candado de arriba a la derecha (o **Compartir → Configuración de uso compartido…**) decide qué puede hacer quien tenga el enlace: «Privado — solo tú», «Cualquiera puede ver», «Cualquiera puede editar» o «Protegido con contraseña».
+- [ ] **Compártelo.** El candado de arriba a la derecha (o **Compartir → Configuración de uso compartido…**) decide qué puede hacer quien tenga el enlace: «Privado: solo tú», «Cualquiera puede ver», «Cualquiera puede editar» o «Protegido con contraseña».
 - [ ] **Cambia el aspecto.** El icono de la paleta, a la derecha, abre el **Tema del documento**: plantillas, fuentes, colores, tamaño de página, encabezado y pie.
 - [ ] **Edita la portada.** Este documento empieza con una. En el panel del tema, **Portada** define el diseño, el subtítulo, la fecha y los autores, o la desactiva.
 - [ ] **Deja un comentario.** Selecciona texto y haz clic en **Añadir comentario**. Escribe `@markoto` en un comentario y la IA responde en el hilo.

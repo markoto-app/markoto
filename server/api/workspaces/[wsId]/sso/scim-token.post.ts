@@ -4,7 +4,7 @@ import { AUDIT_SSO_SCIM_TOKEN_ROTATED } from '../../../../legal/auditActions'
 import { hashScimToken, newScimToken } from '../../../../utils/sso/scim'
 import { ssoBaseUrl } from '../../../../utils/sso/http'
 
-// POST /api/workspaces/:wsId/sso/scim-token — create (or replace) the
+// POST /api/workspaces/:wsId/sso/scim-token: create (or replace) the
 // SCIM bearer token for the workspace's IdP. Returned ONCE; only
 // its SHA-256 is stored. The previous token stops working at once.
 export default defineApiHandler({

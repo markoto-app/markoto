@@ -13,7 +13,7 @@ import { MARKETING_LOCALES } from '../../../shared/seo/marketing'
 // Every indexable static page fits a search result: the rendered <title>
 // (page title + " · markoto") ≤ 60 characters, the meta description
 // ≤ 160. Docs pages take both from their frontmatter; / and /pricing from
-// the i18n strings they pass to useMarketingSeo — in every locale.
+// the i18n strings they pass to useMarketingSeo, in every locale.
 
 const ROOT = join(__dirname, '..', '..', '..')
 const LOCALES = ['en', 'de', 'fr', 'es', 'ja', 'zh'] as const

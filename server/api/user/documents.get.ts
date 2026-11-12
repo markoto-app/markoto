@@ -1,7 +1,7 @@
 import { listOwnedByUser } from '../../repos/documents'
 
 // "My Documents" for the dashboard. Returns docs the caller owns. Workspace
-// docs they don't own stay inside the workspace view — keeps this list
+// docs they don't own stay inside the workspace view, keeps this list
 // semantically "my stuff" vs. "everything I can edit".
 export default defineApiHandler({
   access: allow.user(),

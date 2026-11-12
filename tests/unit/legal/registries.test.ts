@@ -7,7 +7,7 @@ import * as auditActions from '../../../server/legal/auditActions'
 import { ABUSE_REPORT_DEFAULT_RETENTION_DAYS, AUDIT_LOG_DEFAULT_RETENTION_DAYS } from '../../../server/utils/privacy/legalRetentionSweep'
 
 // Sanity tests for the legal registries. These are constants-only
-// modules — no DB, no I/O — but they're load-bearing for the
+// modules: no DB, no I/O, but they're load-bearing for the
 // privacy disclosure and the audit log. A typo in a sub-processor
 // id reference, or a duplicate id, would silently produce a
 // broken privacy policy or a corrupt audit row. These tests pin
@@ -34,7 +34,7 @@ describe('SUB_PROCESSORS', () => {
   })
 
   it('non-EU sub-processors declare a non-intra_eu transfer mechanism', () => {
-    // Catches the inverse misconfiguration too — a sub-processor
+    // Catches the inverse misconfiguration too, a sub-processor
     // marked `eu` shouldn't carry a DPF transfer mechanism.
     for (const sp of SUB_PROCESSORS) {
       expect(sp.transferMechanism === 'intra_eu', sp.name).toBe(sp.location === 'eu')

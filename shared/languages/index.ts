@@ -2,7 +2,7 @@
  * Document language handling. Either an ISO 639-1 code from the curated
  * preset list OR any user-typed string ("english", "Deutsch",
  * "Romantsch", "Schwiizerdütsch"). The AI consumes whatever string we
- * pass and renders output in that language — no need to validate
+ * pass and renders output in that language, no need to validate
  * against a closed set.
  *
  * The presets seed the dropdown in the new-doc dialog and the editor's
@@ -21,14 +21,14 @@ export const LANGUAGE_MAX_LENGTH = 50
  * for the AI prompt and the UI badge.
  *
  * For ISO codes (`en`, `de-CH`), `Intl.DisplayNames` with the SAME
- * locale as the display target gives the language as IT NAMES ITSELF
- * — `de` → "Deutsch", not "German". The AI sees "Write all prose in
+ * locale as the display target gives the language as IT NAMES ITSELF,
+ * `de` → "Deutsch", not "German". The AI sees "Write all prose in
  * Deutsch" which produces measurably better adherence than the English
  * exonym.
  *
  * For free-text values that aren't BCP-47 (`english`, `Romantsch`),
  * `Intl.DisplayNames` returns the input unchanged or undefined. We
- * fall back to the raw string — the AI handles arbitrary language
+ * fall back to the raw string, the AI handles arbitrary language
  * names natively.
  */
 export function resolveLanguageDisplayName(value: string): string {
@@ -53,7 +53,7 @@ export function resolveLanguageDisplayName(value: string): string {
 /**
  * Two-character badge for the workspace overview. ISO codes uppercase
  * to two letters (`en` → `EN`); free-text strings take the first 4
- * letters uppercased (`Schwiizerdütsch` → `SCHW`). Pure presentation —
+ * letters uppercased (`Schwiizerdütsch` → `SCHW`). Pure presentation,
  * the source-of-truth value remains whatever the user stored.
  */
 export function languageBadge(value: string): string {

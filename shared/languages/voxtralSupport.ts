@@ -1,5 +1,5 @@
 /**
- * Voxtral (Mistral) supported transcription languages — ISO 639-1
+ * Voxtral (Mistral) supported transcription languages, ISO 639-1
  * codes. Source: Mistral model card for `voxtral-mini-2602`
  * + `voxtral-mini-transcribe-realtime-2602`.
  *
@@ -32,7 +32,7 @@ export const VOXTRAL_SUPPORTED_LANGUAGES = [
 /**
  * Predicate: does Voxtral support this language? Accepts either a
  * bare ISO 639-1 code (`en`, `de`) or a full BCP-47 tag (`en-US`,
- * `de-DE`) — only the leading segment matters for transcription.
+ * `de-DE`): only the leading segment matters for transcription.
  *
  * Returns false on empty / unparseable input rather than throwing,
  * so callers can use it as a defensive gate.

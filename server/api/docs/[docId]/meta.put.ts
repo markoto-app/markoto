@@ -11,7 +11,7 @@ import { updateDocMetaBody } from '~~/shared/api/docs'
 // PUT /api/docs/:docId/meta. Meta changes split by kind: accessMode is a
 // sharing/ownership change (owner + workspace admin only), everything else is
 // an edit (owner + admin + editor). Viewers cannot change anything. A request
-// carrying accessMode without manage rights is refused whole — no field lands.
+// carrying accessMode without manage rights is refused whole, no field lands.
 export default defineApiHandler({
   access: allow.doc('edit', { deny: 'docs/edit-forbidden' }),
   body: updateDocMetaBody,
@@ -34,7 +34,7 @@ export default defineApiHandler({
 
     // Snapshot the prior access mode BEFORE the write so we can record
     // the before/after for the audit row. Only fetched when accessMode
-    // is changing — title / description / theme / etc. are user-facing
+    // is changing: title / description / theme / etc. are user-facing
     // edits captured by the activity log, not security events.
     let beforeAccessMode: string | null = null
     if (updates.accessMode !== undefined) {
@@ -84,7 +84,7 @@ function metaUpdatesOf(body: MetaUpdate): MetaUpdate {
  * on a document whose plan doesn't include it (409
  * `plan/feature-unavailable`). CSS identical to what is already stored
  * passes, so the editor can keep saving other theme changes of a doc
- * whose CSS is paused. Y.js `ymeta` writes bypass this endpoint — the
+ * whose CSS is paused. Y.js `ymeta` writes bypass this endpoint, the
  * renderers drop the CSS for such documents (render-bootstrap +
  * `EditorLayout`'s `renderTheme`), which is the authoritative check.
  */

@@ -18,10 +18,10 @@ import { createPaginationHandler } from './paged/paginationHandler'
  * that, for all three render paths:
  *
  *  - Keep with next: a heading (or a run of headings) is never the last
- *    thing on a page — it moves to the next page with the block it
+ *    thing on a page, it moves to the next page with the block it
  *    introduces.
  *  - Unbreakable blocks: anything with a computed `break-inside: avoid`
- *    (short tables, diagrams, code, quotes, alerts, math — set in
+ *    (short tables, diagrams, code, quotes, alerts, math, set in
  *    themeToCss) moves to the next page as a whole when it doesn't fit.
  *  - Tables: never split inside a row; keep at least three body rows on
  *    each side of a split (or move the table whole); a table continued on
@@ -43,8 +43,8 @@ import { createPaginationHandler } from './paged/paginationHandler'
  *    spans the page; headings keep with their text in a column.
  *  - A code block's caption (`.code-title`) stays with its block.
  *  - After layout: a plain rule (`<hr>`) that opens or closes a page is
- *    hidden (`data-markoto-page-edge`) — at a page edge it reads as a
- *    stray line; a glyph break (asterism) stays — and the first block on
+ *    hidden (`data-markoto-page-edge`): at a page edge it reads as a
+ *    stray line; a glyph break (asterism) stays, and the first block on
  *    a page loses its top margin (`data-markoto-page-top`).
  *  - paged.js fixes: hidden (`display: none`) nodes no longer count as
  *    overflow, and the rules paged.js rewrites (`+`, `-of-type`) keep
@@ -65,8 +65,8 @@ import { createPaginationHandler } from './paged/paginationHandler'
  * DELIVERY. Every part must stay SELF-CONTAINED (no imports, no
  * references to module scope or to another part by name): the live
  * preview / print iframe runs in an opaque origin and cannot load app
- * scripts, so `previewFrame.ts` inlines `PAGED_HANDLERS_SCRIPT` — the
- * stringified runner applied to the stringified parts — into the srcdoc
+ * scripts, so `previewFrame.ts` inlines `PAGED_HANDLERS_SCRIPT`, the
+ * stringified runner applied to the stringified parts, into the srcdoc
  * as a nonce'd inline script. The server render page calls
  * `registerPagedHandlers` directly. `tests/dom/pagedHandlers.test.ts`
  * evaluates the string to make sure it still works stand-alone. Types may

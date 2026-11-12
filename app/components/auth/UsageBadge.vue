@@ -7,8 +7,8 @@
 // Click-to-open popover (not a hover tooltip) so the content can be a real
 // card and the upgrade button stays clickable.
 //
-// Billing off (self-hosted / free-only SaaS): the AI-points meter stays
-// — every account still has a monthly AI budget that drains and
+// Billing off (self-hosted / free-only SaaS): the AI-points meter stays,
+// every account still has a monthly AI budget that drains and
 // refills, so "how much is left, when does it reset" is real
 // information. What goes away is everything that only exists to sell:
 // the plan name (everyone is on the same tier), the one-click upgrade
@@ -30,7 +30,7 @@ const { pointsRemaining, pointsTotal, fillRatio, isFreeAllowanceExhausted } = us
 const { billingEnabled, plansComingSoon } = useBillingMode()
 // AI Points only measure platform-paid AI (an operator's model-alias
 // defaults). Calls on the user's own key never touch them, so the meter is
-// hidden when nothing the user can do spends points — and says so when they
+// hidden when nothing the user can do spends points, and says so when they
 // mix own keys with defaults.
 const { anyPlatformBilled, availability } = useAiAvailability()
 const usesOwnKey = computed(() => {
@@ -89,7 +89,7 @@ const canUpgrade = computed(() => billingEnabled.value && nextPlan.value !== nul
 const open = ref(false)
 
 // Counts change on uploads / workspace creation without anything else
-// invalidating the shared billing state — re-fetch on every open.
+// invalidating the shared billing state, re-fetch on every open.
 watch(open, (isOpen) => {
   if (isOpen) void refreshBilling()
 })

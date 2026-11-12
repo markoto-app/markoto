@@ -46,8 +46,8 @@ Table: Hauptergebnisse.
 
 | Verfahren | Messgrösse A | Messgrösse B |
 |---|--:|--:|
-| Vergleichsverfahren | — | — |
-| Unser Verfahren | — | — |
+| Vergleichsverfahren | - | - |
+| Unser Verfahren | - | - |
 
 # Diskussion
 

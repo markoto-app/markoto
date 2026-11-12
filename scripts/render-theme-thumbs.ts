@@ -3,7 +3,7 @@
  * Two picture sets, both rendered through the real preview so they never
  * drift from the product:
  *
- * - default: design-picker thumbnails — the first page of every built-in theme preset,
+ * - default: design-picker thumbnails, the first page of every built-in theme preset,
  * rendered from its showcase fixture (`tests/fixtures/theme-shots/thumbnails.json`)
  * through the real preview with `scripts/render-theme-shots.ts`, scaled to
  * 360 px and saved as `public/theme-thumbs/<id>.webp`. Records what each
@@ -17,7 +17,7 @@
  *   `shared/utils/theme/templateGallery.manifest.json`
  *   (`tests/unit/theme/templateGallery.test.ts`). `make template-gallery`.
  *
- * - `--templates`: the new-document dialog's template pictures — one page
+ * - `--templates`: the new-document dialog's template pictures, one page
  *   (the first, or its `pageNumber`) of each template's English text in its
  *   design (with its cover placeholders and a sample title from
  *   `tests/fixtures/theme-shots/template-thumbs.json`), 360 px,

@@ -1,7 +1,7 @@
 // Building blocks of the environment registry. Each variable is declared
-// once with `v()` inside a namespace (`defineNamespace`); everything else —
+// once with `v()` inside a namespace (`defineNamespace`); everything else,
 // the typed object `loadEnv` returns, boot validation, .env.example, the
-// configuration reference and the compose/deploy drift tests — is derived
+// configuration reference and the compose/deploy drift tests, is derived
 // from these declarations.
 
 import type { Coercer } from './coerce'

@@ -107,7 +107,7 @@ export async function isEndedSubscription(db: TxHandle | undefined, workspaceId:
  * After commit: bring the workspace's LiteLLM team budget (seats ×
  * per-seat) and every member key's default limit in line with the
  * subscription the webhook just wrote. No-op unless entitled. Errors are
- * reported, never thrown — `litellm-key-reconcile` repairs drift.
+ * reported, never thrown: `litellm-key-reconcile` repairs drift.
  */
 export function deferWorkspaceTeamSync(deferAfterCommit: DeferredAfterCommit | undefined, workspaceId: string): void {
   deferAfterCommit?.push(async () => {

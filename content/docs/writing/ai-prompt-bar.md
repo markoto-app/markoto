@@ -16,7 +16,7 @@ look things up on the web and, if you've set it up, draw images. You watch
 the edits land in real time, just like a human collaborator's.
 
 You need to be signed in, and a writing assistant provider has to be
-available: connect your own under [Settings -> AI provider](/docs/account/ai-provider)
+available: connect your own under [Settings → AI provider](/docs/account/ai-provider)
 (the key icon in the bar takes you there), or use the instance default if
 there is one. See [what the AI needs](/docs/writing/ai-overview).
 

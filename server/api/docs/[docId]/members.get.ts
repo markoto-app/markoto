@@ -7,7 +7,7 @@ import { listMembersForDoc } from '../../../repos/workspaceMembers'
 //
 // Visibility:
 //   - Caller must be a workspace member of the doc's workspace, OR the doc
-//     owner. Non-member signed-in users get an empty roster — a
+//     owner. Non-member signed-in users get an empty roster, a
 //     public-link doc shouldn't reveal the team roster. This matches
 //     Google Docs behavior (link-holders don't see the sharing list).
 //     Anonymous callers never get here (not on the public allowlist).

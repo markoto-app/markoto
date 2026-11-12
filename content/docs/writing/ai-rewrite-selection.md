@@ -1,6 +1,6 @@
 ---
 title: Rewrite a selection with the AI
-description: Highlight a paragraph, ask the AI to rewrite it — your prose tone, your audience, in place.
+description: Highlight a paragraph, ask the AI to rewrite it in place, in your prose tone and for your audience.
 category: writing
 order: 7
 updated: '2026-11-04'
@@ -28,5 +28,5 @@ same audience, language and description from your Document tab.
 
 ## What's next
 
-- [Tell the AI who you're writing for](/docs/writing/document-context) — set audience + language so rewrites land in the right register.
-- [Have the AI extend a passage from a comment](/docs/writing/ai-comments) — same idea, different surface.
+- [Tell the AI who you're writing for](/docs/writing/document-context): set audience + language so rewrites land in the right register.
+- [Have the AI extend a passage from a comment](/docs/writing/ai-comments): same idea, different surface.

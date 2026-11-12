@@ -39,7 +39,7 @@ const withLogo = (logoUrl: string): DocTheme => ({
   brand: { ...defaultTheme.brand, logoUrl }
 })
 
-describe('composeFinalHtml — sanitised output (regression)', () => {
+describe('composeFinalHtml: sanitised output (regression)', () => {
   it('a logo URL with an attribute breakout yields no event handler', () => {
     const out = compose(withLogo('x" onerror="alert(1)'), '<p>Body</p>')
     expect(eventHandlerAttrs(out)).toEqual([])
@@ -58,7 +58,7 @@ describe('composeFinalHtml — sanitised output (regression)', () => {
   })
 })
 
-describe('composeFinalHtml — features keep working', () => {
+describe('composeFinalHtml: features keep working', () => {
   it('own-upload logo renders on the cover, before the body', () => {
     const out = compose(withLogo('/api/files/doc1/AbCdEfGhIjKl.png'), '<p>Body</p>')
     const frag = parse(out)
@@ -94,7 +94,7 @@ describe('composeFinalHtml — features keep working', () => {
   })
 })
 
-describe('composeFinalHtml — a leading `# <title>` in a title-block layout', () => {
+describe('composeFinalHtml: a leading `# <title>` in a title-block layout', () => {
   const titled = '<h1 id="edge-cache">Edge  cache\n behaviour</h1><h2 id="abstract">Abstract</h2><p>We measure.</p><h1 id="intro">Intro</h1>'
   function arxiv(): DocTheme {
     const preset = THEME_PRESETS.find(p => p.id === 'arxiv')

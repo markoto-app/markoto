@@ -9,7 +9,7 @@ import type { AiConfirmationRequest, AiEventSource, AiResponseEntry, AiSessionOu
  * it falls back to polling `GET /api/ai/sessions/:id`. Part of `useAI`.
  */
 
-/** `EventSource.CLOSED` — the browser gave up (HTTP error, wrong content type). */
+/** `EventSource.CLOSED`: the browser gave up (HTTP error, wrong content type). */
 const EVENT_SOURCE_CLOSED = 2
 /** Consecutive stream errors without a message before falling back to polling. */
 const STREAM_MAX_ERRORS = 3
@@ -101,7 +101,7 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
       lastOutcome.value = { sessionId: s.sessionId, phase: s.phase === 'error' ? 'error' : 'done', message: s.message }
     }
     // Surface errors that happen mid-loop (server-side) through
-    // `lastError` so AIPromptBar can toast them — once per session.
+    // `lastError` so AIPromptBar can toast them, once per session.
     if (s.phase === 'error' && s.message && lastErrorSessionId !== s.sessionId) {
       lastErrorSessionId = s.sessionId
       lastError.value = s.message.replace(/^Error:\s*/i, '')
@@ -134,7 +134,7 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
     stream = null
   }
 
-  /** The tracked session is over — stop following it. */
+  /** The tracked session is over, stop following it. */
   function finishTracking(sid: string) {
     if (startedSessionId.value === sid) startedSessionId.value = null
     stopPolling()
@@ -142,7 +142,7 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
 
   /**
    * Follow `sid` through the push stream. Falls back to polling when the
-   * browser gives up on it (HTTP error — e.g. a proxy that refuses SSE)
+   * browser gives up on it (HTTP error, e.g. a proxy that refuses SSE)
    * or it fails `STREAM_MAX_ERRORS` times in a row without delivering.
    */
   function startStream(sid: string, factory: (url: string) => AiEventSource) {
@@ -190,7 +190,7 @@ export function useAiSessionTracking({ mySessionId, lastError, pollMs, createEve
     if (pollingFor !== sid) return
     const alive = await fetchStatus(sid)
     if (pollingFor !== sid) return
-    // Gone, or finished without (still) being in awareness — e.g. the
+    // Gone, or finished without (still) being in awareness, e.g. the
     // session failed before the AI could join the document.
     const finished = privateStatus.value?.sessionId === sid
       && (privateStatus.value.phase === 'done' || privateStatus.value.phase === 'error')

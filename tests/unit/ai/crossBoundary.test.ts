@@ -33,7 +33,7 @@ function makeGuard(init: Partial<CrossBoundaryInit> = {}, deps: Partial<CrossBou
 const signal = new AbortController().signal
 
 describe('solo session (nothing foreign read)', () => {
-  it('never asks — every tool runs as before', async () => {
+  it('never asks: every tool runs as before', async () => {
     const { guard, confirm } = makeGuard()
     for (const name of [...CONFIRM_WHEN_TAINTED, 'fetch_url', 'view_image']) {
       expect(guard.needsConfirmation(name, { url: 'https://x.example/', src: 'https://x.example/a.png' })).toBe(false)
@@ -179,7 +179,7 @@ describe('tainted session', () => {
     expect(confirm).toHaveBeenCalledTimes(2)
   })
 
-  it('fetch_url runs without asking only for a URL the invoker typed — exactly', async () => {
+  it('fetch_url runs without asking only for a URL the invoker typed, exactly', async () => {
     const { guard, confirm } = makeGuard({
       initialTaint: 'shared',
       invokerText: ['Summarise https://example.com/report?id=7 and docs.example.org/guide please.']

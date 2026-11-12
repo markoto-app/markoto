@@ -8,8 +8,8 @@
  *
  * Implementation note: crossws + the Node `ws` library deliver text
  * frames as Buffer, so `typeof rawData === 'string'` is unreliable.
- * We peek the first byte for `{` (0x7B) — our control frames are
- * always JSON objects — and only decode+parse when that matches. For
+ * We peek the first byte for `{` (0x7B), our control frames are
+ * always JSON objects: and only decode+parse when that matches. For
  * binary audio (int16 PCM, random first bytes), the peek short-
  * circuits without paying for a full TextDecoder + JSON.parse on
  * every 4 KiB chunk (~8 chunks/second at 16 kHz).
@@ -26,7 +26,7 @@
  * `en-US` rather than erroring so a typo in the cookie can't block
  * transcription.
  *
- * BCP-47-shaped strings (contains a dash) pass through — a power
+ * BCP-47-shaped strings (contains a dash) pass through, a power
  * user who sets `de-CH` or `en-GB` gets the locale they asked for.
  *
  * Callers also gate on `isVoxtralSupportedLanguage` to drop unsupported

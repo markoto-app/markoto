@@ -5,7 +5,7 @@ import { YEAR_SECONDS } from '~~/shared/config/units'
 //
 // After an anonymous visitor ticks "I accept the Terms … and I'm at least
 // 16" once, the server sets this httpOnly cookie so the next anonymous
-// document from the same browser doesn't ask again — until the terms
+// document from the same browser doesn't ask again, until the terms
 // version changes. Value: `v1.<termsVersion>.<acceptedAtMs>.<hmac>`,
 // HMAC-SHA-256 over the first three fields with a key derived from
 // NUXT_ALTCHA_HMAC_KEY. It identifies nobody (no id, no IP) and is

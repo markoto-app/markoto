@@ -5,13 +5,13 @@ import { MINUTE_MS } from '~~/shared/config/units'
 
 // Process-level Y.Doc connection pool. Two consumers:
 //
-//   1. The in-app agentic loop — `createAiSession` checks out an entry
+//   1. The in-app agentic loop, `createAiSession` checks out an entry
 //      with principalId `loop:{loopSessionId}`, holds it for the loop
 //      duration, releases on `destroy()`. Each loop run has a unique
-//      principalId so cache hits never happen for the loop — the pool
+//      principalId so cache hits never happen for the loop, the pool
 //      is just a clean API boundary that future refactors can leverage.
 //
-//   2. MCP tool wrappers — each MCP session has a stable principalId
+//   2. MCP tool wrappers, each MCP session has a stable principalId
 //      `mcp:{mcpSessionId}`. Repeated tool calls on the same doc within
 //      a session reuse the warm entry. Eviction kicks in 5 min after
 //      the last release. **This is where the pool actually saves
@@ -35,12 +35,12 @@ import { MINUTE_MS } from '~~/shared/config/units'
 // Eviction: refCount=0 entries past `IDLE_MS` are closed by the sweeper
 // in `server/plugins/yDocPoolSweep.ts`. Pool is process-local; no
 // advisory lock needed (multi-instance behavior is each process owns
-// its own connections, which is fine — Hocuspocus dedupes on its end).
+// its own connections, which is fine, Hocuspocus dedupes on its end).
 //
 // MULTI-INSTANCE NOTE (read before scaling out): each Nuxt process
 // runs its own pool. An MCP session whose first tool call lands on
 // process A and whose second lands on process B will pay the handshake
-// cost twice — sticky sessions at Traefik (already in
+// cost twice: sticky sessions at Traefik (already in
 // deploy/compose/compose.prod.yml for the `sync` service; NOT for the `app`
 // service) would prevent this. When we move to multi-app-instance,
 // add `traefik.http.services.app.loadbalancer.sticky.cookie=true` so
@@ -97,7 +97,7 @@ const DEFAULT_IDLE_MS = 5 * MINUTE_MS
 function serializeKey(k: PoolKey): string {
   // Principal IDs already carry a colon (`loop:{...}` / `mcp:{...}`) so
   // we use a separator that can't collide. docId is lowercase nanoid in
-  // production but tests use arbitrary strings — `|` is reserved here
+  // production but tests use arbitrary strings, `|` is reserved here
   // and will never appear in either component.
   return `${k.docId}|${k.principalId}`
 }
@@ -111,7 +111,7 @@ const inflight = new Map<string, Promise<PoolEntry>>()
  * Open a new HocuspocusProvider, set awareness, await sync. Promise
  * rejects on auth failure, transport close before sync, or timeout.
  *
- * Pure constructor — no pool state mutation. Pool wires in refCount +
+ * Pure constructor: no pool state mutation. Pool wires in refCount +
  * lastReleasedAt around this.
  */
 async function buildEntry(key: PoolKey, opts: PoolCheckoutOpts): Promise<PoolEntry> {
@@ -173,7 +173,7 @@ async function buildEntry(key: PoolKey, opts: PoolCheckoutOpts): Promise<PoolEnt
   try {
     await syncReady
   } catch (err) {
-    // Sync never completed — tear down what we built so we don't leak
+    // Sync never completed: tear down what we built so we don't leak
     // a half-open provider. The caller still gets the rejection.
     try {
       provider.disconnect()
@@ -204,7 +204,7 @@ async function buildEntry(key: PoolKey, opts: PoolCheckoutOpts): Promise<PoolEnt
  * Check out a pool entry for the given (docId, principalId). Existing
  * entries return immediately with refCount++; missing entries are
  * created (concurrent calls dedupe via the in-flight Map). The caller
- * MUST call `release(key)` when done — leaks pin connections forever.
+ * MUST call `release(key)` when done, leaks pin connections forever.
  */
 export async function checkout(key: PoolKey, opts: PoolCheckoutOpts): Promise<PoolEntry> {
   const k = serializeKey(key)
@@ -244,7 +244,7 @@ export async function checkout(key: PoolKey, opts: PoolCheckoutOpts): Promise<Po
 /**
  * Decrement refCount on the entry for `key`. When refCount hits 0,
  * stamp `lastReleasedAt` so the sweeper can evict after IDLE_MS. No-op
- * for unknown keys (idempotent — releasing twice is safe but logs in
+ * for unknown keys (idempotent, releasing twice is safe but logs in
  * a future observability step).
  */
 export function release(key: PoolKey): void {
@@ -252,7 +252,7 @@ export function release(key: PoolKey): void {
   const e = entries.get(k)
   if (!e) return
   if (e.refCount <= 0) {
-    // Defensive — over-releasing shouldn't push refCount negative or
+    // Defensive: over-releasing shouldn't push refCount negative or
     // restamp lastReleasedAt (which would defer eviction indefinitely).
     return
   }
@@ -334,7 +334,7 @@ export function getPoolStats(): {
 }
 
 /**
- * @internal Test-only — drops every entry without invoking destroy.
+ * @internal Test-only: drops every entry without invoking destroy.
  * Use `closeAll()` in production code; this skips teardown so unit tests
  * that swap the buildEntry mock with an in-memory Y.Doc don't trip on
  * provider.destroy() against a non-existent connection.
@@ -345,7 +345,7 @@ export function _resetForTesting(): void {
 }
 
 /**
- * @internal Test-only — replaces the buildEntry implementation so unit
+ * @internal Test-only: replaces the buildEntry implementation so unit
  * tests can exercise the pool's bookkeeping (refCount, in-flight dedup,
  * idle eviction) without spawning a real Hocuspocus connection.
  *

@@ -13,7 +13,7 @@
  * `tests/unit/rendering/vendorAssets.test.ts` pins the same.
  *
  * Paths are versioned (`/vendor/<package>@<version>/…`) and served
- * `immutable`, so a bump is a new URL — no stale cache, no Workbox purge.
+ * `immutable`, so a bump is a new URL, no stale cache, no Workbox purge.
  * The preview / print iframes run in an opaque origin, so these paths
  * are served with `Cross-Origin-Resource-Policy: cross-origin` and
  * `Access-Control-Allow-Origin: *` (`vendorAssetHeaders` in
@@ -23,7 +23,7 @@
 /** Public URL prefix of every vendored asset. */
 export const VENDOR_BASE = '/vendor/'
 
-/** `/vendor/<pkg>@<version>/<file>` — the URL of a file vendored from an npm package. */
+/** `/vendor/<pkg>@<version>/<file>`: the URL of a file vendored from an npm package. */
 export function vendorUrl(pkg: string, version: string, file: string): string {
   return `${VENDOR_BASE}${pkg}@${version}/${file}`
 }

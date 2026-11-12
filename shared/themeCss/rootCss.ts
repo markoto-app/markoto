@@ -32,10 +32,10 @@ ${columnRules(columns, columnGap)}
 /* Paint the entire paged.js page surface in the theme's paper colour
    (not just the inner content rectangle). Without this, cream/beige
    themes only colour the content area while the page sheet underneath
-   stays white — visually breaks the "warm paper" effect. \`!important\`
+   stays white: visually breaks the "warm paper" effect. \`!important\`
    because paged.js injects its own stylesheet AFTER ours and paints
-   a white sheet by default. Scoped to .pagedjs_page only — leaving
-   .pagedjs_pagebox alone — to avoid recursing into paged.js's
+   a white sheet by default. Scoped to .pagedjs_page only, leaving
+   .pagedjs_pagebox alone: to avoid recursing into paged.js's
    internal margin-box layout (which can hang the chunker). */
 .pagedjs_page {
   background: ${background} !important;

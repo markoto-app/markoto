@@ -9,7 +9,7 @@ import { PUBLISH_RATE_PER_HOUR, PUBLISH_SLUG_RE } from '~~/shared/config/publish
 import { HOUR_MS } from '~~/shared/config/units'
 import { publishDocBody } from '~~/shared/api/sharing'
 
-// POST /api/docs/:docId/publish — {slug?, indexable?}. Publishes the
+// POST /api/docs/:docId/publish: {slug?, indexable?}. Publishes the
 // document's current state as a static web page at /p/<slug>, or replaces
 // the published snapshot. Owner + workspace admins; free on every
 // plan. Audited `doc.published`.

@@ -14,7 +14,7 @@ import { at, first } from '../../helpers/assert'
 // HTTP API and asserts the audit row landed with the expected shape.
 //
 // We query the DB directly (not via the repo) because the integration
-// tests run the API as a separate Bun subprocess — we want to assert
+// tests run the API as a separate Bun subprocess, we want to assert
 // what made it to the audit table, not what `getAuditEventsByScope`
 // chose to return.
 
@@ -40,7 +40,7 @@ async function readAudit(scope: string, scopeId: string): Promise<AuditRow[]> {
   return r.rows
 }
 
-describe('audit log — doc.deleted', () => {
+describe('audit log: doc.deleted', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -92,7 +92,7 @@ describe('audit log — doc.deleted', () => {
   })
 })
 
-describe('audit log — doc.password_set / password_removed', () => {
+describe('audit log: doc.password_set / password_removed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -134,7 +134,7 @@ describe('audit log — doc.password_set / password_removed', () => {
   })
 })
 
-describe('audit log — doc.access_mode_changed', () => {
+describe('audit log: doc.access_mode_changed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -164,7 +164,7 @@ describe('audit log — doc.access_mode_changed', () => {
   })
 })
 
-describe('audit log — doc.workspace_moved', () => {
+describe('audit log: doc.workspace_moved', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -185,7 +185,7 @@ describe('audit log — doc.workspace_moved', () => {
   })
 })
 
-describe('audit log — workspace.member_removed', () => {
+describe('audit log: workspace.member_removed', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -213,7 +213,7 @@ describe('audit log — workspace.member_removed', () => {
   })
 })
 
-describe('audit log — workspace.member_role_changed', () => {
+describe('audit log: workspace.member_role_changed', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -51,7 +51,7 @@ export async function listMembers(ws: WorkspaceAccess<'member'>): Promise<Member
 }
 
 /**
- * Roster for the presence bar — joined with the doc's ownerId so the UI
+ * Roster for the presence bar, joined with the doc's ownerId so the UI
  * can render an "owner" badge. Same ordering as listMembers().
  */
 export async function listMembersForDoc(doc: DocAccess<'view'>): Promise<Array<{
@@ -110,7 +110,7 @@ export async function countMembers(ws: WorkspaceAccess<'member'>): Promise<numbe
   return rows[0]?.n ?? 0
 }
 
-/** Guests of the workspace — for the guest cap. */
+/** Guests of the workspace, for the guest cap. */
 export async function countGuests(ws: WorkspaceAccess<'member'>): Promise<number> {
   const workspaceId = ws.workspaceId
   const rows = await useDatabase()
@@ -121,7 +121,7 @@ export async function countGuests(ws: WorkspaceAccess<'member'>): Promise<number
 }
 
 /**
- * Insert a new member. Does NOT check whether the caller is allowed to —
+ * Insert a new member. Does NOT check whether the caller is allowed to,
  * endpoints gate admin-only via getMemberRole beforehand. Does check
  * duplicate insertion and throws ConflictError via the schema-level PK.
  */
@@ -170,7 +170,7 @@ export async function setRole(
     // checks seats); there is no role change into or out of `guest`.
     if (prev === 'guest') throw new GuestRoleChangeError()
     if (prev === 'admin' && nextRole !== 'admin') {
-      // Lock every admin row in this workspace — concurrent demotions
+      // Lock every admin row in this workspace, concurrent demotions
       // on DIFFERENT admin users would otherwise both see count=2 and
       // both proceed. The lock serializes them.
       const admins = await tx
@@ -198,7 +198,7 @@ export async function setRole(
 }
 
 /**
- * Remove a member. Enforces the ≥1-admin invariant — if the target is
+ * Remove a member. Enforces the ≥1-admin invariant, if the target is
  * the last admin, refuses. Same FOR UPDATE lock story as setRole.
  * Returns the removed role, or throws NotFoundError.
  */

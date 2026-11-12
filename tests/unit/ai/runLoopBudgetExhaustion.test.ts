@@ -55,7 +55,7 @@ function makeAiThrowing(err: Error) {
 function makeAiSession() {
   // A real Y.Doc + Y.Text so we can assert the breadcrumb actually
   // landed in the document. Simulates how prompt.post.ts wires the
-  // AI's Hocuspocus client — the catch path inserts via `ytext`.
+  // AI's Hocuspocus client: the catch path inserts via `ytext`.
   const ydoc = new Y.Doc()
   const ytext = ydoc.getText('content')
   return {
@@ -102,7 +102,7 @@ afterEach(() => {
   vi.unstubAllEnvs()
 })
 
-describe('runLoop — LiteLLM budget-exceeded catch path', () => {
+describe('runLoop: LiteLLM budget-exceeded catch path', () => {
   it('does NOT rethrow when streamFromProvider throws LitellmBudgetExhausted', async () => {
     // The contract: the loop must return cleanly so the outer
     // try/finally in prompt.post can run cleanup. Throwing would
@@ -162,7 +162,7 @@ describe('runLoop — LiteLLM budget-exceeded catch path', () => {
     // The proxy returns `{ error: { message: "Budget has been exceeded ..." } }`.
     // The OpenAI SDK rethrows this as a regular Error whose message
     // contains "budget_exceeded" or "Budget has been exceeded". Our
-    // predicate matches both — pin it here so a refactor that
+    // predicate matches both: pin it here so a refactor that
     // tightens the regex doesn't silently drop coverage.
     const ai = makeAiThrowing(new Error('Request failed: budget_exceeded for key sk-***'))
     const aiSession = makeAiSession()
@@ -173,7 +173,7 @@ describe('runLoop — LiteLLM budget-exceeded catch path', () => {
 
   it('does NOT swallow unrelated upstream errors (regression guard)', async () => {
     // Generic errors (network blip, invalid request etc.) MUST still
-    // surface — only `budget_exceeded`-shaped errors get the
+    // surface: only `budget_exceeded`-shaped errors get the
     // breadcrumb-and-bail treatment.
     const ai = makeAiThrowing(new Error('upstream 500 Internal Server Error'))
     await expect(runAgenticLoop(makeOpts({ ai }))).rejects.toThrow(/upstream 500/i)
@@ -181,12 +181,12 @@ describe('runLoop — LiteLLM budget-exceeded catch path', () => {
 })
 
 // The shared monthly free-tier pool (LiteLLM team `markoto-free-tier`)
-// is used up. The proxy's message names the TEAM, not the key — copied
+// is used up. The proxy's message names the TEAM, not the key, copied
 // verbatim from LiteLLM v1.106.4. Handled differently from the per-user
 // budget: no "AI Points" breadcrumb in the (possibly shared) document;
 // the session ends with the typed "add your own key" message, which
 // reaches the initiator only.
-describe('runLoop — free-tier pool (team budget) exhausted', () => {
+describe('runLoop: free-tier pool (team budget) exhausted', () => {
   const TEAM_EXHAUSTED = 'Error code: 422 - {"error":{"message":"Budget has been exceeded! Team=markoto-free-tier Current cost: 500.0012, Max budget: 500.0","type":"budget_exceeded","param":null,"code":"422"}}'
 
   it('ends the session with the free-allowance message and writes nothing into the document', async () => {

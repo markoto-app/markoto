@@ -29,7 +29,7 @@ export interface DocAuthzRow {
    * True when the caller OWNS the doc but that ownership must not count:
    * the doc sits in a workspace that enforces single sign-on and
    * the caller has no effective role there (no current SSO grant, or no
-   * longer a member — e.g. deactivated / deleted via SCIM). Ownership of
+   * longer a member: e.g. deactivated / deleted via SCIM). Ownership of
    * a workspace doc then grants nothing beyond what any outsider gets.
    * Always false in workspaces without an active SSO connection and for
    * standalone docs (unchanged behaviour). Feed the row to the decide*
@@ -89,7 +89,7 @@ export async function getDocWithActorRole(
       // Ownership of a doc in an SSO-enforcing workspace counts only
       // while the caller has an effective MEMBER role there (the join
       // above already carries the SSO condition, so NULL = no role; a
-      // guest row is not a member role — guests are outside the IdP).
+      // guest row is not a member role, guests are outside the IdP).
       ownerAccessSuspended: actorUserId === null
         ? sql<boolean>`false`
         : sql<boolean>`coalesce(${documents.ownerId} = ${actorUserId} and (${workspaceMembers.role} is null or ${workspaceMembers.role} = 'guest') and ${ssoEnforcedSql(documents.workspaceId)}, false)`
@@ -106,7 +106,7 @@ export async function getDocWithActorRole(
             eq(workspaceMembers.workspaceId, documents.workspaceId),
             eq(workspaceMembers.userId, actorUserId),
             // Single sign-on: no role without a current SSO grant
-            // in a workspace that enforces it — same as getMemberRole.
+            // in a workspace that enforces it, same as getMemberRole.
             // Guests are outside the organisation: not held to it.
             or(eq(workspaceMembers.role, 'guest'), ssoSatisfiedSql(workspaceMembers.workspaceId, actorUserId))
           )

@@ -7,7 +7,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
 //
 // The plugin wires this controller to `$fetch('/api/version')`, the Nuxt
 // toast composable, and `window.location.reload()`. The controller never
-// imports any of those — every side-effect goes through the deps object,
+// imports any of those, every side-effect goes through the deps object,
 // which is what the tests stub.
 
 export interface VersionCheckDeps {
@@ -24,7 +24,7 @@ export interface VersionCheckDeps {
 export interface VersionCheckPromptHandlers {
   /** User clicked the primary "Reload now" action. */
   onReloadNow: () => void
-  /** User clicked "Snooze 5 min" — auto-reload is deferred. */
+  /** User clicked "Snooze 5 min", auto-reload is deferred. */
   onSnooze: () => void
 }
 
@@ -123,7 +123,7 @@ export function createVersionCheckController(
     void poll()
   }
 
-  // Kick off interval. Caller is responsible for the first poll —
+  // Kick off interval. Caller is responsible for the first poll,
   // tests want explicit control over the first probe so they don't
   // race against the interval.
   pollInterval = setInterval(() => {

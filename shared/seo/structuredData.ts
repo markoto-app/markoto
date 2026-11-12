@@ -8,7 +8,7 @@
 // Only facts we can stand behind: the operating entity (from the legal
 // entity resolver, `shared/legal/entity.ts`, shipped to the client as
 // `InstanceConfig.operatorName`), the site, and the free web app. No
-// aggregateRating / reviews — there are none, and inventing them is
+// aggregateRating / reviews: there are none, and inventing them is
 // against both Google's rules and ours.
 
 import { SITE_NAME } from './meta'
@@ -151,7 +151,7 @@ export interface FaqItem {
 /**
  * FAQPage for a marketing page's `::faq` block. Valid markup, but Google
  * shows FAQ rich results only for a few government/health sites since
- * 2023 — it helps other consumers, not rankings.
+ * 2023: it helps other consumers, not rankings.
  */
 export function faqStructuredData(items: FaqItem[], inLanguage: string): Record<string, unknown> {
   return {

@@ -13,7 +13,7 @@ export default defineApiHandler({
   body: createWorkspaceBody,
   handler: async ({ self, body }) => {
     // Per-user workspace cap, tier-aware. Prevents the "spawn thousands
-    // of workspaces to fan out uploads" fan-out vector — each workspace
+    // of workspaces to fan out uploads" fan-out vector, each workspace
     // independently has a 1 GB knowledge cap, so without a per-user
     // workspace limit a single account could pin TB of S3. The exact
     // number depends on the plan: Free=1, Pro=10, Team=30, Business=100.
@@ -48,7 +48,7 @@ export default defineApiHandler({
     const workspaceId = nanoid(10)
 
     // createWorkspace writes the workspaces row AND the creator's admin
-    // membership row in one transaction — neither can land without the
+    // membership row in one transaction, neither can land without the
     // other, so the ≥1-admin invariant holds from t=0.
     await createWorkspace(self, {
       workspaceId,

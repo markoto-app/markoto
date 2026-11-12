@@ -40,7 +40,7 @@ async function addMembers(workspaceId: string, n: number): Promise<number[]> {
   return ids
 }
 
-describe('workspace billing — access', () => {
+describe('workspace billing: access', () => {
   beforeEach(async () => {
     await resetDb()
   })

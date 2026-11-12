@@ -8,7 +8,7 @@ import { makeFakeStore, type FakeStore } from './fakeObjectStore'
 // Image GC against the real DB. The property under test is SAFETY first:
 // an image is only deleted when it is referenced nowhere (current doc,
 // any restorable version, other docs, themes, comments) for the whole
-// retention window — and the delete takes both the row and the object.
+// retention window: and the delete takes both the row and the object.
 
 const DAY = 24 * 60 * 60 * 1000
 const RETENTION_DAYS = 30

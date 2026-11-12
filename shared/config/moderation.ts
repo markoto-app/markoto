@@ -43,11 +43,11 @@ export function isModerationRule(value: unknown): value is ModerationRule {
 
 /**
  * What the moderator did to the content.
- *   content_removed   — the document is deleted.
- *   access_restricted — the document is set to private: the owner keeps
+ *   content_removed  : the document is deleted.
+ *   access_restricted: the document is set to private: the owner keeps
  *                       access, nobody else; an anonymous document (no
  *                       owner) becomes unreachable.
- *   no_action         — reviewed, nothing changed (used with "dismissed").
+ *   no_action        : reviewed, nothing changed (used with "dismissed").
  */
 export const MODERATION_ACTIONS = ['content_removed', 'access_restricted', 'no_action'] as const
 export type ModerationAction = typeof MODERATION_ACTIONS[number]
@@ -71,7 +71,7 @@ export const DECISION_EXPLANATION_MAX = 3000
 /**
  * The document id a reported location points at, or null. Accepts a full
  * URL or path containing `/d/<id>`, or a bare id. The host is not checked
- * (people paste the URL they see; moderators verify) — only the shape.
+ * (people paste the URL they see; moderators verify), only the shape.
  */
 export function docIdFromReportedLocation(raw: string): string | null {
   const trimmed = raw.trim()

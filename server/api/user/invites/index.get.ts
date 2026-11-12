@@ -3,7 +3,7 @@ import { listInvitesForEmail } from '../../../repos/workspaceInvites'
 import { normaliseInviteEmail } from '../../../utils/workspaces/workspaceInvites'
 import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 
-// GET /api/user/invites — open workspace invitations addressed to the
+// GET /api/user/invites: open workspace invitations addressed to the
 // signed-in user's account email (only verified addresses are stored on
 // accounts, so a match proves the mailbox). Drives the dashboard's
 // "Invitations" section. Users without an email on file only receive

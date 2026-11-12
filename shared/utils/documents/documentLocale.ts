@@ -7,7 +7,7 @@ export { isIsoDate }
  * Locale-dependent text that ends up IN the document (cover date, the
  * `{date}` header/footer token, the TOC title, chart number formats).
  * It follows the document's language (`ymeta.language`, the Document
- * tab) — not the viewer's UI language: a German report prints German
+ * tab): not the viewer's UI language: a German report prints German
  * dates and "Inhalt" for every reader. Shared by the live preview, the
  * browser print path and the server render page so all three agree.
  */
@@ -72,7 +72,7 @@ export function documentLocale(language: string | null | undefined): string {
       const [canonical] = Intl.getCanonicalLocales(raw)
       if (canonical && Intl.DateTimeFormat.supportedLocalesOf([canonical]).length > 0) return canonical
     } catch {
-      // Malformed tag — fall through to the default.
+      // Malformed tag: fall through to the default.
     }
   }
   return 'en'

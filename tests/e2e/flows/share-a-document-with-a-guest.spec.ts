@@ -6,7 +6,7 @@ import { PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal/versions'
 //
 // User-job: a workspace admin wants a client to review ONE document
 // without letting them into the rest of the workspace. Job done when the
-// client — signed in as a guest of the workspace in their own browser —
+// client: signed in as a guest of the workspace in their own browser,
 // finds the document under "Shared with you" and opens it, and the
 // workspace itself stays closed to them.
 //
@@ -55,7 +55,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
 
   await flow.heading('Share one document with a guest', 3)
   await flow.narrate(
-    'A guest is someone outside your team — a client, a freelancer — whom '
+    'A guest is someone outside your team, a client, a freelancer, whom '
     + 'you invite to the workspace with the role "Guest". A guest sees only '
     + 'the documents you share with them, takes no seat, and uses their own '
     + 'AI budget. Lena from Harbourline already accepted her invitation.'
@@ -83,7 +83,7 @@ test('Share a document with a guest', async ({ page, flow, editor }) => {
     { chain: true, after: () => page.getByTestId(`share-guest-${clientId}`).waitFor({ state: 'visible', timeout: 10_000 }) }
   )
   await expect(page.getByTestId(`share-guest-${clientId}`)).toContainText('Lena Fischer')
-  await flow.shot('Lena can now edit this document — and only this one', {
+  await flow.shot('Lena can now edit this document, and only this one', {
     highlights: [{ label: 'Shared with Lena', selector: `[data-testid="share-guest-${clientId}"]` }]
   })
 

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { buildDocBoundTool } from '../lib/wrapDocBoundTool'
 
-// `destructiveHint: true` — clients (Claude Desktop) may prompt the
+// `destructiveHint: true`: clients (Claude Desktop) may prompt the
 // user for confirmation before invoking. The handler itself does its
 // own authz: deleting requires either authorship (the comment was
 // posted by this user / by AI Assistant) OR doc-management rights.

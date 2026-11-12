@@ -25,7 +25,7 @@ Eine Zeile mit `#` beginnen für einen Titel, `##` für einen Abschnitt, `###` f
 
 Ein `x` zwischen den Klammern hakt ein Kästchen ab.
 
-- [ ] **Teilen.** Das Schloss oben rechts (oder **Freigabe → Freigabeeinstellungen…**) legt fest, was Leute mit dem Link dürfen: «Privat — nur Sie», «Jeder kann ansehen», «Jeder kann bearbeiten» oder «Passwortgeschützt».
+- [ ] **Teilen.** Das Schloss oben rechts (oder **Freigabe → Freigabeeinstellungen…**) legt fest, was Leute mit dem Link dürfen: «Privat: nur Sie», «Jeder kann ansehen», «Jeder kann bearbeiten» oder «Passwortgeschützt».
 - [ ] **Das Aussehen ändern.** Das Paletten-Symbol rechts öffnet das **Dokumentdesign**: Vorlagen, Schriften, Farben, Seitenformat, Kopf- und Fusszeile.
 - [ ] **Die Titelseite bearbeiten.** Dieses Dokument beginnt mit einer. Im Design-Panel legt **Titelseite** Layout, Untertitel, Datum und Autoren fest oder schaltet sie aus.
 - [ ] **Kommentieren.** Text markieren und auf **Kommentar hinzufügen** klicken. Schreiben Sie `@markoto` in einen Kommentar, dann antwortet die KI im Verlauf.

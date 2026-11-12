@@ -68,7 +68,7 @@ async function submitAnon(fields: Record<string, unknown>, opts: { headers?: Rec
   return client.post('/api/abuse-reports', { ...fields, altcha: await solveAnonChallenge(client, 'abuse-report') }, { headers: opts.headers })
 }
 
-describe('POST /api/abuse-reports — anonymous (DSA Art.16)', () => {
+describe('POST /api/abuse-reports: anonymous (DSA Art.16)', () => {
   beforeEach(async () => {
     await resetDb()
   })

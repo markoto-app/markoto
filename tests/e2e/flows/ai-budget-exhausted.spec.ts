@@ -9,7 +9,7 @@ import { test, expect } from '../fixtures/flow'
 //
 // Why this matters: a silent "the bar feels broken" is the
 // worst-case experience. markoto handles this with TWO surfaces:
-//   1. An "Out of AI credits — upgrade to continue" placeholder
+//   1. An "Out of AI credits, upgrade to continue" placeholder
 //      replaces the bar's normal hint as soon as `creditsExhausted`
 //      flips. Input + send + mic all gate on the same flag.
 //   2. Clicking the bar (or the disabled send) routes straight to
@@ -20,11 +20,11 @@ import { test, expect } from '../fixtures/flow'
 // Setup shortcut: instead of running real prompts to drain the Free
 // quota, we hit a TEST_MODE-only admin endpoint that calls LiteLLM's
 // `/key/update` to slam the user's virtual-key budget against itself
-// — the same trip-condition the proxy uses in production. The next
+// the same trip-condition the proxy uses in production. The next
 // /api/ai/credits fetch reflects "exhausted" via LiteLLM's
 // `/key/info` round-trip.
 //
-// Works on desktop AND mobile — the prompt bar's exhausted
+// Works on desktop AND mobile, the prompt bar's exhausted
 // placeholder is identical across breakpoints and the click-through
 // to /pricing follows the same router.push call on both.
 // `@billing`: needs NUXT_BILLING_ENABLED=true on the target server (see
@@ -56,17 +56,17 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   await page.reload()
   await editor.page.waitForReady()
 
-  await flow.heading('Out of credits — what happens next', 3)
+  await flow.heading('Out of credits, what happens next', 3)
   await flow.narrate(
     'You\'ve been prompting markoto all month and have hit the '
     + 'cap. Instead of letting your next prompt fail with a '
-    + 'cryptic toast, the prompt bar tells you what\'s up — '
+    + 'cryptic toast, the prompt bar tells you what\'s up, '
     + 'directly, in the field where you would have typed.'
   )
 
   // The exhausted placeholder
   await flow.shot(
-    'The prompt bar is greyed out. "Out of AI credits — upgrade to '
+    'The prompt bar is greyed out. "Out of AI credits, upgrade to '
     + 'continue" replaces the normal placeholder. The send button, '
     + 'mic button, and even the input itself are disabled.',
     {
@@ -78,7 +78,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   )
 
   // ASSERTION: the input carries the exhausted placeholder. The
-  // i18n key is `ai.exhaustedPlaceholder` ("Out of AI credits —
+  // i18n key is `ai.exhaustedPlaceholder` ("Out of AI credits,
   // upgrade to continue") which the bar swaps in when
   // `creditsExhausted` is true.
   const promptInput = editor.page.ai.promptBarInput
@@ -88,7 +88,7 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
   // Find the upgrade path
   await flow.heading('The upgrade path is one click away', 3)
   await flow.narrate(
-    'The topbar shows your AI credit usage at all times — a small '
+    'The topbar shows your AI credit usage at all times, a small '
     + 'badge tucked next to your avatar. When the cap is hit, the '
     + 'badge\'s popover shows an Upgrade button that takes you '
     + 'straight to the pricing page.'
@@ -108,13 +108,13 @@ test('What happens when you hit the AI cap', { tag: '@billing' }, async ({ page,
     + 'Free is your current plan; Pro raises the monthly AI Points.',
     {
       highlights: [
-        { label: 'Current plan — Free', selector: '[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]' }
+        { label: 'Current plan, Free', selector: '[data-testid="pricing-tier-free"] [data-testid="pricing-current-plan-badge"]' }
       ]
     }
   )
 
   // ASSERTION: navigation landed on /pricing AND the user's current
-  // tier (Free) is still flagged as such — they haven't paid yet.
+  // tier (Free) is still flagged as such, they haven't paid yet.
   expect(page.url()).toMatch(/\/pricing/)
   await expect(page.locator('[data-testid="pricing-tier-free"]')).toHaveAttribute('data-current', 'true')
 

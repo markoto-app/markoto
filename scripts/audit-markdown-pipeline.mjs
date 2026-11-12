@@ -11,7 +11,7 @@
 //     script confirms actually survive the full pipeline.
 //   - After adding a new markdown-it plugin or bumping a plugin's version.
 //   - After changing the DOMPurify ALLOWED_TAGS / ALLOWED_ATTR list in
-//     app/utils/markdown/renderMarkdown.ts — anything the sanitizer now strips
+//     app/utils/markdown/renderMarkdown.ts: anything the sanitizer now strips
 //     silently will surface as a CLEAN-vs-RAW diff.
 //
 // Reads this file as truth: if a syntax fails here, don't tell the AI it works.
@@ -41,7 +41,7 @@ const DOMPurify = createDOMPurify(win)
 
 const emoji = emojiMod.full || emojiMod.default || emojiMod
 
-// Pagebreak rule — copied verbatim from app/utils/markdown/renderMarkdown.ts
+// Pagebreak rule: copied verbatim from app/utils/markdown/renderMarkdown.ts
 function pagebreakPlugin(md) {
   const re = /^\s*<!--\s*pagebreak\s*-->\s*$/i
   md.block.ruler.before('paragraph', 'pagebreak', (state, startLine, _endLine, silent) => {
@@ -58,7 +58,7 @@ function pagebreakPlugin(md) {
   }, { alt: [] })
 }
 
-// Comment rule — copied verbatim from app/utils/markdown/renderMarkdown.ts.
+// Comment rule: copied verbatim from app/utils/markdown/renderMarkdown.ts.
 // Strips `<!-- ... -->` (block + inline) so writers can leave private
 // notes that don't surface in preview/PDF.
 function commentPlugin(md) {
@@ -174,7 +174,7 @@ run('email linkify', 'Contact foo@bar.com.')
 run('multiple footnotes', 'Text[^1] with [^note2] multiple.\n\n[^1]: First.\n[^note2]: Second.')
 
 run('abbr defined BEFORE use', '*[SGML]: Standard Generalized Markup Language\n\nThe SGML lineage…')
-run('abbr case sensitivity', '*[HTML]: HyperText Markup Language\n\nhtml vs HTML — only uppercase abbr matches.')
+run('abbr case sensitivity', '*[HTML]: HyperText Markup Language\n\nhtml vs HTML, only uppercase abbr matches.')
 
 run('KaTeX matrix', String.raw`$$\begin{pmatrix} a & b \\ c & d \end{pmatrix}$$`)
 run('KaTeX multi-equation (aligned)', String.raw`$$\begin{aligned} x &= y + 1 \\ y &= z - 2 \end{aligned}$$`)

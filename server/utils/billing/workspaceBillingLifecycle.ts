@@ -24,7 +24,7 @@ const log = useLogger('workspace-billing')
  * deletion must stop (the subscription row cascades with the workspace,
  * and a subscription left running would bill a workspace that is gone).
  * Billing switched off with a subscription still running: refused too
- * (409 `billing/subscription-active`) — no Stripe calls are made then.
+ * (409 `billing/subscription-active`): no Stripe calls are made then.
  */
 /** `ws`: the deleting admin's proof, or the account-deletion job's. */
 export async function endWorkspaceBilling(ws: WorkspaceAccess<'admin'>): Promise<void> {
@@ -54,7 +54,7 @@ export async function endWorkspaceBilling(ws: WorkspaceAccess<'admin'>): Promise
 
 /**
  * Stripe may still bill this subscription: it has an id and hasn't
- * ended. `incomplete` counts — its first payment can still go through.
+ * ended. `incomplete` counts: its first payment can still go through.
  */
 function hasRunningSubscription(row: Pick<WorkspaceSubscriptionRow, 'stripeSubscriptionId' | 'status'>): boolean {
   return row.stripeSubscriptionId !== null && row.status !== 'canceled' && row.status !== 'incomplete_expired'

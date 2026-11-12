@@ -11,7 +11,7 @@ services:
     # API contract); Podman's Docker-compatible API reads that value as a
     # file path and refuses it ("file name too long"). Podman's own default
     # profile already allows the user-namespace syscalls Chromium's sandbox
-    # needs, except chroot without CAP_SYS_CHROOT — so: Podman's default
+    # needs, except chroot without CAP_SYS_CHROOT: so: Podman's default
     # profile plus that one capability. Podman hands added capabilities to
     # the non-root `pwuser` as ambient capabilities; CAP_SYS_CHROOT alone
     # changes the root directory inside the container's own mount

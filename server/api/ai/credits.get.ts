@@ -55,7 +55,7 @@ export default defineApiHandler({
     const pointsTotal = planToPointsTotal(billing.plan, getTiers())
     // Free tier on an instance with a global monthly ceiling: the key also
     // draws on the shared pool (`litellm/freeTierTeam.ts`). When the pool is
-    // used up the user's own points don't help — the UI says so and links
+    // used up the user's own points don't help, the UI says so and links
     // the own-key settings instead. Null when the plan isn't pooled.
     const freeAllowance = await freeAllowanceView(billing.plan)
 

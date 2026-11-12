@@ -9,7 +9,7 @@ import { MINIMAL_INSTANCE_CONFIG, type InstanceConfig } from '~~/shared/config/i
 // "Use this template" on /templates/<slug>: `::cta{template theme}` opens
 // the normal new-document dialog (same gate as every other create path)
 // with that template card and theme preset selected, and "Create
-// document" POSTs `templateId` + `themePreset` — the server renders the
+// document" POSTs `templateId` + `themePreset`, the server renders the
 // template body, the page never sends the content itself.
 
 mockNuxtImport('useUserSession', () => () => ({
@@ -66,7 +66,7 @@ let push: ReturnType<typeof vi.spyOn>
 
 // The button mounts the dialog as a lazy component: the first click
 // imports NewDocumentDialog.vue and its whole module graph, which Vite
-// transforms on demand — ~0.8 s on an idle machine, over the 1 s
+// transforms on demand: ~0.8 s on an idle machine, over the 1 s
 // `vi.waitFor` budget when the suite runs on every core. Load it once up
 // front, so the waits below measure the dialog, not the transform.
 beforeAll(async () => {

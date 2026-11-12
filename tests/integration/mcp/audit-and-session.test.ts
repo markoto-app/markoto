@@ -52,7 +52,7 @@ async function resolveAuditChain(docId: string): Promise<ResolvedActor | null> {
     token_id: string | null
     mcp_session_id: string
   }>(
-    // Strip the 'mcp:' prefix and JOIN to mcp_sessions in one query —
+    // Strip the 'mcp:' prefix and JOIN to mcp_sessions in one query,
     // mirrors what `enrichActivityActors` does in the activity repo.
     `SELECT al.action, al.actor_principal,
             ms.user_id, ms.client_name, ms.token_id, ms.mcp_session_id
@@ -76,7 +76,7 @@ async function resolveAuditChain(docId: string): Promise<ResolvedActor | null> {
   }
 }
 
-describe('MCP audit chain — actor_principal → mcp_sessions → users', () => {
+describe('MCP audit chain: actor_principal → mcp_sessions → users', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -126,7 +126,7 @@ describe('MCP audit chain — actor_principal → mcp_sessions → users', () =>
     await cA.initialize()
     await cB.initialize()
     // After initialize each client must have its own session id, and
-    // a follow-up call (any tool — pick a cheap read) populates the
+    // a follow-up call (any tool, pick a cheap read) populates the
     // mcp_sessions row.
     await cA.call('list_my_documents', {})
     await cB.call('list_my_documents', {})
@@ -150,7 +150,7 @@ describe('MCP audit chain — actor_principal → mcp_sessions → users', () =>
   })
 })
 
-describe('MCP session reuse — Mcp-Session-Id is sticky across one client', () => {
+describe('MCP session reuse: Mcp-Session-Id is sticky across one client', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -164,7 +164,7 @@ describe('MCP session reuse — Mcp-Session-Id is sticky across one client', () 
     const id1 = client.getSessionId()
     expect(id1).toMatch(/^[0-9a-f-]{36}$/)
 
-    // Three sequential tool calls — toolkit assigns the session id once
+    // Three sequential tool calls, toolkit assigns the session id once
     // on initialize, then every subsequent request echoes it via the
     // Mcp-Session-Id header (the harness threads it transparently).
     await client.call('list_my_documents', {})

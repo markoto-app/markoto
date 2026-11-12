@@ -22,7 +22,7 @@ import {
 // any of them wrote.
 //
 // The repos tier runs with TEST_MODE=1 (testEnv.ts), which bypasses the
-// limiters — switched off for this file. Every test uses a fresh random
+// limiters: switched off for this file. Every test uses a fresh random
 // namespace / key, so no cleanup between cases is needed (keys TTL out).
 
 let savedTestMode: string | undefined

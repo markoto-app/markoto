@@ -3,7 +3,7 @@
 // pairs with the close button on the right.
 
 interface Props {
-  /** Wordmark height in px. Defaults to 20 — slightly larger
+  /** Wordmark height in px. Defaults to 20, slightly larger
       than the topbar's 18px because subpage chrome has more
       breathing room. */
   size?: number

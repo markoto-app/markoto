@@ -24,7 +24,7 @@ export interface UserBillingUpdate {
 /**
  * One-shot user update by customer id OR by internal user id. Returns
  * the number of rows matched (0 when the customer id doesn't map to a
- * user — logged but not fatal).
+ * user: logged but not fatal).
  */
 export async function updateUserBilling(_by: SystemActor, opts: UserBillingUpdate, tx?: TxHandle): Promise<number> {
   const db = executor(tx)

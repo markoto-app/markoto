@@ -50,5 +50,5 @@ encrypted and only ever used by the server.
 
 ## What's next
 
-- [Delete your account](/docs/account/delete-account) — once you've exported, you can wipe everything.
-- [Profile page](/docs/account) — request more exports anytime; the history shows them all.
+- [Delete your account](/docs/account/delete-account): once you've exported, you can wipe everything.
+- [Profile page](/docs/account): request more exports anytime; the history shows them all.

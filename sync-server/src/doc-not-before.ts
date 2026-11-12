@@ -6,7 +6,7 @@ const log = useLogger('not-before')
 
 // Per-document not-before cutoff for doc tokens. When a document's access
 // becomes stricter, the app sends the cutoff (its own clock, epoch
-// seconds — the same clock that stamps `iat`, so no app/sync skew enters
+// seconds: the same clock that stamps `iat`, so no app/sync skew enters
 // the comparison) and every token issued before it stops opening the
 // document: a visitor whose access just ended can't reconnect with the
 // token still in their browser, while an entitled client fetches a fresh

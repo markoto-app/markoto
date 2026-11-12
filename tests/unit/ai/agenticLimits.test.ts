@@ -13,7 +13,7 @@ import { soloSessionGuard } from '../fixtures/crossBoundary'
 //   - SESSION_TOOL_CALL_CAPS: per-tool call counts. Returns a tool
 //     error (not abort) so the model can wrap up gracefully.
 //
-// Same harness pattern as runLoop.test.ts — programmable fake AI,
+// Same harness pattern as runLoop.test.ts, programmable fake AI,
 // stubbed billing, no DB / Y.js / network.
 
 import { SESSION_INTERACTION_CAP } from '../../../server/utils/agentic/limits'
@@ -140,7 +140,7 @@ describe('SESSION_INTERACTION_CAP enforcement', () => {
 
     const setStatus = vi.fn()
     // After the first web_search the session is tainted (web content);
-    // the following identical searches ask the initiator — approve them.
+    // the following identical searches ask the initiator, approve them.
     await runAgenticLoop(makeOpts({ ai: makeFakeAi(turns), setStatus, crossBoundary: soloSessionGuard({ confirm: async () => true }) }))
 
     // Some setStatus call should be ('error', message containing cap text)
@@ -165,7 +165,7 @@ describe('SESSION_INTERACTION_CAP enforcement', () => {
 })
 
 describe('SESSION_TOOL_CALL_CAPS enforcement', () => {
-  it('view_pages 4th call returns a tool error (not abort) — cap is 3', async () => {
+  it('view_pages 4th call returns a tool error (not abort), cap is 3', async () => {
     // Turn 1: model emits 4 view_pages calls in one turn. The first 3
     // dispatch normally; the 4th hits the cap and returns a tool error
     // BEFORE invocation. Then turn 2 just stops with text so the loop
@@ -190,7 +190,7 @@ describe('SESSION_TOOL_CALL_CAPS enforcement', () => {
 
     // Only 3 actual dispatches.
     expect(executeFunctionByName).toHaveBeenCalledTimes(3)
-    // Loop exits via 'done', not 'error' — per-tool cap is recoverable.
+    // Loop exits via 'done', not 'error', per-tool cap is recoverable.
     const lastCall = setStatus.mock.calls[setStatus.mock.calls.length - 1]
     expect(lastCall?.[0]).toBe('done')
   })

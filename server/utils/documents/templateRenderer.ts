@@ -5,7 +5,7 @@ import { getTemplate, templateLocale } from '~~/shared/templates'
 /**
  * Server-side template body renderer. The body files live as plain
  * markdown under `shared/templates/content/<id>/<locale>.md`. We read
- * them at module-load time into an in-memory cache — they're tiny
+ * them at module-load time into an in-memory cache, they're tiny
  * (a few KB each) and frequently used, so paying the disk read once
  * per process beats re-reading per request.
  *
@@ -41,7 +41,7 @@ function readBody(templateId: string, locale: string): string | null {
 export interface TemplateContext {
   title: string
   description: string
-  /** Doc's language string — ISO code or free-text. Resolves to a locale file. */
+  /** Doc's language string, ISO code or free-text. Resolves to a locale file. */
   language: string
 }
 

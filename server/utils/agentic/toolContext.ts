@@ -8,14 +8,14 @@ import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 // Two-tiered tool context. The split exists to make a class of bug
 // IMPOSSIBLE: a META-typed handler (one that doesn't need Y.js state)
 // being wrapped as a doc-bound MCP tool (and vice versa) won't typecheck
-// — `buildWorkspaceBoundTool({ name: 'replace_text' })` is a compile
+// `buildWorkspaceBoundTool({ name: 'replace_text' })` is a compile
 // error because `replace_text` is typed as accepting `DocToolContext`
 // but the wrapper passes `MetaToolContext`.
 //
 // The categorization is an intrinsic property of each handler:
 //   - DOC handlers READ or MUTATE the live Y.Doc (ydoc/ytext/ymeta) OR
 //     broadcast status via awareness on a real provider.
-//   - META handlers operate on DB rows + external APIs only — they need
+//   - META handlers operate on DB rows + external APIs only, they need
 //     identity (userId, workspaceId, docId) and billing context, but
 //     never the Y handles.
 //
@@ -34,11 +34,11 @@ export type ToolStatusPhase = 'thinking' | 'tool' | 'editing' | 'done' | 'error'
 export interface MetaToolContext {
   /** The doc the call is bound to. For tools that don't operate on a
    *  specific doc (web_search, list_my_documents), the wrapper sets
-   *  this to a sentinel string — handlers MUST NOT assume it's a real
+   *  this to a sentinel string, handlers MUST NOT assume it's a real
    *  docId. */
   docId: string
 
-  /** Real human user id — used for ownership checks, audited writes
+  /** Real human user id, used for ownership checks, audited writes
    *  (e.g. `uploads.uploaderId` from `generate_image`), and rate
    *  limits. The synthetic principal (loop's `ai:assistant:{sessionId}`,
    *  MCP's `mcp:{mcpSessionId}`) lives in `sessionId`; the human is
@@ -67,7 +67,7 @@ export interface MetaToolContext {
    *  rows can attribute back to the originating call. */
   sessionId: string
 
-  /** Billing target — `user:{id}` self-bill, or `workspace:{id}` when
+  /** Billing target: `user:{id}` self-bill, or `workspace:{id}` when
    *  the workspace's pooled budget covers the cost. */
   attributedTo: AttributedTo
 
@@ -95,14 +95,14 @@ export interface MetaToolContext {
   /** Report progress. Only the PHASE is broadcast to the document's
    *  other participants (loop: awareness `aiStatus`, MCP doc-bound:
    *  `mcpStatus`); the message (which can name other documents,
-   *  queries, URLs) goes to the initiator alone — the loop's session
+   *  queries, URLs) goes to the initiator alone, the loop's session
    *  channel (`sessionChannel.ts`), nowhere for MCP (the MCP client sees
    *  the tool result). META wrappers no-op. */
   updateStatus(phase: ToolStatusPhase, message?: string): void
 }
 
 /**
- * Full context — META plus live Y.js handles. Required by handlers
+ * Full context: META plus live Y.js handles. Required by handlers
  * that read/mutate the doc body (view_document, replace_text), the
  * doc metadata (set_title, update_theme), the comments array
  * (read_comments, create_comment, ...), or write to awareness directly
@@ -119,7 +119,7 @@ export interface DocToolContext extends MetaToolContext {
   awareness: Awareness
   /** Deliver a `message_to_user` answer to the initiator only (never
    *  via awareness). Absent where there is no initiator UI (MCP, test
-   *  seams) — the handler then only records conversation memory. */
+   *  seams): the handler then only records conversation memory. */
   deliverResponse?(response: { message: string, isQuestion: boolean, ts: number }): void
 }
 

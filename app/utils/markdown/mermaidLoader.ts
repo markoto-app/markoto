@@ -25,7 +25,7 @@ import { MERMAID_URL, MERMAID_SRI } from '~~/shared/utils/vendor/mermaidAssets'
  *      computed doesn't move.
  *
  * Mermaid is the SRI-locked single-file build injected as a classic
- * `<script integrity crossorigin>` (see shared/utils/vendor/mermaidAssets.ts) — the
+ * `<script integrity crossorigin>` (see shared/utils/vendor/mermaidAssets.ts), the
  * ESM build's dynamic `import()` cannot be integrity-checked.
  */
 
@@ -312,7 +312,7 @@ let svgPurifier: ReturnType<typeof createDOMPurify> | null = null
 
 /**
  * Sanitise a mermaid SVG for inlining into the render page (which runs in
- * the app's origin): DOMPurify's SVG profile — no script, no event
+ * the app's origin): DOMPurify's SVG profile, no script, no event
  * handlers, no `<foreignObject>` / `<use>`, no external references. A
  * diagram that needed `<foreignObject>` would lose its labels, so those
  * stay images (see `inlineMermaidSvgs`).

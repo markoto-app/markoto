@@ -17,7 +17,7 @@ export const WebSearchArgs = z.object({
 
 const FetchUrlArgs = z.object({
   url: z.string().trim().min(1).max(2048)
-    .describe('The URL to fetch. Any public web page (article, blog, docs, portfolio). A missing scheme is treated as https://. Do not pass /api/files/... paths — use view_image for those.')
+    .describe('The URL to fetch. Any public web page (article, blog, docs, portfolio). A missing scheme is treated as https://. Do not pass /api/files/... paths, use view_image for those.')
 }).describe('Fetch a specific URL and extract its readable text content plus any image URLs visible on the page. Use when the user names or links a source to draw information from. Returns both synthesised text AND a list of image URLs you can then inspect with view_image or embed verbatim via insert_text.')
 
 // MCP tool calls have no in-flight abort signal (no equivalent of the
@@ -56,7 +56,7 @@ export const webSearchTool = defineMetaTool({
 
 export const fetchUrlTool = defineMetaTool({
   name: 'fetch_url',
-  description: 'Fetch a specific URL and extract both its readable text content AND a list of image URLs visible on the page. Use when the user names or links a source to draw information from (e.g. "write about me based on myportfolio.com"). Differs from `web_search` — that one searches the web for a topic; this one reads a URL you already have. The returned image URLs can be passed to `view_image` to inspect them or embedded directly via `insert_text` as `![alt](https://...)`.',
+  description: 'Fetch a specific URL and extract both its readable text content AND a list of image URLs visible on the page. Use when the user names or links a source to draw information from (e.g. "write about me based on myportfolio.com"). Differs from `web_search`, that one searches the web for a topic; this one reads a URL you already have. The returned image URLs can be passed to `view_image` to inspect them or embedded directly via `insert_text` as `![alt](https://...)`.',
   schema: FetchUrlArgs,
   requires: 'webFetch',
   sessionCallCap: 10,

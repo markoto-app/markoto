@@ -13,7 +13,7 @@ const log = useLogger('workspace-budget')
 
 // Budget alerts for Team / Business workspaces: when a workspace's
 // pooled AI budget reaches 80 % and 100 % of the month, its admins get
-// one email each (once per level per budget period — the once-key holds
+// one email each (once per level per budget period, the once-key holds
 // LiteLLM's `budget_reset_at`). Run by `plugins/workspace-budget-alerts.ts`
 // every 15 minutes; LiteLLM is the source of the spend. The same run ends
 // expired seat-change budget adjustments (`endSeatAdjustment`).

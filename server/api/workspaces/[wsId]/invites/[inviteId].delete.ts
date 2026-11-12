@@ -3,7 +3,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_WORKSPACE_INVITE_REVOKED } from '../../../../legal/auditActions'
 import { workspaceInviteParams } from '~~/shared/api/workspaces'
 
-// DELETE /api/workspaces/:wsId/invites/:inviteId — revoke an open
+// DELETE /api/workspaces/:wsId/invites/:inviteId: revoke an open
 // invitation. Admin-only. Keyed on (workspace, invite id): another
 // workspace's invite id is a plain 404.
 export default defineApiHandler({

@@ -5,7 +5,7 @@ import { apiError } from '../api/apiError'
 
 // Shared request handling for brand-kit uploads: one multipart
 // POST, read whole (≤ the per-file cap + form overhead) and checked in
-// memory — the bytes that are inspected are exactly the bytes stored.
+// memory: the bytes that are inspected are exactly the bytes stored.
 
 const FORM_OVERHEAD = 64 * 1024
 

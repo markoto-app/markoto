@@ -51,7 +51,7 @@ describe('heading scale', () => {
   })
 
   // The scale's h1; a format preset may set its own h1 size per level
-  // (arXiv: 1.2× body) — see the per-level tests in themeVariables.test.ts.
+  // (arXiv: 1.2× body): see the per-level tests in themeVariables.test.ts.
   test('every preset scale puts h1 between 1.6× and 2.2× its body size', () => {
     for (const p of THEME_PRESETS) {
       const ratio = headingScaleSizePt(p.theme, 1) / p.theme.body.size

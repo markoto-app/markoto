@@ -7,7 +7,7 @@ import { TEST_INTERNAL_SECRET } from '../setup/env'
 import { first } from '../../helpers/assert'
 
 // End-to-end smoke test for the edit → activity → diff pipeline.
-// Doesn't actually run Hocuspocus — instead it synthesizes the same
+// Doesn't actually run Hocuspocus, instead it synthesizes the same
 // row shape the sync-server writes:
 //   1. Insert a yjs_updates row representing pre-edit state.
 //   2. Insert a yjs_updates row representing post-edit state.
@@ -17,12 +17,12 @@ import { first } from '../../helpers/assert'
 //
 // Why this matters even though each layer has its own tests:
 //   - The sync-server, the internal endpoint, and the diff endpoint
-//     each touch the boundary ids — a bug at any seam (off-by-one,
+//     each touch the boundary ids, a bug at any seam (off-by-one,
 //     wrong field name, integer vs string) produces a broken
 //     end-to-end experience that no single layer's tests would
 //     catch.
 //   - The pg driver's bytea encoding has to round-trip through the
-//     replay path against real Postgres — the unit tests use mocks,
+//     replay path against real Postgres, the unit tests use mocks,
 //     so a real driver quirk could slip through.
 //   - The activity-row → diff endpoint linkage must work via the
 //     row id, scoped to the right docId. Pin it.
@@ -33,7 +33,7 @@ const secretHeaders = { 'x-internal-secret': TEST_INTERNAL_SECRET }
 // returns the y-postgresql row id corresponding to the doc's state
 // at that point. We replay against the SAME Y.Doc throughout so the
 // updates form a coherent history (single clientId, monotonic
-// clocks) — exactly what y-postgresql's storage looks like in
+// clocks): exactly what y-postgresql's storage looks like in
 // production after a series of stores.
 async function stageStates(docname: string, contents: string[]): Promise<number[]> {
   const doc = new Y.Doc()
@@ -126,7 +126,7 @@ describe('edit → activity row → diff endpoint round-trip', () => {
     expect(body.after).toBe('line A\nline B\nline C added\n')
 
     // The diff captures the single added line as one `add` line in
-    // some hunk — and there's no spurious removal.
+    // some hunk: and there's no spurious removal.
     expect(body.hunks).toHaveLength(1)
     const hunk = first(body.hunks)
     const adds = hunk.lines.filter(l => l.kind === 'add')

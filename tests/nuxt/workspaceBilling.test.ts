@@ -94,7 +94,7 @@ async function mountPanel() {
   return wrapper
 }
 
-describe('workspace billing tab — no subscription yet', () => {
+describe('workspace billing tab: no subscription yet', () => {
   it('starts at the people already in the workspace and shows the total', async () => {
     const wrapper = await mountPanel()
     expect(wrapper.find('[data-testid="workspace-billing-buy"]').exists()).toBe(true)
@@ -117,7 +117,7 @@ describe('workspace billing tab — no subscription yet', () => {
   })
 })
 
-describe('workspace billing tab — subscription', () => {
+describe('workspace billing tab: subscription', () => {
   beforeEach(() => {
     overview.subscription = {
       plan: 'team', seats: 5, status: 'active', entitled: true, interval: 'month', currency: 'eur',
@@ -165,7 +165,7 @@ describe('workspace billing tab — subscription', () => {
   })
 })
 
-describe('invite dialog — paid seats', () => {
+describe('invite dialog: paid seats', () => {
   async function mountModal() {
     const Host = defineComponent({
       setup() {

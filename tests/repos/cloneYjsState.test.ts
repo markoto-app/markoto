@@ -128,7 +128,7 @@ describe('cloneYjsStateWithUrlRewrite', () => {
   it('copies ymeta fields (title, theme) but drops _deleted', async () => {
     // The source might be currently flagged as deleted (e.g. an
     // in-flight deletion on a connected client). The duplicate must
-    // NOT inherit that flag — otherwise the clone would appear to
+    // NOT inherit that flag, otherwise the clone would appear to
     // vanish on the first Y.js sync.
     await seedSource('src', (doc) => {
       const meta = doc.getMap('meta')
@@ -162,7 +162,7 @@ describe('cloneYjsStateWithUrlRewrite', () => {
       [update]
     )
     // Diff-then-append via encodeStateAsUpdate would be cheaper, but a
-    // full-state write per tick is sufficient for the test — the clone
+    // full-state write per tick is sufficient for the test, the clone
     // replays them in id order regardless.
     srcDoc.getText('content').insert(srcDoc.getText('content').length, 'Second. ')
     update = Buffer.from(Y.encodeStateAsUpdate(srcDoc))

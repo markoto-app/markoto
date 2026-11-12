@@ -1,5 +1,5 @@
 <script setup lang="ts">
-// Live audio-level visualiser — a centered row of vertical bars whose
+// Live audio-level visualiser: a centered row of vertical bars whose
 // heights follow the 0..1 amplitude samples in `levels`. Canvas-based so
 // 30+ fps updates don't trigger layout or Vue diffs; only the 2D context
 // touches pixels.
@@ -73,7 +73,7 @@ function draw() {
     const barHeight = Math.max(minBar, amp * h)
     const x = i * (barWidth + gapPx)
     const y = (h - barHeight) / 2
-    // Pill-shaped bars — radius = half the bar width rounds both top AND
+    // Pill-shaped bars: radius = half the bar width rounds both top AND
     // bottom to a semicircle, which reads as a clean voice waveform
     // rather than a chunky equalizer. Clamped to barHeight/2 so very
     // short bars stay proportional instead of overflowing their row.

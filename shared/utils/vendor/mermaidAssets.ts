@@ -4,7 +4,7 @@ import { vendorUrl } from './vendorAssets'
  * Same-origin URL + Subresource Integrity hash for the Mermaid bundle used
  * by the live preview iframe, the browser print iframe and the server
  * render page. Copied from `node_modules/mermaid/dist/` at build time
- * (modules/vendor-assets.ts — see shared/utils/vendor/vendorAssets.ts).
+ * (modules/vendor-assets.ts: see shared/utils/vendor/vendorAssets.ts).
  *
  * Why not bundled into the Nuxt client: Mermaid is ~3.5 MB minified.
  * Pulling it into the client bundle would balloon initial load for every

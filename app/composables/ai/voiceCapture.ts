@@ -33,7 +33,7 @@ export function pickMimeType(): string | undefined {
 async function blobToBase64(blob: Blob): Promise<string> {
   const buf = await blob.arrayBuffer()
   const bytes = new Uint8Array(buf)
-  // Chunk to avoid `Maximum call stack size exceeded` on large buffers —
+  // Chunk to avoid `Maximum call stack size exceeded` on large buffers,
   // `String.fromCharCode(...bytes)` spreads every byte as an argument.
   let binary = ''
   const CHUNK = 0x8000

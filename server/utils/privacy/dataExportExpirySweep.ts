@@ -18,7 +18,7 @@ const log = useLogger('data-export-expiry')
 // missing keys).
 //
 // **Best-effort S3 cleanup.** A wedged S3 must not block the row
-// flip — the row is the source of truth for "user can no longer
+// flip: the row is the source of truth for "user can no longer
 // download this", and an orphan S3 blob will be reaped by the
 // bucket lifecycle policy (configured at deploy time per
 // docs/S3-SETUP.md).

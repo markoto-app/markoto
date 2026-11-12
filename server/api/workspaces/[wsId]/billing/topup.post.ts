@@ -7,7 +7,7 @@ import { buyWorkspaceTopupBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 
-// POST /api/workspaces/:wsId/billing/topup — buy AI credits for a Team /
+// POST /api/workspaces/:wsId/billing/topup: buy AI credits for a Team /
 // Business workspace. Workspace admins; needs an active
 // subscription (409 `billing/no-subscription`). Paid on the workspace's
 // own Stripe customer, in its currency. Body {pack}.

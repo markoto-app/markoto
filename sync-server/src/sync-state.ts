@@ -10,8 +10,8 @@
 // `cause` channel back to the caller, which:
 //   - logs the warn line for ops visibility,
 //   - feeds the `cause` into the Sentry tag so we can distinguish
-//     'valkey-miss' (cold doc / restart — normal) from 'valkey-error'
-//     (Valkey down — operationally interesting).
+//     'valkey-miss' (cold doc / restart, normal) from 'valkey-error'
+//     (Valkey down: operationally interesting).
 // On error we behave the same as a miss (attribution falls back to the
 // awareness heuristic; diff baseline reseeds without emitting a row).
 //
@@ -38,7 +38,7 @@ export interface LastEditor {
 export interface PreviousMeta {
   title: string | null
   /**
-   * SHA-256 of the JSON-serialised `ymeta.theme` — only compared for
+   * SHA-256 of the JSON-serialised `ymeta.theme`, only compared for
    * equality, so a hash keeps a theme with up to 64 KB of custom CSS
    * from being copied into Valkey per doc.
    */
@@ -93,7 +93,7 @@ export async function getLastEditor(docId: string): Promise<FetchResult<LastEdit
   try {
     return { value: JSON.parse(raw.value) as LastEditor, cause: 'hit' }
   } catch {
-    // Treat malformed JSON as a miss — better to fall through to
+    // Treat malformed JSON as a miss, better to fall through to
     // awareness than to crash on a bad payload.
     return { value: null, cause: 'miss' }
   }

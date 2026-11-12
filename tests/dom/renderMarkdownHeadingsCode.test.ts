@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 //
 // jsdom (not happy-dom): DOMPurify's checks only behave like Chromium's
-// under jsdom — see renderMarkdownXss.test.ts.
+// under jsdom: see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
 import { clobberSafeId, fenceTitle, renderMarkdown, selectorSafeId, wrapCodeLines, wrapCodeTokens } from '../../app/utils/markdown/renderMarkdown'
 
@@ -35,10 +35,10 @@ describe('heading ids survive sanitising (TOC page numbers)', () => {
 })
 
 describe('heading ids are valid CSS selectors (paged.js)', () => {
-  // A heading like "## 3.4.1 — 2026-10-28" must not yield an id that paged.js resolves with an unescaped
+  // A heading like "## 3.4.1, 2026-10-28" must not yield an id that paged.js resolves with an unescaped
   // querySelector('#…') (target-counter()/links); that throws and leaves the whole preview blank.
   it('a heading starting with a digit gets an id that querySelector accepts, and the TOC links to it', async () => {
-    const html = await renderMarkdown('[[toc]]\n\n# 2024 results\n\n## 3.4.1 — 2026-10-28\n')
+    const html = await renderMarkdown('[[toc]]\n\n# 2024 results\n\n## 3.4.1 \u2014 2026-10-28\n')
     const root = parse(html)
     const ids = Array.from(root.querySelectorAll('h1, h2')).map(h => h.id)
     expect(ids).toEqual(['h-2024-results', 'h-341-2026-10-28'])

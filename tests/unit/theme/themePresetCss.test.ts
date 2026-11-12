@@ -89,7 +89,7 @@ describe('themeFromPreset', () => {
 // The plan feature `customCss` (hosted free tier: off) gates the author's
 // own CSS only. A built-in preset's template CSS is part of that preset's
 // look on every plan (preview + PDF: customCssForPlan; meta PUT:
-// ownCustomCss) — otherwise arXiv / IEEE would render broken on Free and
+// ownCustomCss): otherwise arXiv / IEEE would render broken on Free and
 // every theme save of such a document would be refused.
 describe('custom CSS and the plan', () => {
   const arxiv = preset('arxiv')

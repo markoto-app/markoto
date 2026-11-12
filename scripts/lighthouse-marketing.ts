@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 // Lighthouse (mobile profile, simulated throttling) against the public
-// marketing pages of a running instance — ideally a local production
+// marketing pages of a running instance, ideally a local production
 // build of the hosted shape (NUXT_MARKETING_SITE_ENABLED=true). Advisory:
 // no CI job runs it. See docs/contributing/CHEATSHEET.md ("SEO + page speed").
 //

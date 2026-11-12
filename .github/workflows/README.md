@@ -31,7 +31,7 @@ bash <(curl -sSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scri
 actionlint --version
 ```
 
-For best results also install `shellcheck` so actionlint can lint embedded shell — `apt install shellcheck` on Debian/Ubuntu, `brew install shellcheck` on macOS.
+For best results also install `shellcheck` so actionlint can lint embedded shell, `apt install shellcheck` on Debian/Ubuntu, `brew install shellcheck` on macOS.
 
 ### 2. Job-level dry run with act
 
@@ -57,21 +57,21 @@ Changes to steps that talk to the GitHub API (release creation, deploy over SSH)
 2. Edit `.github/workflows/*.yml`.
 3. Commit + push.
 4. Open a **draft** PR against main. CI runs the cheap jobs (`actions-lint`, `lint-typecheck`, `test-unit-dom`); the heavy `test-repos-integration-flows` job is skipped on drafts.
-5. Iterate the YAML in the same branch — push corrections; CI re-runs.
+5. Iterate the YAML in the same branch, push corrections; CI re-runs.
 6. When green, mark the PR ready for review; that starts the heavy jobs.
 7. The release and deploy path only runs after a maintainer merges a PR labelled `release:patch` (or `minor` / `major`); watch the `release` and `staging-gate` runs.
 
 ## Things `actionlint` won't catch
 
-- "This workflow uses a secret that doesn't exist in repo settings" — the secret reference is syntactically valid; `actionlint` can't know what's actually configured. First failed run on a real PR surfaces it.
-- "This Action's behaviour changed in v4.2.1" — actionlint checks reference syntax, not action behaviour. Dependabot moves the pinned versions; read the changelog when it does.
-- "The token used here lacks the `packages:write` scope" — same; it shows on the first real run.
-- Logic errors in `if:` conditions — e.g. `if: needs.foo.outputs.bar == 'true'` when `bar` is actually emitted as `True`. Test with a draft PR.
+- "This workflow uses a secret that doesn't exist in repo settings", the secret reference is syntactically valid; `actionlint` can't know what's actually configured. First failed run on a real PR surfaces it.
+- "This Action's behaviour changed in v4.2.1", actionlint checks reference syntax, not action behaviour. Dependabot moves the pinned versions; read the changelog when it does.
+- "The token used here lacks the `packages:write` scope", same; it shows on the first real run.
+- Logic errors in `if:` conditions, e.g. `if: needs.foo.outputs.bar == 'true'` when `bar` is actually emitted as `True`. Test with a draft PR.
 
 ## Things not to do
 
-- Don't `uses: foo/bar@v3` or `@main` — pin every third-party action to its full commit SHA with a `# vX.Y.Z` comment (Dependabot moves the pins).
-- Don't `permissions: write-all` — every workflow starts from `permissions: {}` and each job grants itself only what it needs.
-- Don't put a high-value secret at repo level or in job-wide `env:` — use a main-only Environment and bind it to the step that needs it (`docs/operations/GITHUB-CONFIG.md`).
-- Don't `ssh-keyscan` or `StrictHostKeyChecking=no` in a deploy path — host keys come from the pinned `DEPLOY_KNOWN_HOSTS`.
-- Don't write inline `${{ }}` referencing user-controlled context (`github.head_ref`, `github.event.pull_request.title`, comment bodies, etc.) inside `run:` shell — that's a script-injection vector. Pipe through an `env:` block instead. `actionlint` flags this.
+- Don't `uses: foo/bar@v3` or `@main`, pin every third-party action to its full commit SHA with a `# vX.Y.Z` comment (Dependabot moves the pins).
+- Don't `permissions: write-all`: every workflow starts from `permissions: {}` and each job grants itself only what it needs.
+- Don't put a high-value secret at repo level or in job-wide `env:`, use a main-only Environment and bind it to the step that needs it (`docs/operations/GITHUB-CONFIG.md`).
+- Don't `ssh-keyscan` or `StrictHostKeyChecking=no` in a deploy path, host keys come from the pinned `DEPLOY_KNOWN_HOSTS`.
+- Don't write inline `${{ }}` referencing user-controlled context (`github.head_ref`, `github.event.pull_request.title`, comment bodies, etc.) inside `run:` shell, that's a script-injection vector. Pipe through an `env:` block instead. `actionlint` flags this.

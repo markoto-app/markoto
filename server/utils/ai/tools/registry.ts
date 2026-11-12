@@ -127,7 +127,7 @@ export const SESSION_TOOL_CALL_CAPS: Readonly<Record<string, number>> = Object.f
   ALL_TOOLS.flatMap(t => ('sessionCallCap' in t && typeof t.sessionCallCap === 'number' ? [[t.name, t.sessionCallCap]] : []))
 )
 
-/** Tools that reach beyond the current document — the taint gate asks before running them once tainted. */
+/** Tools that reach beyond the current document, the taint gate asks before running them once tainted. */
 export const CONFIRM_WHEN_TAINTED: ReadonlySet<string> = new Set(
   ALL_TOOLS.flatMap(t => ('trustBoundary' in t && t.trustBoundary === 'confirm' ? [t.name] : []))
 )

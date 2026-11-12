@@ -59,7 +59,7 @@ export async function closeValkey(): Promise<void> {
     try {
       await sub.quit()
     } catch {
-      // Already closed — nothing to release.
+      // Already closed: nothing to release.
     }
   }
   if (!client) return

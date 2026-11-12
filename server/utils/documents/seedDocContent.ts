@@ -4,8 +4,8 @@ import type { DocAccess } from '../../repos/proofs'
 
 // Server-side seeding of a brand-new document's Markdown body
 // (`POST /api/docs` with `content`, used by the marketing `::try-it`
-// block). Writes ONE `yjs_updates` row — the same shape
-// `cloneYjsStateWithUrlRewrite` writes for a duplicate — so:
+// block). Writes ONE `yjs_updates` row, the same shape
+// `cloneYjsStateWithUrlRewrite` writes for a duplicate, so:
 //   - the sync server loads it like any stored history on first open, and
 //   - the server PDF render (`render-bootstrap` replays the Y.js log)
 //     sees the text right away, without a browser ever connecting.

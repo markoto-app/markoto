@@ -40,7 +40,7 @@ beforeEach(() => {
   })
 })
 
-describe('useErrorHandler — registered codes', () => {
+describe('useErrorHandler: registered codes', () => {
   it('shows the registered code\'s text, interpolated with data', () => {
     const { extractError } = useErrorHandler()
     expect(extractError({ statusCode: 403, data: { code: 'share/not-allowed', message: 'Only the owner…' } }).message).toBe('Nicht erlaubt.')
@@ -92,7 +92,7 @@ describe('useErrorHandler — registered codes', () => {
 // What `$fetch` really throws: the response body in `.data`, our fields one
 // level down in the body's own `.data`. Routes no longer send `messageKey`
 // for codes whose text is fixed; the code alone must give the translation.
-describe('useErrorHandler — real $fetch errors (nested body)', () => {
+describe('useErrorHandler: real $fetch errors (nested body)', () => {
   const fetchError = (statusCode: number, data: Record<string, unknown>, message = 'English server text') =>
     ({ statusCode, message: `[POST] "/api/x": ${statusCode}`, data: { statusCode, statusMessage: 'Bad Request', message, data } })
 

@@ -18,7 +18,7 @@ export function customCssAppOrigins(event?: H3Event): string[] {
   if (typeof siteUrl === 'string' && siteUrl) {
     try {
       origins.add(new URL(siteUrl).origin)
-    } catch { /* malformed NUXT_SITE_URL — ignore, relative URLs still work */ }
+    } catch { /* malformed NUXT_SITE_URL, ignore, relative URLs still work */ }
   }
   if (event) origins.add(getRequestURL(event).origin)
   return [...origins]

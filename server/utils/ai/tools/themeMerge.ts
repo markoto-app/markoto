@@ -12,7 +12,7 @@ import type { UpdateThemeInput } from './themeSchema'
  */
 export function coerceThemePatch(patch: UpdateThemeInput): Record<string, unknown> {
   const out: Record<string, unknown> = { ...patch }
-  // Directives (NOT theme fields) — strip so they don't leak into
+  // Directives (NOT theme fields), strip so they don't leak into
   // mergeTheme and land on the final DocTheme.
   delete out.preset
   delete out.theme_id
@@ -31,8 +31,8 @@ export function coerceThemePatch(patch: UpdateThemeInput): Record<string, unknow
 
 /**
  * Deep-merge a partial theme patch over a complete current theme: top-level
- * sections (`body`), their fields (`body.size`) and — for object-valued
- * fields like `headings.levels` — one level further, so a patch for
+ * sections (`body`), their fields (`body.size`) and, for object-valued
+ * fields like `headings.levels`: one level further, so a patch for
  * `levels.h1` keeps `levels.h2`. The entry itself (`levels.h1`) is
  * replaced as a whole (`{}` clears it); arrays are replaced.
  */
@@ -76,7 +76,7 @@ export function summarizePatch(patch: UpdateThemeInput): string {
   if (patch.from_workspace_default) parts.push('workspace-default')
   // Directive keys are tracked above; everything else is a theme-field
   // section. `from_workspace_default` is a boolean (not an object), so
-  // the `typeof === 'object'` filter excludes it naturally — listed
+  // the `typeof === 'object'` filter excludes it naturally, listed
   // here for the linter / readers.
   const DIRECTIVE_KEYS = new Set(['preset', 'theme_id', 'from_workspace_default'])
   const touched = Object.entries(patch)

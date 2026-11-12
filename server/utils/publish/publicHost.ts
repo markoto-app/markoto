@@ -7,7 +7,7 @@ import { isPagesHostRequest, publishPagesSettings, requestHostname } from './pag
 // Which requests are for a host that serves user-written published pages
 // (the pages host, a custom domain) rather than the app. Decided from the
 // Host header in a Nitro `request` hook (plugins/00-public-page-host.ts),
-// so it holds for EVERY response on such a host — also the ones Nitro
+// so it holds for EVERY response on such a host, also the ones Nitro
 // answers before any route middleware runs (public assets, their 404s,
 // error pages).
 

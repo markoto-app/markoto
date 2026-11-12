@@ -22,7 +22,7 @@ function loadRenderer(): Promise<Render> {
  *
  * Seeds: `avatarSeedFor({ id })` for signed-in users (stable
  * everywhere), `avatarSeedFor({ avatarSeed })` for an anonymous
- * visitor's per-session token. The AI never uses this — it keeps the
+ * visitor's per-session token. The AI never uses this, it keeps the
  * seal disc.
  *
  * SSR + hydration: the server and the first client render show the

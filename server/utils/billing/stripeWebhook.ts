@@ -26,24 +26,24 @@ const log = useLogger('stripe-webhook')
 // then dispatches here.
 //
 // Events handled:
-//   - `checkout.session.completed` — first subscription signup. We
+//   - `checkout.session.completed`: first subscription signup. We
 //     learn the customer_id + subscription_id here and stamp them
 //     onto the user row (or the workspace's subscription row); a
 //     payment-mode session is a credit top-up.
-//   - `customer.subscription.created|updated` — plan changes, cancel-at-
+//   - `customer.subscription.created|updated`: plan changes, cancel-at-
 //     period-end toggles, period rollover. Idempotent: replay with
 //     same data → same state.
-//   - `customer.subscription.deleted` — subscription ended (either
+//   - `customer.subscription.deleted`: subscription ended (either
 //     user cancelled immediately or period-end arrived on a
 //     scheduled cancel). Flip plan back to Free + null the stripe
 //     anchor so the resolver uses the calendar fallback.
-//   - `invoice.paid` — renewal charge succeeded. Update the period
+//   - `invoice.paid`: renewal charge succeeded. Update the period
 //     start/end so the billing anchor advances to the new cycle.
-//   - `invoice.payment_failed` — retained for observability; we do
+//   - `invoice.payment_failed`: retained for observability; we do
 //     NOT downgrade on first failure (Stripe retries automatically).
 //     The user's plan stays until the eventual subscription.deleted.
 //   - `checkout.session.async_payment_succeeded|failed`,
-//     `charge.refunded` — delayed and refunded credit top-ups.
+//     `charge.refunded`: delayed and refunded credit top-ups.
 
 /**
  * Pull the customer id off an event whose object keys on it (subscription,
@@ -76,7 +76,7 @@ async function drainPendingEvents(
       await markPendingStripeEventProcessed(STRIPE, opts.db, row.eventId)
       log.info('drained stashed event', { eventId: row.eventId, customerId })
     } catch (e) {
-      // Don't propagate — one bad stashed event shouldn't block the
+      // Don't propagate: one bad stashed event shouldn't block the
       // rest from replaying. Sentry capture so ops sees it; the row
       // stays processed=false and the daily sweep eventually reaps it.
       log.warn('drain failed for stashed event', { eventId: row.eventId, err: e })
@@ -95,7 +95,7 @@ async function drainPendingEvents(
  *
  * Replay protection: BEFORE running the handler we INSERT into
  * `processed_webhook_events`. On conflict (event.id already present)
- * we short-circuit — Stripe is satisfied by 200 and stops retrying,
+ * we short-circuit: Stripe is satisfied by 200 and stops retrying,
  * but we don't re-apply the event's UPDATEs. This preserves manual
  * ops corrections that landed between the original delivery and a
  * retried redelivery.
@@ -105,14 +105,14 @@ async function drainPendingEvents(
  * `users.stripe_customer_id` is set) match zero rows. We stash the
  * full payload in `pending_stripe_events` and drain on the eventual
  * checkout. Defensive belt-and-braces around the live-fetch in
- * `handleCheckoutSessionCompleted` — if anyone removes that
+ * `handleCheckoutSessionCompleted`: if anyone removes that
  * subscriptions.retrieve, the stash keeps state convergent.
  *
  * Everything runs in ONE transaction so a crash mid-handler rolls
- * back BOTH the user UPDATE and the dedup INSERT — Stripe's retry
+ * back BOTH the user UPDATE and the dedup INSERT, Stripe's retry
  * then succeeds.
  *
- * `stripe` is the SDK client — only `handleCheckoutSessionCompleted`
+ * `stripe` is the SDK client, only `handleCheckoutSessionCompleted`
  * uses it. Passed explicitly so unit tests can inject a mock.
  */
 export async function dispatchStripeEvent(
@@ -122,7 +122,7 @@ export async function dispatchStripeEvent(
   }
 ): Promise<{ handled: boolean, detail?: unknown, replayed?: boolean, stashed?: boolean }> {
   // Handlers push LiteLLM key-sync closures here (instead of
-  // running them inline) — the surrounding TX holds an exclusive lock
+  // running them inline): the surrounding TX holds an exclusive lock
   // on the user row, and `updateUserKeyBudget` opens its own pool
   // connection to UPDATE the same row. We flush these AFTER the TX
   // commits so the lock has been released.
@@ -176,7 +176,7 @@ export async function dispatchStripeEvent(
   })
 
   // Flush deferred LiteLLM key syncs. Each closure already swallows its
-  // own errors + reports to Sentry — running them sequentially keeps
+  // own errors + reports to Sentry, running them sequentially keeps
   // the side-effect ordering predictable for tests and ops.
   for (const fn of deferAfterCommit) {
     await fn()

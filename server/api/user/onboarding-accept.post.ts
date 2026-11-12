@@ -16,13 +16,13 @@ import { acceptOnboardingBody } from '~~/shared/api/account'
 // blocks the app on first login until the user (a) confirms they
 // are at least 16 years old (GDPR Article 8 minimum digital age of
 // consent), and (b) accepts the current Privacy Policy + Terms of
-// Service. DPA acceptance is workspace-owner only — handled
+// Service. DPA acceptance is workspace-owner only, handled
 // elsewhere when the user creates their first workspace.
 //
 // The request body MUST carry the version numbers the client read,
 // so we can detect a stale modal racing a server-side version bump.
 // If the client tells us "I accepted v1" but the current is v2, we
-// reject with 409 — the modal re-fetches the new versions and
+// reject with 409: the modal re-fetches the new versions and
 // re-prompts.
 //
 // Locale is recorded so a future regulator query "which language
@@ -54,7 +54,7 @@ export default defineApiHandler({
 
     const ip = getClientIp(event)
 
-    // Two audit rows — separable in queries by action. The age row
+    // Two audit rows: separable in queries by action. The age row
     // is dropped if the column was already non-null (idempotent
     // re-acceptance shouldn't fire the audit again). For the policies
     // we always record because each version-bump produces a fresh

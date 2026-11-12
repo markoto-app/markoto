@@ -4,9 +4,9 @@ import { getCustomDomainForUser, listCustomDomainsForUser, setCustomDomainPage }
 import { getPublishedPageSummary } from '../../../../repos/publishedPages'
 import { customDomainParams, setCustomDomainPageBody } from '~~/shared/api/account'
 
-// PATCH /api/user/custom-domains/:domainId — {docId | null}: which
+// PATCH /api/user/custom-domains/:domainId: {docId | null}: which
 // published page the domain shows. The caller must be able to
-// manage that document (owner / workspace admin) — a domain can't be
+// manage that document (owner / workspace admin), a domain can't be
 // pointed at somebody else's page.
 export default defineApiHandler({
   access: allow.user(),

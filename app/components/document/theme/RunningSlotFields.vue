@@ -3,8 +3,8 @@ import type { DocTheme } from '~~/shared/types/theme'
 import { runningRule } from '~~/shared/utils/theme/themeOptions'
 
 // The three slots of the running header or footer, the token chips and the
-// rule. A chip inserts its token into the slot input focused last — of
-// either section — so the focus and the insertion go up to the panel.
+// rule. A chip inserts its token into the slot input focused last, of
+// either section: so the focus and the insertion go up to the panel.
 const props = defineProps<{
   /** Which running area: `data-slot` of the inputs (the panel's token insertion reads it). */
   part: 'header' | 'footer'
@@ -16,7 +16,7 @@ const emit = defineEmits<{
 const theme = defineModel<DocTheme>('theme', { required: true })
 const { t } = useI18n()
 
-// Header/footer token chips — cursor-aware insertion via data-* attrs.
+// Header/footer token chips: cursor-aware insertion via data-* attrs.
 const tokenChips = [
   { token: '{title}' },
   { token: '{section}' },

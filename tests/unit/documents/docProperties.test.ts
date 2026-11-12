@@ -7,7 +7,7 @@ import { defaultTheme } from '../../../shared/utils/theme/defaultTheme'
 // Server-side readers (render bootstrap → server PDF, the Markdown export
 // tool) must see the properties the editor shows: ymeta first, the
 // documents row as fallback. Regression: an anonymous doc's theme lives in
-// ymeta only (the row's theme stays NULL — only the owner persists it), so
+// ymeta only (the row's theme stays NULL, only the owner persists it), so
 // its server-rendered PDF came out with the default theme.
 
 const arxiv = THEME_PRESETS.find(p => p.id === 'arxiv')?.theme

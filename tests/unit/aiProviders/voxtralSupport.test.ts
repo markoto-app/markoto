@@ -10,12 +10,12 @@ import {
 // Pinned invariant: every UI locale we ship MUST be in Voxtral's
 // supported transcription set. Without this guard a future locale
 // addition (e.g. shipping `pl.json` for Polish) silently breaks
-// dictation for that audience — Voxtral returns empty transcripts and
+// dictation for that audience, Voxtral returns empty transcripts and
 // the user sees a mic that "doesn't work" with no error.
 //
 // When this test fails, two valid responses:
 //   1. The new locale IS supported by Voxtral but the constant in
-//      `voxtralSupport.ts` was out of date — extend the constant.
+//      `voxtralSupport.ts` was out of date, extend the constant.
 //   2. The new locale ISN'T supported. Don't ship the locale OR
 //      add a fallback (e.g. UI locale ≠ dictation language for
 //      that audience).
@@ -29,7 +29,7 @@ function shippedLocales(): string[] {
     .map(f => f.replace(/\.json$/, ''))
 }
 
-describe('Voxtral language support — invariant guard', () => {
+describe('Voxtral language support: invariant guard', () => {
   it('every shipped i18n locale is in Voxtral\'s transcribe-supported set', () => {
     const locales = shippedLocales()
     expect(locales.length).toBeGreaterThan(0) // sanity: dir didn't disappear

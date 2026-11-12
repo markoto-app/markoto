@@ -3,11 +3,11 @@
 #
 # Two use cases share this compose file via `profiles`:
 #
-#   1) Integration tests (vitest) — postgres + valkey + seaweedfs + stripe-mock
+#   1) Integration tests (vitest): postgres + valkey + seaweedfs + stripe-mock
 #      + litellm + sync + markitdown (its archive limits are tested directly).
 #      These services have NO profile, so they start by default with `up -d`.
 #
-#   2) Flow tests (Playwright) — the same services; `--profile flows` is
+#   2) Flow tests (Playwright): the same services; `--profile flows` is
 #      kept for anything flow-only.
 #
 # Integration:
@@ -22,7 +22,7 @@
 #   bun run flows:down
 #
 # Ports shifted from dev (5432/6379/8333/4001/8080) to (5433/6380/8334/4002/8081)
-# so dev + test stacks can run simultaneously. Test DB name is ypad_test —
+# so dev + test stacks can run simultaneously. Test DB name is ypad_test,
 # integration tests refuse to run against any other name as a belt-and-braces
 # guard against running TRUNCATEs on a dev database.
 #
@@ -82,7 +82,7 @@ services:
   valkey-test:
     image: valkey/valkey:9-alpine@sha256:48332870af354a799964c0012ae1194a0bf2bf894eb508f945810596dc2d8d11
     restart: unless-stopped
-    # No AOF — tests want a blank slate every boot. 512mb is plenty for
+    # No AOF: tests want a blank slate every boot. 512mb is plenty for
     # short test runs; mirrors prod policy without prod sizing.
     #
     # `--requirepass` enforced with a hardcoded weak password. Tests run
@@ -103,7 +103,7 @@ services:
       interval: 2s
       timeout: 2s
       retries: 10
-    # `ports:` IS correct here — vitest runs on the host machine and
+    # `ports:` IS correct here: vitest runs on the host machine and
     # reaches Valkey on `localhost:6380`. Test infra is throwaway / tmpfs;
     # nothing private lives in the container.
     ports:
@@ -121,7 +121,7 @@ services:
     #
     # S3 listens on 8334 INSIDE the container too, so the same
     # `localhost:8334` presigned URLs the host-side app mints work from the
-    # renderer (its Chromium maps `localhost` to this container —
+    # renderer (its Chromium maps `localhost` to this container,
     # RENDERER_LOCALHOST_TARGET below), while the published port stays on
     # the host's loopback.
     command: >
@@ -138,7 +138,7 @@ services:
 
   # Official Stripe mock server. Implements Stripe's full REST API
   # surface from their OpenAPI spec, so our code can use the real SDK
-  # unchanged — it just talks to `stripe-mock:12111` instead of
+  # unchanged: it just talks to `stripe-mock:12111` instead of
   # `api.stripe.com`. The mock returns well-formed fixtures with stable
   # IDs; it does NOT emit webhooks (we test those via hand-crafted
   # fixtures + signed payloads directly against our webhook handler).
@@ -150,7 +150,7 @@ services:
     # No healthcheck available (image has no shell + no curl); port
     # 12111 is up as soon as the process binds, which is near-instant.
 
-  # Real renderer container — Playwright + headless Chromium that drives
+  # Real renderer container: Playwright + headless Chromium that drives
   # the actual print page through paged.js end-to-end. Tests that depend
   # on the FULL render path (PDF + PNG capture, multi-page pagination,
   # paged.js compatibility with the print Vue page) hit this container.
@@ -175,7 +175,7 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
-      # Podman can't take this profile through Compose — see
+      # Podman can't take this profile through Compose: see
       # deploy/compose/compose.test.podman.yml.
       - seccomp=../config/renderer/seccomp.json
     pids_limit: 2048
@@ -183,7 +183,7 @@ services:
       - PORT=9000
       # MUST match TEST_INTERNAL_SECRET in tests/integration/setup/env.ts
       # AND the sync-test container's INTERNAL_API_SECRET. Three-way pin
-      # — drift between any two breaks render-token verification (Nuxt
+      # drift between any two breaks render-token verification (Nuxt
       # mints the JWT, renderer hits Nuxt's /_internal/render-bootstrap
       # which verifies it; both sides need the same secret).
       - INTERNAL_API_SECRET=test-internal-api-secret-isolated
@@ -198,11 +198,11 @@ services:
       - S3_ACCESS_KEY=ypad-access-key
       - S3_SECRET_KEY=ypad-secret-key
       - S3_BUCKET=ypad
-      # SeaweedFS doesn't support SSE-S3 — it returns InternalError on the
+      # SeaweedFS doesn't support SSE-S3: it returns InternalError on the
       # ServerSideEncryption header, which surfaced as "Renderer 500" on
       # every PDF export test. Prod (OVH) keeps SSE on (unset → AES256).
       - S3_SSE=none
-      # Extra origin the renderer may fetch from — tests/integration/endpoints/
+      # Extra origin the renderer may fetch from: tests/integration/endpoints/
       # rendererNetwork.test.ts runs its "allowed" canary image server here.
       # MUST match ALLOWED_PORT in that test.
       - RENDERER_ALLOWED_ORIGINS=http://host.docker.internal:3187
@@ -227,14 +227,14 @@ services:
   #
   # Master key is hard-pinned to a non-secret literal that the test
   # harness reads via NUXT_LITELLM_MASTER_KEY in setup/server.ts. No
-  # provisioned upstream model keys — the tests don't actually
+  # provisioned upstream model keys: the tests don't actually
   # invoke models, only the admin surface (/key/*).
 
   # Same bootstrap script as the real stacks (deploy/config/postgres/db-init.sh):
   # creates `litellm_test` owned by its own `litellm_test` role, which
   # litellm-test and the app's spend-log paths (NUXT_LITELLM_DB_USER in
   # tests/integration/setup/server.ts) use. The app itself stays on the
-  # `ypad` admin role here — the suites TRUNCATE across the schema.
+  # `ypad` admin role here: the suites TRUNCATE across the schema.
   litellm-test-db-init:
     image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
     restart: "no"
@@ -265,7 +265,7 @@ services:
       - LITELLM_SALT_KEY=sk-test-litellm-salt-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz
       # Upstream provider keys. Integration tests (vitest) only hit
       # /key/* admin endpoints and don't actually invoke models, so
-      # `stub` is fine — but flow tests (Playwright) drive REAL
+      # `stub` is fine: but flow tests (Playwright) drive REAL
       # round-trips and need actual keys. Resolve from the host shell's
       # env at compose-up time: defaults to `stub` so the integration
       # suite still boots without real keys, overrides when the
@@ -309,7 +309,7 @@ services:
   # Stands in for "the user's own AI provider" so integration + flow
   # tests drive a real app → LiteLLM (clientside credentials) → provider
   # round trip without a paid upstream. Stdlib-only Python, hosted on
-  # the LiteLLM image (already pulled for litellm-test — no extra image).
+  # the LiteLLM image (already pulled for litellm-test: no extra image).
   # See tests/fixtures/fake-openai/server.py for the scripted behaviour.
   #
   # Published on the host so BOTH sides can reach it at this network's
@@ -423,7 +423,7 @@ services:
   # serves a login form whose POST takes the subject + arbitrary claims
   # JSON, so a test can mint tokens with e.g. `email_verified: false` or
   # a foreign `aud` without a second IdP. The issuer is derived from the
-  # Host header — the app and the tests both use 127.0.0.1:4130, so the
+  # Host header: the app and the tests both use 127.0.0.1:4130, so the
   # issuer is `http://127.0.0.1:4130/<path>`.
   oidc-test:
     image: ghcr.io/navikt/mock-oauth2-server:6.0.5@sha256:5ed2f078c6503147860a5114f06414257bb7eeccc68b0e806bdf0869f2602509
@@ -452,7 +452,7 @@ services:
     build:
       context: ../..
       dockerfile: sync-server/Dockerfile
-    # No profile — sync-test always runs: every MCP doc-bound tool (and the
+    # No profile: sync-test always runs: every MCP doc-bound tool (and the
     # AI agentic loop) opens a real Hocuspocus WS connection. Flow tests
     # override APP_URL to the flow runner's port.
     restart: unless-stopped
@@ -470,7 +470,7 @@ services:
       - DATABASE_URL=postgres://ypad:testpassword@postgres-test:5432/ypad_test
       - JWT_SECRET=test-jwt-secret-isolated-from-dev-and-prod-stacks-64char
       - INTERNAL_API_SECRET=test-internal-api-secret-isolated
-      # Valkey — backs per-doc attribution + diff baselines (was three
+      # Valkey: backs per-doc attribution + diff baselines (was three
       # process-local Maps). Shares the test Valkey container; password
       # matches `--requirepass testpassword` on the valkey-test service.
       - VALKEY_HOST=valkey-test
@@ -479,7 +479,7 @@ services:
       - VALKEY_DB=0
       # Sync server reaches the Nuxt app on host for activity logging.
       # Flow tests run the app on host port 3001 (see flows-ephemeral.ts).
-      # Integration tests run the app on host port 3101 — set
+      # Integration tests run the app on host port 3101: set
       # SYNC_TEST_APP_URL=http://host.docker.internal:3101 in the env
       # before `docker compose up` (test:integration:up does this).
       - APP_URL=${SYNC_TEST_APP_URL:-http://host.docker.internal:3001}

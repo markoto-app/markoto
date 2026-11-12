@@ -11,12 +11,12 @@ How it works (persistence and its durability argument, snapshots and pruning, au
 - **A snapshot must cover every row below its id; only pruning deletes, and only below a snapshot.** Never delete rows any other way, and never snapshot a document with an unreadable row.
 - **Every connection must have a token expiry.** `onAuthenticate` sets `context.tokenExpiresAt`; `connected` closes a connection without one. Don't add a code path that authenticates without it.
 - **Close for re-authentication only via `closeForReauth`** (`src/connection-expiry.ts`): document close, then socket close, code 4419 / reason `reauthenticate`. The editor only refetches its token on that reason; any other close reason from `shared/contracts/syncClose.ts` makes it stop reconnecting.
-- **Never close the app's own server-side clients** (`ai:`, `mcp:`, `restore:` … — `SYNTHETIC_USER_ID_PREFIXES` in `shared/contracts/jwt.ts`) on a document re-auth: it would fail an AI edit or a restore halfway.
+- **Never close the app's own server-side clients** (`ai:`, `mcp:`, `restore:` …, `SYNTHETIC_USER_ID_PREFIXES` in `shared/contracts/jwt.ts`) on a document re-auth: it would fail an AI edit or a restore halfway.
 - **Hooks that verify tokens must not throw** (`onTokenSync` → `renew`): a throwing hook makes Hocuspocus close with a reason the client doesn't treat as re-auth.
 - **Internal routes stay internal.** New `/internal/*` routes go through `handleInternalRequest` (secret check + 404 for requests that came through the edge proxy) and must not be routed by Traefik.
 - **Guard work in `beforeHandleMessage` stays synchronous** so message order is preserved, and unexpected errors fail closed as `invalid-update`.
-- **Attribution comes from the JWT context only.** Never use the awareness `user.name` for activity rows — it is client-controlled.
-- **Valkey is best-effort for sync state.** A Valkey error may skip an activity row; it must never abort sync or a store. Don't wrap the `prev-text` baseline in `WATCH`/`MULTI` to fix the multi-instance line-count race — that is accepted.
+- **Attribution comes from the JWT context only.** Never use the awareness `user.name` for activity rows, it is client-controlled.
+- **Valkey is best-effort for sync state.** A Valkey error may skip an activity row; it must never abort sync or a store. Don't wrap the `prev-text` baseline in `WATCH`/`MULTI` to fix the multi-instance line-count race, that is accepted.
 - **Don't delete Valkey keys from `onDisconnect` beyond `dropDocState`.** `clientsCount === 0` covers only this instance; the 24 h TTL cleans up.
 - **Hocuspocus v3:** use `Server`, not `Hocuspocus`. Don't mutate connection objects; keep per-connection state in Maps keyed on socketId or the connection.
 - **Don't add a bundle step.** Hocuspocus's CJS/ESM exports break Bun's bundler; the image runs `bun run src/index.ts`.

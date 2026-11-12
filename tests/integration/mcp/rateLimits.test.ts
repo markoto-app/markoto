@@ -113,7 +113,7 @@ describe('MCP rate limits (enforced)', () => {
     const { max } = MCP_RATE_LIMITS.generateImagePerUser
 
     // A doc id the user can't reach: admitted (allowance spent), then
-    // refused by the doc check — no image is generated.
+    // refused by the doc check, no image is generated.
     for (let i = 0; i < max; i++) {
       const r = await c.call('generate_image', { doc_id: 'no-such-doc', prompt: 'a lighthouse', alt: 'lighthouse' })
       expect(r.isError).toBe(true)

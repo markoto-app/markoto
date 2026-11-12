@@ -4,7 +4,7 @@ import { anonClient, loggedInClient } from '../setup/client'
 import { createUser } from '../setup/fixtures'
 import { ALL_FEATURE_TAGS } from '../../../server/utils/litellm/featureTags'
 
-// /admin/axis-spend — per-axis spend filter (workspace / user / doc).
+// /admin/axis-spend: per-axis spend filter (workspace / user / doc).
 // Companion to /admin/ai-spend (which gives the global feature
 // breakdown). Used to answer "how much has THIS entity cost in the
 // last N days, broken down by feature".

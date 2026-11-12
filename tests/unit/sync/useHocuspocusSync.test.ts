@@ -6,7 +6,7 @@ import { Awareness } from 'y-protocols/awareness'
 // composable itself imports from `vue` at runtime (via Nuxt's
 // auto-import transform during build). For the unit test environment
 // we rely on the `imports: { autoImport: 'vue' }`-style Nuxt compile
-// step — NOT available here, so we shim `ref` / `readonly` globally
+// step: NOT available here, so we shim `ref` / `readonly` globally
 // before loading the composable.
 import { ref, shallowRef } from 'vue'
 import { useHocuspocusSync, type ProviderLike } from '~/composables/document/useHocuspocusSync'
@@ -22,7 +22,7 @@ import { WebSocketStatus, type HocuspocusProviderConfiguration } from '@hocuspoc
 // Fake provider harness
 //
 // The composable's `providerFactory` seam means we never need to mock
-// the @hocuspocus/provider module — just inject a tiny stub that
+// the @hocuspocus/provider module: just inject a tiny stub that
 // records the config (so we can fire its lifecycle callbacks) and
 // tracks destroy() calls. Each `connect()` creates a new one; the test
 // keeps a reference via the factory.
@@ -105,9 +105,9 @@ function baseOpts(harness: Harness, overrides: {
   }
 }
 
-// No-syncUrl path — pure offline dev mode
+// No-syncUrl path: pure offline dev mode
 
-describe('useHocuspocusSync — no syncUrl configured', () => {
+describe('useHocuspocusSync: no syncUrl configured', () => {
   it('marks synced=true + status=disconnected WITHOUT creating a provider', () => {
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h, { syncUrl: '' }))
@@ -128,9 +128,9 @@ describe('useHocuspocusSync — no syncUrl configured', () => {
   })
 })
 
-// connect() — provider construction + config forwarding
+// connect(): provider construction + config forwarding
 
-describe('useHocuspocusSync — connect() with syncUrl', () => {
+describe('useHocuspocusSync: connect() with syncUrl', () => {
   it('creates a provider and stashes it in the reactive ref', () => {
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h))
@@ -152,7 +152,7 @@ describe('useHocuspocusSync — connect() with syncUrl', () => {
 
   it('passes getToken as the provider token accessor (re-evaluated per connect, not resolved once)', async () => {
     // The composable must hand an ACCESSOR to HocuspocusProvider (which
-    // invokes it on every reconnect), not a resolved string — that's what
+    // invokes it on every reconnect), not a resolved string, that's what
     // lets a post-password-verify swap AND the near-expiry refresh take
     // effect on the next reconnect. The accessor is normalised to
     // `() => Promise<string>` at the provider boundary.
@@ -171,7 +171,7 @@ describe('useHocuspocusSync — connect() with syncUrl', () => {
 
 // Provider callbacks → reactive state transitions
 
-describe('useHocuspocusSync — lifecycle callbacks', () => {
+describe('useHocuspocusSync: lifecycle callbacks', () => {
   it('status starts "connecting" before any event fires', () => {
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h))
@@ -204,7 +204,7 @@ describe('useHocuspocusSync — lifecycle callbacks', () => {
 
     expect(sync.synced.value).toBe(true)
     expect(sync.docSizeBytes.value).toBeGreaterThan(0)
-    // Must match the Y.js-encoded state length exactly — this is the
+    // Must match the Y.js-encoded state length exactly, this is the
     // signal downstream size-warning UI uses.
     expect(sync.docSizeBytes.value).toBe(Y.encodeStateAsUpdate(ydoc).byteLength)
     expect(onSynced).toHaveBeenCalledTimes(1)
@@ -246,14 +246,14 @@ describe('useHocuspocusSync — lifecycle callbacks', () => {
 
     h.latest().fireAuthFailed()
     expect(onAuthFailed).toHaveBeenCalledTimes(1)
-    // status stays as it was — the provider hasn't disconnected just
+    // status stays as it was, the provider hasn't disconnected just
     // because auth failed.
     expect(sync.status.value).toBe('connecting')
   })
 
   it('onAwarenessChange dedups by user.id (multi-tab same user collapses)', () => {
     // userCount is now the count of UNIQUE collaborators, not raw
-    // socket count — a single human with two tabs is one entry, an
+    // socket count: a single human with two tabs is one entry, an
     // anonymous editor and an AI session each get their own. The
     // visual avatar bar uses the same dedup; the chip's number must
     // match what's drawn.
@@ -281,7 +281,7 @@ describe('useHocuspocusSync — lifecycle callbacks', () => {
     ])
     expect(sync.userCount.value).toBe(2)
 
-    // Anonymous (no id) and AI sessions don't dedup — each counts.
+    // Anonymous (no id) and AI sessions don't dedup, each counts.
     h.latest().fireAwarenessChange([
       { clientId: 1, user: { id: 10 } },
       { clientId: 2, user: { id: 'anonymous' } },
@@ -297,7 +297,7 @@ describe('useHocuspocusSync — lifecycle callbacks', () => {
 
 // disconnect() / reconnect() / destroy()
 
-describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
+describe('useHocuspocusSync: disconnect / reconnect / destroy', () => {
   it('disconnect() destroys the provider and nulls the ref', () => {
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h))
@@ -348,7 +348,7 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
 
   it('reconnect() picks up a fresh token from getToken() on the new provider', async () => {
     // The orchestrator updates the token ref before calling
-    // reconnect() — this test pins that the new provider sees the
+    // reconnect(): this test pins that the new provider sees the
     // fresh value, not the stale one from the initial connect.
     let currentToken = 'jwt-old'
     const h = makeHarness()
@@ -376,7 +376,7 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
     // reference and its callbacks fired late (Hocuspocus retry attempts
     // scheduled pre-destroy), they could leak into the new provider's
     // state. The composable avoids this by giving each provider its
-    // own closures — firing the old one's `onConnect` must not flip
+    // own closures: firing the old one's `onConnect` must not flip
     // status back to "connected" on the new reactive ref.
     const h = makeHarness()
     const sync = useHocuspocusSync(baseOpts(h))
@@ -390,7 +390,7 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
 
     // …which, due to closure-per-provider, DOES affect status because
     // both providers share the composable's refs. This test pins the
-    // CURRENT behavior — if we later add a generation counter to
+    // CURRENT behavior: if we later add a generation counter to
     // discard stale events, update this test to expect 'connecting'.
     // Right now, the defense is: the orchestrator must destroy() the
     // old provider before creating a new one, which reconnect() does.
@@ -402,7 +402,7 @@ describe('useHocuspocusSync — disconnect / reconnect / destroy', () => {
 
 // Guards and corner cases
 
-describe('useHocuspocusSync — corner cases', () => {
+describe('useHocuspocusSync: corner cases', () => {
   it('calling connect() twice creates two providers without destroying the first', () => {
     // Pins the current (minimal) contract: connect() doesn't guard
     // against double-calls. The orchestrator is expected to call
@@ -474,7 +474,7 @@ function rejectionHarness() {
   return { factory, instances }
 }
 
-describe('useHocuspocusSync — sync rejection', () => {
+describe('useHocuspocusSync: sync rejection', () => {
   it('surfaces a document-too-large close and stops the provider', () => {
     const h = rejectionHarness()
     const sync = useHocuspocusSync({ ...baseOpts(makeHarness()), providerFactory: h.factory })
@@ -516,11 +516,11 @@ describe('useHocuspocusSync — sync rejection', () => {
 })
 
 // Re-authentication: the server closed the connection because the token
-// expired or the document's access became stricter. Not a rejection —
+// expired or the document's access became stricter. Not a rejection,
 // the provider reconnects, and the caller makes that reconnect fetch a
 // fresh token.
 
-describe('useHocuspocusSync — re-authentication', () => {
+describe('useHocuspocusSync: re-authentication', () => {
   it('a re-authenticate close asks the caller for a fresh token and keeps reconnecting', () => {
     const h = rejectionHarness()
     const onReauthRequired = vi.fn()

@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/flow'
 // "Report a document".
 //
 // User-job: someone opens a markoto link that contains a scam, illegal
-// content or spam and wants it taken down — without an account. Job done
+// content or spam and wants it taken down, without an account. Job done
 // when the report is submitted and the success panel shows a reference.
 //
 // Two-context flow: an anonymous WRITER creates the document (passing the
@@ -27,7 +27,7 @@ test('Report a document', async ({ page, flow, editor }) => {
   await flow.narrate(
     'Anyone can write on markoto without an account, and markoto does not '
     + 'check what people write. If a link you were sent contains a scam, '
-    + 'illegal content or spam, you can report it — no account needed.'
+    + 'illegal content or spam, you can report it, no account needed.'
   )
 
   // The visitor opens the link
@@ -84,7 +84,7 @@ test('Report a document', async ({ page, flow, editor }) => {
   await visitor.flow.click(
     'Confirm that the report is accurate and made in good faith',
     visitor.page.locator('[data-testid="abuse-form-good-faith"]'),
-    { result: 'Confirmed. A bot check runs in your browser meanwhile — no account, no tracking.' }
+    { result: 'Confirmed. A bot check runs in your browser meanwhile, no account, no tracking.' }
   )
 
   const submit = visitor.page.locator('[data-testid="abuse-form-submit"]')

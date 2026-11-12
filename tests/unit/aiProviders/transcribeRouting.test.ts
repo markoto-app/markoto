@@ -12,7 +12,7 @@ import { describe, it, expect } from 'vitest'
 // and provider selection all live behind `defineEventHandler` which is hard to mock without booting Nitro.
 // Integration tests already cover that surface.
 
-describe('transcribe — language code translation for Voxtral', () => {
+describe('transcribe: language code translation for Voxtral', () => {
   // Voxtral expects ISO codes ('en', 'de', 'fr'). Our client sends
   // BCP-47 ('en-US', 'de-DE'). The handler should strip the region.
   function isoFromBcp47(code: string): string {
@@ -38,7 +38,7 @@ describe('transcribe — language code translation for Voxtral', () => {
   })
 })
 
-describe('transcribe — Voxtral provider message shape', () => {
+describe('transcribe: Voxtral provider message shape', () => {
   // The custom provider in deploy/config/litellm/custom_handlers.py expects
   // JSON-encoded {audio_base64, mime, language} as the message content.
   // Pin the wire format so a future renaming on either side trips the

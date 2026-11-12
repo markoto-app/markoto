@@ -53,7 +53,7 @@ function validateToolArgs(
  * it. We record BEFORE the cap check so memory reflects what the
  * model attempted, even if the cap rejects this invocation.
  * `message_to_user` is special-cased upstream by its handler so it
- * lands as a verbatim row, not a compacted tool_call row — skip here
+ * lands as a verbatim row, not a compacted tool_call row, skip here
  * to avoid a duplicate.
  */
 async function recordToolCallMemory(
@@ -70,7 +70,7 @@ async function recordToolCallMemory(
 }
 
 /**
- * Per-tool call-count cap. Independent of the per-user budget —
+ * Per-tool call-count cap. Independent of the per-user budget,
  * protects a single session from runaway loops on cost-amplifying
  * tools. Returns `null` when the slot is claimed; otherwise a
  * `continue` outcome with a tool-error response so the model wraps
@@ -198,7 +198,7 @@ function toolResponseParts(call: FunctionCall, output: string, result: ToolResul
 /**
  * Comment-trigger terminator: a successful reply_to_comment on the
  * trigger thread ends the session. Mistral occasionally emits both
- * reply_to_comment AND a hallucinated follow-up tool call — without this
+ * reply_to_comment AND a hallucinated follow-up tool call, without this
  * the rainbow ring stays lit on the orphaned call until
  * SESSION_INTERACTION_CAP / MAX_TURNS.
  */
@@ -214,7 +214,7 @@ export async function dispatchToolCall(
 ): Promise<DispatchOutcome> {
   if (!call.name) return { kind: 'continue', responseParts: [] }
 
-  // Telemetry tally — every attempted invocation, including
+  // Telemetry tally: every attempted invocation, including
   // cap-rejected and errored.
   ctx.telemetry.noteToolAttempt(call.name)
   // Argument NAMES only: the values are document text and user prompts.

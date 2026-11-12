@@ -13,7 +13,7 @@ import type { DocAccess, UserScope, WorkspaceAccess } from '../../repos/proofs'
 // AiSession = ToolContext + the loop-only lifecycle plumbing the
 // runLoop needs (`provider` for telemetry, `destroy()` for the
 // finally-block teardown). Tool handlers see only the `ToolContext`
-// surface — see `server/utils/agentic/toolContext.ts` for the rationale.
+// surface: see `server/utils/agentic/toolContext.ts` for the rationale.
 export interface AiSession extends ToolContext {
   /** In-app sessions are only opened with write access (prompt route, `@ai` trigger). */
   docAccess: DocAccess<'write'>
@@ -30,7 +30,7 @@ export interface SessionMeta {
   initiatorColor: string
   /**
    * Initiator-only channel for this session. The prompt, status
-   * messages and answers go here — never into awareness, which every
+   * messages and answers go here, never into awareness, which every
    * participant of the document receives.
    */
   channel: AiSessionChannel
@@ -61,7 +61,7 @@ export interface SessionMeta {
 
 /**
  * Mint the loop's Hocuspocus JWT. Synthetic principal
- * `ai:assistant:{sessionId}` for activity-log attribution; 10m TTL —
+ * `ai:assistant:{sessionId}` for activity-log attribution; 10m TTL,
  * tight enough to limit replay if leaked, generous enough to cover the
  * 5-min prompt deadline plus salvage paths.
  */
@@ -72,7 +72,7 @@ function mintLoopJwt(docId: string, sessionId: string): string {
     docId,
     userId: aiClientUserId(sessionId),
     // Activity-log attribution picks this up via the onChange hook.
-    // Always "markoto" — initiator's name lives in awareness.aiSession
+    // Always "markoto": initiator's name lives in awareness.aiSession
     // for UI display.
     userName: 'markoto',
     readOnly: false
@@ -81,10 +81,10 @@ function mintLoopJwt(docId: string, sessionId: string): string {
 }
 
 /**
- * Connects to Hocuspocus as "markoto" — the AI's own Y.js client.
+ * Connects to Hocuspocus as "markoto", the AI's own Y.js client.
  * Awareness advertises ONLY what every participant may see: the AI
  * identity, who started the session, the coarse phase and (for `@ai`
- * comment sessions) the thread id — enough for "markoto is working for
+ * comment sessions) the thread id, enough for "markoto is working for
  * Alice". The prompt, status messages and answers go to the initiator
  * through `meta.channel`. The display name is deliberately
  * vendor-neutral ("markoto") so swapping the underlying model provider
@@ -92,7 +92,7 @@ function mintLoopJwt(docId: string, sessionId: string): string {
  *
  * Implementation: routes through `yDocPool.checkout` with principalId
  * `loop:{sessionId}`. Each loop run has a unique session id so this is
- * always a fresh checkout (no cache hits) — but going through the pool
+ * always a fresh checkout (no cache hits), but going through the pool
  * keeps the connection lifecycle in one place and lets the MCP wrapper
  * use the exact same primitive.
  */
@@ -123,7 +123,7 @@ export async function createAiSession(
         sessionId: meta.sessionId,
         initiatorName: meta.initiatorName,
         initiatorUserId: meta.initiatorUserId,
-        // Only included when present — keeps the awareness payload
+        // Only included when present, keeps the awareness payload
         // small for the common (non-comment-trigger) case.
         ...(meta.commentThreadId ? { commentThreadId: meta.commentThreadId } : {})
       },
@@ -147,7 +147,7 @@ export async function createAiSession(
     // If the abort fired before the pool entry was returned, but the
     // pool checkout still completes later, release it so it can be
     // idle-evicted instead of pinned forever. The race winner doesn't
-    // know about the loser — fire-and-forget cleanup.
+    // know about the loser, fire-and-forget cleanup.
     void checkoutPromise.then(
       e => release(e.key),
       () => undefined
@@ -173,7 +173,7 @@ export async function createAiSession(
   }
 
   const destroy = async (): Promise<void> => {
-    // Broadcast the AI's disappearance before releasing — collaborators
+    // Broadcast the AI's disappearance before releasing, collaborators
     // see the avatar drop immediately rather than waiting for idle
     // eviction.
     try {

@@ -19,18 +19,18 @@ import { first } from '../../helpers/assert'
 // same as the JWT contract tests: catch a drift between
 // SDK-typed handler signatures, hand-built test fixtures, and the
 // dispatcher's switch table BEFORE it produces a misleading test
-// failure or — worse — a silent prod handler that reads `undefined`.
+// failure or: worse, a silent prod handler that reads `undefined`.
 //
 // What's pinned where:
-//   - `STRIPE_API_VERSION` — the wire-shape pin. Bumping requires
+//   - `STRIPE_API_VERSION`: the wire-shape pin. Bumping requires
 //     coordinated work (see comment in the contract file).
-//   - `HANDLED_STRIPE_EVENT_TYPES` — derived from the dispatcher's
+//   - `HANDLED_STRIPE_EVENT_TYPES`: derived from the dispatcher's
 //     handler table (`stripeEvents/eventHandlers.ts`): a type is handled
 //     exactly when it has a handler.
-//   - `ORDER_SENSITIVE_STRIPE_EVENT_TYPES` — the subset that may
+//   - `ORDER_SENSITIVE_STRIPE_EVENT_TYPES`: the subset that may
 //     arrive before the binding `checkout.session.completed` and
 //     therefore needs the stash branch.
-//   - Test event factories — produce Stripe.<X>Event-typed shapes
+//   - Test event factories: produce Stripe.<X>Event-typed shapes
 //     that compile against the SDK, not generic `as unknown as` casts.
 
 describe('STRIPE_API_VERSION', () => {
@@ -39,7 +39,7 @@ describe('STRIPE_API_VERSION', () => {
     // union; the cast in `shared/contracts/stripe.ts` is what lets
     // the constructor accept it. If this test starts failing after
     // an SDK upgrade, that means Stripe deprecated the version we
-    // pinned — coordinate the upgrade per the contract file's notes.
+    // pinned: coordinate the upgrade per the contract file's notes.
     expect(STRIPE_API_VERSION).toBe('2025-01-27.acacia')
   })
 })
@@ -118,7 +118,7 @@ describe('Stripe event factories: shape assertions', () => {
 
   it('makeSubscriptionEvent stamps the price id and item-level period anchors', () => {
     // Item-level period anchors landed in API version 2025-01-27.acacia.
-    // The factory MUST stamp them at the item level — handlers read
+    // The factory MUST stamp them at the item level, handlers read
     // `data.object.items.data[0].current_period_*`.
     const event = makeSubscriptionEvent({
       type: 'customer.subscription.updated',

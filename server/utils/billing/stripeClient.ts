@@ -21,7 +21,7 @@ let client: Stripe | null = null
 
 /**
  * Resolve the configured Stripe client. Returns `null` when
- * `secretKey` is missing (dev without env vars) — callers MUST check
+ * `secretKey` is missing (dev without env vars), callers MUST check
  * for null and fail with a clear error, not silently skip the call.
  *
  * Prod deployments set `secretKey` + `webhookSecret` + three price
@@ -43,7 +43,7 @@ export function useStripeClient(): Stripe | null {
     // Cast required because the SDK constructor types `apiVersion` as
     // a literal-union of the SDK's "preferred" version, but we
     // INTENTIONALLY pin an older version (`STRIPE_API_VERSION` in
-    // `shared/contracts/stripe.ts`) — see that file for the upgrade
+    // `shared/contracts/stripe.ts`): see that file for the upgrade
     // playbook. The cast routes around the SDK's narrower type to
     // honor our explicit pin.
     apiVersion: STRIPE_API_VERSION as NonNullable<ConstructorParameters<typeof Stripe>[1]>['apiVersion'],
@@ -60,7 +60,7 @@ export function useStripeClient(): Stripe | null {
  * SDK's `{host, port, protocol}` shape. Empty input → no override,
  * SDK defaults to api.stripe.com.
  *
- * Invalid non-empty URLs throw — the secrets-validation plugin catches
+ * Invalid non-empty URLs throw, the secrets-validation plugin catches
  * them at boot, so reaching this function with a malformed value means
  * someone bypassed the validator.
  */

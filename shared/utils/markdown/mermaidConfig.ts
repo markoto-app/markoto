@@ -14,12 +14,12 @@ import { categoricalPalette, mixHex } from '../theme/themeColors'
  * What it decides:
  *  - Font: always the document's body font (the rendered SVG is inlined
  *    into the page after pagination, so the web font the page already
- *    loaded applies — see `inlineMermaidSvgs` in mermaidLoader.ts).
+ *    loaded applies: see `inlineMermaidSvgs` in mermaidLoader.ts).
  *  - Colours: `mermaid.theme === 'document'` derives every colour from
  *    the theme (accent, heading ink, body text, neutral, paper) on top
  *    of Mermaid's `base` theme, including the pie + xychart palettes. An
  *    explicit built-in theme (`default`, `neutral`, …) keeps Mermaid's
- *    own colours — the picker still wins.
+ *    own colours: the picker still wins.
  *  - Size: label sizes follow the body size (never below 11px ≈ 8pt);
  *    xy-charts and gantt charts are drawn exactly one text column wide
  *    so their text is never scaled down, and sequence diagrams are laid
@@ -28,7 +28,7 @@ import { categoricalPalette, mixHex } from '../theme/themeColors'
  *    at a readable size.
  */
 
-/** Smallest label size in CSS px (≈ 8.25pt) — the print-legibility floor. */
+/** Smallest label size in CSS px (≈ 8.25pt), the print-legibility floor. */
 const MIN_LABEL_PX = 11
 
 /** Participants a sequence diagram fits in one text column before it is scaled down. */
@@ -216,8 +216,8 @@ export function ganttLayout(colPx: number, px: number): Record<string, unknown> 
  * label beside its bar gets the document font (the left one has none of
  * its own). No paper-coloured halo (`stroke` + `paint-order`) behind those
  * labels: Chromium's PDF backend cannot embed stroked text as a font and
- * falls back to a Type 3 bitmap font — instead the grid lines are lighter,
- * so a line crossing a label doesn't fight it. The "today" line is hidden — a printed plan shouldn't change with
+ * falls back to a Type 3 bitmap font, instead the grid lines are lighter,
+ * so a line crossing a label doesn't fight it. The "today" line is hidden, a printed plan shouldn't change with
  * the day it was rendered (and outside the plan's range it was drawn in
  * the page margin).
  */

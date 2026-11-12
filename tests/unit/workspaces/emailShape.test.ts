@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { isValidEmailShape } from '../../../server/utils/workspaces/emailShape'
 
 // `isValidEmailShape` replaced the inline /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-// in the workspace member-invite endpoint (SonarQube S8786 — that
+// in the workspace member-invite endpoint (SonarQube S8786, that
 // regex backtracks super-linearly on crafted input). The function must
 // keep the regex's exact accept/reject behaviour: this suite pins both
 // the normal cases and the odd corners the old regex allowed.
@@ -43,7 +43,7 @@ describe('isValidEmailShape', () => {
 
   it('matches the old regex verbatim across a corpus of corner cases', () => {
     // Includes inputs the old regex ACCEPTED despite looking odd
-    // (dots inside the domain may neighbour other dots) — behaviour
+    // (dots inside the domain may neighbour other dots), behaviour
     // is preserved, not tightened.
     const corpus = [
       'joel@example.com', 'a@b.c', 'a@b..c', 'a@.b.c', 'a@b.c.',

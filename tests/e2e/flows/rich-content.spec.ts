@@ -7,8 +7,8 @@ import { test, expect } from '../fixtures/flow'
 // non-trivial markdown extensions render correctly in the preview.
 //
 // What this flow ISN'T: a complete reference of every Insert menu
-// item. We pick FOUR that show range — code with syntax highlighting,
-// a callout, a math equation, a Mermaid diagram — because together
+// item. We pick FOUR that show range, code with syntax highlighting,
+// a callout, a math equation, a Mermaid diagram, because together
 // they answer "yes, this is a real publishing tool, not a notes
 // app".
 //
@@ -32,21 +32,21 @@ test('Rich content', async ({ page, flow, editor }) => {
   await flow.narrate(
     'Plain markdown gets you headings, lists, and links. markoto '
     + 'extends that with the things people actually need to publish '
-    + 'real documents — syntax-highlighted code, math, GitHub-'
+    + 'real documents: syntax-highlighted code, math, GitHub-'
     + 'style alert callouts, and eight kinds of Mermaid diagram. '
     + 'Everything renders in the live preview and survives PDF export.'
   )
 
   // Insert UI shape differs per surface:
-  //   Desktop — menubar Insert → submenu (hover for Alert/Math/Diagram).
-  //   Mobile — Editor tab on the bottom-tab-bar → drawer Insert grid;
+  //   Desktop: menubar Insert → submenu (hover for Alert/Math/Diagram).
+  //   Mobile: Editor tab on the bottom-tab-bar → drawer Insert grid;
   //            Alert/Diagram open a kind picker inside the drawer;
   //            drawer auto-closes after each insert.
   const insertMenuTrigger = page.locator('nav[aria-label="Menu bar"] > button').nth(3) // Insert is 4th
   const cmContentLocator = page.locator('.cm-content')
 
   // Give the editor focus back WITHOUT moving the caret. (Clicking
-  // .cm-content put the caret wherever the click landed — that is how
+  // .cm-content put the caret wherever the click landed, that is how
   // an earlier run typed the language hint after the closing fence and
   // the LaTeX into the code block.) CM6 restores its selection on focus.
   async function refocusEditor() {
@@ -56,7 +56,7 @@ test('Rich content', async ({ page, flow, editor }) => {
 
   // Every block starts after a blank line below everything so far.
   // insertText (not Enter) so CM6 doesn't continue the previous
-  // block's markup — Enter after an alert line would add another "> ".
+  // block's markup: Enter after an alert line would add another "> ".
   async function newLineAtEnd() {
     await refocusEditor()
     await cmContentLocator.press(`${accel}+End`)
@@ -68,7 +68,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   await flow.narrate(
     'Code blocks pick up syntax highlighting from the language hint, '
     + 'so a Python fence renders the keywords and strings the way '
-    + 'readers expect — in the preview and in the PDF.'
+    + 'readers expect: in the preview and in the PDF.'
   )
 
   await newLineAtEnd()
@@ -78,7 +78,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Tap the Editor tab',
       editor.page.mobileTabs.editor,
       {
-        result: 'The Editor drawer slides up — Formatting / Headings / Lists / Insert / File.',
+        result: 'The Editor drawer slides up, Formatting / Headings / Lists / Insert / File.',
         after: () => page.locator('[data-testid="ecp-insert-code-block"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -88,7 +88,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
-        result: 'A fenced code block lands at the cursor — drawer closes, editor regains focus.',
+        result: 'A fenced code block lands at the cursor, drawer closes, editor regains focus.',
         after: refocusEditor
       }
     )
@@ -100,7 +100,7 @@ test('Rich content', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'insert menu', selector: 'nav[aria-label="Menu bar"] > button:nth-child(4)', kind: 'arrow' }
         ],
-        result: 'The Insert menu opens — code, alerts, math, diagrams, and more.',
+        result: 'The Insert menu opens, code, alerts, math, diagrams, and more.',
         after: () => page.getByRole('menuitem', { name: /code block/i }).first().waitFor({ state: 'visible' })
       }
     )
@@ -109,7 +109,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Pick "Code block"',
       page.getByRole('menuitem', { name: /code block/i }).first(),
       {
-        result: 'A fenced code block lands at the cursor — type a language hint after the opening backticks.',
+        result: 'A fenced code block lands at the cursor, type a language hint after the opening backticks.',
         // After the Reka menu closes, focus moves to the menu's trigger
         // button (the menubar's "Insert"), NOT back to the editor.
         // Subsequent `page.keyboard.press/type` would land in the
@@ -140,7 +140,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   // An alert callout
   await flow.heading('Add an alert callout', 3)
   await flow.narrate(
-    'Alerts are GitHub-style callouts — five flavours (Note, Tip, '
+    'Alerts are GitHub-style callouts, five flavours (Note, Tip, '
     + 'Important, Warning, Caution) each with a coloured stripe and '
     + 'icon in the preview. Useful for marking a callout that should '
     + 'stand out from the surrounding prose.'
@@ -164,7 +164,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
-        result: 'The flavour grid opens — Note / Tip / Important / Warning / Caution.',
+        result: 'The flavour grid opens, Note / Tip / Important / Warning / Caution.',
         after: () => page.locator('[data-testid="ecp-alert-tip"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -174,7 +174,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
-        result: 'A Tip alert lands — drawer closes, editor regains focus.',
+        result: 'A Tip alert lands, drawer closes, editor regains focus.',
         after: refocusEditor
       }
     )
@@ -202,7 +202,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Pick "Tip"',
       page.getByRole('menuitem', { name: /^tip$/i }).first(),
       {
-        result: 'A Tip alert lands — type the body inside the blockquote.',
+        result: 'A Tip alert lands, type the body inside the blockquote.',
         after: refocusEditor
       }
     )
@@ -214,7 +214,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   // A math equation
   await flow.heading('Drop in a math equation', 3)
   await flow.narrate(
-    'Math is typeset like in a paper — inline with $...$, block with '
+    'Math is typeset like in a paper, inline with $...$, block with '
     + '$$...$$. The Insert menu seeds the right delimiters so you '
     + 'don\'t have to remember which goes where.'
   )
@@ -236,7 +236,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
-        result: 'A block equation placeholder lands — drawer closes, editor regains focus.',
+        result: 'A block equation placeholder lands, drawer closes, editor regains focus.',
         after: refocusEditor
       }
     )
@@ -259,7 +259,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Pick "Block equation"',
       page.getByRole('menuitem', { name: /block equation/i }).first(),
       {
-        result: 'A block equation placeholder lands — type the LaTeX inside the $$ fence.',
+        result: 'A block equation placeholder lands, type the LaTeX inside the $$ fence.',
         after: refocusEditor
       }
     )
@@ -271,7 +271,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   // A Mermaid diagram
   await flow.heading('Render a diagram', 3)
   await flow.narrate(
-    'Diagrams use Mermaid — eight diagram kinds (flowchart, sequence, '
+    'Diagrams use Mermaid: eight diagram kinds (flowchart, sequence, '
     + 'class, ER, Gantt, pie, mind-map, state). The Insert menu seeds '
     + 'a working starter snippet for each so you can edit the labels '
     + 'and see your data render without learning Mermaid\'s syntax.'
@@ -304,7 +304,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       {
         // eslint-disable-next-line playwright/no-force-option -- mobile branch only (desktop uses the menu bar): the drawer sits in the bottom sheet, whose host intercepts pointer routing (tests/e2e/AGENTS.md; docs/contributing/flow-docs.md#known-shortcuts)
         force: true,
-        result: 'A working pie-chart Mermaid snippet lands — drawer closes, editor regains focus.',
+        result: 'A working pie-chart Mermaid snippet lands, drawer closes, editor regains focus.',
         after: refocusEditor
       }
     )
@@ -328,7 +328,7 @@ test('Rich content', async ({ page, flow, editor }) => {
       'Pick "Pie chart"',
       page.getByRole('menuitem', { name: /pie chart/i }).first(),
       {
-        result: 'A working pie-chart Mermaid snippet lands — edit the slices to your data.',
+        result: 'A working pie-chart Mermaid snippet lands, edit the slices to your data.',
         after: async () => {
           // Mermaid loads (from /vendor/) and renders into the preview (an
           // <img> of the SVG during pagination, the inline SVG after);
@@ -384,7 +384,7 @@ test('Rich content', async ({ page, flow, editor }) => {
   }
 
   await flow.shot(
-    'Code block, Tip alert, math equation, pie chart — all in one doc, all rendered live.',
+    'Code block, Tip alert, math equation, pie chart, all in one doc, all rendered live.',
     {
       // Hero outcome: the four elements stacked in the preview is
       // the "markoto handles real publishing content" payoff.

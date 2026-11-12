@@ -2,7 +2,7 @@ import { Pool } from 'pg'
 import { TEST_DB_NAME, TEST_DB_URL } from './env'
 import { first } from '../../helpers/assert'
 
-// Test-side DB access. Separate pool from the Nuxt subprocess — we talk to
+// Test-side DB access. Separate pool from the Nuxt subprocess, we talk to
 // the same database over pg directly for fixture inserts and TRUNCATEs.
 // The subprocess has its own pool; they coordinate via row-level writes,
 // not connection sharing.
@@ -39,7 +39,7 @@ export async function closeTestDb(): Promise<void> {
  * IDs are predictable across tests.
  *
  * We whitelist the tables explicitly rather than querying information_schema
- * — any table added to the app schema needs to be mirrored here, which is
+ * any table added to the app schema needs to be mirrored here, which is
  * a small but deliberate maintenance tax that flags "did we think about
  * test isolation?" on every new table.
  */
@@ -85,7 +85,7 @@ export async function resetDb(): Promise<void> {
     RESTART IDENTITY CASCADE
   `)
   // Wipe the test Valkey DB too. Without this, keys from the previous
-  // test bleed across the boundary — the immediate symptom this fixed
+  // test bleed across the boundary, the immediate symptom this fixed
   // was aiDictateWs tests failing with `expected 4002, got 4001`.
   // Mechanism: `resetDb` runs `TRUNCATE ... RESTART IDENTITY`, so
   // user IDs reset to 1 between tests. The dictate WS lock key
@@ -101,7 +101,7 @@ export async function resetDb(): Promise<void> {
 }
 
 /**
- * Singleton ioredis client for test cleanup. Lazy + reused — opening
+ * Singleton ioredis client for test cleanup. Lazy + reused, opening
  * + closing per `resetDb()` call would slow the suite noticeably for
  * no benefit (the server is local).
  */
@@ -110,7 +110,7 @@ async function getValkey() {
   if (_valkey) return _valkey
   const { default: Redis } = await import('ioredis')
   _valkey = new Redis('redis://:testpassword@127.0.0.1:6380/0', {
-    // Tests run sequentially via vitest's worker — no need for the
+    // Tests run sequentially via vitest's worker, no need for the
     // default queueing behaviour. lazyConnect=false means the first
     // command implicitly connects.
     maxRetriesPerRequest: 1
@@ -175,13 +175,13 @@ export async function readYjsRows(docId: string): Promise<Array<{ id: number, ki
 
 /**
  * Block until the DB is reachable. Called by globalSetup before running
- * migrations — useful because docker-compose's healthcheck fires before
+ * migrations: useful because docker-compose's healthcheck fires before
  * the first client connection is accepted (a few extra seconds of socket
  * readiness).
  */
 export async function waitForDb(timeoutMs = 30_000): Promise<void> {
   const start = Date.now()
-  // Fresh pool each retry — if the DB went away mid-wait, a cached pool
+  // Fresh pool each retry, if the DB went away mid-wait, a cached pool
   // would hold a broken connection.
   while (Date.now() - start < timeoutMs) {
     const tmp = new Pool({ connectionString: TEST_DB_URL, max: 1, connectionTimeoutMillis: 2000 })

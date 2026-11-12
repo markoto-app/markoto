@@ -31,7 +31,7 @@ function isExemptRoute(path: string): boolean {
 
 // Gate trigger: (a) logged in, (b) at least one of age / privacy
 // / ToS needs attention, AND (c) NOT on a /legal/* page right now.
-// DPA is deliberately NOT in the gate — workspace-owner only.
+// DPA is deliberately NOT in the gate, workspace-owner only.
 const needsGate = computed(() => {
   if (!loggedIn.value || !status.value) return false
   if (isExemptRoute(route.path)) return false
@@ -139,7 +139,7 @@ async function onSignOut(): Promise<void> {
         </header>
 
         <div class="flex-1 min-h-0 overflow-y-auto pr-1 space-y-4">
-          <!-- Age gate — Article 8 GDPR. -->
+          <!-- Age gate: Article 8 GDPR. -->
           <section
             v-if="ageRequired"
             class="border border-default rounded-lg p-4"

@@ -41,7 +41,7 @@ describe('commitDictationFinal', () => {
 
   function captureOriginFrom(ydoc: Y.Doc) {
     // Y.js's `update` event receives `(update, origin, doc, tr)` and
-    // fires synchronously on every committed transaction — the
+    // fires synchronously on every committed transaction, the
     // reliable way to read the origin tag. `afterTransaction` also
     // fires but is sometimes swallowed by yCollab's batching, which
     // produced silent false negatives in these assertions.
@@ -120,7 +120,7 @@ describe('commitDictationFinal', () => {
   })
 
   it('moves the caret to the end of the inserted text', () => {
-    // CM6 doesn't auto-advance the caret on a Y.js transact — we
+    // CM6 doesn't auto-advance the caret on a Y.js transact, we
     // dispatch a selection update. Without it, the NEXT commit would
     // land at the old caret position, burying words inside the
     // previously-inserted phrase.

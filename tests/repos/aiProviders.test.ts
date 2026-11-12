@@ -195,7 +195,7 @@ describe('AI by plan', () => {
     vi.unstubAllEnvs()
   })
 
-  it('a plan without image / voice gets no platform default for them — locked, not missing', async () => {
+  it('a plan without image / voice gets no platform default for them, locked, not missing', async () => {
     const u = await createUser()
     const access = await resolveAiAccess(asUser(u.id), 'free')
     expect(access.providers.chat?.model).toBe('zai-glm-5-3-flash')

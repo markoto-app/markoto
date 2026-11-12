@@ -147,7 +147,7 @@ describe('listStaleUnconfirmed / purgeStaleUnconfirmed', () => {
     // Stale unconfirmed.
     await recordPending(docAs(doc.docId), { fileId: 's.png', uploaderId: user.id, contentType: 'image/png', sizeBytes: 1, s3Key: 'k-stale' })
     await setCreatedAt('k-stale', new Date(Date.now() - 48 * 60 * 60 * 1000))
-    // Stale confirmed — must NOT be touched.
+    // Stale confirmed: must NOT be touched.
     await recordPending(docAs(doc.docId), { fileId: 'f.png', uploaderId: user.id, contentType: 'image/png', sizeBytes: 1, s3Key: 'k-old-confirmed' })
     await setCreatedAt('k-old-confirmed', new Date(Date.now() - 48 * 60 * 60 * 1000))
     await markConfirmed(docAs(doc.docId), 'k-old-confirmed')

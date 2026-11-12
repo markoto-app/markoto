@@ -37,7 +37,7 @@ function sendAwareness(
   return peer.clientID
 }
 
-describe('attachAwarenessGuard — normalisation before re-broadcast', () => {
+describe('attachAwarenessGuard: normalisation before re-broadcast', () => {
   it('normalises a received user before the update listeners (the broadcast) run', () => {
     const doc = fakeDocument([])
     attachAwarenessGuard(doc)
@@ -152,7 +152,7 @@ describe('anonymous avatar token for activity rows', () => {
   })
 })
 
-describe('meta snapshot — a corrupted theme never throws', () => {
+describe('meta snapshot: a corrupted theme never throws', () => {
   it('hashes a deeply nested Y.Map theme as unreadable instead of overflowing the stack', () => {
     const doc = new Y.Doc()
     let cur = new Y.Map<unknown>()

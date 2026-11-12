@@ -1,6 +1,6 @@
 import { listSharedWithUser } from '../../repos/documentShares'
 
-// GET /api/user/shared-documents — documents shared with me as a GUEST
+// GET /api/user/shared-documents: documents shared with me as a GUEST
 // of a workspace: the guest's only way into a workspace. The
 // dashboard lists them under "Shared with you".
 export default defineApiHandler({

@@ -40,7 +40,7 @@ export interface ReauthConnection {
  * the document-level close threw (the caller's count stays honest). The document
  * connection goes first: from then on nothing the client sends is
  * applied, even while the socket's closing handshake runs. Then the
- * socket — the provider reconnects on a socket close (not on a
+ * socket: the provider reconnects on a socket close (not on a
  * document-level close message), fetching a token on the way. Our
  * clients open one socket per document, so no other document is cut.
  */

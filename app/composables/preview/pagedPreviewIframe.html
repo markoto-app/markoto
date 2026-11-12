@@ -6,7 +6,7 @@
   `buildPreviewSrcdoc()` (app/utils/preview/previewFrame.ts), which substitutes the
   placeholders: the CSP nonce (every inline script carries it), the parent
   origin, the initial dark-mode flag, and the pinned same-origin asset URLs
-  + SRI hashes (paged.js, KaTeX CSS, Mermaid — served under /vendor/, see
+  + SRI hashes (paged.js, KaTeX CSS, Mermaid, served under /vendor/, see
   shared/utils/vendor/vendorAssets.ts). Every such tag carries integrity= plus
   crossorigin=anonymous: this document's origin is opaque, so even our own
   origin is cross-origin here, and SRI on cross-origin resources only fires
@@ -36,7 +36,7 @@
   ZOOM (fit width / a fixed factor / the "All pages" overview) is applied
   by the engine from app/utils/preview/previewZoomFrame.ts, inlined below as
   __PREVIEW_ZOOM_SCRIPT__. It only sets CSS zoom + layout classes on the
-  already paginated pages — never re-paginates — and the print block
+  already paginated pages, never re-paginates, and the print block
   below resets all of it.
 
   Incoming messages are accepted only from window.parent with the parent's
@@ -47,7 +47,7 @@
   body styles, and headers/footers arrives per render.
 
   Scroll handling: capture window.scrollY before the swap, restore
-  after. Snap to bottom if the user was within 50px of the end —
+  after. Snap to bottom if the user was within 50px of the end,
   common case where small edits at the doc bottom would otherwise
   jump back to the previous valid scrollTop after a re-pagination
   shrinks the doc.
@@ -210,7 +210,7 @@
   var POLL_TIMEOUT = 10000;
   var pollStart = Date.now();
 
-  /** Post to the parent app — its exact origin, never '*'. */
+  /** Post to the parent app, its exact origin, never '*'. */
   function toParent(msg) {
     window.parent.postMessage(msg, PARENT_ORIGIN);
   }

@@ -35,7 +35,7 @@ export interface UseVoicePromptOptions {
   onInaudible?: () => void
   /**
    * Hard cap on recording length. Reaching this auto-stops and transcribes.
-   * Default 60s — matches the backend's 1024-token output budget.
+   * Default 60s: matches the backend's 1024-token output budget.
    */
   maxDurationSec?: number
 }

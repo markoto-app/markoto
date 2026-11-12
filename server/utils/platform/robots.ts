@@ -4,7 +4,7 @@
 // and the document API responses (PDF download) get
 // `X-Robots-Tag: noindex, nofollow`; the doc page also carries the
 // matching <meta name="robots">. Landing, docs, pricing and legal pages
-// stay indexable — unless the whole instance is marked not indexable
+// stay indexable: unless the whole instance is marked not indexable
 // (`NUXT_SITE_INDEXABLE=false`, staging): then every response carries
 // the header and robots.txt disallows everything.
 //

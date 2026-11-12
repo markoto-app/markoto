@@ -310,7 +310,7 @@ export async function deleteSsoGrant(_by: SsoActor, userId: number, workspaceId:
 }
 
 /**
- * SQL condition: the user may use their membership of the workspace —
+ * SQL condition: the user may use their membership of the workspace,
  * there is no ACTIVE connection, or they hold a current grant (unexpired,
  * written in their current session epoch). Used inside every query that
  * turns membership into access (`getMemberRole`, `getDocWithActorRole`).

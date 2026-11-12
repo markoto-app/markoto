@@ -46,7 +46,7 @@ const MOCK_SEQUENCE: Array<{
   atChunk: number
   event: { text: string, isFinal: boolean }
 }> = [
-  // Realistic dictation — the voice-dictate flow's screenshots show it.
+  // Realistic dictation: the voice-dictate flow's screenshots show it.
   { atChunk: 1, event: { text: 'Lena says', isFinal: false } },
   { atChunk: 2, event: { text: 'Lena says the new templates', isFinal: false } },
   { atChunk: 3, event: { text: 'Lena says the new templates save her about an hour a week.', isFinal: true } },
@@ -69,7 +69,7 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
     this.chunks += 1
     for (const { atChunk, event } of MOCK_SEQUENCE) {
       if (atChunk !== this.chunks) continue
-      // Wrap in setImmediate so the write() call returns first — real
+      // Wrap in setImmediate so the write() call returns first, real
       // gRPC streams deliver `data` asynchronously.
       setImmediate(() => {
         this.emit('data', {
@@ -103,18 +103,18 @@ class MockSpeechStream extends EventEmitter implements SpeechStream {
 // transcription events; we bridge that to the EventEmitter contract via
 // a small internal queue.
 //
-// Audio format match: Voxtral expects PCM s16le, 16-bit mono, 16 kHz —
+// Audio format match: Voxtral expects PCM s16le, 16-bit mono, 16 kHz,
 // the exact format our AudioWorklet pipeline produces. No client-side
 // codec change.
 
-/** Mistral's EU regional endpoint — the default for every platform-paid realtime stream. */
+/** Mistral's EU regional endpoint, the default for every platform-paid realtime stream. */
 const MISTRAL_EU_SERVER_URL = `https://${MISTRAL_EU_API_HOST}`
 
 /**
  * `apiKey` is the Mistral key that pays for the stream: the user's own
  * (BYOK transcription provider on api.mistral.ai or api.eu.mistral.ai) or
  * the operator's `MISTRAL_API_KEY` when the instance default is a platform
- * alias. `serverURL` is the Mistral server the WebSocket opens against —
+ * alias. `serverURL` is the Mistral server the WebSocket opens against,
  * the EU endpoint unless the user's own key is configured for another host
  * (`liveDictationTarget`). The SDK's own default is the global endpoint,
  * which makes no location commitment, so it is always passed explicitly.
@@ -291,7 +291,7 @@ class VoxtralRealtimeStream extends EventEmitter implements SpeechStream {
 // Mock for tests (mirrors MockSpeechClient pattern).
 class MockRealtimeClient implements SpeechClientLike {
   streamingRecognize(_req: StreamingRecognizeRequest): SpeechStream {
-    // Reuse MockSpeechStream — same emission shape works for the
+    // Reuse MockSpeechStream: same emission shape works for the
     // realtime path because we converge to the same wire frames
     // (`{type:'partial' | 'final', text}`) for the WS client.
     return new MockSpeechStream()

@@ -8,14 +8,14 @@ import { asUser, docAs } from '../../helpers/access'
 // branches via real HTTP, but it can't reach the success-path body
 // assertions because the test stack has no Hocuspocus to land the
 // restore. THIS suite mocks `restoreDocToYjsId` so we never need a WS
-// connection — and uses that to pin this regression target:
+// connection: and uses that to pin this regression target:
 //
 //   The new `restore` activity row's `yjsDocIdBefore` MUST be the
 //   helper's `yjsDocIdBeforeRestore` (the LIVE pre-restore state),
 //   NOT the source row's `yjsDocIdBefore` (the past target).
 //
 // Mistaking those two on the activity-row write would silently break
-// the "restore IS reversible — clicking restore on a restore row brings
+// the "restore IS reversible, clicking restore on a restore row brings
 // the doc back to the pre-restore state" promise. The bug renders no
 // error; clicking would simply re-snap to the same past state. Cheap
 // to write here, expensive to debug in production.
@@ -45,9 +45,9 @@ vi.mock('nanoid', () => ({ nanoid: nanoidFn }))
 vi.mock('../../../server/utils/billing/entitlements', () => ({ resolveDocPlan, assertWithinHistory }))
 
 // The SUT is a `defineApiHandler` route: the stub captures its declaration.
-// `call()` replays what the wrapper does before the handler — params schema
+// `call()` replays what the wrapper does before the handler, params schema
 // (400), then the access policy (pinned by tests/unit/platform/defineApiHandler.test.ts
-// for `write-content`) — and hands the handler the context a signed-in
+// for `write-content`): and hands the handler the context a signed-in
 // editor gets.
 interface CapturedDef {
   access: { kind: string, need: string, deny?: string }
@@ -120,7 +120,7 @@ beforeEach(() => {
   assertWithinHistory.mockImplementation(() => {})
 })
 
-describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () => {
+describe('POST /api/docs/:docId/activity/:activityId/restore: handler', () => {
   it('rejects malformed activityId with 400 BEFORE consulting the DB', async () => {
     // The validation order is load-bearing: a bad id should fail fast
     // without touching auth or DB (the params schema runs before the
@@ -144,7 +144,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     await expect(call('doc-1', '99'))
       .rejects.toMatchObject({ statusCode: 404 })
 
-    // Pin the (activityId, docId) tuple — the cross-doc leak guard
+    // Pin the (activityId, docId) tuple, the cross-doc leak guard
     // depends on the docId being passed to the repo.
     expect(getActivityById).toHaveBeenCalledWith(expect.objectContaining({ docId: 'doc-1' }), 99)
     expect(restoreDocToYjsId).not.toHaveBeenCalled()
@@ -162,7 +162,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
 
   it('passes the SOURCE row\'s yjsDocIdBefore as the restore target', async () => {
     // The "restore" semantic: clicking restore on row X brings the
-    // doc back to row X's BEFORE state — i.e., the state right
+    // doc back to row X's BEFORE state, i.e., the state right
     // before X happened. Using `yjsDocIdAfter` here would restore
     // to the state right AFTER X happened, which is a no-op when
     // X is the immediately-prior row.
@@ -177,7 +177,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     expect(restoreDocToYjsId).toHaveBeenCalledTimes(1)
     expect(restoreDocToYjsId).toHaveBeenCalledWith(expect.objectContaining({
       doc: expect.objectContaining({ docId: 'doc-1' }),
-      targetYjsId: 30, // source row's BEFORE — not 35
+      targetYjsId: 30, // source row's BEFORE, not 35
       actorUserId: 7,
       actorName: 'Alice',
       sessionId: 'fixed-session-id'
@@ -185,7 +185,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
   })
 
   it('falls back to "User" actor name when findUserName returns null', async () => {
-    // The restore still happens — only the awareness label collaborators
+    // The restore still happens, only the awareness label collaborators
     // see during the broadcast falls back. Pinning here so a future
     // change that throws on null userName surfaces immediately.
     findUserName.mockResolvedValueOnce(null)
@@ -340,7 +340,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
   })
 })
 
-describe('POST /api/docs/:docId/activity/:activityId/restore — plan history window', () => {
+describe('POST /api/docs/:docId/activity/:activityId/restore: plan history window', () => {
   it('refuses a row older than the document plan\'s history window BEFORE restoring', async () => {
     getActivityById.mockResolvedValueOnce(fakeActivityRow())
     assertWithinHistory.mockImplementationOnce(() => {

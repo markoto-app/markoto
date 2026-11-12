@@ -6,11 +6,11 @@ import { useEnv } from '~~/shared/env/load'
 // Cross-Origin-Resource-Policy on every response, and stamps that nonce on
 // the inline scripts Nuxt renders into the page. Policies: server/utils/rendering/csp.ts.
 //
-// The app owns these headers (not Traefik) so that every deployment shape —
-// hosted, self-host, local, the test stacks — serves the same policy, and so
+// The app owns these headers (not Traefik) so that every deployment shape,
+// hosted, self-host, local, the test stacks, serves the same policy, and so
 // the nonce can match the HTML it belongs to.
 //
-// Dev server (`nuxt dev`): no CSP — Vite's HMR client and devtools inject
+// Dev server (`nuxt dev`): no CSP, Vite's HMR client and devtools inject
 // scripts this policy would refuse. The production build (also used by the
 // integration + flow test stacks) always sends it.
 
@@ -24,7 +24,7 @@ declare module 'h3' {
 export default defineNitroPlugin((nitroApp) => {
   nitroApp.hooks.hook('request', (event) => {
     const path = event.path
-    // CORP per path — see `crossOriginResourcePolicyFor` (the preview
+    // CORP per path: see `crossOriginResourcePolicyFor` (the preview
     // iframes' opaque origin makes their image requests cross-site).
     setResponseHeader(event, 'Cross-Origin-Resource-Policy', crossOriginResourcePolicyFor(path))
 

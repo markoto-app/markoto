@@ -4,7 +4,7 @@
 // image assets. The duplicator becomes the new owner so the copy
 // surfaces on their "Recent" list.
 //
-// Keeping the modal minimal — just a title input — because the
+// Keeping the modal minimal, just a title input, because the
 // "duplicate somewhere else" case is rare and can be handled by the
 // Move flow after the copy lands.
 
@@ -26,7 +26,7 @@ const { showError } = useErrorHandler()
 const duplicating = ref(false)
 const newTitle = ref('')
 
-// Prefill "Copy of X" whenever the modal opens — mirrors how desktop
+// Prefill "Copy of X" whenever the modal opens, mirrors how desktop
 // Finder / Drive handle duplicates. Truncate to 255 to match the DB
 // limit.
 watch(open, (v) => {

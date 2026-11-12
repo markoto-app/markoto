@@ -4,12 +4,12 @@ import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
 // Comment-stripping behaviour for `<!-- ... -->` in the markdown
 // pipeline. The contract:
 //   - Block-level comments (single OR multi-line, on their own with no
-//     trailing real content) are consumed entirely — emit nothing.
+//     trailing real content) are consumed entirely, emit nothing.
 //   - Inline comments mid-paragraph are stripped in place; surrounding
 //     prose flows around the gap.
 //   - `<!-- pagebreak -->` keeps its special pagebreak meaning (the
 //     pagebreak rule is registered first in the chain).
-//   - Unterminated `<!--` falls back to literal escaped text — never
+//   - Unterminated `<!--` falls back to literal escaped text, never
 //     swallows the rest of the document.
 //   - Comments inside fenced code blocks render literally (fences don't
 //     run inline rules).
@@ -19,7 +19,7 @@ import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
 // suite locks the expected output into CI so a future plugin order
 // change can't silently break the contract.
 
-describe('renderMarkdown — comment stripping', () => {
+describe('renderMarkdown: comment stripping', () => {
   it('block comment on its own line emits nothing', async () => {
     const out = await renderMarkdown('Before\n\n<!-- TODO: rewrite -->\n\nAfter')
     expect(out).not.toContain('TODO')
@@ -67,7 +67,7 @@ describe('renderMarkdown — comment stripping', () => {
   it('unterminated comment falls back to literal escaped text', async () => {
     const out = await renderMarkdown('Before\n\n<!-- never closed\n\nmore prose')
     // The `<!--` escapes to `&lt;!--` because html: false. Crucially,
-    // "more prose" survives — we don't swallow the rest of the doc.
+    // "more prose" survives: we don't swallow the rest of the doc.
     expect(out).toContain('more prose')
     expect(out).toContain('&lt;!--')
   })

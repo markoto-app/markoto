@@ -3,9 +3,9 @@ import { listMembers } from '../../../repos/workspaceMembers'
 // Typeahead source for `@`-mentions inside doc comments.
 //
 // Privacy posture (no user enumeration): only workspace
-// docs return a real list — and only to members of that workspace.
+// docs return a real list, and only to members of that workspace.
 // Standalone (anonymous-created) docs and non-member viewers get an
-// empty list — the comment composer falls back to plain `@text` with no
+// empty list: the comment composer falls back to plain `@text` with no
 // autocomplete.
 //
 // Returns minimal fields needed to render the typeahead row + emit the
@@ -21,7 +21,7 @@ export default defineApiHandler({
     // The viewer must be a workspace MEMBER to enumerate the roster
     // (`getWorkspaceRole` excludes guests, whose role on the doc row comes
     // from their share). Doc owners who have been booted from the workspace
-    // lose this privilege — they can still see comments via the doc-level
+    // lose this privilege: they can still see comments via the doc-level
     // grant, but typing `@` gets them no list.
     const ws = await prove.workspace(doc.workspaceId, 'member')
     if (ws === null) return { users: [] }

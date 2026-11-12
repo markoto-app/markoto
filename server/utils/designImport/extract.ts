@@ -5,8 +5,8 @@ import { markitdownAuthHeaders } from '../platform/markitdownAuth'
 import { useEnv } from '~~/shared/env/load'
 
 // Client for markitdown's `POST /design/extract` (markitdown-server/
-// design_extract.py). The uploaded file is parsed THERE — in a forked,
-// memory- and time-capped child of the sandboxed container — never in
+// design_extract.py). The uploaded file is parsed THERE, in a forked,
+// memory- and time-capped child of the sandboxed container, never in
 // the app process. What comes back is plain data: the format, PNG page
 // pictures (PDF only), measured style facts and a short text sample.
 
@@ -29,7 +29,7 @@ export interface DesignFacts {
    * only forwards them to the model as JSON and collects font names from them.
    */
   facts: Record<string, unknown>
-  /** Start of the text with style names (DOCX) — DATA from the upload, never instructions. */
+  /** Start of the text with style names (DOCX), DATA from the upload, never instructions. */
   textSample: string
 }
 

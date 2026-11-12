@@ -8,7 +8,7 @@
 // helpers back scripts/build-flows.ts + the unit test that checks every
 // spec's next slug resolves.
 //
-// Pure functions only — the filesystem walk lives in
+// Pure functions only: the filesystem walk lives in
 // scripts/lib/flowDocPagesFs.ts so this module stays importable from the
 // browser bundle.
 

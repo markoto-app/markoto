@@ -66,7 +66,7 @@ function warning(): string | null {
   return document.body.querySelector('[data-testid="move-leaves-plan"]')?.textContent ?? null
 }
 
-describe('MoveWorkspaceModal — leaving a plan', () => {
+describe('MoveWorkspaceModal: leaving a plan', () => {
   it('warns when a doc leaves a Business workspace for one without a plan, or for Team', async () => {
     await mountModal('ws-biz')
     expect(warning()).toBeNull()

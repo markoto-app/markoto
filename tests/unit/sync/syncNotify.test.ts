@@ -39,7 +39,7 @@ vi.mock('../../../server/utils/platform/traceHeaders', () => ({
 const { notifySyncKickUser, notifySyncReauthDocument } = await import('../../../server/utils/documents/syncNotify')
 const { captureExceptionThrottled } = await import('../../../server/utils/platform/throttledSentry')
 
-describe('notifySyncKickUser — dispatch contract', () => {
+describe('notifySyncKickUser: dispatch contract', () => {
   beforeEach(() => {
     stubConfig(SECRET)
     fetchSpy.mockClear()
@@ -52,7 +52,7 @@ describe('notifySyncKickUser — dispatch contract', () => {
 
   it('issues POST to /internal/kick-user with the right URL', async () => {
     notifySyncKickUser(42, ['doc-a'])
-    // fire-and-forget — give the microtask queue a tick to flush.
+    // fire-and-forget: give the microtask queue a tick to flush.
     await new Promise(r => setImmediate(r))
 
     expect(fetchSpy).toHaveBeenCalledTimes(1)
@@ -91,7 +91,7 @@ describe('notifySyncKickUser — dispatch contract', () => {
     expect(() => notifySyncKickUser(42, ['doc-a'])).not.toThrow()
     await new Promise(r => setImmediate(r))
     // The Sentry capture happens via captureExceptionThrottled which is
-    // mocked above — the important part is that the unhandled rejection
+    // mocked above: the important part is that the unhandled rejection
     // doesn't bubble out of the void-returning helper.
   })
 
@@ -104,7 +104,7 @@ describe('notifySyncKickUser — dispatch contract', () => {
   })
 })
 
-describe('notifySyncKickUser — config gating', () => {
+describe('notifySyncKickUser: config gating', () => {
   beforeEach(() => {
     fetchSpy.mockClear()
     // Reset to a populated config so cross-test state can't leak.
@@ -119,7 +119,7 @@ describe('notifySyncKickUser — config gating', () => {
   })
 })
 
-describe('notifySyncReauthDocument — dispatch contract', () => {
+describe('notifySyncReauthDocument: dispatch contract', () => {
   beforeEach(() => {
     fetchSpy.mockClear()
     fetchSpy.mockImplementation(() => Promise.resolve(new Response(null, { status: 200 })))

@@ -28,13 +28,13 @@ const ViewDocumentArgs = z.object({
     .refine(([start, end]) => start !== undefined && end !== undefined && start >= 1 && (end === -1 || end >= start), {
       message: 'view_range must be [start, end] where start >= 1 and end is either -1 (read to EOF) or >= start'
     })
-    .describe('Inclusive [startLine, endLine], both 1-indexed positive integers. Use -1 ONLY as the endLine sentinel (read to end of file). Never use -1 as start — start must be >= 1.')
+    .describe('Inclusive [startLine, endLine], both 1-indexed positive integers. Use -1 ONLY as the endLine sentinel (read to end of file). Never use -1 as start, start must be >= 1.')
     .optional()
 }).describe('Read the current document with 1-indexed line numbers.')
 
 const ReplaceTextArgs = z.object({
   old_str: z.string().min(1)
-    .describe('The exact text to replace. Must match EXACTLY ONE location including whitespace — include enough surrounding context to be unique.'),
+    .describe('The exact text to replace. Must match EXACTLY ONE location including whitespace, include enough surrounding context to be unique.'),
   new_str: z.string()
     .describe('The replacement text. Use an empty string to delete the match.')
 }).describe('Replace a unique exact-match string in the document.')
@@ -48,7 +48,7 @@ const InsertTextArgs = z.object({
 
 const SetTitleArgs = z.object({
   // `.trim()` must come BEFORE `.min(1)` in Zod 4 for the length check
-  // to see the trimmed string — otherwise "   " passes min(1) and only
+  // to see the trimmed string, otherwise "   " passes min(1) and only
   // later collapses to "" when the transform runs.
   title: z.string().trim().min(1).max(255)
     .describe('The new document title (1–255 characters after trimming leading/trailing whitespace).')
@@ -92,7 +92,7 @@ function handleStrReplace(
   const { found, count } = findIndexOfOnlyMatch(full, input.old_str)
 
   if (count === 0) {
-    return toolError('Error: No match found for old_str. The string must match the document text exactly, including whitespace — call view_document to see it. The document context and conversation history are not part of the document and cannot be edited.')
+    return toolError('Error: No match found for old_str. The string must match the document text exactly, including whitespace, call view_document to see it. The document context and conversation history are not part of the document and cannot be edited.')
   }
   if (count > 1) {
     return toolError(`Error: Found ${count} matches for old_str. Please provide more surrounding context to make a unique match.`)
@@ -185,21 +185,21 @@ export const viewDocumentTool = defineDocTool({
 
 export const replaceTextTool = defineDocTool({
   name: 'replace_text',
-  description: 'Replace a single exact-match occurrence of `old_str` with `new_str` in the document. `old_str` must match EXACTLY ONE location including whitespace — include enough surrounding context to be unique. Returns an error if zero or multiple matches are found, or if `new_str` equals `old_str`. On success the result shows the edited lines as they now read.',
+  description: 'Replace a single exact-match occurrence of `old_str` with `new_str` in the document. `old_str` must match EXACTLY ONE location including whitespace, include enough surrounding context to be unique. Returns an error if zero or multiple matches are found, or if `new_str` equals `old_str`. On success the result shows the edited lines as they now read.',
   schema: ReplaceTextArgs,
   handler: handleStrReplace
 })
 
 export const insertTextTool = defineDocTool({
   name: 'insert_text',
-  description: 'Insert `insert_text` after line `insert_line` (1-indexed). Use insert_line=0 to insert at the very start of the document. The inserted text is newline-terminated automatically. Put any blank line you need INSIDE `insert_text` (e.g. "\\nNew paragraph.") — never call this just to add empty lines. The result shows the inserted lines as they now read.',
+  description: 'Insert `insert_text` after line `insert_line` (1-indexed). Use insert_line=0 to insert at the very start of the document. The inserted text is newline-terminated automatically. Put any blank line you need INSIDE `insert_text` (e.g. "\\nNew paragraph."), never call this just to add empty lines. The result shows the inserted lines as they now read.',
   schema: InsertTextArgs,
   handler: handleInsert
 })
 
 export const setTitleTool = defineDocTool({
   name: 'set_title',
-  description: 'Set the document title (1–255 chars). The title appears in the browser tab, topbar, and document listings — and is usable in header/footer templates via the {title} token. Use when the user asks to rename the document, or to give an untitled doc a title based on its contents.',
+  description: 'Set the document title (1–255 chars). The title appears in the browser tab, topbar, and document listings, and is usable in header/footer templates via the {title} token. Use when the user asks to rename the document, or to give an untitled doc a title based on its contents.',
   schema: SetTitleArgs,
   handler: handleSetTitle
 })

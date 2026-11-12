@@ -71,7 +71,7 @@ vi.mock('../../../server/db/client', () => {
   const useDatabase = vi.fn(() => {
     const stub = buildDbStub()
     // db.transaction(cb) just runs the callback with the same stub
-    // shape — fine for unit tests since we don't model isolation.
+    // shape: fine for unit tests since we don't model isolation.
     return {
       ...stub,
       transaction: vi.fn(async (cb: (tx: unknown) => unknown) => cb(stub))
@@ -112,7 +112,7 @@ function makeStripeMock(subscription: {
   } as unknown as Parameters<typeof handleCheckoutSessionCompleted>[1]['stripe']
 }
 
-describe('handleCheckoutSessionCompleted — race fix', () => {
+describe('handleCheckoutSessionCompleted: race fix', () => {
   it('fetches subscription from Stripe and applies plan + period anchors in one shot', async () => {
     const stripe = makeStripeMock({
       id: 'sub_abc',
@@ -141,7 +141,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
 
   it('returns matched:0 when client_reference_id is missing (orphan checkout)', async () => {
     const stripe = makeStripeMock({ id: 'sub', items: { data: [] } })
-    // Construct typed but stamp client_reference_id null inline — the
+    // Construct typed but stamp client_reference_id null inline, the
     // factory requires it (handlers usually depend on it), this branch
     // is the corner case where it's missing.
     const event = partial<Stripe.CheckoutSessionCompletedEvent>({
@@ -155,7 +155,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
     })
     const result = await handleCheckoutSessionCompleted(event, { stripe })
     expect(result.matched).toBe(0)
-    // SDK not called — we bail before fetching.
+    // SDK not called: we bail before fetching.
     expect(retrieveOf(stripe))
       .not.toHaveBeenCalled()
   })
@@ -215,7 +215,7 @@ describe('handleCheckoutSessionCompleted — race fix', () => {
   })
 })
 
-describe('dispatchStripeEvent — routing + unknown events', () => {
+describe('dispatchStripeEvent: routing + unknown events', () => {
   const mockStripe = makeStripeMock({ id: 'sub', items: { data: [{ price: { id: 'price_pro_abc' } }] } })
   const opts = { stripe: mockStripe }
 
@@ -263,7 +263,7 @@ describe('dispatchStripeEvent — routing + unknown events', () => {
   it('returns handled:false for unknown event types', async () => {
     // Adversarial: a Stripe event type our dispatcher does NOT handle.
     // Cast inline since the factories only build event types we DO
-    // handle (by design — adding a new factory to this module should
+    // handle (by design: adding a new factory to this module should
     // be a coordinated decision with the dispatcher's switch).
     const event = { type: 'customer.tax_id.created', data: { object: {} } } as unknown as Parameters<typeof dispatchStripeEvent>[0]
     const r = await dispatchStripeEvent(event, opts)
@@ -271,7 +271,7 @@ describe('dispatchStripeEvent — routing + unknown events', () => {
   })
 })
 
-describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage', () => {
+describe('handleSubscriptionDeleted / InvoicePaymentFailed: branch coverage', () => {
   it('invoice.payment_failed is logged-only, never updates the DB', async () => {
     const event = makeInvoicePaymentFailedEvent({
       invoiceId: 'in_xxx',
@@ -313,7 +313,7 @@ describe('handleSubscriptionDeleted / InvoicePaymentFailed — branch coverage',
   })
 })
 
-describe('handleSubscriptionUpdated — unknown price graceful', () => {
+describe('handleSubscriptionUpdated: unknown price graceful', () => {
   it('logs + no-ops when the price id is unrecognised', async () => {
     const event = makeSubscriptionEvent({
       type: 'customer.subscription.updated',

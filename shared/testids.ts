@@ -6,7 +6,7 @@
  *     deleted entry won't typecheck) instead of runtime test failures
  *     where the locator silently times out.
  *   - One place to grep when answering "is there a testid for X?".
- *   - Components and specs share the same source — a rename touches
+ *   - Components and specs share the same source, a rename touches
  *     both call sites in one PR.
  *
  * Conventions:

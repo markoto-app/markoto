@@ -6,7 +6,7 @@
 //
 // Read from the same endpoint as /legal/sub-processors
 // (`server/legal/subProcessors.ts` via `registryView.ts`, so Stripe is
-// left out while billing is off) — never retyped in a page, so a page
+// left out while billing is off), never retyped in a page, so a page
 // can't drift from the registry. Rendered on the server. Without legal
 // surfaces the endpoint answers 404 and the block renders nothing.
 const { t } = useI18n()

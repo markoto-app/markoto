@@ -3,11 +3,11 @@ import { chunkMarkdown } from '../../../server/utils/knowledge/chunkMarkdown'
 
 // Hard-ceiling behaviour for the chunk splitter. The regular
 // chunker behaviour has its own test file (chunkMarkdown.test.ts);
-// these cases lock in the maxChunks cap specifically — a safety
+// these cases lock in the maxChunks cap specifically, a safety
 // valve for pathological inputs that would otherwise translate into
 // tens of thousands of embedding API calls.
 
-describe('chunkMarkdown — maxChunks ceiling', () => {
+describe('chunkMarkdown: maxChunks ceiling', () => {
   it('emits no more than maxChunks chunks', () => {
     // Enough small sections to comfortably exceed the cap.
     const md = Array.from({ length: 50 }, (_, i) =>
@@ -31,7 +31,7 @@ describe('chunkMarkdown — maxChunks ceiling', () => {
       `## Section ${i + 1}\n\nBody paragraph for section ${i + 1}.`
     ).join('\n\n')
     const chunks = chunkMarkdown(md, { targetTokens: 20 })
-    // 6 tiny sections, target 20 tokens, packing active — expect
+    // 6 tiny sections, target 20 tokens, packing active, expect
     // something greater than 1 but no sentinel text.
     expect(chunks.length).toBeGreaterThan(1)
     for (const c of chunks) {

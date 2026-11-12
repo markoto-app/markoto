@@ -76,7 +76,7 @@ export async function handleAudioChunk(p: PeerLike, ctx: DictatePeerContext, raw
 
   // Start the 60s billing heartbeat on the first
   // audio chunk. Idempotent (only the first call arms the interval).
-  // BYOK: only when the stream runs on the operator's Mistral key — a
+  // BYOK: only when the stream runs on the operator's Mistral key, a
   // user's own key is billed by Mistral directly, not by our budget.
   if (ctx.voiceTickBilling && !ctx.voiceTickActive) {
     startVoiceTickOrchestrator(p, ctx)

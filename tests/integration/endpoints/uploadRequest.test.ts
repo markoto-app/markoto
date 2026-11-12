@@ -53,7 +53,7 @@ describe('POST /api/upload/request', () => {
     expect(res.status).toBe(404)
   })
 
-  describe('open-edit — anyone authenticated may upload', () => {
+  describe('open-edit: anyone authenticated may upload', () => {
     it('logged-in non-owner gets a presigned URL', async () => {
       const owner = await createUser()
       const other = await createUser()
@@ -88,7 +88,7 @@ describe('POST /api/upload/request', () => {
     expect(put.status, await put.text()).toBe(200)
   })
 
-  describe('open-view — owner/members only', () => {
+  describe('open-view: owner/members only', () => {
     it('owner is allowed', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-view' })
@@ -122,7 +122,7 @@ describe('POST /api/upload/request', () => {
     })
   })
 
-  describe('private — authenticated users without edit rights cannot upload', () => {
+  describe('private: authenticated users without edit rights cannot upload', () => {
     it('logged-in non-owner is denied (403)', async () => {
       const owner = await createUser()
       const other = await createUser()
@@ -171,7 +171,7 @@ describe('POST /api/upload/request', () => {
     })
   })
 
-  describe('password-protected — owner/members only (upload cannot prove password)', () => {
+  describe('password-protected: owner/members only (upload cannot prove password)', () => {
     it('logged-in non-owner is denied (403)', async () => {
       const owner = await createUser()
       const other = await createUser()

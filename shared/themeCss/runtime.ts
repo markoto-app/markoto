@@ -7,7 +7,7 @@ import type { CustomCssResult } from '../types/customCss'
  * Runtime values interpolated into the theme CSS. Kept separate from
  * the theme itself because they change at a different cadence (title
  * on rename, date once per render) and because baking them into the
- * CSS string is simpler than the CSS-custom-property dance — paged.js
+ * CSS string is simpler than the CSS-custom-property dance, paged.js
  * extracts header/footer content into margin boxes that are NOT
  * descendants of `.paged-doc`, so vars set there don't propagate.
  */
@@ -17,7 +17,7 @@ export type ThemeRuntime = {
   date: string
   // Localized text rendered by CSS \`content:\` for the optional TOC
   // heading. Lives in runtime (not the theme) because i18n strings
-  // shouldn't be persisted to the doc — same translation should apply
+  // shouldn't be persisted to the doc, same translation should apply
   // when the doc opens in another language.
   tocTitle: string
   /**
@@ -29,7 +29,7 @@ export type ThemeRuntime = {
    * The document's custom CSS AFTER `sanitizeCustomCss` (shared/utils/theme/customCss.ts).
    * Appended last so user rules override the theme. Typed as the
    * sanitizer's result (not a bare string) so a call site can't hand the
-   * raw `theme.customCss` through by accident — `theme.customCss` itself
+   * raw `theme.customCss` through by accident, `theme.customCss` itself
    * is never read here.
    */
   customCss?: CustomCssResult

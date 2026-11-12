@@ -4,7 +4,7 @@ import { mountSuspended, registerEndpoint } from '@nuxt/test-utils/runtime'
 import { SharingPublishPanel } from '#components'
 import { readBody } from 'h3'
 
-// Publish as a web page: the share dialog's publish section —
+// Publish as a web page: the share dialog's publish section,
 // publish, rename the address, unpublish.
 
 type Wrapper = Awaited<ReturnType<typeof mountSuspended>>

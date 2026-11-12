@@ -3,7 +3,7 @@
 // accepted).
 //
 //   1. pass a proof-of-work bot check (ALTCHA, solved invisibly in a web
-//      worker; challenge + verification run in our own server — see
+//      worker; challenge + verification run in our own server, see
 //      server/utils/anonGate/altcha.ts), and
 //   2. accept the Terms + Acceptable Use rules and confirm they are at
 //      least 16 (once per browser and terms version; remembered in a
@@ -29,14 +29,14 @@ export const ANON_GATE_MIN_AGE = 16
 
 /**
  * Is the gate on? An explicit `NUXT_ANON_GATE_ENABLED` wins; unset follows
- * `NUXT_LEGAL_SURFACES_ENABLED` — the gate links the terms, which only
+ * `NUXT_LEGAL_SURFACES_ENABLED`: the gate links the terms, which only
  * exist where the legal surfaces are on.
  */
 export function resolveAnonGateEnabled(source?: RawEnv): boolean {
   return anonGateOn(useEnv(source))
 }
 
-/** Default of NUXT_INACTIVE_DOC_TTL_DAYS — what the hosted Terms + privacy policy state. */
+/** Default of NUXT_INACTIVE_DOC_TTL_DAYS: what the hosted Terms + privacy policy state. */
 export const DEFAULT_ANON_DOC_TTL_DAYS = legal.vars.inactiveDocTtlDays.default
 
 /** Inactivity period after which anonymous documents are deleted (NUXT_INACTIVE_DOC_TTL_DAYS; 0 = never). */
@@ -50,7 +50,7 @@ export const ANON_GATE_CODES = {
   botCheckRequired: 'anon-gate/bot-check-required',
   /** The solution is malformed, unsigned, tampered or wrong. */
   botCheckFailed: 'anon-gate/bot-check-failed',
-  /** The challenge expired — fetch a new one. */
+  /** The challenge expired: fetch a new one. */
   botCheckExpired: 'anon-gate/bot-check-expired',
   /** The solution was already used once. */
   botCheckReplayed: 'anon-gate/bot-check-replayed',
@@ -58,7 +58,7 @@ export const ANON_GATE_CODES = {
   termsRequired: 'anon-gate/terms-required',
   /** 503: the gate is on but the server has no ALTCHA key. */
   misconfigured: 'anon-gate/misconfigured',
-  /** 503: the replay store (Valkey) is unreachable — the gate fails closed. */
+  /** 503: the replay store (Valkey) is unreachable, the gate fails closed. */
   unavailable: 'anon-gate/unavailable'
 } as const
 

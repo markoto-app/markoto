@@ -18,7 +18,7 @@ describe('currentPeriodStart', () => {
   })
 
   it('on the 1st at 00:00:00, returns the same instant (idempotent at boundary)', () => {
-    // "Is Jan 1 considered last month or this month?" — we want it to
+    // "Is Jan 1 considered last month or this month?", we want it to
     // round DOWN to itself, not up to Feb or down to Dec.
     const start = currentPeriodStart(new Date('2026-04-01T00:00:00.000Z'))
     expect(start.toISOString()).toBe('2026-04-01T00:00:00.000Z')
@@ -58,7 +58,7 @@ describe('currentPeriodStart', () => {
   })
 })
 
-// effectivePeriodStart — the Model C resolver. Picks Stripe anniversary
+// effectivePeriodStart: the Model C resolver. Picks Stripe anniversary
 // for active paid users and calendar-month for everyone else (free,
 // lapsed, or paid without a Stripe anchor yet).
 

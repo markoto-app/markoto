@@ -48,7 +48,7 @@ export function checkInternalSecret(
  * Headers the public edge proxy (Traefik) adds to every request it
  * forwards. Internal callers reach a service directly over the Docker
  * network and never send them, so their presence on an internal path
- * means the request came in from outside — refuse it even with a valid
+ * means the request came in from outside, refuse it even with a valid
  * secret. `X-Forwarded-For` / `-Proto` / `-Port` are deliberately not on
  * the list: Nitro's dev-server worker proxy adds those to every request.
  */

@@ -47,7 +47,7 @@ const noCover = withCover(demo.theme, false)
 
 /**
  * The write scene's section: the "Executive summary" heading, its first
- * paragraph and the key-figures table — typed into the finished report
+ * paragraph and the key-figures table, typed into the finished report
  * (which, for this scene, lacks the rest of the summary and highlights).
  */
 function writeSection(markdown: string): { before: string, section: string[], after: string } {

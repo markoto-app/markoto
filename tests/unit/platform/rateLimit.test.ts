@@ -6,21 +6,21 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 // could silently flip the polarity. We pin them down here:
 //
 //   fails OPEN  →  checkRateLimit, consumeRateLimitBudget
-//                  (DoS protection only — a wedged Valkey must not
+//                  (DoS protection only: a wedged Valkey must not
 //                  refuse otherwise-valid requests)
 //   fails CLOSED → tryAcquireSessionLock, reserveInflightSlot
-//                  (correctness caps — failing open re-opens races
+//                  (correctness caps: failing open re-opens races
 //                  or admits over-cap concurrent sessions)
 //   best-effort  → releaseSessionLock, releaseInflightSlot
 //                  (TTL handles cleanup if the call throws)
 //
-// We also pin which helpers honour the TEST_MODE bypass — the
+// We also pin which helpers honour the TEST_MODE bypass, the
 // fail-OPEN ones do (so the integration suite can pound endpoints
 // without a real Valkey), and the lock helpers explicitly do NOT
 // (so tests can verify lock acquire/release).
 
 // vi.mock factories are hoisted to the top of the file by vitest
-// alongside any nested vi.fn() — we can keep imports in their natural
+// alongside any nested vi.fn(), we can keep imports in their natural
 // position and grab the spy back via vi.mocked after import.
 import * as Sentry from '@sentry/nuxt'
 import { useValkey } from '../../../server/utils/platform/valkey'
@@ -55,7 +55,7 @@ type ValkeyShape = {
   del: (key: string) => Promise<number>
 }
 
-// Async thrower factory — used to simulate Valkey errors on the
+// Async thrower factory: used to simulate Valkey errors on the
 // async callsites (eval/set/decr/...).
 function asyncThrow(message: string): () => Promise<never> {
   return () => Promise.reject(new Error(message))
@@ -91,7 +91,7 @@ afterEach(() => {
 })
 
 describe('checkRateLimit (fails OPEN)', () => {
-  it('returns true when the Valkey script call throws — request allowed despite Valkey down', async () => {
+  it('returns true when the Valkey script call throws, request allowed despite Valkey down', async () => {
     mockValkey({ eval: asyncThrow('ECONNREFUSED') })
     const ok = await checkRateLimit('test', 'key', 5, 60_000)
     expect(ok).toBe(true)
@@ -168,7 +168,7 @@ describe('consumeRateLimitBudget (fails OPEN)', () => {
 })
 
 describe('tryAcquireSessionLock (fails CLOSED)', () => {
-  it('returns false when Valkey throws — fail-closed: do not proceed without the lock', async () => {
+  it('returns false when Valkey throws, fail-closed: do not proceed without the lock', async () => {
     mockValkey({ set: asyncThrow('ECONNREFUSED') })
     const ok = await tryAcquireSessionLock('dictate', 'user-42', 60_000)
     expect(ok).toBe(false)
@@ -199,7 +199,7 @@ describe('tryAcquireSessionLock (fails CLOSED)', () => {
     expect(await tryAcquireSessionLock('dictate', 'user-42', 60_000)).toBe(false)
   })
 
-  it('does NOT honour TEST_MODE bypass — must always exercise the real Valkey path', async () => {
+  it('does NOT honour TEST_MODE bypass, must always exercise the real Valkey path', async () => {
     process.env.TEST_MODE = '1'
     // simulate lock already held; even with TEST_MODE the function
     // must still call SET NX EX and surface the null response.
@@ -209,12 +209,12 @@ describe('tryAcquireSessionLock (fails CLOSED)', () => {
 })
 
 describe('releaseSessionLock (best-effort)', () => {
-  it('swallows Valkey errors silently — TTL is the safety net', async () => {
+  it('swallows Valkey errors silently, TTL is the safety net', async () => {
     mockValkey({ del: asyncThrow('boom') })
     await expect(releaseSessionLock('dictate', 'user-42')).resolves.toBeUndefined()
   })
 
-  it('does NOT honour TEST_MODE bypass — must call DEL even under TEST_MODE so lock truly clears in tests', async () => {
+  it('does NOT honour TEST_MODE bypass, must call DEL even under TEST_MODE so lock truly clears in tests', async () => {
     process.env.TEST_MODE = '1'
     const del = vi.fn(async () => 1)
     mockValkey({ del })
@@ -231,7 +231,7 @@ describe('releaseSessionLock (best-effort)', () => {
 })
 
 describe('reserveInflightSlot (fails CLOSED)', () => {
-  it('returns allowed=false on Valkey error — failing open would re-open the cap race', async () => {
+  it('returns allowed=false on Valkey error, failing open would re-open the cap race', async () => {
     mockValkey({ eval: asyncThrow('boom') })
     const result = await reserveInflightSlot('upload', 'ws-1', 5, 60_000)
     expect(result.allowed).toBe(false)
@@ -282,7 +282,7 @@ describe('releaseInflightSlot (best-effort)', () => {
   })
 })
 
-describe('TEST_MODE bypass — honoured by fail-OPEN helpers, NOT by lock helpers', () => {
+describe('TEST_MODE bypass: honoured by fail-OPEN helpers, NOT by lock helpers', () => {
   it('checkRateLimit returns true under TEST_MODE without touching Valkey', async () => {
     process.env.TEST_MODE = '1'
     const evalSpy = vi.fn()

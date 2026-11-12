@@ -4,7 +4,7 @@ import { stubEnv } from '../../helpers/env'
 // litellmClient.ts is a thin OpenAI SDK factory pointed at the LiteLLM
 // proxy. The unit-level value is small (the SDK does the work), but the
 // factory has three behaviors worth pinning:
-//   1. URL is normalized — trailing slashes stripped, /v1 appended.
+//   1. URL is normalized: trailing slashes stripped, /v1 appended.
 //   2. Master-key path caches across calls.
 //   3. Per-user-key path returns a fresh client per call.
 

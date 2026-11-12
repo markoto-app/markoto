@@ -4,7 +4,7 @@ import { DPA_VERSION, PRIVACY_VERSION, TOS_VERSION } from '../../../shared/legal
 import { first } from '../../helpers/assert'
 
 // Factory helpers. Each one writes a minimal row and returns enough shape
-// for the test to use in assertions. Intended to be cheap — no validation
+// for the test to use in assertions. Intended to be cheap, no validation
 // beyond what Postgres enforces, so tests can produce odd combinations
 // (e.g. a workspace doc with no members) to stress the authz layer.
 
@@ -84,7 +84,7 @@ export async function createDoc(overrides: Partial<TestDoc> & CreateDocExtras = 
   const docId = overrides.docId ?? `doc-${nanoid(10)}`
   const ownerId = overrides.ownerId ?? null
   const workspaceId = overrides.workspaceId ?? null
-  // Anonymous docs default to open-edit — matches docs.post.ts behaviour.
+  // Anonymous docs default to open-edit, matches docs.post.ts behaviour.
   const accessMode: AccessMode = overrides.accessMode
     ?? (ownerId === null ? 'open-edit' : 'private')
   const passwordHash = overrides.passwordHash ?? null
@@ -92,7 +92,7 @@ export async function createDoc(overrides: Partial<TestDoc> & CreateDocExtras = 
 
   // Build the column list dynamically so omitted context fields inherit
   // the schema defaults (description='', audience='casual', language='en',
-  // template_id='blank') — same shape as the real POST handler.
+  // template_id='blank'): same shape as the real POST handler.
   const cols: string[] = ['doc_id', 'owner_id', 'workspace_id', 'access_mode', 'password_hash', 'title']
   const vals: unknown[] = [docId, ownerId, workspaceId, accessMode, passwordHash, title]
   if (overrides.theme !== undefined) {
@@ -149,7 +149,7 @@ export type WorkspaceRole = 'admin' | 'editor' | 'viewer' | 'guest'
 
 export async function setMemberRole(workspaceId: string, userId: number, role: WorkspaceRole): Promise<void> {
   const db = testDb()
-  // Upsert — this helper doubles as "add member with role" and "change
+  // Upsert: this helper doubles as "add member with role" and "change
   // role". Matches what the PATCH endpoint does in the app layer minus
   // the last-admin invariant check.
   await db.query(
@@ -169,7 +169,7 @@ export async function removeMember(workspaceId: string, userId: number): Promise
 
 /**
  * Set or clear the password hash on an existing doc. Uses nuxt-auth-utils'
- * scrypt — same path the real /password endpoint writes through. Tests
+ * scrypt: same path the real /password endpoint writes through. Tests
  * verifying password-gated access call this after createDoc().
  */
 export async function setDocPasswordHash(docId: string, hash: string | null): Promise<void> {

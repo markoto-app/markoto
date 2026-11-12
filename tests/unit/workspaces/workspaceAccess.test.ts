@@ -3,7 +3,7 @@ import { partial } from '../../helpers/fixtures'
 
 // workspaceAccess contract tests. The original 24-test suite was a
 // mechanical role-matrix pin (owner returns true, admin returns true,
-// etc.) — TypeScript already catches role-string typos; these tests
+// etc.): TypeScript already catches role-string typos; these tests
 // were documenting what the code visibly does, not what could break.
 //
 // Kept below: the non-obvious contracts that a refactor could plausibly
@@ -39,7 +39,7 @@ beforeEach(() => {
   getMemberRole.mockReset()
 })
 
-describe('workspaceAccess — non-obvious contracts', () => {
+describe('workspaceAccess: non-obvious contracts', () => {
   it('editor can canEdit but CANNOT canManage (the content-vs-sharing split)', async () => {
     // The key design rule: editors can freely curate content (canEdit=true)
     // but cannot change access mode, password, or delete shared docs
@@ -66,7 +66,7 @@ describe('workspaceAccess — non-obvious contracts', () => {
   })
 
   it('non-existent doc returns exists=false with every grant off (not a thrown 404)', async () => {
-    // Design choice: getDocAuthz NEVER throws — it returns a uniform
+    // Design choice: getDocAuthz NEVER throws, it returns a uniform
     // "nothing granted" shape. Callers that treat `exists` as the 404
     // signal rely on this. If the helper ever started throwing on
     // missing rows, every downstream caller's happy-path would regress
@@ -95,7 +95,7 @@ describe('workspaceAccess — non-obvious contracts', () => {
   })
 })
 
-describe('workspaceAccess — canEditDoc propagates repo errors (fails closed)', () => {
+describe('workspaceAccess: canEditDoc propagates repo errors (fails closed)', () => {
   it('repo throw surfaces to caller (no silent false → skipped authz)', async () => {
     // Defensive: if getDocWithActorRole throws (DB blip), canEditDoc
     // MUST NOT swallow it and return false. A swallow would look like

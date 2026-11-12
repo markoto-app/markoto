@@ -49,7 +49,7 @@ function isTourPagingKey(e: KeyboardEvent): boolean {
 
 /**
  * The rest a paging key goes to: Home / End the first / last; otherwise the
- * next one in `dir` — counted from the rest a running settle is heading for
+ * next one in `dir`, counted from the rest a running settle is heading for
  * (`anchor`: a key pressed during a settle goes one further), else from
  * where the scroll is going (`targetScroll`).
  */
@@ -63,9 +63,9 @@ function pagingKeyRest(key: string, rests: number[], from: { anchor: number } | 
 /**
  * Scrolling of the product page's pinned desktop layout.
  *
- * The visitor scrolls the page themselves — every wheel notch and every
+ * The visitor scrolls the page themselves, every wheel notch and every
  * trackpad swipe moves it, continuously driving the CSS scroll-driven
- * choreography — and once the input stops the page settles on a scene
+ * choreography: and once the input stops the page settles on a scene
  * rest (`settleTarget`: the nearest one, or the next one in the direction
  * of travel when the visitor has left the rest they were on, so a short
  * swipe never springs back). Wheel and trackpad input is smoothed by

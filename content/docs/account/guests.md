@@ -1,6 +1,6 @@
 ---
 title: Guests in a workspace
-description: Invite clients and freelancers as guests — they see only the documents you share with them, take no seat and use their own AI budget.
+description: Invite clients and freelancers as guests. They see only the documents you share with them, take no seat and use their own AI budget.
 category: account
 order: 4
 updated: '2026-11-09'
@@ -12,18 +12,18 @@ updated: '2026-11-09'
 > **Business** plans (coming soon), up to five guests per paid seat. On a
 > self-hosted instance every workspace can have guests.
 
-A guest is someone outside your team — a client, a freelancer, a reviewer —
+A guest is someone outside your team (a client, a freelancer, a reviewer)
 who works on some of your documents but shouldn't see the rest of the
 workspace. A guest:
 
 - sees **only the documents shared with them**, under **Shared with you** on
-  their home page — not the workspace page, its other documents, its members
+  their home page, not the workspace page, its other documents, its members
   or its knowledge base;
 - can view or edit each shared document, as you choose per document;
 - **takes no seat** and isn't counted as a member;
 - uses **their own AI budget** (or their own AI key), never the workspace's;
 - signs in the usual way, also when the workspace requires
-  [single sign-on](/docs/account/single-sign-on) — guests are outside your
+  [single sign-on](/docs/account/single-sign-on): guests are outside your
   organisation's identity provider.
 
 ## Invite a guest
@@ -50,8 +50,8 @@ from the workspace. Every share and unshare is recorded in the workspace's
 ## Usage per person
 
 Admins find a **Usage** tab on the workspace page: per person, the documents
-they own in the workspace, the knowledge files and images they added, and —
-on a Team or Business plan — their AI spend on the shared budget this
+they own in the workspace, the knowledge files and images they added, and
+(on a Team or Business plan) their AI spend on the shared budget this
 period. Guests are listed with the number of documents shared with them.
 The tab shows usage, not activity: nothing about when or how often anyone
 works.

@@ -75,7 +75,7 @@ async function listMirror(docId: string): Promise<Array<{ entry_id: string, pare
   return r.rows
 }
 
-describe('POST /api/internal/comments-snapshot — concurrency + isolation', () => {
+describe('POST /api/internal/comments-snapshot: concurrency + isolation', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -162,7 +162,7 @@ describe('POST /api/internal/comments-snapshot — concurrency + isolation', () 
       const afterSecond = (await listActivity(doc.docId)).length
 
       expect(afterSecond).toBe(beforeSecond)
-      // Mirror unchanged too — should still hold exactly one row.
+      // Mirror unchanged too: should still hold exactly one row.
       expect(await listMirror(doc.docId)).toHaveLength(1)
     })
   })
@@ -172,7 +172,7 @@ describe('POST /api/internal/comments-snapshot — concurrency + isolation', () 
       // SECURITY/CORRECTNESS: between the diff-read and the row-insert
       // there's a window where two concurrent identical pushes could
       // both observe the prev state, both compute the same events,
-      // and both insert — yielding 2x the activity rows.
+      // and both insert: yielding 2x the activity rows.
       //
       // Pure-function unit tests can't see this race; only an
       // integration test against real Postgres reveals it. Failing
@@ -181,7 +181,7 @@ describe('POST /api/internal/comments-snapshot — concurrency + isolation', () 
       const doc = await createDoc()
 
       // Stage state: "rootA exists." Both pushes will report
-      // "rootA still exists, rootB now also exists" — observed prev
+      // "rootA still exists, rootB now also exists", observed prev
       // is identical for both.
       await pushSnapshot(doc.docId, [makeEntry({ entryId: 'rootA' })])
 
@@ -258,7 +258,7 @@ describe('POST /api/internal/comments-snapshot — concurrency + isolation', () 
         makeEntry({ entryId: 'c' })
       ])
 
-      // Second push omits 'b' — same effect as a delete event.
+      // Second push omits 'b', same effect as a delete event.
       await pushSnapshot(doc.docId, [
         makeEntry({ entryId: 'a' }),
         makeEntry({ entryId: 'c' })

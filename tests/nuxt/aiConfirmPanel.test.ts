@@ -55,7 +55,7 @@ function available(): void {
   })
 }
 
-describe('AIPromptBar — confirmation request', () => {
+describe('AIPromptBar: confirmation request', () => {
   it('no pending request → no panel', async () => {
     available()
     const wrapper = await mountSuspended(AIPromptBar, { props: { ai: aiProps(null) } })

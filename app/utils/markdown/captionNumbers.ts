@@ -2,7 +2,7 @@ import { UNNUMBERED_CLASS } from '../preview/titleBlock'
 import { CAPTION_NUMBER_ATTR, SECTION_HEADING_CLASS } from '~~/shared/utils/theme/themeToCss'
 
 /**
- * `blocks.captionNumbering: 'chapter'` — figures and tables numbered within
+ * `blocks.captionNumbering: 'chapter'`: figures and tables numbered within
  * their top-level section ("Figure 3.1", "Table 3.2", theses and books).
  * Writes the number on every table `<caption>` and non-empty `<figcaption>`
  * as `data-markoto-number`; the caption labels print it with `attr()`

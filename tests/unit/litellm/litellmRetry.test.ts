@@ -15,7 +15,7 @@ import { litellmCompletion, litellmStream } from '../../../server/utils/litellm/
 //   - Use exponential backoff (1s, 2s, 4s) when no Retry-After hint
 //   - NEVER retry budget_exceeded (it's correctness, surface to user)
 //   - Pass through every other error on the first attempt
-//   - Respect AbortSignal — cancel in-flight backoff
+//   - Respect AbortSignal: cancel in-flight backoff
 //
 // We mock the OpenAI client at the call boundary; the test asserts on
 // retry COUNT and TIMING (using fake timers to keep the suite fast).
@@ -46,7 +46,7 @@ class RateLimitError extends Error {
 class BudgetExceeded extends Error {
   status = 400
   constructor() {
-    super('budget_exceeded — this user has exceeded their max_budget')
+    super('budget_exceeded: this user has exceeded their max_budget')
   }
 }
 
@@ -54,7 +54,7 @@ class GenericError extends Error {
   status = 500
 }
 
-describe('litellmCompletion — 429 retry', () => {
+describe('litellmCompletion: 429 retry', () => {
   beforeEach(() => {
     vi.useFakeTimers()
   })
@@ -100,7 +100,7 @@ describe('litellmCompletion — 429 retry', () => {
       client as never,
       { model: 'm', messages: [], stream: false }
     )
-    // Expected backoffs: 3s, 6s, 12s, 24s — total 45s.
+    // Expected backoffs: 3s, 6s, 12s, 24s, total 45s.
     // Attach the rejection handler before the timers run so the rejection is never unhandled.
     const outcome = p.then(() => null, (e: unknown) => e)
     await vi.advanceTimersByTimeAsync(45_000)
@@ -117,7 +117,7 @@ describe('litellmCompletion — 429 retry', () => {
       client as never,
       { model: 'm', messages: [], stream: false }
     )
-    // Server says wait 7s — 3s base would not be enough.
+    // Server says wait 7s, 3s base would not be enough.
     await vi.advanceTimersByTimeAsync(3000)
     expect(client.chat.completions.create).toHaveBeenCalledTimes(1)
     await vi.advanceTimersByTimeAsync(4000)
@@ -160,12 +160,12 @@ describe('litellmCompletion — 429 retry', () => {
     await vi.advanceTimersByTimeAsync(100)
     ac.abort()
     await expect(p).rejects.toThrow(/aborted/)
-    // Only the first attempt happened — abort short-circuited the retry.
+    // Only the first attempt happened, abort short-circuited the retry.
     expect(client.chat.completions.create).toHaveBeenCalledTimes(1)
   })
 })
 
-describe('litellmStream — 429 retry', () => {
+describe('litellmStream: 429 retry', () => {
   beforeEach(() => {
     vi.useFakeTimers()
   })

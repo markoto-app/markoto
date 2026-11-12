@@ -6,9 +6,9 @@
 // ceiling and no team). The proxy enforces it: before every call it checks
 // the key's own `max_budget` (the per-user allowance, `TIER_FREE_LITELLM_
 // BUDGET_USD`) AND the team's, so the pool is spent down by every
-// platform-paid call any free user makes — the agentic loop, web-tool
+// platform-paid call any free user makes, the agentic loop, web-tool
 // synthesis, MCP, transcription / image / dictation ticks on alias
-// defaults — without app-side accounting. The team's `budget_duration`
+// defaults: without app-side accounting. The team's `budget_duration`
 // is the same `30d` the keys use, which LiteLLM normalises to the 1st of
 // the month (verified on v1.106.4: `budget_reset_at` = next 1st, 00:00 UTC
 // for both), so the pool and the per-user allowance refill together.
@@ -54,7 +54,7 @@ export const FREE_ALLOWANCE_EXHAUSTED_MESSAGE
 
 type Env = RawEnv | undefined
 
-/** The configured ceiling in USD, or null when there is none (unset or `0` — self-hosters run without a pool). */
+/** The configured ceiling in USD, or null when there is none (unset or `0`, self-hosters run without a pool). */
 export function freeTierTotalBudgetUsd(env?: Env): number | null {
   const value = useEnv(env).ai.freeTierTotalBudgetUsd
   return value > 0 ? value : null
@@ -138,7 +138,7 @@ export async function ensureFreeTierTeam(env?: Env): Promise<string | null> {
 
 /**
  * LiteLLM's answers when the team id is taken (v1.106.4): 400 "already
- * exists", or — when two creates race — a 500 "Unique constraint failed".
+ * exists", or, when two creates race, a 500 "Unique constraint failed".
  */
 export function isDuplicateTeamError(text: string): boolean {
   return /already exists|Unique constraint failed/i.test(text)
@@ -163,7 +163,7 @@ async function provisionTeam(budget: number): Promise<void> {
       throw new Error(`[freeTierTeam] /team/new failed: ${res.status} ${text.slice(0, 200)}`)
     }
     // Lost a create race (another request or instance): the team exists
-    // now — bring it to this budget like any existing team.
+    // now: bring it to this budget like any existing team.
     existing = await readTeam()
     if (!existing) throw new Error('[freeTierTeam] team creation raced, but the team is still missing')
   }
@@ -186,7 +186,7 @@ async function provisionTeam(budget: number): Promise<void> {
  * Make the LiteLLM user a member of the free-tier team. `/key/generate`
  * accepts a `team_id` without membership, but `/key/update` moving an
  * existing key (which carries a `user_id`) INTO the team answers 403
- * "User=<id> is not a member of the team" (v1.106.4) — so every update
+ * "User=<id> is not a member of the team" (v1.106.4), so every update
  * that joins the pool calls this first. Idempotent: "already in team" is
  * success.
  */

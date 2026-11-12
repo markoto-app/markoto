@@ -20,7 +20,7 @@ import path from 'node:path'
 //
 // Setup shortcut: the workspace is created via the API, not the UI
 // (UI workspace creation is a `WorkspaceFormModal` dance that's
-// uninteresting plumbing — the demo's value is what happens AFTER
+// uninteresting plumbing: the demo's value is what happens AFTER
 // you have a workspace + a file). The flow starts at the workspace
 // landing page so readers see the upload + AI grounding from the
 // first frame.
@@ -32,7 +32,7 @@ import path from 'node:path'
 //     on `<sm`); land directly in a workspace doc and use the
 //     editor's Knowledge bottom-tab drawer to upload. The drawer's
 //     upload UI is the same `[data-testid="knowledge-upload-button"]`
-//     used by the workspace page — same backend pipeline either way.
+//     used by the workspace page, same backend pipeline either way.
 test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   requireLiveAi()
   test.setTimeout(360_000)
@@ -50,7 +50,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // origin yet).
   await page.goto('/')
 
-  const wsName = 'Q3 launch — engineering retro'
+  const wsName = 'Q3 launch, engineering retro'
   const docTitle = 'Q4 rollout plan'
   // A short starting draft so the AI's paragraph lands on the first
   // preview page instead of after several pages of Demo text.
@@ -61,7 +61,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   if (!wsRes.ok()) {
     throw new Error(`[knowledge-rag] workspace create failed: ${wsRes.status()} ${await wsRes.text()}`)
   }
-  // The endpoint returns `{ workspaceId }` — the public nanoid that
+  // The endpoint returns `{ workspaceId }`, the public nanoid that
   // the route uses, NOT the integer DB id. Navigating to /w/<int>
   // would 404 even though the workspace exists.
   const ws = await wsRes.json() as { workspaceId: string }
@@ -92,10 +92,10 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // Title + intro before the first capture.
   await flow.heading('Ask the AI about a file you uploaded', 3)
   await flow.narrate(
-    'Workspaces have a Knowledge tab — drop in PDFs, Word docs, '
+    'Workspaces have a Knowledge tab, drop in PDFs, Word docs, '
     + 'HTML exports, the team\'s RFCs, customer FAQs. markoto reads '
     + 'each file and indexes it, so the AI can look things up in it '
-    + 'whenever you write inside the workspace — and answer from your '
+    + 'whenever you write inside the workspace, and answer from your '
     + 'files instead of from general knowledge.'
   )
 
@@ -109,12 +109,12 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       'Tap the Knowledge tab on the bottom bar',
       editor.page.mobileTabs.knowledge,
       {
-        result: 'The Knowledge drawer slides up — empty until you upload your first file.',
+        result: 'The Knowledge drawer slides up, empty until you upload your first file.',
         after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible', timeout: 10_000 })
       }
     )
   } else {
-    // Tabs use `role="tab"` from Reka — the Knowledge tab's
+    // Tabs use `role="tab"` from Reka, the Knowledge tab's
     // accessible name comes from `workspace.tabs.knowledge` (en: "Knowledge").
     await flow.click(
       'Open the Knowledge tab',
@@ -123,7 +123,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'knowledge tab', selector: '[role="tab"][aria-selected="false"]', kind: 'arrow' }
         ],
-        result: 'The Knowledge panel opens — empty until you upload your first file.',
+        result: 'The Knowledge panel opens, empty until you upload your first file.',
         after: () => page.locator('[data-testid="knowledge-upload-button"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -132,14 +132,14 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // The Upload button opens a native file chooser via VueUse's
   // useFileDialog. On mobile the button is inside the Knowledge
   // BottomSheet portal where Reka's overlay intercepts pointer
-  // events — and DOM-level `el.click()` workaround doesn't trigger
+  // events: and DOM-level `el.click()` workaround doesn't trigger
   // the filechooser (browsers require a real user-gesture click for
   // file dialogs). Bypass the chooser entirely by writing directly
   // to the hidden `<input type="file">` via setInputFiles. Desktop
   // path stays on the user-visible filechooser flow.
   const fixture = path.resolve('tests/e2e/fixtures/import-files/q3-launch-postmortem.html')
   if (editor.isMobile) {
-    // useFileDialog mounts the hidden `<input type="file">` lazily —
+    // useFileDialog mounts the hidden `<input type="file">` lazily,
     // it only exists in DOM AFTER the upload button's click handler
     // calls input.click(). Trigger the handler via DOM-level click
     // (force-evaluate bypasses the BottomSheet's pointer-event
@@ -166,7 +166,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
         annotations: [
           { label: 'upload', selector: 'button:has-text("Upload")', kind: 'arrow' }
         ],
-        result: 'Pick the postmortem file — it lands in the list and markoto starts reading it.',
+        result: 'Pick the postmortem file, it lands in the list and markoto starts reading it.',
         after: async () => {
           const chooser = await chooserPromise
           await chooser.setFiles(fixture)
@@ -190,13 +190,13 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   )
 
   // Poll for ready. The badge text uses the i18n string
-  // `knowledge.statusReady` ("Ready"). 60s budget — small HTML
+  // `knowledge.statusReady` ("Ready"). 60s budget, small HTML
   // should finish in <15s; the budget is for cold markitdown
   // / cold embedding.
   await expect(page.locator('[data-testid^="knowledge-file-row-"][data-status="ready"]').first()).toBeVisible({ timeout: 60_000 })
 
   await flow.shot(
-    'The file is Ready — the AI can now look things up in it.'
+    'The file is Ready, the AI can now look things up in it.'
   )
 
   // Create a doc inside the workspace
@@ -208,11 +208,11 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       + 'Close the Knowledge drawer so the AI prompt bar is reachable.'
       : 'Create a new document in this workspace. Inside a workspace the '
         + 'AI can search its files whenever your request refers to them '
-        + '— no extra setup.'
+        + ': no extra setup.'
   )
 
   if (editor.isMobile) {
-    // Already in a workspace doc — close the Knowledge drawer so the
+    // Already in a workspace doc, close the Knowledge drawer so the
     // AI prompt bar is reachable. Same Escape pattern the mobile
     // sibling uses (BottomSheet listens on document keydown).
     await flow.step(
@@ -228,7 +228,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
       'Switch to the Documents tab',
       page.getByRole('tab', { name: /documents/i }),
       {
-        result: 'The Documents tab opens — no docs yet, but a "New document" button is right there.',
+        result: 'The Documents tab opens, no docs yet, but a "New document" button is right there.',
         after: () => page.locator('[data-testid="workspace-new-document"]').first().waitFor({ state: 'visible' })
       }
     )
@@ -287,7 +287,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,
     {
-      result: 'The prompt bar lifts and glows — ready for your question.'
+      result: 'The prompt bar lifts and glows, ready for your question.'
     }
   )
 
@@ -295,8 +295,8 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   // "Summarise…" reads as a chat question and Mistral may answer via
   // `message_to_user` (lands in the prompt-bar response panel, not
   // the doc). The "Insert a short paragraph" lead-in routes the
-  // answer through `insert_text` so the assertion below — which reads
-  // off `.cm-content` — actually sees it.
+  // answer through `insert_text` so the assertion below, which reads
+  // off `.cm-content`: actually sees it.
   const prompt = 'Add a short paragraph at the end of this doc on what our uploaded Q3 launch postmortem says about staged rollouts.'
   await flow.type(
     'Type a question only the file knows the answer to',
@@ -311,7 +311,7 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — it searches the workspace files, then writes the paragraph.',
+      result: 'The AI is working, it searches the workspace files, then writes the paragraph.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -322,11 +322,11 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await editor.page.waitForAiIdle()
 
   // ASSERTION: the AI actually consulted the knowledge base this session
-  // (the Activity log records every AI tool call) — through
+  // (the Activity log records every AI tool call), through
   // search_knowledge, or by reading the file directly with
   // get_knowledge_file, which the model picks when the workspace holds a
-  // single short file; both are grounded — and the paragraph it
-  // wrote carries the file's real figures — 5%, 24 hours, 12 hours.
+  // single short file; both are grounded, and the paragraph it
+  // wrote carries the file's real figures, 5%, 24 hours, 12 hours.
   // Invented numbers ("~40%", "5–10%") fail here.
   const docId = editor.page.currentDocId()
   await expect.poll(async () => {
@@ -343,9 +343,9 @@ test('Knowledge grounded AI', async ({ page, flow, editor }) => {
   await editor.page.scrollEditorTo(/5\s?%/)
 
   await flow.shot(
-    'The AI quoted the postmortem — the avatar bug caught at 5%, and the '
+    'The AI quoted the postmortem, the avatar bug caught at 5%, and the '
     + 'plan to cut the 24-hour rollout interval to 12 hours. None of '
-    + 'this is generic AI knowledge — it came straight from the file.',
+    + 'this is generic AI knowledge, it came straight from the file.',
     {
       // Hero outcome: a doc body containing facts that ONLY exist in
       // the uploaded file. This is the "AI grounded in YOUR data"

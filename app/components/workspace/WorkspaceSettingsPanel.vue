@@ -6,12 +6,12 @@ import { THEME_PRESETS } from '~~/shared/utils/theme/themePresets'
 import { jsonEqual } from '~~/shared/utils/jsonEqual'
 import { fontStylesheetUrls } from '~~/shared/utils/theme/themeFonts'
 
-// Workspace settings tab — admin-only. Currently the default-theme picker;
+// Workspace settings tab: admin-only. Currently the default-theme picker;
 // further workspace-wide settings go in as additional `<section>`s.
 //
 // Default-theme model: pick a built-in preset OR one of the admin's
 // own saved themes, OR clear (revert to "use markoto when creating
-// new docs"). The default is a SNAPSHOT — applied at creation time
+// new docs"). The default is a SNAPSHOT, applied at creation time
 // only, never retroactively. Existing docs keep whatever theme they
 // have, even if the workspace default later changes.
 
@@ -105,7 +105,7 @@ async function persist(theme: DocTheme | null) {
         </p>
       </div>
 
-      <!-- Clear card — sits at the top so reverting to "use markoto"
+      <!-- Clear card: sits at the top so reverting to "use markoto"
            is one tap away. Highlighted when no default is set. -->
       <button
         type="button"

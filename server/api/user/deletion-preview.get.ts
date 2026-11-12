@@ -1,7 +1,7 @@
 import { planAccountDeletion } from '../../utils/privacy/accountDeletionPlan'
 import { isBillingEnabled } from '../../utils/billing/billingMode'
 
-// Pre-deletion preview — surface to the user EXACTLY what will happen
+// Pre-deletion preview: surface to the user EXACTLY what will happen
 // when they confirm the deletion. Drives the consequence modal in
 // `/settings/profile`. Read-only; no side effects.
 //
@@ -16,7 +16,7 @@ import { isBillingEnabled } from '../../utils/billing/billingMode'
 //    first if you want full control over what's removed".
 //
 // 2. **Owned-doc list is included** so the user can scan it before
-//    confirming. We cap at 100 entries in the response — if the user
+//    confirming. We cap at 100 entries in the response, if the user
 //    has more than 100 docs we show the count and the first 100. The
 //    UI tells them "+ 42 more docs". This is informational only; the
 //    sweeper still deletes all of them.

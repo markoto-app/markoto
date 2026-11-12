@@ -7,7 +7,7 @@ import { makeFakeStore } from './fakeObjectStore'
 import { wsAs } from '../helpers/access'
 
 // Regression: knowledge originals that were presigned + PUT but never
-// confirmed had no DB row, and orphan-cleanup only swept `docs/` — so they
+// confirmed had no DB row, and orphan-cleanup only swept `docs/`, so they
 // stayed in the bucket forever, outside every quota.
 
 const HOUR = 60 * 60 * 1000

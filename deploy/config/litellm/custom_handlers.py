@@ -214,7 +214,7 @@ _JINA_API = "https://api.jina.ai/v1/embeddings"
 class JinaEmbeddingsProvider(CustomLLM):
     """Drop-in replacement for LiteLLM's Jina embeddings provider that
     fixes the prompt_tokens=0 spend-tracking bug. Identical request/
-    response shape — callers don't see the difference."""
+    response shape: callers don't see the difference."""
 
     async def aembedding(  # type: ignore[override]
         self, *args, **kwargs
@@ -289,7 +289,7 @@ jina_embeddings_provider = JinaEmbeddingsProvider()
 
 # Mistral Voxtral Mini Transcribe 2 (batch STT) with proper cost
 # LiteLLM's native /v1/audio/transcriptions path can't extract Voxtral's
-# duration field (`usage.prompt_audio_seconds`) — its cost calculator looks
+# duration field (`usage.prompt_audio_seconds`): its cost calculator looks
 # for `duration` like OpenAI Whisper returns. Mistral doesn't, so spend
 # lands at $0.00.
 #

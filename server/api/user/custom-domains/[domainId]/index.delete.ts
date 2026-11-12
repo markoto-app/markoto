@@ -5,7 +5,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { AUDIT_CUSTOM_DOMAIN_REMOVED } from '../../../../legal/auditActions'
 import { customDomainParams } from '~~/shared/api/account'
 
-// DELETE /api/user/custom-domains/:domainId — stop serving the domain
+// DELETE /api/user/custom-domains/:domainId: stop serving the domain
 // Traefik drops its router at its next poll.
 export default defineApiHandler({
   access: allow.user(),

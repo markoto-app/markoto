@@ -4,7 +4,7 @@ import { reverifyUserProvider } from '../../../../utils/aiProviders/store'
 import { aiProviderParams } from '~~/shared/api/account'
 import { MINUTE_MS } from '~~/shared/config/units'
 
-// POST /api/user/ai-providers/:capability/verify — re-run the
+// POST /api/user/ai-providers/:capability/verify: re-run the
 // verification probe against the STORED config (the settings page's
 // "Verify" button). Records `last_verified_at` + the tool-calling result
 // on success; never deletes on failure (a transient provider outage

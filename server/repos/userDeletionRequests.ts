@@ -31,7 +31,7 @@ export interface AccountDeletionStatus {
 export async function requestAccountDeletion(self: UserScope, graceDays: number): Promise<AccountDeletionStatus> {
   const userId = self.userId
   if (!Number.isInteger(graceDays) || graceDays < 1 || graceDays > 365) {
-    // Repo-level shape rejection — should never trip from a controlled
+    // Repo-level shape rejection: should never trip from a controlled
     // caller (orchestrator passes the constant), but guard anyway so a
     // misconfigured config can't put a 1000-year grace into the DB.
     throw new Error(`requestAccountDeletion: graceDays out of range: ${graceDays}`)
@@ -50,7 +50,7 @@ export async function requestAccountDeletion(self: UserScope, graceDays: number)
     .where(and(
       eq(users.id, userId),
       // ONLY update if not already scheduled. This is the race-free
-      // "first request wins" guard — concurrent duplicate requests
+      // "first request wins" guard, concurrent duplicate requests
       // serialise via row-locking and the second one sees the
       // already-set column and matches zero rows.
       sql`${users.deletionRequestedAt} IS NULL`
@@ -69,7 +69,7 @@ export async function requestAccountDeletion(self: UserScope, graceDays: number)
   }
 
   // No row updated. Distinguish "already scheduled" (409) from "user
-  // doesn't exist" (404 — but `requireValidatedUserSession` should
+  // doesn't exist" (404: but `requireValidatedUserSession` should
   // have ruled this out before we get here).
   const status = await getAccountDeletionStatus(self)
   if (status === null) {
@@ -78,7 +78,7 @@ export async function requestAccountDeletion(self: UserScope, graceDays: number)
   if (status.deletionRequestedAt !== null) {
     throw new ConflictError('account deletion already scheduled')
   }
-  // Should be unreachable — same row both unscheduled AND not updated
+  // Should be unreachable: same row both unscheduled AND not updated
   // means a bug. Surface loudly.
   throw new Error('requestAccountDeletion: unexpected row state')
 }
@@ -103,7 +103,7 @@ export async function cancelAccountDeletion(self: UserScope): Promise<void> {
 
   if (updated.length === 1) return
 
-  // No row updated — disambiguate.
+  // No row updated: disambiguate.
   const status = await getAccountDeletionStatus(self)
   if (status === null) {
     throw new Error(`cancelAccountDeletion: user ${userId} not found`)

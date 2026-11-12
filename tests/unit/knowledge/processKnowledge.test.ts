@@ -5,7 +5,7 @@ import { stubEnv } from '../../helpers/env'
 // parse → chunk → embed → DB bulk insert → flip status to ready → delete
 // original. Every phase has a failure mode the test suite needs to pin,
 // because the integration path runs in the subprocess (invisible to
-// coverage) AND the sweep plugin re-kicks stuck rows — so a subtle
+// coverage) AND the sweep plugin re-kicks stuck rows, so a subtle
 // regression where we leave a row in `processing` forever, or flip to
 // `ready` without inserting chunks, would only surface via user
 // complaints.
@@ -176,7 +176,7 @@ beforeEach(() => {
 
 // Tests
 
-describe('processKnowledge — embeddings misconfigured', () => {
+describe('processKnowledge: embeddings misconfigured', () => {
   it('fails the row with the actionable reason before converting or embedding', async () => {
     selectQueue.push([row()])
     assertKnowledgeEmbeddingsReady.mockRejectedValueOnce(new Error('[embeddings] run `bun run knowledge:reembed`'))
@@ -191,7 +191,7 @@ describe('processKnowledge — embeddings misconfigured', () => {
   })
 })
 
-describe('processKnowledge — short-circuit paths', () => {
+describe('processKnowledge: short-circuit paths', () => {
   it('no-ops when the row is not found (sweep-deleted between enqueue and run)', async () => {
     selectQueue.push([])
     await processKnowledge('missing')
@@ -215,9 +215,9 @@ describe('processKnowledge — short-circuit paths', () => {
   })
 })
 
-describe('processKnowledge — row deletion during pipeline', () => {
+describe('processKnowledge: row deletion during pipeline', () => {
   it('aborts cleanly when the row is deleted during conversion (no markFailed)', async () => {
-    // Initial row fetch (found, processing) — conversion runs — then the
+    // Initial row fetch (found, processing), conversion runs, then the
     // rowStillExists check returns [] so we skip markFailed and everything
     // downstream. If we markFailed here we'd flip a DELETED row's ghost
     // shadow in a txn that'd FK-cascade-error anyway.
@@ -233,7 +233,7 @@ describe('processKnowledge — row deletion during pipeline', () => {
   })
 
   it('aborts cleanly when the row is deleted during embedding (after embed cost)', async () => {
-    // We paid the embedding cost but the user deleted the row — don't
+    // We paid the embedding cost but the user deleted the row, don't
     // try to INSERT chunks with a knowledgeId that no longer exists.
     selectQueue.push([row()]) // initial select
     selectQueue.push([{ id: 'k1' }]) // first rowStillExists → exists
@@ -251,7 +251,7 @@ describe('processKnowledge — row deletion during pipeline', () => {
   })
 })
 
-describe('processKnowledge — content-quality failures', () => {
+describe('processKnowledge: content-quality failures', () => {
   it('markFailed on empty markdown (markitdown produced nothing useful)', async () => {
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
@@ -283,7 +283,7 @@ describe('processKnowledge — content-quality failures', () => {
   })
 })
 
-describe('processKnowledge — happy path', () => {
+describe('processKnowledge: happy path', () => {
   it('writes chunks + flips to ready + deletes S3 original', async () => {
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }]) // first rowStillExists
@@ -347,7 +347,7 @@ describe('processKnowledge — happy path', () => {
   })
 })
 
-describe('processKnowledge — post-success S3 cleanup failure', () => {
+describe('processKnowledge: post-success S3 cleanup failure', () => {
   it('swallows S3 delete failure (row stays ready) and reports to Sentry', async () => {
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
@@ -356,8 +356,8 @@ describe('processKnowledge — post-success S3 cleanup failure', () => {
     chunkMarkdown.mockReturnValueOnce([{ index: 0, content: 'body', tokens: 1 }])
     embedDocuments.mockResolvedValueOnce([[0.1]])
 
-    // First s3Send = GetObject (fetch bytes) — succeeds.
-    // Second s3Send = DeleteObject (cleanup) — fails.
+    // First s3Send = GetObject (fetch bytes), succeeds.
+    // Second s3Send = DeleteObject (cleanup), fails.
     s3Send
       .mockResolvedValueOnce({
         Body: { transformToByteArray: async () => new Uint8Array([1, 2, 3]) }
@@ -384,7 +384,7 @@ describe('processKnowledge — post-success S3 cleanup failure', () => {
   })
 })
 
-describe('processKnowledge — pipeline exceptions', () => {
+describe('processKnowledge: pipeline exceptions', () => {
   it('markFailed when markitdown returns non-2xx (message slice preserves prefix)', async () => {
     selectQueue.push([row()])
     fetchMock.mockResolvedValueOnce(errResponse(502, 'Gateway timeout: markitdown-server unreachable'))
@@ -417,7 +417,7 @@ describe('processKnowledge — pipeline exceptions', () => {
 
   it('truncates error messages longer than 500 chars (DB column sanity)', async () => {
     selectQueue.push([row()])
-    // Huge error blob — if we wrote the full thing we'd waste bytes +
+    // Huge error blob: if we wrote the full thing we'd waste bytes +
     // potentially blow a bytea/text column limit on exotic Postgres
     // configs. 500 chars is plenty to diagnose from.
     const hugeMsg = 'X'.repeat(5000)
@@ -446,9 +446,9 @@ describe('processKnowledge — pipeline exceptions', () => {
 // Each test names a plausible failure mode and tries to trigger it. Where the SUT's behaviour diverges from what
 // we'd want, the test documents the gap.
 
-describe('processKnowledge — adversarial: non-Error throwables', () => {
+describe('processKnowledge: adversarial: non-Error throwables', () => {
   it('handles a thrown string (surfaces via String(e), no crash)', async () => {
-    // Catch blocks in JS receive anything — including `throw "boom"`
+    // Catch blocks in JS receive anything, including `throw "boom"`
     // from third-party code. The SUT does `e instanceof Error ? … : String(e)`.
     // Pin that a string throwable reaches markFailed with the literal,
     // not `[object Object]`.
@@ -483,7 +483,7 @@ describe('processKnowledge — adversarial: non-Error throwables', () => {
   })
 })
 
-describe('processKnowledge — embedding/chunk length mismatch (guarded)', () => {
+describe('processKnowledge: embedding/chunk length mismatch (guarded)', () => {
   it('markFailed cleanly when embed returns FEWER vectors than chunks', async () => {
     // `embeddings[i]!` with a non-null assertion would pass `undefined` to the drizzle insert when the upstream
     // embedding provider drops a vector; the SUT has a length-check guard and this test verifies it works.
@@ -512,7 +512,7 @@ describe('processKnowledge — embedding/chunk length mismatch (guarded)', () =>
   it('markFailed when embed returns MORE vectors than chunks', async () => {
     // Symmetric case: strict equality means extras also fail. If future
     // embedding SDKs legitimately return extras (summary vectors?),
-    // THIS test should be updated — but silently dropping them hides
+    // THIS test should be updated, but silently dropping them hides
     // a behaviour change.
     selectQueue.push([row()])
     selectQueue.push([{ id: 'k1' }])
@@ -530,7 +530,7 @@ describe('processKnowledge — embedding/chunk length mismatch (guarded)', () =>
   })
 })
 
-describe('processKnowledge — adversarial: chunker returns unexpected indices', () => {
+describe('processKnowledge: adversarial: chunker returns unexpected indices', () => {
   it('stores chunker-reported `index`, NOT array position (trusts chunker)', async () => {
     // The code uses `c.index` for the stored chunkIndex. If the chunker
     // emits gappy/non-monotonic indices (bug or intentional), they land
@@ -578,7 +578,7 @@ describe('processKnowledge — adversarial: chunker returns unexpected indices',
   })
 })
 
-describe('processKnowledge — concurrency guarded by Valkey claim-check', () => {
+describe('processKnowledge: concurrency guarded by Valkey claim-check', () => {
   it('second concurrent call no-ops (Valkey lock held by first)', async () => {
     // Two concurrent calls must not both proceed (the `status !== 'processing'` guard alone is racy). The SUT
     // acquires a `knowledge-process:{id}` lock via `tryAcquireSessionLock` before starting the pipeline; the

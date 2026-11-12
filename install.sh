@@ -151,7 +151,7 @@ ask() { # ask VAR "question" default
   fi
   printf -v "$__var" '%s' "${reply:-$default}"
 }
-ask_secret() { # ask_secret VAR "question" — input hidden, never echoed
+ask_secret() { # ask_secret VAR "question", input hidden, never echoed
   local __var="$1" question="$2" reply=""
   if [ "$INTERACTIVE" = 1 ]; then
     read -r -s -p "    $question (input hidden, Enter to skip): " reply
@@ -279,7 +279,7 @@ configure() {
     env_set MARKOTO_HTTP_PORT "$http_port"
     # Explicit --public-url wins. Otherwise keep the stored URL, unless
     # there is none, the port was given explicitly, or we are switching
-    # from HTTPS mode — then derive it from this host's address.
+    # from HTTPS mode: then derive it from this host's address.
     public_url="${OPT_PUBLIC_URL:-$(env_get MARKOTO_PUBLIC_URL)}"
     if [ -z "$OPT_PUBLIC_URL" ]; then
       if [ -z "$public_url" ] || [ -n "$OPT_HTTP_PORT" ] || [ -n "$previous_domain" ]; then
@@ -334,7 +334,7 @@ configure() {
   fi
   env_set COMPOSE_PROFILES "$backup_profile"
 
-  # Secrets — generated once, never printed, never regenerated.
+  # Secrets: generated once, never printed, never regenerated.
   set_config POSTGRES_USER "" "markoto"
   set_config POSTGRES_DB "" "markoto"
   ensure_secret POSTGRES_PASSWORD hex
@@ -434,7 +434,7 @@ configure_ai() {
   local jina="${OPT_JINA:-$(env_get JINA_AI_API_KEY)}"
   local staan="${OPT_STAAN:-$(env_get STAAN_API_KEY)}"
   if [ "$INTERACTIVE" = 1 ] && [ -z "$mistral$jina$staan" ]; then
-    info "AI (optional — everything else works without it)"
+    info "AI (optional: everything else works without it)"
     note "Users can always bring their own key (Settings -> AI provider). Optionally"
     note "set instance-wide providers now; more options in docs/SELF-HOSTING.md#ai."
     ask_secret mistral "Mistral API key (instance default for chat + voice)"
@@ -481,7 +481,7 @@ wait_healthy() {
   done
   if [ "$status" != "healthy" ]; then
     compose ps
-    die "the app did not become healthy within ${HEALTH_TIMEOUT}s — inspect: ./install.sh logs app"
+    die "the app did not become healthy within ${HEALTH_TIMEOUT}s, inspect: ./install.sh logs app"
   fi
   ok "app container healthy"
 
@@ -499,7 +499,7 @@ wait_healthy() {
       if [ -n "$(env_get MARKOTO_DOMAIN)" ]; then
         warn "not reachable at $url yet (certificate issuance can take a minute; check DNS + ports 80/443)"
       else
-        warn "health check through Traefik ($probe) failed — ./install.sh logs traefik"
+        warn "health check through Traefik ($probe) failed, ./install.sh logs traefik"
       fi
       return 0
     fi
@@ -538,7 +538,7 @@ cmd_install() {
 
 cmd_upgrade() {
   check_prereqs
-  [ -f "$ENV_FILE" ] || die "no $ENV_FILE — run ./install.sh first"
+  [ -f "$ENV_FILE" ] || die "no $ENV_FILE, run ./install.sh first"
   grep -qF "$ENV_MARKER" "$ENV_FILE" || die "$ENV_FILE was not written by install.sh"
   if [ -n "$OPT_TAG" ]; then env_set IMAGE_TAG "$OPT_TAG"; fi
   # Secrets introduced by newer versions get generated; existing ones stay.

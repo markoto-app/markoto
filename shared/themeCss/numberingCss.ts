@@ -8,7 +8,7 @@ import type { ThemeRuntime } from './runtime'
 /**
  * Headings that never get a number (nor advance the counters): the cover /
  * title-block title, the abstract, and headings the author marked
- * `{.unnumbered}` / `{-}` (Pandoc convention — References, Acknowledgements).
+ * `{.unnumbered}` / `{-}` (Pandoc convention, References, Acknowledgements).
  */
 const UNNUMBERED = ':not(.markoto-cover-title):not(.markoto-abstract-heading):not(.unnumbered)'
 
@@ -27,7 +27,7 @@ const UNNUMBERED_TOC = ':not(.markoto-abstract-entry):not(.markoto-unnumbered-en
  *
  * Levels count from the highest heading level the document numbers: when
  * that is h2 (no h1), `composeFinalHtml` marks the numbered headings
- * `markoto-num-from-h2` and the h2 shows `1`, the h3 `1.1` — not `0.1`.
+ * `markoto-num-from-h2` and the h2 shows `1`, the h3 `1.1`, not `0.1`.
  * The TOC is relative already (markdown-it-toc-done-right nests from the
  * highest level used), so its depth is the logical level.
  */
@@ -90,7 +90,7 @@ export function numberingBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 /**
  * `headings.chapterLabel`: "Chapter 3" (in the document language, or
  * `headings.chapterWord`) on a line of its own over every numbered
- * top-level section heading — the heading of the highest level used,
+ * top-level section heading: the heading of the highest level used,
  * which is also the numbering base (`headingStructure.ts`). Replaces the
  * plain number there; the TOC keeps the number.
  */
@@ -136,7 +136,7 @@ const IEEE_LEVEL_FORMATS = [['upper-roman', '.'], ['upper-alpha', '.'], ['decima
 
 /**
  * CSS `content` for the number of a heading whose counters (outermost
- * first) are `counters` — the last one is the heading's own level.
+ * first) are `counters`: the last one is the heading's own level.
  */
 function numberLabel(style: Exclude<HeadingNumbering, 'none'>, counters: string[]): string {
   if (style === 'ieee') {

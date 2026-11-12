@@ -3,21 +3,21 @@ HTTP wrapper around Microsoft markitdown for file → markdown conversion.
 
 Replaces the prior pandoc/extra container. Markitdown ships pure-Python
 converters for the common office formats (docx, pdf, pptx, xlsx, html,
-epub, …) and is a fraction of the image size — no TeX, no fonts, no
+epub, …) and is a fraction of the image size, no TeX, no fonts, no
 shell-out to pandoc subprocess. The import endpoint
 only converts TO markdown (export is client-side via paged.js), so we
 don't need pandoc's wide output coverage.
 
 Endpoints:
   POST /convert?ext={extension}
-    Body:    raw file bytes (Content-Type ignored — we trust the ext hint
+    Body:    raw file bytes (Content-Type ignored, we trust the ext hint
              passed by the caller, since markitdown's converter routing
              is extension-driven and our /api/import already validates
              the upload's filename extension)
     Returns: text/markdown
 
   GET /health
-    Returns: 200 "ok" — used by the Docker / compose healthcheck
+    Returns: 200 "ok": used by the Docker / compose healthcheck
 
 Authentication: every endpoint except /health needs the
 X-Markitdown-Secret header to equal MARKITDOWN_API_SECRET (the app's
@@ -59,7 +59,7 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from markitdown import MarkItDown, StreamInfo
 from markitdown._exceptions import MissingDependencyException, UnsupportedFormatException
 
-# Matches the cap in server/api/import.post.ts. Defense in depth — Nuxt
+# Matches the cap in server/api/import.post.ts. Defense in depth: Nuxt
 # already rejects oversize bodies before they reach us, but the FastAPI
 # layer is the last line if someone calls this service directly inside
 # the docker network.
@@ -145,7 +145,7 @@ async def lifespan(_app):
     yield
 
 
-# disable docs/redoc — not a public API.
+# disable docs/redoc: not a public API.
 app = FastAPI(title="markitdown-server", docs_url=None, redoc_url=None, lifespan=lifespan)
 
 
@@ -375,7 +375,7 @@ async def convert(request: Request) -> PlainTextResponse:
         except ArchiveCheckTimeout as e:
             raise HTTPException(504, "Archive inspection took too long") from e
 
-    # Markitdown reads StreamInfo to route to the right converter — extension
+    # Markitdown reads StreamInfo to route to the right converter: extension
     # alone is enough for the formats we accept; mimetype is left to the
     # converter to sniff if needed.
     outcome, payload = await asyncio.to_thread(convert_isolated, body, raw_ext)
@@ -390,7 +390,7 @@ async def convert(request: Request) -> PlainTextResponse:
     if outcome == "dependency":
         raise HTTPException(501, f"Format requires extra dependency: {payload}")
     # Catch-all so a converter raising e.g. PdfReadError doesn't 500 the
-    # whole service. Bounded — converters love to dump full stack traces
+    # whole service. Bounded: converters love to dump full stack traces
     # in their messages.
     raise HTTPException(422, f"Conversion failed: {payload}")
 

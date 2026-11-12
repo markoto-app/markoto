@@ -1,13 +1,13 @@
 // Client-IP resolution behind a known number of trusted reverse proxies.
 //
 // Used by the Nuxt app (`server/utils/platform/clientIp.ts`) and the sync server
-// (`sync-server/src/rate-limiter.ts`) — rate limits and the truncated IP
+// (`sync-server/src/rate-limiter.ts`): rate limits and the truncated IP
 // stored on audit / consent / abuse rows both key on it.
 //
 // Why "hops from the right" and not "first entry": every proxy APPENDS
 // the address it received the connection from to `X-Forwarded-For`, so
 // only the entries written by proxies we run are trustworthy. Anything
-// to their left was supplied by the client and is spoofable — reading
+// to their left was supplied by the client and is spoofable, reading
 // `split(',')[0]` lets any caller pick their own rate-limit bucket and
 // audit IP by sending `X-Forwarded-For: 1.2.3.4`. With N trusted hops in
 // front of the process, the N-th entry from the right is the address the
@@ -16,13 +16,13 @@
 // Deployment shapes (see docs/SELF-HOSTING.md#trusted-proxy):
 //   - Our Traefik in front (prod, self-host compose): 1 hop. Traefik also
 //     strips client-sent X-Forwarded-* from untrusted peers, so the list
-//     is normally a single entry — but the rule must not depend on that.
+//     is normally a single entry, but the rule must not depend on that.
 //   - Your own TLS proxy -> our Traefik -> app: 2 hops (and Traefik must
 //     trust that proxy: TRAEFIK_TRUSTED_IPS in the self-host compose).
-//   - App port exposed directly, no proxy: 0 hops — the socket address is
+//   - App port exposed directly, no proxy: 0 hops, the socket address is
 //     the only trustworthy value and X-Forwarded-For is ignored.
 
-/** Default: one trusted hop — the Traefik in every shipped compose file. */
+/** Default: one trusted hop, the Traefik in every shipped compose file. */
 export const DEFAULT_TRUSTED_PROXY_HOPS = 1
 
 /**
@@ -84,7 +84,7 @@ const IPV4_RE = /^\d{1,3}(?:\.\d{1,3}){3}$/
 /**
  * Rate-limit bucket for a client address.
  *
- * IPv4: the address itself. IPv6: the /64 prefix — a single subscriber
+ * IPv4: the address itself. IPv6: the /64 prefix, a single subscriber
  * or VPS is normally handed a whole /64, so keying on the full address
  * would give one client an unlimited number of buckets by rotating
  * source addresses. IPv4-mapped IPv6 (`::ffff:192.0.2.1`) counts as the

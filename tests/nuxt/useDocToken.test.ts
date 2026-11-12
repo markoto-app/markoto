@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { mockNuxtImport, registerEndpoint } from '@nuxt/test-utils/runtime'
 
-// Explicit import — the composable auto-imports `useUserSession` and `ref`,
+// Explicit import: the composable auto-imports `useUserSession` and `ref`,
 // both of which the nuxt environment resolves at transform time.
 import { useDocToken } from '~/composables/document/useDocToken'
 
@@ -9,9 +9,9 @@ import { useDocToken } from '~/composables/document/useDocToken'
 // See app/composables/document/useDocToken.ts for the contract we're pinning here.
 //
 // The composable has two external dependencies:
-//   1. `useUserSession()` from nuxt-auth-utils — we need the `user` ref
+//   1. `useUserSession()` from nuxt-auth-utils: we need the `user` ref
 //      to drive the `isOwner` derivation. Mocked via `mockNuxtImport`.
-//   2. `$fetch('/api/docs/:id/token')` — real fetch through Nitro; stubbed
+//   2. `$fetch('/api/docs/:id/token')`: real fetch through Nitro; stubbed
 //      with `registerEndpoint` so we exercise the full `$fetch` path
 //      (errors flow through the catch branch like in production).
 
@@ -61,7 +61,7 @@ beforeEach(() => {
   }
 })
 
-describe('useDocToken — fetchToken happy path', () => {
+describe('useDocToken: fetchToken happy path', () => {
   it('populates tokenData and flags from a standard open-edit response', async () => {
     response.current = {
       token: 'jwt-abc',
@@ -132,7 +132,7 @@ describe('useDocToken — fetchToken happy path', () => {
   })
 })
 
-describe('useDocToken — isOwner / hasOwner derivation', () => {
+describe('useDocToken: isOwner / hasOwner derivation', () => {
   it('isOwner is true when ownerId matches the logged-in user id', async () => {
     sessionUser.value = { id: 42 }
     response.current = {
@@ -193,7 +193,7 @@ describe('useDocToken — isOwner / hasOwner derivation', () => {
   })
 })
 
-describe('useDocToken — password-protected path', () => {
+describe('useDocToken: password-protected path', () => {
   it('surfaces requiresPassword and zeroes the JWT so the provider cannot connect', async () => {
     // Server returns `token: null` for password-protected docs (see the
     // token endpoint). That null must flatten to empty string client-side
@@ -216,7 +216,7 @@ describe('useDocToken — password-protected path', () => {
   })
 })
 
-describe('useDocToken — forbidden path (private, non-owner)', () => {
+describe('useDocToken: forbidden path (private, non-owner)', () => {
   it('surfaces forbidden and zeroes the JWT', async () => {
     response.current = {
       token: null,
@@ -236,10 +236,10 @@ describe('useDocToken — forbidden path (private, non-owner)', () => {
   })
 })
 
-describe('useDocToken — network / 4xx failure', () => {
+describe('useDocToken: network / 4xx failure', () => {
   it('swallows the error and falls through to an empty-token state', async () => {
     // If the token endpoint throws (network blip, 404, 403), the UI
-    // should render the disconnected state — not crash. No flags get
+    // should render the disconnected state, not crash. No flags get
     // set so the editor layout renders a plain "disconnected" header
     // rather than a misleading "private" or "password" gate.
     response.current = new Error('network')
@@ -250,7 +250,7 @@ describe('useDocToken — network / 4xx failure', () => {
     expect(t.tokenData.value).toEqual({ token: '', readOnly: false })
     expect(t.requiresPassword.value).toBe(false)
     expect(t.forbidden.value).toBe(false)
-    // A non-404 error is a transient disconnect, NOT a missing doc — the
+    // A non-404 error is a transient disconnect, NOT a missing doc, the
     // not-found screen must not fire on a network blip.
     expect(t.notFound.value).toBe(false)
   })
@@ -269,7 +269,7 @@ describe('useDocToken — network / 4xx failure', () => {
   })
 })
 
-describe('useDocToken — onPasswordVerified / clearPendingUnlock', () => {
+describe('useDocToken: onPasswordVerified / clearPendingUnlock', () => {
   it('onPasswordVerified stashes the new token and raises pendingUnlock', async () => {
     response.current = {
       token: null,
@@ -297,7 +297,7 @@ describe('useDocToken — onPasswordVerified / clearPendingUnlock', () => {
     const t = useDocToken('doc-123')
 
     // Simulate mid-unlock state directly rather than going through the
-    // whole password flow — we're pinning the helper's logic here.
+    // whole password flow: we're pinning the helper's logic here.
     t.requiresPassword.value = true
     t.pendingPasswordUnlock.value = true
 
@@ -320,9 +320,9 @@ describe('useDocToken — onPasswordVerified / clearPendingUnlock', () => {
   })
 })
 
-describe('useDocToken — imperative actions', () => {
+describe('useDocToken: imperative actions', () => {
   it('markReadOnly flips isReadOnly to true', () => {
-    // Called by the sync layer on `onAuthenticationFailed` — e.g. if
+    // Called by the sync layer on `onAuthenticationFailed`, e.g. if
     // the server rotates the access mode from edit to view mid-session.
     const t = useDocToken('doc-123')
     expect(t.isReadOnly.value).toBe(false)
@@ -333,7 +333,7 @@ describe('useDocToken — imperative actions', () => {
   })
 
   it('setAccessMode updates the accessMode ref', () => {
-    // ShareModal calls this when the owner picks a new mode — drives
+    // ShareModal calls this when the owner picks a new mode, drives
     // UI copy instantly while the PUT /meta is in flight.
     const t = useDocToken('doc-123')
 
@@ -343,7 +343,7 @@ describe('useDocToken — imperative actions', () => {
   })
 })
 
-describe('useDocToken — independence between instances', () => {
+describe('useDocToken: independence between instances', () => {
   it('two useDocToken calls produce independent reactive state', () => {
     // Guard against accidental module-level refs that would leak
     // state across doc navigations.
@@ -357,7 +357,7 @@ describe('useDocToken — independence between instances', () => {
   })
 })
 
-// getFreshToken — token refresh on reconnect
+// getFreshToken: token refresh on reconnect
 
 // Build a syntactically-real JWT (header.payload.sig) whose payload
 // carries an `exp` claim `expSecondsFromNow` in the future (negative =
@@ -374,7 +374,7 @@ function makeJwt(expSecondsFromNow: number, marker: string): string {
   return `${head}.${payload}.sig`
 }
 
-describe('useDocToken — getFreshToken', () => {
+describe('useDocToken: getFreshToken', () => {
   it('reuses the current token while it is comfortably valid (no refetch)', async () => {
     response.current = { token: makeJwt(3600, 'valid'), readOnly: false, accessMode: 'open-edit', ownerId: null }
     const t = useDocToken('doc-123')
@@ -418,7 +418,7 @@ describe('useDocToken — getFreshToken', () => {
     await t.fetchToken()
     const original = t.tokenData.value!.token
 
-    // A non-owner password doc returns token:null from /token — must NOT
+    // A non-owner password doc returns token:null from /token, must NOT
     // clobber the (still-present) token to empty.
     response.current = { token: null, readOnly: false, accessMode: 'password-protected', ownerId: 1 }
     const fresh = await t.getFreshToken()
@@ -447,7 +447,7 @@ describe('useDocToken — getFreshToken', () => {
 // connections whose access must be re-checked (invalidateToken). Either way
 // the token is refetched even though it still looks valid, and a refetch
 // that finds access ended flips to the same gate a page load would show.
-describe('useDocToken — renewal and re-authentication', () => {
+describe('useDocToken: renewal and re-authentication', () => {
   it('a renewal refetches even a comfortably valid token', async () => {
     response.current = { token: makeJwt(3600, 'valid'), readOnly: false, accessMode: 'open-edit', ownerId: null }
     const t = useDocToken('doc-123')
@@ -511,7 +511,7 @@ registerEndpoint('/api/docs/doc-123/meta', (event: { node: { req: { headers: Rec
   }
 })
 
-describe('useDocToken — hydrateAfterUnlock', () => {
+describe('useDocToken: hydrateAfterUnlock', () => {
   it('fetches /meta with the unlock JWT and seeds the initial refs', async () => {
     metaCalls.length = 0
     const t = useDocToken('doc-123')
@@ -526,7 +526,7 @@ describe('useDocToken — hydrateAfterUnlock', () => {
   })
 })
 
-describe('useDocToken — initialTitle', () => {
+describe('useDocToken: initialTitle', () => {
   it('seeds the DB title from /token (shown until ymeta carries one)', async () => {
     response.current = { token: 'jwt', readOnly: false, accessMode: 'open-edit', ownerId: null, title: 'Project kickoff notes' }
     const t = useDocToken('doc-123')
@@ -535,7 +535,7 @@ describe('useDocToken — initialTitle', () => {
   })
 })
 
-describe('useDocToken — canDelete', () => {
+describe('useDocToken: canDelete', () => {
   it('reflects the server-computed delete permission', async () => {
     response.current = { token: 'jwt', readOnly: false, accessMode: 'open-edit', ownerId: null, canDelete: true }
     const t = useDocToken('doc-123')

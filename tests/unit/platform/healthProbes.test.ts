@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Mocks
 // `vi.hoisted` keeps these references stable across the hoisted vi.mock
-// factory and the test bodies — the factory is moved to top of file by
+// factory and the test bodies, the factory is moved to top of file by
 // vitest, so a closure over a top-level `let` would be undefined at mock
 // resolution time.
 
@@ -35,7 +35,7 @@ vi.mock('../../../server/utils/storage/s3', () => ({
   })
 }))
 
-// Dynamic import after mocks register — same shape as other unit tests
+// Dynamic import after mocks register, same shape as other unit tests
 // (see `idempotency.test.ts`).
 const {
   probePostgres,
@@ -261,7 +261,7 @@ describe('runAllProbes + isOverallHealthy', () => {
       litellmUrl: 'http://litellm:4000'
     })
     expect(r.renderer.status).toBe('skipped')
-    // Skipped probes don't flag overall-down — the instance still serves
+    // Skipped probes don't flag overall-down, the instance still serves
     // its primary path. Documented in healthProbes.ts.
     expect(isOverallHealthy(r)).toBe(true)
   })
@@ -312,7 +312,7 @@ describe('runAllProbes + isOverallHealthy', () => {
   })
 
   it('S3 down is reported but does NOT flag overall-down (non-gating)', async () => {
-    // S3 backs uploads/backups, not the core doc path — an S3 blip must
+    // S3 backs uploads/backups, not the core doc path, an S3 blip must
     // not 503 the node out of Traefik rotation. It IS still visible.
     mockState.s3Send = async () => {
       throw new Error('connection reset')
@@ -397,7 +397,7 @@ describe('runAllProbes + isOverallHealthy', () => {
     expect(cached.body.checks.postgres).toBe('ok')
   })
 
-  it('runs probes in parallel — total wall-clock is < sum of latencies', async () => {
+  it('runs probes in parallel, total wall-clock is < sum of latencies', async () => {
     // Each HTTP probe sleeps 100 ms; postgres + valkey are instant.
     // If serial: ≥300 ms. If parallel: ≈100 ms.
     vi.spyOn(globalThis, 'fetch').mockImplementation(fakeFetch(200, 100))

@@ -10,7 +10,7 @@ import {
 import { adminAs, docWith } from '../../helpers/access'
 
 // Capability proofs (server/repos/proofs/mint.ts): repo functions take them
-// instead of bare ids, so these properties are what tenancy rests on —
+// instead of bare ids, so these properties are what tenancy rests on,
 // construction is closed, levels imply exactly what they should, a proof
 // is immutable, and minting fails closed.
 

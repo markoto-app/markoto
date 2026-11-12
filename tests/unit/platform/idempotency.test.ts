@@ -11,7 +11,7 @@ import { deliberatelyInvalid } from '../../helpers/fixtures'
 //      key returns 409 (placeholder sentinel logic).
 //   5. fn throws → placeholder is dropped so retries can re-attempt.
 
-// In-memory ioredis-shaped fake. Models GET/SET (with NX/EX)/DEL —
+// In-memory ioredis-shaped fake. Models GET/SET (with NX/EX)/DEL,
 // nothing else; idempotency.ts uses no other commands.
 class FakeValkey {
   store = new Map<string, string>()
@@ -89,7 +89,7 @@ describe('withIdempotency', () => {
     const r2 = await withIdempotency(FAKE_EVENT, 'duplicate:src', 42, fn)
 
     expect(r1).toEqual({ docId: 'doc-1' })
-    expect(r2).toEqual({ docId: 'doc-1' }) // SAME response — fn not re-run
+    expect(r2).toEqual({ docId: 'doc-1' }) // SAME response, fn not re-run
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
@@ -140,7 +140,7 @@ describe('withIdempotency', () => {
     await expect(withIdempotency(FAKE_EVENT, 'duplicate:src', 1, failOnce))
       .rejects.toThrow('boom')
 
-    // The placeholder must be gone — otherwise the retry would 409.
+    // The placeholder must be gone, otherwise the retry would 409.
     const r = await withIdempotency(FAKE_EVENT, 'duplicate:src', 1, failOnce)
     expect(r).toEqual({ docId: 'second-try' })
     expect(failOnce).toHaveBeenCalledTimes(2)

@@ -13,7 +13,7 @@ import {
   teamIdForPlan
 } from '../litellm/freeTierTeam'
 
-/** "Add your own key" — the only way past an exhausted pool until the reset. */
+/** "Add your own key", the only way past an exhausted pool until the reset. */
 const FREE_ALLOWANCE_RECOVERY: LimitRecovery = {
   kind: 'link',
   href: '/settings/ai',
@@ -37,7 +37,7 @@ export function freeAllowanceExhaustedHttpError() {
  * Refuse an AI request up front when it would run on the platform-paid
  * default AND the user's key is in the exhausted pool. A user on their
  * own key (BYOK) is never refused here. Fails open when the pool can't be
- * read — the proxy still refuses, and the loop maps that to the same text.
+ * read: the proxy still refuses, and the loop maps that to the same text.
  */
 export async function assertFreeAllowanceAvailable(chatProvider: ResolvedAiProvider | null, plan: PlanName): Promise<void> {
   if (!isPlatformBilled(chatProvider)) return

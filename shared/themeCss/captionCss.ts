@@ -34,7 +34,7 @@ export function captionBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 }`
   ]
   // `blocks.captionNumbering: 'chapter'`: "3.1" from the number
-  // `composeFinalHtml` writes on the caption (captionNumbers.ts) — CSS
+  // `composeFinalHtml` writes on the caption (captionNumbers.ts), CSS
   // counters can't reset per section level the document happens to use.
   const number = (counter: string) => numbering === 'chapter' ? `attr(${CAPTION_NUMBER_ATTR})` : `counter(${counter})`
   // `blocks.captionLabelStyle: 'stacked'`: a bold upright label on its own

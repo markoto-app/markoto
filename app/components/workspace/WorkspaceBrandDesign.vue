@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// Brand kit, admins: the workspace design — taken from one of the
-// workspace's documents, locked for every document — and the workspace
+// Brand kit, admins: the workspace design, taken from one of the
+// workspace's documents, locked for every document, and the workspace
 // templates (live links to workspace documents). Rendered inside
 // WorkspaceBrandKitPanel. Server: `…/brand/lock`, `…/brand/design-from-doc`,
 // `…/templates`.

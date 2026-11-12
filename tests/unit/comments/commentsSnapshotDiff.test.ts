@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { diffCommentsSnapshot, type SnapshotEntry } from '../../../server/utils/documents/commentsSnapshotDiff'
 import { first } from '../../helpers/assert'
 
-// Pure function — every test is an inputs → outputs assertion. Goal
+// Pure function: every test is an inputs → outputs assertion. Goal
 // is to lock down the branching that turns "comment snapshot diffs"
 // into "activity events": which kinds fire, what metadata they
 // carry, when nothing fires.
@@ -111,7 +111,7 @@ describe('diffCommentsSnapshot', () => {
     })
   })
 
-  it('does NOT emit any event for a body change (intentional — text edits are tracked separately)', () => {
+  it('does NOT emit any event for a body change (intentional, text edits are tracked separately)', () => {
     const events = diffCommentsSnapshot(
       [row({ entryId: 'a', body: 'before' })],
       [row({ entryId: 'a', body: 'after' })]
@@ -120,7 +120,7 @@ describe('diffCommentsSnapshot', () => {
   })
 
   it('does NOT emit any event for an authorName change with no other diff', () => {
-    // Defensive — author rename through some future tool shouldn't
+    // Defensive: author rename through some future tool shouldn't
     // produce activity rows on its own.
     const events = diffCommentsSnapshot(
       [row({ entryId: 'a', authorName: 'Old' })],
@@ -170,7 +170,7 @@ describe('diffCommentsSnapshot', () => {
   })
 
   it('emits comment.replied even when the parent is missing from both snapshots (orphan reply)', () => {
-    // Defensive: the snapshot is just a flat list — we don't validate
+    // Defensive: the snapshot is just a flat list, we don't validate
     // parentCommentId points at something that exists. A reply to a
     // not-yet-replicated parent (clock skew?) still generates an
     // activity row pointed at the orphan parent id.
@@ -187,7 +187,7 @@ describe('diffCommentsSnapshot', () => {
   })
 
   it('does NOT emit when parentCommentId mutates on an existing entry (silent)', () => {
-    // A reply moved under a different parent — visible only as a
+    // A reply moved under a different parent, visible only as a
     // parentCommentId field change. We don't track this transition.
     // Documenting current behavior so a future change knowingly
     // breaks this expectation.
@@ -199,7 +199,7 @@ describe('diffCommentsSnapshot', () => {
   })
 
   it('preserves authorId + authorName from the NEW snapshot on resolve flips', () => {
-    // The "resolver" identity isn't tracked — we fall back to the
+    // The "resolver" identity isn't tracked, we fall back to the
     // current comment's author. Pin the behavior so future work
     // (threading resolver name through the payload) doesn't silently
     // change attribution.
@@ -213,7 +213,7 @@ describe('diffCommentsSnapshot', () => {
 
   it('handles a root-and-reply both deleted in the same cycle', () => {
     // Each deletion produces its own event with the correct isReply
-    // flag — the parent's deletion doesn't suppress the child's row.
+    // flag: the parent's deletion doesn't suppress the child's row.
     const events = diffCommentsSnapshot(
       [
         row({ entryId: 'root' }),
@@ -229,7 +229,7 @@ describe('diffCommentsSnapshot', () => {
   })
 
   it('emits add events in the iteration order of the new snapshot, deletes after', () => {
-    // Useful for debugging — pin the per-cycle ordering so future
+    // Useful for debugging: pin the per-cycle ordering so future
     // refactors don't quietly reorder events.
     const events = diffCommentsSnapshot(
       [row({ entryId: 'old' })],

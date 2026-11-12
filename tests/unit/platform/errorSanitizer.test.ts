@@ -2,11 +2,11 @@ import { describe, it, expect } from 'vitest'
 import { buildSanitizedErrorPayload } from '../../../server/error'
 
 // Pin the sanitization policy. The actual handler that calls this
-// also writes the response via h3 helpers — we test the policy in
+// also writes the response via h3 helpers, we test the policy in
 // isolation here so a refactor that changes the I/O can't quietly
 // drift the policy.
 
-describe('buildSanitizedErrorPayload — 4xx pass-through', () => {
+describe('buildSanitizedErrorPayload: 4xx pass-through', () => {
   it('keeps the author-controlled message + data on a 400', () => {
     const out = buildSanitizedErrorPayload({
       statusCode: 400,
@@ -52,7 +52,7 @@ describe('buildSanitizedErrorPayload — 4xx pass-through', () => {
   })
 })
 
-describe('buildSanitizedErrorPayload — 5xx strip', () => {
+describe('buildSanitizedErrorPayload: 5xx strip', () => {
   it('strips the original message on a 500', () => {
     const out = buildSanitizedErrorPayload({
       statusCode: 500,
@@ -62,7 +62,7 @@ describe('buildSanitizedErrorPayload — 5xx strip', () => {
     expect(out.message).not.toContain('Failed query')
     expect(out.message).not.toContain('params')
     expect(out.message).not.toContain('joel@example.com')
-    expect(out.message).toBe('Something went wrong on our side. Please try again — we\'ve been notified.')
+    expect(out.message).toBe('Something went wrong on our side. Please try again. We\'ve been notified.')
     expect(out.data).toEqual({ code: 'internal' })
   })
 
@@ -98,7 +98,7 @@ describe('buildSanitizedErrorPayload — 5xx strip', () => {
   })
 })
 
-describe('buildSanitizedErrorPayload — stack never leaks', () => {
+describe('buildSanitizedErrorPayload: stack never leaks', () => {
   it('does not include `stack` even when present on the input', () => {
     const errorWithStack = {
       statusCode: 500,
@@ -122,7 +122,7 @@ describe('buildSanitizedErrorPayload — stack never leaks', () => {
   })
 })
 
-describe('buildSanitizedErrorPayload — statusMessage defaults', () => {
+describe('buildSanitizedErrorPayload: statusMessage defaults', () => {
   it('falls back to "Server Error" for 5xx without statusMessage', () => {
     const out = buildSanitizedErrorPayload({ statusCode: 500 })
     expect(out.statusMessage).toBe('Server Error')

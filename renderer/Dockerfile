@@ -1,7 +1,7 @@
 # Playwright + Chromium baked in. We layer Bun on top so the renderer code
 # matches the rest of the stack (sync-server, app). Image is large (~1.5 GB)
 # but Chromium + libnss + fonts + the dozens of system libs Playwright needs
-# would dominate any custom-built image anyway — using Microsoft's pinned
+# would dominate any custom-built image anyway: using Microsoft's pinned
 # image is the path of least surprise.
 #
 # To bump Playwright: change the version on this FROM line AND the playwright
@@ -18,7 +18,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # ships its Node), but the renderer's own HTTP server runs under Bun for
 # stack consistency. The Bun installer requires `unzip` which the Playwright
 # base image doesn't ship. The installer takes the release tag as its
-# argument — pinned to the same Bun as the oven/bun images + CI
+# argument: pinned to the same Bun as the oven/bun images + CI
 # (`bun-version`) so all three move together; without it the build
 # silently picks up whatever Bun is latest that day. BUN_INSTALL puts the
 # binary outside /root so the unprivileged runtime user can execute it.
@@ -72,7 +72,7 @@ USER pwuser
 
 EXPOSE 9000
 
-# Tiny, no-deps healthcheck — wget ships in the Playwright base image.
+# Tiny, no-deps healthcheck: wget ships in the Playwright base image.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- --tries=1 --timeout=3 http://127.0.0.1:9000/health || exit 1
 

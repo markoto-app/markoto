@@ -1,7 +1,7 @@
 // The production build serves paged.js, Mermaid, KaTeX, highlight.js and the
 // web fonts itself under /vendor/ (shared/utils/vendor/vendorAssets.ts). The
 // preview / print iframes run in an opaque origin, so these responses must
-// be loadable cross-origin (CORP) and in CORS mode (fonts, SRI tags) — and
+// be loadable cross-origin (CORP) and in CORS mode (fonts, SRI tags), and
 // cache headers must match the versioned / unversioned split.
 
 import { createHash } from 'node:crypto'

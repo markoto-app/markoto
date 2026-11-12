@@ -1,4 +1,4 @@
-# Flow tests (Playwright) — agent rules
+# Flow tests (Playwright): agent rules
 
 Each spec in `tests/e2e/flows/` is both a test and a page of the user docs at `/docs`. How the pipeline, fixture API, passes and publishing work: [`docs/contributing/flow-docs.md`](../../docs/contributing/flow-docs.md). Test tiers and the test stack: [`docs/contributing/testing.md`](../../docs/contributing/testing.md).
 
@@ -6,7 +6,7 @@ Each spec in `tests/e2e/flows/` is both a test and a page of the user docs at `/
 
 - Captions are end-user docs: user voice, no internal names (Hocuspocus, Y.js, "the editor mounts"), end at a tangible outcome, and every step has an assertion behind it.
 - The test title is the slug (`'Quick share'` → `quick-share`). Renaming a test breaks every docs page that embeds it; update `content/docs/` in the same change.
-- Use `flow.click(caption, locator, opts)` for any click that navigates, never `flow.step('Click X', () => locator.click())` — `step` captures after the click and lands on the next page with a stale cursor.
+- Use `flow.click(caption, locator, opts)` for any click that navigates, never `flow.step('Click X', () => locator.click())`, `step` captures after the click and lands on the next page with a stale cursor.
 - Pass a Playwright `Locator` to `flow.click` / `flow.hover` / `flow.type`, never a CSS selector string.
 - `flow.next({ slug })` must name a flow some `content/docs/` page embeds, or `tests/unit/seo/flowDocPages.test.ts` fails.
 - A flow that provokes an error toast or a 5xx on purpose must declare it (`flow.expectErrorToast` / `flow.expectServerError`); otherwise the fixture fails the flow.
@@ -24,8 +24,8 @@ Each spec in `tests/e2e/flows/` is both a test and a page of the user docs at `/
 
 `mk-sheet-host` intercepts pointer events on popovers and modals portaled inside it, so a normal Playwright `click()` on a Reka select option or dialog button inside a bottom sheet lands on the wrong layer. This is a Playwright coordinate-routing issue, not a product bug. Workarounds, least aggressive first:
 
-1. **`click({ force: true })`** — try this first (e.g. the audience / language selects in `document-context`).
-2. **DOM-level `el.click()` via `evaluate`** — bypasses coordinate routing entirely.
+1. **`click({ force: true })`**, try this first (e.g. the audience / language selects in `document-context`).
+2. **DOM-level `el.click()` via `evaluate`**, bypasses coordinate routing entirely.
 3. **Synthetic pointer events** for Reka primitives that listen on `pointerdown` / `pointerup`:
    ```ts
    await el.evaluate((node) => {

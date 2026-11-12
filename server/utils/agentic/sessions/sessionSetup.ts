@@ -109,7 +109,7 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
   // BYOK: the user's own provider (or the instance default). No chat
   // provider → 409 `ai/provider-missing` with a link to the settings page.
   const aiProviders = await requireAiProviders(request.self, 'chat', billingContext.plan)
-  // Hosted free tier: the shared monthly pool may be used up — answer
+  // Hosted free tier: the shared monthly pool may be used up, answer
   // 402 `ai/free-allowance-exhausted` before opening a session (own-key
   // users are never refused here).
   await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)

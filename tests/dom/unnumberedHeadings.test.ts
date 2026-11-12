@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// jsdom (not happy-dom): the pipeline runs DOMPurify — see renderMarkdownXss.test.ts.
+// jsdom (not happy-dom): the pipeline runs DOMPurify, see renderMarkdownXss.test.ts.
 import { describe, it, expect } from 'vitest'
 import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
 import { composeFinalHtml } from '../../app/utils/preview/composeFinalHtml'

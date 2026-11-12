@@ -2,7 +2,7 @@
 // App-wide overlays layered above every page. The onboarding gate exists
 // only where the legal surfaces are on (hosted SaaS);
 // a self-hosted instance is its own operator and ships without them by
-// default — see shared/config/instance.ts.
+// default: see shared/config/instance.ts.
 //
 // Every overlay that only a signed-in user can see, and the anonymous
 // terms dialog, is a Lazy component mounted only when it can show: an
@@ -17,7 +17,7 @@ watch(() => anonTermsPrompt.value.open, (open) => {
   if (open) anonGateMounted.value = true
 }, { immediate: true })
 // The server-render page (/_internal/render/*) is loaded by the Playwright
-// sidecar and captured as PDF/PNG — no overlay may paint over it.
+// sidecar and captured as PDF/PNG, no overlay may paint over it.
 const route = useRoute()
 const showOverlays = computed(() => !route.path.startsWith('/_internal/'))
 </script>

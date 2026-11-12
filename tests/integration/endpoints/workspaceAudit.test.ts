@@ -5,7 +5,7 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
 // Workspace audit log: admins of a plan with the audit log see
-// and download the workspace's events — and only that workspace's.
+// and download the workspace's events, and only that workspace's.
 
 interface AuditEvent {
   id: number
@@ -45,7 +45,7 @@ describe('workspace audit log', () => {
     expect((await hosted.json() as { data?: { code?: string } }).data?.code).toBe('plan/feature-unavailable')
   })
 
-  it('shows real actions of this workspace with actor name and shortened IP — never another workspace\'s', async () => {
+  it('shows real actions of this workspace with actor name and shortened IP, never another workspace\'s', async () => {
     const admin = await createUser({ name: 'Maya Chen' })
     const ws = await createWorkspace(admin.id)
     const other = await createWorkspace(admin.id)
@@ -109,7 +109,7 @@ describe('workspace audit log', () => {
     expect(header).toBe('id,time,actor_id,actor_name,ip,action,target_type,target_id,before,after,details')
     expect(row).toContain('doc.deleted')
     expect(row).toContain('203.0.113.0')
-    // The JSON cell starts with "{" — not a formula; a bare formula value would be prefixed.
+    // The JSON cell starts with "{", not a formula; a bare formula value would be prefixed.
     expect(row).not.toMatch(/,=HYPERLINK/)
 
     const jsonl = await client.get(`/api/workspaces/${ws.workspaceId}/audit/export?format=jsonl`)

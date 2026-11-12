@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest'
 import { acquireSweepLock, releaseSweepLock } from '../../server/repos/sweepLocks'
 
-// Postgres advisory locks are session-scoped — bound to the connection
+// Postgres advisory locks are session-scoped, bound to the connection
 // that called `pg_try_advisory_lock`. Both calls in a test go through
 // the same Node process but each `acquireSweepLock` call picks up a
 // FRESH `PoolClient` from the shared pool, so the second acquire-call

@@ -45,7 +45,7 @@ describe('computeTextDiff', () => {
     const r = computeTextDiff('a\n', `a\n${longLine}\n`)
     const addLine = first(r.hunks).lines.find(l => l.kind === 'add' && l.text.startsWith('xxx'))
     expect(addLine).toBeDefined()
-    // 2000 chars total — exact boundary check would be brittle, but
+    // 2000 chars total: exact boundary check would be brittle, but
     // it MUST be smaller than the original.
     expect(addLine!.text.length).toBeLessThan(3000)
     expect(addLine!.text.endsWith('…')).toBe(true)
@@ -61,13 +61,13 @@ describe('computeTextDiff', () => {
     const r = computeTextDiff(lines, linesAfter)
     expect(r.hunks.length).toBeLessThanOrEqual(200)
     // Whether the test produces > 200 hunks depends on context window
-    // collapsing — assert truncated only if totalHunks tipped over.
+    // collapsing: assert truncated only if totalHunks tipped over.
     expect(r.totalHunks <= 200 || r.truncated).toBe(true)
   })
 
   it('filters out the diff library\'s "\\ No newline at end of file" marker', () => {
     // The `diff` library emits a `\ No newline at end of file` line
-    // as metadata about a missing trailing newline — useful for
+    // as metadata about a missing trailing newline, useful for
     // patch consumers but pure noise in our drawer. The filter
     // should suppress these from the hunk lines so they never reach
     // the UI.
@@ -80,7 +80,7 @@ describe('computeTextDiff', () => {
       for (const line of hunk.lines) {
         expect(line.text.startsWith('\\')).toBe(false)
         // The library prefixes content lines with `+`, `-`, ` ` but
-        // we strip those — so verify nothing leaks the marker text.
+        // we strip those: so verify nothing leaks the marker text.
         expect(line.text).not.toContain('No newline at end of file')
       }
     }
@@ -109,7 +109,7 @@ describe('computeTextDiff', () => {
 
   it('preserves leading whitespace in lines (indentation matters)', () => {
     // Markdown lists, code blocks, etc. lean on leading spaces.
-    // The diff should preserve them verbatim — neither the
+    // The diff should preserve them verbatim, neither the
     // library's prefix-strip nor our post-processing should
     // collapse leading whitespace.
     const before = '  - item one\n'

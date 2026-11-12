@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest'
 //   - default width/height resolution
 //   - aspect-ratio overrides
 
-describe('image gen — BFL provider message shape', () => {
+describe('image gen: BFL provider message shape', () => {
   // The custom provider in deploy/config/litellm/custom_handlers.py expects
   // JSON-encoded {prompt, width, height, prompt_upsampling} as the
   // message content. Pin the wire format so a future renaming on
@@ -66,7 +66,7 @@ describe('image gen — BFL provider message shape', () => {
   })
 })
 
-describe('image gen — BFL response parsing', () => {
+describe('image gen: BFL response parsing', () => {
   // The BFL custom provider returns a chat completion whose
   // `choices[0].message.content` is JSON-encoded {b64_json, url,
   // cost_credits, cost_usd}. Our handler parses it back out.

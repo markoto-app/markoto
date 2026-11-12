@@ -27,7 +27,7 @@
 
 | Option | Umgebungsvariable | Standard | Beschreibung |
 |---|---|---|---|
-| `option` | `PROJECT_OPTION` | — | |
+| `option` | `PROJECT_OPTION` | - | |
 
 # Funktionen
 

@@ -3,7 +3,7 @@ import { bumpSessionEpoch } from '../../repos/users'
 import { isRepoError } from '../../repos/errors'
 import { HOUR_MS } from '~~/shared/config/units'
 
-// GDPR Article 17 — request account deletion. Marks the user with a
+// GDPR Article 17: request account deletion. Marks the user with a
 // 30-day grace period; the cascading purge is performed asynchronously
 // by `accountDeletionSweep` once `deletion_grace_until` elapses. The
 // user's account remains usable during the grace period and a UI
@@ -15,7 +15,7 @@ import { HOUR_MS } from '~~/shared/config/units'
 //
 // Idempotency: NOT idempotent at the repo layer. A second request
 // while one is already scheduled returns 409 (the orchestrator throws
-// a `ConflictError`). This is deliberate — we don't reset the grace
+// a `ConflictError`). This is deliberate, we don't reset the grace
 // clock on re-request, because doing so would let an attacker with a
 // session token keep extending the deletion window indefinitely.
 //

@@ -30,7 +30,7 @@ const log = useLogger('ai-credits')
 //             LiteLLM's spend logs and takes what passed the plan budget
 //             from the grants, soonest-expiring first (`settleMonth`,
 //             idempotent per month). It settles the previous month too,
-//             so the tail before LiteLLM's reset on the 1st is counted —
+//             so the tail before LiteLLM's reset on the 1st is counted,
 //             against the plan budget recorded while that month was
 //             open, not today's.
 //   Expiry  = 12 months after purchase (`expireGrants`).
@@ -95,7 +95,7 @@ export async function recomputeCreditBudget(subject: CreditSubject): Promise<voi
  *
  * Each month is settled against the plan budget recorded for it while it
  * was open (`recordPeriodPlanBudget`: the highest one), never against
- * today's plan — after a cancellation today's budget is 0 (workspace) or
+ * today's plan: after a cancellation today's budget is 0 (workspace) or
  * the small Free one, and the month's spend the plan had already covered
  * would be taken from the purchased credits. A previous month without a
  * recorded budget had no settlement run while it was open (no credits

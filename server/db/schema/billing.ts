@@ -76,7 +76,7 @@ export const aiCreditGrants = pgTable('ai_credit_grants', {
   index('idx_ai_credit_grants_subject').on(table.subjectType, table.subjectId)
 ])
 
-// How much of a subject's credits one calendar month (UTC — LiteLLM's
+// How much of a subject's credits one calendar month (UTC, LiteLLM's
 // monthly budget reset) used: the month's AI spend above the plan
 // budget, deducted from the grants once. Lets the settlement run
 // repeatedly without deducting twice.
@@ -144,13 +144,13 @@ export const pendingStripeEvents = pgTable('pending_stripe_events', {
 
 // Paid-plans waitlist. Only active while billing is OFF and the
 // deployment advertises upcoming plans (`NUXT_PLANS_COMING_SOON`). Lawful
-// basis: consent (GDPR Art.6(1)(a) / FADP Art.6(6)) — see
+// basis: consent (GDPR Art.6(1)(a) / FADP Art.6(6)), see
 // `server/legal/lawfulBasis.ts#paid_plans_waitlist`.
 //
 // Double opt-in: a row is written UNCONFIRMED on signup and only counts
 // once `confirmed_at` is set via the emailed confirm link. Unconfirmed
 // rows are reaped by `server/utils/privacy/waitlistSweep.ts` after the confirm
-// window. Unsubscribe DELETES the row (no suppression list — we hold
+// window. Unsubscribe DELETES the row (no suppression list, we hold
 // nothing once consent is withdrawn).
 //
 // Privacy shape:

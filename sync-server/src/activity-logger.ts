@@ -1,5 +1,5 @@
 // Posts activity events to the Nuxt app's internal endpoint.
-// Fire-and-forget — failures are logged but never block Y.js sync.
+// Fire-and-forget: failures are logged but never block Y.js sync.
 
 import { injectTraceHeaders, captureException } from './sentry'
 import { syncEnv } from './env'
@@ -15,7 +15,7 @@ const INTERNAL_SECRET = syncEnv().auth.internalApiSecret
 // POST /api/internal/activity.
 export async function logActivity(event: InternalActivityEvent): Promise<void> {
   if (!APP_URL || !INTERNAL_SECRET) {
-    // Silent no-op if not configured — dev setups without activity logging still work
+    // Silent no-op if not configured, dev setups without activity logging still work
     return
   }
 
@@ -31,7 +31,7 @@ export async function logActivity(event: InternalActivityEvent): Promise<void> {
     })
   } catch (e) {
     log.warn('failed to log activity', { action: event.action, docId: event.docId, err: e })
-    // App-side activity loss is operationally interesting — a steady
+    // App-side activity loss is operationally interesting, a steady
     // trickle means the internal endpoint or its auth path is broken.
     // Defensive try/catch so a Sentry transport hiccup never blocks
     // the next event flow.
@@ -43,12 +43,12 @@ export async function logActivity(event: InternalActivityEvent): Promise<void> {
           action: event.action
         }
       })
-    } catch { /* swallow — telemetry must never throw */ }
+    } catch { /* swallow, telemetry must never throw */ }
   }
 }
 
 /** Identity of the authenticated connection an awareness client id was
- *  last received on — taken from that connection's JWT, never from the
+ *  last received on: taken from that connection's JWT, never from the
  *  awareness payload. See `awareness-identity.ts`. */
 export interface VerifiedIdentity {
   userId: string
@@ -67,7 +67,7 @@ export interface VerifiedIdentity {
  * in the same millisecond still have a defined order.
  *
  * The identity returned is the JWT identity of the connection that sent
- * that awareness state — NOT `state.user.name`. Awareness is entirely
+ * that awareness state: NOT `state.user.name`. Awareness is entirely
  * client-controlled; trusting its name let an anonymous editor write any
  * display name ("CEO Bob") into the activity log.
  */
@@ -95,7 +95,7 @@ export function countWords(text: string): number {
 
 /**
  * Git-style line counts between two versions of a string.
- * Uses a Myers-ish LCS (straight DP, O(n*m) — fine for markdown docs under
+ * Uses a Myers-ish LCS (straight DP, O(n*m), fine for markdown docs under
  * a few thousand lines; we cap at a sane size to avoid pathological memory).
  *
  * Returns { added, removed } where:
@@ -108,13 +108,13 @@ export function lineDiff(before: string, after: string): { added: number, remove
   const a = before.split('\n')
   const b = after.split('\n')
   // Cap: if either side is absurdly long, fall back to an approximate count
-  // (abs delta of line counts) — accuracy doesn't matter at scale and DP would
+  // (abs delta of line counts), accuracy doesn't matter at scale and DP would
   // allocate hundreds of MB.
   if (a.length > 2000 || b.length > 2000) {
     const delta = b.length - a.length
     return delta > 0 ? { added: delta, removed: 0 } : { added: 0, removed: -delta }
   }
-  // LCS table — dp[i][j] = LCS length of a[0..i) vs b[0..j).
+  // LCS table: dp[i][j] = LCS length of a[0..i) vs b[0..j).
   const m = a.length, n = b.length
   const dp: number[][] = Array.from({ length: m + 1 }, () => new Array<number>(n + 1).fill(0))
   const at = (i: number, j: number): number => dp[i]?.[j] ?? 0

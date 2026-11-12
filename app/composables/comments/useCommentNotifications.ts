@@ -17,7 +17,7 @@ import type { CommentsApi } from '~/composables/comments/useComments'
 export interface UseCommentNotificationsOptions {
   comments: CommentsApi['comments']
   awareness: Awareness
-  /** Live doc title — appears as the notification's heading. */
+  /** Live doc title: appears as the notification's heading. */
   docTitle: Ref<string>
   /** Tag key prefix so reply notifications can dedupe per-thread. */
   docId: string

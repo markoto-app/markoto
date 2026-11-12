@@ -21,13 +21,13 @@ const log = useLogger('stripe-webhook')
  * `invoice.paid` handler. A subscription invoice was paid (renewal, or
  * the prorated charge for added seats): advance the period anchors to
  * the service period it paid for (user or workspace). Only ever moves
- * them forward — `customer.subscription.updated` carries the same period
+ * them forward: `customer.subscription.updated` carries the same period
  * and may arrive first, and a late event of an older invoice must not
  * pull `valid_until` back.
  *
  * No LiteLLM spend reset here: spend resets are driven by the key's
- * `budget_duration` (monthly, on the 1st) so every tier — including free,
- * which has no invoice — resets uniformly.
+ * `budget_duration` (monthly, on the 1st) so every tier, including free,
+ * which has no invoice, resets uniformly.
  *
  * Skip non-subscription invoices (one-off charges, top-ups).
  */
@@ -55,7 +55,7 @@ export async function handleInvoicePaid(
 }
 
 /**
- * `invoice.payment_failed` handler. Observability-only — no downgrade
+ * `invoice.payment_failed` handler. Observability-only: no downgrade
  * on first failure (Stripe retries; the subscription goes `past_due`,
  * which `customer.subscription.updated` records, and eventually
  * `customer.subscription.deleted` if every retry fails).

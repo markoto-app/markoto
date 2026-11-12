@@ -3,7 +3,7 @@
 #
 #   scripts/compare-template-reference.sh <reference-dir> <ours-dir> <preset> <pages>
 #
-# <reference-dir>  ref-1.png, ref-2.png, … — the original (e.g. compiled LaTeX:
+# <reference-dir>  ref-1.png, ref-2.png, …: the original (e.g. compiled LaTeX:
 #                  `pdftoppm -r 144 -png template.pdf <dir>/ref`, then rename
 #                  ref-01.png → ref-1.png if pdftoppm zero-pads)
 # <ours-dir>       the theme-shots output (`<preset>-p1.png`, …,

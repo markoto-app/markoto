@@ -39,7 +39,7 @@ depends on AI.
 For each of the three capabilities (writing assistant, image, voice
 transcription) markoto picks, in this order:
 
-1. **Your own provider**, connected under **Settings -> AI provider** ([how](/docs/account/ai-provider)). Calls go to your account at that provider and are billed there.
+1. **Your own provider**, connected under **Settings → AI provider** ([how](/docs/account/ai-provider)). Calls go to your account at that provider and are billed there.
 2. **The instance default**, if whoever runs this markoto set one. On a self-hosted instance that is the operator's choice (including a local model). On markoto.app it is the **free AI allowance** for the writing assistant (see below); images and voice need your own provider there.
 3. Otherwise the capability is unavailable.
 
@@ -54,7 +54,7 @@ prompt bar, selection rewrite, `@markoto` in comments and the summaries of web
 search and fetched pages.
 
 - The allowance refills at the start of each month. The points meter in the top bar shows what is left.
-- It is shared: all free accounts together have a monthly pool, and the allowance is available while that pool lasts. If it runs out before the month ends, the AI bar says *"This month's free AI allowance is used up"* and links to **Settings -> AI provider**.
+- It is shared: all free accounts together have a monthly pool, and the allowance is available while that pool lasts. If it runs out before the month ends, the AI bar says *"This month's free AI allowance is used up"* and links to **Settings → AI provider**.
 - Connect your own provider at any time and it is used instead; your own key is never limited by the allowance or the pool.
 
 ## What markoto provides itself

@@ -34,7 +34,7 @@ describe('appendActivity', () => {
 
   it('clamps linesAdded/linesRemoved at 0', async () => {
     // Activity logger may pass negative values from a buggy diff.
-    // We should never store negatives — the display layer treats them
+    // We should never store negatives, the display layer treats them
     // as "unknown" otherwise.
     const u = await createUser()
     const doc = await seedDoc({ ownerId: u.id })
@@ -85,7 +85,7 @@ describe('pruneActivity', () => {
   })
 
   it('drops oldest rows above the 500-row cap', async () => {
-    // Use batch SQL insert — calling appendActivity 501 times serially
+    // Use batch SQL insert, calling appendActivity 501 times serially
     // would work but makes the test slow. Direct INSERT is fine since
     // the test is about pruneActivity, not appendActivity shape.
     const u = await createUser()

@@ -126,7 +126,7 @@ esac
 
 # Billing mode (shared/config/billingMode.ts). The hosted deployment runs
 # free-only with paid plans advertised as "coming soon": billing OFF,
-# coming-soon ON. Stripe secrets are only required once billing is on —
+# coming-soon ON. Stripe secrets are only required once billing is on,
 # the same truthy spellings the app accepts (1/true/yes/on).
 NUXT_BILLING_ENABLED="${NUXT_BILLING_ENABLED:-false}"
 NUXT_PLANS_COMING_SOON="${NUXT_PLANS_COMING_SOON:-true}"
@@ -147,7 +147,7 @@ esac
 
 # Bring-your-own-key AI. The hosted SaaS restricts BYOK base URLs to the
 # provider allowlist below (shared/ai/providers.ts
-# RECOMMENDED_SAAS_ALLOWED_BASE_URLS — keep in sync). Private-network
+# RECOMMENDED_SAAS_ALLOWED_BASE_URLS: keep in sync). Private-network
 # provider URLs stay off.
 NUXT_AI_BYOK_ALLOWED_BASE_URLS="${NUXT_AI_BYOK_ALLOWED_BASE_URLS:-https://api.mistral.ai/v1,https://api.openai.com/v1,https://openrouter.ai/api/v1,https://api.groq.com/openai/v1,https://api.together.xyz/v1,https://api.deepinfra.com/v1/openai,https://api.fireworks.ai/inference/v1,https://api.scaleway.ai/v1}"
 NUXT_AI_BYOK_ALLOW_PRIVATE_URLS="${NUXT_AI_BYOK_ALLOW_PRIVATE_URLS:-false}"
@@ -271,7 +271,7 @@ for n in "${INPUTS[@]}"; do
 done
 
 cat <<EOF
-# markoto .env — rendered by infra/render-env.sh (deploy.yml or Ansible).
+# markoto .env: rendered by infra/render-env.sh (deploy.yml or Ansible).
 # Do not edit on the VPS; re-deploy after changing the secrets or group_vars.
 
 # Compose reads this file from the working directory (/opt/markoto) and

@@ -11,10 +11,10 @@ import {
 
 // LiteLLM spend-tag construction. Four axes in one metadata payload:
 // feature (always), workspace + user + doc (conditional on context).
-// Single source of truth — every billable call site uses
+// Single source of truth, every billable call site uses
 // `featureMetadata(...)` rather than hand-rolling tag arrays.
 
-describe('featureTags — namespaces', () => {
+describe('featureTags: namespaces', () => {
   it('TAG_NAMESPACES enumerates every prefix the dashboard recognises', () => {
     expect(TAG_NAMESPACES).toEqual(['feature:', 'workspace:', 'user:', 'doc:'])
   })
@@ -32,7 +32,7 @@ describe('featureTags — namespaces', () => {
   })
 })
 
-describe('featureMetadata — multi-axis construction', () => {
+describe('featureMetadata: multi-axis construction', () => {
   it('emits feature-only when no context provided', () => {
     const md = featureMetadata(FEATURE_TAGS.transcribe)
     expect(md.metadata.tags).toEqual(['feature:transcribe'])
@@ -61,7 +61,7 @@ describe('featureMetadata — multi-axis construction', () => {
     expect(md.metadata.tags).toEqual(['feature:image-gen', 'user:99'])
   })
 
-  it('skips userId when it is zero or negative (defensive — sentinel for "anonymous")', () => {
+  it('skips userId when it is zero or negative (defensive, sentinel for "anonymous")', () => {
     // We never bill an unauthenticated user (every billable site
     // requires a session), but a zero would tag spend to a fake
     // "user:0" that an attacker could potentially monitor.

@@ -1,7 +1,7 @@
 import { documentViews } from '../../../../repos/documentViews'
 import { planHasFeature, resolveDocPlanFor } from '../../../../utils/billing/entitlements'
 
-// GET /api/docs/:docId/share-settings — share-link controls for the
+// GET /api/docs/:docId/share-settings: share-link controls for the
 // owner and workspace admins: expiry, view-only without download, and the
 // opens of the last 30 days (only on a plan with the feature).
 export default defineApiHandler({

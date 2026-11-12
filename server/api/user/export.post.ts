@@ -4,13 +4,13 @@ import { AUDIT_ACCOUNT_EXPORT_REQUESTED } from '../../legal/auditActions'
 import { isRepoError } from '../../repos/errors'
 import { DAY_MS } from '~~/shared/config/units'
 
-// GDPR Article 20 — request a data export. Enqueues a job; the
+// GDPR Article 20: request a data export. Enqueues a job; the
 // worker (`data-export-worker.ts`) runs the build + S3 PUT
 // asynchronously and emails the user when ready (best-effort).
 //
 // Rate limit: 1 successful enqueue per user per 24 hours. The active-
 // job dedup at the repo layer enforces "one in flight at a time"
-// — this rate limit is the additional defense against scripted
+// this rate limit is the additional defense against scripted
 // repeat-requests after a job completes (each one builds a new
 // ZIP and consumes S3 + DB resources).
 //

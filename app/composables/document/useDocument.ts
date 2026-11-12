@@ -76,9 +76,9 @@ function createAwareness(ydoc: Y.Doc): Awareness {
 /**
  * Thin orchestrator that wires together the three sub-composables a document
  * needs:
- *   - `useDocToken`       — /token fetch, access-mode, password-unlock flow
- *   - `useHocuspocusSync` — provider lifecycle, status/synced/userCount
- *   - (owned here)        — Y.Doc itself, title bridge, deletion observer,
+ *   - `useDocToken`      : /token fetch, access-mode, password-unlock flow
+ *   - `useHocuspocusSync`: provider lifecycle, status/synced/userCount
+ *   - (owned here)       : Y.Doc itself, title bridge, deletion observer,
  *                           awareness bootstrap, template seeding
  *
  * The return shape is consumed by `EditorLayout.vue`; keep it stable.
@@ -186,7 +186,7 @@ export function useDocument(docId: string) {
   /**
    * Called by PasswordModal. Updates the token in place, then reconnects the
    * provider with the new JWT. `requiresPassword` stays true until the first
-   * sync completes — see `onSynced` above.
+   * sync completes: see `onSynced` above.
    */
   async function onPasswordVerified(newToken: string) {
     // A gated visitor's /token carried no metadata; fetch it with the

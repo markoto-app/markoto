@@ -9,7 +9,7 @@ import { cssFontStack } from './cssValues'
 /**
  * Heading scale. `headings.scale` is the ratio between neighbouring levels
  * from h4 up: h4 = body size (weight carries it), h3 = body·scale,
- * h2 = body·scale², h1 = body·scale³ — 1.73× body at 1.2, 1.95× at 1.25,
+ * h2 = body·scale², h1 = body·scale³, 1.73× body at 1.2, 1.95× at 1.25,
  * 2.1× at 1.28, 2.37× at 1.333. h5 = body, h6 = 0.9·body. Display sizes
  * belong to the cover / title block only.
  */
@@ -82,13 +82,13 @@ export function typographyBlock(theme: DocTheme): string {
   const paragraphMargin = theme.body.paragraphSpacing.toFixed(2)
   // First-line indent: skip the first paragraph (no preceding paragraph
   // visually breaks the flow), indent every paragraph that follows
-  // another paragraph. The indent is a typographic 1.2em — enough to
+  // another paragraph. The indent is a typographic 1.2em, enough to
   // see, not so much it reads as a tab.
   const firstLineIndentCss = theme.body.firstLineIndent
     ? `\n.paged-doc > p + p { text-indent: 1.2em; }`
     : ''
 
-  // Drop cap — styled on a `<span class="markoto-dropcap">` injected
+  // Drop cap: styled on a `<span class="markoto-dropcap">` injected
   // around the first letter of the first paragraph by
   // `usePagedPreview.wrapFirstLetterAsDropCap`. Lives on a real
   // element rather than `::first-letter` because paged.js's CSSTree
@@ -124,7 +124,7 @@ export function typographyBlock(theme: DocTheme): string {
     // Higher specificity than the doc-level `.paged-doc p` rule because
     // class beats element, so attribute-tagged blocks override the
     // theme-wide alignment without `!important`. Targets paragraphs,
-    // headings, blockquotes, list items, and figcaptions — anywhere
+    // headings, blockquotes, list items, and figcaptions, anywhere
     // an attribute can land.
     `.paged-doc .text-left { text-align: left; text-align-last: left; }`,
     `.paged-doc .text-center { text-align: center; text-align-last: center; }`,
@@ -152,7 +152,7 @@ export function typographyBlock(theme: DocTheme): string {
     `.paged-doc figcaption:empty { display: none; }`,
     `.paged-doc figcaption { font-family: ${cssFontStack(theme.meta.font)}; font-size: 0.85em; color: var(--doc-secondary); margin-top: 0.4em; font-style: italic; }`,
     hrCss(theme),
-    // Footnote support — see `transformFootnotesForPagedMedia` in
+    // Footnote support: see `transformFootnotesForPagedMedia` in
     // app/utils/markdown/renderMarkdown.ts.
     // Footnotes are text: body font, 0.8 × body size (set on @footnote too).
     `.paged-doc .footnote { float: footnote; font-family: ${cssFontStack(theme.body.font)}; font-size: ${(theme.body.size * 0.8).toFixed(2)}pt; line-height: 1.35; font-style: normal; font-weight: normal; }`,

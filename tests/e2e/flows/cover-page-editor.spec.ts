@@ -3,8 +3,8 @@ import { test, expect } from '../fixtures/flow'
 // Tier 2: "Make a real title page".
 //
 // User-job: a writer wants their PDF to open with a proper title
-// sheet — the document name above the fold, a subtitle line, their
-// name, the date — instead of the body text starting on page 1.
+// sheet: the document name above the fold, a subtitle line, their
+// name, the date, instead of the body text starting on page 1.
 // Job done when they've cycled to a different cover layout, added
 // a subtitle, and seen the live preview re-render after each.
 //
@@ -73,7 +73,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       result: 'The theme panel opens to the preset cards + section accordions.',
       // Mobile: cover-section button lives below the sheet's visible
       // viewport (sheet has internal scroll). `state: 'visible'` would
-      // require it to be on-screen; `attached` is enough — the next
+      // require it to be on-screen; `attached` is enough, the next
       // click forces it into view.
       after: () => editor.page.theme.coverSection.waitFor({
         state: editor.isMobile ? 'attached' : 'visible',
@@ -91,7 +91,7 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'Cover page accordion', selector: 'button:has-text("Cover page")', kind: 'arrow' }
       ],
-      result: 'The cover-page editor expands — every field on one scroll-length panel.',
+      result: 'The cover-page editor expands, every field on one scroll-length panel.',
       after: () => page.locator('[data-testid="theme-cover-layout-select"]').waitFor({ state: 'visible', timeout: 3_000 })
     }
   )
@@ -107,13 +107,13 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
   // USelect renders as a button-trigger combobox. On mobile the
   // theme panel runs inside a `mk-sheet-host` bottom sheet, and the
   // sheet's `aria-hidden="true"` doesn't stop pointer events from
-  // routing to its children — Reka portals the popover but the
+  // routing to its children, Reka portals the popover but the
   // sheet's labels still intercept. Force-click to bypass the
   // actionability check (matches the pattern in the document-context
   // mobile branch).
   const layoutSelect = page.locator('[data-testid="theme-cover-layout-select"]')
   if (editor.isMobile) {
-    // Real clicks — the option popover now stacks above the bottom sheet
+    // Real clicks: the option popover now stacks above the bottom sheet
     // (main.css z-index fix), so no synthetic-PointerEvent workaround needed.
     await flow.step(
       'Open the layout dropdown',
@@ -134,12 +134,12 @@ test('Edit your cover page', async ({ page, flow, editor }) => {
       'Open the layout dropdown',
       layoutSelect,
       {
-        result: 'The four cover layouts list — pick one to preview it.',
+        result: 'The four cover layouts list, pick one to preview it.',
         after: () => page.getByRole('option', { name: /banner/i }).first().waitFor({ state: 'visible', timeout: 3_000 })
       }
     )
     await flow.click(
-      'Choose "Banner — logo + title in a brand-tinted top band"',
+      'Choose "Banner: logo + title in a brand-tinted top band"',
       page.getByRole('option', { name: /banner/i }).first(),
       {
         result: 'The cover changes: logo and title now sit in a tinted band across the top.',

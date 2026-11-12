@@ -15,7 +15,7 @@ const loopLog = useLogger('ai-loop')
  * generate_image, etc.). Doc-mutating tools bubble through sync-server
  * and emit their own activity events.
  *
- * Fire-and-forget — failures must never block the agentic loop.
+ * Fire-and-forget: failures must never block the agentic loop.
  */
 export async function logAiTool(
   doc: DocAccess<'write'>,
@@ -30,7 +30,7 @@ export async function logAiTool(
       // enrichment join can resolve back to the human initiator
       // through `ai_sessions.session_id = sessionId`. Without this,
       // the row would be indistinguishable from a deleted-user edit
-      // — `user_id=NULL`, `user_name='AI Assistant'`, no traceback.
+      // `user_id=NULL`, `user_name='AI Assistant'`, no traceback.
       actorPrincipal: aiClientUserId(sessionId),
       action: 'ai.tool',
       metadata
@@ -46,7 +46,7 @@ export async function logAiTool(
  * sub-calls) to the activity feed so the AI's reads/searches show in the
  * row stream. Which tools, and what their row carries, is the tool's
  * `activity` in the registry; view_document and read_comments have none
- * (pure noise — AI reads doc state every turn).
+ * (pure noise: AI reads doc state every turn).
  */
 export function logToolActivity(ctx: LoopContext, name: string, validatedArgs: unknown): void {
   const activity = findTool(name)?.activity

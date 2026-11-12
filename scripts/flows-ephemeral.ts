@@ -31,7 +31,7 @@ const NUXT_PORT = 3001
 // The flows browse the app as `markoto.localhost` rather than `localhost`:
 // share dialogs, copied links and QR codes print `location.origin`, and the
 // screenshots are documentation. `*.localhost` is loopback by definition
-// (RFC 6761 — Chromium and systemd-resolved / Bun resolve it to 127.0.0.1
+// (RFC 6761: Chromium and systemd-resolved / Bun resolve it to 127.0.0.1
 // without any hosts entry) and still counts as a loopback NUXT_SITE_URL for
 // the TEST_MODE guard (shared/utils/security/testMode.ts), so nothing is faked: the
 // URL in a frame is the URL the browser really loaded.
@@ -120,7 +120,7 @@ const FLOWS_ENV: Record<string, string> = {
   NUXT_STRIPE_SECRET_KEY: 'sk_test_flows123',
   NUXT_STRIPE_WEBHOOK_SECRET: 'whsec_test_flows',
   NUXT_STRIPE_API_BASE: 'http://127.0.0.1:12111',
-  // Stripe price catalogue for stripe-mock (no lookup keys) — same map as
+  // Stripe price catalogue for stripe-mock (no lookup keys), same map as
   // tests/integration/setup/env.ts#TEST_STRIPE_PRICE_IDS.
   NUXT_STRIPE_PRICE_IDS: 'markoto_pro_month_eur=price_test_pro,markoto_pro_year_eur=price_test_pro_year,markoto_team_month_eur=price_test_team,markoto_team_year_eur=price_test_team_year,markoto_business_month_eur=price_test_business,markoto_business_year_eur=price_test_business_year,markoto_pro_month_chf=price_test_pro_chf,markoto_pro_year_chf=price_1PgafmB7WZ01zgkW6dKueIc5,markoto_team_month_chf=price_test_team_chf,markoto_team_year_chf=price_test_team_year_chf,markoto_business_month_chf=price_test_business_chf,markoto_business_year_chf=price_test_business_year_chf',
   // Skip the inactive-doc sweep: pointless on short-lived infra.
@@ -145,7 +145,7 @@ const FLOWS_ENV: Record<string, string> = {
   // network's private address.
   NUXT_SSO_ALLOW_PRIVATE_URLS: 'true',
   // Live dictation on the alias default needs the operator's Mistral key
-  // in the APP process (the realtime WS is direct, not via LiteLLM) —
+  // in the APP process (the realtime WS is direct, not via LiteLLM),
   // without it the dictation button is hidden. The flow stack swaps the
   // realtime client for the canned mock (NUXT_VOXTRAL_REALTIME_MOCK above),
   // so a placeholder is enough on the key-less PR gate; a real key from
@@ -215,7 +215,7 @@ async function waitForHttp(url: string, timeoutMs: number): Promise<void> {
       // Only 200 counts as ready: /api/health queries `users`, which 500s
       // while `00-db-migrate` is still running.
       if (r.status === 200) return
-    } catch { /* connection refused etc — keep polling */ }
+    } catch { /* connection refused etc, keep polling */ }
     await Bun.sleep(500)
   }
   throw new Error(`timed out waiting for ${url} after ${timeoutMs}ms`)
@@ -255,7 +255,7 @@ async function cleanup() {
   cleaningUp = true
   await stopNuxt()
   console.log('[flows-ephemeral] tearing down docker stack')
-  // NOTE: NO --remove-orphans here — that flag treats other compose
+  // NOTE: NO --remove-orphans here, that flag treats other compose
   // files in the same project namespace as orphans and removes them
   // (e.g. nuking dev containers). Down only stops what THIS profile
   // started; integration-test services + dev infra survive.
@@ -282,7 +282,7 @@ async function main() {
 
 async function bootStack() {
   // Step 1: docker stack. The renderer container navigates back to the app's
-  // print page — point it at OUR port (the flow app serves on NUXT_PORT, not
+  // print page: point it at OUR port (the flow app serves on NUXT_PORT, not
   // the integration default of 3101), or every server-rendered-PDF flow fails
   // because the renderer can't reach the app.
   process.env.RENDERER_APP_URL = `http://host.docker.internal:${NUXT_PORT}`
@@ -290,7 +290,7 @@ async function bootStack() {
   // The flow app serves on NUXT_PORT (3001). Set this EXPLICITLY (not just
   // relying on the compose default) so that when the CI job brought sync-test
   // up pointed at the integration port (3101), this `up` recreates it back on
-  // our port — otherwise the inherited env would leave it on 3101 and every
+  // our port: otherwise the inherited env would leave it on 3101 and every
   // activity-attribution flow would silently log to a dead port.
   process.env.SYNC_TEST_APP_URL = `http://host.docker.internal:${NUXT_PORT}`
   console.log('[flows-ephemeral] booting docker stack')
@@ -304,11 +304,11 @@ async function bootStack() {
 async function buildApp() {
   // Step 2: production build. Skip with FLOWS_SKIP_BUILD=1 if you've
   // already got a fresh .output/ from a previous run AND haven't
-  // touched app code (rare — most edits invalidate the bundle).
+  // touched app code (rare, most edits invalidate the bundle).
   // A test build (MARKOTO_TEST_BUILD=1): the flows sign in through
   // /api/_test/login, which production builds leave out.
   if (process.env.FLOWS_SKIP_BUILD === '1' && testRoutesInBuild('.output').length > 0) {
-    console.log('[flows-ephemeral] FLOWS_SKIP_BUILD=1 — reusing existing .output/')
+    console.log('[flows-ephemeral] FLOWS_SKIP_BUILD=1: reusing existing .output/')
   } else {
     console.log('[flows-ephemeral] building production bundle (test build)')
     process.env.MARKOTO_TEST_BUILD = '1'
@@ -328,7 +328,7 @@ async function serveOnly() {
   if (process.env.FLOWS_BILLING === 'on') phase = BILLING_PHASE
   else if (process.env.FLOWS_MARKETING === 'on') phase = MARKETING_PHASE
   await startNuxt(phase.env)
-  console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1 — app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
+  console.log(`[flows-ephemeral] FLOWS_SERVE_ONLY=1: app up at ${NUXT_URL} (${phase.name}). Ctrl-C to tear down.`)
   await new Promise(() => {}) // wait forever; cleanup runs on SIGINT/SIGTERM
 }
 
@@ -343,12 +343,12 @@ async function runPasses(args: string[]) {
     // restarting the app. All passes empty is an error (checked below).
     const listed = await countListedTests([...phase.grep, ...args])
     if (listed === 0) {
-      console.log(`[flows-ephemeral] no flows for this pass — skipping ${phase.name}`)
+      console.log(`[flows-ephemeral] no flows for this pass, skipping ${phase.name}`)
       continue
     }
     testsRan += listed
     await startNuxt(phase.env)
-    console.log(`[flows-ephemeral] running Playwright — ${phase.name} (${listed} tests)`)
+    console.log(`[flows-ephemeral] running Playwright: ${phase.name} (${listed} tests)`)
     const code = await shellOut([
       'bunx', 'playwright', 'test',
       ...phase.grep,

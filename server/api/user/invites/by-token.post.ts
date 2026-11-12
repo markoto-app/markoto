@@ -3,7 +3,7 @@ import { hashInviteSecret, parseInviteToken } from '../../../utils/workspaces/wo
 import { actOnInviteTokenBody } from '~~/shared/api/account'
 import { MINUTE_MS } from '~~/shared/config/units'
 
-// POST /api/user/invites/by-token — act on an invitation from its
+// POST /api/user/invites/by-token: act on an invitation from its
 // emailed link (`/invites/accept?token=…`). Sign-in required (the
 // membership needs an account); the token proves control of the invited
 // mailbox, so the account's own email doesn't have to match.

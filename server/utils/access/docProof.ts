@@ -31,12 +31,12 @@ export { getDocWorkspaceId }
  * Can this logged-in user write to the document's CONTENT through a
  * server-side path (AI prompt, @ai comment trigger, restore, dictation,
  * image upload)? Same rule as the Y.js token the editor gets from
- * `GET /api/docs/:id/token` — `decideTokenAccess` granting a writable
- * token — so no endpoint can hand out more than the editor itself:
+ * `GET /api/docs/:id/token`: `decideTokenAccess` granting a writable
+ * token: so no endpoint can hand out more than the editor itself:
  *
  *   - doc owner, workspace admin/editor → yes, on every access mode
  *     (ownership of a doc in an SSO-enforcing workspace counts only while
- *     the user has an effective role there — `docStateOf`);
+ *     the user has an effective role there, `docStateOf`);
  *   - workspace viewer → no, even on `open-edit` docs (viewer wins over
  *     the public edit grant);
  *   - anyone else → only on `open-edit` docs.

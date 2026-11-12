@@ -59,7 +59,7 @@ describe('countKnowledgeByUploader / sumKnowledgeBytesByUploader', () => {
     const ws = await createWorkspace(u.id)
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'ok.pdf', sizeBytes: 1000 })
     await seed({ workspaceId: ws.workspaceId, uploaderId: u.id, filename: 'bad.pdf', sizeBytes: 2000 })
-    // Flip one to failed — it should STILL count against the quota.
+    // Flip one to failed, it should STILL count against the quota.
     const db = testDb()
     await db.query(`UPDATE workspace_knowledge SET status = 'failed' WHERE filename = 'bad.pdf'`)
     expect(await countKnowledgeByUploader(asUser(u.id))).toBe(2)

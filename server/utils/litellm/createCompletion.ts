@@ -7,20 +7,19 @@ import { isBudgetExceededError } from './userKeys'
 //
 // The OpenAI SDK types `ChatCompletionCreateParams['metadata']` as `Metadata`
 // (= `Record<string, string>`). LiteLLM extends this with `{ tags: string[] }`
-// for spend-attribution tags — structurally incompatible with the base type —
-// plus the clientside `api_key` / `api_base`. The SDK gets the standard
+// for spend-attribution tags, structurally incompatible with the base type, // plus the clientside `api_key` / `api_base`. The SDK gets the standard
 // fields as its typed params and the full LiteLLM body through its `body`
 // request option (which replaces the serialized body), so no cast hides a
 // type error in the body.
 //
-// Retry semantics — applies to both wrappers below:
+// Retry semantics: applies to both wrappers below:
 //   - 429 from upstream (Mistral / Jina / BFL) is RETRIED with
-//     exponential backoff (3s, 6s, 12s, 24s — total ≤45s for 4
+//     exponential backoff (3s, 6s, 12s, 24s, total ≤45s for 4
 //     retries). Sized to ride out a full Mistral per-minute
 //     rate-limit reset window even on sustained throttling, NOT
 //     just transient bursts. Honors the `Retry-After` header when
 //     the upstream supplies one.
-//   - LiteLLM budget_exceeded errors are NOT retried — they're a
+//   - LiteLLM budget_exceeded errors are NOT retried, they're a
 //     correctness signal we want to surface (caller catches and
 //     emits the upgrade-CTA breadcrumb).
 //   - AbortSignal aborts immediately; in-flight backoff is cancelled.
@@ -89,7 +88,7 @@ async function withRetry<T>(
       return await attempt()
     } catch (e) {
       lastErr = e
-      // Budget exhaustion is correctness, not flake — never retry.
+      // Budget exhaustion is correctness, not flake, never retry.
       if (isBudgetExceededError(e)) throw e
       const retryAfterHint = get429RetryAfterMs(e)
       if (retryAfterHint === null) throw e // not a 429
@@ -98,14 +97,14 @@ async function withRetry<T>(
       await sleepCancellable(backoff, opts?.signal)
     }
   }
-  // Unreachable — the loop either returns or throws.
+  // Unreachable: the loop either returns or throws.
   throw lastErr
 }
 
 /**
  * LiteLLM request-body extensions beyond the OpenAI shape:
- *   - `metadata.tags` — four-axis spend tags (featureTags.ts).
- *   - `api_key` / `api_base` — clientside (BYOK) credentials. Only valid
+ *   - `metadata.tags`: four-axis spend tags (featureTags.ts).
+ *   - `api_key` / `api_base`, clientside (BYOK) credentials. Only valid
  *     together with a `byok/*` model; build them with
  *     `providerRequestFields()` (server/utils/aiProviders/requestFields.ts),
  *     which also re-runs the SSRF policy on the base URL.
@@ -136,7 +135,7 @@ function sdkParams<T extends LitellmBodyExtensions>(body: T): Omit<T, keyof Lite
 
 /**
  * Image generation through LiteLLM's `/v1/images/generations` (BYOK
- * path — the user's OpenAI-compatible images API). Uses the SDK's
+ * path: the user's OpenAI-compatible images API). Uses the SDK's
  * generic `post` because the typed `images.generate` rejects LiteLLM's
  * body extensions. Same 429 retry policy as the chat wrappers.
  */
@@ -154,7 +153,7 @@ export async function litellmImage(
 /**
  * One-shot transcription through LiteLLM's `/v1/audio/transcriptions`
  * (BYOK path). The form carries `model` + the clientside credential
- * fields next to the audio file — verified that LiteLLM v1.106.4 reads
+ * fields next to the audio file, verified that LiteLLM v1.106.4 reads
  * `api_key` / `api_base` from multipart form fields.
  */
 export async function litellmTranscription(
@@ -170,7 +169,7 @@ export async function litellmTranscription(
 
 /**
  * Non-streaming chat completion through LiteLLM. Use when you need the
- * full response in one shot — e.g. `web_search` / `fetch_url` synthesis,
+ * full response in one shot, e.g. `web_search` / `fetch_url` synthesis,
  * voice transcribe, voice-tick billing.
  */
 export async function litellmCompletion(
@@ -188,7 +187,7 @@ export async function litellmCompletion(
  * Streaming chat completion through LiteLLM. Use for the agentic loop's
  * main turn-by-turn streaming where we read tool-call deltas as they
  * arrive. Returns an `AsyncIterable<ChatCompletionChunk>` instead of the
- * SDK's `Stream<...>` — the chunk-translator in `messageTranslation.ts`
+ * SDK's `Stream<...>`: the chunk-translator in `messageTranslation.ts`
  * only consumes the iterator interface.
  */
 // eslint-disable-next-line sonarjs/no-identical-functions -- same body as litellmCompletion, but the SDK's streaming overload (and return type) is picked from the stream params
@@ -197,7 +196,7 @@ export async function litellmStream(
   body: LitellmCreateStreamParams,
   opts?: { signal?: AbortSignal }
 ): Promise<AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>> {
-  // 429 surfaces synchronously from the SDK before the stream starts —
+  // 429 surfaces synchronously from the SDK before the stream starts,
   // retrying here covers the "I never got a single chunk" failure
   // mode. A 429 mid-stream (rare; happens if the proxy bills as you
   // go) would NOT be caught here, but we have no resumption strategy

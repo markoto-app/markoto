@@ -39,7 +39,7 @@ export const EMBEDDING_DIMENSION_LOCK = 'knowledge-embedding-dimension'
 
 // Both spellings of the same command: from a source checkout, and inside
 // the shipped app image (the Dockerfile bundles scripts/reembed-knowledge.ts
-// into /app/cli/ — the runtime image has no scripts/ dir or dev deps).
+// into /app/cli/: the runtime image has no scripts/ dir or dev deps).
 const REEMBED_COMMAND = '`bun run knowledge:reembed` (source checkout) or `docker compose exec app bun cli/reembed-knowledge.js` (container)'
 
 const IDENT = /^[a-z_][a-z0-9_]*$/

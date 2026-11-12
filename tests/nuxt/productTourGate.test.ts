@@ -35,14 +35,14 @@ beforeEach(() => {
   session.loggedIn = false
 })
 
-describe('home page — product tour gate', () => {
+describe('home page: product tour gate', () => {
   it('shows the tour to logged-out visitors when the flag is on', async () => {
     setConfig({ marketingSite: true })
     const wrapper = await mountSuspended(HomeRoute, { route: '/' })
     const tour = wrapper.find('[data-testid="product-tour"]')
     expect(tour.exists()).toBe(true)
     expect(tour.find('h1').text()).toBe('Beautifully rendered Markdown.')
-    expect(tour.find('[data-testid="tour-start-writing"]').text()).toContain('Start writing — no sign-up')
+    expect(tour.find('[data-testid="tour-start-writing"]').text()).toContain('Start writing, no sign-up')
     // Every scene's copy is in the markup (SEO) as a real heading.
     const headings = tour.findAll('h2').map(h2 => h2.text())
     expect(headings).toContain('Write Markdown, get paged documents.')

@@ -31,7 +31,7 @@ async function mount() {
   return wrapper
 }
 
-describe('theme panel — design picker', () => {
+describe('theme panel: design picker', () => {
   it('shows every preset as a card with its first-page picture', async () => {
     const wrapper = await mount()
     for (const preset of THEME_PRESETS) {

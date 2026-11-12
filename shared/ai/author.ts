@@ -2,7 +2,7 @@
 // on comments and replies it creates, with `authorId: null`). ONE
 // constant so the loop guard that stops the AI answering its own
 // comments, the delete-permission check and the comment writer can't
-// drift apart again — they did once: the writer switched to 'markoto'
+// drift apart again: they did once: the writer switched to 'markoto'
 // while the guard still compared against the old name.
 export const AI_COMMENT_AUTHOR_NAME = 'markoto'
 

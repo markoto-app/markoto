@@ -20,7 +20,7 @@ import { useEnv } from '~~/shared/env/load'
  *   5. per-user + per-workspace DB caps + Valkey inflight slot reserve
  *   6. presigned URL mint
  *
- * Row inserts happen at CONFIRM time, not here — that way an abandoned
+ * Row inserts happen at CONFIRM time, not here, that way an abandoned
  * upload (never PUT) doesn't create a `status='processing'` row the
  * sweep has to retry. Objects PUT but never confirmed (and staging
  * leftovers) are deleted by orphan-cleanup's knowledge pass
@@ -79,7 +79,7 @@ export default defineApiHandler({
     try {
       const s3 = usePresignS3Client()
       // SSE NOTE: presigned PUTs deliberately omit `ServerSideEncryption`
-      // — see server/api/upload/request.post.ts for the full rationale.
+      // see server/api/upload/request.post.ts for the full rationale.
       // Bucket-level default-encryption (docs/S3-SETUP.md §6) covers the
       // browser PUT path; server-side direct PUTs set the header
       // explicitly as defense-in-depth.

@@ -2,7 +2,7 @@
 import type { ApiResponse } from '~/utils/api/client'
 
 // Pre-deletion consequence modal. Pulls /api/user/me/deletion-preview
-// when opened so the rendered text reflects live state — names of
+// when opened so the rendered text reflects live state, names of
 // workspaces that will cascade vs the names of members who will be
 // promoted, etc. Requires the user to type a magic phrase before
 // the destructive action enables.
@@ -280,7 +280,7 @@ async function onConfirm(): Promise<void> {
 
         <!-- Confirm gate. shrink-0 keeps it visible at the bottom of
              the modal regardless of how long the consequence preview
-             is — without this the row would collapse off-screen on
+             is: without this the row would collapse off-screen on
              mobile (the modal flex-column caps at 85vh). -->
         <div class="mt-6 pt-4 border-t border-default shrink-0">
           <UFormField

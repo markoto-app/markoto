@@ -9,8 +9,8 @@ import { createTemplateBody } from '~~/shared/api/brand'
 import { WORKSPACE_TEMPLATES_PER_WORKSPACE } from '~~/shared/config/brandKit'
 import { proveWorkspaceDoc } from '../../../../utils/access/docProof'
 
-// POST /api/workspaces/:wsId/templates — {docId, name, description?}
-// — make one of the workspace's documents a template. Admins, plan
+// POST /api/workspaces/:wsId/templates: {docId, name, description?}
+// make one of the workspace's documents a template. Admins, plan
 // feature `brandKit`. Live link: edits to the document change what new
 // documents start with.
 export default defineApiHandler({

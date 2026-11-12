@@ -25,7 +25,7 @@ function removeAuthor(idx: number) {
 
 // `cover.affiliations` is optional (absent in themes stored before it
 // existed): read through its default, written only when the user changes
-// it — opening the panel must not rewrite the document's theme.
+// it: opening the panel must not rewrite the document's theme.
 function affiliationAt(idx: number): string {
   return resolveTitleBlock(theme.value).affiliations[idx] ?? ''
 }

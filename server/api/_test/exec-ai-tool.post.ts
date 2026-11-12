@@ -77,7 +77,7 @@ export default defineApiHandler({
     }
 
     const result = await executeFunctionByName(aiSession, name, args)
-    // Surface extraParts when present (view_image, view_pages — anything
+    // Surface extraParts when present (view_image, view_pages, anything
     // that smuggles inlineData bytes back to the model). Tests assert on
     // the part shape + base64; we don't decode here.
     return {

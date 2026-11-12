@@ -2,7 +2,7 @@ import { startWorkspaceCheckoutBody } from '~~/shared/api/billing'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { startWorkspaceCheckout } from '../../../../utils/billing/workspaceCheckout'
 
-// POST /api/workspaces/:wsId/billing/checkout — buy Team / Business for a
+// POST /api/workspaces/:wsId/billing/checkout: buy Team / Business for a
 // workspace, or change the plan / billing period of its live subscription
 // Workspace admins only; the caller becomes the billing admin.
 //

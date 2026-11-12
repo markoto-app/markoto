@@ -21,7 +21,7 @@ import type { AdminActor, DocAccess } from '../../repos/proofs'
 //   2. apply the action to the content (delete / restrict: private, and
 //      kept so until an admin lifts it),
 //   3. statement of reasons to the owner (DSA Art.17) when the content
-//      was removed or restricted — or a recorded "could not be delivered"
+//      was removed or restricted, or a recorded "could not be delivered"
 //      for an anonymous document (no owner to contact),
 //   4. decision notice to the reporter (Art.16(5)).
 // Every notice lands in `moderation_notices`. Called by
@@ -69,7 +69,7 @@ async function applyToContent(
     return 'removed'
   }
   if (action === 'access_restricted') {
-    // Private, no password, no guest shares — and marked, so the owner
+    // Private, no password, no guest shares, and marked, so the owner
     // can't widen it again (utils/moderationRestriction.ts); only an
     // admin lifts it (DELETE /api/admin/documents/:docId/moderation-restriction).
     await setModerationRestriction(doc, { reportId: meta.reportId })
@@ -151,7 +151,7 @@ export async function applyModerationDecision(input: {
       decidedAt,
       contact: abuseNotificationRecipient()
     })
-    // Anonymous doc (or one we could not find): no owner to contact —
+    // Anonymous doc (or one we could not find): no owner to contact,
     // recorded as not delivered, with the text we would have sent.
     ownerNotice = await deliverNotice({
       reportId: report.reportId,

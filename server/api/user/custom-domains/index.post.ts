@@ -8,7 +8,7 @@ import { addCustomDomainBody } from '~~/shared/api/account'
 import { CUSTOM_DOMAINS_PER_USER } from '~~/shared/config/customDomains'
 import { HOUR_MS } from '~~/shared/config/units'
 
-// POST /api/user/custom-domains — {hostname}. Adds a pending domain with
+// POST /api/user/custom-domains: {hostname}. Adds a pending domain with
 // its own verification token. Plan feature `customDomains`.
 export default defineApiHandler({
   access: allow.user(),

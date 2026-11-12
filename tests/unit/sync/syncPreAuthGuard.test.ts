@@ -66,7 +66,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('pre-auth guard — bytes', () => {
+describe('pre-auth guard: bytes', () => {
   it('closes a socket whose unauthenticated queue exceeds the per-socket cap', () => {
     const { open, rejections } = setup()
     const c = open()
@@ -155,7 +155,7 @@ describe('pre-auth guard — bytes', () => {
   })
 })
 
-describe('pre-auth guard — auth timeout', () => {
+describe('pre-auth guard: auth timeout', () => {
   it('closes a socket whose document queued messages but never sent an Auth frame', () => {
     const { open, rejections } = setup()
     const c = open()

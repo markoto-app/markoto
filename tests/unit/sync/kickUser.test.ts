@@ -7,7 +7,7 @@ import {
 } from '../../../sync-server/src/kickUser'
 import { SYNC_CLOSE_CODES, SYNC_REAUTH_REASON } from '../../../shared/contracts/syncClose'
 
-// Fake Hocuspocus instance builder. We don't need a real Y.Doc here — the
+// Fake Hocuspocus instance builder. We don't need a real Y.Doc here, the
 // kick-user logic only touches `documents.get()` + `doc.getConnections()`.
 // Casting a plain object to the structural type keeps the test focused on
 // the branching logic we actually care about.
@@ -125,7 +125,7 @@ describe('performKickUser', () => {
 
   it('continues iterating when one close() throws', () => {
     // If Hocuspocus's close() throws for some reason (connection already
-    // dead, transport bug), we must not stop the loop — other legitimate
+    // dead, transport bug), we must not stop the loop, other legitimate
     // kicks on the same doc need to land. Silent security hole otherwise.
     const throwingClose = vi.fn(() => {
       throw new Error('already closed')

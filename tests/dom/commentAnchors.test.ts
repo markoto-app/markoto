@@ -10,7 +10,7 @@ import { serializeAnchor, resolveAnchor } from '../../app/utils/comments/comment
 //      anchor's resolved offset DOWN by exactly the inserted length.
 //   2. Insertions INSIDE the anchored range expand the anchor.
 //   3. Deleting all anchored chars makes resolveAnchor return null
-//      (orphan) — relied on by the sidebar's "Removed from document"
+//      (orphan): relied on by the sidebar's "Removed from document"
 //      section.
 
 function makeView(ytext: Y.Text, from: number, to: number): EditorView {
@@ -26,7 +26,7 @@ describe('commentAnchors', () => {
     const ydoc = new Y.Doc()
     const ytext = ydoc.getText('content')
     ytext.insert(0, 'the dog ate the bone')
-    // Anchor "dog" — chars 4..7
+    // Anchor "dog": chars 4..7
     const view = makeView(ytext, 4, 7)
     const anchor = serializeAnchor(view, ytext)
     expect(anchor).not.toBeNull()
@@ -65,10 +65,10 @@ describe('commentAnchors', () => {
     const view = makeView(ytext, 4, 7) // "dog"
     const anchor = serializeAnchor(view, ytext)!
 
-    // Insert "BIG " at position 4 — RIGHT at the start. With assoc=0
+    // Insert "BIG " at position 4, RIGHT at the start. With assoc=0
     // on the start anchor, the start sticks to the original "d" of
     // "dog", which has now moved to position 8. The inserted text
-    // stays OUTSIDE the comment range — matches Word/Google-Docs:
+    // stays OUTSIDE the comment range, matches Word/Google-Docs:
     // typing at a comment boundary doesn't extend the comment.
     ytext.insert(4, 'BIG ')
     expect(ytext.toString()).toBe('the BIG dog ate the bone')
@@ -85,7 +85,7 @@ describe('commentAnchors', () => {
     const view = makeView(ytext, 4, 7) // "dog"
     const anchor = serializeAnchor(view, ytext)!
 
-    // Insert "ARK" at position 6 — between the "g" and the next char.
+    // Insert "ARK" at position 6, between the "g" and the next char.
     // The end anchor (assoc=-1 sticks to the "g") still tails the new
     // chars, so they fall WITHIN the range.
     ytext.insert(6, 'ARK')
@@ -103,7 +103,7 @@ describe('commentAnchors', () => {
     const view = makeView(ytext, 4, 7) // "dog"
     const anchor = serializeAnchor(view, ytext)!
 
-    // Insert at position 7 — right after "dog". With assoc=-1 on the end
+    // Insert at position 7, right after "dog". With assoc=-1 on the end
     // anchor, the new chars stay OUTSIDE the range; anchor remains 4..7.
     ytext.insert(7, ' SUFFIX')
     expect(ytext.toString()).toBe('the dog SUFFIX ate the bone')

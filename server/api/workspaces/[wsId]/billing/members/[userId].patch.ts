@@ -8,7 +8,7 @@ import { memberUserParams, setMemberLimitBody } from '~~/shared/api/billing'
 /** Largest settable member limit, USD per month (typo guard). */
 const MAX_MEMBER_LIMIT_USD = 10_000
 
-// PATCH /api/workspaces/:wsId/billing/members/:userId — a member's monthly
+// PATCH /api/workspaces/:wsId/billing/members/:userId: a member's monthly
 // AI limit inside the workspace's pooled budget. Workspace admins
 // only. Body: {limitUsd: number} | {limitUsd: null} (no member limit; the
 // team budget still applies) | {default: true} (2 × the per-seat budget).

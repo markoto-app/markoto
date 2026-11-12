@@ -3,7 +3,7 @@ import { apiError } from '../api/apiError'
 
 // Sharing a workspace document with a GUEST. Who may share (declared by
 // the routes as `allow.doc('share-guests')`): admins and editors of the
-// document's workspace (normal role check — SSO enforcement applies). A
+// document's workspace (normal role check, SSO enforcement applies). A
 // guest, even one with edit access to the document, can't share it
 // further. Personal documents have no guests.
 

@@ -7,7 +7,7 @@
 | **Review** | Name (Team) |
 | **Erstellt** | JJJJ-MM-TT |
 | **Zuletzt geändert** | JJJJ-MM-TT |
-| **Ticket** | — |
+| **Ticket** | - |
 | **Entscheid bis** | JJJJ-MM-TT |
 
 # Zusammenfassung

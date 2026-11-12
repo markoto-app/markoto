@@ -8,7 +8,7 @@ const { brand: instanceBrand } = useInstanceConfig()
 
 useHead({
   // `%s · markoto`; pages set only their own title. Without one: the
-  // default "markoto — Collaborative Markdown".
+  // default "markoto: Collaborative Markdown".
   titleTemplate: title => applyTitleTemplate(title, instanceBrand.value.name),
   meta: [
     { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -26,7 +26,7 @@ useHead({
     // the body/UI workhorse. JetBrains Mono is the eyebrow/meta/CTA
     // register. Fraunces (variable opsz + wght, upright + italic)
     // handles the wordmark, display headlines, and the AI's italic
-    // voice. Served from our own origin (shared/utils/theme/themeFonts.ts) —
+    // voice. Served from our own origin (shared/utils/theme/themeFonts.ts),
     // no request leaves for Google Fonts.
     ...uiFontStylesheetUrls(['Inter', 'JetBrains Mono', 'Fraunces']).map(href => ({ rel: 'stylesheet' as const, href }))
   ],
@@ -58,7 +58,7 @@ useCanonical()
     :toaster="{ position: 'top-right' }"
   >
     <!-- Offline / deletion-grace banners, onboarding gate, consent
-         banner — kept off the server-render page. -->
+         banner: kept off the server-render page. -->
     <CommonAppOverlays />
     <!-- NuxtLayout wraps NuxtPage with whatever layout the page opts
          into via definePageMeta({ layout: 'name' }). Pages without

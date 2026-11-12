@@ -4,7 +4,7 @@ import { anonClient } from '../setup/client'
 import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
 
-// POST /api/internal/comments-snapshot — sync-server → app endpoint
+// POST /api/internal/comments-snapshot: sync-server → app endpoint
 // that mirrors the doc's comments Y.Array into Postgres. Auth is the
 // shared INTERNAL_API_SECRET header, same as activity.
 //
@@ -15,7 +15,7 @@ import { TEST_INTERNAL_SECRET } from '../setup/env'
 //   - Doc that doesn't exist: silent no-op with mirrored:false (no
 //     orphan rows for anonymous direct-URL docs).
 //   - Happy path: replaces the doc's rows atomically. A second call
-//     with a different list completely supersedes the first — no
+//     with a different list completely supersedes the first, no
 //     residue from the previous snapshot.
 //   - Defensive coercion: malformed entries are silently skipped,
 //     valid neighbors still land. Bodies above the cap are truncated.
@@ -249,7 +249,7 @@ describe('POST /api/internal/comments-snapshot', () => {
       await anonClient().post('/api/internal/comments-snapshot', seed(docA.docId, 'a1'), { headers: secretHeaders })
       await anonClient().post('/api/internal/comments-snapshot', seed(docB.docId, 'b1'), { headers: secretHeaders })
 
-      // Now snapshot docA empty — docB must remain.
+      // Now snapshot docA empty, docB must remain.
       await anonClient().post(
         '/api/internal/comments-snapshot',
         { docId: docA.docId, entries: [] },

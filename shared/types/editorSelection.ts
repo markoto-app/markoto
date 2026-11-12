@@ -4,11 +4,11 @@
 // concrete location instead of guessing.
 //
 // Three states, each with a distinct implication for tool choice:
-//   - `none`    — user is not engaged with the doc; AI should ask or
+//   - `none`   : user is not engaged with the doc; AI should ask or
 //                 `view_document` and decide based on content.
-//   - `cursor`  — user has a caret at a line; `insert_text(insert_line)`
+//   - `cursor` : user has a caret at a line; `insert_text(insert_line)`
 //                 is the obvious default for unqualified "add X" prompts.
-//   - `selection` — user has a range selected; `replace_text` (or a
+//   - `selection`: user has a range selected; `replace_text` (or a
 //                   scoped `view_document({ view_range })`) is the
 //                   obvious default for "rewrite this" / "fix this".
 //
@@ -24,11 +24,11 @@ export type EditorSelectionSnapshot
       /**
        * The text of line N with `<CURSOR_IS_HERE>` spliced in at the
        * caret position. Lets the AI split on the marker string to
-       * derive `before` + `after` instead of counting characters —
+       * derive `before` + `after` instead of counting characters,
        * LLMs are famously bad at column-offset arithmetic but great
        * at string splitting. If the line was too long to ship in
        * full, this is a window around the cursor with `…` prefixes
-       * / suffixes and `lineTruncated: true` — the AI must then
+       * / suffixes and `lineTruncated: true`, the AI must then
        * `view_document({ view_range: [N, N] })` to recover the
        * exact full line before a `replace_text` call.
        */
@@ -49,7 +49,7 @@ export const EDITOR_SELECTION_TEXT_MAX = 400
  * Literal marker spliced into the cursor's line so the model can see
  * exactly where the caret is inside the text. The matching rules that
  * consume this value (system prompt + sanitization) rely on it being
- * a stable string with no regex-special characters — don't change it
+ * a stable string with no regex-special characters, don't change it
  * without bumping both sides together.
  */
 export const CURSOR_MARKER = '<CURSOR_IS_HERE>'

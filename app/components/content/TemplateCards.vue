@@ -15,7 +15,7 @@
 // One card per template: a picture of one page of its example (white
 // paper in both colour modes, `public/templates/<id>.webp`, rendered by
 // `make template-gallery` from the template page's `::try-it` example in
-// its theme — tests/unit/theme/templateGallery.test.ts fails when it is stale), the name as a heading, one line, and a link. The whole
+// its theme: tests/unit/theme/templateGallery.test.ts fails when it is stale), the name as a heading, one line, and a link. The whole
 // card is the link's target area; the visible link text stays for
 // screen readers and crawlers.
 interface TemplateCard {

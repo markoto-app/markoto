@@ -75,8 +75,8 @@ Table: Caption of the table.
 
 | Condition | Measure | Measure |
 |---|--:|--:|
-| Baseline | — | — |
-| Condition | — | — |
+| Baseline | - | - |
+| Condition | - | - |
 
 ## Second result
 

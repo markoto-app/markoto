@@ -3,7 +3,7 @@ import type { PageOrientation, PageSize } from '../../types/theme'
 /**
  * Physical page dimensions in millimetres. Centralised so that any code
  * needing the page rectangle (cover-page CSS height, future PDF viewers,
- * etc.) reads from one table — adding `Legal` / `A3` / `B5` to the
+ * etc.) reads from one table, adding `Legal` / `A3` / `B5` to the
  * `PageSizeSchema` enum and forgetting to update the table would silently
  * shift cover layouts before this module existed.
  *

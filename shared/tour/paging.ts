@@ -20,7 +20,7 @@ export function nearestRest(rests: readonly number[], y: number): number {
 /** A scroll this far (px) away from the rest the page last settled on
  *  counts as "go on" even when that rest is still the nearest: a short
  *  trackpad swipe, a mouse notch or an arrow key (40 px in Chromium) moves
- *  on to the next scene instead of springing back — no input is ignored. */
+ *  on to the next scene instead of springing back, no input is ignored. */
 export const SETTLE_ADVANCE_PX = 24
 
 /**
@@ -29,7 +29,7 @@ export const SETTLE_ADVANCE_PX = 24
  * page last settled on (or is settling on), `dir` the direction of the
  * latest input (1 down, -1 up). Normally the nearest rest; but when that is
  * still `from` and the visitor has moved more than `advancePx` away from
- * it in the direction of the input, the next rest that way — a short
+ * it in the direction of the input, the next rest that way, a short
  * scroll moves on instead of springing back, and a scroll is never turned
  * around (a forward swipe short of the rest it heads for stays there).
  */
@@ -45,8 +45,8 @@ export function settleTarget(rests: readonly number[], y: number, from: number, 
 
 /**
  * The rest one step from `y` in direction `dir` (a paging key): the first
- * rest beyond `y` (more than `tolerance` px away) — so a step taken between
- * two rests goes to the next one, never back — clamped to the first / last
+ * rest beyond `y` (more than `tolerance` px away), so a step taken between
+ * two rests goes to the next one, never back, clamped to the first / last
  * rest.
  */
 export function stepTarget(rests: readonly number[], y: number, dir: 1 | -1, tolerance = 2): number {

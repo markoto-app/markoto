@@ -23,14 +23,14 @@ const log = useLogger('ai-tools')
 const ViewImageArgs = z.object({
   src: z.string().min(1).max(2048)
     .describe('The image URL or path exactly as it appears in the markdown (e.g. "/api/files/abc/def.png" for uploaded images, or "https://example.com/chart.jpg" for external URLs). Copy it verbatim from the source markdown.')
-}).describe('Fetch an image from the document and add it to the conversation so you can see its contents. Use this whenever you need to reason about what an image actually shows — for writing alt text, describing figures, summarising charts, or verifying a picture matches its caption.')
+}).describe('Fetch an image from the document and add it to the conversation so you can see its contents. Use this whenever you need to reason about what an image actually shows, for writing alt text, describing figures, summarising charts, or verifying a picture matches its caption.')
 
 const GenerateImageArgs = z.object({
   prompt: z.string().trim().min(1).max(2000)
     .describe('Detailed description of the image to generate. Be specific about subject, style, composition, mood. Good: "A warm handshake between two business professionals, shallow depth of field, office lighting, photorealistic". Weak: "handshake".'),
   alt: z.string().trim().min(1).max(200)
     .describe('Concise alt text (1–200 chars) describing the image for screen readers and fallback display. This becomes the alt attribute in the returned markdown.'),
-  // Aspect ratio. BFL meters by megapixel — non-square output is the
+  // Aspect ratio. BFL meters by megapixel, non-square output is the
   // SAME price as 1024×1024 only when w*h ≈ 1MP. The model picks the
   // closest supported combo; deviations beyond ~1.05× MP price linearly.
   // The agentic loop should choose dimensions deliberately based on
@@ -39,7 +39,7 @@ const GenerateImageArgs = z.object({
     .describe('Output image width in pixels (multiple of 32, range 512-1536). Default 1024. Use a wider value (e.g. 1408) for landscape banners; pair with smaller height. Skip both for the default 1:1 1024×1024.'),
   height: z.number().int().min(512).max(1536).optional()
     .describe('Output image height in pixels (multiple of 32, range 512-1536). Default 1024. Use a taller value (e.g. 1408) for portrait illustrations; pair with smaller width. Skip both for the default 1:1 1024×1024.')
-}).describe('Generate a photo or illustration from a text description and upload it. Returns the markdown reference (e.g. "![alt](/api/files/…/x.png)") — the caller decides how to place it (insert_text to add, replace_text to swap an existing image, etc.). Do NOT use for diagrams/flowcharts/charts — write a Mermaid code block via insert_text instead.')
+}).describe('Generate a photo or illustration from a text description and upload it. Returns the markdown reference (e.g. "![alt](/api/files/…/x.png)"), the caller decides how to place it (insert_text to add, replace_text to swap an existing image, etc.). Do NOT use for diagrams/flowcharts/charts, write a Mermaid code block via insert_text instead.')
 
 async function handleViewImage(
   session: MetaToolContext,
@@ -138,7 +138,7 @@ async function handleGenerateImage(
   // error string).
   session.updateStatus('tool', 'Generating image…')
 
-  // 1. Image storage quota — checked BEFORE generating so a full quota
+  // 1. Image storage quota, checked BEFORE generating so a full quota
   //    doesn't burn the user's AI budget on an image we can't store. The
   //    atomic reservation (with the real size) happens before the PUT.
   //    A Team / Business workspace document uses the workspace pool.
@@ -148,7 +148,7 @@ async function handleGenerateImage(
     return toolError(`Error: ${imageQuotaMessage(quotaBytes)}`)
   }
 
-  // 2. Generate. The 5-minute loop deadline is the effective cap — we
+  // 2. Generate. The 5-minute loop deadline is the effective cap, we
   //    don't thread a finer-grained signal here.
   const controller = new AbortController()
   const gen = await generateImageBytes(input.prompt, controller.signal, {
@@ -227,7 +227,7 @@ async function handleGenerateImage(
 
 export const viewImageTool = defineMetaTool({
   name: 'view_image',
-  description: 'Fetch an image embedded in the document (via its URL or path as written in the markdown) and inline it into the conversation so you can visually inspect it. Use this when you need to know what an image actually depicts — for writing or improving alt text, describing figures, summarising charts, matching a caption, or cropping decisions. Without this call you only see the markdown reference, not the pixels.',
+  description: 'Fetch an image embedded in the document (via its URL or path as written in the markdown) and inline it into the conversation so you can visually inspect it. Use this when you need to know what an image actually depicts, for writing or improving alt text, describing figures, summarising charts, matching a caption, or cropping decisions. Without this call you only see the markdown reference, not the pixels.',
   schema: ViewImageArgs,
   requires: 'vision',
   trustBoundary: { urlArg: 'src' },
@@ -237,7 +237,7 @@ export const viewImageTool = defineMetaTool({
 
 export const generateImageTool = defineMetaTool({
   name: 'generate_image',
-  description: 'Generate a photo or illustration from a text description and upload it (as if the user had attached it). Returns the markdown image reference — the caller decides where it goes by chaining `insert_text` (to add) or `replace_text` (to swap an existing image). Use when the user asks to add, insert, or replace a picture/photo/illustration/artwork. Do NOT use for diagrams, flowcharts, sequence diagrams, Gantt charts, ER diagrams, or pie charts — those should be Mermaid code blocks authored via `insert_text` instead.',
+  description: 'Generate a photo or illustration from a text description and upload it (as if the user had attached it). Returns the markdown image reference, the caller decides where it goes by chaining `insert_text` (to add) or `replace_text` (to swap an existing image). Use when the user asks to add, insert, or replace a picture/photo/illustration/artwork. Do NOT use for diagrams, flowcharts, sequence diagrams, Gantt charts, ER diagrams, or pie charts, those should be Mermaid code blocks authored via `insert_text` instead.',
   schema: GenerateImageArgs,
   requires: 'image',
   // A doc never needs more than a handful of new images per session.

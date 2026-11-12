@@ -5,14 +5,14 @@ import { createDoc, createUser } from '../setup/fixtures'
 import { TEST_INTERNAL_SECRET } from '../setup/env'
 import { first } from '../../helpers/assert'
 
-// POST /api/internal/activity — cross-service boundary. Called by the
+// POST /api/internal/activity: cross-service boundary. Called by the
 // sync-server to persist Y.js edit/join/leave events. Auth is the shared
 // INTERNAL_API_SECRET header, not a user session.
 //
 // Regression focus: the secret check is the ONLY thing standing between
 // the outside world and writing arbitrary rows into activity_log. Every
 // negative path (missing header, wrong value, wrong mechanism) needs to
-// 401 — silently accepting would let anyone spoof attribution.
+// 401, silently accepting would let anyone spoof attribution.
 
 async function countActivity(docId: string): Promise<number> {
   const db = testDb()
@@ -95,7 +95,7 @@ describe('POST /api/internal/activity', () => {
 
     it('silently skips (logged=false) for an unknown doc', async () => {
       // Anon / direct-URL docs that never hit the DB shouldn't pollute
-      // activity_log with phantom entries. 200 + logged:false is fine —
+      // activity_log with phantom entries. 200 + logged:false is fine,
       // the sync-server doesn't need to distinguish.
       const res = await anonClient().post('/api/internal/activity',
         { docId: 'nonexistent', action: 'edit', userName: 'Eve' },

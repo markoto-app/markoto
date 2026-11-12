@@ -16,7 +16,7 @@ export interface ProviderLike {
 }
 
 /**
- * Owns the Hocuspocus provider lifecycle — WebSocket connect, reconnect,
+ * Owns the Hocuspocus provider lifecycle, WebSocket connect, reconnect,
  * disconnect, and the `status` / `synced` / `userCount` / `docSizeBytes`
  * reactivity derived from provider events.
  *
@@ -33,7 +33,7 @@ export interface HocuspocusSyncOptions {
   syncUrl: string
   /** Reads the JWT for a (re)connection. Passed straight to
    *  HocuspocusProvider's `token` option, which invokes it on EVERY
-   *  (re)connect — so returning a value that reflects the current token
+   *  (re)connect: so returning a value that reflects the current token
    *  (and refreshes it when near expiry) is what keeps a long-lived
    *  session's reconnect from presenting a dead JWT. May be async. The
    *  token changes over the doc's lifetime (anonymous → password-verified
@@ -53,7 +53,7 @@ export interface HocuspocusSyncOptions {
    *  unknown, and a local seed would merge with it on auto-reconnect. Seed
    *  from `onSynced` only. */
   onDisconnect?: (everSynced: boolean) => void
-  /** Hocuspocus rejected the JWT — caller should flip `isReadOnly`. */
+  /** Hocuspocus rejected the JWT, caller should flip `isReadOnly`. */
   onAuthFailed?: () => void
   /**
    * Factory for the underlying provider. Defaults to a real

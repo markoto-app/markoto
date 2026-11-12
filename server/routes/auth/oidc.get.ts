@@ -22,7 +22,7 @@ import { useLogger } from '../../utils/platform/logger'
 const log = useLogger('auth-oidc')
 
 // Generic OpenID Connect sign-in for self-hosted identity providers.
-// One route, two legs — like the nuxt-auth-utils handlers:
+// One route, two legs, like the nuxt-auth-utils handlers:
 //
 //   GET /auth/oidc                 → fresh state/nonce/PKCE, signed flow
 //                                    cookie, 302 to the IdP
@@ -34,7 +34,7 @@ const log = useLogger('auth-oidc')
 
 const isDevelopment = process.env.NODE_ENV === 'development'
 
-// Configured URLs only — never the request Host header (boot validation
+// Configured URLs only: never the request Host header (boot validation
 // refuses an OIDC setup with neither `_REDIRECT_URL` nor `NUXT_SITE_URL`).
 function redirectUriFor(event: H3Event, settings: OidcSettings): string {
   const uri = oidcRedirectUri(settings, useEnv().core.siteUrl)

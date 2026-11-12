@@ -21,7 +21,7 @@
  *   - SESSION-shaped (no `scope` claim): doc-token, ai-client,
  *     restore-client, comments-peek-client. All verified by
  *     sync-server's onAuthenticate hook. The auth REJECTS any token
- *     carrying a non-empty `scope` — defense-in-depth so a leaked
+ *     carrying a non-empty `scope`, defense-in-depth so a leaked
  *     dictate or render token can't be replayed against the WS sync.
  *   - SCOPED HTTP tokens: render (`scope: 'render'`), dictate
  *     (`scope: 'dictate'`). Verified by their respective HTTP
@@ -29,15 +29,15 @@
  *
  * The SYNTHETIC userId convention encodes the principal type without
  * needing a separate field:
- *   - `<numeric-id>` — real DB user
- *   - `'anonymous'` — unauthenticated session-grant (password unlock)
- *   - `'ai:assistant:<sessionId>'` — AI client (deterministic helper:
+ *   - `<numeric-id>`: real DB user
+ *   - `'anonymous'`: unauthenticated session-grant (password unlock)
+ *   - `'ai:assistant:<sessionId>'`: AI client (deterministic helper:
  *      `aiClientUserId`)
- *   - `'restore:<actorUserId>:<sessionId>'` — synthetic restore client
+ *   - `'restore:<actorUserId>:<sessionId>'`: synthetic restore client
  *      (deterministic helper: `restoreClientUserId`)
- *   - `'comments-server:<verb>:<userId>'` — `openTrustedCommentClient`
+ *   - `'comments-server:<verb>:<userId>'`: `openTrustedCommentClient`
  *      mutation principal (verbs: `trigger`, `delete`, `delete-reply`)
- *   - `'ai-cross-doc-read:<initiatorUserId>:<sessionId>'` —
+ *   - `'ai-cross-doc-read:<initiatorUserId>:<sessionId>'`,
  *      cross-doc-read peek client used by AI tools
  *
  * Comments-server / cross-doc-read principals are constructed inline at
@@ -52,7 +52,7 @@
 // Session-shaped JWTs (verified by sync-server onAuthenticate)
 
 /**
- * Session-shaped JWT payload. Used for ALL Hocuspocus connections —
+ * Session-shaped JWT payload. Used for ALL Hocuspocus connections,
  * real users (via /api/docs/:id/token), AI clients, synthetic
  * restore clients, synthetic comments-peek clients. Distinguished
  * downstream by the userId convention (see SYNTHETIC_USER_ID_PATTERN).
@@ -63,7 +63,7 @@
  */
 export interface SessionJwtPayload {
   /** Required. Must equal the Hocuspocus documentName (verifier
-   *  rejects mismatched docId — cross-doc replay guard). */
+   *  rejects mismatched docId: cross-doc replay guard). */
   docId: string
   /** Required. Numeric DB id for real users; the `<purpose>:<…>` form
    *  for synthetic clients. See SYNTHETIC_USER_ID_PATTERN. */
@@ -80,13 +80,13 @@ export interface SessionJwtPayload {
 /** Synthetic-userId prefixes the verifier accepts. Add new prefixes
  *  here when a new synthetic-client class lands so consumers can
  *  pattern-match exhaustively. The literal `'anonymous'` is the
- *  password-unlock principal (no prefix — bare string). */
+ *  password-unlock principal (no prefix, bare string). */
 export const SYNTHETIC_USER_ID_PREFIXES = [
   'ai:assistant:',
   'restore:',
   'comments-server:',
   'ai-cross-doc-read:',
-  // MCP tool calls — issued by `connectAsMcpClient` in
+  // MCP tool calls: issued by `connectAsMcpClient` in
   // `server/utils/mcp/mcpHocuspocusClient.ts`. Each MCP session
   // (one Claude Desktop / Cursor connection) has a stable id;
   // every tool call from that session uses the same principal so
@@ -123,7 +123,7 @@ export function mcpClientUserId(mcpSessionId: string): `mcp:${string}` {
  * Render token. Minted by `server/utils/rendering/renderTokens.ts` so the
  * renderer container can fetch the doc's bootstrap state (Y.js +
  * theme) over HTTP. Verified by the same module. The `scope: 'render'`
- * claim is REJECTED by the sync-server's WS auth — a leaked render
+ * claim is REJECTED by the sync-server's WS auth, a leaked render
  * token cannot be replayed to join the live collab session.
  */
 export interface RenderJwtPayload {
@@ -147,13 +147,13 @@ export const RENDER_TOKEN_TTL_SECONDS = 60
  * Dictate token. Minted by `server/api/ai/dictate/token.post.ts` and
  * sent as the FIRST WS message on `/api/ai/dictate` (NOT the URL).
  * Verified inline in the dictate route. Both `kind` AND `scope` are
- * required — they're the same value but checked separately:
+ * required: they're the same value but checked separately:
  *   - `kind === 'dictate'` is the "what kind of token is
  *     this" check.
  *   - `scope === 'dictate'` is the defense-in-depth check the
  *     sync-server WS auth uses to reject scoped tokens replayed at
  *     the WS sync path.
- * The aiDictateWs test helper missed `scope` for months — exactly
+ * The aiDictateWs test helper missed `scope` for months, exactly
  * the kind of drift this file exists to prevent.
  */
 export interface DictateJwtPayload {
@@ -166,7 +166,7 @@ export interface DictateJwtPayload {
   docId: string
   /** Constant: 'dictate'. Required. */
   kind: 'dictate'
-  /** Constant: 'dictate'. Required. Defense-in-depth — keeps a
+  /** Constant: 'dictate'. Required. Defense-in-depth, keeps a
    *  leaked dictate token from being replayed at the WS sync path
    *  (sync-server rejects any token with a non-empty `scope`). */
   scope: 'dictate'

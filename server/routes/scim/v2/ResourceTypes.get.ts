@@ -1,6 +1,6 @@
 import { SCIM_USER_SCHEMA } from '../../../utils/sso/scim'
 
-// GET /scim/v2/ResourceTypes — only User, no Groups.
+// GET /scim/v2/ResourceTypes: only User, no Groups.
 export default defineApiHandler({
   access: allow.scim(),
   handler: async () => ({

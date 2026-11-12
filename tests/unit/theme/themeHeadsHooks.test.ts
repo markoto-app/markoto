@@ -280,11 +280,11 @@ describe('cover', () => {
   })
 
   test('hyphenated compounds in the title never break at the hyphen', () => {
-    expect(keepCompoundsTogether('Fieldnote — field-service reports in one tap')).toBe('Fieldnote — <span class="markoto-nobreak">field-service</span> reports in one tap')
+    expect(keepCompoundsTogether('Fieldnote \u2014 field-service reports in one tap')).toBe('Fieldnote \u2014 <span class="markoto-nobreak">field-service</span> reports in one tap')
     expect(keepCompoundsTogether('state-of-the-art X-ray Q3-2026')).toBe('<span class="markoto-nobreak">state-of-the-art</span> <span class="markoto-nobreak">X-ray</span> <span class="markoto-nobreak">Q3-2026</span>')
     // Escaped text stays intact; a lone or spaced dash is no compound.
     expect(keepCompoundsTogether('A &amp; B - C -- D')).toBe('A &amp; B - C -- D')
-    expect(buildCoverHtml(page(), 'Fieldnote — field-service reports', '')).toContain('<h1 class="markoto-cover-title">Fieldnote — <span class="markoto-nobreak">field-service</span> reports</h1>')
+    expect(buildCoverHtml(page(), 'Fieldnote \u2014 field-service reports', '')).toContain('<h1 class="markoto-cover-title">Fieldnote \u2014 <span class="markoto-nobreak">field-service</span> reports</h1>')
     expect(css(page())).toContain('.paged-doc .markoto-cover-title .markoto-nobreak { white-space: nowrap; }')
   })
 })

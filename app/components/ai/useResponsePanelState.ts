@@ -38,7 +38,7 @@ export interface ResponsePanelStateInput<T> {
   isQuestion: (response: T) => boolean
   /** Auto-collapse window in ms. Defaults to 10_000. */
   collapseAfterMs?: number
-  /** Optional clock injection — tests use Date.now via vi.useFakeTimers
+  /** Optional clock injection: tests use Date.now via vi.useFakeTimers
    *  by default, but a callback hook makes the timing explicit too. */
   setTimeoutFn?: (fn: () => void, ms: number) => ReturnType<typeof setTimeout>
   clearTimeoutFn?: (handle: ReturnType<typeof setTimeout>) => void
@@ -56,12 +56,12 @@ export interface ResponsePanelState {
    *  auto-collapse timer is suppressed. */
   expand: () => void
   /** × button. Collapses to the pill and clears the manual-expand
-   *  flag — does NOT evict the response itself (parent owns the
+   *  flag: does NOT evict the response itself (parent owns the
    *  latched value). */
   dismiss: () => void
-  /** Pointer-enter handler — pauses the auto-collapse timer. */
+  /** Pointer-enter handler: pauses the auto-collapse timer. */
   onPointerEnter: () => void
-  /** Pointer-leave handler — resumes a FRESH auto-collapse window
+  /** Pointer-leave handler: resumes a FRESH auto-collapse window
    *  from this moment. */
   onPointerLeave: () => void
 }
@@ -82,7 +82,7 @@ export function useResponsePanelState<T extends { ts: number }>(
   // The injected setTimeout/clearTimeout share a handle that may be
   // a Node Timeout (server / vitest fake timers) or a number
   // (browser). Use `unknown` here and rely on the injected pair to
-  // round-trip the same handle shape on both sides — TypeScript
+  // round-trip the same handle shape on both sides, TypeScript
   // can't unify the two without an explicit any/unknown bridge.
   let collapseTimer: unknown = null
 

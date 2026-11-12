@@ -33,7 +33,7 @@ export default defineApiHandler({
     }
 
     // Legal surfaces off (self-hosted default): no onboarding gate, no DPA
-    // step — every "required" flag is false. The accepted versions are
+    // step: every "required" flag is false. The accepted versions are
     // still reported as stored.
     const legal = legalSurfacesEnabled()
 

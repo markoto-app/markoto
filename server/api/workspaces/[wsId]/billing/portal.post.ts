@@ -4,7 +4,7 @@ import { useStripeClient } from '../../../../utils/billing/stripeClient'
 import { requestBaseUrl } from '../../../../utils/billing/workspaceStripe'
 import { MINUTE_MS } from '~~/shared/config/units'
 
-// POST /api/workspaces/:wsId/billing/portal — Stripe Customer Portal for
+// POST /api/workspaces/:wsId/billing/portal: Stripe Customer Portal for
 // the workspace's own customer (invoices, payment method, cancelling).
 // Workspace admins only. Plan + seat changes go through our endpoints
 // (the portal should be configured without plan switching).

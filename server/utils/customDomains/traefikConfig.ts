@@ -2,7 +2,7 @@ import type { TraefikProviderSettings } from './config'
 import type { LiveCustomDomain } from './routing'
 
 // Traefik dynamic configuration for the live custom domains and the
-// pages host — pure, unit-tested. Hostnames come from `normalizeCustomHostname`
+// pages host: pure, unit-tested. Hostnames come from `normalizeCustomHostname`
 // (letters, digits, hyphens, dots), so they can't break out of the
 // Host(`…`) rule.
 
@@ -12,8 +12,8 @@ const UPSTREAM_SERVICE = 'markoto-published-pages'
 
 /**
  * Paths the pages host serves (server/middleware/00.custom-domain.ts):
- * the router admits only these, so everything else of the app — internal
- * routes included — never reaches it from the pages host, even before
+ * the router admits only these, so everything else of the app, internal
+ * routes included: never reaches it from the pages host, even before
  * the app's own 404.
  */
 const PAGES_HOST_PATHS = 'PathPrefix(`/p/`) || PathPrefix(`/api/published/`) || PathPrefix(`/vendor/`) || Path(`/robots.txt`) || Path(`/favicon.ico`)'

@@ -4,7 +4,7 @@ import { test, expect } from '../fixtures/flow'
 // "See who changed what in a workspace".
 //
 // User-job: a workspace admin wants to check who changed the workspace's
-// members and sharing — and keep a copy for their records. Job done when
+// members and sharing: and keep a copy for their records. Job done when
 // the audit log shows the real actions with who did them, one entry is
 // opened, and the CSV download is offered.
 //
@@ -46,7 +46,7 @@ test('See who changed what in a workspace', async ({ page, flow, editor }) => {
   await flow.narrate(
     'The audit log lists what happened in the workspace, newest first: '
     + 'members and roles, invitations, sharing and deletions, billing and '
-    + 'single sign-on — with who did it and their shortened network address.'
+    + 'single sign-on: with who did it and their shortened network address.'
   )
   await flow.click(
     'Open the Audit log tab',

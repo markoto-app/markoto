@@ -5,7 +5,7 @@ import type { MembershipRole } from '../../shared/utils/documents/docPermissions
 import { useDatabase } from '../db/client'
 import { proofUserId, type SystemActor, type UserScope, type WorkspaceAccess } from './proofs'
 
-// `workspace_invites` repository — pending workspace invitations.
+// `workspace_invites` repository: pending workspace invitations.
 //
 // Lifecycle:
 //   invite      → row upserted per (workspace, email); re-inviting the
@@ -19,7 +19,7 @@ import { proofUserId, type SystemActor, type UserScope, type WorkspaceAccess } f
 //                 `invited_by_user_id` SET NULL via FK
 //
 // Emails arrive normalised (`normaliseInviteEmail`). Token values arrive
-// HASHED (`hashInviteSecret`) — the raw token never reaches this layer.
+// HASHED (`hashInviteSecret`): the raw token never reaches this layer.
 // Every lookup that takes an externally supplied invite id is keyed on a
 // tuple (invite id + workspace for admins, invite id + email for the
 // invitee) so one workspace's / person's ids can't reach another's rows.
@@ -33,7 +33,7 @@ export interface UpsertInviteInput {
   expiresAt: Date
 }
 
-/** Admin view of an open invite — the typed address, never account data. */
+/** Admin view of an open invite, the typed address, never account data. */
 export interface WorkspaceInviteAdminRow {
   inviteId: string
   email: string

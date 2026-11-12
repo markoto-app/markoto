@@ -1,4 +1,4 @@
-# Privacy registries — agent rules
+# Privacy registries: agent rules
 
 What the registries hold and the full checklists: `docs/contributing/privacy-registries.md`.
 

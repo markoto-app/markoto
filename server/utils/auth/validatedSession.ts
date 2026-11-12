@@ -7,7 +7,7 @@ import { apiError } from '../api/apiError'
 /**
  * Bump this constant whenever the session shape changes (new required fields,
  * type changes on existing fields, etc.). Sessions whose stored `v` doesn't
- * match are treated as stale and cleared — the user is forced to log in again,
+ * match are treated as stale and cleared, the user is forced to log in again,
  * but they never crash on missing fields. We deliberately do NOT preserve
  * backwards compatibility; rotating sessions on shape change is the simpler
  * and safer contract while we're early.
@@ -18,7 +18,7 @@ export const SESSION_VERSION = 1
  * Session helpers that validate `session.user.id` still references an existing
  * row in the `users` table. Sealed cookies from `nuxt-auth-utils` survive DB
  * resets / user deletions, so `requireUserSession` alone can hand back a
- * session that references a nonexistent user — which then blows up on FK
+ * session that references a nonexistent user, which then blows up on FK
  * inserts, returns empty query results, or silently mis-attributes activity.
  *
  * These helpers:
@@ -37,7 +37,7 @@ type SessionCache = {
   // object = checked, valid session
   validatedUser: ValidatedUser | null | undefined
   // Onboarding / policy-acceptance columns of the same row, read in the
-  // same query — consumed by the onboarding gate middleware.
+  // same query: consumed by the onboarding gate middleware.
   onboarding?: OnboardingState
   // `loggedInAt` of the validated cookie (epoch ms), for the
   // recent-sign-in check on sensitive actions.
@@ -61,7 +61,7 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     return null
   }
 
-  // Stale session shape — clear cookie and treat as anonymous. The user can
+  // Stale session shape: clear cookie and treat as anonymous. The user can
   // re-authenticate to get a fresh session at the current SESSION_VERSION.
   if ((session as { v?: number }).v !== SESSION_VERSION) {
     await clearUserSession(event)

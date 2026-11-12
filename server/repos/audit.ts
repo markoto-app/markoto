@@ -9,7 +9,7 @@ import type { AuditAction, AuditAfter, AuditBefore, AuditEventParts, AuditMetada
 const log = useLogger('audit')
 
 // Audit-log repository. Append-only: there is no `updateAuditEvent` and
-// no `deleteAuditEvent` on purpose — once written, a row is immutable.
+// no `deleteAuditEvent` on purpose, once written, a row is immutable.
 // The only legitimate way for a row to disappear is the `set null` FK
 // on actor_user_id (when a user account is purged) or a manual DBA
 // action.
@@ -61,7 +61,7 @@ export interface AuditEventRow {
  *   IPv6: keep first 3 hextets (2001:db8:85a3:…  → 2001:db8:85a3::)
  *
  * Returns null for null / empty / unparseable input. Conservative on
- * malformed strings — if we can't reason about the format, drop the
+ * malformed strings: if we can't reason about the format, drop the
  * whole field rather than store something half-truncated.
  */
 export function truncateIp(ip: string | null): string | null {
@@ -79,7 +79,7 @@ function isDottedQuad(value: string): boolean {
   return parts.length === 4 && parts.every(p => /^\d{1,3}$/.test(p))
 }
 
-/** IPv4 — drop the last octet. Returns null if any octet is out of range. */
+/** IPv4: drop the last octet. Returns null if any octet is out of range. */
 function truncateIpv4(trimmed: string): string | null {
   const parts = trimmed.split('.')
   if (parts.some(p => Number(p) > 255)) return null
@@ -87,10 +87,10 @@ function truncateIpv4(trimmed: string): string | null {
 }
 
 /**
- * IPv6 — keep the first 3 hextets; append `::` to mark the rest masked.
+ * IPv6: keep the first 3 hextets; append `::` to mark the rest masked.
  * Accept both compressed (`::`) and full forms. Strip leading zeros per
  * RFC 5952 so the stored form is canonical. IPv4-mapped IPv6 (e.g.
- * `::ffff:192.0.2.1`) is treated as IPv6 — the hextet truncation drops
+ * `::ffff:192.0.2.1`) is treated as IPv6, the hextet truncation drops
  * the embedded address.
  */
 function truncateIpv6(trimmed: string): string | null {
@@ -154,9 +154,9 @@ export async function appendAuditEvent(args: AppendAuditEventArgs<AuditAction> &
 /**
  * List audit events for a (scope, scopeId) tuple. Tuple-keyed so a
  * caller asking for `('doc', 'A')` cannot leak rows from `('doc', 'B')`
- * — same isolation pattern as `getActivityById` / `/diff` / `/comment-context`.
+ * same isolation pattern as `getActivityById` / `/diff` / `/comment-context`.
  *
- * Pagination via `beforeId` (cursor — most-recent-first); pass the
+ * Pagination via `beforeId` (cursor, most-recent-first); pass the
  * smallest `id` from the previous page to fetch older rows.
  */
 export async function getAuditEventsByScope(
@@ -181,7 +181,7 @@ export async function getAuditEventsByScope(
 
 /**
  * List audit events triggered by a specific actor. Used for
- * "investigate compromised account" workflows — admin enters a user id,
+ * "investigate compromised account" workflows, admin enters a user id,
  * sees every security-sensitive action that user has performed.
  */
 export async function getAuditEventsByActor(

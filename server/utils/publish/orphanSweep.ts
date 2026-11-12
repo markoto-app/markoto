@@ -2,7 +2,7 @@ import type { ObjectStore } from '../storage/objectStore'
 import { HOUR_MS } from '~~/shared/config/units'
 
 // Layer of `orphan-cleanup`: objects under `published/<pageId>/`
-// whose page no longer exists — the document was deleted (the row goes
+// whose page no longer exists, the document was deleted (the row goes
 // with it by FK cascade, the objects don't) or an unpublish's own clean-up
 // failed. One hour of grace: a first publish copies the files before it
 // inserts the row.

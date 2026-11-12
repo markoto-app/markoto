@@ -7,7 +7,7 @@ import { shouldReapDoc, type SweepDocState } from '../../../shared/utils/documen
 
 const NOW = new Date('2026-04-20T12:00:00Z')
 
-// Produce a Date that's `days` in the past relative to NOW — the cutoff
+// Produce a Date that's `days` in the past relative to NOW, the cutoff
 // is "lastActive < now - ttl*day", so days past the TTL = old-enough to reap.
 function daysAgo(days: number): Date {
   return new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000)
@@ -35,7 +35,7 @@ describe('shouldReapDoc', () => {
     })
 
     it('keeps an exactly-at-cutoff doc (boundary is strict <)', () => {
-      // lastActive === cutoff means "alive for exactly TTL days" — not
+      // lastActive === cutoff means "alive for exactly TTL days", not
       // past it yet. Pin strict-less-than so fresh docs don't get
       // reaped at the boundary millisecond.
       const d = doc({ lastActive: daysAgo(180) })
@@ -53,7 +53,7 @@ describe('shouldReapDoc', () => {
     })
   })
 
-  describe('owned doc (ownerId !== null) — NEVER reaped', () => {
+  describe('owned doc (ownerId !== null), NEVER reaped', () => {
     it('ignores the TTL for an owned doc, even one 10 years stale', () => {
       // Core of the new policy. An authenticated user's archival doc
       // stays around until they explicitly delete it. A ten-year-old
@@ -73,7 +73,7 @@ describe('shouldReapDoc', () => {
     })
   })
 
-  describe('workspace-attached doc — NEVER reaped', () => {
+  describe('workspace-attached doc: NEVER reaped', () => {
     it('workspace + anon (no owner) doc stays, even if very stale', () => {
       // Edge case: a doc with ownerId=null but attached to a workspace.
       // Not a flow we currently produce, but defensively: the workspace
@@ -96,7 +96,7 @@ describe('shouldReapDoc', () => {
     })
   })
 
-  describe('regression — old two-TTL behaviour is gone', () => {
+  describe('regression: old two-TTL behaviour is gone', () => {
     it('owned docs are NOT reaped under any positive TTL', () => {
       // Owned docs must stay forever regardless of ttl value (there is no `inactiveDocOwnedTtlDays` any more).
       for (const ttl of [1, 30, 180, 365, 3650]) {

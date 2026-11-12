@@ -8,7 +8,7 @@ const log = useLogger('email')
 // Transactional email helper.
 //
 // **Provider auto-detection.** Setting `RESEND_API_KEY` is enough to
-// switch from stub mode to real Resend delivery — we don't require
+// switch from stub mode to real Resend delivery, we don't require
 // a separate `NUXT_EMAIL_PROVIDER` flag. This matches Resend's own
 // SDK convention (it reads `RESEND_API_KEY` by default) and means
 // turning email on is a single env-var change. To explicitly run
@@ -18,12 +18,12 @@ const log = useLogger('email')
 // **Stub mode** (no key set, or `NUXT_EMAIL_PROVIDER=stub`) logs the
 // email payload to the server console and returns success. The
 // product's UX gates (deletion grace banner, export polling) are
-// load-bearing on their own — never depend on a sent email for an
+// load-bearing on their own, never depend on a sent email for an
 // access-control or correctness invariant.
 //
 // **From address** (`NUXT_EMAIL_FROM`) defaults to Resend's universal
 // sandbox sender `onboarding@resend.dev`, which delivers ONLY to the
-// account-owner's verified email — fine for local testing without
+// account-owner's verified email: fine for local testing without
 // DNS setup. For production, set `NUXT_EMAIL_FROM` to a verified
 // `<noreply@your-domain>` address (SPF + DKIM DNS records configured
 // in the Resend dashboard).
@@ -54,7 +54,7 @@ export interface SendEmailArgs {
   kind: TransactionalEmailKind
   // Recipient. May be null when the user has no email on file (anonymous
   // OAuth flows can produce users without an email when the provider
-  // omits it). In that case we no-op with a debug log — the in-product
+  // omits it). In that case we no-op with a debug log, the in-product
   // UX is the primary surface.
   to: string | null
   // Recipient locale, falling back to 'en' when the user has not picked
@@ -63,7 +63,7 @@ export interface SendEmailArgs {
   // Subject line. Already localised at the call site (we don't do
   // template lookup here so this helper stays free of i18n machinery).
   subject: string
-  // Plain-text body. We don't ship HTML emails today — text/plain
+  // Plain-text body. We don't ship HTML emails today, text/plain
   // surfaces correctly in every client and avoids opening up an
   // email-rendering pipeline (XSS surface, image-blocking heuristics).
   body: string
@@ -80,7 +80,7 @@ export interface SendEmailArgs {
 export interface SendEmailResult {
   // True if the helper accepted the message (either delivered to a
   // provider or logged in stub mode). False on hard provider error
-  // (we don't surface this to callers — it's purely for telemetry).
+  // (we don't surface this to callers, it's purely for telemetry).
   delivered: boolean
   // Provider message id, if the dispatch branch returned one.
   providerMessageId?: string
@@ -103,7 +103,7 @@ const NORMALISED_KIND_LABELS: Record<TransactionalEmailKind, string> = {
 }
 
 // Resend's universal sandbox sender. Delivers only to the email
-// of the Resend account owner (their TOS — anti-abuse). Fine for
+// of the Resend account owner (their TOS, anti-abuse). Fine for
 // local development against a single test account; replace with a
 // verified-domain address (`NUXT_EMAIL_FROM=...`) before launch.
 const SANDBOX_FROM = 'markoto <onboarding@resend.dev>'
@@ -140,7 +140,7 @@ export async function sendTransactionalEmail(args: SendEmailArgs): Promise<SendE
 }
 
 // Resend dispatch via the official SDK. The SDK is ~12 KB and gives
-// us typed response shapes + retry primitives — worth the dep over
+// us typed response shapes + retry primitives, worth the dep over
 // hand-rolled fetch.
 //
 // `from` falls back to Resend's `onboarding@resend.dev` sandbox
@@ -165,7 +165,7 @@ async function sendViaResend(args: SendEmailArgs & { to: string }, label: string
     // Resend tags: surface email kind in their dashboard so ops
     // can filter "all account.delete_executed bounces in the last
     // 30 days" without guessing from subjects. Tag values must
-    // match `^[a-zA-Z0-9_-]+$` — `label` is already in this shape
+    // match `^[a-zA-Z0-9_-]+$`: `label` is already in this shape
     // (see NORMALISED_KIND_LABELS).
     tags: [{ name: 'kind', value: label }]
   })
@@ -180,7 +180,7 @@ async function sendViaResend(args: SendEmailArgs & { to: string }, label: string
 /**
  * Show only the first character + the domain in logs. Logs frequently
  * end up in retention systems we don't fully control (Sentry, Loki,
- * archival storage) — never log full email addresses.
+ * archival storage): never log full email addresses.
  */
 function redactEmail(email: string): string {
   const at = email.indexOf('@')

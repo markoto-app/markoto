@@ -68,7 +68,7 @@ describe('prompt-cache prefix stability', () => {
     expect(withKnowledge.startsWith(a.slice(0, -1))).toBe(true)
   })
 
-  it('two prompts on the same document share the whole system message — history, editor state and prompt are in the user message', () => {
+  it('two prompts on the same document share the whole system message, history, editor state and prompt are in the user message', () => {
     const system = systemFor('Q3 report', [{ userId: 1, name: 'Ada' }])
     const first = firstRequest(system, '', 'Summarise the key figures.')
     const second = firstRequest(system, '<conversation_history>\nuser: Summarise the key figures.\nassistant: Done.\n</conversation_history>', 'Now add a conclusion.')

@@ -56,7 +56,7 @@ function relayTranscripts(peer: PeerLike, ctx: DictatePeerContext, sttStream: Sp
     const msg = (err as { message?: string })?.message ?? 'transcription error'
     // "write after end" is expected if the client fired stop and a
     // stray audio chunk slipped past the `sttEnded` guard. Drop it
-    // silently — surfacing it as a UI error on the client would show
+    // silently: surfacing it as a UI error on the client would show
     // a toast for what was really a clean shutdown.
     if (ctx.sttEnded && /write after end/i.test(msg)) return
     log.error('stt error', { err })

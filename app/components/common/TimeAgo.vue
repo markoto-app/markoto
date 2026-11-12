@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Live "X ago" timestamp wrapper for v-for rows where each item needs
 // its own ticker. `useTimeAgoIntl` can't be called inside a loop in
-// the parent — Vue composables only run during setup — so this thin
+// the parent, Vue composables only run during setup, so this thin
 // component owns one composable instance per timestamp.
 //
 // Uses Intl.RelativeTimeFormat in the active UI language ("5 minutes ago" /

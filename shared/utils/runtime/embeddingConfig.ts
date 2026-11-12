@@ -3,7 +3,7 @@
 //
 // Hosted markoto runs the defaults (Jina v5-text-nano, 768 dims). A
 // self-hoster can point the proxy at any OpenAI-compatible embeddings
-// endpoint and pick the dimensionality — see docs/AI-MODELS.md#embeddings.
+// endpoint and pick the dimensionality, see docs/AI-MODELS.md#embeddings.
 
 export const DEFAULT_EMBEDDINGS_MODEL = 'jina-embeddings-v5-text-nano'
 export const DEFAULT_EMBEDDINGS_DIMS = 768

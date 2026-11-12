@@ -26,7 +26,7 @@ import { mintDictateJwt } from '~~/tests/helpers/jwt'
 
 async function mintDictateToken(userId: number, docId: string): Promise<string> {
   // Routed through the shared test helper so `kind` + `scope` are
-  // spread from `DICTATE_JWT_FIXED_CLAIMS` — same constant the prod
+  // spread from `DICTATE_JWT_FIXED_CLAIMS`: same constant the prod
   // mint at `server/api/ai/dictate/token.post.ts` uses. Earlier this
   // helper hand-set `{ kind: 'dictate' }` and forgot `scope`, which
   // made the dictate WS reject every test token with 4001 'scope
@@ -64,7 +64,7 @@ describe('WS /api/ai/dictate', () => {
       expect(ready).toEqual({ type: 'ready' })
     })
 
-    it('has no token in the URL — only in the first message', async () => {
+    it('has no token in the URL, only in the first message', async () => {
       // The JWT must not travel in ?token= (it leaks into access logs); query-string auth would require
       // re-reading the URL here.
       const ws = await openWs('/api/ai/dictate')
@@ -131,7 +131,7 @@ describe('WS /api/ai/dictate', () => {
   describe('pre-auth protection', () => {
     it('closes with 4000 when the first frame is binary', async () => {
       // Guards against a malicious client that skips auth and ships
-      // audio directly — the server must never route to STT before
+      // audio directly: the server must never route to STT before
       // verifying the JWT.
       const ws = await openWs('/api/ai/dictate')
       await ws.nextMessageOfType('hello')
@@ -158,7 +158,7 @@ describe('WS /api/ai/dictate', () => {
       // The MOCK SpeechClient (dictateSpeechClient.ts) emits a canned
       // sequence keyed to chunk-count: chunk 1 → partial "hello",
       // chunk 2 → partial "hello world", chunk 3 → final
-      // "hello world". This test pins the wire contract — partials
+      // "hello world". This test pins the wire contract, partials
       // are interim and never committed; finals are what the client
       // writes to Y.js.
       const { user, doc } = await setupUserAndDoc()
@@ -168,7 +168,7 @@ describe('WS /api/ai/dictate', () => {
       ws.sendJson({ type: 'auth', token })
       await ws.nextMessageOfType('ready')
 
-      // Send fake PCM chunks. Size doesn't matter for the mock —
+      // Send fake PCM chunks. Size doesn't matter for the mock,
       // what matters is the chunk COUNT, which the mock uses to
       // time its scripted responses.
       for (let i = 0; i < 3; i++) {
@@ -197,7 +197,7 @@ describe('WS /api/ai/dictate', () => {
       ws.send(Buffer.alloc(4096, 0)) // one chunk
       ws.sendJson({ type: 'stop' })
       // Simulate a straggler chunk that the worklet queued before
-      // the composable disconnected — should be silently dropped.
+      // the composable disconnected: should be silently dropped.
       ws.send(Buffer.alloc(4096, 0))
 
       // Close arrives naturally from the STT `end` event.
@@ -210,7 +210,7 @@ describe('WS /api/ai/dictate', () => {
 
   describe('concurrent session cap', () => {
     it('rejects a second session for the same user with 4001', async () => {
-      // Valkey-backed SET NX lock — spanning multiple workers in
+      // Valkey-backed SET NX lock, spanning multiple workers in
       // prod. In-memory would silently fail across workers but
       // pass this single-process test, so this test also exercises
       // that the lock key format (lock:ai-dictate-active:{uid})

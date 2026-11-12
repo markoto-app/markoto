@@ -6,7 +6,7 @@ import { DAY_MS, HOUR_MS } from '~~/shared/config/units'
 import { useEnv } from '~~/shared/env/load'
 
 // Platform-provided web tools: `web_search` (Staan) and `fetch_url` (Jina
-// Reader). The operator pays the upstream search / reader call — it never
+// Reader). The operator pays the upstream search / reader call, it never
 // touches the user's LiteLLM budget, because both are plain HTTP calls made
 // by the app, not LiteLLM deployments. The synthesis step that follows runs
 // on the caller's chat provider (BYOK → the user's own key). Because the
@@ -29,7 +29,7 @@ export interface WebToolLimits {
  * Per-user limits (calls shared across `web_search` + `fetch_url`). Read
  * per call. The operator ceiling comes from env; `planDailyLimit` (the
  * plan's `webToolsPerDay`, `null` = no plan limit) narrows the daily
- * window further — the stricter of the two wins.
+ * window further: the stricter of the two wins.
  */
 export function getWebToolLimits(planDailyLimit: number | null = null): WebToolLimits {
   const { providers } = useEnv()

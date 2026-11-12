@@ -5,7 +5,7 @@
  * lives in `usePreviewZoom`, the layout itself inside the preview iframe
  * (`previewZoomFrame.ts`).
  *
- *   fit       one page fills the pane width (never enlarged past 100 %) —
+ *   fit       one page fills the pane width (never enlarged past 100 %),
  *             the default;
  *   scale     a fixed factor (toolbar steps, Ctrl/Cmd +/-, pinch);
  *   overview  "All pages": the pages wrap side by side in a grid.
@@ -32,7 +32,7 @@ export const PREVIEW_ZOOM_MAX = 3
  */
 const PREVIEW_OVERVIEW_GESTURE_THRESHOLD = PREVIEW_ZOOM_MIN * 0.85
 
-/** localStorage key — one setting per browser, not per document. */
+/** localStorage key: one setting per browser, not per document. */
 export const PREVIEW_ZOOM_STORAGE_KEY = 'markoto:preview-zoom'
 
 export const DEFAULT_PREVIEW_ZOOM: PreviewZoomSetting = { mode: 'fit' }
@@ -40,7 +40,7 @@ export const DEFAULT_PREVIEW_ZOOM: PreviewZoomSetting = { mode: 'fit' }
 const EPSILON = 0.001
 /**
  * A step must differ from what is shown by at least 5 % to count as the
- * next one — fit width at 74 % zooms in to 100 %, not to a barely
+ * next one: fit width at 74 % zooms in to 100 %, not to a barely
  * visible 75 %.
  */
 const STEP_MARGIN = 1.05
@@ -147,7 +147,7 @@ export function zoomShortcutAction(
   return null
 }
 
-/** Cmd (macOS / iOS) or Ctrl as the shortcut modifier — same test as the iframe's. */
+/** Cmd (macOS / iOS) or Ctrl as the shortcut modifier, same test as the iframe's. */
 export function isMacPlatform(): boolean {
   if (typeof navigator === 'undefined') return false
   const uad: unknown = Reflect.get(navigator, 'userAgentData')

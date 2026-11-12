@@ -16,7 +16,7 @@ const INTERNAL_SECRET = env.auth.internalApiSecret
 const INTERNAL_SECRET_PREVIOUS = env.auth.internalApiSecretPrevious ?? null
 
 // Bun.serve over the standalone Playwright/Bun container. Every endpoint
-// behind /render gates on the X-Internal-Secret header — the renderer is
+// behind /render gates on the X-Internal-Secret header, the renderer is
 // only reachable from the internal network anyway, but defence-in-depth.
 const server = Bun.serve({
   port: PORT,
@@ -46,7 +46,7 @@ async function handleRender(req: Request): Promise<Response> {
 }
 
 /**
- * Light validation — the calling app already validated upstream, this is a
+ * Light validation: the calling app already validated upstream, this is a
  * sanity net for stray callers. Returns the request or the error text.
  */
 function parseRenderRequest(body: Partial<Record<keyof RenderRequest, unknown>>): RenderRequest | string {
@@ -66,7 +66,7 @@ function parseRenderRequest(body: Partial<Record<keyof RenderRequest, unknown>>)
 // context here so startSpan opens a CHILD of the upstream root, not
 // a sibling. End result: one trace covers browser → app → renderer
 // (and the renderer's Playwright `page.goto` to the print page is a
-// sibling trace — that hop can't carry headers via Playwright; see
+// sibling trace: that hop can't carry headers via Playwright; see
 // docs/operations/OBSERVABILITY.md "Tracing limitations").
 function traced(req: Request, request: RenderRequest): Promise<Response> {
   // The app's request id (renderClient.ts sends it with the trace headers),
@@ -114,7 +114,7 @@ function jsonResponse(body: unknown, status: number): Response {
   })
 }
 
-// Graceful shutdown — close the browser before exiting so Chromium's temp
+// Graceful shutdown: close the browser before exiting so Chromium's temp
 // dirs get cleaned up properly. SIGTERM from compose; SIGINT from Ctrl-C.
 async function shutdown(signal: string) {
   log.info('shutting down', { signal })

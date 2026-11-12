@@ -3,8 +3,8 @@
 // jsdom, not the dom project's default happy-dom: DOMPurify >= 3.4.8 walks
 // the tree with anti-clobbering `Node.prototype` getters that happy-dom
 // 20/21 implements incorrectly (capricorn86/happy-dom#2182, #2310). Under
-// happy-dom the sanitizer silently skips nodes — allowlisted tags vanish
-// and disallowed `href` schemes survive — so this suite would be testing
+// happy-dom the sanitizer silently skips nodes, allowlisted tags vanish
+// and disallowed `href` schemes survive, so this suite would be testing
 // happy-dom, not our sanitizer. jsdom is DOMPurify's supported non-browser
 // DOM, and its output matches real Chromium for this config.
 import { describe, it, expect } from 'vitest'
@@ -18,7 +18,7 @@ import { renderMarkdown } from '../../app/utils/markdown/renderMarkdown'
 //
 // Verification strategy: parse the rendered HTML into a real DOM (via
 // happy-dom) and walk it for dangerous tags/attrs/schemes. This matches
-// what the browser will actually execute — regex-matching the HTML
+// what the browser will actually execute, regex-matching the HTML
 // string catches false positives (e.g. `<img ...>` that's been escaped
 // to literal text by markdown-it's `html:false` is harmless, but a
 // naive regex flags it).
@@ -45,7 +45,7 @@ function parseDoc(html: string): HTMLElement {
 
 /**
  * Walk the DOM and collect anything dangerous. Returns a list of
- * human-readable findings — empty array means "sanitizer did its job".
+ * human-readable findings: empty array means "sanitizer did its job".
  */
 function findDangers(html: string): DangerFinding[] {
   const out: DangerFinding[] = []
@@ -101,7 +101,7 @@ const DANGER_FREE_VECTORS: Array<[name: string, markdown: string]> = [
   ['image syntax with a javascript: URL does not leak the scheme into src', '![x](javascript:alert(1))']
 ]
 
-describe('renderMarkdown — XSS vectors produce safe DOM', () => {
+describe('renderMarkdown: XSS vectors produce safe DOM', () => {
   it.each(DANGER_FREE_VECTORS)('%s', async (_name, markdown) => {
     expect(findDangers(await renderMarkdown(markdown))).toEqual([])
   })
@@ -119,7 +119,7 @@ describe('renderMarkdown — XSS vectors produce safe DOM', () => {
   })
 })
 
-describe('renderMarkdown — URL scheme allowlist on links', () => {
+describe('renderMarkdown: URL scheme allowlist on links', () => {
   function hrefOf(html: string): string | null {
     const a = parseDoc(html).querySelector('a')
     return a?.getAttribute('href') ?? null
@@ -154,7 +154,7 @@ describe('renderMarkdown — URL scheme allowlist on links', () => {
   it('strips tel: href (not in allowlist) while leaving the <a> wrapper', async () => {
     // tel: fails our ALLOWED_URI_REGEXP, so DOMPurify drops the href
     // attribute. The anchor element itself stays (as a wrapper around
-    // the link text), but it's inert — clicking does nothing.
+    // the link text), but it's inert, clicking does nothing.
     const root = parseDoc(await renderMarkdown('[call](tel:+1234567890)'))
     const a = root.querySelector('a')
     expect(a).not.toBeNull()
@@ -162,7 +162,7 @@ describe('renderMarkdown — URL scheme allowlist on links', () => {
   })
 })
 
-describe('renderMarkdown — legit features pass through', () => {
+describe('renderMarkdown: legit features pass through', () => {
   it('renders heading with stable id', async () => {
     const root = parseDoc(await renderMarkdown('## My Section\n'))
     const h2 = root.querySelector('h2')
@@ -327,7 +327,7 @@ describe('renderMarkdown — legit features pass through', () => {
   })
 })
 
-describe('renderMarkdown — link target hardening', () => {
+describe('renderMarkdown: link target hardening', () => {
   it('adds target="_blank" and rel="noopener noreferrer" to external links', async () => {
     // Prevents window.opener tabnabbing on user-clicked links, and
     // isolates referrer info from third parties.
@@ -338,7 +338,7 @@ describe('renderMarkdown — link target hardening', () => {
   })
 })
 
-describe('renderMarkdown — allowlist semantics', () => {
+describe('renderMarkdown: allowlist semantics', () => {
   it('preserves class attributes (used by hljs, alerts, katex, footnotes)', async () => {
     const root = parseDoc(await renderMarkdown('> [!NOTE]\n> x\n'))
     const alert = root.querySelector('.markdown-alert')
@@ -388,7 +388,7 @@ describe('renderMarkdown — allowlist semantics', () => {
     expect(parseDoc(html).querySelector('strong')?.getAttribute('style')?.replaceAll(/\s+/g, '')).toBe('color:#b5371f;font-weight:600')
   })
 
-  it('data-* attributes pass through (DOMPurify default — documented quirk)', async () => {
+  it('data-* attributes pass through (DOMPurify default, documented quirk)', async () => {
     // DOMPurify's default `ALLOW_DATA_ATTR` is true, so data-* survives
     // even without appearing in ALLOWED_ATTR. data-* can't execute
     // code, so this isn't an XSS vector; flip to `ALLOW_DATA_ATTR:

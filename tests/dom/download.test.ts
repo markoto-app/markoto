@@ -14,7 +14,7 @@ interface Spies {
   revokeUrl: ReturnType<typeof vi.fn>
   click: ReturnType<typeof vi.fn>
   clickedAnchor: HTMLAnchorElement | null
-  // Snapshot of the anchor state at the moment `click()` fires — without
+  // Snapshot of the anchor state at the moment `click()` fires, without
   // this we'd see the post-removal state (no parent, blanked href) since
   // the util revokes + removes right after click.
   clickSnapshot: {
@@ -61,7 +61,7 @@ afterEach(() => {
 
 // downloadFile: string content path
 
-describe('downloadFile — string content', () => {
+describe('downloadFile: string content', () => {
   it('wraps a string in a Blob with the given MIME type', async () => {
     downloadFile('hello world', 'note.txt', 'text/plain')
     expect(spies.createUrl).toHaveBeenCalledTimes(1)
@@ -92,17 +92,17 @@ describe('downloadFile — string content', () => {
 
 // downloadFile: Blob content path
 
-describe('downloadFile — Blob content', () => {
+describe('downloadFile: Blob content', () => {
   it('passes a Blob through without rewrapping', () => {
     const blob = new Blob(['raw'], { type: 'application/octet-stream' })
     downloadFile(blob, 'raw.bin')
-    // The blob reaching createObjectURL is THE SAME instance — no
-    // defensive copy — so the caller's ownership model is preserved.
+    // The blob reaching createObjectURL is THE SAME instance, no
+    // defensive copy: so the caller's ownership model is preserved.
     expect(spies.createUrl).toHaveBeenCalledWith(blob)
   })
 
   it('ignores the mimeType argument when content is already a Blob', () => {
-    // Blob carries its own `.type` — the overload should not rewrap just
+    // Blob carries its own `.type`, the overload should not rewrap just
     // to apply the passed-in MIME. A caller who already has a typed blob
     // is authoritative.
     const blob = new Blob(['x'], { type: 'image/png' })
@@ -114,7 +114,7 @@ describe('downloadFile — Blob content', () => {
 
 // downloadFile: anchor lifecycle + cleanup ordering
 
-describe('downloadFile — anchor lifecycle', () => {
+describe('downloadFile: anchor lifecycle', () => {
   it('sets href to the object URL and download to the filename', () => {
     downloadFile('x', 'report.txt')
     expect(spies.clickSnapshot).not.toBeNull()
@@ -193,7 +193,7 @@ describe('downloadMarkdown', () => {
 // - Trim leading/trailing whitespace AFTER substitution.
 // - Empty result becomes 'document'.
 
-describe('downloadMarkdown — filename sanitization', () => {
+describe('downloadMarkdown: filename sanitization', () => {
   function filenameFor(title: string): string {
     downloadMarkdown('x', title)
     return spies.clickSnapshot!.download
@@ -211,7 +211,7 @@ describe('downloadMarkdown — filename sanitization', () => {
   })
 
   it('replaces Windows-reserved shell characters', () => {
-    // `<>:"|?*` — if the user syncs their downloads folder to OneDrive
+    // `<>:"|?*`: if the user syncs their downloads folder to OneDrive
     // these would otherwise produce save-dialog errors.
     expect(filenameFor('a<b>c:"d"|e?f*g')).toBe('a_b_c__d__e_f_g.md')
   })
@@ -222,14 +222,14 @@ describe('downloadMarkdown — filename sanitization', () => {
     expect(filenameFor('日本語')).toBe('___.md')
     // Astral-plane chars (🎉 is U+1F389, a surrogate pair in UTF-16) are
     // seen by the regex as TWO separate code units and mapped to TWO
-    // underscores. Not a bug — the sanitizer works on code units, not
+    // underscores. Not a bug, the sanitizer works on code units, not
     // code points. Documented here so a future "fix" to String.iterator
     // semantics doesn't silently change filenames.
     expect(filenameFor('🎉 party')).toBe('__ party.md')
   })
 
   it('collapses each illegal char to a single underscore (no run compression)', () => {
-    // The regex replaces per-character — consecutive illegal chars map
+    // The regex replaces per-character, consecutive illegal chars map
     // to consecutive underscores, NOT a single one. This is deliberate;
     // changing it would make "a??b" and "a?b" produce the same file.
     expect(filenameFor('a???b')).toBe('a___b.md')
@@ -241,7 +241,7 @@ describe('downloadMarkdown — filename sanitization', () => {
 
   it('does NOT trim leading/trailing underscores (only whitespace)', () => {
     // `trim()` only removes whitespace. Leading/trailing underscores
-    // produced by substitution survive — callers get the full mapped
+    // produced by substitution survive, callers get the full mapped
     // filename rather than silent truncation.
     expect(filenameFor('!hello!')).toBe('_hello_.md')
   })
@@ -251,7 +251,7 @@ describe('downloadMarkdown — filename sanitization', () => {
   })
 
   it('falls back to "document" for a whitespace-only title', () => {
-    // Whitespace is kept by the whitelist regex but stripped by trim —
+    // Whitespace is kept by the whitelist regex but stripped by trim,
     // the resulting empty string triggers the fallback.
     expect(filenameFor('   ')).toBe('document.md')
   })
@@ -259,13 +259,13 @@ describe('downloadMarkdown — filename sanitization', () => {
   it('does NOT fall back when the title maps to all-underscores', () => {
     // `!@#` is not whitespace-only after sub (it becomes `___`), so it
     // survives trim and `'___' || 'document'` returns `'___'`.
-    // Documents this quirk — if we ever want all-underscore to fall
+    // Documents this quirk: if we ever want all-underscore to fall
     // back too, the regex needs a separate emptiness check.
     expect(filenameFor('!@#')).toBe('___.md')
   })
 
   it('handles a long title without truncation', () => {
-    // No length cap in the util — long titles pass through. The OS
+    // No length cap in the util, long titles pass through. The OS
     // filesystem may still truncate on save, but that's its problem.
     const longTitle = 'x'.repeat(300)
     expect(filenameFor(longTitle)).toBe(`${longTitle}.md`)

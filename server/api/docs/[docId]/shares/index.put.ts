@@ -7,7 +7,7 @@ import { assertNotModerationRestricted } from '../../../../utils/privacy/moderat
 import { getDoc } from '../../../../repos/documents'
 import { upsertDocShareBody } from '~~/shared/api/sharing'
 
-// PUT /api/docs/:docId/shares — {userId, access: 'view' | 'edit'}: share
+// PUT /api/docs/:docId/shares: {userId, access: 'view' | 'edit'}: share
 // the document with a guest of its workspace, or change their access.
 // Admins + editors of the workspace. Audited (`doc.shared`).
 export default defineApiHandler({

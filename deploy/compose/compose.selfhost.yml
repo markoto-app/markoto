@@ -1,4 +1,4 @@
-# Self-hosted markoto — the whole stack on one machine.
+# Self-hosted markoto: the whole stack on one machine.
 #
 #   ./install.sh            # first install: asks a few questions, writes .env, starts
 #   docker compose up -d    # afterwards (the .env written by install.sh selects this file)
@@ -8,11 +8,11 @@
 # Same images and code as the hosted service (GHCR, `${IMAGE_TAG}`); the
 # differences are configuration only. Compared with deploy/compose/compose.prod.yml
 # this file bundles what a self-hoster doesn't have:
-#   - Postgres (pgvector image, persistent volume) — prod uses a managed cluster
+#   - Postgres (pgvector image, persistent volume): prod uses a managed cluster
 #   - S3-compatible storage (SeaweedFS, persistent volume, bucket auto-created)
 #   - one public origin: app, Hocuspocus (`/sync`) and the S3 bucket
 #     (`/<bucket>/…`, for presigned browser uploads/downloads) all sit behind
-#     ONE Traefik entrypoint — a single DNS name / port, no CORS
+#     ONE Traefik entrypoint: a single DNS name / port, no CORS
 #
 # Shapes (picked by COMPOSE_FILE in .env, written by install.sh):
 #   deploy/compose/compose.selfhost.yml                         plain HTTP on ${MARKOTO_HTTP_PORT}
@@ -38,8 +38,8 @@
 #                    (only the S3 port listens beyond seaweedfs' loopback)
 #   egress           litellm, backup                       (AI providers, external backup S3)
 #   renderer-egress  renderer alone                        (public URL for document images)
-# The renderer and markitdown — the two services that parse untrusted
-# input — can't reach Postgres, Valkey, LiteLLM or sync.
+# The renderer and markitdown: the two services that parse untrusted
+# input: can't reach Postgres, Valkey, LiteLLM or sync.
 
 include:
   - compose.base.yml
@@ -206,13 +206,13 @@ services:
       - S3_ACCESS_KEY=${NUXT_S3_ACCESS_KEY:?NUXT_S3_ACCESS_KEY required}
       - S3_SECRET_KEY=${NUXT_S3_SECRET_KEY:?NUXT_S3_SECRET_KEY required}
     entrypoint: ["/bin/sh", "-c"]
-    # `-master.volumeSizeLimitMB=256`: see deploy/compose/compose.dev.yml — keeps
+    # `-master.volumeSizeLimitMB=256`: see deploy/compose/compose.dev.yml: keeps
     # enough volume slots on small disks. The image's own entrypoint drops
     # to the `seaweed` user, hence the chown.
     #
     # Only the S3 API (SigV4-authenticated) listens on the network
-    # (`-s3.ip.bind=0.0.0.0`). Master, volume and filer — which have no
-    # authentication — bind and advertise 127.0.0.1, so they are reachable
+    # (`-s3.ip.bind=0.0.0.0`). Master, volume and filer: which have no
+    # authentication: bind and advertise 127.0.0.1, so they are reachable
     # from inside this container only; the Iceberg and Lance side ports are
     # off.
     command:
@@ -318,7 +318,7 @@ services:
     stop_grace_period: 30s
     mem_limit: 2g
     environment:
-      # BEGIN env:gen app — plain passthrough of the registry variables (shared/env/); regenerate with `bun run env:gen`.
+      # BEGIN env:gen app, plain passthrough of the registry variables (shared/env/); regenerate with `bun run env:gen`.
       - NUXT_SITE_INDEXABLE=${NUXT_SITE_INDEXABLE:-}
       - NUXT_ADMIN_USER_EMAILS=${NUXT_ADMIN_USER_EMAILS:-}
       - NUXT_JWT_SECRET_PREVIOUS=${NUXT_JWT_SECRET_PREVIOUS:-}
@@ -435,7 +435,7 @@ services:
       # (server/utils/litellm/litellmDb.ts); empty = the app role.
       - NUXT_LITELLM_DB_USER=${POSTGRES_LITELLM_USER:-}
       - NUXT_LITELLM_DB_PASSWORD=${POSTGRES_LITELLM_PASSWORD:-}
-      # The app's own role (owner of the app database only) — db-init.
+      # The app's own role (owner of the app database only): db-init.
       - POSTGRES_USER=${POSTGRES_APP_USER:-${POSTGRES_USER}}
       - POSTGRES_PASSWORD=${POSTGRES_APP_PASSWORD:-${POSTGRES_PASSWORD}}
       - POSTGRES_HOST=postgres
@@ -555,7 +555,7 @@ services:
       # each directive). HSTS is ignored by browsers on plain http. The
       # Content-Security-Policy (per-response nonce) and
       # Cross-Origin-Resource-Policy come from the app itself
-      # (server/plugins/csp.ts) — same policy as the hosted deployment.
+      # (server/plugins/csp.ts): same policy as the hosted deployment.
       - "traefik.http.middlewares.markoto-headers.headers.stsSeconds=31536000"
       - "traefik.http.middlewares.markoto-headers.headers.contentTypeNosniff=true"
       - "traefik.http.middlewares.markoto-headers.headers.frameDeny=true"
@@ -624,7 +624,7 @@ services:
   renderer:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-renderer:${IMAGE_TAG:-latest}
     environment:
-      # Not http://app:3000 — see the `markoto-app` alias on the app service.
+      # Not http://app:3000: see the `markoto-app` alias on the app service.
       - APP_URL=http://markoto-app:3000
       - S3_ENDPOINT=http://seaweedfs:8333
       # The origin presigned document-image URLs point at (the app's
@@ -649,17 +649,17 @@ services:
 
   # Optional: COMPOSE_PROFILES=backup. Encrypted (gpg AES-256) pg_dump into
   # the bucket under backups/postgres/. It lands on the SAME disk as the
-  # data — copy it off the machine (docs/SELF-HOSTING.md#backups).
+  # data: copy it off the machine (docs/SELF-HOSTING.md#backups).
   backup:
     image: ${REGISTRY:-ghcr.io/joelbarmettleruzh}/markoto-backup:${IMAGE_TAG:-latest}
     profiles: ["backup"]
     environment:
       # Same bucket and keys as the app unless BACKUP_S3_* point elsewhere
-      # (a second bucket, or an external S3 provider — docs/SELF-HOSTING.md#backups).
+      # (a second bucket, or an external S3 provider: docs/SELF-HOSTING.md#backups).
       - S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-http://seaweedfs:8333}
       - S3_BUCKET=${BACKUP_S3_BUCKET:-${NUXT_S3_BUCKET:-markoto-files}}
       - BACKUP_INTERVAL_SECONDS=${BACKUP_INTERVAL_SECONDS:-86400}
-      # SeaweedFS rejects the SSE-S3 header (InternalError) — see backup.sh.
+      # SeaweedFS rejects the SSE-S3 header (InternalError): see backup.sh.
       - S3_SSE=none
       - BACKUP_RETENTION_COUNT=${BACKUP_RETENTION_COUNT:-14}
       - BACKUP_GPG_PASSPHRASE=${BACKUP_GPG_PASSPHRASE:?BACKUP_GPG_PASSPHRASE required}

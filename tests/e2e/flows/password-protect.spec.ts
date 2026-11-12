@@ -10,8 +10,8 @@ import { test, expect } from '../fixtures/flow'
 // passphrase.
 //
 // Two-context flow: the OWNER sets the passphrase via the share
-// dialog; a VISITOR — a genuinely separate `BrowserContext` spawned
-// via `flow.spawn('visitor')` — opens the share link with no
+// dialog; a VISITOR, a genuinely separate `BrowserContext` spawned
+// via `flow.spawn('visitor')`: opens the share link with no
 // cookies and hits the PasswordModal. Both actors' frames land in
 // the same manifest in call order, so the slideshow reads as one
 // linear story.
@@ -26,7 +26,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   // ShareModal.vue). Anonymous users on anonymous docs are NOT
   // owners (isOwner is `data.ownerId === userId`; both null on
   // anon flows). Log in via the TEST_MODE shim BEFORE silentSetup
-  // so the doc is created with this user as owner — they then
+  // so the doc is created with this user as owner, they then
   // see the access-mode controls in the share dialog.
   await editor.page.loginAsTestUser('Maya Chen')
   await editor.silentSetup({
@@ -42,7 +42,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     + 'mode to password-protected and chooses a passphrase. Visitors hit '
     + 'a blocking dialog before they see anything; only the right '
     + 'passphrase gets them past it. Only the owner sees the access-mode '
-    + 'picker — sign in first, because a document created without an '
+    + 'picker: sign in first, because a document created without an '
     + 'account has no owner and can\'t be locked.'
   )
 
@@ -58,7 +58,7 @@ test('Password protect', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'lock icon', selector: '[aria-label*="access mode" i]', kind: 'arrow' }
       ],
-      result: 'The share dialog opens — four access modes below the link.',
+      result: 'The share dialog opens, four access modes below the link.',
       after: () => page.locator('[data-testid="share-modal"]').waitFor({ state: 'visible' })
     }
   )
@@ -67,13 +67,13 @@ test('Password protect', async ({ page, flow, editor }) => {
   await flow.heading('Switch the access mode', 3)
   await flow.narrate(
     'Tap "Password protected" to gate the doc. The password input '
-    + 'appears below — choose at least 8 characters, memorable enough '
+    + 'appears below: choose at least 8 characters, memorable enough '
     + 'to share verbally with whoever needs in. markoto stores only a '
     + 'one-way hash of it, never the passphrase itself.'
   )
 
   // The four access mode options render as buttons inside the share
-  // modal. Match by the i18n label text (en) — the button isn't
+  // modal. Match by the i18n label text (en), the button isn't
   // a role=radio because the markup uses plain <button> elements.
   const passwordOption = page.locator('[data-testid="share-access-password-protected"]')
   await flow.click(
@@ -83,7 +83,7 @@ test('Password protect', async ({ page, flow, editor }) => {
       annotations: [
         { label: 'password mode', selector: '[data-testid="share-access-password-protected"]', kind: 'arrow' }
       ],
-      result: 'The password input appears — type a passphrase to lock the doc.',
+      result: 'The password input appears, type a passphrase to lock the doc.',
       after: () => page.locator('[data-testid="share-password-input"]').waitFor({ state: 'visible' })
     }
   )
@@ -96,7 +96,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     passwordInput,
     sharedPassword,
     {
-      result: 'The passphrase is typed — Save locks the doc with it.'
+      result: 'The passphrase is typed, Save locks the doc with it.'
     }
   )
 
@@ -120,11 +120,11 @@ test('Password protect', async ({ page, flow, editor }) => {
 
   // ASSERTION: server returned the access mode change. The share
   // modal auto-closes once the password is saved, so we check the
-  // topbar's access-lock button — its aria-label reflects the
+  // topbar's access-lock button: its aria-label reflects the
   // current mode (`Access Mode: Password protected`).
   await expect(editor.page.accessLockButton).toHaveAttribute('aria-label', /password protected/i)
 
-  // Capture the doc URL — the visitor will navigate to this same
+  // Capture the doc URL, the visitor will navigate to this same
   // link from a fresh BrowserContext (no cookies, no session, no
   // doc-scoped JWT).
   const docUrl = page.url()
@@ -132,13 +132,13 @@ test('Password protect', async ({ page, flow, editor }) => {
   // What your visitor sees
   await flow.heading('What your visitor sees', 3)
   await flow.narrate(
-    'A first-time visitor — say, in their own browser — opens the '
+    'A first-time visitor: say, in their own browser, opens the '
     + 'link and gets the password dialog first. Until the passphrase '
     + 'checks out, markoto sends them nothing of the document: not '
     + 'the text, not even its title.'
   )
 
-  // Spawn the visitor — a genuinely separate BrowserContext (clean
+  // Spawn the visitor: a genuinely separate BrowserContext (clean
   // cookies + storage, independent identity). All visitor-side
   // captures push into the same manifest with `actor: 'visitor'`
   // stamped per frame; the spawned context is auto-closed at
@@ -150,7 +150,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   await visitorPasswordInput.waitFor({ state: 'visible', timeout: 15_000 })
 
   await visitor.flow.shot(
-    'A blocking dialog asks for the password — the editor is hidden until you enter it.',
+    'A blocking dialog asks for the password, the editor is hidden until you enter it.',
     {
       annotations: [
         { label: 'password input', selector: 'input[type="password"]', kind: 'arrow' }
@@ -171,7 +171,7 @@ test('Password protect', async ({ page, flow, editor }) => {
     visitorPasswordInput,
     sharedPassword,
     {
-      result: 'The passphrase is ready — Unlock submits it for verification.'
+      result: 'The passphrase is ready, Unlock submits it for verification.'
     }
   )
 
@@ -185,13 +185,13 @@ test('Password protect', async ({ page, flow, editor }) => {
     {
       // Hero outcome: the doc is unlocked + the editor materialises.
       // This IS the "your gated link works" payoff. Hero is latched
-      // ACROSS actors — the visitor's unlocked frame is the first
+      // ACROSS actors: the visitor's unlocked frame is the first
       // outcome marked hero in this flow, so it wins.
       hero: true,
       result: 'The password dialog closes and the document opens.',
       after: async () => {
         // Wait for the CodeMirror content surface to be ATTACHED on
-        // the visitor's page — the title button is mobile-hidden in
+        // the visitor's page: the title button is mobile-hidden in
         // some narrow layouts (it sits inside a topbar that gets
         // visually clipped), so a `.cm-content` attach check is the
         // most reliable "doc loaded" proxy across desktop AND
@@ -199,7 +199,7 @@ test('Password protect', async ({ page, flow, editor }) => {
         await visitor.page.locator('.cm-content').waitFor({ state: 'attached', timeout: 15_000 })
         await expect(visitor.page.locator('[data-testid="password-modal-input"]')).toHaveCount(0, { timeout: 10_000 })
         await expect(visitor.page.locator('.cm-content')).toContainText('Board meeting notes', { timeout: 15_000 })
-        // Desktop shows the live preview next to the editor — wait for
+        // Desktop shows the live preview next to the editor, wait for
         // its pages, or the hero frame shows an empty preview pane.
         if (!editor.isMobile && await visitor.page.locator('iframe').count() > 0) {
           await visitor.editor.waitForPreviewPaginated()
@@ -212,7 +212,7 @@ test('Password protect', async ({ page, flow, editor }) => {
   // ASSERTION: the password modal is gone AND the editor surface
   // is in the DOM on the VISITOR's page (not the owner's, which
   // still has the editor visible from before the share dialog
-  // ever opened). Use `toBeAttached` rather than `toBeVisible` —
+  // ever opened). Use `toBeAttached` rather than `toBeVisible`,
   // mobile narrow layouts hide the title button visually but the
   // `.cm-content` element is the unambiguous "editor mounted"
   // signal.
@@ -223,6 +223,6 @@ test('Password protect', async ({ page, flow, editor }) => {
   // doc is sending a polished version to the password-holder.
   flow.next({
     slug: 'polished-pdf',
-    why: 'Now polish it and send a PDF — the password gate stays in place'
+    why: 'Now polish it and send a PDF, the password gate stays in place'
   })
 })

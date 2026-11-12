@@ -56,7 +56,7 @@ export async function listAbuseReportsForTriage(_by: AdminActor, statuses: reado
     .limit(limit)
 }
 
-/** Every notice produced for these reports (receipt, decision, statement of reasons — delivered or not). */
+/** Every notice produced for these reports (receipt, decision, statement of reasons, delivered or not). */
 export async function listNoticesForReports(_by: AdminActor, reportIds: readonly string[]) {
   if (reportIds.length === 0) return []
   return useDatabase()
@@ -80,7 +80,7 @@ export async function getAbuseReport(_by: AdminActor, reportId: string): Promise
 
 /**
  * Claim a status transition atomically: only while the report still has
- * `from` (two moderators can't both act — and both email — on one report).
+ * `from` (two moderators can't both act, and both email, on one report).
  * The proof's admin is recorded as `actioned_by`. False when someone else
  * moved it first.
  */

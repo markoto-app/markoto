@@ -6,7 +6,7 @@ import { baseUrlHost, codeKey } from '~~/shared/ai/providers'
 import { aiProviderParams, saveAiProviderBody } from '~~/shared/api/account'
 import { MINUTE_MS } from '~~/shared/config/units'
 
-// PUT /api/user/ai-providers/:capability — save (create or replace) the
+// PUT /api/user/ai-providers/:capability: save (create or replace) the
 // caller's provider for one capability. Order: URL policy (SSRF) →
 // verification through LiteLLM (same path as real calls) → encrypt +
 // store. A hard verification failure (auth / unknown model / URL /

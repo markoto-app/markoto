@@ -7,7 +7,7 @@ import { byokUser, resetFake, uniqueKey, waitFor, writeDocAs, type SyncClient } 
 
 // F-7c: the initiator's private session channel as a Server-Sent Events
 // stream (`GET /api/ai/sessions/:id/stream`), end to end against the
-// PRODUCTION build — i.e. through `server/runtime/bunEntry.ts` and
+// PRODUCTION build: i.e. through `server/runtime/bunEntry.ts` and
 // Nitro's `localFetch`. The session pauses on a confirmation, so the
 // events can only have arrived while the response was still open: proof
 // that nothing between the handler and the socket buffers the stream.
@@ -74,7 +74,7 @@ async function sharedSessionAwaitingConfirmation(): Promise<{ alice: TestClient,
   return { alice, bob, sessionId, docId: shared.docId }
 }
 
-describe('F-7c — AI session status stream (SSE)', () => {
+describe('F-7c: AI session status stream (SSE)', () => {
   beforeEach(async () => {
     await resetDb()
     await resetFake()

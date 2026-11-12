@@ -10,11 +10,11 @@
  * rules out of the stylesheet before chunking: Following (every selector
  * containing a "+") and NthOfType (`:first-of-type`, `:last-of-type`,
  * `:nth-of-type`). They mark the matching elements with an id
- * (`data-following` / `data-nth-of-type`) — so a paragraph still counts as
- * "after the heading" on the next page — and re-insert the declarations
+ * (`data-following` / `data-nth-of-type`): so a paragraph still counts as
+ * "after the heading" on the next page, and re-insert the declarations
  * as `*[data-following*='id']`: specificity (0,1,0), so `h1 + p` lost to
  * any `.paged-doc p` rule. Both build the rule in `processSelectors`; this
- * version inserts `:where(<mark>):is(<original>, :where(<mark>))` instead —
+ * version inserts `:where(<mark>):is(<original>, :where(<mark>))` instead,
  * exactly the marked elements, with the original selector's specificity. A
  * trailing pseudo-element (`h1 + p::first-line`) stays outside the
  * `:is()`. If the browser refuses the selector, paged.js's own form is used.

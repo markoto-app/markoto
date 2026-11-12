@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 //
 //   1. With no active span (getTraceData returns {}), headers pass through
 //      unchanged. This is the common case when Sentry isn't initialised
-//      (DSN unset in dev) — the tracing path mustn't break unauthenticated
+//      (DSN unset in dev), the tracing path mustn't break unauthenticated
 //      requests.
 //   2. With an active span, the returned headers include the upstream-
 //      provided keys plus `sentry-trace` + `baggage`. Order matters: the
@@ -15,7 +15,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 //      tracing keys either (we own them).
 //   3. If `getTraceData` throws (an SDK bug shouldn't take down the
 //      originating mutation), the wrapper falls back to the caller's
-//      headers unchanged — graceful degradation.
+//      headers unchanged: graceful degradation.
 
 const getTraceDataMock = vi.fn()
 vi.mock('@sentry/nuxt', () => ({

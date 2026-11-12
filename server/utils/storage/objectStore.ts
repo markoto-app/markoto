@@ -12,7 +12,7 @@ export interface StoredObject {
 export interface ObjectStore {
   /** Every object under `prefix` (all pages). */
   list: (prefix: string) => Promise<StoredObject[]>
-  /** Delete the keys (1000 per request — the DeleteObjects cap). Missing keys are fine. */
+  /** Delete the keys (1000 per request, the DeleteObjects cap). Missing keys are fine. */
   deleteMany: (keys: string[]) => Promise<void>
 }
 

@@ -1,4 +1,4 @@
-// Pure diff between two comment snapshots — produces the activity
+// Pure diff between two comment snapshots, produces the activity
 // events that should be emitted for the transition. Extracted from
 // the comments-snapshot endpoint so it can be tested in isolation
 // without mocking the database or HTTP layer.
@@ -6,7 +6,7 @@
 // Inputs are flat lists of comment-shaped rows (one entry per root
 // + one entry per reply, replies carrying `parentCommentId` pointing
 // at their root). Both inputs come from the same authoritative
-// source — the doc's `comments` Y.Array — so the only legitimate
+// source, the doc's `comments` Y.Array, so the only legitimate
 // differences are: NEW entries (added since prev), DELETED entries
 // (gone since prev), or resolved-flag flips on existing entries.
 //
@@ -20,7 +20,7 @@
 // (iterating the new snapshot), then deletes (iterating the prev
 // snapshot). The activity log itself is timestamp-ordered at insert
 // time, so per-cycle event ordering only matters when many events
-// share the same `created_at` — in which case `id` ordering inside
+// share the same `created_at`, in which case `id` ordering inside
 // the DB takes over.
 
 export interface SnapshotEntry {
@@ -64,7 +64,7 @@ export function diffCommentsSnapshot(
     const flip = eventForResolvedFlip(entryId, p, c)
     if (flip) events.push(flip)
     // Body edits, parentCommentId mutations, and other field changes
-    // are intentionally NOT tracked — see header comment.
+    // are intentionally NOT tracked, see header comment.
   }
 
   // Deletions. Iterate prev and skip rows still in curr.

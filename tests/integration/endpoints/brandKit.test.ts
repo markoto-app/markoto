@@ -33,7 +33,7 @@ async function setup() {
   return { admin, ws, editor, adminClient: await loggedInClient(admin.id) }
 }
 
-describe('brand kit — fonts and logos', () => {
+describe('brand kit: fonts and logos', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -41,7 +41,7 @@ describe('brand kit — fonts and logos', () => {
   it('accepts a static font under its own name, refuses built-in names, variable fonts and missing licence', async () => {
     const { ws, adminClient } = await setup()
     const path = `/api/workspaces/${ws.workspaceId}/brand/fonts`
-    // The file says "Inter" — one of markoto's built-in fonts.
+    // The file says "Inter", one of markoto's built-in fonts.
     const builtIn = await upload(adminClient, path, { file: fontFile(STATIC_WOFF2), licence: 'true' })
     expect(builtIn.status).toBe(409)
     expect((await builtIn.json() as { data: { code: string } }).data.code).toBe('brand/family-built-in')
@@ -145,7 +145,7 @@ describe('brand kit — fonts and logos', () => {
   })
 })
 
-describe('brand kit — locked design', () => {
+describe('brand kit: locked design', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -208,7 +208,7 @@ describe('brand kit — locked design', () => {
   })
 })
 
-describe('brand kit — workspace templates', () => {
+describe('brand kit: workspace templates', () => {
   beforeEach(async () => {
     await resetDb()
   })

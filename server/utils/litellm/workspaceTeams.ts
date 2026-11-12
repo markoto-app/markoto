@@ -16,7 +16,7 @@ const log = useLogger('litellm-teams')
 // One LiteLLM team per Team / Business workspace.
 //
 //   team  `markoto-ws-<workspaceId>`: max_budget = seats × per-seat budget,
-//         budget_duration 30d — the workspace's pooled AI budget.
+//         budget_duration 30d: the workspace's pooled AI budget.
 //   keys  one per (workspace, member), in that team, created on the
 //         member's first AI use there; max_budget = the member's limit
 //         (`memberLimitUsd`, null = only the team budget applies).

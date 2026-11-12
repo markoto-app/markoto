@@ -1,18 +1,18 @@
 import { test, expect } from '../fixtures/flow'
 
-// Tier 1: "Skip the blank page — start from a template."
+// Tier 1: "Skip the blank page, start from a template."
 //
 // User-job: a writer opens markoto staring at an empty editor and
-// freezes. Job done when they've seen the templates — each one a
+// freezes. Job done when they've seen the templates, each one a
 // starting text in a design that suits it, shown as a picture of its
-// first page — picked one (Report), and watched markoto open the doc
+// first page: picked one (Report), and watched markoto open the doc
 // with the report's skeleton (headings, hint comments, key-figures
 // table) in the report design (cover page, contents).
 //
 // Highlights an underloved feature: every template body is a real
 // markdown file in `shared/templates/content/<id>/<locale>.md`,
 // rendered server-side when the doc first opens, and the design comes
-// with it — one choice instead of two. The skeleton survives editing,
+// with it: one choice instead of two. The skeleton survives editing,
 // the comments hint at what to write where, and the design can be
 // changed later in the theme panel.
 test('Start from a template', async ({ page, flow, editor }) => {
@@ -82,7 +82,7 @@ test('Start from a template', async ({ page, flow, editor }) => {
   await flow.narrate(
     'The Report template brings a cover page, a table of contents, an '
     + 'executive summary, a key-figures table, results, an outlook and an '
-    + 'appendix — in the Corporate report design. Pick it and the editor '
+    + 'appendix: in the Corporate report design. Pick it and the editor '
     + 'opens with the skeleton in place.'
   )
 
@@ -90,7 +90,7 @@ test('Start from a template', async ({ page, flow, editor }) => {
     'Click the "Report" card',
     editor.page.newDocDialog.templateCard('report'),
     {
-      result: '"Report" is selected — the card lights up and the Template row names it.',
+      result: '"Report" is selected, the card lights up and the Template row names it.',
       after: async () => {
         await expect(editor.page.newDocDialog.templateCard('report')).toHaveAttribute('aria-pressed', 'true')
         await expect(editor.page.newDocDialog.summary('template')).toHaveText('Report')
@@ -149,6 +149,6 @@ test('Start from a template', async ({ page, flow, editor }) => {
 
   flow.next({
     slug: 'pick-a-theme',
-    why: 'Change the design later — every template\'s look is a theme you can switch'
+    why: 'Change the design later, every template\'s look is a theme you can switch'
   })
 })

@@ -4,7 +4,7 @@ import { computeStripeSig } from '../../integration/setup/stripeHelpers'
 // Stripe in flow tests. Real Stripe Checkout / the Customer Portal are
 // hosted pages on another origin that a flow can't (and shouldn't)
 // drive. Flows click the real button, these helpers keep the browser on
-// markoto, and the webhook Stripe would send is posted directly — so the
+// markoto, and the webhook Stripe would send is posted directly, so the
 // payoff (plan active, seats changed) is real.
 
 /** The flow stack's webhook secret (`scripts/flows-ephemeral.ts`). */
@@ -51,7 +51,7 @@ export async function stayOnApp(page: Page, testInfo: TestInfo): Promise<void> {
         await route.fulfill({ status: 200, body: '', contentType: 'text/html' })
         return
       }
-    } catch { /* malformed URL — let it through */ }
+    } catch { /* malformed URL, let it through */ }
     await route.continue()
   })
 }

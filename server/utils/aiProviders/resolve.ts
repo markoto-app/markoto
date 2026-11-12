@@ -122,7 +122,7 @@ export interface AiAccess {
 /**
  * Resolve the providers for a user under a plan: own config → instance
  * default (only for capabilities the plan includes) → null. `plan` is
- * the plan that pays for the call (`resolveBillingContext(...).plan` —
+ * the plan that pays for the call (`resolveBillingContext(...).plan`,
  * a Team / Business workspace's plan inside it). With the user's "Strong"
  * pick and a plan that includes `aiStrongModel`, the platform chat
  * default becomes `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`.

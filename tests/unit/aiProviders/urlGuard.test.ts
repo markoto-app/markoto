@@ -7,7 +7,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 //   - Hostnames that resolve via DNS to a private IP are refused.
 //
 // We mock `node:dns/promises.lookup` so the public-hostname tests
-// don't require live DNS — every test in this file is deterministic.
+// don't require live DNS, every test in this file is deterministic.
 
 const lookup = vi.hoisted(() =>
   vi.fn<(host: string, opts?: unknown) => Promise<Array<{ address: string, family: number }>>>()
@@ -24,7 +24,7 @@ beforeEach(() => {
   lookup.mockResolvedValue([{ address: '93.184.216.34', family: 4 }]) // example.com
 })
 
-describe('isPrivateIp — IPv4', () => {
+describe('isPrivateIp: IPv4', () => {
   it.each([
     ['10.0.0.1', true],
     ['10.255.255.255', true],
@@ -52,7 +52,7 @@ describe('isPrivateIp — IPv4', () => {
   })
 })
 
-describe('isPrivateIp — IPv6', () => {
+describe('isPrivateIp: IPv6', () => {
   it.each([
     ['::1', true],
     ['::', true],
@@ -73,7 +73,7 @@ describe('isPrivateIp — IPv6', () => {
 // Regression (IPv6 classification): `new URL()` rewrites
 // `[::ffff:127.0.0.1]` to `[::ffff:7f00:1]`, which a dotted-only regex
 // missed; other IPv4-embedding forms fell through as "public".
-describe('classifyIp — IPv6 forms (table)', () => {
+describe('classifyIp: IPv6 forms (table)', () => {
   it.each([
     // [address, class]
     ['::ffff:7f00:1', 'forbidden'], //               IPv4-mapped loopback, hex form
@@ -134,7 +134,7 @@ describe('parseToolUrl', () => {
   })
 })
 
-describe('assertSafeUrl — schemes', () => {
+describe('assertSafeUrl: schemes', () => {
   it('allows https:// public URLs', async () => {
     await expect(assertSafeUrl('https://example.com/path')).resolves.toBeUndefined()
   })
@@ -172,7 +172,7 @@ describe('assertSafeUrl — schemes', () => {
   })
 })
 
-describe('assertSafeUrl — IP literals', () => {
+describe('assertSafeUrl: IP literals', () => {
   it('rejects 127.0.0.1 (loopback)', async () => {
     await expect(assertSafeUrl('http://127.0.0.1/')).rejects.toThrow(/private IP/i)
   })
@@ -211,7 +211,7 @@ describe('assertSafeUrl — IP literals', () => {
   })
 })
 
-describe('assertSafeUrl — DNS resolution', () => {
+describe('assertSafeUrl: DNS resolution', () => {
   it('allows hostnames that resolve to a public IP', async () => {
     lookup.mockResolvedValueOnce([{ address: '93.184.216.34', family: 4 }])
     await expect(assertSafeUrl('https://example.com/')).resolves.toBeUndefined()

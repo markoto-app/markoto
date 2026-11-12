@@ -16,11 +16,11 @@ export function createBreakRules(q: BlockQueries, geo: LineGeometry, tables: Tab
   }
 
   /**
-   * Lists: never carry a single item over to the next page — take one more
-   * along when at least two stay — nor leave a single item behind. A short
+   * Lists: never carry a single item over to the next page, take one more
+   * along when at least two stay, nor leave a single item behind. A short
    * list (≤ shortList items) moves whole; a list right under a heading
    * keeps at least minListItems items with it, or the heading goes along.
-   * (A list item kept whole — `break-inside: avoid` — counts too.)
+   * (A list item kept whole, `break-inside: avoid`, counts too.)
    * Returns the new target, or `target` unchanged.
    */
   function listRule(target: Element | null, el: Element, root: Element, range: Range, page: PageBox, midText: boolean, siblingsFrom: SiblingsFrom): Element | null {
@@ -46,7 +46,7 @@ export function createBreakRules(q: BlockQueries, geo: LineGeometry, tables: Tab
 
   /**
    * Orphans: don't leave a single line of a paragraph behind. Widows: don't
-   * carry a single line over — break one line earlier when two would stay
+   * carry a single line over, break one line earlier when two would stay
    * (a Range), else move the paragraph. Null when the break is fine.
    */
   function paragraphRule(el: Element, root: Element, range: Range, page: PageBox): Element | Range | null {

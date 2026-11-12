@@ -5,7 +5,7 @@ import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
 /**
  * Marker classes for template CSS, set while the Markdown is parsed (so
  * the sanitised HTML carries them; no selector gymnastics with `:has()` or
- * sibling combinators, which paged.js rewrites — docs/contributing/TEMPLATE-WORKFLOW.md):
+ * sibling combinators, which paged.js rewrites, docs/contributing/TEMPLATE-WORKFLOW.md):
  *
  * - `markoto-labelled` on a paragraph that opens with a bold run-in label
  *   (`**Theorem 7.3.** text`, `**Pricing:** CHF 39`): the label ends with
@@ -17,7 +17,7 @@ import type StateCore from 'markdown-it/lib/rules_core/state_core.mjs'
  *   exactly that; the method sits in `span.markoto-http-method`, the path
  *   in `span.markoto-http-path` (API references).
  *
- * Plain `<p>` / `<pre>` / `<span>` with classes — the sanitiser allows them.
+ * Plain `<p>` / `<pre>` / `<span>` with classes, the sanitiser allows them.
  */
 const LABEL_END = /[.:!?]$/
 const ENDPOINT = /^(GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS|TRACE|CONNECT)[ \t]+(\/\S*)$/

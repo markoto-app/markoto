@@ -11,7 +11,7 @@
  *
  * No preset ids = every built-in preset. `--patch` is a JSON object merged
  * (two levels deep, like the AI `update_theme`) over each preset before
- * the document opens — e.g. authors/affiliations for a title block. It is
+ * the document opens: e.g. authors/affiliations for a title block. It is
  * written with `PUT /api/docs/:id/meta`, which needs the owner, so with
  * `--patch` the documents are created as user 1 through the test login
  * shim: only on a TEST_MODE=1 instance whose database has that user.
@@ -19,7 +19,7 @@
  * Needs a running app (a production build is closest to what users see)
  * that lets anonymous visitors create documents without the terms step:
  * start it with NUXT_ANON_GATE_ENABLED=false. Nothing else (no sync
- * server login, no renderer) — the pages come from the browser preview,
+ * server login, no renderer), the pages come from the browser preview,
  * which shares `themeToCss` with the server PDF.
  *
  * Output per preset: `<out>/<preset>-p<N>.png` (2× scale), `<preset>.html`

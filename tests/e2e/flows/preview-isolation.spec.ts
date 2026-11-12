@@ -3,7 +3,7 @@ import { test, expect, type Frame, type Page } from '@playwright/test'
 import { EditorPage } from '../page-objects/Editor'
 import { waitForNothingToHappen } from '../fixtures/waits'
 
-// Security regression suite (NOT a docs flow — it uses plain Playwright,
+// Security regression suite (NOT a docs flow, it uses plain Playwright,
 // not the `flow` / `editor` fixtures, so it writes no manifest):
 //
 //   1. The live preview runs in a sandboxed, OPAQUE-origin iframe: content
@@ -99,7 +99,7 @@ test.describe('preview isolation + CSP', () => {
     await editor.waitForReady()
     await editor.switchToSplitView()
 
-    // Sandbox: scripts only — never allow-same-origin.
+    // Sandbox: scripts only: never allow-same-origin.
     const iframe = page.locator('iframe[title="Document preview"]')
     await expect(iframe).toHaveAttribute('sandbox', 'allow-scripts')
 
@@ -166,7 +166,7 @@ test.describe('preview isolation + CSP', () => {
     expect([401, -1]).toContain(probe.apiWithSession)
 
     // A message forged by the iframe content, pretending to be another
-    // protocol message, is ignored by the parent (shape check) — and a
+    // protocol message, is ignored by the parent (shape check), and a
     // render message the preview content posts to itself is ignored by
     // the bootstrap (sender check).
     const pagesBefore = await frame.evaluate(() => document.querySelectorAll('#mount .pagedjs_page').length)
@@ -264,7 +264,7 @@ test.describe('preview isolation + CSP', () => {
     const requests = recordRequests(page)
     let csp = ''
     // A production build that bundled the wrong SQLite driver answered every
-    // Nuxt Content query with a 500 while all flows stayed green — the docs
+    // Nuxt Content query with a 500 while all flows stayed green, the docs
     // site was empty and nothing noticed. Fail on any failing content query.
     const failedContentQueries: string[] = []
     page.on('response', (res) => {

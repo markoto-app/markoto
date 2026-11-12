@@ -3,7 +3,7 @@ import { buildUserOnlyTool } from '../lib/wrapDocBoundTool'
 import { TEMPLATE_IDS, TEMPLATE_TOOL_HINT } from '~~/shared/templates'
 import { AUDIENCE_KINDS } from '~~/shared/audiences'
 
-// User-only — `create_document` doesn't operate on an existing doc;
+// User-only: `create_document` doesn't operate on an existing doc;
 // it mints a NEW one owned by the caller. Runs the registry's
 // `create_document` tool (`server/utils/ai/tools/libraryTools.ts`), which
 // calls the shared `createDocument` helper (same code path as POST /api/docs).

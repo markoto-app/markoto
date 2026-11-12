@@ -6,7 +6,7 @@ import { DEFAULT_TIERS as TIERS } from '../../shared/config/tiers'
 
 // Tier-aware knowledge caps. `resolveCaps` reads the workspace's
 // effective plan (its Team / Business subscription, or its creator's
-// personal plan when that is better — server/utils/billing/entitlements.ts) for
+// personal plan when that is better, server/utils/billing/entitlements.ts) for
 // per-workspace caps, and the uploader's own plan for per-user caps.
 
 async function setPlan(
@@ -35,7 +35,7 @@ async function subscribe(
 }
 
 // These cases exercise PAID-plan behaviour, which only exists with
-// billing switched on (default is off — see shared/config/billingMode.ts).
+// billing switched on (default is off, see shared/config/billingMode.ts).
 // `isBillingEnabled()` reads process.env per call.
 // Stubbed per test: every stub is undone before the next one
 // (`unstubEnvs` in vitest.config.ts).
@@ -43,7 +43,7 @@ beforeEach(() => {
   vi.stubEnv('NUXT_BILLING_ENABLED', 'true')
 })
 
-describe('resolveCaps — per-uploader tier', () => {
+describe('resolveCaps: per-uploader tier', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -88,7 +88,7 @@ describe('resolveCaps — per-uploader tier', () => {
   })
 })
 
-describe('resolveCaps — per-workspace tier', () => {
+describe('resolveCaps: per-workspace tier', () => {
   beforeEach(async () => {
     await resetDb()
   })

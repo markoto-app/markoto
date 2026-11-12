@@ -40,7 +40,7 @@ export async function getPublishedPageById(id: string): Promise<PublishedPageRow
   return (await useDatabase().select().from(publishedPages).where(eq(publishedPages.id, id)).limit(1))[0] ?? null
 }
 
-/** Does the page exist? (asset requests — never loads the snapshot) */
+/** Does the page exist? (asset requests, never loads the snapshot) */
 export async function publishedPageExists(id: string): Promise<boolean> {
   const rows = await useDatabase().select({ id: publishedPages.id }).from(publishedPages).where(eq(publishedPages.id, id)).limit(1)
   return rows.length > 0

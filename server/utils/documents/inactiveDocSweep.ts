@@ -5,7 +5,7 @@ import { DAY_MS } from '~~/shared/config/units'
 // Candidate query for the inactive-doc sweep (server/plugins/inactive-doc-sweep.ts).
 //
 // An anonymous document (no owner, no workspace) is deleted once it has
-// had no activity for `ttlDays` (NUXT_INACTIVE_DOC_TTL_DAYS, default 30 —
+// had no activity for `ttlDays` (NUXT_INACTIVE_DOC_TTL_DAYS, default 30,
 // the period the Terms and the privacy policy state).
 //
 // Owned and workspace docs are never candidates.

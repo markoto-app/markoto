@@ -107,7 +107,7 @@ describe('getClientIp (h3 event)', () => {
     return createEvent(req, new ServerResponse(req))
   }
 
-  it('default (unset env): one hop — rightmost XFF entry', () => {
+  it('default (unset env): one hop, rightmost XFF entry', () => {
     vi.stubEnv('NUXT_TRUSTED_PROXY_HOPS', '')
     const event = eventWith({ 'x-forwarded-for': '6.6.6.6, 203.0.113.9' }, '172.18.0.5')
     expect(getClientIp(event)).toBe('203.0.113.9')

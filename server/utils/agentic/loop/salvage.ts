@@ -36,7 +36,7 @@ export async function salvageProseTurn(
 
 /**
  * Closing prose is only salvaged when it is the session's sole answer.
- * Comment-trigger sessions always salvage — the thread reply is the
+ * Comment-trigger sessions always salvage, the thread reply is the
  * deliverable, and a successful reply already ended the loop.
  */
 function closingTextIsRedundant(ctx: LoopContext): boolean {

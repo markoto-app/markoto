@@ -138,7 +138,7 @@
 
 # Two shells, both with `set -o pipefail` (ansible-lint risky-shell-pipe).
 # Both are read-only probes (changed_when: false). The second is failed_when:
-# false because absent `lsblk` types aren't an error — we just print a warning.
+# false because absent `lsblk` types aren't an error: we just print a warning.
 - name: Detect root device for the LUKS check
   ansible.builtin.shell: |
     set -o pipefail
@@ -173,7 +173,7 @@
 #   - geerlingguy.security's unattended-upgrade post-Invoke hook
 #   - roles/backup_cron failure path
 #
-# Configuration lives in /etc/markoto/apprise.env (mode 0600) — it sources
+# Configuration lives in /etc/markoto/apprise.env (mode 0600): it sources
 # APPRISE_URLS from the vault. Same value as the GitHub Actions secret of
 # the same name.
 
@@ -235,7 +235,7 @@
       # shellcheck disable=SC1091
       [ -r /etc/markoto/apprise.env ] && . /etc/markoto/apprise.env
       if [ -z "${APPRISE_URLS:-}" ]; then
-        # No URLs configured — silently no-op so callers (cron, apt hooks)
+        # No URLs configured: silently no-op so callers (cron, apt hooks)
         # don't fail.
         exit 0
       fi
@@ -251,7 +251,7 @@
       // Managed by Ansible (markoto/base role).
       // Fires after every apt invocation that touched packages, including
       // unattended-upgrades. The script tails the most recent
-      // unattended-upgrades log and notifies via Apprise. Best-effort —
+      // unattended-upgrades log and notifies via Apprise. Best-effort,
       // exits 0 even on internal failure so apt isn't disrupted.
       DPkg::Post-Invoke {
         "if [ -x /usr/local/bin/markoto-notify ] && [ -f /var/log/unattended-upgrades/unattended-upgrades.log ]; then \

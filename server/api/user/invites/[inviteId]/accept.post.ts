@@ -1,7 +1,7 @@
 import { acceptInviteForUser, inAppInviteSelector } from '../../../../utils/workspaces/workspaceInviteActions'
 import { inviteParams } from '~~/shared/api/account'
 
-// POST /api/user/invites/:inviteId/accept — accept an invitation
+// POST /api/user/invites/:inviteId/accept: accept an invitation
 // addressed to the signed-in user's account email. Creates the
 // workspace membership with the invited role (an existing membership is
 // left as it is) and deletes the invite. 404 when the invite isn't

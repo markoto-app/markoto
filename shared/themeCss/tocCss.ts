@@ -8,18 +8,18 @@ import type { ThemeRuntime } from './runtime'
  * Auto-generated TOC from \`[[toc]]\` (markdown-it-toc-done-right). Plays
  * to paged.js's killer feature: \`target-counter(attr(href url), page)\`
  * resolves the page number of each TOC link's target heading at print
- * time. The result reads like a real book TOC — heading title on the
+ * time. The result reads like a real book TOC, heading title on the
  * left, dotted leader, page number on the right.
  *
  * Indentation is by nested \`<ul>\` levels; the renderer emits up to h4.
  * Resetting list-style hides the bullets (typographers don't put
- * bullets next to TOC entries — the dotted leader carries the eye).
+ * bullets next to TOC entries, the dotted leader carries the eye).
  */
 export function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   const { maxDepth, showTitle, showPageNumbers, leaderStyle } = theme.toc
 
   // Renderer always emits up to h4 (4 nested ULs in worst case).
-  // `composeFinalHtml` removes the levels beyond maxDepth (pruneTocDepth —
+  // `composeFinalHtml` removes the levels beyond maxDepth (pruneTocDepth,
   // paged.js mis-measures hidden lists and broke the TOC after them); the
   // rules below only cover a TOC that reaches the page some other way. depth 2
   // keeps only the second-level ul (h2 entries under h1), so we hide
@@ -31,8 +31,8 @@ export function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 
   // Optional "Table of Contents" heading rendered via CSS ::before so
   // the source markdown stays clean (no manual heading line above
-  // [[toc]]). Title text comes through runtime so it can be localized
-  // — themeToCss bakes it into the CSS string at render time.
+  // [[toc]]). Title text comes through runtime so it can be localized,
+  // themeToCss bakes it into the CSS string at render time.
   const titleRule = showTitle
     ? `.paged-doc .table-of-contents::before {
   content: ${cssString(runtime.tocTitle)};
@@ -61,7 +61,7 @@ export function tocBlock(theme: DocTheme, runtime: ThemeRuntime): string {
 
   // Page numbers via paged.js target-counter. \`margin-left: auto\`
   // pushes the number to the right edge regardless of whether the
-  // leader is present — without it, leader=none would leave the
+  // leader is present: without it, leader=none would leave the
   // page number sitting flush against the title.
   const pageNumberRule = showPageNumbers
     ? `.paged-doc .table-of-contents a::after {

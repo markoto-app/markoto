@@ -18,7 +18,7 @@ import { INITIAL_CONTENT_MAX_LENGTH } from '~~/shared/config/docCreate'
 // loaded only once the block is near the viewport or used. A CodeMirror
 // editor (no Y.js, no sync) next to the app's paged preview:
 // `useMarkdownPreview` (markdown-it + DOMPurify) → `usePagedPreview`
-// (themeToCss + the sandboxed opaque-origin iframe) — the same client
+// (themeToCss + the sandboxed opaque-origin iframe), the same client
 // path as the editor's preview. Visitor text never reaches a server
 // renderer while typing.
 //
@@ -368,7 +368,7 @@ const createdDocPath = computed(() => (errorKey.value?.startsWith('marketing.try
   flex-direction: column;
 }
 /* Phones: one pane at a time. Both share one grid cell and the hidden one
-   keeps its layout (visibility, not display: none) — paged.js inside the
+   keeps its layout (visibility, not display: none), paged.js inside the
    preview frame must be able to measure while the editor tab is shown. */
 .mk-tryw__pane { grid-area: 1 / 1; }
 .is-tab-edit .mk-tryw__pane--preview,

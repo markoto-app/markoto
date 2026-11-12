@@ -2,10 +2,10 @@ import { cancelAccountDeletionByUser } from '../../utils/privacy/accountDeletion
 import { isRepoError } from '../../repos/errors'
 import { HOUR_MS } from '~~/shared/config/units'
 
-// GDPR Article 17 — cancel an in-flight account deletion request.
+// GDPR Article 17: cancel an in-flight account deletion request.
 // Available throughout the 30-day grace window. Once the sweeper has
 // executed (i.e. `users` row is gone), this endpoint cannot reach
-// you — the session has been invalidated and login fails.
+// you: the session has been invalidated and login fails.
 //
 // Rate limit: shares the same per-user budget as request, so an
 // attacker who fires requests + cancels alternately can't pump the

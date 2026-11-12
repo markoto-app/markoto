@@ -29,7 +29,7 @@ export interface HocuspocusInstance {
  * for logged-in users and the sentinel 'anonymous' string; both normalise
  * to string for comparison).
  *
- * Returns counters for the HTTP response — useful for the caller to detect
+ * Returns counters for the HTTP response, useful for the caller to detect
  * "kicked nobody" cases (most often means the member was never connected
  * to those docs in this session, which is fine).
  */

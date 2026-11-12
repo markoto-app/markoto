@@ -21,7 +21,7 @@
       "delete-cancel-conflict": "没有可取消的账号删除计划。",
       "delete-conflict": "你的账号已安排删除。",
       "delete-rate-limited": "账号删除请求过于频繁。请稍后再试。",
-      "sessions-revoke-rate-limited": "请求过于频繁 — 请稍候片刻后重试。"
+      "sessions-revoke-rate-limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "admin": {
       "forbidden": "需要管理员权限。",
@@ -59,7 +59,7 @@
       "bot-check-replayed": "此机器人检查已被使用。请重试。",
       "bot-check-required": "自动机器人检查失败。请重试。",
       "misconfigured": "机器人检查暂时不可用。请稍后重试。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "terms-required": "请先接受服务条款。",
       "unavailable": "机器人检查暂时不可用。请稍后重试。"
     },
@@ -95,7 +95,7 @@
       "plan-change-failed": "无法更改套餐。未做任何更改；请重试。",
       "portal-failed": "无法打开账单门户。请重试。",
       "price-unavailable": "此套餐目前暂不出售。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "seats-below-members": "此工作区的人数多于席位数。请移除成员或保留更多席位。",
       "seats-busy": "另一项席位变更或邀请正在进行中。请稍后再试。",
       "seats-full": "所有付费席位都已占用。请增加一个席位以邀请其他人。",
@@ -122,17 +122,17 @@
       "invalid-weight": "字重为 100–900，以 100 为单位。",
       "licence-required": "请确认你的许可允许将此字体嵌入文档。",
       "no-design": "还没有工作区设计。可从某个文档获取，或在设置中选择默认设计。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "too-many-fonts": "一个工作区最多可有 {limit} 个字体文件。",
       "too-many-images": "一个工作区最多可有 {limit} 张品牌图片。"
     },
     "common": {
-      "internal": "我们这边出了点问题。请重试——我们已收到通知。"
+      "internal": "我们这边出了点问题。请重试，我们已收到通知。"
     },
     "consent": {
       "no-decisions": "未发送任何同意选择。",
       "no-valid-decisions": "无法记录任何同意选择。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。"
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "csrf": {
       "origin-mismatch": "已拒绝跨源请求。"
@@ -144,7 +144,7 @@
       "not-found": "未找到该域名。",
       "page-not-allowed": "只有所有者和工作区管理员才能在域名上显示此文档。",
       "page-not-published": "请先将文档发布为网页。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "reserved": "此域名属于本服务。",
       "taken": "此域名已被使用。"
     },
@@ -171,8 +171,8 @@
       "not-found": "未找到文档。",
       "rate-limited": "来自你所在网络的新文档过多。请登录，或稍后再试。",
       "render-failed": "无法生成 PDF。请重试。",
-      "restore-compacted": "此还原点过旧——其历史记录已被压缩，无法再还原。请改为还原到较新的时间点。",
-      "restore-unavailable": "无法从此记录还原 — 它早于还原功能的引入时间。"
+      "restore-compacted": "此还原点过旧，其历史记录已被压缩，无法再还原。请改为还原到较新的时间点。",
+      "restore-unavailable": "无法从此记录还原，它早于还原功能的引入时间。"
     },
     "dpa": {
       "version-stale": "自你打开此提示以来，数据处理附录已更新。请重新查阅。"
@@ -193,7 +193,7 @@
       "no-file": "未提供文件。",
       "not-configured": "此服务器未设置文档转换。",
       "not-utf8": "此 Markdown 文件不是有效的 UTF-8 文本。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "timeout": "转换耗时过长。",
       "too-complex": "此文件过大或过于复杂，无法转换。",
       "unavailable": "无法连接到转换服务。",
@@ -211,7 +211,7 @@
       "key-mismatch": "knowledgeId 必须与 s3Key 一致。",
       "not-found": "未找到知识库文件。",
       "not-uploader": "编辑者只能删除自己上传的文件。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "too-many-pending": "待处理的上传过多。请稍后再试。",
       "unsupported-format": "不支持的格式：.{ext}。支持：{allowed}。",
       "upload-not-found": "未找到上传。请重新发起上传后再试。",
@@ -250,9 +250,9 @@
     },
     "password": {
       "invalid": "密码无效。",
-      "locked": "请求过于频繁 — 请稍候片刻后重试。",
+      "locked": "请求过于频繁。请稍候片刻后重试。",
       "not-set": "此文档没有设置密码。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "required": "请输入密码。",
       "too-short": "密码至少需要 {minLength} 个字符。"
     },
@@ -272,11 +272,11 @@
       "too-large": "此文档过大，无法发布为网页。"
     },
     "published": {
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "not-found": "此页面不存在或已不再发布。"
     },
     "rate": {
-      "limited": "请求过于频繁 — 请稍候片刻后重试。"
+      "limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "request": {
       "invalid": "发送的部分信息无效。",
@@ -296,7 +296,7 @@
       "not-a-guest": "此人不是该工作区的访客。",
       "not-allowed": "你无权更改此文档的分享方式。",
       "not-shared": "此文档未与此人共享。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。"
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "sso": {
       "admin-required": "只有工作区管理员才能管理单点登录。",
@@ -317,7 +317,7 @@
       "no-seat": "此工作区的所有付费席位都已占用。",
       "not-active": "此工作区未启用单点登录。",
       "not-provisioned": "你的组织尚未授予你访问此工作区的权限。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "required": "此工作区使用单点登录。请通过你的组织登录以继续。",
       "test-mismatch": "测试登录使用了不同的账号。",
       "test-not-admin": "只有工作区管理员才能测试其登录。",
@@ -380,7 +380,7 @@
       "disabled": "此部署不提供候补名单。",
       "invalid-email": "请输入有效的邮箱地址。",
       "invalid-token": "此链接无效或已过期。",
-      "rate-limited": "请求过于频繁 — 请稍候片刻后重试。"
+      "rate-limited": "请求过于频繁。请稍候片刻后重试。"
     },
     "workspace": {
       "admin-required": "只有工作区管理员才能执行此操作。",
@@ -394,12 +394,12 @@
       "invalid-email": "请输入有效的邮箱地址。",
       "invite-cap": "此工作区的待处理邀请过多。请先撤销一些。",
       "invite-not-found": "此邀请已不存在或已过期。",
-      "invite-rate-limited": "请求过于频繁 — 请稍候片刻后重试。",
+      "invite-rate-limited": "请求过于频繁。请稍候片刻后重试。",
       "last-admin": "工作区至少需要一位管理员。请先将其他人提升为管理员，或删除该工作区。",
       "member-not-found": "此人不是该工作区的成员。",
       "not-found": "未找到工作区。",
       "role-required": "查看者无法在此工作区中创建文档。",
-      "template-rate-limited": "请求过于频繁 — 请稍候片刻后重试。"
+      "template-rate-limited": "请求过于频繁。请稍候片刻后重试。"
     }
   }
 }

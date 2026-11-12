@@ -5,7 +5,7 @@ import { createDoc, createUser, createWorkspace, setMemberRole } from '../setup/
 import { TEST_BILLING_OFF_BASE_URL } from '../setup/env'
 
 // Share-link controls: link expiry, view-only without download,
-// view counts — set by the owner / workspace admins, enforced on every
+// view counts: set by the owner / workspace admins, enforced on every
 // access path, refused to set without the plan feature.
 
 const inAnHour = () => new Date(Date.now() + 3_600_000).toISOString()

@@ -16,7 +16,7 @@ import type { SerializedAnchor } from '../../app/utils/comments/commentAnchors'
 // Author identity is read from awareness; we stamp a name on the local
 // state before the call so the deriver doesn't fall back to "Anonymous".
 //
-// Editing comments is intentionally NOT supported (product decision —
+// Editing comments is intentionally NOT supported (product decision,
 // users can only delete their own / resolve threads). No tests for an
 // edit path.
 
@@ -44,7 +44,7 @@ function makeYDoc() {
 }
 
 function anchorRange(ytext: Y.Text, ydoc: Y.Doc, from: number, to: number): SerializedAnchor {
-  // Build a serialized anchor without going through CM's EditorView —
+  // Build a serialized anchor without going through CM's EditorView,
   // the helper expects a view, but the test only needs the underlying
   // Y.RelativePosition encoding. Re-implement the two-line equivalent
   // inline so we keep test deps minimal.

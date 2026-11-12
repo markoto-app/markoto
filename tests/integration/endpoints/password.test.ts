@@ -13,7 +13,7 @@ import {
 } from '../setup/fixtures'
 import { TEST_JWT_SECRET } from '../setup/env'
 
-// POST /api/docs/:docId/password — one endpoint, three actions:
+// POST /api/docs/:docId/password: one endpoint, three actions:
 //   action: 'set'     → owner / workspace admin, 8+ char password.
 //   action: 'verify'  → public (rate-limited in prod), returns 2h JWT.
 //   action: 'remove'  → owner / workspace admin, clears password + mode.
@@ -28,7 +28,7 @@ async function scryptHash(password: string): Promise<string> {
   return new Hash(new Scrypt({})).make(password)
 }
 
-// Pre-hashed "secret123" — nuxt-auth-utils scrypt format. Let fixtures
+// Pre-hashed "secret123": nuxt-auth-utils scrypt format. Let fixtures
 // inject this directly into the DB instead of hitting the SET action
 // every time; cheap test setup + deterministic.
 async function setupPasswordDoc(ownerId: number | null, passwordClear: string) {
@@ -114,7 +114,7 @@ describe('POST /api/docs/:docId/password', () => {
       expect(res.status).toBe(200)
     })
 
-    it('workspace editor cannot set (403) — set is a manage action', async () => {
+    it('workspace editor cannot set (403), set is a manage action', async () => {
       // Regression guard: editors are allowed content edits but NOT
       // access-mode / password changes. canManageDoc must not confuse
       // "edit" with "manage".

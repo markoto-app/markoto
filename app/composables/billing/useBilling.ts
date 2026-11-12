@@ -8,7 +8,7 @@ export type UserBilling = ApiResponse<'/api/user/billing', 'get'>
  * (app/queries/billing.ts) shared by the topbar badge, the AI prompt bar,
  * the dashboard, the profile and pricing pages. Mutations that change the
  * counters invalidate it themselves (workspace create / delete, plan
- * change); `refresh()` is for the remaining moments — an AI session ending,
+ * change); `refresh()` is for the remaining moments, an AI session ending,
  * the usage popover opening, Stripe returning.
  */
 export function useBilling() {

@@ -5,7 +5,7 @@ import { YEAR_SECONDS } from '~~/shared/config/units'
 // First-party cookie that anchors the consent decisions of an
 // anonymous visitor. Set on first call; returned on every
 // subsequent call. The cookie itself is "essential storage" under
-// ePrivacy — required to remember the user's consent choice — and
+// ePrivacy, required to remember the user's consent choice, and
 // therefore does not itself require consent (consent-on-consent
 // is the standard exception).
 //

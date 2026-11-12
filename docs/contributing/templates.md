@@ -23,7 +23,7 @@ Retired ids stay in `TEMPLATE_ALIASES` (`academic-paper` → `arxiv`). `isTempla
 
 ## Rendering and seeding
 
-`renderTemplate` reads `shared/templates/content/<content>/<locale>.md` with `fs.readFileSync` (relative to the process working directory; the Dockerfile copies the files into the image), caches each file, and substitutes `{{title}}` and `{{description}}` — the only placeholders. Locale resolution: exact match, then the BCP-47 base (`de-CH` → `de`), then English. It returns null for `blank` and unknown ids.
+`renderTemplate` reads `shared/templates/content/<content>/<locale>.md` with `fs.readFileSync` (relative to the process working directory; the Dockerfile copies the files into the image), caches each file, and substitutes `{{title}}` and `{{description}}`, the only placeholders. Locale resolution: exact match, then the BCP-47 base (`de-CH` → `de`), then English. It returns null for `blank` and unknown ids.
 
 The body is not part of `POST /api/docs` (which answers `{ docId }`). The editor's `GET /api/docs/:docId/token` renders it with the document's title, description and language and returns it as `initialBody`. The editor inserts it only after the first sync, and only when the text is empty (`app/composables/document/useDocument.ts`), so refetching the token on a document with content is harmless.
 

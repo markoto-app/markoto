@@ -129,7 +129,7 @@ describe('ownUploadFileId', () => {
   })
 })
 
-describe('DocThemeSchema — image URL fields (regression)', () => {
+describe('DocThemeSchema: image URL fields (regression)', () => {
   test('rejects a logo URL that is not an upload path', () => {
     expect(isValidTheme(withImages('x" onerror="alert(1)'))).toBe(false)
     expect(isValidTheme(withImages('https://example.com/a.png'))).toBe(false)

@@ -62,7 +62,7 @@ export function themeToCss(theme: DocTheme, runtime: ThemeRuntime): string {
 }
 
 /**
- * `@import` rules for the theme's fonts — one same-origin stylesheet per
+ * `@import` rules for the theme's fonts, one same-origin stylesheet per
  * self-hosted family (shared/utils/theme/themeFonts.ts); a family we don't
  * serve is skipped and renders in the fallback stack. Returned separately
  * so changing a color doesn't trigger a font refetch. The stylesheets

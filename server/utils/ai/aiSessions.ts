@@ -7,14 +7,14 @@ import { system, type DocAccess, type UserScope } from '../../repos/proofs'
  * Metadata (session_id, initiator, startedAt, …) lives in Postgres so:
  *   - Per-user-per-doc cap survives a Nitro restart (UNIQUE index enforces it
  *     at the DB level; an INSERT that would duplicate fails with constraint
- *     error — we translate that to `DuplicateSessionError`).
+ *     error: we translate that to `DuplicateSessionError`).
  *   - The sweeper can reap stale entries left behind by a crash.
  *
  * AbortControllers themselves stay in-process memory, keyed by sessionId.
  * They can't be serialized, and aborts only need to work within the process
  * that's running the agentic loop anyway. If a request to /api/ai/abort
  * lands on a different process than the one running the loop (future
- * multi-worker setup) it will see the DB row but no local controller —
+ * multi-worker setup) it will see the DB row but no local controller,
  * `getAiSession` returns the row with `abortController: null`, and the abort
  * endpoint treats that as "stuck, just drop it from the registry".
  */
@@ -30,7 +30,7 @@ export interface ActiveAISession {
   abortController: AbortController | null
 }
 
-// Local-only — only contains controllers for sessions started in THIS process.
+// Local-only: only contains controllers for sessions started in THIS process.
 const localControllers = new Map<string, AbortController>()
 
 export class DuplicateSessionError extends Error {

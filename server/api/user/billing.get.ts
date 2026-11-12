@@ -45,7 +45,7 @@ export default defineApiHandler({
       knowledgeBytesUsed: knowledgeBytes,
       knowledgeBytesPerUserLimit: tier.knowledgeBytesPerUser,
       // Document images (uploads + AI images + duplicate copies), pending
-      // uploads included — the same sum the upload quota enforces.
+      // uploads included: the same sum the upload quota enforces.
       imageBytesUsed: imageBytes,
       imageBytesPerUserLimit: tier.imageBytesPerUser,
       // AI credit top-ups: balance + purchases. Null with billing off.

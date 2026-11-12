@@ -6,7 +6,7 @@ import { resolveCaps } from '../../../../utils/knowledge/knowledgeQuota'
  *
  * The response includes aggregate workspace usage so the UI can render
  * a "X MB of Y MB used" indicator in a single fetch. We exclude
- * `markdownCache` (potentially large) from the per-row payload — it's
+ * `markdownCache` (potentially large) from the per-row payload, it's
  * fetched on demand by the AI's `get_knowledge_file` tool.
  */
 

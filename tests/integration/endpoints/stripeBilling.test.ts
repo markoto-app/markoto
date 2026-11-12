@@ -7,7 +7,7 @@ import { createUser } from '../setup/fixtures'
 // These hit stripe-mock (deploy/compose/compose.test.yml service on :12111)
 // which implements Stripe's full REST API surface with fixture
 // responses. Our code uses the real Stripe SDK; only the host is
-// overridden — the request/response shape contracts are the same as
+// overridden: the request/response shape contracts are the same as
 // against api.stripe.com.
 
 describe('POST /api/billing/checkout', () => {
@@ -66,7 +66,7 @@ describe('POST /api/billing/checkout', () => {
     // a new checkout should pass `customer: cus_...` to Stripe rather
     // than creating a fresh customer. We can't directly assert on
     // stripe-mock's request log, but we CAN assert the request
-    // succeeds — stripe-mock won't reject the `customer` field if we
+    // succeeds: stripe-mock won't reject the `customer` field if we
     // pass a plausible id.
     const u = await createUser()
     await testDb().query('UPDATE users SET stripe_customer_id = $1 WHERE id = $2', ['cus_existing_test', u.id])
@@ -93,7 +93,7 @@ describe('POST /api/billing/checkout', () => {
     const body = await res.json() as { updated?: boolean, plan?: string, url?: string }
     expect(body.updated).toBe(true)
     expect(body.plan).toBe('pro')
-    // Crucially: NO checkout URL — nothing to redirect to.
+    // Crucially: NO checkout URL, nothing to redirect to.
     expect(body.url).toBeUndefined()
   })
 

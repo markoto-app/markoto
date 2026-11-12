@@ -1,4 +1,4 @@
-// Origin check for state-changing API requests — defence in depth on top
+// Origin check for state-changing API requests, defence in depth on top
 // of the `SameSite=Lax` session cookie. SameSite only separates SITES:
 // another origin on the same registrable domain (a sibling subdomain, a
 // staging host) still counts as same-site and gets the cookie. Browsers
@@ -11,12 +11,12 @@
 //      contexts) is refused.
 //   2. else `Sec-Fetch-Site` present → only `same-origin` / `none`.
 //   3. else `Referer` present → same host rule as 1.
-//   4. else allow — no browser sends a state-changing request with none of
+//   4. else allow: no browser sends a state-changing request with none of
 //      the three; non-browser clients (CLI, server-to-server) carry no
 //      ambient cookies to abuse.
 //
 // Exempt: webhooks (Stripe, signature-verified) and the internal
-// shared-secret endpoints — server-to-server, never cookie-authenticated.
+// shared-secret endpoints: server-to-server, never cookie-authenticated.
 // MCP (`/mcp`, bearer tokens) and the OAuth callbacks (`/auth/*`, GET)
 // are outside `/api` and unaffected.
 

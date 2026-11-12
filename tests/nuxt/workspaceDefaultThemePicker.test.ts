@@ -33,7 +33,7 @@ registerEndpoint('/api/workspaces/ws1', {
   }
 })
 
-/** Same values, keys in reverse order — like a theme read back from jsonb. */
+/** Same values, keys in reverse order, like a theme read back from jsonb. */
 function reordered(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(reordered)
   if (value && typeof value === 'object') {

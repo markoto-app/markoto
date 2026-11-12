@@ -16,7 +16,7 @@ name: sonar-baseline
 
 on:
   schedule:
-    # Monday 05:20 UTC — before the work week starts.
+    # Monday 05:20 UTC: before the work week starts.
     - cron: '20 5 * * 1'
   workflow_dispatch:
 

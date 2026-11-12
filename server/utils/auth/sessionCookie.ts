@@ -1,7 +1,7 @@
 // No session cookie for visitors who never signed in.
 //
 // h3's `useSession` (behind nuxt-auth-utils' `getUserSession`) CREATES a
-// session — and sends `Set-Cookie: nuxt-session=…` — whenever a request
+// session, and sends `Set-Cookie: nuxt-session=…`, whenever a request
 // without one reads it. nuxt-auth-utils reads it on EVERY request (its
 // websocket plugin, active because `nitro.experimental.websocket` is on,
 // calls `getUserSession` from the `request` hook), and our auth

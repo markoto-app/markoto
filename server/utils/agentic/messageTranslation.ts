@@ -90,7 +90,7 @@ function buildUserMessages(parts: Part[]): OAIMessage[] {
     else userParts.push(p)
   }
 
-  // Tool messages first — OpenAI requires `tool` messages reference a
+  // Tool messages first: OpenAI requires `tool` messages reference a
   // prior assistant tool_call id, which is satisfied because
   // contents.push(model) ran before contents.push(user{functionResponse}).
   for (const fr of toolResponses) out.push(buildToolMessage(fr))
@@ -134,7 +134,7 @@ function stringifyFunctionResponse(response: unknown): string {
  *
  * When there ARE images, we prepend a synthetic text frame so the model
  * has context for why the images are present (especially when the user
- * block carries no other text — i.e. wholly the `view_image` smuggle
+ * block carries no other text, i.e. wholly the `view_image` smuggle
  * pattern).
  */
 function buildCarrierUserMessage(userParts: Part[]): OAIMessage | null {
@@ -233,7 +233,7 @@ export function internalToOpenAITools(
  *
  * We yield TWO kinds of synthetic internal chunks:
  *   1. Per-text-delta chunk: `{ candidates: [{ content: { parts: [{text}] } }] }`
- *      — drives status updates + the pure-prose-salvage path.
+ *      drives status updates + the pure-prose-salvage path.
  *   2. Terminal chunk: emits accumulated `functionCalls` + `finishReason`
  *      + `usageMetadata`. Triggered on stream end.
  *
@@ -262,7 +262,7 @@ export async function* openAIStreamToInternalChunks(
 
   for await (const chunk of stream) {
     // Usage arrives on the FINAL chunk (via `stream_options:
-    // {include_usage: true}`), which carries `choices: []` — read it
+    // {include_usage: true}`), which carries `choices: []`, read it
     // before the choice guard below, or it is skipped.
     if (chunk.usage) readStreamUsage(chunk.usage, usage)
     const choice = chunk.choices?.[0]
@@ -347,7 +347,7 @@ function buildTerminalChunk(
   for (const [, t] of accum) {
     const parsedArgs = parseToolCallArgs(t.argsBuffer)
     calls.push({ id: t.id, name: t.name, args: parsedArgs })
-    // Keep the raw argument text only when it is the JSON we parsed —
+    // Keep the raw argument text only when it is the JSON we parsed,
     // replaying a malformed buffer would make the next request invalid.
     const rawArgs = rawArgsIfValid(t.argsBuffer)
     modelParts.push({ functionCall: { id: t.id, name: t.name, args: parsedArgs, ...(rawArgs === null ? {} : { rawArgs }) } })
@@ -379,7 +379,7 @@ function rawArgsIfValid(buf: string): string | null {
 
 /**
  * Parse the accumulated `function.arguments` JSON buffer. Empty / whitespace
- * buffers and JSON-parse failures surface as empty `{}` — the loop's Zod
+ * buffers and JSON-parse failures surface as empty `{}`, the loop's Zod
  * validation then catches the malformed call and lets the model retry.
  */
 function parseToolCallArgs(buf: string): Record<string, unknown> {

@@ -23,7 +23,7 @@ function comment(anchor: DerivedComment['anchor']): DerivedComment {
   }
 }
 
-describe('comment thread — Show in document', () => {
+describe('comment thread: Show in document', () => {
   it('is a button that focuses the comment, like the card click', async () => {
     const wrapper = await mountSuspended(CommentsCommentThread, { props: { comment: comment({ from: 3, to: 9 }), readOnly: true } })
     const button = wrapper.find('[data-testid="comment-show-in-document"]')

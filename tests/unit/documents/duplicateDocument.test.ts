@@ -6,12 +6,12 @@ import { asUser, docAs, wsAs } from '../../helpers/access'
 // row insert + N S3 CopyObject calls + a Y.js state clone with URL
 // rewrite. Ordering is load-bearing (row first so the FK works, then
 // S3, then Y.js) and so is the rollback path (if ANY phase after the
-// row fails, the row must go away — a half-duplicated doc is worse
+// row fails, the row must go away, a half-duplicated doc is worse
 // than a clean "duplicate failed" error).
 //
 // Integration tests exist but run in the dev subprocess and therefore
 // don't show up in coverage. These unit tests let us assert the
-// ordering + rollback invariants without a DB, and — critically — let
+// ordering + rollback invariants without a DB, and, critically, let
 // us force failures at every phase to pin the rollback contract.
 
 const getDoc = vi.fn()
@@ -95,7 +95,7 @@ beforeEach(() => {
   sentryCaptureException.mockReset()
 })
 
-describe('duplicateDocument — source-not-found', () => {
+describe('duplicateDocument: source-not-found', () => {
   it('throws before any write if the source doc is gone', async () => {
     getDoc.mockResolvedValueOnce(null)
     const s3 = makeS3()
@@ -107,7 +107,7 @@ describe('duplicateDocument — source-not-found', () => {
   })
 })
 
-describe('duplicateDocument — happy path', () => {
+describe('duplicateDocument: happy path', () => {
   it('inserts the row, copies each upload to the new prefix, then clones Y.js state', async () => {
     const order: string[] = []
     getDoc.mockResolvedValueOnce(fakeSource())
@@ -153,7 +153,7 @@ describe('duplicateDocument — happy path', () => {
 
   it('skips insertConfirmedUploadsWithinQuota entirely when the source has zero images', async () => {
     // Source without any confirmed uploads shouldn't hit the bulk-insert
-    // — otherwise we'd be trying to INSERT an empty array (some drivers
+    // otherwise we'd be trying to INSERT an empty array (some drivers
     // choke on zero-row inserts, others don't; cheaper to skip).
     getDoc.mockResolvedValueOnce(fakeSource())
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
@@ -231,7 +231,7 @@ describe('duplicateDocument — happy path', () => {
   })
 })
 
-describe('duplicateDocument — rollback', () => {
+describe('duplicateDocument: rollback', () => {
   it('rolls back the row when S3 CopyObject throws', async () => {
     // S3 copy failure: an S3 object was missing (source deleted mid-dup)
     // or S3 is flaky. The partially-created row must go away.
@@ -251,7 +251,7 @@ describe('duplicateDocument — rollback', () => {
 
   it('rolls back the row when the Y.js clone throws', async () => {
     // Y.js clone failure: the source's yjs_updates rows are corrupt /
-    // schema drift. S3 copies already happened — leaves orphan objects
+    // schema drift. S3 copies already happened, leaves orphan objects
     // under `docs/TGT/` that the sweep will clean up.
     getDoc.mockResolvedValueOnce(fakeSource())
     listConfirmedUploadsForDoc.mockResolvedValueOnce([])
@@ -290,7 +290,7 @@ describe('duplicateDocument — rollback', () => {
   })
 
   it('does NOT attempt rollback when the insertRow itself fails', async () => {
-    // If phase 1 fails there's nothing TO roll back — the FK targets
+    // If phase 1 fails there's nothing TO roll back, the FK targets
     // don't exist yet. Trying delete*ForDoc on a non-existent docId
     // would be a pointless DB round-trip.
     getDoc.mockResolvedValueOnce(fakeSource())
@@ -304,7 +304,7 @@ describe('duplicateDocument — rollback', () => {
   })
 
   it('rolls back uploads BEFORE the doc row (FK-safe ordering)', async () => {
-    // `uploads.doc_id` has `ON DELETE CASCADE` today — so in practice
+    // `uploads.doc_id` has `ON DELETE CASCADE` today, so in practice
     // deleting the row first would also wipe the uploads. The SUT
     // nevertheless deletes uploads FIRST explicitly. Pin that ordering
     // so a future refactor that drops the CASCADE doesn't silently
@@ -328,7 +328,7 @@ describe('duplicateDocument — rollback', () => {
   })
 })
 
-describe('duplicateDocument — image storage quota', () => {
+describe('duplicateDocument: image storage quota', () => {
   const images = [
     { fileId: 'fa', s3Key: 'docs/SRC/fa', uploaderId: 1, contentType: 'image/png', sizeBytes: 300 },
     { fileId: 'fb', s3Key: 'docs/SRC/fb', uploaderId: 1, contentType: 'image/png', sizeBytes: 400 }

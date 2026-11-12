@@ -9,7 +9,7 @@ const log = useLogger('rate-limit')
 // Sliding-window-log rate limiter backed by Valkey sorted sets.
 //
 // Key shape:   rl:{namespace}:{key}
-// Members:     `{timestamp}:{random}` — random suffix prevents ZADD dedupe
+// Members:     `{timestamp}:{random}`: random suffix prevents ZADD dedupe
 //              when two calls land in the same millisecond.
 // TTL:         2× window (via PEXPIRE), so abandoned keys self-clean.
 //
@@ -20,7 +20,7 @@ const log = useLogger('rate-limit')
 //
 // Fails open: if Valkey is unreachable, the request is allowed through.
 // Rate limits are defense-in-depth (backend still validates payload size,
-// auth, etc.) — a wedged Valkey shouldn't DoS the app.
+// auth, etc.): a wedged Valkey shouldn't DoS the app.
 
 const SLIDING_WINDOW_SCRIPT = `
 redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[2])
@@ -32,7 +32,7 @@ redis.call('PEXPIRE', KEYS[1], ARGV[5])
 return 1
 `
 
-// Count without recording — "has this key already used up its budget?"
+// Count without recording: "has this key already used up its budget?"
 // for budgets that only count some outcomes (failed password attempts).
 const SLIDING_WINDOW_COUNT_SCRIPT = `
 redis.call('ZREMRANGEBYSCORE', KEYS[1], '-inf', ARGV[1])
@@ -126,7 +126,7 @@ export async function checkRateLimit(
 
 /**
  * True when `key` already has `maxEvents` or more events in the window.
- * Records nothing — pair with `recordRateLimitEvent` for budgets that
+ * Records nothing: pair with `recordRateLimitEvent` for budgets that
  * only count some outcomes (e.g. failed password attempts). Fails open
  * (false) on Valkey errors and under the test-mode bypass.
  */

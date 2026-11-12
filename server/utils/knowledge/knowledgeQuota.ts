@@ -42,11 +42,11 @@ const POOLED_USER_SLOT_MAX = 1000
 
 // Inflight slot TTL. Matches the presigned-URL TTL (120s, upload-request)
 // plus a safety margin so that an abandoned upload-request (user never
-// PUTs) frees its slot soon after the URL is useless anyway — the margin
+// PUTs) frees its slot soon after the URL is useless anyway, the margin
 // covers clock skew + a slow upload + the confirm roundtrip.
 const INFLIGHT_SLOT_TTL_MS = 180 * 1000
 
-// Namespaces for the inflight counters. Keep them stable — they key
+// Namespaces for the inflight counters. Keep them stable, they key
 // into Valkey under `inflight:{namespace}:{key}`, so renaming would
 // orphan live counters in production.
 const INFLIGHT_NS_WORKSPACE = 'knowledge-upload-ws'
@@ -58,7 +58,7 @@ const INFLIGHT_NS_WORKSPACE_MEMBER = 'knowledge-upload-ws-member'
  * How many of a workspace's `wsSlots` free inflight slots one member may
  * hold at once: half (rounded up), so a single editor requesting presigns
  * without ever confirming can't lock every other member out. With one
- * slot left it's first come, first served — someone has to take it.
+ * slot left it's first come, first served, someone has to take it.
  */
 export function memberShareOfWorkspaceSlots(wsSlots: number): number {
   return Math.max(1, Math.ceil(wsSlots / 2))
@@ -99,7 +99,7 @@ export interface KnowledgeCaps {
 // (server/utils/billing/entitlements.ts): the uploader's personal plan for the
 // per-user caps, the workspace's plan (Team / Business subscription,
 // else its creator's plan) for the per-workspace caps. A lapsed or
-// deleted creator lands on `free` — an abandoned workspace doesn't keep
+// deleted creator lands on `free`, an abandoned workspace doesn't keep
 // paid storage room after its owner stopped paying.
 const getEffectivePlan = resolveUserPlan
 const getWorkspacePlan = resolveWorkspacePlan
@@ -156,7 +156,7 @@ export async function resolveCaps(args: {
  *
  * Returns a releaser the caller should invoke on any failure AFTER
  * the presign succeeds. On successful confirm, call `releaseSlots`
- * in the confirm endpoint too — the slot tracks "bytes in flight",
+ * in the confirm endpoint too, the slot tracks "bytes in flight",
  * not "row written", so releasing on confirm is correct.
  */
 export async function reserveUploadSlot(args: KnowledgeUploadArgs): Promise<{ releaseSlots: () => Promise<void> }> {
@@ -209,7 +209,7 @@ export async function reserveUploadSlot(args: KnowledgeUploadArgs): Promise<{ re
  * with an advisory lock on the workspace row, so concurrent confirms
  * for the same workspace serialize and each one sees a fresh count.
  *
- * Doesn't touch the inflight counters — the confirm endpoint's caller
+ * Doesn't touch the inflight counters, the confirm endpoint's caller
  * releases them after this function returns (success or failure).
  */
 export async function assertCapsOnConfirm(args: KnowledgeUploadArgs): Promise<void> {

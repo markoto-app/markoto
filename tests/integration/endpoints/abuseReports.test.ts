@@ -174,7 +174,7 @@ describe('GET /api/admin/abuse-reports', () => {
       body: report({ category: 'spam', body: 'reporter will delete their account' })
     })
     // Simulate post-submission account deletion. FK is ON DELETE
-    // SET NULL — reporter_user_id flips to null, email snapshot
+    // SET NULL: reporter_user_id flips to null, email snapshot
     // survives.
     await testDb().query(`DELETE FROM users WHERE id = $1`, [goneReporter.id])
 
@@ -305,7 +305,7 @@ describe('PATCH /api/admin/abuse-reports/:reportId', () => {
       [reportId]
     )
     expect(first(row.rows).status).toBe('actioned')
-    // Both timestamps stamped — even though we skipped the
+    // Both timestamps stamped: even though we skipped the
     // explicit acknowledge step, ops will want to know "we saw
     // it at X" regardless.
     expect(first(row.rows).acknowledged_at).not.toBeNull()

@@ -10,10 +10,10 @@ import { test, expect } from '../fixtures/flow'
 //    sits right under the columns. This is the flow
 //    content/docs/account/plans.md embeds.
 // 2. "Pricing with paid plans live" (`@billing`): the same page on an
-//    instance that sells plans. Kept for regression coverage only — no
+//    instance that sells plans. Kept for regression coverage only, no
 //    docs page embeds it, so scripts/build-flows.ts never publishes it.
 //
-// Works on desktop AND mobile — the columns stack below `md`, the paid
+// Works on desktop AND mobile, the columns stack below `md`, the paid
 // tabs stay a row of three, every card keeps its testid.
 
 const PAID = [
@@ -65,7 +65,7 @@ test('What you get on each plan', async ({ page, flow, editor }) => {
     result: 'Team shows its planned price per seat and the limits each seat adds to the workspace.',
     after: () => expect(page.getByTestId('pricing-tier-team')).toBeVisible()
   })
-  // ASSERTION: every paid tab is a preview — planned price, the
+  // ASSERTION: every paid tab is a preview, planned price, the
   // waitlist link instead of a purchase button.
   for (const { plan, label } of PAID) {
     await paid.getByRole('tab', { name: label }).click()

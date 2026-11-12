@@ -10,7 +10,7 @@ import { isIsoDate } from '../contracts/isoDate'
  * The shape is intentionally granular: separate `body` / `headings`
  * blocks, dedicated `tables` and `code` sections, so users can tune each
  * surface without touching unrelated knobs. The cost is more validator
- * code and a larger editor panel — the win is themes that actually
+ * code and a larger editor panel, the win is themes that actually
  * express publication-grade design.
  *
  * The Zod schemas below are the source of truth. `DocTheme` is derived
@@ -59,7 +59,7 @@ const fontName = z.string().regex(FONT_NAME_REGEX, 'must be a valid font name (l
  * bundled `/markoto-logos/*` asset. These values are interpolated into
  * an HTML attribute and a CSS `url()`, so nothing else is accepted.
  * Whether an upload path belongs to THE document is checked where the
- * document is known (`meta.put`, AI `update_theme`, render time) — see
+ * document is known (`meta.put`, AI `update_theme`, render time), see
  * `shared/utils/theme/themeImages.ts`.
  */
 const themeImageUrl = z.string().max(500).regex(THEME_IMAGE_URL_RE, 'must be empty or an image uploaded to the document')
@@ -86,11 +86,11 @@ export const BlockquoteStyleSchema = z.enum(['border', 'background', 'none'])
 /**
  * `<hr>` rendering. Markdown source `---` produces an `<hr>`; what we
  * draw between the surrounding paragraphs is the editorial voice.
- *  - `rule`     — solid horizontal line (the default print look)
- *  - `dashed`   — dashed line (drier, quieter)
- *  - `dotted`   — dotted line
- *  - `asterism` — Unicode `⁂` glyph centered (literary/editorial)
- *  - `none`     — invisible separator (still consumes vertical space)
+ *  - `rule`    : solid horizontal line (the default print look)
+ *  - `dashed`  : dashed line (drier, quieter)
+ *  - `dotted`  : dotted line
+ *  - `asterism`: Unicode `⁂` glyph centered (literary/editorial)
+ *  - `none`    : invisible separator (still consumes vertical space)
  */
 export const HrStyleSchema = z.enum(['rule', 'dashed', 'dotted', 'asterism', 'none'])
 
@@ -153,7 +153,7 @@ export type CodeTheme = z.infer<typeof CodeThemeSchema>
 /**
  * Code block fill. `auto` (default): the highlight theme's own background
  * for the dark themes, a faint tint of the text colour for the light ones
- * and for `none` — so a block never floats bare on the page. `tint`
+ * and for `none`: so a block never floats bare on the page. `tint`
  * always tints, `none` leaves the page colour.
  */
 export const CodeBackgroundSchema = z.enum(['auto', 'tint', 'none'])
@@ -166,10 +166,10 @@ export type CodeFrame = z.infer<typeof CodeFrameSchema>
 /**
  * Heading numbers on h1–h4 (also in the TOC):
  *  - `none`
- *  - `decimal`     — `1`, `1.1`, `1.1.1`, `1.1.1.1`
- *  - `decimal-dot` — `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.` (legal / German style)
- *  - `ieee`        — `I.`, `A.`, `1)`, `a)` (IEEEtran: each level shows its own number only)
- *  - `decimal-zero` — `01`, `01.1`, `01.1.1`, … (two-digit top level: proposals, brochures)
+ *  - `decimal`    : `1`, `1.1`, `1.1.1`, `1.1.1.1`
+ *  - `decimal-dot`: `1.`, `1.1.`, `1.1.1.`, `1.1.1.1.` (legal / German style)
+ *  - `ieee`       : `I.`, `A.`, `1)`, `a)` (IEEEtran: each level shows its own number only)
+ *  - `decimal-zero`: `01`, `01.1`, `01.1.1`, … (two-digit top level: proposals, brochures)
  * The levels count from the highest heading level the document uses: a
  * document whose sections are h2 numbers them `1`, `2`, … (not `0.1`).
  */
@@ -189,7 +189,7 @@ const chapterWord = z.string().max(40).regex(TEMPLATE_SAFE_TEXT_REGEX, String.ra
 
 /**
  * Figure / table numbers: through the document (`1`, `2`, …) or within
- * each top-level section (`3.1`, `3.2`, … — theses, books).
+ * each top-level section (`3.1`, `3.2`, …, theses, books).
  */
 export const CaptionNumberingSchema = z.enum(['document', 'chapter'])
 export type CaptionNumbering = z.infer<typeof CaptionNumberingSchema>
@@ -212,7 +212,7 @@ export type DateFormat = z.infer<typeof DateFormatSchema>
 /**
  * `{section}` reads the section heading that is `first` on the page (else
  * the one running on), or the one the page `start`s in (the heading only
- * when it opens the page — the usual running head).
+ * when it opens the page, the usual running head).
  */
 export const SectionModeSchema = z.enum(['first', 'start'])
 export type SectionMode = z.infer<typeof SectionModeSchema>
@@ -232,18 +232,18 @@ export const CaptionPositionSchema = z.enum(['above', 'below'])
 export type CaptionPosition = z.infer<typeof CaptionPositionSchema>
 
 /**
- * Look of the reference list — the section headed References /
+ * Look of the reference list, the section headed References /
  * Bibliography / Literatur / Références … (`app/utils/markdown/references.ts`):
- *  - `plain`    — like any other list / paragraphs
- *  - `hanging`  — hanging indent (author-year lists, APA)
- *  - `brackets` — numbered lists get `[1]`, `[2]` labels (IEEE); paragraphs hang
+ *  - `plain`   : like any other list / paragraphs
+ *  - `hanging` : hanging indent (author-year lists, APA)
+ *  - `brackets`: numbered lists get `[1]`, `[2]` labels (IEEE); paragraphs hang
  */
 export const ReferenceStyleSchema = z.enum(['plain', 'hanging', 'brackets'])
 export type ReferenceStyle = z.infer<typeof ReferenceStyleSchema>
 
 /**
  * Diagram colours. `document` (the default for new themes) derives every
- * colour from the theme itself — accent, heading ink, text, neutral and
+ * colour from the theme itself, accent, heading ink, text, neutral and
  * paper, incl. the pie / xy-chart palettes (`shared/utils/markdown/mermaidConfig.ts`).
  * The others are Mermaid's built-in themes, kept for an explicit choice.
  * Diagram text always uses the body font.
@@ -265,14 +265,14 @@ export type TocMaxDepth = z.infer<typeof TocMaxDepthSchema>
  * obvious with even short cover content. See `coverBlock` in
  * `shared/themeCss/coverCss.ts`.
  *
- *  - `classic`   — everything stacked vertically + horizontally centered (book/novel feel)
- *  - `editorial` — logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)
- *  - `banner`    — logo + title in a top band on a brand-tinted stripe, meta at bottom
- *  - `minimal`   — just title (and optional subtitle) centered, no logo/meta even when toggled on
- *  - `title-block` — no cover PAGE: title, subtitle, authors (with
+ *  - `classic`  : everything stacked vertically + horizontally centered (book/novel feel)
+ *  - `editorial`: logo at top, title+subtitle at the upper third, author/date at the lower third (markoto default)
+ *  - `banner`   : logo + title in a top band on a brand-tinted stripe, meta at bottom
+ *  - `minimal`  : just title (and optional subtitle) centered, no logo/meta even when toggled on
+ *  - `title-block`: no cover PAGE: title, subtitle, authors (with
  *                  affiliations), date and the abstract sit at the top of
  *                  page 1 and the text starts right below (papers). The
- *                  abstract is the document's own `Abstract` section — see
+ *                  abstract is the document's own `Abstract` section, see
  *                  `app/utils/preview/titleBlock.ts`.
  */
 export const CoverLayoutSchema = z.enum(['classic', 'editorial', 'banner', 'minimal', 'title-block'])
@@ -310,7 +310,7 @@ export const RunningSlotsSchema = z.object({
   /**
    * Optional image rendered in ONE of the three slots (driven by
    * `imagePosition`). Empty string = no image. Mutually exclusive with
-   * the text in the same slot — image wins when both are set, since
+   * the text in the same slot, image wins when both are set, since
    * users typically pick one mental model. Cover page suppresses
    * margin boxes entirely so this never appears on the cover.
    */
@@ -350,7 +350,7 @@ export const DocThemeSchema = z.object({
   page: z.object({
     size: PageSizeSchema,
     orientation: PageOrientationSchema,
-    // mm — uniform on all four sides. Bounded so a payload can't push
+    // mm: uniform on all four sides. Bounded so a payload can't push
     // e.g. `margin: 1e9` and crash paged.js.
     margin: z.number().min(0).max(60),
     /**
@@ -370,7 +370,7 @@ export const DocThemeSchema = z.object({
     mirrorMargins: z.boolean().optional()
   }).strict(),
   /**
-   * Optional third font slot — the "eyebrow / meta" voice. Used for
+   * Optional third font slot, the "eyebrow / meta" voice. Used for
    * header/footer text, figcaptions, footnotes and any other
    * "metadata about the document" surface where Inter body or
    * Fraunces editorial would feel out of place. Markoto's brand
@@ -389,7 +389,7 @@ export const DocThemeSchema = z.object({
     /**
      * Drop cap on the first paragraph of the document (`true`), or on
      * the first paragraph of every top-level section (`'every-chapter'`). Editorial
-     * signature — gives the page a "first chapter of a book" feel.
+     * signature: gives the page a "first chapter of a book" feel.
      * Renders the leading character at ~3.4× body size, floated left
      * over the first three lines. Uses the heading font + heading
      * colour so it reads as a typographic flourish rather than a
@@ -477,7 +477,7 @@ export const DocThemeSchema = z.object({
     secondary: hexColor
   }).strict(),
   /**
-   * Brand assets — logo image used on the cover page and (eventually)
+   * Brand assets: logo image used on the cover page and (eventually)
    * margin-box `{logo}` token. `logoUrl` is empty string when no logo
    * has been uploaded; otherwise it's a `/api/files/{docId}/{fileId}`
    * URL produced by the standard image-upload pipeline (same as
@@ -496,7 +496,7 @@ export const DocThemeSchema = z.object({
   footer: RunningSlotsSchema,
   code: z.object({
     theme: CodeThemeSchema,
-    // pt — separate from body so code can be tighter
+    // pt: separate from body so code can be tighter
     fontSize: z.number().min(6).max(16),
     // The fields below are optional: themes stored before they existed
     // render with the defaults in `shared/utils/theme/themeOptions.ts`.
@@ -545,7 +545,7 @@ export const DocThemeSchema = z.object({
    * GitHub-style admonition palette. One color per kind drives both the
    * left-border and the (color-mixed-into-bg) tint. Required so themes
    * can't fall back to a hardcoded palette that would clash with the
-   * brand — every theme commits to its own admonition look.
+   * brand: every theme commits to its own admonition look.
    *
    * Tradition reserves these hues for these meanings (blue/info,
    * green/tip, purple/important, amber/warning, red/caution); themes
@@ -600,13 +600,13 @@ export const DocThemeSchema = z.object({
     showAuthors: z.boolean(),
     /**
      * Multi-author list. We're a collaboration tool, so this is an
-     * array — each entry rendered on its own line. Cap of 10 authors
+     * array: each entry rendered on its own line. Cap of 10 authors
      * keeps the cover from becoming a credit roll.
      */
     authors: z.array(z.string().max(100)).max(10),
     /**
      * Affiliation per author, same order as `authors` (department,
-     * institution, address, e-mail — one per line). Shown under each
+     * institution, address, e-mail: one per line). Shown under each
      * author on every layout. Optional (absent = none).
      */
     affiliations: z.array(z.string().max(300)).max(10).optional(),
@@ -628,12 +628,12 @@ export const DocThemeSchema = z.object({
      * the original hardcoded value.
      */
     titleSize: z.number().min(0.6).max(4),
-    /** Subtitle em multiplier — same intent as titleSize, smaller range. */
+    /** Subtitle em multiplier: same intent as titleSize, smaller range. */
     subtitleSize: z.number().min(0.5).max(2.5)
   }).strict(),
   /**
    * Optional user-authored CSS appended AFTER the generated theme CSS,
-   * so its rules win. Documents only (preview, print, server PDF/PNG) —
+   * so its rules win. Documents only (preview, print, server PDF/PNG),
    * never the app chrome. Stored as typed (formatting kept).
    *
    * The schema bounds the length only (UTF-16 units; the byte cap is in

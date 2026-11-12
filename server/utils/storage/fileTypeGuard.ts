@@ -6,7 +6,7 @@ import { useEnv } from '~~/shared/env/load'
 /**
  * Content-type guard run at confirm time, BEFORE the DB row is
  * created. Stops the obvious abuse where a client signs a presigned
- * URL as `application/pdf`, then PUTs actual `.exe` bytes — the signed
+ * URL as `application/pdf`, then PUTs actual `.exe` bytes, the signed
  * `Content-Type` binds what S3 records on the object, not what the
  * bytes actually are. Without this, the row lands in S3 + DB, the
  * processor fails when markitdown can't parse it, and we've still
@@ -16,18 +16,18 @@ import { useEnv } from '~~/shared/env/load'
  *   - For binary formats with reliable magic bytes (pdf / docx / pptx /
  *     xlsx / epub) use the `file-type` library, which sniffs ~30 bytes
  *     and returns the real MIME. We fetch JUST those first bytes via
- *     an S3 Range GET — cheap regardless of file size.
+ *     an S3 Range GET, cheap regardless of file size.
  *   - For plain text (md / txt / html) there's no reliable signature,
  *     so we fetch the first 1 KB and do a printable-UTF-8 ratio check.
  *     Not as tight as magic bytes, but rejects bytes that aren't even
  *     plausibly text (e.g. random binary renamed to .txt).
  *
  * Fails closed: if the probe itself fails (S3 unreachable, byte range
- * read fails), throws a 500 — we'd rather error loudly than silently
+ * read fails), throws a 500, we'd rather error loudly than silently
  * accept unvalidated content.
  */
 
-// Covers DOCX, PPTX, XLSX — they're all ZIP containers. `file-type`
+// Covers DOCX, PPTX, XLSX, they're all ZIP containers. `file-type`
 // inspects `[Content_Types].xml` inside the ZIP to differentiate them,
 // so a DOCX renamed as .xlsx is still caught.
 const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
@@ -35,7 +35,7 @@ const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
   docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
   pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
   xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-  // .xls (legacy Office) is a CFB file — sniffed as `application/x-cfb`
+  // .xls (legacy Office) is a CFB file, sniffed as `application/x-cfb`
   // by file-type. We allow both Office and CFB to accommodate older files.
   xls: ['application/vnd.ms-excel', 'application/x-cfb'],
   epub: ['application/epub+zip'],
@@ -43,7 +43,7 @@ const EXT_TO_ALLOWED_MIMES: Record<string, string[]> = {
   // Without this, a presigned URL minted as `Content-Type: image/png`
   // can be PUT with arbitrary bytes (SVG-with-script, an .exe renamed
   // to .png). file-type's magic-byte detection cleanly differentiates
-  // each format — even animated WebP and GIF have stable signatures.
+  // each format: even animated WebP and GIF have stable signatures.
   png: ['image/png'],
   jpg: ['image/jpeg'],
   jpeg: ['image/jpeg'],
@@ -109,7 +109,7 @@ export async function requireContentMatchesExtension(args: {
   const ext = args.ext.toLowerCase()
 
   if (TEXT_EXTS.has(ext)) {
-    // Text formats have no reliable magic — verify "plausibly text" via
+    // Text formats have no reliable magic, verify "plausibly text" via
     // printable-UTF-8 ratio on the first 1 KB.
     let bytes: Uint8Array
     try {

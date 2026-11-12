@@ -17,7 +17,7 @@ const owner = { userId: 1, workspaceRole: null }
 const viewer = { userId: 5, workspaceRole: 'viewer' as const }
 
 describe('share-link expiry', () => {
-  it('public modes become private once expired — visitors refused, owner and members keep access', () => {
+  it('public modes become private once expired, visitors refused, owner and members keep access', () => {
     for (const mode of ['open-edit', 'open-view', 'password-protected'] as const) {
       const state = docStateOf(row(mode, past), now)
       expect(state).toMatchObject({ accessMode: 'private', shareExpired: true })
@@ -61,7 +61,7 @@ describe('view-only links', () => {
   })
 })
 
-describe('share expiry — tokens', () => {
+describe('share expiry: tokens', () => {
   it('a doc JWT from before the expiry no longer opens files after it', () => {
     const visitor = { userId: null, workspaceRole: null, hasValidDocJwt: true }
     expect(decideFileAccess(docStateOf(row('password-protected', future), now), visitor).outcome).toBe('allow')

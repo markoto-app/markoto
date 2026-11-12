@@ -6,7 +6,7 @@ import { useEnv } from '~~/shared/env/load'
 // Accepts a Y.js connection JWT as an HTTP request parameter and checks
 // its `docId` claim against the doc being accessed. This is the only
 // path by which an *anonymous* user who verified a document password
-// can prove access on a plain HTTP request — the password endpoint
+// can prove access on a plain HTTP request, the password endpoint
 // issues them a scoped JWT with no matching session cookie.
 //
 // Authenticated users don't need this: file / activity endpoints fall
@@ -18,7 +18,7 @@ import { useEnv } from '~~/shared/env/load'
 // `hasValidDocJwt` (wires the configured secrets into both).
 
 /**
- * Look for a Y.js JWT on the request — `Authorization: Bearer …`
+ * Look for a Y.js JWT on the request, `Authorization: Bearer …`
  * header preferred, `?token=…` query param as fallback for the
  * 302-redirect HTML-image flow where a custom header isn't possible.
  * Header wins when both are present. Returns null when neither is
@@ -28,7 +28,7 @@ export function extractToken(event: H3Event): string | null {
   const auth = getRequestHeader(event, 'authorization')
   if (typeof auth === 'string' && auth.length > 0) {
     // "Bearer" (case-insensitive) + ≥1 whitespace char, then the token.
-    // Prefix-test + slice + trim instead of /^Bearer\s+(.+)$/ — the
+    // Prefix-test + slice + trim instead of /^Bearer\s+(.+)$/, the
     // ambiguous \s+/.+ boundary in that regex backtracks super-linearly
     // on attacker-supplied header values. A header that is "Bearer" +
     // whitespace only yields no token and falls through to the query
@@ -48,7 +48,7 @@ export function extractToken(event: H3Event): string | null {
  * password unlock) carry NO `scope` claim and are accepted everywhere a
  * doc JWT is; a token WITH a scope is only accepted by an endpoint that
  * lists that scope. `file-access` tokens (render page, live preview
- * iframe) therefore unlock `/api/files` only — not the activity log or
+ * iframe) therefore unlock `/api/files` only, not the activity log or
  * the metadata endpoint.
  */
 export type DocJwtScope = 'file-access'
@@ -58,7 +58,7 @@ export type DocJwtScope = 'file-access'
  * expected doc and its `scope` (if any) is one the caller accepts.
  * Returns true iff all checks pass. Every failure mode (bad signature,
  * expired, malformed, wrong docId, missing docId, foreign scope)
- * collapses to `false` — callers treat "no token" and "bad token"
+ * collapses to `false`: callers treat "no token" and "bad token"
  * identically and let the session-based path handle it.
  *
  * Pure function: takes only primitives (no H3Event, no runtimeConfig).

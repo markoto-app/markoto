@@ -11,7 +11,7 @@ export interface RenderRequest {
   docId: string
   /** The `yjs_updates` row the render reflects (its cache key). */
   snapshotId: number
-  /** 'html': the web snapshot for a published page — returned, not stored. */
+  /** 'html': the web snapshot for a published page, returned, not stored. */
   format: RenderFormat | 'html'
   /** Brand-kit fingerprint (16 hex chars), appended to the output folder. */
   variant?: string

@@ -4,19 +4,19 @@ import { parseFragment, serialize, type DefaultTreeAdapterMap } from 'parse5'
 // page already renders markdown through DOMPurify and the page is served
 // with a CSP that runs no script; this pass makes sure that a bypass of
 // the first line still cannot put anything ACTIVE into the snapshot that
-// the CSP does not cover — above all `<meta http-equiv="refresh">` (a
+// the CSP does not cover, above all `<meta http-equiv="refresh">` (a
 // redirect to anywhere) and `<base>` (re-pointing every relative URL).
 //
 // It runs on Chromium's own serialisation of the rendered DOM, through a
 // spec-compliant HTML parser (parse5), so what is removed here is exactly
-// what a browser would build from the stored text — no regular
+// what a browser would build from the stored text, no regular
 // expressions over markup.
 
 type Node = DefaultTreeAdapterMap['node']
 type ParentNode = DefaultTreeAdapterMap['parentNode']
 type Element = DefaultTreeAdapterMap['element']
 
-/** Elements whose presence alone acts (navigation, embedding, submission) — dropped with their content. */
+/** Elements whose presence alone acts (navigation, embedding, submission), dropped with their content. */
 const DROPPED_ELEMENTS = new Set([
   'script', 'noscript', 'meta', 'base', 'link', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet',
   'form', 'portal', 'fencedframe'

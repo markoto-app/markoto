@@ -3,14 +3,14 @@
 # Brings the host from "blank Debian 12" to "ready to accept deploys".
 #
 # Role order matters:
-#   1. base — apt cache, ufw, fail2ban, journald, timezone, markoto user.
+#   1. base: apt cache, ufw, fail2ban, journald, timezone, markoto user.
 #      Keeps app-specific bits OS-hardening doesn't cover.
-#   2. devsec.hardening.os_hardening — CIS-aligned sysctl/perms/PAM tuning.
+#   2. devsec.hardening.os_hardening: CIS-aligned sysctl/perms/PAM tuning.
 #      Runs AFTER base (we need ufw on first; os_hardening doesn't touch ufw)
 #      and BEFORE docker so the sysctl_overwrite for ip_forward=1 lands before
 #      Docker probes the kernel.
-#   3. geerlingguy.docker — Docker engine + compose plugin via apt repo.
-#   4. ssh_hardening — our wrapper that refuses to lock you out if the markoto
+#   3. geerlingguy.docker: Docker engine + compose plugin via apt repo.
+#   4. ssh_hardening: our wrapper that refuses to lock you out if the markoto
 #      user has no authorized_keys yet. Keep our version, not devsec's, until
 #      we've port-tested the safe-not-lock-yourself-out check.
 - name: Provision markoto VPS (one-time)
@@ -23,7 +23,7 @@
     - role: base
     - role: devsec.hardening.os_hardening
       vars:
-        # ─── Deviations from CIS defaults — document each. ───
+        # ─── Deviations from CIS defaults: document each. ───
         # Docker bridge networking REQUIRES IPv4 forwarding. CIS sets it to 0
         # (correct for non-routers); without this override Docker silently
         # falls back to host-mode and breaks compose networking.
@@ -37,7 +37,7 @@
         # → mount → fix). Keep it available. Default is already false; pinned
         # explicitly so a future devsec bump can't flip it.
         os_security_init_single: false
-        # Don't enforce /etc/issue banner — pure cosmetic, and we already gate
+        # Don't enforce /etc/issue banner: pure cosmetic, and we already gate
         # at the SSH layer.
         os_security_init_prompt: false
         # `os_ignore_users` defaults include `vagrant` + `kitchen`; add ours
@@ -66,7 +66,7 @@
     # Drives unattended-upgrades + reboot scheduling. We DISABLE its SSH +
     # fail2ban knobs because devsec.hardening + our ssh_hardening role +
     # base/fail2ban already cover those, and double-configuration would
-    # fight on the file watch. The reboot window is 04:30 UTC — after the
+    # fight on the file watch. The reboot window is 04:30 UTC: after the
     # 03:00 UTC backup-cron tick, before any reasonable peak-traffic
     # window.
     - role: geerlingguy.security
@@ -81,7 +81,7 @@
         security_autoupdate_enabled: true
         security_autoupdate_reboot: "true"
         security_autoupdate_reboot_time: "04:30"
-        # Mail is OFF — we use Apprise via the post-Invoke hook
+        # Mail is OFF: we use Apprise via the post-Invoke hook
         # (roles/base/templates/markoto-apt-hook.j2 calls markoto-notify).
         security_autoupdate_mail_to: ""
         security_autoupdate_mail_on_error: false

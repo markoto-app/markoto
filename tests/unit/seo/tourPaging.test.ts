@@ -11,7 +11,7 @@ import {
 } from '../../../shared/tour/paging'
 
 // Settling the product page on a scene rest: the visitor scrolls
-// freely; once the input stops the page settles on a rest — never springing
+// freely; once the input stops the page settles on a rest, never springing
 // back from a deliberate scroll, never skipping a scene.
 
 // Hero, three scenes 1440px apart (160vh at 900px), page end.

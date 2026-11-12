@@ -8,7 +8,7 @@ import { addSsoDomainBody } from '~~/shared/api/sso'
 
 const MAX_DOMAINS = 20
 
-// POST /api/workspaces/:wsId/sso/domains — {domain}: list an email domain
+// POST /api/workspaces/:wsId/sso/domains: {domain}: list an email domain
 // to verify with a DNS TXT record. Consumer mail domains (gmail.com,
 // outlook.com, …) are refused.
 export default defineApiHandler({

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { isAdminEmail } from '../../../server/utils/auth/adminAccess'
 
 // `isAdminEmail` is the bootstrap allowlist parser. It's the
-// authority on "is this email on the env-list" — the sign-in bootstrap
+// authority on "is this email on the env-list", the sign-in bootstrap
 // (`bootstrapAdminFromEnv`, verified emails only) defers to this to set
 // `users.is_admin`. Any drift here (e.g. case-sensitive match,
 // whitespace breaking the parse) silently locks ops out of /admin/*.
@@ -19,7 +19,7 @@ afterEach(() => {
   }
 })
 
-describe('isAdminEmail — empty / unset env', () => {
+describe('isAdminEmail: empty / unset env', () => {
   beforeEach(() => {
     delete process.env.NUXT_ADMIN_USER_EMAILS
   })
@@ -41,7 +41,7 @@ describe('isAdminEmail — empty / unset env', () => {
   })
 })
 
-describe('isAdminEmail — single email', () => {
+describe('isAdminEmail: single email', () => {
   beforeEach(() => {
     process.env.NUXT_ADMIN_USER_EMAILS = 'admin@example.com'
   })
@@ -67,7 +67,7 @@ describe('isAdminEmail — single email', () => {
   })
 })
 
-describe('isAdminEmail — multiple comma-separated', () => {
+describe('isAdminEmail: multiple comma-separated', () => {
   it('matches any of the listed entries', () => {
     process.env.NUXT_ADMIN_USER_EMAILS = 'admin@example.com,founder@example.com,ops@example.com'
     expect(isAdminEmail('admin@example.com')).toBe(true)
@@ -95,7 +95,7 @@ describe('isAdminEmail — multiple comma-separated', () => {
   })
 })
 
-describe('isAdminEmail — config rotation', () => {
+describe('isAdminEmail: config rotation', () => {
   it('reads the env var on every call (no module-scope cache)', () => {
     process.env.NUXT_ADMIN_USER_EMAILS = 'admin@example.com'
     expect(isAdminEmail('admin@example.com')).toBe(true)

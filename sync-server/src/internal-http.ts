@@ -15,14 +15,14 @@ const log = useLogger('internal-http')
 export type { HocuspocusInstance } from './kickUser'
 
 // TEST_MODE-only ring buffer for kick-user observation. Lets integration
-// tests assert "the workspace mutation actually dispatched a kick" — the
+// tests assert "the workspace mutation actually dispatched a kick", the
 // dispatch shape is unit-tested in `tests/unit/sync/syncNotify.test.ts`, but
 // without this buffer there's no way to confirm the call SITES (every
 // /api/workspaces/:wsId/members/* mutation handler) didn't silently drop
 // the dispatch in a refactor. Test/prod drift guard.
 //
 // Gated on TEST_MODE so the prod sync-server never accumulates this
-// state. Capped at 100 entries (LRU) — tests assert against recent
+// state. Capped at 100 entries (LRU), tests assert against recent
 // state and clear between cases. Both endpoints require the same
 // X-Internal-Secret as the rest of /internal/*; they are NOT a public
 // surface even in test.
@@ -174,7 +174,7 @@ function authenticateInternalRequest(request: IncomingMessage, response: ServerR
 }
 
 /**
- * Flag the in-memory Y.Doc as deleted — connected clients observe via
+ * Flag the in-memory Y.Doc as deleted, connected clients observe via
  * ymeta and handle redirect/toast on their end. After a short delay
  * we unload the doc. Its Y.js rows already went with the `documents`
  * row (FK cascade), and a later store for it is refused by that same
@@ -233,7 +233,7 @@ async function handleFlushDocument(
  * given set of docs. Called by the app when a workspace membership
  * changes (role reduced, member removed, workspace deleted). The
  * client's Hocuspocus provider auto-reconnects, re-hits the token
- * endpoint, and picks up the new access level — so "kick" here
+ * endpoint, and picks up the new access level, so "kick" here
  * really means "refresh". Fire-and-forget from the app; we never
  * fail the caller's mutation on a kick failure.
  */
@@ -254,7 +254,7 @@ async function handleKickUser(
   const targetDocIds = parsed.data.docIds
 
   const { kicked, missing } = performKickUser(instance, targetUserId, targetDocIds)
-  // Record for TEST_MODE inspection — no-op in prod.
+  // Record for TEST_MODE inspection, no-op in prod.
   recordKick(targetUserId, targetDocIds)
   sendJson(response, 200, { success: true, kicked, docsNotLoaded: missing })
   return true

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * The AI thinking line — the italic-serif moment.
+ * The AI thinking line, the italic-serif moment.
  *
  * This is the ONE place in the product where Fraunces italic appears.
  * The brain learns: italic serif equals AI is talking *about* the
@@ -8,13 +8,13 @@
  * or a heading, the meaning evaporates. Used here, the restraint is
  * the whole point.
  *
- * The seal sits to the left of the text at 6×6px — a small visual
+ * The seal sits to the left of the text at 6×6px, a small visual
  * anchor that ties the thinking line back to the brand mark. The
  * component animates in with a fade + 8px translate (240ms ease-out,
  * keyframe defined in main.css).
  */
 defineProps<{
-  /** The reflective AI line — short, observational, never anthropomorphized. */
+  /** The reflective AI line, short, observational, never anthropomorphized. */
   text: string
 }>()
 </script>

@@ -8,7 +8,7 @@ import { useEnv } from '~~/shared/env/load'
 
 // Minimal trusted-client helper for server-side comment mutations.
 //
-// Mirrors `aiClient.ts` but without awareness/billing — we connect just
+// Mirrors `aiClient.ts` but without awareness/billing, we connect just
 // long enough to (a) read the comments Y.Array entry to validate the
 // caller's authorship, and (b) mutate it. The connection broadcasts
 // the change live to every editor of the doc, so the UI updates in the
@@ -32,7 +32,7 @@ const SYNC_TIMEOUT_MS = 10_000
  * Caller MUST call `destroy()` when finished.
  *
  * `actorPrincipal` ends up in the Hocuspocus activity log via the
- * userId field — pass `comments-server:<verb>:<userId>` so audit can
+ * userId field: pass `comments-server:<verb>:<userId>` so audit can
  * tell server-driven mutations apart from regular edits.
  */
 export async function openTrustedCommentClient(

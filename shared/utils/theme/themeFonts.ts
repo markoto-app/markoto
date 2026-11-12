@@ -11,7 +11,7 @@
  *
  * Documents use STATIC cuts (one file per weight), never variable fonts:
  * Chromium's PDF backend (Skia) embeds a variable font as Type 3 glyph
- * procedures — bigger files, no hinting, refused by some print shops —
+ * procedures: bigger files, no hinting, refused by some print shops,
  * and the server PDF comes from Chromium. The preview uses the same
  * files so it stays what the PDF shows. Only the app shell keeps the
  * variable cuts of its brand fonts (`uiFontStylesheetUrls`, family names
@@ -66,7 +66,7 @@ export interface BundledSource {
    * the old bytes of an unchanged URL for a year).
    */
   version: string
-  /** What the files cover — the @font-face `unicode-range`. */
+  /** What the files cover, the @font-face `unicode-range`. */
   unicodeRange: string
   faces: readonly BundledFace[]
 }
@@ -133,7 +133,7 @@ function font(name: string, category: FontCategory, slug: string, source: FontSo
 }
 
 export const SELF_HOSTED_FONTS: readonly SelfHostedFont[] = [
-  // Sans-serif — modern, neutral
+  // Sans-serif: modern, neutral
   font('Inter', 'sans', 'inter', staticWeights('inter'), { ui: variable('inter') }),
   font('Roboto', 'sans', 'roboto', staticWeights('roboto')),
   font('Open Sans', 'sans', 'open-sans', upTo('open-sans', 800)),
@@ -145,7 +145,7 @@ export const SELF_HOSTED_FONTS: readonly SelfHostedFont[] = [
   font('DM Sans', 'sans', 'dm-sans', staticWeights('dm-sans')),
   font('Karla', 'sans', 'karla', upTo('karla', 800)),
 
-  // Serif — readable for long-form
+  // Serif: readable for long-form
   font('Source Serif 4', 'serif', 'source-serif-4', staticWeights('source-serif-4')),
   font('Merriweather', 'serif', 'merriweather', staticWeights('merriweather')),
   font('Playfair Display', 'serif', 'playfair-display', staticWeights('playfair-display')),
@@ -166,7 +166,7 @@ export const SELF_HOSTED_FONTS: readonly SelfHostedFont[] = [
   font('IBM Plex Mono', 'mono', 'ibm-plex-mono', staticWeights('ibm-plex-mono', [400, 500, 600, 700]), { picker: false }),
   font('Fraunces', 'serif', 'fraunces', staticWeights('fraunces'), { picker: false, ui: variable('fraunces', 'opsz') }),
 
-  // Bundled (not on Fontsource): the TeX look — Times / Helvetica clones
+  // Bundled (not on Fontsource): the TeX look, Times / Helvetica clones
   // of the TeX Gyre collection and Latin Modern (Computer Modern), GUST
   // Font License, committed in fonts/<slug>/. TeX Gyre carries its own
   // Greek; Latin Modern (capitals only) gets Greek companion files cut
@@ -232,7 +232,7 @@ export function fontStylesheetUrls(names: ReadonlyArray<string | null | undefine
 /**
  * CSS family name of the app shell's variable cut: `'Inter Variable'`, not
  * `'Inter'`. Under the theme's name it would join the document's static
- * faces in the same page — the server render page is an app page — and
+ * faces in the same page, the server render page is an app page, and
  * win the font matching, so the PDF would embed the variable font as
  * Type 3 again.
  */

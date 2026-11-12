@@ -30,7 +30,7 @@ services:
       - "--certificatesresolvers.le.acme.tlschallenge=true"
       - "--certificatesresolvers.le.acme.email=${ACME_EMAIL:?ACME_EMAIL required}"
       - "--certificatesresolvers.le.acme.storage=/letsencrypt/acme.json"
-      # Custom domains of published pages — see docs/SELF-HOSTING.md.
+      # Custom domains of published pages: see docs/SELF-HOSTING.md.
       # Empty config while NUXT_PUBLISH_TRAEFIK_TOKEN is unset.
       - "--providers.http.endpoint=http://app:3000/api/internal/traefik/custom-domains"
       - "--providers.http.pollInterval=15s"
@@ -45,7 +45,7 @@ services:
   app:
     environment:
       # Traefik learns the router + certificate of the optional pages host
-      # (NUXT_PUBLISH_PAGES_HOST) from the HTTP provider above — compose
+      # (NUXT_PUBLISH_PAGES_HOST) from the HTTP provider above: compose
       # labels can't declare a router only when a variable is set. Needs
       # NUXT_PUBLISH_TRAEFIK_TOKEN.
       - NUXT_PUBLISH_TRAEFIK_PAGES_ROUTER=true

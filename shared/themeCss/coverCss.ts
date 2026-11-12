@@ -13,7 +13,7 @@ import { cssFontStack } from './cssValues'
  * Strategy: assign the prepended `<section class="markoto-cover">`
  * (injected by `usePagedPreview.buildCoverHtml`) to a named page
  * (`cover-page`). paged.js then applies `@page cover-page` rules to
- * just that one page — including empty margin boxes that suppress the
+ * just that one page, including empty margin boxes that suppress the
  * running header/footer (no page number on a title page).
  */
 export function coverBlock(theme: DocTheme): string {
@@ -27,7 +27,7 @@ export function coverBlock(theme: DocTheme): string {
   // The cover's `@page cover-page { margin: 0 }` zeros the page padding,
   // so the cover element should occupy the full physical page rectangle.
   // We can't use `min-height: 100%` because paged.js's parent chain
-  // doesn't expose a fixed height — `1fr` grid rows collapse to 0px.
+  // doesn't expose a fixed height, `1fr` grid rows collapse to 0px.
   // Pull the page height from the central `pageDimensions` table so that
   // adding Legal / A3 to PageSizeSchema fails compile rather than silently
   // shifting cover layouts.
@@ -151,7 +151,7 @@ export function repeatTitleBlock(theme: DocTheme): string {
 }
 
 /**
- * `cover.layout: 'title-block'` — no cover page: title, subtitle, authors
+ * `cover.layout: 'title-block'`: no cover page: title, subtitle, authors
  * (+ affiliations), date and the abstract open page 1 and the text
  * follows on the same page (arXiv / journal first page). Built by
  * `coverHtml.ts`; the abstract is the document's own leading `Abstract`

@@ -25,7 +25,7 @@ export const aiSessions = pgTable('ai_sessions', {
 // (`server/repos/docProvenance.ts`): an AI edit is the invoker's own only
 // when `clean` is true. A row starts `clean = false` when the session is
 // claimed and is flipped to true only after the session ended without
-// ever reading content written by somebody else (`crossBoundary.ts`) —
+// ever reading content written by somebody else (`crossBoundary.ts`),
 // a crash, an error before the flag is written, or a tainted session all
 // leave it false, so its edits stay "foreign". Unlike `ai_sessions`
 // (deleted at session end) and `ai_session_messages` (90-day retention)

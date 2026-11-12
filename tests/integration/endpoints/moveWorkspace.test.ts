@@ -9,7 +9,7 @@ import {
 } from '../setup/fixtures'
 import { first } from '../../helpers/assert'
 
-// PATCH /api/docs/:docId/workspace — moves a doc into, between, or out
+// PATCH /api/docs/:docId/workspace: moves a doc into, between, or out
 // of a workspace. Authz band:
 //   - Source-side: canManageDoc (owner or source workspace admin)
 //   - Target-side: admin or editor of the target workspace (if any)
@@ -115,7 +115,7 @@ describe('PATCH /api/docs/:docId/workspace', () => {
 
     it('workspace editor CANNOT move a doc (manage rights only, regression guard)', async () => {
       // If this flips to 200, workspace editors can yank docs out of
-      // the workspace — not a content edit, a sharing change.
+      // the workspace: not a content edit, a sharing change.
       const creator = await createUser()
       const editor = await createUser()
       const ws = await createWorkspace(creator.id)
@@ -213,7 +213,7 @@ describe('PATCH /api/docs/:docId/workspace', () => {
   describe('no-op handling', () => {
     it('same-workspace PATCH is a 200 no-op (no spurious lastActive bump)', async () => {
       // Clients may resend the move if the modal closes and reopens.
-      // The handler short-circuits before touching the row — pin this
+      // The handler short-circuits before touching the row, pin this
       // so we don't introduce a lastActive ripple on redundant saves.
       const owner = await createUser()
       const ws = await createWorkspace(owner.id)

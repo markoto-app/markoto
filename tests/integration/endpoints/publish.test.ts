@@ -208,7 +208,7 @@ describe('publish as a web page', () => {
     expect(row.rows[0]!.access_mode).toBe('private')
   })
 
-  it('a moderation restriction sticks until an admin lifts it — also on copies', async () => {
+  it('a moderation restriction sticks until an admin lifts it, also on copies', async () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     const guest = await createUser()
@@ -294,7 +294,7 @@ function onTwin(host: string, path: string, opts: { method?: string, cookie?: st
 // The hosted-shaped server serves published pages from their own host
 // (NUXT_PUBLISH_PAGES_HOST): user-written HTML never shares the app's
 // origin, the app's /p/<slug> redirects there, and the pages host is
-// nothing but published pages — no app, no API, no cookie.
+// nothing but published pages, no app, no API, no cookie.
 /** What a browser would never send here (the session cookie is host-only on the app): forged or stale. */
 const STALE_COOKIES = 'nuxt-session=stale; markoto-anon=x; ypad_locale=de'
 
@@ -379,7 +379,7 @@ describe('publish on a separate pages host', () => {
   it('no response on the pages host carries a cookie, whoever answers it', async () => {
     const { pageId } = await published()
     // Answered by Nitro's static-asset handler (before any middleware), by
-    // a handler's own error, or as a page — never with a cookie.
+    // a handler's own error, or as a page, never with a cookie.
     const asset = readdirSync('.output/public/_nuxt').find(f => f.endsWith('.js'))!
     const cases: Array<[string, number]> = [
       [`/_nuxt/${asset}`, 200],

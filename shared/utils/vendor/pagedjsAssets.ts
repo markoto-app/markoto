@@ -6,7 +6,7 @@ import { vendorUrl } from './vendorAssets'
  * (`printPdf`), plus the server render page.
  *
  * Copied from `node_modules/pagedjs/dist/` at build time
- * (modules/vendor-assets.ts — see shared/utils/vendor/vendorAssets.ts). paged.js's
+ * (modules/vendor-assets.ts: see shared/utils/vendor/vendorAssets.ts). paged.js's
  * package "exports" field blocks a Vite `?url` import of `dist/`, and the
  * srcdoc iframes can't use Vite-injected assets anyway, so the file is
  * served as a plain static asset.
@@ -18,7 +18,7 @@ import { vendorUrl } from './vendorAssets'
  * SSR; if paged.js's polisher scans it (as it does in `auto: true` mode)
  * it crashes deep in `atrules` parsing with "Cannot read properties of
  * undefined". Our fix is the explicit-stylesheets API call:
- * `Previewer.preview(html, [{ 'theme.css': themeCss }], mount)` — the
+ * `Previewer.preview(html, [{ 'theme.css': themeCss }], mount)`, the
  * Polisher only processes the explicitly-passed stylesheet, so Nuxt's
  * oklch() block is invisible. Upgrading paged.js may either fix the
  * underlying parser OR remove the explicit-stylesheets API. Test with

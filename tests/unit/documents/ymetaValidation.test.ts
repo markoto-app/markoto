@@ -71,7 +71,7 @@ describe('clampMetaString', () => {
   })
 })
 
-describe('isValidMetaValue — theme contract stays in lockstep with themeValidation', () => {
+describe('isValidMetaValue: theme contract stays in lockstep with themeValidation', () => {
   it('accepts a publication date and the "document" diagram colours, rejects a bad date', () => {
     const ok = structuredClone(defaultTheme)
     ok.cover.date = '2026-10-29'

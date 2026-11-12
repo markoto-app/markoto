@@ -12,7 +12,7 @@ import {
 
 // Custom domains: a user adds a domain, proves it with a TXT
 // record, points it at the instance; only then Traefik gets a router for
-// it and a certificate from the ACME CA — here pebble, Let's Encrypt's
+// it and a certificate from the ACME CA, here pebble, Let's Encrypt's
 // test CA, with challtestsrv as DNS (deploy/compose/compose.test.yml). On the
 // domain only the published page and its files exist.
 
@@ -205,7 +205,7 @@ describe('custom domains', () => {
     expect((await anonClient().get('/api/internal/traefik/custom-domains')).status).toBe(403)
   })
 
-  it('on the domain only the page exists — no app, no API', async () => {
+  it('on the domain only the page exists, no app, no API', async () => {
     const user = await createUser()
     const domain = await verifiedDomain(user.id)
     expect((await getWithHost(domain.hostname, '/')).body).toContain('Nothing is published on this domain yet.')

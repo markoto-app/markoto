@@ -2,8 +2,8 @@
 import { docsBreadcrumbs } from '~~/shared/seo/breadcrumbs'
 
 // /docs landing page. Hand-written (not driven by a markdown file)
-// because it's mostly UI affordances — category cards + featured-flow
-// shortcuts — rather than prose. The catch-all [...slug].vue handles
+// because it's mostly UI affordances, category cards + featured-flow
+// shortcuts: rather than prose. The catch-all [...slug].vue handles
 // every OTHER /docs/* path.
 //
 // Featured cards: pulled live from the docs collection where
@@ -63,7 +63,7 @@ const { data: sections } = await useAsyncData('docs:sections', async () => {
 })
 
 // Direct handle on the search modal's open state. Toggling this is
-// equivalent to pressing Cmd-K — opens the same UContentSearch modal
+// equivalent to pressing Cmd-K, opens the same UContentSearch modal
 // mounted at the layout level. Cleaner than dispatching a synthetic
 // keyboard event (which @nuxt/ui's defineShortcuts may filter as
 // untrusted).
@@ -125,9 +125,9 @@ const { open: openSearch } = useContentSearch()
       </div>
     </header>
 
-    <!-- Featured pages — "Start here" — promoted to a denser two-up
+    <!-- Featured pages, "Start here", promoted to a denser two-up
          grid right under the hero. Newcomer's first action surface. -->
-    <!-- "Start here" — the entry-point flows. Cards drop the shu
+    <!-- "Start here": the entry-point flows. Cards drop the shu
          hover (was `border-primary/40` + `bg-primary/10` arrow puck);
          shu stays AI-only. Hover is now a calm sumi border + bone fill
          lift. Section eyebrow uses the JetBrains Mono 0.06em register
@@ -174,7 +174,7 @@ const { open: openSearch } = useContentSearch()
       </div>
     </section>
 
-    <!-- Sections — every top-level folder. Title + icon driven by
+    <!-- Sections: every top-level folder. Title + icon driven by
          each folder's index.md frontmatter. Three across on desktop
          keeps the page from feeling tall + lets the eye scan. -->
     <section>

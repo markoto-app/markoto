@@ -6,11 +6,11 @@ import { useMyWorkspaces } from '~/queries/workspaces'
 
 // The home page for everyone who doesn't get the product tour. Logged-out
 // visitors see the plain hero with "New document"; signed-in users get an
-// app dashboard instead — a compact page header, then their invitations,
+// app dashboard instead: a compact page header, then their invitations,
 // workspaces and documents, each section with its own create button in
 // its header. Split out of pages/index.vue and mounted as a Lazy component
 // there, so its code (workspace list, document modals, Nuxt UI menus and
-// forms) stays out of the product page's chunks — a logged-out visitor
+// forms) stays out of the product page's chunks, a logged-out visitor
 // on the marketing site never downloads it. The new-document dialog
 // stays on the page (the tour opens it too): `new-document` asks for it.
 const emit = defineEmits<{
@@ -55,7 +55,7 @@ function onCapReachedClick() {
     void router.push('/pricing')
     return
   }
-  // Self-hosted: nothing to buy — say so instead of a dead link.
+  // Self-hosted: nothing to buy, say so instead of a dead link.
   toast.add({ title: workspaceCapShortLabel.value, description: workspaceCapTooltip.value, icon: 'i-lucide-lock', color: 'neutral' })
 }
 
@@ -64,7 +64,7 @@ type DocumentListItem = ApiResponse<'/api/user/documents', 'get'>[number]
 // Track "has the first fetch resolved" explicitly. `useAsyncState` with
 // `immediate: false` reports `isLoading: false` until the first
 // `execute()` lands, which means the spinner gated on `loadingDocs`
-// alone is invisible during the SSR→hydration window — by the time
+// alone is invisible during the SSR→hydration window, by the time
 // `tryOnMounted` fires `loadDocs`, the response often comes back
 // faster than a frame, so the user never sees a spinner. These flags
 // stay false until the first fetch resolves; the v-if uses them to
@@ -102,7 +102,7 @@ watch(() => workspacesQuery.error.value, (e) => {
 })
 
 // Open workspace invitations addressed to this account. Failures are
-// non-fatal (the section just stays hidden) — the workspace list and
+// non-fatal (the section just stays hidden), the workspace list and
 // documents are the primary content of the dashboard.
 const myInvites = ref<WorkspaceInviteItem[]>([])
 async function loadInvites(): Promise<void> {
@@ -116,7 +116,7 @@ async function loadInvites(): Promise<void> {
     myInvites.value = []
   }
 }
-// Documents shared with this account as a workspace GUEST — a
+// Documents shared with this account as a workspace GUEST, a
 // guest's only way into a workspace. Hidden when there are none.
 type SharedDoc = ApiResponse<'/api/user/shared-documents', 'get'>[number]
 const sharedDocs = ref<SharedDoc[]>([])
@@ -194,7 +194,7 @@ function onDocDeleted() {
 
 // Duplicate / Move modals. Dashboard shows personal + owned-in-workspace
 // docs; every entry here is owned by the caller (`isOwner`), so the menu
-// offers every action — `isOwner` is still passed through as the gate.
+// offers every action: `isOwner` is still passed through as the gate.
 const duplicateTarget = ref<DocumentListItem | null>(null)
 const showDuplicateModal = ref(false)
 const moveTarget = ref<DocumentListItem | null>(null)
@@ -228,7 +228,7 @@ function onWorkspaceCreated(workspaceId: string) {
   void router.push(`/w/${workspaceId}`)
 }
 
-// Long-press a doc row to open its action menu — discoverable on
+// Long-press a doc row to open its action menu, discoverable on
 // touch where the 3-dot button is a small target. Per-row keying so
 // only the long-pressed row's menu opens. The trigger writes the same
 // state (two-way), so a click opens the menu as well.
@@ -248,7 +248,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
     :class="loggedIn ? 'py-6 sm:py-10' : 'py-10 sm:py-20'"
   >
     <!-- Logged out: the plain hero. Editorial register from the homepage
-         mockup — Fraunces weight 300 display, italic-400 emphasis on the
+         mockup: Fraunces weight 300 display, italic-400 emphasis on the
          brand's loadbearing word ("Markdown"), Inter lede capped at 34ch. -->
     <div
       v-if="!loggedIn"
@@ -406,7 +406,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
           </UButton>
         </div>
 
-        <!-- Spinner during the first fetch — `docsFetched` flips true
+        <!-- Spinner during the first fetch, `docsFetched` flips true
              after `loadDocs` resolves (success or error), so it covers
              the SSR→hydration window where `isLoading` alone reports
              false. -->
@@ -449,7 +449,7 @@ function setMenuOpen(doc: DocumentListItem, open: boolean) {
                 <!-- Description as a subtitle when set. Highest-info
                      field for picking which doc to open; collapses
                      entirely when empty so legacy/blank docs don't
-                     show "—" placeholders. -->
+                     show "-" placeholders. -->
                 <p
                   v-if="doc.description"
                   class="text-xs text-toned truncate"

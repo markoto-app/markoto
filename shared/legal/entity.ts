@@ -17,11 +17,11 @@
 // the boot validation makes it fail while the legal surfaces are on
 // and either is unset (shared/env/rules/legal.ts). The defaults only ever surface while the legal
 // surfaces are ON
-// (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`) —
+// (`NUXT_LEGAL_SURFACES_ENABLED`, see `shared/config/instance.ts`),
 // the hosted SaaS. A self-hosted instance runs with them OFF by default
 // and never presents LatentSpace Labs as its operator; a self-hoster who
 // switches them on must set every `NUXT_LEGAL_*` value (and adapt
-// `content/legal/`) — see docs/SELF-HOSTING.md#legal-pages.
+// `content/legal/`): see docs/SELF-HOSTING.md#legal-pages.
 
 import { useEnv } from '../env/load'
 import type { RawEnv } from '../env/define'
@@ -30,7 +30,7 @@ export interface LegalEntity {
   // The legal entity operating markoto. Appears as "the controller"
   // in GDPR Article 4(7) terms.
   controllerName: string
-  // Street address — required by ePrivacy / DSA / German Impressum.
+  // Street address: required by ePrivacy / DSA / German Impressum.
   controllerAddress: string
   // Inbox for data-subject-rights requests + privacy questions.
   privacyContactEmail: string

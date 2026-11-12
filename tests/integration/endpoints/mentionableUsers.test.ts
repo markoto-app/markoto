@@ -8,7 +8,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 
-// GET /api/docs/:docId/mentionable-users — typeahead source for the
+// GET /api/docs/:docId/mentionable-users: typeahead source for the
 // comments composer.
 //
 // Privacy posture (no user enumeration): only workspace docs return a real list,

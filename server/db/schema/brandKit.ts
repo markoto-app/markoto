@@ -8,7 +8,7 @@ import { documents } from './documents'
 
 // Brand kit: fonts and logos uploaded by a workspace's admins. A font file is one
 // family + weight + style; static TrueType outlines only (variable and
-// CFF fonts print as Type 3 in Chromium's PDFs and are refused —
+// CFF fonts print as Type 3 in Chromium's PDFs and are refused,
 // server/utils/brandKit/fontInspect.ts). Bytes live in S3 at
 // `workspaces/{wsId}/brand/{id}.{format}`; served per document through
 // `/api/docs/:docId/brand/:file` (the renderers) and per workspace

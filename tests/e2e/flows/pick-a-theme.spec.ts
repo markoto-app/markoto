@@ -2,15 +2,15 @@ import { test, expect } from '../fixtures/flow'
 
 // Tier 1: "Pick a theme that fits your document".
 //
-// User-job: a writer wants their document to LOOK right — typography,
-// page color, headings, the works — without learning CSS or fighting
+// User-job: a writer wants their document to LOOK right, typography,
+// page color, headings, the works, without learning CSS or fighting
 // per-doc settings. Job done when they've switched to a different preset,
 // watched the live preview update, switched back, and seen the cover page
 // turn page 1 into a title sheet.
 //
 // The doc starts with the cover OFF so the first preview page shows the
 // report: each preset's typography is visible without scrolling. Presets
-// replace the whole theme, cover included — arXiv preprint swaps the
+// replace the whole theme, cover included, arXiv preprint swaps the
 // cover for a title block at the top of page 1 (scrolled to).
 //
 // Runs on desktop AND mobile. Mobile routes through the bottom-tab-bar
@@ -71,7 +71,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
       'Click the Theme tab in the right sidebar',
       editor.page.sidebar.theme,
       {
-        // Direction-anchor the Theme tab — it's one of four icon-only
+        // Direction-anchor the Theme tab, it's one of four icon-only
         // sidebar tabs and a first-time reader needs help finding it.
         annotations: [
           { label: 'theme tab', selector: 'button[aria-label*="theme" i]', kind: 'arrow' }
@@ -125,7 +125,7 @@ test('Pick a theme', async ({ page, flow, editor }) => {
   await editor.page.dismissToasts()
 
   if (editor.isMobile) {
-    // DOM-level click — the preset card lives inside the BottomSheet
+    // DOM-level click: the preset card lives inside the BottomSheet
     // portal. Workaround #2 from `tests/e2e/AGENTS.md`.
     // eslint-disable-next-line playwright/no-force-option -- mobile-only branch: the bottom-sheet portal intercepts the pointer (tests/e2e/AGENTS.md)
     await flow.hover('Tap "markoto" to return to the default', editor.page.theme.preset('markoto'), { force: true })

@@ -66,11 +66,11 @@ describe('runAccountDeletionSweep', () => {
     // owner_id can't be repointed (zero co-members so it should
     // cascade), but the cascade DELETE still works in our mocked
     // env. Instead let's break it via an ai_session whose RESTRICT
-    // FK is the executor's blocker — we set up the row and then mock
+    // FK is the executor's blocker, we set up the row and then mock
     // ai_sessions delete to throw via an unexpected schema state.
     //
     // Easier: create a row in a table the executor doesn't know
-    // about — a stray manual constraint. That's hard without DDL.
+    // about: a stray manual constraint. That's hard without DDL.
     // Instead, simulate by stuffing both users' grace windows; only
     // success of both matters here.
 

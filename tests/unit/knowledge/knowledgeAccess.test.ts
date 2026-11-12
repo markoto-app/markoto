@@ -38,7 +38,7 @@ describe('deleteKnowledgeArtifact', () => {
 
   it('deletes DB row first, then S3 object (ordering invariant)', async () => {
     // DB before S3 so the user sees the file "disappear" immediately.
-    // An S3 failure afterwards leaves an orphan object — acceptable,
+    // An S3 failure afterwards leaves an orphan object, acceptable,
     // logged + Sentry'd.
     const order: string[] = []
     getKnowledge.mockResolvedValueOnce({ s3Key: 'some/key' })
@@ -57,7 +57,7 @@ describe('deleteKnowledgeArtifact', () => {
     s3Send.mockImplementationOnce(async () => {
       throw new Error('S3 down')
     })
-    // Must NOT throw — the row is already gone, the user already saw success.
+    // Must NOT throw: the row is already gone, the user already saw success.
     await expect(deleteKnowledgeArtifact(wsAs('ws-1'), 'k1')).resolves.toBeUndefined()
     expect(sentryCaptureException).toHaveBeenCalledOnce()
     const call = sentryCaptureException.mock.calls[0]!
@@ -71,7 +71,7 @@ describe('deleteKnowledgeArtifact', () => {
   })
 
   it('propagates DB-delete errors (don\'t silently orphan S3)', async () => {
-    // If we can't remove the row we MUST NOT delete the S3 object —
+    // If we can't remove the row we MUST NOT delete the S3 object,
     // the user would see the file still in the list (row visible) and
     // then 404 when trying to re-reference it (S3 gone). Propagate.
     getKnowledge.mockResolvedValueOnce({ s3Key: 'some/key' })

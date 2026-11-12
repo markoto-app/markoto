@@ -13,7 +13,7 @@ const limitsFrom = (raw: Record<string, string | undefined>) => parseSyncLimits(
 // Pre-apply validation of client updates (H3 size limits + H4 ymeta
 // validation on the WebSocket path). Each test plays a client against a
 // server-side Y.Doc: the client's update is framed exactly like a
-// Hocuspocus sync message, run through the guard, and — if accepted —
+// Hocuspocus sync message, run through the guard, and, if accepted,
 // applied to the server doc, mirroring what Hocuspocus does next.
 
 const DOC = 'doc-guard'
@@ -55,7 +55,7 @@ function rejectionOf(fn: () => void): SyncRejection | null {
   }
 }
 
-describe('update guard — sizes', () => {
+describe('update guard: sizes', () => {
   let server: Y.Doc
   beforeEach(() => {
     server = new Y.Doc()
@@ -120,7 +120,7 @@ describe('update guard — sizes', () => {
   })
 })
 
-describe('update guard — ymeta validation on the WebSocket path', () => {
+describe('update guard: ymeta validation on the WebSocket path', () => {
   let server: Y.Doc
   const guard = createUpdateGuard(limitsFrom({}))
 
@@ -153,7 +153,7 @@ describe('update guard — ymeta validation on the WebSocket path', () => {
 
   it('rejects an over-long title written over an existing one (parent implied by origin)', () => {
     const update = clientUpdate(server, c => c.getMap('meta').set('title', 't'.repeat(256)))
-    // The overwrite carries no explicit parent — the guard has to follow
+    // The overwrite carries no explicit parent, the guard has to follow
     // the origin reference into the server's store to place it.
     expect(Y.decodeUpdate(update).structs.some(s => s instanceof Y.Item && s.parent === null)).toBe(true)
     expect(rejectionOf(() => guard.check(server, syncMessage(update), false))?.reason).toBe('invalid-meta')
@@ -251,8 +251,8 @@ describe('parseSyncLimits', () => {
   })
 })
 
-describe('update guard — stateless messages', () => {
-  /** varString(doc) varUint(type) varString(payload) — Stateless (5) / BroadcastStateless (6). */
+describe('update guard: stateless messages', () => {
+  /** varString(doc) varUint(type) varString(payload): Stateless (5) / BroadcastStateless (6). */
   function statelessMessage(type: 5 | 6, payload = 'hello'): Uint8Array {
     const enc = encoding.createEncoder()
     encoding.writeVarString(enc, DOC)

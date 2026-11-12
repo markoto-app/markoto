@@ -1,6 +1,6 @@
 // Hard-coded ceilings that gate the agentic loop independent of the
 // per-user LiteLLM budget. These are runaway-loop safeties, not
-// normal-usage caps — a typical session uses 3-8 interactions and makes
+// normal-usage caps: a typical session uses 3-8 interactions and makes
 // 0-2 tool calls. Hitting any of these is a bug, an attack, or a
 // pathological prompt.
 //
@@ -19,7 +19,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
  *
  * On hit: the loop ABORTS via the existing setStatus('error', …)
  * path so the user sees a meaningful "stopped: …" message rather
- * than a silent cutoff. The model never gets a chance to recover —
+ * than a silent cutoff. The model never gets a chance to recover,
  * exceeding 50 interactions means the session is already off the
  * rails.
  */

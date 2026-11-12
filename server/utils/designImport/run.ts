@@ -22,7 +22,7 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('design-import')
 
 // Production wiring of the design-import pipeline: markitdown extract,
-// the user's chat provider through LiteLLM (their virtual key — BYOK is
+// the user's chat provider through LiteLLM (their virtual key, BYOK is
 // zero-cost there, a platform default debits their AI budget like any AI
 // chat), the renderer sample, and the Valkey job state the dialog polls.
 // Runs in the background after `POST /api/themes/from-document/start`.

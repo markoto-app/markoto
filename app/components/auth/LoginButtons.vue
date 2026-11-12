@@ -1,6 +1,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
-// Only providers with complete credentials are offered — an
+// Only providers with complete credentials are offered, an
 // unconfigured one would end in a server error. A self-hosted instance
 // without any login provider is anonymous-only.
 const { loginOptions } = useLoginOptions()

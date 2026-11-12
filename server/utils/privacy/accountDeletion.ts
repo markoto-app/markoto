@@ -33,7 +33,7 @@ import type { UserScope } from '../../repos/proofs'
 //
 // **Audit trail.** Both request and cancel land an `audit_log` row
 // with the actor's truncated IP. We don't propagate audit-write
-// failures — the row update has already committed and a wedged audit
+// failures: the row update has already committed and a wedged audit
 // table must not flip a successful action into an error. (See
 // `appendAuditEvent` semantics.)
 //
@@ -71,7 +71,7 @@ export interface RequestAccountDeletionResult {
  * in `accountDeletionSweep.ts` once the grace window elapses.
  *
  * Throws `ConflictError` from the repo layer if a deletion is already
- * scheduled — the endpoint translates this to 409.
+ * scheduled: the endpoint translates this to 409.
  */
 export async function requestAccountDeletionByUser(args: RequestAccountDeletionArgs): Promise<RequestAccountDeletionResult> {
   const graceDays = args.graceDays ?? DEFAULT_DELETION_GRACE_DAYS
@@ -79,7 +79,7 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
   const status = await repoRequest(args.self, graceDays)
 
   // Audit + email AFTER the row update committed. If either of the
-  // following throws / rejects, the deletion is still scheduled — the
+  // following throws / rejects, the deletion is still scheduled, the
   // user's UI shows the banner regardless.
   await appendAuditEvent({
     by: args.self,
@@ -104,7 +104,7 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
     void safeSendTransactionalEmail({
       kind: 'account.delete_requested',
       to: userEmail,
-      locale: null, // user.locale not on the projection — read separately if needed
+      locale: null, // user.locale not on the projection, read separately if needed
       subject: 'Your markoto account is scheduled for deletion',
       body: 'Your account will be permanently deleted on '
         + (status.deletionGraceUntil?.toISOString().slice(0, 10) ?? 'the scheduled date')
@@ -126,7 +126,7 @@ export interface CancelAccountDeletionArgs {
 
 export interface CancelAccountDeletionResult {
   // Always { deletionRequestedAt: null, deletionGraceUntil: null } on
-  // success — included for symmetry with the request result so the
+  // success: included for symmetry with the request result so the
   // endpoint response shape matches.
   status: AccountDeletionStatus
   emailAttempted: boolean

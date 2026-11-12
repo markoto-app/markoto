@@ -2,17 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { H3Event } from 'h3'
 
 // validatedSession.ts is the single gate that proves a sealed cookie
-// still matches a real users row. Security-critical path — a bug that
+// still matches a real users row. Security-critical path, a bug that
 // silently returns a stale session would let a deleted user carry
 // their cookie forward, and a bug that ignores SESSION_VERSION would
 // deserialise mismatched session shapes into endpoints that assume the
 // new contract.
 //
 // We stub:
-//   - `getUserSession` — the raw h3 sealed-cookie reader
-//   - `clearUserSession` — must be invoked on stale/deleted cases
-//   - `findSessionUser` — DB lookup for the `id → users.row` validation
-//   - `createError` — auto-imported in the SUT
+//   - `getUserSession`: the raw h3 sealed-cookie reader
+//   - `clearUserSession`: must be invoked on stale/deleted cases
+//   - `findSessionUser`: DB lookup for the `id → users.row` validation
+//   - `createError`: auto-imported in the SUT
 const getUserSession = vi.fn()
 const clearUserSession = vi.fn(async () => {})
 const findSessionUser = vi.fn()
@@ -52,7 +52,7 @@ describe('getValidatedUserSession', () => {
     getUserSession.mockResolvedValueOnce({})
     const r = await getValidatedUserSession(fakeEvent())
     expect(r).toBeNull()
-    // Anonymous is not "stale" — no cookie clear.
+    // Anonymous is not "stale", no cookie clear.
     expect(clearUserSession).not.toHaveBeenCalled()
     expect(findSessionUser).not.toHaveBeenCalled()
   })
@@ -69,13 +69,13 @@ describe('getValidatedUserSession', () => {
     const r = await getValidatedUserSession(fakeEvent())
     expect(r).toBeNull()
     expect(clearUserSession).toHaveBeenCalledOnce()
-    // DB lookup never happens — version check is before the findSessionUser call.
+    // DB lookup never happens, version check is before the findSessionUser call.
     expect(findSessionUser).not.toHaveBeenCalled()
   })
 
   it('clears the cookie and returns null when v is missing entirely', async () => {
     // Sessions sealed before we introduced SESSION_VERSION have no `v`
-    // field at all. Same remediation as a stale version — clear + treat
+    // field at all. Same remediation as a stale version, clear + treat
     // as anonymous so the user re-auths into the current shape.
     getUserSession.mockResolvedValueOnce({ user: { id: 42 } })
     const r = await getValidatedUserSession(fakeEvent())
@@ -102,7 +102,7 @@ describe('getValidatedUserSession', () => {
 
   it('only surfaces id + name from the DB row, not email/login/etc', async () => {
     // The public contract is {id, name}. Surfacing more fields here
-    // would leak whatever happens to live on UserRow today — brittle
+    // would leak whatever happens to live on UserRow today, brittle
     // and unnecessary. Pin the shape.
     getUserSession.mockResolvedValueOnce({ user: { id: 42 }, v: SESSION_VERSION })
     findSessionUser.mockResolvedValueOnce({
@@ -118,7 +118,7 @@ describe('getValidatedUserSession', () => {
     expect(Object.keys(r!.user).sort()).toEqual(['id', 'name'])
   })
 
-  it('caches the result on event.context — second call hits no deps', async () => {
+  it('caches the result on event.context, second call hits no deps', async () => {
     // The cache is what lets every endpoint call requireValidatedUserSession
     // on top of middleware's call without re-querying the DB per request.
     const event = fakeEvent()
@@ -171,10 +171,10 @@ describe('requireValidatedUserSession', () => {
   })
 })
 
-describe('resolveValidatedUser — concurrent resolution on empty cache', () => {
+describe('resolveValidatedUser: concurrent resolution on empty cache', () => {
   it('two parallel callers both get the same result (idempotent, not a crash)', async () => {
     // The cache check is `if (cache.validatedUser !== undefined) return`.
-    // There's no locking — two parallel callers on an empty cache both
+    // There's no locking: two parallel callers on an empty cache both
     // pass the check and both execute the full resolution. Both writes
     // to cache.validatedUser end up equivalent because the source-of-
     // truth (DB row + session cookie) hasn't changed. This test pins
@@ -197,12 +197,12 @@ describe('resolveValidatedUser — concurrent resolution on empty cache', () => 
       getValidatedUserSession(event)
     ])
 
-    // Both callers get the same valid user — no "first got user,
+    // Both callers get the same valid user, no "first got user,
     // second got null" race.
     expect(r1).toEqual({ user: { id: 42, name: 'Alice' } })
     expect(r2).toEqual({ user: { id: 42, name: 'Alice' } })
     // Current contract: getUserSession DID run twice (no lock). If
-    // someone adds a lock, the expectation here should drop to 1 —
+    // someone adds a lock, the expectation here should drop to 1,
     // but the result-equality above is the real invariant.
     expect(getUserSessionCalls).toBeGreaterThanOrEqual(1)
   })

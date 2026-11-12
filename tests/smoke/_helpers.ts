@@ -4,7 +4,7 @@ import { deriveKey } from 'altcha-lib/algorithms/pbkdf2'
 // API calls use the runtime's global `fetch`, NOT Playwright's `request`
 // fixture. Under Bun, the `request` fixture throws while parsing the
 // response's Set-Cookie header against the URL ("cannot be parsed as a URL")
-// even though the HTTP call itself succeeds — a Playwright-under-Bun quirk.
+// even though the HTTP call itself succeeds, a Playwright-under-Bun quirk.
 // Global fetch with an absolute URL sidesteps it entirely and is all the
 // smoke suite needs (stateless, anonymous). Page navigations still use the
 // `page` fixture with the config's baseURL.
@@ -24,7 +24,7 @@ function isChallenge(value: unknown): value is Challenge {
 
 /**
  * Pass the anonymous gate like a browser does: fetch the server's ALTCHA
- * challenge and solve it (real production difficulty — about a second),
+ * challenge and solve it (real production difficulty, about a second),
  * plus the terms acceptance. Empty when the instance has no gate. Plain
  * errors (no `expect`): this also runs in the global setup.
  */
@@ -48,7 +48,7 @@ async function anonGateFields(): Promise<Record<string, unknown>> {
  * Anonymous creation is limited to 10/hour per network on the hosted
  * service and the smoke run comes from ONE runner address, so specs never
  * call this: `globalSetup.ts` creates the run's documents once and specs
- * read them with `smokeDoc()`. A retried spec reuses the same document —
+ * read them with `smokeDoc()`. A retried spec reuses the same document,
  * retry the action, not the creation.
  */
 export async function createAnonDoc(body: Record<string, unknown> = {}): Promise<string> {
@@ -67,10 +67,10 @@ export async function createAnonDoc(body: Record<string, unknown> = {}): Promise
 
 /**
  * The run's shared anonymous documents, created once by globalSetup.ts:
- *   - `demo`     — a Demo-template document (markdown tour incl. a mermaid
+ *   - `demo`: a Demo-template document (markdown tour incl. a mermaid
  *                  diagram), shared by every spec that just needs "an
  *                  anonymous doc with content" (editor + preview, PDF, mobile).
- *   - `template` — created with the business-plan template; the template
+ *   - `template`: created with the business-plan template; the template
  *                  spec needs its own because the template is chosen at
  *                  creation.
  * Two anonymous creations per run, whatever the retries.
@@ -84,7 +84,7 @@ export const TEMPLATE_DOC_BODY: Record<string, unknown> = Object.freeze({ templa
 
 export function smokeDoc(kind: SmokeDoc): string {
   const raw = process.env[SMOKE_DOCS_ENV]
-  if (!raw) throw new Error(`${SMOKE_DOCS_ENV} is not set — run the smoke suite through tests/smoke/playwright.config.ts (it has the global setup)`)
+  if (!raw) throw new Error(`${SMOKE_DOCS_ENV} is not set, run the smoke suite through tests/smoke/playwright.config.ts (it has the global setup)`)
   const parsed: unknown = JSON.parse(raw)
   const id = isRecord(parsed) ? parsed[kind] : null
   if (typeof id !== 'string') throw new Error(`no shared smoke document "${kind}"`)

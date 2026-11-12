@@ -4,11 +4,11 @@ import { HOUR_MS } from '~~/shared/config/units'
 // Brute-force limits for `POST /api/docs/:id/password` (action=verify).
 // Three layers, all Valkey-backed and atomic (see rateLimit.ts):
 //
-//   1. per client + doc   — 5 attempts / min. Client = IPv4 address or
+//   1. per client + doc, 5 attempts / min. Client = IPv4 address or
 //                           IPv6 /64 (`getClientRateLimitKey`).
-//   2. per doc, global    — 30 attempts / min across ALL clients, so a
+//   2. per doc, global, 30 attempts / min across ALL clients, so a
 //                           botnet / address pool can't multiply layer 1.
-//   3. per doc failures   — 30 FAILED attempts / hour lock the doc's
+//   3. per doc failures, 30 FAILED attempts / hour lock the doc's
 //                           password check until failures age out.
 //                           Workspace members and the owner never need
 //                           the password, and the owner can rotate it.

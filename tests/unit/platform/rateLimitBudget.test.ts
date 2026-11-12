@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Rate-limit budget + session lock behavior. These exist as cheap
-// regression tests — the functions look trivial but carry two
+// regression tests: the functions look trivial but carry two
 // subtle design choices we don't want to lose:
 //   1. `consumeRateLimitBudget` fails OPEN on Valkey errors (returns
-//      allowed:true). That's deliberate — a wedged Valkey must not
+//      allowed:true). That's deliberate: a wedged Valkey must not
 //      DoS the app, which would be worse than letting a rate limit
 //      leak briefly.
 //   2. `tryAcquireSessionLock` fails CLOSED (returns false). A
-//      concurrent-session CAP, not a rate limit — failing open would
+//      concurrent-session CAP, not a rate limit, failing open would
 //      let unlimited sessions through and double-bill.
 // A refactor that accidentally flips either polarity would be
 // silently dangerous; these tests pin the contract.
@@ -75,7 +75,7 @@ vi.mock('../../../server/utils/platform/valkey', () => ({
   useValkey: () => fake
 }))
 
-// Also silence the TEST_MODE short-circuit inside rateLimit.ts — the
+// Also silence the TEST_MODE short-circuit inside rateLimit.ts, the
 // helpers bail out in TEST_MODE and return defaults. For these tests
 // we WANT to exercise the real logic, so toggle env before import.
 // Vitest hoists vi.mock above the import order; env must be set
@@ -132,7 +132,7 @@ describe('tryAcquireSessionLock', () => {
   })
 
   it('fails CLOSED on Valkey errors', async () => {
-    // Inverse of the budget helper — failing open would let unlimited
+    // Inverse of the budget helper, failing open would let unlimited
     // concurrent sessions through during a Valkey blip and silently
     // double-bill.
     fake.throwOnNext = new Error('valkey down')

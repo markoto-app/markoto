@@ -61,7 +61,7 @@ describe('rendering', () => {
     expect(svgOf(renderAvatarDataUri('u-1001')).startsWith('<svg')).toBe(true)
   })
 
-  it('renders a self-contained data URI — no external references', () => {
+  it('renders a self-contained data URI, no external references', () => {
     const svg = svgOf(renderAvatarDataUri('u-5'))
     expect(renderAvatarDataUri('u-5')).toMatch(/^data:image\/svg\+xml/)
     // Only same-document fragment hrefs (`#id`), no http(s) image loads.

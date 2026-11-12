@@ -37,7 +37,7 @@ export async function clearRecentKicks(): Promise<void> {
 
 /**
  * Poll the buffer until at least one kick matches the predicate, or
- * timeout. Kicks are dispatched fire-and-forget by the Nuxt app — the
+ * timeout. Kicks are dispatched fire-and-forget by the Nuxt app, the
  * mutation HTTP response returns BEFORE the kick lands at the sync
  * server, so synchronous checks would race.
  */

@@ -20,7 +20,7 @@ export function legalSlugify(text: string): string {
 }
 
 export const legalMarkdown = new MarkdownIt({
-  html: false, // markdown source is trusted but defence-in-depth — any future external author can't smuggle raw HTML
+  html: false, // markdown source is trusted but defence-in-depth, any future external author can't smuggle raw HTML
   linkify: true, // bare URLs in the body auto-link
   typographer: true // smart quotes
 })

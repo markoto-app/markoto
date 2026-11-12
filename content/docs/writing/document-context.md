@@ -1,6 +1,6 @@
 ---
 title: Tell the AI who you're writing for
-description: Set audience, language, and a one-line description once — every AI prompt picks them up automatically.
+description: Set audience, language, and a one-line description once and every AI prompt picks them up automatically.
 category: writing
 order: 5
 featured: true
@@ -17,7 +17,7 @@ saves you re-typing context in every "rewrite this", "extend this" or
 
 This walkthrough sets the audience to **Marketing**, the language to
 **Deutsch**, and a one-line description, then asks the AI to write a
-welcome intro. The AI returns marketing-tone Deutsch — without the
+welcome intro. The AI returns marketing-tone Deutsch, without the
 prompt mentioning audience or language.
 
 ::flow{id="tell-the-ai-who-you-re-writing-for" hide-title}
@@ -28,14 +28,14 @@ prompt mentioning audience or language.
 The Document tab in the right sidebar exposes three editable fields
 that the AI reads on every turn:
 
-- **Description** — one line that tells the AI what this document IS.
+- **Description**: one line that tells the AI what this document IS.
   Free text, ≤500 chars.
-- **Audience** — one of six writing registers (technical, marketing,
+- **Audience**: one of six writing registers (technical, marketing,
   academic, casual, business, creative), each with its own tone. It is
   a fixed list on purpose: audience is for the durable tone of the whole
   document, while one-off steering ("make this friendlier") belongs in
   your prompt.
-- **Language** — free text with a few presets, so even "Romansh" works.
+- **Language**: free text with a few presets, so even "Romansh" works.
   The AI is told to write all prose in that language.
 
 These fields are sent along with the title on every prompt. That's why

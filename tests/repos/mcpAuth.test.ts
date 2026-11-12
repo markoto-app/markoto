@@ -21,7 +21,7 @@ import { asUser } from '../helpers/access'
 //
 // Hot path: every MCP request hits `verifyMcpPat`. Bugs here surface
 // as "tool calls silently start returning empty / failing auth even
-// though the token is correct" — exactly the regression class that
+// though the token is correct", exactly the regression class that
 // pure-function tests can't catch.
 
 describe('issueMcpToken', () => {
@@ -156,7 +156,7 @@ describe('verifyMcpPat', () => {
   it('filters out unknown scope values stored in the row (forward-compat narrowing)', async () => {
     // If a future version writes a scope value we don't recognise (or
     // someone hand-edits the row), `verifyMcpPat` must strip it from
-    // the returned context — never escalate to "all scopes granted".
+    // the returned context: never escalate to "all scopes granted".
     const user = await createUser()
     const issued = await issueMcpToken({
       self: asUser(user.id), name: 't', scopes: ['documents:read']
@@ -225,7 +225,7 @@ describe('verifyMcpPat', () => {
 
     await verifyMcpPat(issued.plaintext)
 
-    // The bump is fire-and-forget (void bumpLastUsed) — give it a
+    // The bump is fire-and-forget (void bumpLastUsed), give it a
     // beat to round-trip.
     await new Promise(r => setTimeout(r, 250))
 
@@ -237,7 +237,7 @@ describe('verifyMcpPat', () => {
   })
 })
 
-describe('verifyMcpPat — cascade on user deletion', () => {
+describe('verifyMcpPat: cascade on user deletion', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -248,7 +248,7 @@ describe('verifyMcpPat — cascade on user deletion', () => {
       self: asUser(user.id), name: 't', scopes: ['documents:read']
     })
 
-    // Delete the user — FK on `mcp_personal_tokens.user_id` is `ON
+    // Delete the user: FK on `mcp_personal_tokens.user_id` is `ON
     // DELETE cascade` so the token row goes away with them.
     const tdb = testDb()
     await tdb.query('DELETE FROM users WHERE id = $1', [user.id])

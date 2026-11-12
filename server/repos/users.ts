@@ -20,13 +20,13 @@ export interface UserRow {
   stripeCustomerId: string | null
   isAdmin: boolean
   createdAt: Date
-  /** Onboarding / policy acceptance — read by the server-side onboarding gate. */
+  /** Onboarding / policy acceptance, read by the server-side onboarding gate. */
   ageConfirmedAt: Date | null
   privacyVersionAccepted: number | null
   tosVersionAccepted: number | null
   /** Preferred locale (NULL = never chosen). */
   locale: string | null
-  /** Session revocation counter — see `server/utils/auth/sessionPolicy.ts`. */
+  /** Session revocation counter, see `server/utils/auth/sessionPolicy.ts`. */
   sessionEpoch: number
 }
 

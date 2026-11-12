@@ -1,4 +1,4 @@
-// GET /api/billing/prices — plan prices for the pricing page, in every
+// GET /api/billing/prices: plan prices for the pricing page, in every
 // currency (EUR, CHF) and interval (month, year).
 //
 //   - billing ON: the live Stripe prices (server/utils/billing/stripePrices.ts),

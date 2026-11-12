@@ -46,7 +46,7 @@ export type EmbeddingsProvider = 'jina' | 'custom'
 
 const CONCURRENCY = 5
 
-// Per-input character cap. Our chunker targets 800 with a 1500 ceiling —
+// Per-input character cap. Our chunker targets 800 with a 1500 ceiling,
 // this is belt-and-braces for any caller that hands us pre-chunked text we
 // didn't produce, and keeps us under the context window of small local
 // models (nomic-embed-text: 2048 tokens).
@@ -133,7 +133,7 @@ async function embedOne(
 ): Promise<number[]> {
   // Optional request fields ride in as a typed spread (spread members
   // aren't excess-property-checked) so the SDK's typed fields keep their
-  // literal types — in particular `encoding_format: 'float'`, which
+  // literal types: in particular `encoding_format: 'float'`, which
   // selects the `number[]` overload of `create`. `task` (Jina) is not in
   // the SDK's types but LiteLLM forwards unknown body params upstream
   // verbatim; `dimensions` IS typed. Which of the two a model gets is
@@ -203,7 +203,7 @@ export async function embedDocuments(
 }
 
 /**
- * Embed a single query string. Always 1-call — query latency is
+ * Embed a single query string. Always 1-call, query latency is
  * user-facing, batching has no payoff here.
  */
 export async function embedQuery(

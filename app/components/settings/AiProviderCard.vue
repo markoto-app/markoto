@@ -6,7 +6,7 @@
 //
 // The API key is write-only from the UI's point of view: the server
 // never returns it (only the last four characters). Leaving the key
-// field empty on "change" keeps the stored key — but only while the base
+// field empty on "change" keeps the stored key, but only while the base
 // URL stays the same (the server enforces this).
 
 import {
@@ -126,7 +126,7 @@ function errorText(e: unknown, fallbackKey: string): string {
   const { code, message } = extractError(e)
   const raw = apiErrorData(e)?.message
   const detail = typeof raw === 'string' ? raw : ''
-  if (code !== null) return detail && detail !== message ? `${message} — ${detail}` : message
+  if (code !== null) return detail && detail !== message ? `${message}: ${detail}` : message
   return detail || t(fallbackKey)
 }
 
@@ -160,7 +160,7 @@ async function onVerify(): Promise<void> {
   try {
     const resp = await verifyProvider.mutateAsync(props.capability)
     const text = t(`aiProvider.verify.${codeKey(resp.code)}`)
-    lastMessage.value = { tone: resp.ok ? (resp.code === 'ok' ? 'success' : 'warning') : 'error', text: resp.ok ? text : `${text} — ${resp.message}` }
+    lastMessage.value = { tone: resp.ok ? (resp.code === 'ok' ? 'success' : 'warning') : 'error', text: resp.ok ? text : `${text}: ${resp.message}` }
   } catch (e) {
     lastMessage.value = { tone: 'error', text: errorText(e, 'aiProvider.toast.verifyFailed') }
   }

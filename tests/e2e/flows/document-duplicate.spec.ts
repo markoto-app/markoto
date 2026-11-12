@@ -3,7 +3,7 @@ import { test, expect } from '../fixtures/flow'
 // Tier 1: "Clone an existing doc as the starting point of a new one."
 //
 // User-job: a writer has a doc that's the structural template for a
-// new piece of work — same headings, same theme, same audience — and
+// new piece of work, same headings, same theme, same audience, and
 // wants to start from a copy instead of recreating it. Job done when
 // they've clicked File → Duplicate, watched markoto clone the row +
 // Y.js state + S3 assets, and landed in the new doc with the body
@@ -64,7 +64,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   // Open the menu containing Duplicate
   // Desktop has a top-level menubar (hidden on mobile via `hidden sm:block`).
   // Mobile collapses File / Edit / View / etc. into a single hamburger
-  // ("more") UDropdownMenu in the topbar — the duplicate/move/delete
+  // ("more") UDropdownMenu in the topbar, the duplicate/move/delete
   // cluster is mirrored under `mobileMenuItems` in EditorLayout.vue.
   const openMenuTrigger = editor.isMobile
     ? page.getByRole('button', { name: /^menu$/i }).first()
@@ -75,8 +75,8 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
     openMenuTrigger,
     {
       result: editor.isMobile
-        ? 'The topbar menu opens — Duplicate is one of the doc actions.'
-        : 'The File menu opens — Duplicate sits below Print.',
+        ? 'The topbar menu opens, Duplicate is one of the doc actions.'
+        : 'The File menu opens, Duplicate sits below Print.',
       after: () => page.getByRole('menuitem', { name: /^duplicate/i }).first().waitFor({ state: 'visible' })
     }
   )
@@ -85,7 +85,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
     'Click "Duplicate…"',
     page.getByRole('menuitem', { name: /^duplicate/i }).first(),
     {
-      result: 'A confirm dialog appears — markoto pre-fills the new title with "Copy of …".',
+      result: 'A confirm dialog appears, markoto pre-fills the new title with "Copy of …".',
       after: () => page.locator('[data-testid="duplicate-confirm"]').waitFor({ state: 'visible' })
     }
   )
@@ -105,7 +105,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
     page.locator('[data-testid="duplicate-confirm"]'),
     {
       hero: true,
-      result: 'The new doc opens — same body, same theme, fresh URL. Edit '
+      result: 'The new doc opens, same body, same theme, fresh URL. Edit '
         + 'either copy independently from now on.',
       after: async () => {
         // /api/docs/:id/duplicate returns the new doc id; the
@@ -124,7 +124,7 @@ test('Duplicate a document', async ({ page, flow, editor }) => {
   // Read off the in-page Y.Doc handle (`window.__DEBUG_ytext`,
   // exposed by `useDocument.ts` when `NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1`,
   // which the flow-test stack sets) instead of `cm-content`'s
-  // textContent — CM6 doesn't render lines outside the viewport into
+  // textContent: CM6 doesn't render lines outside the viewport into
   // the DOM, so the appended Q3 line at the very END of the Demo
   // doc may not be in the rendered span on mobile (smaller viewport,
   // edit-only). The Y.Doc is the authoritative content view.

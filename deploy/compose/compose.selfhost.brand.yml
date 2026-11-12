@@ -2,7 +2,7 @@
 # The customer's logo is read from ./branding (next to this file) and
 # shown beside the markoto wordmark; the name and support contact come
 # from .env (NUXT_INSTANCE_BRAND_NAME, NUXT_INSTANCE_SUPPORT_URL,
-# NUXT_INSTANCE_SUPPORT_EMAIL — see docs/operations/MANAGED-INSTANCE.md).
+# NUXT_INSTANCE_SUPPORT_EMAIL: see docs/operations/MANAGED-INSTANCE.md).
 #
 #   COMPOSE_FILE=deploy/compose/compose.selfhost.yml:deploy/compose/compose.selfhost.tls.yml:deploy/compose/compose.selfhost.brand.yml
 #

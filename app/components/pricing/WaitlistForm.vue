@@ -6,7 +6,7 @@
 // UNTICKED, the submit button stays disabled until it's ticked, and the
 // server rejects any request without `consent: true`. The server always
 // answers the same 202 for a well-formed request, so the success state
-// is worded conditionally ("if the address can receive email…") — we
+// is worded conditionally ("if the address can receive email…"), we
 // never confirm whether an address is already on the list.
 
 const { t, locale } = useI18n()

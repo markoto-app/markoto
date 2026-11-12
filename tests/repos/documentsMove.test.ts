@@ -196,7 +196,7 @@ describe('insertDuplicateDoc', () => {
   it('listOwnedByUser surfaces the duplicate for its new owner', async () => {
     // Regression target: a duplicate owned by the duplicator (not the
     // source owner) must show up on THEIR dashboard. listOwnedByUser
-    // scopes by ownerId so this happens naturally — test pins it.
+    // scopes by ownerId so this happens naturally, test pins it.
     const alice = await createUser()
     const bob = await createUser()
     await seedDoc({ ownerId: alice.id })

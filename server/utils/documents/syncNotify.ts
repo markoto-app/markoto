@@ -3,7 +3,7 @@
 // initiating mutation (delete doc, remove member, etc.) is more important
 // than the kick happening immediately.
 //
-// notify-deleted lives in documentLifecycle.ts — that's called from the
+// notify-deleted lives in documentLifecycle.ts, that's called from the
 // doc-delete path and has its own lifecycle notes. Membership-related
 // kicks go through this file.
 
@@ -32,7 +32,7 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
   const env = useEnv()
   if (!env.auth.internalApiSecret) return
 
-  // No await — fire-and-forget. 3 s timeout matches notify-deleted.
+  // No await: fire-and-forget. 3 s timeout matches notify-deleted.
   fetch(`${env.sync.internalUrl}/internal/kick-user`, {
     method: 'POST',
     headers: injectTraceHeaders({
@@ -54,7 +54,7 @@ export function notifySyncKickUser(userId: number, docIds: string[]): void {
  * change that makes a document's access stricter (access mode, password,
  * link expiry / view-only, moderation restriction, workspace move): the
  * sync-server refuses every doc token issued before now and closes the
- * document's connections, so each editor fetches a fresh token — and an
+ * document's connections, so each editor fetches a fresh token, and an
  * editor that no longer gets one lands on the no-access screen.
  *
  * Call it AFTER the access change is written: the cutoff is this
@@ -88,7 +88,7 @@ export function notifySyncReauthDocument(docId: string): void {
 /**
  * Ask the sync-server to persist a document's pending edits NOW (its
  * store is debounced 2–10 s) and wait until it has. Call before reading
- * a live document's `yjs_updates` rows — `duplicateDocument` clones
+ * a live document's `yjs_updates` rows, `duplicateDocument` clones
  * them, and without the flush a duplicate made right after an edit
  * would miss that edit; a restore reads the id of the row its own
  * change was stored in.

@@ -64,7 +64,7 @@ describe('GET /api/anon-gate/challenge', () => {
   })
 })
 
-describe('POST /api/docs — anonymous gate', () => {
+describe('POST /api/docs: anonymous gate', () => {
   beforeEach(async () => {
     await resetDb()
   })

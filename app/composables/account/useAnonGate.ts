@@ -91,7 +91,7 @@ export function useAnonBotCheck(purpose: AnonGatePurpose) {
   return { termsAccepted, solving, failed, prepare, take }
 }
 
-/** Thrown when the visitor closes the terms dialog — not an error to toast. */
+/** Thrown when the visitor closes the terms dialog, not an error to toast. */
 export class AnonGateCancelled extends Error {
   constructor() {
     super('cancelled')

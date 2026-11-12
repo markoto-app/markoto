@@ -7,7 +7,7 @@ import { DEFAULT_TIERS as TIERS } from '../../../shared/config/tiers'
 // `resetUserKeySpend` against the real `litellm-test` proxy. LiteLLM
 // v1.106 answers a bodyless `POST /key/{key}/reset_spend` with 422; the
 // helper must send `{"reset_to": 0}`. The helper swallows proxy errors
-// (logs a warning), which is how the 422 went unnoticed — so the test
+// (logs a warning), which is how the 422 went unnoticed, so the test
 // endpoint surfaces its boolean result.
 
 describe('resetUserKeySpend wire contract', () => {

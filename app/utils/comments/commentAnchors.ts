@@ -12,9 +12,9 @@ import type { EditorView } from '@codemirror/view'
 // JSON-stringifies cleanly.
 //
 // Sticking conventions (the `assoc` parameter on `createRelativePosition`):
-//   - `start`: assoc = 0  (right-bound) — text inserted at the very start
+//   - `start`: assoc = 0  (right-bound), text inserted at the very start
 //                                          becomes part of the comment.
-//   - `end`:   assoc = -1 (left-bound)  — text inserted at the very end
+//   - `end`:   assoc = -1 (left-bound) , text inserted at the very end
 //                                          stays OUTSIDE the comment.
 // This matches Word/Google-Docs feel: typing between commented chars
 // extends the highlight; typing at the boundary doesn't.
@@ -68,11 +68,11 @@ export function serializeAnchor(
  * (orphan) when:
  *   - either endpoint can't be decoded (corrupt data),
  *   - either endpoint can't be resolved against the current ydoc, or
- *   - the resolved range collapsed (`from === to`) — the text the
+ *   - the resolved range collapsed (`from === to`), the text the
  *     comment pointed at has been entirely removed.
  *
  * The collapsed-range check is what catches the common "user deleted the
- * commented text" case — Y.js relative positions tend to gracefully fall
+ * commented text" case: Y.js relative positions tend to gracefully fall
  * back to neighboring positions even when the original item is gone, so
  * a strict null check alone misses most orphans.
  */

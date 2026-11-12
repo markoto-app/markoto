@@ -42,9 +42,9 @@ Headings are sentence case. Italic is reserved for the AI voice and display emph
 
 ## Brand components
 
-- `app/components/common/Wordmark.vue` — the lockup. It renders the light and dark SVG variants together and switches them with CSS, so there is no hydration mismatch.
-- `app/components/common/Seal.vue` — the square seal (`<CommonSeal :size="9">`).
-- `app/components/ai/Thinking.vue` — the in-document AI indicator.
+- `app/components/common/Wordmark.vue`: the lockup. It renders the light and dark SVG variants together and switches them with CSS, so there is no hydration mismatch.
+- `app/components/common/Seal.vue`: the square seal (`<CommonSeal :size="9">`).
+- `app/components/ai/Thinking.vue`: the in-document AI indicator.
 
 ## Avatars
 

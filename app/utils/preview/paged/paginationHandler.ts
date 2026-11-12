@@ -85,7 +85,7 @@ export function createPaginationHandler(Base: new (chunker: unknown, polisher: u
       try {
         hooks.markPageEdges(page)
       } catch {
-        // Cosmetic only — never break pagination.
+        // Cosmetic only: never break pagination.
       }
     }
 

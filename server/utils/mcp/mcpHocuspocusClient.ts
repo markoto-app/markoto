@@ -32,7 +32,7 @@ import { apiError } from '../api/apiError'
 
 export interface ConnectAsMcpClientInput {
   /** The doc being acted on. Caller MUST authz-check this against
-   *  `userId` BEFORE calling — `connectAsMcpClient` trusts what it
+   *  `userId` BEFORE calling: `connectAsMcpClient` trusts what it
    *  gets. */
   docId: string
   /** Real human user id resolved from the PAT verifier. Used for
@@ -43,7 +43,7 @@ export interface ConnectAsMcpClientInput {
    *  per Claude Desktop / Cursor connection. Stable across all tool
    *  calls in the session so the pool dedupes per-session. */
   mcpSessionId: string
-  /** Display name for the awareness `user.name` field — what live
+  /** Display name for the awareness `user.name` field, what live
    *  collaborators see in the presence bar. Sourced from the PAT
    *  owner's `users.name`. */
   userName: string
@@ -62,10 +62,10 @@ export interface ConnectAsMcpClientInput {
 }
 
 export interface McpClientHandle {
-  /** Loop-agnostic tool surface — pass to `TOOL_HANDLERS[name]`. */
+  /** Loop-agnostic tool surface, pass to `TOOL_HANDLERS[name]`. */
   ctx: ToolContext
   /** Release the underlying pool entry. MUST be called in a `finally`
-   *  to avoid pinning the provider. Idempotent — safe to call twice. */
+   *  to avoid pinning the provider. Idempotent, safe to call twice. */
   release(): void
 }
 
@@ -75,7 +75,7 @@ const DEFAULT_MCP_COLOR = '#7A8B99'
 // misbehaving Claude-Desktop / Cursor / script from opening hundreds
 // of pool entries faster than the 5-min idle eviction can clear them.
 // 10 distinct docs is comfortable headroom for a productive multi-doc
-// session — more is almost certainly a runaway loop.
+// session: more is almost certainly a runaway loop.
 const MAX_OPEN_DOCS_PER_USER = 10
 // 10-min TTL on the reservation set so a user that died mid-call
 // (process crash before release) doesn't get permanently capped.
@@ -87,7 +87,7 @@ function userOpenDocsKey(userId: number): string {
 
 /**
  * Reserve a slot in the user's "open docs" set. Returns `true` if the
- * reservation succeeded (or was already held — re-entrant calls for the
+ * reservation succeeded (or was already held, re-entrant calls for the
  * same docId are no-ops); `false` if the user is at cap.
  *
  * Implementation: Valkey SET semantics make SADD on a duplicate a no-op
@@ -99,7 +99,7 @@ async function reserveUserDocSlot(userId: number, docId: string): Promise<boolea
     const key = userOpenDocsKey(userId)
     const added = await valkey.sadd(key, docId)
     await valkey.expire(key, USER_OPEN_DOCS_TTL_SECONDS)
-    if (added === 0) return true // already reserved — re-entry, no cap charge
+    if (added === 0) return true // already reserved, re-entry, no cap charge
     const count = await valkey.scard(key)
     if (count > MAX_OPEN_DOCS_PER_USER) {
       // Roll back the addition so the user isn't permanently over by 1.
@@ -108,7 +108,7 @@ async function reserveUserDocSlot(userId: number, docId: string): Promise<boolea
     }
     return true
   } catch {
-    // Fail OPEN on Valkey errors — same polarity as `checkRateLimit`.
+    // Fail OPEN on Valkey errors, same polarity as `checkRateLimit`.
     // The cap is anti-abuse, not correctness; a degraded Valkey
     // shouldn't lock all MCP traffic out.
     return true
@@ -120,7 +120,7 @@ async function releaseUserDocSlot(userId: number, docId: string): Promise<void> 
     const valkey = useValkey()
     await valkey.srem(userOpenDocsKey(userId), docId)
   } catch {
-    // Non-fatal — the TTL on the set will eventually clean it up.
+    // Non-fatal: the TTL on the set will eventually clean it up.
   }
 }
 
@@ -130,7 +130,7 @@ function mintMcpJwt(docId: string, mcpSessionId: string): string {
   const payload: SessionJwtPayload = {
     docId,
     userId: mcpClientUserId(mcpSessionId),
-    // Friendly literal for `activity_log.user_name` — same pattern
+    // Friendly literal for `activity_log.user_name`, same pattern
     // as the in-app AI loop's `'markoto'`. The synthetic principal
     // (for joining `activity_log` rows back to `mcp_sessions` and
     // resolving the human initiator) lives in
@@ -140,7 +140,7 @@ function mintMcpJwt(docId: string, mcpSessionId: string): string {
     userName: 'MCP',
     readOnly: false
   }
-  // 10m TTL — matches the AI loop's JWT TTL. A pool entry can stay
+  // 10m TTL: matches the AI loop's JWT TTL. A pool entry can stay
   // connected longer (it's evicted by refCount, not by expiry): the pool
   // calls this minter again whenever the sync server asks for a fresh
   // token or the provider reconnects.
@@ -160,7 +160,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     throw apiError('mcp/too-many-open-docs', { max: MAX_OPEN_DOCS_PER_USER })
   }
 
-  // Pool key — per-MCP-session principal so multiple Claude Desktop
+  // Pool key: per-MCP-session principal so multiple Claude Desktop
   // tool calls in one conversation share a single provider.
   const key: PoolKey = {
     docId: input.docId,
@@ -168,7 +168,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   }
 
   // Resolve billing context once per call. The MCP tool handlers
-  // (especially anything hitting LiteLLM — web_search, fetch_url,
+  // (especially anything hitting LiteLLM, web_search, fetch_url,
   // generate_image, knowledge embeddings) read `virtualKey` /
   // `attributedTo` / `plan` off the ToolContext and pass them to
   // `useLitellmForUser(virtualKey)`. Resolving HERE rather than
@@ -187,7 +187,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
       awarenessUser: {
         name: input.userName,
         color: input.userColor ?? DEFAULT_MCP_COLOR
-        // `isAI: false` (default) — the avatar uses the user's color
+        // `isAI: false` (default): the avatar uses the user's color
         // and name. We tag the principal in awareness extras below so
         // live collaborators can see "via Claude Desktop".
       },
@@ -202,7 +202,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
     })
   } catch (err) {
     // Pool checkout failed (sync timeout, auth fail, transport
-    // close) — release the user-doc reservation so the cap doesn't
+    // close): release the user-doc reservation so the cap doesn't
     // leak. The error propagates to the wrapper which surfaces it as
     // an MCP isError response.
     await releaseUserDocSlot(input.userId, input.docId)

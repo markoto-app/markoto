@@ -115,7 +115,7 @@ export function usePreviewZoom() {
 
 /**
  * Menu items for the zoom dropdown (preview pane control, mobile bar,
- * View menu): fit width, all pages, the fixed steps — plus zoom in / out
+ * View menu): fit width, all pages, the fixed steps, plus zoom in / out
  * where there are no separate buttons for them.
  */
 export function usePreviewZoomMenu(opts: { withStepItems?: boolean } = {}) {

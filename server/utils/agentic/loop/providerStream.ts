@@ -38,7 +38,7 @@ function logTurnUsage(ctx: LoopContext, usage: StreamChunk['usageMetadata']): vo
 }
 
 function emitBudgetBreadcrumb(ctx: LoopContext, plan: string): void {
-  // Wording depends on the billing mode — never link a purchase that
+  // Wording depends on the billing mode, never link a purchase that
   // doesn't exist on this deployment.
   const msg = budgetExhaustedBreadcrumb(plan)
   try {
@@ -116,7 +116,7 @@ function handleBudgetRefusal(ctx: LoopContext, e: unknown): boolean {
   // "add your own key" toast.
   // Team / Business workspace: the pooled team budget or the
   // member's own limit. Never "upgrade" and no breadcrumb in the shared
-  // document — the message reaches the initiator only.
+  // document: the message reaches the initiator only.
   if (ctx.opts.billingContext.attribution === 'workspace' && (isWorkspaceTeamBudgetError(e) || isBudgetExceededError(e))) {
     const team = isWorkspaceTeamBudgetError(e)
     ctx.telemetry.outcome = team ? 'team-budget-exhausted' : 'member-limit-reached'
@@ -224,7 +224,7 @@ async function streamFromLiteLLM(opts: StreamFromProviderOpts): Promise<AsyncIte
     tool_choice: tools.length > 0 ? 'auto' : undefined,
     stream: true,
     stream_options: { include_usage: true },
-    // Temperature 0 — the agentic loop is deterministic-tool-selection.
+    // Temperature 0: the agentic loop is deterministic-tool-selection.
     // Default Mistral sampling (~0.7) made tool choice vary run-to-run
     // and thrashed flow tests. Synthesis sub-calls already run at 0;
     // pinning the outer loop matches that.

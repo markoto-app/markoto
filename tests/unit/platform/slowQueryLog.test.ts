@@ -71,7 +71,7 @@ describe('slow-query log', () => {
 
   it('fires a warning-level Sentry event with truncated SQL when a query exceeds the threshold', async () => {
     // performance.now is what the wrapper uses to measure duration.
-    // Spy returns 0 then 200ms — the wrapper computes `200 - 0 = 200`,
+    // Spy returns 0 then 200ms, the wrapper computes `200 - 0 = 200`,
     // which exceeds the 5ms threshold and fires Sentry.
     let nowCalls = 0
     const spy = vi.spyOn(performance, 'now').mockImplementation(() => {
@@ -93,7 +93,7 @@ describe('slow-query log', () => {
       expect(o.tags).toMatchObject({ component: 'db', event: 'slow_query' })
       // SQL truncated.
       expect((o.extra.sql as string).length).toBe(500)
-      // paramsCount only — never the values themselves.
+      // paramsCount only: never the values themselves.
       expect(o.extra.paramsCount).toBe(2)
       const serialized = JSON.stringify(o.extra)
       expect(serialized).not.toContain('secret-password')
@@ -116,7 +116,7 @@ describe('slow-query log', () => {
       // The instrumented pool (a proxy over the pg Pool) is what drizzle queries through.
       const pool = useDatabasePool()
       expect(lastPool).toBeTruthy()
-      // QueryConfig form — { text, values } — used by Drizzle internally.
+      // QueryConfig form: { text, values }, used by Drizzle internally.
       await pool.query({ text: 'UPDATE foo SET bar = $1', values: ['baz'] })
       expect(captureMessage).toHaveBeenCalledTimes(1)
       const [, opts] = captureMessage.mock.calls[0]!

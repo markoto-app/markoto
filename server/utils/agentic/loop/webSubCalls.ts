@@ -19,7 +19,7 @@ export async function runSubCall(
     userId: ctx.opts.aiSession.initiatorUserId ?? null,
     docId: ctx.opts.aiSession.docId ?? null,
     // The synthesis sub-call authenticates with the caller's virtual key
-    // (never the master key) and runs on the session's chat provider —
+    // (never the master key) and runs on the session's chat provider,
     // the user's own key under BYOK, so it costs the platform nothing.
     virtualKey: ctx.opts.billingContext.virtualKey,
     chatProvider: ctx.opts.aiSession.aiProviders.chat

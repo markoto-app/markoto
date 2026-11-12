@@ -4,7 +4,7 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 
 // A8: a BYOK provider error raised WHILE the chat stream is consumed (an
 // SSE error event, a dropped connection) must get the same key redaction
-// as an error raised while opening the stream — the message reaches the
+// as an error raised while opening the stream, the message reaches the
 // initiator's status, the server log and Sentry.
 
 const KEY = 'sk-user-secret-0123456789abcdef'

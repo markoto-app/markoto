@@ -10,11 +10,11 @@
 # Postgres:    localhost:5432  (credentials from .env: POSTGRES_USER / POSTGRES_PASSWORD / POSTGRES_DB)
 # Valkey:      localhost:6379  (rate limit + session locks)
 # SeaweedFS:   http://localhost:8333  (S3 API for image uploads + dev backups)
-# Hocuspocus:  ws://localhost:4001    (WebSocket sync — connects directly to PG inside the container)
+# Hocuspocus:  ws://localhost:4001    (WebSocket sync: connects directly to PG inside the container)
 # Markitdown:  http://localhost:8080  (file → markdown conversion API)
 #
 # Policy: every credential below comes from .env via `${X:?required}`.
-# No hardcoded passwords. .env is the single source of truth — `docker
+# No hardcoded passwords. .env is the single source of truth: `docker
 # compose up` fails fast if a value is missing.
 #
 # Common service shape lives in deploy/compose/compose.base.yml (see header).
@@ -39,7 +39,7 @@ include:
 services:
   postgres:
     healthcheck:
-      # Tighter cold-start budget in dev — empty data dir, fast boot.
+      # Tighter cold-start budget in dev: empty data dir, fast boot.
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
@@ -59,7 +59,7 @@ services:
     # against the same shape it will in prod (and so "tests pass locally
     # without auth, then fail at deploy" can't happen). `VALKEY_PASSWORD`
     # defaults to a weak literal here ONLY because dev exposes 6379 on
-    # localhost — no real data, no internet exposure. Production is
+    # localhost: no real data, no internet exposure. Production is
     # `:?required` and forces a real secret. `command:` is replaced
     # wholesale on merge, so the strict form in base.yml is dropped.
     command:
@@ -79,13 +79,13 @@ services:
       interval: 10s
       timeout: 3s
       retries: 5
-    # `ports:` IS correct here — the Nuxt app runs on the host (`bun run
+    # `ports:` IS correct here: the Nuxt app runs on the host (`bun run
     # dev`) and reaches Valkey on `localhost:6379`. Prod and local use
     # `expose:` instead because the app runs in a container.
     ports:
       - "127.0.0.1:${VALKEY_PORT:?VALKEY_PORT required}:6379"
 
-  # Defined inline (not in base) — prod uses external S3 and `include:`
+  # Defined inline (not in base): prod uses external S3 and `include:`
   # has no "drop service" mechanic. See header in deploy/compose/compose.base.yml.
   seaweedfs:
     image: chrislusf/seaweedfs@sha256:c2658820e763294a9e9de7b36c81e59b879e3459148351aee4e31a126ca64860
@@ -171,7 +171,7 @@ services:
       # (same port), not to the docker host: 8333 is published on the
       # host's loopback only, which host.docker.internal doesn't reach.
       - RENDERER_LOCALHOST_TARGET=seaweedfs
-      # SeaweedFS doesn't support SSE-S3 — omit the encryption header or
+      # SeaweedFS doesn't support SSE-S3: omit the encryption header or
       # PDF/PNG render uploads fail with an opaque S3 InternalError.
       - S3_SSE=none
     extra_hosts:
@@ -188,11 +188,11 @@ services:
     environment:
       - S3_ENDPOINT=${BACKUP_S3_ENDPOINT:-http://seaweedfs:8333}
       - BACKUP_INTERVAL_SECONDS=3600   # 1 h in dev (tight loop for testing)
-      # SeaweedFS rejects the SSE-S3 header (InternalError) — see backup.sh.
+      # SeaweedFS rejects the SSE-S3 header (InternalError): see backup.sh.
       - S3_SSE=none
       - BACKUP_RETENTION_COUNT=5
       # Stub passphrase so the sidecar doesn't restart-loop. Dev
-      # backups encrypt against a throwaway key — never used for restore.
+      # backups encrypt against a throwaway key: never used for restore.
       # Prod compose requires a real value via `:?required`.
       - BACKUP_GPG_PASSPHRASE=dev-backup-not-a-real-passphrase
     depends_on:
@@ -202,6 +202,6 @@ services:
         condition: service_started
 
 volumes:
-  # Declared here (not in base) because seaweedfs is defined per-env —
+  # Declared here (not in base) because seaweedfs is defined per-env,
   # see header in deploy/compose/compose.base.yml.
   seaweed_data:

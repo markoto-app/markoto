@@ -32,7 +32,7 @@ describe('matchesCurrentOrPrevious', () => {
 
   it('does not match on length mismatch even when prefixes match', () => {
     // Guard against any implementation that compares byte-by-byte up to
-    // the shorter length — that would leak length via timing.
+    // the shorter length: that would leak length via timing.
     expect(matchesCurrentOrPrevious('abc', 'abcd')).toBe(false)
     expect(matchesCurrentOrPrevious('abcd', 'abc')).toBe(false)
   })
@@ -70,7 +70,7 @@ describe('verifyJwtWithRotation', () => {
 
   it('does not silently swallow expired-token errors', () => {
     // An expired token is different from a wrong-secret token. We do NOT
-    // want rotation to rescue an expired token — its expiry is the whole
+    // want rotation to rescue an expired token, its expiry is the whole
     // point of issuing it short-lived.
     //
     // Assert by error.name rather than `instanceof TokenExpiredError`

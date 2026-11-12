@@ -24,22 +24,22 @@ function requireStoredContentType(stored: string | undefined, expected: string):
 /**
  * Step 2: after the client has PUT the file to S3, call this to:
  *   0. Claim the pending record upload-request issued to this caller for
- *      this workspace (404 otherwise — no S3 call).
+ *      this workspace (404 otherwise, no S3 call).
  *   1. HEAD the staging object (did it actually land? stored type = the
  *      signed type?).
  *   2. Copy it to the final key, delete the staging key, and sniff the
- *      COPY's first bytes — confirm the content matches the claimed
+ *      COPY's first bytes: confirm the content matches the claimed
  *      extension (stops the "signed as PDF, uploaded EXE" abuse, and a
  *      re-used presigned URL can't swap the bytes after the sniff).
  *   3. Take a Postgres advisory lock keyed on the workspace ID,
- *      re-check all caps, disambiguate filename, and insert the row —
+ *      re-check all caps, disambiguate filename, and insert the row,
  *      all inside one transaction. The lock serialises concurrent
  *      confirms for the same workspace so a pair of uploads that both
  *      squeaked past upload-request can't both overshoot the cap.
  *   4. Release the Valkey inflight slots this upload reserved.
- *   5. Kick off processing async — sweep-plugin rescues stuck rows.
+ *   5. Kick off processing async, sweep-plugin rescues stuck rows.
  *
- * On ANY failure after step 1 we best-effort delete the S3 object —
+ * On ANY failure after step 1 we best-effort delete the S3 object,
  * otherwise unconfirmed-but-paid-for bytes would pile up if the user
  * hits a cap at confirm. Slot releases run in `finally` so they
  * always fire.
@@ -67,7 +67,7 @@ export default defineApiHandler({
     }
 
     // The upload must be one `upload-request` issued to THIS caller in THIS
-    // workspace (atomic claim — a replayed or foreign knowledgeId finds
+    // workspace (atomic claim: a replayed or foreign knowledgeId finds
     // nothing). Anything else is a 404 before any S3 call, so confirm can
     // never HEAD, adopt or delete an object it didn't hand to this caller.
     const pendingRef = { workspaceId: wsId, userId, knowledgeId }
@@ -98,7 +98,7 @@ export default defineApiHandler({
           Key: stagingKey
         }))
       } catch {
-        // Not landed (yet) — keep the claim so the client can retry.
+        // Not landed (yet): keep the claim so the client can retry.
         await restorePendingKnowledgeUpload(pendingRef, pending)
         throw apiError('knowledge/upload-not-found')
       }
@@ -110,7 +110,7 @@ export default defineApiHandler({
 
       // Stored type (signed at upload-request) + copy to the final key +
       // magic-byte sniff OF THE COPY. Runs before caps so a junk upload
-      // never consumes workspace bytes — we reject, delete, and release.
+      // never consumes workspace bytes, we reject, delete, and release.
       // Bytes PUT to the staging key after the copy never reach the key
       // processKnowledge reads.
       try {
@@ -169,7 +169,7 @@ export default defineApiHandler({
         status: 'processing' as const
       }
     } finally {
-      // Always release — success, cap rejection, content-type mismatch,
+      // Always release: success, cap rejection, content-type mismatch,
       // S3 missing, DB failure. The slot is a resource held during
       // upload; its life ends at confirm regardless of outcome.
       // Best-effort; rateLimit.ts swallows Valkey errors.

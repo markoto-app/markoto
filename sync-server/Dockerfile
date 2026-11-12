@@ -1,4 +1,4 @@
-# Runs TypeScript directly with Bun — no build step, so a single stage is
+# Runs TypeScript directly with Bun: no build step, so a single stage is
 # enough: pre-bundling hit CJS/ESM issues with Hocuspocus
 # and the cold-start delta is negligible.
 #
@@ -41,7 +41,7 @@ WORKDIR /app/sync-server
 EXPOSE 4001
 
 # Hits the public /health route we added to the Hocuspocus onRequest hook.
-# Tiny route, no S3/JWT dependencies — stays green even if upstream is flaky.
+# Tiny route, no S3/JWT dependencies: stays green even if upstream is flaky.
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD wget -qO- --tries=1 --timeout=3 http://127.0.0.1:4001/health || exit 1
 

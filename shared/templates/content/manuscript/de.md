@@ -4,7 +4,7 @@
 
 > Ein Satz, der den Ton des Buches vorgibt.
 >
-> — Autorin, *Werk*
+> Autorin, *Werk*
 
 # Titel des ersten Kapitels
 

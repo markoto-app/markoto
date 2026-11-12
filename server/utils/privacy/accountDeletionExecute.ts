@@ -56,14 +56,14 @@ const log = useLogger('account-deletion')
 //   - AI sessions + messages hard-deleted.
 //   - Data-export jobs hard-deleted; their S3 blobs cleaned up.
 //   - LiteLLM virtual key + LiteLLM user record DELETED (best effort).
-//   - Stripe customer DELETED via stripe.customers.del — Stripe's
+//   - Stripe customer DELETED via stripe.customers.del, Stripe's
 //     own legal-retention policy then governs the underlying records.
 //   - consent_log / activity_log / audit_log / abuse_reports rows
 //     SURVIVE with their user-id columns SET NULL (FK-driven). The
 //     audit_log entry recording THIS deletion lands BEFORE the user
 //     row goes so the actor link is preserved.
 //
-// Ordering is load-bearing — see the inline comments. The whole
+// Ordering is load-bearing: see the inline comments. The whole
 // executor is idempotent at the row level: re-running on a partial
 // state (e.g. some workspaces cascade-deleted, others not) picks up
 // where it left off.
@@ -89,12 +89,12 @@ export async function executeAccountDeletion(
   const user = JOB.user(userId)
 
   // Pre-read for the audit row + Stripe customer id. Read-then-act
-  // is fine here — the advisory lock at the sweeper level has
+  // is fine here: the advisory lock at the sweeper level has
   // serialised this user; nothing else mutates `users.stripeCustomerId`
   // mid-flight.
   const userRow = await findUserById(user)
   if (!userRow) {
-    // Already gone — treat as no-op success (idempotency).
+    // Already gone: treat as no-op success (idempotency).
     return { summary: emptySummary() }
   }
   const stripeCustomerId = userRow.stripeCustomerId
@@ -154,7 +154,7 @@ export async function executeAccountDeletion(
   // because the user row no longer exists (the FK would reject
   // anything else). The historical link is preserved via
   // `scopeId = String(userId)`. Writing the row last lets
-  // `metadata.summary` carry the FINAL state — including the
+  // `metadata.summary` carry the FINAL state, including the
   // post-Stripe `stripeCustomerDeleted` flag.
   await appendAuditEvent({
     by: JOB,
@@ -191,7 +191,7 @@ async function processWorkspaceMemberships(
   for (const m of memberships) {
     const others = await listOtherMembers(JOB.workspace(m.workspaceId), userId)
     if (others.length === 0) {
-      // Sole member — cascade-delete the entire workspace.
+      // Sole member: cascade-delete the entire workspace.
       cascadeWorkspaceIds.push(m.workspaceId)
       summary.workspacesCascadeDeleted += 1
       continue
@@ -230,7 +230,7 @@ async function cascadeDeleteWorkspaces(
   for (const docId of docIds) {
     await deleteOneDoc(docId, 'cascade_doc_failed', summary)
   }
-  // Knowledge cleanup — per-row S3 delete; the workspace_knowledge
+  // Knowledge cleanup: per-row S3 delete; the workspace_knowledge
   // FK cascades the DB rows when the workspace row is dropped, but
   // the original S3 objects are usually already gone (deleted post-
   // processing). `deleteKnowledgeArtifact` tolerates 404.
@@ -241,7 +241,7 @@ async function cascadeDeleteWorkspaces(
       await deleteKnowledgeArtifact(ws, row.knowledgeId)
     }
   }
-  // Drop the workspace rows themselves — workspace_members cascade via FK.
+  // Drop the workspace rows themselves, workspace_members cascade via FK.
   // Brand-kit objects: keys read before the rows cascade away.
   for (const wsId of cascadeWorkspaceIds) {
     const ws = JOB.workspace(wsId)
@@ -265,7 +265,7 @@ async function deleteOwnedDocs(user: UserScope, summary: AccountDeletionSummary)
 
 /**
  * Per-doc delete with shared error handling. Throws to bail the user
- * — the next deletion-sweep run will retry. Sentry captures the
+ * the next deletion-sweep run will retry. Sentry captures the
  * specific event so dashboards distinguish cascade-cause from
  * owned-doc-cause failures.
  */
@@ -309,7 +309,7 @@ async function deleteStripeCustomer(
 ): Promise<void> {
   if (!stripeCustomerId) return
   // Billing off: Stripe isn't configured on this deployment, so there is
-  // nothing we could call. Skip silently — no error, no Sentry noise.
+  // nothing we could call. Skip silently, no error, no Sentry noise.
   // (`stripeCustomerDeleted` stays false in the summary, which is true.)
   if (!isBillingEnabled()) return
   try {

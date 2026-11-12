@@ -29,7 +29,7 @@ import { ID_PATTERN } from '../../config/identifiers'
  *     the AST with identifiers DECODED (`u\72l(`, `\000075rl(`, `@IMPORT`,
  *     `e\78pression(` all normalise before comparison). Comments are
  *     dropped by the parser. The output is css-tree's re-serialisation of
- *     the cleaned AST — the raw input is never passed through.
+ *     the cleaned AST: the raw input is never passed through.
  *   - At-rules are allow-listed (`@media`, `@supports`, `@page` + margin
  *     boxes, `@keyframes`, `@container`, `@layer`, `@font-feature-values`).
  *     `@import`, `@namespace`, `@font-face`, `@property`, `@counter-style`,
@@ -51,7 +51,7 @@ import { ID_PATTERN } from '../../config/identifiers'
  *   - Input nested deeper than `MAX_NESTING_DEPTH`, or that makes the
  *     parser throw, fails closed (empty CSS + a `syntax` issue).
  *   - Anything css-tree could only keep as an unparsed `Raw` chunk must be
- *     free of `(`, `\`, `@` and `<` — otherwise it is dropped.
+ *     free of `(`, `\`, `@` and `<`, otherwise it is dropped.
  *   - HTML breakout: the output ends up inside a `<style>` element, so
  *     every `<` is re-escaped as the CSS escape `\3c ` (only strings can
  *     legitimately contain one; the escape is equivalent there). CDO/CDC
@@ -474,7 +474,7 @@ class SanitizingWalk {
   private inspectRaw(node: CssNode & { type: 'Raw' }): void {
     const host = this.parentType()
     if (host === 'StyleSheet' || host === 'Block' || host === undefined) {
-      // Garbage at rule level — the parse error was already reported.
+      // Garbage at rule level, the parse error was already reported.
       this.doomSelf()
     } else if (host === 'Rule') {
       // Unparseable selector: drop the whole rule.
@@ -537,8 +537,8 @@ export function formatCustomCssIssues(issues: readonly CustomCssIssue[], max = 5
 /**
  * Re-target custom CSS at a document it did not come from (applying a
  * saved theme / workspace default, creating a doc from one, the AI
- * applying a base theme). Rules the target can't use — typically
- * `url(/api/files/<otherDoc>/…)` — are removed. When nothing needs
+ * applying a base theme). Rules the target can't use, typically
+ * `url(/api/files/<otherDoc>/…)`: are removed. When nothing needs
  * removing, the original text (with its formatting) is kept; otherwise
  * the cleaned, re-serialised CSS replaces it.
  */

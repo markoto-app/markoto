@@ -1,4 +1,4 @@
-// Integration tests for GET /api/docs/:docId/pdf — the user-facing PDF
+// Integration tests for GET /api/docs/:docId/pdf, the user-facing PDF
 // download endpoint that hits the REAL Playwright renderer container,
 // drives the print page through paged.js, captures bytes, caches in S3,
 // and 302s to a presigned URL.
@@ -29,7 +29,7 @@ import { S3Client, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, De
 import { first } from '../../helpers/assert'
 
 // Insert a Y.Doc row with REAL bytes. The renderer replays this back into
-// markdown — empty docs paginate to zero pages and the renderer surfaces
+// markdown: empty docs paginate to zero pages and the renderer surfaces
 // an error, so test fixtures must contain at least a few non-empty lines.
 async function insertYjsRow(docname: string, content: string): Promise<number> {
   const ydoc = new Y.Doc()
@@ -43,7 +43,7 @@ async function insertYjsRow(docname: string, content: string): Promise<number> {
   return Number(first(r.rows).id)
 }
 
-// Multi-page fixture body — paginates to ≥3 pages on the default theme.
+// Multi-page fixture body: paginates to ≥3 pages on the default theme.
 // Used in tests that care about real PDF output. Heavy enough that the
 // renderer takes meaningful time (~1-2s); thin enough that tests don't
 // run for hours.
@@ -110,7 +110,7 @@ beforeAll(async () => {
   }
 }, 120_000)
 
-describe('GET /api/docs/:docId/pdf — real renderer', () => {
+describe('GET /api/docs/:docId/pdf: real renderer', () => {
   describe('not-found and basic shape', () => {
     it('returns 404 for a nonexistent doc', async () => {
       const res = await anonClient().get('/api/docs/nonexistent/pdf')
@@ -119,7 +119,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
   })
 
   describe('auth matrix (gates BEFORE rendering)', () => {
-    // For these tests, we don't actually need to render — the gate
+    // For these tests, we don't actually need to render, the gate
     // fires first. Use minimal content so if a regression sneaks the
     // call through, the rendering failure is clean.
     const SHORT = '# hello\n\nworld\n'
@@ -234,7 +234,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(bytes[3]).toBe(0x46)
       expect(bytes[4]).toBe(0x2D)
 
-      // Manifest exists too — the renderer writes it last as the
+      // Manifest exists too: the renderer writes it last as the
       // readiness sentinel for cache-hit lookups.
       const manifestKey = `renders/${doc.docId}/${snapId}/manifest.json`
       const manifestBytes = await fetchRenderBytes(manifestKey)
@@ -280,7 +280,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       await wipeRendersFor(doc.docId)
     }, 90_000)
 
-    // Title block (papers): no cover page — title, authors and the leading
+    // Title block (papers): no cover page, title, authors and the leading
     // "Abstract" section open page 1 and the two-column body follows on the
     // same page and continues after it.
     it('two-column title block renders title, abstract and the whole body', async () => {
@@ -309,7 +309,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
 
     // The bundled TeX fonts (fonts/<slug>/, GUST licence) load from
     // /vendor/fonts/ like the Fontsource families and embed as real
-    // TrueType fonts — CFF outlines would be embedded as Type 3 glyph
+    // TrueType fonts: CFF outlines would be embedded as Type 3 glyph
     // procedures by Chromium (scripts/build-bundled-fonts.py converts them).
     it('embeds the bundled TeX Gyre Termes and Latin Modern Mono as TrueType fonts', async () => {
       const owner = await createUser()
@@ -371,7 +371,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       expect(heros.length, summary).toBeGreaterThan(0)
       for (const f of heros) expect(f.subtype, summary).not.toBe('Type3')
 
-      // Unlocking renders the document's own design again — a new cache entry.
+      // Unlocking renders the document's own design again, a new cache entry.
       expect((await client.put(`/api/workspaces/${ws.workspaceId}/brand/lock`, { locked: false })).status).toBe(200)
       expect((await client.get(`/api/docs/${doc.docId}/pdf`)).status).toBe(302)
       const pdfs = (await listRenderKeys(doc.docId)).filter(k => k.endsWith('/document.pdf'))
@@ -382,7 +382,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
     // The arXiv preprint preset end to end: Letter pages, title block,
     // running head with its rule, the preset's template CSS (sanitised at
     // render like any custom CSS) and the bundled Termes / Latin Modern
-    // Mono — embedded as TrueType, never as Type 3 glyph procedures.
+    // Mono: embedded as TrueType, never as Type 3 glyph procedures.
     it('renders the arXiv preprint fixture over several pages with Termes embedded as TrueType', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -507,7 +507,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
       const preset = THEME_PRESETS.find(p => p.id === 'tech-docs')?.theme
       if (!preset) throw new Error('tech-docs preset missing')
       expect(preset.customCss).toBeTruthy()
-      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Durable background jobs on PostgreSQL — version 3.4', authors: ['The Ferrule maintainers'], date: '2026-11-04' } }
+      const theme = { ...preset, cover: { ...preset.cover, subtitle: 'Durable background jobs on PostgreSQL \u2014 version 3.4', authors: ['The Ferrule maintainers'], date: '2026-11-04' } }
       await testDb().query('UPDATE documents SET theme = $1 WHERE doc_id = $2', [JSON.stringify(theme), doc.docId])
       const fixture = readFileSync(resolve(fileURLToPath(new URL('../../fixtures/theme-shots/tech-docs.md', import.meta.url))), 'utf8')
       const snapId = await insertYjsRow(doc.docId, fixture)
@@ -902,7 +902,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
     // embedded as a real font, never Type 3.
     it('renders the one-pager fixture on exactly one A4 page with DM Sans embedded', async () => {
       const owner = await createUser()
-      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: 'Fieldnote — field-service reports in one tap' })
+      const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit', title: 'Fieldnote \u2014 field-service reports in one tap' })
       const preset = THEME_PRESETS.find(p => p.id === 'one-pager')?.theme
       if (!preset) throw new Error('one-pager preset missing')
       expect(preset.customCss).toBeTruthy()
@@ -1034,7 +1034,7 @@ describe('GET /api/docs/:docId/pdf — real renderer', () => {
         const fonts = [...pdf.matchAll(/\/Subtype\s*\/(\w+)[^>]*?\/BaseFont\s*\/([\w+-]+)|\/BaseFont\s*\/([\w+-]+)[^>]*?\/Subtype\s*\/(\w+)/g)]
           .map(m => `${m[2] ?? m[3] ?? ''}:${m[1] ?? m[4] ?? ''}`)
         const type3 = (pdf.match(/\/Subtype\s*\/Type3/g) ?? []).length
-        if (type3 > 0) offenders.push(`${preset.id}: ${type3} Type 3 font(s) — ${fonts.join(', ')}`)
+        if (type3 > 0) offenders.push(`${preset.id}: ${type3} Type 3 font(s), ${fonts.join(', ')}`)
         await wipeRendersFor(doc.docId)
       }
       expect(offenders).toEqual([])

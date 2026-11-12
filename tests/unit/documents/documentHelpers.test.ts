@@ -8,10 +8,10 @@ import {
 import { defaultTheme } from '~~/shared/utils/theme/defaultTheme'
 
 // Three pure helpers lifted from useDocument.ts. The orchestrator now
-// delegates to these, so the invariants live here — once these pass,
+// delegates to these, so the invariants live here, once these pass,
 // the orchestrator just has to wire them up correctly.
 
-// readThemeFromYmeta — ymeta.theme → DocTheme (with fallback)
+// readThemeFromYmeta: ymeta.theme → DocTheme (with fallback)
 
 describe('readThemeFromYmeta', () => {
   function ymap(entries: Record<string, unknown> = {}): Y.Map<unknown> {
@@ -26,7 +26,7 @@ describe('readThemeFromYmeta', () => {
   })
 
   it('returns defaultTheme for a non-object theme value', () => {
-    // Pathological input — Y.Map is typed unknown, so in theory a bad
+    // Pathological input: Y.Map is typed unknown, so in theory a bad
     // peer could push a string or number. isValidTheme rejects, helper
     // falls back silently.
     expect(readThemeFromYmeta(ymap({ theme: 'not a theme' }))).toBe(defaultTheme)
@@ -49,7 +49,7 @@ describe('readThemeFromYmeta', () => {
   })
 })
 
-// canEditTheme — access-mode derivation
+// canEditTheme: access-mode derivation
 
 describe('canEditTheme', () => {
   it('read-only blocks editing regardless of ownership', () => {
@@ -63,7 +63,7 @@ describe('canEditTheme', () => {
   })
 
   it('non-owner on an owned doc cannot edit', () => {
-    // Open-view on an owned doc is the typical case here — the JWT
+    // Open-view on an owned doc is the typical case here, the JWT
     // grants write access to content but the orchestrator still gates
     // theme on ownership (owner is source of truth for the stored
     // DocTheme row).
@@ -78,13 +78,13 @@ describe('canEditTheme', () => {
 
   it('degenerate: ownerless + isOwner=true (shouldn\'t happen, but behave sanely)', () => {
     // If upstream ever gets into a weird state where hasOwner=false but
-    // isOwner=true, the isOwner check wins. Not a bug path — just a
+    // isOwner=true, the isOwner check wins. Not a bug path, just a
     // pin for the short-circuit ordering.
     expect(canEditTheme({ isReadOnly: false, isOwner: true, hasOwner: false })).toBe(true)
   })
 })
 
-// docSizeWarning — byte count → banner severity
+// docSizeWarning: byte count → banner severity
 
 describe('docSizeWarning', () => {
   const MB = 1024 * 1024
@@ -110,8 +110,8 @@ describe('docSizeWarning', () => {
   })
 
   it('handles negative bytes gracefully (clamps to null, below threshold)', () => {
-    // Shouldn't happen — Y.js encodeStateAsUpdate byteLength is
-    // non-negative — but defensive pinning is cheap.
+    // Shouldn't happen: Y.js encodeStateAsUpdate byteLength is
+    // non-negative: but defensive pinning is cheap.
     expect(docSizeWarning(-100)).toBe(null)
   })
 })

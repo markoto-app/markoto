@@ -23,7 +23,7 @@ export function useEditorViewRef() {
   // First-focus tracker: attaches a one-shot focus listener to CM6's contentDOM
   // (where keyboard focus lands), not the outer `.cm-editor`.
   watch(editorView, (view, prev) => {
-    if (prev && !view) editorEverFocused.value = false // editor remounted — reset
+    if (prev && !view) editorEverFocused.value = false // editor remounted, reset
     if (!view) return
     if (view.hasFocus) {
       // Rare: the editor auto-focused before this watcher ran (e.g. parent

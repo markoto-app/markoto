@@ -9,7 +9,7 @@ import { first } from '../helpers/assert'
 // Repo tests for the abuse-report table. The HTTP endpoint goes
 // through `db.insert(abuseReports).values(...)` directly (no
 // repo wrapper), so these tests pin the inserted row's shape AND
-// the JOIN shape used by the admin GET — a refactor that breaks
+// the JOIN shape used by the admin GET, a refactor that breaks
 // either is caught here without spinning up the full integration
 // stack.
 
@@ -39,7 +39,7 @@ async function insertReport(args: {
   )
 }
 
-describe('abuse_reports — basic insert + read', () => {
+describe('abuse_reports: basic insert + read', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -112,7 +112,7 @@ describe('abuse_reports — basic insert + read', () => {
   })
 })
 
-describe('abuse_reports — admin GET join shape', () => {
+describe('abuse_reports: admin GET join shape', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -120,7 +120,7 @@ describe('abuse_reports — admin GET join shape', () => {
   it('joins reporter + actioner (aliased) and falls back to email snapshot when reporter is gone', async () => {
     // Build the same query the admin GET endpoint runs. This
     // makes sure a refactor that changes the column projection
-    // is caught at the repo level — the HTTP layer is just a
+    // is caught at the repo level, the HTTP layer is just a
     // thin wrapper around this select.
     const reporter = await createUser({ name: 'Reporter Alice', email: 'reporter-alice@test.local' })
     const actioner = await createUser({ name: 'Admin Bob', email: 'admin-bob@test.local' })
@@ -132,7 +132,7 @@ describe('abuse_reports — admin GET join shape', () => {
       category: 'harassment',
       body: 'live reporter row'
     })
-    // A second report whose reporter user has been deleted —
+    // A second report whose reporter user has been deleted,
     // FK SET NULL leaves reporter_user_id null, but the
     // reporter_email snapshot survives.
     await insertReport({
@@ -192,7 +192,7 @@ describe('abuse_reports — admin GET join shape', () => {
   })
 })
 
-describe('abuse_reports — FK on user delete', () => {
+describe('abuse_reports: FK on user delete', () => {
   beforeEach(async () => {
     await resetDb()
   })

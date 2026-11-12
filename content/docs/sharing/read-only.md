@@ -1,6 +1,6 @@
 ---
 title: Share as read-only
-description: Switch the access mode to open-view — anyone with the link can read, nobody can edit.
+description: Switch the access mode to open-view, anyone with the link can read, nobody can edit.
 category: sharing
 order: 2
 updated: '2026-10-29'
@@ -28,5 +28,5 @@ workspace can still edit it in view-only mode.
 
 ## What's next
 
-- [Lock the doc behind a password](/docs/sharing/password-protect) — when read-only isn't private enough.
-- [Share by QR code](/docs/sharing/qr-code) — same link, different transport.
+- [Lock the doc behind a password](/docs/sharing/password-protect): when read-only isn't private enough.
+- [Share by QR code](/docs/sharing/qr-code): same link, different transport.

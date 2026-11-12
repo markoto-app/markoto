@@ -19,7 +19,7 @@
     # configured the wrapper silently no-ops.
     # `--once` is load-bearing: /backup.sh's default mode ends in an
     # infinite interval loop (it's the sidecar's PID-1 entrypoint), so an
-    # exec WITHOUT the flag never returns — the cron job would hang
+    # exec WITHOUT the flag never returns: the cron job would hang
     # forever and stack an orphaned loop process every night.
     job: >-
       cd {{ markoto_root }} &&

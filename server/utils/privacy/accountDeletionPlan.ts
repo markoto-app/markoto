@@ -10,19 +10,19 @@ import {
 } from '../../repos/accountDeletionPreview'
 import type { UserScope } from '../../repos/proofs'
 
-// Pre-computes — and exposes for transparent UX — the consequences of
+// Pre-computes, and exposes for transparent UX, the consequences of
 // deleting a user's account. The same module is used by:
 //
-//   1. `/api/user/me/deletion-preview` (GET) — surfaces the plan to
+//   1. `/api/user/me/deletion-preview` (GET): surfaces the plan to
 //      the user BEFORE they confirm. Drives the consequence modal in
 //      `/settings/profile`.
-//   2. `accountDeletionExecute.ts` — re-reads the plan inside the
+//   2. `accountDeletionExecute.ts`: re-reads the plan inside the
 //      sweeper at execution time. The preview is informational; state
 //      may have drifted between request + execute (the user could
 //      have been promoted in a workspace, their docs could have been
 //      moved, etc.) so we never trust a snapshot.
 //
-// The plan is intentionally a *description* — no side effects. It
+// The plan is intentionally a *description*, no side effects. It
 // states what each affected entity will become and (for ambiguous
 // cases like workspace promotion) names the receiving party so the
 // confirm modal can show "Bob will become admin of Engineering".
@@ -39,12 +39,12 @@ export interface AccountDeletionPlan {
   userId: number
   // Personally-attributable data the user owns outright.
   ownedDocs: { docId: string, title: string, accessMode: string, workspaceId: string | null }[]
-  // Comments authored on docs the user does NOT own — these get
+  // Comments authored on docs the user does NOT own, these get
   // anonymised, not deleted, by policy.
   commentsToAnonymise: number
   // Workspaces the user is a member of, with the per-workspace fate.
   workspaces: WorkspaceFate[]
-  // Counts only — these go away wholesale, no per-row decisions.
+  // Counts only: these go away wholesale, no per-row decisions.
   aiSessionsToDelete: number
   aiSessionMessagesToDelete: number
   // Data-export jobs hold S3 blobs we need to clean up.
@@ -112,7 +112,7 @@ export async function planAccountDeletion(user: UserScope): Promise<AccountDelet
         newAdminPreviousRole: promote.role
       })
     } else {
-      // User is editor or viewer — nothing structural to do beyond
+      // User is editor or viewer, nothing structural to do beyond
       // removing their membership row.
       workspacesPlan.push({
         kind: 'remove_member',

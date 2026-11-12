@@ -41,7 +41,7 @@ async function sweepStuck() {
   }
   for (const row of stuck) {
     log.warn('re-processing stuck knowledge', { knowledgeId: row.knowledgeId })
-    // Serialize — don't spawn unbounded parallel processing if a
+    // Serialize: don't spawn unbounded parallel processing if a
     // previous sweep just flagged 100 rows as stuck after a crash.
     // processKnowledge already catches its own errors.
     await processKnowledge(row.knowledgeId)
@@ -50,10 +50,10 @@ async function sweepStuck() {
 
 /**
  * Second sweep pass: reap failed rows past the TTL. Failed rows hold
- * S3 bytes (we never delete originals on failure — keeps the retry
+ * S3 bytes (we never delete originals on failure, keeps the retry
  * path cheap) and count against the per-user quota, so letting them
  * linger forever would let "deliberate failure" hoard quota. The TTL
- * is per-ops comfort — operators looking at errors get N days to see
+ * is per-ops comfort: operators looking at errors get N days to see
  * what's going wrong before cleanup.
  */
 async function sweepFailed() {
@@ -76,7 +76,7 @@ async function sweepFailed() {
       await deleteKnowledgeArtifact(SWEEP.workspace(row.workspaceId), row.knowledgeId)
     } catch (e) {
       log.warn('reap failed', { knowledgeId: row.knowledgeId, err: e })
-      // Surface to Sentry — repeated reap failures keep failed rows
+      // Surface to Sentry: repeated reap failures keep failed rows
       // hoarding per-user quota; on-call wants the signal.
       Sentry.captureException(e, {
         tags: { component: 'knowledge-sweep', event: 'reap_failed', knowledgeId: row.knowledgeId }

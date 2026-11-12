@@ -28,7 +28,7 @@ function onSelect(row: number, col: number) {
 }
 
 const labelText = computed(() => {
-  if (hoverRow.value < 0) return '\u00A0' // non-breaking space — keeps the row height stable while empty
+  if (hoverRow.value < 0) return '\u00A0' // non-breaking space, keeps the row height stable while empty
   return `${hoverCol.value + 1} × ${hoverRow.value + 1}`
 })
 </script>

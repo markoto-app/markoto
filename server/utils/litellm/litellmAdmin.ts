@@ -1,6 +1,6 @@
 // LiteLLM admin HTTP layer. Wraps `${NUXT_LITELLM_URL}/<path>` with the
 // master-key Authorization header so the `/key/*` admin surface is
-// callable from one place. No DB, no encryption — pure HTTP.
+// callable from one place. No DB, no encryption, pure HTTP.
 
 import { trimTrailingSlashes } from '../../../shared/utils/trimTrailingSlashes'
 import { useEnv } from '~~/shared/env/load'

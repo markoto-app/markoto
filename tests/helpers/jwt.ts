@@ -33,7 +33,7 @@ import {
 
 interface BaseOpts {
   secret: string
-  /** seconds, '60s', '2h', etc — passed through to jsonwebtoken */
+  /** seconds, '60s', '2h', etc, passed through to jsonwebtoken */
   ttl?: jwt.SignOptions['expiresIn']
 }
 
@@ -41,7 +41,7 @@ interface BaseOpts {
  * Mint a Hocuspocus session token. Matches the shape minted by
  * `server/api/docs/[docId]/token.get.ts`, `aiClient.ts`, `restoreDoc.ts`,
  * `commentsServerClient.ts`. The verifier in `sync-server/src/auth.ts`
- * accepts these for ANY of those producer roles — they're
+ * accepts these for ANY of those producer roles, they're
  * indistinguishable on the wire (intentional; the userId convention
  * encodes the principal type).
  *

@@ -1,4 +1,4 @@
-# MCP server — agent rules
+# MCP server: agent rules
 
 How the server works and how to add a tool: `docs/contributing/mcp.md`. Tool handlers are shared with the AI loop (`server/utils/agentic/AGENTS.md`).
 

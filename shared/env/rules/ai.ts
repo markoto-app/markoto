@@ -18,9 +18,9 @@ export const aiRules: Rule<AppEnv>[] = [
       for (const { prefix, what, pick } of CAPABILITIES) {
         const [model, baseUrl, apiKey] = pick(env)
         if (!model && (baseUrl || apiKey)) {
-          problems.push(`${prefix}_BASE_URL/_API_KEY set without ${prefix}_MODEL — the ${what} default is ignored.`)
+          problems.push(`${prefix}_BASE_URL/_API_KEY set without ${prefix}_MODEL, so the ${what} default is ignored.`)
         } else if (model && baseUrl && !apiKey) {
-          problems.push(`${prefix}_BASE_URL set without ${prefix}_API_KEY — the ${what} default is ignored (use any placeholder key for servers that need none).`)
+          problems.push(`${prefix}_BASE_URL set without ${prefix}_API_KEY, so the ${what} default is ignored (use any placeholder key for servers that need none).`)
         }
       }
       return problems

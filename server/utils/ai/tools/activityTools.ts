@@ -10,7 +10,7 @@ import type { AiToolActivityMetadata } from '~~/shared/contracts/activity'
 // 40 rows) of *this user's* prompts + AI tool calls + AI replies. Past
 // that window, the AI must opt in to recall. `search_activity_log`
 // gives it filtered access to the doc's activity log: every edit,
-// comment, theme/title change, AI tool call, and restore — all users
+// comment, theme/title change, AI tool call, and restore, all users
 // of the doc, not just this initiator.
 //
 // Use cases (from the user-facing prompt):
@@ -22,7 +22,7 @@ import type { AiToolActivityMetadata } from '~~/shared/contracts/activity'
 //   - "did anyone change the title last week?" → action='title.changed'.
 //
 // Doc-scoped: the AI only sees activity for the current `aiSession.docId`.
-// No cross-doc surface — for that, the model uses `view_other_document`
+// No cross-doc surface: for that, the model uses `view_other_document`
 // + the destination doc's own activity.
 
 const ACTIVITY_ACTION_NAMES = [
@@ -44,8 +44,8 @@ const SearchActivityLogArgs = z.object({
   query: z.string().trim().max(200).optional()
     .describe('Substring match against row metadata + author name (case-insensitive). Use this when the user references a specific topic ("the pricing table", "the intro") and you want to find when it was edited or commented on. Omit to search by action / time only.'),
   actions: z.array(z.enum(ACTIVITY_ACTION_NAMES)).max(12).optional()
-    .describe('Restrict to specific action types. Common picks: ["edit"] (content changes), ["ai.tool"] (your own past tool calls — useful for "what did you base that on?"), ["title.changed", "theme.changed"] (metadata changes), ["restore"] (rollbacks), ["comment.added","comment.replied","comment.resolved","comment.reopened","comment.deleted"] (any comment activity). Omit for all action types.'),
-  // Plain `z.string()` instead of `.datetime()` — Zod's draft-7 emit
+    .describe('Restrict to specific action types. Common picks: ["edit"] (content changes), ["ai.tool"] (your own past tool calls, useful for "what did you base that on?"), ["title.changed", "theme.changed"] (metadata changes), ["restore"] (rollbacks), ["comment.added","comment.replied","comment.resolved","comment.reopened","comment.deleted"] (any comment activity). Omit for all action types.'),
+  // Plain `z.string()` instead of `.datetime()`, Zod's draft-7 emit
   // for `.datetime()` includes a 600-char leap-year-aware regex that
   // some providers reject as an invalid schema. The handler re-validates with
   // `new Date(s)` + `isFinite` so a malformed string round-trips back
@@ -57,14 +57,14 @@ const SearchActivityLogArgs = z.object({
   limit: z.number().int().min(1).max(50).optional()
     .describe('Maximum rows to return. Default 20. Bump to 50 for survey-style queries; drop to 5–10 for "find the most recent X" lookups.')
 }).strict()
-  .describe('Search the document\'s long-term activity log: every edit, comment, theme/title change, AI tool call, and restore from this and prior sessions. Use when the user references something OUTSIDE the loaded `<conversation_history>` block — yesterday, last week, "what did you base X on", "find when the intro was last rewritten". Doc-scoped (current document only). Returns most-recent-first; each row carries action, author, ISO timestamp, and a brief summary. Cheap (DB query, no LLM sub-call). Don\'t use for current-state lookups — call view_document / read_comments for that.')
+  .describe('Search the document\'s long-term activity log: every edit, comment, theme/title change, AI tool call, and restore from this and prior sessions. Use when the user references something OUTSIDE the loaded `<conversation_history>` block, yesterday, last week, "what did you base X on", "find when the intro was last rewritten". Doc-scoped (current document only). Returns most-recent-first; each row carries action, author, ISO timestamp, and a brief summary. Cheap (DB query, no LLM sub-call). Don\'t use for current-state lookups, call view_document / read_comments for that.')
 
 /**
  * Render an `ActivityEntry` row into a single human-/model-readable line.
  * Format: `[#id YYYY-MM-DDTHH:MM:SSZ action by Author] summary`. The
  * `id` is exposed so the model can chain into `replay`/`/restore`/diff
  * endpoints downstream if it needs to (those still go through their
- * own auth-checked HTTP routes — the AI doesn't get a direct restore
+ * own auth-checked HTTP routes, the AI doesn't get a direct restore
  * tool yet).
  *
  * Compaction rules per action:
@@ -75,7 +75,7 @@ const SearchActivityLogArgs = z.object({
  *   - restore: anchor activity id + frozen timestamp
  *   - join / leave / theme.changed: just the action label
  *
- * Exported for unit testing — every action branch + metadata shape
+ * Exported for unit testing, every action branch + metadata shape
  * has rendering quirks and is the kind of code that silently
  * regresses without per-branch coverage.
  */
@@ -176,7 +176,7 @@ async function handleSearchActivityLog(
   input: z.output<typeof SearchActivityLogArgs>
 ): Promise<ToolResult> {
   // Parse + validate the optional ISO timestamps. Zod's `.datetime()`
-  // already accepts only RFC 3339 / ISO 8601 — we still wrap in `new
+  // already accepts only RFC 3339 / ISO 8601, we still wrap in `new
   // Date` and check `isFinite` to reject anything pathological that
   // sneaks past the schema (e.g. year 0000).
   const parseTime = (s: string | undefined): Date | undefined => {
@@ -209,7 +209,7 @@ async function handleSearchActivityLog(
   if (rows.length === 0) return toolOk(noMatchMessage(input, since, before))
 
   // Returned in DESC-by-time order from the repo. Render preserves that
-  // order so the model reads newest first — usually what it wants when
+  // order so the model reads newest first, usually what it wants when
   // answering "the most recent / last X" style questions. The model can
   // re-issue with a tighter window if the first hit isn't the right one.
   const lines = rows.map(formatActivityRow)
@@ -218,7 +218,7 @@ async function handleSearchActivityLog(
 
 export const searchActivityLogTool = defineMetaTool({
   name: 'search_activity_log',
-  description: 'Search the document\'s activity log — every edit, comment, theme/title change, AI tool call, and restore across ALL users and ALL prior sessions, not just the current conversation. Use when the user references something OUTSIDE the in-prompt `<conversation_history>` window: "what did you base that table on yesterday", "revert the changes from last week", "when did we last rewrite the intro", "did anyone change the title". Doc-scoped to the current document. Returns most-recent-first with author, ISO timestamp, and a one-line summary per row. Pure read; no LLM sub-call.',
+  description: 'Search the document\'s activity log, every edit, comment, theme/title change, AI tool call, and restore across ALL users and ALL prior sessions, not just the current conversation. Use when the user references something OUTSIDE the in-prompt `<conversation_history>` window: "what did you base that table on yesterday", "revert the changes from last week", "when did we last rewrite the intro", "did anyone change the title". Doc-scoped to the current document. Returns most-recent-first with author, ISO timestamp, and a one-line summary per row. Pure read; no LLM sub-call.',
   schema: SearchActivityLogArgs,
   // Pure-DB tool, but bounded so the model can't loop on "search again
   // with slightly different filters". 8 covers its use cases (recall a

@@ -38,7 +38,7 @@ function asMarketingLocale(code: string): MarketingLocale {
  * the English pages). A page links to its version in the current UI
  * language when one exists and is reviewed, under that version's own
  * `navLabel` (or title). Empty off the marketing site
- * (the pages 404 there) — no query is made.
+ * (the pages 404 there), no query is made.
  */
 export function useMarketingNav() {
   const { marketingSite } = useInstanceConfig()

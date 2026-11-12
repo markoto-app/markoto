@@ -1,7 +1,7 @@
 import { DAY_MS } from '../../config/units'
 
-// Policy for the inactive-doc sweeper. Pure function — no DB, no clock
-// reads, no side effects — so it's fully unit-testable and the plugin
+// Policy for the inactive-doc sweeper. Pure function, no DB, no clock
+// reads, no side effects, so it's fully unit-testable and the plugin
 // query derives its WHERE clause from the same rules.
 //
 // Rules:
@@ -14,7 +14,7 @@ import { DAY_MS } from '../../config/units'
 //      would surprise them.
 //   3. Anonymous docs (ownerId === null, workspaceId === null) are
 //      reaped after `anonTtlDays` of inactivity. There's no stable
-//      identity attached — if they're cold for months, they're almost
+//      identity attached: if they're cold for months, they're almost
 //      certainly abandoned.
 //   4. `anonTtlDays <= 0` disables reaping entirely.
 

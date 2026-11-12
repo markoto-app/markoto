@@ -32,7 +32,7 @@ async function insertRawActivity(args: {
   )
 }
 
-describe('listRecentActivity — agent enrichment', () => {
+describe('listRecentActivity: agent enrichment', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -121,7 +121,7 @@ describe('listRecentActivity — agent enrichment', () => {
     expect(rows[0]!.agentKind).toBe('ai')
     expect(rows[0]!.agentInitiatorUserId).toBe(user.id)
     expect(rows[0]!.agentInitiatorName).toBe('Joel')
-    // AI rows carry no client_name — only MCP does.
+    // AI rows carry no client_name, only MCP does.
     expect(rows[0]!.agentClientName).toBeNull()
   })
 
@@ -129,7 +129,7 @@ describe('listRecentActivity — agent enrichment', () => {
     // Models the case where the initialize-time clientInfo.name stash
     // missed (Valkey down at init, etc.). The renderer reads
     // `agentClientName` and would show "via {ua}" instead of just
-    // "via MCP" — degrades gracefully.
+    // "via MCP": degrades gracefully.
     const user = await createUser()
     const doc = await createDoc({ ownerId: user.id })
     const sid = 'mcp-sid-no-clientname'
@@ -174,10 +174,10 @@ describe('listRecentActivity — agent enrichment', () => {
     expect(rows[0]!.agentInitiatorName).toBeNull()
     expect(rows[0]!.agentClientName).toBeNull()
     // The renderer uses entry.userName ('MCP') as the displayed
-    // name — see ActivityFeed.vue's `displayName()` helper.
+    // name: see ActivityFeed.vue's `displayName()` helper.
   })
 
-  it('mixed batch — one human + one AI + one MCP — all enriched correctly', async () => {
+  it('mixed batch: one human + one AI + one MCP, all enriched correctly', async () => {
     const human = await createUser({ name: 'Human Joel' })
     const aiInitiator = await createUser({ name: 'AI Initiator' })
     const mcpInitiator = await createUser({ name: 'MCP Initiator' })

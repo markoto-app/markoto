@@ -30,7 +30,7 @@ for what no theme field covers, and a Markdown fixture that shows it off.
 2. **Fixture.** The same content as Markdown in
    `tests/fixtures/theme-shots/<id>.md` (images as small PNG data URIs),
    plus `<id>-patch.json` for what is per document (authors,
-   affiliations, date) — everything else must come from the preset. Use
+   affiliations, date): everything else must come from the preset. Use
    plain portable Markdown: a leading `# Abstract` section,
    `# References {.unnumbered}`, footnotes, a table, a figure, a list.
 3. **Values from the spec.** Take every number from the original, not from
@@ -54,13 +54,13 @@ for what no theme field covers, and a Markdown fixture that shows it off.
    both). While iterating on template CSS, put it into the patch JSON as
    `customCss`: no rebuild needed.
 5. **List the differences** and classify each one:
-   - **preset value** — a theme field set wrong (size, spacing, margin);
-   - **template CSS** — something only this template does (booktabs table
+   - **preset value**: a theme field set wrong (size, spacing, margin);
+   - **template CSS**: something only this template does (booktabs table
      rules, a run-in abstract, the label format of a caption);
-   - **engine variable** — something CSS can't do cleanly, or several
+   - **engine variable**: something CSS can't do cleanly, or several
      templates need (a running-head rule, per-level heading sizes):
      propose a theme field;
-   - **can't do** — a limit of Markdown or of the medium (floats,
+   - **can't do**: a limit of Markdown or of the medium (floats,
      `\thanks` footnotes on authors, microtype font expansion,
      cross-reference labels).
 6. **Iterate** until only "can't do" remains.
@@ -96,7 +96,7 @@ generated theme CSS.
   margin boxes): target them as `.pagedjs_pages .pagedjs_page
   .pagedjs_margin-top-right` and so on.
 - **Never redefine `@page` margin boxes** (`@top-center { … }`). The new
-  rule replaces paged.js's margin box including its `content` — the
+  rule replaces paged.js's margin box including its `content`, the
   running head disappears. Style the generated boxes through the classes
   above instead.
 - **Never `counter-reset` on `.paged-doc`.** It wipes the engine's
@@ -104,7 +104,7 @@ generated theme CSS.
   `counter-increment` alone (`figure { counter-increment: mk-fig }`).
 - **No commas inside `:is()`, `:not()`, `:has()`.** paged.js splits every
   selector list at commas, and a comma inside parentheses breaks its
-  `querySelectorAll` — the whole render fails. Top-level selector lists
+  `querySelectorAll`: the whole render fails. Top-level selector lists
   (`.paged-doc ul, .paged-doc ol`) are fine.
 - **`+` and `:first-of-type` / `:last-of-type` / `:nth-of-type` are
   decided on the whole document, before pagination.** paged.js takes every
@@ -112,7 +112,7 @@ generated theme CSS.
   `:nth-child(2n+1)`) or an `-of-type` pseudo-class out of the stylesheet,
   marks the elements it matches in the unpaginated document
   (`data-following` / `data-nth-of-type`) and re-inserts the declarations
-  for the marked elements — so `h1 + p` still styles the paragraph when the
+  for the marked elements, so `h1 + p` still styles the paragraph when the
   break falls between the two. `app/utils/preview/pagedHandlers.ts`
   re-inserts them as `:where(<mark>):is(<your selector>, :where(<mark>))`,
   which keeps your selector's specificity, so it still beats engine rules
@@ -150,7 +150,7 @@ generated theme CSS.
   `.markoto-http-method`, path in `.markoto-http-path`), `p.markoto-lead`
   (the paragraph under the cover / title block), `span.markoto-opening`
   (the first words of the lead and of the first paragraph after every
-  top-level heading — small-capital openings), `.markoto-repeat-title`,
+  top-level heading: small-capital openings), `.markoto-repeat-title`,
   `.markoto-cover-affiliation`.
 - **Engine fields first:** heading numbers (`decimal`, `decimal-dot`,
   `ieee`, `decimal-zero`) and how many levels show them
@@ -159,7 +159,7 @@ generated theme CSS.
   per-chapter numbers and the stacked APA label, the reference-list style,
   the `{section}` running-head token (with its number, the section a page
   starts in) and `{author}`, a drop cap on every chapter, the repeated
-  title and the date format are theme fields — don't rebuild them in CSS.
+  title and the date format are theme fields, don't rebuild them in CSS.
 - Comment every rule with the line of the original it reproduces.
 
 **Variables before CSS.** If a template needs more than about 40 lines of
@@ -178,7 +178,7 @@ was brittle.
 - **Heading scale:** h1 within 1.6–2.2× body via the scale; format
   templates that prescribe sizes set them per level (`headings.levels`).
 - **Page breaks:** headings stay with their text, no single lines at the
-  top or bottom, tables split between rows with repeated headers — check
+  top or bottom, tables split between rows with repeated headers, check
   the page ends in every rendering.
 - **Code:** font, size relative to body, background and frame quiet
   enough for print, long lines wrapped.
@@ -188,5 +188,5 @@ was brittle.
   the title page.
 - **Title page or title block:** title size and weight, authors,
   affiliations, date, abstract.
-- **Colour:** restraint — one accent at most; links, alerts and diagrams
+- **Colour:** restraint: one accent at most; links, alerts and diagrams
   readable in black-and-white print.

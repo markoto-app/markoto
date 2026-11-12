@@ -5,8 +5,8 @@ import type { BlockQueries } from './blockQueries'
  * SELF-CONTAINED like every part (see `blockQueries.ts`).
  *
  * KaTeX splits a formula into one inline box (`.katex-base`) per stretch
- * between the places TeX allows a break — after an outer-level relation or
- * binary operator — and `themeToCss` lets a display wrap there. TeX's own
+ * between the places TeX allows a break, after an outer-level relation or
+ * binary operator: and `themeToCss` lets a display wrap there. TeX's own
  * convention for a displayed formula is the other way round: break BEFORE
  * the relation or operator, so the continuation line starts with it, and
  * indent the continuation lines (aligned at the first relation). So:
@@ -145,7 +145,7 @@ export function createDisplayMath(q: BlockQueries) {
   /**
    * A display that wrapped: flush left with a hanging indent at the first
    * relation of its first line, broken at relations first (TeX's
-   * \relpenalty < \binoppenalty — an operator only breaks a run between two
+   * \relpenalty < \binoppenalty: an operator only breaks a run between two
    * relations that is itself too long for a line), centred as a block.
    */
   function hangAtRelation(display: Element, katex: HTMLElement, html: HTMLElement, bases: Element[], width: number, zoom: number): void {

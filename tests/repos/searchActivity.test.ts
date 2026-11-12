@@ -160,7 +160,7 @@ describe('searchActivity', () => {
       actions: ['edit'],
       query: 'alice'
     })
-    // Both filters must match — only the Alice/edit row qualifies.
+    // Both filters must match, only the Alice/edit row qualifies.
     expect(rows).toHaveLength(1)
     expect(rows[0]!.userName).toBe('Alice')
     expect(rows[0]!.action).toBe('edit')
@@ -177,7 +177,7 @@ describe('searchActivity', () => {
     expect(await searchActivity(docAs(doc.docId), { limit: 200 })).toHaveLength(30) // clamped to 50, but only 30 exist
   })
 
-  it('is doc-scoped — rows from other docs are not returned', async () => {
+  it('is doc-scoped: rows from other docs are not returned', async () => {
     const u = await createUser()
     const docA = await createDoc({ ownerId: u.id })
     const docB = await createDoc({ ownerId: u.id })

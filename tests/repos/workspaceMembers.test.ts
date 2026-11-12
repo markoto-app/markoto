@@ -230,7 +230,7 @@ describe('removeMember', () => {
   })
 })
 
-describe('last-admin invariant — concurrent races', () => {
+describe('last-admin invariant: concurrent races', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -240,7 +240,7 @@ describe('last-admin invariant — concurrent races', () => {
     // both decide they're safe to demote, and both commit. Result: zero
     // admins. The transactional repo serializes them via row locks from
     // the SELECT, so only one demotion succeeds; the other sees the
-    // intermediate state and rejects (LastAdminError) — OR both succeed
+    // intermediate state and rejects (LastAdminError), OR both succeed
     // at the wire level and pg serialization retries/kills one. Either
     // way the terminal state must have ≥1 admin.
     const a1 = await createUser()

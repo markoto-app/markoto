@@ -121,7 +121,7 @@ describe('GET /api/files/:docId/:fileId', () => {
     })
 
     it('anonymous with a JWT for a DIFFERENT doc is denied', async () => {
-      // Cross-doc JWT must not grant access — verifies the docId claim
+      // Cross-doc JWT must not grant access, verifies the docId claim
       // check in hasValidDocJwt.
       const owner = await createUser()
       const targetDoc = await createDoc({ ownerId: owner.id, accessMode: 'private' })

@@ -23,7 +23,7 @@ async function storedLogo(docId: string): Promise<string | undefined> {
   return r.rows[0]?.theme?.brand?.logoUrl
 }
 
-describe('PUT /api/docs/:id/meta — theme image URLs', () => {
+describe('PUT /api/docs/:id/meta: theme image URLs', () => {
   beforeEach(async () => {
     await resetDb()
   })

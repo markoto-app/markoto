@@ -117,7 +117,7 @@ export const abuseReports = pgTable('abuse_reports', {
   // even if the doc never existed or was deleted because of the report.
   docId: text('doc_id'),
   // The reported location exactly as the reporter gave it (DSA
-  // Art.16(2)(b) "exact electronic location") — usually the document
+  // Art.16(2)(b) "exact electronic location"), usually the document
   // URL. `doc_id` is what we could parse out of it.
   contentUrl: text('content_url'),
   // Signed-in reporter; NULL for email-channel reports. `set null` on user
@@ -127,7 +127,7 @@ export const abuseReports = pgTable('abuse_reports', {
   // Reporter's name as typed in the form (Art.16(2)(c); optional for
   // CSAM reports). Signed-in reporters default to their profile name.
   reporterName: text('reporter_name'),
-  // UI locale at submission — the language of the receipt + decision
+  // UI locale at submission, the language of the receipt + decision
   // notice emails.
   reporterLocale: text('reporter_locale'),
   // When the reporter confirmed the good-faith statement (Art.16(2)(d)).
@@ -169,7 +169,7 @@ export const abuseReports = pgTable('abuse_reports', {
 ])
 
 // Every notice the moderation pipeline produced for a report, with the
-// exact text — the record of what we told whom (DSA Art.16(4)
+// exact text: the record of what we told whom (DSA Art.16(4)
 // confirmation of receipt, Art.16(5) decision notice to the reporter,
 // Art.17 statement of reasons to the owner of removed/restricted
 // content). A notice that could not be delivered is recorded too

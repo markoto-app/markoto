@@ -123,21 +123,21 @@ export interface TierCaps {
    */
   auditLog: boolean
   /**
-   * Feature switch: the workspace may invite guests — people who
+   * Feature switch: the workspace may invite guests, people who
    * see only the documents shared with them, take no seat (up to
    * `GUESTS_PER_SEAT` per paid seat). Judged against the WORKSPACE's
    * plan. On in every committed tier; markoto.app: Team + Business.
    */
   guests: boolean
   /**
-   * Feature switch: the workspace brand kit — uploaded fonts and
+   * Feature switch: the workspace brand kit, uploaded fonts and
    * logos, the locked workspace design, workspace templates. Judged
    * against the WORKSPACE's plan. On in every committed tier;
    * markoto.app: Team + Business.
    */
   brandKit: boolean
   /**
-   * Feature switch: share-link controls — link expiry, view-only
+   * Feature switch: share-link controls, link expiry, view-only
    * without download / print, view counts. Judged against the DOCUMENT's
    * plan (workspace plan, else the owner's). On in every committed tier;
    * markoto.app: Pro and up.
@@ -199,7 +199,7 @@ const PAID_PLAN_ENTITLEMENTS = {
 // / MCP / web-tool limit. The hosted deployment narrows the free tier
 // through `TIER_FREE_*` (rendered by `infra/render-env.sh` + `env.j2`). The hosted deployment
 // can override any individual cap at runtime via `TIER_*` env vars
-// (see `resolveTiersFromEnv` below) without a code change — e.g.
+// (see `resolveTiersFromEnv` below) without a code change, e.g.
 // `TIER_PRO_LITELLM_BUDGET_USD=8`. Server enforcement resolves through
 // `server/utils/billing/tierConfig.ts#getTiers()`; the client fetches the
 // resolved map from `GET /api/billing/tiers`.
@@ -334,8 +334,8 @@ export function tierOverrideType(field: keyof TierCaps): Coercer<number | boolea
 }
 
 /**
- * Resolve the effective tier map from an env-shaped record. Pure — no
- * process.env access — so every test tier can drive it directly.
+ * Resolve the effective tier map from an env-shaped record. Pure, no
+ * process.env access: so every test tier can drive it directly.
  *
  * Override key shape: `TIER_<PLAN>_<FIELD>`, e.g.
  * `TIER_FREE_LITELLM_BUDGET_USD=2`, `TIER_PRO_KNOWLEDGE_FILES=5000`,
@@ -381,7 +381,7 @@ function resolvePlanCaps(plan: PlanName, env: Record<string, string | undefined>
   return caps
 }
 
-/** The "more is better" cap fields — strictly higher on a bigger tier. */
+/** The "more is better" cap fields, strictly higher on a bigger tier. */
 export const MONOTONIC_CAP_FIELDS: readonly NumericCapField[] = [
   'litellmBudgetUsd',
   'workspacesOwned',

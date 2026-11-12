@@ -39,7 +39,7 @@ beforeEach(() => {
 // Fixtures
 
 function pdfBytes(): Uint8Array {
-  // Minimal PDF header — file-type recognises this unambiguously.
+  // Minimal PDF header: file-type recognises this unambiguously.
   return new TextEncoder().encode('%PDF-1.4\n%\xe2\xe3\xcf\xd3\n')
 }
 
@@ -49,7 +49,7 @@ function unknownBinary(): Uint8Array {
 }
 
 function bareZip(): Uint8Array {
-  // ZIP local-file header — file-type returns application/zip, which is
+  // ZIP local-file header: file-type returns application/zip, which is
   // not in our Office allowlist (DOCX/PPTX/XLSX require the specific
   // MIME from [Content_Types].xml inspection).
   return new Uint8Array([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00])
@@ -78,7 +78,7 @@ function invalidUtf8(): Uint8Array {
 
 // Tests
 
-describe('requireContentMatchesExtension — binary formats', () => {
+describe('requireContentMatchesExtension: binary formats', () => {
   it('accepts a real PDF for .pdf', async () => {
     mockBytes.mockResolvedValueOnce(pdfBytes())
     await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'pdf' })).resolves.toBeUndefined()
@@ -94,7 +94,7 @@ describe('requireContentMatchesExtension — binary formats', () => {
   it('rejects a bare ZIP for .docx (not enough to be a valid Office file)', async () => {
     // A plain PK-ZIP with no [Content_Types].xml is detected as
     // application/zip by file-type, which our allowlist rejects. This
-    // pins the behaviour — an attacker can't sneak through with a
+    // pins the behaviour: an attacker can't sneak through with a
     // truncated ZIP header.
     mockBytes.mockResolvedValueOnce(bareZip())
     await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'docx' }))
@@ -112,11 +112,11 @@ describe('requireContentMatchesExtension — binary formats', () => {
 
   it('rejects a totally unsupported extension with 415', async () => {
     // An ext that's not in TEXT_EXTS and not in EXT_TO_ALLOWED_MIMES.
-    // Should fail before we even fetch S3 bytes — the ext lookup is
+    // Should fail before we even fetch S3 bytes, the ext lookup is
     // cheap and filters obvious junk early.
     await expect(requireContentMatchesExtension({ s3Key: 'k', ext: 'exe' }))
       .rejects.toMatchObject({ statusCode: 415, message: expect.stringContaining('Unsupported extension') })
-    // Should NOT have hit S3 for this branch — unsupported-ext is a
+    // Should NOT have hit S3 for this branch, unsupported-ext is a
     // cheap early-return, no byte fetch.
     expect(fakeS3.send).not.toHaveBeenCalled()
   })
@@ -136,7 +136,7 @@ describe('requireContentMatchesExtension — binary formats', () => {
   })
 })
 
-describe('requireContentMatchesExtension — text formats', () => {
+describe('requireContentMatchesExtension: text formats', () => {
   it.each([
     ['md', plainText],
     ['txt', plainText],
@@ -180,7 +180,7 @@ describe('requireContentMatchesExtension — text formats', () => {
 // Original review: "security tests should exhaust the attack surface, not
 // just one example." The binary-format section had one mismatch case
 // (PDF-signed-as-docx). The matrix below cycles EVERY binary ext through
-// EVERY other format's magic bytes — the rejection must be symmetric.
+// EVERY other format's magic bytes, the rejection must be symmetric.
 // If any pair slips through, that's an upload-content-bypass hole.
 
 function _docxBytes(): Uint8Array {
@@ -188,13 +188,13 @@ function _docxBytes(): Uint8Array {
   // inside a PK-ZIP. A real DOCX is 10+ KB; for testing we need the
   // minimal container file-type will accept. We synthesize one below
   // using Node's zlib + a hand-crafted central directory. Too painful
-  // for a test fixture — instead we store a real minimal DOCX header
+  // for a test fixture, instead we store a real minimal DOCX header
   // enough for file-type to match.
   //
   // In practice, we stub what file-type would return for each format
   // (see below) and use real bytes only for PDF + bare-ZIP (the
   // unambiguous ones).
-  return bareZip() // stand-in — see override map
+  return bareZip() // stand-in, see override map
 }
 
 /**
@@ -208,13 +208,13 @@ const FORMAT_BYTES = {
   // Real file-type inspection of DOCX/PPTX/XLSX requires a full ZIP with
   // the right `[Content_Types].xml` inside. Rather than synthesize three
   // valid Office blobs, we cover these cases by mocking fileTypeFromBuffer
-  // indirectly via the PDF path — the asymmetry we really need to prove
+  // indirectly via the PDF path, the asymmetry we really need to prove
   // is "bytes for X claimed as Y → 415".
   zip: bareZip(),
   unknown: unknownBinary()
 } as const
 
-describe('requireContentMatchesExtension — adversarial asymmetric matrix', () => {
+describe('requireContentMatchesExtension: adversarial asymmetric matrix', () => {
   // The binary-format allowlist from the SUT. If new formats are added
   // without entries here, the test fails loudly (by iterating config).
   const BINARY_EXTS = ['pdf', 'docx', 'pptx', 'xlsx', 'xls', 'epub'] as const
@@ -236,7 +236,7 @@ describe('requireContentMatchesExtension — adversarial asymmetric matrix', () 
 
   it('ZIP bytes (bare, no Content_Types.xml) are rejected under EVERY Office ext', async () => {
     // A bare PK-zip is detected as application/zip by file-type.
-    // Our allowlist never includes that MIME — a ZIP renamed to
+    // Our allowlist never includes that MIME, a ZIP renamed to
     // .docx/.pptx/.xlsx must 415. Closes the "I zipped up malware
     // and called it a document" hole.
     for (const ext of ['docx', 'pptx', 'xlsx', 'epub'] as const) {
@@ -264,9 +264,9 @@ describe('requireContentMatchesExtension — adversarial asymmetric matrix', () 
     // check entirely), PUTs PDF bytes. The UTF-8 printable-ratio check
     // is the last line of defence.
     //
-    // Finding (during test authoring): a TINY PDF header — 14 bytes of
-    // mostly-ASCII "%PDF-1.4\n..." — DOES pass the .txt check, because
-    // those bytes ARE almost all printable ASCII. Not a real bug — an
+    // Finding (during test authoring): a TINY PDF header, 14 bytes of
+    // mostly-ASCII "%PDF-1.4\n...": DOES pass the .txt check, because
+    // those bytes ARE almost all printable ASCII. Not a real bug, an
     // attacker PUTting only a 14-byte "PDF header" produces worthless
     // upload content that markitdown would fail to parse anyway. What
     // matters is that REALISTIC PDFs (header + binary body) fail. Pin
@@ -292,7 +292,7 @@ describe('requireContentMatchesExtension — adversarial asymmetric matrix', () 
   })
 })
 
-describe('requireContentMatchesExtension — adversarial: text threshold boundary', () => {
+describe('requireContentMatchesExtension: adversarial: text threshold boundary', () => {
   it('EXACTLY 90% printable ratio is accepted (threshold is >=, not >)', async () => {
     // The threshold is 0.9. Craft a 100-byte input where 90 bytes are
     // printable ASCII ('A') and 10 bytes are control-char but valid
@@ -324,13 +324,13 @@ describe('requireContentMatchesExtension — adversarial: text threshold boundar
   })
 })
 
-describe('requireContentMatchesExtension — adversarial: trusted-prefix attack', () => {
+describe('requireContentMatchesExtension: adversarial: trusted-prefix attack', () => {
   it('documents the known sniff-window limitation (first 4KB checked, rest trusted)', async () => {
     // The guard reads Range: bytes=0-4095 and sniffs those bytes. Anything
     // past byte 4096 is trusted. A 100 MB file with a valid PDF header +
     // embedded ZIP+malware starting at byte 5000 would pass this check.
     //
-    // This isn't a bug we should fix here — a full-file scan doesn't
+    // This isn't a bug we should fix here, a full-file scan doesn't
     // scale. But it IS a known limitation that downstream should account
     // for (markitdown should reject malformed inner structures, S3
     // should have bucket-level AV scanning in prod). The test pins the

@@ -1,10 +1,10 @@
 import { homeStructuredData, serializeJsonLd } from '~~/shared/seo/structuredData'
 
 /**
- * JSON-LD on the hosted home page (marketing site only — on a self-hosted
+ * JSON-LD on the hosted home page (marketing site only, on a self-hosted
  * instance markoto isn't "the" product of the operator). Server-rendered
  * into <head>. CSP: a `type="application/ld+json"` block is data, not
- * script — browsers never execute it, so `script-src` doesn't apply; the
+ * script: browsers never execute it, so `script-src` doesn't apply; the
  * nonce plugin (`server/plugins/csp.ts`) stamps a nonce on it like on
  * every head script, which is harmless.
  */

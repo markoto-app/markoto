@@ -31,7 +31,7 @@ export interface AgentSessionSpec {
   initialPrompt: string
   /** Per-prompt context (conversation memory) that opens the first user message. */
   promptPreamble?: string
-  /** What the initiator typed for this session — their own text for the taint gate. */
+  /** What the initiator typed for this session, their own text for the taint gate. */
   invokerText: string
   toolDeclarations: typeof ALL_TOOL_DECLARATIONS
   workspaceId: string | null
@@ -125,7 +125,7 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
     reportLoopFailure(e, spec, setStatus)
   } finally {
     clearTimeout(session.deadlineTimer)
-    // Leave the final status visible long enough for clients to latch it —
+    // Leave the final status visible long enough for clients to latch it,
     // errors need more time than success so the user can read the message.
     const lingerMs = status.phase === 'error' ? 2500 : 500
     await new Promise(r => setTimeout(r, lingerMs))

@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Erstellt für** | Kundenname — Ansprechperson, Funktion |
-| **Erstellt von** | Ihre Firma — Ihr Name, Funktion |
+| **Erstellt für** | Kundenname, Ansprechperson, Funktion |
+| **Erstellt von** | Ihre Firma, Ihr Name, Funktion |
 | **Referenz** | Referenznummer |
 | **Datum** | TT.MM.JJJJ |
 | **Gültig bis** | TT.MM.JJJJ |
@@ -30,11 +30,11 @@
 
 <!-- Ein Absatz dazu, wie Sie arbeiten: in welchen Zyklen, wie die Kundschaft mitwirkt, wie Ergebnisse getestet werden, was übergeben wird. Danach eine H2 pro Phase, die Wochen im Titel, drei bis fünf konkrete Ergebnisse als Aufzählung. Ein Hinweis `> [!TIP]` passt zu einer Option, die der Kundschaft gefallen könnte, etwa nur mit Phase 1 zu beginnen. -->
 
-## Phase 1 — Name der Phase (Wochen 1–4)
+## Phase 1: Name der Phase (Wochen 1–4)
 
 - Ergebnis.
 
-## Phase 2 — Name der Phase (Wochen 5–10)
+## Phase 2: Name der Phase (Wochen 5–10)
 
 - Ergebnis.
 

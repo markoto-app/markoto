@@ -14,7 +14,7 @@ import { asUser } from '../helpers/access'
 // anonymous rejected), theme-resolution precedence, and field
 // validation thresholds.
 
-describe('createDocument — happy paths', () => {
+describe('createDocument: happy paths', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -76,7 +76,7 @@ describe('createDocument — happy paths', () => {
   })
 })
 
-describe('createDocument — workspace authz gating', () => {
+describe('createDocument: workspace authz gating', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -127,7 +127,7 @@ describe('createDocument — workspace authz gating', () => {
   })
 })
 
-describe('createDocument — validation', () => {
+describe('createDocument: validation', () => {
   beforeEach(async () => {
     await resetDb()
   })

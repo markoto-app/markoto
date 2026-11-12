@@ -51,7 +51,7 @@ export async function countCustomDomainsForUser(self: UserScope): Promise<number
 /**
  * May `userId` add `hostname`? No when they already have it, or when
  * another account's claim is verified. Unproven claims of others never
- * block — whoever passes the DNS check first gets the domain.
+ * block: whoever passes the DNS check first gets the domain.
  */
 export async function isHostnameUnavailable(self: UserScope, hostname: string): Promise<boolean> {
   const rows = await useDatabase().select({ id: customDomains.id }).from(customDomains)
@@ -62,7 +62,7 @@ export async function isHostnameUnavailable(self: UserScope, hostname: string): 
 /**
  * Hostnames that passed verification at some point, live or not (host
  * middleware: such a host that isn't live answers 404). Never-verified
- * claims don't count — anyone can add one, and it must not take an
+ * claims don't count: anyone can add one, and it must not take an
  * instance's own other hostnames down.
  */
 export async function listOnceVerifiedHostnames(): Promise<Set<string>> {
@@ -110,7 +110,7 @@ export interface VerifiedCustomDomain extends CustomDomainRow {
 
 /**
  * Verified domains (Traefik routers, host middleware), each with whether
- * its owner may still manage the attached page's document — one query
+ * its owner may still manage the attached page's document, one query
  * for the whole table, as it is rebuilt every few seconds.
  *
  * Mirrors `getDocAuthz(...).canManage` (owner, or workspace admin; an

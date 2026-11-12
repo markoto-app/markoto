@@ -11,7 +11,7 @@ import type { DocTheme } from '~~/shared/types/theme'
 /**
  * The editor page: composes the top bar, menu and tool rows, the editor and
  * preview panes, the right sidebar, the AI prompt bar and the status bar
- * (pieces in `./layout/`), and owns the state they share — the document
+ * (pieces in `./layout/`), and owns the state they share, the document
  * (`useDocument`), the open sidebar panel, the view mode, the modals.
  */
 const props = defineProps<{
@@ -448,7 +448,7 @@ useHead({
           :editor-view="editorView"
           :read-only="isReadOnly"
           :class="[
-            // Flex member — shares remaining width with preview / sidebar.
+            // Flex member: shares remaining width with preview / sidebar.
             // `min-w-0` lets the pane shrink past its intrinsic content width.
             'flex-1 min-w-0',
             // Right border only when something visible sits to its right.

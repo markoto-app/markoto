@@ -46,7 +46,7 @@ const TourPhoneCutSchema = z.object({
 
 /**
  * A later moment of a scene shown over its video: a few document pages
- * that fan out (the exported PDF). Pages are light-only — a PDF is paper.
+ * that fan out (the exported PDF). Pages are light-only, a PDF is paper.
  */
 export const TourBeatSchema = z.object({
   id: z.enum(TOUR_BEAT_IDS),
@@ -58,7 +58,7 @@ export type TourBeat = z.infer<typeof TourBeatSchema>
 
 export const TourSceneSchema = z.object({
   id: z.enum(TOUR_SCENE_IDS),
-  /** What the scene shows, in English — capture notes. The page's alt text is `tour.alt.<id>` (i18n). */
+  /** What the scene shows, in English, capture notes. The page's alt text is `tour.alt.<id>` (i18n). */
   description: z.string().max(400).optional(),
   poster: perMode(TourImageSchema).optional(),
   video: perMode(TourVideoSchema).optional(),

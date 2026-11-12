@@ -1,13 +1,13 @@
 import { defineConfig, devices } from '@playwright/test'
 import { EDITOR_TOUR_DONE, EDITOR_TOUR_STORAGE_KEY } from '../../app/utils/editor/editorTour'
 
-// Staging/prod SMOKE suite — deliberately separate from the flow-docs
+// Staging/prod SMOKE suite: deliberately separate from the flow-docs
 // system (playwright.config.ts). Flows need TEST_MODE (login shim, AI
 // mocks, /api/_test/*); smoke runs the PUBLIC/anonymous surface against a
 // REAL deployed environment (prod-parity, no test hooks). It exists to
 // catch the class of prod-only drift the flow gate structurally can't:
 // Docker-image COPY gaps, insecure-context APIs, CSP, the mobile <dialog>
-// collapse — every bug that shipped broken this session.
+// collapse: every bug that shipped broken this session.
 //
 // Target any environment via PLAYWRIGHT_BASE_URL (defaults to staging).
 //   bun run smoke                                  # → staging
@@ -29,7 +29,7 @@ export default defineConfig({
   globalSetup: './globalSetup.ts',
   timeout: 120_000,
   expect: { timeout: 30_000 },
-  // Retry once (twice in CI) — smoke runs against a live network + the
+  // Retry once (twice in CI), smoke runs against a live network + the
   // renderer/sync have real latency; a transient blip shouldn't red the
   // whole gate, but a genuine break fails every retry.
   retries: process.env.CI ? 2 : 1,

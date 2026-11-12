@@ -7,7 +7,7 @@ import { useResponsePanelState } from '../../../app/components/ai/useResponsePan
 //
 //   - Auto-collapse fires after the configured window (10s default)
 //     when measured FROM ARRIVAL, not from the server-stamped ts.
-//   - Manual re-open via the pill MUST NOT auto-collapse — the
+//   - Manual re-open via the pill MUST NOT auto-collapse, the
 //     user opted in.
 //   - × dismiss collapses + clears the manual flag, but does NOT
 //     evict the response (parent owns the latched value).
@@ -110,7 +110,7 @@ describe('useResponsePanelState', () => {
     expect(state.expanded.value).toBe(false)
   })
 
-  describe('expand() — manual pill click', () => {
+  describe('expand(): manual pill click', () => {
     it('re-opens the card and DOES NOT re-arm the auto-collapse', () => {
       const { value: state } = withScope(() => useResponsePanelState({
         source,
@@ -125,13 +125,13 @@ describe('useResponsePanelState', () => {
       expect(state.expanded.value).toBe(true)
       expect(state.manuallyExpanded.value).toBe(true)
 
-      // Three full windows pass — manual-open must stay open.
+      // Three full windows pass, manual-open must stay open.
       vi.advanceTimersByTime(10_000 * 3)
       expect(state.expanded.value).toBe(true)
     })
   })
 
-  describe('dismiss() — × button', () => {
+  describe('dismiss(): × button', () => {
     it('collapses to "not expanded" without nulling the response (parent owns eviction)', () => {
       const { value: state } = withScope(() => useResponsePanelState({
         source,
@@ -142,7 +142,7 @@ describe('useResponsePanelState', () => {
       state.dismiss()
       expect(state.expanded.value).toBe(false)
 
-      // Source ref is the parent's latched value — dismiss MUST NOT
+      // Source ref is the parent's latched value, dismiss MUST NOT
       // touch it. Evicting it would be a bug; this assertion pins
       // that the composable doesn't reach back into the parent's
       // ref.
@@ -197,7 +197,7 @@ describe('useResponsePanelState', () => {
       source.value = fixed
 
       vi.advanceTimersByTime(5_000)
-      // Re-assign with the same ts — should NOT re-arm.
+      // Re-assign with the same ts, should NOT re-arm.
       source.value = { ...fixed }
 
       vi.advanceTimersByTime(5_001)
@@ -229,10 +229,10 @@ describe('useResponsePanelState', () => {
       vi.advanceTimersByTime(10_000 * 3)
       state.onPointerLeave()
 
-      // Half the new window — still open.
+      // Half the new window, still open.
       vi.advanceTimersByTime(5_000)
       expect(state.expanded.value).toBe(true)
-      // Past the new full window — collapses.
+      // Past the new full window, collapses.
       vi.advanceTimersByTime(5_001)
       expect(state.expanded.value).toBe(false)
     })

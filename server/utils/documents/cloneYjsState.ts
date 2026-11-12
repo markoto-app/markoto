@@ -26,7 +26,7 @@ import type { DocAccess } from '../../repos/proofs'
 export async function cloneYjsStateWithUrlRewrite(
   source: DocAccess<'view'>,
   target: DocAccess<'write'>,
-  /** `title`: the copy's live title (ymeta) — used when a document is made from a template. */
+  /** `title`: the copy's live title (ymeta), used when a document is made from a template. */
   overrides?: { title?: string }
 ): Promise<void> {
   const sourceDocId = source.docId

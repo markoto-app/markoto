@@ -39,5 +39,5 @@ password check pauses for a while.
 
 ## What's next
 
-- [Polish the doc and download a PDF](/docs/import-export/polished-pdf) — the password gate stays in place; the PDF link is gated too.
-- [Have a discussion in your document](/docs/writing/comments) — invite collaborators, leave threaded comments.
+- [Polish the doc and download a PDF](/docs/import-export/polished-pdf): the password gate stays in place; the PDF link is gated too.
+- [Have a discussion in your document](/docs/writing/comments): invite collaborators, leave threaded comments.

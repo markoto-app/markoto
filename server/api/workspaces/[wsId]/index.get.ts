@@ -10,7 +10,7 @@ import { getWorkspaceSubscription } from '../../../repos/workspaceSubscriptions'
 import { isBillingEnabled } from '../../../utils/billing/billingMode'
 
 // Workspace detail. Gated by membership (any role). Returns the workspace
-// row, the complete doc list (every doc in the workspace — not just the
+// row, the complete doc list (every doc in the workspace, not just the
 // caller's), plus the members list so the UI can render the avatar bar +
 // manage-members modal in a single fetch.
 //
@@ -78,7 +78,7 @@ export default defineApiHandler({
         myRole,
         ownerId: ws.ownerId,
         // The workspace's effective plan (Team / Business subscription,
-        // else its creator's personal plan — server/utils/billing/entitlements.ts).
+        // else its creator's personal plan, server/utils/billing/entitlements.ts).
         plan: await resolveWorkspacePlan(ws.workspaceId),
         // Default theme used by NewDocumentDialog when creating a doc in
         // this workspace. NULL = use the global markoto preset. Surfaced

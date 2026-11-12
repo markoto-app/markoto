@@ -5,14 +5,14 @@ import type { DocTheme } from '../../types/theme'
  * fully replaces the user's current settings when selected. Names and
  * descriptions live in i18n under `theme.presets.<id>.{name,description}`.
  *
- * Presets exercise the full theme surface — body + headings + tables +
- * code variants — so they double as a tour of what the theme system can
+ * Presets exercise the full theme surface, body + headings + tables +
+ * code variants: so they double as a tour of what the theme system can
  * do. Adding a preset is: (a) append here with a unique `id`, (b) add
  * matching i18n keys.
  */
 
 /**
- * Who a preset is for — the tabs of the new-document design picker. A
+ * Who a preset is for, the tabs of the new-document design picker. A
  * `general` preset (the brand look, an all-rounder) shows under "All" only.
  */
 export const THEME_PRESET_CATEGORIES = ['engineering', 'academic', 'business', 'writing'] as const
@@ -25,7 +25,7 @@ export interface ThemePreset {
 }
 
 /**
- * ARXIV_TEMPLATE_CSS — the part of the arXiv preprint look no theme
+ * ARXIV_TEMPLATE_CSS: the part of the arXiv preprint look no theme
  * field expresses (kourgeorge/arxiv-style, MIT; values from arxiv.sty).
  * Everything else (Letter page, Termes 10/11, numbered bold sections at
  * 12/10/10pt via `headings.levels`, title block with rules + small caps
@@ -73,7 +73,7 @@ const ARXIV_TEMPLATE_CSS = `/* arXiv preprint template (kourgeorge/arxiv-style, 
 `
 
 /**
- * IEEE_CONFERENCE_TEMPLATE_CSS — the part of the IEEE conference look no
+ * IEEE_CONFERENCE_TEMPLATE_CSS: the part of the IEEE conference look no
  * theme field expresses (IEEEtran.cls 1.8b, LPPL; bare_conf.tex; values
  * from IEEEtran.cls in 10pt conference mode). Letter page, Termes 10/12,
  * two 21pc columns 1pc apart, small-caps / italic sections at body size
@@ -88,7 +88,7 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 .paged-doc .markoto-title-block .markoto-cover-author { font-weight: 400; font-size: 1.1em; line-height: 11.5pt; white-space: pre-line; }
 .paged-doc .markoto-title-block .markoto-cover-affiliation { line-height: 12.5pt; }
 /* Two-column \\abstract + IEEEkeywords open the first column: only title and authors span the page. */
-/* Only with an abstract: it opens column 1, so the title block itself must not span (title + authors span instead). Without an abstract the block keeps the engine's span — otherwise a page-1 footnote leaves page 1 blank (paged.js). */
+/* Only with an abstract: it opens column 1, so the title block itself must not span (title + authors span instead). Without an abstract the block keeps the engine's span, otherwise a page-1 footnote leaves page 1 blank (paged.js). */
 .paged-doc .markoto-cover:has(.markoto-abstract) { column-span: none; }
 .paged-doc .markoto-title-block .markoto-cover-title, .paged-doc .markoto-title-block .markoto-cover-authors { column-span: all; }
 /* \\abstract: \\small (9/10pt) bold, run-in \\textit{Abstract}---, \\parindent 1em. */
@@ -137,7 +137,7 @@ const IEEE_CONFERENCE_TEMPLATE_CSS = `/* IEEE conference paper (IEEEtran.cls 1.8
 `
 
 /**
- * TECH_DOCS_TEMPLATE_CSS — what the "Technical documentation" look needs
+ * TECH_DOCS_TEMPLATE_CSS: what the "Technical documentation" look needs
  * beyond theme fields: sans "furniture" (tables, admonition and code
  * titles, TOC chapters) around a serif reading text, accent heading
  * numbers, hairline-ruled tables, quieter admonitions and inline code.
@@ -185,7 +185,7 @@ const TECH_DOCS_TEMPLATE_CSS = `/* Technical documentation template. */
 `
 
 /**
- * DESIGN_DOC_TEMPLATE_CSS — what the "Design doc / RFC" look needs beyond
+ * DESIGN_DOC_TEMPLATE_CSS: what the "Design doc / RFC" look needs beyond
  * theme fields: the metadata table under the title set as a document
  * header (labels in small caps, the status as a badge), decision records
  * (runs of paragraphs that open with a bold label: **D1.** …) on an accent
@@ -216,7 +216,7 @@ const DESIGN_DOC_TEMPLATE_CSS = `/* Design doc / RFC template. */
 .paged-doc table:has(> thead th:first-child:empty):has(> thead th:nth-child(2):last-child:empty) tr:first-child td:last-child::before { content: ""; display: inline-block; width: 0.5em; height: 0.5em; margin-right: 0.5em; border-radius: 50%; background: var(--doc-accent); }
 /* Section numbers in the accent colour for "see 3.2" in review comments. */
 .paged-doc h1::before, .paged-doc h2::before, .paged-doc h3::before { color: var(--doc-accent); margin-right: 0.6em; }
-/* Decision records: paragraphs that open with a bold run-in label (D1., D2. … — engine markoto-labelled), two or more in a row, sit on an accent rule with the label in the accent. */
+/* Decision records: paragraphs that open with a bold run-in label (D1., D2. …, engine markoto-labelled), two or more in a row, sit on an accent rule with the label in the accent. */
 .paged-doc > p.markoto-labelled:has(+ p.markoto-labelled), .paged-doc > p.markoto-labelled + p.markoto-labelled { padding: 0.15em 0 0.15em 0.9em; border-left: 2pt solid var(--doc-accent); }
 .paged-doc > p.markoto-labelled:has(+ p.markoto-labelled) > strong:first-child, .paged-doc > p.markoto-labelled + p.markoto-labelled > strong:first-child { color: var(--doc-accent); }
 /* Tables: a step smaller, tabular figures, a firm rule under the header, hairlines between rows. */
@@ -238,7 +238,7 @@ const DESIGN_DOC_TEMPLATE_CSS = `/* Design doc / RFC template. */
 `
 
 /**
- * BUSINESS_REPORT_TEMPLATE_CSS — what the business-report look needs beyond
+ * BUSINESS_REPORT_TEMPLATE_CSS: what the business-report look needs beyond
  * theme fields: the two-width grid, section-opener bars, finance-style
  * tables (tabular figures, hairlines, rules on bold total rows), pull
  * quotes, square callouts and the cover composition. Same rules as the
@@ -287,7 +287,7 @@ const BUSINESS_REPORT_TEMPLATE_CSS = `/* Business report template. A two-width g
 `
 
 /**
- * RUNBOOK_TEMPLATE_CSS — what the on-call runbook look needs beyond theme
+ * RUNBOOK_TEMPLATE_CSS: what the on-call runbook look needs beyond theme
  * fields. A runbook is read under stress (3 a.m., second screen, a
  * printout): every rule here is about finding the next step and the next
  * command fast, and about surviving greyscale printing. Ordinary custom
@@ -335,10 +335,10 @@ const RUNBOOK_TEMPLATE_CSS = `/* On-call runbook template: scannable before eleg
 `
 
 /**
- * THESIS_TEMPLATE_CSS — the long-form academic look (Bachelor / Master /
+ * THESIS_TEMPLATE_CSS: the long-form academic look (Bachelor / Master /
  * PhD theses, long reports) beyond theme fields. Genre reference: LaTeX
  * `report` / `book` (report.cls, LPPL) as most university thesis classes
- * derive it — chapters open a new page under a large number, the running
+ * derive it: chapters open a new page under a large number, the running
  * head carries the chapter title and the page number, the opening page
  * shows only a page number at the foot (\thispagestyle{plain}).
  */
@@ -400,7 +400,7 @@ const THESIS_TEMPLATE_CSS = `/* Thesis template. Genre reference: LaTeX report.c
 `
 
 /**
- * API_REFERENCE_TEMPLATE_CSS — what the "API reference" look needs beyond
+ * API_REFERENCE_TEMPLATE_CSS: what the "API reference" look needs beyond
  * theme fields: a prose measure narrower than the tables and code, resource
  * openers, endpoint lines (```http fences) as a findable band, small-caps
  * style section labels, status-code headings coloured by class, and dense
@@ -454,7 +454,7 @@ const API_REFERENCE_TEMPLATE_CSS = `/* API reference template. Lookup material: 
 `
 
 /**
- * LECTURE_NOTES_TEMPLATE_CSS — what the lecture-notes handout needs beyond
+ * LECTURE_NOTES_TEMPLATE_CSS: what the lecture-notes handout needs beyond
  * theme fields (reference: LaTeX `article` 11pt + amsthm, typeset as
  * handouts are: a compact title block, theorem environments, a wide
  * annotation margin). The fixture convention it styles: IMPORTANT alerts
@@ -479,7 +479,7 @@ const LECTURE_NOTES_TEMPLATE_CSS = `/* Lecture notes / course handout (LaTeX art
 /* amsthm environments, not callouts: square, no tint, the kind's name as a small-caps label (Note, Tip, Warning …). */
 .paged-doc .markdown-alert { border-radius: 0; background: none; border-left-width: 1.2pt; padding: 0.15em 0 0.15em 0.9em; margin: 0.9em 0; }
 .paged-doc .markdown-alert-title { font-size: 1em; font-weight: 700; text-transform: none; letter-spacing: 0.03em; font-variant-caps: small-caps; margin: 0 0 0.15em; }
-/* An environment that opens with its own bold label (**Theorem 7.3 (linearity).**, **Remark.** — engine markoto-alert-labelled) needs no kind name above it. */
+/* An environment that opens with its own bold label (**Theorem 7.3 (linearity).**, **Remark.**, engine markoto-alert-labelled) needs no kind name above it. */
 .paged-doc .markdown-alert-important.markoto-alert-labelled > .markdown-alert-title, .paged-doc .markdown-alert-note.markoto-alert-labelled > .markdown-alert-title { display: none; }
 .paged-doc .markdown-alert > p:nth-child(2) { margin-top: 0; }
 /* Theorem (IMPORTANT), amsthm "plain" style: framed, italic statement, upright bold label. */
@@ -514,7 +514,7 @@ const LECTURE_NOTES_TEMPLATE_CSS = `/* Lecture notes / course handout (LaTeX art
 `
 
 /**
- * ESSAY_TEMPLATE_CSS — the part of the APA 7 student paper no theme field
+ * ESSAY_TEMPLATE_CSS: the part of the APA 7 student paper no theme field
  * expresses (Publication Manual of the APA, 7th ed.; checked against
  * apa7.cls in `stu` mode). Letter page with 1in margins, Termes 12 pt
  * double-spaced and ragged right, bold headings at text size (centred /
@@ -553,7 +553,7 @@ const ESSAY_TEMPLATE_CSS = `/* APA 7 student paper. Values from the Publication 
 `
 
 /**
- * MEMO_TEMPLATE_CSS — what the memo / business-letter look needs beyond
+ * MEMO_TEMPLATE_CSS: what the memo / business-letter look needs beyond
  * theme fields: the label-column grid (To / From / Date / Subject labels and
  * side heads hang in a 32 mm column, the text beside it), the letterhead
  * mark, rules across both columns, calm hairline tables, room to sign and a
@@ -588,7 +588,7 @@ const MEMO_TEMPLATE_CSS = `/* Memo / business letter. A4 on a two-column grid (S
 `
 
 /**
- * PROPOSAL_TEMPLATE_CSS — what the client-proposal look needs beyond theme
+ * PROPOSAL_TEMPLATE_CSS: what the client-proposal look needs beyond theme
  * fields: the cover panel, the "01" section index, invoice-style pricing
  * tables (ruled subtotal, double-ruled grand total), the key/value facts
  * table and the signature block. Same rules as the other template CSS
@@ -639,7 +639,7 @@ const PROPOSAL_TEMPLATE_CSS = `/* Client proposal template. */
 `
 
 /**
- * ONE_PAGER_TEMPLATE_CSS — the one-pager / fact-sheet look beyond theme
+ * ONE_PAGER_TEMPLATE_CSS: the one-pager / fact-sheet look beyond theme
  * fields: a sidehead grid (section labels in a narrow left column, text in
  * the right one), a title block under a heavy accent bar, a full-width
  * lead, a filled "important" callout, compact lists and tables, accent
@@ -686,7 +686,7 @@ const ONE_PAGER_TEMPLATE_CSS = `/* One-pager template. A sidehead grid: section 
 `
 
 /**
- * MANUSCRIPT_TEMPLATE_CSS — the book-interior conventions no theme field
+ * MANUSCRIPT_TEMPLATE_CSS: the book-interior conventions no theme field
  * expresses: chapter openers (new page, sunk, numeral over a spaced-capital
  * title), the epigraph page, the scene-break
  * ornament, the quoted letter, folios at the outer corners and no running
@@ -715,7 +715,7 @@ const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhu
 /* Quoted letters and extracts: roman (the author's italics show), ragged right on the narrower measure, indented both sides, a line of space around. */
 .paged-doc blockquote { margin: 1.32em 1.5em; font-style: normal; }
 .paged-doc blockquote p { margin: 0 0 0.5em; text-indent: 0; text-align: left; text-align-last: left; hyphens: manual; }
-/* Running head: book title in spaced capitals, folio at the outer corner — left on versos, right on rectos. */
+/* Running head: book title in spaced capitals, folio at the outer corner, left on versos, right on rectos. */
 .pagedjs_pages .pagedjs_page .pagedjs_margin { opacity: 1; letter-spacing: 0.12em; font-size: 8pt; }
 .pagedjs_pages .pagedjs_page .pagedjs_margin-top-center { text-transform: uppercase; }
 .pagedjs_pages .pagedjs_page .pagedjs_margin-top-left .pagedjs_margin-content, .pagedjs_pages .pagedjs_page .pagedjs_margin-top-right .pagedjs_margin-content { font-size: 9pt; letter-spacing: 0; }
@@ -735,7 +735,7 @@ const MANUSCRIPT_TEMPLATE_CSS = `/* Fiction / book interior. References: Bringhu
 `
 
 /**
- * NEWSLETTER_TEMPLATE_CSS — the newsletter look beyond theme fields: a
+ * NEWSLETTER_TEMPLATE_CSS: the newsletter look beyond theme fields: a
  * masthead (title block + the issue line under it), article headlines and
  * captioned photos across both columns, a pull quote, a diary-style events
  * table and friendlier callouts. Ordinary custom CSS
@@ -792,7 +792,7 @@ const NEWSLETTER_TEMPLATE_CSS = `/* Newsletter template: two columns of text und
  * (arXiv): it is placed first and the author's CSS after it, so the
  * author's rules still win. Template CSS of a previously applied preset
  * (an unchanged copy at the start of `currentCss`) is replaced, not
- * stacked — switching templates never accumulates their CSS.
+ * stacked: switching templates never accumulates their CSS.
  */
 export function themeFromPreset(preset: ThemePreset, currentCss: string | undefined): DocTheme {
   const own = stripPresetCss(currentCss ?? '')
@@ -839,8 +839,8 @@ export function ownCustomCss(css: string | undefined): string {
 }
 
 export const THEME_PRESETS: ThemePreset[] = [
-  // — Markoto: the flagship preset and the in-app default. Brand
-  // identity expressed through restraint — plain white paper, sumi-950
+  // Markoto: the flagship preset and the in-app default. Brand
+  // identity expressed through restraint, plain white paper, sumi-950
   // body text, Fraunces editorial headings at the major-third scale,
   // shu (vermillion) reserved for links and the blockquote rule. Left-
   // ragged body (calm field guide, not institutional academic), minimal
@@ -867,7 +867,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       // traditional meaning (blue/info, green/tip, purple/important,
       // amber/warning, red/caution) but drops ~40% saturation so the
       // boxes read as ink stamps on cream rather than LED indicators.
-      // Caution borrows shu-500 — there's no AI seal in the printed
+      // Caution borrows shu-500: there's no AI seal in the printed
       // page so the brand red reads cleanly as "stop, look here".
       alerts: {
         note: '#3D5A80', // restrained slate blue
@@ -881,7 +881,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Modern: clean Inter sans, blue accent, justified body, page
+  // Modern: clean Inter sans, blue accent, justified body, page
   // numbers in footer. The classic neutral starting point.
   {
     id: 'modern',
@@ -900,7 +900,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       tables: { headerBackground: 'muted', headerTextColor: 'inherit', borders: 'all', zebra: false, cellPadding: 6, captionPosition: 'above', captionLabel: false },
       blocks: { imageRadius: 4, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: false, referenceStyle: 'plain', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
-      // GitHub palette — the canonical look most users have seen in
+      // GitHub palette: the canonical look most users have seen in
       // README admonitions for years.
       alerts: {
         note: '#0969da',
@@ -914,8 +914,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — arXiv preprint: the kourgeorge/arxiv-style LaTeX template (MIT),
-  // rebuilt from arxiv.sty — US Letter with 1in margins, Times
+  // arXiv preprint: the kourgeorge/arxiv-style LaTeX template (MIT),
+  // rebuilt from arxiv.sty: US Letter with 1in margins, Times
   // (TeX Gyre Termes) 10/11 justified, \parskip 5.5pt, numbered bold
   // sections at 12/10/10pt, a title block between 2pt rules in small
   // capitals at regular weight, "A Preprint" running head over a 0.4pt
@@ -966,13 +966,13 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — IEEE conference paper: the IEEEtran.cls conference template
+  // IEEE conference paper: the IEEEtran.cls conference template
   // (bare_conf.tex, LPPL), rebuilt from IEEEtran.cls in 10pt conference
-  // mode — US Letter, two 21pc columns 1pc apart, Times (TeX Gyre
+  // mode: US Letter, two 21pc columns 1pc apart, Times (TeX Gyre
   // Termes) 10/12 justified and hyphenated with 1em indents, centred
   // small-caps sections "I. Introduction" and italic subsections
   // "A. …" at body size, a 24pt regular title over side-by-side author
-  // blocks, the run-in "Abstract—" in 9pt bold opening the first
+  // blocks, the run-in "Abstract" label in 9pt bold opening the first
   // column, no running head or page number. The rest is template CSS
   // (IEEE_CONFERENCE_TEMPLATE_CSS). Fixture:
   // tests/fixtures/theme-shots/ieee-conference.md.
@@ -1028,7 +1028,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: IEEE_CONFERENCE_TEMPLATE_CSS
     }
   },
-  // — Lecture notes: a course handout in the LaTeX tradition (article
+  // Lecture notes: a course handout in the LaTeX tradition (article
   // 11pt + amsthm, KOMA-style generous margins). Latin Modern Roman so
   // text and KaTeX's Computer Modern math are one design; A4 with a wide
   // right margin for students' annotations (139 mm measure, ~75
@@ -1076,7 +1076,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'border', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging', captionNumbering: 'document', captionLabelStyle: 'inline' },
       mermaid: { theme: 'document' },
       // Theorems in the accent; remarks and intuition in grey; pitfalls
-      // dark amber / red — all distinct grey values in black-and-white print.
+      // dark amber / red, all distinct grey values in black-and-white print.
       alerts: {
         note: '#555555',
         tip: '#555555',
@@ -1091,9 +1091,9 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Thesis: long-form academic writing (Bachelor / Master / PhD theses,
+  // Thesis: long-form academic writing (Bachelor / Master / PhD theses,
   // long reports) in the LaTeX report/book tradition (report.cls 11pt,
-  // LPPL) — A4, Latin Modern Roman 11/14 justified and hyphenated with
+  // LPPL): A4, Latin Modern Roman 11/14 justified and hyphenated with
   // first-line indents, a ~70-character measure inside generous margins,
   // chapters on a new page under a large number, decimal sections 1.1 /
   // 1.1.1, a classic title page, chapter title + page number in the
@@ -1151,8 +1151,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Technical documentation: printed developer docs (library guides,
-  // API references, runbooks) in the O'Reilly / Sphinx-PDF tradition —
+  // Technical documentation: printed developer docs (library guides,
+  // API references, runbooks) in the O'Reilly / Sphinx-PDF tradition,
   // Source Serif 4 reading text, Source Sans 3 headings and furniture,
   // JetBrains Mono code in light, hairline-framed blocks. Numbered
   // sections, a compact title block with the TOC on page 1, running head
@@ -1191,7 +1191,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: TECH_DOCS_TEMPLATE_CSS
     }
   },
-  // — API reference: printed/PDF reference for an HTTP API (Stripe-like
+  // API reference: printed/PDF reference for an HTTP API (Stripe-like
   // clarity in print). Lookup material, not reading text: IBM Plex Sans
   // 9.5/1.45 throughout with IBM Plex Mono for every identifier, prose held
   // to ~75 characters while parameter tables and JSON use the full width,
@@ -1245,8 +1245,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Design doc / RFC: engineering design documents, RFCs, ADRs and
-  // technical proposals — read once, carefully, and argued about. IBM Plex
+  // Design doc / RFC: engineering design documents, RFCs, ADRs and
+  // technical proposals: read once, carefully, and argued about. IBM Plex
   // Sans 10/14.5 in a ~75-character column with a deeper right margin for
   // review notes on the printout, numbered sections ("see 3.2"), one muted
   // indigo accent (section numbers, status, decision records, the proposed
@@ -1299,7 +1299,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Business report: quarterly / annual reports, board updates, client
+  // Business report: quarterly / annual reports, board updates, client
   // deliverables. Source Serif 4 headings over Inter 9.5/1.5 text, one deep
   // petrol accent used sparingly (cover rule, section bars, links, charts),
   // finance-style tables, a quiet footer over a thin rule, a left-aligned
@@ -1347,7 +1347,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: BUSINESS_REPORT_TEMPLATE_CSS
     }
   },
-  // — One-pager: a product / project fact sheet that must fit one page.
+  // One-pager: a product / project fact sheet that must fit one page.
   // DM Sans throughout (10.5/1.42 text, 800-weight title), one confident
   // orange accent (title bar, pitch, sideheads, markers, run-in labels,
   // the filled "important" callout), a sidehead grid that keeps the text
@@ -1398,7 +1398,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: ONE_PAGER_TEMPLATE_CSS
     }
   },
-  // — Client proposal: agencies, consultants and freelancers sending a
+  // Client proposal: agencies, consultants and freelancers sending a
   // proposal or quote. Warmer and more personal than the corporate report:
   // Lora headings (a calligraphic serif, set at 500 on the cover) over
   // Work Sans 10/1.5 text in a 148 mm column (about 75 characters), one
@@ -1453,7 +1453,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: PROPOSAL_TEMPLATE_CSS
     }
   },
-  // — Memo / business letter: a one- or two-page internal memo or letter
+  // Memo / business letter: a one- or two-page internal memo or letter
   // to print, sign or attach. A4 with DIN 5008-like margins (24 mm left,
   // 20 mm right) on a Swiss business-letter grid: labels (To / From / Date /
   // Subject) and side heads in a 32 mm column at the page margin, Inter
@@ -1508,8 +1508,8 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Manuscript: a typeset fiction interior (novel, novella, short-story
-  // collection) in the trade-paperback tradition — A5, EB Garamond 11/14.5
+  // Manuscript: a typeset fiction interior (novel, novella, short-story
+  // collection) in the trade-paperback tradition, A5, EB Garamond 11/14.5
   // justified and hyphenated, first-line indents and no paragraph space,
   // chapters on a new page sunk a third down under the chapter numeral,
   // scene breaks as three spaced asterisks, the book title as the running
@@ -1547,7 +1547,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       brand: { logoUrl: '', logoHeight: 48 },
       layout: { columns: 1, columnGap: 8 },
       // Book title centred over the text, folio at the outer corner (left
-      // on versos, right on rectos — template CSS hides the inner one).
+      // on versos, right on rectos, template CSS hides the inner one).
       header: { left: '{page}', center: '{title}', right: '{page}', imageUrl: '', imagePosition: 'left', imageHeight: 12, rule: false, sectionNumber: false, sectionMode: 'first' },
       // A chapter opening page drops the head; its folio sits at the foot.
       footer: { left: '', center: '{page}', right: '', imageUrl: '', imagePosition: 'center', imageHeight: 10, rule: false },
@@ -1571,8 +1571,8 @@ export const THEME_PRESETS: ThemePreset[] = [
       customCss: MANUSCRIPT_TEMPLATE_CSS
     }
   },
-  // — Academic essay: the APA 7 student paper (Publication Manual,
-  // 7th ed.) — US Letter with 1in margins, Times (TeX Gyre Termes) 12 pt
+  // Academic essay: the APA 7 student paper (Publication Manual,
+  // 7th ed.): US Letter with 1in margins, Times (TeX Gyre Termes) 12 pt
   // double-spaced throughout, ragged right without hyphenation, every
   // paragraph indented 0.5in; a title page (bold title, then author,
   // affiliation, course, instructor and date, all centred) with the page
@@ -1613,7 +1613,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       code: { theme: 'none', fontSize: 10, font: 'Latin Modern Mono', background: 'none', frame: 'none', wrap: true, lineNumbers: false },
       // APA tables and figures (ch. 7): horizontal rules only, the bold number on its own line above the italic title.
       tables: { headerBackground: 'none', headerTextColor: 'inherit', borders: 'minimal', zebra: false, cellPadding: 4, captionPosition: 'above', captionLabel: true },
-      // §8.27 block quotations (no rule, no italics — template CSS); §9.43 hanging references.
+      // §8.27 block quotations (no rule, no italics, template CSS); §9.43 hanging references.
       blocks: { imageRadius: 0, imageMaxWidth: 100, blockquoteStyle: 'none', hrStyle: 'rule', hrThickness: 1, figureLabel: true, referenceStyle: 'hanging', captionNumbering: 'document', captionLabelStyle: 'stacked' },
       mermaid: { theme: 'document' },
       // Ink-on-paper: APA papers have no admonitions; keep them dark and muted.
@@ -1632,7 +1632,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Newsletter: 2-column layout, smaller body for density, sans body
+  // Newsletter: 2-column layout, smaller body for density, sans body
   // (Karla) under serif headings (PT Serif), green accent, brand-color
   // table headers + zebra. Showcases the multi-column flow.
   {
@@ -1679,7 +1679,7 @@ export const THEME_PRESETS: ThemePreset[] = [
     }
   },
 
-  // — Resume: one dense page. Inter at 10pt, a flat heading scale (h1
+  // Resume: one dense page. Inter at 10pt, a flat heading scale (h1
   // 1.64× body, h2 1.39×, h3 1.18×),
   // tight heading spacing, no running header, footer or cover, slate
   // accent. Made for the `resume` template (one A4 page).
@@ -1711,7 +1711,7 @@ export const THEME_PRESETS: ThemePreset[] = [
       cover: { enabled: false, layout: 'classic', showTitle: true, showSubtitle: false, subtitle: '', showDate: false, showAuthors: false, authors: [], affiliations: [], rules: false, smallCaps: false, showLogo: false, align: 'left', titleSize: 2.4, subtitleSize: 1.15, dateFormat: 'locale', repeatTitle: false }
     }
   },
-  // — On-call runbook: an operations handbook read under stress — on a
+  // On-call runbook: an operations handbook read under stress, on a
   // second screen at 3 a.m. or as a printout pinned next to the desk.
   // Scannable before elegant: IBM Plex Sans 10/13.5 (unambiguous Il1, a
   // robust sans for small print), JetBrains Mono commands (slashed 0,

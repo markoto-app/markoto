@@ -2,7 +2,7 @@ import { appendAuditEvent } from '../../../../repos/audit'
 import { deleteSsoConnection } from '../../../../repos/sso'
 import { AUDIT_SSO_CONNECTION_DELETED } from '../../../../legal/auditActions'
 
-// DELETE /api/workspaces/:wsId/sso — remove the identity provider.
+// DELETE /api/workspaces/:wsId/sso: remove the identity provider.
 // Ends enforcement at once; identities and grants go with it. Allowed
 // without the plan (a lapsed plan must still be able to switch SSO off)
 // and while SSO is enforced (`ignoreSso`).

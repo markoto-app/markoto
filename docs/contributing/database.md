@@ -84,7 +84,7 @@ Repo functions that write or return tenant-private data take a capability proof 
 
 ### Transactions
 
-There is one mechanism. Code outside the repos that needs several repo writes to commit together calls `withTransaction(async (tx) => …)` (`server/repos/transaction.ts`) and passes `tx` — an opaque `TxHandle`, useless for building a query — as the last argument of each repo call. Inside a repo, `executor(tx)` returns the caller's transaction or the pool; a repo that opens its own `db.transaction` passes it on to other repos with `asTxHandle(tx)`. The Stripe webhook dispatcher (`server/utils/billing/stripeWebhook.ts`) and the restore flow (`server/utils/documents/restoreDoc.ts`) are the main users.
+There is one mechanism. Code outside the repos that needs several repo writes to commit together calls `withTransaction(async (tx) => …)` (`server/repos/transaction.ts`) and passes `tx`, an opaque `TxHandle`, useless for building a query, as the last argument of each repo call. Inside a repo, `executor(tx)` returns the caller's transaction or the pool; a repo that opens its own `db.transaction` passes it on to other repos with `asTxHandle(tx)`. The Stripe webhook dispatcher (`server/utils/billing/stripeWebhook.ts`) and the restore flow (`server/utils/documents/restoreDoc.ts`) are the main users.
 
 ## Connection and TLS
 

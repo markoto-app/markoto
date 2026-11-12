@@ -10,10 +10,10 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('workspace-billing-email')
 
 // Billing emails to a Team / Business workspace's admins:
-//   budget_80 / budget_100 — the workspace's AI budget is 80 % / fully used
-//   payment_failed         — Stripe couldn't charge (first failure only)
-//   seat_added             — another admin added a seat (to the billing admin)
-//   ending / ended         — the subscription won't renew / has ended
+//   budget_80 / budget_100: the workspace's AI budget is 80 % / fully used
+//   payment_failed: Stripe couldn't charge (first failure only)
+//   seat_added: another admin added a seat (to the billing admin)
+//   ending / ended: the subscription won't renew / has ended
 // Plain text, localised per recipient (`users.locale`), link to the
 // workspace's billing tab. Members never get billing emails.
 //

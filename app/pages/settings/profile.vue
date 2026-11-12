@@ -12,7 +12,7 @@ import { formatBytes, usageFill } from '~/utils/billing/usageMeter'
 
 const router = useRouter()
 const { t, locale } = useI18n()
-// The spending section is a billing surface — hidden entirely when
+// The spending section is a billing surface, hidden entirely when
 // billing is off (self-hosted / free-only SaaS).
 const { billingEnabled } = useBillingMode()
 const toast = useToast()
@@ -151,7 +151,7 @@ const policies = computed(() => {
     // DPA is workspace-owner only (B2B). When the user hasn't
     // accepted, surface that as "Required when you create a
     // workspace" rather than the rose "needs re-acceptance"
-    // warning — DPA acceptance is contextual, not overdue.
+    // warning: DPA acceptance is contextual, not overdue.
     { key: 'dpa', label: t('legal.policyAcceptance.documentNames.dpa'), state: p.dpa, contextual: true }
   ]
 })
@@ -205,7 +205,7 @@ const policies = computed(() => {
         </p>
       </header>
 
-      <!-- Account meta — read-only for now (locale + age confirmation are
+      <!-- Account meta: read-only for now (locale + age confirmation are
            managed elsewhere; surfaced here for transparency). -->
       <section
         class="mb-10"
@@ -224,7 +224,7 @@ const policies = computed(() => {
               {{ t('settings.profile.account.email') }}
             </dt>
             <dd class="text-sm font-mono break-all sm:break-normal sm:text-right">
-              {{ status?.email ?? '—' }}
+              {{ status?.email ?? '-' }}
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -232,7 +232,7 @@ const policies = computed(() => {
               {{ t('settings.profile.account.locale') }}
             </dt>
             <dd class="text-sm font-mono sm:text-right">
-              {{ status?.locale ?? '—' }}
+              {{ status?.locale ?? '-' }}
             </dd>
           </div>
           <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 sm:gap-3 px-4 py-3">
@@ -248,7 +248,7 @@ const policies = computed(() => {
         </dl>
       </section>
 
-      <!-- Sessions — sign out of every browser and device. -->
+      <!-- Sessions: sign out of every browser and device. -->
       <section
         class="mb-10"
         data-testid="profile-sessions-section"
@@ -273,7 +273,7 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- Storage — document images vs. the per-user quota (shown in
+      <!-- Storage: document images vs. the per-user quota (shown in
            every billing mode: the limit is real either way). -->
       <section
         v-if="billing"
@@ -308,7 +308,7 @@ const policies = computed(() => {
       <!-- ─────────────────────────────────────────────────────────────
            Spending & usage placeholder. When the spending feature
            ships (per-period AI credit usage, plan history table,
-           invoice list, downloadable receipts), it lands HERE — same
+           invoice list, downloadable receipts), it lands HERE, same
            card shape as the other sections, between Account and
            Your data. The structural slot is reserved on purpose so a
            future implementer doesn't have to rearrange the page.
@@ -390,10 +390,10 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- Your data — export. -->
+      <!-- Your data: export. -->
       <SettingsDataExportSection :deletion-pending="deletionPending" />
 
-      <!-- Delete account — last because it's the most destructive. -->
+      <!-- Delete account: last because it's the most destructive. -->
       <section
         class="mb-10"
         data-testid="profile-delete-section"
@@ -443,7 +443,7 @@ const policies = computed(() => {
         </div>
       </section>
 
-      <!-- Legal — secondary content; lists accepted document versions
+      <!-- Legal: secondary content; lists accepted document versions
            with the cookie note. Surfaced for transparency
            but visually de-emphasised: it's a reference card, not a
            call-to-action. -->

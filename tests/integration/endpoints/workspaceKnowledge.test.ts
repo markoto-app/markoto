@@ -8,7 +8,7 @@ import {
 } from '../setup/fixtures'
 
 // Knowledge-base REST endpoints. These cover the DB + authz surface.
-// Upload-request issues a presigned S3 URL — we don't exercise the PUT
+// Upload-request issues a presigned S3 URL, we don't exercise the PUT
 // itself (that's S3's problem); confirm + list + delete are tested
 // against seeded rows. processKnowledge() runs fire-and-forget and is
 // not covered here (needs markitdown); its failure path is exercised
@@ -114,7 +114,7 @@ describe('POST /api/workspaces/:wsId/knowledge/upload-request', () => {
     const owner = await createUser()
     const ws = await createWorkspace(owner.id)
     const client = await loggedInClient(owner.id)
-    // Default cap is 25 MB — go just above.
+    // Default cap is 25 MB, go just above.
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/upload-request`, {
       filename: 'big.pdf',
       size: 26 * 1024 * 1024
@@ -203,7 +203,7 @@ describe('GET /api/workspaces/:wsId/knowledge', () => {
   })
 })
 
-describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () => {
+describe('POST /api/workspaces/:wsId/knowledge/confirm: input binding', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -213,7 +213,7 @@ describe('POST /api/workspaces/:wsId/knowledge/confirm — input binding', () =>
     const ws = await createWorkspace(owner.id)
     const client = await loggedInClient(owner.id)
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/knowledge/confirm`, {
-      // knowledgeId A, but s3Key names knowledgeId B — reject before
+      // knowledgeId A, but s3Key names knowledgeId B, reject before
       // any S3 or DB work.
       knowledgeId: 'a'.repeat(12),
       s3Key: `workspaces/${ws.workspaceId}/knowledge/${'b'.repeat(12)}.pdf`,
@@ -236,7 +236,7 @@ describe('per-user knowledge caps', () => {
     const u = await createUser()
     const wsA = await createWorkspace(u.id)
     const wsB = await createWorkspace(u.id, { workspaceId: 'ws-user-fanout' })
-    // Seed 100 rows owned by this user, split across two workspaces —
+    // Seed 100 rows owned by this user, split across two workspaces,
     // each workspace has 50, well below the 500/workspace cap, but
     // the per-user count (100) matches maxFilesPerUser.
     const db = testDb()
@@ -265,7 +265,7 @@ describe('per-user knowledge caps', () => {
   })
 })
 
-describe('POST /api/workspaces — per-user workspace cap', () => {
+describe('POST /api/workspaces: per-user workspace cap', () => {
   beforeEach(async () => {
     await resetDb()
   })

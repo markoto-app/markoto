@@ -8,14 +8,14 @@ const log = useLogger('ydoc-pool')
 // Idle-eviction sweeper for the YDocPool.
 //
 // The pool keeps a HocuspocusProvider open per (docId, principalId)
-// while refCount > 0 — the in-app loop holds for one run; an MCP
+// while refCount > 0, the in-app loop holds for one run; an MCP
 // session holds across its tool calls. When refCount hits 0 we stamp
 // `lastReleasedAt` and let this sweeper close the entry IDLE_MS after
 // the last release.
 //
-// Process-local — no advisory lock (the pool exists per Nuxt process;
+// Process-local: no advisory lock (the pool exists per Nuxt process;
 // multi-instance behavior is each process owns its own connections, which is
-// the correct shape — Hocuspocus dedupes on its end) and no database, so no
+// the correct shape: Hocuspocus dedupes on its end) and no database, so no
 // wait for migrations.
 //
 // Tick interval is 60s; idle threshold is 5 min. Both are short enough

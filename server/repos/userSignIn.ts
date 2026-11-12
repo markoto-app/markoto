@@ -96,7 +96,7 @@ type Tx = Parameters<Parameters<ReturnType<typeof useDatabase>['transaction']>[0
 /**
  * Branch 1: provider id is already on file. Update the mutable fields
  * (name, email, plus login on GitHub) and return. Provider avatars are
- * never stored — avatars are generated locally from the user id.
+ * never stored: avatars are generated locally from the user id.
  */
 async function tryUpdateExistingByProvider(
   tx: Tx,
@@ -122,8 +122,8 @@ async function tryUpdateExistingByProvider(
 /**
  * Branch 2: email-based merge. Locked with `FOR UPDATE` so a
  * concurrent second-provider login for the same email serialises
- * (second tx sees either our merged row or — if we haven't
- * committed — waits + then sees the merged state). Returns null when
+ * (second tx sees either our merged row or, if we haven't
+ * committed: waits + then sees the merged state). Returns null when
  * the verified-email gate doesn't apply, no candidate exists, or the
  * candidate already has OUR provider bound to a different value
  * (caller falls through to insert).
@@ -143,7 +143,7 @@ async function tryMergeByVerifiedEmail(
 
   // Candidate already has our provider id bound to a DIFFERENT value
   // (otherwise branch 1 would have matched). Overwriting would
-  // clobber the existing binding — caller falls through to insert.
+  // clobber the existing binding, caller falls through to insert.
   // For OIDC that includes an identity from a different issuer: a
   // user row holds at most one OIDC identity, and re-pointing it to a
   // new issuer is not something a login should do silently.

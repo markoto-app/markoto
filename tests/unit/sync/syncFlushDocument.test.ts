@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { flushPendingStore, storeDebounceId, type StoreDebouncer } from '../../../sync-server/src/flushDocument'
 
-// `/internal/flush-document` — the app calls it before cloning a live
+// `/internal/flush-document`: the app calls it before cloning a live
 // document's persisted Y.js rows (duplicate). Driven here against a fake
 // of Hocuspocus' store debouncer.
 

@@ -1,4 +1,4 @@
-# AI agentic loop — agent rules
+# AI agentic loop: agent rules
 
 How the loop works and how to add a tool: `docs/contributing/ai-tools.md`. MCP delivery: `server/mcp/AGENTS.md`. Model choices: `docs/AI-MODELS.md`.
 

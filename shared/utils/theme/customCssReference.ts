@@ -73,7 +73,7 @@ export const CUSTOM_CSS_PAGE_HOOKS: readonly CustomCssHook[] = [
 /** At-rules the sanitizer accepts at the top level of custom CSS. */
 export const CUSTOM_CSS_ALLOWED_AT_RULES = ['@media', '@supports', '@page', '@keyframes', '@container', '@layer', '@font-feature-values'] as const
 
-/** At-rules (and constructs) the sanitizer refuses — the whole CSS is then not applied. */
+/** At-rules (and constructs) the sanitizer refuses, the whole CSS is then not applied. */
 export const CUSTOM_CSS_REFUSED_AT_RULES = ['@import', '@font-face', '@namespace', '@property', '@counter-style'] as const
 
 const hookList = (hooks: readonly CustomCssHook[]) => hooks.map(h => `${h.selector} (${h.what})`).join('; ')
@@ -87,6 +87,6 @@ export const CUSTOM_CSS_AI_REFERENCE = [
   `Cover page: ${hookList(CUSTOM_CSS_COVER_HOOKS)}.`,
   `Theme colours as variables (use var(--…) so the CSS follows the theme): ${hookList(CUSTOM_CSS_VARIABLES)}.`,
   `Pages: ${hookList(CUSTOM_CSS_PAGE_HOOKS)}.`,
-  'Classes you add in the Markdown with attributes ({.name} after a heading, link, image or inline code; on the line after a paragraph, list, quote or table) are styled as `.paged-doc .name` — e.g. a list or quote with {.two-columns} + `.paged-doc .two-columns { column-count: 2; column-gap: 8mm }` gives a two-column section.',
+  'Classes you add in the Markdown with attributes ({.name} after a heading, link, image or inline code; on the line after a paragraph, list, quote or table) are styled as `.paged-doc .name`, e.g. a list or quote with {.two-columns} + `.paged-doc .two-columns { column-count: 2; column-gap: 8mm }` gives a two-column section.',
   `Allowed at-rules: ${CUSTOM_CSS_ALLOWED_AT_RULES.join(', ')} (plus margin boxes inside @page). Refused: ${CUSTOM_CSS_REFUSED_AT_RULES.join(', ')}, expression(), behavior / -moz-binding, javascript: / vbscript: URLs, var() inside url()/image-set(); url() only to images uploaded to THIS document (/api/files/<this doc id>/<file id>) or base64 data:image/png|jpeg|gif|webp (no SVG, no external hosts). Max 64 KB. A refused construct fails the whole call with line/column issues: fix and resend.`
 ].join(' ')

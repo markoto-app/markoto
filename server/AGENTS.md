@@ -15,10 +15,10 @@ Nitro API, sign-in routes, middleware and background jobs. How access control, d
 
 ## Document access
 
-- Decide document access only with the pure functions in `shared/utils/documents/docPermissions.ts` (`decideTokenAccess`, `decideFileAccess`, `decideActivityAccess`, `decideDocDelete`, `canDownload`), fed by `docStateOf(row)` from `getDocWithActorRole`. Check ownership with `isEffectiveDocOwner` — never compare `ownerId` by hand: share expiry and SSO enforcement change the answer.
+- Decide document access only with the pure functions in `shared/utils/documents/docPermissions.ts` (`decideTokenAccess`, `decideFileAccess`, `decideActivityAccess`, `decideDocDelete`, `canDownload`), fed by `docStateOf(row)` from `getDocWithActorRole`. Check ownership with `isEffectiveDocOwner`, never compare `ownerId` by hand: share expiry and SSO enforcement change the answer.
 - Server-side content writes use `allow.doc('write-content')`, whose `docAccess` is a `DocAccess<'write'>`. The rule (`canWriteDocContent`, `utils/access/docProof.ts`) allows exactly what `decideTokenAccess` would make writable; a workspace viewer never writes, even on `open-edit`.
 - Repo calls take capability proofs, never bare ids (`repos/AGENTS.md` → Proofs). A handler gets them from its policy (`docAccess`, `workspaceAccess`, `self`, `adminActor`, and `prove.workspace` / `prove.doc` for a second object, bound to the caller); other code asks the access layer (`utils/access/`: `proveDocMembership`, `proveWorkspaceAccess`, `docProofFor`). Only background jobs, webhooks and internal routes use `system('<name>')`; ESLint refuses it in user-facing handlers. Tenancy guarantees and limits: `docs/SECURITY-HARDENING.md` → Tenancy.
-- Denied callers of `/meta` and `/token` get the access fields only — never title, owner, theme, body or document context.
+- Denied callers of `/meta` and `/token` get the access fields only, never title, owner, theme, body or document context.
 - After a change that makes a document's access stricter (access mode, password, share expiry or no-download, moderation, workspace move), call `notifySyncReauthDocument(docId)` AFTER the write commits. After reducing one user's access (role change, removal, unshare), call `notifySyncKickUser`. Both live in `utils/documents/syncNotify.ts`.
 - Every path that widens who can reach a document (access mode, password, shares, workspace move, publishing) calls `assertNotModerationRestricted` (`utils/privacy/moderationRestriction.ts`).
 - `hasValidDocJwt(event, docId, scopes)` accepts a scoped token only when the caller lists its scope; only the file routes accept `file-access`. Don't widen it.
@@ -36,7 +36,7 @@ Nitro API, sign-in routes, middleware and background jobs. How access control, d
 ## Writes and errors
 
 - Call `appendAuditEvent` (`repos/audit.ts`) after the privileged mutation commits. It truncates the IP and swallows failures itself. Pass `workspaceId` on document events, or the workspace audit viewer misses them.
-- Wrap a POST whose double execution corrupts state (clone, copy, import) in `withIdempotency` (`utils/platform/idempotency.ts`). Not for billing correctness — that is enforced in the database.
+- Wrap a POST whose double execution corrupts state (clone, copy, import) in `withIdempotency` (`utils/platform/idempotency.ts`). Not for billing correctness, that is enforced in the database.
 - Never add per-endpoint try/catch to scrub 5xx messages; `server/error.ts` does it for every route. Return client-actionable errors as 4xx through `apiError` with a registered code (`shared/api/errors/`).
 
 ## Plugins and background jobs

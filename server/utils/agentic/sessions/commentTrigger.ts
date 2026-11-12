@@ -19,7 +19,7 @@ const log = useLogger('ai-trigger')
 // reply mentioning `@ai`). Identical to an editor prompt except:
 //
 //   1. The system prompt is the comment-trigger flavour
-//      (`commentTriggerPrompt.ts`) — instructs the model to end with
+//      (`commentTriggerPrompt.ts`): instructs the model to end with
 //      reply_to_comment on the trigger thread, never to create_comment,
 //      never to resolve unless asked.
 //   2. The seed user-message is the `<comment_trigger>` block (the
@@ -116,7 +116,7 @@ async function peekTriggerThread(docId: string, userId: number, commentId: strin
     const ytext = peek.ydoc.getText('content')
     const thread = resolveCommentTrigger(peek.ydoc, ytext, commentId, replyId)
     // Comment authorship is client-written Y.js data, so this is not
-    // proof — but it stops the endpoint from being pointed at somebody
+    // proof: but it stops the endpoint from being pointed at somebody
     // else's message (or one that never asked for the AI).
     if (thread?.triggerAuthorId !== userId || !thread.triggerMentionsAi) {
       throw apiError('ai/comment-trigger-not-eligible')
@@ -136,7 +136,7 @@ async function peekTriggerThread(docId: string, userId: number, commentId: strin
  * Synthesize an `<editor_state>` selection from the comment's anchor.
  * Without this the model treats the trigger as an unscoped prompt and
  * its routing rules ("kind: selection → replace_text on the selected
- * range") never fire — it falls back to `insert_text` at EOF for
+ * range") never fire: it falls back to `insert_text` at EOF for
  * "rewrite this" style requests. Orphaned anchors (no resolvable
  * range) pass through unwrapped; the model can still see the original
  * anchor text in the `<comment_trigger>` block.
@@ -162,7 +162,7 @@ function wrapSeedWithEditorState(seedPrompt: string, thread: TriggerCtx['thread'
  * Same shape as the editor prompt's system prompt but uses the
  * comment-trigger flavour SYSTEM_PROMPT (banishes create_comment,
  * forces reply_to_comment ending). The per-thread block is NOT part of
- * it — it rides in the user message as quoted data.
+ * it: it rides in the user message as quoted data.
  */
 function buildTriggerSystemPrompt(doc: Awaited<ReturnType<typeof getDoc>>, ws: SessionWorkspace): string {
   const documentContextBlock = documentContextBlockFor(doc)

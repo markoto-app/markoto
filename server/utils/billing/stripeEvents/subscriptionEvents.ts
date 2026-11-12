@@ -146,7 +146,7 @@ async function applyPersonalSubscription(
  * `customer.subscription.deleted` handler.
  *   - Personal: revert to Free and null the Stripe anchor (the resolver
  *     falls back to the calendar month). `stripeCustomerId` and
- *     `billingCurrency` stay — a resubscription reuses the customer.
+ *     `billingCurrency` stay: a resubscription reuses the customer.
  *   - Workspace: mark the subscription `canceled` (the row stays as the
  *     record; `resolveWorkspacePlan` stops granting the plan).
  */
@@ -185,7 +185,7 @@ export async function handleSubscriptionDeleted(
     }
   }, handle)
 
-  // Drop the LiteLLM key budget to the free-tier value — deferred to
+  // Drop the LiteLLM key budget to the free-tier value, deferred to
   // post-commit (see handleCheckoutSessionCompleted).
   if (deferAfterCommit) {
     deferAfterCommit.push(async () => {

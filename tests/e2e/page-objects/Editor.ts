@@ -8,7 +8,7 @@ import { settleAnimations } from '../fixtures/waits'
 
 // Page-object for the YPad editor (`/d/<id>`). Stable selectors for
 // the parts of the UI that flow tests touch most often. ONE place to
-// fix when the markup changes — flow tests stay declarative.
+// fix when the markup changes, flow tests stay declarative.
 //
 // Selector strategy, in order of preference:
 //   1. data-testid (won't drift with translations)
@@ -34,7 +34,7 @@ export class EditorPage {
     return this.page.locator('[data-testid="doc-title-input"]')
   }
 
-  /** Connection status chip — ONLY rendered when status is `connecting`
+  /** Connection status chip: ONLY rendered when status is `connecting`
    *  or `disconnected`. Connected is the assumed default and the chip
    *  is hidden (see EditorLayout.vue's `v-if="status !== 'connected'"`).
    *  Tests should wait for this locator to be DETACHED (= connected),
@@ -52,7 +52,7 @@ export class EditorPage {
 
   /** The three view-mode buttons in the header center. Selected by
    *  `data-testid="view-mode-{edit,split,preview}"` from
-   *  EditorLayout.vue — text-based lookups would clash with the
+   *  EditorLayout.vue: text-based lookups would clash with the
    *  menubar's "Edit" menu (same accessible name). */
   get viewMode() {
     return {
@@ -79,7 +79,7 @@ export class EditorPage {
   // Surface area for the right-sidebar theme editor. Preset cards have
   // stable `theme-preset-{id}` testids; the cover-page accordion's
   // master toggle has `theme-cover-enabled-switch`. Section headers
-  // (the `<UAccordion>` triggers) are matched by visible label —
+  // (the `<UAccordion>` triggers) are matched by visible label,
   // they're translated, but every locale tested today (en) shares the
   // same English label set.
   get theme() {
@@ -131,10 +131,10 @@ export class EditorPage {
   // AI surfaces
   //
   // Two interaction surfaces for the AI assistant:
-  //   1. The floating prompt bar at the bottom of the editor — always
+  //   1. The floating prompt bar at the bottom of the editor, always
   //      visible when the viewer is logged in. Send a prompt → AI
   //      runs an agentic loop and edits the doc directly.
-  //   2. The @ai mention inside a comment thread — typing @ai in any
+  //   2. The @ai mention inside a comment thread, typing @ai in any
   //      comment composer opens the typeahead with the synthetic AI
   //      entry; posting the comment fires `/trigger-ai` and the AI
   //      reply lands as a reply on the same thread.
@@ -146,7 +146,7 @@ export class EditorPage {
   get ai() {
     return {
       /** The floating AI prompt bar root. `data-active` flips to "true"
-       *  while a session is in flight — gates "wait until AI started" /
+       *  while a session is in flight, gates "wait until AI started" /
        *  "wait until AI finished" steps. */
       promptBar: this.page.locator('[data-testid="ai-prompt-bar"]'),
       /** The text input inside the prompt bar. */
@@ -164,14 +164,14 @@ export class EditorPage {
 
   /**
    * Wait for the AI prompt bar to flip back to idle. Used after a
-   * prompt to gate "the AI is done" — checks `data-active=false`,
+   * prompt to gate "the AI is done", checks `data-active=false`,
    * which is set by the bottom-bar component when the
    * useAI().mySession ref clears (status='done' or session aborted).
    *
    * Default 240s. Real Mistral turns are 5-30s; a multi-tool loop
    * (fetch_url's 2-call sub-pipeline + surrounding agentic turns) chains
    * 4-6 of them. The LiteLLM wrapper retries 429s with up to 45s of
-   * cumulative backoff per call (3s + 6s + 12s + 24s — see
+   * cumulative backoff per call (3s + 6s + 12s + 24s, see
    * `server/utils/litellm/createCompletion.ts`), sized to ride out a
    * full Mistral per-minute rate-limit window. Worst case for a
    * 4-call loop hitting sustained throttling: ~30s × 4 + ~45s × 1 retry
@@ -180,7 +180,7 @@ export class EditorPage {
    * Override downward for single-prompt flows where the savings matter
    * (the test still aborts on real 5-min server-side deadline). Override
    * upward (e.g. `300_000`) for AI flows that genuinely chain many
-   * tools — `ai-comment-mention` already does this via its own
+   * tools: `ai-comment-mention` already does this via its own
    * `test.setTimeout(600_000)`.
    */
   async waitForAiIdle(timeout = 240_000): Promise<void> {
@@ -194,7 +194,7 @@ export class EditorPage {
    * terminal phase into `data-last-outcome` (`done` | `error`, empty
    * while none has ended) and the server's message into
    * `data-last-outcome-message`. Without this check a flow passed even
-   * when the user saw "Could not reach markoto — Hit turn limit".
+   * when the user saw "Could not reach markoto, Hit turn limit".
    */
   async expectAiSessionSucceeded(timeout = 15_000): Promise<void> {
     const bar = this.ai.promptBar
@@ -207,7 +207,7 @@ export class EditorPage {
   }
 
   /**
-   * Wait for the AI prompt bar to enter the "session active" state —
+   * Wait for the AI prompt bar to enter the "session active" state,
    * confirms the agentic loop actually started server-side and the
    * client received the `/api/ai/prompt` response. Use this BEFORE
    * `waitForAiIdle` so flaky network conditions are caught at the
@@ -223,18 +223,18 @@ export class EditorPage {
   // Mobile surfaces the same control as the second tab on the bottom
   // MobileTabBar (`data-testid="mobile-tab-dictate"`). The toolbar
   // mic doesn't currently have a stable testid; match by aria-label
-  // ("Start dictation" / "Stop dictation" — both states resolve so a
+  // ("Start dictation" / "Stop dictation", both states resolve so a
   // tooltip-text regex catches either).
 
   /** The toolbar dictation mic. `data-testid` is stable; `aria-label`
    *  flips between "Start dictation" and "Stop dictation"; the
    *  `data-active` attribute is `'true'` when the dictation state is
-   *  busy or recording — useful for waiting on state transitions. */
+   *  busy or recording: useful for waiting on state transitions. */
   get dictateMicButton(): Locator {
     return this.page.locator('[data-testid="toolbar-dictate-mic"]')
   }
 
-  /** Mobile tab-bar dictation tab — only visible at <sm width. */
+  /** Mobile tab-bar dictation tab, only visible at <sm width. */
   get dictateMobileTab(): Locator {
     return this.page.locator('[data-testid="mobile-tab-dictate"]')
   }
@@ -242,7 +242,7 @@ export class EditorPage {
   /** Mobile bottom-bar tabs. The aria-labels come from the
    *  `mobileTabBar.*Short` i18n keys (en):
    *    Editor / Dictate / Info / Comments / Activity / Theme / Knowledge
-   *  Note "Info" is the label for the Document panel — the short
+   *  Note "Info" is the label for the Document panel, the short
    *  i18n key is `documentShort` but the rendered text is "Info".
    *  The Knowledge tab only renders when `hasKnowledgeAccess` is
    *  true (workspace doc with ≥1 ready file). */
@@ -294,7 +294,7 @@ export class EditorPage {
       return true
     }, { enabled, stored, fallback: defaultTheme })
     if (!applied) {
-      throw new Error('[setCoverEnabled] window.__DEBUG_ydoc is missing — run against the flow stack (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1)')
+      throw new Error('[setCoverEnabled] window.__DEBUG_ydoc is missing, run against the flow stack (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1)')
     }
     if (await this.page.locator('iframe').count() > 0) {
       const cover = this.page.frameLocator('iframe').first().locator('#mount .markoto-cover')
@@ -317,7 +317,7 @@ export class EditorPage {
 
   /**
    * The authoritative document text (Y.Text), via the flow stack's
-   * `__DEBUG_ytext` handle. Prefer this over `.cm-content` — CM6
+   * `__DEBUG_ytext` handle. Prefer this over `.cm-content`, CM6
    * virtualises long documents, so the DOM only holds the viewport.
    */
   async docText(): Promise<string> {
@@ -331,7 +331,7 @@ export class EditorPage {
 
   /**
    * Replace the whole document text (Y.Text) with `markdown`, as one
-   * edit by this user — e.g. a short, realistic starting draft instead
+   * edit by this user, e.g. a short, realistic starting draft instead
    * of the long Demo document, so the flow's outcome fits on the
    * first preview page. Waits until the editor shows the new text.
    */
@@ -349,7 +349,7 @@ export class EditorPage {
 
   async setDocText(markdown: string): Promise<void> {
     // A new doc seeds its template body (Demo, by default) on the first
-    // sync — wait for it, so the seed can't land after (and next to) our
+    // sync: wait for it, so the seed can't land after (and next to) our
     // text. A Blank document (incl. one made by a bare POST /api/docs)
     // never gets a body: its meta has `initialBody: null`, nothing to wait for.
     if (await this.hasTemplateSeed()) {
@@ -367,7 +367,7 @@ export class EditorPage {
       return true
     }, markdown)
     if (!applied) {
-      throw new Error('[setDocText] window.__DEBUG_ytext is missing — run against the flow stack (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1)')
+      throw new Error('[setDocText] window.__DEBUG_ytext is missing, run against the flow stack (NUXT_PUBLIC_EXPOSE_TEST_HANDLES=1)')
     }
     await expect.poll(() => this.docText()).toBe(markdown)
     const firstLine = markdown.split('\n').find(l => l.trim().length > 0)
@@ -376,7 +376,7 @@ export class EditorPage {
 
   /**
    * Close every open toast (Nuxt UI's close button on each) and wait
-   * until none is left — so an outcome frame doesn't show stale toasts
+   * until none is left, so an outcome frame doesn't show stale toasts
    * from earlier steps stacked over the one that matters.
    */
   async dismissToasts(): Promise<void> {
@@ -391,7 +391,7 @@ export class EditorPage {
 
   /**
    * The non-empty lines of the current document that weren't in
-   * `before` — i.e. what an AI run (or a collaborator) added.
+   * `before`: i.e. what an AI run (or a collaborator) added.
    */
   async addedText(before: string): Promise<string> {
     const old = new Set(before.split('\n'))
@@ -468,10 +468,10 @@ export class EditorPage {
   // New-document dialog
 
   /** Selectors inside the new-document dialog. The dialog opens when
-   *  the user clicks "+ New Document" anywhere — homepage, workspace,
+   *  the user clicks "+ New Document" anywhere, homepage, workspace,
    *  or File menu. The title is in view; the template (text + design,
    *  one choice: "Template") and description / language / audience
-   *  ("Details") sit in collapsed rows —
+   *  ("Details") sit in collapsed rows,
    *  open one with `section(id)` (or `openNewDocSection`) before using its
    *  cards or inputs. One submit path: `submitCreate`.
    *
@@ -509,7 +509,7 @@ export class EditorPage {
   /** The accept-terms step an ANONYMOUS visitor sees before their first
    *  document in this browser (`DocumentAnonGateDialog`). The bot check
    *  behind it is the real ALTCHA proof of work, solved by the browser's
-   *  web worker (test difficulty on the flow stack) — nothing is bypassed. */
+   *  web worker (test difficulty on the flow stack), nothing is bypassed. */
   get anonGate() {
     return {
       dialog: this.page.locator('[data-testid="anon-gate-dialog"]'),
@@ -570,7 +570,7 @@ export class EditorPage {
    * The connection-status chip is now hidden when status === 'connected'
    * (topbar polish pass), so we can't wait for it to APPEAR. Instead:
    *   1. Wait for the title button to render (markup hydrated +
-   *      ymeta has produced an initial title — implies the doc Y.Doc
+   *      ymeta has produced an initial title, implies the doc Y.Doc
    *      is bound).
    *   2. Wait for any non-connected chip (`connecting` / `disconnected`)
    *      to be detached. If the chip is gone, we're connected. The
@@ -579,7 +579,7 @@ export class EditorPage {
    */
   async waitForReady(timeout = 15_000): Promise<void> {
     await expect(this.titleButton).toBeVisible({ timeout })
-    // toHaveCount(0) is the "no non-connected chip exists" check —
+    // toHaveCount(0) is the "no non-connected chip exists" check,
     // succeeds either if the chip rendered then vanished (connect
     // resolved) or if it never rendered at all (handshake was fast
     // enough to skip `connecting`).
@@ -588,7 +588,7 @@ export class EditorPage {
 
   /**
    * Switch to split view (editor + live preview side-by-side). New
-   * docs land in preview mode briefly while `isReadOnly` resolves —
+   * docs land in preview mode briefly while `isReadOnly` resolves,
    * calling this puts you in the most useful mode for screenshots.
    */
   /** Mobile only: the floating edit ⇄ preview switch's Preview button. */
@@ -615,17 +615,17 @@ export class EditorPage {
   /**
    * Wait for the preview iframe to finish pagination. paged.js
    * creates `.pagedjs_pages` early (empty, hidden) and only appends
-   * `.pagedjs_page` children when pagination actually completes —
+   * `.pagedjs_page` children when pagination actually completes,
    * waiting on the inner `.pagedjs_page` is the reliable signal.
    * Screenshots taken before that show a blank preview pane.
    *
    * **Scope to `#mount` deliberately.** The iframe has two paged-mount
    * divs in DOM order: `#mount` (visible target) and `#pending`
-   * (offscreen scratch — `position:fixed; left:-10000px; visibility:hidden`).
+   * (offscreen scratch: `position:fixed; left:-10000px; visibility:hidden`).
    * paged.js renders into `#pending` first, then `replaceChildren`-swaps
    * the pages into `#mount`. On the *first* render after the iframe
    * is created (e.g. after a route navigation that re-mounts
-   * PreviewPane — happens on duplicate-doc), `#mount` is empty while
+   * PreviewPane: happens on duplicate-doc), `#mount` is empty while
    * paged.js is mid-fill of `#pending`. An unscoped `.pagedjs_page`
    * `.first()` would then match a `#pending` element and report it
    * hidden for the entire wait window. Scoping to `#mount` ensures
@@ -664,7 +664,7 @@ export class EditorPage {
    * called. Uses pressSequentially (per-keystroke events) which
    * matches user behaviour and is what triggers the Y.js title bridge.
    * Waits for the input to be replaced with the saved-title button
-   * before returning — guards against capturing mid-blur state.
+   * before returning: guards against capturing mid-blur state.
    */
   async commitTitleEdit(newTitle: string): Promise<void> {
     await this.titleInput.pressSequentially(newTitle)
@@ -677,7 +677,7 @@ export class EditorPage {
   /**
    * Seal a session cookie for a fresh test user. Uses the
    * `/api/_test/login` shim that's only mounted when the Nuxt
-   * subprocess was started with TEST_MODE=1 — the flow-ephemeral
+   * subprocess was started with TEST_MODE=1, the flow-ephemeral
    * orchestrator sets this for us.
    *
    * Two-step:
@@ -687,12 +687,12 @@ export class EditorPage {
    *   2. POST to /api/_test/login → response sets a sealed session
    *      cookie on the page context.
    *
-   * `options.email` stores a verified account email on the row — what
+   * `options.email` stores a verified account email on the row, what
    * workspace invitations are matched against (the invited teammate in
    * `invite-a-teammate`) and what the profile page shows. Omitted =
    * NULL, like an OAuth account without a verified address.
    * `options.locale` sets the account language (profile page, emails);
-   * omitted = NULL (shown as "—").
+   * omitted = NULL (shown as ", ").
    *
    * Returns the user id so callers can use it (e.g. for billing
    * resolution checks).
@@ -749,7 +749,7 @@ export class EditorPage {
   /**
    * Seal a session for an ALREADY-EXISTING user row. The sibling of
    * `loginAsTestUser`, but for cases where the user row was created
-   * by other means — typically a direct DB INSERT in the spec to set
+   * by other means: typically a direct DB INSERT in the spec to set
    * fields the login shim doesn't expose (email, plan='pro', custom
    * github_id matching a pre-stored invitation, etc.).
    *
@@ -795,9 +795,9 @@ export class EditorPage {
 
   /**
    * Go to the homepage, open the new-document dialog, create a doc with
-   * the dialog's defaults (the Demo template — `submitBlank` would give
+   * the dialog's defaults (the Demo template, `submitBlank` would give
    * an empty document), passing the accept-terms step when anonymous,
-   * and wait for /d/{id}. Does NOT wait for the WS handshake — call
+   * and wait for /d/{id}. Does NOT wait for the WS handshake, call
    * waitForReady() after.
    */
   async createNewDoc(): Promise<void> {
@@ -808,11 +808,11 @@ export class EditorPage {
   /**
    * LOGGED-IN equivalent of `createNewDoc`. Opens the homepage, clicks
    * "+ New Document", waits for the new-doc dialog to render. Returns
-   * with the dialog open and the title input visible — callers fill
+   * with the dialog open and the title input visible, callers fill
    * the form and submit themselves.
    *
    * Uses the same Vue-hydration retry pattern as `silentSetup`/
-   * `recordPreamble` (an `expect.toPass` loop) — the SSR'd button
+   * `recordPreamble` (an `expect.toPass` loop), the SSR'd button
    * looks interactive before its `@click` handler attaches, so a
    * single click can be a no-op. Retries until the dialog heading
    * is visible.
@@ -831,14 +831,14 @@ export class EditorPage {
   /**
    * One-shot for logged-in flows that want a doc with a title: open
    * the dialog, type the title, submit via the `Create` button
-   * (NOT `Skip` / `submitBlank` — the blank-submit path skips the
+   * (NOT `Skip` / `submitBlank`, the blank-submit path skips the
    * form fields and produces an "Untitled" doc).
    *
    * **Why pressSequentially instead of fill():** Nuxt UI's UInput is
    * a wrapper component; the `data-testid` lives on its outer shell.
    * Playwright's `.fill()` works against it (the locator auto-finds
    * the inner input) but doesn't always trigger Vue's v-model sync
-   * before the next click — the form submits with an empty `title`
+   * before the next click, the form submits with an empty `title`
    * and the doc is "Untitled". Per-keystroke events from
    * `pressSequentially()` mirror real user input and reliably commit
    * to the v-model before submit.

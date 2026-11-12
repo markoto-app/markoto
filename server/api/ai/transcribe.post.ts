@@ -73,7 +73,7 @@ export default defineApiHandler({
     // Neither → 409 `ai/provider-missing` (the mic button is hidden in that
     // case; this is the server-side backstop).
     // The plan that pays: the open document's Team / Business workspace when
-    // the caller is a member of it (`workspaceId` is advisory —
+    // the caller is a member of it (`workspaceId` is advisory,
     // resolveBillingContext checks membership), else the caller's own.
     const workspaceId = body.workspaceId ?? null
     const billing = await resolveBillingContext(userId, workspaceId)

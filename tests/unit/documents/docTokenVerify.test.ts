@@ -119,7 +119,7 @@ describe('extractToken', () => {
 
   describe('precedence + edge cases', () => {
     it('header wins when both header and query are present', () => {
-      // Programmatic clients (curl, scripts) set the header — that's
+      // Programmatic clients (curl, scripts) set the header, that's
       // the more explicit channel and should always take precedence
       // over URL-embedded tokens.
       const e = fakeEvent({
@@ -166,7 +166,7 @@ describe('verifyDocJwt', () => {
     })
   })
 
-  describe('docId scope (critical — cross-doc replay guard)', () => {
+  describe('docId scope (critical: cross-doc replay guard)', () => {
     it('returns false when docId claim does not match', () => {
       const token = sign({ docId: 'doc-A' })
       expect(verifyDocJwt(token, 'doc-B', SECRET)).toBe(false)
@@ -235,7 +235,7 @@ describe('verifyDocJwt', () => {
 
     it('returns false for an "alg: none" unsigned token', () => {
       // jsonwebtoken.verify with a string secret rejects alg:none by
-      // default. Pin the behaviour — an accepted alg:none here would
+      // default. Pin the behaviour, an accepted alg:none here would
       // let an attacker mint arbitrary docId claims with no signature.
       const header = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url')
       const payload = Buffer.from(JSON.stringify({
@@ -271,7 +271,7 @@ describe('verifyDocJwt', () => {
     })
 
     it('rejects an expired token even if it would verify under the previous secret', () => {
-      // Expiry takes precedence over rotation — a token past its TTL
+      // Expiry takes precedence over rotation, a token past its TTL
       // is dead regardless of which signing key was used.
       const token = sign({ docId: 'doc-1' }, { expiresIn: '-1s' }, PREVIOUS)
       expect(verifyDocJwt(token, 'doc-1', SECRET, PREVIOUS)).toBe(false)
@@ -291,7 +291,7 @@ describe('verifyDocJwt', () => {
   // ['HS256']` explicitly. These tests pin that enforcement.
 
   describe('algorithm pinning (HS256-only)', () => {
-    it('accepts HS256-signed tokens (baseline — the signer default)', () => {
+    it('accepts HS256-signed tokens (baseline, the signer default)', () => {
       const token = jwt.sign({ docId: 'doc-1' }, SECRET, { algorithm: 'HS256' })
       expect(verifyDocJwt(token, 'doc-1', SECRET)).toBe(true)
     })
@@ -339,7 +339,7 @@ describe('verifyDocJwt', () => {
 
 // Adversarial: extractToken edge cases
 
-describe('extractToken — adversarial edge cases', () => {
+describe('extractToken: adversarial edge cases', () => {
   it('returns null when the query token is an array (?token=a&token=b)', () => {
     // h3's getQuery returns an array when a key appears twice. The SUT
     // checks `typeof q === 'string'` which correctly rejects arrays.
@@ -352,7 +352,7 @@ describe('extractToken — adversarial edge cases', () => {
 
   it('returns null when the query token is an array with one valid entry', () => {
     // Same rejection. Even a single "good" entry inside an array form
-    // should be refused — if a client can put one, it can put multiple,
+    // should be refused: if a client can put one, it can put multiple,
     // and the precedence is ambiguous.
     const e = fakeEvent({ url: '/?token[]=valid' })
     // h3 parses `token[]` as an array key; some parsers emit it as
@@ -363,7 +363,7 @@ describe('extractToken — adversarial edge cases', () => {
 
   it('Authorization header with trailing garbage after the token gets captured verbatim', () => {
     // Finding (not a bug, pinning behaviour): the regex `^Bearer\s+(.+)$`
-    // is greedy — `Bearer abc def` captures "abc def". That whole
+    // is greedy: `Bearer abc def` captures "abc def". That whole
     // string goes into verifyDocJwt and fails signature check. Safe
     // (no verification bypass) but a client that accidentally appends
     // a comma-separated second auth scheme sees a rejected request.

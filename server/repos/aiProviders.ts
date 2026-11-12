@@ -4,7 +4,7 @@ import { useDatabase } from '../db/client'
 import type { AiCapability } from '~~/shared/ai/providers'
 import type { UserScope } from './proofs'
 
-// `user_ai_providers` repository — bring-your-own-key provider configs.
+// `user_ai_providers` repository: bring-your-own-key provider configs.
 //
 // This layer stores and returns the ENCRYPTED key only. Encryption,
 // decryption and the "never hand the key to the client" rule live in

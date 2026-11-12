@@ -65,7 +65,7 @@ async function clearSeededSpendLogs(): Promise<void> {
   }
 }
 
-describe('Multi-axis spend tagging — end-to-end', () => {
+describe('Multi-axis spend tagging: end-to-end', () => {
   beforeEach(async () => {
     await resetDb()
     await clearSeededSpendLogs()

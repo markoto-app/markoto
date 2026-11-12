@@ -1,7 +1,7 @@
 // Turns a raw environment into the typed object of one process.
 //
-//   loadEnv('app')   — boot: every problem at once, or throws EnvError.
-//   useEnv()        — runtime accessor of the app: same parsing, but a
+//   loadEnv('app')  : boot: every problem at once, or throws EnvError.
+//   useEnv()       : runtime accessor of the app: same parsing, but a
 //                      missing required value is '' instead of an error
 //                      (boot already enforced it; scripts and unit tests
 //                      run without the full set).
@@ -53,7 +53,7 @@ export interface LoadOptions {
 type Mutable = Record<string, Record<string, unknown>>
 
 interface Problems {
-  /** Values that do not parse — the rules wait until these are fixed. */
+  /** Values that do not parse, the rules wait until these are fixed. */
   type: string[]
   missing: string[]
 }
@@ -152,8 +152,8 @@ const RUNTIME_READ: LoadOptions = { relaxRequired: true, rules: false }
 
 // Runtime reads parse process.env once per process. Under Vitest they
 // parse it on every call instead, so a test provides configuration the
-// way an operator does — `vi.stubEnv('NUXT_X', …)`, restored after each
-// test (`unstubEnvs` in vitest.config.ts; docs/contributing/testing.md) —
+// way an operator does, `vi.stubEnv('NUXT_X', …)`, restored after each
+// test (`unstubEnvs` in vitest.config.ts; docs/contributing/testing.md),
 // without a reset hook in production code.
 const cache = new Map<ValidatedService, unknown>()
 

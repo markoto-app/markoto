@@ -4,7 +4,7 @@ Which models power markoto's AI features, why, and which models we recommend if 
 
 markoto routes every AI call through one gateway (LiteLLM), so each model below is a configuration choice, not a code dependency.
 
-**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on Z.ai GLM-5.3 Flash served by Mistral in the EU; image generation and transcription stay bring-your-own-key there. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator — see [Embeddings](#embeddings)); they are never per-user.
+**Who provides which model.** Chat (the writing agent), image generation and voice transcription are **bring your own key** (see [Bring your own key](#bring-your-own-key)): each user connects their own OpenAI-compatible provider, or uses a default the instance operator configured. The hosted markoto SaaS configures one: a monthly [free AI allowance](#free-ai-allowance-hosted) for chat on Z.ai GLM-5.3 Flash served by Mistral in the EU; image generation and transcription stay bring-your-own-key there. Embeddings, web search (Staan) and page fetching (Jina Reader) are always provided by the platform (or, for embeddings on a self-hosted instance, by the operator, see [Embeddings](#embeddings)); they are never per-user.
 
 ## Bundled models (operator defaults)
 
@@ -134,7 +134,7 @@ Tool-call arguments stayed valid JSON and the edits stayed grounded in the docum
 
 ### Prompt-caching layout
 
-`server/utils/agentic/promptAssembly.ts` orders every request from most to least stable: static system prompt, tool definitions (fixed order, deterministic JSON), document context, workspace context — and only then, in the first USER message, the conversation memory, editor state and prompt. Within a session the history only appends and tool-call arguments are replayed byte-for-byte as the model generated them. Keep the conversation memory out of the system message: Mistral Small 4's template places the tool definitions after the system message, so memory there makes a follow-up prompt cache 0 %; in the first user message it caches 99 % (measured through the proxy; whole two-prompt sessions: 85 % cache hits instead of 65 %). GLM-5.3 Flash renders tools first and is unaffected (48-51 % either way). `tests/unit/ai/promptCachePrefix.test.ts` pins the layout; the loop logs `usage: prompt=… cached=…` per call and Sentry's `ai-session-completed` carries `totalCachedInputTokens`.
+`server/utils/agentic/promptAssembly.ts` orders every request from most to least stable: static system prompt, tool definitions (fixed order, deterministic JSON), document context, workspace context, and only then, in the first USER message, the conversation memory, editor state and prompt. Within a session the history only appends and tool-call arguments are replayed byte-for-byte as the model generated them. Keep the conversation memory out of the system message: Mistral Small 4's template places the tool definitions after the system message, so memory there makes a follow-up prompt cache 0 %; in the first user message it caches 99 % (measured through the proxy; whole two-prompt sessions: 85 % cache hits instead of 65 %). GLM-5.3 Flash renders tools first and is unaffected (48-51 % either way). `tests/unit/ai/promptCachePrefix.test.ts` pins the layout; the loop logs `usage: prompt=… cached=…` per call and Sentry's `ai-session-completed` carries `totalCachedInputTokens`.
 
 ## Bring your own key
 
@@ -164,15 +164,15 @@ The API key is stored encrypted at rest (AES-256-GCM, same scheme as the LiteLLM
 
 | Provider | Base URL | Chat models to try | Image | Transcription |
 |---|---|---|---|---|
-| Mistral AI | `https://api.mistral.ai/v1` | `mistral-small-2603` (tested), `ministral-14b-2512` | — | `voxtral-mini-2602` (also unlocks live dictation) |
+| Mistral AI | `https://api.mistral.ai/v1` | `mistral-small-2603` (tested), `ministral-14b-2512` | - | `voxtral-mini-2602` (also unlocks live dictation) |
 | OpenAI | `https://api.openai.com/v1` | `gpt-5.4-mini`, `gpt-5.4-nano`, `gpt-5.5` | `gpt-image-1` | `gpt-4o-mini-transcribe`, `whisper-1` |
-| OpenRouter | `https://openrouter.ai/api/v1` | see the table below | — | — |
-| Groq | `https://api.groq.com/openai/v1` | check Groq's tool-calling models | — | `whisper-large-v3-turbo` |
-| Together AI | `https://api.together.xyz/v1` | provider list | provider list | — |
-| DeepInfra | `https://api.deepinfra.com/v1/openai` | provider list | — | provider list |
-| Fireworks AI | `https://api.fireworks.ai/inference/v1` | provider list | — | — |
-| Scaleway (EU) | `https://api.scaleway.ai/v1` | provider list | — | provider list |
-| Ollama (self-hosted only) | `http://host.docker.internal:11434/v1` | a tool-capable local model | — | — |
+| OpenRouter | `https://openrouter.ai/api/v1` | see the table below | - | - |
+| Groq | `https://api.groq.com/openai/v1` | check Groq's tool-calling models | - | `whisper-large-v3-turbo` |
+| Together AI | `https://api.together.xyz/v1` | provider list | provider list | - |
+| DeepInfra | `https://api.deepinfra.com/v1/openai` | provider list | - | provider list |
+| Fireworks AI | `https://api.fireworks.ai/inference/v1` | provider list | - | - |
+| Scaleway (EU) | `https://api.scaleway.ai/v1` | provider list | - | provider list |
+| Ollama (self-hosted only) | `http://host.docker.internal:11434/v1` | a tool-capable local model | - | - |
 
 The base URLs were checked against each provider's `/models` and `/chat/completions` routes on 2026-10-26. The settings page fills them in from a preset list. Model ids differ per provider; the verification step catches an unknown id.
 

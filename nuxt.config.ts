@@ -36,7 +36,7 @@ export default defineNuxtConfig({
     // See server/mcp/AGENTS.md.
     '@nuxtjs/mcp-toolkit',
     // Same-origin copies of paged.js / Mermaid / KaTeX / highlight.js and
-    // the web fonts under /vendor/ — see shared/utils/vendor/vendorAssets.ts.
+    // the web fonts under /vendor/, see shared/utils/vendor/vendorAssets.ts.
     './modules/vendor-assets',
     // Request types of the API handlers for the typed client
     // (.nuxt/types/api-inputs.d.ts, read by app/utils/api/client.ts).
@@ -100,7 +100,7 @@ export default defineNuxtConfig({
     // nuxt-auth-utils reads `runtimeConfig.session` (shape = h3's SessionConfig,
     // which requires `password`). `NUXT_SESSION_PASSWORD` env var populates
     // `session.password` via Nuxt's nested env→runtimeConfig resolution. The
-    // old top-level `sessionPassword` was stale — left over from an earlier
+    // old top-level `sessionPassword` was stale, left over from an earlier
     // config shape and never read by the runtime.
     session: {
       password: '',
@@ -112,7 +112,7 @@ export default defineNuxtConfig({
         // terminates TLS and the upstream session cookie is set with
         // Secure via the response anyway.
         secure: process.env.NODE_ENV === 'production',
-        // Defaults are already these — make them explicit so they survive
+        // Defaults are already these, make them explicit so they survive
         // future h3 / nuxt-auth-utils default churn.
         httpOnly: true,
         path: '/',
@@ -131,7 +131,7 @@ export default defineNuxtConfig({
         // handlers never change state. Pinned by
         // tests/integration/endpoints/oidcLogin.test.ts.
         sameSite: 'lax'
-        // Intentionally NO `domain` — the cookie defaults to the exact
+        // Intentionally NO `domain`: the cookie defaults to the exact
         // host that set it, which means it will never be auto-included
         // on requests to `sync.${DOMAIN}` (the Hocuspocus subdomain).
         // Hocuspocus auth rides on a JWT, not the session cookie, so a
@@ -159,7 +159,7 @@ export default defineNuxtConfig({
         dsn: '' // NUXT_PUBLIC_SENTRY_DSN
       },
       docs: {
-        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN — fake browser bar above the docs'
+        // NUXT_PUBLIC_DOCS_CHROME_DOMAIN: fake browser bar above the docs'
         // flow screenshots; a flow embed can pass its own.
         chromeDomain: observability.vars.docsChromeDomain.default
       },
@@ -170,7 +170,7 @@ export default defineNuxtConfig({
       // builds; flipped to true via NUXT_PUBLIC_EXPOSE_TEST_HANDLES=
       // 1 in the flow-test stack (see scripts/flows-ephemeral.ts +
       // tests/integration/setup/server.ts). Without this gate the
-      // handles ship in production bundles too — minor surface-area
+      // handles ship in production bundles too, minor surface-area
       // leak but a leak nonetheless.
       exposeTestHandles: false
     }
@@ -207,7 +207,7 @@ export default defineNuxtConfig({
     experimental: {
       websocket: true,
       // Required by @nuxtjs/mcp-toolkit composables (useEvent, useMcpServer,
-      // useMcpSession, useMcpLogger) — they read the current event from
+      // useMcpSession, useMcpLogger): they read the current event from
       // Nitro's async-local storage. Without this they throw at runtime.
       asyncContext: true
     },
@@ -219,7 +219,7 @@ export default defineNuxtConfig({
     // https://bun.com/docs/guides/ecosystem/nuxt.
     preset: 'bun',
     // Dev proxy: forward S3 requests through localhost:3000 to avoid CORS.
-    // WebSocket (Hocuspocus) connects directly — no same-origin restriction.
+    // WebSocket (Hocuspocus) connects directly, no same-origin restriction.
     // In production, Traefik handles routing for all subdomains.
     devProxy: {
       '/_s3': {
@@ -229,12 +229,12 @@ export default defineNuxtConfig({
     },
     // `ws` is a transitive dep (pulled in by `@mistralai/mistralai`'s
     // realtime sub-export for live dictation) that Nitro's NFT tracer doesn't follow
-    // through the SDK's dist bundle — the output emits `import 'ws'`
+    // through the SDK's dist bundle, the output emits `import 'ws'`
     // but omits the package. `traceInclude` takes glob patterns (not
     // bare package names); `ws` itself has no deps so one glob is
     // enough. Tracked upstream in nitrojs/nitro#2923.
     externals: {
-      // Point the tracer at ws's real entry — NFT then follows its imports
+      // Point the tracer at ws's real entry, NFT then follows its imports
       // and copies the whole package (lib/*.js, browser.js, etc.). Pointing
       // at just package.json only copies that one file.
       traceInclude: ['node_modules/ws/index.js']
@@ -245,7 +245,7 @@ export default defineNuxtConfig({
   // Host header isn't in an allowlist. The sync-server container reaches the
   // Nuxt dev server via `host.docker.internal`, so without this entry every
   // activity-logger POST silently gets rejected before our middleware sees it.
-  // Production doesn't care — Traefik terminates TLS and forwards the right Host.
+  // Production doesn't care: Traefik terminates TLS and forwards the right Host.
   vite: {
     server: {
       allowedHosts: ['host.docker.internal', 'localhost']
@@ -275,7 +275,7 @@ export default defineNuxtConfig({
   hooks: {
     // Production server entry: the bun preset's entry plus a request-body
     // size limit enforced by Bun (the preset buffers every body before
-    // routing, so handlers can't refuse an oversized one in time — see the
+    // routing, so handlers can't refuse an oversized one in time, see the
     // file header). Set on the built `bun` Nitro only: the prerender and dev
     // Nitro instances need their own entries.
     'nitro:init'(nitro) {
@@ -322,7 +322,7 @@ export default defineNuxtConfig({
   // means /mcp exposes everything not attached to a named handler.
   mcp: {
     name: 'markoto',
-    description: 'Collaborative markdown editor — read, search, and edit your docs from any MCP client.',
+    description: 'Collaborative markdown editor, read, search, and edit your docs from any MCP client.',
     sessions: true,
     defaultHandlerStrategy: 'orphans'
   },
@@ -347,25 +347,25 @@ export default defineNuxtConfig({
     workbox: {
       // SPA fallback: any navigation miss serves the app shell so deep links
       // (e.g. /d/abc123) work offline. Denylist keeps API and OAuth flows on
-      // the network — a cached 401 or stale token response would be worse
+      // the network: a cached 401 or stale token response would be worse
       // than an offline error page.
       navigateFallback: '/',
       navigateFallbackDenylist: [/^\/api\//, /^\/auth\//],
       cleanupOutdatedCaches: true,
       // The vendored third-party assets under /vendor/ (paged.js, Mermaid,
-      // KaTeX, highlight.js, web fonts — shared/utils/vendor/vendorAssets.ts) stay
+      // KaTeX, highlight.js, web fonts, shared/utils/vendor/vendorAssets.ts) stay
       // out of the precache: ~12 MB, and a page only ever needs a few of
       // them. They're runtime-cached on first use instead (below).
       globIgnores: ['**/node_modules/**/*', 'vendor/**'],
       // Runtime caching: the vendored static assets only. Docs, doc tokens,
-      // AI, and upload endpoints intentionally bypass the SW — freshness
+      // AI, and upload endpoints intentionally bypass the SW, freshness
       // beats offline for collaborative state. First match wins:
       //   - per-family font stylesheets (/vendor/fonts/<family>.css) are the
       //     one unversioned name → serve cached, refresh in the background;
       //   - everything else sits under a versioned directory and never
       //     changes → cache first.
       // (The sandboxed, opaque-origin preview iframes aren't SW clients;
-      // their requests use the HTTP cache — the files are `immutable`.)
+      // their requests use the HTTP cache, the files are `immutable`.)
       runtimeCaching: [{
         urlPattern: /\/vendor\/fonts\/[\w-]+\.css$/,
         handler: 'StaleWhileRevalidate',
@@ -379,7 +379,7 @@ export default defineNuxtConfig({
     client: {
       // Lets us hook into the browser's `beforeinstallprompt` via `$pwa.install()`.
       installPrompt: true,
-      // Hourly check for a fresh SW in the background — complements the
+      // Hourly check for a fresh SW in the background, complements the
       // /api/version polling in version-check.client.ts, which covers the
       // non-PWA SSR path.
       periodicSyncForUpdates: 3600
@@ -397,16 +397,16 @@ export default defineNuxtConfig({
   // `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` from the BUILD-
   // TIME environment (the `bun run build` step in the Docker builder
   // stage). When missing, the build still succeeds but stack traces
-  // captured in prod stay minified — investigations have to map line
+  // captured in prod stay minified, investigations have to map line
   // numbers by hand. Set those three vars in CI / build env (NOT in
-  // the runtime `app` container — they're not needed at runtime).
+  // the runtime `app` container, they're not needed at runtime).
   // See docs/operations/DEPLOY.md.
   sentry: {
     sourceMapsUploadOptions: {
       // `org` + `project` come from env. Empty / undefined disables
-      // upload — dev / forks / contributors don't need a Sentry account
+      // upload: dev / forks / contributors don't need a Sentry account
       // to build. authToken is read directly from `SENTRY_AUTH_TOKEN`
-      // by the underlying @sentry/vite-plugin — no need to thread it.
+      // by the underlying @sentry/vite-plugin, no need to thread it.
       org: process.env.SENTRY_ORG,
       project: process.env.SENTRY_PROJECT
     }

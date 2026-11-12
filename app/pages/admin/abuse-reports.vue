@@ -11,7 +11,7 @@
 //   - Notes input attached to action submission for the audit row.
 //
 // Backwards transitions (closed → open) are intentionally NOT
-// supported — see the endpoint comment.
+// supported: see the endpoint comment.
 
 import type { ApiResponse } from '~/utils/api/client'
 import { MODERATION_RULES, isModerationRule, type ModerationRule } from '~~/shared/config/moderation'
@@ -48,7 +48,7 @@ const reports = ref<AbuseReport[]>([])
 const loading = ref(false)
 const noteDrafts = ref<Record<string, string>>({})
 // Decision drafts per report. The explanation and rule are SENT (to the
-// reporter, and to the owner as the statement of reasons) — unlike notes.
+// reporter, and to the owner as the statement of reasons), unlike notes.
 interface DecisionDraft {
   action: 'content_removed' | 'access_restricted'
   rule: ModerationRule
@@ -85,7 +85,7 @@ const NOTICE_LABEL: Record<ModerationNotice['kind'], string> = {
 }
 const NOTICE_STATUS_LABEL: Record<ModerationNotice['status'], string> = {
   sent: 'sent',
-  not_delivered_no_contact: 'not delivered — no contact',
+  not_delivered_no_contact: 'not delivered, no contact',
   failed: 'failed'
 }
 const acting = ref<Record<string, boolean>>({})
@@ -94,7 +94,7 @@ async function refresh(): Promise<void> {
   if (!accountStatus.value?.isAdmin) return
   loading.value = true
   try {
-    // Map our two-status default to a server query — server treats
+    // Map our two-status default to a server query, server treats
     // 'open+acknowledged' as the default when no `status=` is given.
     const statusParam = filter.value === 'open+acknowledged' ? '' : filter.value
     reports.value = await apiFetch('/api/admin/abuse-reports', {
@@ -167,7 +167,7 @@ async function transition(reportId: string, status: 'acknowledged' | 'actioned' 
 }
 
 function fmtDate(iso: string | null): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   try {
     return new Date(iso).toLocaleString(undefined, {
       year: 'numeric', month: 'short', day: 'numeric',
@@ -301,7 +301,7 @@ const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
           </header>
 
           <div class="px-4 py-4 space-y-3">
-            <!-- Reporter — name + email + mailto: link for follow-
+            <!-- Reporter: name + email + mailto: link for follow-
                  up. Strikethrough name when the user has deleted
                  their account; the email snapshot still works as
                  a follow-up channel. -->
@@ -334,7 +334,7 @@ const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
                 v-if="!report.reporter.stillExists"
                 class="font-mono text-[11px] text-muted"
               >
-                (account deleted — email snapshot)
+                (account deleted, email snapshot)
               </span>
             </div>
             <div
@@ -378,7 +378,7 @@ const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
               class="text-xs text-muted font-mono"
             >
               {{ report.reporter?.signedIn ? 'signed-in reporter' : 'reporter not signed in' }}
-              · good-faith statement {{ report.goodFaithConfirmedAt ? 'confirmed' : '— (legacy report)' }}
+              · good-faith statement {{ report.goodFaithConfirmedAt ? 'confirmed' : '- (legacy report)' }}
             </p>
 
             <div
@@ -432,7 +432,7 @@ const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
               {{ fmtDate(report.actionedAt ?? report.acknowledgedAt) }}
             </div>
 
-            <!-- Action panel — visible only for open + acknowledged
+            <!-- Action panel: visible only for open + acknowledged
                  reports. The PATCH endpoint enforces backwards-
                  transition refusal but we hide the buttons too. -->
             <div
@@ -465,7 +465,7 @@ const FILTER_OPTIONS: { value: StatusFilter, label: string }[] = [
               />
               <UTextarea
                 v-model="noteDrafts[report.reportId]"
-                placeholder="Notes (optional, internal — added to the audit trail)"
+                placeholder="Notes (optional, internal, added to the audit trail)"
                 :rows="2"
                 class="w-full"
                 :ui="{ base: 'w-full' }"

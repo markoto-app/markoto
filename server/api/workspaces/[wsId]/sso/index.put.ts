@@ -6,7 +6,7 @@ import { parseSsoSettings, ssoSettingsView } from '../../../../utils/sso/admin'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { updateSsoSettingsBody } from '~~/shared/api/sso'
 
-// PUT /api/workspaces/:wsId/sso — create or change the workspace's
+// PUT /api/workspaces/:wsId/sso: create or change the workspace's
 // identity provider. Admins of a workspace whose plan includes
 // SSO (409 plan/feature-unavailable otherwise), also while SSO is enforced
 // (`ignoreSso`: the break-glass). Any change to the IdP

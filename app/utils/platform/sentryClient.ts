@@ -55,7 +55,7 @@ export function startSentry(options: { dsn: string, router: Router, production: 
         mechanism: { handled: false, type: `auto.function.nuxt.${source}-error` }
       })
     },
-    // ID only — no email, name, or avatar. PII reduction: a Sentry breach
+    // ID only: no email, name, or avatar. PII reduction: a Sentry breach
     // should leak as little user-correlatable info as possible, and `id`
     // is enough to join with our DB for triage.
     setUserId(id) {

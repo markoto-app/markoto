@@ -7,7 +7,7 @@ import { DOC_DESCRIPTION_MAX_LENGTH, DOC_TITLE_MAX_LENGTH } from '../../config/d
  * Validation of the values clients write into the shared `meta` Y.Map
  * (`ymeta`). The HTTP `PUT /api/docs/:id/meta` endpoint validates title /
  * theme / description / audience / language, but every editor can also
- * write those keys straight through the Y.js WebSocket — the sync server
+ * write those keys straight through the Y.js WebSocket, the sync server
  * applies this module to that path, so both routes share one contract.
  *
  * Without it, any writer (including an anonymous editor of an open-edit
@@ -29,7 +29,7 @@ const META_TEMPLATE_ID_MAX_LENGTH = 64
 export const META_THEME_MAX_DEPTH = 8
 export const META_THEME_MAX_NODES = 2000
 /** Bounds for keys this version doesn't know (forward compatibility with
- *  newer clients — see the ymeta migration playbook in sync-server/AGENTS.md). */
+ *  newer clients: see the ymeta migration playbook in sync-server/AGENTS.md). */
 const META_UNKNOWN_MAX_DEPTH = 4
 const META_UNKNOWN_MAX_NODES = 64
 const META_UNKNOWN_MAX_STRING_LENGTH = 4096
@@ -43,7 +43,7 @@ interface JsonBounds {
 /**
  * True when `value` is plain JSON (null / boolean / finite number /
  * string / array / plain object) within the given depth and node count.
- * Iterative — never recurses, so a hostile depth can't blow the stack.
+ * Iterative: never recurses, so a hostile depth can't blow the stack.
  */
 export function isBoundedJsonValue(value: unknown, bounds: JsonBounds): boolean {
   const stack: Array<{ v: unknown, depth: number }> = [{ v: value, depth: 0 }]

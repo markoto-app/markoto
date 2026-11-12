@@ -4,7 +4,7 @@ import { appendAuditEvent } from '../../../../../repos/audit'
 import { AUDIT_WORKSPACE_BRAND_ASSET_REMOVED } from '../../../../../legal/auditActions'
 import { brandAssetParams } from '~~/shared/api/brand'
 
-// DELETE /api/workspaces/:wsId/brand/assets/:assetId — remove a font or
+// DELETE /api/workspaces/:wsId/brand/assets/:assetId: remove a font or
 // logo. Admins; works without the plan feature too (clearing up
 // after a downgrade must stay possible). Documents using it fall back to
 // the next font in their stack / show no logo.

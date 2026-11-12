@@ -35,7 +35,7 @@ async function insertActivityRow(
 async function insertYjsRow(docname: string, _content: string, kind: 'update' | 'snapshot' = 'update'): Promise<number> {
   const db = testDb()
   // Minimal valid Y.js update encoded for the row. Doesn't need to
-  // be replayable for these tests — the auth/validation gates fire
+  // be replayable for these tests, the auth/validation gates fire
   // before any replay happens.
   const fakeBytes = Buffer.from([0, 0]) // empty Y.js update header
   const r = await db.query<{ id: number }>(
@@ -106,7 +106,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
     })
   })
 
-  describe('auth — edit access required', () => {
+  describe('auth: edit access required', () => {
     it('returns 403 for a logged-in non-member on a private doc', async () => {
       const owner = await createUser()
       const other = await createUser()
@@ -152,7 +152,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       // test stack the WS connect will time out (no real Hocuspocus),
       // so we just verify the gate passed by checking we DON'T see
       // 403 (status will be 500 from the WS timeout, which is correct
-      // for this stack — proves auth let it through).
+      // for this stack: proves auth let it through).
       const creator = await createUser()
       const member = await createUser()
       const ws = await createWorkspace(creator.id)
@@ -171,13 +171,13 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
         {}
       )
       // 200 (full sync stack), 500 (no Hocuspocus in this test
-      // harness — the request DID get past the auth gate but the
+      // harness: the request DID get past the auth gate but the
       // WS connect timed out). 403 would be a real bug.
       expect([200, 500]).toContain(res.status)
     }, 30_000)
   })
 
-  describe('404 — not found / cross-doc isolation', () => {
+  describe('404: not found / cross-doc isolation', () => {
     it('returns 404 for an unknown activityId', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -212,16 +212,16 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       const client = await loggedInClient(owner.id)
       const res = await client.post(`/api/docs/nonexistent/activity/1/restore`, {})
       // The write-content policy returns 404 when the doc doesn't exist
-      // (the standard pattern for missing-doc protection — we don't
+      // (the standard pattern for missing-doc protection, we don't
       // expose whether the user WOULD have had access).
       expect(res.status).toBe(404)
     })
   })
 
-  describe('410 — restore unavailable', () => {
+  describe('410: restore unavailable', () => {
     it('returns 410 when the activity row has yjsDocIdBefore=null (pre-feature)', async () => {
       // Pre-Tier-1 activity rows weren't stamped with boundary ids.
-      // The endpoint can't compute a "before" state to restore TO —
+      // The endpoint can't compute a "before" state to restore TO,
       // surface this as 410 (matches the diff endpoint's contract).
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
@@ -241,7 +241,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
     it('returns 410 (does NOT wipe) when the target id is below the history floor', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'open-edit' })
-      const low = await insertYjsRow(doc.docId, '') // target — gets pruned
+      const low = await insertYjsRow(doc.docId, '') // target, gets pruned
       await insertYjsRow(doc.docId, '')
       const snapshot = await insertYjsRow(doc.docId, '', 'snapshot')
       const activityId = await insertActivityRow(doc.docId, low, low)
@@ -257,7 +257,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
         {}
       )
       // 410 = guard fired pre-apply. A 200/500 here would mean it attempted the
-      // restore with an empty reconstruction — i.e. the doc-wipe bug.
+      // restore with an empty reconstruction, i.e. the doc-wipe bug.
       expect(res.status).toBe(410)
     })
 
@@ -316,7 +316,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
     }, 30_000)
   })
 
-  describe('failure path — atomicity', () => {
+  describe('failure path: atomicity', () => {
     it('does NOT write a `restore` activity row when the restore execution fails', async () => {
       // SECURITY/CORRECTNESS: when restoreDocToYjsId throws (e.g. WS
       // timeout in this test stack), no activity row should be left

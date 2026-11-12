@@ -1,7 +1,7 @@
 import { HOUR_SECONDS } from '~~/shared/config/units'
 
 // Lifetime of a doc JWT (editor token, password unlock): 2 h, but never
-// past the share link's expiry — a visitor's token must not outlive
+// past the share link's expiry, a visitor's token must not outlive
 // the link. Once the expiry has passed only the owner and workspace
 // members still get a token, and they get the full 2 h.
 

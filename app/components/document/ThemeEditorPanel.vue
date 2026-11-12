@@ -11,7 +11,7 @@ import { themeFromPreset, ownCustomCss, type ThemePreset } from '~~/shared/utils
 import { loadCustomCssSanitizer, currentAppOrigins } from '~/utils/preview/customCssLoader'
 
 /**
- * Embedded theme editor — sits in the right sidebar slot alongside the
+ * Embedded theme editor: sits in the right sidebar slot alongside the
  * activity panel. Layout-shift (not overlay) so the user can keep
  * editing the doc and watch the preview re-paginate as they tweak.
  *
@@ -104,7 +104,7 @@ useHead(() => ({
     ? [{ key: 'theme-brand-fonts', textContent: brandFontFaceCss(brandKit.value.fonts, file => brandAssetDocUrl(props.docId, file)) }]
     : []
 }))
-// `slot` enables per-item template overrides — Nuxt UI v4 then exposes
+// `slot` enables per-item template overrides, Nuxt UI v4 then exposes
 // `#<slot>` (custom trigger) and `#<slot>-body` (custom body) for each
 // item. Without `slot`, the named templates below are silently ignored.
 const sectionItems = computed(() => [
@@ -272,7 +272,7 @@ async function adaptThemeToThisDoc(saved: DocTheme): Promise<DocTheme> {
   return { ...theme, customCss: adapted.css }
 }
 
-// "Create a design from a document" — the result is saved as one of the
+// "Create a design from a document", the result is saved as one of the
 // user's themes (refresh the list) and/or applied to this document.
 const designImportOpen = ref(false)
 // Mounted on first use: the dialog is its own chunk.
@@ -317,7 +317,7 @@ function deleteSaved(saved: SavedTheme) {
 
 <template>
   <div class="flex flex-col h-full bg-muted">
-    <!-- Theme panel header — Fraunces title in the editorial register,
+    <!-- Theme panel header: Fraunces title in the editorial register,
          matching Comments / Activity / Document panels. -->
     <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2">
@@ -371,9 +371,9 @@ function deleteSaved(saved: SavedTheme) {
           @delete="deleteSaved"
         />
 
-        <!-- Templates — clickable preset cards at the top of the panel. -->
+        <!-- Templates: clickable preset cards at the top of the panel. -->
         <section class="mb-4">
-          <!-- Section eyebrow — same JetBrains Mono micro-label
+          <!-- Section eyebrow: same JetBrains Mono micro-label
                register as the Document panel's "Description / Language /
                Audience" labels and the Comments panel's section heads. -->
           <div class="flex items-baseline justify-between mb-2 px-1">
@@ -524,7 +524,7 @@ function deleteSaved(saved: SavedTheme) {
             <DocumentThemeAlertsSection v-model:theme="draft" />
           </template>
 
-          <!-- Custom CSS (documents only — preview, print, PDF) -->
+          <!-- Custom CSS (documents only, preview, print, PDF) -->
           <template #customCss-body>
             <CommonPlanLimitNotice
               v-if="props.customCssAllowed === false"

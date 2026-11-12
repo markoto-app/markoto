@@ -17,7 +17,7 @@ import * as Y from 'yjs'
 //     log's "before" boundary), and no row with a smaller id can appear later;
 //   - a snapshot written under the lock really covers every row below its id.
 // Writers on different documents never wait for each other. The app's writer
-// (`server/utils/documents/yjsLog.ts`) uses the same namespace — keep the two
+// (`server/utils/documents/yjsLog.ts`) uses the same namespace, keep the two
 // in step.
 
 /** First key of the per-document advisory lock (the second is hashtext(doc_id)). */
@@ -209,7 +209,7 @@ export function createYjsStore(pool: PoolLike, opts: YjsStoreOptions) {
      * lock only the rows appended since (normally none or a few) are read
      * and applied, then the snapshot is inserted. The new snapshot's id is
      * above every row it saw, and the lock guarantees no smaller id commits
-     * later — so it covers every row below it.
+     * later: so it covers every row below it.
      */
     async writeSnapshot(docId: string): Promise<SnapshotResult | null> {
       const res = await pool.query<LogRow>(LATEST_STATE_SQL, [docId])

@@ -11,7 +11,7 @@ import { useEnv } from '~~/shared/env/load'
 // twice: by the row's `expires_at` and by S3 itself once the
 // expiry sweeper has deleted the blob.
 //
-// Presigned URL TTL: 5 minutes — tight enough that a leaked link
+// Presigned URL TTL: 5 minutes, tight enough that a leaked link
 // has limited reuse, long enough that a slow client connection
 // (hotel wifi mid-download) doesn't fail.
 //
@@ -25,7 +25,7 @@ export default defineApiHandler({
   handler: async ({ event, params, self }) => {
     const job = await getJobForUser(self, params.jobId)
     if (!job) {
-    // 404 regardless of whether the job exists — we don't want to
+    // 404 regardless of whether the job exists, we don't want to
     // leak the existence of jobs belonging to other users.
       throw apiError('export/not-found')
     }
@@ -33,7 +33,7 @@ export default defineApiHandler({
     if (job.status !== 'ready') throw apiError('export/not-ready', { status: job.status })
 
     if (!job.s3Key) {
-    // Internal invariant violation — `ready` rows always have an
+    // Internal invariant violation: `ready` rows always have an
     // s3_key. Surface as 500 so ops sees it.
       throw apiError('internal')
     }
@@ -44,7 +44,7 @@ export default defineApiHandler({
     const s3 = usePresignS3Client()
 
     // Filename: include the job's create-date for the user's
-    // convenience. Avoid PII in the filename — no user id, no email.
+    // convenience. Avoid PII in the filename, no user id, no email.
     const dateStamp = job.createdAt.toISOString().slice(0, 10)
     const filename = `markoto-data-export-${dateStamp}.zip`
 

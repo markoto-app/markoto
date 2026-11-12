@@ -27,23 +27,23 @@ import { verifyRenderToken } from '../../../server/utils/rendering/renderTokens'
 //
 // Three classes of assertion per helper:
 //
-//   1. **Shape assertion** — decode the minted JWT, verify the payload
+//   1. **Shape assertion**: decode the minted JWT, verify the payload
 //      contains every literal claim the contract demands. Catches a
 //      drift where the helper forgets to spread `*_FIXED_CLAIMS`.
 //
-//   2. **Round-trip assertion** — pass the minted JWT to the actual
+//   2. **Round-trip assertion**: pass the minted JWT to the actual
 //      production verifier and assert it accepts. Catches a drift
 //      where the verifier added a new check the helper doesn't
 //      satisfy.
 //
-//   3. **Synthetic principal assertion** (session JWT only) — use
+//   3. **Synthetic principal assertion** (session JWT only), use
 //      the deterministic prefix helpers (`aiClientUserId`,
 //      `restoreClientUserId`) and verify the produced userId starts
 //      with the expected prefix. Catches a drift where the prefix
 //      gets renamed in one place but not another.
 //
 // Adversarial cases (expired tokens, wrong scope, wrong secret) live
-// in their own test files — those test the VERIFIER's reject paths.
+// in their own test files, those test the VERIFIER's reject paths.
 // This file only covers the happy path.
 
 const TEST_SECRET = 'contract-test-secret-' + 'a'.repeat(64)
@@ -118,7 +118,7 @@ describe('JWT contract: mintSessionJwt', () => {
   it('safe-default read-only when readOnly is omitted', async () => {
     const auth = createAuth({ secret: TEST_SECRET })
     // Intentionally omit readOnly. The verifier MUST treat absence
-    // as read-only — a future helper change that defaults
+    // as read-only: a future helper change that defaults
     // readOnly:true would silently widen access.
     const token = mintSessionJwt(
       { docId: 'doc-default', userId: 1 },
@@ -142,7 +142,7 @@ describe('JWT contract: mintDictateJwt', () => {
     // future drift on either side breaks this test at unit speed.
     expect(decoded.kind).toBe('dictate')
     expect(decoded.scope).toBe('dictate')
-    // And the constants that source those literals must agree —
+    // And the constants that source those literals must agree,
     // catches the case where someone edits the contract-side
     // constant but doesn't update what the helper spreads.
     expect(DICTATE_JWT_FIXED_CLAIMS).toEqual({ kind: 'dictate', scope: 'dictate' })
@@ -153,7 +153,7 @@ describe('JWT contract: mintDictateJwt', () => {
     // (not extractable as a function without refactoring the WS
     // handler). Replicate its four checks here to ensure the helper
     // satisfies them. If the inline verify adds a new check, this
-    // test should be updated alongside it — that's the point: the
+    // test should be updated alongside it, that's the point: the
     // contract is one source of truth across mint AND verify.
     const token = mintDictateJwt({ userId: 5, docId: 'doc-x' }, { secret: TEST_SECRET })
     const payload = jwt.verify(token, TEST_SECRET) as Partial<DictateJwtPayload>
@@ -197,7 +197,7 @@ describe('JWT contract: mintRenderJwt', () => {
     // verifyRenderToken pulls the secret from the typed env. The
     // end-to-end round-trip is left to
     // `tests/unit/rendering/renderTokens.test.ts`, which stubs it. This contract test stops at the
-    // shape assertion above — the verifyRenderToken import here is
+    // shape assertion above: the verifyRenderToken import here is
     // a guard that the function exists and is callable (catches
     // the case where someone deletes/renames it).
     expect(typeof verifyRenderToken).toBe('function')

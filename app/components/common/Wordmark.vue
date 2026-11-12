@@ -66,7 +66,7 @@ const width = computed(() => Math.round(props.size * 333 / 90))
 }
 /* Light by default; dark variant hidden until `.dark` lands on
    `<html>`. Server and client render the same DOM regardless of
-   color mode — no hydration mismatch. */
+   color mode: no hydration mismatch. */
 .mk-wordmark__img--dark {
   display: none;
 }

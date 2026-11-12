@@ -143,7 +143,7 @@ describe('claim data (content/compare/*.yml)', () => {
         expect(new Set(data.rows.map(r => r.feature)).size).toBe(data.rows.length)
       })
 
-      it(`every claim was checked in the last ${COMPARE_MAX_AGE_MONTHS} months — re-verify at the source, then update \`checked\``, () => {
+      it(`every claim was checked in the last ${COMPARE_MAX_AGE_MONTHS} months, re-verify at the source, then update \`checked\``, () => {
         const today = new Date()
         for (const claim of compareClaims(data)) {
           expect(parseCheckedDate(claim.checked), `${claim.source}: ${claim.checked}`).not.toBeNull()

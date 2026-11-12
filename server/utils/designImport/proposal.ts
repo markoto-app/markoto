@@ -7,7 +7,7 @@ import type { DesignThemePatch } from './prompt'
 // A model proposal → a stored-quality DocTheme. Same gates as every other
 // theme write: the patch's enums/ranges (Zod, at parse time), the full
 // `DocThemeSchema`, and the custom-CSS sanitizer with no document
-// context (a saved theme belongs to no document — the render path
+// context (a saved theme belongs to no document, the render path
 // sanitizes again against the document it is applied to).
 
 /** "Minimal custom CSS": anything longer is refused and the model told so. */
@@ -40,7 +40,7 @@ export function themeFromProposal(patch: DesignThemePatch, base: DocTheme = DESI
   const parsed = DocThemeSchema.safeParse(merged)
   if (!parsed.success) {
     const issues = parsed.error.issues.slice(0, 8).map(i => `${i.path.join('.')}: ${i.message}`)
-    return { ok: false, error: `The proposed theme is invalid — ${issues.join('; ')}` }
+    return { ok: false, error: `The proposed theme is invalid, ${issues.join('; ')}` }
   }
   return { ok: true, theme: parsed.data, notes }
 }

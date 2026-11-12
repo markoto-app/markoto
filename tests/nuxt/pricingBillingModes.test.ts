@@ -124,7 +124,7 @@ beforeEach(() => {
   setConfig({ anonDocTtlDays: 30, loginProviders: ['github'] })
 })
 
-describe('pricing page — billing on', () => {
+describe('pricing page: billing on', () => {
   it('shows four options, real prices and purchase CTAs, and no waitlist', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     const wrapper = await mountPricing()
@@ -164,7 +164,7 @@ describe('pricing page — billing on', () => {
   })
 })
 
-describe('pricing page — interval and currency', () => {
+describe('pricing page: interval and currency', () => {
   it('switches to annual prices and to CHF', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     const wrapper = await mountPricing()
@@ -179,7 +179,7 @@ describe('pricing page — interval and currency', () => {
   })
 })
 
-describe('pricing page — seats and credits', () => {
+describe('pricing page: seats and credits', () => {
   it('totals Team for the chosen seats, starting at the minimum', async () => {
     setMode({ billingEnabled: true, plansComingSoon: false })
     const wrapper = await mountPricing()
@@ -203,7 +203,7 @@ describe('pricing page — seats and credits', () => {
   })
 })
 
-describe('pricing page — billing off, plans coming soon (hosted SaaS)', () => {
+describe('pricing page: billing off, plans coming soon (hosted SaaS)', () => {
   it('shows the four options, paid tiers with planned prices and no purchase button, plus the waitlist', async () => {
     setMode({ billingEnabled: false, plansComingSoon: true })
     const wrapper = await mountPricing()
@@ -303,7 +303,7 @@ describe('pricing page — billing off, plans coming soon (hosted SaaS)', () => 
   })
 })
 
-describe('pricing page — billing off, self-hosted', () => {
+describe('pricing page: billing off, self-hosted', () => {
   it('shows only the limits of this instance, no options, prices, table or waitlist', async () => {
     setMode({ billingEnabled: false, plansComingSoon: false })
     const wrapper = await mountPricing()

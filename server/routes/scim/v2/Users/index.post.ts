@@ -3,7 +3,7 @@ import { AUDIT_SSO_SCIM_USER_CREATED } from '../../../../legal/auditActions'
 import { createScimUser, requireScimUser, scimUserResource } from '../../../../utils/sso/scim'
 import { scimResourceBody } from '~~/shared/api/sso'
 
-// POST /scim/v2/Users — provision a member. 201 + the User.
+// POST /scim/v2/Users: provision a member. 201 + the User.
 export default defineApiHandler({
   access: allow.scim(),
   body: scimResourceBody,

@@ -11,7 +11,7 @@ import { duplicateDocBody } from '~~/shared/api/sharing'
 import { useEnv } from '~~/shared/env/load'
 
 // Duplicate a document into a new docId. The duplicator becomes the
-// new owner — duplicates are "my copy of their template". Same
+// new owner: duplicates are "my copy of their template". Same
 // workspace by default (pass `workspaceId: null` to park it as a
 // personal doc, or a string to re-target).
 //
@@ -21,18 +21,18 @@ import { useEnv } from '~~/shared/env/load'
 // S3 image assets (CopyObject'd into the new prefix).
 //
 // Permissions inheritance comes for free: placing the new doc in a
-// workspace means its members — including editors and viewers — get
+// workspace means its members, including editors and viewers, get
 // the same grants they had on the source. No explicit ACL copy needed.
 //
 // Authz:
 //   - `edit` on the source. Anyone who could edit the source's
 //     content can create a copy of it; that's weaker than "manage",
-//     but stealing edit access is not a thing — the duplicate goes
+//     but stealing edit access is not a thing, the duplicate goes
 //     into the actor's ownership, not the source owner's.
-//   - View only: a copy is a download — a visitor (guests included)
+//   - View only: a copy is a download, a visitor (guests included)
 //     of a view-only document can't take one.
 //   - Any target workspace (the source's own included) needs admin or
-//     editor membership there (same gate as /api/docs POST) — guests
+//     editor membership there (same gate as /api/docs POST), guests
 //     are refused with 403 `workspace/guest-cannot-create`.
 export default defineApiHandler({
   access: allow.doc('edit'),
@@ -92,7 +92,7 @@ function resolveTitle(rawTitle: string | undefined, sourceTitle: string | null |
  * Creation-grade membership in the target workspace (admin / editor),
  * the same gate as `/api/docs` POST and the AI / MCP `duplicate_document`
  * tool. Checked for the source's own workspace too: edit rights on the
- * source don't imply membership — a guest edits a shared document
+ * source don't imply membership, a guest edits a shared document
  * through its share only and must never create documents in the
  * workspace (the copy would be theirs to manage, move out and keep after
  * their removal). Guests get a dedicated code; a personal copy is not

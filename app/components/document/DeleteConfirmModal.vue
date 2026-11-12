@@ -7,7 +7,7 @@ const props = defineProps<{
 const open = defineModel<boolean>('open', { required: true })
 
 const emit = defineEmits<{
-  // Fired right before the DELETE request, and `failed` when it errors —
+  // Fired right before the DELETE request, and `failed` when it errors,
   // lets the editor tell its own deletion apart from someone else's
   // (the sync broadcast can arrive before the response).
   deleting: []
@@ -19,7 +19,7 @@ const { t } = useI18n()
 const toast = useToast()
 const { showError } = useErrorHandler()
 // Mobile haptic on delete-confirm tap. Double-pulse pattern reinforces
-// "intentional, irreversible" — distinct from a casual click. iOS has
+// "intentional, irreversible": distinct from a casual click. iOS has
 // no Web Vibration API, so isSupported is false there and vibrate()
 // silently no-ops; safe to call unconditionally. Pattern passed at
 // call time rather than via options because the upstream

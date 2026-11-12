@@ -17,7 +17,7 @@ export interface ToolResult {
    * Extra content parts (e.g. image inlineData) appended to the user
    * message AFTER the functionResponse so the model can see them on the
    * next turn. The internal `functionResponse` shape
-   * is JSON-only — binary data has to ride as a
+   * is JSON-only: binary data has to ride as a
    * sibling `inlineData` part, which the OpenAI-shape translator in
    * `messageTranslation.ts` then re-emits as a follow-up user message
    * with `image_url` parts.

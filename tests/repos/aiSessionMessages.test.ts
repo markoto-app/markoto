@@ -20,7 +20,7 @@ import { docAs } from '../helpers/access'
 //   - `lastActivityAt` returns the most recent ts
 //   - cascades on doc / user delete
 // We don't test the cross-doc / cross-user isolation directly here
-// because the repo is keyed on (docId, userId) tuples — a miss
+// because the repo is keyed on (docId, userId) tuples, a miss
 // returns [] regardless of why.
 
 async function nowMinusMinutes(min: number): Promise<Date> {
@@ -143,7 +143,7 @@ describe('loadRecentMessages', () => {
     expect(rows.map(r => (r.body as { text: string }).text)).toEqual(['first', 'second', 'third'])
   })
 
-  it('respects the `since` window — older rows are excluded', async () => {
+  it('respects the `since` window, older rows are excluded', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
 
@@ -273,7 +273,7 @@ describe('cascade deletes', () => {
 
     const db = testDb()
     // documents.owner_id is `set null` on user delete, so the doc
-    // survives — but ai_session_messages.user_id is `cascade`.
+    // survives: but ai_session_messages.user_id is `cascade`.
     await db.query('UPDATE documents SET owner_id = NULL WHERE doc_id = $1', [doc.docId])
     await db.query('DELETE FROM users WHERE id = $1', [u.id])
 

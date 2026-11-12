@@ -12,8 +12,8 @@ import { partial } from '../../helpers/fixtures'
 
 // Pure helpers that power the AI theme + image tools. Integration with
 // DB / S3 is skipped here (those paths need module mocks); these are the
-// bits of logic that are easy to regress without visible failure — bad
-// merge, stale drift, mis-parsed file ref — so they get pinned.
+// bits of logic that are easy to regress without visible failure, bad
+// merge, stale drift, mis-parsed file ref, so they get pinned.
 
 describe('coerceThemePatch', () => {
   it('coerces headings.weight string enum to number', () => {
@@ -35,7 +35,7 @@ describe('coerceThemePatch', () => {
   })
 
   it('strips the `preset` directive so it never lands on the DocTheme', () => {
-    // `preset` is a tool-arg that selects the base theme — it must NOT
+    // `preset` is a tool-arg that selects the base theme, it must NOT
     // appear on the merged DocTheme or isValidTheme will reject it.
     const out = coerceThemePatch(partial<UpdateThemeInput>({ preset: 'modern' }))
     expect('preset' in out).toBe(false)
@@ -43,7 +43,7 @@ describe('coerceThemePatch', () => {
 
   it('strips theme_id and from_workspace_default directives too', () => {
     // Both new base sources are directives, not theme fields. Same
-    // contract as `preset` — they must not land on the merged DocTheme.
+    // contract as `preset`: they must not land on the merged DocTheme.
     const out = coerceThemePatch(partial<UpdateThemeInput>({
       theme_id: 'abc123',
       from_workspace_default: true,
@@ -196,7 +196,7 @@ describe('parseInternalFileRef', () => {
   })
 
   it('requires an extension (fileId shape matches the upload pipeline)', () => {
-    // /api/files requires nanoid.ext — a path without an extension
+    // /api/files requires nanoid.ext: a path without an extension
     // isn't a valid file reference, so we should fall through to the
     // external-URL branch (which will then reject it).
     expect(parseInternalFileRef('/api/files/abc/def')).toBeNull()
@@ -205,7 +205,7 @@ describe('parseInternalFileRef', () => {
   it('refuses paths with extra segments after the file (no traversal matching)', () => {
     // The regex anchors to end-of-string / query / fragment after the
     // fileId, so a path like "/api/files/a/b.png/../other.png" won't
-    // parse at all — the handler then rejects with "unsupported image
+    // parse at all: the handler then rejects with "unsupported image
     // src". Belt-and-suspenders against path-traversal trickery: we
     // never return a (docId, fileId) pair pulled out of a longer path.
     expect(parseInternalFileRef('/api/files/attackerdoc/evil.png/../victim/file.png')).toBeNull()
@@ -214,7 +214,7 @@ describe('parseInternalFileRef', () => {
 })
 
 describe('lineToCharOffset', () => {
-  // Shared math for insert_text and generate_image — off-by-one here
+  // Shared math for insert_text and generate_image, off-by-one here
   // puts generated images in the wrong paragraph silently.
   it('insert_line=0 maps to start of file', () => {
     expect(lineToCharOffset('a\nb\nc', 0)).toBe(0)
@@ -254,7 +254,7 @@ describe('lineToCharOffset', () => {
 
 describe('sanitizeAltText', () => {
   it('strips brackets and parens that would break markdown link syntax', () => {
-    // ![alt](url) — a stray ] in alt text ends the bracket early and
+    // ![alt](url): a stray ] in alt text ends the bracket early and
     // fragments the rest into plain text. Drop them outright.
     expect(sanitizeAltText('photo of a [cat] (smiling)')).toBe('photo of a cat smiling')
   })
@@ -268,7 +268,7 @@ describe('sanitizeAltText', () => {
   })
 
   it('preserves unicode and punctuation that is markdown-safe', () => {
-    expect(sanitizeAltText('café — 日本語! 🎉')).toBe('café — 日本語! 🎉')
+    expect(sanitizeAltText('café \u2014 日本語! 🎉')).toBe('café \u2014 日本語! 🎉')
   })
 
   it('empty input stays empty', () => {
@@ -303,7 +303,7 @@ describe('parseDocIdFromInput', () => {
 
   it('rejects an unrelated URL with no /d/<id> segment', () => {
     // Without the `/d/` segment we must NOT happily return some other
-    // path leaf — that would be an exfil vector if the AI ever pasted
+    // path leaf: that would be an exfil vector if the AI ever pasted
     // a stray URL.
     expect(parseDocIdFromInput('https://markoto.app/auth/github')).toBeNull()
     expect(parseDocIdFromInput('https://example.com/something')).toBeNull()

@@ -1,4 +1,4 @@
-// Instance shape — what THIS deployment offers beyond the editor itself.
+// Instance shape: what THIS deployment offers beyond the editor itself.
 //
 // Same idea as `billingMode.ts`: one codebase, the deployment shape is
 // configuration. Two independent facts live here:
@@ -12,7 +12,7 @@
 //    AI need an account), and the UI must not offer buttons that end in
 //    a 500.
 //
-// 2. Legal surfaces — the onboarding gate (age + Privacy + ToS), the
+// 2. Legal surfaces: the onboarding gate (age + Privacy + ToS), the
 //    cookie-consent banner, the DPA acceptance step for workspace owners,
 //    the /legal/* pages (privacy, terms, DPA, sub-processors, abuse
 //    policy + form, imprint) and the footer links to them. The bundled
@@ -26,7 +26,7 @@
 //   | Self-hosted (default)         | false                       |
 //   | Hosted SaaS                   | true                        |
 //
-// 3. Marketing site — "this instance IS markoto.app". Turns on the
+// 3. Marketing site: "this instance IS markoto.app". Turns on the
 //    scroll-driven product page at `/` for logged-out visitors
 //    (`app/components/landing/ProductTour.vue`), the sitemap
 //    (`server/routes/sitemap.xml.ts`), the `Sitemap:` line in robots.txt,
@@ -35,10 +35,10 @@
 //    NUXT_MARKETING_SITE_ENABLED=true. Self-hosted instances keep the
 //    plain hero + "new document" page.
 //
-// 4. SEO facts — the public origin for canonical / og:url / JSON-LD
+// 4. SEO facts: the public origin for canonical / og:url / JSON-LD
 //    (`NUXT_CANONICAL_SITE_URL`, else `NUXT_SITE_URL`), where `/docs/**` canonicals point (`NUXT_DOCS_CANONICAL_BASE`)
 //    and whether search engines may index the instance at all
-//    (`NUXT_SITE_INDEXABLE`, server-only — staging renders false).
+//    (`NUXT_SITE_INDEXABLE`, server-only: staging renders false).
 //
 // Reads the typed env (shared/env); tests pass an env-shaped record.
 
@@ -87,7 +87,7 @@ export interface InstanceConfig {
   /**
    * Public origin the SEO tags name (`resolveCanonicalSiteUrl`:
    * `NUXT_CANONICAL_SITE_URL`, else `NUXT_SITE_URL`; e.g.
-   * `https://markoto.app` — also on staging), no trailing slash. Empty
+   * `https://markoto.app`: also on staging), no trailing slash. Empty
    * when unset/invalid: no canonical / og:url is emitted then. Never
    * derived from the request Host. Not for links in emails (those use
    * the runtime config's own site URL).
@@ -109,7 +109,7 @@ export interface InstanceConfig {
   anonDocTtlDays: number
   /**
    * Per-workspace single sign-on can exist here: a plan that can
-   * be on this instance includes it — with billing off only the free
+   * be on this instance includes it, with billing off only the free
    * tier, with billing on any plan. Shows "Sign in with your
    * organisation" on the sign-in screen.
    */
@@ -172,7 +172,7 @@ export function resolveSiteUrl(source?: RawEnv): string {
 }
 
 /**
- * Origin the SEO tags name — canonical links, og:url / og:image, the
+ * Origin the SEO tags name, canonical links, og:url / og:image, the
  * JSON-LD and the sitemap: `NUXT_CANONICAL_SITE_URL` when set, otherwise
  * this instance's own `NUXT_SITE_URL`. Staging renders
  * `https://markoto.app`, so a copy of the site on staging.markoto.app
@@ -197,7 +197,7 @@ export function resolveDocsCanonicalBase(source?: RawEnv): string {
 }
 
 /**
- * `NUXT_SITE_INDEXABLE` — may search engines index this instance?
+ * `NUXT_SITE_INDEXABLE`: may search engines index this instance?
  * Default true; false = robots.txt `Disallow: /` + `X-Robots-Tag:
  * noindex` on every response. Staging renders false.
  */

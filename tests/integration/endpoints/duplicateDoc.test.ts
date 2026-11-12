@@ -13,7 +13,7 @@ import {
 } from '../setup/fixtures'
 import { first } from '../../helpers/assert'
 
-// POST /api/docs/:docId/duplicate — clones a doc end-to-end. These
+// POST /api/docs/:docId/duplicate: clones a doc end-to-end. These
 // tests cover the DB + authz surface; the Y.js state clone + S3 copy
 // are exercised in dedicated tests (see tests/repos/cloneYjsState.test.ts
 // and tests/repos/uploadsDuplicate.test.ts). Source docs here have no
@@ -69,7 +69,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
     expect(res.status).toBe(404)
   })
 
-  describe('authz — source side', () => {
+  describe('authz: source side', () => {
     it('owner can duplicate their own doc', async () => {
       const owner = await createUser()
       const doc = await createDoc({ ownerId: owner.id, accessMode: 'private' })
@@ -130,7 +130,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
       // open-edit means anyone with the link can edit. The duplicate
       // endpoint's authz goes through getDocAuthz / canEdit, which
       // returns true only for owner / workspace admin / workspace
-      // editor — NOT for a stranger on open-edit. Pin the current
+      // editor: NOT for a stranger on open-edit. Pin the current
       // behaviour so a future loosening is explicit.
       const owner = await createUser()
       const stranger = await createUser()
@@ -144,7 +144,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
     })
   })
 
-  describe('authz — target workspace side', () => {
+  describe('authz: target workspace side', () => {
     it('rejects a target workspace the actor is not a member of', async () => {
       const owner = await createUser()
       const otherAdmin = await createUser()
@@ -188,7 +188,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
     it('same-workspace duplicate by a workspace editor passes the target-membership check', async () => {
       // The target-membership check also runs for the source's own
       // workspace (a guest's edit share must not let them create
-      // documents there — workspaceGuests.test.ts); a real editor of
+      // documents there: workspaceGuests.test.ts); a real editor of
       // that workspace must still pass it.
       const creator = await createUser()
       const editor = await createUser()
@@ -380,7 +380,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
       expect(r2.status).toBe(200)
       const b1 = await r1.json() as { docId: string }
       const b2 = await r2.json() as { docId: string }
-      // The cached response is replayed verbatim — same docId.
+      // The cached response is replayed verbatim, same docId.
       expect(b1.docId).toBe(b2.docId)
 
       // Verify exactly ONE row in the DB (i.e., the second call did
@@ -432,7 +432,7 @@ describe('POST /api/docs/:docId/duplicate', () => {
 
 // Duplicated images are attributed to the duplicator and counted, so an editor can't multiply a
 // colleague's images (and fill the author's quota) without limit.
-describe('POST /api/docs/:docId/duplicate — image storage quota', () => {
+describe('POST /api/docs/:docId/duplicate: image storage quota', () => {
   const s3 = new S3Client({
     endpoint: 'http://127.0.0.1:8334',
     region: 'us-east-1',

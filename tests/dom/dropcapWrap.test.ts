@@ -11,7 +11,7 @@ import { DROPCAP_MIN_CHARS, wrapFirstLetterAsDropCap } from '../../app/utils/pre
 const TAIL = ' ' + 'and the paragraph keeps going for a few lines of ordinary prose. '.repeat(4).trim()
 const P = '<p class="markoto-dropcap-p">'
 
-describe('wrapFirstLetterAsDropCap — markup safety (regression)', () => {
+describe('wrapFirstLetterAsDropCap: markup safety (regression)', () => {
   // Elements in the output, parsed the way the preview parses them.
   function elementsOf(html: string): string[] {
     const tpl = document.createElement('template')
@@ -111,7 +111,7 @@ describe('wrapFirstLetterAsDropCap', () => {
     expect(out).toBe(`${P}<span class="markoto-dropcap">🌟</span> morning${TAIL}</p>`)
   })
 
-  test('case-insensitive match on the <P> tag — output is lowercase-normalized (markdown-it always emits lowercase, so this is a defensive case)', () => {
+  test('case-insensitive match on the <P> tag, output is lowercase-normalized (markdown-it always emits lowercase, so this is a defensive case)', () => {
     const out = wrapFirstLetterAsDropCap(`<P>Capital P${TAIL}</P>`)
     expect(out).toContain('<span class="markoto-dropcap">C</span>apital P')
   })
@@ -142,7 +142,7 @@ describe('wrapFirstLetterAsDropCap', () => {
   })
 })
 
-describe('wrapFirstLetterAsDropCap — which paragraph', () => {
+describe('wrapFirstLetterAsDropCap: which paragraph', () => {
   test('skips an alert title and takes the first body paragraph', () => {
     const html = `<pre><code>x</code></pre><div class="markdown-alert markdown-alert-tip"><p class="markdown-alert-title">Tip</p><p>Body</p></div><p>Prose${TAIL}</p>`
     const out = wrapFirstLetterAsDropCap(html)
@@ -161,7 +161,7 @@ describe('wrapFirstLetterAsDropCap — which paragraph', () => {
   })
 })
 
-describe('wrapFirstLetterAsDropCap — when the opening paragraph gets no cap', () => {
+describe('wrapFirstLetterAsDropCap: when the opening paragraph gets no cap', () => {
   test('a short opening paragraph gets no cap (it would tower over one or two lines)', () => {
     const html = '<p>A short intro line.</p><p>The next paragraph is long enough but is not the opening one.</p>'
     expect(wrapFirstLetterAsDropCap(html)).toBe(html)

@@ -8,7 +8,7 @@ import type { ApiResponse } from '~/utils/api/client'
 // (Open / Open in new tab); the rest follows `docRowActionGroups`:
 //   - Duplicate: any editor or admin (anyone with edit access).
 //   - Move / Delete: admin OR doc owner (canManageDoc).
-// The server re-checks all rules on the underlying endpoints — the UI
+// The server re-checks all rules on the underlying endpoints, the UI
 // gates are UX-only.
 
 export type WorkspaceDoc = ApiResponse<'/api/workspaces/:wsId', 'get'>['documents'][number]
@@ -16,7 +16,7 @@ export type WorkspaceDoc = ApiResponse<'/api/workspaces/:wsId', 'get'>['document
 const props = defineProps<{
   documents: WorkspaceDoc[]
   myRole: 'admin' | 'editor' | 'viewer'
-  // Current workspaceId — threaded into row actions so the Move modal
+  // Current workspaceId: threaded into row actions so the Move modal
   // can preselect "this workspace" and the server's no-op check trips.
   workspaceId: string
 }>()
@@ -33,7 +33,7 @@ function permsFor(doc: WorkspaceDoc) {
   return workspaceDocPermissions(props.myRole, doc.isOwner)
 }
 
-// Long-press to open the row's actions menu — discoverable on touch
+// Long-press to open the row's actions menu, discoverable on touch
 // where the 3-dot button is a small target. Per-row open state keyed
 // on docId so only the long-pressed row's menu opens.
 const openMenuDocId = ref<string | null>(null)

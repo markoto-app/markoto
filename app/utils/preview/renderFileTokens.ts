@@ -9,7 +9,7 @@ import { brandAssetDocUrl, brandImageFile, ownUploadFileId } from '~~/shared/uti
  * doc-scoped, read-only file token minted by the render bootstrap. The
  * token goes ONLY to URLs that are exactly one of this document's
  * confirmed uploads (`/api/files/<docId>/<fileId>` with `fileId` in the
- * bootstrap's list) — never to a link, another document's file, an
+ * bootstrap's list): never to a link, another document's file, an
  * external URL that merely contains the path, or an upload id that
  * doesn't exist. Otherwise document content could make the page hand the
  * token to any URL it likes (and into the PDF's link annotations).
@@ -23,7 +23,7 @@ export interface RenderFileAccess {
   /**
    * Brand-kit files (`<assetId>.<ext>`) of the document's workspace.
    * A theme's `/api/brand/<file>` image loads through
-   * `/api/docs/<docId>/brand/<file>` with the token — only for these.
+   * `/api/docs/<docId>/brand/<file>` with the token, only for these.
    */
   brandFiles?: ReadonlySet<string>
 }

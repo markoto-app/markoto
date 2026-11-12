@@ -14,8 +14,8 @@ import { useEnv } from '~~/shared/env/load'
 // host (`NUXT_PUBLISH_PAGES_HOST`, pages at `/p/<slug>`) and every live
 // custom domain (its one page at `/`). On such a host only the page, its
 // files (`/api/published/…`), the vendored fonts / stylesheets
-// (`/vendor/…`) and robots.txt exist — no app, no API, no sign-in, GET /
-// HEAD only — so user-written HTML never shares an origin with the editor.
+// (`/vendor/…`) and robots.txt exist, no app, no API, no sign-in, GET /
+// HEAD only: so user-written HTML never shares an origin with the editor.
 // No session cookie is scoped to these hosts, and none is set on them
 // (plugins/00-public-page-host.ts seals every response). Runs first (`00.`).
 //
@@ -89,7 +89,7 @@ export default defineEventHandler(async (event) => {
   if (customDomainSettings() && !isInstanceHost(host, useEnv().core.siteUrl)) {
     const domain = await liveCustomDomainForHost(host)
     if (domain) return serveCustomDomain(event, path, host, domain)
-    // A customer's domain that isn't live (pending, dropped, plan lapsed —
+    // A customer's domain that isn't live (pending, dropped, plan lapsed,
     // Traefik may still route it for a few seconds, and on plain-HTTP
     // self-host any Host reaches the app): never serve the editor on it.
     if (await isKnownCustomHostname(host)) {

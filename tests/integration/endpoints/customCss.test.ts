@@ -2,12 +2,12 @@
 //
 // Write paths: every endpoint that stores a theme runs the shared
 // sanitizer and answers 400 `theme/custom-css-invalid` with line/column
-// issues — doc meta, saved themes (POST + PATCH), workspace default.
+// issues: doc meta, saved themes (POST + PATCH), workspace default.
 // Creating / duplicating a doc re-targets upload URLs.
 //
 // Render path: the server renderer applies the sanitized CSS (a
 // distinctive page colour shows up in the PNG) and never fetches a URL
-// the sanitizer dropped — even one on the renderer's own allowlist, and
+// the sanitizer dropped: even one on the renderer's own allowlist, and
 // even when the CSS reached the DB without going through the write path
 // (as a direct Y.js write would).
 //
@@ -47,7 +47,7 @@ async function expectCustomCssRejected(res: Response, line: number, column: numb
   expect(body.data?.issues).toEqual([expect.objectContaining({ code, line, column })])
 }
 
-describe('custom CSS — write paths', () => {
+describe('custom CSS: write paths', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -154,7 +154,7 @@ describe('custom CSS — write paths', () => {
 // Render path
 
 // MUST match RENDERER_ALLOWED_ORIGINS on renderer-test in deploy/compose/compose.test.yml
-// (shared with rendererNetwork.test.ts, which runs in the same process pool —
+// (shared with rendererNetwork.test.ts, which runs in the same process pool,
 // vitest runs integration files serially, so the port is free here).
 const ALLOWED_PORT = 3187
 
@@ -263,7 +263,7 @@ async function renderFirstPagePng(customCss: string): Promise<Buffer> {
   const owner = await createUser()
   const doc = await createDoc({ ownerId: owner.id })
   await insertYjsRow(doc.docId, '# Custom CSS\n\nA paragraph.\n')
-  // Straight into the DB, bypassing PUT /meta — the same position a
+  // Straight into the DB, bypassing PUT /meta, the same position a
   // direct Y.js write puts the renderer in.
   // No cover page, so page 1 is a body page whose sheet the CSS paints.
   await setDocTheme(doc.docId, { ...defaultTheme, cover: { ...defaultTheme.cover, enabled: false }, customCss })
@@ -277,7 +277,7 @@ async function renderFirstPagePng(customCss: string): Promise<Buffer> {
   return Buffer.from(data ?? '', 'base64')
 }
 
-describe('custom CSS — server renderer', () => {
+describe('custom CSS: server renderer', () => {
   beforeEach(async () => {
     await resetDb()
     canary.hits.length = 0

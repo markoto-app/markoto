@@ -36,10 +36,10 @@ const DEFAULT_POLL_MS = 600
  * Exposes AI prompt / abort / confirm actions and reactive session state.
  *
  * Two sources:
- *   - Y.js awareness — the AI joins the document as its own client, so
+ *   - Y.js awareness: the AI joins the document as its own client, so
  *     every tab sees the AI appear, change phase and leave. Only
  *     public fields ride there.
- *   - The initiator's private channel — while I have a session, the
+ *   - The initiator's private channel, while I have a session, the
  *     composable follows the push stream `GET /api/ai/sessions/:id/stream`
  *     (Server-Sent Events) for the prompt, the live status text,
  *     `message_to_user` answers and confirmation requests ("markoto
@@ -67,7 +67,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
   // of the generic failure toast. Cleared on the next prompt or `clearLastError()`.
   const budgetExhausted = ref(false)
   // The shared monthly free-tier pool is used up (402
-  // `ai/free-allowance-exhausted`) — distinct from the user's own points.
+  // `ai/free-allowance-exhausted`): distinct from the user's own points.
   const freeAllowanceExhausted = ref(false)
 
   const { privateStatus, startedSessionId, lastResponse, lastOutcome } = useAiSessionTracking({ mySessionId, lastError, pollMs, createEventSource })
@@ -103,7 +103,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
         body: { confirmationId: c.id, allow }
       })
     } catch (e) {
-      // 409 = already answered / timed out — the next update shows the
+      // 409 = already answered / timed out, the next update shows the
       // current state; anything else is worth a toast.
       if (aiErrorStatus(e) !== 409) {
         lastError.value = extractError(e).message
@@ -141,7 +141,7 @@ export function useAI(docId: Ref<string>, awareness: Awareness, options: UseAIOp
       const { statusCode, code, message } = extractError(e)
       if (code === 'ai/provider-missing') {
         // Availability snapshot was stale (provider removed in another
-        // tab, instance default dropped) — refresh so the prompt bar
+        // tab, instance default dropped), refresh so the prompt bar
         // swaps to the "Add your API key" call-to-action.
         void refreshAiAvailability()
       }

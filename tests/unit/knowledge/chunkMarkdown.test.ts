@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { chunkMarkdown } from '../../../server/utils/knowledge/chunkMarkdown'
 
-// chunkMarkdown is a pure function — no DB, no network. Covers the
+// chunkMarkdown is a pure function, no DB, no network. Covers the
 // edge cases the processor actually cares about:
 //   - empty / whitespace input returns nothing
 //   - small doc under target becomes one chunk
@@ -39,7 +39,7 @@ describe('chunkMarkdown', () => {
       'Nested content block.'
     ].join('\n')
     const chunks = chunkMarkdown(md, { targetTokens: 50 })
-    // The packer may combine adjacent small sections up to targetTokens —
+    // The packer may combine adjacent small sections up to targetTokens,
     // but distinct H2s in different sections should end up in different
     // chunks with enough of a budget that we actually split.
     expect(chunks.length).toBeGreaterThanOrEqual(1)

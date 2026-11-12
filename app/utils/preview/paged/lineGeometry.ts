@@ -6,7 +6,7 @@ import type { BlockQueries, PageBox } from './blockQueries'
  *
  * GEOMETRY. paged.js lays a page out as a column box: whatever doesn't
  * fit flows into the NEXT column, to the right of the page and starting
- * at its top — not below it. So positions of overflowing content say
+ * at its top: not below it. So positions of overflowing content say
  * nothing about "how far down"; the helpers below count line boxes on
  * either side of the page's right edge instead, and measure free space
  * against the page's bottom. Counting lines (not pixels) also keeps them
@@ -84,7 +84,7 @@ export function createLineGeometry(q: BlockQueries) {
   }
 
   /**
-   * The start of the last line of `block` on the page — breaking there
+   * The start of the last line of `block` on the page, breaking there
    * carries one more line over (widow fix). Binary search over the text
    * before the break for the first character on that line.
    */

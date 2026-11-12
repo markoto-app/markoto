@@ -9,14 +9,14 @@ import type { Logger } from './logger'
 // `Y.encodeStateAsUpdate(document, persistedStateVector)`. The state vector is
 // recorded at load and advanced only after an append has committed, so a
 // failed or unacknowledged append is simply contained in the next one (Y.js
-// updates are idempotent — a duplicate costs bytes, never content). Each
+// updates are idempotent: a duplicate costs bytes, never content). Each
 // instance appends its own deltas; two instances on one document both land
 // in the log and merge on load. The delete set is always written whole (it
 // does not show in the state vector), so no deletion can be missed.
 //
 // A store that keeps failing marks the document unsaved: it is retried in the
 // background and, while unsaved, Hocuspocus is not allowed to unload it
-// (`hasUnsavedChanges`, checked in `beforeUnloadDocument`) — its edits exist
+// (`hasUnsavedChanges`, checked in `beforeUnloadDocument`), its edits exist
 // only in this process's memory. On shutdown the veto is lifted after one
 // last attempt.
 
@@ -153,7 +153,7 @@ export function createDocumentPersistence(deps: DocumentPersistenceDeps) {
     /**
      * Store what changed since the last store. Retries a few times; returns
      * the appended row (for the activity log's boundary ids) or null when
-     * nothing could be written — then the document stays marked unsaved and
+     * nothing could be written, then the document stays marked unsaved and
      * `retryUnsaved` keeps trying.
      */
     async store(docId: string, document: LiveDocument): Promise<AppendResult | null> {

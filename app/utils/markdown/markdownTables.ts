@@ -7,7 +7,7 @@ import type Token from 'markdown-it/lib/token.mjs'
  *
  * **Captions (Pandoc syntax).** A paragraph that starts with `Table:` (or
  * `table:`, or just `:`) directly before or after a table is the table's
- * caption — Pandoc's `table_captions` extension:
+ * caption: Pandoc's `table_captions` extension:
  *
  *     | Metric | Q3 |
  *     |---|--:|
@@ -27,7 +27,7 @@ import type Token from 'markdown-it/lib/token.mjs'
  * hyphen. Inside table cells, a number with its unit or `%`, a currency
  * with its amount, a comparison sign with its number and short codes
  * like `SEV-1` / `ISO-8601` are wrapped in `<span class="markoto-nowrap">`
- * (`white-space: nowrap` in the theme). Only short, fixed patterns —
+ * (`white-space: nowrap` in the theme). Only short, fixed patterns,
  * long cell text still wraps, so wide tables keep fitting the page.
  */
 
@@ -144,7 +144,7 @@ const UNIT_RE = [...UNITS].sort((a, b) => b.length - a.length).map(escapeRe).joi
 const NUMBER = String.raw`[+\-−±]?\d+(?:[.,'’]\d+)*`
 const SPACE = '[ \\u00A0\\u202F]'
 /**
- * Month names and abbreviations (English, German, French, Spanish — the
+ * Month names and abbreviations (English, German, French, Spanish, the
  * document languages with Latin script) for dates like "30 Jan 2027".
  */
 const MONTHS = [

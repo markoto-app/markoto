@@ -102,7 +102,7 @@ describe('deleteDocDbRows', () => {
     expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [docB.docId])).rows).c)).toBe(1)
   })
 
-  it('is idempotent — deleting a nonexistent doc is a no-op (no throw)', async () => {
+  it('is idempotent: deleting a nonexistent doc is a no-op (no throw)', async () => {
     await expect(deleteDocDbRows(docAs('ghost-doc'))).resolves.toBeUndefined()
   })
 
@@ -111,14 +111,14 @@ describe('deleteDocDbRows', () => {
     // deletes would succeed (they'd have no rows to match) but the FK
     // constraint `documents.workspace_id` -> workspaces would still be
     // fine. The real risk is reversing to `documents first` in a version
-    // where activity_log has `ON DELETE RESTRICT` — then docs can't drop.
+    // where activity_log has `ON DELETE RESTRICT`, then docs can't drop.
     // We don't have RESTRICT today, but pin the order so a schema
     // change noticing it can flip both together.
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     await appendActivity(docAs(doc.docId), { userName: 'u', action: 'edit' })
     await deleteDocDbRows(docAs(doc.docId))
-    // Everything gone — test passes iff the FK-safe order worked.
+    // Everything gone: test passes iff the FK-safe order worked.
     const db = testDb()
     expect(Number(first((await db.query<{ c: string }>('SELECT COUNT(*) AS c FROM documents WHERE doc_id = $1', [doc.docId])).rows).c)).toBe(0)
   })
@@ -160,8 +160,8 @@ describe('cleanupDocS3', () => {
     expect(state.deleteCalls.length).toBe(0)
   })
 
-  it('swallows a List failure — returns 0 and never throws', async () => {
-    // Regression target — S3 down/unreachable must NOT block the user's
+  it('swallows a List failure, returns 0 and never throws', async () => {
+    // Regression target: S3 down/unreachable must NOT block the user's
     // delete. Orphan-cleanup picks up what we miss.
     const state: FakeS3State = {
       keys: new Set(['docs/abc/a.png']),
@@ -174,7 +174,7 @@ describe('cleanupDocS3', () => {
     expect(logs.find('error', 'S3 cleanup failed')).toMatchObject({ component: 'document-lifecycle', docId: 'abc' })
   })
 
-  it('swallows a Delete failure mid-batch — returns 0, never throws', async () => {
+  it('swallows a Delete failure mid-batch, returns 0, never throws', async () => {
     const state: FakeS3State = {
       keys: new Set(['docs/abc/a.png', 'docs/abc/b.png']),
       listCalls: 0,
@@ -232,7 +232,7 @@ describe('notifySyncDeleted', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('returns synchronously — does NOT await the HTTP call', async () => {
+  it('returns synchronously: does NOT await the HTTP call', async () => {
     // Regression target: the notify must be fire-and-forget. If the
     // caller (`deleteDocument`) awaited a wedged sync-server, the HTTP
     // delete endpoint would hang for `AbortSignal.timeout(3000)` instead
@@ -255,7 +255,7 @@ describe('notifySyncDeleted', () => {
     resolve()
   })
 
-  it('swallows a fetch rejection — does NOT propagate an unhandledRejection', async () => {
+  it('swallows a fetch rejection, does NOT propagate an unhandledRejection', async () => {
     // If the sync-server is down and fetch rejects, the caught .catch()
     // logs but the app process must not crash.
     const fetchMock = vi.fn().mockRejectedValue(new Error('ECONNREFUSED'))

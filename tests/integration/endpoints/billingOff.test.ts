@@ -9,7 +9,7 @@ import { at, first } from '../../helpers/assert'
 // Billing-off mode over real HTTP. These tests talk to the SECOND
 // Nitro subprocess (TEST_BILLING_OFF_BASE_URL), booted from the same
 // build with NUXT_BILLING_ENABLED off, NUXT_PLANS_COMING_SOON=true and
-// no NUXT_STRIPE_* variables at all — so its successful boot is itself
+// no NUXT_STRIPE_* variables at all, so its successful boot is itself
 // the "runs without Stripe config" check. A few cases hit the primary
 // (billing ON) server to pin the inverse.
 
@@ -41,7 +41,7 @@ async function seedPendingSignup(email: string, confirmToken: string, unsubscrib
   )
 }
 
-describe('billing off — billing endpoints are absent', () => {
+describe('billing off: billing endpoints are absent', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -106,7 +106,7 @@ describe('billing off — billing endpoints are absent', () => {
   })
 })
 
-describe('billing off — SSR billing mode reaches the browser', () => {
+describe('billing off: SSR billing mode reaches the browser', () => {
   it('pricing page renders the coming-soon tiers with PLANNED prices + waitlist, no checkout', async () => {
     const res = await anonClient(OFF).get('/pricing')
     expect(res.status).toBe(200)
@@ -128,7 +128,7 @@ describe('billing off — SSR billing mode reaches the browser', () => {
   })
 })
 
-describe('waitlist — sign-up (billing off + plans coming soon)', () => {
+describe('waitlist: sign-up (billing off + plans coming soon)', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -206,7 +206,7 @@ describe('waitlist — sign-up (billing off + plans coming soon)', () => {
   })
 })
 
-describe('waitlist — confirm + unsubscribe', () => {
+describe('waitlist: confirm + unsubscribe', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -9,7 +9,7 @@ import { ssoSatisfiedSql } from '../sso'
 // (server/utils/access/**) may import them.
 
 /**
- * The caller's role in a workspace, or null if not a member — or if the
+ * The caller's role in a workspace, or null if not a member, or if the
  * workspace enforces single sign-on and the caller has no current
  * SSO grant. This is THE access check: every path into a workspace goes
  * through it (or through `getDocWithActorRole`, which applies the same
@@ -38,7 +38,7 @@ export async function getMemberRole(
 /**
  * The membership role WITHOUT the SSO condition. Only for the places
  * that must see a member who hasn't signed in through the workspace's
- * IdP: the SSO settings (admins can fix a broken IdP — the only
+ * IdP: the SSO settings (admins can fix a broken IdP, the only
  * break-glass), the "sign in with SSO" prompt, the SSO sign-in itself,
  * SCIM, and admin actions about ANOTHER member (removal). Never for the
  * caller's own access to content.
@@ -57,7 +57,7 @@ export async function getMemberRoleIgnoringSso(
 
 /**
  * The raw membership row's role INCLUDING `guest`. For the member
- * list, member removal and role changes — never for access decisions.
+ * list, member removal and role changes, never for access decisions.
  */
 export async function getMembershipRole(
   workspaceId: string,

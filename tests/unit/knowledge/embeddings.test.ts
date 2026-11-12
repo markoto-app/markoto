@@ -129,7 +129,7 @@ describe('custom (non-Jina) configuration', () => {
   })
 })
 
-// embedDocuments — wire-format
+// embedDocuments: wire-format
 
 describe('embedDocuments', () => {
   it('passes task=retrieval.passage and dimensions=768 to LiteLLM', async () => {
@@ -163,7 +163,7 @@ describe('embedDocuments', () => {
   })
 })
 
-// embedQuery — single-call query path
+// embedQuery: single-call query path
 
 describe('embedQuery', () => {
   it('uses task=retrieval.query', async () => {

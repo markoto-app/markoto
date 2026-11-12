@@ -6,7 +6,7 @@
 // LiteLLM's own role when the deployment runs one (NUXT_LITELLM_DB_USER /
 // NUXT_LITELLM_DB_PASSWORD, wired by the compose files from
 // POSTGRES_LITELLM_*; the app role then has no CONNECT on the litellm
-// database — deploy/config/postgres/db-init.sh), else the app's POSTGRES_USER /
+// database: deploy/config/postgres/db-init.sh), else the app's POSTGRES_USER /
 // POSTGRES_PASSWORD. NUXT_LITELLM_DB_URL overrides everything, for a
 // deployment where LiteLLM has its own Postgres. The app already holds the
 // LiteLLM master key, so it learning LiteLLM's DB role widens nothing; the

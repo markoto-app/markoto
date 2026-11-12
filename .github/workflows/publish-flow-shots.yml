@@ -1,7 +1,7 @@
 # Publish the docs screenshots from a release run.
 #
 # Every release run (release.yml) records the whole flow suite and uploads
-# its manifests + screenshots as the `flow-output` artifact — also when a
+# its manifests + screenshots as the `flow-output` artifact: also when a
 # few flows failed: scripts/build-flows.ts republishes only variants with a
 # `.passed` sentinel, a failed variant keeps its previously published
 # frames. A frame that looks the same as the committed one keeps its
@@ -13,7 +13,7 @@
 # through the normal PR gate (label `release:none`, merged by a human or
 # the release operator).
 #
-# Runs after every release run (any conclusion — a run that skipped its
+# Runs after every release run (any conclusion: a run that skipped its
 # flow job has no artifact and ends here as a no-op) or by hand with a
 # release run id.
 
@@ -109,7 +109,7 @@ jobs:
             exit 1
           fi
           if [ -z "$(git status --porcelain -- public/flows)" ]; then
-            echo "public/flows is unchanged — nothing to publish."
+            echo "public/flows is unchanged, nothing to publish."
             exit 0
           fi
           version=$(git tag --list 'v*' --sort=-v:refname | head -1)
@@ -131,7 +131,7 @@ jobs:
           } > "$body"
           if gh pr view "$branch" --repo "$REPO" --json state --jq .state 2>/dev/null | grep -q OPEN; then
             gh pr edit "$branch" --repo "$REPO" --body-file "$body"
-            echo "PR for ${branch} already open — branch and summary updated."
+            echo "PR for ${branch} already open, branch and summary updated."
             exit 0
           fi
           gh pr create --repo "$REPO" --base main --head "$branch" \

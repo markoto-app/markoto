@@ -24,7 +24,7 @@ export function pageBlock(theme: DocTheme, runtime: ThemeRuntime): string {
   // The footnote area is a page-level box outside `.paged-doc`, so it does
   // not inherit the body font: without an explicit family the notes fall
   // back to the browser default serif. Footnotes are text, so they use
-  // the body font at 0.8 × the body size (not the meta voice — a mono
+  // the body font at 0.8 × the body size (not the meta voice, a mono
   // meta font made every footnote look like code).
   return `@page {
   size: ${size} ${orientation};
@@ -79,7 +79,7 @@ export function pageBreakBlock(): string {
  * In multi-column layouts (newsletter, magazine), the doc title and
  * the table of contents read better when they span the full page width
  * rather than getting jammed into the first column. \`column-span: all\`
- * is the standard CSS Multi-column Layout property for this — the
+ * is the standard CSS Multi-column Layout property for this, the
  * spanned element interrupts the column flow, sits across the full
  * content area, and columns resume below it.
  *
@@ -115,7 +115,7 @@ export function columnSpanBlock(theme: DocTheme): string {
  * the next page as a whole. The declarations stay as the standard CSS
  * statement of intent (and for engines that do support them).
  *
- * Tables: only SHORT tables (≤ 12 body rows) are kept in one piece —
+ * Tables: only SHORT tables (≤ 12 body rows) are kept in one piece,
  * forcing every table onto one page left half-empty pages behind long
  * ones. Long tables split between rows and repeat their header row on
  * the next page (pagedHandlers.ts).

@@ -12,7 +12,7 @@ import { THEME_PRESETS } from '../../../shared/utils/theme/themePresets'
 // regresses, the `themeToCss` stylesheet generator sees a shape it
 // wasn't coded for, and preview + PDF silently mis-render.
 
-// Deep clone + mutation helper — the schema uses `.strict()` so we can't
+// Deep clone + mutation helper, the schema uses `.strict()` so we can't
 // just spread once; each test starts from a fresh deep copy.
 function baseTheme(): DocTheme {
   return JSON.parse(JSON.stringify(defaultTheme))
@@ -278,12 +278,12 @@ describe('header/footer slots', () => {
     expect(isValidTheme(t)).toBe(true)
   })
 
-  it('rejects unknown token-style sequences (strict — only 4 allowed)', () => {
+  it('rejects unknown token-style sequences (strict, only 4 allowed)', () => {
     // Regression target: a naive validator that accepts any `{...}`
     // could let templates smuggle arbitrary CSS through by pretending
     // to be tokens. Our validator only strips the four known tokens
     // and then checks the remainder. `{evil}` is not stripped, so if
-    // its body contains safe text it actually still passes — pin
+    // its body contains safe text it actually still passes, pin
     // today's behavior so the test fails loudly if we tighten later.
     const t = baseTheme()
     t.header.left = '{evil}'
@@ -379,7 +379,7 @@ describe('missing sections', () => {
   })
 })
 
-describe('DocThemeSchema.safeParse — error surfacing (richer-errors path)', () => {
+describe('DocThemeSchema.safeParse: error surfacing (richer-errors path)', () => {
   // Callers that care about WHICH field failed can use safeParse
   // directly. These tests verify the issues array points at the right
   // path so /meta.put could eventually return field-level 400s.

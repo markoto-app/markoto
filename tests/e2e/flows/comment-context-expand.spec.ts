@@ -5,7 +5,7 @@ import { waitForSyncDebounce, settleAnimations } from '../fixtures/waits'
 //
 // User-job: a writer scrolls back through the Activity tab, sees
 // "Sam commented" three weeks ago, and wants to know what the
-// thread looked like at THAT moment — what the parent comment
+// thread looked like at THAT moment, what the parent comment
 // said, who replied, was it resolved already. Click the comment
 // row in the Activity feed; the comment-context drawer expands
 // in place showing the thread state as of that activity.
@@ -18,7 +18,7 @@ import { waitForSyncDebounce, settleAnimations } from '../fixtures/waits'
 // drawer renders parent + replies in chronological order.
 //
 // Distinct from `discuss-with-comments` (the Tier-1 happy path
-// for posting + replying). This flow is the AUDIT side — given
+// for posting + replying). This flow is the AUDIT side, given
 // any past comment activity row, show what it looked like THEN.
 //
 // Runs on desktop AND mobile. The Activity tab is on the right
@@ -40,7 +40,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
 
   // Post a comment so there's a `comment.added` row in Activity.
   // Use the same path discuss-with-comments does: select text,
-  // open the selection-popup, type, submit. Keep it short — the
+  // open the selection-popup, type, submit. Keep it short, the
   // story is the AUDIT view, not the comment composition.
   const target = page.locator('.cm-content').getByText('Anyone with the link can edit').first()
   await flow.step(
@@ -73,14 +73,14 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
     + 'comment, markoto keeps a snapshot of that thread in the '
     + 'Activity log. Click the row in Activity and the '
     + 'drawer expands showing the thread the way it looked at '
-    + 'that exact moment — parent, replies, resolution state, '
+    + 'that exact moment, parent, replies, resolution state, '
     + 'all preserved for as long as the doc lives.'
   )
 
   // Open the Activity tab
   // On mobile, the comment composer ran inside the Comments bottom
   // sheet (`mk-sheet-host`), which overlays the editor AND the
-  // bottom-tab-bar — so the Activity tab is unreachable until the
+  // bottom-tab-bar: so the Activity tab is unreachable until the
   // sheet closes. Dismiss it first before the entry-point tap. The
   // sheet's close button is an `aria-label="Close"` glyph in the
   // sheet header (see BottomSheet.vue).
@@ -104,7 +104,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
       annotations: editor.isMobile
         ? []
         : [{ label: 'Activity tab', selector: '[data-testid="sidebar-tab-activity"]', kind: 'arrow' }],
-      result: 'The Activity feed opens — one row per edit, comment, restore.',
+      result: 'The Activity feed opens, one row per edit, comment, restore.',
       after: () => page.locator('[data-activity-id]').first().waitFor({ state: 'visible', timeout: 10_000 })
     }
   )
@@ -112,7 +112,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
   // Click the comment row → context drawer
   await flow.heading('Click the comment row to replay it', 3)
   await flow.narrate(
-    'Comment rows in the feed carry a chevron — click to expand. '
+    'Comment rows in the feed carry a chevron, click to expand. '
     + 'The thread appears inline, exactly as it was at that moment. '
     + 'No modal, no navigation; the editor '
     + 'stays in place.'
@@ -130,7 +130,7 @@ test('Replay a comment in its original context', async ({ page, flow, editor }) 
       // Mobile: activity row lives inside the Activity BottomSheet.
       force: editor.isMobile,
       hero: true,
-      result: 'The comment-context drawer expands — parent body, replies (none yet), resolution state. Anyone reviewing the audit can see this thread the way it looked then.',
+      result: 'The comment-context drawer expands, parent body, replies (none yet), resolution state. Anyone reviewing the audit can see this thread the way it looked then.',
       after: async () => {
         await expect(commentRow).toHaveAttribute('data-expanded', 'true', { timeout: 5_000 })
         await settleAnimations(page, 1_500)

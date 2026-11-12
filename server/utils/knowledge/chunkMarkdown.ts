@@ -3,7 +3,7 @@
  * markdown document into roughly-equal chunks for embedding.
  *
  * Strategy (cheap + good-enough):
- *   1. Segment at `##`/`###` heading boundaries — these correspond to
+ *   1. Segment at `##`/`###` heading boundaries, these correspond to
  *      semantic sections. Chunks across headings would dilute retrieval
  *      ranking.
  *   2. Within each section, pack paragraphs (blank-line separated) until
@@ -16,7 +16,7 @@
  * No third-party splitter: the input is already clean markdown from
  * markitdown, and the logic is small.
  *
- * Tokens are estimated as chars/4 — good enough for budgeting and avoids
+ * Tokens are estimated as chars/4, good enough for budgeting and avoids
  * pulling tokenizer deps in. The consuming embedding call (Jina via
  * LiteLLM) has its own hard cap and will truncate if we under-estimate
  * on edge cases (CJK text).
@@ -32,7 +32,7 @@ export interface ChunkMarkdownOptions {
   /**
    * Hard ceiling on number of chunks the splitter will emit. Caps the
    * blast radius on pathological inputs (e.g. 25 MB of single-word
-   * lines) — each chunk becomes one embedding API call, so without
+   * lines): each chunk becomes one embedding API call, so without
    * a ceiling a single upload can issue tens of thousands of API calls.
    *
    * When hit, the chunker keeps the first `maxChunks - 1` chunks and
@@ -146,7 +146,7 @@ function splitParagraphBySentences(p: string, maxTokens: number): string[] {
  * treated as a title and folded into the first section's preamble.
  */
 function segmentByHeadings(markdown: string): string[] {
-  // Match ATX h2/h3 starts of line. h1 is intentionally not a boundary —
+  // Match ATX h2/h3 starts of line. h1 is intentionally not a boundary,
   // there's usually only one and we don't want a single "intro" mega-chunk.
   const lines = markdown.split('\n')
   const sections: string[] = []
@@ -169,7 +169,7 @@ function segmentByHeadings(markdown: string): string[] {
 /**
  * Split a markdown document into chunks ready for embedding.
  *
- * Empty / whitespace-only input returns an empty array — the caller
+ * Empty / whitespace-only input returns an empty array, the caller
  * (processKnowledge) should treat that as "markitdown produced nothing
  * extractable" and flip the row to `status='failed'` rather than
  * inserting 0 chunks with no explanation.
@@ -189,10 +189,10 @@ export function chunkMarkdown(markdown: string, options: ChunkMarkdownOptions = 
 
 /**
  * First pass: walk every heading-bounded section and emit either one
- * chunk (small) or many (large — split via `splitOversizedBlock`,
+ * chunk (small) or many (large, split via `splitOversizedBlock`,
  * keeping the heading line attached to each piece so downstream
  * retrieval still knows the section this chunk came from). Combining
- * adjacent small sections is explicitly NOT done here — we'd lose
+ * adjacent small sections is explicitly NOT done here, we'd lose
  * heading-aware retrieval boundaries for a marginal size gain.
  */
 function chunksFromSections(sections: string[], maxTokens: number, overlapTokens: number): Chunk[] {

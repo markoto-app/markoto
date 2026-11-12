@@ -3,7 +3,7 @@ import { test, expect, requireLiveAi } from '../fixtures/flow'
 // Tier 2: "Drop a URL into the prompt and the AI reads it for you".
 //
 // User-job: a writer wants to summarise an article without leaving
-// markoto — paste the URL into the AI prompt bar, ask "what's this
+// markoto: paste the URL into the AI prompt bar, ask "what's this
 // about?", let the AI fetch it and weave the answer into the doc.
 // Job done when the AI calls `fetch_url`, fetches the page through
 // the SSRF-guarded URL fetcher, and inserts a summary paragraph.
@@ -22,7 +22,7 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   const draft = '# Framework shortlist\n\n## Candidates\n\nWe are comparing frontend frameworks for the new customer dashboard.\n'
   await editor.silentSetup({ title: 'Framework shortlist', body: draft, cover: false })
 
-  await flow.heading('Drop a URL — the AI reads it for you', 3)
+  await flow.heading('Drop a URL, the AI reads it for you', 3)
   await flow.narrate(
     'Paste any public URL into the AI prompt bar with a question and '
     + 'the AI reads the page for you, then writes what you asked for '
@@ -35,7 +35,7 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   await flow.click(
     'Click into the AI prompt bar',
     editor.page.ai.promptBarInput,
-    { result: 'The bar lifts and glows — ready for the URL + question.' }
+    { result: 'The bar lifts and glows, ready for the URL + question.' }
   )
 
   // Vue.js docs landing page: stable, public, returns a clear short
@@ -47,14 +47,14 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
     'Paste the URL with a question',
     editor.page.ai.promptBarInput,
     prompt,
-    { result: 'Your prompt is ready — the URL tells the AI which page to read.' }
+    { result: 'Your prompt is ready, the URL tells the AI which page to read.' }
   )
 
   await flow.click(
     'Send it',
     editor.page.ai.promptBarSend,
     {
-      result: 'The AI is working — it reads the page, then the summary lands in the doc.',
+      result: 'The AI is working, it reads the page, then the summary lands in the doc.',
       after: () => editor.page.waitForAiActive()
     }
   )
@@ -77,7 +77,7 @@ test('Ask the AI to read a URL', async ({ page, flow, editor }) => {
   await editor.page.scrollEditorTo(/vue/i)
 
   await flow.shot(
-    'The AI read the page and wrote the summary into the doc — with '
+    'The AI read the page and wrote the summary into the doc, with '
     + 'a link to the source so the reader can verify.',
     {
       hero: true,

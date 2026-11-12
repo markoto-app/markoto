@@ -42,7 +42,7 @@ export async function listThemesByUser(self: UserScope): Promise<ThemeRow[]> {
 export async function getThemeById(self: UserScope, themeId: string): Promise<ThemeRow | null> {
   const db = useDatabase()
   // The `(themeId, userId)` tuple guards against cross-user access
-  // even when an attacker guesses a valid id — same shape as the
+  // even when an attacker guesses a valid id, same shape as the
   // (activityId, docId) tuple in the activity repo.
   const row = (await db
     .select({

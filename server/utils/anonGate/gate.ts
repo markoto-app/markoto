@@ -54,7 +54,7 @@ function powDifficulty(): PowDifficulty {
 /**
  * Replay store in Valkey (`SET key 1 NX EX ttl`). Errors propagate: the
  * gate fails CLOSED (an anonymous create is refused while Valkey is
- * down) — failing open would let one solution create unlimited docs.
+ * down): failing open would let one solution create unlimited docs.
  */
 const valkeyReplayStore: ReplayStore = {
   async claimOnce(id, ttlSeconds) {

@@ -1,6 +1,6 @@
 // HTTP-facing guards for AI entry points. Every AI surface resolves the
 // caller's providers once, up front, and refuses with a stable code +
-// i18n key + settings link when the capability it needs is missing — the
+// i18n key + settings link when the capability it needs is missing, the
 // client renders that as "Add your API key in Settings" instead of a
 // generic failure.
 

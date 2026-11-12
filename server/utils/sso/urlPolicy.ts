@@ -86,7 +86,7 @@ export async function checkSsoUrl(
   if (screen.refused === 'forbidden') throw new SsoUrlRefused('This URL points at a loopback, link-local or metadata address.', 'refused')
   if (screen.refused === 'private') throw new SsoUrlRefused('This URL points at a private network address, which this instance does not allow.', 'refused')
   if (url.protocol === 'http:' && (!allowPrivate || screen.anyPublic)) {
-    throw new SsoUrlRefused('Use https:// — plain http is only allowed for an identity provider on a private network of a self-hosted instance.', 'not-https')
+    throw new SsoUrlRefused('Use https://, plain http is only allowed for an identity provider on a private network of a self-hosted instance.', 'not-https')
   }
   return { url, addresses }
 }

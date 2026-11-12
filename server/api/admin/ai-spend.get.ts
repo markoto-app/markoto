@@ -11,7 +11,7 @@ import { aiSpendQuery } from '~~/shared/api/legal'
 // override it. Invalid dates fall back to the default rather than 400, so a
 // typo'd URL still shows a chart.
 
-/** Internal shape — collapsed from LiteLLM's response into a tag-keyed map. */
+/** Internal shape: collapsed from LiteLLM's response into a tag-keyed map. */
 type SpendByTag = Record<string, { spend: number, requests: number, totalTokens: number }>
 
 const spendNumber = z.number().optional().catch(undefined)

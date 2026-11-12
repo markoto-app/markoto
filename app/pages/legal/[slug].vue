@@ -11,8 +11,8 @@
 // /settings/profile so all three feel like overlays on the user's
 // context rather than destinations.
 //
-// Translation banner mirrors the convention in `legal.documentPage.*`
-// — when the requested locale falls back to English (because we
+// Translation banner mirrors the convention in `legal.documentPage.*`,
+// when the requested locale falls back to English (because we
 // haven't translated yet), we surface that loudly with a link back
 // to the authoritative copy.
 
@@ -133,7 +133,7 @@ function fmtDate(iso: string): string {
 
         <!-- Translation-fallback banner. Shows when the user's locale
              isn't translated yet and we fell back to English. The link
-             is informational — they're already reading English. -->
+             is informational: they're already reading English. -->
         <UAlert
           v-if="data.isFallback"
           color="neutral"
@@ -144,7 +144,7 @@ function fmtDate(iso: string): string {
           :description="t('legal.documentPage.missingLocale')"
         />
         <!-- Convenience banner when reading a non-authoritative
-             translation — even when we DO have a translation,
+             translation: even when we DO have a translation,
              the English text legally prevails. -->
         <UAlert
           v-else-if="data.actualLocale !== data.authoritativeLocale"

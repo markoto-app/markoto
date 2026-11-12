@@ -3,7 +3,7 @@ import { z } from 'zod'
 // settings page's "Verify" button).
 //
 //   - chat: a small completion WITH one tool definition at temperature 0,
-//     through LiteLLM's `byok/*` deployment — the exact path real agent
+//     through LiteLLM's `byok/*` deployment, the exact path real agent
 //     calls take. A tool call back = OK. A plain-text answer = saved with
 //     a `no-tool-support` warning (the agent needs tool calling).
 //   - transcription: a 0.5 s silent WAV through LiteLLM's
@@ -11,7 +11,7 @@ import { z } from 'zod'
 //     fraction of a cent on the user's account; proves auth + model.
 //   - image: NO generation (a paid image per save is not acceptable).
 //     LiteLLM has no clientside-credential passthrough for listing
-//     upstream models, so the app GETs `{baseUrl}/models` itself — same
+//     upstream models, so the app GETs `{baseUrl}/models` itself, same
 //     SSRF policy, redirects refused, short timeout. 401/403 → auth
 //     failed; model absent from a returned list → `model-not-found`
 //     warning (some providers' lists are incomplete, so it does not

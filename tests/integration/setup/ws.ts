@@ -36,7 +36,7 @@ export interface WsClient {
   closed(timeoutMs?: number): Promise<{ code: number, reason: string }>
   /** Close the socket from the test side. */
   close(): void
-  /** Underlying ws instance — escape hatch for rare edge cases. */
+  /** Underlying ws instance: escape hatch for rare edge cases. */
   raw: WebSocket
 }
 

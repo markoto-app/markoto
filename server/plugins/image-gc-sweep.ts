@@ -4,9 +4,9 @@ import { s3ObjectStore } from '../utils/storage/objectStore'
 import { SWEEPS } from '../config/sweeps'
 import { useEnv } from '~~/shared/env/load'
 
-// Garbage-collects document images that are referenced nowhere — not in
+// Garbage-collects document images that are referenced nowhere, not in
 // the doc, not in any version that can still be restored, not in another
-// doc, theme or comment — for longer than NUXT_IMAGE_GC_RETENTION_DAYS
+// doc, theme or comment, for longer than NUXT_IMAGE_GC_RETENTION_DAYS
 // (default 30; 0 disables). The safety argument lives in
 // `server/utils/storage/imageGc.ts`. Every 6 h, first run 10 min after boot (the
 // work is a background chore, never urgent).

@@ -13,7 +13,7 @@ import { wsAs } from '../helpers/access'
 //
 // Embeddings are manually crafted 768-dim vectors with unit norm so
 // cosine similarity is predictable. We stick to cardinal-axis vectors
-// (e[i] = 1, else 0) — pairs on the same axis have sim=1.0, on
+// (e[i] = 1, else 0), pairs on the same axis have sim=1.0, on
 // different axes sim=0.
 
 const DIM = 768
@@ -82,7 +82,7 @@ describe('searchKnowledge (hybrid)', () => {
       knowledgeId: 'kn-1',
       chunkIndex: 1,
       content: 'The procurement policy covers vendor onboarding in section 4.3.',
-      // axis 0 — totally unrelated to the query vector.
+      // axis 0: totally unrelated to the query vector.
       vector: axisVec(0)
     })
     await seedChunk({
@@ -93,7 +93,7 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(1)
     })
 
-    // Query vector lives on axis 99 — no semantic overlap with either
+    // Query vector lives on axis 99, no semantic overlap with either
     // chunk. The BM25 path has to do the work.
     const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'procurement vendor onboarding',
@@ -125,8 +125,8 @@ describe('searchKnowledge (hybrid)', () => {
       vector: axisVec(6)
     })
 
-    // Query on axis 5 — cosine sim = 1 with chunk 1, 0 with chunk 2.
-    // Query text "xyzblargh" won't hit BM25 on either — forces the
+    // Query on axis 5, cosine sim = 1 with chunk 1, 0 with chunk 2.
+    // Query text "xyzblargh" won't hit BM25 on either, forces the
     // vector path to drive ordering.
     const hits = await searchKnowledge(wsAs(ws.workspaceId), {
       queryText: 'xyzblargh',
@@ -158,7 +158,7 @@ describe('searchKnowledge (hybrid)', () => {
       topK: 5
     })
 
-    // One row, not two — the key (knowledgeId + chunkIndex) de-duped
+    // One row, not two, the key (knowledgeId + chunkIndex) de-duped
     // across sources. Both scores populated.
     const matching = hits.filter(h => h.chunkIndex === 1)
     expect(matching.length).toBe(1)
@@ -229,12 +229,12 @@ describe('searchKnowledge (hybrid)', () => {
 // hypothesis and pins the actual behaviour. Where current behaviour is suboptimal but not a security/correctness
 // bug, the test documents it for future review (with a comment explaining the cost-benefit).
 
-describe('searchKnowledge — adversarial: query degenerate cases', () => {
+describe('searchKnowledge: adversarial: query degenerate cases', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
-  it('all-stopwords queryText (BM25 returns empty tsquery) — vector still works', async () => {
+  it('all-stopwords queryText (BM25 returns empty tsquery), vector still works', async () => {
     // `websearch_to_tsquery('english', 'the and of')` → empty tsquery →
     // `content_tsv @@ ''` returns false → zero BM25 rows. The vector
     // path still hits, so search degrades gracefully to vector-only.
@@ -288,7 +288,7 @@ describe('searchKnowledge — adversarial: query degenerate cases', () => {
   })
 })
 
-describe('searchKnowledge — adversarial: topK edges', () => {
+describe('searchKnowledge: adversarial: topK edges', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -333,7 +333,7 @@ describe('searchKnowledge — adversarial: topK edges', () => {
   })
 })
 
-describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
+describe('searchKnowledge: adversarial: similarity sign + threshold', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -350,7 +350,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
     // semantic-only results should pass `similarityThreshold > 0`.
     //
     // If this changes (e.g. to `>= 0` as the default), this test breaks
-    // — and that's the right place to decide whether the change is
+    // and that's the right place to decide whether the change is
     // wanted.
     const u = await createUser()
     const ws = await createWorkspace(u.id)
@@ -405,7 +405,7 @@ describe('searchKnowledge — adversarial: similarity sign + threshold', () => {
   })
 })
 
-describe('searchKnowledge — zero-vector NaN guard', () => {
+describe('searchKnowledge: zero-vector NaN guard', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -477,7 +477,7 @@ describe('searchKnowledge — zero-vector NaN guard', () => {
   })
 })
 
-describe('searchKnowledge — schema invariant: knowledgeId is globally unique', () => {
+describe('searchKnowledge: schema invariant: knowledgeId is globally unique', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -494,7 +494,7 @@ describe('searchKnowledge — schema invariant: knowledgeId is globally unique',
     // ${knowledgeId}#${chunkIndex}` merge logic is only safe BECAUSE
     // knowledgeId is globally unique. A future migration that loosened
     // the constraint to (workspaceId, knowledgeId) would silently make
-    // cross-workspace merges possible — and this test would break,
+    // cross-workspace merges possible: and this test would break,
     // signaling the merge key needs to be revisited.
     const u = await createUser()
     const wsA = await createWorkspace(u.id)

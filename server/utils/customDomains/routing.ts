@@ -3,7 +3,7 @@ import { planHasFeature, resolveUserPlan } from '../billing/entitlements'
 import { customDomainSettings } from './config'
 
 // Which custom domains are live: verified, and their owner's plan
-// still includes custom domains — a downgrade takes them off the routing
+// still includes custom domains, a downgrade takes them off the routing
 // table (nothing is deleted; they come back with the plan). A domain
 // whose owner can no longer manage the attached document stays live but
 // shows nothing (`pageId` null) until the right returns or the owner

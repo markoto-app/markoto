@@ -11,7 +11,7 @@ const log = useLogger('render')
 
 // One persistent browser, page-pool of POOL_SIZE. New BrowserContext per
 // render isolates cookies / storage between docs. The pool is a simple
-// semaphore — counter goes down when a context is acquired, back up on
+// semaphore: counter goes down when a context is acquired, back up on
 // release. POOL_WAIT_MS bounds how long we'll queue before 503-ing.
 //
 // Sizing: ~80MB/context × 5 = 400MB peak + ~250MB Chromium baseline =
@@ -29,7 +29,7 @@ const MAX_PAGES = 50
 const APP_URL = env.renderer.appUrl
 const INTERNAL_SECRET = env.auth.internalApiSecret
 
-// Origins Chromium may talk to (SSRF lockdown — see ./allowlist.ts).
+// Origins Chromium may talk to (SSRF lockdown, see ./allowlist.ts).
 const ALLOWED_ORIGINS = buildAllowedOrigins({
   APP_URL: env.renderer.appUrl,
   S3_ENDPOINT: env.storage.endpoint,
@@ -44,7 +44,7 @@ const MAX_BLOCKED_LOGS_PER_RENDER = 10
 // user with no capabilities; the namespace sandbox then needs unprivileged
 // user namespaces, which the compose files allow with deploy/config/renderer/seccomp.json
 // (docs/SECURITY-HARDENING.md §C.2). RENDERER_CHROMIUM_SANDBOX=false is
-// an operator escape hatch for hosts that forbid user namespaces outright —
+// an operator escape hatch for hosts that forbid user namespaces outright,
 // it is logged loudly because it removes a whole layer.
 const CHROMIUM_SANDBOX = env.renderer.chromiumSandbox
 if (!CHROMIUM_SANDBOX) {
@@ -72,7 +72,7 @@ function getBrowser(): Promise<Browser> {
     // renderer's own /health probe at 127.0.0.1:9000) untouched.
     //
     // `--font-render-hinting=none`: headless Chromium on Linux hints glyphs
-    // and lays text out with whole-pixel, hinted advances — the PDF then
+    // and lays text out with whole-pixel, hinted advances, the PDF then
     // carries those positions. Fonts without TrueType hints (the bundled
     // TeX Gyre faces) go through the auto-hinter and come out with gaps
     // ("T his", "Dat e" in TeX Gyre Heros: T 10 px instead of 8.15 px at
@@ -157,7 +157,7 @@ export async function renderDocument(input: RenderRequest): Promise<RenderRespon
       )
     ])
   } finally {
-    // Best-effort context teardown. Errors swallowed — if it's already
+    // Best-effort context teardown. Errors swallowed, if it's already
     // closed (timeout path), close() throws and we don't care.
     try {
       await created.context?.close()
@@ -173,9 +173,9 @@ export async function renderDocument(input: RenderRequest): Promise<RenderRespon
  * for HTTP redirect hops of a request it `continue()`d, so an allowed origin
  * that 302s to a blocked one is not caught here. The print page's own CSP
  * (server/utils/rendering/csp.ts, enforced by Chromium on every hop) closes that
- * gap — keep both layers.
+ * gap: keep both layers.
  *
- * Logs the blocked HOST only (never path/query — they can carry tokens),
+ * Logs the blocked HOST only (never path/query, they can carry tokens),
  * once per host per render, capped.
  */
 async function lockDownNetwork(context: BrowserContext, docId: string): Promise<void> {
@@ -199,7 +199,7 @@ async function lockDownNetwork(context: BrowserContext, docId: string): Promise<
 /**
  * The web snapshot of a published page: the print page in `mode=web` renders the
  * markdown with the document's theme but without paged.js, and leaves the
- * result on `window.__webSnapshot`. Nothing is uploaded — the app stores it.
+ * result on `window.__webSnapshot`. Nothing is uploaded, the app stores it.
  */
 async function readWebSnapshot(page: Page): Promise<WebSnapshot> {
   await page.waitForFunction(
@@ -252,7 +252,7 @@ async function doRender(
   if (format === 'html') return { pageCount: 0, pageKeys: [], web: await readWebSnapshot(page) }
 
   // The print page (app/pages/_internal/render/[docId].vue) renders paged.js
-  // at the TOP level (not inside an iframe — different from the editor's
+  // at the TOP level (not inside an iframe, different from the editor's
   // preview pane) precisely so page.pdf() and per-page screenshots can
   // target the paginated DOM directly. The page sets these globals after
   // paged.js fires its `after` hook.
@@ -265,7 +265,7 @@ async function doRender(
   const pageCount = await page.evaluate(() =>
     (globalThis as { __pagedPageCount?: number }).__pagedPageCount ?? 0
   )
-  if (pageCount === 0) throw new Error('Paginated to zero pages — empty doc?')
+  if (pageCount === 0) throw new Error('Paginated to zero pages, empty doc?')
   if (pageCount > MAX_PAGES) {
     throw Object.assign(
       new Error(`Doc has ${pageCount} pages; max allowed is ${MAX_PAGES}`),
@@ -289,16 +289,16 @@ async function doRender(
       await Promise.all(imgs.map(i => (i as HTMLImageElement).decode().catch(() => undefined)))
     })
     // Sync barrier: round-trip image dimensions back to Node. The
-    // serialize-back-to-Node hop is load-bearing — it forces Chromium
+    // serialize-back-to-Node hop is load-bearing, it forces Chromium
     // to await the in-page evaluate to fully complete, which appears
     // to be when image data finally lands in the print compositor.
-    // Don't simplify this — silently breaks PDF image rendering.
+    // Don't simplify this: silently breaks PDF image rendering.
     await page.evaluate(() => Array.from(document.querySelectorAll('.pagedjs_page img'))
       .map(i => ({ w: (i as HTMLImageElement).naturalWidth, h: (i as HTMLImageElement).naturalHeight }))
     )
     // emulateMedia({ media: 'print' }) makes @page rules apply.
     // preferCSSPageSize lets the theme's @page declaration drive paper
-    // size — without it page.pdf() silently falls back to Letter.
+    // size: without it page.pdf() silently falls back to Letter.
     await page.emulateMedia({ media: 'print' })
     const pdfBytes = await page.pdf({
       printBackground: true,
@@ -308,7 +308,7 @@ async function doRender(
     uploads.push(putBytes(pdfKey, pdfBytes, 'application/pdf'))
     // Restore screen media so subsequent screenshots reflect the same
     // pagination the iframe shows in dev (paged.js's CSS doesn't need
-    // print media to be active — the @page rules are already applied
+    // print media to be active, the @page rules are already applied
     // to the .pagedjs_page elements during pagination).
     await page.emulateMedia({ media: 'screen' })
   }
@@ -327,7 +327,7 @@ async function doRender(
   await Promise.all(uploads)
 
   // Manifest written LAST. Readers HEAD it as the "render complete" sentinel
-  // before fetching page bytes — partial renders show as no manifest.
+  // before fetching page bytes, partial renders show as no manifest.
   const manifest: RenderManifest = {
     snapshotId,
     pageCount,

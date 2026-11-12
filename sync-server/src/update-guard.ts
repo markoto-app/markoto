@@ -9,9 +9,9 @@
 //
 // Checks, in order:
 //   1. message / update size  (SYNC_MAX_MESSAGE_BYTES, SYNC_MAX_UPDATE_BYTES)
-//   2. resulting document size (SYNC_MAX_DOCUMENT_BYTES) — pure deletions
+//   2. resulting document size (SYNC_MAX_DOCUMENT_BYTES), pure deletions
 //      always pass so an oversized document can still be trimmed
-//   3. `meta` map writes — every value written into ymeta must pass the
+//   3. `meta` map writes, every value written into ymeta must pass the
 //      same validation as `PUT /api/docs/:id/meta`
 //      (`shared/utils/documents/ymetaValidation.ts`); nested Y types inside ymeta are
 //      refused outright.
@@ -19,7 +19,7 @@
 // Locating ymeta writes without applying the update. A decoded Y.js item
 // only names its parent when it has no left/right neighbour; otherwise the
 // parent is implied by the neighbour it was inserted next to (`origin` /
-// `rightOrigin`) — which is exactly the case for overwriting an existing
+// `rightOrigin`): which is exactly the case for overwriting an existing
 // map key. `placementOf` follows those references through the update
 // itself and through the document's struct store until it reaches a root
 // type, iteratively and memoised, so a hostile chain can't blow the stack
@@ -231,7 +231,7 @@ function checkMetaWrites(doc: Y.Doc, structs: ReadonlyArray<Y.Item | Y.GC | Y.Sk
   const placementOf = createPlacementResolver(doc, structs)
   for (const s of structs) {
     if (!(s instanceof Y.Item)) continue
-    // Already integrated (a resend) — Y.js skips it on apply.
+    // Already integrated (a resend), Y.js skips it on apply.
     if (Y.getState(doc.store, s.id.client) >= s.id.clock + s.length) continue
     checkMetaItem(s, placementOf(s))
   }

@@ -4,8 +4,8 @@ import { findUserById } from '../../server/repos/users'
 import { asUser } from '../helpers/access'
 import { upsertOAuthUser } from '../../server/repos/userSignIn'
 
-// Generic OIDC: identities are keyed by (issuer, sub) — never the
-// email — and only a VERIFIED email merges into an existing account,
+// Generic OIDC: identities are keyed by (issuer, sub), never the
+// email: and only a VERIFIED email merges into an existing account,
 // same rule as GitHub/Google (tests/repos/users.test.ts).
 
 const ISSUER = 'https://idp.example.org/realms/markoto'
@@ -15,7 +15,7 @@ async function upsert(input: Parameters<typeof upsertOAuthUser>[0]): Promise<num
   return (await upsertOAuthUser(input)).userId
 }
 
-describe('upsertOAuthUser — generic OIDC', () => {
+describe('upsertOAuthUser: generic OIDC', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -12,7 +12,7 @@
 //      shape (`tls.serverName`, `proxy: false`, see its fetch docs on
 //      "connecting to a specific address").
 //   2. Redirects are followed by hand, at most `maxRedirects` hops, and
-//      every hop goes through rule 1 again — a public URL that redirects
+//      every hop goes through rule 1 again, a public URL that redirects
 //      to an internal one is refused before the internal one is contacted.
 //   3. The body is read with a byte cap, so a lying or missing
 //      `Content-Length` can't make us buffer more than the limit.

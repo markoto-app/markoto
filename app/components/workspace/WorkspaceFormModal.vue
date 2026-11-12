@@ -1,11 +1,11 @@
 <script setup lang="ts">
-// One modal for both create and edit — the shapes match (name + optional
+// One modal for both create and edit, the shapes match (name + optional
 // description) and the UX should too. Mode is implied by `workspaceId`:
 // present → edit (PUT), absent → create (POST).
 //
 // Create-mode also gates on DPA acceptance: a workspace owner becomes
 // a controller for personal data their members place inside the
-// workspace, and we become their processor — the DPA is the contract
+// workspace, and we become their processor, the DPA is the contract
 // that governs that. When the current user hasn't accepted the
 // current DPA version yet, we surface an inline checkbox + link to
 // the DPA inside this same modal. Submit then fires two calls in
@@ -98,7 +98,7 @@ async function handleSubmit() {
   } catch (e) {
     const err = extractError(e)
     if (err.code === 'dpa/version-stale' || err.code === 'workspace/dpa-required') {
-      // DPA bumped between modal-open and submit — refresh status
+      // DPA bumped between modal-open and submit, refresh status
       // and reset the checkbox so the user re-confirms.
       await refreshAccountStatus()
       dpaChecked.value = false
@@ -168,7 +168,7 @@ async function handleSubmit() {
         <!-- DPA acceptance gate. Surfaces only when the current
              user hasn't accepted the current DPA version. Workspaces
              are the only surface in markoto where DPA is contractually
-             required — all other features are governed by the
+             required: all other features are governed by the
              Privacy Policy + Terms alone. -->
         <div
           v-if="dpaRequired"

@@ -30,7 +30,7 @@ export const CODE_KEEP_TOGETHER_LINES = 15
  * use their background when it isn't white (solarized), else a faint
  * tint of the text colour, so a block never floats bare on the page.
  * Frame (`code.frame`): an accent rule on the left or a hairline box.
- * Long lines wrap (`code.wrap`, default on — a page can't scroll). Line numbers
+ * Long lines wrap (`code.wrap`, default on, a page can't scroll). Line numbers
  * (`code.lineNumbers`) come from each line's `data-line`. A fence title
  * (```ts title="replay.ts") renders as a caption bar above the block.
  */
@@ -56,7 +56,7 @@ export function codeBlock(theme: DocTheme): string {
     // doesn't break after a hyphen. A token wider than the line still
     // breaks rather than running off the page.
     `.paged-doc .markoto-code-token { display: inline-block; max-width: 100%; overflow-wrap: anywhere; text-indent: 0; }`,
-    // Inline code is always lightly tinted regardless of code theme — it
+    // Inline code is always lightly tinted regardless of code theme, it
     // sits inline with body text and shouldn't pull a heavy fill.
     `.paged-doc :not(pre) > code {
   font-family: ${monoStack};

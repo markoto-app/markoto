@@ -34,7 +34,7 @@ const sweeper = defineSweeper({
 })
 
 export default defineNitroPlugin((nitroApp) => {
-  // Startup purge — clears any rows from a crashed prior process. Wait on
+  // Startup purge: clears any rows from a crashed prior process. Wait on
   // the migration signal first; otherwise on a freshly-provisioned DB the
   // query races `00-db-migrate.ts` and hits a missing table.
   if (!import.meta.prerender) void runStartupPurge()
@@ -56,7 +56,7 @@ async function runStartupPurge(): Promise<void> {
 
 /**
  * Runs under the cross-instance lock. Note: `snapshotAiSessions` returns rows from
- * every instance's sessions, but `abortController` is per-process —
+ * every instance's sessions, but `abortController` is per-process,
  * the winner instance can only abort its own loops; for orphan rows
  * (sessions running elsewhere), the loop falls through to
  * `dropOrphanedAiSession` which just drops the DB entry to unblock the

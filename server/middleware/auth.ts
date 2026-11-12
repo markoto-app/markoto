@@ -5,7 +5,7 @@ import { isPublicRoute } from '../utils/auth/publicRoutes'
 export default defineEventHandler(async (event) => {
   const path = getRequestURL(event).pathname
 
-  // HEAD is semantically a GET without a body — external monitors and
+  // HEAD is semantically a GET without a body, external monitors and
   // some proxies probe /api/health with HEAD. Treat it as GET for the
   // whitelist check so a HEAD to a public GET route isn't 401'd.
   const method = event.method === 'HEAD' ? 'GET' : event.method
@@ -41,11 +41,11 @@ export default defineEventHandler(async (event) => {
   // DEFAULT-DENY: every other /api route requires a valid session.
   // This is the middleware backstop for admin routes, billing, user
   // data, workspaces, MCP token management, and anything added in the
-  // future — handlers still run their own finer-grained authz
+  // future: handlers still run their own finer-grained authz
   // (requireAdminUser, canManageDoc, workspace roles) on top.
   //
   // Uses the validated helper so stale-user sessions are cleared centrally.
-  // Result is cached on event.context — endpoints that call the helper again
+  // Result is cached on event.context, endpoints that call the helper again
   // don't re-query the DB.
   await requireValidatedUserSession(event)
 })

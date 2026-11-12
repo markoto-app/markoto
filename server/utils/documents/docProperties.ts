@@ -14,7 +14,7 @@ import { isValidMetaValue } from '~~/shared/utils/documents/ymetaValidation'
  * (broadcast to all collaborators, persisted by the sync server), but only
  * the OWNER's client also persists it to the row via `PUT /meta`.
  * Ownerless (anonymous) docs and changes made by workspace editors or
- * open-edit visitors therefore exist only in ymeta — the row keeps its
+ * open-edit visitors therefore exist only in ymeta, the row keeps its
  * creation-time values (theme NULL for an anonymous doc). Every
  * server-side reader that must show what the editor shows (the render
  * bootstrap → server PDF, the Markdown export tool) goes through here.

@@ -10,7 +10,7 @@ import {
 } from '../integration/setup/fixtures'
 import { sys } from '../helpers/access'
 
-// Stripe stub — we don't want the export builder hitting the network.
+// Stripe stub: we don't want the export builder hitting the network.
 vi.mock('../../server/utils/billing/stripeClient', () => ({
   useStripeClient: () => null
 }))
@@ -99,7 +99,7 @@ describe('buildExportZip', () => {
     expect(readme).toContain('markoto data export')
     expect(readme).toContain('GDPR Article 15')
 
-    // profile.json shape — projection only, no password hash.
+    // profile.json shape: projection only, no password hash.
     const profile = JSON.parse(readEntry(result.bytes, 'profile.json'))
     expect(profile.id).toBe(u.id)
     expect(profile.email).toBe(u.email)
@@ -335,7 +335,7 @@ describe('buildExportZip', () => {
       `INSERT INTO audit_log (actor_user_id, scope, scope_id, action) VALUES (NULL, 'user', $1, 'account.delete_requested')`,
       [String(u.id)]
     )
-    // Unrelated to the user — must be excluded
+    // Unrelated to the user, must be excluded
     await testDb().query(
       `INSERT INTO audit_log (actor_user_id, scope, scope_id, action) VALUES ($1, 'doc', 'd2', 'doc.deleted')`,
       [other.id]

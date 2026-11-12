@@ -40,7 +40,7 @@ export function renderCoverLayoutCss(layout: string, ctx: CoverCtx): string {
  * A short accent rule sits above the title and a hairline above the
  * author/date block; a cover without a logo gets a full-bleed accent band
  * along the top edge (`markoto-cover--no-logo`, set by coverHtml.ts) so
- * it isn't a bare white sheet — the editorial cousin of `banner`.
+ * it isn't a bare white sheet, the editorial cousin of `banner`.
  * The subtitle sits at the top of the spacer row under the title: two
  * items in ONE row of a grid without explicit columns get auto-placed
  * side by side (title left, subtitle right), so every item is pinned to
@@ -87,7 +87,7 @@ function editorialCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): st
  * Banner: brand-tinted top band holding logo + title, page colour beneath
  * with subtitle and meta. One full-width grid column; the band is the
  * cover's `::before` (a grid item spanning the logo + title rows) so the
- * logo keeps its own size and the title its own width — painting the
+ * logo keeps its own size and the title its own width, painting the
  * tint on the logo `<img>` itself stretched an empty tinted box beside
  * the title. With no logo, the title is the first child and takes the
  * band's top padding itself.
@@ -124,7 +124,7 @@ function bannerCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): strin
 
 /**
  * Minimal: title (and optional subtitle) centered. Logo + meta are
- * HIDDEN in this layout regardless of their toggles — "minimal" is a
+ * HIDDEN in this layout regardless of their toggles, "minimal" is a
  * stronger statement than "what you toggled on".
  */
 function minimalCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {
@@ -146,7 +146,7 @@ function minimalCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): stri
 }
 
 /**
- * Classic — flex-column, vertically centered, everything stacked.
+ * Classic: flex-column, vertically centered, everything stacked.
  * Default spacing between elements via per-element margins.
  */
 function classicCoverCss({ justifyItems, align, coverHeightMm }: CoverCtx): string {

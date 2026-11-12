@@ -48,7 +48,7 @@ export async function appendAiMessage(doc: DocAccess<'view'>, input: AppendAiMes
 
 /**
  * Load recent memory rows of the proof's (document, user) pair, oldest-first
- * (chronological — the order the prompt builder wants when stitching
+ * (chronological: the order the prompt builder wants when stitching
  * the `<conversation_history>` block).
  *
  * `since` cuts off the read at an idle-gap boundary so the conversation
@@ -69,7 +69,7 @@ export async function loadRecentMessages(
   // We need the LATEST `limit` rows but in chronological order in the
   // output. Order DESC + slice in the query to get the right window
   // off the index, then reverse client-side. Doing ORDER BY ASC LIMIT N
-  // would return the OLDEST N — wrong direction.
+  // would return the OLDEST N, wrong direction.
   const conds = opts.since
     ? and(eq(aiSessionMessages.docId, docId), eq(aiSessionMessages.userId, userId), gte(aiSessionMessages.createdAt, opts.since))
     : and(eq(aiSessionMessages.docId, docId), eq(aiSessionMessages.userId, userId))
@@ -89,7 +89,7 @@ export async function loadRecentMessages(
     .orderBy(desc(aiSessionMessages.createdAt))
     .limit(limit)
 
-  // Reverse to chronological order — the prompt builder concatenates
+  // Reverse to chronological order, the prompt builder concatenates
   // forward in time so the model reads turn N before turn N+1.
   return [...rows].reverse().map(({ kind, body, ...row }) => ({ ...row, ...parseAiMessageEntry(kind, body) }))
 }

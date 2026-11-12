@@ -4,7 +4,7 @@
 // hosted free-tier plan limits (`HOSTED_FREE_TIER_LIMITS` in
 // setup/server.ts = infra/render-env.sh): 3 members per workspace, 30 days
 // of history, 3 saved themes, 10 MB imports, no custom CSS. The primary
-// server keeps the committed (self-host) tier: every feature on, no limit —
+// server keeps the committed (self-host) tier: every feature on, no limit,
 // the cases at the end pin that nothing is limited there.
 //
 // Every refusal is 409 with `data.code` `plan/limit-reached` or
@@ -48,7 +48,7 @@ async function expectPlanError(res: Response, code: 'plan/limit-reached' | 'plan
 let nextYjsId = 1
 
 async function insertActivity(docId: string, ageDays: number): Promise<number> {
-  // (doc_id, yjs_doc_id_after) is unique for edit rows — give each its own boundary ids.
+  // (doc_id, yjs_doc_id_after) is unique for edit rows, give each its own boundary ids.
   const before = nextYjsId++
   const after = nextYjsId++
   const r = await testDb().query<{ id: number }>(
@@ -66,7 +66,7 @@ function importForm(bytes: number, name: string): FormData {
   return form
 }
 
-describe('plan entitlements — hosted free tier (billing-off server)', () => {
+describe('plan entitlements: hosted free tier (billing-off server)', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -80,7 +80,7 @@ describe('plan entitlements — hosted free tier (billing-off server)', () => {
       const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, { email })
       expect(res.status, email).toBe(202)
     }
-    // Re-inviting an address already invited refreshes it — no new seat.
+    // Re-inviting an address already invited refreshes it, no new seat.
     expect((await client.post(`/api/workspaces/${ws.workspaceId}/members`, { email: 'a@example.test' })).status).toBe(202)
 
     const res = await client.post(`/api/workspaces/${ws.workspaceId}/members`, { email: 'c@example.test' })
@@ -123,7 +123,7 @@ describe('plan entitlements — hosted free tier (billing-off server)', () => {
     expect(token.planFeatures).toEqual({ customCss: false })
   })
 
-  it('custom CSS: a built-in preset\'s template CSS is not gated — it saves and reaches the PDF; the author\'s own CSS is dropped there', async () => {
+  it('custom CSS: a built-in preset\'s template CSS is not gated, it saves and reaches the PDF; the author\'s own CSS is dropped there', async () => {
     const owner = await createUser()
     const doc = await createDoc({ ownerId: owner.id })
     const client = await loggedInClient(owner.id, undefined, OFF)
@@ -188,7 +188,7 @@ describe('plan entitlements — hosted free tier (billing-off server)', () => {
   })
 })
 
-describe('plan entitlements — committed self-host tier (primary server)', () => {
+describe('plan entitlements: committed self-host tier (primary server)', () => {
   beforeEach(async () => {
     await resetDb()
   })

@@ -95,7 +95,7 @@ beforeEach(() => {
   fetchUrl.mockReset()
 })
 
-describe('runLoop pure-prose salvage — branches on commentThreadId', () => {
+describe('runLoop pure-prose salvage: branches on commentThreadId', () => {
   it('without commentThreadId: prose-only response → message_to_user fallback', async () => {
     const ai = makeFakeAi([
       { chunks: [{ text: 'Markoto is a collaborative markdown editor.', finishReason: FinishReason.STOP }] }
@@ -159,7 +159,7 @@ describe('runLoop pure-prose salvage — branches on commentThreadId', () => {
       }] }
     ])
     await runAgenticLoop(makeOpts({ ai, commentThreadId: 'comment-1' }))
-    // Exactly one tool dispatch — the model's own. No synthesised second one.
+    // Exactly one tool dispatch, the model's own. No synthesised second one.
     expect(executeFunctionByName).toHaveBeenCalledTimes(1)
     const [, name] = executeFunctionByName.mock.calls[0]!
     expect(name).toBe('reply_to_comment')

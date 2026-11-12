@@ -7,7 +7,7 @@ import type { TxHandle } from '../../../repos/transaction'
 export type { TxHandle }
 
 // Handlers queue side-effects that must run AFTER the
-// surrounding transaction commits — primarily LiteLLM virtual-key
+// surrounding transaction commits: primarily LiteLLM virtual-key
 // budget syncs. Calling `updateUserKeyBudget` inline acquires its own
 // pool connection while the surrounding TX still holds an exclusive
 // lock on the same `users` row, deadlocking until `statement_timeout`

@@ -4,7 +4,7 @@
 // `{role, parts}` shape because tools naturally produce and consume parts.
 
 /**
- * Single content part. Mirrors the model's Part union — at most one
+ * Single content part. Mirrors the model's Part union, at most one
  * field on a given part is populated. Translation to OpenAI shape
  * fans these out into `text` / `image_url` / `tool_calls` /
  * `tool_response` blocks.
@@ -15,7 +15,7 @@ export interface AgenticPart {
   /**
    * `rawArgs`: the argument JSON exactly as the model streamed it. Replayed
    * verbatim in later turns (instead of re-serialising `args`) so the
-   * history stays byte-identical to what the provider generated — the
+   * history stays byte-identical to what the provider generated, the
    * prompt-cache prefix must not change between turns.
    */
   functionCall?: { id?: string, name?: string, args?: unknown, rawArgs?: string }
@@ -61,7 +61,7 @@ export interface AgenticFunctionDeclaration {
 
 /**
  * A single function-call request emitted by the model. `args` is
- * raw — the loop validates it against the matching tool's Zod
+ * raw: the loop validates it against the matching tool's Zod
  * schema before invoking the handler.
  */
 export interface AgenticFunctionCall {
@@ -121,7 +121,7 @@ export interface AgenticGenerateContentResponse {
  * Minimal AI-client shape the loop's test seam consumes. Production
  * goes through `streamFromLiteLLM` and never calls this surface;
  * unit tests inject a fake whose `models.generateContentStream`
- * yields scripted chunks. Kept tight on purpose — anything more
+ * yields scripted chunks. Kept tight on purpose, anything more
  * elaborate would invite drift from the LiteLLM path.
  */
 export interface AgenticAIClient {

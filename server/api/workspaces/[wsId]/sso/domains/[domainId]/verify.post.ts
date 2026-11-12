@@ -7,9 +7,9 @@ import { domainHasVerificationRecord } from '../../../../../../utils/sso/domains
 import { MINUTE_MS } from '~~/shared/config/units'
 import { ssoDomainParams } from '~~/shared/api/sso'
 
-// POST /api/workspaces/:wsId/sso/domains/:domainId/verify — look up the
+// POST /api/workspaces/:wsId/sso/domains/:domainId/verify: look up the
 // TXT record now. 422 sso/domain-unverified when it isn't there
-// (yet — DNS can take a while); 409 sso/domain-taken when another
+// (yet: DNS can take a while); 409 sso/domain-taken when another
 // workspace verified the domain first. 30 DNS checks / admin / 10 min;
 // an already verified domain answers without counting.
 export default defineApiHandler({

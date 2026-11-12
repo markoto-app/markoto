@@ -53,7 +53,7 @@ async function toggle(wrapper: Awaited<ReturnType<typeof mount>>, testId: string
   await flushPromises()
 }
 
-describe('theme panel — margins, captions, references, heading alignment', () => {
+describe('theme panel: margins, captions, references, heading alignment', () => {
   it('opening the panel on a legacy theme emits nothing; the side margins stay collapsed', async () => {
     const wrapper = await mount(legacy())
     expect(wrapper.emitted('update:theme')).toBeUndefined()

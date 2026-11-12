@@ -10,7 +10,7 @@ import { customDomainUrlForPage } from '../customDomains/routing'
 import { resolveSiteIndexable } from '~~/shared/config/instance'
 import { useEnv } from '~~/shared/env/load'
 
-// Answer a request for a published page — at `/p/<slug>` (on the pages
+// Answer a request for a published page, at `/p/<slug>` (on the pages
 // host when one is configured, else on the instance) or at the root of a
 // verified custom domain (`pageUrl`).
 export async function sendPublishedPage(event: H3Event, page: PublishedPageRow, pageUrl?: string): Promise<string> {

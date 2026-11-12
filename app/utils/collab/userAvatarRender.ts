@@ -1,11 +1,11 @@
 /**
- * The DiceBear renderer — the heavy half of the user avatars (see
+ * The DiceBear renderer: the heavy half of the user avatars (see
  * `userAvatar.ts`). Lazy-loaded by `components/common/UserAvatar.vue`
  * so `@dicebear/core` (~45 KB gzip) + the Moods definition (~3 KB gzip)
  * stay out of the entry bundle.
  *
- * "Moods" by DiceBear — CC0 1.0 (public domain dedication), no
- * attribution required; `@dicebear/core` — MIT.
+ * "Moods" by DiceBear: CC0 1.0 (public domain dedication), no
+ * attribution required; `@dicebear/core`: MIT.
  */
 import { Avatar, Style } from '@dicebear/core'
 import moods from '@dicebear/styles/moods.json'

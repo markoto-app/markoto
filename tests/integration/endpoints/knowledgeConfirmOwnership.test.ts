@@ -5,7 +5,7 @@ import { loggedInClient } from '../setup/client'
 import { createUser, createWorkspace, setMemberRole } from '../setup/fixtures'
 
 // POST /api/workspaces/:wsId/knowledge/confirm must only act on an upload
-// that upload-request issued to the CALLER in THIS workspace — mirror of
+// that upload-request issued to the CALLER in THIS workspace, mirror of
 // the image `/api/upload/confirm` ownership rule. Before, any editor who
 // learnt another member's knowledgeId + key could confirm it as their own
 // or make confirm delete that member's freshly uploaded original.

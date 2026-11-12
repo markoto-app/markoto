@@ -12,7 +12,7 @@ import type { WorkspaceAccess } from '../../repos/proofs'
 // Team / Business workspace billing.
 //
 // A workspace with an ENTITLED subscription (billing on, status active /
-// trialing / past_due, not expired — `subscriptionGrantsPlan`) is
+// trialing / past_due, not expired, `subscriptionGrantsPlan`) is
 // "pooled":
 //   - its AI budget is one LiteLLM team per workspace with
 //     seats × the plan's per-seat `litellmBudgetUsd`, and each member AI
@@ -80,7 +80,7 @@ const WORKSPACE_BUDGET_WINDOW_MS = 30 * DAY_MS
 type BudgetSeatFields = Pick<WorkspaceSubscriptionRow, 'seats' | 'budgetSeatAdjust' | 'budgetSeatAdjustUntil'>
 
 /**
- * Pure: the seats the pooled AI budget counts right now — the paid seats,
+ * Pure: the seats the pooled AI budget counts right now, the paid seats,
  * adjusted for seat changes inside the current budget window until that
  * window ends (`changedSeatBudgetAdjust`).
  */

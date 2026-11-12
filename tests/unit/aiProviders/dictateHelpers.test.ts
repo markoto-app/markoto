@@ -5,11 +5,11 @@ import { tryParseControl, normalizeLanguageCode } from '../../../server/utils/ag
 // text-vs-binary detection is load-bearing: crossws delivers text as
 // Buffer, so the naive `typeof rawData === 'string'` check never
 // fires. A regression that breaks `tryParseControl` would silently
-// route every control frame as audio — failures only surface when a
+// route every control frame as audio, failures only surface when a
 // user tries to stop and the stream doesn't respond.
 
 // Minimal shim of crossws's Message class: just the two members we
-// touch. Real messages have more — `uint8Array()`, `blob()`, etc. —
+// touch. Real messages have more, `uint8Array()`, `blob()`, etc.
 // but they're lazy and tryParseControl doesn't reach for them.
 function msg(raw: Buffer | string): { rawData: unknown, text(): string } {
   return {
@@ -21,9 +21,9 @@ function msg(raw: Buffer | string): { rawData: unknown, text(): string } {
 }
 
 describe('tryParseControl', () => {
-  describe('fast path — non-JSON first byte', () => {
+  describe('fast path: non-JSON first byte', () => {
     it('returns null for a binary PCM chunk whose first byte is not {', () => {
-      // A typical int16 sample — random first byte, virtually never 0x7B.
+      // A typical int16 sample, random first byte, virtually never 0x7B.
       expect(tryParseControl(msg(Buffer.from([0x00, 0x7F, 0xFF, 0x10])))).toBeNull()
     })
 
@@ -32,7 +32,7 @@ describe('tryParseControl', () => {
     })
 
     it('returns null for a Uint8Array that is NOT a Buffer', () => {
-      // Direct Uint8Array (not Buffer.isBuffer) — the helper has a
+      // Direct Uint8Array (not Buffer.isBuffer), the helper has a
       // separate branch for this path. Important because Nitro's
       // WebStream polyfills occasionally deliver Uint8Arrays rather
       // than Node Buffers.
@@ -97,7 +97,7 @@ describe('normalizeLanguageCode', () => {
 
   it('passes through BCP-47 tags unchanged', () => {
     // Important for users who want a specific dialect like en-GB or
-    // de-CH — forcing en-US would silently degrade accuracy.
+    // de-CH: forcing en-US would silently degrade accuracy.
     expect(normalizeLanguageCode('de-CH')).toBe('de-CH')
     expect(normalizeLanguageCode('en-GB')).toBe('en-GB')
     expect(normalizeLanguageCode('pt-BR')).toBe('pt-BR')

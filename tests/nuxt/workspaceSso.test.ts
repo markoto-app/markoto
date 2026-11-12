@@ -75,7 +75,7 @@ afterEach(() => {
 })
 
 describe('WorkspaceSsoPanel', () => {
-  it('shows the status, the values for the IdP and unverified domains with their TXT record — never a secret', async () => {
+  it('shows the status, the values for the IdP and unverified domains with their TXT record, never a secret', async () => {
     const w = await mountSuspended(WorkspaceSsoPanel, { props: { workspaceId: 'ws1' } })
     mounted.push(w)
     await flushPromises()

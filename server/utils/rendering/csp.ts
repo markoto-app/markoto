@@ -1,14 +1,14 @@
-// Content-Security-Policy builders — the single source of truth for every
+// Content-Security-Policy builders: the single source of truth for every
 // deployment shape (hosted prod/staging, self-host, local full stack, the
 // test stacks). The app sets the header itself (server/plugins/csp.ts) with
 // a per-response nonce (Traefik carries no CSP label, it would be enforced
 // on top of this one).
 //
 // Two policies:
-//   - `buildAppCsp` — every page of the app. The live preview / print
+//   - `buildAppCsp`: every page of the app. The live preview / print
 //     iframes are srcdoc documents and inherit this policy (their inline
 //     scripts carry the same nonce).
-//   - `buildRenderCsp` — the internal print page (/_internal/render/:docId)
+//   - `buildRenderCsp`: the internal print page (/_internal/render/:docId)
 //     the renderer sidecar loads straight from the app container. Second
 //     layer behind the renderer's request allowlist
 //     (renderer/src/allowlist.ts): Playwright does not re-enter route() for
@@ -26,7 +26,7 @@
 //     Styles can't execute script; CSS exfiltration is bounded by img-src /
 //     font-src / connect-src below.
 //   - No third-party origin anywhere: the web fonts, KaTeX + highlight.js
-//     stylesheets and the scripts above are all served from /vendor/ —
+//     stylesheets and the scripts above are all served from /vendor/,
 //     visitors' browsers and the renderer talk to this origin (+ S3, sync,
 //     Sentry when configured) only.
 
@@ -43,7 +43,7 @@ function urlOrigin(value: string | undefined | null, schemes: readonly string[] 
   }
 }
 
-/** A nonce is base64 — anything else must never reach the header. */
+/** A nonce is base64, anything else must never reach the header. */
 function nonceSource(nonce: string): string[] {
   return /^[A-Za-z0-9+/=]{16,}$/.test(nonce) ? [`'nonce-${nonce}'`] : []
 }
@@ -55,13 +55,13 @@ function unique(values: Array<string | null>): string[] {
 export interface AppCspInput {
   /** Per-response nonce (base64). */
   nonce: string
-  /** NUXT_PUBLIC_SYNC_URL — Hocuspocus WebSocket (absolute ws(s) URL, or relative = same origin). */
+  /** NUXT_PUBLIC_SYNC_URL: Hocuspocus WebSocket (absolute ws(s) URL, or relative = same origin). */
   syncUrl?: string
-  /** Browser-facing S3 base URL (NUXT_S3_PUBLIC_ENDPOINT, else NUXT_S3_ENDPOINT) — presigned GET/PUT. */
+  /** Browser-facing S3 base URL (NUXT_S3_PUBLIC_ENDPOINT, else NUXT_S3_ENDPOINT), presigned GET/PUT. */
   s3Origin?: string
-  /** NUXT_PUBLIC_SENTRY_DSN — browser error reporting. */
+  /** NUXT_PUBLIC_SENTRY_DSN: browser error reporting. */
   sentryDsn?: string
-  /** NUXT_SITE_URL — `upgrade-insecure-requests` only when the site is served over https. */
+  /** NUXT_SITE_URL: `upgrade-insecure-requests` only when the site is served over https. */
   siteUrl?: string
 }
 
@@ -130,16 +130,16 @@ export function addNonceToScripts(chunk: string, nonce: string): string {
  * image they load is a cross-site request, and CORP `same-site` makes
  * Chromium refuse it (`ERR_BLOCKED_BY_RESPONSE.NotSameSite`). These
  * resources are loaded there:
- *   - `/api/files/…` (a 302 to presigned S3) — authorised by the session /
+ *   - `/api/files/…` (a 302 to presigned S3), authorised by the session /
  *     file-access token, not by the origin;
- *   - `/markoto-logos/…` — the bundled brand marks the default theme puts
+ *   - `/markoto-logos/…`: the bundled brand marks the default theme puts
  *     on every cover page (`brand.logoUrl`). Public static files.
- *   - `/vendor/…` — paged.js, Mermaid, KaTeX CSS + fonts, highlight.js
+ *   - `/vendor/…`: paged.js, Mermaid, KaTeX CSS + fonts, highlight.js
  *     themes and the web fonts (shared/utils/vendor/vendorAssets.ts). Public,
  *     versioned static files; they also get `Access-Control-Allow-Origin: *`
  *     (server/utils/rendering/vendorAssetHeaders.ts) because the iframe loads them
  *     in CORS mode (SRI, fonts).
- *   - `/api/docs/<docId>/brand/<file>` — the workspace brand kit's fonts
+ *   - `/api/docs/<docId>/brand/<file>`: the workspace brand kit's fonts
  *     and logos, authorised by the file-access token like
  *     `/api/files`; sent with `Access-Control-Allow-Origin: *` (fonts load
  *     in CORS mode).

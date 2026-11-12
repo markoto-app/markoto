@@ -3,7 +3,7 @@ import { DESIGN_IMPORT_OBJECT_RE } from './guard'
 import { HOUR_MS } from '~~/shared/config/units'
 
 // Layer of `orphan-cleanup`: design-import leftovers. Nothing of a design
-// run is meant to stay in storage — `start` deletes the uploaded file as
+// run is meant to stay in storage, `start` deletes the uploaded file as
 // soon as it has read it, and every sample render is deleted after its
 // PNGs were read. What is left after an hour is debris: an upload that
 // was never started (or a re-used presigned URL), a render whose

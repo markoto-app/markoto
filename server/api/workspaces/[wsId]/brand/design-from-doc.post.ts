@@ -11,11 +11,11 @@ import { customCssAppOrigins } from '../../../../utils/rendering/themeCustomCss'
 import { designFromDocBody } from '~~/shared/api/brand'
 import { proveWorkspaceDoc } from '../../../../utils/access/docProof'
 
-// POST /api/workspaces/:wsId/brand/design-from-doc — {docId}: make a
+// POST /api/workspaces/:wsId/brand/design-from-doc: {docId}: make a
 // workspace document's CURRENT design the workspace design (the default
 // for new documents, and what the lock enforces). Admins, plan feature
 // `brandKit`. The document's own uploads can't serve other documents, so
-// they are left out — use the brand kit's logos for the shared design
+// they are left out, use the brand kit's logos for the shared design
 // (`dropped` tells the UI which images went).
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),

@@ -1,5 +1,5 @@
 // Module augmentation for nuxt-auth-utils. The package ships empty `User` /
-// `UserSession` interfaces and expects the consumer to fill them in — this
+// `UserSession` interfaces and expects the consumer to fill them in, this
 // file is the canonical place.
 //
 // Shape must match what `setUserSession(event, { user: {...} })` writes in
@@ -10,7 +10,7 @@
 declare module '#auth-utils' {
   interface User {
     id: number
-    // GitHub usernames only — google has no equivalent. The github
+    // GitHub usernames only: google has no equivalent. The github
     // OAuth handler always sets it; the test shim omits it.
     login?: string | null
     name: string
@@ -30,7 +30,7 @@ declare module '#auth-utils' {
     loggedInAt?: number
     // Bumped whenever the session shape changes (new required fields, type
     // changes, etc.). Sessions whose `v` doesn't match SESSION_VERSION are
-    // cleared on the next request — see server/utils/auth/validatedSession.ts.
+    // cleared on the next request, see server/utils/auth/validatedSession.ts.
     v?: number
     // Session epoch at sign-in (`users.session_epoch`). A cookie whose
     // `e` no longer matches the column was revoked ("log out

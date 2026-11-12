@@ -8,7 +8,7 @@ import { updateMemberRoleBody, workspaceMemberParams } from '~~/shared/api/works
 // Change a member's role. Admin-only.
 //
 // Invariant: a workspace must always have at least one admin. Demoting
-// the last admin is refused — the admin should promote someone else
+// the last admin is refused, the admin should promote someone else
 // first, or delete the workspace outright. `setRole` enforces this
 // transactionally (count + update in the same tx so two concurrent
 // demotions can't both win).
@@ -36,8 +36,8 @@ export default defineApiHandler({
     }
 
     // Kick the member on every workspace doc so their next token reflects
-    // the new role. We always kick — even when the role loosens (editor →
-    // admin) — because the alternative is maintaining a "does this change
+    // the new role. We always kick, even when the role loosens (editor →
+    // admin): because the alternative is maintaining a "does this change
     // reduce access" predicate, and any mistake there becomes a stale-JWT
     // security bug. Reconnect cost is a UI flicker; wrong call is a hole.
     const wsDocIds = await listDocIdsInWorkspace(workspaceAccess)

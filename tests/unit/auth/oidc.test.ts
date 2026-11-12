@@ -4,7 +4,7 @@ import { bootProblems } from '../env/fixtures'
 import { OidcProfileError, profileFromClaims } from '../../../server/utils/oidc/profile'
 import { OIDC_FLOW_MAX_AGE_SECONDS, decodeFlowCookie, encodeFlowCookie } from '../../../server/utils/oidc/flowCookie'
 
-// Generic OpenID Connect sign-in— the pure pieces. The protocol
+// Generic OpenID Connect sign-in, the pure pieces. The protocol
 // validation itself (signature, iss, aud, exp, nonce, state, PKCE) is
 // exercised against a real IdP in tests/integration/endpoints/oidcLogin.test.ts.
 

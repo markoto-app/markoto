@@ -19,7 +19,7 @@ import { partial } from '../../helpers/fixtures'
 // spawning a real HocuspocusProvider. Each fake entry tracks its own
 // "destroyed" flag so we can assert evict-fires-teardown without a
 // live WS. The bookkeeping logic (refcount, in-flight dedup, eviction
-// math) is what these tests pin — provider integration is covered by
+// math) is what these tests pin, provider integration is covered by
 // integration tests against a real sync stack.
 
 interface FakeProvider {
@@ -77,7 +77,7 @@ const fakeOpts: PoolCheckoutOpts = {
   syncUrl: 'ws://fake'
 }
 
-describe('checkout — fresh entry', () => {
+describe('checkout: fresh entry', () => {
   it('builds a new entry on first checkout', async () => {
     const key: PoolKey = { docId: 'doc-1', principalId: 'mcp:s1' }
     const entry = await checkout(key, fakeOpts)
@@ -104,7 +104,7 @@ describe('checkout — fresh entry', () => {
   })
 
   it('builds separate entries for the same doc with different principals', async () => {
-    // The cornerstone of the "no awareness contention" design — the
+    // The cornerstone of the "no awareness contention" design, the
     // loop and an MCP session both reading docA each get their own
     // provider.
     await checkout({ docId: 'doc-1', principalId: 'loop:run-1' }, fakeOpts)
@@ -114,7 +114,7 @@ describe('checkout — fresh entry', () => {
   })
 })
 
-describe('checkout — concurrent in-flight dedup', () => {
+describe('checkout: concurrent in-flight dedup', () => {
   it('two concurrent checkouts of the same key share one build', async () => {
     // Slow the builder so both calls land in the in-flight map at once.
     let resolveBuilder!: (entry: PoolEntry) => void
@@ -151,13 +151,13 @@ describe('checkout — concurrent in-flight dedup', () => {
     expect(getPoolStats().inflightCount).toBe(0)
     expect(getPoolStats().size).toBe(0)
 
-    // Retry succeeds — the in-flight slot was cleared on failure.
+    // Retry succeeds: the in-flight slot was cleared on failure.
     const entry = await checkout(key, fakeOpts)
     expect(entry.refCount).toBe(1)
   })
 })
 
-describe('release — refCount bookkeeping', () => {
+describe('release: refCount bookkeeping', () => {
   it('decrements refCount on release', async () => {
     const key: PoolKey = { docId: 'doc-1', principalId: 'mcp:s1' }
     await checkout(key, fakeOpts)
@@ -233,7 +233,7 @@ describe('evictIdle', () => {
   })
 
   it('handles many entries without missing any eligible ones', async () => {
-    // 20 entries, all idle, all past threshold — verify the iteration
+    // 20 entries, all idle, all past threshold, verify the iteration
     // doesn't get confused by mid-loop deletions.
     for (let i = 0; i < 20; i++) {
       const k: PoolKey = { docId: `doc-${i}`, principalId: 'mcp:s1' }
@@ -247,7 +247,7 @@ describe('evictIdle', () => {
   })
 })
 
-describe('closeAll — graceful shutdown', () => {
+describe('closeAll: graceful shutdown', () => {
   it('closes every entry regardless of refCount', async () => {
     const k1: PoolKey = { docId: 'd1', principalId: 'mcp:s1' }
     const k2: PoolKey = { docId: 'd2', principalId: 'mcp:s2' }
@@ -260,7 +260,7 @@ describe('closeAll — graceful shutdown', () => {
   })
 })
 
-describe('getPoolStats — observability', () => {
+describe('getPoolStats: observability', () => {
   it('reports size, refCountTotal, inflight, oldestIdleMs', async () => {
     expect(getPoolStats()).toEqual({ size: 0, refCountTotal: 0, inflightCount: 0, oldestIdleMs: null })
 

@@ -33,7 +33,7 @@ import {
  * the frame and the parent app is insulated.
  *
  * The iframe has NO `allow-same-origin` (see app/utils/preview/previewFrame.ts for
- * the isolation model): everything crosses as a validated postMessage —
+ * the isolation model): everything crosses as a validated postMessage,
  * render requests and the app's color mode go in, `iframe-ready` /
  * `paginated` / `iframe-error` / `print-shortcut` come out. The bootstrap
  * document lives in `pagedPreviewIframe.html`.
@@ -56,21 +56,21 @@ export interface PagedPreviewOptions {
   /**
    * Fired when the user presses Cmd/Ctrl+P while focus is INSIDE the
    * preview iframe. The parent's document-level handler doesn't see
-   * keydowns inside an iframe — they bubble in the iframe's own
-   * document — so we forward the shortcut over postMessage. Caller
+   * keydowns inside an iframe, they bubble in the iframe's own
+   * document: so we forward the shortcut over postMessage. Caller
    * should kick off the same export flow as the menu item.
    */
   onPrintShortcut?: () => void
   /**
    * The doc JWT (password unlock / Hocuspocus token) for viewers without a
-   * session — used to fetch the image `file-access` token. Optional:
+   * session: used to fetch the image `file-access` token. Optional:
    * signed-in viewers are authorised by their cookie.
    */
   getDocJwt?: () => Promise<string | null>
   /**
    * Preview zoom (`usePreviewZoom`): the latest command is sent to the
    * frame whenever it changes and again when the frame (re)loads. Zoom is
-   * applied inside the frame to the paginated pages — it never triggers a
+   * applied inside the frame to the paginated pages, it never triggers a
    * render.
    */
   zoom?: {

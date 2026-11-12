@@ -70,7 +70,7 @@ function errorAsString(err: unknown): string {
 interface UserKeyHandle {
   /** LiteLLM's internal `token_id` (returned as `token` from /key/generate). */
   keyId: string
-  /** The `sk-...` token used as a Bearer credential — stored encrypted at rest. */
+  /** The `sk-...` token used as a Bearer credential, stored encrypted at rest. */
   token: string
 }
 
@@ -94,11 +94,11 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
       max_budget: budget,
       ...(teamId ? { team_id: teamId } : {}),
       // Monthly spend reset. LiteLLM resets `spend` to 0 every
-      // `budget_duration` (reset date lands on the 1st of the month —
+      // `budget_duration` (reset date lands on the 1st of the month,
       // matches the "resets on the first" copy in the AI Points UI). This
       // is the ONLY periodic reset: free users have no Stripe invoice
       // to hang a reset on, so without this their "$1/month" would be a
-      // lifetime $1. Paid users reset here too — we deliberately do NOT also reset on
+      // lifetime $1. Paid users reset here too, we deliberately do NOT also reset on
       // invoice.paid (that would double-reset and over-grant budget).
       budget_duration: '30d',
       user_id: String(userId),
@@ -107,13 +107,13 @@ export async function createUserKey(userId: number, plan: PlanName): Promise<Use
       // fires ~5 calls per turn at most; 60/min covers a heavy session).
       rpm_limit: 60,
       // Opt the key into client-supplied `metadata.tags` (the multi-
-      // axis spend tags from `featureTags.ts` — feature: / workspace:
+      // axis spend tags from `featureTags.ts`, feature: / workspace:
       // / user: / doc:). Without this, LiteLLM strips every tag we
       // attach: the proxy treats client-tag injection as a routing
       // surface and requires per-key opt-in. Set in `metadata` because
       // /key/generate stashes opaque key state there.
       metadata: { allow_client_tags: true }
-      // No `models` filter — let the user's key access every model
+      // No `models` filter: let the user's key access every model
       // registered in config.yaml. Per-user model gating would need a
       // separate config knob; right now plans differ on budget only.
     })
@@ -163,7 +163,7 @@ export async function ensureUserKey(userId: number, plan: PlanName): Promise<Use
     if (!isStubMode()) await retireKeyById(row.keyId)
   }
   if (isStubMode()) {
-    // Persist a stub so subsequent reads don't churn — same shape as
+    // Persist a stub so subsequent reads don't churn, same shape as
     // a real key, no LiteLLM round-trip.
     const stubKeyId = `${TEST_STUB_KEY_ID_PREFIX}${userId}`
     await storeUserKey(userId, stubKeyId, sealUserKey(userId, TEST_STUB_TOKEN))
@@ -213,7 +213,7 @@ export async function updateUserKeyBudget(userId: number, plan: PlanName): Promi
  * plan-derivation). Used by `/api/_test/exhaust-litellm-budget` to slam
  * the budget against current spend so the next call trips the proxy's
  * budget gate. Mirrors the production flow `updateUserKeyBudget` uses
- * — same `/key/update` payload, just with the budget value passed in.
+ * same `/key/update` payload, just with the budget value passed in.
  */
 export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollars: number): Promise<void> {
   if (isStubMode()) return
@@ -235,13 +235,13 @@ export async function setUserKeyMaxBudget(userId: number, plan: PlanName, dollar
  * Reset the cumulative spend back to 0 (used when a paid plan
  * ends, so a user over the free cap isn't stuck until the monthly
  * reset). The `max_budget` stays the same; only `spend` resets. Returns false (after logging)
- * when the proxy refused — callers don't fail on it.
+ * when the proxy refused, callers don't fail on it.
  */
 export async function resetUserKeySpend(userId: number): Promise<boolean> {
   if (isStubMode()) return true
   const encrypted = (await getStoredUserKey(userId))?.keyToken
   if (!encrypted) {
-    // No key yet — nothing to reset. The next AI call will create one
+    // No key yet: nothing to reset. The next AI call will create one
     // with the right budget via `ensureUserKey`.
     return true
   }
@@ -349,7 +349,7 @@ interface KeyInfo {
 export async function getUserKeyInfo(userId: number, plan: PlanName): Promise<KeyInfo> {
   const handle = await ensureUserKey(userId, plan)
   if (isStubMode()) {
-    // No real spend in tests — surface the static plan budget with zero
+    // No real spend in tests, surface the static plan budget with zero
     // spend so the AI Points UI renders "{full} / {full} pts".
     return { spend: 0, maxBudget: planToBudgetUsd(plan, getTiers()) }
   }

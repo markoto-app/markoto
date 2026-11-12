@@ -10,12 +10,12 @@ import { workspaceMemberParams } from '~~/shared/api/workspaces'
 import type { UserScope, WorkspaceAccess } from '../../../../repos/proofs'
 
 // Remove a member OR leave the workspace. Same endpoint because "remove"
-// and "leave" are the same underlying row deletion — only the
+// and "leave" are the same underlying row deletion, only the
 // authorisation differs:
 //   - An admin may remove any other member (including other admins).
 //   - Any non-admin may remove themselves (leave) but never anyone else.
 //   - Admins can also remove themselves (leave) provided they're not the
-//     last admin — the "at least one admin" invariant would otherwise
+//     last admin: the "at least one admin" invariant would otherwise
 //     be broken. `removeMember` enforces that invariant transactionally.
 /** Delete the membership row; returns the workspace's document ids. */
 async function removeOrLeave(
@@ -46,10 +46,10 @@ export default defineApiHandler({
     const admin = !isSelf && workspaceAccess?.allows('admin') ? workspaceAccess : null
     if (!isSelf && !admin) throw apiError('workspace/admin-required')
     // Capture the removed member's role BEFORE the delete so the audit
-    // row can record what they had. Cheap extra query — this endpoint
+    // row can record what they had. Cheap extra query, this endpoint
     // isn't hot-path.
-    // The TARGET's membership, regardless of single sign-on — a
-    // member who hasn't signed in through the IdP is still a member — and
+    // The TARGET's membership, regardless of single sign-on, a
+    // member who hasn't signed in through the IdP is still a member, and
     // including guests.
     const targetRoleBefore = await getMembershipRole(wsId, targetUserId)
 

@@ -1,4 +1,4 @@
-// Generic OpenID Connect sign-in — the per-attempt flow cookie.
+// Generic OpenID Connect sign-in, the per-attempt flow cookie.
 //
 // state + nonce + PKCE verifier travel from the redirect to the callback
 // in ONE httpOnly cookie scoped to `/auth/oidc`, HMAC-SHA256-signed with

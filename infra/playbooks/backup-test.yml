@@ -1,5 +1,5 @@
 ---
-# Restore drill — proves the most recent gpg-encrypted dump is not just
+# Restore drill: proves the most recent gpg-encrypted dump is not just
 # decryptable but ACTUALLY RESTORABLE end-to-end:
 #   1. Locate the most-recent backup in S3
 #   2. Download + gpg-decrypt + gunzip + `psql` it into a THROWAWAY database
@@ -7,7 +7,7 @@
 #   3. Verify the restored schema has the tables we expect
 #   4. Drop the throwaway database + clean up tmp files
 #
-# Run periodically (it's operator-invoked, not scheduled) — the restore
+# Run periodically (it's operator-invoked, not scheduled): the restore
 # competes with prod for Postgres CPU/disk transiently, so pick a quiet
 # window. A partial read of the dump could pass on a TRUNCATED file; a
 # full psql restore is the only thing that proves the dump applies cleanly.
@@ -99,7 +99,7 @@
         - name: Fail the drill if core tables are missing
           ansible.builtin.fail:
             msg: >-
-              Restore verification FAILED — core tables (users/documents) not
+              Restore verification FAILED: core tables (users/documents) not
               present in the restored database. Backup may be truncated or
               corrupt. Verify output: {{ restore_verify.stdout | trim }}
           when: not (restore_verify.stdout | trim | lower).startswith('t|')
@@ -107,7 +107,7 @@
         - name: Report restore drill result
           ansible.builtin.debug:
             msg: >-
-              Restore drill PASSED — {{ latest_backup.stdout | trim }} applied
+              Restore drill PASSED: {{ latest_backup.stdout | trim }} applied
               cleanly into a throwaway DB; core tables present
               (verify = {{ restore_verify.stdout | trim }} as core-ok|table-count).
       always:

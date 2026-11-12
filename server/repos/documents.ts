@@ -25,7 +25,7 @@ export interface DocSnapshot {
   theme: DocTheme | null
   wordCount: number | null
   sizeBytes: number | null
-  /** One-line "what this doc is about" — empty string means not set. */
+  /** One-line "what this doc is about", empty string means not set. */
   description: string
   /** Closed enum of writing registers. Drives AI tone via `shared/audiences`. */
   audience: AudienceKind
@@ -155,7 +155,7 @@ export async function createDoc(
  * untouched. Bumps `lastActive` whenever any field changes so the
  * inactive-doc sweep sees the activity.
  *
- * No authz check — caller must have already decided the actor can edit.
+ * No authz check: caller must have already decided the actor can edit.
  * Throws NotFoundError if no row matched. Setting an `accessMode` other
  * than `password-protected` also clears the stored password hash.
  */
@@ -181,7 +181,7 @@ export async function updateDocMeta(doc: DocAccess<'write'>, update: MetaUpdate)
 
 /**
  * Assign or clear the parent workspace. `null` detaches the doc.
- * No authz — callers gate via canManageDoc (source) + target-workspace
+ * No authz: callers gate via canManageDoc (source) + target-workspace
  * role. Bumps lastActive so the move surfaces in "recent" lists.
  */
 export async function moveDocToWorkspace(doc: DocAccess<'manage'>, target: WorkspaceAccess<'editor'> | null): Promise<void> {
@@ -201,7 +201,7 @@ export async function moveDocToWorkspace(doc: DocAccess<'manage'>, target: Works
 /**
  * Insert a new documents row as a copy of the source. Every field the
  * caller cares about is passed explicitly so this doesn't silently
- * inherit future schema additions — new columns must be audited for
+ * inherit future schema additions, new columns must be audited for
  * duplication safety.
  */
 export interface DuplicateDocInput {
@@ -303,7 +303,7 @@ export async function clearDocPassword(doc: DocAccess<'manage'>): Promise<void> 
 
 /**
  * Bump the lastActive timestamp. Called from the internal activity
- * logger on every `edit` event — separated from updateDocMeta because
+ * logger on every `edit` event, separated from updateDocMeta because
  * it's hot-path and doesn't need the returning() check.
  */
 export async function bumpLastActive(doc: DocAccess<'write'>): Promise<void> {
@@ -326,7 +326,7 @@ export async function deleteDocRow(doc: DocAccess<'delete'>): Promise<void> {
 }
 
 /**
- * List docs owned by a user — powers the "My Documents" dashboard.
+ * List docs owned by a user, powers the "My Documents" dashboard.
  * workspaceId is included so the Move modal can preselect the doc's
  * current workspace.
  */

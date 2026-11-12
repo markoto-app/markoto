@@ -25,10 +25,10 @@ const log = useLogger('document-lifecycle')
 // helper reaps everything associated with exactly that document.
 //
 // Ordering is load-bearing:
-//   1. DB rows first — the doc "disappears" from the user's perspective
+//   1. DB rows first, the doc "disappears" from the user's perspective
 //      the instant this completes even if the later steps fail.
-//   2. S3 cleanup — best effort; orphan-cleanup sweeps missed keys later.
-//   3. Sync-server notify — fire-and-forget; broadcasts `ymeta._deleted`
+//   2. S3 cleanup: best effort; orphan-cleanup sweeps missed keys later.
+//   3. Sync-server notify: fire-and-forget; broadcasts `ymeta._deleted`
 //      to connected clients and clears the Y.js row log.
 //
 // The three steps are exported individually so tests can drive each
@@ -46,7 +46,7 @@ export interface DocumentLifecycleDeps {
 /**
  * Step 1: delete the DB rows in FK-safe order (activity and uploads
  * reference documents). If this throws, the caller treats the whole
- * delete as failed — nothing external has been touched yet.
+ * delete as failed: nothing external has been touched yet.
  */
 export async function deleteDocDbRows(doc: DocAccess<'delete'>): Promise<void> {
   await deleteActivityForDoc(doc)
@@ -56,7 +56,7 @@ export async function deleteDocDbRows(doc: DocAccess<'delete'>): Promise<void> {
 
 /**
  * Step 2: delete every S3 object under `docs/{docId}/`. Resolves
- * normally on success AND on failure — a wedged S3 must not prevent
+ * normally on success AND on failure, a wedged S3 must not prevent
  * the caller from returning 200. On failure, reports to Sentry + logs;
  * the orphan-cleanup plugin reaps the remaining objects later.
  *
@@ -97,7 +97,7 @@ export async function cleanupDocS3(
     Sentry.captureException(e, {
       tags: { component: 'documentLifecycle', event: 's3_cleanup_failed', docId }
     })
-    // Swallow — orphan-cleanup will catch this up.
+    // Swallow: orphan-cleanup will catch this up.
     return 0
   }
 }
@@ -105,7 +105,7 @@ export async function cleanupDocS3(
 /**
  * Step 3: fire-and-forget notify to the sync-server so it broadcasts
  * `ymeta._deleted` and clears Y.js rows. Returns synchronously (no
- * await on the POST) — a wedged sync-server must not block the delete
+ * await on the POST), a wedged sync-server must not block the delete
  * path. Returns `true` if the notify was dispatched, `false` when
  * config is missing (dev without sync).
  *
@@ -150,7 +150,7 @@ export async function deleteDocument(doc: DocAccess<'delete'>): Promise<void> {
   const env = useEnv()
   await cleanupDocS3(docId, { s3: useS3Client(), bucket: env.storage.bucket })
   // Wipe any cached PDF / PNG renders for this doc. Same swallow-on-error
-  // semantics as cleanupDocS3 — orphaned render objects cost nothing
+  // semantics as cleanupDocS3: orphaned render objects cost nothing
   // material and the bucket lifecycle policy will reap them eventually.
   await cleanupRendersForDoc(docId)
   if (published) await prunePublishedObjects(published.id)

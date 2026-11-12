@@ -9,11 +9,11 @@ import { MIB } from '../../config/units'
  * in isolation (no Vue reactivity, no Nuxt auto-imports). Each one
  * pins a single derivation the orchestrator makes:
  *
- *   - `readThemeFromYmeta` — "what theme does the Y.Map currently
+ *   - `readThemeFromYmeta`: "what theme does the Y.Map currently
  *     advertise, and is it valid enough to render?"
- *   - `canEditTheme` — "given the access-mode state, may this user
+ *   - `canEditTheme`: "given the access-mode state, may this user
  *     write the theme at all?"
- *   - `docSizeWarning` — "translate raw Y.js state byte count into
+ *   - `docSizeWarning`: "translate raw Y.js state byte count into
  *     the banner severity shown in the status bar."
  *
  * Extracting these keeps the orchestrator's surface thin and lets the
@@ -23,7 +23,7 @@ import { MIB } from '../../config/units'
 /**
  * Read the theme off a Y.Map (the `meta` map in our case). Returns the
  * default theme if the field is missing, corrupted, or fails schema
- * validation — the caller never has to handle bad data.
+ * validation: the caller never has to handle bad data.
  */
 export function readThemeFromYmeta(ymeta: Y.Map<unknown>): DocTheme {
   const raw = ymeta.get('theme')
@@ -34,7 +34,7 @@ export function readThemeFromYmeta(ymeta: Y.Map<unknown>): DocTheme {
  * Theme write access mirrors content write access:
  *   - read-only? no.
  *   - has an owner and you're not them? no.
- *   - no owner (anonymous-created doc)? yes — `open-edit` means
+ *   - no owner (anonymous-created doc)? yes, `open-edit` means
  *     "anyone can change anything", which includes the theme.
  *
  * The DB-write path (PUT /meta) has its own ownership guard for owned
@@ -54,7 +54,7 @@ export function canEditTheme(state: {
 /**
  * Translate Y.js-encoded state size into a UI banner severity. The
  * thresholds match the doc-compaction roadmap item in the root
- * list — above 8 MB is a hard "do something" signal; 5–8 MB is a
+ * list: above 8 MB is a hard "do something" signal; 5–8 MB is a
  * soft warning. Below 5 MB, no banner.
  */
 export function docSizeWarning(bytes: number): 'warning' | 'critical' | null {

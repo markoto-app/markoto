@@ -11,7 +11,7 @@ import { system } from '../../../../repos/proofs'
 
 const log = useLogger('auth-sso')
 
-// GET /auth/sso/:connectionId/callback — OIDC redirect back from a
+// GET /auth/sso/:connectionId/callback: OIDC redirect back from a
 // workspace's identity provider. The flow cookie (signed, single
 // use, bound to this connection) carries state / nonce / PKCE; the ID
 // token is fully validated by openid-client (signature against the IdP's

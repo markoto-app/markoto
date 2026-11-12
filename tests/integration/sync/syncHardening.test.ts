@@ -326,7 +326,7 @@ describe('activity-log attribution', () => {
   }, 30_000)
 })
 
-/** varString(doc) varUint(type) …payload — a raw Hocuspocus frame. */
+/** varString(doc) varUint(type) …payload: a raw Hocuspocus frame. */
 function rawFrame(docId: string, type: number, write: (enc: encoding.Encoder) => void): Uint8Array {
   const enc = encoding.createEncoder()
   encoding.writeVarString(enc, docId)
@@ -358,7 +358,7 @@ describe('messages queued before authentication', () => {
     const doc = await createDoc()
     const chunk = 512 * 1024
     const close = await openUnauthenticated((ws) => {
-      // Sync updates for a document that never sends its Auth frame —
+      // Sync updates for a document that never sends its Auth frame,
       // Hocuspocus would queue them all.
       for (let sent = 0; sent <= MAX_PREAUTH_BYTES + chunk; sent += chunk) {
         ws.send(rawFrame(doc.docId, 0, (enc) => {

@@ -51,7 +51,7 @@ describe('pagedPreviewIframe.html', () => {
       if (tag.includes(' src=')) continue
       expect(tag).toContain('nonce="__CSP_NONCE__"')
     }
-    // on*="…" attributes run only with 'unsafe-inline' — the CSP has none.
+    // on*="…" attributes run only with 'unsafe-inline', the CSP has none.
     expect(WITHOUT_COMMENT).not.toMatch(/<[a-z]+[^>]*\son[a-z]+=/i)
   })
 

@@ -27,7 +27,7 @@ const ViewPagesArgs = z.object({
   pages: z.array(z.number().int().min(1).max(50)).min(1).max(5)
     .describe('1-indexed list of page numbers to fetch. Maximum 5 pages per call. Page numbers must be within the doc\'s rendered page count (use get_page_count first if you don\'t know it).')
 }).strict()
-  .describe('Fetch rendered PNG images of specific pages from the current document and inline them into the conversation so you can VISUALLY inspect what those pages look like. Use when the user references a specific page ("issue on page 3", "is page 1 too dense?", "fix the table layout on page 5") — the markdown gives you the content but not the page boundaries paged.js produces. Each page costs interactions; never call this preemptively, only when the user names a specific page.')
+  .describe('Fetch rendered PNG images of specific pages from the current document and inline them into the conversation so you can VISUALLY inspect what those pages look like. Use when the user references a specific page ("issue on page 3", "is page 1 too dense?", "fix the table layout on page 5"), the markdown gives you the content but not the page boundaries paged.js produces. Each page costs interactions; never call this preemptively, only when the user names a specific page.')
 
 // Backend-rendered PNGs of paginated pages. The renderer container produces
 // these on demand and uploads to S3 keyed by yjs-doc snapshot id; subsequent
@@ -98,7 +98,7 @@ async function handleViewPages(
 
   for (const n of requestedPages) {
     // The render folder is the snapshot id plus, for documents with brand
-    // inputs, the brand fingerprint — take the key the renderer reported
+    // inputs, the brand fingerprint, take the key the renderer reported
     // (matched by file name rather than trusting array order).
     const key = manifest.pageKeys.find(k => k.endsWith(`/page-${n}.png`))
     if (!key) return toolError(`Error: failed to fetch page ${n}: not in the render`)
@@ -113,7 +113,7 @@ async function handleViewPages(
   }
 
   return {
-    content: `Fetched ${parts.length} page image(s): ${captions.join(', ')}. The PNGs follow as inline image parts — inspect them visually to answer the user's question.`,
+    content: `Fetched ${parts.length} page image(s): ${captions.join(', ')}. The PNGs follow as inline image parts, inspect them visually to answer the user's question.`,
     isError: false,
     extraParts: parts
   }
@@ -121,14 +121,14 @@ async function handleViewPages(
 
 export const getPageCountTool = defineMetaTool({
   name: 'get_page_count',
-  description: 'Return how many paginated pages the document currently has under its theme\'s @page rules. The markdown source has no inherent page count — page boundaries only exist after paged.js paginates. Use this before view_pages when you don\'t already know the total, especially when the user references a page number ("look at page 3", "is page 5 the last one?"). Cheap on cache hit, ~5-15s on cache miss (full backend render).',
+  description: 'Return how many paginated pages the document currently has under its theme\'s @page rules. The markdown source has no inherent page count, page boundaries only exist after paged.js paginates. Use this before view_pages when you don\'t already know the total, especially when the user references a page number ("look at page 3", "is page 5 the last one?"). Cheap on cache hit, ~5-15s on cache miss (full backend render).',
   schema: GetPageCountArgs,
   handler: handleGetPageCount
 })
 
 export const viewPagesTool = defineMetaTool({
   name: 'view_pages',
-  description: 'Fetch rendered PNG screenshots of specific pages and add them to the conversation so you can SEE the typography, spacing, table layout, image placement, page-break decisions — anything that\'s visible after pagination but invisible in the markdown source. Use when the user names a specific page ("the table on page 3 is broken", "page 7 looks too sparse"). Pass a 1-indexed array of page numbers (1-5 pages per call). Each page is a real interaction-billed image input — don\'t call preemptively or "to check"; only when the user is asking about layout / visual issues on identified pages.',
+  description: 'Fetch rendered PNG screenshots of specific pages and add them to the conversation so you can SEE the typography, spacing, table layout, image placement, page-break decisions, anything that\'s visible after pagination but invisible in the markdown source. Use when the user names a specific page ("the table on page 3 is broken", "page 7 looks too sparse"). Pass a 1-indexed array of page numbers (1-5 pages per call). Each page is a real interaction-billed image input, don\'t call preemptively or "to check"; only when the user is asking about layout / visual issues on identified pages.',
   schema: ViewPagesArgs,
   requires: 'vision',
   // 3 calls × 5 pages each = 15 page-images, enough to inspect any

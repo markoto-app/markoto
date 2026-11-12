@@ -20,7 +20,7 @@ export function customDomainVerifyValue(token: string): string {
 /** A verified domain whose DNS stops pointing at us is dropped after this long. */
 export const CUSTOM_DOMAIN_GRACE_MS = 72 * HOUR_MS
 
-/** Why a DNS check failed — shown to the user as a sentence (`customDomains.dns.*`). */
+/** Why a DNS check failed, shown to the user as a sentence (`customDomains.dns.*`). */
 // `in-use`: the records are right, but another account's claim of the
 // same hostname is already verified.
 export type CustomDomainDnsProblem = 'txt-missing' | 'txt-mismatch' | 'not-pointing' | 'lookup-failed' | 'in-use'
@@ -29,7 +29,7 @@ export type CustomDomainDnsProblem = 'txt-missing' | 'txt-mismatch' | 'not-point
  * Normalise a user-typed hostname: lowercase, no scheme / path / trailing
  * dot, IDN to punycode. Null when it isn't a plain multi-label DNS name:
  * ports, credentials, IP literals, single labels, wildcards, and the
- * special-use names (`localhost`, `.local`, `.internal`, `.test`, …) —
+ * special-use names (`localhost`, `.local`, `.internal`, `.test`, …),
  * `allowTestNames` lets `.test` through for the test stacks.
  */
 export function normalizeCustomHostname(input: unknown, opts: { allowTestNames?: boolean } = {}): string | null {

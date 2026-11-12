@@ -10,7 +10,7 @@ import { useLogger } from '../../../../utils/platform/logger'
 
 const log = useLogger('auth-sso')
 
-// GET /auth/sso/:connectionId — start a sign-in through a workspace's
+// GET /auth/sso/:connectionId: start a sign-in through a workspace's
 // identity provider. `?test=1` = an admin testing a draft
 // connection (a successful test activates it); `?returnTo=/path` = where
 // to land afterwards (same-site paths only).

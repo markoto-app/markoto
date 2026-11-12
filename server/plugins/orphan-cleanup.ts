@@ -43,7 +43,7 @@ const log = useLogger('orphan-cleanup')
 //
 //   4. Knowledge sweep (`server/utils/knowledge/knowledgeOrphanSweep.ts`): objects
 //      under `workspaces/*/knowledge/` (final or staging) older than 1 h
-//      that no `workspace_knowledge` row points at — uploads that were
+//      that no `workspace_knowledge` row points at, uploads that were
 //      PUT but never confirmed, and originals of deleted rows. Runs even
 //      when the doc layers failed.
 //
@@ -107,7 +107,7 @@ async function sweepUnconfirmedUploads(s3: S3Client, bucket: string): Promise<vo
     stale.flatMap(u => [u.s3Key, stagingKeyFor(u.s3Key)]),
     'unconfirmed'
   )
-  // Drop the rows whether or not the S3 delete succeeded — the row
+  // Drop the rows whether or not the S3 delete succeeded, the row
   // itself is what blocks future re-use, and the defensive S3 sweep
   // below catches any leftover objects.
   await purgeStaleUnconfirmed(ORPHAN_CLEANUP, DAY_MS)
@@ -171,7 +171,7 @@ async function sweepDefensiveStaleS3(
  * BOTH absent from `uploads` (the known-keys set) AND older than the
  * 24h race window. The age guard exists so an upload that's
  * mid-flight (PUT in S3 but row not committed yet) doesn't get
- * reaped — see `sweepUnconfirmedUploads` for the inverse pass.
+ * reaped: see `sweepUnconfirmedUploads` for the inverse pass.
  */
 async function findStaleKeysInDocPrefix(
   s3: S3Client,
@@ -242,7 +242,7 @@ async function listKeysUnderPrefix(s3: S3Client, bucket: string, prefix: string)
  * cap). Errors land in Sentry tagged with the sweep label so dashboards
  * can attribute failures to the right layer.
  *
- * `opts.silent` — by default, the unconfirmed sweep already logs every
+ * `opts.silent`: by default, the unconfirmed sweep already logs every
  * S3 error inline; the doc-orphan + defensive sweeps
  * let exceptions propagate to the outer try/catch so a transient S3
  * failure aborts THAT layer cleanly without nuking the rest. Set

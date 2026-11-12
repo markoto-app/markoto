@@ -8,7 +8,7 @@ import {
   setMemberRole
 } from '../setup/fixtures'
 
-// Workspace CRUD. Covers the remaining authz gates in /api/workspaces —
+// Workspace CRUD. Covers the remaining authz gates in /api/workspaces,
 // creation, rename, delete. Invitations: workspaceInvites.test.ts.
 
 async function workspaceExists(wsId: string): Promise<boolean> {

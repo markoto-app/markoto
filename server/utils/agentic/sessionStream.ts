@@ -12,25 +12,25 @@ const log = useLogger('ai-session-stream')
 // pub/sub, all instances); the stream re-reads the keys on each ping and
 // sends a `status` event only when the view changed. A periodic re-read
 // (`refreshMs`) covers a ping lost to a subscriber reconnect, and its
-// comment line (`: ping`) keeps the connection from idling out — Bun's
+// comment line (`: ping`) keeps the connection from idling out, Bun's
 // default idle timeout is 10 s, Traefik's far longer, so `refreshMs`
 // stays well below 10 s.
 //
 // Events:
 //   status  data = the same JSON as `GET /api/ai/sessions/:id`
-//   end     data = {} — the session is finished (terminal phase seen and
+//   end     data = {}, the session is finished (terminal phase seen and
 //           `terminalGraceMs` passed) or its channel expired; the client
 //           closes its EventSource instead of reconnecting.
 // A stream that reaches `maxLifetimeMs` just closes (no `end`), so the
 // browser's EventSource reconnects and the client keeps following.
 //
-// Cleanup: the response body's `cancel` (client went away — Bun cancels
+// Cleanup: the response body's `cancel` (client went away, Bun cancels
 // the body; Nitro's node-compat request never emits `close` for the bun
 // preset) and every close path release the subscription and timers.
 
 export interface SessionStreamOptions {
   sessionId: string
-  /** Initiator — the stream ends if the channel ever names someone else. */
+  /** Initiator: the stream ends if the channel ever names someone else. */
   userId: number
   store?: ChannelStore
   /** Periodic re-read + keep-alive interval. */

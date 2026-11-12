@@ -42,7 +42,7 @@ describe('validateEditorSelection', () => {
 
   it('rejects cursor without the CURSOR_IS_HERE marker in lineText', () => {
     // If the client ships a cursor snapshot whose lineText doesn't
-    // contain the marker, the AI's split-on-marker rule can't work —
+    // contain the marker, the AI's split-on-marker rule can't work,
     // we'd rather drop the state than feed ambiguous context to the
     // model.
     expect(validateEditorSelection({
@@ -220,7 +220,7 @@ describe('wrapPromptWithEditorState', () => {
   })
 
   it('JSON-escapes quotes and newlines inside selection_text', () => {
-    // JSON.stringify handles quoting — the assertion just makes sure we
+    // JSON.stringify handles quoting: the assertion just makes sure we
     // didn't hand-roll a broken escaping scheme.
     const out = wrapPromptWithEditorState('fix this', {
       kind: 'selection',

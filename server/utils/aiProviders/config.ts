@@ -76,7 +76,7 @@ export function resolveByokUrlPolicy(source?: RawEnv): ByokUrlPolicy {
 
 /**
  * Policy applied to operator-configured instance defaults. The operator
- * is trusted to pick the endpoint (no allowlist, private networks OK —
+ * is trusted to pick the endpoint (no allowlist, private networks OK,
  * e.g. `http://ollama:11434/v1` on the compose network), but the
  * internal-service and loopback/metadata refusals still apply.
  */

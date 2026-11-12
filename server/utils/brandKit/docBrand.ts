@@ -18,7 +18,7 @@ export interface DocBrand {
   /** The workspace design the document must render with; null = its own. */
   lockedTheme: DocTheme | null
   /**
-   * Changes whenever the fonts, the logos or the locked design change — part of the
+   * Changes whenever the fonts, the logos or the locked design change, part of the
    * server render cache key (a brand change makes no new Y.js row, so the
    * snapshot id alone would serve a stale PDF). Null when the document has
    * no brand inputs (the cache key is then unchanged).

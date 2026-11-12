@@ -12,9 +12,9 @@ import { asUser, docAs, wsAs } from '../helpers/access'
 // Provenance of AI edits for the taint gate (F-7b). An edit by
 // `ai:assistant:<sid>` counts as the invoker's own text only when the
 // session's provenance row belongs to them AND was marked clean (the
-// session never read anybody else's content). Everything else — another
+// session never read anybody else's content). Everything else, another
 // user's session, a tainted session, a session that is still running or
-// crashed — stays foreign.
+// crashed: stays foreign.
 
 async function aiEdit(docId: string, sessionId: string): Promise<void> {
   await testDb().query(
@@ -31,7 +31,7 @@ async function ownEdit(docId: string, userId: number): Promise<void> {
   )
 }
 
-describe('hasForeignContentActivity — AI session provenance', () => {
+describe('hasForeignContentActivity: AI session provenance', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -43,7 +43,7 @@ describe('hasForeignContentActivity — AI session provenance', () => {
     await recordAiSessionProvenance(docAs(doc.docId, alice.id), 's-clean')
     await aiEdit(doc.docId, 's-clean')
     // No ai_sessions row (deleted at session end) and no conversation
-    // memory (the @ai trigger writes none) — before provenance, this
+    // memory (the @ai trigger writes none), before provenance, this
     // edit was unattributable and the doc counted as shared.
     await markAiSessionProvenanceClean(docAs(doc.docId, alice.id), 's-clean')
     expect(await hasForeignContentActivity(docAs(doc.docId), alice.id)).toBe(false)
@@ -116,7 +116,7 @@ describe('hasForeignContentActivity — AI session provenance', () => {
     expect(await hasForeignContentActivity(docAs(doc.docId), alice.id)).toBe(false)
   })
 
-  it('provenance rows go with the user (FK cascade) — their AI edits then count as foreign', async () => {
+  it('provenance rows go with the user (FK cascade), their AI edits then count as foreign', async () => {
     const alice = await createUser({ name: 'Alice' })
     const bob = await createUser({ name: 'Bob' })
     const doc = await createDoc({ ownerId: alice.id })
@@ -129,7 +129,7 @@ describe('hasForeignContentActivity — AI session provenance', () => {
   })
 })
 
-describe('countOtherWorkspaceEditors — guests with an edit share', () => {
+describe('countOtherWorkspaceEditors: guests with an edit share', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -150,7 +150,7 @@ describe('countOtherWorkspaceEditors — guests with an edit share', () => {
     await share(doc.docId, guest.id, 'view')
     expect(await countOtherWorkspaceEditors(wsAs(ws.workspaceId), admin.id)).toBe(0)
 
-    // An edit share can (text, title, description) — the admin's AI
+    // An edit share can (text, title, description), the admin's AI
     // reading workspace titles must now ask first.
     await testDb().query('UPDATE document_shares SET access = \'edit\' WHERE doc_id = $1 AND user_id = $2', [doc.docId, guest.id])
     expect(await countOtherWorkspaceEditors(wsAs(ws.workspaceId), admin.id)).toBe(1)

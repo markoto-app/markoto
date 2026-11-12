@@ -85,7 +85,7 @@ export default defineApiHandler({
     }
 
     // Claim the transition atomically (status unchanged since the read), so
-    // two moderators can't both act — and both email — on one report.
+    // two moderators can't both act, and both email, on one report.
     if (!(await claimAbuseReportTransition(adminActor, reportId, existing, { status, notes, decision }))) {
       throw apiError('abuse/conflict')
     }

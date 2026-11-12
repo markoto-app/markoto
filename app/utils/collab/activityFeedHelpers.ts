@@ -84,7 +84,7 @@ export function expansionToggleLabelKey(entry: ActivityLike, expanded: boolean):
  * A URL from activity metadata that may be bound to `href` / `src`, or
  * `undefined`. AI-tool rows carry URLs from tool inputs and fetched
  * pages, so only absolute http(s) URLs and same-origin relative paths
- * pass — no `javascript:`/`data:`/other schemes, no protocol-relative
+ * pass: no `javascript:`/`data:`/other schemes, no protocol-relative
  * `//host`.
  */
 export function safeLinkUrl(raw: unknown): string | undefined {

@@ -25,7 +25,7 @@ Commencez une ligne par `#` pour un titre, `##` pour une section, `###` pour une
 
 Tapez un `x` entre les crochets pour cocher une case.
 
-- [ ] **Partager.** Le cadenas en haut à droite (ou **Partage → Paramètres de partage…**) décide de ce que peuvent faire les personnes qui ont le lien : « Privé — vous uniquement », « Tout le monde peut consulter », « Tout le monde peut modifier » ou « Protégé par mot de passe ».
+- [ ] **Partager.** Le cadenas en haut à droite (ou **Partage → Paramètres de partage…**) décide de ce que peuvent faire les personnes qui ont le lien : « Privé : vous uniquement », « Tout le monde peut consulter », « Tout le monde peut modifier » ou « Protégé par mot de passe ».
 - [ ] **Changer l'apparence.** L'icône palette à droite ouvre le **Thème du document** : modèles, polices, couleurs, format de page, en-tête et pied de page.
 - [ ] **Modifier la page de couverture.** Ce document en a une. Dans le panneau du thème, **Page de couverture** règle la mise en page, le sous-titre, la date et les auteurs, ou la désactive.
 - [ ] **Laisser un commentaire.** Sélectionnez du texte et cliquez sur **Ajouter un commentaire**. Écrivez `@markoto` dans un commentaire et l'IA répond dans le fil.

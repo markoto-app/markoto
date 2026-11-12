@@ -2,7 +2,7 @@
 # We run the build as the built-in `bun` user (uid 1000) so the resulting
 # node_modules/.output trees aren't owned by root when copied across stages.
 FROM oven/bun:1.4.4-alpine@sha256:4cf82f5686b196504fe119db3fcd9185b191f82ece82c40680e597228ec6070a AS builder
-# WORKDIR creates /app owned by root by default — must chown before USER switch
+# WORKDIR creates /app owned by root by default: must chown before USER switch
 # or bun install can't write node_modules.
 USER root
 RUN mkdir -p /app && chown bun:bun /app
@@ -31,15 +31,15 @@ RUN bun run postinstall && bun run build
 # exec): they're compiled in only with MARKOTO_TEST_BUILD=1, which this
 # Dockerfile never sets. Fail the image build if one slipped in anyway.
 RUN bun scripts/check-test-routes.ts --absent .output
-# Operator CLIs. The runtime stage ships only the Nitro output — no
-# scripts/ dir, no node_modules — so standalone scripts are bundled into
+# Operator CLIs. The runtime stage ships only the Nitro output: no
+# scripts/ dir, no node_modules: so standalone scripts are bundled into
 # single files (deps inlined) that run with the image's bun:
 #   docker compose exec app bun cli/reembed-knowledge.js [--dry-run]
 RUN bun build scripts/reembed-knowledge.ts --target=bun --outfile=cli/reembed-knowledge.js
 RUN bun build scripts/reencrypt-secrets.ts --target=bun --outfile=cli/reencrypt-secrets.js
 
 # --- Runtime stage ---------------------------------------------------------
-# Nitro's `bun` preset emits an output targeted at the Bun runtime — it
+# Nitro's `bun` preset emits an output targeted at the Bun runtime: it
 # traces via Bun's conditional exports, so packages like lib0 resolve to
 # their `bun` export variants consistently. Running this output under
 # Node would fail (module graph references Bun-only paths).
@@ -52,12 +52,12 @@ USER root
 RUN mkdir -p /app && chown bun:bun /app
 WORKDIR /app
 COPY --from=builder --chown=bun:bun /app/.output .output
-# Drizzle migration files — applied at boot by server/plugins/db-migrate.ts.
+# Drizzle migration files: applied at boot by server/plugins/db-migrate.ts.
 # Path resolution uses process.cwd() (= /app), so the plugin reads ./drizzle.
 COPY --from=builder --chown=bun:bun /app/drizzle ./drizzle
 # Runtime-read source files that are NOT part of the Nitro .output bundle
 # (fs reads aren't traced by Nitro's NFT, so they must be COPYed explicitly
-# — same rationale as drizzle/). Both are read via process.cwd():
+# same rationale as drizzle/). Both are read via process.cwd():
 #   - content/legal/*.md    → server/api/_internal/legal/[slug].get.ts
 #   - shared/templates/...  → server/utils/documents/templateRenderer.ts
 # Missing them 500s every /legal/* page and drops every template body.

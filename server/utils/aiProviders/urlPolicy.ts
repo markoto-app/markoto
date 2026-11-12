@@ -17,14 +17,14 @@
 // Rules, in order:
 //   1. Absolute http(s) URL, no userinfo, no query/fragment.
 //   2. Hostname is not an internal service name (`litellm`, `postgres`,
-//      `valkey`, ...) — always, even with the private-network opt-in.
+//      `valkey`, ...): always, even with the private-network opt-in.
 //   3. If an allowlist is configured (the SaaS), the URL must sit at or
 //      under one of the allowlisted base URLs.
 //   4. Every resolved address must not be "always forbidden" (loopback,
 //      link-local / cloud metadata, multicast, unspecified).
 //   5. Private addresses (RFC 1918, CGNAT, ULA) only with the operator
 //      opt-in `NUXT_AI_BYOK_ALLOW_PRIVATE_URLS=true`.
-//   6. Plain http only with the opt-in AND only to private addresses —
+//   6. Plain http only with the opt-in AND only to private addresses,
 //      an API key never crosses the public internet unencrypted.
 //
 // Residual risk (documented in docs/AI-MODELS.md): LiteLLM resolves the
@@ -69,7 +69,7 @@ export const INTERNAL_HOSTNAMES: ReadonlySet<string> = new Set([
 /**
  * Compose's default container names (`<project>-<service>-<n>`) resolve
  * on the compose network too, under whatever project name the operator
- * picked — match them by the service part.
+ * picked: match them by the service part.
  */
 // eslint-disable-next-line security/detect-non-literal-regexp -- built once from the fixed internal-hostname list (filtered to [a-z0-9-])
 const COMPOSE_CONTAINER_NAME = new RegExp(
@@ -164,7 +164,7 @@ export async function checkProviderBaseUrl(
   }
 
   if (structural.protocol === 'http:' && (!policy.allowPrivate || screen.anyPublic)) {
-    return refuse('https-required', 'Use https:// — plain http is only allowed for private-network endpoints on self-hosted instances.')
+    return refuse('https-required', 'Use https://, plain http is only allowed for private-network endpoints on self-hosted instances.')
   }
   return { ok: true, normalized: structural.normalized }
 }

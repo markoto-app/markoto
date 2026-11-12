@@ -3,7 +3,7 @@
  *
  * Construct minimal-but-typed `Stripe.<X>Event` objects for unit
  * tests. Replaces `as unknown as Stripe.Event` casts that can drift
- * from the SDK's actual shape — the casts compile against any
+ * from the SDK's actual shape, the casts compile against any
  * shape, so a missing field that the production handler reads
  * would only surface at integration-test time (or worse, in prod).
  *
@@ -22,7 +22,7 @@
  * event types have hundreds of fields each; we stamp ONLY the ones
  * our handlers read. If a handler starts reading a new field, that
  * factory needs an additional parameter. The compile error from the
- * SDK type narrowing should make that failure mode loud — if a
+ * SDK type narrowing should make that failure mode loud, if a
  * handler reads `event.data.object.foo` and the factory only sets
  * `bar`, the test passes a typed-correct shape but the handler
  * gets `undefined` at runtime. The test's assertions are the

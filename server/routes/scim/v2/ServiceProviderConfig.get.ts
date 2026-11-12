@@ -1,4 +1,4 @@
-// GET /scim/v2/ServiceProviderConfig (RFC 7643 §5) — what we support.
+// GET /scim/v2/ServiceProviderConfig (RFC 7643 §5), what we support.
 export default defineApiHandler({
   access: allow.scim(),
   handler: async () => ({

@@ -2,7 +2,7 @@
 //
 // 1. Normalise every client's `user` field before it is re-broadcast.
 //    y-protocols emits `change` before `update`, and Hocuspocus
-//    broadcasts on `update` by re-encoding the CURRENT states — so
+//    broadcasts on `update` by re-encoding the CURRENT states, so
 //    rewriting the states in a `change` listener means peers only ever
 //    receive the normalised shape (hex colour, capped name, avatar seed token,
 //    numeric id). See `shared/utils/documents/awarenessUser.ts`.
@@ -10,7 +10,7 @@
 // 2. Remember which authenticated connection each awareness client id
 //    arrived on, so the activity-log fallback attribution can name the
 //    JWT identity of that connection instead of trusting the
-//    client-chosen `user.name`. Read-only connections are not recorded —
+//    client-chosen `user.name`. Read-only connections are not recorded,
 //    they can't have written anything.
 //
 // 3. For anonymous writers, remember the random avatar token

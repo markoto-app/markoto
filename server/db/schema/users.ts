@@ -24,7 +24,7 @@ export const users = pgTable('users', {
   // users (free never lapses). Set by the Stripe webhook; the
   // plan-lapse sweep flips the row back to `free` once past it.
   planValidUntil: timestamp('plan_valid_until', { withTimezone: true }),
-  // Stripe's `current_period_start` for paid users — anchors the
+  // Stripe's `current_period_start` for paid users, anchors the
   // AI-credits billing period so quota resets on the invoice day, not
   // on the 1st of the calendar month. NULL for free users (they fall
   // back to the calendar-month anchor). Updated on every `invoice.paid`.
@@ -36,7 +36,7 @@ export const users = pgTable('users', {
   // `billing/currency-locked`). NULL until the first subscription.
   billingCurrency: text('billing_currency', { enum: ['eur', 'chf'] }),
   // Platform chat model the user picked: 'fast' = the instance chat
-  // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL — only applied
+  // default, 'strong' = NUXT_AI_DEFAULT_CHAT_STRONG_MODEL, only applied
   // while the plan includes `aiStrongModel`. Own keys are unaffected.
   aiModelTier: text('ai_model_tier', { enum: ['fast', 'strong'] }).notNull().default('fast'),
   // LiteLLM virtual-key handle: the single source of truth for the

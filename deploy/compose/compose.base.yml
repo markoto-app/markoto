@@ -7,7 +7,7 @@
 # file overrides only what is environment-specific.
 #
 # Semantics reminder (Compose merge):
-#   - environment: map-merged (per-key override) — good
+#   - environment: map-merged (per-key override): good
 #   - command:     REPLACED wholesale by override (gotcha)
 #   - volumes:     REPLACED wholesale by override (gotcha)
 #   - depends_on:  REPLACED wholesale by override (gotcha)
@@ -16,7 +16,7 @@
 #                   defining `expose` in base + `ports` in override
 #                   leaves both in the merged result. Harmless.
 #
-# This file is NOT directly runnable — it has no top-level networks
+# This file is NOT directly runnable: it has no top-level networks
 # and intentionally leaves env-specific knobs unset. Pair it with one
 # of docker-compose.{dev,local,prod}.yml.
 #
@@ -24,12 +24,12 @@
 # long-running service here runs as a non-root user with `cap_drop: [ALL]`
 # and `no-new-privileges`, and on a read-only root filesystem where the
 # service allows it (writable paths are explicit tmpfs mounts / volumes).
-# Networks are NOT set here — each env file assigns its services to purpose
+# Networks are NOT set here: each env file assigns its services to purpose
 # networks (data / render / import / ...), see deploy/compose/compose.prod.yml.
 #
 # `deploy/compose/compose.test.yml` does NOT include this base: test infra
 # uses suffixed service names (postgres-test, valkey-test, etc.) on
-# different ports with tmpfs storage — almost no shared shape.
+# different ports with tmpfs storage: almost no shared shape.
 
 # Container hardening every service gets (docs/SECURITY-HARDENING.md §C):
 # no Linux capabilities, no privilege gain through setuid binaries. A service
@@ -43,7 +43,7 @@ x-hardening: &hardening
 services:
   postgres:
     # pgvector/pgvector is Postgres 16 with the `vector` extension
-    # pre-built. Drop-in for postgres:16-alpine — data directory +
+    # pre-built. Drop-in for postgres:16-alpine: data directory +
     # client protocol identical. CREATE EXTENSION vector runs in the
     # first migration.
     image: pgvector/pgvector:pg16@sha256:0dd3149a06e4579a0d70d8fef9945636cd514005e7237deb27f9b67886f8dc4f
@@ -61,7 +61,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:?POSTGRES_DB required}
     volumes:
       - pg_data:/var/lib/postgresql/data
-      # `/docker-entrypoint-initdb.d/` runs once on a fresh data dir —
+      # `/docker-entrypoint-initdb.d/` runs once on a fresh data dir,
       # used to create the `litellm` DB alongside the app DB. For
       # already-initialised volumes, the litellm-db-init one-shot service
       # below ensures the DB exists.
@@ -87,7 +87,7 @@ services:
       - no-new-privileges:true
 
   # Idempotent one-shot, run before the app, sync and LiteLLM start (on
-  # every `up`): creates the `litellm` database and — when configured — the
+  # every `up`): creates the `litellm` database and, when configured, the
   # separate least-privilege roles for the app (POSTGRES_APP_USER) and for
   # LiteLLM (POSTGRES_LITELLM_USER), hands existing objects over to them and
   # revokes cross-database CONNECT. Connects as the admin role
@@ -124,13 +124,13 @@ services:
     restart: unless-stopped
     # Cap the proxy. Steady-state it's a thin Python router; the memory
     # peak is the cold-start Prisma migration run (see start_period below).
-    # 1 GB was WRONG — empirically the boot path OOMs against a 1g memcg
+    # 1 GB was WRONG: empirically the boot path OOMs against a 1g memcg
     # (kernel log on staging, 2026-08-18: `Memory cgroup out of memory:
-    # Killed process (litellm) anon-rss:611292kB` — the python process
+    # Killed process (litellm) anon-rss:611292kB`: the python process
     # alone sits at ~640 MB before Prisma's node engine spawns). The
     # child gets OOM-killed, the wrapper exits 0, and the container
     # restart-loops through "Running prisma migrate deploy" forever,
-    # never turning healthy — which blocks `app` via depends_on and
+    # never turning healthy: which blocks `app` via depends_on and
     # takes the whole deploy down. The 1g cap had only ever been
     # config-validated: deploys didn't sync compose files to the host
     # until the #44/#46 fix, so its first real application was also its
@@ -138,7 +138,7 @@ services:
     mem_limit: 2g
     environment:
       # Its own role (owner of the litellm database only) when
-      # POSTGRES_LITELLM_USER is set — see db-init above.
+      # POSTGRES_LITELLM_USER is set: see db-init above.
       - DATABASE_URL=postgresql://${POSTGRES_LITELLM_USER:-${POSTGRES_USER}}:${POSTGRES_LITELLM_PASSWORD:-${POSTGRES_PASSWORD}}@postgres:5432/litellm
       - LITELLM_MASTER_KEY=${LITELLM_MASTER_KEY:?LITELLM_MASTER_KEY required}
       - LITELLM_SALT_KEY=${LITELLM_SALT_KEY:?LITELLM_SALT_KEY required}
@@ -204,7 +204,7 @@ services:
     # Cap set ABOVE the 1 GB `--maxmemory` below: an AOF rewrite forks the
     # process and copy-on-write can transiently push RSS past the dataset
     # size, so 1.5 GB leaves rewrite headroom while still bounding a runaway.
-    # (In practice our keyspace — rate limits, locks, 24h sync-state — stays
+    # (In practice our keyspace, rate limits, locks, 24h sync-state, stays
     # far below 1 GB; allkeys-lru evicts before maxmemory anyway.)
     mem_limit: 1536m
     # AOF with fsync-every-second is a fine trade for rate-limit data:
@@ -215,7 +215,7 @@ services:
     # the rate-limit fail-open path is documented.
     #
     # Strict `${VALKEY_PASSWORD:?required}` here. dev/test use a soft
-    # fallback (`:-devpassword`) by overriding `command:` wholesale —
+    # fallback (`:-devpassword`) by overriding `command:` wholesale,
     # `command:` is REPLACED on merge, not concatenated.
     command:
       - "valkey-server"
@@ -246,7 +246,7 @@ services:
 
   # NOTE: `seaweedfs` is defined per-env in dev/local (not in base).
   # Compose's `include:` always merges every service from the included
-  # file — there's no way to "drop" a service downstream. Prod uses
+  # file: there's no way to "drop" a service downstream. Prod uses
   # external S3 and would otherwise inherit a phantom seaweedfs +
   # seaweed_data volume. Two-line duplication in dev/local is the
   # cheaper trade.
@@ -281,14 +281,14 @@ services:
       - VALKEY_PASSWORD=${VALKEY_PASSWORD}
       - VALKEY_DB=${VALKEY_DB:-0}
       # Size limits for client updates (bytes). Empty = built-in defaults
-      # (17 MiB frame / 16 MiB update / 16 MiB document) — see
+      # (17 MiB frame / 16 MiB update / 16 MiB document): see
       # sync-server/src/limits.ts and .env.example.
       - SYNC_MAX_MESSAGE_BYTES=${SYNC_MAX_MESSAGE_BYTES:-}
       - SYNC_MAX_UPDATE_BYTES=${SYNC_MAX_UPDATE_BYTES:-}
       - SYNC_MAX_DOCUMENT_BYTES=${SYNC_MAX_DOCUMENT_BYTES:-}
       # Messages queued before a document authenticates. Empty = defaults
       # (32 MiB per socket / 256 MiB per process / 15 s for the auth frame)
-      # — see sync-server/src/pre-auth-guard.ts and .env.example.
+      # see sync-server/src/pre-auth-guard.ts and .env.example.
       - SYNC_MAX_PREAUTH_BYTES=${SYNC_MAX_PREAUTH_BYTES:-}
       - SYNC_MAX_PREAUTH_TOTAL_BYTES=${SYNC_MAX_PREAUTH_TOTAL_BYTES:-}
       - SYNC_AUTH_TIMEOUT_MS=${SYNC_AUTH_TIMEOUT_MS:-}
@@ -371,7 +371,7 @@ services:
     # Chromium renders user-authored HTML/CSS/SVG, so this is the most
     # exposed process in the stack. Image user `pwuser` (renderer/Dockerfile),
     # no capabilities, read-only root with a tmpfs /tmp (Chromium's profile,
-    # shared memory — `--disable-dev-shm-usage` — and font caches; it counts
+    # shared memory, `--disable-dev-shm-usage`, and font caches; it counts
     # against mem_limit). Chromium keeps its own sandbox: the seccomp profile
     # is Docker's default plus `clone`/`unshare`/`chroot`, which Chromium's
     # user-namespace sandbox needs without CAP_SYS_ADMIN (rationale +
@@ -397,7 +397,7 @@ services:
 
   backup:
     restart: unless-stopped
-    # The backup is a streaming pipe (pg_dump | gzip | gpg | aws s3 cp) — it
+    # The backup is a streaming pipe (pg_dump | gzip | gpg | aws s3 cp): it
     # never buffers the whole dump in memory, so a small cap is plenty and
     # keeps a stuck backup from competing with live services for RAM.
     mem_limit: 512m

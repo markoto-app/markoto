@@ -13,7 +13,7 @@ const INTER_WOFF2 = read('node_modules/@fontsource/inter/files/inter-latin-700-i
 const INTER_WOFF = read('node_modules/@fontsource/inter/files/inter-latin-400-normal.woff')
 const INTER_VARIABLE = read('node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2')
 
-/** WOFF → plain sfnt (TrueType) — inflate every table, write the table directory. */
+/** WOFF → plain sfnt (TrueType), inflate every table, write the table directory. */
 function woffToTtf(woff: Uint8Array): Uint8Array {
   const v = new DataView(woff.buffer, woff.byteOffset, woff.byteLength)
   const flavor = v.getUint32(4)

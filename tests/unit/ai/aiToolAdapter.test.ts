@@ -3,14 +3,14 @@ import * as Y from 'yjs'
 import { executeFunctionByName } from '../../../server/utils/ai/tools/registry'
 import type { AiSession } from '../../../server/utils/ai/aiClient'
 
-// AI tool handlers — the functions the model uses to mutate user
+// AI tool handlers: the functions the model uses to mutate user
 // docs (view_document, replace_text, insert_text). Wrong semantics
 // here = silent data corruption in the user's document, so every
 // branch gets pinned: match-count rules, line-to-char mapping,
 // transaction origin tags, unicode alignment.
 
 // Minimal AiSession stub. Handlers only touch ydoc, ytext, sessionId,
-// and updateStatus — everything else is awareness/provider plumbing the
+// and updateStatus: everything else is awareness/provider plumbing the
 // handlers never read, so we stub with `null as never`.
 interface StubSession {
   session: AiSession
@@ -29,7 +29,7 @@ function makeSession(initial = '', sessionId = 'test-session'): StubSession {
   const originsSeen = new Set<string>()
   // Capture every transaction's origin so tests can assert the tool
   // tagged its edits correctly. Handlers pass `ai:assistant:{sid}` as the
-  // second arg to ydoc.transact — yjs surfaces it via transaction.origin.
+  // second arg to ydoc.transact, yjs surfaces it via transaction.origin.
   ydoc.on('afterTransaction', (tx) => {
     if (tx.origin != null) originsSeen.add(String(tx.origin))
   })
@@ -94,7 +94,7 @@ describe('view_document', () => {
   })
 
   it('range beyond file returns empty slice with start prefix (no error)', async () => {
-    // Current behaviour — documented here so a future change to "error on
+    // Current behaviour: documented here so a future change to "error on
     // past-end range" is an explicit decision, not an accident. Model
     // should figure it out from the empty result; we don't need to block.
     const { session } = makeSession('a\nb')
@@ -137,7 +137,7 @@ describe('replace_text', () => {
   })
 
   it('errors on multiple matches with count in message', async () => {
-    // Regression target — if this silently took the first match, an AI
+    // Regression target: if this silently took the first match, an AI
     // replace of a common word would rewrite the wrong sentence.
     const { session, ytext } = makeSession('foo bar foo bar foo')
     const res = await executeFunctionByName(session, 'replace_text', {
@@ -195,7 +195,7 @@ describe('replace_text', () => {
 
   it('tags transaction with ai:assistant:{sessionId} origin', async () => {
     // The UI filters remote-origin updates to animate AI edits
-    // differently — if this tag drifts, the animation breaks silently.
+    // differently: if this tag drifts, the animation breaks silently.
     const { session, originsSeen } = makeSession('hello', 'sess-42')
     await executeFunctionByName(session, 'replace_text', {
       old_str: 'hello',
@@ -213,7 +213,7 @@ describe('replace_text', () => {
     expect(statusCalls[0]?.phase).toBe('editing')
   })
 
-  it('leading/trailing whitespace is NOT stripped — exact match required', async () => {
+  it('leading/trailing whitespace is NOT stripped, exact match required', async () => {
     // The model is instructed to match exactly including whitespace.
     // If we trimmed, a replace of "  foo" in "  foo  " would succeed
     // with 3 hidden matches (leading, trailing, both).
@@ -228,7 +228,7 @@ describe('replace_text', () => {
 
   it('non-overlapping match counter (matches cannot overlap)', async () => {
     // "aa" in "aaaa" is counted as 2 non-overlapping matches (positions
-    // 0, 2) — NOT 3 overlapping. Confirms indexOf advances by
+    // 0, 2), NOT 3 overlapping. Confirms indexOf advances by
     // needle.length, not by 1. If the counter went to 3+ and then threw
     // on "multiple matches", a legit dedupe would wrongly error.
     const { session } = makeSession('aaaa')
@@ -339,7 +339,7 @@ describe('insert_text', () => {
   })
 })
 
-describe('executeFunctionByName — dispatch', () => {
+describe('executeFunctionByName: dispatch', () => {
   it('rejects unknown function name', async () => {
     const { session } = makeSession('hello')
     const res = await executeFunctionByName(session, 'not_a_tool', {})
@@ -361,7 +361,7 @@ describe('executeFunctionByName — dispatch', () => {
     expect(unknown.content).toContain('Unsupported function')
 
     // Positive oracle: web_search is routed (i.e. NOT in the
-    // "unknown" branch). We don't actually execute it — that would
+    // "unknown" branch). We don't actually execute it, that would
     // need runtime config + Jina; instead we assert the dispatcher
     // dispatches it. If it returned the "Unsupported function"
     // sentinel, this test would fail.
@@ -369,11 +369,11 @@ describe('executeFunctionByName — dispatch', () => {
     try {
       const r = await executeFunctionByName(session, 'web_search', { query: 'x' })
       // If it returns synchronously without runtime config, that's
-      // already proof — make sure it didn't return the unknown
+      // already proof: make sure it didn't return the unknown
       // sentinel.
       routedToBridge = !r.content.includes('Unsupported function')
     } catch {
-      // Expected — without runtime config the bridge throws inside
+      // Expected: without runtime config the bridge throws inside
       // webSearch. THROWING from inside the handler proves we got
       // past the dispatcher's `default` branch (which never throws).
       routedToBridge = true

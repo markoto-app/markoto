@@ -115,7 +115,7 @@ In order: generated env files, Markdown paths, internal vocabulary, schema-vs-mi
 | `bun run depcruise` | Import-layer rules and cycles (`.dependency-cruiser.cjs`; no import cycle is allowed) | `repo-checks` |
 | `bun run db:check-drift` | `server/db/schema/` matches the committed migrations (`bun run db:generate` would create nothing) | `repo-checks` |
 | `bun run check:env` | Generated `.env.example`, config reference and renderer env are current (`bun run env:gen`) | `lint-typecheck` |
-| `bun run check:vocab`, `check:md-paths`, `check:links` | Internal planning labels, dangling paths, broken relative links and anchors in Markdown | `repo-checks`, `docs-checks` |
+| `bun run check:vocab`, `check:em-dash`, `check:md-paths`, `check:links` | Internal planning labels, the em-dash character (U+2014, never used), dangling paths, broken relative links and anchors in Markdown | `repo-checks`, `docs-checks` |
 | `bun run check:shell`, `check:docker` | shellcheck, hadolint (`.hadolint.yaml`) | `shell-docker-lint` |
 | `bun run check:py`, `check:pyright` | ruff (lint + format), pyright (`ruff.toml`, `pyrightconfig.json`) | `python-checks` |
 | `bun run check:i18n-unused` | Unused i18n keys (informational) | no |

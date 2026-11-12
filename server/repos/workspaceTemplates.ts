@@ -32,7 +32,7 @@ const columns = {
 export async function listWorkspaceTemplates(ws: WorkspaceAccess<'member'>): Promise<WorkspaceTemplateRow[]> {
   const workspaceId = ws.workspaceId
   // Only templates whose document is still in this workspace (a move
-  // deletes the link too — this is the belt to that braces).
+  // deletes the link too, this is the belt to that braces).
   return useDatabase().select(columns).from(workspaceTemplates)
     .innerJoin(documents, and(eq(documents.docId, workspaceTemplates.docId), eq(documents.workspaceId, workspaceTemplates.workspaceId)))
     .where(eq(workspaceTemplates.workspaceId, workspaceId))

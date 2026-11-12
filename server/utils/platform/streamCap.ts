@@ -1,6 +1,6 @@
 /**
  * Read a byte stream to the end, giving up (and cancelling the stream) as
- * soon as more than `maxBytes` arrived. Returns null when over the cap —
+ * soon as more than `maxBytes` arrived. Returns null when over the cap,
  * nothing beyond the cap is ever buffered.
  */
 export async function readStreamWithCap(stream: ReadableStream<Uint8Array>, maxBytes: number): Promise<Uint8Array<ArrayBuffer> | null> {

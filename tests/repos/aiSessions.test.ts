@@ -138,7 +138,7 @@ describe('per-user-per-doc UNIQUE cap', () => {
   })
 
   it('concurrent adds for the same (user, doc): exactly one wins', async () => {
-    // Race target — the UNIQUE index is the serialization point. Two
+    // Race target: the UNIQUE index is the serialization point. Two
     // near-simultaneous /api/ai/prompt calls from the same user on the
     // same doc must land in exactly one DB row + one DuplicateSessionError.
     const user = await createUser()
@@ -243,7 +243,7 @@ describe('snapshotAiSessions', () => {
     // Alice's session is started IN this process (has a local controller).
     await addEntry(makeEntry({ sessionId: 'local', docId: doc.docId, initiatorUserId: alice.id }))
     // Bob's session is simulated to have been started on another Nitro
-    // worker — DB row exists but no local controller in this process.
+    // worker: DB row exists but no local controller in this process.
     const db = testDb()
     await db.query(
       `INSERT INTO ai_sessions (session_id, doc_id, initiator_user_id, initiator_name, initiator_color)
@@ -279,7 +279,7 @@ describe('purgeStaleAiSessions', () => {
 
   it('leaves fresh sessions alone', async () => {
     // Regression target: the server/utils/agentic/AGENTS.md invariant is "sweep threshold
-    // must exceed prompt deadline" — the 7-min sweeper can't kill a
+    // must exceed prompt deadline", the 7-min sweeper can't kill a
     // legit 5-min session that's still running. Simulate: add a
     // session at startedAt=now, then purge with a 7-min threshold.
     // Nothing should be deleted.

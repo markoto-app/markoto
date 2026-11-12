@@ -5,7 +5,7 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 
 // EU only: every Mistral call the platform pays goes to Mistral's EU
 // regional endpoint `api.eu.mistral.ai` (the global `api.mistral.ai`
-// makes no location commitment) — the LiteLLM deployments, the Voxtral
+// makes no location commitment), the LiteLLM deployments, the Voxtral
 // transcription handler and the live-dictation WebSocket on the
 // operator's key. A user's own Mistral key streams to the host the user
 // configured.
@@ -62,7 +62,7 @@ describe('live dictation target', () => {
 })
 
 describe('realtime client', () => {
-  it('passes the server URL to the Mistral SDK — the EU endpoint by default (the SDK\'s own default is global)', async () => {
+  it('passes the server URL to the Mistral SDK, the EU endpoint by default (the SDK\'s own default is global)', async () => {
     // The CI coverage job runs with TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1,
     // which makes the factory return the canned mock client (it never
     // constructs the SDK and never ends on its own). This test is about
@@ -94,7 +94,7 @@ describe('LiteLLM: every Mistral deployment is EU-pinned', () => {
     }
   })
 
-  it('thinking is off on the free-allowance model, set at the proxy for every caller — and not sent to its fallback', () => {
+  it('thinking is off on the free-allowance model, set at the proxy for every caller, and not sent to its fallback', () => {
     // YAML of one deployment, comments dropped (the next entry's header
     // comment would otherwise count as part of this one).
     const block = (name: string) => (config.split(/\n {2}- model_name: /).find(b => b.startsWith(`${name}\n`)) ?? '')

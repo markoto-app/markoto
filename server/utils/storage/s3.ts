@@ -37,9 +37,9 @@ export function useS3Client(): S3Client {
  *
  * A SigV4 signature covers the `Host` header, so the URL must be signed for
  * the host the browser actually talks to. When the app reaches S3 on an
- * internal address the browser can't resolve — the self-host compose's
+ * internal address the browser can't resolve, the self-host compose's
  * `http://seaweedfs:8333`, published to browsers through Traefik under the
- * public origin — `NUXT_S3_PUBLIC_ENDPOINT` names that public base URL.
+ * public origin: `NUXT_S3_PUBLIC_ENDPOINT` names that public base URL.
  * Unset (hosted: external S3 reachable under the same URL from both sides)
  * it is the regular client.
  */

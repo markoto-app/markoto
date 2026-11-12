@@ -156,7 +156,7 @@ describe('shared reads', () => {
   })
 })
 
-describe('saved themes — mutations refresh the list', () => {
+describe('saved themes: mutations refresh the list', () => {
   it('creating a theme refreshes every list on screen before resolving', async () => {
     const { themes: list } = await use(() => useSavedThemes())
     const create = await use(() => useCreateSavedTheme())
@@ -175,7 +175,7 @@ describe('saved themes — mutations refresh the list', () => {
   })
 })
 
-describe('workspaces — create / delete refresh the list and the owned-workspace counter', () => {
+describe('workspaces: create / delete refresh the list and the owned-workspace counter', () => {
   it('creating a workspace re-reads the list and the billing counters', async () => {
     await use(() => useMyWorkspaces())
     const billing = await use(() => useUserBillingQuery())
@@ -203,7 +203,7 @@ describe('workspaces — create / delete refresh the list and the owned-workspac
   })
 })
 
-describe('AI — budgets and availability', () => {
+describe('AI: budgets and availability', () => {
   it('a plan change re-reads the billing snapshot and every AI budget on screen', async () => {
     await use(() => useUserBillingQuery())
     await use(() => useAiCreditsQuery(null))

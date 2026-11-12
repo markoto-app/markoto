@@ -4,7 +4,7 @@
 
 > A line that sets the tone of the book.
 >
-> — Author, *Work*
+> Author, *Work*
 
 # Title of chapter one
 

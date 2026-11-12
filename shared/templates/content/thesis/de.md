@@ -79,8 +79,8 @@ Table: Beschriftung der Tabelle.
 
 | Bedingung | Messgrösse | Messgrösse |
 |---|--:|--:|
-| Ausgangslage | — | — |
-| Bedingung | — | — |
+| Ausgangslage | - | - |
+| Bedingung | - | - |
 
 ## Zweites Ergebnis
 

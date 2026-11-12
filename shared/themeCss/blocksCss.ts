@@ -23,7 +23,7 @@ export function hrCss(theme: DocTheme): string {
       // `---` still creates a visual breath in the page.
       return `.paged-doc hr { border: none; margin: 1.5em 0; height: 0; }`
     case 'asterism':
-      // Editorial signature — the Unicode asterism (⁂) centered with
+      // Editorial signature: the Unicode asterism (⁂) centered with
       // generous breathing room. Reads like a Penguin Classics scene
       // break. We sneak it in via ::before because <hr> is a void
       // element and can't have text children directly.

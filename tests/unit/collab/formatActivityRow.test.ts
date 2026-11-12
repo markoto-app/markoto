@@ -80,7 +80,7 @@ describe('formatActivityRow', () => {
       (action) => {
         // The action enum has 5 comment.* values but the metadata
         // discriminator types differ slightly per action. The formatter
-        // is duck-typed — it only reads `commentId` + `bodyPreview` —
+        // is duck-typed: it only reads `commentId` + `bodyPreview`,
         // so a single shape covers all five for testing purposes.
         const metadata = { kind: action, commentId: 'c_xyz', bodyPreview: 'Looks good to me' } as unknown as ActivityEntry['metadata']
         const out = formatActivityRow(entry({ action, metadata }))
@@ -185,7 +185,7 @@ describe('formatActivityRow', () => {
     })
 
     it('falls back to "ai.tool <tool>" for an unknown tool name', () => {
-      // Hypothetical future tool — formatter shouldn't crash, just
+      // Hypothetical future tool: formatter shouldn't crash, just
       // emit the bare name. The metadata union doesn't include this
       // tool so we cast through unknown for testing.
       const metadata = { kind: 'ai.tool', tool: 'hypothetical_tool' } as unknown as ActivityEntry['metadata']
@@ -209,7 +209,7 @@ describe('formatActivityRow', () => {
     })
 
     it('falls back to "?" when restoredFromActivityId is missing', () => {
-      // partial / corrupt metadata — formatter must not crash
+      // partial / corrupt metadata, formatter must not crash
       const metadata = { kind: 'restore' } as unknown as ActivityEntry['metadata']
       const out = formatActivityRow(entry({ action: 'restore', metadata }))
       expect(out).toContain('restored to row #?')

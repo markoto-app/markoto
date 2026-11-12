@@ -7,11 +7,11 @@ import type Token from 'markdown-it/lib/token.mjs'
  *
  * `@mdit/plugin-attrs` reads table attributes from a paragraph that
  * follows the table (`| … |` + blank line + `{.financials}`). Written on
- * the very next line — the natural way — GFM table parsing swallows the
+ * the very next line, the natural way, GFM table parsing swallows the
  * line as one more body row, and the attributes land on an empty cell.
  * This core rule (after block parsing, before inline parsing and before
- * the attrs plugin runs) turns such a trailing row — first cell exactly
- * `{…}`, every other cell empty — back into that paragraph, so both
+ * the attrs plugin runs) turns such a trailing row, first cell exactly
+ * `{…}`, every other cell empty, back into that paragraph, so both
  * spellings give `<table class="financials">`.
  */
 

@@ -2,20 +2,20 @@
 //
 // These functions are the single source of truth for "who can do what to
 // which doc". They take already-loaded state (doc row + actor context) and
-// return a decision. No DB queries, no side effects — so every cell of the
+// return a decision. No DB queries, no side effects, so every cell of the
 // (accessMode × role × ownership) matrix is directly unit-testable without
 // spinning up a server.
 //
 // Endpoints are thin wrappers: they fetch state, call the relevant decide*
 // function, and translate the outcome to HTTP. Calling code that needs the
 // raw booleans (e.g. the workspaces invariant check) keeps using the DB
-// helpers in server/utils/workspaces/workspaceAccess.ts — those exist for server-side
+// helpers in server/utils/workspaces/workspaceAccess.ts: those exist for server-side
 // convenience, not as policy authority.
 
 export type AccessMode = 'private' | 'open-edit' | 'open-view' | 'password-protected'
 export type WorkspaceRole = 'admin' | 'editor' | 'viewer'
 /**
- * A row in `workspace_members`: a role, or `guest` — someone who
+ * A row in `workspace_members`: a role, or `guest`, someone who
  * reaches only the documents shared with them. Never passed to the
  * access decisions as a role: `getMemberRole` returns null for a guest,
  * and the document query maps a share to `editor` / `viewer`.
@@ -79,7 +79,7 @@ export interface ViewDecision {
 export type DeleteOutcome = 'allow' | 'deny'
 export interface DeleteDecision {
   outcome: DeleteOutcome
-  // Human-readable reason. Not exposed to clients verbatim — endpoints
+  // Human-readable reason. Not exposed to clients verbatim, endpoints
   // translate to generic 401/403 messages to avoid leaking authz shape.
   reason?: string
 }
@@ -99,7 +99,7 @@ export function docStateOf(row: {
   shareExpiresAt?: Date | string | null
 }, now: Date = new Date()): DocState {
   // Share-link expiry: after it, a public mode (open-edit, open-view,
-  // password) acts as `private` — the owner and workspace members keep
+  // password) acts as `private`, the owner and workspace members keep
   // their access, everyone else is refused. Applied here, so every
   // decide* call on a row sees it.
   const expired = row.accessMode !== 'private' && isShareExpired(row.shareExpiresAt, now)
@@ -121,7 +121,7 @@ export function isShareExpired(expiresAt: Date | string | null | undefined, now:
 
 /**
  * Share-link controls: this caller may download (PDF, Markdown) and
- * print. Visitors — not the owner, not a workspace member — may not while
+ * print. Visitors, not the owner, not a workspace member, may not while
  * `shareNoDownload` is on. Guests count as visitors.
  */
 export function canDownload(doc: DocState, actor: ActorState, noDownload: boolean): boolean {
@@ -129,7 +129,7 @@ export function canDownload(doc: DocState, actor: ActorState, noDownload: boolea
   return !isVisitor(doc, actor)
 }
 
-/** Neither the (effective) owner nor a workspace member — someone the link was shared with. Guests count as visitors. */
+/** Neither the (effective) owner nor a workspace member, someone the link was shared with. Guests count as visitors. */
 export function isVisitor(doc: DocState, actor: ActorState): boolean {
   return !isDocOwner(doc, actor) && (actor.workspaceRole === null || actor.isGuest === true)
 }
@@ -181,7 +181,7 @@ function isAnonymousDoc(doc: DocState): boolean {
  * - `password-required`  → return { token: null, requiresPassword: true }
  *
  * Spec (server/AGENTS.md):
- *   - Doc owner: full access, always — except while the ownership is
+ *   - Doc owner: full access, always, except while the ownership is
  *     suspended by single sign-on (`doc.ownerAccessSuspended`).
  *   - Workspace admin/editor: bypass `private` and `password-protected`,
  *     get full edit on all modes.
@@ -204,7 +204,7 @@ export function decideTokenAccess(doc: DocState, actor: ActorState): TokenDecisi
     }
 
     case 'open-edit': {
-      // Workspace viewer role wins over the public edit grant — a viewer
+      // Workspace viewer role wins over the public edit grant, a viewer
       // of the enclosing workspace stays read-only even on an open-edit doc.
       // Owner-in-viewer-role edge case: owner beats role (hasFullMembership).
       if (isViewer && !owner) {
@@ -239,7 +239,7 @@ const ACCESS_MODE_OPENNESS: Record<AccessMode, number> = {
 
 /**
  * Whether switching from `before` to `after` takes something away from a
- * non-member — the cue to make connected editors re-authenticate. An
+ * non-member: the cue to make connected editors re-authenticate. An
  * unknown previous mode counts as tightened (fail toward re-checking).
  */
 export function accessModeTightened(before: string | null, after: AccessMode): boolean {
@@ -250,7 +250,7 @@ export function accessModeTightened(before: string | null, after: AccessMode): b
 /**
  * Decide whether to issue a presigned S3 URL for a file on this doc.
  *
- * View-level gate — no readOnly distinction because files are served via
+ * View-level gate: no readOnly distinction because files are served via
  * 302 and aren't written through here.
  *
  * Rules:
@@ -259,7 +259,7 @@ export function accessModeTightened(before: string | null, after: AccessMode): b
  *   - private                → owner, any workspace role, or valid JWT.
  *   - password-protected     → owner, any workspace role, or valid JWT.
  *
- * The JWT path covers anonymous users who verified a document password —
+ * The JWT path covers anonymous users who verified a document password,
  * they have no session cookie but do hold a scoped JWT from /password.
  */
 export function decideFileAccess(doc: DocState, actor: ActorState): ViewDecision {
@@ -277,11 +277,11 @@ export function decideFileAccess(doc: DocState, actor: ActorState): ViewDecision
 
 /**
  * Decide whether to return the activity log for a doc. Same shape as file
- * access — the activity log reveals edit times and userNames, so it's
+ * access: the activity log reveals edit times and userNames, so it's
  * at least as sensitive as the file contents.
  */
 export function decideActivityAccess(doc: DocState, actor: ActorState): ViewDecision {
-  // Intentionally delegates — same threat model as file access.
+  // Intentionally delegates: same threat model as file access.
   return decideFileAccess(doc, actor)
 }
 

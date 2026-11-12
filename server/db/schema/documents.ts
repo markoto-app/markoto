@@ -32,8 +32,8 @@ export const documents = pgTable('documents', {
   shareExpiresAt: timestamp('share_expires_at', { withTimezone: true }),
   shareNoDownload: boolean('share_no_download').notNull().default(false),
   // Set when a moderator restricts the document on an abuse report: it
-  // stays private and unpublished — no access mode but `private`, no
-  // password, no guest share, no web page, no move into a workspace —
+  // stays private and unpublished, no access mode but `private`, no
+  // password, no guest share, no web page, no move into a workspace,
   // until a platform admin lifts it. Copies made from it (duplicate,
   // workspace template) carry it, so a copy can't undo the decision.
   moderationRestrictedAt: timestamp('moderation_restricted_at', { withTimezone: true }),
@@ -102,7 +102,7 @@ export const documentShares = pgTable('document_shares', {
 
 // Opens of a shared document per day: pages opened by
 // people other than the owner and workspace members. Aggregate counts
-// only — no visitor, address or cookie is recorded.
+// only: no visitor, address or cookie is recorded.
 export const documentViewDays = pgTable('document_view_days', {
   docId: text('doc_id').notNull().references(() => documents.docId, { onDelete: 'cascade' }),
   day: date('day', { mode: 'string' }).notNull(),

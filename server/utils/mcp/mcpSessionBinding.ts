@@ -8,11 +8,11 @@ import { MINUTE_MS } from '~~/shared/config/units'
 // the memory of the process that answered `initialize`; its tool list is
 // fixed at that moment from the token's scopes. Without a binding, ANY
 // valid token presented together with somebody's session id would be
-// served by that session — a read-only token could reach write tools
+// served by that session, a read-only token could reach write tools
 // registered for a full-scope one. So:
 //
 //   - a session is only created after the token verified (middleware),
-//   - its id is bound here to that token — set-if-absent, so an id can
+//   - its id is bound here to that token, set-if-absent, so an id can
 //     never be re-pointed to another token,
 //   - every later request must present the SAME token (and the token is
 //     re-verified per request, so revocation still bites immediately),
@@ -35,7 +35,7 @@ import { MINUTE_MS } from '~~/shared/config/units'
 // longer than the toolkit's session lifetime expire on their own.
 //
 // Failure polarity: a Valkey error during `check` refuses the request
-// (the gate answers "Session not found" — fail closed; this is an
+// (the gate answers "Session not found", fail closed; this is an
 // authorization control, unlike the fail-open rate limits). A failed
 // `bind` leaves the new session unbound, so its next request is refused
 // and the client re-initializes.

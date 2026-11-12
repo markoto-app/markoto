@@ -2,7 +2,7 @@ import { publicPageHostKind, sealAgainstCookies } from '../utils/publish/publicH
 import { useEnv } from '~~/shared/env/load'
 
 // Requests for the pages host or a custom domain (user-written published
-// pages) never get a cookie and never read one — on every path, method
+// pages) never get a cookie and never read one, on every path, method
 // and status. Route middleware (00.custom-domain.ts) comes too late for
 // that: Nitro's static-asset handler answers `/_nuxt/*` (and its 404s)
 // before any middleware, and nuxt-auth-utils' own `request` hook has

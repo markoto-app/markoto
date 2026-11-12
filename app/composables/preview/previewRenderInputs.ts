@@ -38,7 +38,7 @@ export function createFileTokenGate(docId: () => string, getDocJwt: (() => Promi
 
 /**
  * Sanitized custom CSS, keyed by the (docId, file token, raw css) it was
- * made from — own-upload url()s carry the token, so a new token means a new
+ * made from: own-upload url()s carry the token, so a new token means a new
  * sanitize (every ~13 min). The sanitizer is loaded lazily; documents
  * without custom CSS skip all this.
  */

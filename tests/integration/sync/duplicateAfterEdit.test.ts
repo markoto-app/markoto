@@ -40,7 +40,7 @@ describe('POST /api/docs/:docId/duplicate right after an edit', () => {
     const source = await createDoc({ ownerId: owner.id, accessMode: 'private' })
     const line = `Q3 launch postmortem template ${Date.now()}`
 
-    // The owner edits through the sync server and stays connected —
+    // The owner edits through the sync server and stays connected,
     // like an open editor tab. The store debounce is still running.
     clients.push(await writeDocAs(source.docId, { userId: String(owner.id), userName: owner.name }, line))
 

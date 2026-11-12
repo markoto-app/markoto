@@ -41,7 +41,7 @@ export interface CustomCssIssue {
 
 /**
  * Output of the sanitizer. `css` is ALWAYS the re-serialised AST with
- * every offending rule / declaration removed — never the raw input — so
+ * every offending rule / declaration removed, never the raw input, so
  * it is safe to inline in a `<style>` element even when `issues` is
  * non-empty. Write paths reject on any issue; render paths use `css`
  * and drop the issues (logging once).

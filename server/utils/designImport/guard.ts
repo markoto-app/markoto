@@ -74,5 +74,5 @@ export function designImportStagingKey(userId: number, uploadId: string, ext: De
   return `design-imports/${userId}/staging/${uploadId}.${ext}`
 }
 
-/** Exactly the shape above — the orphan sweep deletes only these. */
+/** Exactly the shape above, the orphan sweep deletes only these. */
 export const DESIGN_IMPORT_OBJECT_RE = /^design-imports\/\d+\/staging\/[A-Za-z0-9_-]+\.(?:pdf|docx)$/

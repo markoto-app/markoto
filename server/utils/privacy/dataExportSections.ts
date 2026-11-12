@@ -47,7 +47,7 @@ export async function addWorkspaceInvitesEntry(entries: ExportEntries, user: Use
 
 /**
  * Paid-plans waitlist rows linked to the account (sign-ups made while
- * signed in). Token hashes are deliberately not exported — see
+ * signed in). Token hashes are deliberately not exported, see
  * `listWaitlistSignupsForUser`.
  */
 export async function addWaitlistEntry(entries: ExportEntries, user: UserScope): Promise<number> {
@@ -57,7 +57,7 @@ export async function addWaitlistEntry(entries: ExportEntries, user: UserScope):
 }
 
 /**
- * Bring-your-own-key AI provider configs. Exported WITHOUT the key —
+ * Bring-your-own-key AI provider configs. Exported WITHOUT the key,
  * neither the ciphertext nor the last four characters: an export ZIP
  * travels by email link and must not become a credential carrier.
  */
@@ -133,7 +133,7 @@ export async function addPublishingEntries(entries: ExportEntries, user: UserSco
 }
 
 /**
- * Stripe billing — best-effort. Failures land an error marker so the
+ * Stripe billing: best-effort. Failures land an error marker so the
  * user can re-request later; no Stripe customer at all emits empty
  * placeholders for layout stability. Invoices capped at 100 to
  * survive malicious / weird state without blowing the export.

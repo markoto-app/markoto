@@ -5,7 +5,7 @@
 #
 # 1. shellcheck install.sh (and this script).
 # 2. `docker compose config` for every supported COMPOSE_FILE combination,
-#    against a throwaway env file with placeholder values — catches YAML
+#    against a throwaway env file with placeholder values: catches YAML
 #    errors, missing `${VAR:?}` wiring and broken overlays without starting
 #    anything.
 # 3. The rendered config must not leak the hosted operator defaults into a

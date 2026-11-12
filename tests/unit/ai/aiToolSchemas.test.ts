@@ -86,7 +86,7 @@ describe('insert_text schema', () => {
 
   it('accepts insert_text = "" (empty insert still valid)', () => {
     // Handler auto-adds a newline, so inserting "" effectively inserts a
-    // blank line. Not useful but not forbidden — keep behaviour explicit.
+    // blank line. Not useful but not forbidden, keep behaviour explicit.
     expect(parse('insert_text', { insert_line: 0, insert_text: '' }).success).toBe(true)
   })
 
@@ -194,7 +194,7 @@ describe('update_theme schema', () => {
 
   it('rejects numeric-ish fields passed as numbers', () => {
     // If these ever get declared as number enums, the coercion in
-    // aiToolAdapter becomes dead code — this test pins the contract.
+    // aiToolAdapter becomes dead code, this test pins the contract.
     expect(parse('update_theme', { headings: { weight: 600 } }).success).toBe(false)
     expect(parse('update_theme', { layout: { columns: 2 } }).success).toBe(false)
   })
@@ -205,7 +205,7 @@ describe('update_theme schema', () => {
   })
 
   it('accepts theme_id as a base source', () => {
-    // theme_id is the saved-theme equivalent of `preset` — a string
+    // theme_id is the saved-theme equivalent of `preset`, a string
     // id resolved server-side. Mutual exclusivity with preset is
     // enforced in the handler, not the schema.
     expect(parse('update_theme', { theme_id: 'abc12345xy' }).success).toBe(true)
@@ -306,7 +306,7 @@ describe('update_theme schema (shared-enum drift guards)', () => {
     // These schemas are imported from `shared/types/theme.ts`. If anyone
     // edits the theme schemas they should cascade here automatically.
     // The tests ONLY verify the values listed in DocTheme's enums are
-    // accepted — if a new variant is added there, it should be reachable
+    // accepted: if a new variant is added there, it should be reachable
     // from the AI tool too. If the AI tool path diverges, update the
     // comment in functionTools.ts explaining why.
 
@@ -480,7 +480,7 @@ describe('generate_image schema', () => {
   })
 
   it('ignores extra placement-related fields (tool no longer inserts)', () => {
-    // Ensures old prompts referencing insert_line/caption still parse —
+    // Ensures old prompts referencing insert_line/caption still parse,
     // Zod's default is strip-unknown, so extras don't fail validation.
     expect(parse('generate_image', { ...valid, insert_line: 0, caption: 'x' }).success).toBe(true)
   })
@@ -536,7 +536,7 @@ describe('tool registry', () => {
   })
 })
 
-describe('ALL_TOOL_DECLARATIONS — model-facing shape', () => {
+describe('ALL_TOOL_DECLARATIONS: model-facing shape', () => {
   it('every declaration has name + description + parameters', () => {
     for (const d of ALL_TOOL_DECLARATIONS) {
       expect(typeof d.name).toBe('string')

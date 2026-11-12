@@ -10,11 +10,11 @@ import { asUser } from '../helpers/access'
 
 // DB-backed tests for the `mcp_sessions` audit-attribution table.
 // Without this writer + table, `activity_log` rows tagged
-// `mcp:{mcpSessionId}` are dead pointers — these tests pin the
+// `mcp:{mcpSessionId}` are dead pointers, these tests pin the
 // upsert idempotency, throttle behavior, and FK cascade rules that
 // make the join chain reliable.
 
-describe('touchMcpSession — first call inserts a row', () => {
+describe('touchMcpSession: first call inserts a row', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -102,7 +102,7 @@ describe('touchMcpSession — first call inserts a row', () => {
   })
 
   it('Valkey throttle suppresses a too-soon second touch', async () => {
-    // Don't clear the throttle key — the second touch should no-op.
+    // Don't clear the throttle key, the second touch should no-op.
     const user = await createUser()
     const sid = 'mcp-sid-throttled'
 
@@ -121,7 +121,7 @@ describe('touchMcpSession — first call inserts a row', () => {
   })
 })
 
-describe('mcp_sessions — FK cascade rules (the audit-trail contract)', () => {
+describe('mcp_sessions: FK cascade rules (the audit-trail contract)', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -142,7 +142,7 @@ describe('mcp_sessions — FK cascade rules (the audit-trail contract)', () => {
   })
 
   it('hard-deleting the PAT sets token_id to NULL but preserves the session row', async () => {
-    // Soft-revocation (revoked_at) doesn't trigger this — it's only
+    // Soft-revocation (revoked_at) doesn't trigger this, it's only
     // the hard DELETE that fires ON DELETE SET NULL. The user-deletion
     // cascade above is the only realistic way a PAT row gets deleted
     // today; this test pins the FK shape so a future direct-delete
@@ -168,7 +168,7 @@ describe('mcp_sessions — FK cascade rules (the audit-trail contract)', () => {
   })
 })
 
-describe('mcp_sessions — the audit join chain', () => {
+describe('mcp_sessions: the audit join chain', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -176,7 +176,7 @@ describe('mcp_sessions — the audit join chain', () => {
   it('two tool calls in one session collapse to ONE row (the whole point)', async () => {
     // Mirrors what the middleware does: same mcpSessionId across N
     // requests should produce ONE row, not N. The throttle is what
-    // enforces this in practice — within 60s the second call no-ops;
+    // enforces this in practice, within 60s the second call no-ops;
     // beyond 60s the upsert UPDATEs in place.
     const user = await createUser()
     const sid = 'mcp-sid-collapse'

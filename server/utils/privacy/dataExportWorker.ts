@@ -56,11 +56,11 @@ export interface RunDataExportWorkerResult {
 
 /**
  * Run one tick of the worker. Returns null fields when the queue
- * was empty. Per-job try/catch isolates failures — the worker
+ * was empty. Per-job try/catch isolates failures, the worker
  * always marks the row + appends the audit event before returning.
  *
  * Caller (the plugin) is responsible for the cross-instance
- * advisory lock — keeps two workers from racing on the same job.
+ * advisory lock: keeps two workers from racing on the same job.
  * Even with the SKIP LOCKED claim, taking the lock means one
  * worker per tick and no double-S3-PUT.
  */
@@ -133,7 +133,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
         // null and let the email template fall back to its default locale.
         locale: null,
         subject: 'Your markoto data export is ready',
-        body: `Your data export is ready to download. Sign in to /settings/profile and click "Download" — the link expires in ${DATA_EXPORT_RETENTION_DAYS} days.`,
+        body: `Your data export is ready to download. Sign in to /settings/profile and click "Download", the link expires in ${DATA_EXPORT_RETENTION_DAYS} days.`,
         metadata: { userId: job.userId, jobId: job.jobId, sizeBytes: bytes.byteLength }
       })
     }

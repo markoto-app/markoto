@@ -5,10 +5,10 @@
    Layer 1 of Nuxt UI v4's three-layer theming: raw values live here,
    semantic mapping (primary/neutral/etc.) lives in app.config.ts.
 
-   `static` is required for Nuxt UI v3/v4 — without it the variables
+   `static` is required for Nuxt UI v3/v4, without it the variables
    aren't exposed to the component config. Both ramps must define all
    11 stops (50–950); Nuxt UI references several. Custom ramps cannot
-   be named `primary` or `gray` — those names collide with semantic
+   be named `primary` or `gray`, those names collide with semantic
    slots. We use `shu` and `sumi`, which is also the brand vocabulary. */
 @theme static {
   /* Typography.
@@ -16,7 +16,7 @@
      - JetBrains Mono (mono): eyebrows, captions, meta labels, status
        chrome metadata, line/column counts, timestamps, the "begin →"
        CTA register. The mockup uses tight letter-spacing (0.04–0.06em)
-       and small sizes (10.5–11px) — the instrument voice.
+       and small sizes (10.5–11px), the instrument voice.
      - Fraunces (serif): the WORDMARK, display headlines, all editorial
        headings, AND the AI's italic voice. Variable opsz scales the
        drawing per size; weight 300 is the display register, 400 is
@@ -26,7 +26,7 @@
   --font-mono: 'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   --font-serif: 'Fraunces Variable', 'Fraunces', Georgia, serif;
 
-  /* Shu — primary (vermillion). The seal red. Reserved for AI presence
+  /* Shu: primary (vermillion). The seal red. Reserved for AI presence
      (cursor, tag, gutter mark, thinking-line seal) and a small set of
      attention-critical states. Never the background of a primary CTA;
      primary CTAs are sumi-950 (light) / sumi-50 (dark). */
@@ -42,8 +42,8 @@
   --color-shu-900: #3D1108;
   --color-shu-950: #260A04;
 
-  /* Sumi — neutral (warm gray). Replaces the default zinc/slate/neutral
-     ramps. Warmth is the whole point — separates Markoto from the cold
+  /* Sumi: neutral (warm gray). Replaces the default zinc/slate/neutral
+     ramps. Warmth is the whole point, separates Markoto from the cold
      blue-gray default of every developer tool. */
   --color-sumi-50:  #FAF8F4;
   --color-sumi-100: #F2EFE7;
@@ -64,17 +64,17 @@
    into the asset for cream-on-dark legibility. Anywhere the lockup
    lands on a non-950 surface, that rect would read as a visible
    square. Dropping all dark-mode neutrals to 950 lets the asset
-   composite seamlessly on every surface — the elevation cue is
+   composite seamlessly on every surface, the elevation cue is
    carried by hairline borders and card padding instead. Light mode
    is unaffected; the asset there is transparent. */
 .dark {
   /* In dark mode, the canonical lockup SVG bakes a sumi-950 rect for
-     cream-on-dark legibility — the chrome surfaces it lands on
+     cream-on-dark legibility: the chrome surfaces it lands on
      (`bg-muted` = toolbar, sidebar wrappers, status bar, iframe
      surround) need to resolve to sumi-950 so the rect composites
      flat. The cards / page surface (`bg-default`) stays at Nuxt
      UI's default sumi-900 so cards retain visible contrast against
-     the bg-muted wrapper — that contrast is what tells comments
+     the bg-muted wrapper: that contrast is what tells comments
      apart from their sidebar background. Earlier this file flattened
      `--ui-bg` to sumi-950 too, which collapsed the delta and made
      dark-mode comment cards invisible against the panel. */
@@ -84,8 +84,8 @@
 }
 
 /* CodeMirror markdown highlight tokens. Defined as CSS variables so the
-   single HighlightStyle in `EditorPane.vue` resolves correctly per mode
-   — light mode wants dark-end sumi shades on cream bg, dark mode wants
+   single HighlightStyle in `EditorPane.vue` resolves correctly per mode,
+   light mode wants dark-end sumi shades on cream bg, dark mode wants
    light-end sumi shades on sumi-900 bg. Without this, headings (sumi-950)
    would be invisible on dark-mode editor bg (sumi-900). */
 :root {
@@ -108,7 +108,7 @@
 
 /* Dark-mode overrides for the tokens above. `:root.dark` on purpose:
    `.dark` alone has the same specificity as `:root`, and the light block
-   comes later in this file — so in dark mode the light values won and
+   comes later in this file, so in dark mode the light values won and
    headings / strong / code rendered sumi-950 on the sumi-900 editor bg
    (contrast ~1:1). The extra pseudo-class makes the override win
    regardless of rule order. Editor bg-default is sumi-900 in dark; code
@@ -124,7 +124,7 @@
   --mk-md-code-fg: var(--color-sumi-200);
   --mk-md-code-bg: var(--color-sumi-800);
   --mk-md-quote: var(--color-sumi-400);
-  /* sumi-500 is only 3.7:1 on sumi-900 — list items are content, so
+  /* sumi-500 is only 3.7:1 on sumi-900, list items are content, so
      they take the quote stop (6.2:1). */
   --mk-md-list: var(--color-sumi-400);
   --mk-md-mark: var(--color-sumi-500);
@@ -156,7 +156,7 @@
 
 /* Soften Nuxt UI input/dropdown focus rings. The default focus state
    stamps a `ring-2 ring-primary` (= 2px shu) ring on inputs, comboboxes,
-   textareas, and selects — thick enough to read "alert" rather than
+   textareas, and selects: thick enough to read "alert" rather than
    "instrument focus". The brand calls for thin, elegant lines, so we
    keep the shu accent but drop the ring to a 1px hairline at slightly
    reduced opacity. Scoped narrowly to text-entry / dropdown roles so
@@ -176,7 +176,7 @@ select:focus-visible,
    sans + bold-stop ladder (font-weight 600/700) which broke the
    editorial register everywhere else uses. Override headings to
    Fraunces serif at the brand's restrained weights, links to a
-   sumi underline (no shu — links aren't AI), and inline code to
+   sumi underline (no shu, links aren't AI), and inline code to
    the same JetBrains Mono micro-meta voice that runs through the
    rest of the chrome. Scoped to .prose so the editor's CodeMirror
    stays untouched. */
@@ -288,7 +288,7 @@ body { min-height: 100svh; }
   html, html.dark { background: none; }
 }
 
-/* Tailwind v4 dropped the default `cursor: pointer` on buttons — restore
+/* Tailwind v4 dropped the default `cursor: pointer` on buttons, restore
    globally so we don't sprinkle `cursor-pointer` on every clickable. */
 @layer base {
   button:not(:disabled),
@@ -321,14 +321,14 @@ body { min-height: 100svh; }
 
 /* Blinking cursor at the tail of the dictation ghost-text widget.
    Keyframes live in global CSS because CM6's `EditorView.theme`
-   can't declare @keyframes — the scoped rules attach to the editor's
+   can't declare @keyframes: the scoped rules attach to the editor's
    scoped cascade but keyframes are document-level. */
 @keyframes cm-dictation-ghost-blink {
   to { opacity: 0; }
 }
 
 /* Pulse on a comment anchor when the user clicks the matching thread
-   in the sidebar. Switched from amber to shu — the comment-flash is an
+   in the sidebar. Switched from amber to shu, the comment-flash is an
    AI-discoverable surface (where @ai mentions land) and the brand keeps
    shu as the AI presence color. */
 @keyframes cm-comment-flash-pulse {
@@ -337,7 +337,7 @@ body { min-height: 100svh; }
   100% { background-color: rgba(181, 55, 31, 0.0); }
 }
 
-/* AI thinking-line entrance — fade + 8px upward translate, 240ms ease. */
+/* AI thinking-line entrance: fade + 8px upward translate, 240ms ease. */
 @keyframes mk-ai-thinking-enter {
   from { opacity: 0; transform: translateY(8px); }
   to   { opacity: 1; transform: translateY(0); }
@@ -347,7 +347,7 @@ body { min-height: 100svh; }
    the mobile bottom sheet must render ABOVE it. BottomSheet's `.mk-sheet-host`
    is z-50; the popover teleports to <body> with no z-index, so its option
    list renders BEHIND the sheet content and is untappable on mobile (real
-   bug — e.g. the theme layout / font selects). Scoped to poppers that contain
+   bug: e.g. the theme layout / font selects). Scoped to poppers that contain
    a listbox so it does NOT touch menus, tooltips, or modal content. The
    !important overrides Reka's inline z-index on the wrapper. */
 [data-reka-popper-content-wrapper]:has([role="listbox"]) {
@@ -374,7 +374,7 @@ body { min-height: 100svh; }
 /* Modals opened from INSIDE the mobile bottom sheet (save / edit / delete
    a theme, confirmations) must render above it. Nuxt UI's modal overlay
    and content carry no z-index and portal into the app root, while the
-   sheet (`.mk-sheet-host`, z-50) is teleported to the end of <body> — so
+   sheet (`.mk-sheet-host`, z-50) is teleported to the end of <body>, so
    the modal opened BEHIND the sheet. Only while a sheet is open; 60
    matches the listbox-popover rule above (equal z, later in the DOM wins,
    so a select inside such a modal still opens on top). */

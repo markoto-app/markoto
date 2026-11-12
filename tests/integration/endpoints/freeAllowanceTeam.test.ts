@@ -10,16 +10,16 @@ import type { ResolvedAiProvider } from '../../../server/utils/aiProviders/resol
 
 // The global monthly ceiling on platform-paid AI for free-tier users
 // (`server/utils/litellm/freeTierTeam.ts`), against the REAL `litellm-test`
-// proxy (LiteLLM v1.106.4). Runs the production helpers in-process — the
-// integration server itself uses `LITELLM_TEST_STUB=1` — so the /key/*,
+// proxy (LiteLLM v1.106.4). Runs the production helpers in-process, the
+// integration server itself uses `LITELLM_TEST_STUB=1`, so the /key/*,
 // /team/* and budget-gate wire contracts are what LiteLLM really does:
 //
 //   - a new free-tier key joins the `markoto-free-tier` team, whose
 //     budget (NUXT_FREE_TIER_TOTAL_BUDGET_USD) resets monthly with the keys;
 //   - existing keys are migrated in (and out again) idempotently;
 //   - an exhausted team rejects platform-paid calls with an error the app
-//     maps to 402 `ai/free-allowance-exhausted` — distinct from the
-//     per-key budget — while zero-cost BYOK calls on the same key go on.
+//     maps to 402 `ai/free-allowance-exhausted`, distinct from the
+//     per-key budget: while zero-cost BYOK calls on the same key go on.
 //
 // The pre-call budget gate runs before any upstream request, so this needs
 // no real provider key. One case makes a REAL GLM-5.3 Flash call and is
@@ -174,7 +174,7 @@ describe('free-tier pool: key membership', () => {
 })
 
 describe('free-tier pool: migrating existing keys', () => {
-  it('moves legacy keys into the pool with the current allowance — idempotently', async () => {
+  it('moves legacy keys into the pool with the current allowance, idempotently', async () => {
     const a = await createUser()
     const b = await createUser()
     const tokenA = await legacyKey(a.id)
@@ -231,10 +231,10 @@ describe('free-tier pool: migrating existing keys', () => {
 /**
  * Use the pool up for real: spend on a pool key, then lower the ceiling
  * below what the team has spent. LiteLLM refuses only once spend is
- * STRICTLY above `max_budget` (a 0 / 0 team still passes — verified), so
+ * STRICTLY above `max_budget` (a 0 / 0 team still passes, verified), so
  * the team needs real spend. The dictation billing tick
  * (`voxtral-realtime-tick`, $0.006, no upstream) provides it without a
- * provider key — and is itself a platform-paid call the pool must cover.
+ * provider key: and is itself a platform-paid call the pool must cover.
  */
 async function exhaustPool(token: string): Promise<void> {
   const before = Number((await teamInfo()).spend ?? 0)

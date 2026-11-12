@@ -2,7 +2,7 @@
 // Landing card for the two links in the waitlist email
 // (/waitlist/confirm and /waitlist/unsubscribe). The token travels in
 // the query string but is only sent to the API on an explicit button
-// click — never on page load — so mail-security scanners that prefetch
+// click, never on page load, so mail-security scanners that prefetch
 // links can neither confirm a sign-up nor unsubscribe someone.
 
 const props = defineProps<{

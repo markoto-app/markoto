@@ -66,7 +66,7 @@ export async function handleTopupCheckout(
 
 /**
  * `checkout.session.async_payment_succeeded`: a top-up paid with a
- * delayed method (e.g. SEPA Direct Debit) has been paid — grant it now.
+ * delayed method (e.g. SEPA Direct Debit) has been paid, grant it now.
  * `checkout.session.completed` saw `payment_status: 'unpaid'` and
  * granted nothing. Idempotent like every grant (unique payment intent).
  * Subscription Checkouts need nothing here: their state comes from the

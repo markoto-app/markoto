@@ -13,7 +13,7 @@ const log = useLogger('moderation')
 
 // Notices of the abuse pipeline: build the localised text, send it (if
 // there is anyone to send it to) and record exactly what was produced in
-// `moderation_notices` — including notices that could not be delivered.
+// `moderation_notices`: including notices that could not be delivered.
 //
 // Pure builders (`build*`) are exported for unit tests; `deliverNotice`
 // does the I/O.
@@ -90,7 +90,7 @@ export interface StatementInput {
 /**
  * Statement of reasons (DSA Art.17(3)): what was done and where (a),
  * the facts relied on incl. that it was notice-based (b), whether
- * automated means were used (c), the ground — rule / illegality (d, e),
+ * automated means were used (c), the ground, rule / illegality (d, e),
  * and the redress options (f).
  */
 export function buildStatementOfReasons(rawLocale: unknown, input: StatementInput): BuiltNotice {

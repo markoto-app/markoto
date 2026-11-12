@@ -5,7 +5,7 @@ import { splitMarkotoFrontmatter } from '../../../shared/utils/markdown/markdown
 
 // Tier 1: "Save the doc as a .md file."
 //
-// User-job: a writer wants the markdown source on their disk — to
+// User-job: a writer wants the markdown source on their disk, to
 // commit to a git repo, paste into another tool, archive, or share
 // the source verbatim with a collaborator who doesn't use markoto.
 // Job done when File → Save as Markdown triggers a `.md` download
@@ -14,14 +14,14 @@ import { splitMarkotoFrontmatter } from '../../../shared/utils/markdown/markdown
 // Lighter sibling of polished-pdf. The PDF goes through the
 // renderer sidecar; the markdown is a one-line client-side
 // `URL.createObjectURL(new Blob(...))` of the editor's source.
-// No server round-trip, no S3, no auth — works on anonymous docs
+// No server round-trip, no S3, no auth, works on anonymous docs
 // too.
 //
 // Runs on desktop AND mobile. Same client-side download path; entry
 // point differs:
 //   - Desktop: File → Export → "Markdown (.md)" submenu pick.
 //   - Mobile: hamburger ("more") → "Export" (the mobile menu flattens
-//     Export's submenu down to its markdown action — Print + Save as
+//     Export's submenu down to its markdown action, Print + Save as
 //     PDF live as separate items in the same hamburger).
 const NOTES = [
   '# Weekly sync',
@@ -63,8 +63,8 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
     openMenuTrigger,
     {
       result: editor.isMobile
-        ? 'The topbar menu opens — Export sits in the file actions.'
-        : 'The File menu opens — Export sits between Import and Print.',
+        ? 'The topbar menu opens, Export sits in the file actions.'
+        : 'The File menu opens, Export sits between Import and Print.',
       after: () => page.getByRole('menuitem', { name: /^export$/i }).first().waitFor({ state: 'visible' })
     }
   )
@@ -130,6 +130,6 @@ test('Save as Markdown', async ({ page, flow, editor }) => {
 
   flow.next({
     slug: 'polished-pdf',
-    why: 'Or download a styled PDF instead — same File menu, different format'
+    why: 'Or download a styled PDF instead, same File menu, different format'
   })
 })

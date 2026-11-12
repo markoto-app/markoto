@@ -13,7 +13,7 @@ import {
   type WorkspaceRole
 } from '../../../shared/utils/documents/docPermissions'
 
-// Helper builders. Keep these tiny — every test reads better when the setup
+// Helper builders. Keep these tiny, every test reads better when the setup
 // is a literal struct, so these only fill common defaults.
 function doc(overrides: Partial<DocState> = {}): DocState {
   return {
@@ -105,7 +105,7 @@ describe('decideTokenAccess', () => {
     })
 
     it('workspace viewer gets read-only even on open-edit', () => {
-      // Role wins over public grant — demoting to viewer means "can't edit
+      // Role wins over public grant, demoting to viewer means "can't edit
       // anything in this workspace, regardless of how the doc is shared".
       const d = doc({ ownerId: 42, workspaceId: 'ws1', accessMode: 'open-edit' })
       const a = actor({ userId: 99, workspaceRole: 'viewer' })
@@ -244,7 +244,7 @@ describe('decideFileAccess', () => {
     })
 
     it.each(['admin', 'editor', 'viewer'] as WorkspaceRole[])('workspace %s is allowed without JWT', (role) => {
-      // Spec: workspace members bypass password — that includes fetching
+      // Spec: workspace members bypass password, that includes fetching
       // images from the doc even on first visit before any password prompt.
       const d = doc({ ownerId: 42, workspaceId: 'ws1', accessMode: 'password-protected' })
       expect(decideFileAccess(d, actor({ userId: 99, workspaceRole: role }))).toEqual({ outcome: 'allow' })
@@ -259,7 +259,7 @@ describe('decideFileAccess', () => {
 
 describe('decideActivityAccess', () => {
   // Activity = edit log (timestamps + user names). Same sensitivity as
-  // file contents — so the rules should match decideFileAccess exactly.
+  // file contents: so the rules should match decideFileAccess exactly.
   // If these two ever drift, the activity log becomes a side-channel.
   it('shares every rule with decideFileAccess (random sample)', () => {
     const samples: { d: DocState, a: ActorState }[] = [

@@ -20,7 +20,7 @@ export type WaitlistLocale = (typeof WAITLIST_LOCALES)[number]
 
 /**
  * The waitlist only exists while billing is OFF and the deployment
- * advertises upcoming paid plans (`NUXT_PLANS_COMING_SOON`) — i.e. the
+ * advertises upcoming paid plans (`NUXT_PLANS_COMING_SOON`), i.e. the
  * hosted free-only SaaS. Self-hosted instances never collect sign-ups
  * for LatentSpace Labs' commercial plans, and once billing is live
  * there is nothing to wait for.
@@ -52,7 +52,7 @@ export function generateWaitlistToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
-/** SHA-256 hex of a token — the only form that reaches the database. */
+/** SHA-256 hex of a token, the only form that reaches the database. */
 export function hashWaitlistToken(token: string): string {
   return createHash('sha256').update(token).digest('hex')
 }
@@ -86,7 +86,7 @@ const WAITLIST_EMAIL_COPY: Record<WaitlistLocale, WaitlistEmailCopy> = {
     confirmLabel: 'Confirm your sign-up:',
     expiry: 'This link is valid for 7 days. If you don\'t confirm, we delete your address automatically.',
     unsubscribeLabel: 'Changed your mind? Remove your address at any time:',
-    ignore: 'If you didn\'t sign up, ignore this email — nothing else will be sent.'
+    ignore: 'If you didn\'t sign up, ignore this email, nothing else will be sent.'
   },
   de: {
     subject: 'Bestätigen Sie Ihren Platz auf der Warteliste für die markoto-Bezahlpläne',
@@ -94,7 +94,7 @@ const WAITLIST_EMAIL_COPY: Record<WaitlistLocale, WaitlistEmailCopy> = {
     confirmLabel: 'Anmeldung bestätigen:',
     expiry: 'Dieser Link ist 7 Tage gültig. Ohne Bestätigung löschen wir Ihre Adresse automatisch.',
     unsubscribeLabel: 'Meinung geändert? Hier entfernen Sie Ihre Adresse jederzeit:',
-    ignore: 'Falls Sie sich nicht angemeldet haben, ignorieren Sie diese E-Mail — Sie erhalten nichts weiter.'
+    ignore: 'Falls Sie sich nicht angemeldet haben, ignorieren Sie diese E-Mail, Sie erhalten nichts weiter.'
   },
   fr: {
     subject: 'Confirmez votre inscription à la liste d\'attente des offres payantes markoto',
@@ -102,7 +102,7 @@ const WAITLIST_EMAIL_COPY: Record<WaitlistLocale, WaitlistEmailCopy> = {
     confirmLabel: 'Confirmez votre inscription :',
     expiry: 'Ce lien est valable 7 jours. Sans confirmation, nous supprimons automatiquement votre adresse.',
     unsubscribeLabel: 'Vous avez changé d\'avis ? Retirez votre adresse à tout moment :',
-    ignore: 'Si vous ne vous êtes pas inscrit, ignorez cet e-mail — vous ne recevrez rien d\'autre.'
+    ignore: 'Si vous ne vous êtes pas inscrit, ignorez cet e-mail, vous ne recevrez rien d\'autre.'
   },
   es: {
     subject: 'Confirma tu lugar en la lista de espera de los planes de pago de markoto',
@@ -126,7 +126,7 @@ const WAITLIST_EMAIL_COPY: Record<WaitlistLocale, WaitlistEmailCopy> = {
     confirmLabel: '确认您的登记：',
     expiry: '此链接 7 天内有效。如未确认，我们会自动删除您的邮箱地址。',
     unsubscribeLabel: '改变主意了？您可以随时在此删除您的邮箱地址：',
-    ignore: '如果这不是您本人的操作，请忽略此邮件——您不会再收到任何邮件。'
+    ignore: '如果这不是您本人的操作，请忽略此邮件，您不会再收到任何邮件。'
   }
 }
 
@@ -137,7 +137,7 @@ export interface WaitlistEmailContent {
 
 /**
  * Build the confirmation email. `baseUrl` must be the deployment's own
- * origin from configuration (NEVER the request's Origin header — that
+ * origin from configuration (NEVER the request's Origin header, that
  * would let anyone make our email point at a phishing domain).
  */
 export function buildWaitlistConfirmEmail(args: {

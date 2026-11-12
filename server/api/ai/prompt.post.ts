@@ -1,7 +1,7 @@
 import { aiPromptBody } from '~~/shared/api/ai'
 import { startEditorPrompt } from '../../utils/agentic/sessions/editorPrompt'
 
-// POST /api/ai/prompt — start an AI session on a document from the prompt
+// POST /api/ai/prompt: start an AI session on a document from the prompt
 // bar (`utils/agentic/sessions/editorPrompt.ts`). The text loop always runs
 // through LiteLLM (the secret validator enforces its URL and master key at
 // boot); its per-user-key rpm_limit is the only rate limit. The session

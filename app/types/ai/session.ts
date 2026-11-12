@@ -8,7 +8,7 @@
  * What EVERY participant of the document can see about an AI session
  * (from Y.js awareness): who started it, its coarse phase, and the
  * comment thread for `@ai` sessions. The prompt, status text and
- * answers are private to the initiator — see `MyAiSessionInfo`.
+ * answers are private to the initiator, see `MyAiSessionInfo`.
  */
 export interface AiSessionInfo {
   sessionId: string
@@ -20,7 +20,7 @@ export interface AiSessionInfo {
   phase: string
   /**
    * Set when the session was triggered by an `@ai` mention in a
-   * comment thread — carries the thread id so the comments panel can
+   * comment thread: carries the thread id so the comments panel can
    * render a "AI is working on this thread" indicator on the matching
    * card. Undefined for normal prompt-bar / selection-popup sessions.
    */
@@ -53,7 +53,7 @@ export interface MyAiSessionInfo extends AiSessionInfo {
 export interface AiResponseEntry {
   /** Identifier of the session that produced this response. */
   sessionId: string
-  /** Body — short text or lightweight markdown, max 600 chars from the server. */
+  /** Body: short text or lightweight markdown, max 600 chars from the server. */
   message: string
   /** Sticky-on-screen when true; auto-collapses when false. */
   isQuestion: boolean
@@ -61,7 +61,7 @@ export interface AiResponseEntry {
   ts: number
 }
 
-/** How my most recent session ended — `error` is what the failure toast reports. */
+/** How my most recent session ended, `error` is what the failure toast reports. */
 export interface AiSessionOutcome {
   sessionId: string
   phase: 'done' | 'error'

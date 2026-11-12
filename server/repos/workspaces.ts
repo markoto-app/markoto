@@ -28,7 +28,7 @@ export interface WorkspaceRow {
 export interface CreateWorkspaceInput {
   workspaceId: string
   name: string
-  // `null` for "no description provided" — the column is nullable. The
+  // `null` for "no description provided", the column is nullable. The
   // POST handler validates + normalises empty strings to null before
   // calling here.
   description: string | null
@@ -66,7 +66,7 @@ export async function getWorkspace(ws: WorkspaceAccess<'member'>): Promise<Works
 
 /**
  * Create a workspace AND enroll the creator as the first admin. Both
- * writes run in a single transaction — if the admin insert fails, the
+ * writes run in a single transaction, if the admin insert fails, the
  * workspace row is rolled back, avoiding the "exists but has no admin"
  * state that would otherwise violate the ≥1-admin invariant at t=0.
  */
@@ -110,7 +110,7 @@ export async function updateWorkspace(
 }
 
 /**
- * Count workspaces owned (created) by a user. Only counts `ownerId` —
+ * Count workspaces owned (created) by a user. Only counts `ownerId`,
  * a user invited to others' workspaces isn't included. Used to enforce
  * the per-user creation cap so one account can't spawn thousands of
  * empty workspaces to fan out uploads across them.
@@ -127,7 +127,7 @@ export async function countOwnedWorkspacesByUser(self: UserScope): Promise<numbe
 /**
  * Delete just the workspaces row. `workspace_members` rows cascade via
  * the FK; documents have ON DELETE SET NULL on `workspace_id`, so docs
- * survive but detach — callers that want to cascade-delete docs must
+ * survive but detach: callers that want to cascade-delete docs must
  * do that first (see /api/workspaces/:id delete endpoint).
  */
 export async function deleteWorkspaceRow(ws: WorkspaceAccess<'admin'>): Promise<void> {

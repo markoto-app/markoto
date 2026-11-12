@@ -21,7 +21,7 @@ const strict = rules => Object.fromEntries(
 )
 
 // Lint modes (LINT_TYPES), selected by the package scripts:
-//   all  (default) every rule — what `bun run lint` and CI run.
+//   all  (default) every rule, what `bun run lint` and CI run.
 //   off  everything except the type-aware rules: no TypeScript project is
 //        loaded, so it takes seconds instead of minutes (`lint:fast`).
 //   only just the type-aware rules (`lint:types`).
@@ -62,7 +62,7 @@ const MILESTONE_RE = /\b(WP ?\d+[a-z]?|Phase \d+|Batch \d+|[Ss]ecurity batch|Wor
 const MESSAGE = 'Internal milestone vocabulary ({{ match }}); describe the behaviour or reason instead.'
 
 // Configuration is read through the typed env registry (shared/env,
-// docs/contributing/configuration.md), never `process.env` directly — a
+// docs/contributing/configuration.md), never `process.env` directly, a
 // raw read bypasses boot validation, the documented default and the
 // generated reference. `process.env.NODE_ENV` stays allowed: bundlers
 // replace it at build time. The files in RAW_ENV_ALLOWED are the env
@@ -78,7 +78,7 @@ const RAW_ENV_ALLOWED = [
   // Boot validation hands the whole process environment to loadEnv.
   'server/plugins/01-validate-secrets.ts'
 ]
-const RAW_ENV_MESSAGE = 'Read configuration through the typed env (useEnv() / syncEnv() / renderer env), not process.env — see docs/contributing/configuration.md.'
+const RAW_ENV_MESSAGE = 'Read configuration through the typed env (useEnv() / syncEnv() / renderer env), not process.env, see docs/contributing/configuration.md.'
 
 /** @type {import('eslint').ESLint.Plugin} */
 const markoto = {
@@ -180,7 +180,7 @@ const handlerSelectors = [
 // Client calls: route-keyed apiFetch types the response itself, and the
 // error handler translates registered codes.
 const apiClientSelectors = [
-  { selector: 'CallExpression[callee.name="$fetch"][typeArguments]', message: 'Use apiFetch(\'/api/route/:param\', { path }) — the response type comes from the route.' },
+  { selector: 'CallExpression[callee.name="$fetch"][typeArguments]', message: 'Use apiFetch(\'/api/route/:param\', { path }), the response type comes from the route.' },
   { selector: 'MemberExpression[property.name="message"][object.property.name="data"]', message: 'Show API errors through useErrorHandler (translated by code), not the raw data.message.' }
 ]
 

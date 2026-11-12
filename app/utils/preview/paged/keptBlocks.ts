@@ -9,9 +9,9 @@ import type { LineGeometry } from './lineGeometry'
  * KEPT-WHOLE BLOCKS vs PAGE-BOTTOM GAPS. Short code blocks (≤ 15 lines)
  * and short tables (≤ 12 rows) are `break-inside: avoid`, so Chromium
  * moves them whole to the next page. When that would leave a large empty
- * band at the bottom of this page — at least GAP_LINES body lines and
+ * band at the bottom of this page, at least GAP_LINES body lines and
  * GAP_SHARE of the text height, counting the heading or lead-in that
- * would go along with the block — the block may split after all: at least
+ * would go along with the block, the block may split after all: at least
  * a third of it, and at least `minSplitLines` code lines / `minRows` table
  * rows, on each side. A table continued on the next page repeats its
  * header; a code block continues in a frame of its own. Otherwise it

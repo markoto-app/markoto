@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/nuxt'
 import { sentryScrubOptions } from './shared/utils/security/sentryScrub'
 
-// Server-side Sentry init — picked up automatically by @sentry/nuxt.
+// Server-side Sentry init: picked up automatically by @sentry/nuxt.
 //
 // Dev stays silent when DSN is empty, so local work doesn't need a
 // telemetry sink running.

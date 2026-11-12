@@ -3,7 +3,7 @@ import { AUDIT_SSO_SCIM_USER_DEACTIVATED } from '../../../../legal/auditActions'
 import { requireScimUser, replaceScimUser, requireScimIdentity, scimUserResource } from '../../../../utils/sso/scim'
 import { scimResourceBody, scimUserParams } from '~~/shared/api/sso'
 
-// PUT /scim/v2/Users/:id — replace: `active` and `externalId` apply.
+// PUT /scim/v2/Users/:id: replace: `active` and `externalId` apply.
 export default defineApiHandler({
   access: allow.scim(),
   params: scimUserParams,

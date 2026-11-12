@@ -1,12 +1,12 @@
 // Reconciles every existing per-user LiteLLM virtual key with what the
 // user's EFFECTIVE plan says it should be:
 //
-//   - `team_id`        — the free-tier pool (`freeTierTeam.ts`) for free
+//   - `team_id`: the free-tier pool (`freeTierTeam.ts`) for free
 //                        users while a ceiling is configured, else none;
-//   - `max_budget`     — the plan's `litellmBudgetUsd` (`TIER_*` overrides
+//   - `max_budget`: the plan's `litellmBudgetUsd` (`TIER_*` overrides
 //                        applied), so lowering `TIER_FREE_LITELLM_BUDGET_USD`
 //                        reaches keys created under the old value;
-//   - `budget_duration`— the monthly `30d` reset.
+//   - `budget_duration`, the monthly `30d` reset.
 //
 // Keys are created with these values (`createUserKey`) and re-set on plan
 // changes (`updateUserKeyBudget`); this job covers keys that predate a
@@ -33,13 +33,13 @@ import { useLogger } from '../platform/logger'
 const log = useLogger('litellm-key-reconcile')
 
 const PAGE_SIZE = 100
-/** Hard stop for the listing loop (100k keys) — guards against a proxy that never reports its last page. */
+/** Hard stop for the listing loop (100k keys), guards against a proxy that never reports its last page. */
 const MAX_PAGES = 1000
 
 export interface KeyReconcileSummary {
   checked: number
   updated: number
-  /** Users whose stored key id the proxy doesn't know (e.g. a wiped LiteLLM DB) — counted and logged, not recreated here. */
+  /** Users whose stored key id the proxy doesn't know (e.g. a wiped LiteLLM DB), counted and logged, not recreated here. */
   missing: number
   failed: number
 }

@@ -145,7 +145,7 @@ export default defineApiHandler({
     })
 
     // Art.16(4): confirmation of receipt (recorded even when there is no
-    // address to send it to — CSAM reports may be anonymous).
+    // address to send it to, CSAM reports may be anonymous).
     await deliverNotice({
       reportId,
       kind: 'receipt',

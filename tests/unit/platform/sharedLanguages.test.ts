@@ -6,7 +6,7 @@ import {
   isValidLanguage
 } from '../../../shared/languages'
 
-describe('shared/languages — LANGUAGE_PRESETS', () => {
+describe('shared/languages: LANGUAGE_PRESETS', () => {
   it('contains the 6 curated locales we ship i18n for', () => {
     expect(LANGUAGE_PRESETS).toEqual(['en', 'de', 'fr', 'es', 'ja', 'zh'])
   })
@@ -32,7 +32,7 @@ describe('resolveLanguageDisplayName', () => {
 
   it('does not throw on malformed BCP-47 inputs (spaces, punctuation)', () => {
     // Intl.DisplayNames throws RangeError on tags like "english language"
-    // — the catch must keep the function pure.
+    // the catch must keep the function pure.
     expect(() => resolveLanguageDisplayName('english language')).not.toThrow()
     expect(resolveLanguageDisplayName('english language')).toBe('english language')
   })

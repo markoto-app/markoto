@@ -29,8 +29,8 @@ import { MIN_WORKSPACE_SEATS } from '~~/shared/config/workspaceSeats'
 //
 // Two layouts, three instance shapes (shared/config/billingMode.ts):
 //   - Options (billing ON, or billing OFF + NUXT_PLANS_COMING_SOON on the
-//     hosted site): four columns — Self-hosted / No account / Free
-//     account / Paid (tabs Pro · Team · Business) — then a comparison table
+//     hosted site): four columns, Self-hosted / No account / Free
+//     account / Paid (tabs Pro · Team · Business), then a comparison table
 //     and an FAQ.
 //       · billing on: real prices + Stripe Checkout / Customer Portal CTAs.
 //       · coming soon: PLANNED prices, labelled as planned, no purchase
@@ -191,7 +191,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
   // Upgrade path. The server decides the mechanics: a first-time
   // subscriber gets a Checkout URL to redirect to; a user with a live
   // subscription gets an IN-PLACE price swap on that subscription
-  // (prorated, charged immediately) and `{ updated: true }` back —
+  // (prorated, charged immediately) and `{ updated: true }` back,
   // never a second concurrent subscription.
   checkoutLoading.value = plan
   try {
@@ -207,7 +207,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
         color: 'success'
       })
       checkoutLoading.value = null
-      // The plan, its limits and the AI budgets changed — for this page's
+      // The plan, its limits and the AI budgets changed, for this page's
       // highlight and for the topbar badge alike. The webhook that flips
       // the plan can lag the API response by a beat: re-read once now and
       // once shortly after so everything settles on the new state.
@@ -217,7 +217,7 @@ async function onChangePlan(plan: PlanName): Promise<void> {
       }, 2500)
       return
     }
-    // Full-page redirect — Stripe's hosted Checkout is a separate
+    // Full-page redirect: Stripe's hosted Checkout is a separate
     // origin, can't be iframed.
     if (resp.url) globalThis.location.href = resp.url
   } catch (e) {
@@ -259,7 +259,7 @@ const faqItems = computed<FaqItem[]>(() => {
   }
   items.push({ q: t('pricing.faq.byokQ'), a: t('pricing.faq.byokA') })
   items.push({ q: t('pricing.faq.pointsQ'), a: t('pricing.creditsHint') })
-  // The EU data path is a statement about markoto.app's own providers —
+  // The EU data path is a statement about markoto.app's own providers,
   // only true on the hosted site.
   if (marketingSite.value) {
     items.push({ q: t('pricing.faq.euQ'), a: t('pricing.faq.euA') })
@@ -287,7 +287,7 @@ const { imageUrl } = useMarketingSeo({
 // home page's). Offers are what someone can take up TODAY: the free
 // account always; Pro / Team / Business only while billing is on. Planned
 // prices are on the page, labelled as planned, but an Offer states a
-// price someone can pay — publishing one for a plan nobody can buy
+// price someone can pay, publishing one for a plan nobody can buy
 // would put a wrong claim into search results.
 // One graph with the page's WebPage + BreadcrumbList (usePageStructuredData
 // is marketing-site only too).

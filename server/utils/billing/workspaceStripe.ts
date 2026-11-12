@@ -70,7 +70,7 @@ export async function ensureWorkspaceCustomer(stripe: Stripe, ws: WorkspaceAcces
  *
  * - More seats: invoiced and paid NOW (`always_invoice` +
  *   `error_if_incomplete`, like a plan upgrade). A failed payment throws
- *   and changes nothing — seats bought on credit would unlock the
+ *   and changes nothing: seats bought on credit would unlock the
  *   pooled AI budget before anything was paid.
  * - Fewer seats: no credit for the running period
  *   (`proration_behavior: 'none'`); the next invoice bills the new count.
@@ -121,7 +121,7 @@ const SEAT_LOCK_TTL_MS = 60_000
  * on the count (invites, seat changes): two admins inviting at once would
  * otherwise both see the same free seat, or both buy "seat N + 1" and end
  * one seat over what was paid. Returns the release function; a held lock
- * (or Valkey unreachable — the lock fails closed) is a 409 to retry.
+ * (or Valkey unreachable: the lock fails closed) is a 409 to retry.
  */
 export async function acquireWorkspaceSeatLock(workspaceId: string): Promise<() => Promise<void>> {
   if (!(await tryAcquireSessionLock('workspace-seats', workspaceId, SEAT_LOCK_TTL_MS))) {
@@ -148,7 +148,7 @@ export function seatChangeError(e: unknown, workspaceId: string): Error {
 /**
  * A second subscription for a workspace that already has a live one (two
  * admins, or two tabs, each completed a Checkout). Cancel it at once and
- * refund what its first invoice took — the workspace keeps the first
+ * refund what its first invoice took, the workspace keeps the first
  * subscription. Safe to repeat (a webhook retry): a cancelled
  * subscription is not cancelled again, and each refund carries an
  * idempotency key per payment. A refund that fails is reported (error
@@ -226,7 +226,7 @@ export async function expireOpenWorkspaceCheckouts(stripe: Stripe, customerId: s
  * deleted). Annual plans get a prorated credit on the customer
  * (`prorate: true`; refunds to the card stay a manual Stripe action).
  * An already-gone subscription counts as cancelled; any other Stripe
- * failure throws, so the deletion stops before anything is deleted —
+ * failure throws, so the deletion stops before anything is deleted,
  * otherwise the subscription would keep billing a workspace that no
  * longer exists, with no row left to find it by.
  */
@@ -272,7 +272,7 @@ export async function cancelWorkspaceSubscriptionAtPeriodEnd(stripe: Stripe | nu
   }
 }
 
-/** Request origin for Stripe return URLs (Origin, else Host — both survive Traefik). */
+/** Request origin for Stripe return URLs (Origin, else Host, both survive Traefik). */
 export function requestBaseUrl(event: Parameters<typeof getRequestHeader>[0]): string {
   const origin = getRequestHeader(event, 'origin') ?? getRequestHeader(event, 'host') ?? ''
   return origin.startsWith('http') ? origin : `https://${origin}`

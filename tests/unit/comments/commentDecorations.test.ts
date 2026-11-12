@@ -11,7 +11,7 @@ import {
 // Decoration state-field driven by `setCommentRanges` and
 // `setFlashRange` effects.
 //
-// We don't mount a real EditorView for these — the StateField is the
+// We don't mount a real EditorView for these, the StateField is the
 // unit under test, and CM6's `state.update({ effects: ... })` runs the
 // field's `update` callback synchronously without needing a DOM. This
 // keeps the suite in the unit project (no happy-dom / no Vue).
@@ -25,7 +25,7 @@ import {
 //   - Doc edits between dispatches shift existing decorations so
 //     the underline tracks the text without manual repositioning.
 //   - Malformed ranges (from >= to, negative from) are silently
-//     skipped — never throw, never paint.
+//     skipped: never throw, never paint.
 //   - setFlashRange sets a flash decoration; null clears it.
 
 function makeState(doc = 'hello world') {
@@ -130,7 +130,7 @@ describe('comment decorations field', () => {
   })
 
   it('shifts existing decorations across a doc insertion', () => {
-    // Insert "PREFIX " at position 0 — every existing mark must shift
+    // Insert "PREFIX " at position 0, every existing mark must shift
     // right by 7 chars without us re-dispatching ranges. This is what
     // makes the underline track the text between Y.js anchor refreshes.
     let state = makeState('the dog ate the bone')
@@ -145,7 +145,7 @@ describe('comment decorations field', () => {
   it('shrinks a decoration when the doc range it covers is partially deleted', () => {
     let state = makeState('the dog ate the bone')
     state = dispatch(state, setCommentRanges.of([{ id: 'c1', from: 4, to: 7 }])) // "dog"
-    // Delete "g" — anchor's "to" should drop from 7 to 6.
+    // Delete "g": anchor's "to" should drop from 7 to 6.
     state = dispatchChanges(state, [{ from: 6, to: 7, insert: '' }])
     const out = readDecorations(state).filter(d => d.classes.includes('cm-comment-anchor'))
     expect(out[0]).toMatchObject({ from: 4, to: 6 })
@@ -181,7 +181,7 @@ describe('comment decorations field', () => {
 
   it('comment marks and flash marks coexist on the same state', () => {
     // The flash sits on top of the anchor underline when the user
-    // clicks a thread — the eye picks up both. They must coexist
+    // clicks a thread: the eye picks up both. They must coexist
     // without one stomping the other.
     let state = makeState('the dog ate the bone')
     state = dispatch(state,

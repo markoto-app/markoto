@@ -3,7 +3,7 @@ import { defineSweeper } from '../utils/platform/defineSweeper'
 import { isBillingEnabled } from '../utils/billing/billingMode'
 import { SWEEPS } from '../config/sweeps'
 
-// AI credit top-ups: hourly — expire grants older than 12 months,
+// AI credit top-ups: hourly, expire grants older than 12 months,
 // take each month's AI spend above the plan budget from the credits, and
 // push every affected budget to LiteLLM. Billing on only.
 

@@ -27,7 +27,7 @@ const log = useLogger('image-gc')
 //   1. It was confirmed more than CONFIRM_GRACE_MS ago (an image that was
 //      just uploaded may not have been inserted into the text yet).
 //   2. Its fileId appears in NONE of these, checked at every GC run:
-//      a. any state of its own document that can still be reconstructed —
+//      a. any state of its own document that can still be reconstructed,
 //         the stored Y.js update log is replayed row by row and the text,
 //         the meta map (title / theme incl. theme images and custom CSS)
 //         and the comments array are searched after EVERY row. Activity-log
@@ -35,7 +35,7 @@ const log = useLogger('image-gc')
 //         restorable version is covered; versions pruned by the sync
 //         server's history retention are not restorable any more;
 //      b. any other place a reference to `/api/files/{docId}/{fileId}` can
-//         live: the raw bytes of every stored Y.js row (any doc — a URL
+//         live: the raw bytes of every stored Y.js row (any doc, a URL
 //         pasted into another doc; a URL typed across two stores can be
 //         split between update rows, a snapshot holds it whole), every
 //         document theme, workspace default theme, saved theme preset,
@@ -67,7 +67,7 @@ export function resolveImageGcRetentionDays(source?: RawEnv): number {
 
 /**
  * Replay `updates` (in stored order) and return the fileIds that occur in
- * the document after ANY prefix of them — i.e. in any version that can be
+ * the document after ANY prefix of them, i.e. in any version that can be
  * reconstructed from the stored rows. Pure; exported for unit tests.
  */
 export function findFileIdsInHistory(updates: Uint8Array[], fileIds: string[]): Set<string> {

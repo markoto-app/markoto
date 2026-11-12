@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Prepared for** | Client name — contact person, role |
-| **Prepared by** | Your company — your name, role |
+| **Prepared for** | Client name, contact person, role |
+| **Prepared by** | Your company, your name, role |
 | **Reference** | Reference number |
 | **Date** | YYYY-MM-DD |
 | **Valid until** | YYYY-MM-DD |
@@ -30,11 +30,11 @@
 
 <!-- One paragraph on how you work: in which cycles, how the client is involved, how results are tested, what is handed over. Then one H2 per phase, its weeks in the heading, three to five concrete deliverables as bullets. A `> [!TIP]` callout suits an option the client may like, such as starting with phase 1 on its own. -->
 
-## Phase 1 — Phase name (weeks 1–4)
+## Phase 1: Phase name (weeks 1–4)
 
 - Deliverable.
 
-## Phase 2 — Phase name (weeks 5–10)
+## Phase 2: Phase name (weeks 5–10)
 
 - Deliverable.
 

@@ -13,7 +13,7 @@ import { SWEEPS } from '../config/sweeps'
 //
 // Stripe-dependent: with billing off there are no paid plans to lapse and no
 // Stripe webhook rows to prune, so nothing is scheduled. The flag is read
-// once at boot — flipping it needs a restart anyway.
+// once at boot: flipping it needs a restart anyway.
 
 export default defineSweeper({
   name: 'webhook-event-sweep',

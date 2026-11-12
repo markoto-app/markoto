@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // Report form (DSA Art.16 notice). Open to everyone: signed-in users
 // directly, anonymous visitors behind the invisible ALTCHA bot check
-// (shared/config/anonGate.ts) — without the gate on this instance the
+// (shared/config/anonGate.ts): without the gate on this instance the
 // form asks for a sign-in instead. Fields follow Art.16(2): the address of
 // the content, why it is illegal or against the rules, name + email
 // (optional for child-sexual-abuse reports, Art.16(2)(c)), and the

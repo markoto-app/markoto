@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 //   - createDictateRealtimeClient returns the mock client when
 //     TEST_MODE=1 + NUXT_VOXTRAL_REALTIME_MOCK=1
 //   - The mock satisfies the same SpeechClientLike interface as
-//     createDictateSpeechClient — so dictate.ts treats both
+//     createDictateSpeechClient: so dictate.ts treats both
 //     identically
 //   - The voice-tick orchestrator's interval cadence + round-up
 //     behaviour is preserved on close (asserted indirectly via the
@@ -20,11 +20,11 @@ beforeEach(() => {
   vi.resetModules()
 })
 
-describe('createDictateRealtimeClient — provider selection', () => {
+describe('createDictateRealtimeClient: provider selection', () => {
   it('returns a mock client when NUXT_VOXTRAL_REALTIME_MOCK=1', async () => {
     const { createDictateRealtimeClient } = await import('../../../server/utils/agentic/dictateSpeechClient')
     const c = createDictateRealtimeClient('any-key')
-    // Mock and real both expose `streamingRecognize` — duck-type check.
+    // Mock and real both expose `streamingRecognize`, duck-type check.
     expect(typeof c.streamingRecognize).toBe('function')
   })
 
@@ -45,7 +45,7 @@ describe('createDictateRealtimeClient — provider selection', () => {
 
     // Pump 3 chunks → mock fires partial, partial, final.
     for (let i = 0; i < 3; i++) stream.write(Buffer.from([0, 0, 0, 0]))
-    // Mock uses setImmediate — flush the microtask queue.
+    // Mock uses setImmediate: flush the microtask queue.
     await new Promise(r => setImmediate(r))
     await new Promise(r => setImmediate(r))
 
@@ -76,17 +76,17 @@ describe('createDictateRealtimeClient — provider selection', () => {
   })
 })
 
-describe('voice-tick orchestrator — wire shape', () => {
+describe('voice-tick orchestrator: wire shape', () => {
   // The orchestrator code lives inside dictate.ts (a Nitro WS route
   // handler), so we can't import it cleanly. What we CAN pin is the
-  // wire shape sent to LiteLLM when a tick fires — that's stable
+  // wire shape sent to LiteLLM when a tick fires, that's stable
   // across the orchestrator + custom-handler boundary.
   it('tick request matches the voxtral-realtime-tick model contract', () => {
     // Mirrors the call inside fireVoiceTick / fireRoundUpTick. The
     // test exists so a refactor that splits the orchestrator across
     // files / renames the model still trips this if the wire shape
     // drifts. The string-equality on `model` reads redundant but is
-    // the load-bearing pin — it's the only place the contract is
+    // the load-bearing pin: it's the only place the contract is
     // captured outside the orchestrator itself.
     const messages = [{ role: 'user', content: 'tick' } as const]
     expect(messages).toHaveLength(1)

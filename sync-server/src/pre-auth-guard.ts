@@ -19,7 +19,7 @@
 //   - the socket's queued bytes exceed SYNC_MAX_PREAUTH_BYTES, or all
 //     sockets' together exceed SYNC_MAX_PREAUTH_TOTAL_BYTES
 //                                     → close 4413 `update-too-large`
-//     (the editor shows "changes were not saved" and stops reconnecting —
+//     (the editor shows "changes were not saved" and stops reconnecting,
 //     resending the same backlog would be refused again).
 // Closing the socket drops Hocuspocus's queue with it. The socket is
 // terminated shortly after the close frame, so a peer that never answers
@@ -28,7 +28,7 @@
 // Accounting. Each queued frame costs its length plus a fixed overhead
 // for the per-message bookkeeping, so a flood of tiny frames is bounded
 // too. A document's bytes are released when its connection is established
-// (`documentEstablished`, Hocuspocus `connected` hook — the queue has been
+// (`documentEstablished`, Hocuspocus `connected` hook, the queue has been
 // replayed by then) and come back into play if that document connection
 // closes while the socket stays open (`documentClosed`, `onDisconnect`):
 // Hocuspocus starts a fresh queue for it. Hocuspocus re-emits the queued
@@ -36,7 +36,7 @@
 // from being counted twice.
 //
 // Legitimate clients stay far below the caps: the provider sends Auth,
-// sync step 1 and one awareness update — a few hundred bytes — plus, after
+// sync step 1 and one awareness update, a few hundred bytes, plus, after
 // being offline, the edits it buffered meanwhile (bounded by the document
 // size limit), and the Auth frame follows within milliseconds.
 
@@ -130,7 +130,7 @@ export function createPreAuthGuard(limits: PreAuthLimits, options: PreAuthGuardO
         state.socket.close(SYNC_CLOSE_CODES.payloadTooLarge, SYNC_CLOSE_REASONS.updateTooLarge)
       }
     } catch {
-      // Already closing — terminate below still applies.
+      // Already closing: terminate below still applies.
     }
     const kill = setTimeout(() => {
       try {

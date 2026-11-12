@@ -9,7 +9,7 @@
  * the accepted shape is narrow enough that neither context needs to
  * trust its escaping.
  *
- * Zod-free on purpose — the server render page imports this eagerly
+ * Zod-free on purpose: the server render page imports this eagerly
  * during SSR, where the zod import wedges (see
  * `app/pages/_internal/render/[docId].vue`). The schema in
  * `shared/types/theme.ts` reuses `THEME_IMAGE_URL_RE`.
@@ -21,7 +21,7 @@ const ID_PART = ID_PATTERN
 const UPLOAD_PATH = String.raw`/api/files/(${ID_PART})/(${ID_PART}\.(?:png|jpe?g|gif|webp))`
 const BUNDLED_ASSET = String.raw`/markoto-logos/[a-z0-9-]{1,64}\.(?:svg|png)`
 // A workspace brand-kit image: `/api/brand/<assetId>.<ext>`. Not
-// tied to a document — it stays valid in the workspace design and in
+// tied to a document, it stays valid in the workspace design and in
 // every document made from it; whether the asset belongs to the
 // document's workspace is checked where it is served
 // (`/api/docs/:docId/brand/:file`), which is also what the renderers
@@ -62,7 +62,7 @@ export function isThemeImageUrlForDoc(url: unknown, docId: string): boolean {
  * The file id when `url` is EXACTLY an image upload URL of `docId`
  * (`/api/files/<docId>/<fileId>`, no query, fragment, origin or other
  * path around it); null otherwise. The server render page only gives its
- * file-access token to such URLs — see `app/utils/preview/renderFileTokens.ts`.
+ * file-access token to such URLs, see `app/utils/preview/renderFileTokens.ts`.
  */
 export function ownUploadFileId(url: unknown, docId: string): string | null {
   if (typeof url !== 'string') return null

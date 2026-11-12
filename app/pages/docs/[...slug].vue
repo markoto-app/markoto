@@ -28,7 +28,7 @@ if (!page.value) {
   throw createError({ statusCode: 404, statusMessage: 'Doc not found' })
 }
 
-// Surrounding pages for the bottom pager. Returns [prev, next] —
+// Surrounding pages for the bottom pager. Returns [prev, next],
 // either may be null at the boundaries.
 const { data: surround } = await useAsyncData(`docs:surround:${route.path}`, () =>
   queryCollectionItemSurroundings('docs', route.path, {
@@ -58,12 +58,12 @@ usePageStructuredData(() => ({
 
 // Breadcrumb items derived from the URL segments. Each segment maps
 // to its docs path so clicking a crumb navigates to that section's
-// index page. Display labels stay raw segments — the eye reads them
+// index page. Display labels stay raw segments, the eye reads them
 // fine and i18n'ing every segment for a 2-3-deep crumb is overkill
 // for now.
 const crumbs = computed(() => {
   const parts = route.path.split('/').filter(Boolean)
-  // First segment is always 'docs' — represent as "Docs" → /docs.
+  // First segment is always 'docs', represent as "Docs" → /docs.
   // Subsequent segments build their own paths cumulatively.
   const items: Array<{ label: string, to: string }> = [{ label: t('common.docs'), to: '/docs' }]
   for (let i = 1; i < parts.length; i++) {
@@ -73,13 +73,13 @@ const crumbs = computed(() => {
     const label = seg.replaceAll('-', ' ').replace(/^./, c => c.toUpperCase())
     items.push({ label, to })
   }
-  // Last crumb is the current page — non-clickable.
+  // Last crumb is the current page, non-clickable.
   const last = items.at(-1)
   if (last) last.to = ''
   return items
 })
 
-// Hide the on-page TOC on pages with fewer than 2 headings — it'd
+// Hide the on-page TOC on pages with fewer than 2 headings, it'd
 // just show the title and look thin.
 const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
 </script>
@@ -92,7 +92,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
     <article class="min-w-0 prose dark:prose-invert max-w-none">
       <!-- Breadcrumb sits at the very top of the article column.
            A generous gap below it (`mb-10`) lets the page title
-           breathe — the previous `mb-4` had crumbs and h1 nearly
+           breathe: the previous `mb-4` had crumbs and h1 nearly
            touching, which read as cramped chrome stacked on chrome. -->
       <UBreadcrumb
         :items="crumbs"
@@ -108,7 +108,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
            queryCollectionItemSurroundings. -->
       <!-- Prev / next pager. Editorial register: JetBrains Mono mini-
            label ("previous" / "next") with the value below in Fraunces.
-           Hover swap stays sumi (was shu — shu means AI presence). -->
+           Hover swap stays sumi (was shu, shu means AI presence). -->
       <nav
         v-if="surround && (surround[0] || surround[1])"
         class="not-prose mt-8 sm:mt-12 pt-6 sm:pt-8 border-t border-default/60 grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4"
@@ -162,7 +162,7 @@ const hasToc = computed(() => (page.value?.body?.toc?.links?.length ?? 0) >= 2)
       </nav>
     </article>
 
-    <!-- On-page TOC. Right rail on lg+, hidden below — narrower
+    <!-- On-page TOC. Right rail on lg+, hidden below, narrower
          viewports collapse the TOC into the article body would push
          long pages too far down; readers can use the breadcrumb +
          scroll instead. Auto-hidden on pages with <2 headings. -->

@@ -15,7 +15,7 @@ const log = useLogger('stripe-webhook')
  * via the price catalogue (server/utils/billing/stripePrices.ts): the
  * `NUXT_STRIPE_PRICE_IDS` overrides, then the price's lookup key (always
  * on webhook payloads), then the cached catalogue. `null` = not one of
- * our prices — callers log + skip rather than mis-assign a plan.
+ * our prices: callers log + skip rather than mis-assign a plan.
  */
 export async function identifyItem(
   stripe: Stripe | null,
@@ -63,7 +63,7 @@ export function invoiceSubscriptionId(invoice: Stripe.Invoice): string | null {
 
 /**
  * The service period an invoice pays for: the latest line-item period.
- * NOT `invoice.period_start/_end` — for a renewal those describe when
+ * NOT `invoice.period_start/_end`: for a renewal those describe when
  * items could be added (the period just ended), so writing them would
  * set `valid_until` to the renewal moment and end the plan.
  */

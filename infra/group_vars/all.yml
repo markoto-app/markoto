@@ -51,7 +51,7 @@ s3_bucket: "{{ ovh_s3_bucket | default('') }}"
 ovh_pg_host: ""
 ovh_pg_port: 5432
 
-# OVH managed PG CA — drop the .pem at infra/files/ovh-pg-ca.pem and the
+# OVH managed PG CA: drop the .pem at infra/files/ovh-pg-ca.pem and the
 # markoto role will copy it in + bind-mount it. Empty string disables.
 ovh_pg_ca_local_path: "files/ovh-pg-ca.pem"
 ovh_pg_ca_remote_path: /opt/markoto/secrets/ovh-pg-ca.pem
@@ -69,5 +69,5 @@ health_endpoint: "https://{{ domain }}/api/health"
 # before turning healthy, and `app` waits for it.
 health_timeout_seconds: 300
 
-# Timezone — UTC across the fleet keeps log correlation sane.
+# Timezone: UTC across the fleet keeps log correlation sane.
 host_timezone: UTC

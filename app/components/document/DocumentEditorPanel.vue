@@ -5,7 +5,7 @@ import { LANGUAGE_PRESETS, LANGUAGE_MAX_LENGTH } from '~~/shared/languages'
 /**
  * Right-sidebar panel for the doc's first-class context properties:
  * description, language, audience. The values are the AI's authoritative
- * source-of-truth — they're injected into every system prompt — so this
+ * source-of-truth, they're injected into every system prompt, so this
  * surface is the canonical place to edit them.
  *
  * Same write semantics as the Theme panel: owner + editors mutate
@@ -131,7 +131,7 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
 
 <template>
   <div class="flex flex-col h-full bg-muted">
-    <!-- Document panel header — Fraunces title in the editorial
+    <!-- Document panel header: Fraunces title in the editorial
          register, matching the Comments / Activity / Theme panels. -->
     <div class="p-3 border-b border-default/60 flex items-center justify-between shrink-0">
       <div class="flex items-center gap-2">
@@ -173,7 +173,7 @@ const audienceItems = AUDIENCE_KINDS.map((kind): { label: string, description: s
             class="w-full"
           />
         </UFormField>
-        <!-- Character counter in the slate caption register —
+        <!-- Character counter in the slate caption register,
              JetBrains Mono with 0.04em tracking, matches the rest of
              the editor's micro-meta voice. The format shifts from
              "X / 500" to a thin-spaced "X · 500" for editorial polish;

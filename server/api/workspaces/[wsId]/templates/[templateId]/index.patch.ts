@@ -2,7 +2,7 @@ import { BRAND_KIT_PLAN_MESSAGE } from '../../../../../utils/brandKit/access'
 import { updateWorkspaceTemplate } from '../../../../../repos/workspaceTemplates'
 import { templateParams, updateTemplateBody } from '~~/shared/api/brand'
 
-// PATCH /api/workspaces/:wsId/templates/:templateId — {name?, description?} (admins).
+// PATCH /api/workspaces/:wsId/templates/:templateId: {name?, description?} (admins).
 export default defineApiHandler({
   access: allow.workspace('admin', { deny: 'brand/admin-required' }),
   plan: { feature: 'brandKit', message: BRAND_KIT_PLAN_MESSAGE },

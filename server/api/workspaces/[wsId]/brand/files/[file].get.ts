@@ -3,7 +3,7 @@ import { getBrandAsset } from '../../../../../repos/brandAssets'
 import { brandFileParams } from '~~/shared/api/brand'
 import { BRAND_ASSET_FILE_RE } from '~~/shared/config/brandKit'
 
-// GET /api/workspaces/:wsId/brand/files/:file — a brand-kit file for the
+// GET /api/workspaces/:wsId/brand/files/:file: a brand-kit file for the
 // workspace's members: previews in the brand-kit tab and the theme
 // panel's font / logo pickers (same origin, session). Documents load
 // their fonts through `/api/docs/:docId/brand/:file`.

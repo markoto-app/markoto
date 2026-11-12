@@ -9,7 +9,7 @@ import type { ApiResponse } from '~/utils/api/client'
 //
 // What this answers fast: "where is this month's AI bill going?".
 // Each row is one of the canonical feature tags from
-// `server/utils/litellm/featureTags.ts` — a tag missing here is a
+// `server/utils/litellm/featureTags.ts`: a tag missing here is a
 // regression (a call site forgot to stamp metadata). The "other"
 // row catches anything outside the known set.
 

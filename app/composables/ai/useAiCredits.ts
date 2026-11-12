@@ -38,7 +38,7 @@ export function useAiCredits(workspaceId?: MaybeRefOrGetter<string | null | unde
   const isFreeAllowanceExhausted = computed(() => state.value?.freeAllowance?.exhausted === true)
   // Team / Business workspace: the member's AI runs on the
   // workspace's budget. A member can't buy their way out of an empty
-  // team budget or their own member limit — the AIPromptBar says "ask an
+  // team budget or their own member limit, the AIPromptBar says "ask an
   // admin" instead of "upgrade".
   const attribution = computed(() => state.value?.attribution ?? 'user')
   const isWorkspaceShared = computed(() => attribution.value === 'workspace')
