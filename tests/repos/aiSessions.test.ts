@@ -4,6 +4,7 @@ import {
   hasUserAiSession,
   addAiSession,
   removeAiSession,
+  dropOrphanedAiSession,
   getAiSession,
   snapshotAiSessions,
   purgeStaleAiSessions,
@@ -54,7 +55,7 @@ describe('addAiSession / getAiSession', () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     await addEntry(makeEntry({ sessionId: 'sess-rt', docId: doc.docId, initiatorUserId: user.id }))
-    const got = await getAiSession('sess-rt')
+    const got = await getAiSession(asUser(user.id), 'sess-rt')
     expect(got).not.toBeUndefined()
     expect(got!.sessionId).toBe('sess-rt')
     expect(got!.docId).toBe(doc.docId)
@@ -65,8 +66,27 @@ describe('addAiSession / getAiSession', () => {
     expect(got!.abortController).toBeInstanceOf(AbortController)
   })
 
+  it('a session id is found and released only for its initiator', async () => {
+    const user = await createUser()
+    const other = await createUser()
+    const doc = await seedDoc({ ownerId: user.id })
+    await addEntry(makeEntry({ sessionId: 'sess-own', docId: doc.docId, initiatorUserId: user.id }))
+    expect(await getAiSession(asUser(other.id), 'sess-own')).toBeUndefined()
+    await removeAiSession(asUser(other.id), 'sess-own')
+    expect(await sessionRowCount()).toBe(1)
+    expect(await getAiSession(asUser(user.id), 'sess-own')).not.toBeUndefined()
+  })
+
+  it('the sweeper drops an orphaned session whoever started it', async () => {
+    const user = await createUser()
+    const doc = await seedDoc({ ownerId: user.id })
+    await addEntry(makeEntry({ sessionId: 'sess-orphan', docId: doc.docId, initiatorUserId: user.id }))
+    await dropOrphanedAiSession('sess-orphan')
+    expect(await sessionRowCount()).toBe(0)
+  })
+
   it('getAiSession returns undefined for unknown sessionId', async () => {
-    expect(await getAiSession('does-not-exist')).toBeUndefined()
+    expect(await getAiSession(asUser(1), 'does-not-exist')).toBeUndefined()
   })
 
   it('hasUserAiSession is false when the user has no session on this doc', async () => {
@@ -139,7 +159,7 @@ describe('per-user-per-doc UNIQUE cap', () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     await addEntry(makeEntry({ sessionId: 'sess-1', docId: doc.docId, initiatorUserId: user.id }))
-    await removeAiSession('sess-1')
+    await removeAiSession(asUser(user.id), 'sess-1')
     // Fresh start must succeed.
     await addEntry(makeEntry({ sessionId: 'sess-2', docId: doc.docId, initiatorUserId: user.id }))
     expect(await hasUserAiSession(asUser(user.id), doc.docId)).toBe(true)
@@ -156,14 +176,14 @@ describe('removeAiSession', () => {
     const user = await createUser()
     const doc = await seedDoc({ ownerId: user.id })
     await addEntry(makeEntry({ sessionId: 'sess-rm', docId: doc.docId, initiatorUserId: user.id }))
-    await removeAiSession('sess-rm')
-    expect(await getAiSession('sess-rm')).toBeUndefined()
+    await removeAiSession(asUser(user.id), 'sess-rm')
+    expect(await getAiSession(asUser(user.id), 'sess-rm')).toBeUndefined()
     expect(await hasUserAiSession(asUser(user.id), doc.docId)).toBe(false)
     expect(await sessionRowCount()).toBe(0)
   })
 
   it('is a no-op for an unknown sessionId', async () => {
-    await expect(removeAiSession('ghost')).resolves.toBeUndefined()
+    await expect(removeAiSession(asUser(1), 'ghost')).resolves.toBeUndefined()
   })
 })
 
@@ -179,7 +199,7 @@ describe('abortController lifecycle', () => {
     await addEntry(makeEntry({
       sessionId: 's-local', docId: doc.docId, initiatorUserId: user.id, abortController: ctrl
     }))
-    const got = await getAiSession('s-local')
+    const got = await getAiSession(asUser(user.id), 's-local')
     expect(got!.abortController).toBe(ctrl)
   })
 
@@ -195,7 +215,7 @@ describe('abortController lifecycle', () => {
        VALUES ('foreign', $1, $2, 'X', '#000')`,
       [doc.docId, user.id]
     )
-    const got = await getAiSession('foreign')
+    const got = await getAiSession(asUser(user.id), 'foreign')
     expect(got).not.toBeUndefined()
     expect(got!.abortController).toBeNull()
   })

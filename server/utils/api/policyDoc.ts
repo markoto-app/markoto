@@ -2,6 +2,7 @@ import type { H3Event } from 'h3'
 import { getRouterParam } from 'h3'
 import { decideDocNeed, docProofFor, getDocWithActorRole, isDocNeed, type DocAuthzRow, type DocNeed, type DocNeedGrant } from '../access/docProof'
 import { proveSelf } from '../access/userProof'
+import { proverFor, type SecondObjectProver } from './policyProver'
 import { hasValidDocJwt, type DocJwtScope } from '../documents/docTokenVerify'
 import { anonCreatorKeyMatches, readAnonCreatorKey } from '../auth/anonCreator'
 import { docAuthzOf } from '../access/workspaceAccess'
@@ -50,6 +51,8 @@ export interface DocCtx<A extends boolean, N extends DocNeed = DocNeed> {
   docAccess: DocAccess<DocNeedGrant<N>>
   /** The signed-in caller acting on their own data (null for anonymous callers). */
   self: A extends true ? UserScope | null : UserScope
+  /** Proofs for the caller on a second object (a target workspace, another document); null for anonymous callers. */
+  prove: A extends true ? SecondObjectProver | null : SecondObjectProver
 }
 
 function readDocId(event: H3Event, input: ResolveInput, from: 'params' | 'body' | 'query', key: string): string {
@@ -103,7 +106,8 @@ export function docPolicy<A extends boolean, N extends DocNeed>(
         actor,
         authz: docAuthzOf(row, userId),
         docAccess: docProofFor(need, docId, row, state, actor),
-        self: (g.user ? proveSelf(g.user.id) : null) as DocCtx<A, N>['self']
+        self: (g.user ? proveSelf(g.user.id) : null) as DocCtx<A, N>['self'],
+        prove: (g.user ? proverFor(g.user.id) : null) as DocCtx<A, N>['prove']
       }
     }
   }

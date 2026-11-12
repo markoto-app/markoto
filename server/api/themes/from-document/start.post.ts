@@ -52,7 +52,7 @@ export default defineApiHandler({
 
     let started = false
     try {
-      const provider = await requireVisionChatProvider(userId)
+      const provider = await requireVisionChatProvider(self)
       const billing = await resolveBillingContext(userId, null)
       await assertFreeAllowanceAvailable(provider, billing.plan)
 

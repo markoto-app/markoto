@@ -97,7 +97,7 @@ export async function requestAccountDeletionByUser(args: RequestAccountDeletionA
   // Best-effort email. Pull email + locale from the user row; if
   // either is missing we still scheduled the deletion (the in-product
   // banner is the primary surface).
-  const user = await findUserById(userId)
+  const user = await findUserById(args.self)
   const userEmail = user?.email
   const emailAttempted = !!userEmail
   if (userEmail) {
@@ -159,7 +159,7 @@ export async function cancelAccountDeletionByUser(args: CancelAccountDeletionArg
       : null
   })
 
-  const user = await findUserById(userId)
+  const user = await findUserById(args.self)
   const userEmail = user?.email
   const emailAttempted = !!userEmail
   if (userEmail) {

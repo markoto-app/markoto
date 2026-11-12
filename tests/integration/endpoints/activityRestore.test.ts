@@ -211,7 +211,7 @@ describe('POST /api/docs/:docId/activity/:activityId/restore', () => {
       const owner = await createUser()
       const client = await loggedInClient(owner.id)
       const res = await client.post(`/api/docs/nonexistent/activity/1/restore`, {})
-      // requireDocEditAccess returns 404 when the doc doesn't exist
+      // The write-content policy returns 404 when the doc doesn't exist
       // (the standard pattern for missing-doc protection — we don't
       // expose whether the user WOULD have had access).
       expect(res.status).toBe(404)

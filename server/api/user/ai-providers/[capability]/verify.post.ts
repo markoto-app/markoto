@@ -20,7 +20,7 @@ export default defineApiHandler({
   handler: async ({ user, params, self }) => {
     const userId = user.id
     const { capability } = params
-    const row = await getAiProvider(userId, capability)
+    const row = await getAiProvider(self, capability)
     if (!row) throw apiError('ai-provider/not-configured')
 
     const billing = await resolveBillingContext(userId, null)

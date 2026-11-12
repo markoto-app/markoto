@@ -24,15 +24,16 @@ export interface AiProviderUpsert {
   lastVerifiedAt: Date | null
 }
 
-export async function listAiProviders(userId: number): Promise<AiProviderRow[]> {
+/** Every config of the user (encrypted keys included): their own AI calls, the settings page, the data export. */
+export async function listAiProviders(user: UserScope): Promise<AiProviderRow[]> {
   const db = useDatabase()
-  return await db.select().from(userAiProviders).where(eq(userAiProviders.userId, userId))
+  return await db.select().from(userAiProviders).where(eq(userAiProviders.userId, user.userId))
 }
 
-export async function getAiProvider(userId: number, capability: AiCapability): Promise<AiProviderRow | null> {
+export async function getAiProvider(user: UserScope, capability: AiCapability): Promise<AiProviderRow | null> {
   const db = useDatabase()
   const rows = await db.select().from(userAiProviders)
-    .where(and(eq(userAiProviders.userId, userId), eq(userAiProviders.capability, capability)))
+    .where(and(eq(userAiProviders.userId, user.userId), eq(userAiProviders.capability, capability)))
     .limit(1)
   return rows[0] ?? null
 }

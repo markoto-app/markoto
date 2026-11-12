@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { findUserById } from '../../repos/users'
+import { findSessionUser } from '../../repos/users'
 import type { OnboardingState } from '../privacy/onboardingGate'
 import { isRecentLogin, sessionEpochMatches } from './sessionPolicy'
 import { apiError } from '../api/apiError'
@@ -69,7 +69,7 @@ async function resolveValidatedUser(event: H3Event): Promise<ValidatedUser | nul
     return null
   }
 
-  const row = await findUserById(sessionUserId)
+  const row = await findSessionUser(sessionUserId)
   if (!row) {
     // Session references a user that no longer exists. Clear the cookie
     // so future requests are either cleanly anonymous or cleanly

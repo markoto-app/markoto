@@ -6,6 +6,7 @@ import { resolvePayingPlan } from '../billing/billing'
 import type { DesignImportExt } from '~~/shared/config/designImport'
 import { MINUTE_MS } from '~~/shared/config/units'
 import { apiError } from '../api/apiError'
+import type { UserScope } from '../../repos/proofs'
 
 // Shared gates of the design-import endpoints.
 
@@ -15,10 +16,10 @@ import { apiError } from '../api/apiError'
  * a text-only one → 409 `design-import/no-vision`; both link to the AI
  * settings.
  */
-export async function requireVisionChatProvider(userId: number): Promise<ResolvedAiProvider> {
+export async function requireVisionChatProvider(self: UserScope): Promise<ResolvedAiProvider> {
   // No document / workspace here (the theme panel saves a personal
   // design), so the person's own plan decides (AI by plan).
-  const providers = await requireAiProviders(userId, 'chat', await resolvePayingPlan(userId, null))
+  const providers = await requireAiProviders(self, 'chat', await resolvePayingPlan(self.userId, null))
   const chat = providers.chat
   if (!chat?.supportsVision) {
     throw apiError('design-import/no-vision', { recovery: { kind: 'link', href: AI_SETTINGS_PATH, labelKey: 'designImport.openAiSettings' } })

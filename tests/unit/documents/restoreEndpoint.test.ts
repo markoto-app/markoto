@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { API_ERRORS } from '../../../shared/api/errors'
-import { docAs } from '../../helpers/access'
+import { asUser, docAs } from '../../helpers/access'
 
 // Unit-style test for the POST /api/docs/:docId/activity/:activityId/restore
 // endpoint handler. The integration suite (tests/integration/endpoints/
@@ -26,7 +26,7 @@ const getActivityById = vi.fn()
 const appendActivity = vi.fn(async () => {})
 const pruneActivity = vi.fn(async () => {})
 const restoreDocToYjsId = vi.fn()
-const findUserNameById = vi.fn(async (): Promise<string | null> => 'Alice')
+const findUserName = vi.fn(async (): Promise<string | null> => 'Alice')
 const nanoidFn = vi.fn(() => 'fixed-session-id')
 const resolveDocPlan = vi.fn(async () => 'free')
 const assertWithinHistory = vi.fn((_plan: string, _createdAt: Date) => {})
@@ -40,7 +40,7 @@ vi.mock('../../../server/utils/documents/restoreDoc', () => ({
   // check resolves. Generic thrown errors aren't instances → 500 path.
   RestorePointCompactedError: class RestorePointCompactedError extends Error {}
 }))
-vi.mock('../../../server/repos/users', () => ({ findUserNameById }))
+vi.mock('../../../server/repos/users', () => ({ findUserName }))
 vi.mock('nanoid', () => ({ nanoid: nanoidFn }))
 vi.mock('../../../server/utils/billing/entitlements', () => ({ resolveDocPlan, assertWithinHistory }))
 
@@ -71,7 +71,7 @@ async function call(docId: string, activityId: string | number): Promise<unknown
   if (!parsed.success) throw Object.assign(new Error('invalid'), { statusCode: 400 })
   const { user } = await resolveAccess(docId)
   // The policy hands the handler a write proof for the URL document.
-  return def!.handler({ user, docId, docAccess: docAs(docId, user.id), params: parsed.data })
+  return def!.handler({ user, self: asUser(user.id), docId, docAccess: docAs(docId, user.id), params: parsed.data })
 }
 
 interface ActivityRow {
@@ -110,8 +110,8 @@ beforeEach(() => {
   pruneActivity.mockReset()
   pruneActivity.mockResolvedValue(undefined)
   restoreDocToYjsId.mockReset()
-  findUserNameById.mockReset()
-  findUserNameById.mockResolvedValue('Alice')
+  findUserName.mockReset()
+  findUserName.mockResolvedValue('Alice')
   nanoidFn.mockReset()
   nanoidFn.mockReturnValue('fixed-session-id')
   resolveDocPlan.mockReset()
@@ -184,11 +184,11 @@ describe('POST /api/docs/:docId/activity/:activityId/restore — handler', () =>
     }))
   })
 
-  it('falls back to "User" actor name when findUserNameById returns null', async () => {
+  it('falls back to "User" actor name when findUserName returns null', async () => {
     // The restore still happens — only the awareness label collaborators
     // see during the broadcast falls back. Pinning here so a future
     // change that throws on null userName surfaces immediately.
-    findUserNameById.mockResolvedValueOnce(null)
+    findUserName.mockResolvedValueOnce(null)
     getActivityById.mockResolvedValueOnce(fakeActivityRow())
     restoreDocToYjsId.mockResolvedValueOnce({
       yjsDocIdBeforeRestore: 100,

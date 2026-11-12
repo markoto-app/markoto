@@ -132,8 +132,8 @@ export async function runAgentSession(spec: AgentSessionSpec): Promise<void> {
     if (aiSession) await aiSession.destroy()
     // The AI has left the document: its edits count as the invoker's
     // own only if the session never read anybody else's content.
-    await finalizeSessionProvenance(session.sessionId, crossBoundary)
-    await removeAiSession(session.sessionId)
+    await finalizeSessionProvenance(spec.docAccess, session.sessionId, crossBoundary)
+    await removeAiSession(spec.self, session.sessionId)
   }
 }
 

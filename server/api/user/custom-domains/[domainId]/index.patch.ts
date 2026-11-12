@@ -2,7 +2,6 @@ import { customDomainContext, customDomainView } from '../../../../utils/customD
 import { invalidateCustomDomainCache } from '../../../../utils/customDomains/routing'
 import { getCustomDomainForUser, listCustomDomainsForUser, setCustomDomainPage } from '../../../../repos/customDomains'
 import { getPublishedPageSummary } from '../../../../repos/publishedPages'
-import { proveDocMembership } from '../../../../utils/access/docProof'
 import { customDomainParams, setCustomDomainPageBody } from '~~/shared/api/account'
 
 // PATCH /api/user/custom-domains/:domainId — {docId | null}: which
@@ -15,16 +14,16 @@ export default defineApiHandler({
   params: customDomainParams,
   body: setCustomDomainPageBody,
   invalidCode: 'custom-domain/invalid',
-  handler: async ({ event, user, self, params, body }) => {
+  handler: async ({ event, user, self, prove, params, body }) => {
     const userId = user.id
     const { settings } = await customDomainContext(userId)
     const domain = await getCustomDomainForUser(self, params.domainId)
     if (!domain) throw apiError('custom-domain/not-found')
     let pageId: string | null = null
     if (body.docId !== null) {
-      const proven = await proveDocMembership(userId, body.docId, 'manage')
-      if (!proven) throw apiError('custom-domain/page-not-allowed')
-      const page = await getPublishedPageSummary(proven.access)
+      const managed = await prove.doc(body.docId, 'manage')
+      if (!managed) throw apiError('custom-domain/page-not-allowed')
+      const page = await getPublishedPageSummary(managed)
       if (!page) throw apiError('custom-domain/page-not-published')
       pageId = page.id
     }

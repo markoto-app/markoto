@@ -32,9 +32,9 @@ export default defineApiHandler({
   access: allow.user(),
   body: designImportUploadRequestBody,
   rateLimit: { namespace: 'design-import', max: DESIGN_IMPORT_HOURLY_LIMIT, windowMs: HOUR_MS, key: 'user', error: 'design-import/rate-limited' },
-  handler: async ({ user, body: { filename, size } }) => {
+  handler: async ({ user, self, body: { filename, size } }) => {
     const userId = user.id
-    await requireVisionChatProvider(userId)
+    await requireVisionChatProvider(self)
 
     const ext = filename.split('.').pop()?.toLowerCase() ?? ''
     if (!isDesignImportExt(ext)) throw apiError('design-import/unsupported-format')

@@ -28,10 +28,10 @@ import type { UserScope } from '../../repos/proofs'
 // Anything else is a uniform 404 — an invite id alone grants nothing.
 
 /** Selector for an in-app action on `inviteId` by the signed-in user. */
-export async function inAppInviteSelector(userId: number, rawInviteId: string): Promise<InviteSelector> {
+export async function inAppInviteSelector(self: UserScope, rawInviteId: string): Promise<InviteSelector> {
   const inviteId = parseInviteId(rawInviteId)
   if (!inviteId) throw apiError('request/invalid', { field: 'inviteId' })
-  const user = await findUserById(userId)
+  const user = await findUserById(self)
   const email = normaliseInviteEmail(user?.email)
   if (!email) throw apiError('workspace/invite-not-found')
   return { kind: 'id', inviteId, email }

@@ -24,6 +24,7 @@ import { getWebToolAvailability } from '../ai/webTools'
 import { planHasFeature } from '../billing/entitlements'
 import { getAiModelTier } from '../../repos/users'
 import type { FeatureField, PlanName } from '~~/shared/config/tiers'
+import type { UserScope } from '../../repos/proofs'
 import {
   MISTRAL_EU_API_HOST,
   MISTRAL_LIVE_DICTATION_HOSTS,
@@ -126,10 +127,10 @@ export interface AiAccess {
  * pick and a plan that includes `aiStrongModel`, the platform chat
  * default becomes `NUXT_AI_DEFAULT_CHAT_STRONG_MODEL`.
  */
-export async function resolveAiAccess(userId: number, plan: PlanName): Promise<AiAccess> {
+export async function resolveAiAccess(user: UserScope, plan: PlanName): Promise<AiAccess> {
   const [rows, userRow] = await Promise.all([
-    listAiProviders(userId),
-    getAiModelTier(userId).then(tier => ({ tier }))
+    listAiProviders(user),
+    getAiModelTier(user).then(tier => ({ tier }))
   ])
   const locked: AiCapability[] = []
   const pick = (capability: AiCapability): ResolvedAiProvider | null => {
@@ -165,8 +166,8 @@ export async function resolveAiAccess(userId: number, plan: PlanName): Promise<A
   }
 }
 
-export async function resolveAiProviders(userId: number, plan: PlanName): Promise<ResolvedAiProviders> {
-  return (await resolveAiAccess(userId, plan)).providers
+export async function resolveAiProviders(user: UserScope, plan: PlanName): Promise<ResolvedAiProviders> {
+  return (await resolveAiAccess(user, plan)).providers
 }
 
 export interface LiveDictationTarget {

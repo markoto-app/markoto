@@ -43,6 +43,7 @@ import { findIdentityForUser } from '../../repos/sso'
 import { removeMember } from '../../repos/workspaceMembers'
 import { getMemberRoleIgnoringSso } from '../access/workspaceAccess'
 import { LastAdminError } from '../../repos/errors'
+import { system } from '../../repos/proofs'
 import { deleteMemberKey } from '../litellm/workspaceTeams'
 import { listDocIdsInWorkspace } from '../../repos/documents'
 import { notifySyncKickUser } from '../documents/syncNotify'
@@ -54,6 +55,9 @@ import { SCIM_PLACEHOLDER_PREFIX } from './scimPrefix'
 import { SCIM_CONTENT_TYPE, scimError } from './scimErrors'
 import { isPlainEmail } from '~~/shared/utils/plainEmail'
 import { proveScimWorkspace } from '../access/scimProof'
+
+/** The SCIM client reads a provisioned user's account row (their email) to re-activate them. */
+const SCIM = system('scim')
 
 export const SCIM_USER_SCHEMA = 'urn:ietf:params:scim:schemas:core:2.0:User'
 export const SCIM_LIST_SCHEMA = 'urn:ietf:params:scim:api:messages:2.0:ListResponse'
@@ -222,7 +226,7 @@ async function setScimUserActive(connection: SsoConnectionRow, identity: UserIde
     await setIdentityActive(proveScimWorkspace(connection.workspaceId), identity.id, false)
     return
   }
-  const email = (await findUserById(identity.userId))?.email ?? null
+  const email = (await findUserById(SCIM.user(identity.userId)))?.email ?? null
   try {
     await joinWorkspaceBySso({ by: proveScimWorkspace(connection.workspaceId), workspaceId: connection.workspaceId, userId: identity.userId, email, defaultRole: connection.defaultRole })
   } catch (e) {

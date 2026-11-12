@@ -476,6 +476,36 @@ describe('session, admin, public, internal, test-only, custom', () => {
     expect(res.body.data?.code).toBe('auth/reauth-required')
   })
 
+  it('ctx.prove: second-object proofs for the session user, decided by the same role and membership rules', async () => {
+    const { getMemberRole } = await import('../../../server/repos/access/workspaceRoles')
+    const { getDocWithActorRole } = await import('../../../server/repos/access/docAuthz')
+    const handler = defineApiHandler({
+      access: allow.user(),
+      handler: async ({ prove }) => {
+        const ws = await prove.workspace('w2', 'editor')
+        const doc = await prove.doc('d2', 'manage')
+        return {
+          ws: ws && { id: ws.workspaceId, actor: ws.actor, admin: ws.allows('admin') },
+          doc: doc && { id: doc.docId, actor: doc.actor, manage: doc.allows('manage') }
+        }
+      }
+    }) as EventHandler
+    // The row's owner is user 1: user 2 holds no manage grant; a viewer is below `editor`.
+    m.row = rowFor('standalone', 'private', false, ACTORS[6]!)
+    m.user = { id: 2, name: 'U' }
+    m.memberRole = 'viewer'
+    expect((await call(handler, '/api/x', '/api/x')).body).toEqual({ ws: null, doc: null })
+    m.user = { id: 1, name: 'U' }
+    m.memberRole = 'admin'
+    expect((await call(handler, '/api/x', '/api/x')).body).toEqual({
+      ws: { id: 'w2', actor: { kind: 'user', userId: 1 }, admin: true },
+      doc: { id: 'd2', actor: { kind: 'user', userId: 1 }, manage: true }
+    })
+    // Always for the session's user: the handler names only the object.
+    expect(vi.mocked(getMemberRole)).toHaveBeenLastCalledWith('w2', 1)
+    expect(vi.mocked(getDocWithActorRole)).toHaveBeenLastCalledWith('d2', 1)
+  })
+
   it('admin: 401 anonymous, 403 non-admin (before the body is read), 200 admin', async () => {
     const handler = defineApiHandler({
       access: allow.admin(),

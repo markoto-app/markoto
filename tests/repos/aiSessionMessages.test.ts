@@ -8,6 +8,7 @@ import {
 } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
 import { first } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 // AI conversation memory repo. Append-only by convention; the cascade
 // FKs (doc + user) own the only legitimate row-deletion path. Tests
@@ -50,9 +51,7 @@ describe('appendAiMessage', () => {
   it('inserts a row with the supplied fields', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({
-      docId: doc.docId,
-      userId: u.id,
+    await appendAiMessage(docAs(doc.docId, u.id), {
       sessionId: 'sess-1',
       kind: 'user_prompt',
       body: { text: 'hi markoto' }
@@ -77,13 +76,11 @@ describe('appendAiMessage', () => {
     async (kind) => {
       const u = await createUser()
       const doc = await createDoc({ ownerId: u.id })
-      await appendAiMessage({
-        docId: doc.docId,
-        userId: u.id,
+      await appendAiMessage(docAs(doc.docId, u.id), {
         sessionId: 's',
         ...parseAiMessageEntry(kind, { test: true })
       })
-      const rows = await loadRecentMessages(doc.docId, u.id)
+      const rows = await loadRecentMessages(docAs(doc.docId, u.id))
       expect(rows[0]?.kind).toBe(kind)
     }
   )
@@ -96,15 +93,26 @@ describe('appendAiMessage', () => {
       isQuestion: false,
       nested: { ok: true, list: [1, 2, 3] }
     }
-    await appendAiMessage({
-      docId: doc.docId,
-      userId: u.id,
+    await appendAiMessage(docAs(doc.docId, u.id), {
       sessionId: 's',
       kind: 'message_to_user',
       body
     })
-    const rows = await loadRecentMessages(doc.docId, u.id)
+    const rows = await loadRecentMessages(docAs(doc.docId, u.id))
     expect(rows[0]?.body).toEqual(body)
+  })
+})
+
+describe('the proof decides whose memory', () => {
+  beforeEach(async () => {
+    await resetDb()
+  })
+
+  it('refuses a proof that names no signed-in user (job, admin, anonymous)', async () => {
+    const u = await createUser()
+    const doc = await createDoc({ ownerId: u.id })
+    await expect(appendAiMessage(docAs(doc.docId), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })).rejects.toThrow()
+    await expect(loadRecentMessages(docAs(doc.docId))).rejects.toThrow()
   })
 })
 
@@ -118,19 +126,19 @@ describe('loadRecentMessages', () => {
     const doc = await createDoc({ ownerId: u.id })
     // Insert 3 rows; manually backdate so DB-level created_at is
     // distinct (within a single tx the now() values can match).
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'first' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'first' } })
     const id1 = await getLatestRowId()
     await setCreatedAt(id1, await nowMinusMinutes(20))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'second' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'second' } })
     const id2 = await getLatestRowId()
     await setCreatedAt(id2, await nowMinusMinutes(10))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'third' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'third' } })
     const id3 = await getLatestRowId()
     await setCreatedAt(id3, await nowMinusMinutes(1))
 
-    const rows = await loadRecentMessages(doc.docId, u.id)
+    const rows = await loadRecentMessages(docAs(doc.docId, u.id))
     expect(rows).toHaveLength(3)
     expect(rows.map(r => (r.body as { text: string }).text)).toEqual(['first', 'second', 'third'])
   })
@@ -140,18 +148,18 @@ describe('loadRecentMessages', () => {
     const doc = await createDoc({ ownerId: u.id })
 
     // Fabricate one ancient row + two recent rows.
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'ancient' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'ancient' } })
     await setCreatedAt(await getLatestRowId(), await nowMinusMinutes(180))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'recent-1' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'recent-1' } })
     await setCreatedAt(await getLatestRowId(), await nowMinusMinutes(30))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'recent-2' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'recent-2' } })
     await setCreatedAt(await getLatestRowId(), await nowMinusMinutes(5))
 
     // Window: last 60 min only.
     const since = await nowMinusMinutes(60)
-    const rows = await loadRecentMessages(doc.docId, u.id, { since })
+    const rows = await loadRecentMessages(docAs(doc.docId, u.id), { since })
     expect(rows.map(r => (r.body as { text: string }).text)).toEqual(['recent-1', 'recent-2'])
   })
 
@@ -159,10 +167,10 @@ describe('loadRecentMessages', () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
     for (let i = 0; i < 10; i++) {
-      await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: `p${i}` } })
+      await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: `p${i}` } })
       await setCreatedAt(await getLatestRowId(), new Date(Date.now() - (10 - i) * 60_000))
     }
-    const rows = await loadRecentMessages(doc.docId, u.id, { limit: 3 })
+    const rows = await loadRecentMessages(docAs(doc.docId, u.id), { limit: 3 })
     // Most-recent 3 in chronological order.
     expect(rows.map(r => (r.body as { text: string }).text)).toEqual(['p7', 'p8', 'p9'])
   })
@@ -170,9 +178,9 @@ describe('loadRecentMessages', () => {
   it('clamps absurd limits at 200', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
     // Should not crash on a huge limit; the repo internally capped to 200.
-    const rows = await loadRecentMessages(doc.docId, u.id, { limit: 999_999 })
+    const rows = await loadRecentMessages(docAs(doc.docId, u.id), { limit: 999_999 })
     expect(rows).toHaveLength(1)
   })
 
@@ -182,21 +190,21 @@ describe('loadRecentMessages', () => {
     const docA = await createDoc({ ownerId: u1.id })
     const docB = await createDoc({ ownerId: u1.id })
 
-    await appendAiMessage({ docId: docA.docId, userId: u1.id, sessionId: 's', kind: 'user_prompt', body: { text: 'A-u1' } })
-    await appendAiMessage({ docId: docA.docId, userId: u2.id, sessionId: 's', kind: 'user_prompt', body: { text: 'A-u2' } })
-    await appendAiMessage({ docId: docB.docId, userId: u1.id, sessionId: 's', kind: 'user_prompt', body: { text: 'B-u1' } })
+    await appendAiMessage(docAs(docA.docId, u1.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'A-u1' } })
+    await appendAiMessage(docAs(docA.docId, u2.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'A-u2' } })
+    await appendAiMessage(docAs(docB.docId, u1.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'B-u1' } })
 
     // Cross-doc isolation
-    const aRows = await loadRecentMessages(docA.docId, u1.id)
+    const aRows = await loadRecentMessages(docAs(docA.docId, u1.id))
     expect(aRows.map(r => (r.body as { text: string }).text)).toEqual(['A-u1'])
 
     // Cross-user isolation on the same doc
-    const aRowsForU2 = await loadRecentMessages(docA.docId, u2.id)
+    const aRowsForU2 = await loadRecentMessages(docAs(docA.docId, u2.id))
     expect(aRowsForU2.map(r => (r.body as { text: string }).text)).toEqual(['A-u2'])
   })
 
   it('returns [] for unknown (docId, userId)', async () => {
-    expect(await loadRecentMessages('nope', 0)).toEqual([])
+    expect(await loadRecentMessages(docAs('nope', 0))).toEqual([])
   })
 })
 
@@ -208,7 +216,7 @@ describe('lastActivityAt', () => {
   it('returns null when no rows exist for the pair', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    expect(await lastActivityAt(doc.docId, u.id)).toBeNull()
+    expect(await lastActivityAt(docAs(doc.docId, u.id))).toBeNull()
   })
 
   it('returns the timestamp of the most recent row', async () => {
@@ -217,12 +225,12 @@ describe('lastActivityAt', () => {
     const ancient = await nowMinusMinutes(120)
     const recent = await nowMinusMinutes(2)
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'a' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'a' } })
     await setCreatedAt(await getLatestRowId(), ancient)
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'b' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'b' } })
     await setCreatedAt(await getLatestRowId(), recent)
 
-    const ts = await lastActivityAt(doc.docId, u.id)
+    const ts = await lastActivityAt(docAs(doc.docId, u.id))
     expect(ts).toBeInstanceOf(Date)
     // Tolerate the millisecond round-trip through Postgres.
     expect(Math.abs(ts!.getTime() - recent.getTime())).toBeLessThan(1000)
@@ -232,9 +240,9 @@ describe('lastActivityAt', () => {
     const u1 = await createUser()
     const u2 = await createUser()
     const doc = await createDoc({ ownerId: u1.id })
-    await appendAiMessage({ docId: doc.docId, userId: u1.id, sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
-    expect(await lastActivityAt(doc.docId, u2.id)).toBeNull()
-    expect(await lastActivityAt(doc.docId, u1.id)).toBeInstanceOf(Date)
+    await appendAiMessage(docAs(doc.docId, u1.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
+    expect(await lastActivityAt(docAs(doc.docId, u2.id))).toBeNull()
+    expect(await lastActivityAt(docAs(doc.docId, u1.id))).toBeInstanceOf(Date)
   })
 })
 
@@ -246,12 +254,12 @@ describe('cascade deletes', () => {
   it('cascades on doc delete', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
-    expect((await loadRecentMessages(doc.docId, u.id)).length).toBe(1)
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
+    expect((await loadRecentMessages(docAs(doc.docId, u.id))).length).toBe(1)
 
     const db = testDb()
     await db.query('DELETE FROM documents WHERE doc_id = $1', [doc.docId])
-    expect((await loadRecentMessages(doc.docId, u.id)).length).toBe(0)
+    expect((await loadRecentMessages(docAs(doc.docId, u.id))).length).toBe(0)
   })
 
   it('cascades on user delete', async () => {
@@ -260,8 +268,8 @@ describe('cascade deletes', () => {
     // user_id is `set null` to keep history while anonymising.
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
-    expect((await loadRecentMessages(doc.docId, u.id)).length).toBe(1)
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
+    expect((await loadRecentMessages(docAs(doc.docId, u.id))).length).toBe(1)
 
     const db = testDb()
     // documents.owner_id is `set null` on user delete, so the doc

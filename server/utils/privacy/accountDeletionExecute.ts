@@ -92,7 +92,7 @@ export async function executeAccountDeletion(
   // is fine here — the advisory lock at the sweeper level has
   // serialised this user; nothing else mutates `users.stripeCustomerId`
   // mid-flight.
-  const userRow = await findUserById(userId)
+  const userRow = await findUserById(user)
   if (!userRow) {
     // Already gone — treat as no-op success (idempotency).
     return { summary: emptySummary() }

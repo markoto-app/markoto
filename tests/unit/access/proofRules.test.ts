@@ -77,6 +77,8 @@ describe('markoto/proof-entry-imports', () => {
       { filename: at('server/utils/agentic/sessionGuard.ts'), code: 'import { proveDocMembership } from \'../access/docProof\'' },
       { filename: at('server/utils/api/policy.ts'), code: 'proveSelf(1)' },
       { filename: at('server/utils/api/policyDoc.ts'), code: 'import { docProofFor } from \'../access/docProof\'' },
+      { filename: at('server/utils/api/policy.ts'), code: 'import { proverFor } from \'./policyProver\'' },
+      { filename: at('server/utils/api/policyProver.ts'), code: 'import { proveWorkspaceAccess } from \'../access/workspaceAccess\'' },
       { filename: at('server/utils/access/anything.ts'), code: 'proveNewDoc(null, \'d\')' },
       // Derives a document proof from a workspace proof: usable anywhere.
       { filename: at('server/api/workspaces/x.post.ts'), code: 'import { proveWorkspaceDoc } from \'../../utils/access/docProof\'' },
@@ -89,7 +91,10 @@ describe('markoto/proof-entry-imports', () => {
       { filename: at('server/utils/billing/x.ts'), code: 'proveWorkspaceAccess(1, \'w\', \'member\')', errors: entry('proveWorkspaceAccess') },
       { filename: at('server/mcp/tools/x.ts'), code: 'import { proveNewDoc } from \'../../utils/access/docProof\'', errors: entry('proveNewDoc') },
       { filename: at('server/utils/api/policyWorkspace.ts'), code: 'import { docProofFor } from \'../access/docProof\'', errors: entry('docProofFor') },
-      { filename: at('server/api/admin/x.get.ts'), code: 'import { proveAdmin } from \'../../utils/access/userProof\'', errors: entry('proveAdmin') }
+      { filename: at('server/api/admin/x.get.ts'), code: 'import { proveAdmin } from \'../../utils/access/userProof\'', errors: entry('proveAdmin') },
+      // A handler reaching a second object goes through `ctx.prove`, never a user id of its choosing.
+      { filename: at('server/api/docs/[docId]/workspace.patch.ts'), code: 'proveWorkspaceAccess(1, \'w\', \'member\')', errors: entry('proveWorkspaceAccess') },
+      { filename: at('server/api/ai/credits.get.ts'), code: 'proverFor(1)', errors: entry('proverFor') }
     ]
   })
 })

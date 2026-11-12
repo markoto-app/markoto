@@ -56,9 +56,7 @@ async function handleMessageToUser(
   // message. Swallow errors at the boundary the same way activity
   // logging does.
   try {
-    await appendAiMessage({
-      docId: session.docId,
-      userId: session.initiatorUserId,
+    await appendAiMessage(session.docAccess, {
       sessionId: session.sessionId,
       kind: 'message_to_user',
       body: { message: input.message, isQuestion }

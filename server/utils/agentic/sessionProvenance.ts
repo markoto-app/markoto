@@ -2,6 +2,7 @@ import { markAiSessionProvenanceClean, recordAiSessionProvenance } from '../../r
 import { removeAiSession } from '../ai/aiSessions'
 import type { CrossBoundaryGuard } from './crossBoundary'
 import { useLogger } from '../platform/logger'
+import type { DocAccess, UserScope } from '../../repos/proofs'
 
 const log = useLogger('ai-provenance')
 
@@ -25,11 +26,11 @@ const log = useLogger('ai-provenance')
  * must never write without a provenance row (its edits would be
  * attributed without the taint information).
  */
-export async function recordSessionProvenance(sessionId: string, docId: string, userId: number): Promise<void> {
+export async function recordSessionProvenance(doc: DocAccess<'write'>, initiator: UserScope, sessionId: string): Promise<void> {
   try {
-    await recordAiSessionProvenance(sessionId, docId, userId)
+    await recordAiSessionProvenance(doc, sessionId)
   } catch (e) {
-    await removeAiSession(sessionId).catch(() => {})
+    await removeAiSession(initiator, sessionId).catch(() => {})
     throw e
   }
 }
@@ -39,10 +40,10 @@ export async function recordSessionProvenance(sessionId: string, docId: string, 
  * clean. Call after `aiSession.destroy()`. `guard` is null when the loop
  * never got as far as building it (then the AI wrote nothing either).
  */
-export async function finalizeSessionProvenance(sessionId: string, guard: CrossBoundaryGuard | null): Promise<void> {
+export async function finalizeSessionProvenance(doc: DocAccess<'write'>, sessionId: string, guard: CrossBoundaryGuard | null): Promise<void> {
   if (!guard || guard.tainted) return
   try {
-    await markAiSessionProvenanceClean(sessionId)
+    await markAiSessionProvenanceClean(doc, sessionId)
   } catch (e) {
     // Fail closed: the edits stay "foreign" — at worst a later session
     // asks before reaching other documents.

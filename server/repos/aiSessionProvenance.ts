@@ -1,7 +1,7 @@
-import { asc, eq } from 'drizzle-orm'
+import { and, asc, eq } from 'drizzle-orm'
 import { aiSessionProvenance } from '../db/schema'
 import { useDatabase } from '../db/client'
-import type { UserScope } from './proofs'
+import { proofActingUserId, type DocAccess, type UserScope } from './proofs'
 
 // Provenance of in-editor AI sessions for the taint gate
 // (`server/repos/docProvenance.ts`). One row per session, written when
@@ -10,11 +10,14 @@ import type { UserScope } from './proofs'
 // `server/db/schema/ai.ts`. Fail-closed by construction: every path that
 // does not reach `markAiSessionProvenanceClean` leaves the session's
 // edits counted as somebody else's.
+//
+// A session's row is keyed by the write proof the session was opened with:
+// its document and the user it was decided for.
 
-/** Record that `sessionId` acts for `userId` on `docId`. Starts not-clean. */
-export async function recordAiSessionProvenance(sessionId: string, docId: string, userId: number): Promise<void> {
+/** Record that `sessionId` acts for the proof's user on the proof's document. Starts not-clean. */
+export async function recordAiSessionProvenance(doc: DocAccess<'write'>, sessionId: string): Promise<void> {
   const db = useDatabase()
-  await db.insert(aiSessionProvenance).values({ sessionId, docId, userId, clean: false })
+  await db.insert(aiSessionProvenance).values({ sessionId, docId: doc.docId, userId: proofActingUserId(doc), clean: false })
 }
 
 /**
@@ -22,11 +25,15 @@ export async function recordAiSessionProvenance(sessionId: string, docId: string
  * AI client has left the document and only when the session never read
  * content written by someone else.
  */
-export async function markAiSessionProvenanceClean(sessionId: string): Promise<void> {
+export async function markAiSessionProvenanceClean(doc: DocAccess<'write'>, sessionId: string): Promise<void> {
   const db = useDatabase()
   await db.update(aiSessionProvenance)
     .set({ clean: true })
-    .where(eq(aiSessionProvenance.sessionId, sessionId))
+    .where(and(
+      eq(aiSessionProvenance.sessionId, sessionId),
+      eq(aiSessionProvenance.docId, doc.docId),
+      eq(aiSessionProvenance.userId, proofActingUserId(doc))
+    ))
 }
 
 export interface AiSessionProvenanceRow {

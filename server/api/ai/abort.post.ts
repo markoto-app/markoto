@@ -5,15 +5,18 @@ import { abortAiSessionBody } from '~~/shared/api/ai'
 export default defineApiHandler({
   access: allow.user(),
   body: abortAiSessionBody,
-  handler: async ({ user, body }) => {
+  handler: async ({ user, self, body }) => {
     const userId = user.id
     const sessionId = body.sessionId
 
-    const aiSession = await getAiSession(sessionId)
+    const aiSession = await getAiSession(self, sessionId)
     if (!aiSession) {
       return { success: true, note: 'session not found (may have already finished)' }
     }
 
+    // Unreachable through `getAiSession` (it finds only the caller's own
+    // sessions); kept so a change to that lookup can't let one user stop
+    // another's session.
     if (aiSession.initiatorUserId !== userId) {
       throw apiError('ai/abort-not-initiator')
     }
@@ -26,7 +29,7 @@ export default defineApiHandler({
     // Row exists but no local AbortController: this process isn't running the
     // loop. Drop the registry row so the per-user cap unblocks; a stuck loop
     // exits on its own deadline and cleans up awareness in its finally block.
-    await removeAiSession(sessionId)
+    await removeAiSession(self, sessionId)
     return { success: true, note: 'session was orphaned (no abort controller in this process); registry cleared' }
   }
 })

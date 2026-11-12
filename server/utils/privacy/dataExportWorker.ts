@@ -124,7 +124,7 @@ export async function runDataExportWorker(): Promise<RunDataExportWorkerResult> 
       }
     })
 
-    const user = await findUserById(job.userId)
+    const user = await findUserById(WORKER.actingFor(job.userId))
     if (user?.email) {
       void safeSendTransactionalEmail({
         kind: 'data_export.ready',

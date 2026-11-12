@@ -1,4 +1,4 @@
-import { deleteAiSessionRow, deleteAiSessionsStartedBefore, getAiSessionRow, hasAiSessionOn, insertAiSession, listAiSessionRows, type AiSessionRow } from '../../repos/aiSessions'
+import { deleteAiSessionRow, deleteAiSessionsStartedBefore, deleteAnyAiSessionRow, getAiSessionRow, hasAiSessionOn, insertAiSession, listAiSessionRows, type AiSessionRow } from '../../repos/aiSessions'
 import { system, type DocAccess, type UserScope } from '../../repos/proofs'
 
 /**
@@ -76,13 +76,15 @@ export async function addAiSession(doc: DocAccess<'write'>, session: Omit<Active
   localControllers.set(session.sessionId, session.abortController)
 }
 
-export async function removeAiSession(sessionId: string): Promise<void> {
-  await deleteAiSessionRow(sessionId)
+/** Release the initiator's own session (the loop's end, the abort route). */
+export async function removeAiSession(initiator: UserScope, sessionId: string): Promise<void> {
+  await deleteAiSessionRow(initiator, sessionId)
   localControllers.delete(sessionId)
 }
 
-export async function getAiSession(sessionId: string): Promise<ActiveAISession | undefined> {
-  const row = await getAiSessionRow(sessionId)
+/** The initiator's own session; undefined for an unknown id or another user's session. */
+export async function getAiSession(initiator: UserScope, sessionId: string): Promise<ActiveAISession | undefined> {
+  const row = await getAiSessionRow(initiator, sessionId)
   return row ? toActiveSession(row) : undefined
 }
 
@@ -115,4 +117,10 @@ export async function snapshotAiSessions(): Promise<ActiveAISession[]> {
  */
 export async function purgeStaleAiSessions(olderThanMs: number): Promise<number> {
   return deleteAiSessionsStartedBefore(SWEEPER, new Date(Date.now() - olderThanMs))
+}
+
+/** The sweeper drops one orphaned session (started in another process), whoever started it. */
+export async function dropOrphanedAiSession(sessionId: string): Promise<void> {
+  await deleteAnyAiSessionRow(SWEEPER, sessionId)
+  localControllers.delete(sessionId)
 }

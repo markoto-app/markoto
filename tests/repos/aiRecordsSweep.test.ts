@@ -4,6 +4,7 @@ import { runAiRecordsSweep, AI_RECORD_RETENTION_DAYS } from '../../server/utils/
 import { appendAiMessage } from '../../server/repos/aiSessionMessages'
 import { createUser, createDoc } from '../integration/setup/fixtures'
 import { first } from '../helpers/assert'
+import { docAs } from '../helpers/access'
 
 // The 90-day AI-record retention sweep. Enforces the privacy policy's
 // "AI prompt and tool-call records are retained for 90 days, then purged"
@@ -49,14 +50,14 @@ describe('runAiRecordsSweep', () => {
     const doc = await createDoc({ ownerId: u.id })
 
     // One recent, one just-inside, one just-outside the window.
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'recent' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'recent' } })
     const recentId = await latestMessageId()
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'tool_call', body: { name: 'web_search', summary: '' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'tool_call', body: { name: 'web_search', summary: '' } })
     const insideId = await latestMessageId()
     await backdateMessage(insideId, new Date(Date.now() - 89 * DAY_MS))
 
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'message_to_user', body: { message: 'old', isQuestion: false } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'message_to_user', body: { message: 'old', isQuestion: false } })
     const outsideId = await latestMessageId()
     await backdateMessage(outsideId, new Date(Date.now() - 91 * DAY_MS))
 
@@ -89,7 +90,7 @@ describe('runAiRecordsSweep', () => {
   it('respects an injected clock for the cutoff boundary', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'x' } })
     const id = await latestMessageId()
     // 100 days ago relative to real now.
     await backdateMessage(id, new Date(Date.now() - 100 * DAY_MS))
@@ -108,7 +109,7 @@ describe('runAiRecordsSweep', () => {
   it('is a no-op when nothing is stale', async () => {
     const u = await createUser()
     const doc = await createDoc({ ownerId: u.id })
-    await appendAiMessage({ docId: doc.docId, userId: u.id, sessionId: 's', kind: 'user_prompt', body: { text: 'fresh' } })
+    await appendAiMessage(docAs(doc.docId, u.id), { sessionId: 's', kind: 'user_prompt', body: { text: 'fresh' } })
 
     const result = await runAiRecordsSweep()
     expect(result).toEqual({ messagesDeleted: 0, sessionsDeleted: 0 })

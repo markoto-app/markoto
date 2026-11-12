@@ -133,18 +133,9 @@ const AI_TOOLS = ['^server/utils/ai/tools/libraryTools\\.ts$', '^server/utils/ai
 // Creation flows: the creator holds every right on the row it just inserted,
 // and proves membership of the target workspace from its own UserScope.
 const CREATION = ['^server/utils/documents/createDocument\\.ts$', '^server/utils/documents/duplicateDocument\\.ts$']
-// Handlers that prove a SECOND object (a target workspace, a document named
-// in the body) for `ctx.user` beyond what their policy proved. Each passes
-// the policy's user id; a policy-bound prover would remove the raw id.
-const SECOND_OBJECT_HANDLERS = [
-  '^server/api/docs/\\[docId\\]/workspace\\.patch\\.ts$',
-  '^server/api/docs/\\[docId\\]/mentionable-users\\.get\\.ts$',
-  '^server/api/docs/\\[docId\\]/duplicate\\.post\\.ts$',
-  '^server/api/ai/credits\\.get\\.ts$',
-  '^server/api/user/custom-domains/\\[domainId\\]/index\\.patch\\.ts$'
-]
-// Test-only route (excluded from production builds) that drives AI tools directly.
-const TEST_ROUTES = '^server/api/_test/'
+// `ctx.prove` (server/utils/api/policyProver.ts): the policies' prover for a
+// second object, bound to the user the policy authenticated.
+const POLICY_PROVER = '^server/utils/api/policyProver\\.ts$'
 
 /**
  * Each entry point that mints a proof from something the caller vouches for
@@ -166,9 +157,10 @@ export const PROOF_ENTRY_CALLERS = {
   // A row the caller just inserted.
   proveNewDoc: CREATION,
   // Membership of a user, checked against the database.
-  proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, ...SECOND_OBJECT_HANDLERS],
-  proveWorkspaceAccess: [MCP_WRAPPER, ...AI_SESSION, ...AI_TOOLS, ...CREATION, ...SECOND_OBJECT_HANDLERS, TEST_ROUTES],
-  requireDocEditAccess: []
+  proveDocMembership: [MCP_WRAPPER, MCP_EXPORT_TOOL, ...AI_SESSION, ...AI_TOOLS, POLICY_PROVER],
+  proveWorkspaceAccess: [MCP_WRAPPER, ...AI_SESSION, ...AI_TOOLS, ...CREATION, POLICY_PROVER],
+  // The second-object prover for a user id: the policies hand it out as `ctx.prove`.
+  proverFor: [POLICY, POLICY_DOC]
 }
 
 /** @type {import('eslint').Rule.RuleModule} */

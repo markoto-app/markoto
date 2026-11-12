@@ -8,6 +8,7 @@ import { CAPABILITY_PLAN_FEATURE, resolveAiAccess, type ResolvedAiProviders } fr
 import { assertPlanFeature } from '../billing/entitlements'
 import type { AiCapability } from '~~/shared/ai/providers'
 import type { PlanName } from '~~/shared/config/tiers'
+import type { UserScope } from '../../repos/proofs'
 
 const AI_PROVIDER_MISSING_CODE = 'ai/provider-missing'
 
@@ -43,8 +44,8 @@ const LOCKED_MESSAGE: Partial<Record<AiCapability, string>> = {
  * capability the platform offers but the plan doesn't include answers
  * 409 `plan/feature-unavailable`; none at all → `ai/provider-missing`.
  */
-export async function requireAiProviders(userId: number, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProviders> {
-  const access = await resolveAiAccess(userId, plan)
+export async function requireAiProviders(user: UserScope, capability: AiCapability, plan: PlanName): Promise<ResolvedAiProviders> {
+  const access = await resolveAiAccess(user, plan)
   if (!access.providers[capability]) {
     const feature = CAPABILITY_PLAN_FEATURE[capability]
     if (feature && access.locked.includes(capability)) assertPlanFeature(plan, feature, LOCKED_MESSAGE[capability] ?? '')

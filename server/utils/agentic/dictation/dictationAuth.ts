@@ -5,6 +5,7 @@ import { normalizeLanguageCode } from '../dictateHelpers'
 import { liveDictationTarget, resolveAiProviders, type LiveDictationTarget } from '../../aiProviders/resolve'
 import { resolveBillingContext, type BillingContext } from '../../billing/billing'
 import { getDocWorkspaceId } from '../../access/docProof'
+import { system } from '../../../repos/proofs'
 import type { DictateJwtPayload } from '~~/shared/contracts/jwt'
 import { encodeServerFrame } from '~~/shared/contracts/dictateWs'
 import { useEnv } from '~~/shared/env/load'
@@ -156,7 +157,10 @@ async function resolvePayer(peer: PeerLike, ctx: DictatePeerContext, claims: Aut
   // is the server-side backstop.
   let target: LiveDictationTarget | null
   try {
-    target = liveDictationTarget((await resolveAiProviders(claims.userId, billing.plan)).transcription)
+    // The dictation token was signed for this user by the token route
+    // (session + write access), so the socket acts for them.
+    const dictating = system('live-dictation').actingFor(claims.userId)
+    target = liveDictationTarget((await resolveAiProviders(dictating, billing.plan)).transcription)
   } catch (e) {
     log.error('provider resolve failed', { err: e })
     target = null

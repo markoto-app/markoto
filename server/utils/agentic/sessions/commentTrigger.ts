@@ -56,6 +56,7 @@ export async function startCommentTrigger(event: H3Event, request: CommentTrigge
   const session = await openAiSession(event, {
     docId,
     docAccess,
+    self,
     userId,
     userName: request.user.name,
     workspaceId: wsCtx.workspaceId,

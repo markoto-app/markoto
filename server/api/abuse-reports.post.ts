@@ -103,7 +103,7 @@ export default defineApiHandler({
 
     const input: NonNullable<typeof body> = body ?? {}
     const { category, contentUrl, reportBody } = readNotice(input)
-    const reporterUser = userId === null ? null : await findUserById(userId)
+    const reporterUser = self ? await findUserById(self) : null
     const { reporterName, reporterEmail } = readReporterContact(input, category, reporterUser)
 
     // Anonymous: bot check last (after the cheap validation, so a typo

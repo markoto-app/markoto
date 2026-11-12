@@ -9,7 +9,7 @@ import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
 import { proveDocMembership } from '../../utils/access/docProof'
 import { proveSelf } from '../../utils/access/userProof'
 import type { DocAccess, WorkspaceAccess } from '../../repos/proofs'
-import { findUserNameById } from '../../repos/users'
+import { findUserName } from '../../repos/users'
 import { connectAsMcpClient } from '../../utils/mcp/mcpHocuspocusClient'
 import { executeFunctionByName, executeMetaTool, type MetaToolName, type ToolName } from '../../utils/ai/tools/registry'
 import { requireMcpAuth, hasScope, toolEnabled } from './mcpToolContext'
@@ -175,7 +175,8 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         return { content: [{ type: 'text', text: DOWNLOAD_DISABLED_MESSAGE }], isError: true }
       }
 
-      const userName = (await findUserNameById(auth.userId)) ?? `user-${auth.userId}`
+      const self = proveSelf(auth.userId)
+      const userName = (await findUserName(self)) ?? `user-${auth.userId}`
       const mcpSessionId = mcpSessionIdFromEvent(event) ?? `oneshot-${Date.now()}`
 
       const handle = await connectAsMcpClient({
@@ -185,7 +186,7 @@ export function buildDocBoundTool<Schema extends ZodRawShape>(opts: WrapDocBound
         userName,
         workspaceId: authz.workspaceId,
         docAccess: authz.access,
-        self: proveSelf(auth.userId),
+        self,
         workspaceAccess: authz.workspaceId ? await proveWorkspaceAccess(auth.userId, authz.workspaceId, 'member') : null
       })
       try {
@@ -378,8 +379,9 @@ async function buildStubContext(
   mcpSessionId: string | null
 ): Promise<{ ctx: MetaToolContext, dispose: () => void }> {
   const workspaceId = workspaceAccess?.workspaceId ?? null
+  const self = proveSelf(userId)
   const billingContext = await resolveBillingContext(userId, workspaceId)
-  const aiProviders = await resolveAiProviders(userId, billingContext.plan)
+  const aiProviders = await resolveAiProviders(self, billingContext.plan)
   const sessionId = mcpSessionId ?? `oneshot-${Date.now()}`
 
   const ctx: MetaToolContext = {
@@ -390,7 +392,7 @@ async function buildStubContext(
     docId: 'mcp:no-doc-context',
     initiatorUserId: userId,
     workspaceId,
-    self: proveSelf(userId),
+    self,
     docAccess: null,
     workspaceAccess,
     sessionId,

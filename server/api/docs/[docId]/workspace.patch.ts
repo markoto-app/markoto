@@ -1,5 +1,4 @@
 import { getDoc, moveDocToWorkspace } from '../../../repos/documents'
-import { proveWorkspaceAccess } from '../../../utils/access/workspaceAccess'
 import type { WorkspaceAccess } from '../../../repos/proofs'
 import { assertNotModerationRestricted } from '../../../utils/privacy/moderationRestriction'
 import { deleteSharesForDoc } from '../../../repos/documentShares'
@@ -24,12 +23,12 @@ import { moveDocWorkspaceBody } from '~~/shared/api/sharing'
 export default defineApiHandler({
   access: allow.doc('manage', { deny: 'share/move-not-allowed' }),
   body: moveDocWorkspaceBody,
-  handler: async ({ event, user, docId, doc, docAccess, body: { workspaceId: target } }) => {
+  handler: async ({ event, prove, docId, doc, docAccess, body: { workspaceId: target } }) => {
     let targetAccess: WorkspaceAccess<'editor'> | null = null
     if (target !== null) {
       // Another workspace's members would gain access.
       assertNotModerationRestricted(await getDoc(docAccess))
-      const member = await proveWorkspaceAccess(user.id, target, 'member')
+      const member = await prove.workspace(target, 'member')
       if (member === null) throw apiError('auth/forbidden')
       if (!member.allows('editor')) throw apiError('share/move-target-viewer')
       targetAccess = member

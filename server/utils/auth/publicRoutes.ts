@@ -51,8 +51,8 @@ export const PUBLIC_ROUTES: readonly PublicRoute[] = [
   // security envelope for valid ones.
   { path: /^\/api\/docs\/[^/]+\/activity\/[^/]+\/diff$/, methods: ['GET'] }, // Endpoint-gated — same auth tiers as /activity (decideActivityAccess)
   { path: /^\/api\/docs\/[^/]+\/activity\/[^/]+\/comment-context$/, methods: ['GET'] }, // Endpoint-gated — same auth tiers as /activity
-  // /restore is NOT in the public whitelist — the endpoint itself
-  // requires `requireDocEditAccess`, which needs a user session.
+  // /restore is NOT in the public whitelist — the endpoint's policy
+  // (`allow.doc('write-content')`) needs a user session.
   // Falls through to the default-deny branch below.
   // In-doc image reads — endpoint-gated via decideFileAccess (same
   // decision as the PDF endpoint). Anonymous users on open-* docs

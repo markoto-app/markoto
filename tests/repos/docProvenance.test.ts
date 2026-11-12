@@ -40,19 +40,19 @@ describe('hasForeignContentActivity — AI session provenance', () => {
     const alice = await createUser({ name: 'Alice' })
     const doc = await createDoc({ ownerId: alice.id })
     await ownEdit(doc.docId, alice.id)
-    await recordAiSessionProvenance('s-clean', doc.docId, alice.id)
+    await recordAiSessionProvenance(docAs(doc.docId, alice.id), 's-clean')
     await aiEdit(doc.docId, 's-clean')
     // No ai_sessions row (deleted at session end) and no conversation
     // memory (the @ai trigger writes none) — before provenance, this
     // edit was unattributable and the doc counted as shared.
-    await markAiSessionProvenanceClean('s-clean')
+    await markAiSessionProvenanceClean(docAs(doc.docId, alice.id), 's-clean')
     expect(await hasForeignContentActivity(docAs(doc.docId), alice.id)).toBe(false)
   })
 
   it('a session that was tainted when it wrote stays foreign', async () => {
     const alice = await createUser({ name: 'Alice' })
     const doc = await createDoc({ ownerId: alice.id })
-    await recordAiSessionProvenance('s-tainted', doc.docId, alice.id)
+    await recordAiSessionProvenance(docAs(doc.docId, alice.id), 's-tainted')
     await aiEdit(doc.docId, 's-tainted')
     // Never marked clean.
     expect(await hasForeignContentActivity(docAs(doc.docId), alice.id)).toBe(true)
@@ -61,7 +61,7 @@ describe('hasForeignContentActivity — AI session provenance', () => {
   it('a tainted session stays foreign even with conversation memory and a live session row of the invoker', async () => {
     const alice = await createUser({ name: 'Alice' })
     const doc = await createDoc({ ownerId: alice.id })
-    await recordAiSessionProvenance('s-mem', doc.docId, alice.id)
+    await recordAiSessionProvenance(docAs(doc.docId, alice.id), 's-mem')
     await aiEdit(doc.docId, 's-mem')
     await testDb().query(
       `INSERT INTO ai_session_messages (doc_id, user_id, session_id, kind, body) VALUES ($1, $2, 's-mem', 'user_prompt', '{"text":"hi"}')`,
@@ -78,12 +78,24 @@ describe('hasForeignContentActivity — AI session provenance', () => {
     const alice = await createUser({ name: 'Alice' })
     const bob = await createUser({ name: 'Bob' })
     const doc = await createDoc({ ownerId: alice.id })
-    await recordAiSessionProvenance('s-bob', doc.docId, bob.id)
+    await recordAiSessionProvenance(docAs(doc.docId, bob.id), 's-bob')
     await aiEdit(doc.docId, 's-bob')
-    await markAiSessionProvenanceClean('s-bob')
+    await markAiSessionProvenanceClean(docAs(doc.docId, bob.id), 's-bob')
     expect(await hasForeignContentActivity(docAs(doc.docId), alice.id)).toBe(true)
     // … and it is Bob's own.
     expect(await hasForeignContentActivity(docAs(doc.docId), bob.id)).toBe(false)
+  })
+
+  it('only the session\'s own document and user can mark it clean', async () => {
+    const alice = await createUser({ name: 'Alice' })
+    const mallory = await createUser({ name: 'Mallory' })
+    const doc = await createDoc({ ownerId: alice.id })
+    const other = await createDoc({ ownerId: mallory.id })
+    await recordAiSessionProvenance(docAs(doc.docId, alice.id), 's-alice')
+    await aiEdit(doc.docId, 's-alice')
+    await markAiSessionProvenanceClean(docAs(doc.docId, mallory.id), 's-alice')
+    await markAiSessionProvenanceClean(docAs(other.docId, alice.id), 's-alice')
+    expect(await hasForeignContentActivity(docAs(doc.docId), alice.id)).toBe(true)
   })
 
   it('an AI edit with no provenance and no legacy attribution is foreign', async () => {
@@ -108,8 +120,8 @@ describe('hasForeignContentActivity — AI session provenance', () => {
     const alice = await createUser({ name: 'Alice' })
     const bob = await createUser({ name: 'Bob' })
     const doc = await createDoc({ ownerId: alice.id })
-    await recordAiSessionProvenance('s-gone', doc.docId, bob.id)
-    await markAiSessionProvenanceClean('s-gone')
+    await recordAiSessionProvenance(docAs(doc.docId, bob.id), 's-gone')
+    await markAiSessionProvenanceClean(docAs(doc.docId, bob.id), 's-gone')
     expect(await listAiSessionProvenanceForUser(asUser(bob.id))).toHaveLength(1)
     await testDb().query('DELETE FROM users WHERE id = $1', [bob.id])
     const left = await testDb().query('SELECT 1 FROM ai_session_provenance WHERE session_id = $1', ['s-gone'])

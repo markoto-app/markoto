@@ -126,7 +126,7 @@ async function openCheckout(ctx: CheckoutContext): Promise<PlanCheckoutResponse<
     throw apiError('billing/seats-below-members', { used })
   }
 
-  const [workspace, admin] = await Promise.all([getWorkspace(ws), findUserById(userId)])
+  const [workspace, admin] = await Promise.all([getWorkspace(ws), findUserById(self)])
   const customerId = await ensureWorkspaceCustomer(stripe, ws, {
     workspaceName: workspace?.name ?? '',
     billingAdminId: userId,

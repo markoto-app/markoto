@@ -628,7 +628,7 @@ Who mints proofs:
 
 | Minter | Proofs |
 |---|---|
-| Handler policies (`server/utils/api/policy*.ts`) | `docAccess` at the route's need, `workspaceAccess` at the caller's role, `self`, `adminActor`; SCIM and render-token routes get a workspace / view proof held by a named job |
+| Handler policies (`server/utils/api/policy*.ts`) | `docAccess` at the route's need, `workspaceAccess` at the caller's role, `self`, `adminActor`; `prove.workspace(id, need)` / `prove.doc(id, kind)` for a second object (a move or copy target, a document named in the body), bound to the authenticated caller; SCIM and render-token routes get a workspace / view proof held by a named job |
 | MCP tool wrapper (`server/mcp/lib/wrapDocBoundTool.ts`), AI tools | `proveDocMembership` / `proveWorkspaceAccess` for the acting user, through the same rules |
 | Background jobs, webhooks, internal routes | `system('<job name>')`, which may act on anything |
 
@@ -643,6 +643,24 @@ What this guarantees:
   members are addressed by their own id but queried with the parent from
   the proof (`… AND workspace_id = ${ws.workspaceId}`), so the id of another
   tenant's row returns nothing (`tests/repos/tenancyIsolation.test.ts`).
+  AI conversation memory and session provenance are keyed by the document
+  AND the user of one document proof; an AI session row is found and
+  released only for its initiator.
+- **Every exported repo function takes a proof or is listed with a
+  reason.** `tests/unit/access/repoProofs.test.ts` walks the exports of
+  `server/repos/**` with the TypeScript checker and fails for a function
+  without a proof parameter that is not on its exemption list, and for a
+  listed one that has since gained a proof. The exemptions: the
+  authorization bootstrap (it decides who the caller is, so no proof exists
+  yet: `repos/access/`, the session's user row and epoch, OAuth and SSO
+  sign-in lookups), the proof machinery, pure helpers, database plumbing,
+  public-by-design reads (published pages, the custom-domain routing table,
+  whether a document id exists), the token-keyed waitlist, and billing
+  state keyed by the paying subject (LiteLLM keys and spend, credit grants,
+  plans, subscriptions, image quota): billing resolves that user or
+  workspace once from an authorized request or a named job and hands it to
+  every AI call and sweep, so a proof minted inside billing from the same
+  id would check nothing.
 - **Proofs cannot be forged in production code.** The classes are nominal
   (an object literal does not type-check), their constructors take a
   module-private token whose type is its own unique symbol (so `new` does
@@ -665,12 +683,14 @@ What this guarantees:
   functions that turn a user id or a decision the caller made into a proof
   (`docProofFor`, `workspaceProofFor`, `proveRenderDoc`, `proveSelf`,
   `proveAdmin`, `proveScimWorkspace`, `proveNewDoc`, `proveDocMembership`,
-  `proveWorkspaceAccess`) may be imported or auto-imported only by the
-  files listed per function in `PROOF_ENTRY_CALLERS`
-  (`markoto/proof-entry-imports`): the handler policies, the MCP
-  authenticator and tool wrapper, the AI session and tools, the creation
-  flows, SCIM, and five handlers that prove a second object for their
-  caller. `proveWorkspaceDoc` is open: it derives a document proof from a
+  `proveWorkspaceAccess`, `proverFor`) may be imported or auto-imported
+  only by the files listed per function in `PROOF_ENTRY_CALLERS`
+  (`markoto/proof-entry-imports`): the handler policies and their
+  second-object prover, the MCP authenticator and tool wrapper, the AI
+  session and tools, the creation flows and SCIM. No handler is on the
+  list: a handler that reaches a second object asks `ctx.prove`, which is
+  bound to the user the policy authenticated, so it names only the object.
+  `proveWorkspaceDoc` is open: it derives a document proof from a
   workspace proof the caller already holds.
 - **Levels are checked by the compiler.** A view proof is not a write
   proof; a manage proof is also an edit, write and view proof

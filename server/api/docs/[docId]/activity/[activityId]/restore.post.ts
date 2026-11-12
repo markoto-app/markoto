@@ -1,7 +1,7 @@
 import { nanoid } from 'nanoid'
 import { getActivityById, appendActivity, pruneActivity } from '../../../../../repos/activity'
 import { restoreDocToYjsId, RestorePointCompactedError } from '../../../../../utils/documents/restoreDoc'
-import { findUserNameById } from '../../../../../repos/users'
+import { findUserName } from '../../../../../repos/users'
 import { assertWithinHistory, resolveDocPlan } from '../../../../../utils/billing/entitlements'
 import { activityParams } from '~~/shared/api/docs'
 import { useLogger } from '../../../../../utils/platform/logger'
@@ -35,7 +35,7 @@ export default defineApiHandler({
   access: allow.doc('write-content', { deny: 'docs/edit-forbidden' }),
   params: activityParams,
   body: 'none',
-  handler: async ({ user, docId, docAccess, params: { activityId } }) => {
+  handler: async ({ user, self, docId, docAccess, params: { activityId } }) => {
     const userId = user.id
 
     // The (id, docId) tuple in `getActivityById` pins the row to THIS doc; a
@@ -51,7 +51,7 @@ export default defineApiHandler({
 
     // Display name for the awareness label shown while the restore
     // broadcasts; falls back to "User" if the user record is missing.
-    const actorName = (await findUserNameById(userId)) ?? 'User'
+    const actorName = (await findUserName(self)) ?? 'User'
 
     // Synthetic session id namespacing the JWT principal and the Y.js
     // transaction origin; only needs to be unique per in-flight restore

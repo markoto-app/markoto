@@ -10,8 +10,8 @@ export default defineApiHandler({
   access: allow.user(),
   params: inviteParams,
   body: 'none',
-  handler: async ({ event, user, params, self }) => {
-    const selector = await inAppInviteSelector(user.id, params.inviteId)
+  handler: async ({ event, params, self }) => {
+    const selector = await inAppInviteSelector(self, params.inviteId)
     return acceptInviteForUser(event, self, selector)
   }
 })

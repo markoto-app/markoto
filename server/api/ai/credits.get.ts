@@ -1,6 +1,5 @@
 import { resolveBillingContext } from '../../utils/billing/billing'
 import { getUserKeyInfo } from '../../utils/litellm/userKeys'
-import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
 import { dollarsToPoints, planToPointsTotal } from '~~/shared/billing/aiPoints'
 import { getTiers } from '~~/server/utils/billing/tierConfig'
 import { freeAllowanceView } from '../../utils/billing/freeAllowance'
@@ -27,7 +26,7 @@ import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 export default defineApiHandler({
   access: allow.user(),
   query: aiCreditsQuery,
-  handler: async ({ user, self, query }) => {
+  handler: async ({ user, self, prove, query }) => {
     const userId = user.id
 
     // Optional `workspaceId` so the UI can show a Team workspace's pooled budget.
@@ -36,7 +35,7 @@ export default defineApiHandler({
     // Honour the workspace context only for members: otherwise any logged-in
     // user who learns a workspace id could read its live budget. Non-members
     // fall back to their own context.
-    const membership = requestedWorkspaceId ? await proveWorkspaceAccess(userId, requestedWorkspaceId, 'member') : null
+    const membership = requestedWorkspaceId ? await prove.workspace(requestedWorkspaceId, 'member') : null
     const workspaceId = membership?.workspaceId ?? null
 
     const billing = await resolveBillingContext(userId, workspaceId)

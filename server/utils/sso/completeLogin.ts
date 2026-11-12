@@ -124,7 +124,7 @@ export async function completeSsoLogin(connection: SsoConnectionRow, assertion: 
     activated = true
   }
 
-  const profile = await findUserById(who.userId)
+  const profile = await findUserById(SSO_LOGIN.actingFor(who.userId))
   return {
     userId: who.userId,
     name: profile?.name ?? name,

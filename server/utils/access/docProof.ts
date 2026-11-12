@@ -107,7 +107,7 @@ export function decideDocNeed(need: DocNeed, row: DocAuthzRow, state: DocState, 
 }
 
 /** Every level the actor holds on the document (the runtime content of a proof). */
-export function grantedDocLevels(row: DocAuthzRow, state: DocState, actor: ActorState): DocLevel[] {
+function grantedDocLevels(row: DocAuthzRow, state: DocState, actor: ActorState): DocLevel[] {
   const levels: DocLevel[] = []
   for (const [need, level] of Object.entries(NEED_LEVEL) as Array<[keyof typeof NEED_LEVEL, DocLevel]>) {
     if (RULES[need](row, state, actor) === true) levels.push(level)

@@ -45,13 +45,13 @@ The handler reads the body itself through a size-limited reader and refuses with
 |---|---|---|---|
 | `allow.public(reason)` | anyone; the session is never read (no cookie for anonymous callers) | `{ user: null, self: null }` | yes |
 | `allow.public(reason, { session: 'optional' })` | anyone | `{ user \| null, self \| null }` | yes |
-| `allow.user()` | a signed-in user | `{ user, self }` | no |
+| `allow.user()` | a signed-in user | `{ user, self, prove }` | no |
 | `allow.admin()` | an instance admin (`users.is_admin`); 403 `admin/forbidden` before input is read | `{ user, admin, adminActor, self }` | no |
 | `allow.workspace('member' \| 'editor' \| 'admin', o?)` | a role in `:wsId` (viewer < editor < admin). No role: 404 `workspace/not-found`; too low: 403 `o.deny` (default `auth/forbidden`). `ignoreSso: true` for the SSO settings (break-glass); `ssoHint: true` answers 403 `sso/required` with the sign-in link (returns to `/w/:wsId`). `orSelf: '<param>'`: when the (parsed, numeric) parameter is the caller, `need` is waived and a guest passes too (leaving); context adds `targetUserId`, `isSelf`, `role` may be `'guest'` | `{ user, wsId, role, workspaceAccess, self }` (`workspaceAccess` is null for a guest leaving) | no |
-| `allow.doc(need, o?)` | see below | `{ user, docId, doc, state, actor, authz, docAccess, self }` | with `anonymous: true` |
+| `allow.doc(need, o?)` | see below | `{ user, docId, doc, state, actor, authz, docAccess, self, prove }` | with `anonymous: true` |
 | `allow.internal('secret' \| 'traefik-token' \| 'render-token')` | other containers: `X-Internal-Secret`; the Traefik provider token (`ctx.traefik` = settings, or null when the instance has no custom domains); a render token from `?docId=&t=` (`ctx.render`, plus a view proof `ctx.docAccess` held by `system('internal-render')`) | `{ user: null, … }` | yes |
 | `allow.scim()` | a SCIM bearer token of an SSO connection. Every refusal (token, input, handler) leaves as an RFC 7644 Error object with `application/scim+json`: the policy carries `scimErrorFormat` (`server/utils/sso/scim.ts`); throw `scimError(status, detail, scimType?)` in the handler | `{ user: null, connection, workspaceAccess }` (held by `system('scim')`) | yes |
-| `allow.testOnly({ session? })` | test mode only, 404 otherwise | `{ user \| null, self \| null }` | yes |
+| `allow.testOnly({ session? })` | test mode only, 404 otherwise | `{ user \| null, self \| null, prove \| null }` | yes |
 | `allow.custom(reason, { sessionless, check })` | whatever `check(event, input, gate)` returns; throw to deny. A non-sessionless custom policy still requires a session first. Flag every use in the PR | `check`'s result | as declared |
 
 Document needs (`allow.doc`). Every one is decided by `shared/utils/documents/docPermissions.ts` on the row from `getDocWithActorRole` (`docStateOf` applies share expiry and SSO owner suspension). A missing document is 404 (`code: 'docs/not-found'`); a refusal is 403 `o.deny` (default `auth/forbidden`) or 401 `auth/required` where noted.
@@ -60,7 +60,7 @@ Document needs (`allow.doc`). Every one is decided by `shared/utils/documents/do
 |---|---|---|
 | `file` | `decideFileAccess` (open docs: everyone; private / password: owner, members, doc JWT) | hand-built DocState + `decideFileAccess` |
 | `activity` | `decideActivityAccess` | same for activity, diff, comment context |
-| `write-content` | `canWriteDocContent` (what a writable token would allow); anonymous → 401 | `requireDocEditAccess` |
+| `write-content` | `canWriteDocContent` (what a writable token would allow); anonymous → 401 | — |
 | `edit` | owner, workspace admin / editor | `canEditDoc` |
 | `manage` | owner, workspace admin | `canManageDoc`, `requireShareManager`, `requirePublishManager` |
 | `share-guests` | workspace admin / editor (members, not guests) of a workspace doc | `requireDocSharingAccess` |
@@ -72,6 +72,7 @@ Document needs (`allow.doc`). Every one is decided by `shared/utils/documents/do
 The policy hands the handler capability proofs for exactly what it checked, and repo functions demand them (`server/repos/AGENTS.md` → Proofs, `docs/SECURITY-HARDENING.md` → Tenancy):
 
 - `self` — `UserScope` of the signed-in user acting for themselves (null without a session).
+- `prove` — proofs for a second object, for the signed-in caller only (null without a session): `prove.workspace(wsId, need)` (their SSO-checked role, at least `need`) and `prove.doc(docId, 'view' | 'edit' | 'manage')` (owner or workspace role, access mode not considered). Null when not granted; the handler picks the refusal. Never prove from a user id in a handler (`markoto/proof-entry-imports`).
 - `docAccess` — `DocAccess` for the URL document at the need's level: `file` / `activity` → `view`, `write-content` → `write`, `edit`, `manage`, `share-guests` → `share`, `delete`. A `lookup` proof carries whatever the actor holds; narrow it per field with `docAccess.allows('write')`. Its actor is the user (or anonymous), never the document owner.
 - `workspaceAccess` — `WorkspaceAccess` for `:wsId` at the caller's role.
 - `adminActor` — `AdminActor` for instance-wide reads and writes (`adminActor.doc(id)`, `.workspace(id)`, `.user(id)`), recorded as the audit actor.

@@ -13,9 +13,9 @@ import { aiAvailabilityQuery } from '~~/shared/api/ai'
 export default defineApiHandler({
   access: allow.user(),
   query: aiAvailabilityQuery,
-  handler: async ({ user, query }) => {
+  handler: async ({ user, self, query }) => {
     const plan = await resolvePayingPlan(user.id, query.workspaceId ?? null)
-    const access = await resolveAiAccess(user.id, plan)
+    const access = await resolveAiAccess(self, plan)
     return availabilityFrom(access.providers, access)
   }
 })

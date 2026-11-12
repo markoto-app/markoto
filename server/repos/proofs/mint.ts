@@ -45,6 +45,7 @@ export const SYSTEM_ACTORS = [
   'knowledge-sweep',
   'legal-retention-sweep',
   'litellm-reconcile',
+  'live-dictation',
   'mcp-sessions-sweep',
   'moderation',
   'orphan-cleanup',

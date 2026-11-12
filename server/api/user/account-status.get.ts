@@ -24,8 +24,8 @@ import { legalSurfacesEnabled } from '../../utils/platform/instanceConfig'
 
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const status = await getAccountStatus(user.id)
+  handler: async ({ user, self }) => {
+    const status = await getAccountStatus(self)
     if (!status) {
     // `requireValidatedUserSession` guarantees the row, so a miss means it
     // was purged between validation and this query (deletion sweep): 500, not 404.

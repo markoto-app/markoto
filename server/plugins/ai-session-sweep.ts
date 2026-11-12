@@ -1,5 +1,5 @@
 import * as Sentry from '@sentry/nuxt'
-import { purgeStaleAiSessions, snapshotAiSessions, removeAiSession } from '../utils/ai/aiSessions'
+import { purgeStaleAiSessions, snapshotAiSessions, dropOrphanedAiSession } from '../utils/ai/aiSessions'
 import { migrationsComplete } from '../utils/platform/migrations'
 import { defineSweeper } from '../utils/platform/defineSweeper'
 import { SWEEPS } from '../config/sweeps'
@@ -59,7 +59,7 @@ async function runStartupPurge(): Promise<void> {
  * every instance's sessions, but `abortController` is per-process —
  * the winner instance can only abort its own loops; for orphan rows
  * (sessions running elsewhere), the loop falls through to
- * `removeAiSession` which just drops the DB entry to unblock the
+ * `dropOrphanedAiSession` which just drops the DB entry to unblock the
  * per-user cap.
  */
 async function sweep(): Promise<void> {
@@ -98,6 +98,6 @@ async function abortStaleSession(s: AiSessionRow, ageMs: number): Promise<void> 
     return
   }
   try {
-    await removeAiSession(s.sessionId)
+    await dropOrphanedAiSession(s.sessionId)
   } catch { /* ignore */ }
 }

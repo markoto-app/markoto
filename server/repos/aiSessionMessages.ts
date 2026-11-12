@@ -1,5 +1,5 @@
 import { and, desc, eq, gte, lt } from 'drizzle-orm'
-import type { SystemActor } from './proofs'
+import { proofActingUserId, type DocAccess, type SystemActor } from './proofs'
 import { aiSessionMessages } from '../db/schema'
 import { useDatabase } from '../db/client'
 import { parseAiMessageEntry, type AiMessageEntry } from '../db/columnTypes'
@@ -8,9 +8,14 @@ export { parseAiMessageEntry, type AiMessageEntry } from '../db/columnTypes'
 
 // Per-(doc, user) AI conversation memory. Append-only by convention: no
 // `update`/`delete` exports, mirroring `audit.ts`. Rows disappear only through
-// the cascade FK on doc/user delete. The `<conversation_history>` block in the
-// system prompt is built from `loadRecentMessages(...)`; the hot read is "last
-// N rows for (docId, userId), since the last idle gap".
+// the cascade FK on doc/user delete and the retention sweep. The
+// `<conversation_history>` block in the system prompt is built from
+// `loadRecentMessages(...)`; the hot read is "last N rows for (docId, userId),
+// since the last idle gap".
+//
+// Both ids come from one document proof: the document it names and the user
+// it was decided for (`proofActingUserId`). A session can only read and write
+// its initiator's memory on the document it was opened on.
 
 export type AiMessageRow = {
   id: number
@@ -21,8 +26,6 @@ export type AiMessageRow = {
 } & AiMessageEntry
 
 export type AppendAiMessageInput = {
-  docId: string
-  userId: number
   sessionId: string
 } & AiMessageEntry
 
@@ -32,11 +35,11 @@ export type AppendAiMessageInput = {
  * The row is the audit trail of what the loop did, not the loop's
  * own correctness gate.
  */
-export async function appendAiMessage(input: AppendAiMessageInput): Promise<void> {
+export async function appendAiMessage(doc: DocAccess<'view'>, input: AppendAiMessageInput): Promise<void> {
   const db = useDatabase()
   await db.insert(aiSessionMessages).values({
-    docId: input.docId,
-    userId: input.userId,
+    docId: doc.docId,
+    userId: proofActingUserId(doc),
     sessionId: input.sessionId,
     kind: input.kind,
     body: input.body
@@ -44,7 +47,7 @@ export async function appendAiMessage(input: AppendAiMessageInput): Promise<void
 }
 
 /**
- * Load recent memory rows for a (docId, userId) pair, oldest-first
+ * Load recent memory rows of the proof's (document, user) pair, oldest-first
  * (chronological — the order the prompt builder wants when stitching
  * the `<conversation_history>` block).
  *
@@ -55,11 +58,12 @@ export async function appendAiMessage(input: AppendAiMessageInput): Promise<void
  * context tradeoff actually matters), this repo just enforces them.
  */
 export async function loadRecentMessages(
-  docId: string,
-  userId: number,
+  doc: DocAccess<'view'>,
   opts: { since?: Date, limit?: number } = {}
 ): Promise<AiMessageRow[]> {
   const db = useDatabase()
+  const docId = doc.docId
+  const userId = proofActingUserId(doc)
   const limit = Math.max(1, Math.min(opts.limit ?? 60, 200))
 
   // We need the LATEST `limit` rows but in chronological order in the
@@ -91,13 +95,15 @@ export async function loadRecentMessages(
 }
 
 /**
- * Find the timestamp of the most recent memory row for a (docId, userId).
+ * Find the timestamp of the most recent memory row of the proof's (document, user).
  * Used by the prompt builder to compute the "last activity" reference
  * point so it can decide whether the current prompt is part of the
  * same conversation or a fresh one (idle-gap rotation).
  */
-export async function lastActivityAt(docId: string, userId: number): Promise<Date | null> {
+export async function lastActivityAt(doc: DocAccess<'view'>): Promise<Date | null> {
   const db = useDatabase()
+  const docId = doc.docId
+  const userId = proofActingUserId(doc)
   const row = await db
     .select({ createdAt: aiSessionMessages.createdAt })
     .from(aiSessionMessages)

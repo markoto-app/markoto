@@ -33,3 +33,14 @@ export function actorUserId(actor: Actor): number | null {
 export function proofUserId(proof: { readonly actor: Actor }): number | null {
   return actorUserId(proof.actor)
 }
+
+/**
+ * The signed-in user a document proof was decided for. Rows that belong to a
+ * user AND a document (AI conversation memory, session provenance) are keyed
+ * by both ids of one proof; a proof held by an admin, a job or an anonymous
+ * caller names no such user, so this throws instead of guessing.
+ */
+export function proofActingUserId(proof: DocAccess): number {
+  if (proof.actor.kind !== 'user') throw new Error(`a ${proof.actor.kind} actor has no per-user rows on document ${proof.docId}`)
+  return proof.actor.userId
+}

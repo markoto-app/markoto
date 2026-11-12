@@ -30,7 +30,21 @@ export interface UserRow {
   sessionEpoch: number
 }
 
-export async function findUserById(id: number): Promise<UserRow | null> {
+/** The account row (email, locale, Stripe customer, admin flag) of the proof's user. */
+export async function findUserById(user: UserScope): Promise<UserRow | null> {
+  return readUserRow(user.userId)
+}
+
+/**
+ * The account row behind a session cookie, read while the session is being
+ * validated (and by the admin check that follows it): it decides who the
+ * caller is, so no proof for them exists yet. Nothing else uses it.
+ */
+export async function findSessionUser(sessionUserId: number): Promise<UserRow | null> {
+  return readUserRow(sessionUserId)
+}
+
+async function readUserRow(id: number): Promise<UserRow | null> {
   const db = useDatabase()
   const row = (await db.select().from(users).where(eq(users.id, id)).limit(1))[0]
   return row ?? null
@@ -62,34 +76,15 @@ export async function bumpSessionEpoch(self: UserScope): Promise<number | null> 
   return row?.sessionEpoch ?? null
 }
 
-export async function findUserNameById(id: number): Promise<string | null> {
+/** The user's current display name (what their AI session and their MCP client show as them). */
+export async function findUserName(user: UserScope): Promise<string | null> {
   const db = useDatabase()
   const row = (await db
     .select({ name: users.name })
     .from(users)
-    .where(eq(users.id, id))
+    .where(eq(users.id, user.userId))
     .limit(1))[0]
   return row?.name ?? null
-}
-
-/**
- * Case-insensitive email lookup. Used by the workspace-invite endpoint.
- * Users sign up via GitHub/Google and the provider's casing may differ
- * from what the inviter types.
- */
-export async function findUserByEmail(email: string): Promise<Pick<UserRow, 'id' | 'name' | 'email' | 'login'> | null> {
-  const db = useDatabase()
-  const row = (await db
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      login: users.login
-    })
-    .from(users)
-    .where(sql`lower(${users.email}) = lower(${email})`)
-    .limit(1))[0]
-  return row ?? null
 }
 
 /**
@@ -126,6 +121,6 @@ export async function setAiModelTier(self: UserScope, tier: 'fast' | 'strong'): 
 }
 
 /** The stored pick, read when resolving the providers for that user's own AI calls. */
-export async function getAiModelTier(userId: number): Promise<'fast' | 'strong' | null> {
-  return (await useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, userId)).limit(1))[0]?.tier ?? null
+export async function getAiModelTier(user: UserScope): Promise<'fast' | 'strong' | null> {
+  return (await useDatabase().select({ tier: users.aiModelTier }).from(users).where(eq(users.id, user.userId)).limit(1))[0]?.tier ?? null
 }

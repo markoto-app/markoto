@@ -2,7 +2,7 @@
 // transcribes a recorded clip and the client submits the transcript as a normal
 // prompt. No Y.js session or agentic loop; transcription doesn't touch the doc
 // and the downstream /api/ai/prompt call enforces the usual auth + content
-// gates, so this route does NOT call `requireDocEditAccess`. Per-user billing
+// gates, so this route asks for no document access (`allow.user()`). Per-user billing
 // is the user's virtual-key `max_budget` inside LiteLLM.
 
 import * as Sentry from '@sentry/nuxt'
@@ -46,7 +46,7 @@ export default defineApiHandler({
   // passes the document gates.
   access: allow.user(),
   body: transcribeBody,
-  handler: async ({ user, body }) => {
+  handler: async ({ user, self, body }) => {
     const userId = user.id
 
     // The per-user virtual key's rpm_limit (60/min, `createUserKey` in
@@ -77,7 +77,7 @@ export default defineApiHandler({
     // resolveBillingContext checks membership), else the caller's own.
     const workspaceId = body.workspaceId ?? null
     const billing = await resolveBillingContext(userId, workspaceId)
-    const providers = await requireAiProviders(userId, 'transcription', billing.plan)
+    const providers = await requireAiProviders(self, 'transcription', billing.plan)
     const provider = providers.transcription
     if (!provider) throw providerMissingError('transcription')
     // Translate the upstream BCP-47 codes (e.g. 'en-US') to the ISO shape

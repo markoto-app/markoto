@@ -8,8 +8,8 @@ import { createEvent } from 'h3'
 // a stored address — which an older sign-in may have recorded unverified —
 // must never grant admin on its own at check time.
 
-const findUserById = vi.fn()
-vi.mock('../../../server/repos/users', () => ({ findUserById }))
+const findSessionUser = vi.fn()
+vi.mock('../../../server/repos/users', () => ({ findSessionUser }))
 
 vi.stubGlobal('requireValidatedUserSession', async () => ({ user: { id: 7, name: 'Mallory' } }))
 vi.stubGlobal('createError', (opts: { statusCode: number, message: string }) =>
@@ -22,7 +22,7 @@ const incoming = new IncomingMessage(new Socket())
 const event = createEvent(incoming, new ServerResponse(incoming))
 
 beforeEach(() => {
-  findUserById.mockReset()
+  findSessionUser.mockReset()
   process.env.NUXT_ADMIN_USER_EMAILS = 'admin@example.com'
 })
 
@@ -33,19 +33,19 @@ afterEach(() => {
 
 describe('admin check is column-only', () => {
   it('an allowlisted stored email without the column flag is NOT admin', async () => {
-    findUserById.mockResolvedValue({ id: 7, name: 'Mallory', email: 'admin@example.com', isAdmin: false })
+    findSessionUser.mockResolvedValue({ id: 7, name: 'Mallory', email: 'admin@example.com', isAdmin: false })
     expect(await isAdminUser(7)).toBe(false)
     await expect(requireAdminUser(event)).rejects.toMatchObject({ statusCode: 403 })
   })
 
   it('the column flag grants admin', async () => {
-    findUserById.mockResolvedValue({ id: 7, name: 'Ada', email: null, isAdmin: true })
+    findSessionUser.mockResolvedValue({ id: 7, name: 'Ada', email: null, isAdmin: true })
     expect(await isAdminUser(7)).toBe(true)
     await expect(requireAdminUser(event)).resolves.toMatchObject({ userId: 7 })
   })
 
   it('a missing user is not admin', async () => {
-    findUserById.mockResolvedValue(null)
+    findSessionUser.mockResolvedValue(null)
     expect(await isAdminUser(7)).toBe(false)
     await expect(requireAdminUser(event)).rejects.toMatchObject({ statusCode: 403 })
   })

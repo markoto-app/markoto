@@ -46,7 +46,7 @@ export async function saveUserProvider(
   if (!check.ok) return { kind: 'url-refused', code: check.code, message: check.message }
   const baseUrl = check.normalized
 
-  const existing = await getAiProvider(userId, capability)
+  const existing = await getAiProvider(self, capability)
   let apiKey = body.apiKey
   if (!apiKey) {
     if (!existing || normalizeBaseUrl(existing.baseUrl) !== baseUrl) return { kind: 'key-required' }

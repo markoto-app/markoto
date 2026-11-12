@@ -140,7 +140,7 @@ export async function applyModerationDecision(input: {
 
   let ownerNotice: NoticeStatus | null = null
   if (restricts) {
-    const owner = doc?.ownerId ? await findUserById(doc.ownerId) : null
+    const owner = doc?.ownerId ? await findUserById(input.admin.user(doc.ownerId)) : null
     const notice = buildStatementOfReasons(owner?.locale, {
       reportId: report.reportId,
       documentUrl: documentUrl(report.docId ?? '', report.contentUrl),

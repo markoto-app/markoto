@@ -10,8 +10,8 @@ import { pooledPlansFor } from '../../../utils/billing/workspaceBilling'
 // invitations through the emailed link.
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user, self }) => {
-    const account = await findUserById(user.id)
+  handler: async ({ self }) => {
+    const account = await findUserById(self)
     const email = normaliseInviteEmail(account?.email)
     if (!email) return []
 

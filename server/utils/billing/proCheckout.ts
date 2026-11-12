@@ -51,7 +51,7 @@ export async function startProCheckout(event: H3Event, request: ProCheckoutReque
   if (!stripe) throw apiError('billing/not-configured')
 
   // Reuse an existing Customer so Stripe shows one continuous history.
-  const userRow = await getUserCheckoutBilling(userId)
+  const userRow = await getUserCheckoutBilling(self)
   if (!userRow) throw apiError('resource/not-found')
   const { stripeCustomerId, billingCurrency } = userRow
 

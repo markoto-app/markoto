@@ -13,11 +13,10 @@ import { AI_CAPABILITIES, PROVIDER_PRESETS } from '~~/shared/ai/providers'
 
 export default defineApiHandler({
   access: allow.user(),
-  handler: async ({ user }) => {
-    const userId = user.id
+  handler: async ({ user, self }) => {
     const [rows, access] = await Promise.all([
-      listAiProviders(userId),
-      resolvePayingPlan(userId, null).then(plan => resolveAiAccess(userId, plan))
+      listAiProviders(self),
+      resolvePayingPlan(user.id, null).then(plan => resolveAiAccess(self, plan))
     ])
     const policy = resolveByokUrlPolicy()
     return {

@@ -30,7 +30,7 @@ import {
 } from './workspaceInvites'
 import { useEnv } from '~~/shared/env/load'
 import { useLogger } from '../platform/logger'
-import type { WorkspaceAccess } from '../../repos/proofs'
+import type { UserScope, WorkspaceAccess } from '../../repos/proofs'
 
 const log = useLogger('workspace-invite')
 
@@ -47,7 +47,8 @@ type InviteRole = Parameters<typeof upsertWorkspaceInvite>[1]['role']
 export interface WorkspaceInviteRequest {
   /** The inviting admin's proof: the invite's workspace and inviter come from it. */
   ws: WorkspaceAccess<'admin'>
-  inviter: { id: number, name: string }
+  /** The inviting admin (the actor of `ws`) acting for themselves, and their name for the email. */
+  inviter: { self: UserScope, name: string }
   /** Normalised address (`normaliseInviteEmail`). */
   email: string
   role: InviteRole
@@ -182,7 +183,7 @@ async function buySeat(ctx: InviteContext, pool: PooledWorkspace, seats: number)
   })
   // The billing admin pays: tell them when another admin added a seat.
   const billingAdminId = pool.subscription.billingAdminId
-  if (billingAdminId !== null && billingAdminId !== inviter.id) {
+  if (billingAdminId !== null && billingAdminId !== inviter.self.userId) {
     void notifyWorkspaceAdmins({
       workspaceId: wsId,
       kind: 'seat_added',
@@ -211,7 +212,7 @@ async function recordInvite(ctx: InviteContext, baseUrl: string | null): Promise
 }
 
 async function sendInviteEmail(ctx: InviteContext, token: string, baseUrl: string): Promise<void> {
-  const [inviter, workspace] = await Promise.all([findUserById(ctx.inviter.id), getWorkspace(ctx.ws)])
+  const [inviter, workspace] = await Promise.all([findUserById(ctx.inviter.self), getWorkspace(ctx.ws)])
   const content = buildWorkspaceInviteEmail({
     locale: normaliseInviteLocale(inviter?.locale),
     baseUrl,

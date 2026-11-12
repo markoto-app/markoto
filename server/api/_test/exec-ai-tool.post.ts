@@ -14,7 +14,6 @@ import * as Y from 'yjs'
 import { executeFunctionByName } from '../../utils/ai/tools/registry'
 import { getDoc } from '../../repos/documents'
 import { system } from '../../repos/proofs'
-import { proveWorkspaceAccess } from '../../utils/access/workspaceAccess'
 import { resolveAiProviders } from '../../utils/aiProviders/resolve'
 import { resolveBillingContext } from '../../utils/billing/billing'
 import type { DocToolContext, ToolStatusPhase } from '../../utils/agentic/toolContext'
@@ -23,9 +22,10 @@ import { testExecAiToolBody } from '~~/shared/api/platform'
 export default defineApiHandler({
   access: allow.testOnly({ session: 'required' }),
   body: testExecAiToolBody,
-  handler: async ({ user, self, body: input }) => {
+  handler: async ({ user, self, prove, body: input }) => {
     // The policy requires a session; the check narrows the type.
     if (!user) throw apiError('auth/required')
+    const caller = self ?? system('test-harness').actingFor(user.id)
     const { docId, name } = input
     const args = (input.args && typeof input.args === 'object') ? input.args : {}
 
@@ -60,8 +60,8 @@ export default defineApiHandler({
       initiatorUserId: user.id,
       workspaceId: doc.workspaceId,
       docAccess,
-      self: self ?? system('test-harness').actingFor(user.id),
-      workspaceAccess: doc.workspaceId ? await proveWorkspaceAccess(user.id, doc.workspaceId, 'member') : null,
+      self: caller,
+      workspaceAccess: doc.workspaceId && prove ? await prove.workspace(doc.workspaceId, 'member') : null,
       attributedTo: `user:${user.id}`,
       plan: 'free',
       periodStart: new Date(Date.UTC(
@@ -72,7 +72,7 @@ export default defineApiHandler({
       virtualKey,
       // Real resolution so BYOK tests can drive e.g. generate_image with
       // the caller's configured image provider.
-      aiProviders: await resolveAiProviders(user.id, billing.plan),
+      aiProviders: await resolveAiProviders(caller, billing.plan),
       updateStatus: (_phase: ToolStatusPhase, _message?: string) => { /* swallow */ }
     }
 

@@ -14,6 +14,7 @@ import type { DocNeed } from '../access/docProof'
 import { workspacePolicy, type WorkspaceNeed, type WorkspacePolicyOptions, type WorkspaceCtx, type WorkspaceSelfOptions, type WorkspaceSelfCtx } from './policyWorkspace'
 import type { Policy, PolicyGate, ResolveInput, ValidatedUser, AdminIdentity } from './policyTypes'
 import { proveAdmin, proveSelf } from '../access/userProof'
+import { proverFor, type SecondObjectProver } from './policyProver'
 import { proveScimWorkspace } from '../access/scimProof'
 import { proveRenderDoc } from '../access/docProof'
 import type { AdminActor, DocAccess, UserScope, WorkspaceAccess, WorkspaceGrant } from '../../repos/proofs'
@@ -74,14 +75,14 @@ function signedIn(gate: PolicyGate): ValidatedUser {
   return gate.user
 }
 
-function userPolicy(): Policy<{ user: ValidatedUser, self: UserScope }> {
+function userPolicy(): Policy<{ user: ValidatedUser, self: UserScope, prove: SecondObjectProver }> {
   return {
     kind: 'user',
     sessionless: false,
     gate: userGate,
     resolve: async (_event, gate) => {
       const user = signedIn(gate)
-      return { user, self: proveSelf(user.id) }
+      return { user, self: proveSelf(user.id), prove: proverFor(user.id) }
     }
   }
 }
@@ -154,7 +155,7 @@ function scimPolicy(): Policy<{ user: null, connection: SsoConnectionRow, worksp
   }
 }
 
-function testOnlyPolicy(o?: { session: 'required' | 'none' }): Policy<{ user: ValidatedUser | null, self: UserScope | null }> {
+function testOnlyPolicy(o?: { session: 'required' | 'none' }): Policy<{ user: ValidatedUser | null, self: UserScope | null, prove: SecondObjectProver | null }> {
   const required = o?.session === 'required'
   return {
     kind: 'test-only',
@@ -166,7 +167,7 @@ function testOnlyPolicy(o?: { session: 'required' | 'none' }): Policy<{ user: Va
     },
     resolve: async (_event, gate) => {
       const user = required ? signedIn(gate) : gate.user
-      return { user, self: user ? proveSelf(user.id) : null }
+      return { user, self: user ? proveSelf(user.id) : null, prove: user ? proverFor(user.id) : null }
     }
   }
 }

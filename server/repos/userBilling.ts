@@ -79,7 +79,7 @@ export async function stampFirstStripeCustomer(_by: SystemActor, tx: TxHandle | 
 }
 
 /** What the Pro checkout needs of the buyer: email, Stripe customer + subscription, locked currency. */
-export async function getUserCheckoutBilling(userId: number): Promise<{
+export async function getUserCheckoutBilling(self: UserScope): Promise<{
   email: string | null
   stripeCustomerId: string | null
   stripeSubscriptionId: string | null
@@ -91,7 +91,7 @@ export async function getUserCheckoutBilling(userId: number): Promise<{
     stripeCustomerId: users.stripeCustomerId,
     stripeSubscriptionId: users.stripeSubscriptionId,
     billingCurrency: users.billingCurrency
-  }).from(users).where(eq(users.id, userId)).limit(1)
+  }).from(users).where(eq(users.id, self.userId)).limit(1)
   return rows[0] ?? null
 }
 

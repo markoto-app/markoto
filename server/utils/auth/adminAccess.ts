@@ -1,5 +1,5 @@
 import type { H3Event } from 'h3'
-import { findUserById } from '../../repos/users'
+import { findSessionUser } from '../../repos/users'
 import { useEnv } from '~~/shared/env/load'
 import { apiError } from '../api/apiError'
 
@@ -51,7 +51,7 @@ export function isAdminEmail(email: string | null | undefined): boolean {
  * the Admin nav-link on.
  */
 export async function isAdminUser(userId: number): Promise<boolean> {
-  const user = await findUserById(userId)
+  const user = await findSessionUser(userId)
   return !!user && user.isAdmin
 }
 
@@ -62,7 +62,7 @@ export async function isAdminUser(userId: number): Promise<boolean> {
  */
 export async function requireAdminUser(event: H3Event): Promise<{ userId: number, name: string, email: string }> {
   const session = await requireValidatedUserSession(event)
-  const user = await findUserById(session.user.id)
+  const user = await findSessionUser(session.user.id)
   if (!user?.isAdmin) {
     throw apiError('admin/forbidden')
   }

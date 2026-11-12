@@ -60,7 +60,7 @@ describe('user_ai_providers repo', () => {
     const u = await createUser()
     await upsertAiProvider(asUser(u.id), row(u.id))
     await upsertAiProvider(asUser(u.id), row(u.id, { model: 'ministral-8b-2512' }))
-    const all = await listAiProviders(u.id)
+    const all = await listAiProviders(asUser(u.id))
     expect(all).toHaveLength(1)
     expect(all[0]?.model).toBe('ministral-8b-2512')
   })
@@ -86,7 +86,7 @@ describe('user_ai_providers repo', () => {
     const u = await createUser()
     await upsertAiProvider(asUser(u.id), row(u.id, { supportsTools: null, lastVerifiedAt: null }))
     await markAiProviderVerified(asUser(u.id), 'chat', { supportsTools: false, verifiedAt: new Date() })
-    const after = await getAiProvider(u.id, 'chat')
+    const after = await getAiProvider(asUser(u.id), 'chat')
     expect(after?.supportsTools).toBe(false)
     expect(after?.lastVerifiedAt).not.toBeNull()
     expect(await deleteAiProvider(asUser(u.id), 'chat')).toBe(true)
@@ -97,7 +97,7 @@ describe('user_ai_providers repo', () => {
     const a = await createUser()
     const b = await createUser()
     await upsertAiProvider(asUser(a.id), row(a.id))
-    expect(await getAiProvider(b.id, 'chat')).toBeNull()
+    expect(await getAiProvider(asUser(b.id), 'chat')).toBeNull()
   })
 })
 
@@ -112,7 +112,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
 
   it('nothing configured → every capability unavailable', async () => {
     const u = await createUser()
-    const p = await resolveAiProviders(u.id, 'free')
+    const p = await resolveAiProviders(asUser(u.id), 'free')
     expect(p).toEqual({ chat: null, image: null, transcription: null })
     const a = availabilityFrom(p)
     expect(a.chat).toMatchObject({ available: false, source: 'none', platformBilled: false })
@@ -122,7 +122,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
   it('instance alias default → platform-billed, no credentials', async () => {
     vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'mistral-small-2603')
     const u = await createUser()
-    const p = await resolveAiProviders(u.id, 'free')
+    const p = await resolveAiProviders(asUser(u.id), 'free')
     expect(p.chat).toMatchObject({ source: 'instance', model: 'mistral-small-2603', credentials: null })
     expect(availabilityFrom(p).chat).toMatchObject({ available: true, source: 'instance', platformBilled: true })
   })
@@ -131,7 +131,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
     vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'mistral-small-2603')
     const u = await createUser()
     await upsertAiProvider(asUser(u.id), row(u.id, { model: 'gpt-5.4-mini', baseUrl: 'https://api.openai.com/v1' }))
-    const p = await resolveAiProviders(u.id, 'free')
+    const p = await resolveAiProviders(asUser(u.id), 'free')
     expect(p.chat).toMatchObject({ source: 'user', model: 'gpt-5.4-mini', credentials: { baseUrl: 'https://api.openai.com/v1', apiKey: SECRET } })
     expect(availabilityFrom(p).chat.platformBilled).toBe(false)
   })
@@ -140,7 +140,7 @@ describe('resolution order: own key → instance default → unavailable', () =>
     vi.stubEnv('NUXT_AI_DEFAULT_CHAT_MODEL', 'mistral-small-2603')
     const u = await createUser()
     await upsertAiProvider(asUser(u.id), row(u.id, { apiKeyEncrypted: 'v1:broken:broken:broken' }))
-    const p = await resolveAiProviders(u.id, 'free')
+    const p = await resolveAiProviders(asUser(u.id), 'free')
     expect(p.chat?.source).toBe('instance')
   })
 
@@ -149,32 +149,32 @@ describe('resolution order: own key → instance default → unavailable', () =>
     const alice = await createUser()
     const mallory = await createUser()
     await upsertAiProvider(asUser(alice.id), row(alice.id))
-    const stolen = (await getAiProvider(alice.id, 'chat'))!.apiKeyEncrypted
+    const stolen = (await getAiProvider(asUser(alice.id), 'chat'))!.apiKeyEncrypted
     await upsertAiProvider(asUser(mallory.id), row(mallory.id, { apiKeyEncrypted: stolen }))
-    expect((await resolveAiProviders(alice.id, 'free')).chat?.credentials?.apiKey).toBe(SECRET)
-    expect((await resolveAiProviders(mallory.id, 'free')).chat?.source).toBe('instance')
+    expect((await resolveAiProviders(asUser(alice.id), 'free')).chat?.credentials?.apiKey).toBe(SECRET)
+    expect((await resolveAiProviders(asUser(mallory.id), 'free')).chat?.source).toBe('instance')
   })
 
   it('live dictation: own Mistral transcription key → available, not platform-billed', async () => {
     const u = await createUser()
     await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'transcription', model: 'voxtral-mini-2602', supportsVision: false }))
-    const a = availabilityFrom(await resolveAiProviders(u.id, 'free'))
+    const a = availabilityFrom(await resolveAiProviders(asUser(u.id), 'free'))
     expect(a.transcription).toMatchObject({ available: true, source: 'user', liveDictation: true })
   })
 
   it('live dictation: a non-Mistral transcription key → transcription yes, dictation no', async () => {
     const u = await createUser()
     await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'transcription', model: 'whisper-1', baseUrl: 'https://api.openai.com/v1' }))
-    const a = availabilityFrom(await resolveAiProviders(u.id, 'free'))
+    const a = availabilityFrom(await resolveAiProviders(asUser(u.id), 'free'))
     expect(a.transcription).toMatchObject({ available: true, liveDictation: false })
   })
 
   it('live dictation on an alias default needs the operator MISTRAL_API_KEY', async () => {
     vi.stubEnv('NUXT_AI_DEFAULT_TRANSCRIBE_MODEL', 'voxtral-mini-transcribe')
     const u = await createUser()
-    expect(availabilityFrom(await resolveAiProviders(u.id, 'free')).transcription.liveDictation).toBe(false)
+    expect(availabilityFrom(await resolveAiProviders(asUser(u.id), 'free')).transcription.liveDictation).toBe(false)
     vi.stubEnv('MISTRAL_API_KEY', 'operator-key')
-    expect(availabilityFrom(await resolveAiProviders(u.id, 'free')).transcription.liveDictation).toBe(true)
+    expect(availabilityFrom(await resolveAiProviders(asUser(u.id), 'free')).transcription.liveDictation).toBe(true)
   })
 })
 
@@ -197,7 +197,7 @@ describe('AI by plan', () => {
 
   it('a plan without image / voice gets no platform default for them — locked, not missing', async () => {
     const u = await createUser()
-    const access = await resolveAiAccess(u.id, 'free')
+    const access = await resolveAiAccess(asUser(u.id), 'free')
     expect(access.providers.chat?.model).toBe('zai-glm-5-3-flash')
     expect(access.providers.image).toBeNull()
     expect(access.providers.transcription).toBeNull()
@@ -207,7 +207,7 @@ describe('AI by plan', () => {
     expect(a.chat.locked).toBeUndefined()
     vi.stubGlobal('createError', (input: Record<string, unknown>) => Object.assign(new Error(String(input.message)), input))
     try {
-      await expect(requireAiProviders(u.id, 'transcription', 'free')).rejects.toMatchObject({ statusCode: 409, data: { code: 'plan/feature-unavailable', feature: 'aiVoice' } })
+      await expect(requireAiProviders(asUser(u.id), 'transcription', 'free')).rejects.toMatchObject({ statusCode: 409, data: { code: 'plan/feature-unavailable', feature: 'aiVoice' } })
     } finally {
       vi.unstubAllGlobals()
     }
@@ -215,11 +215,11 @@ describe('AI by plan', () => {
 
   it('Pro unlocks them; an own key unlocks them on any plan', async () => {
     const u = await createUser()
-    const pro = await resolveAiAccess(u.id, 'pro')
+    const pro = await resolveAiAccess(asUser(u.id), 'pro')
     expect(pro.providers.image?.model).toBe('flux-2-pro')
     expect(pro.locked).toEqual([])
     await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'image', model: 'gpt-image-1', baseUrl: 'https://api.openai.com/v1', supportsVision: false }))
-    const free = await resolveAiAccess(u.id, 'free')
+    const free = await resolveAiAccess(asUser(u.id), 'free')
     expect(free.providers.image?.source).toBe('user')
     expect(free.locked).toEqual(['transcription'])
   })
@@ -227,10 +227,10 @@ describe('AI by plan', () => {
   it('"Strong" uses the strong model only where the plan includes it', async () => {
     const u = await createUser()
     await testDb().query(`UPDATE users SET ai_model_tier = 'strong' WHERE id = $1`, [u.id])
-    const free = await resolveAiAccess(u.id, 'free')
+    const free = await resolveAiAccess(asUser(u.id), 'free')
     expect(free.providers.chat?.model).toBe('zai-glm-5-3-flash')
     expect(free.modelTier).toEqual({ selected: 'strong', strongAvailable: true, strongLocked: true })
-    const pro = await resolveAiAccess(u.id, 'pro')
+    const pro = await resolveAiAccess(asUser(u.id), 'pro')
     expect(pro.providers.chat?.model).toBe('mistral-small-2603')
     expect(pro.modelTier.strongLocked).toBe(false)
   })
@@ -239,7 +239,7 @@ describe('AI by plan', () => {
     const u = await createUser()
     await testDb().query(`UPDATE users SET ai_model_tier = 'strong' WHERE id = $1`, [u.id])
     await upsertAiProvider(asUser(u.id), row(u.id, { model: 'gpt-5.4-mini', baseUrl: 'https://api.openai.com/v1' }))
-    const pro = await resolveAiAccess(u.id, 'pro')
+    const pro = await resolveAiAccess(asUser(u.id), 'pro')
     expect(pro.providers.chat?.model).toBe('gpt-5.4-mini')
     expect(pro.modelTier.strongAvailable).toBe(false)
   })
@@ -275,8 +275,8 @@ describe('GDPR: export + account deletion', () => {
     await upsertAiProvider(asUser(u.id), row(u.id, { capability: 'image', model: 'gpt-image-1', baseUrl: 'https://api.openai.com/v1' }))
     await upsertAiProvider(asUser(other.id), row(other.id))
     expect(await deleteAllAiProvidersForUser(asUser(u.id))).toBe(2)
-    expect(await listAiProviders(u.id)).toHaveLength(0)
-    expect(await listAiProviders(other.id)).toHaveLength(1)
+    expect(await listAiProviders(asUser(u.id))).toHaveLength(0)
+    expect(await listAiProviders(asUser(other.id))).toHaveLength(1)
   })
 
   it('deleting the user row cascades to the configs', async () => {

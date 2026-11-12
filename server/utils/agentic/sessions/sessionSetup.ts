@@ -1,10 +1,10 @@
 import type { H3Event } from 'h3'
 import { nanoid } from 'nanoid'
-import { findUserNameById } from '../../../repos/users'
+import { findUserName } from '../../../repos/users'
 import type { getDoc } from '../../../repos/documents'
 import { listMembers } from '../../../repos/workspaceMembers'
 import { proveWorkspaceAccess } from '../../access/workspaceAccess'
-import type { DocAccess, WorkspaceAccess } from '../../../repos/proofs'
+import type { DocAccess, UserScope, WorkspaceAccess } from '../../../repos/proofs'
 import { listReadyKnowledgeBrief } from '../../../repos/knowledge'
 import { addAiSession, DuplicateSessionError } from '../../ai/aiSessions'
 import { resolveBillingContext, type BillingContext } from '../../billing/billing'
@@ -89,6 +89,8 @@ export interface OpenSessionRequest {
   docId: string
   /** The route's write proof for the document; the session registers on it. */
   docAccess: DocAccess<'write'>
+  /** The initiator: whose providers, name and session row. */
+  self: UserScope
   userId: number
   userName: string
   workspaceId: string | null
@@ -106,13 +108,13 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
   const billingContext = await resolveBillingContext(userId, request.workspaceId)
   // BYOK: the user's own provider (or the instance default). No chat
   // provider → 409 `ai/provider-missing` with a link to the settings page.
-  const aiProviders = await requireAiProviders(userId, 'chat', billingContext.plan)
+  const aiProviders = await requireAiProviders(request.self, 'chat', billingContext.plan)
   // Hosted free tier: the shared monthly pool may be used up — answer
   // 402 `ai/free-allowance-exhausted` before opening a session (own-key
   // users are never refused here).
   await assertFreeAllowanceAvailable(aiProviders.chat, billingContext.plan)
 
-  const initiatorName = (await findUserNameById(userId)) || request.userName
+  const initiatorName = (await findUserName(request.self)) || request.userName
   const initiatorColor = '#d97706'
 
   const sessionId = nanoid(12)
@@ -122,7 +124,7 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
     if (!req.readableEnded) abortController.abort()
   })
 
-  await claimAiSession({ sessionId, docId, docAccess: request.docAccess, userId, initiatorName, initiatorColor, abortController })
+  await claimAiSession({ sessionId, docAccess: request.docAccess, self: request.self, userId, initiatorName, initiatorColor, abortController })
   const deadlineTimer = setTimeout(() => abortController.abort(), AI_SESSION_HARD_DEADLINE_MS)
   // Initiator-only channel: prompt, status text, answers, confirmations.
   // Opened before the response so the client's first poll finds it.
@@ -133,8 +135,8 @@ export async function openAiSession(event: H3Event, request: OpenSessionRequest)
 
 interface ClaimSessionArgs {
   sessionId: string
-  docId: string
   docAccess: DocAccess<'write'>
+  self: UserScope
   userId: number
   initiatorName: string
   initiatorColor: string
@@ -159,5 +161,5 @@ async function claimAiSession(args: ClaimSessionArgs): Promise<void> {
   }
   // Provenance row BEFORE the AI client can write (taint gate, see
   // `sessionProvenance.ts`). Releases the session again on failure.
-  await recordSessionProvenance(args.sessionId, args.docId, args.userId)
+  await recordSessionProvenance(args.docAccess, args.self, args.sessionId)
 }

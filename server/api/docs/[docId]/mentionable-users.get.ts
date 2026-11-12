@@ -1,5 +1,4 @@
 import { listMembers } from '../../../repos/workspaceMembers'
-import { proveWorkspaceAccess } from '../../../utils/access/workspaceAccess'
 
 // Typeahead source for `@`-mentions inside doc comments.
 //
@@ -14,7 +13,7 @@ import { proveWorkspaceAccess } from '../../../utils/access/workspaceAccess'
 // client-side from the id.
 export default defineApiHandler({
   access: allow.doc('lookup', { reason: 'Never refuses an existing document: only members of its workspace (not guests) get a non-empty list.' }),
-  handler: async ({ user, doc }) => {
+  handler: async ({ prove, doc }) => {
     // No workspace = no enumeration. Comments still work, just without
     // autocomplete on a non-existent member roster.
     if (!doc.workspaceId) return { users: [] }
@@ -24,7 +23,7 @@ export default defineApiHandler({
     // from their share). Doc owners who have been booted from the workspace
     // lose this privilege — they can still see comments via the doc-level
     // grant, but typing `@` gets them no list.
-    const ws = await proveWorkspaceAccess(user.id, doc.workspaceId, 'member')
+    const ws = await prove.workspace(doc.workspaceId, 'member')
     if (ws === null) return { users: [] }
 
     // Guests see only documents shared with them: not offered.

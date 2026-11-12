@@ -64,8 +64,8 @@ export function readRestorableMeta(pastMeta: Y.Map<unknown>): Record<string, unk
 // (returns 409 from the endpoint).
 //
 // What does NOT live here:
-//   - Auth (caller's responsibility — `requireDocEditAccess` in the
-//     endpoint runs first)
+//   - Auth (caller's responsibility — the endpoint's
+//     `allow.doc('write-content')` policy runs first)
 //   - The activity-log row write (caller writes it after success
 //     so a replay-time exception leaves no orphan)
 

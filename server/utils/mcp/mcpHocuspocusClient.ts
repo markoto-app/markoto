@@ -178,7 +178,7 @@ export async function connectAsMcpClient(input: ConnectAsMcpClientInput): Promis
   const billingContext = await resolveBillingContext(input.userId, workspaceId)
   // BYOK providers, resolved per call like the billing context so a
   // settings change is picked up on the next tool call.
-  const aiProviders = await resolveAiProviders(input.userId, billingContext.plan)
+  const aiProviders = await resolveAiProviders(input.self, billingContext.plan)
 
   let entry
   try {

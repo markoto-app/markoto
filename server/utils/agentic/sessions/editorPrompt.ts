@@ -38,7 +38,7 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   const doc = await getDoc(docAccess)
   const wsCtx = await resolveSessionWorkspace(doc?.workspaceId ?? null, userId)
   const documentContextBlock = documentContextBlockFor(doc)
-  const conversationBlock = await loadConversationBlock(docId, userId)
+  const conversationBlock = await loadConversationBlock(docAccess)
   // Ordered for prompt caching (`agentic/promptAssembly.ts`): the system
   // message is static-first, and the per-prompt conversation memory opens the
   // first USER message (`promptPreamble`) instead. Placing it in the system
@@ -52,13 +52,14 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
   const session = await openAiSession(event, {
     docId,
     docAccess,
+    self,
     userId,
     userName: request.user.name,
     workspaceId: wsCtx.workspaceId,
     channelPrompt: prompt,
     commentThreadId: null
   })
-  const memory = { docId, userId, sessionId: session.sessionId }
+  const memory = { docAccess, sessionId: session.sessionId }
 
   void runAgentSession({
     docId,
@@ -88,11 +89,11 @@ export async function startEditorPrompt(event: H3Event, request: EditorPromptReq
  * rows or the latest is older than the idle gap (60 min). Read failures
  * degrade to no memory rather than blocking the prompt.
  */
-async function loadConversationBlock(docId: string, userId: number): Promise<string> {
+async function loadConversationBlock(docAccess: DocAccess<'write'>): Promise<string> {
   try {
-    const lastAt = await lastActivityAt(docId, userId)
+    const lastAt = await lastActivityAt(docAccess)
     const ctx = await buildConversationContextForPrompt(
-      since => loadRecentMessages(docId, userId, { since }),
+      since => loadRecentMessages(docAccess, { since }),
       lastAt
     )
     return ctx.block
@@ -103,8 +104,8 @@ async function loadConversationBlock(docId: string, userId: number): Promise<str
 }
 
 interface MemoryKey {
-  docId: string
-  userId: number
+  /** The session's document, proven for its initiator: the memory row's document and user. */
+  docAccess: DocAccess<'write'>
   sessionId: string
 }
 
@@ -116,9 +117,7 @@ interface MemoryKey {
  */
 async function recordUserPromptMemory(key: MemoryKey, prompt: string): Promise<void> {
   try {
-    await appendAiMessage({
-      docId: key.docId,
-      userId: key.userId,
+    await appendAiMessage(key.docAccess, {
       sessionId: key.sessionId,
       kind: 'user_prompt',
       body: { text: prompt }
@@ -136,9 +135,7 @@ async function recordUserPromptMemory(key: MemoryKey, prompt: string): Promise<v
 async function recordToolCallMemory(key: MemoryKey, name: string, validatedArgs: unknown): Promise<void> {
   if (!shouldRecordToolInMemory(name)) return
   try {
-    await appendAiMessage({
-      docId: key.docId,
-      userId: key.userId,
+    await appendAiMessage(key.docAccess, {
       sessionId: key.sessionId,
       kind: 'tool_call',
       body: { name, summary: summarizeToolCall(name, validatedArgs) }

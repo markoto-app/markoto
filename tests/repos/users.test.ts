@@ -2,9 +2,9 @@ import { describe, it, expect, beforeEach } from 'vitest'
 import { resetDb, testDb } from '../integration/setup/db'
 import { cancelAccountDeletion, getAccountDeletionStatus, requestAccountDeletion } from '../../server/repos/userDeletionRequests'
 import {
+  findSessionUser,
   findUserById,
-  findUserNameById,
-  findUserByEmail,
+  findUserName,
   setAdminFlag
 } from '../../server/repos/users'
 import { getAccountStatus } from '../../server/repos/userPolicies'
@@ -35,7 +35,7 @@ describe('findUserById', () => {
   })
 
   it('returns null for a nonexistent id', async () => {
-    expect(await findUserById(9999)).toBeNull()
+    expect(await findUserById(asUser(9999))).toBeNull()
   })
 
   it('returns the full row for an existing user', async () => {
@@ -44,14 +44,14 @@ describe('findUserById', () => {
       login: 'a', name: 'Alice', email: 'a@t.l',
       emailVerified: true
     })
-    const row = await findUserById(id)
+    const row = await findUserById(asUser(id))
     expect(row!.name).toBe('Alice')
     expect(row!.githubId).toBe('gh-1')
     expect(row!.googleId).toBeNull()
   })
 })
 
-describe('findUserNameById', () => {
+describe('findUserName', () => {
   beforeEach(async () => {
     await resetDb()
   })
@@ -62,53 +62,27 @@ describe('findUserNameById', () => {
       name: 'Bob', email: null,
       emailVerified: false
     })
-    expect(await findUserNameById(id)).toBe('Bob')
+    expect(await findUserName(asUser(id))).toBe('Bob')
   })
 
   it('returns null for nonexistent id', async () => {
-    expect(await findUserNameById(9999)).toBeNull()
+    expect(await findUserName(asUser(9999))).toBeNull()
   })
 })
 
-describe('findUserByEmail', () => {
+describe('findSessionUser', () => {
   beforeEach(async () => {
     await resetDb()
   })
 
-  it('finds a user by exact email', async () => {
-    await upsert({
-      provider: 'github', providerUserId: 'gh-1',
-      login: 'c', name: 'Charlie', email: 'charlie@test.local',
+  it('reads the same row as findUserById (the session check has no proof yet)', async () => {
+    const id = await upsert({
+      provider: 'github', providerUserId: 'gh-s',
+      login: 's', name: 'Sam', email: 's@t.l',
       emailVerified: true
     })
-    const row = await findUserByEmail('charlie@test.local')
-    expect(row!.name).toBe('Charlie')
-  })
-
-  it('is case-insensitive', async () => {
-    // Signed up via GitHub with capitalized email; looked up with
-    // lowercase — must still match.
-    await upsert({
-      provider: 'github', providerUserId: 'gh-2',
-      login: 'd', name: 'Dana', email: 'Dana@Test.Local',
-      emailVerified: true
-    })
-    expect((await findUserByEmail('dana@test.local'))?.name).toBe('Dana')
-    expect((await findUserByEmail('DANA@TEST.LOCAL'))?.name).toBe('Dana')
-  })
-
-  it('returns null when no match', async () => {
-    expect(await findUserByEmail('ghost@nowhere.test')).toBeNull()
-  })
-
-  it('ignores users with null email even on "null"-ish query', async () => {
-    // Pin behavior: null-email users never match an email lookup.
-    await upsert({
-      provider: 'google', providerUserId: 'g-nullmail',
-      name: 'Eve', email: null,
-      emailVerified: false
-    })
-    expect(await findUserByEmail('')).toBeNull()
+    expect(await findSessionUser(id)).toEqual(await findUserById(asUser(id)))
+    expect(await findSessionUser(9999)).toBeNull()
   })
 })
 
@@ -124,7 +98,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
       emailVerified: true
     })
     expect(r.outcome).toBe('inserted')
-    const row = await findUserById(r.userId)
+    const row = await findUserById(asUser(r.userId))
     expect(row!.githubId).toBe('gh-insert')
     expect(row!.googleId).toBeNull()
     expect(row!.login).toBe('alice')
@@ -143,7 +117,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
     })
     expect(r2.outcome).toBe('updated')
     expect(r2.userId).toBe(r1.userId)
-    const row = await findUserById(r1.userId)
+    const row = await findUserById(asUser(r1.userId))
     expect(row!.name).toBe('Alice New')
     expect(row!.login).toBe('alice-new')
     expect(row!.email).toBe('new@test.local')
@@ -163,7 +137,7 @@ describe('upsertOAuthUser — basic outcomes', () => {
       login: 'x2', name: 'X2', email: null,
       emailVerified: false
     })
-    const row = await findUserById(id)
+    const row = await findUserById(asUser(id))
     expect(row!.googleId).toBeNull()
     expect(row!.githubId).toBe('gh-x')
   })
@@ -182,8 +156,8 @@ describe('upsertOAuthUser — basic outcomes', () => {
       emailVerified: false
     })
     expect(ghId).not.toBe(goId)
-    expect((await findUserById(ghId))!.githubId).toBe('shared-id')
-    expect((await findUserById(goId))!.googleId).toBe('shared-id')
+    expect((await findUserById(asUser(ghId)))!.githubId).toBe('shared-id')
+    expect((await findUserById(asUser(goId)))!.googleId).toBe('shared-id')
   })
 
   it('concurrent upserts on the SAME providerUserId: both return the same id', async () => {
@@ -231,7 +205,7 @@ describe('upsertOAuthUser — email-based merge', () => {
     expect(second.outcome).toBe('merged')
     expect(second.userId).toBe(first.userId)
 
-    const row = await findUserById(first.userId)
+    const row = await findUserById(asUser(first.userId))
     expect(row!.githubId).toBe('gh-alice')
     expect(row!.googleId).toBe('g-alice') // linked
     // Email normalises to the latest login's value. Login stays
@@ -507,7 +481,7 @@ describe('getAccountStatus', () => {
 
   it('returns the privacy projection for a fresh user', async () => {
     const userId = await newUser()
-    const status = await getAccountStatus(userId)
+    const status = await getAccountStatus(asUser(userId))
     expect(status).not.toBeNull()
     expect(status!.email).toMatch(/@test\.local$/)
     expect(status!.locale).toBeNull()
@@ -521,13 +495,13 @@ describe('getAccountStatus', () => {
   it('reflects a scheduled deletion', async () => {
     const userId = await newUser()
     await requestAccountDeletion(asUser(userId), 30)
-    const status = await getAccountStatus(userId)
+    const status = await getAccountStatus(asUser(userId))
     expect(status!.deletionRequestedAt).toBeInstanceOf(Date)
     expect(status!.deletionGraceUntil).toBeInstanceOf(Date)
   })
 
   it('returns null for a nonexistent user', async () => {
-    expect(await getAccountStatus(99_999_999)).toBeNull()
+    expect(await getAccountStatus(asUser(99_999_999))).toBeNull()
   })
 })
 
@@ -544,7 +518,7 @@ describe('setAdminFlag', () => {
     expect(result).toEqual({ previous: false })
 
     // Verify the column actually flipped via findUserById.
-    const reread = await findUserById(userId)
+    const reread = await findUserById(asUser(userId))
     expect(reread?.isAdmin).toBe(true)
   })
 
@@ -554,7 +528,7 @@ describe('setAdminFlag', () => {
     // Second call should report previous=true and write nothing.
     const result = await setAdminFlag(sys(), userId, true)
     expect(result).toEqual({ previous: true })
-    const reread = await findUserById(userId)
+    const reread = await findUserById(asUser(userId))
     expect(reread?.isAdmin).toBe(true)
   })
 
@@ -563,7 +537,7 @@ describe('setAdminFlag', () => {
     await setAdminFlag(sys(), userId, true)
     const result = await setAdminFlag(sys(), userId, false)
     expect(result).toEqual({ previous: true })
-    const reread = await findUserById(userId)
+    const reread = await findUserById(asUser(userId))
     expect(reread?.isAdmin).toBe(false)
   })
 
@@ -579,11 +553,11 @@ describe('findUserById — isAdmin projection', () => {
 
   it('exposes the isAdmin column on every read', async () => {
     const userId = await newUser()
-    const fresh = await findUserById(userId)
+    const fresh = await findUserById(asUser(userId))
     expect(fresh?.isAdmin).toBe(false)
 
     await setAdminFlag(sys(), userId, true)
-    const promoted = await findUserById(userId)
+    const promoted = await findUserById(asUser(userId))
     expect(promoted?.isAdmin).toBe(true)
   })
 })

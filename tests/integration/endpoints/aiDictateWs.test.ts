@@ -281,7 +281,7 @@ describe('WS /api/ai/dictate', () => {
 
   describe('doc access gating', () => {
     it('returns 403 at the token endpoint if the user cannot edit the doc', async () => {
-      // The HTTP token route enforces requireDocEditAccess. A second
+      // The HTTP token route enforces `write-content` access. A second
       // user trying to mint a dictation token for someone else's
       // private doc must be blocked BEFORE they can even open the
       // WS. This test pins the HTTP gate; the WS itself only sees

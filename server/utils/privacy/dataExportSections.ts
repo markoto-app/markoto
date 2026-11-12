@@ -62,7 +62,7 @@ export async function addWaitlistEntry(entries: ExportEntries, user: UserScope):
  * travels by email link and must not become a credential carrier.
  */
 export async function addAiProvidersEntry(entries: ExportEntries, user: UserScope): Promise<number> {
-  const rows = await listAiProviders(user.userId)
+  const rows = await listAiProviders(user)
   entries['ai/providers.json'] = strToU8(JSON.stringify(rows.map(r => ({
     capability: r.capability,
     baseUrl: r.baseUrl,

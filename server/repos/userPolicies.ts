@@ -63,7 +63,7 @@ export async function applyDpaAcceptance(self: UserScope, args: {
     .where(eq(users.id, self.userId))
 }
 
-export async function getAccountStatus(userId: number): Promise<AccountStatus | null> {
+export async function getAccountStatus(self: UserScope): Promise<AccountStatus | null> {
   const db = useDatabase()
   const row = (await db
     .select({
@@ -80,7 +80,7 @@ export async function getAccountStatus(userId: number): Promise<AccountStatus | 
       dpaVersionAcceptedLocale: users.dpaVersionAcceptedLocale
     })
     .from(users)
-    .where(eq(users.id, userId))
+    .where(eq(users.id, self.userId))
     .limit(1))[0]
   return row ?? null
 }
