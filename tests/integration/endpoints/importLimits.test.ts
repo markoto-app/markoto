@@ -194,7 +194,11 @@ describe('markitdown decompression limits', () => {
   }, 120_000)
 
   it('converts an ordinary DOCX (positive control)', async () => {
-    const out = await convert(smallDocx('Hello from a small docx'), 'docx')
+    // The first request after the minutes-long beforeAll can land on a pooled
+    // keep-alive socket the server has closed meanwhile; that says nothing
+    // about the converter, so this one request is sent again.
+    const docx = smallDocx('Hello from a small docx')
+    const out = await convert(docx, 'docx').catch(() => convert(docx, 'docx'))
     expect(out.status).toBe(200)
     expect(out.text).toContain('Hello from a small docx')
   })

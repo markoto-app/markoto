@@ -26,10 +26,13 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 # The base image's global npm (+ npx) is removed: nothing here uses it
 # (deps install with bun), and its vendored node_modules carry fixable
 # HIGH CVEs that the CI image scan would otherwise flag on every build.
+# `apt` itself is upgraded: the pinned base image trails a fixed HIGH CVE
+# in it that the image scan gates on.
 # Firefox and WebKit are removed too: only Chromium is ever launched, and
 # every browser left in the image is attack surface and image weight.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends unzip \
+ && apt-get install -y --no-install-recommends --only-upgrade apt libapt-pkg6.0 \
  && rm -rf /var/lib/apt/lists/* \
  && curl -fsSL https://bun.sh/install | BUN_INSTALL=/opt/bun bash -s "bun-v1.4.4" \
  && ln -s /opt/bun/bin/bun /usr/local/bin/bun \
