@@ -98,6 +98,11 @@ const FLOWS_ENV: Record<string, string> = {
   // virtual key; the budget-exhausted flow drives the real /key/* admin API.
   NUXT_LITELLM_URL: 'http://127.0.0.1:4100',
   NUXT_LITELLM_MASTER_KEY: 'sk-test-litellm-master',
+  // LiteLLM's own database on postgres-test (deploy/compose/compose.test.yml);
+  // the spend-log sweeps read it. Same values as tests/integration/setup.
+  NUXT_LITELLM_DB_NAME: 'litellm_test',
+  NUXT_LITELLM_DB_USER: 'litellm_test',
+  NUXT_LITELLM_DB_PASSWORD: 'litellmtestpassword',
   NUXT_ENCRYPTION_KEY: 'test-encryption-key-zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz',
   // Billing mode and the marketing site are set per pass, not here: main()
   // runs untagged flows against the hosted shape (billing off, paid plans
